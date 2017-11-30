@@ -5,7 +5,7 @@ set pythonexe="%1"
 goto custom_python:
 
 :default_value_python:
-set pythonexe="c:\Python363_x64\python"
+set pythonexe="c:\Python363_x64\python.exe"
 if not exist %pythonexe% set pythonexe="c:\Python36_x64\python"
 :custom_python:
 @echo [python] %pythonexe%

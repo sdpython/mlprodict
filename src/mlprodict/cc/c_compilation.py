@@ -77,7 +77,7 @@ class CompilationError(Exception):
 
 
 def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
-                       suffix="", additional_paths=None, fLOG=None):
+                       suffix="", additional_paths=None, tmpdir='.', fLOG=None):
     """
     Compiles a C function with :epkg:`cffi`.
     It takes one features vector.
@@ -89,11 +89,17 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     @param      add_header          add common function before compiling
     @param      suffix              avoid avoid the same compiled module name
     @param      additional_paths    additional paths to add to the module
+    @param      tmpdir              see `compile <http://cffi.readthedocs.io/en/latest/cdef.html?highlight=compile#ffibuilder-compile-etc-compiling-out-of-line-modules>`_
     @param      fLOG                logging function
     @return     compiled            function
 
     The function assumes the first line is the signature.
     """
+    if sys.platform.startswith("win"):
+        if "VS140COMNTOOLS" not in os.environ:
+            raise CompilationError("Visual Studio is not installed.\n{0}".format(
+                "\n".join("{0}={1}".format(k, v) for k, v in sorted(os.environ.items()))))
+
     sig = code_c.split("\n")[0].strip() + ";"
     name = sig.split()[1]
     include_paths = []
@@ -101,7 +107,8 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     if additional_paths is None:
         additional_paths = []
 
-    if len(additional_paths) == 0 and sys.platform.startswith("win"):
+    if len(additional_paths) == 0 and sys.platform.startswith("win") and \
+       'VSSDK140Install' not in os.environ:  # last condition is for the installed VisualStudio.
         if fLOG:
             fLOG("[compile_c_function] fix PATH for VS2017 on Windows")
         # Update environment variables.
@@ -178,30 +185,41 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
         raise CompilationError(
             "Signature is wrong\n{0}\ndue to\n{1}".format(sig, e)) from e
     ffibuilder.set_source("_" + name + suffix, code)
-    ffibuilder.compile(verbose=False)
+    try:
+        ffibuilder.compile(verbose=False, tmpdir=tmpdir)
+    except Exception as e:
+        raise CompilationError(
+            "Compilation failed \n{0}\ndue to\n{1}".format(sig, e)) from e
     mod = __import__("_{0}{1}".format(name, suffix))
     fct = getattr(mod.lib, name)
 
-    def wrapper(features, output, cast_type):
+    def wrapper(features, output, cast_type, dtype):
         if len(features.shape) != 1:
             raise TypeError(
                 "Only one dimension for the features not {0}.".format(features.shape))
-        if len(output.shape) != 1:
-            raise TypeError(
-                "Only one dimension for the output not {0}.".format(output.shape))
-        if len(output.shape[0]) != nbout:
-            raise TypeError(
-                "Dimension mismatch {0} != {1} (expected).".format(output.shape, nbout))
+        if output is None:
+            output = numpy.zeros((nbout,), dtype=dtype)
+        else:
+            if len(output.shape) != 1:
+                raise TypeError(
+                    "Only one dimension for the output not {0}.".format(output.shape))
+            if output.shape[0] != nbout:
+                raise TypeError(
+                    "Dimension mismatch {0} != {1} (expected).".format(output.shape, nbout))
+            if output.dtype != dtype:
+                raise TypeError(
+                    "Type mismatch {0} != {1} (expected).".format(output.dtype, dtype))
         ptr = features.__array_interface__['data'][0]
         cptr = mod.ffi.cast(cast_type, ptr)
         optr = output.__array_interface__['data'][0]
         cout = mod.ffi.cast(cast_type, optr)
         fct(cout, cptr)
+        return output
 
-    def wrapper_double(features, output):
-        wrapper(features, output, "double*")
+    def wrapper_double(features, output=None):
+        return wrapper(features, output, "double*", numpy.float64)
 
-    def wrapper_float(features, output):
-        wrapper(features, output, "float*")
+    def wrapper_float(features, output=None):
+        return wrapper(features, output, "float*", numpy.float32)
 
     return wrapper_float if is_float else wrapper_double

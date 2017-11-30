@@ -49,8 +49,8 @@ def sklearn2graph(model, output_names=None, **kwargs):
         print(e2)
 
         # We display the result in JSON.
-        ser = gr.convert(lang='json', hook={'array': lambda v: v.tolist(),
-                                                'float32': lambda v: float(v)})
+        ser = gr.export(lang='json', hook={'array': lambda v: v.tolist(),
+                                           'float32': lambda v: float(v)})
         import json
         print(json.dumps(ser, sort_keys=True, indent=2))
 
@@ -98,7 +98,7 @@ def sklearn2graph(model, output_names=None, **kwargs):
         gr = sklearn2graph(lr, output_names=['Prediction', 'Score'])
 
         # We display the result in JSON.
-        ccode = gr.convert(lang='c')
+        ccode = gr.export(lang='c')
         # We print after a little bit of cleaning.
         print("\\n".join(_ for _ in ccode['code'].split("\\n") if "//" not in _))
 
@@ -112,6 +112,7 @@ def sklearn2graph(model, output_names=None, **kwargs):
         from mlprodict.cc.c_helpers import compile_c_function
         fct = compile_c_function(code_c, 2)
         e2 = fct(X[0, :])
+        print(e2)
 
     The output is the same as the prediction given by *scikit-learn*.
     """

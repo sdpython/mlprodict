@@ -164,6 +164,11 @@ def check_model_representation(model, X, y=None, convs=None,
             lotc = fct(oneX)
             check_is_almost_equal(
                 lotc, ske, message="Issue with lang='{0}'".format(lang))
+            lotc_exp = lotc.copy()
+            lotc2 = fct(oneX, lotc)
+            if not numpy.array_equal(lotc_exp, lotc2):
+                raise ValueError(
+                    "Second call returns different results.\n{0}\n{1}".format(lotc_exp, lotc2))
         else:
             ser = gr.export(lang="json", hook={'array': lambda v: v.tolist()})
             if ser is None:
