@@ -201,7 +201,7 @@ if is_local():
         layout=["html"],
         add_htmlhelp=sys.platform.startswith("win"),
         coverage_options=dict(omit=["*exclude*.py"]),
-        fLOG=logging_function, covtoken=("", "'_UT_36_std' in outfile"))
+        fLOG=logging_function, covtoken=("f2a30eb6-439e-4a94-97e4-1eb48e40d3aa", "'_UT_36_std' in outfile"))
     if not r and not ({"bdist_msi", "sdist",
                        "bdist_wheel", "publish", "publish_doc", "register",
                        "upload_docs", "bdist_wininst", "build_ext"} & set(sys.argv)):

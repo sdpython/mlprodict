@@ -14,7 +14,7 @@ mlprodict
     :target: https://travis-ci.org/sdpython/mlprodict
     :alt: Build status
 
-.. image:: https://ci.appveyor.com/api/projects/status/uj6tq445k3na7hs9?svg=true
+.. image:: https://ci.appveyor.com/api/projects/status/g8chk1ufyk1m8uep?svg=true
     :target: https://ci.appveyor.com/project/sdpython/mlprodict
     :alt: Build Status Windows
 
