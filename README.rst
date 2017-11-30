@@ -41,7 +41,7 @@ README
     :target: http://www.xavierdupre.fr/app/mlprodict/helpsphinx/all_notebooks_coverage.html
     :alt: Notebook Coverage
 
-*mlprodict* implements a couple of ways to productionize 
+*mlprodict* implements a couple of ways to productionize
 machine learning predictions.
 
 *not ready*

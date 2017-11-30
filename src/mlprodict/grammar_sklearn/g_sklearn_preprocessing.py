@@ -1,0 +1,44 @@
+# -*- coding: utf-8 -*-
+"""
+@file
+@brief Converters from scikit-learn model.
+"""
+from .g_sklearn_type_helpers import check_type
+from ..grammar.gactions import MLActionVar, MLActionCst, MLActionReturn
+from ..grammar.gactions_tensor import MLActionTensorDiv, MLActionTensorSub
+from ..grammar.gmlactions import MLModel
+
+
+def sklearn_standard_scaler(model, input_names=None, output_names=None, **kwargs):
+    """
+    Converts a `standard scaler <http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html>`_
+    model into a *grammar* model (semantic graph representation).
+
+    @param      model           scikit-learn model
+    @param      input_names     name of the input features
+    @param      output_names    name of the output predictions
+    @return                     graph model
+
+    If *input* is None or *output* is None, default values
+    will be given to the outputs
+    ``['Prediction', 'Score']`` for the outputs.
+    If *input_names* is None, it wil be ``'Features'``.
+
+    No additional parameters is considered.
+    """
+    if output_names is None:
+        output_names = ['Prediction', 'Score']
+    if input_names is None:
+        input_names = 'Features'
+
+    from sklearn.preprocessing import StandardScaler
+    check_type(model, StandardScaler)
+
+    lmean = MLActionCst(model.mean_.ravel())
+    lscale = MLActionCst(model.scale_.ravel())
+
+    lvar = MLActionVar(model.var_, input_names)
+    lno = MLActionTensorSub(lvar, lmean)
+    lno = MLActionTensorDiv(lno, lscale)
+    ret = MLActionReturn(lno)
+    return MLModel(ret, output_names, name=StandardScaler.__name__)

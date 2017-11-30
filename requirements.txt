@@ -1,0 +1,16 @@
+chardet
+coverage
+guzzle_sphinx_theme
+jyquickhelper
+openpyxl
+pycodestyle>=2.0.0
+pydocstyle
+pyquickhelper>=1.5.2269
+sphinx-bootstrap-theme
+sphinx-gallery
+sphinxcontrib-images
+sphinxcontrib-imagesvg
+sphinxjp.themes.basicstrap
+sphinxjp.themes.revealjs
+sphinxjp.themes.sphinxjp
+wheel
