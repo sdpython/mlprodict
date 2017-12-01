@@ -42,3 +42,5 @@ html_sidebars = {}
 language = "en"
 
 mathdef_link_only = True
+
+epkg_dictionary['cffi'] = "https://cffi.readthedocs.io/en/latest/"

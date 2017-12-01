@@ -47,8 +47,20 @@ mlprodict
     :target: http://www.xavierdupre.fr/app/mlprodict/helpsphinx/all_notebooks_coverage.html
     :alt: Notebook Coverage
 
-*mlprodict* shows a couple of ways to predict faster
+.. toctree::
+    :maxdepth: 1
+
+    tutorial/index
+    api/index
+    i_index
+    i_ex
+    all_notebooks
+    blog/blogindex
+    index_modules
+
+*mlprodict* explores couple of ways to compute predictions faster
 than the library used to build the machine learning model.
+One way is to convert the prediction function into :epkg:`C`.
 
 .. runpython::
     :showcode:
@@ -71,17 +83,6 @@ than the library used to build the machine learning model.
     # Conversion into C
     ccode = gr.export(lang='c')
     print(ccode['code'])
-
-.. toctree::
-    :maxdepth: 1
-
-    tutorial/index
-    api/index
-    i_index
-    i_ex
-    all_notebooks
-    blog/blogindex
-    index_modules
 
 +----------------------+---------------------+---------------------+--------------------+------------------------+------------------------------------------------+
 | :ref:`l-modules`     |  :ref:`l-functions` | :ref:`l-classes`    | :ref:`l-methods`   | :ref:`l-staticmethods` | :ref:`l-properties`                            |

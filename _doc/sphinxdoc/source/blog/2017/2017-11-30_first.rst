@@ -1,9 +1,9 @@
 
 .. blogpost::
-    :title: Why scikit-mlconv?
+    :title: Why mlprodict?
     :keywords: reference, blog, post
-    :date: 2017-09-05
+    :date: 2017-11-30
     :categories: documentation
 
     What about predicting with :epkg:`scikit-learn`
-    with C but still training in :epkg:`Python`?
+    with :epkg:`C` but still training in :epkg:`Python`?
