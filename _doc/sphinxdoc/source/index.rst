@@ -82,7 +82,8 @@ One way is to convert the prediction function into :epkg:`C`.
     ######################################
     # Conversion into C
     ccode = gr.export(lang='c')
-    print(ccode['code'])
+    # We print after a little bit of cleaning (remove all comments)
+    print("\n".join(_ for _ in ccode['code'].split("\n") if "//" not in _))
 
 +----------------------+---------------------+---------------------+--------------------+------------------------+------------------------------------------------+
 | :ref:`l-modules`     |  :ref:`l-functions` | :ref:`l-classes`    | :ref:`l-methods`   | :ref:`l-staticmethods` | :ref:`l-properties`                            |
