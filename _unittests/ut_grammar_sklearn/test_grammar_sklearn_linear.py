@@ -4,9 +4,7 @@
 import sys
 import os
 import numpy
-import warnings
 import unittest
-from distutils.errors import DistutilsPlatformError
 
 
 try:
@@ -105,22 +103,8 @@ class TestGrammarSklearnLinear(ExtTestCase):
         if code_c is None:
             raise ValueError("cannot be None")
 
-        # spl = code_c.split("// adot - children")
-        # TODO: Used twice, an intermediate result is computed twice. Needs cache mechanism.
-        # if len(spl) > 2:
-        #    raise Exception(code_c)
         X = numpy.array([[numpy.float32(1), numpy.float32(2)]])
-
-        if sys.version_info[0] == 2:
-            try:
-                fct = compile_c_function(code_c, 2)
-            except DistutilsPlatformError as e:
-                if "Unable to find vcvarsall.bat" in str(e):
-                    warnings.warn(
-                        "C++ with Python 2.7 requires VS2010 which is not installed.")
-                    return
-        else:
-            fct = compile_c_function(code_c, 2)
+        fct = compile_c_function(code_c, 2)
 
         e2 = fct(X[0, :])
         e1 = lr.predict(X)

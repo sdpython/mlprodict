@@ -45,7 +45,7 @@ class MLNumType(MLType):
 
 class MLNumTypeSingle(MLNumType):
     """
-    I4 or R4
+    int32 or float32
     """
 
     def __init__(self, numpy_type, name, ctype, key):
@@ -108,7 +108,7 @@ class MLNumTypeSingle(MLNumType):
         return "&"
 
     def _export_json(self, hook=None, result_name=None):
-        return 'R4'
+        return 'float32'
 
     def _export_c(self, hook=None, result_name=None):
         if hook == 'typeref':
@@ -126,22 +126,23 @@ class MLNumTypeSingle(MLNumType):
         return hook[self.key](value)
 
 
-class MLNumTypeR4(MLNumTypeSingle):
+class MLNumTypeFloat32(MLNumTypeSingle):
     """
     A numpy.float32.
     """
 
     def __init__(self):
-        MLNumTypeSingle.__init__(self, numpy.float32, 'R4', 'float', 'float32')
+        MLNumTypeSingle.__init__(
+            self, numpy.float32, 'float32', 'float', 'float32')
 
 
-class MLNumTypeI4(MLNumTypeSingle):
+class MLNumTypeInt32(MLNumTypeSingle):
     """
     A numpy.int32.
     """
 
     def __init__(self):
-        MLNumTypeSingle.__init__(self, numpy.int32, 'I4', 'int', 'int32')
+        MLNumTypeSingle.__init__(self, numpy.int32, 'int32', 'int', 'int32')
 
 
 class MLNumTypeBool(MLNumTypeSingle):
@@ -187,6 +188,13 @@ class MLTensor(MLType):
         if self.dim != value.shape:
             raise ValueError(
                 "Dimensions do not match {0}={1}".format(self.dim, value.shape))
+        rvalue = value.ravel()
+        for i, num in enumerate(rvalue):
+            try:
+                self.element_type.validate(num)
+            except TypeError as e:
+                raise TypeError(
+                    'Unable to convert an array due to value index {0}: {1}'.format(i, rvalue[i])) from e
         return value
 
     def _byref_c(self):

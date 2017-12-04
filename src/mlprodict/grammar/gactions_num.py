@@ -2,7 +2,7 @@
 @file
 @brief Action definition.
 """
-from .gtypes import MLNumTypeR4, MLNumTypeBool
+from .gtypes import MLNumTypeFloat32, MLNumTypeBool
 from .gactions import MLActionBinary, MLActionFunctionCall
 
 
@@ -30,9 +30,9 @@ class MLActionSign(MLActionFunctionCall):
 
     def __init__(self, act1):
         MLActionFunctionCall.__init__(self, "sign", act1.output, act1)
-        if not isinstance(act1.output, MLNumTypeR4):
+        if not isinstance(act1.output, MLNumTypeFloat32):
             raise TypeError(
-                "The input action must produce R4 not '{0}'".format(type(act1.output)))
+                "The input action must produce float32 not '{0}'".format(type(act1.output)))
 
     def execute(self, **kwargs):
         MLActionFunctionCall.execute(self, **kwargs)

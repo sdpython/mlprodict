@@ -3,8 +3,8 @@
 """
 import sys
 import os
-import unittest
 import numpy
+import unittest
 
 
 try:
@@ -33,26 +33,35 @@ except ImportError:
         sys.path.append(path)
     import pyquickhelper as skip_
 
+
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
-from src.mlprodict.testing import check_model_representation
+from src.mlprodict.grammar_sklearn import sklearn2graph
+from src.mlprodict.grammar.exc import Float32InfError
 
 
-class TestGrammarSklearnPreprocessing(ExtTestCase):
+class TestGrammarSklearnLinearBugFloat(ExtTestCase):
 
-    def test_sklearn_scaler(self):
+    def test_sklearn_train_lr_into_c(self):
         fLOG(
             __file__,
             self._testMethodName,
             OutputPrint=__name__ == "__main__")
-        from sklearn.preprocessing import StandardScaler
-        data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
-                           dtype=numpy.float32)
-        check_model_representation(
-            StandardScaler, data, verbose=False, fLOG=fLOG)
-        # The second compilation fails if suffix is not specified.
-        check_model_representation(
-            model=StandardScaler, X=data, verbose=False, fLOG=fLOG, suffix="_2")
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.datasets import load_iris
+        import cffi
+        fLOG("cffi", cffi.__version__)
+        iris = load_iris()
+        X = iris.data[:, :2]
+        y = iris.target
+        y[y == 2] = 1
+        lr = LogisticRegression()
+        lr.fit(X, y)
+
+        # We replace by double too big for floats.
+        lr.coef_ = numpy.array([[2.45, -3e250]])
+        self.assertRaise(lambda: sklearn2graph(
+            lr, output_names=['Prediction', 'Score']), Float32InfError)
 
 
 if __name__ == "__main__":

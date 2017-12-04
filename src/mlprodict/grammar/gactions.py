@@ -4,7 +4,7 @@
 """
 import numpy
 from .api_extension import AutoAction
-from .gtypes import MLType, MLNumTypeR4, MLTensor, MLNumTypeI4, MLNumTypeBool
+from .gtypes import MLType, MLNumTypeFloat32, MLTensor, MLNumTypeInt32, MLNumTypeBool
 
 
 class MLAction(AutoAction):
@@ -128,9 +128,9 @@ class MLActionCst(MLAction):
         Guesses a type given a value.
         """
         if isinstance(value, (float, numpy.float32)):
-            return MLNumTypeR4()
+            return MLNumTypeFloat32()
         elif isinstance(value, (int, numpy.int32)):
-            return MLNumTypeI4()
+            return MLNumTypeInt32()
         elif isinstance(value, numpy.ndarray):
             a = numpy.zeros(1, value.dtype)
             t = MLActionCst.guess_type(a[0])
@@ -311,10 +311,12 @@ class MLActionConcat(MLActionFunctionCall):
             raise TypeError("act1 must be MLAction.")
         if not isinstance(act2, MLAction):
             raise TypeError("act2 must be MLAction.")
-        n1 = 1 if isinstance(act1.output, MLNumTypeR4) else act1.output.dim[0]
-        n2 = 1 if isinstance(act2.output, MLNumTypeR4) else act2.output.dim[0]
+        n1 = 1 if isinstance(
+            act1.output, MLNumTypeFloat32) else act1.output.dim[0]
+        n2 = 1 if isinstance(
+            act2.output, MLNumTypeFloat32) else act2.output.dim[0]
         MLActionFunctionCall.__init__(self, "concat", MLTensor(
-            MLNumTypeR4(), (n1 + n2,)), act1, act2)
+            MLNumTypeFloat32(), (n1 + n2,)), act1, act2)
 
     def execute(self, **kwargs):
         """

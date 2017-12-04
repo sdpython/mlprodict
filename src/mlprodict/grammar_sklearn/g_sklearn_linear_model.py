@@ -5,6 +5,7 @@
 """
 import numpy
 from .g_sklearn_type_helpers import check_type
+from ..grammar.exc import Float32InfError
 from ..grammar.gactions import MLActionCst, MLActionVar, MLActionConcat, MLActionReturn
 from ..grammar.gactions_num import MLActionAdd, MLActionSign
 from ..grammar.gactions_tensor import MLActionTensorDot
@@ -41,8 +42,17 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
     if len(model.coef_.shape) > 1 and min(model.coef_.shape) != 1:
         raise NotImplementedError(
             "Multiclass is not implemented yet: coef_.shape={0}.".format(model.coef_.shape))
-    coef = model.coef_.ravel()
+    coef_ = model.coef_.ravel()
+    coef = coef_.astype(numpy.float32)
     bias = numpy.float32(model.intercept_[0])
+
+    for i, c in enumerate(coef):
+        if numpy.isinf(c):
+            raise Float32InfError(
+                'Unable to convert coefficient {0}: {1}'.format(i, coef[i]))
+    if numpy.isinf(bias):
+        raise Float32InfError(
+            'Unable to convert intercept {0}'.format(i, model.intercept_[0]))
 
     gr_coef = MLActionCst(coef)
     gr_var = MLActionVar(coef, input_names)
@@ -85,8 +95,18 @@ def sklearn_linear_regression(model, input_names=None, output_names=None, **kwar
     if len(model.coef_.shape) > 1 and min(model.coef_.shape) != 1:
         raise NotImplementedError(
             "MultiOutput is not implemented yet: coef_.shape={0}.".format(model.coef_.shape))
-    coef = model.coef_.ravel()
+
+    coef_ = model.coef_.ravel()
+    coef = coef_.astype(numpy.float32)
     bias = numpy.float32(model.intercept_)
+
+    for i, c in enumerate(coef):
+        if numpy.isinf(c):
+            raise Float32InfError(
+                'Unable to convert coefficient {0}: {1}'.format(i, coef[i]))
+    if numpy.isinf(bias):
+        raise Float32InfError(
+            'Unable to convert intercept {0}'.format(i, model.intercept_))
 
     gr_coef = MLActionCst(coef)
     gr_var = MLActionVar(coef, input_names)
