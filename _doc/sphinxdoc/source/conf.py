@@ -3,7 +3,7 @@ import sys
 import os
 import datetime
 import re
-import guzzle_sphinx_theme
+import sphinx_redactor_theme
 
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.split(__file__)[0])))
@@ -24,16 +24,12 @@ local_template = os.path.join(os.path.abspath(
 
 from pyquickhelper.helpgen.default_conf import set_sphinx_variables, get_default_stylesheet
 set_sphinx_variables(__file__, "mlprodict", "Xavier Dupré", 2017,
-                     "guzzle_sphinx_theme", guzzle_sphinx_theme.html_theme_path(),
+                     "sphinx_redactor_theme", sphinx_redactor_theme.html_theme_path(),
                      locals(), extlinks=dict(
                          issue=('https://github.com/sdpython/mlprodict/issues/%s', 'issue')),
                      title="mlprodict", book=True)
 
 blog_root = "http://www.xavierdupre.fr/app/mlprodict/helpsphinx/"
-extensions.append("guzzle_sphinx_theme")
-html_theme_options['project_nav_name'] = 'mlprodict'
-html_theme_options['touch_icon'] = 'project_ico.ico'
-
 
 html_logo = "project_ico.png"
 
