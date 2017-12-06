@@ -35,7 +35,7 @@ README
 
 .. image:: https://badge.waffle.io/sdpython/mlprodict.png?label=ready&title=Ready
     :alt: Waffle
-    :target: https://waffle.io/mlprodict/mlprodict
+    :target: https://waffle.io/sdpython/mlprodict
 
 .. image:: http://www.xavierdupre.fr/app/mlprodict/helpsphinx/_images/nbcov.png
     :target: http://www.xavierdupre.fr/app/mlprodict/helpsphinx/all_notebooks_coverage.html
