@@ -108,8 +108,7 @@ if is_local() and not ask_help():
         from pyquickhelper.pycode import write_version_for_setup
         return write_version_for_setup(__file__)
 
-    if sys.version_info[0] != 2:
-        write_version()
+    write_version()
 
     versiontxt = os.path.join(os.path.dirname(__file__), "version.txt")
     if os.path.exists(versiontxt):
@@ -119,7 +118,8 @@ if is_local() and not ask_help():
         if subversion == ".0":
             raise Exception("Subversion is wrong: '{0}'.".format(subversion))
     else:
-        raise FileNotFoundError(versiontxt)
+        raise FileNotFoundError(
+            "Unable to find '{0}' argv={1}".format(versiontxt, sys.argv))
 else:
     # when the module is installed, no commit number is displayed
     subversion = ""
