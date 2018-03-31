@@ -16,7 +16,7 @@ README
     :target: https://circleci.com/gh/sdpython/mlprodict/tree/master
 
 .. image:: https://badge.fury.io/py/mlprodict.svg
-    :target: http://badge.fury.io/py/mlprodict
+    :target: https://pypi.org/project/mlprodict/
 
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
     :alt: MIT License
