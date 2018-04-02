@@ -33,7 +33,7 @@ README
     :alt: GitHub Issues
     :target: https://github.com/sdpython/mlprodict/issues
 
-.. image:: https://badge.waffle.io/sdpython/mlprodict.png?label=ready&title=Ready
+.. image:: https://badge.waffle.io/sdpython/mlprodict.png?label=to%20do&title=to%20do
     :alt: Waffle
     :target: https://waffle.io/sdpython/mlprodict
 
