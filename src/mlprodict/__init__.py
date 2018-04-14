@@ -1,4 +1,4 @@
-#-*- encoding: utf-8 -*-
+# -*- encoding: utf-8 -*-
 """
 @file
 @brief Ways to speed up predictions for a machine learned model.

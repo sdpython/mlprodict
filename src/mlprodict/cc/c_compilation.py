@@ -109,33 +109,33 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     if additional_paths is None:
         additional_paths = []
 
-    #~ if len(additional_paths) == 0 and sys.platform.startswith("win") and \
-    #~ 'VSSDK140Install' not in os.environ:  # last condition is for the installed VisualStudio.
-    #~ if fLOG:
+    # ~ if len(additional_paths) == 0 and sys.platform.startswith("win") and \
+    # ~ 'VSSDK140Install' not in os.environ:  # last condition is for the installed VisualStudio.
+    # ~ if fLOG:
     #~ fLOG("[compile_c_function] fix PATH for VS2017 on Windows")
-    #~ # Update environment variables.
-    #~ adds = [r"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\amd64",
-    #~ r"C:\Program Files (x86)\Windows Kits\10\bin\10.0.15063.0\x64"]
-    #~ vcvars64 = os.path.join(adds[0], 'vcvars64.bat')
+    # ~ # Update environment variables.
+    # ~ adds = [r"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\amd64",
+    # ~ r"C:\Program Files (x86)\Windows Kits\10\bin\10.0.15063.0\x64"]
+    # ~ vcvars64 = os.path.join(adds[0], 'vcvars64.bat')
     #~ subprocess.run(vcvars64)
 
-    #~ # Add paths for VS2017.
-    #~ includes = [r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\shared',
+    # ~ # Add paths for VS2017.
+    # ~ includes = [r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.15063.0\shared',
     #~ r'C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include',
-    #~ r'C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\SDK\ScopeCppSDK\SDK\include\ucrt']
-    #~ libs = [r'C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\lib\amd64',
+    # ~ r'C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\SDK\ScopeCppSDK\SDK\include\ucrt']
+    # ~ libs = [r'C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\lib\amd64',
     #~ r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\um\x64',
-    #~ r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\ucrt\x64']
-    #~ opaths = os.environ['PATH'].split(';')
-    #~ for add in adds:
-    #~ if os.path.exists(add) and add not in opaths:
+    # ~ r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.15063.0\ucrt\x64']
+    # ~ opaths = os.environ['PATH'].split(';')
+    # ~ for add in adds:
+    # ~ if os.path.exists(add) and add not in opaths:
     #~ additional_paths.append(add)
-    #~ oinc = os.environ.get('INCLUDE', '').split(';')
-    #~ for inc in includes:
-    #~ if os.path.exists(inc) and inc not in oinc:
+    # ~ oinc = os.environ.get('INCLUDE', '').split(';')
+    # ~ for inc in includes:
+    # ~ if os.path.exists(inc) and inc not in oinc:
     #~ include_paths.append(inc)
-    #~ for lib in libs:
-    #~ if os.path.exists(lib):
+    # ~ for lib in libs:
+    # ~ if os.path.exists(lib):
     #~ lib_paths.append(lib)
 
     if additional_paths:
