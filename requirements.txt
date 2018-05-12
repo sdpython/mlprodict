@@ -2,6 +2,7 @@ chardet
 coverage
 guzzle_sphinx_theme
 jyquickhelper
+pylint
 pyquickhelper>=1.8
 sphinx-redactor-theme
 sphinxjp.themes.basicstrap
