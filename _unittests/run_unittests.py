@@ -5,6 +5,9 @@
 
 
 def main():
+    """
+    Runs the unit tests.
+    """
     from pyquickhelper.loghelper import fLOG
     from pyquickhelper.pycode import main_wrapper_tests
     fLOG(OutputPrint=True)

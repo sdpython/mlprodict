@@ -3,8 +3,8 @@
 @brief Complex but recurring testing functions.
 """
 import random
-import numpy
 import pandas
+import numpy
 from numpy.testing import assert_allclose
 from ..grammar_sklearn import sklearn2graph
 from ..cc import compile_c_function

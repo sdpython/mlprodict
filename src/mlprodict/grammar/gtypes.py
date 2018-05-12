@@ -56,6 +56,9 @@ class MLNumTypeSingle(MLNumType):
 
     @property
     def CTypeSingle(self):
+        """
+        Returns *ctype*.
+        """
         return self.ctype
 
     def validate(self, value):
@@ -90,7 +93,7 @@ class MLNumTypeSingle(MLNumType):
         if isinstance(value, numpy.ndarray):
             v = value.ravel()
             if len(v) != 1:
-                raise ValueError("Cannot cast shape [0] into {1}".format(
+                raise ValueError("Cannot cast shape {0} into {1}".format(
                     value.shape, self.numpy_type))
             return self.numpy_type(v[0])
         else:
@@ -175,6 +178,9 @@ class MLTensor(MLType):
 
     @property
     def CTypeSingle(self):
+        """
+        Returns *ctype*.
+        """
         return self.element_type.ctype
 
     def validate(self, value):
@@ -228,7 +234,7 @@ class MLTensor(MLType):
                 raise ValueError("result_name must be specified.")
             dc = self.element_type._export_c(
                 hook=hook, result_name=result_name)
-            return {'code': "{0}[{1}]".format(dc['code'], self.dim[0], result_name)}
+            return {'code': "{0}[{1}]".format(dc['code'], self.dim[0])}
         elif hook == 'type':
             return {'code': "{0}*".format(self.element_type._export_c(hook=hook)['code'])}
         elif hook == 'typeref':

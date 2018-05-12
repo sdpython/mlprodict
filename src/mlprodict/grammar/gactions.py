@@ -389,8 +389,7 @@ class MLActionIfElse(MLAction):
         dc = MLAction._export_c(self, hook=hook, result_name=result_name)
         rows = [dc['code']]
         dc2 = self.output._export_c(hook='type')
-        op = "{2} {0} = {0}0 ? {0}1 : {0}2;".format(
-            result_name, self.name, dc2['code'])
+        op = "{1} {0} = {0}0 ? {0}1 : {0}2;".format(result_name, dc2['code'])
         rows.append(op)
         rows.append("// {0}-{1} - done".format(id(self), self.name))
         return {'code': "\n".join(rows), 'result_name': result_name}

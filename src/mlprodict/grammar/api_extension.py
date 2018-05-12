@@ -46,7 +46,10 @@ class AutoAction:
 
     @staticmethod
     def cache(func):
+        """Caches the result of a function."""
+
         def func_wrapper(self, hook=None, result_name=None):
+            """Wrapper to cache the result of a function."""
             if self._cache is not None:
                 c = self._cache.copy()
                 c['cache'] = True
@@ -87,6 +90,6 @@ class AutoType:
                 raise TypeError(
                     "Singature of '{0}' is wrong for type '{1}'".format(name, type(self)))
         else:
-            raise NotImplemented(
+            raise NotImplementedError(
                 "No formatting is implemented for lang='{0}' and type='{1}'".format(
                     lang, type(self)))

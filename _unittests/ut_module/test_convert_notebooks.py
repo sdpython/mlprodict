@@ -2,25 +2,8 @@
 @brief      test log(time=0s)
 """
 
-import sys
 import os
 import unittest
-
-
-try:
-    import src
-except ImportError:
-    path = os.path.normpath(
-        os.path.abspath(
-            os.path.join(
-                os.path.split(__file__)[0],
-                "..",
-                "..")))
-    if path not in sys.path:
-        sys.path.append(path)
-    import src
-
-
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.filehelper import explore_folder_iterfile
 from pyquickhelper.ipythonhelper import upgrade_notebook, remove_execution_number

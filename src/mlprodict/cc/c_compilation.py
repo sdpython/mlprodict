@@ -4,8 +4,8 @@
 """
 import os
 import sys
-import numpy
 import shutil
+import numpy
 
 
 _header_c_float = """
@@ -88,7 +88,8 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     @param      add_header          add common function before compiling
     @param      suffix              avoid avoid the same compiled module name
     @param      additional_paths    additional paths to add to the module
-    @param      tmpdir              see `compile <http://cffi.readthedocs.io/en/latest/cdef.html?highlight=compile#ffibuilder-compile-etc-compiling-out-of-line-modules>`_
+    @param      tmpdir              see `compile <http://cffi.readthedocs.io/en/latest/cdef.html?
+                                    highlight=compile#ffibuilder-compile-etc-compiling-out-of-line-modules>`_
     @param      fLOG                logging function
     @return     compiled            function
 
@@ -196,6 +197,7 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     fct = getattr(mod.lib, name)
 
     def wrapper(features, output, cast_type, dtype):
+        "wrapper for a vector of features"
         if len(features.shape) != 1:
             raise TypeError(
                 "Only one dimension for the features not {0}.".format(features.shape))
@@ -219,9 +221,11 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
         return output
 
     def wrapper_double(features, output=None):
+        "wrapper for double"
         return wrapper(features, output, "double*", numpy.float64)
 
     def wrapper_float(features, output=None):
+        "wrapper for float"
         return wrapper(features, output, "float*", numpy.float32)
 
     return wrapper_float if is_float else wrapper_double

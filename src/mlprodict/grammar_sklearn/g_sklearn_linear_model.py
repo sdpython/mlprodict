@@ -52,7 +52,7 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
                 'Unable to convert coefficient {0}: {1}'.format(i, coef[i]))
     if numpy.isinf(bias):
         raise Float32InfError(
-            'Unable to convert intercept {0}'.format(i, model.intercept_[0]))
+            'Unable to convert intercept {0}'.format(model.intercept_[0]))
 
     gr_coef = MLActionCst(coef)
     gr_var = MLActionVar(coef, input_names)
@@ -106,7 +106,7 @@ def sklearn_linear_regression(model, input_names=None, output_names=None, **kwar
                 'Unable to convert coefficient {0}: {1}'.format(i, coef[i]))
     if numpy.isinf(bias):
         raise Float32InfError(
-            'Unable to convert intercept {0}'.format(i, model.intercept_))
+            'Unable to convert intercept {0}'.format(model.intercept_))
 
     gr_coef = MLActionCst(coef)
     gr_var = MLActionVar(coef, input_names)
