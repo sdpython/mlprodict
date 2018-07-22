@@ -39,6 +39,8 @@ class TestCodeStyle(ExtTestCase):
                    skip=["Instance of 'tuple' has no ",
                          "do not compare types, use 'isinstance()'",
                          "Instance of 'AutoAction' has no 'children' member",
+                         "gactions.py:225: R1711",
+                         "gactions.py:238: E1128",
                          ])
 
     def test_style_test(self):
