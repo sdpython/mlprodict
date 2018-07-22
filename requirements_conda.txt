@@ -6,6 +6,7 @@ matplotlib
 notebook>=5.0.0
 numba
 numpy>=1.11.0
+pillow
 scikit-learn
 scipy
 Sphinx
