@@ -30,5 +30,8 @@ language = "en"
 
 mathdef_link_only = True
 
-epkg_dictionary['C'] = "https://en.wikipedia.org/wiki/C_(programming_language)"
-epkg_dictionary['cffi'] = "https://cffi.readthedocs.io/en/latest/"
+epkg_dictionary.update({
+    'C': "https://en.wikipedia.org/wiki/C_(programming_language)",
+    'cffi': "https://cffi.readthedocs.io/en/latest/",
+    'xgboost': "https://xgboost.readthedocs.io/en/latest/",
+})

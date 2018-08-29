@@ -52,11 +52,11 @@ mlprodict
 
     tutorial/index
     api/index
-    i_index
     i_ex
+    i_index
     all_notebooks
     blog/blogindex
-    index_modules
+    HISTORY
 
 *mlprodict* explores couple of ways to compute predictions faster
 than the library used to build the machine learning model.
