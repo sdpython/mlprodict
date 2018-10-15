@@ -3,6 +3,7 @@
 @file
 @brief Converters from scikit-learn model.
 """
+import numpy
 from .g_sklearn_type_helpers import check_type
 from ..grammar.gactions import MLActionVar, MLActionCst, MLActionReturn
 from ..grammar.gactions_tensor import MLActionTensorDiv, MLActionTensorSub
@@ -34,10 +35,10 @@ def sklearn_standard_scaler(model, input_names=None, output_names=None, **kwargs
     from sklearn.preprocessing import StandardScaler
     check_type(model, StandardScaler)
 
-    lmean = MLActionCst(model.mean_.ravel())
-    lscale = MLActionCst(model.scale_.ravel())
+    lmean = MLActionCst(model.mean_.ravel().astype(numpy.float32))
+    lscale = MLActionCst(model.scale_.ravel().astype(numpy.float32))
 
-    lvar = MLActionVar(model.var_, input_names)
+    lvar = MLActionVar(model.var_.astype(numpy.float32), input_names)
     lno = MLActionTensorSub(lvar, lmean)
     lno = MLActionTensorDiv(lno, lscale)
     ret = MLActionReturn(lno)
