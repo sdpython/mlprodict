@@ -41,6 +41,7 @@ class TestCodeStyle(ExtTestCase):
                          "Instance of 'AutoAction' has no 'children' member",
                          "gactions.py:225: R1711",
                          "gactions.py:238: E1128",
+                         "R1720",
                          ])
 
     def test_style_test(self):
@@ -57,6 +58,7 @@ class TestCodeStyle(ExtTestCase):
                          "imported as skip_",
                          "Instance of 'tuple' has no ",
                          "Unused import src",
+                         "R1720",
                          ])
 
 
