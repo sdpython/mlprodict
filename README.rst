@@ -1,9 +1,4 @@
 
-.. _l-README:
-
-README
-======
-
 .. image:: https://travis-ci.org/sdpython/mlprodict.svg?branch=master
     :target: https://travis-ci.org/sdpython/mlprodict
     :alt: Build status
@@ -41,12 +36,18 @@ README
     :target: http://www.xavierdupre.fr/app/mlprodict/helpsphinx/all_notebooks_coverage.html
     :alt: Notebook Coverage
 
-*mlprodict* implements a couple of ways to productionize
-machine learning predictions.
+.. _l-README:
 
-*not ready*
+mlprodict
+=========
 
-**Links:**
+First attempt to productionize machine learning predictions.
+The main idea consists in converting a pipeline into C.
+The project might go in a different direction as
+`ONNX <https://github.com/onnx/onnx>`_,
+`onnxruntime <https://github.com/Microsoft/onnxruntime>`_,
+`sklearn-onnx <https://github.com/onnx/sklearn-onnx/tree/master/skl2onnx>`_
+provide an interesting way to productionize models.
 
 * `GitHub/mlprodict <https://github.com/sdpython/mlprodict/>`_
 * `documentation <http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html>`_
