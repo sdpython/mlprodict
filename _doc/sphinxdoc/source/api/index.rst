@@ -7,4 +7,5 @@ API
 
     cc
     grammar
+    onnxrt
     sklearn
