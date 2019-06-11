@@ -25,7 +25,6 @@ install:
   - "%PYTHON%\\Scripts\\pymy_install3 scikit-learn scipy cffi"
   - "set PATH=%PATH%;C:\\projects\\jyquickhelper\\build\\update_modules\\Graphviz\\bin"
   - "%PYTHON%\\Scripts\\pip install -r requirements.txt"
-  - set PYTHONPATH=src
 build: off
 
 before_test:

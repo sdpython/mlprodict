@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-@brief      test log(time=21s)
+@brief      test log(time=27s)
 """
 import os
 import unittest
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.ipythonhelper import test_notebook_execution_coverage
-from pyquickhelper.pycode import add_missing_development_version
+from pyquickhelper.pycode import add_missing_development_version, ExtTestCase
+import mlprodict
 
 
-class TestFunctionTestNotebook(unittest.TestCase):
+class TestFunctionTestNotebook(ExtTestCase):
 
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)
@@ -20,6 +21,7 @@ class TestFunctionTestNotebook(unittest.TestCase):
             self._testMethodName,
             OutputPrint=__name__ == "__main__")
 
+        self.assertNotEmpty(mlprodict is not None)
         folder = os.path.join(os.path.dirname(__file__),
                               "..", "..", "_doc", "notebooks")
         test_notebook_execution_coverage(__file__, "sklearn_grammar", folder,

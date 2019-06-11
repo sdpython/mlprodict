@@ -1,5 +1,5 @@
 """
-@brief      test log(time=0s)
+@brief      test log(time=20s)
 """
 import os
 import unittest
@@ -12,7 +12,7 @@ class TestCodeStyle(ExtTestCase):
 
     def test_style_src(self):
         thi = os.path.abspath(os.path.dirname(__file__))
-        src_ = os.path.normpath(os.path.join(thi, "..", "..", "src"))
+        src_ = os.path.normpath(os.path.join(thi, "..", "..", "mlprodict"))
         check_pep8(src_, fLOG=fLOG,
                    pylint_ignore=('C0103', 'C1801', 'R0201', 'R1705', 'W0108', 'W0613',
                                   'R1702', 'W0212', 'W0640', 'W0223', 'W0201',
