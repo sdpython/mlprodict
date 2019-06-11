@@ -30,8 +30,8 @@ CLASSIFIERS = [
 # data
 #######
 
-packages = find_packages('src', exclude='src')
-package_dir = {k: "src/" + k.replace(".", "/") for k in packages}
+packages = find_packages()
+package_dir = {k: os.path.join('.', k.replace(".", "/")) for k in packages}
 package_data = {}
 
 ############
@@ -152,10 +152,6 @@ if not r:
     from mlprodict import __version__ as sversion
     long_description = clean_readme(long_description)
     root = os.path.abspath(os.path.dirname(__file__))
-    if sys.platform.startswith("win"):
-        extra_compile_args = None
-    else:
-        extra_compile_args = ['-std=c++11']
     setup(
         name=project_var_name,
         version='%s%s' % (sversion, subversion),

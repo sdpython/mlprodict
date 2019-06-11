@@ -82,7 +82,7 @@ jobs:
             mkdir -p test-reports/dist
             cp dist/*.whl test-reports/dist
             mkdir -p test-reports/src
-            cp -r  src/mlprodict test-reports/src
+            cp -r  mlprodict test-reports/src
 
       - run:
           name: documentation
