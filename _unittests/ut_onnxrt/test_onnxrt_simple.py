@@ -3,14 +3,27 @@
 """
 import os
 from io import BytesIO
+import pickle
 import unittest
+import warnings
+from logging import getLogger
 import numpy
+from onnx.onnx_cpp2py_export.checker import ValidationError  # pylint: disable=E0401,E0611
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
-from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
+from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier  # pylint: disable=E0611
+from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
 
 class TestOnnxrtSimple(ExtTestCase):
+
+    def setUp(self):
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
 
     def test_onnxt_idi(self):
         idi = numpy.identity(2)
@@ -39,6 +52,102 @@ class TestOnnxrtSimple(ExtTestCase):
         oinf = OnnxInference(name)
         res = str(oinf)
         self.assertIn('op_type: "Add"', res)
+
+    def test_onnxt_pickle_check(self):
+        idi = numpy.identity(2)
+        onx = OnnxAdd('X', idi, output_names=['Y'])
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        shape = oinf.shape_inference()
+        self.assertNotEmpty(shape)
+        try:
+            oinf.check_model()
+        except ValidationError as e:
+            warnings.warn("Why? " + str(e))  # pylint: disable=E1101
+
+        pkl = pickle.dumps(oinf)
+        obj = pickle.loads(pkl)
+        self.assertEqual(str(oinf), str(obj))
+
+    def test_onnxt_dot(self):
+        idi = numpy.identity(2)
+        idi2 = numpy.identity(2) * 2
+        onx = OnnxAdd(OnnxAdd('X', idi), idi2, output_names=['Y'])
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        dot = oinf.to_dot()
+        self.assertIn('Add [', dot)
+        self.assertIn('Add1 [', dot)
+        self.assertIn('Add\\n(Add)', dot)
+        self.assertIn('Add\\n(Add1)', dot)
+        self.assertIn('X -> Add;', dot)
+        self.assertIn('Addcst1 -> Add1;', dot)
+        self.assertIn('Addcst -> Add;', dot)
+        self.assertIn('Add1 -> Y;', dot)
+
+    def test_onnxt_lr(self):
+        pars = dict(coefficients=numpy.array([1., 2.]), intercepts=numpy.array([1.]),
+                    post_transform='NONE')
+        onx = OnnxLinearRegressor('X', output_names=['Y'], **pars)
+        model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType([1]))])
+        oinf = OnnxInference(model_def)
+        dot = oinf.to_dot()
+        self.assertIn('coefficients=[1.0, 2.0]', dot)
+        self.assertIn('LinearRegressor', dot)
+
+    def test_onnxt_lrc(self):
+        pars = dict(coefficients=numpy.array([1., 2.]), intercepts=numpy.array([1.]),
+                    post_transform='NONE')
+        onx = OnnxLinearClassifier('X', output_names=['Y'], **pars)
+        model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType([1]))])
+        oinf = OnnxInference(model_def)
+        dot = oinf.to_dot()
+        self.assertIn('coefficients=[1.0, 2.0]', dot)
+        self.assertIn('LinearClassifier', dot)
+
+    def test_onnxt_lrc_iris(self):
+
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, _, y_train, __ = train_test_split(X, y)
+        clr = LogisticRegression(solver="liblinear")
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        dot = oinf.to_dot()
+        self.assertIn('ZipMap', dot)
+        self.assertIn('LinearClassifier', dot)
+
+    def test_onnxt_lrc_iris_json(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, _, y_train, __ = train_test_split(X, y)
+        clr = LogisticRegression(solver="liblinear")
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        js = oinf.to_json()
+        self.assertIn('"producer_name": "skl2onnx",', js)
+        self.assertIn('"name": "output_label",', js)
+        self.assertIn('"name": "output_probability",', js)
+        self.assertIn('"name": "LinearClassifier",', js)
+        self.assertIn('"coefficients": {', js)
+        self.assertIn('"name": "Normalizer",', js)
+        self.assertIn('"name": "Cast",', js)
+        self.assertIn('"name": "ZipMap",', js)
+
+    def test_onnxt_json(self):
+        idi = numpy.identity(2)
+        idi2 = numpy.identity(2) * 2
+        onx = OnnxAdd(OnnxAdd('X', idi), idi2, output_names=['Y'])
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        js = oinf.to_json()
+        self.assertIn('"initializers": {', js)
 
 
 if __name__ == "__main__":
