@@ -28,10 +28,6 @@
     :alt: GitHub Issues
     :target: https://github.com/sdpython/mlprodict/issues
 
-.. image:: https://badge.waffle.io/sdpython/mlprodict.png?label=to%20do&title=to%20do
-    :alt: Waffle
-    :target: https://waffle.io/sdpython/mlprodict
-
 .. image:: http://www.xavierdupre.fr/app/mlprodict/helpsphinx/_images/nbcov.png
     :target: http://www.xavierdupre.fr/app/mlprodict/helpsphinx/all_notebooks_coverage.html
     :alt: Notebook Coverage
@@ -41,13 +37,13 @@
 mlprodict
 =========
 
-First attempt to productionize machine learning predictions.
-The main idea consists in converting a pipeline into C.
-The project might go in a different direction as
-`ONNX <https://github.com/onnx/onnx>`_,
-`onnxruntime <https://github.com/Microsoft/onnxruntime>`_,
+The packages explores ways to productionize machine learning predictions.
+One approach consists in converting a pipeline into C.
+The second approach uses *ONNX* and tries to implement
+a Python runtime to see if it can speed up development of converters.
 `sklearn-onnx <https://github.com/onnx/sklearn-onnx/tree/master/skl2onnx>`_
-provide an interesting way to productionize models.
+uses `onnxruntime <https://github.com/Microsoft/onnxruntime>`_
+to do unit test. Maybe a python runtime would help in that matter.
 
 * `GitHub/mlprodict <https://github.com/sdpython/mlprodict/>`_
 * `documentation <http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html>`_

@@ -2,5 +2,5 @@
 onnxrrt
 =======
 
-.. autosignature:: mlprodict.oonnxrt.onnx_inference.OnnxInference
+.. autosignature:: mlprodict.onnxrt.onnx_inference.OnnxInference
     :members:

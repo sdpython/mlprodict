@@ -39,10 +39,6 @@ mlprodict
     :alt: GitHub Issues
     :target: https://github.com/sdpython/mlprodict/issues
 
-.. image:: https://badge.waffle.io/sdpython/mlprodict.png?label=to%20do&title=to%20do
-    :alt: Waffle
-    :target: https://waffle.io/sdpython/mlprodict
-
 .. image:: nbcov.png
     :target: http://www.xavierdupre.fr/app/mlprodict/helpsphinx/all_notebooks_coverage.html
     :alt: Notebook Coverage
@@ -59,7 +55,9 @@ mlprodict
     HISTORY
 
 *mlprodict* explores couple of ways to compute predictions faster
-than the library used to build the machine learning model.
+than the library used to build the machine learned model,
+mostly :epkg:`scikit-learn` which is optimized for training,
+which is equivalent to batch predictions.
 One way is to convert the prediction function into :epkg:`C`.
 
 .. runpython::
@@ -84,6 +82,10 @@ One way is to convert the prediction function into :epkg:`C`.
     ccode = gr.export(lang='c')
     # We print after a little bit of cleaning (remove all comments)
     print("\n".join(_ for _ in ccode['code'].split("\n") if "//" not in _))
+
+Another way is to use :epkg:`ONNX`. :epkg:`onnxruntime` provides an efficient way
+to compute predictions. The current code explores ways to be faster
+att implementing something working.
 
 +----------------------+---------------------+---------------------+--------------------+------------------------+------------------------------------------------+
 | :ref:`l-modules`     |  :ref:`l-functions` | :ref:`l-classes`    | :ref:`l-methods`   | :ref:`l-staticmethods` | :ref:`l-properties`                            |

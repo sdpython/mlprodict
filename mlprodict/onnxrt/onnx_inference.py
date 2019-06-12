@@ -219,25 +219,28 @@ class OnnxInference:
 
         One example:
 
-        .. runpython::
-            :showcode:
+        .. exref::
+            :title: Convert ONNX into DOT
 
-            import numpy
-            from skl2onnx.algebra.onnx_ops import OnnxLinearRegressor
-            from skl2onnx.common.data_types import FloatTensorType
-            from mlprodict.onnxrt import OnnxInference
+            .. runpython::
+                :showcode:
 
-            pars = dict(coefficients=numpy.array([1., 2.]),
-                        intercepts=numpy.array([1.]),
-                        post_transform='NONE')
-            onx = OnnxLinearRegressor('X', output_names=['Y'], **pars)
-            model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
-                                    outputs=[('Y', FloatTensorType([1]))])
-            oinf = OnnxInference(model_def)
-            print(oinf.to_dot())
+                import numpy
+                from skl2onnx.algebra.onnx_ops import OnnxLinearRegressor
+                from skl2onnx.common.data_types import FloatTensorType
+                from mlprodict.onnxrt import OnnxInference
 
-        See an example of representation in notebook
-        :ref:`onnxvisualizationrst`.
+                pars = dict(coefficients=numpy.array([1., 2.]),
+                            intercepts=numpy.array([1.]),
+                            post_transform='NONE')
+                onx = OnnxLinearRegressor('X', output_names=['Y'], **pars)
+                model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
+                                        outputs=[('Y', FloatTensorType([1]))])
+                oinf = OnnxInference(model_def)
+                print(oinf.to_dot())
+
+            See an example of representation in notebook
+            :ref:`onnxvisualizationrst`.
         """
         options = {
             'orientation': 'portrait',
@@ -281,8 +284,8 @@ class OnnxInference:
                 st = str(val)
             else:
                 st = str(val)
-                if len(st) > 20:
-                    st = st[:20] + '...'
+                if len(st) > 30:
+                    st = st[:30] + '...'
             st = st.replace('\n', '\\n')
             kind = ""
             exp.append('  {0} [shape=box label="{0}\\n{4}{1}({2})\\n{3}" fontsize={5}];'.format(
@@ -307,7 +310,7 @@ class OnnxInference:
                     val = None
                     if 'value' in v:
                         val = str(v['value'])
-                        sl = max(20 - len(k), 10)
+                        sl = max(30 - len(k), 10)
                         if len(val) > sl:
                             val = val[:sl] + "..."
                     if val is not None:
@@ -330,6 +333,26 @@ class OnnxInference:
 
         @param      indent      indentation
         @return                 string
+
+        .. exref::
+            :title: Convert ONNX into JSON
+
+            .. runpython::
+                :showcode:
+
+                import numpy
+                from skl2onnx.algebra.onnx_ops import OnnxLinearRegressor
+                from skl2onnx.common.data_types import FloatTensorType
+                from mlprodict.onnxrt import OnnxInference
+
+                pars = dict(coefficients=numpy.array([1., 2.]),
+                            intercepts=numpy.array([1.]),
+                            post_transform='NONE')
+                onx = OnnxLinearRegressor('X', output_names=['Y'], **pars)
+                model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
+                                        outputs=[('Y', FloatTensorType([1]))])
+                oinf = OnnxInference(model_def)
+                print(oinf.to_json())
         """
 
         def _to_json(obj):

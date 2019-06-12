@@ -33,5 +33,12 @@ mathdef_link_only = True
 epkg_dictionary.update({
     'C': "https://en.wikipedia.org/wiki/C_(programming_language)",
     'cffi': "https://cffi.readthedocs.io/en/latest/",
+    'json': 'https://docs.python.org/3/library/json.html',
+    'JSON': 'https://en.wikipedia.org/wiki/JSON',
+    'ONNX': 'https://onnx.ai/',
+    'onnx': 'https://github.com/onnx/onnx',
+    'sklearn-onnx': 'https://github.com/onnx/sklearn-onnx',
+    'onnxruntime': 'https://github.com/microsoft/onnxruntime',
+    'Python': 'https://www.python.org/',
     'xgboost': "https://xgboost.readthedocs.io/en/latest/",
 })
