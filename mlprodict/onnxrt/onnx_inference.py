@@ -525,7 +525,7 @@ class OnnxInference:
                 model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
                                         outputs=[('Y', FloatTensorType([1]))])
                 oinf = OnnxInference(model_def)
-                pprint.pprint(oinf.to_graph())
+                pprint.pprint(oinf.to_sequence())
 
             See an example of representation in notebook
             :ref:`onnxvisualizationrst`.
