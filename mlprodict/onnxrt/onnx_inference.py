@@ -10,6 +10,54 @@ from onnx import onnx_pb as onnx_proto
 from onnx import numpy_helper
 
 
+class OnnxInferenceNode:
+    """
+    A node to execute.
+    """
+
+    def __init__(self, onnx_node, desc):
+        """
+        @param      onnx_node       onnx_node
+        @param      desc            internal description
+        """
+        self.desc = desc
+        self.onnx_node = onnx_node
+        self._init()
+
+    def _init(self):
+        """
+        Prepares the node.
+        """
+        self.op_type = self.onnx_node.op_type
+        self.order = -1
+        self.variable_to_clean = []
+        self.inputs = list(sorted(obj for obj in self.onnx_node.input))
+        self.outputs = list(sorted(obj for obj in self.onnx_node.output))
+
+    def set_order(self, order):
+        """
+        Defines the order of execution.
+        """
+        self.order = order
+
+    def add_variable_to_clean(self, name):
+        """
+        Adds a variable which can be cleaned after the node
+        execution.
+        """
+        self.variable_to_clean.append(name)
+
+    def __str__(self):
+        "usual"
+        return "'Onnx-{}({}) -> {}".format(
+            self.op_type, ", ".join(sorted(self.inputs)),
+            ", ".join(sorted(self.outputs)))
+
+    def __repr__(self):
+        "usual"
+        return self.__str__()
+
+
 class OnnxInference:
     """
     Loads an :epkg:`ONNX` file or object or stream.
@@ -38,7 +86,7 @@ class OnnxInference:
         """
         Prepares the instance to deliver predictions.
         """
-        pass
+        self.graph_ = self.to_sequence()
 
     def __str__(self):
         """
@@ -451,3 +499,114 @@ class OnnxInference:
         final_obj['nodes'] = nodes
 
         return json.dumps(final_obj, indent=indent)
+
+    def to_sequence(self):
+        """
+        Produces a graph to facilitate the execution.
+
+        One example:
+
+        .. exref::
+            :title: Convert ONNX into graph
+
+            .. runpython::
+                :showcode:
+
+                import pprint
+                import numpy
+                from skl2onnx.algebra.onnx_ops import OnnxLinearRegressor
+                from skl2onnx.common.data_types import FloatTensorType
+                from mlprodict.onnxrt import OnnxInference
+
+                pars = dict(coefficients=numpy.array([1., 2.]),
+                            intercepts=numpy.array([1.]),
+                            post_transform='NONE')
+                onx = OnnxLinearRegressor('X', output_names=['Y'], **pars)
+                model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
+                                        outputs=[('Y', FloatTensorType([1]))])
+                oinf = OnnxInference(model_def)
+                pprint.pprint(oinf.to_graph())
+
+            See an example of representation in notebook
+            :ref:`onnxvisualizationrst`.
+        """
+        inits = {}
+        variables = {}
+        outputs = {}
+        nodes = {}
+
+        # inputs
+        for obj in self.obj.graph.input:
+            variables[obj.name] = OnnxInference._var_as_dict(obj)
+
+        # outputs
+        for obj in self.obj.graph.output:
+            outputs[obj.name] = OnnxInference._var_as_dict(obj)
+
+        # initializer
+        for obj in self.obj.graph.initializer:
+            inits[obj.name] = OnnxInference._var_as_dict(obj)
+
+        # nodes
+        for node in self.obj.graph.node:
+            dobj = OnnxInference._var_as_dict(node)
+            nodes[node.name] = OnnxInferenceNode(node, dobj)
+
+        # names
+        names = {}
+        for k, v in inits.items():
+            names[k] = ('C', v)
+        for k, v in variables.items():
+            names[k] = ('I', v)
+        for k, v in outputs.items():
+            names[k] = ('O', v)
+        for k, v in nodes.items():
+            names[k] = ('N', v)
+
+        # ordering
+        order = {}
+        modif = 1
+        intermediate = {}
+        while modif > 0:
+            modif = 0
+            for k, v in names.items():
+                if k in order:
+                    continue
+                if v[0] in {'I', 'C'}:
+                    order[k] = len(order)
+                    modif += 1
+                elif v[0] == 'O':
+                    continue
+                else:
+                    if all(inp in order for inp in v[1].inputs):
+                        order[k] = len(order)
+                        modif += 1
+                        for o in v[1].outputs:
+                            if o in order:
+                                raise RuntimeError(
+                                    "Two nodes share the same output '{}'.".format(o))
+                            order[o] = len(order)
+                            intermediate[o] = None
+                            modif += 1
+
+        # compute
+        rev = [(v, k) for k, v in order.items()]
+        rev.sort()
+        sequence = []
+        for _, name in rev:
+            if name not in nodes:
+                continue
+            node = nodes[name]
+            node.set_order(len(sequence))
+            sequence.append(node)
+
+        # defines where an intermediare output is not needed
+        last_used = {}
+        for node in sequence:
+            for inp in node.inputs:
+                last_used[inp] = node.order
+        for k, ord in last_used.items():
+            sequence[ord].add_variable_to_clean(k)
+
+        return dict(inits=inits, inputs=variables, outputs=outputs,
+                    nodes=nodes, sequence=sequence, intermediate=intermediate)

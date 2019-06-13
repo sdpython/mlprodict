@@ -85,7 +85,8 @@ One way is to convert the prediction function into :epkg:`C`.
 
 Another way is to use :epkg:`ONNX`. :epkg:`onnxruntime` provides an efficient way
 to compute predictions. The current code explores ways to be faster
-att implementing something working.
+at implementing something working. Notebook :ref:`onnxvisualizationrst`
+shows how to visualize an ONNX pipeline.
 
 +----------------------+---------------------+---------------------+--------------------+------------------------+------------------------------------------------+
 | :ref:`l-modules`     |  :ref:`l-functions` | :ref:`l-classes`    | :ref:`l-methods`   | :ref:`l-staticmethods` | :ref:`l-properties`                            |

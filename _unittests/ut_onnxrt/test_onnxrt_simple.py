@@ -149,6 +149,22 @@ class TestOnnxrtSimple(ExtTestCase):
         js = oinf.to_json()
         self.assertIn('"initializers": {', js)
 
+    def test_onnxt_graph(self):
+        idi = numpy.identity(2)
+        idi2 = numpy.identity(2) * 2
+        onx = OnnxAdd(OnnxAdd('X', idi), idi2, output_names=['Y'])
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        js = oinf.to_sequence()
+        self.assertIn('inits', js)
+        self.assertIn('inputs', js)
+        self.assertIn('outputs', js)
+        self.assertIn('intermediate', js)
+        self.assertIn('nodes', js)
+        self.assertIn('sequence', js)
+        self.assertEqual(len(js['sequence']), 2)
+        self.assertEqual(len(js['intermediate']), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
