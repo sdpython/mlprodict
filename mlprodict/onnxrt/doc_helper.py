@@ -17,8 +17,8 @@ def type_mapping(name):
         from mlprodict.onnxrt.doc_helper import type_mapping
         import pprint
         pprint.pprint(type_mapping(None))
-        print(type_mapping["INT"])
-        print(type_mapping[2])
+        print(type_mapping("INT"))
+        print(type_mapping(2))
     """
     di = dict(FLOAT=1, FLOATS=6, GRAPH=5, GRAPHS=10, INT=2,
               INTS=7, STRING=3, STRINGS=8, TENSOR=4,
