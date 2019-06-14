@@ -14,7 +14,7 @@ def type_mapping(name):
     .. runpython::
         :showcode:
 
-        from mlprodict.onnxrt.doc_helper import type_index
+        from mlprodict.onnxrt.doc_helper import type_mapping
         import pprint
         pprint.pprint(type_mapping(None))
         print(type_mapping["INT"])

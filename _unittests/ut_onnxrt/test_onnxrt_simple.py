@@ -208,7 +208,7 @@ class TestOnnxrtSimple(ExtTestCase):
 
         exp = clr.predict_proba(X_test)
         got = pandas.DataFrame(y['output_probability']).values
-        self.assertEqualArray(exp, got)
+        self.assertEqualArray(exp, got, decimal=5)
 
 
 if __name__ == "__main__":
