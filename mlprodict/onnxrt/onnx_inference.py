@@ -18,11 +18,12 @@ class OnnxInference:
     Computes the output of the :epkg:`ONNX` graph.
     """
 
-    def __init__(self, onnx_or_bytes_or_stream, runtime=None):
+    def __init__(self, onnx_or_bytes_or_stream, runtime=None, skip_run=False):
         """
         @param      onnx_or_bytes_or_stream     :epkg:`onnx` object,
                                                 bytes, or filename or stream
         @param      runtime                     runtime options
+        @param      skip_run                    do not build the runtime
         """
         if isinstance(onnx_or_bytes_or_stream, bytes):
             self.obj = load_model(BytesIO(onnx_or_bytes_or_stream))
@@ -36,6 +37,25 @@ class OnnxInference:
             raise TypeError("Unable to handle type {}.".format(
                 type(onnx_or_bytes_or_stream)))
         self.runtime = runtime
+        self.skip_run = skip_run
+        self._init()
+
+    def __getstate__(self):
+        """
+        To pickle the object.
+        """
+        return {'onnx': self.obj.SerializeToString(),
+                'runtime': self.runtime,
+                'skip_run': self.skip_run}
+
+    def __setstate__(self, state):
+        """
+        To unpickle the object.
+        """
+        onx = state['onnx']
+        self.obj = load_model(BytesIO(onx))
+        self.runtime = state['runtime']
+        self.skip_run = state['skip_run']
         self._init()
 
     def _init(self):
@@ -46,8 +66,9 @@ class OnnxInference:
         self.sequence_ = self.graph_['sequence']
         self.inits_ = self.graph_['inits']
         self.outputs_ = self.graph_['outputs']
-        for node in self.sequence_:
-            node.setup_runtime(self.runtime)
+        if not self.skip_run:
+            for node in self.sequence_:
+                node.setup_runtime(self.runtime)
 
     def __str__(self):
         """
@@ -60,21 +81,6 @@ class OnnxInference:
         usual
         """
         return "OnnxInference(...)"
-
-    def __setstate__(self, state):
-        """
-        To unpickle the object.
-        """
-        onx = state['onnx']
-        self.obj = load_model(BytesIO(onx))
-        self.runtime = state['runtime']
-        self._init()
-
-    def __getstate__(self):
-        """
-        To pickle the object.
-        """
-        return {'onnx': self.obj.SerializeToString(), 'runtime': self.runtime}
 
     def check_model(self):
         """
@@ -164,8 +170,11 @@ class OnnxInference:
                                           "Available fields: {}.".format(var, pprint.pformat(dir(var.type))))
 
             res = dict(name=var.name, type=dtype)
+
             if hasattr(var, 'floats') and dtype.get('elem', None) == 6:
                 res['value'] = numpy.array(var.floats)
+            elif hasattr(var, 'strings') and dtype.get('elem', None) == 8:
+                res['value'] = numpy.array(var.strings)
             elif hasattr(var, 'ints') and dtype.get('elem', None) == 7:
                 res['value'] = numpy.array(var.ints)
             elif hasattr(var, 's') and dtype.get('elem', None) == 3:
@@ -184,11 +193,26 @@ class OnnxInference:
                     atts[att.name] = OnnxInference._var_as_dict(att)
             return dict(name=var.name, op_type=var.op_type, domain=var.domain, atts=atts)
 
-        elif hasattr(var, 'dims'):
+        elif hasattr(var, 'dims') and len(var.dims) > 0:
             # initializer
             dims = [d for d in var.dims]
-            if var.float_data is not None:
+            if var.data_type == 1 and var.float_data is not None:
                 data = numpy.array(var.float_data, copy=False).reshape(dims)
+            elif var.data_type == 6 and var.int32_data is not None:
+                data = numpy.array(var.int32_data, copy=False).reshape(dims)
+            elif var.data_type == 7 and var.int64_data is not None:
+                data = numpy.array(var.int64_data, copy=False).reshape(dims)
+            else:
+                raise NotImplementedError(
+                    "Iniatilizer {} cannot be converted into a dictionary.".format(var))
+            return dict(name=var.name, value=data)
+        elif var.data_type > 0:
+            if var.data_type == 1 and var.float_data is not None:
+                data = numpy.array(var.float_data, copy=False)
+            elif var.data_type == 6 and var.int32_data is not None:
+                data = numpy.array(var.int32_data, copy=False)
+            elif var.data_type == 7 and var.int64_data is not None:
+                data = numpy.array(var.int64_data, copy=False)
             else:
                 raise NotImplementedError(
                     "Iniatilizer {} cannot be converted into a dictionary.".format(var))
@@ -523,7 +547,11 @@ class OnnxInference:
 
         # initializer
         for obj in self.obj.graph.initializer:
-            inits[obj.name] = OnnxInference._var_as_dict(obj)
+            init_obj = OnnxInference._var_as_dict(obj)
+            if init_obj is None:
+                raise RuntimeError(
+                    "Unable to convert an initializer\n{}".format(obj))
+            inits[obj.name] = init_obj
             if 'value' not in inits[obj.name]:
                 raise RuntimeError("One initializer has no value: '{}'\n{}\n{}".format(
                     obj.name, inits[obj.name], obj))
@@ -531,11 +559,13 @@ class OnnxInference:
         # nodes
         for node in self.obj.graph.node:
             dobj = OnnxInference._var_as_dict(node)
+            if dobj is None:
+                raise RuntimeError("Unable to convert a node\n{}".format(node))
             if 'atts' in dobj:
                 atts = dobj['atts']
                 for k, v in atts.items():
                     if not isinstance(v, dict) or 'value' not in v:
-                        raise RuntimeError("A parameter has no value '{}' for node '{}'\n{}\n{}".format(
+                        raise RuntimeError("A parameter has no value '{}' for node '{}'\nv={}\ndobj=[{}]".format(
                             k, node.name, v, obj))
             nodes[node.name] = OnnxInferenceNode(node, dobj)
 
