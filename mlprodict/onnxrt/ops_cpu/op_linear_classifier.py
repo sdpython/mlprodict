@@ -1,8 +1,8 @@
 # -*- encoding: utf-8 -*-
-# pylint: disable=E0203,E1101
+# pylint: disable=E0203,E1101,C0111
 """
 @file
-@brief Shortcut to *ops_cpu*.
+@brief Runtime operator.
 """
 import numpy
 from sklearn.utils.extmath import softmax
@@ -10,9 +10,7 @@ from ._op import OpRun
 
 
 class LinearClassifier(OpRun):
-    """
-    Implements a linear classifier.
-    """
+
     atts = {'classlabels_ints': [], 'classlabels_strings': [],
             'coefficients': None, 'intercepts': None,
             'multi_class': 0, 'post_transform': b'NONE'}

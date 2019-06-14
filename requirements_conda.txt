@@ -1,6 +1,7 @@
 cffi
 Cython
 datashape
+jinja2
 jupyter
 matplotlib
 notebook>=5.0.0

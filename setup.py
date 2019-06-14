@@ -167,6 +167,6 @@ if not r:
         packages=packages,
         package_dir=package_dir,
         package_data=package_data,
-        setup_requires=["onnx", "scikit-learn"],
+        setup_requires=["onnx", "scikit-learn", "jinja2"],
         install_requires=None,
     )

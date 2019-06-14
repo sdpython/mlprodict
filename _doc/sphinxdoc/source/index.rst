@@ -72,12 +72,10 @@ One way is to convert the prediction function into :epkg:`C`.
     lr = LogisticRegression()
     lr.fit(X, y)
 
-    ############################
     # Conversion into a graph.
     from mlprodict.grammar_sklearn import sklearn2graph
     gr = sklearn2graph(lr, output_names=['Prediction', 'Score'])
 
-    ######################################
     # Conversion into C
     ccode = gr.export(lang='c')
     # We print after a little bit of cleaning (remove all comments)
@@ -87,6 +85,34 @@ Another way is to use :epkg:`ONNX`. :epkg:`onnxruntime` provides an efficient wa
 to compute predictions. The current code explores ways to be faster
 at implementing something working. Notebook :ref:`onnxvisualizationrst`
 shows how to visualize an ONNX pipeline.
+
+.. runpython::
+    :showcode:
+
+    from sklearn.linear_model import LinearRegression
+    from sklearn.datasets import load_iris
+    from mlprodict.onnxrt import OnnxInference
+    import numpy
+
+    iris = load_iris()
+    X = iris.data[:, :2]
+    y = iris.target
+    lr = LinearRegression()
+    lr.fit(X, y)
+
+    # Conversion into ONNX.
+    from skl2onnx import to_onnx
+    model_onnx = to_onnx(lr, X.astype(numpy.float32))
+    print(model_onnx)
+
+    # Python Runtime
+    oinf = OnnxInference(model_onnx)
+    exp = clr.predict(X_test[:5])
+    print(exp)
+
+    # Predictions
+    y = oinf.run({'X': X_test[:5]})
+    print(y)
 
 +----------------------+---------------------+---------------------+--------------------+------------------------+------------------------------------------------+
 | :ref:`l-modules`     |  :ref:`l-functions` | :ref:`l-classes`    | :ref:`l-methods`   | :ref:`l-staticmethods` | :ref:`l-properties`                            |

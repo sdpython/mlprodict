@@ -1,15 +1,13 @@
 # -*- encoding: utf-8 -*-
+# pylint: disable=E0203,E1101,C0111
 """
 @file
-@brief Shortcut to *ops_cpu*.
+@brief Runtime operator.
 """
 from ._op import OpRun
 
 
 class Add(OpRun):
-    """
-    Implements an addition.
-    """
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=None, **options)

@@ -1,15 +1,14 @@
 # -*- encoding: utf-8 -*-
+# pylint: disable=E0203,E1101,C0111
 """
 @file
-@brief Shortcut to *ops_cpu*.
+@brief Runtime operator.
 """
 from ._op import OpRun
 
 
 class ZipMap(OpRun):
-    """
-    Implements a zip map.
-    """
+
     atts = {'classlabels_int64s': [], 'classlabels_strings': []}
 
     def __init__(self, onnx_node, desc=None, **options):
