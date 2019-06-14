@@ -12,7 +12,7 @@ import pandas
 from onnx.onnx_cpp2py_export.checker import ValidationError  # pylint: disable=E0401,E0611
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LinearRegression
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
@@ -86,7 +86,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('Addcst -> Add;', dot)
         self.assertIn('Add1 -> Y;', dot)
 
-    def test_onnxt_lr(self):
+    def test_onnxt_lreg(self):
         pars = dict(coefficients=numpy.array([1., 2.]), intercepts=numpy.array([1.]),
                     post_transform='NONE')
         onx = OnnxLinearRegressor('X', output_names=['Y'], **pars)
@@ -94,7 +94,7 @@ class TestOnnxrtSimple(ExtTestCase):
                                 outputs=[('Y', FloatTensorType([1]))])
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot()
-        self.assertIn('coefficients=[1.0, 2.0]', dot)
+        self.assertIn('coefficients=[1. 2.]', dot)
         self.assertIn('LinearRegressor', dot)
 
     def test_onnxt_lrc(self):
@@ -177,7 +177,21 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertEqual(list(y), ['Y'])
         self.assertEqualArray(y['Y'], exp)
 
-    def test_onnxt_lrc_iris_run(self):
+    def test_onnxt_lrreg_iris_run(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y)
+        clr = LinearRegression()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        y = oinf.run({'X': X_test})
+        exp = clr.predict(X_test)
+        self.assertEqual(list(sorted(y)), ['variable'])
+        self.assertEqualArray(exp, y['variable'].ravel())
+
+    def skip_test_onnxt_lrc_iris_run(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y)
@@ -197,6 +211,5 @@ class TestOnnxrtSimple(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtSimple().test_onnxt_lrc_iris_run()
-    # stop
+    # TestOnnxrtSimple().skip_test_onnxt_lrc_iris_run()
     unittest.main()

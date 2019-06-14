@@ -1,4 +1,5 @@
 # -*- encoding: utf-8 -*-
+# pylint: disable=E0203,E1101
 """
 @file
 @brief Shortcut to *ops_cpu*.
@@ -14,7 +15,7 @@ class LinearClassifier(OpRun):
     """
     atts = {'classlabels_ints': [], 'classlabels_strings': [],
             'coefficients': None, 'intercepts': None,
-            'multi_class': 0, 'post_transform': 'NONE'}
+            'multi_class': 0, 'post_transform': b'NONE'}
 
     def __init__(self, onnx_node, desc=None, **options):
         if desc is None:
@@ -22,9 +23,9 @@ class LinearClassifier(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        expected_attributes=LinearClassifier.atts,
                        **options)
-        if not isinstance(self.coefficients, numpy.ndarray):  # pylint: disable=E0203
+        if not isinstance(self.coefficients, numpy.ndarray):
             raise TypeError("coefficient must be an array not {}.".format(
-                type(self.coefficients)))  # pylint: disable=E0203
+                type(self.coefficients)))
         if len(getattr(self, "classlabels_ints", [])) == 0 and \
                 len(getattr(self, 'classlabels_strings', [])) == 0:
             raise ValueError(
@@ -33,23 +34,23 @@ class LinearClassifier(OpRun):
                             len(getattr(self, 'classlabels_strings', [])))
         if self.nb_class == 2:
             self.nb_class = 1
-        if len(self.coefficients.shape) != 1:  # pylint: disable=E0203
+        if len(self.coefficients.shape) != 1:
             raise ValueError("coefficient must be an array but has shape {}\n{}.".format(
-                self.coefficients.shape, desc))  # pylint: disable=E0203
-        n = self.coefficients.shape[0] // self.nb_class  # pylint: disable=E0203
-        self.coefficients = self.coefficients.reshape(n, self.nb_class)
+                self.coefficients.shape, desc))
+        n = self.coefficients.shape[0] // self.nb_class
+        self.coefficients = self.coefficients.reshape(self.nb_class, n).T
 
     def _run(self, x):  # pylint: disable=W0221
         score = numpy.dot(x, self.coefficients)
-        if self.intercepts is not None:  # pylint: disable=E1101
-            score += self.intercepts  # pylint: disable=E1101
-        if self.post_transform == b'NONE':  # pylint: disable=E1101
+        if self.intercepts is not None:
+            score += self.intercepts
+        if self.post_transform == b'NONE':
             pass
-        elif self.post_transform == b'LOGISTIC':  # pylint: disable=E1101
+        elif self.post_transform == b'LOGISTIC':
             score = softmax(score)
         else:
             raise NotImplementedError("Unknown post_transform: '{}'.".format(
-                self.post_transform))  # pylint: disable=E1101
+                self.post_transform))
 
         if self.nb_class == 1:
             label = numpy.zeros((score.shape[0],))

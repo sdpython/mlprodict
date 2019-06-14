@@ -3,6 +3,10 @@
 @file
 @brief Shortcut to *ops_cpu*.
 """
+import onnx.defs
+
+_schemas = {
+    schema.name: schema for schema in onnx.defs.get_all_schemas_with_history()}
 
 
 class OpRun:
@@ -21,6 +25,7 @@ class OpRun:
         self._provider = 'CPU'
         self.onnx_node = onnx_node
         self.desc = desc
+        self._schema = _schemas[onnx_node.op_type]
         if desc is not None:
             if 'atts' in desc:
                 for a, b in desc['atts'].items():
@@ -29,13 +34,19 @@ class OpRun:
                     options[a] = b['value']
         if expected_attributes is not None:
             for a, b in expected_attributes.items():
-                if b is not None:
-                    continue
                 if a not in options:
-                    raise RuntimeError("Parameter '{}' is missing from operator '{}', given {}.".format(
-                        a, onnx_node.op_type, list(sorted(options))))
+                    if b is None:
+                        raise RuntimeError("Parameter '{}' is missing from operator '{}', given {}.".format(
+                            a, onnx_node.op_type, list(sorted(options))))
+                    else:
+                        setattr(self, a, b)
         for k, v in options.items():
             setattr(self, k, v)
+
+        for k, v in self._schema.attributes.items():
+            if not hasattr(self, k):
+                raise RuntimeError("Attribute '{}' is expected based on ONNX specifications '{}'.".format(
+                    k, v))
 
     def _run(self, *args, **kwargs):
         """

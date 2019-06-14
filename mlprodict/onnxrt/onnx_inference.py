@@ -172,7 +172,7 @@ class OnnxInference:
                 res['value'] = var.s
             elif hasattr(var, 'i') and dtype.get('elem', None) == 2:
                 res['value'] = var.i
-            else:
+            elif "'value'" in str(var):
                 warnings.warn("No value: {} -- {}".format(
                     dtype, str(var).replace("\n", "").replace(" ", "")))
             return res
