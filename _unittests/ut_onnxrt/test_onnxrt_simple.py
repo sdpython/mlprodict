@@ -191,7 +191,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertEqual(list(sorted(y)), ['variable'])
         self.assertEqualArray(exp, y['variable'].ravel())
 
-    def skip_test_onnxt_lrc_iris_run(self):
+    def test_onnxt_lrc_iris_run(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y)
@@ -201,15 +201,15 @@ class TestOnnxrtSimple(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
         oinf = OnnxInference(model_def)
         y = oinf.run({'X': X_test})
-        exp = clr.predict_proba(X_test)
-        lexp = clr.predict(X_test)
         self.assertEqual(list(sorted(y)), [
                          'output_label', 'output_probability'])
-        got = pandas.DataFrame(y['output_probability']).values
+        lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y['output_label'])
+
+        exp = clr.predict_proba(X_test)
+        got = pandas.DataFrame(y['output_probability']).values
         self.assertEqualArray(exp, got)
 
 
 if __name__ == "__main__":
-    # TestOnnxrtSimple().skip_test_onnxt_lrc_iris_run()
     unittest.main()

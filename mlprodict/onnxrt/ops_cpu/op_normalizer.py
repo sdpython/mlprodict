@@ -31,20 +31,17 @@ class Normalizer(OpRun):
     @staticmethod
     def norm_max(x):
         "max normalization"
-        mx = numpy.max(x)
-        return x / mx
+        return x / numpy.abs(x).max(axis=1).reshape((x.shape[0], -1))
 
     @staticmethod
     def norm_l1(x):
         "L1 normalization"
-        su = numpy.sum(numpy.abs(x))
-        return x / su
+        return x / numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1))
 
     @staticmethod
     def norm_l2(x):
         "L2 normalization"
-        su = numpy.sum(numpy.square(x)) ** 0.5
-        return x / su
+        return x / numpy.square(x).sum(axis=1).reshape((x.shape[0], -1))
 
     def _run(self, x):  # pylint: disable=W0221
         return (self._norm(x), )

@@ -5,7 +5,7 @@
 @brief Runtime operator.
 """
 import numpy
-from sklearn.utils.extmath import softmax
+from scipy.special import expit  # pylint: disable=E0611
 from ._op import OpRun
 
 
@@ -42,10 +42,12 @@ class LinearClassifier(OpRun):
         score = numpy.dot(x, self.coefficients)
         if self.intercepts is not None:
             score += self.intercepts
+
         if self.post_transform == b'NONE':
             pass
         elif self.post_transform == b'LOGISTIC':
-            score = softmax(score)
+            expit(score, out=score)
+
         else:
             raise NotImplementedError("Unknown post_transform: '{}'.".format(
                 self.post_transform))
