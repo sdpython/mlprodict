@@ -1,4 +1,6 @@
 
+.. _l-onnx-runtime-operators:
+
 Python Runtime for ONNX operators
 =================================
 
@@ -18,14 +20,32 @@ test, exepriment...
 CPU
 +++
 
+Add
+^^^
+
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_add.Add
+
+Cast
+^^^^
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_cast.Cast
 
+LinearClassifier
+^^^^^^^^^^^^^^^^
+
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_linear_classifier.LinearClassifier
+
+LinearRegressor
+^^^^^^^^^^^^^^^
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_linear_regressor.LinearRegressor
 
+Normalizer
+^^^^^^^^^^
+
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_normalizer.Normalizer
+
+ZipMap
+^^^^^^
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_zipmap.ZipMap

@@ -103,7 +103,7 @@ shows how to visualize an ONNX pipeline.
     # Conversion into ONNX.
     from skl2onnx import to_onnx
     model_onnx = to_onnx(lr, X.astype(numpy.float32))
-    print(model_onnx)
+    print(model_onnx[:200] + "\n...")
 
     # Python Runtime
     oinf = OnnxInference(model_onnx)

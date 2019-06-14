@@ -239,6 +239,9 @@ class OnnxInference:
         .. exref::
             :title: Convert ONNX into DOT
 
+            An example on how to convert an :epkg:`ONNX`
+            graph into :epkg:`DOT`.
+
             .. runpython::
                 :showcode:
 
@@ -353,6 +356,9 @@ class OnnxInference:
 
         .. exref::
             :title: Convert ONNX into JSON
+
+            An example on how to convert an :epkg:`ONNX`
+            graph into :epkg:`JSON`.
 
             .. runpython::
                 :showcode:
@@ -477,6 +483,9 @@ class OnnxInference:
 
         .. exref::
             :title: Convert ONNX into graph
+
+            An example on how to convert an :epkg:`ONNX`
+            graph into a graph.
 
             .. runpython::
                 :showcode:
