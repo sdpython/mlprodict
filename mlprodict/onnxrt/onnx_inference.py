@@ -4,58 +4,12 @@
 """
 from io import BytesIO
 import json
+import warnings
 import numpy
 from onnx import load, load_model, checker, shape_inference
 from onnx import onnx_pb as onnx_proto
 from onnx import numpy_helper
-
-
-class OnnxInferenceNode:
-    """
-    A node to execute.
-    """
-
-    def __init__(self, onnx_node, desc):
-        """
-        @param      onnx_node       onnx_node
-        @param      desc            internal description
-        """
-        self.desc = desc
-        self.onnx_node = onnx_node
-        self._init()
-
-    def _init(self):
-        """
-        Prepares the node.
-        """
-        self.op_type = self.onnx_node.op_type
-        self.order = -1
-        self.variable_to_clean = []
-        self.inputs = list(sorted(obj for obj in self.onnx_node.input))
-        self.outputs = list(sorted(obj for obj in self.onnx_node.output))
-
-    def set_order(self, order):
-        """
-        Defines the order of execution.
-        """
-        self.order = order
-
-    def add_variable_to_clean(self, name):
-        """
-        Adds a variable which can be cleaned after the node
-        execution.
-        """
-        self.variable_to_clean.append(name)
-
-    def __str__(self):
-        "usual"
-        return "'Onnx-{}({}) -> {}".format(
-            self.op_type, ", ".join(sorted(self.inputs)),
-            ", ".join(sorted(self.outputs)))
-
-    def __repr__(self):
-        "usual"
-        return self.__str__()
+from .onnx_inference_node import OnnxInferenceNode
 
 
 class OnnxInference:
@@ -64,10 +18,11 @@ class OnnxInference:
     Computes the output of the :epkg:`ONNX` graph.
     """
 
-    def __init__(self, onnx_or_bytes_or_stream):
+    def __init__(self, onnx_or_bytes_or_stream, runtime=None):
         """
         @param      onnx_or_bytes_or_stream     :epkg:`onnx` object,
                                                 bytes, or filename or stream
+        @param      runtime                     runtime options
         """
         if isinstance(onnx_or_bytes_or_stream, bytes):
             self.obj = load_model(BytesIO(onnx_or_bytes_or_stream))
@@ -80,6 +35,7 @@ class OnnxInference:
         else:
             raise TypeError("Unable to handle type {}.".format(
                 type(onnx_or_bytes_or_stream)))
+        self.runtime = runtime
         self._init()
 
     def _init(self):
@@ -87,6 +43,11 @@ class OnnxInference:
         Prepares the instance to deliver predictions.
         """
         self.graph_ = self.to_sequence()
+        self.sequence_ = self.graph_['sequence']
+        self.inits_ = self.graph_['inits']
+        self.outputs_ = self.graph_['outputs']
+        for node in self.sequence_:
+            node.setup_runtime(self.runtime)
 
     def __str__(self):
         """
@@ -106,13 +67,14 @@ class OnnxInference:
         """
         onx = state['onnx']
         self.obj = load_model(BytesIO(onx))
+        self.runtime = state['runtime']
         self._init()
 
     def __getstate__(self):
         """
         To pickle the object.
         """
-        return {'onnx': self.obj.SerializeToString()}
+        return {'onnx': self.obj.SerializeToString(), 'runtime': self.runtime}
 
     def check_model(self):
         """
@@ -203,9 +165,16 @@ class OnnxInference:
 
             res = dict(name=var.name, type=dtype)
             if hasattr(var, 'floats') and dtype.get('elem', None) == 6:
-                res['value'] = list(var.floats)
+                res['value'] = numpy.array(var.floats)
+            elif hasattr(var, 'ints') and dtype.get('elem', None) == 7:
+                res['value'] = numpy.array(var.ints)
             elif hasattr(var, 's') and dtype.get('elem', None) == 3:
                 res['value'] = var.s
+            elif hasattr(var, 'i') and dtype.get('elem', None) == 2:
+                res['value'] = var.i
+            else:
+                warnings.warn("No value: {} -- {}".format(
+                    dtype, str(var).replace("\n", "").replace(" ", "")))
             return res
 
         elif hasattr(var, 'op_type'):
@@ -546,10 +515,19 @@ class OnnxInference:
         # initializer
         for obj in self.obj.graph.initializer:
             inits[obj.name] = OnnxInference._var_as_dict(obj)
+            if 'value' not in inits[obj.name]:
+                raise RuntimeError("One initializer has no value: '{}'\n{}\n{}".format(
+                    obj.name, inits[obj.name], obj))
 
         # nodes
         for node in self.obj.graph.node:
             dobj = OnnxInference._var_as_dict(node)
+            if 'atts' in dobj:
+                atts = dobj['atts']
+                for k, v in atts.items():
+                    if not isinstance(v, dict) or 'value' not in v:
+                        raise RuntimeError("A parameter has no value '{}' for node '{}'\n{}\n{}".format(
+                            k, node.name, v, obj))
             nodes[node.name] = OnnxInferenceNode(node, dobj)
 
         # names
@@ -610,3 +588,19 @@ class OnnxInference:
 
         return dict(inits=inits, inputs=variables, outputs=outputs,
                     nodes=nodes, sequence=sequence, intermediate=intermediate)
+
+    def run(self, inputs, clean_right_away=False):
+        """
+        Computes the predictions for this :epkg:`onnx` graph.
+
+        @param      inputs              inputs as dictionary
+        @param      clean_right_away    clean the intermediate outputs
+                                        as soon as they are not needed
+        @return                         outputs as dictionary
+        """
+        values = inputs.copy()
+        for k, v in self.inits_.items():
+            values[k] = v['value']
+        for node in self.sequence_:
+            node.run(values)
+        return {k: values[k] for k in self.outputs_}

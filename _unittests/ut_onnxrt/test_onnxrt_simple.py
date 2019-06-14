@@ -8,6 +8,7 @@ import unittest
 import warnings
 from logging import getLogger
 import numpy
+import pandas
 from onnx.onnx_cpp2py_export.checker import ValidationError  # pylint: disable=E0401,E0611
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
@@ -98,17 +99,16 @@ class TestOnnxrtSimple(ExtTestCase):
 
     def test_onnxt_lrc(self):
         pars = dict(coefficients=numpy.array([1., 2.]), intercepts=numpy.array([1.]),
-                    post_transform='NONE')
+                    classlabels_ints=[0, 1], post_transform='NONE')
         onx = OnnxLinearClassifier('X', output_names=['Y'], **pars)
         model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
                                 outputs=[('Y', FloatTensorType([1]))])
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot()
-        self.assertIn('coefficients=[1.0, 2.0]', dot)
+        self.assertIn('coefficients=[1. 2.]', dot)
         self.assertIn('LinearClassifier', dot)
 
     def test_onnxt_lrc_iris(self):
-
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, _, y_train, __ = train_test_split(X, y)
@@ -165,6 +165,38 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertEqual(len(js['sequence']), 2)
         self.assertEqual(len(js['intermediate']), 2)
 
+    def test_onnxt_run(self):
+        idi = numpy.identity(2)
+        idi2 = numpy.identity(2) * 2
+        onx = OnnxAdd(OnnxAdd('X', idi), idi2, output_names=['Y'])
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        X = numpy.array([[1, 1], [3, 3]])
+        y = oinf.run({'X': X})
+        exp = numpy.array([[4, 1], [3, 6]], dtype=numpy.float32)
+        self.assertEqual(list(y), ['Y'])
+        self.assertEqualArray(y['Y'], exp)
+
+    def test_onnxt_lrc_iris_run(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y)
+        clr = LogisticRegression(solver="liblinear")
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        y = oinf.run({'X': X_test})
+        exp = clr.predict_proba(X_test)
+        lexp = clr.predict(X_test)
+        self.assertEqual(list(sorted(y)), [
+                         'output_label', 'output_probability'])
+        got = pandas.DataFrame(y['output_probability']).values
+        self.assertEqualArray(lexp, y['output_label'])
+        self.assertEqualArray(exp, got)
+
 
 if __name__ == "__main__":
+    # TestOnnxrtSimple().test_onnxt_lrc_iris_run()
+    # stop
     unittest.main()
