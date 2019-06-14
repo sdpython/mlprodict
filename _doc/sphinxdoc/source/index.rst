@@ -107,11 +107,11 @@ shows how to visualize an ONNX pipeline.
 
     # Python Runtime
     oinf = OnnxInference(model_onnx)
-    exp = lr.predict(X_test[:5])
+    exp = lr.predict(X[:5])
     print(exp)
 
     # Predictions
-    y = oinf.run({'X': X_test[:5]})
+    y = oinf.run({'X': X[:5]})
     print(y)
 
 +----------------------+---------------------+---------------------+--------------------+------------------------+------------------------------------------------+
