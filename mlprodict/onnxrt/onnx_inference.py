@@ -636,6 +636,36 @@ class OnnxInference:
         @param      clean_right_away    clean the intermediate outputs
                                         as soon as they are not needed
         @return                         outputs as dictionary
+
+        .. exref::
+            :title: Computes predictions with python runtime
+
+            The following example compares predictions
+            between :epkg:`scikit-learn` and this runtime.
+
+            .. runpython::
+                :showcode:
+
+                import numpy
+                from sklearn.linear_model import LinearRegression
+                from sklearn.datasets import load_iris
+                from sklearn.model_selection import train_test_split
+                from skl2onnx import to_onnx
+                from mlprodict.onnxrt import OnnxInference
+
+                iris = load_iris()
+                X, y = iris.data, iris.target
+                X_train, X_test, y_train, _ = train_test_split(X, y)
+                clr = LinearRegression()
+                clr.fit(X_train, y_train)
+
+                exp = clr.predict(X_test[:5])
+                print(exp)
+
+                model_def = to_onnx(clr, X_train.astype(numpy.float32))
+                oinf = OnnxInference(model_def)
+                y = oinf.run({'X': X_test[:5]})
+                print(y)
         """
         values = inputs.copy()
         for k, v in self.inits_.items():

@@ -11,6 +11,7 @@ from .op_cast import Cast
 from .op_linear_classifier import LinearClassifier
 from .op_linear_regressor import LinearRegressor
 from .op_normalizer import Normalizer
+from .op_scaler import Scaler
 from .op_zipmap import ZipMap
 
 

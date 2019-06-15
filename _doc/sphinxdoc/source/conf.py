@@ -33,6 +33,7 @@ mathdef_link_only = True
 epkg_dictionary.update({
     'C': "https://en.wikipedia.org/wiki/C_(programming_language)",
     'cffi': "https://cffi.readthedocs.io/en/latest/",
+    'DOT': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'json': 'https://docs.python.org/3/library/json.html',
     'JSON': 'https://en.wikipedia.org/wiki/JSON',
     'ONNX': 'https://onnx.ai/',
