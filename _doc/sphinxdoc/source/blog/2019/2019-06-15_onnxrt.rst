@@ -1,0 +1,20 @@
+
+.. blogpost::
+    :title: ONNX, runtime, converters
+    :keywords: onnx, onnxrt
+    :date: 2019-06-15
+    :categories: onnx
+
+    I have been recently working on :epkg:`sklearn-onnx`
+    to write converter from :epkg:`scikit-learn` operators
+    to :epkg:`ONNX` serialization format. I was talking
+    about that a month ago and somebody asked me if there
+    was a runtime implemented in `RUST <https://www.rust-lang.org/>`_.
+    Not that I know of but I said it would not be too complex
+    to implement one.
+
+    That's what I did in Python. There are two components
+    for the runtime. An ONNX model is a series of mathematical
+    functions chained in a graph. A runtime must implement
+    each component and the sequence of operators to compute
+    predictions.
