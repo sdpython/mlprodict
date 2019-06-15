@@ -14,6 +14,13 @@ Main class is :class:`OnnxInference
 .. runpython::
     :showcode:
 
+    import numpy
+    from sklearn.linear_model import LinearRegression
+    from sklearn.datasets import load_iris
+    from sklearn.model_selection import train_test_split
+    from skl2onnx import to_onnx
+    from mlprodict.onnxrt import OnnxInference
+
     iris = load_iris()
     X, y = iris.data, iris.target
     X_train, X_test, y_train, _ = train_test_split(X, y)
@@ -28,7 +35,7 @@ Main class is :class:`OnnxInference
     y = oinf.run({'X': X_test[:5]})
     print(y)
 
-Some ONNX operators converters are using were not all
+Some :epkg:`ONNX` operators converters are using were not all
 available in older version of :epkg:`ONNX`. This version is called
 *opset number*. :epkg:`ONNX` 1.4.0 is opset 9,
 :epkg:`ONNX` 1.5.0 is opset 10...
@@ -69,16 +76,34 @@ what is working.
 
 .. runpython::
     :showcode:
+    :rst:
+    :warningout: PendingDeprecationWarning UserWarning RuntimeWarning
 
     from logging import getLogger
     from pyquickhelper.loghelper import noLOG
     from pandas import DataFrame
-    from pyquickhelper.texthelper import df2rst
+    from pyquickhelper.pandashelper import df2rst
+    from sklearn.exceptions import ConvergenceWarning
+    from sklearn.utils.testing import ignore_warnings
     from mlprodict.onnxrt.validate import validate_operator_opsets, summary_report
 
-    logger = getLogger('skl2onnx')
-    logger.disabled = True
-    rows = validate_operator_opsets(0, debug=None, fLOG=noLOG)
-    df = DataFrame(rows)
-    piv = summary_report(df)
-    print(df2rst(piv))
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning, FutureWarning))
+    def build_table():
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        rows = validate_operator_opsets(0, debug=None, fLOG=noLOG)
+        df = DataFrame(rows)
+        piv = summary_report(df)
+
+        if "ERROR-msg" in piv.columns:
+            def shorten(text):
+                text = str(text)
+                if len(text) > 50:
+                    text = text[:50] + "..."
+                return text
+
+            piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
+
+        print(df2rst(piv))
+
+    build_table()

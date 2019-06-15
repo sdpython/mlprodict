@@ -66,6 +66,7 @@ One way is to convert the prediction function into :epkg:`C`.
 
     from sklearn.linear_model import LogisticRegression
     from sklearn.datasets import load_iris
+
     iris = load_iris()
     X = iris.data[:, :2]
     y = iris.target
@@ -104,7 +105,7 @@ shows how to visualize an ONNX pipeline.
     # Conversion into ONNX.
     from skl2onnx import to_onnx
     model_onnx = to_onnx(lr, X.astype(numpy.float32))
-    print(model_onnx[:200] + "\n...")
+    print(str(model_onnx)[:200] + "\n...")
 
     # Python Runtime
     oinf = OnnxInference(model_onnx)
