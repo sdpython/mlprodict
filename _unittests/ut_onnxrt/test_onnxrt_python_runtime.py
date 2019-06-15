@@ -32,7 +32,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         y = oinf.run({'X': X_test})
         exp = clr.predict(X_test)
         self.assertEqual(list(sorted(y)), ['variable'])
-        self.assertEqualArray(exp, y['variable'].ravel())
+        self.assertEqualArray(exp, y['variable'].ravel(), decimal=6)
 
     def test_onnxrt_python_LogisticRegression(self):
         iris = load_iris()

@@ -5,11 +5,15 @@ import os
 import unittest
 from textwrap import dedent
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import skipif_travis, skipif_appveyor, skipif_circleci
 from pyquickhelper.loghelper import run_script
 
 
 class TestOnnxrtImport(ExtTestCase):
 
+    @skipif_travis("no standard output")
+    @skipif_appveyor("no standard output")
+    @skipif_circleci("no standard output")
     def test_onnxt_runtime_import(self):
         """
         The test checks that scikit-learn is not imported
