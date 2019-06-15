@@ -406,12 +406,13 @@ def enumerate_compatible_opset(model, opset_min=1, opset_max=None,
                                 problem chosen to test the conversion...
 
     The function requires :epkg:`sklearn-onnx`.
+    The outcome can be seen at page about :ref:`l-onnx-pyrun`.
     """
     try:
         problems = find_suitable_problem(model)
     except RuntimeError as e:
         yield {'name': model.__name__, 'skl_version': sklearn_version,
-               'problem_exc': e}
+               '_0problem_exc': e}
         problems = []
 
     extras = _extra_parameters.get(model, [('default', {})])
@@ -424,7 +425,7 @@ def enumerate_compatible_opset(model, opset_min=1, opset_max=None,
     if extras is None:
         problems = []
         yield {'name': model.__name__, 'skl_version': sklearn_version,
-               'problem_exc': 'SKIPPED'}
+               '_0problem_exc': 'SKIPPED'}
 
     for prob in problems:
         X_, y_, init_types, method, output_index, Xort_ = _problems[prob]()
@@ -458,7 +459,9 @@ def enumerate_compatible_opset(model, opset_min=1, opset_max=None,
                 else:
                     t1 = _measure_time(lambda: inst.fit(X_train, y_train))[1]
             except (AttributeError, TypeError, ValueError, IndexError) as e:
-                obs["training_time_exc"] = str(e)
+                if debug:
+                    raise
+                obs["_1training_time_exc"] = str(e)
                 yield obs
                 continue
 
@@ -474,13 +477,15 @@ def enumerate_compatible_opset(model, opset_min=1, opset_max=None,
                 except AttributeError as e:
                     if debug:
                         raise
-                    obs['skl_meth_exc'] = str(e)
+                    obs['_2skl_meth_exc'] = str(e)
                     yield obs
                     continue
                 try:
                     ypred, t4 = _measure_time(lambda: meth(X_test))
                 except (ValueError, AttributeError) as e:
-                    obs['prediction_exc'] = str(e)
+                    if debug:
+                        raise
+                    obs['_3prediction_exc'] = str(e)
                     yield obs
                     continue
                 obs['prediction_time'] = t4
@@ -491,7 +496,11 @@ def enumerate_compatible_opset(model, opset_min=1, opset_max=None,
                 if opset is not None:
                     obs_op['opset'] = opset
 
-                def fct_skl(itt=inst, it=init_types, ops=opset):  # pylint: disable=W0102
+                if len(init_types) != 1:
+                    raise NotImplementedError("Multiple types are is not implemented: "
+                                              "{}.".format(init_types))
+
+                def fct_skl(itt=inst, it=init_types[0][1], ops=opset):  # pylint: disable=W0102
                     return to_onnx(itt, it, target_opset=ops)
 
                 try:
@@ -500,7 +509,7 @@ def enumerate_compatible_opset(model, opset_min=1, opset_max=None,
                 except RuntimeError as e:
                     if debug:
                         raise
-                    obs_op["convert_exc"] = e
+                    obs_op["_4convert_exc"] = e
                     yield obs_op
                     continue
 
@@ -517,10 +526,10 @@ def enumerate_compatible_opset(model, opset_min=1, opset_max=None,
                     try:
                         sess, t6 = _measure_time(lambda: OnnxInference(ser))
                         obs_op['tostring_time'] = t6
-                    except RuntimeError as e:
+                    except (RuntimeError, ValueError) as e:
                         if debug:
                             raise
-                        obs_op['ort_load_exc'] = e
+                        obs_op['_5ort_load_exc'] = e
                         yield obs_op
                         continue
 
@@ -530,19 +539,24 @@ def enumerate_compatible_opset(model, opset_min=1, opset_max=None,
                     try:
                         opred, t7 = _measure_time(fct_batch)
                         obs_op['ort_run_time_batch'] = t7
-                    except (RuntimeError, TypeError) as e:
+                    except (RuntimeError, TypeError, ValueError) as e:
                         if debug:
                             raise
-                        obs_op['ort_run_exc_batch'] = e
+                        obs_op['_6ort_run_batch_exc'] = e
 
                     # difference
-                    if 'ort_run_exc_batch' not in obs_op:
+                    if '_6ort_run_batch_exc' not in obs_op:
+                        if isinstance(opred, dict):
+                            ch = [(k, v) for k, v in sorted(opred.items())]
+                            # names = [_[0] for _ in ch]
+                            opred = [_[1] for _ in ch]
+
                         try:
                             opred = opred[output_index]
                         except IndexError:
                             if debug:
                                 raise
-                            obs_op['max_abs_diff_batch_exc'] = (
+                            obs_op['_8max_abs_diff_batch_exc'] = (
                                 "Unable to fetch output {}/{} for model '{}'"
                                 "".format(output_index, len(opred),
                                           model.__name__))
@@ -565,19 +579,25 @@ def enumerate_compatible_opset(model, opset_min=1, opset_max=None,
                     try:
                         opred, t7 = _measure_time(fct_single)
                         obs_op['ort_run_time_single'] = t7
-                    except (RuntimeError, TypeError) as e:
+                    except (RuntimeError, TypeError, ValueError) as e:
                         if debug:
                             raise
-                        obs_op['ort_run_exc_single'] = e
+                        obs_op['_9ort_run_single_exc'] = e
 
                     # difference
-                    if 'ort_run_exc_single' not in obs_op:
+                    if '_9ort_run_single_exc' not in obs_op:
+                        if isinstance(opred[0], dict):
+                            ch = [[(k, v) for k, v in sorted(o.items())]
+                                  for o in opred]
+                            # names = [[_[0] for _ in row] for row in ch]
+                            opred = [[_[1] for _ in row] for row in ch]
+
                         try:
                             opred = [o[output_index] for o in opred]
                         except IndexError:
                             if debug:
                                 raise
-                            obs_op['max_abs_diff_exc_single'] = (
+                            obs_op['_Amax_abs_diff_single_exc'] = (
                                 "Unable to fetch output {}/{} for model '{}'"
                                 "".format(output_index, len(opred),
                                           model.__name__))
@@ -670,13 +690,64 @@ def validate_operator_opsets(verbose=0, opset_min=1, opset_max=None,
                 elif diff < 0.1:
                     obs['available'] = 'e<0.1'
                 else:
-                    obs['available'] = 'ERROR'
+                    obs['available'] = "ERROR->=%1.1f" % diff
                 obs['available'] += '-' + op
                 if not batch:
                     obs['available'] += "-NOBATCH"
             elif 'opset' in obs and obs['opset'] == current_opset:
-                obs["available"] = 'ERROR'
+                excs = []
+                for k, v in sorted(obs.items()):
+                    if k.endswith('_exc'):
+                        excs.append((k, v))
+                        break
+                if len(excs) > 0:
+                    k, v = excs[0]
+                    obs['available'] = 'ERROR-%s' % k
+                    obs['available-ERROR'] = v
+                else:
+                    obs['available'] = 'ERROR-?'
             obs.update(row)
             rows.append(obs)
 
     return rows
+
+
+def summary_report(df):
+    """
+    Finalizes the results computed by function
+    @see fn validate_operator_opsets.
+
+    @param      df      dataframe
+    @return             pivoted dataframe
+
+    The outcome can be seen at page about :ref:`l-onnx-pyrun`.
+    """
+
+    def aggfunc(values):
+        if len(values) != 1:
+            raise ValueError(values)
+        val = values.iloc[0]
+        if isinstance(val, float) and numpy.isnan(val):
+            return ""
+        else:
+            return val
+
+    piv = pandas.pivot_table(df, values="available",
+                             index=['name', 'problem', 'scenario'],
+                             columns='opset',
+                             aggfunc=aggfunc).reset_index(drop=False)
+
+    versions = ["opset%d" % t for t in range(1, piv.shape[1] - 2)]
+    indices = ["name", "problem", "scenario"]
+    piv.columns = indices + versions
+    piv = piv[indices + list(reversed(versions))].copy()
+
+    if "available-ERROR" in df.columns:
+        piv2 = pandas.pivot_table(df, values="available-ERROR",
+                                  index=['name', 'problem', 'scenario'],
+                                  columns='opset',
+                                  aggfunc=aggfunc).reset_index(drop=False)
+
+        col = piv2.iloc[:, piv2.shape[1] - 1]
+        piv["ERROR-msg"] = col
+    return piv

@@ -48,6 +48,7 @@ mlprodict
 
     tutorial/index
     api/index
+    onnx
     i_ex
     i_index
     all_notebooks
