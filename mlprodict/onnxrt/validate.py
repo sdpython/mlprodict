@@ -302,8 +302,9 @@ def build_custom_scenarios():
             }),
         ],
         VotingClassifier: [
-            ('logreg', {
+            ('logreg-noflatten', {
                 'voting': 'soft',
+                'flatten_transform': False,
                 'estimators': [
                     ('lr1', LogisticRegression(solver='liblinear')),
                     ('lr2', LogisticRegression(
@@ -312,7 +313,7 @@ def build_custom_scenarios():
             })
         ],
         VotingRegressor: [
-            ('logreg', {
+            ('linreg', {
                 'estimators': [
                     ('lr1', LinearRegression()),
                     ('lr2', LinearRegression(fit_intercept=False)),

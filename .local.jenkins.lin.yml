@@ -9,7 +9,7 @@ virtualenv:
   
 install:
   - $PYINT -c "from pip._internal import main;main(\"install --no-cache-dir --no-deps --index http://localhost:8067/simple/ jyquickhelper pyquickhelper --extra-index-url=https://pypi.python.org/simple/\".split())"
-  - $PYINT -c "from pip._internal import main;main(\"install --no-cache-dir --no-deps --index http://localhost:8067/simple/ onnx onnxruntime skl2onnx onnxmltools onnxverter_common scikit-onnxruntime --extra-index-url=https://pypi.python.org/simple/\".split())"
+  - $PYINT -c "from pip._internal import main;main(\"install --no-cache-dir --no-deps --index http://localhost:8067/simple/ onnx onnxruntime skl2onnx onnxmltools onnxconverter_commonn scikit-onnxruntime --extra-index-url=https://pypi.python.org/simple/\".split())"
   - $PYINT -c "from pip._internal import main;main(\"install -r requirements.txt\".split())"
   - $PYINT --version
   - $PYINT -c "from pip._internal import main;main([\"freeze\"])"

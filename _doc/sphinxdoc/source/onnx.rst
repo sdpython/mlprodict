@@ -208,3 +208,26 @@ We create the same table.
         print(df2rst(piv))
 
     build_table()
+
+
+Versions
+++++++++
+
+The following script prints out the versions of every module
+used in the previous script.
+
+.. runpython::
+    :showcode:
+
+    import numpy
+    import scipy
+    import pandas
+    import onnx
+    import onnxruntime
+    import sklearn
+    import skl2onnx
+    import mlprodict
+    for mod in [numpy, scipy, pandas, onnx, onnxruntime, sklearn,
+                skl2onnx, mlprodict]:
+        print(mod.__name__, mod.__version__)
+
