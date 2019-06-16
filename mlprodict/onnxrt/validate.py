@@ -387,7 +387,7 @@ def _measure_absolute_difference(skl_pred, ort_pred):
     return diff
 
 
-def enumerate_compatible_opset(model, opset_min=1, opset_max=None,
+def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                check_runtime=True, debug=False,
                                fLOG=print):
     """
@@ -619,7 +619,7 @@ def enumerate_compatible_opset(model, opset_min=1, opset_max=None,
 
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-def validate_operator_opsets(verbose=0, opset_min=1, opset_max=None,
+def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                              check_runtime=True, debug=None,
                              fLOG=print):
     """

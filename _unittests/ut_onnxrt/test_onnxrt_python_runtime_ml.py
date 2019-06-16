@@ -14,7 +14,7 @@ from skl2onnx import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
 
-class TestOnnxrtPythonRuntime(ExtTestCase):
+class TestOnnxrtPythonRuntimeMl(ExtTestCase):
 
     def setUp(self):
         logger = getLogger('skl2onnx')

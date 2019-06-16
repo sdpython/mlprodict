@@ -98,8 +98,8 @@ what is working.
         if "ERROR-msg" in piv.columns:
             def shorten(text):
                 text = str(text)
-                if len(text) > 50:
-                    text = text[:50] + "..."
+                if len(text) > 75:
+                    text = text[:75] + "..."
                 return text
 
             piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)

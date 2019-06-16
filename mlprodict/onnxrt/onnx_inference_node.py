@@ -28,8 +28,8 @@ class OnnxInferenceNode:
         self.op_type = self.onnx_node.op_type
         self.order = -1
         self.variable_to_clean = []
-        self.inputs = list(sorted(obj for obj in self.onnx_node.input))
-        self.outputs = list(sorted(obj for obj in self.onnx_node.output))
+        self.inputs = list(self.onnx_node.input)
+        self.outputs = list(self.onnx_node.output)
 
     def set_order(self, order):
         """
