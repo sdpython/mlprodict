@@ -639,6 +639,16 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     @param      runtime         test a specific runtime, by default ``'CPU'``
     @param      fLOG            logging function
     @return                     list of dictionaries
+
+    The function is available through a command line:
+
+    .. cmdref::
+        :title: Valide a runtime against scikit-learn
+        :cmd: -m mlprodict validate_runtime --help
+
+        The command walks through all scikit-learn operators,
+        tries to convert them, checks the predictions,
+        and produces a report.
     """
     ops = [_ for _ in sklearn_operators()]
 
