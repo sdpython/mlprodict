@@ -3,6 +3,7 @@
 """
 import os
 import unittest
+import warnings
 from textwrap import dedent
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.loghelper import run_script
