@@ -7,7 +7,7 @@ Python Runtime for ONNX operators
 The main function instantiates a runtime class which
 computes the outputs of a specific node.
 
-.. autosignature:: mlprodict.onnxrt.ops.load_ops
+.. autosignature:: mlprodict.onnxrt.ops.load_op
 
 Other sections documents available operators.
 This project was mostly started to show a way to
@@ -25,10 +25,30 @@ Add
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_add.Add
 
+ArgMax
+^^^^^^
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_argmax.ArgMax
+
+ArgMin
+^^^^^^
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_argmin.ArgMin
+
 Cast
 ^^^^
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_cast.Cast
+
+Div
+^^^
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_div.Div
+
+Gemm
+^^^^
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_gemm.Gemm
 
 LinearClassifier
 ^^^^^^^^^^^^^^^^
@@ -49,3 +69,10 @@ ZipMap
 ^^^^^^
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_zipmap.ZipMap
+
+OnnxRuntime
++++++++++++
+
+.. autosignature:: mlprodict.onnxrt.ops_onnxruntime.load_op
+
+.. autosignature:: mlprodict.onnxrt.ops_onnxruntime._op.OpRunOnnxRuntime

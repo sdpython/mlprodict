@@ -48,8 +48,9 @@ def _get_doc_template():
         {% for _, attr in sorted(sch.attributes.items()) %}* *{{attr.name}}*{%
           if attr.required %} (required){% endif %}: {{
           process_attribute_doc(attr.description)}} {%
-          if attr.default_value %}Default value is ``{{attr.default_value
-          }}`` ({{type_mapping(attr.type)}}){% endif %}
+          if attr.default_value %} {{
+          process_default_value(attr.default_value)
+          }} ({{type_mapping(attr.type)}}){% endif %}
         {% endfor %}
         {% endif %}
 
@@ -207,6 +208,27 @@ def get_rst_doc(op_name):
             doc_url += sch.domain + "."
         return doc_url
 
+    def process_default_value(value):
+        if value is None:
+            return ''
+        res = []
+        for c in str(value):
+            if c >= 'A' and 'Z':
+                res.append(c)
+                continue
+            if c >= 'a' and 'z':
+                res.append(c)
+                continue
+            if c >= '0' and '9':
+                res.append(c)
+                continue
+            if c in '[]-+(),.?':
+                res.append(c)
+                continue
+        if len(res) == 0:
+            return "*default value cannot be automatically retrieved*"
+        return "Default value is ``" + ''.join(res) + "``"
+
     fnwd = format_name_with_domain
     tmpl = _template_operator
     docs = tmpl.render(schemas=schemas, OpSchema=OpSchema,
@@ -218,7 +240,8 @@ def get_rst_doc(op_name):
                        process_documentation=process_documentation,
                        build_doc_url=build_doc_url, str=str,
                        type_mapping=type_mapping,
-                       process_attribute_doc=process_attribute_doc)
+                       process_attribute_doc=process_attribute_doc,
+                       process_default_value=process_default_value)
     return docs.replace(" Default value is ````", "")
 
 
