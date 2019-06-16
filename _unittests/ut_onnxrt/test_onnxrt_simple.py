@@ -189,7 +189,7 @@ class TestOnnxrtSimple(ExtTestCase):
         y = oinf.run({'X': X_test})
         exp = clr.predict(X_test)
         self.assertEqual(list(sorted(y)), ['variable'])
-        self.assertEqualArray(exp, y['variable'].ravel())
+        self.assertEqualArray(exp, y['variable'].ravel(), decimal=6)
 
     def test_onnxt_lrc_iris_run(self):
         iris = load_iris()
