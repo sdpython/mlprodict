@@ -7,7 +7,11 @@ ONNX
 *mlprodict* implements two runtimes.
 The first uses :epkg:`numpy` and implements
 mathematical functions defined by :epkg:`ONNX`.
-The second one leverages :epkg:`onnxruntime`.
+The second one leverages :epkg:`onnxruntime` to
+compute the output of every node using
+:epkg:`onnxruntime` but python stills handles the graph
+logic. The third one uses :epkg:`onnxruntime` to compute
+everything.
 
 .. contents::
     :local:
@@ -122,7 +126,7 @@ what is working.
 onnxruntime
 +++++++++++
 
-This runtime does not load the :epkg:`ONNX` in a single
+This runtime does not load the :epkg:`ONNX` data in a single
 session but instead calls :epkg:`onnxruntime` for each node
 independently. This was developped mostly to facilitate
 the implementation of converters from :epkg:`scikit-learn`
@@ -145,7 +149,50 @@ object to :epkg:`ONNX`. We create the same table.
     def build_table():
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        rows = validate_operator_opsets(0, debug=None, fLOG=noLOG, runtime='onnxruntime')
+        rows = validate_operator_opsets(0, debug=None, fLOG=noLOG,
+                                        runtime='onnxruntime')
+        df = DataFrame(rows)
+        piv = summary_report(df)
+
+        if "ERROR-msg" in piv.columns:
+            def shorten(text):
+                text = str(text)
+                if len(text) > 75:
+                    text = text[:75] + "..."
+                return text
+
+            piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
+
+        print(df2rst(piv))
+
+    build_table()
+
+onnxruntime-whole
++++++++++++++++++
+
+:epkg:`onnxruntime` loads the :epkg:`ONNX` data in a single
+session and calls it onle once to compute the predictions.
+We create the same table.
+
+.. runpython::
+    :showcode:
+    :rst:
+    :warningout: PendingDeprecationWarning UserWarning RuntimeWarning
+
+    from logging import getLogger
+    from pyquickhelper.loghelper import noLOG
+    from pandas import DataFrame
+    from pyquickhelper.pandashelper import df2rst
+    from sklearn.exceptions import ConvergenceWarning
+    from sklearn.utils.testing import ignore_warnings
+    from mlprodict.onnxrt.validate import validate_operator_opsets, summary_report
+
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning, FutureWarning))
+    def build_table():
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        rows = validate_operator_opsets(0, debug=None, fLOG=noLOG,
+                                        runtime='onnxruntime-whole')
         df = DataFrame(rows)
         piv = summary_report(df)
 

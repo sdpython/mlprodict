@@ -63,12 +63,20 @@ class OnnxInference:
         Prepares the instance to deliver predictions.
         """
         self.graph_ = self.to_sequence()
-        self.sequence_ = self.graph_['sequence']
-        self.inits_ = self.graph_['inits']
         self.outputs_ = self.graph_['outputs']
         if not self.skip_run:
-            for node in self.sequence_:
-                node.setup_runtime(self.runtime)
+            if self.runtime == 'onnxruntime-whole':
+                # Loads the onnx with onnxruntime as a single file.
+                del self.graph_
+                from .ops_whole.session import OnnxWholeSession
+                self._whole = OnnxWholeSession(self.obj, self.runtime)
+                self._run = self._run_whole_runtime
+            else:
+                self.sequence_ = self.graph_['sequence']
+                self.inits_ = self.graph_['inits']
+                for node in self.sequence_:
+                    node.setup_runtime(self.runtime)
+                self._run = self._run_sequence_runtime
 
     def __str__(self):
         """
@@ -638,10 +646,11 @@ class OnnxInference:
         @return                         outputs as dictionary
 
         .. exref::
-            :title: Computes predictions with python runtime
+            :title: Computes predictions with any runtime
 
             The following example compares predictions
-            between :epkg:`scikit-learn` and this runtime.
+            between :epkg:`scikit-learn` and this runtime
+            for the python runtime.
 
             .. runpython::
                 :showcode:
@@ -667,9 +676,21 @@ class OnnxInference:
                 y = oinf.run({'X': X_test[:5]})
                 print(y)
         """
+        return self._run(inputs, clean_right_away=False)
+
+    def _run_sequence_runtime(self, inputs, clean_right_away=False):
+        if clean_right_away:
+            raise NotImplementedError("clean_right_away=true not implemented.")
         values = inputs.copy()
         for k, v in self.inits_.items():
             values[k] = v['value']
         for node in self.sequence_:
             node.run(values)
         return {k: values[k] for k in self.outputs_}
+
+    def _run_whole_runtime(self, inputs, clean_right_away=False):
+        if clean_right_away:
+            raise RuntimeError(
+                "clean_right_away=true does not wrok with this runtime.")
+        res = self._whole.run(inputs)
+        return {k: v for k, v in zip(self.outputs_, res)}

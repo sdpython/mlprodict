@@ -76,3 +76,5 @@ OnnxRuntime
 .. autosignature:: mlprodict.onnxrt.ops_onnxruntime.load_op
 
 .. autosignature:: mlprodict.onnxrt.ops_onnxruntime._op.OpRunOnnxRuntime
+
+.. autosignature:: mlprodict.onnxrt.ops_whole.session.OnnxWholeSession

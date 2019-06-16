@@ -740,7 +740,8 @@ def summary_report(df):
                              columns='opset',
                              aggfunc=aggfunc).reset_index(drop=False)
 
-    versions = ["opset%d" % t for t in range(1, piv.shape[1] - 2)]
+    opmin = min(df['opset'].dropna())
+    versions = ["opset%d" % (opmin + t) for t in range(1, piv.shape[1] - 2)]
     indices = ["name", "problem", "scenario"]
     piv.columns = indices + versions
     piv = piv[indices + list(reversed(versions))].copy()
