@@ -209,7 +209,6 @@ We create the same table.
 
     build_table()
 
-
 Versions
 ++++++++
 
@@ -231,4 +230,3 @@ used in the previous script.
     for mod in [numpy, scipy, pandas, onnx, onnxruntime, sklearn,
                 onnxconverter_common, skl2onnx, mlprodict]:
         print(mod.__name__, mod.__version__)
-
