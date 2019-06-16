@@ -213,7 +213,7 @@ We create the same table.
 Versions
 ++++++++
 
-The following script prints out the versions of every module
+The following script prints out the version of every module
 used in the previous script.
 
 .. runpython::
@@ -225,9 +225,10 @@ used in the previous script.
     import onnx
     import onnxruntime
     import sklearn
+    import onnxconverter_common
     import skl2onnx
     import mlprodict
     for mod in [numpy, scipy, pandas, onnx, onnxruntime, sklearn,
-                skl2onnx, mlprodict]:
+                onnxconverter_common, skl2onnx, mlprodict]:
         print(mod.__name__, mod.__version__)
 
