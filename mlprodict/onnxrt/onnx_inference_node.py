@@ -63,7 +63,7 @@ class OnnxInferenceNode:
         if self.desc is None:
             raise AttributeError("desc should not be None.")
         self.ops_ = load_op(self.onnx_node, desc=self.desc,
-                            options=runtime)
+                            options={'provider': runtime} if runtime else None)
 
     def run(self, values):
         """

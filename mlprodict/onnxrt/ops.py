@@ -25,5 +25,8 @@ def load_op(onnx_node, desc=None, options=None):
     if provider == 'CPU':
         from .ops_cpu import load_op as lo
         return lo(onnx_node, desc=desc, options=options)
+    elif provider == 'onnxruntime':
+        from .ops_onnxruntime import load_op as lo
+        return lo(onnx_node, desc=desc, options=options)
     else:
         raise ValueError("Unable to handle provider '{}'.".format(provider))

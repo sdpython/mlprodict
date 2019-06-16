@@ -389,7 +389,7 @@ def _measure_absolute_difference(skl_pred, ort_pred):
 
 def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                check_runtime=True, debug=False,
-                               fLOG=print):
+                               runtime='CPU', fLOG=print):
     """
     Lists all compatiable opsets for a specific model.
 
@@ -400,6 +400,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     @param      check_runtime   checks that runtime can consume the
                                 model and compute predictions
     @param      debug           catch exception (True) or not (False)
+    @param      runtime         test a specific runtime, by default ``'CPU'``
     @param      fLOG            logging function
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
@@ -524,7 +525,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 
                     # load
                     try:
-                        sess, t6 = _measure_time(lambda: OnnxInference(ser))
+                        sess, t6 = _measure_time(
+                            lambda: OnnxInference(ser, runtime=runtime))
                         obs_op['tostring_time'] = t6
                     except (RuntimeError, ValueError) as e:
                         if debug:
@@ -620,7 +622,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
 def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
-                             check_runtime=True, debug=None,
+                             check_runtime=True, debug=None, runtime='CPU',
                              fLOG=print):
     """
     Tests all possible configuration for all possible
@@ -633,6 +635,7 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     @param      check_runtime   checks the python runtime
     @param      debug           only checks a small list of operators,
                                 set of model names
+    @param      runtime         test a specific runtime, by default ``'CPU'``
     @param      fLOG            logging function
     @return                     list of dictionaries
     """
@@ -668,7 +671,7 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
 
         for obs in enumerate_compatible_opset(
                 model, opset_min=opset_min, opset_max=opset_max,
-                check_runtime=check_runtime,
+                check_runtime=check_runtime, runtime=runtime,
                 debug=debug is not None, fLOG=fLOG):
             if verbose > 1:
                 fLOG("  ", obs)
