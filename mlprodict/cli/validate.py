@@ -54,7 +54,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max=11,
     logger.disabled = True
     if not dump_folder:
         dump_folder = None
-    if not dump_folder and not os.path.exists(dump_folder):
+    if dump_folder and not os.path.exists(dump_folder):
         raise FileNotFoundError(dump_folder)
     rows = validate_operator_opsets(verbose, models=models, fLOG=fLOG,
                                     runtime=runtime, debug=debug,
