@@ -505,7 +505,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     try:
         opred, t7 = _measure_time(fct_batch)
         obs_op['ort_run_time_batch'] = t7
-    except (RuntimeError, TypeError, ValueError) as e:
+    except (RuntimeError, TypeError, ValueError, KeyError) as e:
         if debug:
             raise
         obs_op['_6ort_run_batch_exc'] = e
@@ -557,7 +557,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     try:
         opred, t7 = _measure_time(fct_single)
         obs_op['ort_run_time_single'] = t7
-    except (RuntimeError, TypeError, ValueError) as e:
+    except (RuntimeError, TypeError, ValueError, KeyError) as e:
         if debug:
             raise
         obs_op['_9ort_run_single_exc'] = e
