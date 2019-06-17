@@ -12,11 +12,6 @@ from mlprodict.onnxrt.validate import sklearn_operators, validate_operator_opset
 
 class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
 
-    def test_sklearn_operators(self):
-        res = sklearn_operators()
-        self.assertGreater(len(res), 1)
-        self.assertEqual(len(res[0]), 3)
-
     def test_validate_sklearn_operators_all_onnxruntime(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')

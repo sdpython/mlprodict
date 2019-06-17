@@ -25,12 +25,12 @@ class TestOnnxrtValidateOnnxRuntimeWhole(ExtTestCase):
         rows = validate_operator_opsets(
             verbose, models={"GradientBoostingRegressor"}, opset_min=11, fLOG=fLOG,
             runtime='onnxruntime-whole', debug=False)
-        self.assertEqual(len(rows), 3)
+        self.assertIn(len(rows), (2, 3))
         df = DataFrame(rows)
         self.assertIn("available-ERROR", df.columns)
         self.assertGreater(df.shape[0], 2)
         piv = summary_report(df)
-        self.assertEqual(piv.shape[0], 2)
+        self.assertIn(piv.shape[0], (2, 3))
 
     def test_validate_sklearn_operators_all_onnxruntime_whole(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
