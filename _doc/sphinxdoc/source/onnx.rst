@@ -80,14 +80,21 @@ contains concatenated flags whose meaning is the following:
 
 The model are tested through simple problems using the Iris dataset.
 The datasets is split into train test datasets.
+Function :func:`find_suitable_problem
+<mlprodict.onnxrt.validate.find_suitable_problem>` gives
+the list of problem every :epkg:`scikit-learn` is tested on.
+The main ones are the following:
 
 * *bin-class*: binary classification,
 * *multi-class*: multi-class classification,
 * *regression*: regression,
+* *cluster*: clutering,
+* *outlier*: outlier detection,
 * *num-transform*: no label, only numerical features
 
-The following table tracks what is available,
-what is working.
+Next table tracks what is available,
+what is working and some indication about
+the cause of the error if it does not work.
 
 .. runpython::
     :showcode:

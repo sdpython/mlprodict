@@ -24,8 +24,8 @@ from sklearn.linear_model import LogisticRegression, SGDClassifier, LinearRegres
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, ClassifierChain, RegressorChain
-from sklearn.neighbors import LocalOutlierFactor
-from sklearn.svm import SVC, NuSVC
+from sklearn.neighbors import LocalOutlierFactor, NearestCentroid
+from sklearn.svm import SVC, NuSVC, LinearSVC
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.utils.testing import ignore_warnings
 from .onnx_inference import OnnxInference
@@ -169,6 +169,31 @@ def _problem_for_numerical_transform():
             'transform', 0, X.astype(numpy.float32))
 
 
+def _problem_for_numerical_trainable_transform():
+    """
+    Returns *X, intial_types, method, name, X runtime* for a
+    transformation problem.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = data.data
+    y = data.target
+    return (X, y, [('X', X[:1].astype(numpy.float32))],
+            'transform', 0, X.astype(numpy.float32))
+
+
+def _problem_for_clustering():
+    """
+    Returns *X, intial_types, method, name, X runtime* for a
+    clustering problem.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = data.data
+    return (X, None, [('X', X[:1].astype(numpy.float32))],
+            'predict', 0, X.astype(numpy.float32))
+
+
 def _problem_for_outlier():
     """
     Returns *X, intial_types, method, name, X runtime* for a
@@ -195,10 +220,24 @@ def _problem_for_numerical_scoring():
             'score', 0, X.astype(numpy.float32))
 
 
+def _problem_for_clnoproba():
+    """
+    Returns *X, y, intial_types, method, name, X runtime* for a
+    scoring problem.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = data.data
+    y = data.target
+    return (X, y, [('X', X[:1].astype(numpy.float32))],
+            'predict', 0, X.astype(numpy.float32))
+
+
 def find_suitable_problem(model):
     """
     Determines problems suitable for a given
     :epkg:`scikit-learn` operator. It may be
+
     * `bin-class`: binary classification
     * `mutli-class`: multi-class classification
     * `regression`: regression
@@ -206,10 +245,31 @@ def find_suitable_problem(model):
     * `num-transform`: transform numerical features
     * `scoring`: transform numerical features, target is usually needed
     * `outlier`: outlier prediction
+    * `linearsvc`: classifier without *predict_proba*
+    * `cluster`: similar to transform
+    * `num+y-trans`: similar to transform with targets
+
+    The following script gives the list of :epkg:`scikit-learn`
+    models and the problem they can be fitted on.
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.onnxrt.validate import sklearn_operators, find_suitable_problem
+        res = sklearn_operators()
+        for model in res:
+            try:
+                prob = find_suitable_problem(model['cl'])
+                print(model['name'], ":", prob)
+            except RuntimeError:
+                print("-", model['name'], ": no associated problem")
     """
+    if model in {LinearSVC, NearestCentroid}:
+        return ['clnoproba']
     if model in {RFE, RFECV, GridSearchCV}:
         return ['bin-class', 'multi-class',
-                'regression', 'multi-reg']
+                'regression', 'multi-reg',
+                'cluster', 'outlier']
     if hasattr(model, 'predict_proba'):
         if model is OneVsRestClassifier:
             return ['multi-class']
@@ -222,14 +282,19 @@ def find_suitable_problem(model):
         elif "Regressor" in str(model):
             return ['regression', 'multi-reg']
 
-    if hasattr(model, 'transform') or issubclass(
-            model, (ClusterMixin, BiclusterMixin)):
-        return ['num-transform']
+    res = []
+    if hasattr(model, 'transform'):
+        if issubclass(model, (RegressorMixin, ClassifierMixin)):
+            res.extend(['num+y-trans'])
+        else:
+            res.extend(['num-transform'])
+
+    if hasattr(model, 'predict') and issubclass(model, (ClusterMixin, BiclusterMixin)):
+        res.extend(['cluster'])
 
     if issubclass(model, (OutlierMixin)):
-        return ['outlier']
+        res.extend(['outlier'])
 
-    res = []
     if issubclass(model, ClassifierMixin):
         res.extend(['bin-class', 'multi-class'])
     if issubclass(model, RegressorMixin):
@@ -252,6 +317,9 @@ _problems = {
     "num-transform": _problem_for_numerical_transform,
     "scoring": _problem_for_numerical_scoring,
     'outlier': _problem_for_outlier,
+    'clnoproba': _problem_for_clnoproba,
+    'cluster': _problem_for_clustering,
+    'num+y-trans': _problem_for_numerical_trainable_transform,
 }
 
 
