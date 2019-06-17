@@ -3,7 +3,8 @@
 """
 import unittest
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.onnxrt.validate import sklearn_operators, find_suitable_problem
+from mlprodict.onnxrt.validate import sklearn_operators
+from mlprodict.onnxrt.validate_problems import find_suitable_problem
 
 
 class TestOnnxrtValidateJelper(ExtTestCase):

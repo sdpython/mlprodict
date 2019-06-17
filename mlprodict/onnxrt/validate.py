@@ -13,9 +13,7 @@ import numpy
 import pandas
 import onnx
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
-from sklearn.base import BaseEstimator, ClusterMixin, BiclusterMixin, OutlierMixin
-from sklearn.base import RegressorMixin, ClassifierMixin
-from sklearn.datasets import load_iris
+from sklearn.base import BaseEstimator
 from sklearn.decomposition import SparseCoder
 from sklearn.ensemble import VotingClassifier, AdaBoostRegressor, VotingRegressor
 from sklearn.exceptions import ConvergenceWarning
@@ -24,12 +22,13 @@ from sklearn.linear_model import LogisticRegression, SGDClassifier, LinearRegres
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, ClassifierChain, RegressorChain
-from sklearn.neighbors import LocalOutlierFactor, NearestCentroid
-from sklearn.svm import SVC, NuSVC, LinearSVC
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.svm import SVC, NuSVC
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.utils.testing import ignore_warnings
 from .onnx_inference import OnnxInference
 from .. import __version__ as ort_version
+from .validate_problems import _problems, find_suitable_problem
 
 
 def to_onnx(model, X=None, name=None, initial_types=None,
@@ -99,228 +98,6 @@ def sklearn_operators():
             if issub:
                 found.append(dict(name=cl.__name__, subfolder=sub, cl=cl))
     return found
-
-
-def _problem_for_predictor_binary_classification():
-    """
-    Returns *X, y, intial_types, method, node name, X runtime* for a
-    binary classification problem.
-    It is based on Iris dataset.
-    """
-    data = load_iris()
-    X = data.data
-    y = data.target
-    y[y == 2] = 1
-    return (X, y, [('X', X[:1].astype(numpy.float32))],
-            'predict_proba', 1, X.astype(numpy.float32))
-
-
-def _problem_for_predictor_multi_classification():
-    """
-    Returns *X, y, intial_types, method, node name, X runtime* for a
-    multi-class classification problem.
-    It is based on Iris dataset.
-    """
-    data = load_iris()
-    X = data.data
-    y = data.target
-    return (X, y, [('X', X[:1].astype(numpy.float32))],
-            'predict_proba', 1, X.astype(numpy.float32))
-
-
-def _problem_for_predictor_regression():
-    """
-    Returns *X, y, intial_types, method, name, X runtime* for a
-    regression problem.
-    It is based on Iris dataset.
-    """
-    data = load_iris()
-    X = data.data
-    y = data.target
-    return (X, y.astype(float), [('X', X[:1].astype(numpy.float32))],
-            'predict', 0, X.astype(numpy.float32))
-
-
-def _problem_for_predictor_multi_regression():
-    """
-    Returns *X, y, intial_types, method, name, X runtime* for a
-    multi-regression problem.
-    It is based on Iris dataset.
-    """
-    data = load_iris()
-    X = data.data
-    y = data.target.astype(float)
-    y2 = numpy.empty((y.shape[0], 2))
-    y2[:, 0] = y
-    y2[:, 1] = y + 0.5
-    return (X, y2, [('X', X[:1].astype(numpy.float32))],
-            'predict', 0, X.astype(numpy.float32))
-
-
-def _problem_for_numerical_transform():
-    """
-    Returns *X, intial_types, method, name, X runtime* for a
-    transformation problem.
-    It is based on Iris dataset.
-    """
-    data = load_iris()
-    X = data.data
-    return (X, None, [('X', X[:1].astype(numpy.float32))],
-            'transform', 0, X.astype(numpy.float32))
-
-
-def _problem_for_numerical_trainable_transform():
-    """
-    Returns *X, intial_types, method, name, X runtime* for a
-    transformation problem.
-    It is based on Iris dataset.
-    """
-    data = load_iris()
-    X = data.data
-    y = data.target
-    return (X, y, [('X', X[:1].astype(numpy.float32))],
-            'transform', 0, X.astype(numpy.float32))
-
-
-def _problem_for_clustering():
-    """
-    Returns *X, intial_types, method, name, X runtime* for a
-    clustering problem.
-    It is based on Iris dataset.
-    """
-    data = load_iris()
-    X = data.data
-    return (X, None, [('X', X[:1].astype(numpy.float32))],
-            'predict', 0, X.astype(numpy.float32))
-
-
-def _problem_for_outlier():
-    """
-    Returns *X, intial_types, method, name, X runtime* for a
-    transformation problem.
-    It is based on Iris dataset.
-    """
-    data = load_iris()
-    X = data.data
-    return (X, None, [('X', X[:1].astype(numpy.float32))],
-            'predict', 0, X.astype(numpy.float32))
-
-
-def _problem_for_numerical_scoring():
-    """
-    Returns *X, y, intial_types, method, name, X runtime* for a
-    scoring problem.
-    It is based on Iris dataset.
-    """
-    data = load_iris()
-    X = data.data
-    y = data.target.astype(float)
-    y /= numpy.max(y)
-    return (X, y, [('X', X[:1].astype(numpy.float32))],
-            'score', 0, X.astype(numpy.float32))
-
-
-def _problem_for_clnoproba():
-    """
-    Returns *X, y, intial_types, method, name, X runtime* for a
-    scoring problem.
-    It is based on Iris dataset.
-    """
-    data = load_iris()
-    X = data.data
-    y = data.target
-    return (X, y, [('X', X[:1].astype(numpy.float32))],
-            'predict', 0, X.astype(numpy.float32))
-
-
-def find_suitable_problem(model):
-    """
-    Determines problems suitable for a given
-    :epkg:`scikit-learn` operator. It may be
-
-    * `bin-class`: binary classification
-    * `mutli-class`: multi-class classification
-    * `regression`: regression
-    * `multi-reg`: regression multi-output
-    * `num-transform`: transform numerical features
-    * `scoring`: transform numerical features, target is usually needed
-    * `outlier`: outlier prediction
-    * `linearsvc`: classifier without *predict_proba*
-    * `cluster`: similar to transform
-    * `num+y-trans`: similar to transform with targets
-
-    The following script gives the list of :epkg:`scikit-learn`
-    models and the problem they can be fitted on.
-
-    .. runpython::
-        :showcode:
-
-        from mlprodict.onnxrt.validate import sklearn_operators, find_suitable_problem
-        res = sklearn_operators()
-        for model in res:
-            try:
-                prob = find_suitable_problem(model['cl'])
-                print(model['name'], ":", prob)
-            except RuntimeError:
-                print("-", model['name'], ": no associated problem")
-    """
-    if model in {LinearSVC, NearestCentroid}:
-        return ['clnoproba']
-    if model in {RFE, RFECV, GridSearchCV}:
-        return ['bin-class', 'multi-class',
-                'regression', 'multi-reg',
-                'cluster', 'outlier']
-    if hasattr(model, 'predict_proba'):
-        if model is OneVsRestClassifier:
-            return ['multi-class']
-        else:
-            return ['bin-class', 'multi-class']
-
-    if hasattr(model, 'predict'):
-        if "Classifier" in str(model):
-            return ['bin-class', 'multi-class']
-        elif "Regressor" in str(model):
-            return ['regression', 'multi-reg']
-
-    res = []
-    if hasattr(model, 'transform'):
-        if issubclass(model, (RegressorMixin, ClassifierMixin)):
-            res.extend(['num+y-trans'])
-        else:
-            res.extend(['num-transform'])
-
-    if hasattr(model, 'predict') and issubclass(model, (ClusterMixin, BiclusterMixin)):
-        res.extend(['cluster'])
-
-    if issubclass(model, (OutlierMixin)):
-        res.extend(['outlier'])
-
-    if issubclass(model, ClassifierMixin):
-        res.extend(['bin-class', 'multi-class'])
-    if issubclass(model, RegressorMixin):
-        res.extend(['regression', 'multi-reg'])
-
-    if len(res) == 0 and hasattr(model, 'fit') and hasattr(model, 'score'):
-        return ['scoring']
-    if len(res) > 0:
-        return res
-
-    raise RuntimeError("Unable to find problem for model '{}' - {}."
-                       "".format(model.__name__, model.__bases__))
-
-
-_problems = {
-    "bin-class": _problem_for_predictor_binary_classification,
-    "multi-class": _problem_for_predictor_multi_classification,
-    "regression": _problem_for_predictor_regression,
-    "multi-reg": _problem_for_predictor_multi_regression,
-    "num-transform": _problem_for_numerical_transform,
-    "scoring": _problem_for_numerical_scoring,
-    'outlier': _problem_for_outlier,
-    'clnoproba': _problem_for_clnoproba,
-    'cluster': _problem_for_clustering,
-    'num+y-trans': _problem_for_numerical_trainable_transform,
-}
 
 
 def build_custom_scenarios():

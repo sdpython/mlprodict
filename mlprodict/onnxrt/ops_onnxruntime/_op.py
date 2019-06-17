@@ -50,8 +50,12 @@ class OpRunOnnxRuntime:
         self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
                                     **self.options)
         inputs = [(name, FloatTensorType()) for name in self.inputs]
-        outputs = [(name, FloatTensorType()) for name in self.outputs]
-        self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
+        try:
+            self.onnx_ = self.inst_.to_onnx(inputs)
+        except RuntimeError:
+            # Let's try again by forcing output types.
+            outputs = [(name, FloatTensorType()) for name in self.outputs]
+            self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
         self.sess_ = InferenceSession(self.onnx_.SerializeToString())
 
     def run(self, *args, **kwargs):

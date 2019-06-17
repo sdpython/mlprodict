@@ -81,7 +81,7 @@ contains concatenated flags whose meaning is the following:
 The model are tested through simple problems using the Iris dataset.
 The datasets is split into train test datasets.
 Function :func:`find_suitable_problem
-<mlprodict.onnxrt.validate.find_suitable_problem>` gives
+<mlprodict.onnxrt.validate_problems.find_suitable_problem>` gives
 the list of problem every :epkg:`scikit-learn` is tested on.
 The main ones are the following:
 
@@ -130,8 +130,8 @@ the cause of the error if it does not work.
 
     build_table()
 
-onnxruntime
-+++++++++++
+onnxruntime piece by piece
+++++++++++++++++++++++++++
 
 This runtime does not load the :epkg:`ONNX` data in a single
 session but instead calls :epkg:`onnxruntime` for each node
