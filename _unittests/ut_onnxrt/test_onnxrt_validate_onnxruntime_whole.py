@@ -30,7 +30,7 @@ class TestOnnxrtValidateOnnxRuntimeWhole(ExtTestCase):
         self.assertIn("available-ERROR", df.columns)
         self.assertGreater(df.shape[0], 2)
         piv = summary_report(df)
-        self.assertIn(piv.shape[0], (2, 3))
+        self.assertIn(piv.shape[0], (1, 2, 3))
 
     def test_validate_sklearn_operators_all_onnxruntime_whole(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

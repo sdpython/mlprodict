@@ -7,7 +7,7 @@ from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import get_temp_folder, ExtTestCase
-from mlprodict.onnxrt.validate import sklearn_operators, validate_operator_opsets, summary_report
+from mlprodict.onnxrt.validate import validate_operator_opsets, summary_report
 
 
 class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
