@@ -623,8 +623,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
 def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
-                             check_runtime=True, debug=None, runtime='CPU',
-                             fLOG=print):
+                             check_runtime=True, debug=False, runtime='CPU',
+                             models=None, fLOG=print):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -634,29 +634,24 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     @param      opset_max       checks conversion up to this opset,
                                 None means @see fn get_opset_number_from_onnx.
     @param      check_runtime   checks the python runtime
-    @param      debug           only checks a small list of operators,
+    @param      models          only process a small list of operators,
                                 set of model names
+    @param      debug           stops whenever an exception
+                                is raised
     @param      runtime         test a specific runtime, by default ``'CPU'``
     @param      fLOG            logging function
     @return                     list of dictionaries
 
-    The function is available through a command line:
-
-    .. cmdref::
-        :title: Valide a runtime against scikit-learn
-        :cmd: -m mlprodict validate_runtime --help
-
-        The command walks through all scikit-learn operators,
-        tries to convert them, checks the predictions,
-        and produces a report.
+    The function is available through command line
+    :ref:`validate_runtime <l-cmd-validate_runtime>`.
     """
     ops = [_ for _ in sklearn_operators()]
 
-    if debug is not None:
-        ops_ = [_ for _ in ops if _['name'] in debug]
+    if models is not None:
+        ops_ = [_ for _ in ops if _['name'] in models]
         if len(ops) == 0:
-            raise ValueError("Debug is wrong: {}\n{}".format(
-                debug, ops[0]))
+            raise ValueError("Parameter models is wrong: {}\n{}".format(
+                models, ops[0]))
         ops = ops_
 
     if verbose > 0:
@@ -683,7 +678,7 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
         for obs in enumerate_compatible_opset(
                 model, opset_min=opset_min, opset_max=opset_max,
                 check_runtime=check_runtime, runtime=runtime,
-                debug=debug is not None, fLOG=fLOG):
+                debug=debug, fLOG=fLOG):
             if verbose > 1:
                 fLOG("  ", obs)
             diff = obs.get('max_abs_diff_batch',
@@ -752,7 +747,8 @@ def summary_report(df):
                              aggfunc=aggfunc).reset_index(drop=False)
 
     opmin = min(df['opset'].dropna())
-    versions = ["opset%d" % (opmin + t) for t in range(1, piv.shape[1] - 2)]
+    versions = ["opset%d" % (opmin + t - 1)
+                for t in range(1, piv.shape[1] - 2)]
     indices = ["name", "problem", "scenario"]
     piv.columns = indices + versions
     piv = piv[indices + list(reversed(versions))].copy()

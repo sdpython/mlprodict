@@ -16,9 +16,9 @@ def main(args, fLOG=print):
     @param      fLOG        logging function
     """
     try:
-        from .cli.validate_runtime import validate_runtime
+        from .cli.validate import validate_runtime
     except ImportError:
-        from mlprodict.cli.validate_runtime import validate_runtime
+        from mlprodict.cli.validate import validate_runtime
 
     fcts = dict(validate_runtime=validate_runtime)
     from pyquickhelper.cli import cli_main_helper
