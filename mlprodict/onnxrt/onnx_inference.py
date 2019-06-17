@@ -185,6 +185,8 @@ class OnnxInference:
                 res['value'] = numpy.array(var.strings)
             elif hasattr(var, 'ints') and dtype.get('elem', None) == 7:
                 res['value'] = numpy.array(var.ints)
+            elif hasattr(var, 'f') and dtype.get('elem', None) == 1:
+                res['value'] = var.f
             elif hasattr(var, 's') and dtype.get('elem', None) == 3:
                 res['value'] = var.s
             elif hasattr(var, 'i') and dtype.get('elem', None) == 2:
@@ -199,7 +201,8 @@ class OnnxInference:
                 atts = {}
                 for att in var.attribute:
                     atts[att.name] = OnnxInference._var_as_dict(att)
-            return dict(name=var.name, op_type=var.op_type, domain=var.domain, atts=atts)
+            return dict(name=var.name, op_type=var.op_type,
+                        domain=var.domain, atts=atts)
 
         elif hasattr(var, 'dims') and len(var.dims) > 0:
             # initializer
@@ -214,6 +217,7 @@ class OnnxInference:
                 raise NotImplementedError(
                     "Iniatilizer {} cannot be converted into a dictionary.".format(var))
             return dict(name=var.name, value=data)
+
         elif var.data_type > 0:
             if var.data_type == 1 and var.float_data is not None:
                 data = numpy.array(var.float_data, copy=False)
@@ -225,6 +229,7 @@ class OnnxInference:
                 raise NotImplementedError(
                     "Iniatilizer {} cannot be converted into a dictionary.".format(var))
             return dict(name=var.name, value=data)
+
         else:
             raise NotImplementedError(
                 "Unable to guess which object it is.\n{}".format(var))
@@ -574,7 +579,7 @@ class OnnxInference:
                 for k, v in atts.items():
                     if not isinstance(v, dict) or 'value' not in v:
                         raise RuntimeError("A parameter has no value '{}' for node '{}'\nv={}\ndobj=[{}]".format(
-                            k, node.name, v, obj))
+                            k, node.name, v, node))
             nodes[node.name] = OnnxInferenceNode(node, dobj)
 
         # names

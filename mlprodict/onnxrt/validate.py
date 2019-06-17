@@ -4,24 +4,27 @@
 The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
+import os
 from time import perf_counter
 from importlib import import_module
 import warnings
+import pickle
 import numpy
 import pandas
 import onnx
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, ClusterMixin, BiclusterMixin, OutlierMixin
+from sklearn.base import RegressorMixin, ClassifierMixin
 from sklearn.datasets import load_iris
 from sklearn.decomposition import SparseCoder
 from sklearn.ensemble import VotingClassifier, AdaBoostRegressor, VotingRegressor
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.feature_selection import SelectFromModel, RFE, RFECV
-from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression, SGDClassifier, LinearRegression
+from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, ClassifierChain, RegressorChain
-from sklearn.linear_model import LogisticRegression, SGDClassifier, LinearRegression
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.neighbors import LocalOutlierFactor
 from sklearn.svm import SVC, NuSVC
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.utils.testing import ignore_warnings
@@ -128,7 +131,7 @@ def _problem_for_predictor_multi_classification():
 def _problem_for_predictor_regression():
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
-    multi-class classification problem.
+    regression problem.
     It is based on Iris dataset.
     """
     data = load_iris()
@@ -138,16 +141,58 @@ def _problem_for_predictor_regression():
             'predict', 0, X.astype(numpy.float32))
 
 
-def _problem_for_numerical_transform():
+def _problem_for_predictor_multi_regression():
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
-    multi-class classification problem.
+    multi-regression problem.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = data.data
+    y = data.target.astype(float)
+    y2 = numpy.empty((y.shape[0], 2))
+    y2[:, 0] = y
+    y2[:, 1] = y + 0.5
+    return (X, y2, [('X', X[:1].astype(numpy.float32))],
+            'predict', 0, X.astype(numpy.float32))
+
+
+def _problem_for_numerical_transform():
+    """
+    Returns *X, intial_types, method, name, X runtime* for a
+    transformation problem.
     It is based on Iris dataset.
     """
     data = load_iris()
     X = data.data
     return (X, None, [('X', X[:1].astype(numpy.float32))],
             'transform', 0, X.astype(numpy.float32))
+
+
+def _problem_for_outlier():
+    """
+    Returns *X, intial_types, method, name, X runtime* for a
+    transformation problem.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = data.data
+    return (X, None, [('X', X[:1].astype(numpy.float32))],
+            'predict', 0, X.astype(numpy.float32))
+
+
+def _problem_for_numerical_scoring():
+    """
+    Returns *X, y, intial_types, method, name, X runtime* for a
+    scoring problem.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = data.data
+    y = data.target.astype(float)
+    y /= numpy.max(y)
+    return (X, y, [('X', X[:1].astype(numpy.float32))],
+            'score', 0, X.astype(numpy.float32))
 
 
 def find_suitable_problem(model):
@@ -157,10 +202,14 @@ def find_suitable_problem(model):
     * `bin-class`: binary classification
     * `mutli-class`: multi-class classification
     * `regression`: regression
+    * `multi-reg`: regression multi-output
     * `num-transform`: transform numerical features
+    * `scoring`: transform numerical features, target is usually needed
+    * `outlier`: outlier prediction
     """
     if model in {RFE, RFECV, GridSearchCV}:
-        return ['bin-class', 'multi-class', 'regression']
+        return ['bin-class', 'multi-class',
+                'regression', 'multi-reg']
     if hasattr(model, 'predict_proba'):
         if model is OneVsRestClassifier:
             return ['multi-class']
@@ -168,20 +217,41 @@ def find_suitable_problem(model):
             return ['bin-class', 'multi-class']
 
     if hasattr(model, 'predict'):
-        return ['regression']
+        if "Classifier" in str(model):
+            return ['bin-class', 'multi-class']
+        elif "Regressor" in str(model):
+            return ['regression', 'multi-reg']
 
-    if hasattr(model, 'transform'):
+    if hasattr(model, 'transform') or issubclass(
+            model, (ClusterMixin, BiclusterMixin)):
         return ['num-transform']
 
-    raise RuntimeError("Unable to find problem for model '{}'."
-                       "".format(model.__name__))
+    if issubclass(model, (OutlierMixin)):
+        return ['outlier']
+
+    res = []
+    if issubclass(model, ClassifierMixin):
+        res.extend(['bin-class', 'multi-class'])
+    if issubclass(model, RegressorMixin):
+        res.extend(['regression', 'multi-reg'])
+
+    if len(res) == 0 and hasattr(model, 'fit') and hasattr(model, 'score'):
+        return ['scoring']
+    if len(res) > 0:
+        return res
+
+    raise RuntimeError("Unable to find problem for model '{}' - {}."
+                       "".format(model.__name__, model.__bases__))
 
 
 _problems = {
     "bin-class": _problem_for_predictor_binary_classification,
     "multi-class": _problem_for_predictor_multi_classification,
     "regression": _problem_for_predictor_regression,
+    "multi-reg": _problem_for_predictor_multi_regression,
     "num-transform": _problem_for_numerical_transform,
+    "scoring": _problem_for_numerical_scoring,
+    'outlier': _problem_for_outlier,
 }
 
 
@@ -218,6 +288,11 @@ def build_custom_scenarios():
             ('reg', {
                 'estimator': LinearRegression(),
                 'param_grid': {'fit_intercept': [False, True]},
+            }),
+        ],
+        LocalOutlierFactor: [
+            ('novelty', {
+                'novelty': True,
             }),
         ],
         LogisticRegression: [
@@ -388,9 +463,36 @@ def _measure_absolute_difference(skl_pred, ort_pred):
     return diff
 
 
+def _shape_exc(obj):
+    if hasattr(obj, 'shape'):
+        return obj.shape
+    if isinstance(obj, (list, dict, tuple)):
+        return "[{%d}]" % len(obj)
+    return None
+
+
+def dump_into_folder(dump_folder, obs_op=None, **kwargs):
+    """
+    Dumps information when an error was detected
+    using :epkg:`*py:pickle`.
+
+    @param      dump_folder     dump_folder
+    @param      obs_op          obs_op (information)
+    @kwargs                     kwargs
+    """
+    parts = (obs_op['name'], obs_op['scenario'],
+             obs_op['problem'], obs_op.get('opset', '-'))
+    name = "dump-ERROR-{}.pkl".format("-".join(map(str, parts)))
+    name = os.path.join(dump_folder, name)
+    kwargs.update({'obs_op': obs_op})
+    with open(name, "wb") as f:
+        pickle.dump(kwargs, f)
+
+
 def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                check_runtime=True, debug=False,
-                               runtime='CPU', fLOG=print):
+                               runtime='CPU', dump_folder=None,
+                               fLOG=print):
     """
     Lists all compatiable opsets for a specific model.
 
@@ -402,6 +504,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                 model and compute predictions
     @param      debug           catch exception (True) or not (False)
     @param      runtime         test a specific runtime, by default ``'CPU'``
+    @param      dump_folder     dump information to replicate in case of mismatch
     @param      fLOG            logging function
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
@@ -484,7 +587,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                     continue
                 try:
                     ypred, t4 = _measure_time(lambda: meth(X_test))
-                except (ValueError, AttributeError) as e:
+                except (ValueError, AttributeError, TypeError) as e:
                     if debug:
                         raise
                     obs['_3prediction_exc'] = str(e)
@@ -521,110 +624,148 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 
                 # prediction
                 if check_runtime:
-                    ser, t5 = _measure_time(lambda: conv.SerializeToString())
-                    obs_op['tostring_time'] = t5
-
-                    # load
-                    try:
-                        sess, t6 = _measure_time(
-                            lambda: OnnxInference(ser, runtime=runtime))
-                        obs_op['tostring_time'] = t6
-                    except (RuntimeError, ValueError) as e:
-                        if debug:
-                            raise
-                        obs_op['_5ort_load_exc'] = e
-                        yield obs_op
-                        continue
-
-                    # compute batch
-                    def fct_batch(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
-                        return se.run({it[0][0]: xo})
-                    try:
-                        opred, t7 = _measure_time(fct_batch)
-                        obs_op['ort_run_time_batch'] = t7
-                    except (RuntimeError, TypeError, ValueError) as e:
-                        if debug:
-                            raise
-                        obs_op['_6ort_run_batch_exc'] = e
-
-                    # difference
-                    if '_6ort_run_batch_exc' not in obs_op:
-                        if isinstance(opred, dict):
-                            ch = [(k, v) for k, v in sorted(opred.items())]
-                            # names = [_[0] for _ in ch]
-                            opred = [_[1] for _ in ch]
-
-                        try:
-                            opred = opred[output_index]
-                        except IndexError:
-                            if debug:
-                                raise
-                            obs_op['_8max_abs_diff_batch_exc'] = (
-                                "Unable to fetch output {}/{} for model '{}'"
-                                "".format(output_index, len(opred),
-                                          model.__name__))
-                            opred = None
-                        if opred is not None:
-                            max_abs_diff = _measure_absolute_difference(
-                                ypred, opred)
-                            if debug and numpy.isnan(max_abs_diff):
-                                raise RuntimeError(
-                                    "Unable to compute differences between"
-                                    " {}-{}\n{}\n--------\n{}".format(
-                                        ypred.shape, opred.shape,
-                                        ypred, opred))
-                            obs_op['max_abs_diff_batch'] = max_abs_diff
-
-                    # compute single
-                    def fct_single(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
-                        return [se.run({it[0][0]: Xort_row})
-                                for Xort_row in xo]
-                    try:
-                        opred, t7 = _measure_time(fct_single)
-                        obs_op['ort_run_time_single'] = t7
-                    except (RuntimeError, TypeError, ValueError) as e:
-                        if debug:
-                            raise
-                        obs_op['_9ort_run_single_exc'] = e
-
-                    # difference
-                    if '_9ort_run_single_exc' not in obs_op:
-                        if isinstance(opred[0], dict):
-                            ch = [[(k, v) for k, v in sorted(o.items())]
-                                  for o in opred]
-                            # names = [[_[0] for _ in row] for row in ch]
-                            opred = [[_[1] for _ in row] for row in ch]
-
-                        try:
-                            opred = [o[output_index] for o in opred]
-                        except IndexError:
-                            if debug:
-                                raise
-                            obs_op['_Amax_abs_diff_single_exc'] = (
-                                "Unable to fetch output {}/{} for model '{}'"
-                                "".format(output_index, len(opred),
-                                          model.__name__))
-                            opred = None
-                        if opred is not None:
-                            max_abs_diff = _measure_absolute_difference(
-                                ypred, opred)
-                            if debug and numpy.isnan(max_abs_diff):
-                                raise RuntimeError(
-                                    "Unable to compute differences between"
-                                    "\n{}\n--------\n{}".format(
-                                        ypred, opred))
-                            obs_op['max_abs_diff_single'] = max_abs_diff
-
-                    if debug:
-                        import pprint
-                        pprint.pprint(obs_op)
+                    yield _call_runtime(obs_op=obs_op, conv=conv, opset=opset, debug=debug,
+                                        runtime=runtime, inst=inst, X_=X_, y_=y_,
+                                        init_types=init_types, method=method,
+                                        output_index=output_index, Xort_=Xort_,
+                                        ypred=ypred, Xort_test=Xort_test,
+                                        model=model, dump_folder=dump_folder)
+                else:
                     yield obs_op
+
+
+def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
+                  X_, y_, init_types, method, output_index,
+                  Xort_, ypred, Xort_test, model, dump_folder):
+    """
+    Private.
+    """
+    ser, t5 = _measure_time(lambda: conv.SerializeToString())
+    obs_op['tostring_time'] = t5
+
+    # load
+    try:
+        sess, t6 = _measure_time(
+            lambda: OnnxInference(ser, runtime=runtime))
+        obs_op['tostring_time'] = t6
+    except (RuntimeError, ValueError) as e:
+        if debug:
+            raise
+        obs_op['_5ort_load_exc'] = e
+        return obs_op
+
+    # compute batch
+    def fct_batch(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
+        return se.run({it[0][0]: xo})
+    try:
+        opred, t7 = _measure_time(fct_batch)
+        obs_op['ort_run_time_batch'] = t7
+    except (RuntimeError, TypeError, ValueError) as e:
+        if debug:
+            raise
+        obs_op['_6ort_run_batch_exc'] = e
+
+    # difference
+    if '_6ort_run_batch_exc' not in obs_op:
+        if isinstance(opred, dict):
+            ch = [(k, v) for k, v in sorted(opred.items())]
+            # names = [_[0] for _ in ch]
+            opred = [_[1] for _ in ch]
+
+        try:
+            opred = opred[output_index]
+        except IndexError:
+            if debug:
+                raise
+            obs_op['_8max_abs_diff_batch_exc'] = (
+                "Unable to fetch output {}/{} for model '{}'"
+                "".format(output_index, len(opred),
+                          model.__name__))
+            opred = None
+
+        debug_exc = []
+        if opred is not None:
+            max_abs_diff = _measure_absolute_difference(
+                ypred, opred)
+            if numpy.isnan(max_abs_diff):
+                obs_op['_8max_abs_diff_batch_exc'] = (
+                    "Unable to compute differences between"
+                    " {}-{}\n{}\n--------\n{}".format(
+                        _shape_exc(
+                            ypred), _shape_exc(opred),
+                        ypred, opred))
+                if debug:
+                    debug_exc.append(RuntimeError(
+                        obs_op['_8max_abs_diff_batch_exc']))
+            else:
+                obs_op['max_abs_diff_batch'] = max_abs_diff
+                if dump_folder and max_abs_diff > 1e-5:
+                    dump_into_folder(dump_folder, kind='batch', obs_op=obs_op,
+                                     X_=X_, y_=y_, init_types=init_types,
+                                     method=init_types, output_index=output_index,
+                                     Xort_=Xort_)
+
+    # compute single
+    def fct_single(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
+        return [se.run({it[0][0]: Xort_row})
+                for Xort_row in xo]
+    try:
+        opred, t7 = _measure_time(fct_single)
+        obs_op['ort_run_time_single'] = t7
+    except (RuntimeError, TypeError, ValueError) as e:
+        if debug:
+            raise
+        obs_op['_9ort_run_single_exc'] = e
+
+    # difference
+    if '_9ort_run_single_exc' not in obs_op:
+        if isinstance(opred[0], dict):
+            ch = [[(k, v) for k, v in sorted(o.items())]
+                  for o in opred]
+            # names = [[_[0] for _ in row] for row in ch]
+            opred = [[_[1] for _ in row] for row in ch]
+
+        try:
+            opred = [o[output_index] for o in opred]
+        except IndexError:
+            if debug:
+                raise
+            obs_op['_Amax_abs_diff_single_exc'] = (
+                "Unable to fetch output {}/{} for model '{}'"
+                "".format(output_index, len(opred),
+                          model.__name__))
+            opred = None
+        if opred is not None:
+            max_abs_diff = _measure_absolute_difference(
+                ypred, opred)
+            if numpy.isnan(max_abs_diff):
+                obs_op['_Amax_abs_diff_single_exc'] = (
+                    "Unable to compute differences between"
+                    "\n{}\n--------\n{}".format(
+                        ypred, opred))
+                if debug:
+                    debug_exc.append(RuntimeError(
+                        obs_op['_Amax_abs_diff_single_exc']))
+            else:
+                obs_op['max_abs_diff_single'] = max_abs_diff
+                if dump_folder and max_abs_diff > 1e-5:
+                    dump_into_folder(dump_folder, kind='single', obs_op=obs_op,
+                                     X_=X_, y_=y_, init_types=init_types,
+                                     method=init_types, output_index=output_index,
+                                     Xort_=Xort_)
+
+    if debug and len(debug_exc) == 2:
+        raise debug_exc[0]
+    if debug:
+        import pprint
+        pprint.pprint(obs_op)
+    return obs_op
 
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
 def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                              check_runtime=True, debug=False, runtime='CPU',
-                             models=None, fLOG=print):
+                             models=None, dump_folder=None, fLOG=print):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -639,6 +780,7 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     @param      debug           stops whenever an exception
                                 is raised
     @param      runtime         test a specific runtime, by default ``'CPU'``
+    @param      dump_folder     dump information to replicate in case of mismatch
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -678,15 +820,20 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
         for obs in enumerate_compatible_opset(
                 model, opset_min=opset_min, opset_max=opset_max,
                 check_runtime=check_runtime, runtime=runtime,
-                debug=debug, fLOG=fLOG):
+                debug=debug, dump_folder=dump_folder, fLOG=fLOG):
+
             if verbose > 1:
                 fLOG("  ", obs)
+            elif verbose > 0 and "_0problem_exc" in obs:
+                fLOG("  ???", obs)
+
             diff = obs.get('max_abs_diff_batch',
                            obs.get('max_abs_diff_single', None))
             batch = 'max_abs_diff_batch' in obs and diff is not None
             op1 = obs.get('domain_opset_', '')
             op2 = obs.get('domain_opset_ai.onnx.ml', '')
             op = '{}|{}'.format(op1, op2)
+
             if diff is not None:
                 if diff < 1e-5:
                     obs['available'] = 'OK'
@@ -703,18 +850,24 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 obs['available'] += '-' + op
                 if not batch:
                     obs['available'] += "-NOBATCH"
-            elif 'opset' in obs and obs['opset'] == current_opset:
+
+            else:
                 excs = []
                 for k, v in sorted(obs.items()):
                     if k.endswith('_exc'):
                         excs.append((k, v))
                         break
-                if len(excs) > 0:
-                    k, v = excs[0]
-                    obs['available'] = 'ERROR-%s' % k
-                    obs['available-ERROR'] = v
-                else:
-                    obs['available'] = 'ERROR-?'
+                if 'opset' not in obs:
+                    # It fails before the conversion happens.
+                    obs['opset'] = current_opset
+                if obs['opset'] == current_opset:
+                    if len(excs) > 0:
+                        k, v = excs[0]
+                        obs['available'] = 'ERROR-%s' % k
+                        obs['available-ERROR'] = v
+                    else:
+                        obs['available'] = 'ERROR-?'
+
             obs.update(row)
             rows.append(obs)
 
@@ -734,7 +887,9 @@ def summary_report(df):
 
     def aggfunc(values):
         if len(values) != 1:
-            raise ValueError(values)
+            vals = set(values)
+            if len(vals) != 1:
+                return " // ".join(map(str, values))
         val = values.iloc[0]
         if isinstance(val, float) and numpy.isnan(val):
             return ""
@@ -754,11 +909,21 @@ def summary_report(df):
     piv = piv[indices + list(reversed(versions))].copy()
 
     if "available-ERROR" in df.columns:
+
+        from skl2onnx.common.exceptions import MissingShapeCalculator
+
+        def replace_msg(text):
+            if isinstance(text, MissingShapeCalculator):
+                return "NO CONVERTER"
+            if str(text).startswith("Unable to find a shape calculator for type '"):
+                return "NO CONVERTER"
+            return str(text)
+
         piv2 = pandas.pivot_table(df, values="available-ERROR",
                                   index=['name', 'problem', 'scenario'],
                                   columns='opset',
                                   aggfunc=aggfunc).reset_index(drop=False)
 
         col = piv2.iloc[:, piv2.shape[1] - 1]
-        piv["ERROR-msg"] = col
+        piv["ERROR-msg"] = col.apply(replace_msg)
     return piv
