@@ -7,7 +7,6 @@ The submodule relies on :epkg:`onnxconverter_common`,
 import os
 from time import perf_counter
 from importlib import import_module
-import warnings
 import pickle
 import numpy
 import pandas
@@ -16,7 +15,6 @@ from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.base import BaseEstimator
 from sklearn.decomposition import SparseCoder
 from sklearn.ensemble import VotingClassifier, AdaBoostRegressor, VotingRegressor
-from sklearn.exceptions import ConvergenceWarning
 from sklearn.feature_selection import SelectFromModel, RFE, RFECV
 from sklearn.linear_model import LogisticRegression, SGDClassifier, LinearRegression
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
@@ -25,7 +23,6 @@ from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, Cla
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.svm import SVC, NuSVC
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.utils.testing import ignore_warnings
 from .onnx_inference import OnnxInference
 from .. import __version__ as ort_version
 from .validate_problems import _problems, find_suitable_problem
@@ -296,11 +293,7 @@ def _measure_absolute_difference(skl_pred, ort_pred):
         skl_pred = skl_pred.ravel()
 
     if skl_pred.shape != ort_pred.shape:
-        warnings.warn("Unable to compute differences between {}-{}\n{}\n"
-                      "--------\n{}".format(
-                          skl_pred.shape, ort_pred.shape,
-                          skl_pred, ort_pred))
-        return numpy.nan
+        return 1e9
 
     diff = numpy.max(numpy.abs(skl_pred.ravel() - ort_pred.ravel()))
 
@@ -623,7 +616,6 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     return obs_op
 
 
-@ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
 def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         check_runtime=True, debug=False, runtime='CPU',
                                         models=None, dump_folder=None, store_models=False,

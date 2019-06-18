@@ -7,6 +7,8 @@ from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import get_temp_folder, ExtTestCase
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import sklearn_operators, enumerate_validated_operator_opsets, summary_report
 
 
@@ -32,6 +34,7 @@ class TestOnnxrtValidateOnnxRuntimeWhole(ExtTestCase):
         piv = summary_report(df)
         self.assertIn(piv.shape[0], (1, 2, 3))
 
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_all_onnxruntime_whole(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')

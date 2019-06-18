@@ -7,7 +7,7 @@ from mlprodict.onnxrt.validate import sklearn_operators
 from mlprodict.onnxrt.validate_problems import find_suitable_problem
 
 
-class TestOnnxrtValidateJelper(ExtTestCase):
+class TestOnnxrtValidateHelper(ExtTestCase):
 
     def test_sklearn_operators(self):
         res = sklearn_operators()
