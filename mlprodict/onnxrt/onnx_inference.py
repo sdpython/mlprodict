@@ -360,6 +360,9 @@ class OnnxInference:
                         '  {0} [shape=box label="{0}" fontsize={1}];'.format(out, fontsize))
 
             dobj = OnnxInference._var_as_dict(node)
+            if dobj['name'].strip() == '':
+                raise RuntimeError(
+                    "Issue with a node\n{}\n----\n{}".format(dobj, node))
 
             atts = []
             if 'atts' in dobj:

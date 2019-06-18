@@ -86,8 +86,7 @@ One way is to convert the prediction function into :epkg:`C`.
 
 Another way is to use :epkg:`ONNX`. :epkg:`onnxruntime` provides an efficient way
 to compute predictions. The current code explores ways to be faster
-at implementing something working. Notebook :ref:`onnxvisualizationrst`
-shows how to visualize an ONNX pipeline.
+at implementing something working.
 
 .. runpython::
     :showcode:
@@ -116,6 +115,31 @@ shows how to visualize an ONNX pipeline.
     # Predictions
     y = oinf.run({'X': X[:5]})
     print(y)
+
+These predictions are obtained with the
+following :epkg:`ONNX` graph.
+
+.. gdot::
+    :script: DOT-SECTION
+
+    from sklearn.linear_model import LinearRegression
+    from sklearn.datasets import load_iris
+    from mlprodict.onnxrt import OnnxInference
+    import numpy
+
+    iris = load_iris()
+    X = iris.data[:, :2]
+    y = iris.target
+    lr = LinearRegression()
+    lr.fit(X, y)
+
+    from skl2onnx import to_onnx
+    model_onnx = to_onnx(lr, X.astype(numpy.float32))
+    oinf = OnnxInference(model_onnx)
+    print("DOT-SECTION", oinf.to_dot())
+
+Notebook :ref:`onnxvisualizationrst`
+shows how to visualize an :epkg:`ONNX` pipeline.
 
 +----------------------+---------------------+---------------------+--------------------+------------------------+------------------------------------------------+
 | :ref:`l-modules`     |  :ref:`l-functions` | :ref:`l-classes`    | :ref:`l-methods`   | :ref:`l-staticmethods` | :ref:`l-properties`                            |

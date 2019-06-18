@@ -12,5 +12,5 @@ FAQ, code, ...
     index_module
     i_faq
     i_nb
-    LICENSE
+    license
     README

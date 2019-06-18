@@ -5,7 +5,7 @@
 import os
 from logging import getLogger
 from pandas import DataFrame
-from ..onnxrt.validate import validate_operator_opsets, summary_report  # pylint: disable=E0402
+from ..onnxrt.validate import enumerate_validated_operator_opsets, summary_report  # pylint: disable=E0402
 
 
 def validate_runtime(verbose=1, opset_min=9, opset_max=11,
@@ -56,9 +56,9 @@ def validate_runtime(verbose=1, opset_min=9, opset_max=11,
         dump_folder = None
     if dump_folder and not os.path.exists(dump_folder):
         raise FileNotFoundError(dump_folder)
-    rows = validate_operator_opsets(verbose, models=models, fLOG=fLOG,
-                                    runtime=runtime, debug=debug,
-                                    dump_folder=dump_folder)
+    rows = list(enumerate_validated_operator_opsets(verbose, models=models, fLOG=fLOG,
+                                                    runtime=runtime, debug=debug,
+                                                    dump_folder=dump_folder))
     df = DataFrame(rows)
     df.to_excel(out_raw, index=False)
     piv = summary_report(df)

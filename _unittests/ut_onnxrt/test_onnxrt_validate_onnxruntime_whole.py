@@ -7,7 +7,7 @@ from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import get_temp_folder, ExtTestCase
-from mlprodict.onnxrt.validate import sklearn_operators, validate_operator_opsets, summary_report
+from mlprodict.onnxrt.validate import sklearn_operators, enumerate_validated_operator_opsets, summary_report
 
 
 class TestOnnxrtValidateOnnxRuntimeWhole(ExtTestCase):
@@ -22,9 +22,9 @@ class TestOnnxrtValidateOnnxRuntimeWhole(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
         verbose = 0 if __name__ == "__main__" else 0
-        rows = validate_operator_opsets(
+        rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GradientBoostingRegressor"}, opset_min=11, fLOG=fLOG,
-            runtime='onnxruntime-whole', debug=False)
+            runtime='onnxruntime-whole', debug=False))
         self.assertIn(len(rows), (2, 3))
         df = DataFrame(rows)
         self.assertIn("available-ERROR", df.columns)
@@ -40,13 +40,13 @@ class TestOnnxrtValidateOnnxRuntimeWhole(ExtTestCase):
         temp = get_temp_folder(
             __file__, "temp_validate_sklearn_operators_all_onnxruntime_whole")
         if False:  # pylint: disable=W0125
-            rows = validate_operator_opsets(
+            rows = list(enumerate_validated_operator_opsets(
                 verbose, models={"GradientBoostingRegressor"}, opset_min=11, fLOG=fLOG,
-                runtime='onnxruntime-whole', debug=True)
+                runtime='onnxruntime-whole', debug=True))
         else:
-            rows = validate_operator_opsets(verbose, debug=None, fLOG=fLOG,
-                                            runtime='onnxruntime-whole',
-                                            dump_folder=temp)
+            rows = list(enumerate_validated_operator_opsets(verbose, debug=None, fLOG=fLOG,
+                                                            runtime='onnxruntime-whole',
+                                                            dump_folder=temp))
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
         self.assertGreater(df.shape[1], 1)

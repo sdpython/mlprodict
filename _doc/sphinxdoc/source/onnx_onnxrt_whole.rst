@@ -1,0 +1,42 @@
+
+onnxruntime-whole
+=================
+
+:epkg:`onnxruntime` loads the :epkg:`ONNX` data in a single
+session and calls it onle once to compute the predictions.
+ We create a table similar to :ref:`l-onnx-pyrun-tbl`.
+
+.. runpython::
+    :showcode:
+    :rst:
+    :warningout: PendingDeprecationWarning UserWarning RuntimeWarning
+
+    from logging import getLogger
+    from pyquickhelper.loghelper import noLOG
+    from pandas import DataFrame
+    from pyquickhelper.pandashelper import df2rst
+    from sklearn.exceptions import ConvergenceWarning
+    from sklearn.utils.testing import ignore_warnings
+    from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
+
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning, FutureWarning))
+    def build_table():
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        rows = list(enumerate_validated_operator_opsets(0, debug=None, fLOG=noLOG,
+                                                        runtime='onnxruntime-whole'))
+        df = DataFrame(rows)
+        piv = summary_report(df)
+
+        if "ERROR-msg" in piv.columns:
+            def shorten(text):
+                text = str(text)
+                if len(text) > 75:
+                    text = text[:75] + "..."
+                return text
+
+            piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
+
+        print(df2rst(piv))
+
+    build_table()

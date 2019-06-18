@@ -306,3 +306,33 @@ def debug_onnx_object(obj, depth=3):
                     rows.append("  " + line)
 
     return "\n".join(rows)
+
+
+def visual_rst_template():
+    """
+    Returns a :epkg:`jinja2` template to display DOT graph for each
+    converter from :epkg:`sklearn-onnx`.
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.onnxrt.doc_helper import visual_rst_template
+        print(visual_rst_template())
+    """
+    return textwrap.dedent("""
+    {{ title }}
+    {{ '=' * len(title) }}
+
+    Fitted on a problem type *{{ kind }}*
+    (see :func:`find_suitable_problem
+    <mlprodict.onnxrt.validate_problems.find_suitable_problem>`),
+    method {{ method }} matches output {{ output_index }}.
+
+    ::
+
+        {{ indent(model, "    ") }}
+
+    .. gdot::
+
+        {{ indent(dot, "    ") }}
+    """)

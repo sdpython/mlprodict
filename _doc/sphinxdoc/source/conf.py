@@ -38,8 +38,11 @@ epkg_dictionary.update({
     'JSON': 'https://en.wikipedia.org/wiki/JSON',
     'ONNX': 'https://onnx.ai/',
     'onnx': 'https://github.com/onnx/onnx',
-    'sklearn-onnx': 'https://github.com/onnx/sklearn-onnx',
+    'ONNX Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators.md',
+    'ONNX ML Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators-ml.md',
+    'onnxconverter_common': 'https://github.com/onnx/onnxmltools/tree/master/onnxutils/onnxconverter_common',
     'onnxruntime': 'https://github.com/microsoft/onnxruntime',
     'Python': 'https://www.python.org/',
+    'sklearn-onnx': 'https://github.com/onnx/sklearn-onnx',
     'xgboost': "https://xgboost.readthedocs.io/en/latest/",
 })

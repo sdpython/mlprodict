@@ -6,7 +6,7 @@ onnx
 onnxruntime
 openpyxl
 pylint
-pyquickhelper>=1.9
+pyquickhelper>=1.9.3154
 skl2onnx
 sphinx
 sphinx_readable_theme

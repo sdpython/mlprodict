@@ -67,15 +67,19 @@ def get_opset_number_from_onnx():
     return onnx.defs.onnx_opset_version()
 
 
-def sklearn_operators():
+def sklearn_operators(subfolder=None):
     """
     Builds the list of operators from :epkg:`scikit-learn`.
     The function goes through the list of submodule
     and get the list of class which inherit from
     :epkg:`scikit-learn:base:BaseEstimator`.
+
+    @param      subfolder   look into only one subfolder
     """
     found = []
     for sub in sklearn__all__:
+        if subfolder is not None and sub != subfolder:
+            continue
         try:
             mod = import_module("{0}.{1}".format("sklearn", sub))
         except ModuleNotFoundError:
@@ -337,7 +341,7 @@ def dump_into_folder(dump_folder, obs_op=None, **kwargs):
 def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                check_runtime=True, debug=False,
                                runtime='CPU', dump_folder=None,
-                               fLOG=print):
+                               store_models=False, fLOG=print):
     """
     Lists all compatiable opsets for a specific model.
 
@@ -350,6 +354,9 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     @param      debug           catch exception (True) or not (False)
     @param      runtime         test a specific runtime, by default ``'CPU'``
     @param      dump_folder     dump information to replicate in case of mismatch
+    @param      store_models    if True, the function
+                                also stores the fitted model and its conversion
+                                into :epkg:`ONNX`
     @param      fLOG            logging function
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
@@ -392,7 +399,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 
             # training
             obs = {'scenario': scenario, 'name': model.__name__,
-                   'skl_version': sklearn_version, 'problem': prob}
+                   'skl_version': sklearn_version, 'problem': prob,
+                   'method': method, 'output_index': output_index}
             try:
                 inst = model(**extra)
             except TypeError as e:
@@ -416,6 +424,11 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                 continue
 
             obs["training_time"] = t1
+            if store_models:
+                obs['MODEL'] = inst
+                obs['X_test'] = X_test
+                obs['Xort_test'] = Xort_test
+                obs['init_types'] = init_types
 
             # runtime
             if check_runtime:
@@ -462,6 +475,9 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                     obs_op["_4convert_exc"] = e
                     yield obs_op
                     continue
+
+                if store_models:
+                    obs_op['ONNX'] = conv
 
                 # opset_domain
                 for op_imp in list(conv.opset_import):
@@ -608,9 +624,10 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
-                             check_runtime=True, debug=False, runtime='CPU',
-                             models=None, dump_folder=None, fLOG=print):
+def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
+                                        check_runtime=True, debug=False, runtime='CPU',
+                                        models=None, dump_folder=None, store_models=False,
+                                        fLOG=print):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -626,6 +643,9 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                 is raised
     @param      runtime         test a specific runtime, by default ``'CPU'``
     @param      dump_folder     dump information to replicate in case of mismatch
+    @param      store_models    if True, the function
+                                also stores the fitted model and its conversion
+                                into :epkg:`ONNX`
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -635,6 +655,8 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     ops = [_ for _ in sklearn_operators()]
 
     if models is not None:
+        if not all(map(lambda m: isinstance(m, str), models)):
+            raise ValueError("models must be a set of strings.")
         ops_ = [_ for _ in ops if _['name'] in models]
         if len(ops) == 0:
             raise ValueError("Parameter models is wrong: {}\n{}".format(
@@ -657,7 +679,6 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
         loop = ops
 
     current_opset = get_opset_number_from_onnx()
-    rows = []
     for row in loop:
 
         model = row['cl']
@@ -665,7 +686,8 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
         for obs in enumerate_compatible_opset(
                 model, opset_min=opset_min, opset_max=opset_max,
                 check_runtime=check_runtime, runtime=runtime,
-                debug=debug, dump_folder=dump_folder, fLOG=fLOG):
+                debug=debug, dump_folder=dump_folder,
+                store_models=store_models, fLOG=fLOG):
 
             if verbose > 1:
                 fLOG("  ", obs)
@@ -714,15 +736,13 @@ def validate_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                         obs['available'] = 'ERROR-?'
 
             obs.update(row)
-            rows.append(obs)
-
-    return rows
+            yield obs
 
 
 def summary_report(df):
     """
     Finalizes the results computed by function
-    @see fn validate_operator_opsets.
+    @see fn enumerate_validated_operator_opsets.
 
     @param      df      dataframe
     @return             pivoted dataframe

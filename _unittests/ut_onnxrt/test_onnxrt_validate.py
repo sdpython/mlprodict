@@ -7,7 +7,7 @@ from logging import getLogger
 from pandas import DataFrame, read_csv
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import get_temp_folder, ExtTestCase
-from mlprodict.onnxrt.validate import validate_operator_opsets, summary_report
+from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
 
 
 class TestOnnxrtValidate(ExtTestCase):
@@ -19,11 +19,11 @@ class TestOnnxrtValidate(ExtTestCase):
         verbose = 1 if __name__ == "__main__" else 0
         temp = get_temp_folder(__file__, "temp_validate_sklearn_operators_all")
         if False:  # pylint: disable=W0125
-            rows = validate_operator_opsets(
-                verbose, debug={"LinearRegression"}, opset_min=10, fLOG=fLOG)
+            rows = list(enumerate_validated_operator_opsets(
+                verbose, debug={"LinearRegression"}, opset_min=10, fLOG=fLOG))
         else:
-            rows = validate_operator_opsets(verbose, debug=None, fLOG=fLOG,
-                                            dump_folder=temp)
+            rows = list(enumerate_validated_operator_opsets(verbose, debug=None, fLOG=fLOG,
+                                                            dump_folder=temp))
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
         self.assertGreater(df.shape[1], 1)

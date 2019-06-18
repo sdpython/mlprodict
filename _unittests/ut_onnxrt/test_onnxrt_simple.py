@@ -12,6 +12,7 @@ import pandas
 from onnx.onnx_cpp2py_export.checker import ValidationError  # pylint: disable=E0401,E0611
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier  # pylint: disable=E0611
@@ -209,6 +210,18 @@ class TestOnnxrtSimple(ExtTestCase):
         exp = clr.predict_proba(X_test)
         got = pandas.DataFrame(y['output_probability']).values
         self.assertEqualArray(exp, got, decimal=5)
+
+    def test_onnxt_knn_iris_dot(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, __, y_train, _ = train_test_split(X, y)
+        clr = KNeighborsClassifier()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def, skip_run=True)
+        dot = oinf.to_dot()
+        self.assertNotIn("class_labels_0 -> ;", dot)
 
 
 if __name__ == "__main__":
