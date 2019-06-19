@@ -88,8 +88,7 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     @param      add_header          add common function before compiling
     @param      suffix              avoid avoid the same compiled module name
     @param      additional_paths    additional paths to add to the module
-    @param      tmpdir              see `compile <http://cffi.readthedocs.io/en/latest/cdef.html?
-                                    highlight=compile#ffibuilder-compile-etc-compiling-out-of-line-modules>`_
+    @param      tmpdir              see below
     @param      fLOG                logging function
     @return     compiled            function
 
@@ -97,6 +96,9 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     If you are using Windows with Visual Studio 2017, make sure
     you are using :epkg:`Python` 3.6.3+
     (see `Issue 30389 <https://bugs.python.org/issue30389>`_).
+    Parameter *tmpdir* is used by function `compile
+    <http://cffi.readthedocs.io/en/latest/cdef.html?
+    highlight=compile#ffibuilder-compile-etc-compiling-out-of-line-modules>`_.
     """
     if sys.platform.startswith("win"):
         if "VS140COMNTOOLS" not in os.environ:

@@ -3,6 +3,12 @@ import sys
 import os
 import sphinx_readable_theme
 from pyquickhelper.helpgen.default_conf import set_sphinx_variables, get_default_stylesheet
+try:
+    import generate_visual_graphs
+except ImportError:
+    this = os.path.dirname(__file__)
+    sys.path.append(os.path.join(this, '_exts'))
+    import generate_visual_graphs
 
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.split(__file__)[0])))
@@ -17,6 +23,7 @@ set_sphinx_variables(__file__, "mlprodict", "Xavier Dupré", 2019,
                      title="mlprodict", book=True)
 
 blog_root = "http://www.xavierdupre.fr/app/mlprodict/helpsphinx/"
+extensions.append('generate_visual_graphs')
 
 html_context = {
     'css_files': get_default_stylesheet() + ['_static/my-styles.css'],

@@ -1,10 +1,8 @@
 """
-@brief      test log(time=14s)
+@brief      test log(time=15s)
 """
-import os
 import unittest
 from logging import getLogger
-from textwrap import dedent
 from sklearn.linear_model import LinearRegression
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
@@ -41,10 +39,6 @@ class TestOnnxrtValidateDocumentation(ExtTestCase):
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_write_documentation_converters(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
-        this = os.path.abspath(os.path.dirname(__file__))
-        whe = os.path.join(this, "..", "..", "_doc",
-                           "sphinxdoc", "source", "skl_converters")
-        index = os.path.join(whe, "index.rst")
         subs = []
         for sub in sorted(sklearn__all__):
             models = sklearn_operators(sub)
@@ -59,37 +53,10 @@ class TestOnnxrtValidateDocumentation(ExtTestCase):
                         sub, "=" * len(sub), "", ".. contents::",
                         "    :local:", ""] + rows
                 rows.append('')
-                dest = os.path.join(whe, "skl2onnx_%s.rst" % sub)
-                with open(dest, "w", encoding="utf-8") as f:
-                    f.write("\n".join(rows))
                 subs.append(sub)
-                fLOG("wrote '{}' - {} scenarios.".format(sub, len(models)))
+                fLOG("subfolder '{}' - {} scenarios.".format(sub, len(models)))
 
         self.assertGreater(len(subs), 2)
-
-        with open(index, "w", encoding="utf-8") as f:
-            f.write(dedent("""
-            Visual Representation of scikit-learn models
-            ============================================
-
-            :epkg:`sklearn-onnx` converts many models from
-            :epkg:`scikit-learn` into :epkg:`ONNX`. Every of
-            them is a graph made of :epkg:`ONNX` mathematical functions
-            (see :ref:`l-onnx-runtime-operators`,
-            :epkg:`ONNX Operators`, :epkg:`ONNX ML Operators`).
-            The following sections display a visual representation
-            of each converted model. Every graph
-            represents one ONNX graphs obtained after a model
-            is fitted. The structure may change is the model is trained
-            again.
-
-            .. toctree::
-                :maxdepth: 1
-
-            """))
-            for sub in subs:
-                f.write("    skl2onnx_%s\n" % sub)
-            f.write('')
 
 
 if __name__ == "__main__":
