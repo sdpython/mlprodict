@@ -15,9 +15,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.texthelper.version_helper import compare_module_version
 from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
-from skl2onnx import to_onnx
+from skl2onnx import to_onnx, __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
 
 
@@ -211,6 +212,8 @@ class TestOnnxrtSimple(ExtTestCase):
         got = pandas.DataFrame(y['output_probability']).values
         self.assertEqualArray(exp, got, decimal=5)
 
+    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
+                     reason="some node have null names")
     def test_onnxt_knn_iris_dot(self):
         iris = load_iris()
         X, y = iris.data, iris.target
