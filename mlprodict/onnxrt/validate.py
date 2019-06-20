@@ -496,7 +496,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                         output_index=output_index, Xort_=Xort_,
                                         ypred=ypred, Xort_test=Xort_test,
                                         model=model, dump_folder=dump_folder,
-                                        benchmark=benchmark)
+                                        benchmark=benchmark and opset == opsets[-1])
                 else:
                     yield obs_op
 
@@ -683,17 +683,21 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
         ops = ops_
 
     if verbose > 0:
-        try:
-            from tqdm import tqdm
-            loop = tqdm(ops)
-        except ImportError:
 
-            def iterate():
-                for i, row in enumerate(ops):
-                    fLOG("{}/{} - {}".format(i + 1, len(ops), row))
-                    yield row
+        def iterate():
+            for i, row in enumerate(ops):
+                fLOG("{}/{} - {}".format(i + 1, len(ops), row))
+                yield row
 
+        if verbose >= 10:
             loop = iterate()
+        else:
+            try:
+                from tqdm import tqdm
+                loop = tqdm(ops)
+            except ImportError:
+
+                loop = iterate()
     else:
         loop = ops
 
@@ -915,14 +919,14 @@ def benchmark_fct(fct, X):
             repeat = 100
             number = 100
         elif N <= 1000:
-            repeat = 25
-            number = 25
+            repeat = 10
+            number = 10
         elif N <= 10000:
-            repeat = 15
-            number = 15
-        else:
             repeat = 5
             number = 5
+        else:
+            repeat = 2
+            number = 2
         res[N] = measure_time(fct, x, repeat=repeat,
                               number=number, div_by_number=True)
     return res

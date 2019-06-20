@@ -53,7 +53,7 @@ def write_page_onnxrt_benches(app, runtime):
         bench = is_travis_or_appveyor() != 'circleci'
         if "Intel64 Family 6 Model 78 Stepping 3, GenuineIntel" in os.environ.get('PROCESSOR_IDENTIFIER', ''):
             bench = False
-        rows = list(enumerate_validated_operator_opsets(1, debug=None, fLOG=print,
+        rows = list(enumerate_validated_operator_opsets(10, debug=None, fLOG=print,
                                                         runtime=runtime, benchmark=bench))
         df = DataFrame(rows)
         piv = summary_report(df)
@@ -77,6 +77,10 @@ def write_page_onnxrt_benches(app, runtime):
 
         {1}
         {2}
+
+        The following metrics measure the ratio between the prediction time
+        for the runtime compare to :epkg:`scikit-learn`.
+        It gives an order of magnitude.
 
         '''.format(runtime, title, "=" * len(title))))
         f.write(build_table())
