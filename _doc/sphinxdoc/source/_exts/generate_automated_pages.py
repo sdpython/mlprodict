@@ -45,18 +45,26 @@ def write_page_onnxrt_benches(app, runtime):
     logger.info(
         "[mlprodict] create page '{}'.".format(whe))
 
+    def make_link(row):
+        link = "`{name} <l-{name}-{problem}-{scenario}>`"
+        name = row['name']
+        problem = row['problem']
+        scenario = row['scenario']
+        return link.format(name=name, problem=problem,
+                           scenario=scenario)
+
     @ignore_warnings(category=(UserWarning, ConvergenceWarning,
                                RuntimeWarning, FutureWarning))
     def build_table():
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        bench = is_travis_or_appveyor() != 'circleci'
-        if "Intel64 Family 6 Model 78 Stepping 3, GenuineIntel" in os.environ.get('PROCESSOR_IDENTIFIER', ''):
-            bench = False
+        benchmark = is_travis_or_appveyor() != 'circleci'
         rows = list(enumerate_validated_operator_opsets(11, debug=None, fLOG=print,
-                                                        runtime=runtime, benchmark=bench))
+                                                        runtime=runtime,
+                                                        benchmark=benchmark))
         df = DataFrame(rows)
         piv = summary_report(df)
+        piv['name'] = piv.apply(lambda row: make_link(row), axis=1)
 
         if "ERROR-msg" in piv.columns:
             def shorten(text):

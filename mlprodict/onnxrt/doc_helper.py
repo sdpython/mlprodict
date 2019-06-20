@@ -320,6 +320,9 @@ def visual_rst_template():
         print(visual_rst_template())
     """
     return textwrap.dedent("""
+
+    .. _{{link}}:
+
     {{ title }}
     {{ '=' * len(title) }}
 

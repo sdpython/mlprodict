@@ -1,5 +1,5 @@
 """
-@brief      test log(time=14s)
+@brief      test log(time=50s)
 """
 import os
 import unittest
@@ -25,6 +25,40 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LinearRegression"}, opset_min=10,
             benchmark=True, fLOG=fLOG))
+        self.assertGreater(len(rows), 1)
+        df = DataFrame(rows)
+        for col in ['skl', 'batch']:
+            self.assertIn('lambda-' + col, df.columns)
+        for col in ['1', '10']:
+            self.assertIn('time-ratio-N=' + col, df.columns)
+        self.assertGreater(df.shape[1], 1)
+        self.assertGreater(df.loc[0, "tostring_time"], 0)
+        piv = summary_report(df)
+        self.assertGreater(piv.shape[1], 1)
+        self.assertIn('RT/SKL-N=1', piv.columns)
+        self.assertNotIn('RT/SKL-N=10', piv.columns)
+        self.assertIn('N=10', piv.columns)
+        fLOG("output results")
+        df.to_excel(os.path.join(
+            temp, "sklearn_opsets_report.xlsx"), index=False)
+        piv.to_excel(os.path.join(
+            temp, "sklearn_opsets_summary.xlsx"), index=False)
+
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_validate_sklearn_operators_benchmark_all(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        verbose = 11 if __name__ == "__main__" else 0
+        temp = get_temp_folder(
+            __file__, "temp_validate_sklearn_operators_benchmark")
+        rows = []
+        for row in enumerate_validated_operator_opsets(
+                verbose, opset_min=10, benchmark=True,
+                fLOG=fLOG, runtime="onnxruntime-whole"):
+            rows.append(row)
+            if len(rows) > 20:
+                break
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
         for col in ['skl', 'batch']:

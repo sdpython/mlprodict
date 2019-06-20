@@ -832,12 +832,10 @@ def summary_report(df):
         piv["ERROR-msg"] = col.apply(replace_msg)
 
     if "time-ratio-N=1" in df.columns:
-        opsetm = max(set(df['opset'].dropna()))
-        df_sub = df[df['opset'] == opsetm]
-        cols = [c for c in df_sub.columns if c.startswith('time-ratio')]
+        cols = [c for c in df.columns if c.startswith('time-ratio')]
         cols.sort()
 
-        df_sub = df_sub[['name', 'problem', 'scenario'] + cols]
+        df_sub = df[['name', 'problem', 'scenario'] + cols]
         piv2 = df_sub.groupby(['name', 'problem', 'scenario']).mean()
         piv = piv.merge(piv2, on=['name', 'problem', 'scenario'], how='left')
 
@@ -848,6 +846,25 @@ def summary_report(df):
                 return c.replace("time-ratio-", "")
         cols = [rep(c) for c in piv.columns]
         piv.columns = cols
+
+    def clean_values(value):
+        if not isinstance(value, str):
+            return value
+        if "ERROR->=1000000" in value:
+            value = "big-diff"
+        elif "ERROR" in value:
+            value = value.replace("ERROR-_", "")
+            value = value.replace("_exc", "")
+            value = "ERR: " + value
+        elif "OK-" in value:
+            value = value.replace("OK-", "OK ")
+        elif "e<" in value:
+            value = value.replace("-", " ")
+        return value
+
+    for c in piv.columns:
+        if "opset" in c:
+            piv[c] = piv[c].apply(clean_values)
 
     return piv
 
@@ -873,22 +890,23 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False):
 
     try:
         stmt(x)
-    except RuntimeError:
-        # It should not happen.
-        return None
+    except RuntimeError as e:
+        raise RuntimeError("{}-{}".format(type(x), x.dtype)) from e
 
     def fct():
         stmt(x)
 
     tim = Timer(fct)
     res = numpy.array(tim.repeat(repeat=repeat, number=number))
+    total = numpy.sum(res)
     if div_by_number:
         res /= number
     mean = numpy.mean(res)
     dev = numpy.mean(res ** 2)
     dev = (dev - mean**2) ** 0.5
     mes = dict(average=mean, deviation=dev, min_exec=numpy.min(res),
-               max_exec=numpy.max(res), repeat=repeat, number=number)
+               max_exec=numpy.max(res), repeat=repeat, number=number,
+               total=total)
     return mes
 
 
@@ -907,7 +925,7 @@ def benchmark_fct(fct, X):
         if n < x.shape[0]:
             return x[:n].copy()
         else:
-            r = numpy.empty((N, x.shape[1]))
+            r = numpy.empty((N, x.shape[1]), dtype=x.dtype)
             for i in range(0, N, x.shape[0]):
                 end = min(i + x.shape[0], N)
                 r[i: end, :] = x[0: end - i, :]
@@ -917,20 +935,20 @@ def benchmark_fct(fct, X):
     for N in [1, 10, 100, 1000, 10000, 100000]:
         x = make(X, N)
         if N <= 10:
-            repeat = 100
-            number = 100
+            repeat = 20
+            number = 20
         elif N <= 1000:
-            repeat = 10
-            number = 10
-        elif N <= 10000:
             repeat = 5
             number = 5
+        elif N <= 10000:
+            repeat = 3
+            number = 3
         else:
-            repeat = 2
-            number = 2
+            repeat = 1
+            number = 1
         res[N] = measure_time(fct, x, repeat=repeat,
                               number=number, div_by_number=True)
-        if res[N] is not None and res[N].get('average', 0.5) >= 0.5:
+        if res[N] is not None and res[N].get('total', 2.) >= 2.:
             # too long
             break
     return res

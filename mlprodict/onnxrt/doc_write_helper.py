@@ -36,16 +36,18 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         problem = row['problem']
         model = row['MODEL']
         method = row['method']
-        title = " - ".join([name, scenario])
+        title = " - ".join([name, problem, scenario])
         if title in done:
             continue
         done.add(title)
+        link = "-".join([name, problem, scenario])
 
         oinf = OnnxInference(row['ONNX'], skip_run=True)
         dot = oinf.to_dot()
         res = templ.render(dot=dot, model=repr(model), method=method,
                            kind=problem, title=title,
-                           indent=indent, len=len)
+                           indent=indent, len=len,
+                           link=link)
         yield res
 
 
