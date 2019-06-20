@@ -27,7 +27,10 @@ object to :epkg:`ONNX`. We create a table similar to
         logger = getLogger('skl2onnx')
         logger.disabled = True
         rows = list(enumerate_validated_operator_opsets(0, debug=None, fLOG=noLOG,
-                                        runtime='onnxruntime'))
+                                                        runtime='onnxruntime',
+                                                        models=['LinearRegression',
+                                                                'LogisticRegression'],
+                                                        benchmark=True))
         df = DataFrame(rows)
         piv = summary_report(df)
 
@@ -43,3 +46,5 @@ object to :epkg:`ONNX`. We create a table similar to
         print(df2rst(piv))
 
     build_table()
+
+Full results are available at :ref:`l-onnx-bench-onnxruntime`.

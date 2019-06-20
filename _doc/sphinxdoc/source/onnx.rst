@@ -20,22 +20,16 @@ everything.
     onnx_onnxrt
     onnx_onnxrt_whole
     skl_converters/index
+    onnx_bench
 
 All results were obtained using out the following versions
-of module below:
+of modules below:
 
 .. runpython::
     :showcode:
+    :rst:
 
-    import numpy
-    import scipy
-    import pandas
-    import onnx
-    import onnxruntime
-    import sklearn
-    import onnxconverter_common
-    import skl2onnx
-    import mlprodict
-    for mod in [numpy, scipy, pandas, onnx, onnxruntime, sklearn,
-                onnxconverter_common, skl2onnx, mlprodict]:
-        print(mod.__name__, mod.__version__)
+    from mlprodict.onnxrt.validate_helper import modules_list
+    from pyquickhelper.pandashelper import df2rst
+    from pandas import DataFrame
+    print(df2rst(DataFrame(modules_list())))

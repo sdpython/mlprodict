@@ -281,3 +281,4 @@ _doc/sphinxdoc/source/_temp_custom_run_script_*
 _doc/sphinxdoc/source/HISTORY.rst
 _doc/sphinxdoc/source/nbcov*.png
 _doc/sphinxdoc/source/skl_converters/skl2onnx_*.rst
+_doc/sphinxdoc/source/skl_converters/bench_*.rst

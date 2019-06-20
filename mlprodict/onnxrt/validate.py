@@ -8,6 +8,7 @@ import os
 from time import perf_counter
 from importlib import import_module
 import pickle
+from timeit import Timer
 import numpy
 import pandas
 import onnx
@@ -254,7 +255,7 @@ def _measure_time(fct):
     begin = perf_counter()
     res = fct()
     end = perf_counter()
-    return res, begin - end
+    return res, end - begin
 
 
 def _measure_absolute_difference(skl_pred, ort_pred):
@@ -326,6 +327,10 @@ def dump_into_folder(dump_folder, obs_op=None, **kwargs):
              obs_op['problem'], obs_op.get('opset', '-'))
     name = "dump-ERROR-{}.pkl".format("-".join(map(str, parts)))
     name = os.path.join(dump_folder, name)
+    obs_op = obs_op.copy()
+    fcts = [k for k in obs_op if k.startswith('lambda')]
+    for fct in fcts:
+        del obs_op[fct]
     kwargs.update({'obs_op': obs_op})
     with open(name, "wb") as f:
         pickle.dump(kwargs, f)
@@ -334,9 +339,10 @@ def dump_into_folder(dump_folder, obs_op=None, **kwargs):
 def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                check_runtime=True, debug=False,
                                runtime='CPU', dump_folder=None,
-                               store_models=False, fLOG=print):
+                               store_models=False, benchmark=False,
+                               fLOG=print):
     """
-    Lists all compatiable opsets for a specific model.
+    Lists all compatible opsets for a specific model.
 
     @param      model           operator class
     @param      opset_min       starts with this opset
@@ -350,13 +356,16 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     @param      store_models    if True, the function
                                 also stores the fitted model and its conversion
                                 into :epkg:`ONNX`
+    @param      benchmark       if True, measures the time taken by each function
+                                to predict for different number of rows
     @param      fLOG            logging function
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
                                 problem chosen to test the conversion...
 
     The function requires :epkg:`sklearn-onnx`.
-    The outcome can be seen at page about :ref:`l-onnx-pyrun`.
+    The outcome can be seen at pages references
+    by :ref:`l-onnx-availability`.
     """
     try:
         problems = find_suitable_problem(model)
@@ -438,6 +447,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                     continue
                 try:
                     ypred, t4 = _measure_time(lambda: meth(X_test))
+                    obs['lambda-skl'] = (lambda xo: meth(xo), X_test)
                 except (ValueError, AttributeError, TypeError) as e:
                     if debug:
                         raise
@@ -445,6 +455,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                     yield obs
                     continue
                 obs['prediction_time'] = t4
+                if benchmark and 'lambda-skl' in obs:
+                    obs['bench-skl'] = benchmark_fct(*obs['lambda-skl'])
 
             # converting
             for opset in opsets:
@@ -483,14 +495,16 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                         init_types=init_types, method=method,
                                         output_index=output_index, Xort_=Xort_,
                                         ypred=ypred, Xort_test=Xort_test,
-                                        model=model, dump_folder=dump_folder)
+                                        model=model, dump_folder=dump_folder,
+                                        benchmark=benchmark)
                 else:
                     yield obs_op
 
 
 def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                   X_, y_, init_types, method, output_index,
-                  Xort_, ypred, Xort_test, model, dump_folder):
+                  Xort_, ypred, Xort_test, model, dump_folder,
+                  benchmark):
     """
     Private.
     """
@@ -514,10 +528,14 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     try:
         opred, t7 = _measure_time(fct_batch)
         obs_op['ort_run_time_batch'] = t7
+        obs_op['lambda-batch'] = (lambda xo: sess.run(
+            {init_types[0][0]: xo}), Xort_test)
     except (RuntimeError, TypeError, ValueError, KeyError) as e:
         if debug:
             raise
         obs_op['_6ort_run_batch_exc'] = e
+    if benchmark and 'lambda-batch' in obs_op:
+        obs_op['bench-batch'] = benchmark_fct(*obs_op['lambda-batch'])
 
     # difference
     if '_6ort_run_batch_exc' not in obs_op:
@@ -566,10 +584,17 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     try:
         opred, t7 = _measure_time(fct_single)
         obs_op['ort_run_time_single'] = t7
+        obs_op['lambda-single'] = (
+            lambda xo: [sess.run({init_types[0][0]: Xort_row})
+                        for Xort_row in xo],
+            Xort_test
+        )
     except (RuntimeError, TypeError, ValueError, KeyError) as e:
         if debug:
             raise
         obs_op['_9ort_run_single_exc'] = e
+    if benchmark and 'lambda-single' in obs_op and 'lambda-batch' not in obs_op:
+        obs_op['bench-single'] = benchmark_fct(*obs_op['lambda-single'])
 
     # difference
     if '_9ort_run_single_exc' not in obs_op:
@@ -619,7 +644,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         check_runtime=True, debug=False, runtime='CPU',
                                         models=None, dump_folder=None, store_models=False,
-                                        fLOG=print):
+                                        benchmark=False, fLOG=print):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -638,6 +663,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     @param      store_models    if True, the function
                                 also stores the fitted model and its conversion
                                 into :epkg:`ONNX`
+    @param      benchmark       if True, measures the time taken by each function
+                                to predict for different number of rows
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -679,7 +706,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 model, opset_min=opset_min, opset_max=opset_max,
                 check_runtime=check_runtime, runtime=runtime,
                 debug=debug, dump_folder=dump_folder,
-                store_models=store_models, fLOG=fLOG):
+                store_models=store_models, benchmark=benchmark,
+                fLOG=fLOG):
 
             if verbose > 1:
                 fLOG("  ", obs)
@@ -726,6 +754,20 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                         obs['available-ERROR'] = v
                     else:
                         obs['available'] = 'ERROR-?'
+
+            if 'bench-skl' in obs:
+                b1 = obs['bench-skl']
+                if 'bench-batch' in obs:
+                    b2 = obs['bench-batch']
+                elif 'bench-single' in obs:
+                    b2 = obs['bench-single']
+                else:
+                    b2 = None
+                if b1 is not None and b2 is not None:
+                    for k in b1:
+                        if k in b2 and b2[k] is not None and b1[k] is not None:
+                            key = 'time-ratio-N=%d' % k
+                            obs[key] = b2[k]['average'] / b1[k]['average']
 
             obs.update(row)
             yield obs
@@ -783,4 +825,104 @@ def summary_report(df):
 
         col = piv2.iloc[:, piv2.shape[1] - 1]
         piv["ERROR-msg"] = col.apply(replace_msg)
+
+    if "time-ratio-N=1" in df.columns:
+        opsetm = max(set(df['opset'].dropna()))
+        df_sub = df[df['opset'] == opsetm]
+        cols = [c for c in df_sub.columns if c.startswith('time-ratio')]
+        cols.sort()
+
+        df_sub = df_sub[['name', 'problem', 'scenario'] + cols]
+        piv2 = df_sub.groupby(['name', 'problem', 'scenario']).mean()
+        piv = piv.merge(piv2, on=['name', 'problem', 'scenario'], how='left')
+
+        def rep(c):
+            if 'N=1' in c and 'N=10' not in c:
+                return c.replace("time-ratio-", "RT/SKL-")
+            else:
+                return c.replace("time-ratio-", "")
+        cols = [rep(c) for c in piv.columns]
+        piv.columns = cols
+
     return piv
+
+
+def measure_time(stmt, x, repeat=10, number=50, div_by_number=False):
+    """
+    Measures a statement and returns the results as a dictionary.
+
+    @param      stmt            string
+    @param      x               matrix
+    @param      repeat          average over *repeat* experiment
+    @param      number          number of executions in one row
+    @param      div_by_number   divide by the number of executions
+    @return                     dictionary
+
+    See `Timer.repeat <https://docs.python.org/3/library/timeit.html?timeit.Timer.repeat>`_
+    for a better understanding of parameter *repeat* and *number*.
+    The function returns a duration corresponding to
+    *number* times the execution of the main statement.
+    """
+    if x is None:
+        raise ValueError("x cannot be None")
+
+    try:
+        stmt(x)
+    except RuntimeError:
+        # It should not happen.
+        return None
+
+    def fct():
+        stmt(x)
+
+    tim = Timer(fct)
+    res = numpy.array(tim.repeat(repeat=repeat, number=number))
+    if div_by_number:
+        res /= number
+    mean = numpy.mean(res)
+    dev = numpy.mean(res ** 2)
+    dev = (dev - mean**2) ** 0.5
+    mes = dict(average=mean, deviation=dev, min_exec=numpy.min(res),
+               max_exec=numpy.max(res), repeat=repeat, number=number)
+    return mes
+
+
+def benchmark_fct(fct, X):
+    """
+    Benchmarks a function which takes an array
+    as an input and changes the number of rows.
+
+    @param      fct     function to benchmark, signature
+                        is fct(xo)
+    @param      X       array
+    @return             dictionary with the results
+    """
+
+    def make(x, n):
+        if n < x.shape[0]:
+            return x[:n].copy()
+        else:
+            r = numpy.empty((N, x.shape[1]))
+            for i in range(0, N, x.shape[0]):
+                end = min(i + x.shape[0], N)
+                r[i: end, :] = x[0: end - i, :]
+            return r
+
+    res = {}
+    for N in [1, 10, 100, 1000, 10000, 100000]:
+        x = make(X, N)
+        if N <= 10:
+            repeat = 100
+            number = 100
+        elif N <= 1000:
+            repeat = 25
+            number = 25
+        elif N <= 10000:
+            repeat = 15
+            number = 15
+        else:
+            repeat = 5
+            number = 5
+        res[N] = measure_time(fct, x, repeat=repeat,
+                              number=number, div_by_number=True)
+    return res

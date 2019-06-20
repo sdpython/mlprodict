@@ -2,9 +2,12 @@
 @brief      test log(time=3s)
 """
 import unittest
+from pandas import DataFrame
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pandashelper import df2rst
 from mlprodict.onnxrt.validate import sklearn_operators
 from mlprodict.onnxrt.validate_problems import find_suitable_problem
+from mlprodict.onnxrt.validate_helper import modules_list
 
 
 class TestOnnxrtValidateHelper(ExtTestCase):
@@ -42,6 +45,12 @@ class TestOnnxrtValidateHelper(ExtTestCase):
             elif model['name'] == 'NearestCentroid':
                 self.assertEqual(prob, ['clnoproba'])
             self.assertIsInstance(prob, list)
+
+    def test_module_list(self):
+        res = df2rst(DataFrame(modules_list()))
+        self.assertIn('sklearn', res)
+        self.assertIn('numpy', res)
+        self.assertIn('skl2onnx', res)
 
 
 if __name__ == "__main__":

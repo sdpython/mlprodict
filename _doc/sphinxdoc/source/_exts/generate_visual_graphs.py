@@ -4,16 +4,20 @@ Extensions for mlprodict.
 import os
 from logging import getLogger
 from textwrap import dedent
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.utils.testing import ignore_warnings
 import skl2onnx
-from mlprodict.onnxrt.validate import sklearn_operators, sklearn__all__
-from mlprodict.onnxrt.doc_write_helper import enumerate_visual_onnx_representation_into_rst
 
 
+@ignore_warnings(category=(UserWarning, ConvergenceWarning,
+                           RuntimeWarning, FutureWarning))
 def generate_dot_converters(app):
     """
     Creates visual representation of each converters
     implemented in :epkg:`sklearn-onnx`.
     """
+    from mlprodict.onnxrt.validate import sklearn_operators, sklearn__all__
+    from mlprodict.onnxrt.doc_write_helper import enumerate_visual_onnx_representation_into_rst
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir
     whe = os.path.join(os.path.abspath(srcdir), "skl_converters")
@@ -23,6 +27,9 @@ def generate_dot_converters(app):
     index = os.path.join(whe, "index.rst")
     subs = []
     for sub in sorted(sklearn__all__):
+        logger.info(
+            "[mlprodict] graph for subfolder '{}'.".format(sub))
+        print("[mlprodict] graph for subfolder '{}'.".format(sub))
         models = sklearn_operators(sub)
         if len(models) > 0:
             rows = []

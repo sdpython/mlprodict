@@ -4,7 +4,7 @@ onnxruntime-whole
 
 :epkg:`onnxruntime` loads the :epkg:`ONNX` data in a single
 session and calls it onle once to compute the predictions.
- We create a table similar to :ref:`l-onnx-pyrun-tbl`.
+We create a table similar to :ref:`l-onnx-pyrun-tbl`.
 
 .. runpython::
     :showcode:
@@ -24,7 +24,10 @@ session and calls it onle once to compute the predictions.
         logger = getLogger('skl2onnx')
         logger.disabled = True
         rows = list(enumerate_validated_operator_opsets(0, debug=None, fLOG=noLOG,
-                                                        runtime='onnxruntime-whole'))
+                                                        runtime='onnxruntime-whole',
+                                                        models=['LinearRegression',
+                                                                'LogisticRegression'],
+                                                        benchmark=True))
         df = DataFrame(rows)
         piv = summary_report(df)
 
@@ -40,3 +43,5 @@ session and calls it onle once to compute the predictions.
         print(df2rst(piv))
 
     build_table()
+
+Full results are available at :ref:`l-onnx-bench-onnxruntime-whole`.

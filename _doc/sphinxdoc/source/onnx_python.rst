@@ -98,7 +98,10 @@ the cause of the error if it does not work.
     def build_table():
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        rows = list(enumerate_validated_operator_opsets(0, debug=None, fLOG=noLOG))
+        rows = list(enumerate_validated_operator_opsets(0, debug=None, fLOG=noLOG,
+                                                        models=['LinearRegression',
+                                                                'LogisticRegression'],
+                                                        benchmark=True))
         df = DataFrame(rows)
         piv = summary_report(df)
 
@@ -114,3 +117,5 @@ the cause of the error if it does not work.
         print(df2rst(piv))
 
     build_table()
+
+Full results are available at :ref:`l-onnx-bench-python`.

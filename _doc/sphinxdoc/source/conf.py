@@ -26,8 +26,8 @@ set_sphinx_variables(__file__, "mlprodict", "Xavier Dupré", 2019,
 
 blog_root = "http://www.xavierdupre.fr/app/mlprodict/helpsphinx/"
 extensions.extend([
-    'generate_visual_graphs',
     'generate_automated_pages',
+    'generate_visual_graphs',
 ])
 
 html_context = {
