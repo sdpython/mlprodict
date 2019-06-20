@@ -14,6 +14,8 @@ from .op_div import Div
 from .op_gemm import Gemm
 from .op_linear_classifier import LinearClassifier
 from .op_linear_regressor import LinearRegressor
+from .op_matmul import MatMul
+from .op_mean import Mean
 from .op_mul import Mul
 from .op_normalizer import Normalizer
 from .op_reduce_sum import ReduceSum
@@ -25,7 +27,9 @@ from .op_zipmap import ZipMap
 
 
 from ..doc_helper import get_rst_doc
+_op_list = []
 clo = locals().copy()
 for name, cl in clo.items():
     if not cl.__doc__ and issubclass(cl, OpRun):
         cl.__doc__ = get_rst_doc(cl.__name__)
+        _op_list.append(cl)

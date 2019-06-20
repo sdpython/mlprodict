@@ -3,7 +3,7 @@
 @brief Documentation helper.
 """
 from logging import getLogger
-from textwrap import indent
+from textwrap import indent, dedent
 from jinja2 import Template
 from sklearn.linear_model import LinearRegression
 from pyquickhelper.loghelper import noLOG
@@ -47,3 +47,49 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
                            kind=problem, title=title,
                            indent=indent, len=len)
         yield res
+
+
+def compose_page_onnxrt_ops():
+    """
+    Writes page :ref:`l-onnx-runtime-operators`.
+    """
+    begin = dedent("""
+    .. _l-onnx-runtime-operators:
+
+    Python Runtime for ONNX operators
+    =================================
+
+    The main function instantiates a runtime class which
+    computes the outputs of a specific node.
+
+    .. autosignature:: mlprodict.onnxrt.ops.load_op
+
+    Other sections documents available operators.
+    This project was mostly started to show a way to
+    implement a custom runtime, do some benchmarks,
+    test, exepriment...
+
+    .. contents::
+        :local:
+
+    CPU
+    +++
+
+    """)
+    from .ops_cpu._op_list import _op_list
+
+    names = []
+    for op in _op_list:
+        names.append((op.__name__, op))
+    names.sort()
+
+    rows = []
+    for name, op in names:
+        rows.append(name)
+        rows.append("^" * len(name))
+        rows.append("")
+        mod = op.__module__.split('.')[-1]
+        rows.append(
+            ".. autosignature:: mlprodict.onnxrt.ops_cpu.{}.{}".format(mod, name))
+        rows.append('')
+    return "\n".join(rows)

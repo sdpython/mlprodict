@@ -4,16 +4,8 @@ Extensions for mlprodict.
 import os
 from logging import getLogger
 from textwrap import dedent
-from sklearn.linear_model import LinearRegression
-from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
-from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase
-from pyquickhelper.texthelper.version_helper import compare_module_version
 import skl2onnx
-from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, sklearn_operators
-from mlprodict.onnxrt.validate import sklearn__all__
-from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt.validate import sklearn_operators, sklearn__all__
 from mlprodict.onnxrt.doc_write_helper import enumerate_visual_onnx_representation_into_rst
 
 

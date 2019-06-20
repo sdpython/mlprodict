@@ -6,9 +6,10 @@ from logging import getLogger
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAdd, OnnxMul, OnnxDiv, OnnxSub, OnnxGemm,
+    OnnxAdd, OnnxArgMax, OnnxArgMin, OnnxDiv,
+    OnnxGemm, OnnxMatMul, OnnxMean, OnnxMul,
     OnnxReduceSum, OnnxReduceSumSquare, OnnxSqrt,
-    OnnxArgMin, OnnxArgMax
+    OnnxSub,
 )
 from mlprodict.onnxrt import OnnxInference
 
@@ -29,25 +30,57 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(idi + X, got['Y'], decimal=6)
 
-    def test_onnxt_runtime_sub(self):
-        idi = numpy.identity(2)
-        onx = OnnxSub('X', idi, output_names=['Y'])
-        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
-        X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(X - idi, got['Y'], decimal=6)
+    def test_onnxt_runtime_argmax(self):
+        X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
-    def test_onnxt_runtime_mul(self):
-        idi = numpy.identity(2)
-        onx = OnnxMul('X', idi, output_names=['Y'])
-        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
-        X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
+        onx = OnnxArgMax('X', output_names=['Y'], keepdims=0)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(idi * X, got['Y'], decimal=6)
+        self.assertEqualArray(numpy.argmax(X, axis=0), got['Y'], decimal=6)
+
+        onx = OnnxArgMax('X', output_names=['Y'], axis=1, keepdims=0)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.argmax(X, axis=1).ravel(),
+                              got['Y'].ravel())
+
+        onx = OnnxArgMax('X', output_names=['Y'], axis=1, keepdims=1)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.argmax(X, axis=1).ravel(),
+                              got['Y'].ravel())
+
+    def test_onnxt_runtime_argmin(self):
+        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+
+        onx = OnnxArgMin('X', output_names=['Y'], keepdims=0)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.argmin(X, axis=0), got['Y'], decimal=6)
+
+        onx = OnnxArgMin('X', output_names=['Y'], axis=1, keepdims=0)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.argmin(X, axis=1).ravel(),
+                              got['Y'].ravel())
+
+        onx = OnnxArgMin('X', output_names=['Y'], axis=1, keepdims=1)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.argmin(X, axis=1).ravel(),
+                              got['Y'].ravel())
 
     def test_onnxt_runtime_div(self):
         idi = numpy.identity(2)
@@ -92,31 +125,35 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X, idi.T) + cst, got['Y'], decimal=6)
 
-    def test_onnxt_runtime_reduce_sum(self):
-        X = numpy.array([[2, 1], [0, 1]], dtype=float)
-
-        onx = OnnxReduceSum('X', output_names=['Y'], keepdims=0)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+    def test_onnxt_runtime_matmul(self):
+        idi = numpy.identity(2)
+        onx = OnnxMatMul('X', idi, output_names=['Y'])
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.sum(X), got['Y'], decimal=6)
+        self.assertEqualArray(idi @ X, got['Y'], decimal=6)
 
-        onx = OnnxReduceSum('X', output_names=['Y'], axes=1)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+    def test_onnxt_runtime_mean(self):
+        idi = numpy.identity(2, dtype=numpy.float64)
+        onx = OnnxMean('X', idi, output_names=['Y'])
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.sum(X, axis=1).ravel(),
-                              got['Y'].ravel())
+        self.assertEqualArray((idi + X) / 2, got['Y'], decimal=6)
 
-        onx = OnnxReduceSum('X', output_names=['Y'], axes=1, keepdims=1)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+    def test_onnxt_runtime_mul(self):
+        idi = numpy.identity(2)
+        onx = OnnxMul('X', idi, output_names=['Y'])
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.sum(X, axis=1, keepdims=1).ravel(),
-                              got['Y'].ravel())
+        self.assertEqualArray(idi * X, got['Y'], decimal=6)
 
     def test_onnxt_runtime_reduce_sum_square(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
@@ -144,6 +181,32 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(numpy.sum(numpy.square(X), axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
 
+    def test_onnxt_runtime_reduce_sum(self):
+        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+
+        onx = OnnxReduceSum('X', output_names=['Y'], keepdims=0)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.sum(X), got['Y'], decimal=6)
+
+        onx = OnnxReduceSum('X', output_names=['Y'], axes=1)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.sum(X, axis=1).ravel(),
+                              got['Y'].ravel())
+
+        onx = OnnxReduceSum('X', output_names=['Y'], axes=1, keepdims=1)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.sum(X, axis=1, keepdims=1).ravel(),
+                              got['Y'].ravel())
+
     def test_onnxt_runtime_sqrt(self):
         X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
         onx = OnnxSqrt('X', output_names=['Y'])
@@ -153,57 +216,15 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.sqrt(X), got['Y'], decimal=6)
 
-    def test_onnxt_runtime_argmin(self):
-        X = numpy.array([[2, 1], [0, 1]], dtype=float)
-
-        onx = OnnxArgMin('X', output_names=['Y'], keepdims=0)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+    def test_onnxt_runtime_sub(self):
+        idi = numpy.identity(2)
+        onx = OnnxSub('X', idi, output_names=['Y'])
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.argmin(X, axis=0), got['Y'], decimal=6)
-
-        onx = OnnxArgMin('X', output_names=['Y'], axis=1, keepdims=0)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.argmin(X, axis=1).ravel(),
-                              got['Y'].ravel())
-
-        onx = OnnxArgMin('X', output_names=['Y'], axis=1, keepdims=1)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.argmin(X, axis=1).ravel(),
-                              got['Y'].ravel())
-
-    def test_onnxt_runtime_argmax(self):
-        X = numpy.array([[2, 1], [0, 1]], dtype=float)
-
-        onx = OnnxArgMax('X', output_names=['Y'], keepdims=0)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.argmax(X, axis=0), got['Y'], decimal=6)
-
-        onx = OnnxArgMax('X', output_names=['Y'], axis=1, keepdims=0)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.argmax(X, axis=1).ravel(),
-                              got['Y'].ravel())
-
-        onx = OnnxArgMax('X', output_names=['Y'], axis=1, keepdims=1)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.argmax(X, axis=1).ravel(),
-                              got['Y'].ravel())
+        self.assertEqualArray(X - idi, got['Y'], decimal=6)
 
 
 if __name__ == "__main__":
