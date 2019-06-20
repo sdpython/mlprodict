@@ -689,7 +689,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 fLOG("{}/{} - {}".format(i + 1, len(ops), row))
                 yield row
 
-        if verbose >= 10:
+        if verbose >= 11:
+            verbose -= 10
             loop = iterate()
         else:
             try:
@@ -929,4 +930,7 @@ def benchmark_fct(fct, X):
             number = 2
         res[N] = measure_time(fct, x, repeat=repeat,
                               number=number, div_by_number=True)
+        if res[N] is not None and res[N].get('average', 0.5) >= 0.5:
+            # too long
+            break
     return res
