@@ -53,8 +53,6 @@ def write_page_onnxrt_benches(app, runtime):
         bench = is_travis_or_appveyor() != 'circleci'
         if "Intel64 Family 6 Model 78 Stepping 3, GenuineIntel" in os.environ.get('PROCESSOR_IDENTIFIER', ''):
             bench = False
-        else:
-            stop
         rows = list(enumerate_validated_operator_opsets(1, debug=None, fLOG=print,
                                                         runtime=runtime, benchmark=bench))
         df = DataFrame(rows)
