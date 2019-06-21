@@ -115,7 +115,7 @@ def setup(app):
     Preparation of the documentation.
     """
     app.connect('builder-inited', write_page_onnxrt_benches_cpu)
-    app.connect('builder-inited', write_page_onnxrt_benches_onnxruntime)
+    # app.connect('builder-inited', write_page_onnxrt_benches_onnxruntime)
     app.connect('builder-inited', write_page_onnxrt_benches_onnxruntime_whole)
     app.connect('builder-inited', write_page_onnxrt_ops)
     return {'version': sphinx.__display_version__,
