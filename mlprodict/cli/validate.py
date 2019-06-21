@@ -8,11 +8,11 @@ from pandas import DataFrame
 from ..onnxrt.validate import enumerate_validated_operator_opsets, summary_report  # pylint: disable=E0402
 
 
-def validate_runtime(verbose=1, opset_min=9, opset_max=11,
+def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      check_runtime=True, runtime='CPU', debug=False,
                      models=None, out_raw="onnx_runtime_raw.xlsx",
-                     out_summary="onnx_runtime_summart.xlsx",
-                     dump_folder=None, fLOG=print):
+                     out_summary="onnx_runtime_summary.xlsx",
+                     dump_folder=None, benchmark=False, fLOG=print):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -34,6 +34,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max=11,
     :param out_summary: output an aggregated view into this file (excel format)
     :param dump_folder: folder where to dump information (pickle)
         in case of mismatch
+    :param benchmark: run benchmark
     :param fLOG: logging function
 
     .. cmdref::
@@ -55,10 +56,16 @@ def validate_runtime(verbose=1, opset_min=9, opset_max=11,
     if not dump_folder:
         dump_folder = None
     if dump_folder and not os.path.exists(dump_folder):
-        raise FileNotFoundError(dump_folder)
+        raise FileNotFoundError("Cannot find dump_folder '{0}'.".format(
+            dump_folder))
+    if opset_max == "":
+        opset_max = None
     rows = list(enumerate_validated_operator_opsets(verbose, models=models, fLOG=fLOG,
                                                     runtime=runtime, debug=debug,
-                                                    dump_folder=dump_folder))
+                                                    dump_folder=dump_folder,
+                                                    opset_min=opset_min,
+                                                    opset_max=opset_max,
+                                                    benchmark=benchmark))
     df = DataFrame(rows)
     df.to_excel(out_raw, index=False)
     piv = summary_report(df)

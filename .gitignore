@@ -282,3 +282,5 @@ _doc/sphinxdoc/source/HISTORY.rst
 _doc/sphinxdoc/source/nbcov*.png
 _doc/sphinxdoc/source/skl_converters/skl2onnx_*.rst
 _doc/sphinxdoc/source/skl_converters/bench_*.rst
+_doc/sphinxdoc/source/*.pkl
+_doc/sphinxdoc/source/*.xlsx

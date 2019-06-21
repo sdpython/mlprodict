@@ -11,6 +11,8 @@ import sphinx
 from pyquickhelper.loghelper import noLOG
 from pyquickhelper.pycode import is_travis_or_appveyor
 from pyquickhelper.pandashelper import df2rst
+from pyquickhelper.loghelper import run_cmd
+from pyquickhelper.loghelper.run_cmd import get_interpreter_path
 
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning,
@@ -29,9 +31,11 @@ def write_page_onnxrt_ops(app):
 
 
 def write_page_onnxrt_benches(app, runtime):
+
     from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir
+
     if runtime == 'CPU':
         whe = os.path.join(os.path.abspath(srcdir),
                            "skl_converters", "bench_python.rst")
@@ -43,28 +47,30 @@ def write_page_onnxrt_benches(app, runtime):
                            "skl_converters", "bench_onnxrt_whole.rst")
     else:
         raise RuntimeError("Unsupported runtime '{}'.".format(runtime))
+
     logger.info("[mlprodict] create page '{}'.".format(whe))
     print("[mlprodict-sphinx] create page runtime '{}' - '{}'.".format(runtime, whe))
 
-    def make_link(row):
-        link = "`{name} <l-{name}-{problem}-{scenario}>`"
-        name = row['name']
-        problem = row['problem']
-        scenario = row['scenario']
-        return link.format(name=name, problem=problem,
-                           scenario=scenario)
+    out_raw = os.path.join(srcdir, "bench_raw_%s.xlsx" % runtime)
+    out_sum = os.path.join(srcdir, "bench_sum_%s.xlsx" % runtime)
+    cmd = ('{0} -m mlprodict validate_runtime --verbose=1 --out_raw="{1}" --out_summary="{2}" '
+           '--benchmark=1 --dump_folder="{3}"'.format(
+               get_interpreter_path(), out_raw, out_sum, srcdir))
+    logger.info("[mlprodict] cmd '{}'.".format(cmd))
+    print("[mlprodict-sphinx] cmd '{}'".format(cmd))
+    out, err = run_cmd(cmd, wait=False, fLOG=print)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning,
-                               RuntimeWarning, FutureWarning))
-    def build_table():
-        logger = getLogger('skl2onnx')
-        logger.disabled = True
-        benchmark = is_travis_or_appveyor() != 'circleci'
-        rows = list(enumerate_validated_operator_opsets(11, debug=None, fLOG=print,
-                                                        runtime=runtime,
-                                                        benchmark=benchmark))
-        df = DataFrame(rows)
-        piv = summary_report(df)
+    if os.path.exists(out_sum):
+        piv = pandas.read_excel(out_sum)
+
+        def make_link(row):
+            link = "`{name} <l-{name}-{problem}-{scenario}>`"
+            name = row['name']
+            problem = row['problem']
+            scenario = row['scenario']
+            return link.format(name=name, problem=problem,
+                               scenario=scenario)
+
         piv['name'] = piv.apply(lambda row: make_link(row), axis=1)
 
         if "ERROR-msg" in piv.columns:
@@ -78,24 +84,29 @@ def write_page_onnxrt_benches(app, runtime):
 
         return df2rst(piv)
 
-    with open(whe, 'w', encoding='utf-8') as f:
-        title = "Available of scikit-learn model for runtime {0}".format(
-            runtime)
-        f.write(dedent('''
-        _l-onnx-bench-{0}:
+        with open(whe, 'w', encoding='utf-8') as f:
+            title = "Available of scikit-learn model for runtime {0}".format(
+                runtime)
+            f.write(dedent('''
+            _l-onnx-bench-{0}:
 
-        {1}
-        {2}
+            {1}
+            {2}
 
-        The following metrics measure the ratio between the prediction time
-        for the runtime compare to :epkg:`scikit-learn`.
-        It gives an order of magnitude.
+            The following metrics measure the ratio between the prediction time
+            for the runtime compare to :epkg:`scikit-learn`.
+            It gives an order of magnitude.
 
-        '''.format(runtime, title, "=" * len(title))))
-        f.write(build_table())
-    logger.info(
-        "[mlprodict] done page '{}'.".format(whe))
-    print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))
+            '''.format(runtime, title, "=" * len(title))))
+            f.write(build_table())
+        logger.info(
+            "[mlprodict] done page '{}'.".format(whe))
+        print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))
+
+    else:
+        logger.warning("[mlprodict] unable to find '{}'.".format(out_sum))
+        print("[mlprodict-sphinx] unable to find '{}'".format(out_sum))
+        raise RuntimeError("--OUT--\n{}\n--ERR--\n{}".format(out, err))
 
 
 def write_page_onnxrt_benches_cpu(app):

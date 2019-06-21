@@ -22,7 +22,8 @@ def generate_dot_converters(app):
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir
     whe = os.path.join(os.path.abspath(srcdir), "skl_converters")
-    logger.info("[mlprodict] create visual representation in '{}'.".format(whe))
+    logger.info(
+        "[mlprodict] create visual representation in '{}'.".format(whe))
     print("[mlprodict-sphinx] create visual representation in '{}'.".format(whe))
 
     index = os.path.join(whe, "index.rst")
