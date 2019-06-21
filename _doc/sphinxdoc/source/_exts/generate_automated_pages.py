@@ -60,8 +60,14 @@ def write_page_onnxrt_benches(app, runtime):
     print("[mlprodict-sphinx] cmd '{}'".format(cmd))
     out, err = run_cmd(cmd, wait=True, fLOG=print)
 
+    logger.info("[mlprodict] reading '{}'.".format(out_sum))
+    print("[mlprodict-sphinx] reading '{}'".format(out_sum))
+
     if os.path.exists(out_sum):
         piv = read_excel(out_sum)
+
+        logger.info("[mlprodict] shape '{}'.".format(piv.shape))
+        print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
 
         def make_link(row):
             link = "`{name} <l-{name}-{problem}-{scenario}>`"
@@ -82,7 +88,8 @@ def write_page_onnxrt_benches(app, runtime):
 
             piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
 
-        return df2rst(piv)
+        logger.info("[mlprodict] write '{}'.".format(whe))
+        print("[mlprodict-sphinx] write '{}'".format(whe))
 
         with open(whe, 'w', encoding='utf-8') as f:
             title = "Available of scikit-learn model for runtime {0}".format(
@@ -126,7 +133,7 @@ def setup(app):
     Preparation of the documentation.
     """
     app.connect('builder-inited', write_page_onnxrt_benches_cpu)
-    # app.connect('builder-inited', write_page_onnxrt_benches_onnxruntime)
+    app.connect('builder-inited', write_page_onnxrt_benches_onnxruntime)
     app.connect('builder-inited', write_page_onnxrt_benches_onnxruntime_whole)
     app.connect('builder-inited', write_page_onnxrt_ops)
     return {'version': sphinx.__display_version__,
