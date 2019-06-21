@@ -105,7 +105,7 @@ def write_page_onnxrt_benches(app, runtime):
             It gives an order of magnitude.
 
             '''.format(runtime, title, "=" * len(title))))
-            f.write(build_table())
+            f.write(df2rst(piv))
         logger.info(
             "[mlprodict] done page '{}'.".format(whe))
         print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))
