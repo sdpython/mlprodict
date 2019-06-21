@@ -53,8 +53,8 @@ def write_page_onnxrt_benches(app, runtime):
 
     out_raw = os.path.join(srcdir, "bench_raw_%s.xlsx" % runtime)
     out_sum = os.path.join(srcdir, "bench_sum_%s.xlsx" % runtime)
-    cmd = ('{0} -m mlprodict validate_runtime --verbose=1 --out_raw="{1}" --out_summary="{2}" '
-           '--benchmark=1 --dump_folder="{3}"'.format(
+    cmd = ('{0} -m mlprodict validate_runtime --verbose=1 --out_raw={1} --out_summary={2} '
+           '--benchmark=1 --dump_folder={3}'.format(
                get_interpreter_path(), out_raw, out_sum, srcdir))
     logger.info("[mlprodict] cmd '{}'.".format(cmd))
     print("[mlprodict-sphinx] cmd '{}'".format(cmd))
