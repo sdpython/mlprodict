@@ -4,7 +4,7 @@ Extensions for mlprodict.
 import os
 from textwrap import dedent
 from logging import getLogger
-from pandas import DataFrame
+from pandas import DataFrame, read_excel
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 import sphinx
@@ -61,7 +61,7 @@ def write_page_onnxrt_benches(app, runtime):
     out, err = run_cmd(cmd, wait=True, fLOG=print)
 
     if os.path.exists(out_sum):
-        piv = pandas.read_excel(out_sum)
+        piv = read_excel(out_sum)
 
         def make_link(row):
             link = "`{name} <l-{name}-{problem}-{scenario}>`"
