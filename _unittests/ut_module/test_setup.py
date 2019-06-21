@@ -1,5 +1,5 @@
 """
-@brief      test tree node (time=50s)
+@brief      test tree node (time=2s)
 """
 import unittest
 from contextlib import redirect_stdout

@@ -4,6 +4,7 @@ Extensions for mlprodict.
 import os
 from logging import getLogger
 from textwrap import dedent
+import sphinx
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 import skl2onnx
@@ -21,8 +22,8 @@ def generate_dot_converters(app):
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir
     whe = os.path.join(os.path.abspath(srcdir), "skl_converters")
-    logger.info(
-        "[mlprodict] create visual representation in '{}'.".format(whe))
+    logger.info("[mlprodict] create visual representation in '{}'.".format(whe))
+    print("[mlprodict-sphinx] create visual representation in '{}'.".format(whe))
 
     index = os.path.join(whe, "index.rst")
     subs = []
@@ -48,6 +49,7 @@ def generate_dot_converters(app):
             logger.info(
                 "[mlprodict] wrote '{}' - {} scenarios.".format(sub, len(models)))
 
+    print("[mlprodict-sphinx] done visual representation in '{}'.".format(whe))
     assert len(subs) >= 2
 
     logger.info("[mlprodict] write '{}'.".format(index))
@@ -81,3 +83,6 @@ def setup(app):
     Preparation of the documentation.
     """
     app.connect('builder-inited', generate_dot_converters)
+    return {'version': sphinx.__display_version__,
+            'parallel_read_safe': False,
+            'parallel_write_safe': False}

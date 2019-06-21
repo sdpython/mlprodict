@@ -20,11 +20,12 @@ def write_page_onnxrt_ops(app):
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir
     whe = os.path.join(os.path.abspath(srcdir), "api", "onnxrt_ops.rst")
-    logger.info(
-        "[mlprodict] create page '{}'.".format(whe))
+    logger.info("[mlprodict] create page '{}'.".format(whe))
+    print("[mlprodict-sphinx] create page '{}'.".format(whe))
     page = compose_page_onnxrt_ops()
     with open(whe, "w", encoding='utf-8') as f:
         f.write(page)
+    print("[mlprodict-sphinx] done page '{}'.".format(whe))
 
 
 def write_page_onnxrt_benches(app, runtime):
@@ -42,8 +43,8 @@ def write_page_onnxrt_benches(app, runtime):
                            "skl_converters", "bench_onnxrt_whole.rst")
     else:
         raise RuntimeError("Unsupported runtime '{}'.".format(runtime))
-    logger.info(
-        "[mlprodict] create page '{}'.".format(whe))
+    logger.info("[mlprodict] create page '{}'.".format(whe))
+    print("[mlprodict-sphinx] create page runtime '{}' - '{}'.".format(runtime, whe))
 
     def make_link(row):
         link = "`{name} <l-{name}-{problem}-{scenario}>`"
@@ -94,18 +95,28 @@ def write_page_onnxrt_benches(app, runtime):
         f.write(build_table())
     logger.info(
         "[mlprodict] done page '{}'.".format(whe))
+    print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))
+
+
+def write_page_onnxrt_benches_cpu(app):
+    write_page_onnxrt_benches(app, 'CPU')
+
+
+def write_page_onnxrt_benches_onnxruntime(app):
+    write_page_onnxrt_benches(app, 'onnxruntime')
+
+
+def write_page_onnxrt_benches_onnxruntime_whole(app):
+    write_page_onnxrt_benches(app, 'onnxruntime-whole')
 
 
 def setup(app):
     """
     Preparation of the documentation.
     """
-    app.connect('builder-inited',
-                lambda app: write_page_onnxrt_benches(app, 'CPU'))
-    app.connect('builder-inited',
-                lambda app: write_page_onnxrt_benches(app, 'onnxruntime'))
-    app.connect('builder-inited',
-                lambda app: write_page_onnxrt_benches(app, 'onnxruntime-whole'))
+    app.connect('builder-inited', write_page_onnxrt_benches_cpu)
+    app.connect('builder-inited', write_page_onnxrt_benches_onnxruntime)
+    app.connect('builder-inited', write_page_onnxrt_benches_onnxruntime_whole)
     app.connect('builder-inited', write_page_onnxrt_ops)
     return {'version': sphinx.__display_version__,
             'parallel_read_safe': False,
