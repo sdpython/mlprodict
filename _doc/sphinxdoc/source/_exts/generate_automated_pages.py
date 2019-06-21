@@ -70,7 +70,7 @@ def write_page_onnxrt_benches(app, runtime):
         print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
 
         def make_link(row):
-            link = "`{name} <l-{name}-{problem}-{scenario}>`"
+            link = ":ref:`{name} <l-{name}-{problem}-{scenario}>`"
             name = row['name']
             problem = row['problem']
             scenario = row['scenario']
