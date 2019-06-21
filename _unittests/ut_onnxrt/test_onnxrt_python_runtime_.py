@@ -5,12 +5,16 @@ import unittest
 from logging import getLogger
 import numpy
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper.version_helper import compare_module_version
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAdd, OnnxArgMax, OnnxArgMin, OnnxDiv,
+    OnnxAdd, OnnxArgMax, OnnxArgMin,
+    OnnxArrayFeatureExtractor, OnnxDiv,
     OnnxGemm, OnnxMatMul, OnnxMean, OnnxMul,
     OnnxReduceSum, OnnxReduceSumSquare, OnnxSqrt,
     OnnxSub,
 )
+from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
 
 
@@ -81,6 +85,19 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.argmin(X, axis=1).ravel(),
                               got['Y'].ravel())
+
+    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
+                     reason="int64 not implemented for constants")
+    def test_onnxt_runtime_array_feature_extractor(self):
+        onx = OnnxArrayFeatureExtractor('X', numpy.array([1], dtype=numpy.int64),
+                                        output_names=['Y'])
+        X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType([2]))])
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(X[:, 1], got['Y'], decimal=6)
 
     def test_onnxt_runtime_div(self):
         idi = numpy.identity(2)

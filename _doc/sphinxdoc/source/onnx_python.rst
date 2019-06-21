@@ -114,8 +114,8 @@ the cause of the error if it does not work.
 
             piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
 
-        print(df2rst(piv))
+        print(df2rst(piv, number_format=2))
 
     build_table()
 
-Full results are available at :ref:`l-onnx-bench-python`.
+Full results are available at :ref:`l-onnx-bench-CPU`.

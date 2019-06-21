@@ -95,7 +95,7 @@ def write_page_onnxrt_benches(app, runtime):
             title = "Available of scikit-learn model for runtime {0}".format(
                 runtime)
             f.write(dedent('''
-            _l-onnx-bench-{0}:
+            .. _l-onnx-bench-{0}:
 
             {1}
             {2}

@@ -910,15 +910,16 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False):
     return mes
 
 
-def benchmark_fct(fct, X):
+def benchmark_fct(fct, X, time_limit=4):
     """
     Benchmarks a function which takes an array
     as an input and changes the number of rows.
 
-    @param      fct     function to benchmark, signature
-                        is fct(xo)
-    @param      X       array
-    @return             dictionary with the results
+    @param      fct         function to benchmark, signature
+                            is fct(xo)
+    @param      X           array
+    @param      time_limit  above this time, measurement as stopped
+    @return                 dictionary with the results
     """
 
     def make(x, n):
@@ -948,7 +949,7 @@ def benchmark_fct(fct, X):
             number = 1
         res[N] = measure_time(fct, x, repeat=repeat,
                               number=number, div_by_number=True)
-        if res[N] is not None and res[N].get('total', 2.) >= 2.:
+        if res[N] is not None and res[N].get('total', time_limit) >= time_limit:
             # too long
             break
     return res

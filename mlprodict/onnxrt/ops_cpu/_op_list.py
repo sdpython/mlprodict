@@ -9,6 +9,7 @@ from ._op import OpRun
 from .op_add import Add
 from .op_argmax import ArgMax
 from .op_argmin import ArgMin
+from .op_array_feature_extractor import ArrayFeatureExtractor
 from .op_cast import Cast
 from .op_div import Div
 from .op_gemm import Gemm
