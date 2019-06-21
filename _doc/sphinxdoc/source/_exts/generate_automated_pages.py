@@ -54,8 +54,8 @@ def write_page_onnxrt_benches(app, runtime):
     out_raw = os.path.join(srcdir, "bench_raw_%s.xlsx" % runtime)
     out_sum = os.path.join(srcdir, "bench_sum_%s.xlsx" % runtime)
     cmd = ('{0} -m mlprodict validate_runtime --verbose=1 --out_raw={1} --out_summary={2} '
-           '--benchmark=1 --dump_folder={3}'.format(
-               get_interpreter_path(), out_raw, out_sum, srcdir))
+           '--benchmark=1 --dump_folder={3} --runtime={4}'.format(
+               get_interpreter_path(), out_raw, out_sum, srcdir, runtime))
     logger.info("[mlprodict] cmd '{}'.".format(cmd))
     print("[mlprodict-sphinx] cmd '{}'".format(cmd))
     out, err = run_cmd(cmd, wait=True, fLOG=print)
@@ -105,7 +105,7 @@ def write_page_onnxrt_benches(app, runtime):
             It gives an order of magnitude.
 
             '''.format(runtime, title, "=" * len(title))))
-            f.write(df2rst(piv))
+            f.write(df2rst(piv, number_format=2))
         logger.info(
             "[mlprodict] done page '{}'.".format(whe))
         print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))
