@@ -58,7 +58,7 @@ def write_page_onnxrt_benches(app, runtime):
                get_interpreter_path(), out_raw, out_sum, srcdir))
     logger.info("[mlprodict] cmd '{}'.".format(cmd))
     print("[mlprodict-sphinx] cmd '{}'".format(cmd))
-    out, err = run_cmd(cmd, wait=False, fLOG=print)
+    out, err = run_cmd(cmd, wait=True, fLOG=print)
 
     if os.path.exists(out_sum):
         piv = pandas.read_excel(out_sum)
