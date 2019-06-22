@@ -12,8 +12,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxArrayFeatureExtractor, OnnxCeil, OnnxClip,
     OnnxDiv, OnnxExp, OnnxFloor,
     OnnxGemm, OnnxMatMul, OnnxMean, OnnxMul,
-    OnnxReduceSum, OnnxReduceSumSquare, OnnxSqrt,
-    OnnxSub,
+    OnnxReduceSum, OnnxReduceSumSquare,
+    OnnxSlice, OnnxSqrt, OnnxSub,
 )
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import __version__ as skl2onnx_version
@@ -246,6 +246,37 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.sum(X, axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
+
+    def test_onnxt_runtime_slice(self):
+        x = numpy.random.randn(20, 10, 5).astype(numpy.float32)
+        y = x[0:3, 0:10]
+        starts = numpy.array([0, 0], dtype=numpy.int64)
+        ends = numpy.array([3, 10], dtype=numpy.int64)
+        onx = OnnxSlice('X', starts, ends, output_names=['Y'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
+
+        x = numpy.random.randn(20, 10, 5).astype(numpy.float32)
+        y = x[0:3, 0:10]
+        starts = numpy.array([0, 0], dtype=numpy.int64)
+        ends = numpy.array([3, 10], dtype=numpy.int64)
+        axes = numpy.array([0, 1], dtype=numpy.int64)
+        onx = OnnxSlice('X', starts, ends, axes, output_names=['Y'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
+
+        x = numpy.random.randn(20, 10, 5).astype(numpy.float32)
+        y = x[0:3:-1, 0:10:2]
+        starts = numpy.array([0, 0], dtype=numpy.int64)
+        ends = numpy.array([3, 10], dtype=numpy.int64)
+        axes = numpy.array([0, 1], dtype=numpy.int64)
+        steps = numpy.array([-1, 2], dtype=numpy.int64)
+        onx = OnnxSlice('X', starts, ends, axes, steps, output_names=['Y'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
 
     def test_onnxt_runtime_sqrt(self):
         self.common_test_onnxt_runtime_unary(OnnxSqrt, numpy.sqrt)

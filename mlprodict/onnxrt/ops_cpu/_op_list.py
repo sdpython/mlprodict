@@ -27,6 +27,7 @@ from .op_normalizer import Normalizer
 from .op_reduce_sum import ReduceSum
 from .op_reduce_sum_square import ReduceSumSquare
 from .op_scaler import Scaler
+from .op_slice import Slice
 from .op_sqrt import Sqrt
 from .op_sub import Sub
 from .op_zipmap import ZipMap
