@@ -4,10 +4,11 @@
 @file
 @brief Runtime operator.
 """
+import numpy
 from ._op import OpRun
 
 
-class ArrayFeatureExtractor(OpRun):
+class Ceil(OpRun):
 
     def __init__(self, onnx_node, desc=None, **options):
         if desc is None:
@@ -15,6 +16,5 @@ class ArrayFeatureExtractor(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, data, indices):  # pylint: disable=W0221
-        index = indices.tolist()
-        return (data[..., index], )
+    def _run(self, x):  # pylint: disable=W0221
+        return (numpy.ceil(x), )

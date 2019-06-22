@@ -530,7 +530,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         obs_op['ort_run_time_batch'] = t7
         obs_op['lambda-batch'] = (lambda xo: sess.run(
             {init_types[0][0]: xo}), Xort_test)
-    except (RuntimeError, TypeError, ValueError, KeyError) as e:
+    except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
         if debug:
             raise
         obs_op['_6ort_run_batch_exc'] = e
@@ -589,7 +589,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                         for Xort_row in xo],
             Xort_test
         )
-    except (RuntimeError, TypeError, ValueError, KeyError) as e:
+    except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
         if debug:
             raise
         obs_op['_9ort_run_single_exc'] = e
