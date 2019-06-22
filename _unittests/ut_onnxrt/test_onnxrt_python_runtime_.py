@@ -10,8 +10,9 @@ from sklearn.utils.testing import ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
     OnnxArrayFeatureExtractor, OnnxCeil, OnnxClip,
-    OnnxDiv, OnnxExp, OnnxFloor,
-    OnnxGemm, OnnxMatMul, OnnxMean, OnnxMul,
+    OnnxDiv, OnnxExp, OnnxFloor, OnnxGreater,
+    OnnxGemm, OnnxIdentity, OnnxMatMul, OnnxMean, OnnxMul,
+    OnnxPow,
     OnnxReduceSum, OnnxReduceSumSquare,
     OnnxSlice, OnnxSqrt, OnnxSub,
 )
@@ -179,6 +180,12 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X, idi.T) + cst, got['Y'], decimal=6)
 
+    def test_onnxt_runtime_greater(self):
+        self.common_test_onnxt_runtime_binary(OnnxGreater, numpy.greater)
+
+    def test_onnxt_runtime_identity(self):
+        self.common_test_onnxt_runtime_unary(OnnxIdentity, lambda x: x)
+
     def test_onnxt_runtime_matmul(self):
         self.common_test_onnxt_runtime_binary(OnnxMatMul, lambda x, y: x @ y)
 
@@ -194,6 +201,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_mul(self):
         self.common_test_onnxt_runtime_binary(OnnxMul, lambda x, y: x * y)
+
+    def test_onnxt_runtime_pow(self):
+        self.common_test_onnxt_runtime_binary(OnnxPow, numpy.power)
 
     def test_onnxt_runtime_reduce_sum_square(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
@@ -247,6 +257,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(numpy.sum(X, axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
 
+    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
+                     reason="int64 not implemented for constants")
     def test_onnxt_runtime_slice(self):
         x = numpy.random.randn(20, 10, 5).astype(numpy.float32)
         y = x[0:3, 0:10]

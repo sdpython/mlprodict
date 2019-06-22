@@ -17,13 +17,16 @@ from .op_clip import Clip
 from .op_div import Div
 from .op_exp import Exp
 from .op_gemm import Gemm
+from .op_greater import Greater
 from .op_floor import Floor
+from .op_identity import Identity
 from .op_linear_classifier import LinearClassifier
 from .op_linear_regressor import LinearRegressor
 from .op_matmul import MatMul
 from .op_mean import Mean
 from .op_mul import Mul
 from .op_normalizer import Normalizer
+from .op_pow import Pow
 from .op_reduce_sum import ReduceSum
 from .op_reduce_sum_square import ReduceSumSquare
 from .op_scaler import Scaler
