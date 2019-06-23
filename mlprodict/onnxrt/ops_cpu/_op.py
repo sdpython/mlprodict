@@ -48,6 +48,20 @@ class OpRun:
                 raise RuntimeError("Attribute '{}' is expected based on ONNX specifications '{}'.".format(
                     k, v))
 
+    def __str__(self):
+        """
+        usual
+        """
+        atts = [self.__class__.__name__ + '(',
+                "    op_type={}".format(self.onnx_node.op_type)]
+        for k, v in sorted(self.__dict__.items()):
+            if k in {'desc', 'onnx_node'}:
+                continue
+            if 'a' <= k[0] <= 'z' and k[-1] != '_':
+                atts.append('    {0}={1}'.format(k, v))
+        atts.append(')')
+        return "\n".join(atts)
+
     def _run(self, *args, **kwargs):
         """
         Should be overwritten.

@@ -59,6 +59,27 @@ def verbose():
     print("current     =", os.path.abspath(os.getcwd()))
     print("---------------------------------")
 
+########
+# pybind11
+########
+
+
+class get_pybind_include(object):
+    """
+    Helper class to determine the pybind11 include path
+    The purpose of this class is to postpone importing pybind11
+    until it is actually installed, so that the ``get_include()``
+    method can be invoked.
+    `Source <https://github.com/pybind/python_example/blob/master/setup.py>`_.
+    """
+
+    def __init__(self, user=False):
+        self.user = user
+
+    def __str__(self):
+        import pybind11
+        return pybind11.get_include(self.user)
+
 ##########
 # version
 ##########
@@ -152,8 +173,39 @@ if not r:
     from mlprodict import __version__ as sversion
     long_description = clean_readme(long_description)
     root = os.path.abspath(os.path.dirname(__file__))
+
+    if sys.platform.startswith("win"):
+        libraries_thread = ['kernel32']
+        extra_compile_args = ['/EHsc', '/O2', '/Gy']
+    elif sys.platform.startswith("darwin"):
+        libraries_thread = None
+        extra_compile_args = ['-stdlib=libc++', '-mmacosx-version-min=10.7',
+                              '-std=c++11', '-fpermissive']
+    else:
+        libraries_thread = None
+        # , '-o2', '-mavx512f']
+        extra_compile_args_numbers = ['-std=c++11', '-fpermissive']
+
+    # extensions
+
+    ext_tree_ensemble_classifier = Extension('mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_',
+                                             [os.path.join(
+                                                 root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_classifier_.cpp')],
+                                             extra_compile_args=extra_compile_args,
+                                             include_dirs=[
+                                                 # Path to pybind11 headers
+                                                 get_pybind_include(),
+                                                 get_pybind_include(user=True),
+                                                 os.path.join(
+                                                     root, 'mlprodict/onnxrt/ops_cpu')
+                                             ],
+                                             language='c++')
+
+    ext_modules = [ext_tree_ensemble_classifier]
+
     setup(
         name=project_var_name,
+        ext_modules=ext_modules,
         version='%s%s' % (sversion, subversion),
         author='Xavier Dupré',
         author_email='xavier.dupre@gmail.com',
@@ -167,6 +219,6 @@ if not r:
         packages=packages,
         package_dir=package_dir,
         package_data=package_data,
-        setup_requires=["onnx", "scikit-learn", "jinja2"],
-        install_requires=None,
+        setup_requires=["onnx", "scikit-learn", "jinja2", "pybind11"],
+        install_requires=["pybind11"],
     )

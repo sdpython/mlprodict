@@ -113,7 +113,7 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_lrc_iris(self):
         iris = load_iris()
         X, y = iris.data, iris.target
-        X_train, _, y_train, __ = train_test_split(X, y)
+        X_train, _, y_train, __ = train_test_split(X, y, random_state=11)
         clr = LogisticRegression(solver="liblinear")
         clr.fit(X_train, y_train)
 
@@ -126,7 +126,7 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_lrc_iris_json(self):
         iris = load_iris()
         X, y = iris.data, iris.target
-        X_train, _, y_train, __ = train_test_split(X, y)
+        X_train, _, y_train, __ = train_test_split(X, y, random_state=11)
         clr = LogisticRegression(solver="liblinear")
         clr.fit(X_train, y_train)
 
@@ -182,7 +182,7 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_lrreg_iris_run(self):
         iris = load_iris()
         X, y = iris.data, iris.target
-        X_train, X_test, y_train, _ = train_test_split(X, y)
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = LinearRegression()
         clr.fit(X_train, y_train)
 
@@ -196,7 +196,7 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_lrc_iris_run(self):
         iris = load_iris()
         X, y = iris.data, iris.target
-        X_train, X_test, y_train, _ = train_test_split(X, y)
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = LogisticRegression(solver="liblinear")
         clr.fit(X_train, y_train)
 
@@ -217,7 +217,7 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_knn_iris_dot(self):
         iris = load_iris()
         X, y = iris.data, iris.target
-        X_train, __, y_train, _ = train_test_split(X, y)
+        X_train, __, y_train, _ = train_test_split(X, y, random_state=11)
         clr = KNeighborsClassifier()
         clr.fit(X_train, y_train)
 
