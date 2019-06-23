@@ -149,7 +149,7 @@ class RuntimeTreeEnsembleClassifier
 #define arrayshape2vector(vec, arr) { \
     if (arr.size() > 0) { \
         vec.resize(arr.ndim()); \
-        for(int i = 0; i < vec.size(); ++i) \
+        for(size_t i = 0; i < vec.size(); ++i) \
             vec[i] = (int64_t) arr.shape(i); \
     } \
 }
@@ -208,7 +208,7 @@ void RuntimeTreeEnsembleClassifier::init(
 
     // additional members
     nodes_modes_.resize(nodes_modes.size());
-    for(int i = 0; i < nodes_modes.size(); ++i)
+    for(size_t i = 0; i < nodes_modes.size(); ++i)
         nodes_modes_[i] = to_NODE_MODE(nodes_modes[i]);
 
     Initialize();
