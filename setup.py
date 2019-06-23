@@ -176,15 +176,15 @@ if not r:
 
     if sys.platform.startswith("win"):
         libraries_thread = ['kernel32']
-        extra_compile_args = ['/EHsc', '/O2', '/Gy', '/std:c++11']
+        extra_compile_args = ['/EHsc', '/O2', '/Gy'] #, '/std:c++14']
     elif sys.platform.startswith("darwin"):
         libraries_thread = None
         extra_compile_args = ['-stdlib=libc++', '-mmacosx-version-min=10.7',
-                              '-fpermissive', '-std=c++11']
+                              '-fpermissive', '-o2']  # , '-std=c++14']
     else:
         libraries_thread = None
         # , '-o2', '-mavx512f']
-        extra_compile_args = ['-fpermissive', '-std=c++11']
+        extra_compile_args = ['-fpermissive', '-o2']  # , '-std=c++14']
 
     # extensions
 

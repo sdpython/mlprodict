@@ -5,6 +5,7 @@ jyquickhelper
 onnx
 onnxruntime
 openpyxl
+pybind11
 pylint
 pyquickhelper>=1.9.3154
 skl2onnx
