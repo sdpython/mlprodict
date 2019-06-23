@@ -250,12 +250,16 @@ void RuntimeTreeEnsembleClassifier::Initialize() {
     leafnodedata_.push_back(std::make_tuple(class_treeids_[i], class_nodeids_[i], class_ids_[i], class_weights_[i]));
     weights_classes_.insert(class_ids_[i]);
   }
-  std::sort(std::begin(leafnodedata_), std::end(leafnodedata_), [](auto const& t1, auto const& t2) {
-    if (std::get<0>(t1) != std::get<0>(t2))
-      return std::get<0>(t1) < std::get<0>(t2);
 
-    return std::get<1>(t1) < std::get<1>(t2);
+  std::sort(std::begin(leafnodedata_), std::end(leafnodedata_), 
+    [](const std::tuple<int64_t, int64_t, int64_t, float>& t1,
+       const std::tuple<int64_t, int64_t, int64_t, float>& t2) {
+        if (std::get<0>(t1) != std::get<0>(t2))
+            return std::get<0>(t1) < std::get<0>(t2);
+
+        return std::get<1>(t1) < std::get<1>(t2);
   });
+
   // make an index so we can find the leafnode data quickly when evaluating
   int64_t field0 = -1;
   int64_t field1 = -1;
