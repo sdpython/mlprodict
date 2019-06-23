@@ -6,7 +6,7 @@ import unittest
 from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase
+from pyquickhelper.pycode import get_temp_folder, ExtTestCase, is_travis_or_appveyor
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import sklearn_operators, enumerate_validated_operator_opsets, summary_report
@@ -47,9 +47,14 @@ class TestOnnxrtValidateOnnxRuntimeWhole(ExtTestCase):
                 verbose, models={"GradientBoostingRegressor"}, opset_min=11, fLOG=fLOG,
                 runtime='onnxruntime-whole', debug=True))
         else:
-            rows = list(enumerate_validated_operator_opsets(verbose, debug=None, fLOG=fLOG,
-                                                            runtime='onnxruntime-whole',
-                                                            dump_folder=temp))
+            rows = []
+            for row in enumerate_validated_operator_opsets(verbose, debug=None, fLOG=fLOG,
+                                                           runtime='onnxruntime-whole',
+                                                           dump_folder=temp):
+                rows.append(row)
+                if is_travis_or_appveyor() and len(rows) > 20:
+                    break
+
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
         self.assertGreater(df.shape[1], 1)

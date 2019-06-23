@@ -176,7 +176,7 @@ if not r:
 
     if sys.platform.startswith("win"):
         libraries_thread = ['kernel32']
-        extra_compile_args = ['/EHsc', '/O2', '/Gy', '/std:c++11']
+        extra_compile_args = ['/EHsc', '/O2', '/Ob2', '/Gy', '/std:c++11']
     elif sys.platform.startswith("darwin"):
         libraries_thread = None
         extra_compile_args = ['-stdlib=libc++', '-mmacosx-version-min=10.7',

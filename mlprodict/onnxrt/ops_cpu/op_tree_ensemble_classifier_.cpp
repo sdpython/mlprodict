@@ -390,7 +390,7 @@ static inline float ErfInv(float x) {
 }
 
 
-float ComputeLogistic(float val) {
+static inline float ComputeLogistic(float val) {
   float v = 1 / (1 + std::exp(-std::abs(val)));
   return (val < 0) ? (1 - v) : v;
 }
@@ -399,7 +399,7 @@ static inline float ComputeProbit(float val) {
   return ml_sqrt2 * ErfInv(2 * val - 1);
 }
 
-float sigmoid_probability(float score, float proba, float probb) {
+static inline float sigmoid_probability(float score, float proba, float probb) {
   float val = score * proba + probb;
   return 1 - ComputeLogistic(val);  // ref: https://github.com/arnaudsj/libsvm/blob/eaaefac5ebd32d0e07902e1ae740e038eaaf0826/svm.cpp#L1818
 }
@@ -609,12 +609,12 @@ void RuntimeTreeEnsembleClassifier::ProcessTreeNode(std::map<int64_t, float>& cl
                                                     const float* x_data,
                                                     int64_t feature_base) const {
   // walk down tree to the leaf
+  bool tracktrue;
   auto mode = nodes_modes_[treeindex];
   int64_t loopcount = 0;
   int64_t root = treeindex;
   while (mode != NODE_MODE::LEAF) {
     float val = x_data[feature_base + nodes_featureids_[treeindex]];
-    bool tracktrue = true;
     tracktrue = missing_tracks_true_.size() != nodes_truenodeids_.size()
                 ? false
                 : missing_tracks_true_[treeindex] && std::isnan(static_cast<float>(val));
