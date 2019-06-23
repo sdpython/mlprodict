@@ -184,7 +184,7 @@ if not r:
     else:
         libraries_thread = None
         # , '-o2', '-mavx512f']
-        extra_compile_args_numbers = ['-std=c++11', '-fpermissive']
+        extra_compile_args = ['-std=c++11', '-fpermissive']
 
     # extensions
 
