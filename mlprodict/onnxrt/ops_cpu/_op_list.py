@@ -34,6 +34,7 @@ from .op_slice import Slice
 from .op_sqrt import Sqrt
 from .op_sub import Sub
 from .op_tree_ensemble_classifier import TreeEnsembleClassifier
+from .op_tree_ensemble_regressor import TreeEnsembleRegressor
 from .op_zipmap import ZipMap
 
 

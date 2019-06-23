@@ -8,7 +8,7 @@ import pandas
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx import to_onnx
 from mlprodict.onnxrt import OnnxInference
@@ -20,7 +20,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
-    def test_onnxrt_python_DecisionTree(self):
+    def test_onnxrt_python_DecisionTreeClassifier(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
@@ -40,6 +40,23 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         exp = clr.predict_proba(X_test)
         got = pandas.DataFrame(y['output_probability']).values
         self.assertEqualArray(exp, got, decimal=5)
+
+    def test_onnxrt_python_DecisionTreeRegressor(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = DecisionTreeRegressor()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
+        self.assertIn("TreeEnsembleRegressor", text)
+        y = oinf.run({'X': X_test})
+        self.assertEqual(list(sorted(y)), ['variable'])
+        lexp = clr.predict(X_test)
+        self.assertEqual(lexp.shape, y['variable'].shape)
+        self.assertEqualArray(lexp, y['variable'])
 
     def test_onnxrt_python_DecisionTree_depth2(self):
         iris = load_iris()

@@ -8,19 +8,15 @@ from collections import OrderedDict
 import numpy
 from ._op_helper import _get_typed_class_attribute
 from ._op import OpRun
-from .op_tree_ensemble_classifier_ import RuntimeTreeEnsembleClassifier  # pylint: disable=E0611
+from .op_tree_ensemble_regressor_ import RuntimeTreeEnsembleRegressor  # pylint: disable=E0611
 
 
-class TreeEnsembleClassifier(OpRun):
+class TreeEnsembleRegressor(OpRun):
 
     atts = OrderedDict([
+        ('aggregate_function', b'SUM'),
         ('base_values', numpy.empty(0, dtype=numpy.float32)),
-        ('class_ids', numpy.empty(0, dtype=numpy.int64)),
-        ('class_nodeids', numpy.empty(0, dtype=numpy.int64)),
-        ('class_treeids', numpy.empty(0, dtype=numpy.int64)),
-        ('class_weights', numpy.empty(0, dtype=numpy.float32)),
-        ('classlabels_int64s', numpy.empty(0, dtype=numpy.int64)),
-        ('classlabels_strings', []),
+        ('n_targets', 1),
         ('nodes_falsenodeids', numpy.empty(0, dtype=numpy.int64)),
         ('nodes_featureids', numpy.empty(0, dtype=numpy.int64)),
         ('nodes_hitrates', numpy.empty(0, dtype=numpy.float32)),
@@ -30,29 +26,32 @@ class TreeEnsembleClassifier(OpRun):
         ('nodes_treeids', numpy.empty(0, dtype=numpy.int64)),
         ('nodes_truenodeids', numpy.empty(0, dtype=numpy.int64)),
         ('nodes_values', numpy.empty(0, dtype=numpy.float32)),
-        ('post_transform', b'NONE')
+        ('post_transform', b'NONE'),
+        ('target_ids', numpy.empty(0, dtype=numpy.int64)),
+        ('target_nodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('target_treeids', numpy.empty(0, dtype=numpy.int64)),
+        ('target_weights', numpy.empty(0, dtype=numpy.float32)),
     ])
 
     def __init__(self, onnx_node, desc=None, **options):
         if desc is None:
             raise ValueError("desc should not be None.")
         OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=TreeEnsembleClassifier.atts,
+                       expected_attributes=TreeEnsembleRegressor.atts,
                        **options)
         self._init()
 
     def _get_typed_attributes(self, k):
-        return _get_typed_class_attribute(self, k, TreeEnsembleClassifier.atts)
+        return _get_typed_class_attribute(self, k, TreeEnsembleRegressor.atts)
 
     def _init(self):
-        self.rt_ = RuntimeTreeEnsembleClassifier()
+        self.rt_ = RuntimeTreeEnsembleRegressor()
         atts = [self._get_typed_attributes(k)
-                for k in TreeEnsembleClassifier.atts]
+                for k in TreeEnsembleRegressor.atts]
         self.rt_.init(*atts)
 
     def _run(self, x):  # pylint: disable=W0221
-        label, scores = self.rt_.compute(x)
-        if scores.shape[0] != label.shape[0]:
-            scores = scores.reshape(label.shape[0],
-                                    scores.shape[0] // label.shape[0])
-        return (label, scores)
+        pred = self.rt_.compute(x)
+        if pred.shape[0] != x.shape[0]:
+            pred = pred.reshape(x.shape[0], pred.shape[0] // x.shape[0])
+        return (pred, )
