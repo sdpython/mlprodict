@@ -180,11 +180,11 @@ if not r:
     elif sys.platform.startswith("darwin"):
         libraries_thread = None
         extra_compile_args = ['-stdlib=libc++', '-mmacosx-version-min=10.7',
-                              '-fpermissive', '-o2', '-std=c++11']
+                              '-fpermissive', '-std=c++11']
     else:
         libraries_thread = None
         # , '-o2', '-mavx512f']
-        extra_compile_args = ['-fpermissive', '-o2', '-std=c++11']
+        extra_compile_args = ['-fpermissive', '-std=c++11']
 
     # extensions
 
