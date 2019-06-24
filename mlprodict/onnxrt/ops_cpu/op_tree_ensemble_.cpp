@@ -3,6 +3,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 #include "op_tree_ensemble_.hpp"
+#include <string.h> // memcpy
+#include <stdlib.h> //realloc
 
 
 POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value)
