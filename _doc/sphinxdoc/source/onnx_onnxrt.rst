@@ -43,7 +43,7 @@ object to :epkg:`ONNX`. We create a table similar to
 
             piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
 
-        print(df2rst(piv))
+        print(df2rst(piv, number_format=2))
 
     build_table()
 

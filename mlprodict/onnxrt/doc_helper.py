@@ -321,7 +321,7 @@ def visual_rst_template():
     """
     return textwrap.dedent("""
 
-    .. _{{link}}:
+    .. _l-{{link}}:
 
     {{ title }}
     {{ '=' * len(title) }}

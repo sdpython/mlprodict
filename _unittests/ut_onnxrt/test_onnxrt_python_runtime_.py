@@ -9,11 +9,14 @@ from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.utils.testing import ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
-    OnnxArrayFeatureExtractor, OnnxCeil, OnnxClip,
+    OnnxArrayFeatureExtractor, OnnxConcat,
+    OnnxCeil, OnnxClip,
     OnnxDiv, OnnxExp, OnnxFloor, OnnxGreater,
-    OnnxGemm, OnnxIdentity, OnnxMatMul, OnnxMean, OnnxMul,
-    OnnxPow,
-    OnnxReduceSum, OnnxReduceSumSquare,
+    OnnxGemm, OnnxIdentity, OnnxLog, OnnxMatMul, OnnxMean, OnnxMul,
+    OnnxPow, OnnxReciprocal,
+    OnnxReduceLogSumExp,
+    OnnxReduceProd, OnnxReduceSum,
+    OnnxReduceSumSquare, OnnxReshape,
     OnnxSlice, OnnxSqrt, OnnxSub,
 )
 from skl2onnx.common.data_types import FloatTensorType
@@ -138,6 +141,21 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                 x, min=0.1, max=2.1, output_names=output_names),
             lambda x: numpy.clip(x, 0.1, 2.1))
 
+    def test_onnxt_runtime_concat(self):
+        cst = numpy.array([[1, 2]], dtype=numpy.float32)
+        onx = OnnxConcat('X', 'Y', cst, output_names=['Z'])
+        X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
+        Y = numpy.array([[8, 9], [10, 11], [12, 13]], dtype=numpy.float64)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32),
+                                 'Y': Y.astype(numpy.float32)},
+                                outputs=[('Z', FloatTensorType([2]))])
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'Y': Y})
+        self.assertEqual(list(sorted(got)), ['Z'])
+        self.assertEqual(got['Z'].shape, (6, 2))
+        exp = numpy.vstack([X, Y, cst])
+        self.assertEqualArray(exp, got['Z'])
+
     def test_onnxt_runtime_div(self):
         self.common_test_onnxt_runtime_binary(OnnxDiv, lambda x, y: x / y)
 
@@ -186,6 +204,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_identity(self):
         self.common_test_onnxt_runtime_unary(OnnxIdentity, lambda x: x)
 
+    def test_onnxt_runtime_log(self):
+        self.common_test_onnxt_runtime_unary(OnnxLog, numpy.log)
+
     def test_onnxt_runtime_matmul(self):
         self.common_test_onnxt_runtime_binary(OnnxMatMul, lambda x, y: x @ y)
 
@@ -205,30 +226,61 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_pow(self):
         self.common_test_onnxt_runtime_binary(OnnxPow, numpy.power)
 
-    def test_onnxt_runtime_reduce_sum_square(self):
+    def test_onnxt_runtime_reciprocal(self):
+        self.common_test_onnxt_runtime_unary(OnnxReciprocal, numpy.reciprocal)
+
+    def test_onnxt_runtime_reduce_log_sum_exp(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
-        onx = OnnxReduceSumSquare('X', output_names=['Y'], keepdims=0)
+        onx = OnnxReduceLogSumExp('X', output_names=['Y'], keepdims=0)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.sum(numpy.square(X)), got['Y'], decimal=6)
+        res = numpy.log(numpy.sum(numpy.exp(X)))
+        self.assertEqualArray(res, got['Y'], decimal=6)
 
-        onx = OnnxReduceSumSquare('X', output_names=['Y'], axes=1)
+        onx = OnnxReduceLogSumExp('X', output_names=['Y'], axes=[1])
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.sum(numpy.square(X), axis=1).ravel(),
+        res = numpy.log(numpy.sum(numpy.exp(X), axis=1))
+        self.assertEqualArray(res, got['Y'].ravel())
+
+        onx = OnnxReduceLogSumExp(
+            'X', output_names=['Y'], axes=[1], keepdims=1)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        res = numpy.log(numpy.sum(numpy.exp(X), axis=1, keepdims=1))
+        self.assertEqualArray(res.ravel(), got['Y'].ravel())
+
+    def test_onnxt_runtime_reduce_prod(self):
+        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+
+        onx = OnnxReduceProd('X', output_names=['Y'], keepdims=0)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.prod(X), got['Y'], decimal=6)
+
+        onx = OnnxReduceProd('X', output_names=['Y'], axes=1)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.prod(X, axis=1).ravel(),
                               got['Y'].ravel())
 
-        onx = OnnxReduceSumSquare('X', output_names=['Y'], axes=1, keepdims=1)
+        onx = OnnxReduceProd('X', output_names=['Y'], axes=1, keepdims=1)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.sum(numpy.square(X), axis=1, keepdims=1).ravel(),
+        self.assertEqualArray(numpy.prod(X, axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
 
     def test_onnxt_runtime_reduce_sum(self):
@@ -256,6 +308,44 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.sum(X, axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
+
+    def test_onnxt_runtime_reduce_sum_square(self):
+        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+
+        onx = OnnxReduceSumSquare('X', output_names=['Y'], keepdims=0)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.sum(numpy.square(X)), got['Y'], decimal=6)
+
+        onx = OnnxReduceSumSquare('X', output_names=['Y'], axes=1)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.sum(numpy.square(X), axis=1).ravel(),
+                              got['Y'].ravel())
+
+        onx = OnnxReduceSumSquare('X', output_names=['Y'], axes=1, keepdims=1)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.sum(numpy.square(X), axis=1, keepdims=1).ravel(),
+                              got['Y'].ravel())
+
+    @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
+    def common_test_onnxt_runtime_reshape(self):
+        sh = numpy.array([1, 4], dtype=numpy.int64)
+        onx = OnnxReshape('X', sh, output_names=['Y'])
+        X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        exp = X.reshape(sh.tolist())
+        self.assertEqualArray(exp, got['Y'])
 
     @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
                      reason="int64 not implemented for constants")

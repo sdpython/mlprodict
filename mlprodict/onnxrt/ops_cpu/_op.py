@@ -12,6 +12,9 @@ _schemas = {
 class OpRun:
     """
     Ancestor to all operator in this subfolder.
+    The runtime for every node can checked into
+    `ONNX unit tests
+    <https://github.com/onnx/onnx/tree/master/onnx/backend/test/case/node>`_.
     """
 
     def __init__(self, onnx_node, desc=None, expected_attributes=None,

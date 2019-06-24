@@ -323,7 +323,7 @@ def dump_into_folder(dump_folder, obs_op=None, **kwargs):
     @param      obs_op          obs_op (information)
     @kwargs                     kwargs
     """
-    parts = (obs_op['name'], obs_op['scenario'],
+    parts = (obs_op['runtime'], obs_op['name'], obs_op['scenario'],
              obs_op['problem'], obs_op.get('opset', '-'))
     name = "dump-ERROR-{}.pkl".format("-".join(map(str, parts)))
     name = os.path.join(dump_folder, name)

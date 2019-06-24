@@ -31,4 +31,4 @@ class Slice(OpRun):
                 slices = [slice(0, a) for a in data.shape]
                 for s, e, a, d in zip(starts, ends, axes, steps):
                     slices[a] = slice(s, e, d)
-        return (data[slices], )
+        return (data[tuple(slices)], )

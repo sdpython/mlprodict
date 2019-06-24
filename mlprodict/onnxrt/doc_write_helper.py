@@ -51,9 +51,11 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         yield res
 
 
-def compose_page_onnxrt_ops():
+def compose_page_onnxrt_ops(level="^"):
     """
     Writes page :ref:`l-onnx-runtime-operators`.
+
+    @param      level       title level
     """
     begin = dedent("""
     .. _l-onnx-runtime-operators:
@@ -85,10 +87,10 @@ def compose_page_onnxrt_ops():
         names.append((op.__name__, op))
     names.sort()
 
-    rows = []
+    rows = [begin]
     for name, op in names:
         rows.append(name)
-        rows.append("^" * len(name))
+        rows.append(level * len(name))
         rows.append("")
         mod = op.__module__.split('.')[-1]
         rows.append(
