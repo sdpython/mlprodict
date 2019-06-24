@@ -510,6 +510,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     """
     ser, t5 = _measure_time(lambda: conv.SerializeToString())
     obs_op['tostring_time'] = t5
+    obs_op['runtime'] = runtime
 
     # load
     try:
