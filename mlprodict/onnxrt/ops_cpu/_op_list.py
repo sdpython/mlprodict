@@ -31,6 +31,7 @@ from .op_normalizer import Normalizer
 from .op_pow import Pow
 from .op_reciprocal import Reciprocal
 from .op_reduce_log_sum_exp import ReduceLogSumExp
+from .op_reduce_mean import ReduceMean
 from .op_reduce_prod import ReduceProd
 from .op_reduce_sum import ReduceSum
 from .op_reduce_sum_square import ReduceSumSquare
@@ -39,6 +40,8 @@ from .op_scaler import Scaler
 from .op_slice import Slice
 from .op_sqrt import Sqrt
 from .op_sub import Sub
+from .op_sum import Sum
+from .op_topk import TopK
 from .op_tree_ensemble_classifier import TreeEnsembleClassifier
 from .op_tree_ensemble_regressor import TreeEnsembleRegressor
 from .op_zipmap import ZipMap
