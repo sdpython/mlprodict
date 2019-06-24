@@ -83,7 +83,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = RandomForestClassifier(n_estimators=4, max_depth=2)
+        clr = RandomForestClassifier(n_estimators=4, max_depth=2, random_state=11)
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
