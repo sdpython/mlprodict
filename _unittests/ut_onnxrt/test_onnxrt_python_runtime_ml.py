@@ -14,6 +14,7 @@ from sklearn.preprocessing import StandardScaler
 from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from skl2onnx import to_onnx
+from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
 
 
