@@ -16,6 +16,10 @@
 #include <pybind11/numpy.h>
 //#include <numpy/arrayobject.h>
 
+#if USE_OPENMP
+#include <omp.h>
+#endif
+
 namespace py = pybind11;
 #endif
 
@@ -84,8 +88,12 @@ class RuntimeTreeEnsembleRegressor
                              int64_t treeindex,
                              const float* x_data,
                              int64_t feature_base) const;
+    
+        std::string runtime_options();
 
-    private:
+        int omp_get_max_threads();
+
+private:
 
         void Initialize();
     
@@ -101,6 +109,25 @@ RuntimeTreeEnsembleRegressor::RuntimeTreeEnsembleRegressor() {
 RuntimeTreeEnsembleRegressor::~RuntimeTreeEnsembleRegressor() {
 }
 
+
+std::string RuntimeTreeEnsembleRegressor::runtime_options()
+{
+    std::string res;
+#ifdef USE_OPENMP
+    res += "OPENMP";
+#endif
+    return res;
+}
+
+
+int RuntimeTreeEnsembleRegressor::omp_get_max_threads()
+{
+#if USE_OPENMP
+    return ::omp_get_max_threads();
+#else
+    return 1;
+#endif
+}
 
 
 void RuntimeTreeEnsembleRegressor::init(
@@ -412,6 +439,10 @@ in :epkg:`onnxruntime`.)pbdoc");
            "Initializes the runtime with the ONNX attributes in alphabetical order.");
     cl.def("compute", &RuntimeTreeEnsembleRegressor::compute,
            "Computes the predictions for the random forest.");
+    cl.def("runtime_options", &RuntimeTreeEnsembleRegressor::runtime_options,
+           "Returns indications about how the runtime was compiled.");
+    cl.def("omp_get_max_threads", &RuntimeTreeEnsembleRegressor::omp_get_max_threads,
+           "Returns omp_get_max_threads from openmp library.");
 }
 
 #endif

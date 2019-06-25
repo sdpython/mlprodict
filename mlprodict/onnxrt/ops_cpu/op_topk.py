@@ -20,9 +20,18 @@ class TopK(OpRun):
                        **options)
 
     def _run(self, data, ink):  # pylint: disable=W0221
-        # Not the most efficient.
-        # Negative axis means to begin from the last axis.
-        # See https://github.com/Microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/math/top_k.cc#L63.
+        """
+        Runtime for operator *TopK*.
+        The implementation is not the most efficient
+        as it sorts everything then extracts the top *k*
+        values.
+
+        .. warning::
+            ONNX specifications may be imprecise in case of negative value
+            for axis. The implementation follows what :epkg:`onnxruntime`
+            does in `top_k.cc
+            <https://github.com/Microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/math/top_k.cc#L63>`_.
+        """
         k = ink[0]
         axis = self.axis if self.axis >= 0 else (self.axis + len(data.shape))
         sorti = numpy.argsort(data, axis=axis)

@@ -51,6 +51,14 @@ class TreeEnsembleClassifier(OpRun):
         self.rt_.init(*atts)
 
     def _run(self, x):  # pylint: disable=W0221
+        """
+        This is a C++ implementation coming from
+        :epkg:`onnxruntime`.
+        `tree_ensemble_classifier.cc
+        <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_classifier.cc>`_.
+        See class :class:`RuntimeTreeEnsembleClassifier
+        <mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_.RuntimeTreeEnsembleClassifier>`.
+        """
         label, scores = self.rt_.compute(x)
         if scores.shape[0] != label.shape[0]:
             scores = scores.reshape(label.shape[0],

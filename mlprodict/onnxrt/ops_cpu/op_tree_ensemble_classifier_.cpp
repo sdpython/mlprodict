@@ -12,6 +12,10 @@
 #include <pybind11/numpy.h>
 //#include <numpy/arrayobject.h>
 
+#if USE_OPENMP
+#include <omp.h>
+#endif
+
 namespace py = pybind11;
 #endif
 
@@ -85,6 +89,10 @@ class RuntimeTreeEnsembleClassifier
                              const float* x_data,
                              int64_t feature_base) const;
 
+        std::string runtime_options();
+
+        int omp_get_max_threads();
+
     private:
 
         void Initialize();
@@ -101,6 +109,25 @@ RuntimeTreeEnsembleClassifier::RuntimeTreeEnsembleClassifier() {
 RuntimeTreeEnsembleClassifier::~RuntimeTreeEnsembleClassifier() {
 }
 
+
+std::string RuntimeTreeEnsembleClassifier::runtime_options()
+{
+    std::string res;
+#ifdef USE_OPENMP
+    res += "OPENMP";
+#endif
+    return res;
+}
+
+
+int RuntimeTreeEnsembleClassifier::omp_get_max_threads()
+{
+#if USE_OPENMP
+    return ::omp_get_max_threads();
+#else
+    return 1;
+#endif
+}
 
 
 void RuntimeTreeEnsembleClassifier::init(
@@ -355,8 +382,9 @@ void RuntimeTreeEnsembleClassifier::compute_gil_free(
         std::map<int64_t, float> classes;
 
         // walk each tree from its root
-        for (size_t j = 0, end = roots_.size(); j < end; ++j)
+        for (size_t j = 0, end = roots_.size(); j < end; ++j) {
             ProcessTreeNode(classes, roots_[j], x_data, current_weight_0);
+        }
 
         float maxweight = 0.f;
         int64_t maxclass = -1;
@@ -520,6 +548,10 @@ in :epkg:`onnxruntime`.)pbdoc");
            "Initializes the runtime with the ONNX attributes in alphabetical order.");
     cl.def("compute", &RuntimeTreeEnsembleClassifier::compute,
            "Computes the predictions for the random forest.");
+    cl.def("runtime_options", &RuntimeTreeEnsembleClassifier::runtime_options,
+           "Returns indications about how the runtime was compiled.");
+    cl.def("omp_get_max_threads", &RuntimeTreeEnsembleClassifier::omp_get_max_threads,
+           "Returns omp_get_max_threads from openmp library.");
 }
 
 #endif

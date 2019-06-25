@@ -101,6 +101,21 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         got = pandas.DataFrame(y['output_probability']).values
         self.assertEqualArray(exp, got, decimal=5)
 
+    def test_openmp_compilation(self):
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_ import RuntimeTreeEnsembleRegressor  # pylint: disable=E0611
+        ru = RuntimeTreeEnsembleRegressor()
+        r = ru.runtime_options()
+        self.assertEqual('OPENMP', r)
+        nb = ru.omp_get_max_threads()
+        self.assertGreater(nb, 0)
+
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_ import RuntimeTreeEnsembleClassifier  # pylint: disable=E0611
+        ru = RuntimeTreeEnsembleClassifier()
+        r = ru.runtime_options()
+        self.assertEqual('OPENMP', r)
+        nb2 = ru.omp_get_max_threads()
+        self.assertEqual(nb2, nb)
+
 
 if __name__ == "__main__":
     unittest.main()

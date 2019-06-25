@@ -51,6 +51,14 @@ class TreeEnsembleRegressor(OpRun):
         self.rt_.init(*atts)
 
     def _run(self, x):  # pylint: disable=W0221
+        """
+        This is a C++ implementation coming from
+        :epkg:`onnxruntime`.
+        `tree_ensemble_classifier.cc
+        <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_classifier.cc>`_.
+        See class :class:`RuntimeTreeEnsembleRegressor
+        <mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeTreeEnsembleRegressor>`.
+        """
         pred = self.rt_.compute(x)
         if pred.shape[0] != x.shape[0]:
             pred = pred.reshape(x.shape[0], pred.shape[0] // x.shape[0])

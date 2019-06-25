@@ -2,7 +2,9 @@
 @file
 @brief Documentation helper.
 """
+import keyword
 import textwrap
+import re
 from jinja2 import Template
 from onnx.defs import OpSchema
 
@@ -30,6 +32,18 @@ def type_mapping(name):
     else:
         rev = {v: k for k, v in di.items()}
         return rev[name]
+
+
+def change_style(name):
+    """
+    Switches from *AaBb* into *aa_bb*.
+
+    @param      name    name to convert
+    @return             converted name
+    """
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    return s2 if not keyword.iskeyword(s2) else s2 + "_"
 
 
 def _get_doc_template():
@@ -101,6 +115,10 @@ def _get_doc_template():
         {% for v in sch.version[:-1] %} {{v}} {% endfor %}
         {% endif %}
         {% endif %}
+
+        **Runtime implementation:**
+        :class:`{{sch.name}}
+        <mlprodict.onnxrt.ops_cpu.op_{{change_style(sch.name)}}.{{sch.name}}>`
 
         {% endfor %}
     """))
@@ -241,7 +259,8 @@ def get_rst_doc(op_name):
                        build_doc_url=build_doc_url, str=str,
                        type_mapping=type_mapping,
                        process_attribute_doc=process_attribute_doc,
-                       process_default_value=process_default_value)
+                       process_default_value=process_default_value,
+                       change_style=change_style)
     return docs.replace(" Default value is ````", "")
 
 
