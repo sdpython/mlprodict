@@ -174,8 +174,6 @@ void RuntimeTreeEnsembleRegressor::Initialize() {
     target_nodeids_[i] = target_nodeids_[i] - offset;
   }
 
-  size_t nodes_id_size = nodes_nodeids_.size();
-
   max_tree_depth_ = 1000;
   offset_ = four_billion_;
   //leafnode data, these are the votes that leaves do
@@ -331,7 +329,7 @@ void RuntimeTreeEnsembleRegressor::ProcessTreeNode(std::unordered_map < int64_t,
     float val = x_data[feature_base + nodes_featureids_[treeindex]];
     bool tracktrue = missing_tracks_true_.size() != nodes_truenodeids_.size()
                      ? false
-                     : tracktrue = (missing_tracks_true_[treeindex] != 0) && std::isnan(val);
+                     : (missing_tracks_true_[treeindex] != 0) && std::isnan(val);
     float threshold = nodes_values_[treeindex];
     if (mode == NODE_MODE::BRANCH_LEQ) {
       treeindex = val <= threshold || tracktrue ? nodes_truenodeids_[treeindex] : nodes_falsenodeids_[treeindex];

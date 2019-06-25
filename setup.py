@@ -181,11 +181,11 @@ if not r:
     elif sys.platform.startswith("darwin"):
         libraries_thread = None
         extra_compile_args = ['-stdlib=libc++', '-mmacosx-version-min=10.7',
-                              '-fpermissive', '-std=c++11', '-fopenmp']
+                              '-fpermissive', '-std=c++11', '-fopenmp', '-lomp']
     else:
         libraries_thread = None
         # , '-o2', '-mavx512f']
-        extra_compile_args = ['-fpermissive', '-std=c++11', '-fopenmp']
+        extra_compile_args = ['-fpermissive', '-std=c++11', '-fopenmp', '-lgomp']
 
     # extensions
 
@@ -241,6 +241,6 @@ if not r:
         packages=packages,
         package_dir=package_dir,
         package_data=package_data,
-        setup_requires=["onnx", "scikit-learn", "jinja2", "pybind11"],
+        setup_requires=["pybind11", "numpy", "onnx", "scikit-learn", "jinja2"],
         install_requires=["pybind11"],
     )
