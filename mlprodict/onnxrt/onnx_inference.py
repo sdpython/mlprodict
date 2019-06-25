@@ -700,7 +700,8 @@ class OnnxInference:
         else:
             if verbose >= 2:
                 for k in sorted(values):
-                    fLOG("-k='{}'\n    {}".format(k, values[k]))
+                    fLOG("-k='{}' shape={} dtype={}".format(
+                        k, values[k].shape, values[k].dtype))
             keys = set(values)
             for node in self.sequence_:
                 if verbose >= 1:

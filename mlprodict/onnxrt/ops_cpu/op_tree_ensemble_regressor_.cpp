@@ -88,6 +88,9 @@ class RuntimeTreeEnsembleRegressor
     private:
 
         void Initialize();
+    
+        void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
+                              const py::array_t<float>& X, py::array_t<float>& Z) const;
 };
 
 
@@ -252,7 +255,7 @@ void RuntimeTreeEnsembleRegressor::Initialize() {
 
 py::array_t<float> RuntimeTreeEnsembleRegressor::compute(py::array_t<float> X) const {
     // const Tensor& X = *context->Input<Tensor>(0);
-    // const TensorShape& x_shape = X.Shape();
+    // const TensorShape& x_shape = X.Shape();    
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
@@ -266,9 +269,24 @@ py::array_t<float> RuntimeTreeEnsembleRegressor::compute(py::array_t<float> X) c
     // auto* Z = context->Output(1, TensorShape({N, class_count_}));
     py::array_t<float> Z(x_dims[0] * n_targets_);
 
+    {
+        py::gil_scoped_release release;
+        compute_gil_free(x_dims, N, stride, X, Z);
+    }
+    return Z;
+}
+    
+    
+void RuntimeTreeEnsembleRegressor::compute_gil_free(
+                const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
+                const py::array_t<float>& X, py::array_t<float>& Z) const {
+
     auto Z_ = Z.mutable_unchecked<1>();
     const float* x_data = X.data(0);
-    
+                    
+#ifdef USE_OPENMP
+#pragma omp parallel for
+#endif
   for (int64_t i = 0; i < N; i++)  //for each class
   {
     int64_t current_weight_0 = i * stride;
@@ -299,7 +317,6 @@ py::array_t<float> RuntimeTreeEnsembleRegressor::compute(py::array_t<float> X) c
     }
     write_scores(outputs, post_transform_, (float*)Z_.data(i * n_targets_), -1);
   }
-  return Z;
 }
 
 void RuntimeTreeEnsembleRegressor::ProcessTreeNode(std::unordered_map < int64_t, std::tuple<float, float, float>>& classes,

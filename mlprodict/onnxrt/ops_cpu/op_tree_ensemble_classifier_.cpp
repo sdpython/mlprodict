@@ -88,6 +88,9 @@ class RuntimeTreeEnsembleClassifier
     private:
 
         void Initialize();
+
+        void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
+                              const py::array_t<float>& X, py::array_t<int64_t>& Y, py::array_t<float>& Z) const;
 };
 
 
@@ -328,15 +331,26 @@ py::tuple RuntimeTreeEnsembleClassifier::compute(py::array_t<float> X) const {
     py::array_t<int64_t> Y(x_dims[0]);
     py::array_t<float> Z(x_dims[0] * class_count_);
 
+    {
+        py::gil_scoped_release release;
+        compute_gil_free(x_dims, N, stride, X, Y, Z);
+    }
+    return py::make_tuple(Y, Z);
+}
+    
+void RuntimeTreeEnsembleClassifier::compute_gil_free(
+                const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
+                const py::array_t<float>& X, py::array_t<int64_t>& Y, py::array_t<float>& Z) const {
     auto Y_ = Y.mutable_unchecked<1>();
     auto Z_ = Z.mutable_unchecked<1>();
     const float* x_data = X.data(0);
 
     // for each class
-    std::vector<float> scores;
-    scores.reserve(class_count_);
+#ifdef USE_OPENMP
+#pragma omp parallel for
+#endif
     for (int64_t i = 0; i < N; ++i) {
-        scores.clear();
+        std::vector<float> scores;
         int64_t current_weight_0 = i * stride;
         std::map<int64_t, float> classes;
 
@@ -403,7 +417,6 @@ py::tuple RuntimeTreeEnsembleClassifier::compute(py::array_t<float> X) const {
         write_scores(scores, post_transform_, (float*)Z_.data(i * class_count_),
                      write_additional_scores);
     }
-    return py::make_tuple(Y, Z);
 }
 
 void RuntimeTreeEnsembleClassifier::ProcessTreeNode(std::map<int64_t, float>& classes,

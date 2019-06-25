@@ -18,7 +18,11 @@ class Cast(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        expected_attributes=Cast.atts,
                        **options)
-        if self.to == 7:  # pylint: disable=E1101
+        if self.to == 1:  # pylint: disable=E1101
+            self._cast = lambda x: x.astype(numpy.float32)
+        elif self.to == 6:  # pylint: disable=E1101
+            self._cast = lambda x: x.astype(numpy.int32)
+        elif self.to == 7:  # pylint: disable=E1101
             self._cast = lambda x: x.astype(numpy.int64)
         else:
             raise ValueError("Unexpected value for to='{}'.".format(

@@ -9,7 +9,7 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LogisticRegression, LinearRegression
-from sklearn.neighbors import KNeighborsRegressor
+from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx import to_onnx
@@ -59,6 +59,26 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         exp = clr.transform(X_test)
         self.assertEqualArray(exp, got['scores'], decimal=5)
         self.assertGreater(len(rows), 2)
+
+    def test_onnxrt_python_KNeighborsClassifier(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = KNeighborsClassifier()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        for i in range(0, X_test.shape[0]):
+            y = oinf.run({'X': X_test[i:i + 1]})
+            self.assertEqual(list(sorted(y)), [
+                             'output_label', 'output_probability'])
+            lexp = clr.predict(X_test[i:i + 1])
+            self.assertEqualArray(lexp, y['output_label'])
+
+            exp = clr.predict_proba(X_test[i:i + 1])
+            got = pandas.DataFrame(y['output_probability']).values
+            self.assertEqualArray(exp, got, decimal=5)
 
     def test_onnxrt_python_KNeighborsRegressor_simple_k1(self):
         X = numpy.array([[0, 1], [0.2, 1.2], [1, 2], [
