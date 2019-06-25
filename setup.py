@@ -215,6 +215,7 @@ if not r:
                                              os.path.join(
                                                 root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_.cpp')],
                                             extra_compile_args=extra_compile_args,
+                                            extra_link_args=extra_link_args,
                                             include_dirs=[
                                                 # Path to pybind11 headers
                                                 get_pybind_include(),

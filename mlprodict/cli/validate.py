@@ -60,6 +60,12 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             dump_folder))
     if opset_max == "":
         opset_max = None
+    if isinstance(opset_min, str):
+        opset_min = int(opset_min)
+    if isinstance(opset_max, str):
+        opset_max = int(opset_max)
+    if isinstance(verbose, str):
+        verbose = int(verbose)
     rows = list(enumerate_validated_operator_opsets(verbose, models=models, fLOG=fLOG,
                                                     runtime=runtime, debug=debug,
                                                     dump_folder=dump_folder,
