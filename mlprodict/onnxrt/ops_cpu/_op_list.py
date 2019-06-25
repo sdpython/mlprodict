@@ -17,6 +17,7 @@ from .op_clip import Clip
 from .op_concat import Concat
 from .op_div import Div
 from .op_exp import Exp
+from .op_equal import Equal
 from .op_gemm import Gemm
 from .op_greater import Greater
 from .op_floor import Floor
@@ -42,6 +43,7 @@ from .op_sqrt import Sqrt
 from .op_sub import Sub
 from .op_sum import Sum
 from .op_topk import TopK
+from .op_transpose import Transpose
 from .op_tree_ensemble_classifier import TreeEnsembleClassifier
 from .op_tree_ensemble_regressor import TreeEnsembleRegressor
 from .op_zipmap import ZipMap

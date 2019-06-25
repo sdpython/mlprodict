@@ -21,6 +21,8 @@ class ReduceLogSumExp(OpRun):
         if isinstance(self.axes, numpy.ndarray):
             if len(self.axes.shape) == 0 or self.axes.shape[0] == 0:
                 self.axes = None
+            else:
+                self.axes = tuple(self.axes)
         elif self.axes in [[], tuple()]:
             self.axes = None
         elif isinstance(self.axes, list):

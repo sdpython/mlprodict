@@ -21,12 +21,16 @@ class TopK(OpRun):
 
     def _run(self, data, ink):  # pylint: disable=W0221
         # Not the most efficient.
-        sort = numpy.sort(data, axis=self.axis if self.axis >= 0 else None)
+        # Negative axis means to begin from the last axis.
+        # See https://github.com/Microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/math/top_k.cc#L63.
         k = ink[0]
-        if self.axis == -1 or k == -1 or data.shape[self.axis] <= k:
-            return (sort, )
-        else:
+        axis = self.axis if self.axis >= 0 else (self.axis + len(data.shape))
+        sorti = numpy.argsort(data, axis=axis)
+        sort = numpy.sort(data, axis=axis)
+        if k > 0:
             shapes = [0 for s in data.shape]
-            shapes[self.axis] = data.shape[self.axis] - k
+            shapes[axis] = data.shape[axis] - k
             indices = tuple(slice(b, e) for b, e in zip(shapes, data.shape))
-            return (sort[indices], )
+            return (sort[indices], sorti[indices])
+        else:
+            return (sort, sorti)

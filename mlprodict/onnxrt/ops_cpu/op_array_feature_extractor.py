@@ -16,5 +16,18 @@ class ArrayFeatureExtractor(OpRun):
                        **options)
 
     def _run(self, data, indices):  # pylint: disable=W0221
-        index = indices.tolist()
-        return (data[..., index], )
+        if len(indices.shape) == 2 and indices.shape[0] == 1:
+            index = indices.ravel().tolist()
+        elif len(indices.shape) == 1:
+            index = indices.tolist()
+        else:
+            raise RuntimeError("Unable to extract indices {} from data shape {}".format(
+                indices, data.shape))
+        if len(data.shape) == 1:
+            # https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/array_feature_extractor.cc#L84
+            # ONNX specifications does not say anything specific about it.
+            new_shape = (1, len(index))
+        else:
+            new_shape = list(data.shape[:-1]) + [len(index)]
+        res = data[..., index].reshape(new_shape)
+        return (res, )

@@ -18,7 +18,9 @@ class ReduceProd(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        expected_attributes=ReduceProd.atts,
                        **options)
-        if self.axes in [[], tuple()]:
+        if isinstance(self.axes, numpy.ndarray):
+            self.axes = tuple(self.axes)
+        elif self.axes in [[], tuple()]:
             self.axes = None
         elif isinstance(self.axes, list):
             self.axes = tuple(self.axes)

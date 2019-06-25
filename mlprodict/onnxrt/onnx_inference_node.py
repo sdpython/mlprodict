@@ -46,7 +46,7 @@ class OnnxInferenceNode:
 
     def __str__(self):
         "usual"
-        return "'Onnx-{}({}) -> {}".format(
+        return "Onnx-{}({}) -> {}".format(
             self.op_type, ", ".join(sorted(self.inputs)),
             ", ".join(sorted(self.outputs)))
 
@@ -76,5 +76,8 @@ class OnnxInferenceNode:
         res = self.ops_.run(*args)
         if not isinstance(res, tuple):
             raise RuntimeError("Results of an operator should be a tuple.")
+        if len(self.outputs) != len(res):
+            raise RuntimeError("Mismatch number of outputs got {} for names {}.".format(
+                len(res), list(sorted(self.outputs))))
         for name, value in zip(self.outputs, res):
             values[name] = value

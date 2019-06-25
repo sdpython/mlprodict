@@ -644,13 +644,15 @@ class OnnxInference:
         return dict(inits=inits, inputs=variables, outputs=outputs,
                     nodes=nodes, sequence=sequence, intermediate=intermediate)
 
-    def run(self, inputs, clean_right_away=False):
+    def run(self, inputs, clean_right_away=False, verbose=0, fLOG=None):
         """
         Computes the predictions for this :epkg:`onnx` graph.
 
         @param      inputs              inputs as dictionary
         @param      clean_right_away    clean the intermediate outputs
                                         as soon as they are not needed
+        @param      verbose             display information while predicting
+        @param      fLOG                logging function if *verbose > 0*
         @return                         outputs as dictionary
 
         .. exref::
@@ -684,19 +686,36 @@ class OnnxInference:
                 y = oinf.run({'X': X_test[:5]})
                 print(y)
         """
-        return self._run(inputs, clean_right_away=False)
+        return self._run(inputs, clean_right_away=False, verbose=verbose, fLOG=fLOG)
 
-    def _run_sequence_runtime(self, inputs, clean_right_away=False):
+    def _run_sequence_runtime(self, inputs, clean_right_away=False, verbose=0, fLOG=None):
         if clean_right_away:
             raise NotImplementedError("clean_right_away=true not implemented.")
         values = inputs.copy()
         for k, v in self.inits_.items():
             values[k] = v['value']
-        for node in self.sequence_:
-            node.run(values)
+        if verbose == 0 or fLOG is None:
+            for node in self.sequence_:
+                node.run(values)
+        else:
+            if verbose >= 2:
+                for k in sorted(values):
+                    fLOG("-k='{}'\n    {}".format(k, values[k]))
+            keys = set(values)
+            for node in self.sequence_:
+                if verbose >= 1:
+                    fLOG(node)
+                node.run(values)
+                for k in sorted(values):
+                    if k not in keys:
+                        fLOG("+k='{}'\n    {}".format(k, values[k]))
+                keys = set(values)
+
         return {k: values[k] for k in self.outputs_}
 
-    def _run_whole_runtime(self, inputs, clean_right_away=False):
+    def _run_whole_runtime(self, inputs, clean_right_away=False, verbose=0, fLOG=None):
+        if verbose != 0:
+            raise NotImplementedError("verbose option not implemented.")
         if clean_right_away:
             raise RuntimeError(
                 "clean_right_away=true does not wrok with this runtime.")
