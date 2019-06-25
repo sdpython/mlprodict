@@ -178,23 +178,26 @@ if not r:
         libraries_thread = ['kernel32']
         extra_compile_args = ['/EHsc', '/O2',
                               '/Ob2', '/Gy', '/std:c++11', '/openmp']
+        extra_linker_args = None
     elif sys.platform.startswith("darwin"):
         libraries_thread = None
         extra_compile_args = ['-stdlib=libc++', '-mmacosx-version-min=10.7',
-                              '-fpermissive', '-std=c++11', '-fopenmp', '-lomp']
+                              '-fpermissive', '-std=c++11', '-fopenmp']
+        extra_linker_args = ['-lomp']
     else:
         libraries_thread = None
         # , '-o2', '-mavx512f']
-        extra_compile_args = ['-fpermissive', '-std=c++11', '-fopenmp', '-lgomp']
+        extra_compile_args = ['-fpermissive', '-std=c++11', '-fopenmp']
+        extra_linker_args = ['-lgomp']
 
     # extensions
-
     ext_tree_ensemble_classifier = Extension('mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_',
                                              [os.path.join(
                                                  root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_classifier_.cpp'),
                                               os.path.join(
                                                  root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_.cpp')],
                                              extra_compile_args=extra_compile_args,
+                                             extra_linker_args=extra_linker_args,
                                              include_dirs=[
                                                  # Path to pybind11 headers
                                                  get_pybind_include(),
