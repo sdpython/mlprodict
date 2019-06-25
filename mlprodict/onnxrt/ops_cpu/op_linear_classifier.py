@@ -30,8 +30,6 @@ class LinearClassifier(OpRun):
                 "Fields classlabels_ints or classlabels_strings must be specified.")
         self.nb_class = max(len(getattr(self, 'classlabels_ints', [])),
                             len(getattr(self, 'classlabels_strings', [])))
-        if self.nb_class == 2:
-            self.nb_class = 1
         if len(self.coefficients.shape) != 1:
             raise ValueError("coefficient must be an array but has shape {}\n{}.".format(
                 self.coefficients.shape, desc))

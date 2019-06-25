@@ -163,7 +163,27 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         self.assertIn('op_type=LinearRegressor', text)
         self.assertIn("post_transform=b'NONE'", text)
 
-    def test_onnxrt_python_LogisticRegression(self):
+    def test_onnxrt_python_LogisticRegression_binary(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        y[y == 2] = 1
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = LogisticRegression(solver="liblinear")
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        y = oinf.run({'X': X_test})
+        self.assertEqual(list(sorted(y)), [
+                         'output_label', 'output_probability'])
+        lexp = clr.predict(X_test)
+        self.assertEqualArray(lexp, y['output_label'])
+
+        exp = clr.predict_proba(X_test)
+        got = pandas.DataFrame(y['output_probability']).values
+        self.assertEqualArray(exp, got, decimal=5)
+
+    def test_onnxrt_python_LogisticRegression_multi(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
