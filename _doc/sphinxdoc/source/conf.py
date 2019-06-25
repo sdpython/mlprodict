@@ -56,6 +56,7 @@ epkg_dictionary.update({
     'onnxconverter_common': 'https://github.com/onnx/onnxmltools/tree/master/onnxutils/onnxconverter_common',
     'onnxruntime': 'https://github.com/microsoft/onnxruntime',
     'Python': 'https://www.python.org/',
+    'Rust': 'https://www.rust-lang.org/',
     'sklearn-onnx': 'https://github.com/onnx/sklearn-onnx',
     'xgboost': "https://xgboost.readthedocs.io/en/latest/",
 })

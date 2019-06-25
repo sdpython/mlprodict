@@ -1,0 +1,27 @@
+
+.. blogpost::
+    :title: ONNX, runtime
+    :keywords: onnx, onnxrt
+    :date: 2019-06-25
+    :categories: onnx
+
+    Somebody asked me one day if it would be difficult to
+    write a runtime for :epkg:`ONNX` in :epkg:`Rust`.
+    I just replied that it should not take that long
+    but it would require to implement a way to goes
+    through the nodes of the :epkg:`ONNX` graph
+    and to have an implementation for every
+    :epkg:`ONNX Operators`...
+
+    So tried to do it in :epkg:`Python` only
+    for :epkg:`scikit-learn` models. Well...
+    It is not that difficult. And yet was class
+    :class:`OnnxInference
+    <mlprodict.onnxrt.onnx_inference.OnnxInference>`
+    with one method :meth:`to_sequence
+    <mlprodict.onnxrt.onnx_inference.OnnxInference.to_sequence>`.
+    Implementation of every operator needed is in folder
+    `onnxrt <https://github.com/sdpython/mlprodict/tree/master/mlprodict/onnxrt>`_.
+
+    Page about :ref:`l-CMD2` might be interesting to
+    compare runtime.
