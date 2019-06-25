@@ -15,6 +15,11 @@ jobs:
           - v2-dependencies-
 
       - run:
+          name: Install omp
+          command: |
+                    sudo apt-get install -y libomp-dev
+          
+      - run:
           name: Install pandoc
           command: |
                     sudo apt-get update 
