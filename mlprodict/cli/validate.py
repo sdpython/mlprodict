@@ -57,7 +57,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
 
         ::
 
-            python -m mlprodict validate_runtime -v 1 -o 10 -op 10 -c 1 -r onnxruntime-whole -m RandomForestRegressor,DecisionTreeRegressor -out bench_onnxruntime.xlsx -b 1
+            python -m mlprodict validate_runtime -v 1 -o 10 -op 10 -c 1 -r onnxruntime-whole
+                   -m RandomForestRegressor,DecisionTreeRegressor -out bench_onnxruntime.xlsx -b 1
     """
     models = None if models in (None, "") else models.strip().split(',')
     logger = getLogger('skl2onnx')
