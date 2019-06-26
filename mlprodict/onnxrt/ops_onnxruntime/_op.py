@@ -13,6 +13,7 @@ from skl2onnx.common.data_types import (
     Int64Type, Int64TensorType
 )
 from skl2onnx.common.data_types import _guess_type_proto
+from skl2onnx.algebra.type_helper import _guess_type
 
 
 _schemas = {
@@ -93,6 +94,12 @@ class OpRunOnnxRuntime:
                 ty = variables[name]
                 if isinstance(ty, DataType):
                     return variables[name]
+                elif isinstance(ty, dict) and 'value' in ty:
+                    # constant
+                    arr = ty['value']
+                    if isinstance(arr, numpy.ndarray) and arr.dtype == numpy.float64:
+                        arr = arr.astype(numpy.float32)
+                    return _guess_type(arr)
                 raise NotImplementedError("Unable to guess type for '{}' form '{}'.".format(
                     name, variables[name]))
             else:
