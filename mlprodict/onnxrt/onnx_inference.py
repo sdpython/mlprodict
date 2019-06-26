@@ -212,11 +212,14 @@ class OnnxInference:
             # initializer
             dims = [d for d in var.dims]
             if var.data_type == 1 and var.float_data is not None:
-                data = numpy.array(var.float_data, copy=False).reshape(dims)
+                data = numpy.array(var.float_data, dtype=numpy.float32,
+                                   copy=False).reshape(dims)
             elif var.data_type == 6 and var.int32_data is not None:
-                data = numpy.array(var.int32_data, copy=False).reshape(dims)
+                data = numpy.array(var.int32_data, dtype=numpy.int32,
+                                   copy=False).reshape(dims)
             elif var.data_type == 7 and var.int64_data is not None:
-                data = numpy.array(var.int64_data, copy=False).reshape(dims)
+                data = numpy.array(var.int64_data, dtype=numpy.int64,
+                                   copy=False).reshape(dims)
             else:
                 raise NotImplementedError(
                     "Iniatilizer {} cannot be converted into a dictionary.".format(var))

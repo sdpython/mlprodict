@@ -527,6 +527,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     # compute batch
     def fct_batch(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
         return se.run({it[0][0]: xo}, verbose=1 if debug else 0, fLOG=fLOG)
+    if debug:
+        keep_exc = None
     try:
         opred, t7 = _measure_time(fct_batch)
         obs_op['ort_run_time_batch'] = t7
@@ -534,7 +536,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             {init_types[0][0]: xo}), Xort_test)
     except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
         if debug:
-            raise
+            keep_exc = e
         obs_op['_6ort_run_batch_exc'] = e
     if benchmark and 'lambda-batch' in obs_op:
         obs_op['bench-batch'] = benchmark_fct(*obs_op['lambda-batch'])
@@ -592,8 +594,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             Xort_test
         )
     except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
-        if debug:
-            raise
+        if debug and keep_exc is not None:
+            raise keep_exc
         obs_op['_9ort_run_single_exc'] = e
     if benchmark and 'lambda-single' in obs_op and 'lambda-batch' not in obs_op:
         obs_op['bench-single'] = benchmark_fct(*obs_op['lambda-single'])
@@ -639,7 +641,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         raise debug_exc[0]
     if debug:
         import pprint
-        pprint.pprint(obs_op)
+        fLOG(pprint.pformat(obs_op))
     return obs_op
 
 

@@ -10,7 +10,7 @@ import skl2onnx.algebra.onnx_ops as alg
 from skl2onnx.common.data_types import (
     DataType,
     FloatTensorType, SequenceType, DictionaryType,
-    Int64Type, Int64TensorType
+    Int64Type, Int64TensorType, BooleanTensorType
 )
 from skl2onnx.common.data_types import _guess_type_proto
 from skl2onnx.algebra.type_helper import _guess_type
@@ -56,7 +56,6 @@ class OpRunOnnxRuntime:
         self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
         self.inputs = list(self.onnx_node.input)
         self.outputs = list(self.onnx_node.output)
-        # print(self.onnx_node)
         self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
                                     **self.options)
         inputs = self.get_defined_inputs(variables)
@@ -66,12 +65,12 @@ class OpRunOnnxRuntime:
         except RuntimeError:
             # Let's try again by forcing output types.
             forced = True
-            outputs = self.get_defined_outputs()
+            outputs = self.get_defined_outputs(variables)
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
         if len(self.onnx_.graph.output) != self.outputs:
             # Something is wrong, falls back to default plan.
             forced = True
-            outputs = self.get_defined_outputs()
+            outputs = self.get_defined_outputs(variables)
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
         try:
             self.sess_ = InferenceSession(self.onnx_.SerializeToString())
@@ -109,17 +108,36 @@ class OpRunOnnxRuntime:
         inputs = [(name, guess_type_variable(name)) for name in self.inputs]
         return inputs
 
-    def get_defined_outputs(self):
+    def _guess_type(self, var):
+        if isinstance(var, dict) and 'value' in var:
+            return _guess_type(var['value'])
+        else:
+            return _guess_type(var)
+
+    def get_defined_outputs(self, variables=None):
         """
         Gets predefined outputs when they cannot be inferred.
+
+        @param      variables               registered variables created by previous operators
         """
         if self.onnx_node.op_type == "ZipMap":
             otype = SequenceType(DictionaryType(
                 Int64Type(), FloatTensorType()))
             outputs = [(name, otype) for name in self.outputs]
+        elif self.onnx_node.op_type in ("ArgMin", "ArgMax") and len(self.outputs) == 1:
+            outputs = [(self.outputs[0], Int64TensorType())]
+        elif self.onnx_node.op_type in ("Greater", "Lesser") and len(self.outputs) == 1:
+            outputs = [(self.outputs[0], BooleanTensorType())]
         elif self.onnx_node.op_type == "Cast" and len(self.outputs) == 1:
             ttyp = _guess_type_proto(self.onnx_node.attribute[0].i, dims=None)
             outputs = [(self.outputs[0], ttyp)]
+        elif self.onnx_node.op_type == "ArrayFeatureExtractor":
+            if variables is None:
+                raise RuntimeError(
+                    "Unable to guess output types without variables.")
+            name = self.onnx_node.input[0]
+            var = variables[name]
+            outputs = [(self.outputs[0], self._guess_type(var))]
         elif self.outputs == ['label', 'probability_tensor']:
             # Good chance that's a classifier.
             outputs = [(self.outputs[0], Int64TensorType()),
