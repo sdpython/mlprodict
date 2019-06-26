@@ -7,7 +7,10 @@ import numpy
 import onnx.defs
 from onnxruntime import InferenceSession
 import skl2onnx.algebra.onnx_ops as alg
-from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx.common.data_types import (
+    FloatTensorType, SequenceType, DictionaryType,
+    Int64Type
+)
 
 
 _schemas = {
@@ -49,14 +52,40 @@ class OpRunOnnxRuntime:
         self.outputs = list(self.onnx_node.output)
         self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
                                     **self.options)
-        inputs = [(name, FloatTensorType()) for name in self.inputs]
+        inputs = self.get_defined_inputs()
         try:
             self.onnx_ = self.inst_.to_onnx(inputs)
+            forced = False
         except RuntimeError:
             # Let's try again by forcing output types.
-            outputs = [(name, FloatTensorType()) for name in self.outputs]
+            forced = True
+            outputs = self.get_defined_outputs()
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
-        self.sess_ = InferenceSession(self.onnx_.SerializeToString())
+        try:
+            self.sess_ = InferenceSession(self.onnx_.SerializeToString())
+        except RuntimeError as e:
+            raise RuntimeError("Unable to load node '{}' (output type was {})\n{}".format(
+                self.onnx_node.op_type, "guessed" if forced else "inferred",
+                self.onnx_)) from e
+
+    def get_defined_inputs(self):
+        """
+        Gets predefined inputs.
+        """
+        inputs = [(name, FloatTensorType()) for name in self.inputs]
+        return inputs
+
+    def get_defined_outputs(self):
+        """
+        Gets predefined outputs when they cannot be inferred.
+        """
+        if self.onnx_node.op_type == "ZipMap":
+            otype = SequenceType(DictionaryType(
+                Int64Type(), FloatTensorType()))
+            outputs = [(name, otype) for name in self.outputs]
+        else:
+            outputs = [(name, FloatTensorType()) for name in self.outputs]
+        return outputs
 
     def run(self, *args, **kwargs):
         """

@@ -13,8 +13,6 @@ class Transpose(OpRun):
     atts = {'perm': []}
 
     def __init__(self, onnx_node, desc=None, **options):
-        if desc is None:
-            raise ValueError("desc should not be None.")
         OpRun.__init__(self, onnx_node, desc=desc,
                        expected_attributes=Transpose.atts,
                        **options)

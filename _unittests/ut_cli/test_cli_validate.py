@@ -23,7 +23,8 @@ class TestCliValidate(ExtTestCase):
         st = BufferedPrint()
         main(args=["validate_runtime", "--out_raw", out1,
                    "--out_summary", out2, "--models",
-                   "LogisticRegression,LinearRegression"],
+                   "LogisticRegression,LinearRegression",
+                   '-o', '10', '-op', '10', '-v', '1'],
              fLOG=st.fprint)
         res = str(st)
         self.assertIn('Linear', res)

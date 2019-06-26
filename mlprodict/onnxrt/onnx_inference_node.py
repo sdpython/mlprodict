@@ -77,7 +77,9 @@ class OnnxInferenceNode:
         if not isinstance(res, tuple):
             raise RuntimeError("Results of an operator should be a tuple.")
         if len(self.outputs) != len(res):
-            raise RuntimeError("Mismatch number of outputs got {} for names {}.".format(
-                len(res), list(sorted(self.outputs))))
+            import pprint
+            raise RuntimeError("Mismatch number of outputs got {} for names {}.\n{}".format(
+                len(res), list(sorted(self.outputs)),
+                pprint.pformat(self.desc)))
         for name, value in zip(self.outputs, res):
             values[name] = value

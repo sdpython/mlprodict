@@ -66,11 +66,17 @@ class TestGrammarSklearnLinear(ExtTestCase):
         self.assertEqual(e1[0], e2[0])
         self.assertEqualFloat(p1, e2[1])
 
-    def test_sklearn_linear_regression(self):
+    def test_sklearn_linear_regression_verbose(self):
         from sklearn.linear_model import LinearRegression
         X, y = iris_data()
+        rows = []
+
+        def myprint(*args, **kwargs):
+            rows.append(' '.join(map(str, args)))
+
         check_model_representation(
-            LinearRegression, X, y, verbose=False, fLOG=None)
+            LinearRegression, X, y, verbose=True, fLOG=myprint)
+        self.assertGreater(len(rows), 2)
 
 
 if __name__ == "__main__":

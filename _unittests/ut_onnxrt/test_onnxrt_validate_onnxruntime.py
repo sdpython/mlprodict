@@ -24,7 +24,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
             __file__, "temp_validate_sklearn_operators_all_onnxruntime")
         if False:  # pylint: disable=W0125
             rows = list(enumerate_validated_operator_opsets(
-                verbose, models={"KMeans"}, opset_min=11, fLOG=fLOG,
+                verbose, models={"LogisticRegression"}, opset_min=11, fLOG=fLOG,
                 runtime='onnxruntime', debug=True))
         else:
             rows = list(enumerate_validated_operator_opsets(verbose, debug=None, fLOG=fLOG,

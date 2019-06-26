@@ -13,8 +13,6 @@ class Gemm(OpRun):
     atts = {'alpha': 1., 'beta': 1., 'transA': 0, 'transB': 0}
 
     def __init__(self, onnx_node, desc=None, **options):
-        if desc is None:
-            raise ValueError("desc should not be None.")
         OpRun.__init__(self, onnx_node, desc=desc,
                        expected_attributes=Gemm.atts,
                        **options)
