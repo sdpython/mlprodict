@@ -496,7 +496,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                         output_index=output_index, Xort_=Xort_,
                                         ypred=ypred, Xort_test=Xort_test,
                                         model=model, dump_folder=dump_folder,
-                                        benchmark=benchmark and opset == opsets[-1])
+                                        benchmark=benchmark and opset == opsets[-1],
+                                        fLOG=fLOG)
                 else:
                     yield obs_op
 
@@ -504,7 +505,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                   X_, y_, init_types, method, output_index,
                   Xort_, ypred, Xort_test, model, dump_folder,
-                  benchmark):
+                  benchmark, fLOG):
     """
     Private.
     """
@@ -525,7 +526,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
     # compute batch
     def fct_batch(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
-        return se.run({it[0][0]: xo})
+        return se.run({it[0][0]: xo}, verbose=1 if debug else 0, fLOG=fLOG)
     try:
         opred, t7 = _measure_time(fct_batch)
         obs_op['ort_run_time_batch'] = t7
@@ -580,7 +581,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
     # compute single
     def fct_single(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
-        return [se.run({it[0][0]: Xort_row})
+        return [se.run({it[0][0]: Xort_row}, verbose=1 if debug else 0, fLOG=fLOG)
                 for Xort_row in xo]
     try:
         opred, t7 = _measure_time(fct_single)

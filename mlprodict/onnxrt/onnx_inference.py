@@ -74,8 +74,11 @@ class OnnxInference:
             else:
                 self.sequence_ = self.graph_['sequence']
                 self.inits_ = self.graph_['inits']
+                variables = self.inits_.copy()
                 for node in self.sequence_:
-                    node.setup_runtime(self.runtime)
+                    node.setup_runtime(self.runtime, variables)
+                    for k, v in node.ops_.typed_outputs_:
+                        variables[k] = v
                 self._run = self._run_sequence_runtime
 
     def __str__(self):
@@ -709,7 +712,12 @@ class OnnxInference:
                 node.run(values)
                 for k in sorted(values):
                     if k not in keys:
-                        fLOG("+k='{}'\n    {}".format(k, values[k]))
+                        if isinstance(values[k], numpy.ndarray):
+                            fLOG("+k='{}': {} (dtype={})".format(
+                                k, values[k].shape, values[k].dtype))
+                        else:
+                            fLOG("+k='{}': {}".format(
+                                k, type(values[k])))
                 keys = set(values)
 
         return {k: values[k] for k in self.outputs_}

@@ -4,13 +4,14 @@
 """
 
 
-def load_op(onnx_node, desc=None, options=None):
+def load_op(onnx_node, desc=None, options=None, variables=None):
     """
     Sets up a class for a specific ONNX operator.
 
     @param      onnx_node       :epkg:`onnx` node
     @param      desc            internal representation
     @param      options         runtime options
+    @param      variables       registered variables created by previous operators
     @return                     runtime class
     """
     if desc is None:
@@ -27,6 +28,7 @@ def load_op(onnx_node, desc=None, options=None):
         return lo(onnx_node, desc=desc, options=options)
     elif provider == 'onnxruntime':
         from .ops_onnxruntime import load_op as lo
-        return lo(onnx_node, desc=desc, options=options)
+        return lo(onnx_node, desc=desc, options=options,
+                  variables=variables)
     else:
         raise ValueError("Unable to handle provider '{}'.".format(provider))

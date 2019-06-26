@@ -54,16 +54,18 @@ class OnnxInferenceNode:
         "usual"
         return self.__str__()
 
-    def setup_runtime(self, runtime=None):
+    def setup_runtime(self, runtime=None, variables=None):
         """
         Loads runtime.
 
         @param      runtime     runtime options
+        @param      variables   registered variables created by previous operators
         """
         if self.desc is None:
             raise AttributeError("desc should not be None.")
         self.ops_ = load_op(self.onnx_node, desc=self.desc,
-                            options={'provider': runtime} if runtime else None)
+                            options={'provider': runtime} if runtime else None,
+                            variables=variables)
 
     def run(self, values):
         """
