@@ -77,8 +77,9 @@ class OnnxInference:
                 variables = self.inits_.copy()
                 for node in self.sequence_:
                     node.setup_runtime(self.runtime, variables)
-                    for k, v in node.ops_.typed_outputs_:
-                        variables[k] = v
+                    if hasattr(node, 'ops_') and hasattr(node.ops_, 'typed_outputs_'):
+                        for k, v in node.ops_.typed_outputs_:
+                            variables[k] = v
                 self._run = self._run_sequence_runtime
 
     def __str__(self):
