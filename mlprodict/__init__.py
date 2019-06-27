@@ -28,3 +28,13 @@ def _setup_hook(use_print=False):
     """
     if use_print:
         print("Success: _setup_hook")
+
+
+def load_ipython_extension(ip):
+    """
+    To allow the call ``%load_ext mlprodict``
+
+    @param      ip      from ``get_ipython()``
+    """
+    from .onnxrt.nb_helper import register_onnx_magics as freg
+    freg(ip)
