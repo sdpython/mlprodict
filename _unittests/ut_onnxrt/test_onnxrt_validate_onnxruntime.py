@@ -7,8 +7,10 @@ from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import get_temp_folder, ExtTestCase
+from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
+from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
 
 
@@ -32,6 +34,8 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1)
 
+    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
+                     reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_onnxruntime_BernoulliNB(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

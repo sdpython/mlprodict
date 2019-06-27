@@ -33,6 +33,7 @@ class TestCodeStyle(ExtTestCase):
                                   'C0111', 'W0107'),
                    skip=["Instance of 'tuple' has no ",
                          "R1720",
+                         'if __name__ == "__main__":',
                          ])
 
 
