@@ -89,7 +89,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
             for row in enumerate_validated_operator_opsets(verbose, debug=None, fLOG=fLOG,
                                                            runtime='onnxruntime', dump_folder=temp):
                 rows.append(row)
-                if len(rows) >= 30:
+                if __name__ != "__main__" and len(rows) >= 30:
                     break
 
         self.assertGreater(len(rows), 1)

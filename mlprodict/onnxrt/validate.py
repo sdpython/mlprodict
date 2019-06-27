@@ -518,7 +518,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         sess, t6 = _measure_time(
             lambda: OnnxInference(ser, runtime=runtime))
         obs_op['tostring_time'] = t6
-    except (RuntimeError, ValueError) as e:
+    except (RuntimeError, ValueError, KeyError) as e:
         if debug:
             raise
         obs_op['_5ort_load_exc'] = e
