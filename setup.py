@@ -16,7 +16,8 @@ history = "HISTORY.rst"
 requirements = None
 
 KEYWORDS = project_var_name + ', Xavier Dupré'
-DESCRIPTION = """Ways to productionize machine learning predictions"""
+DESCRIPTION = ("Ways to productionize machine learning predictions, "
+               "Python Rutime for ONNX")
 CLASSIFIERS = [
     'Programming Language :: Python :: 3',
     'Intended Audience :: Developers',

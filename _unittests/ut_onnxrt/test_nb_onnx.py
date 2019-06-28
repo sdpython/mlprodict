@@ -25,8 +25,9 @@ class TestOnnxNotebook(ExtTestCase):
         mg.add_context(
             {"model": model_def})
         cmd = "--help"
-        res = mg.onnxview(cmd)
-        self.assertIn("notebook", res)
+        res, out, _ = self.capture(lambda: mg.onnxview(cmd))
+        self.assertEmpty(res)
+        self.assertIn("notebook", out)
 
         mg = OnnxNotebook()
         mg.add_context(

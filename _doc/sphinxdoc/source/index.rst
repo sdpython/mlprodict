@@ -84,9 +84,11 @@ One way is to convert the prediction function into :epkg:`C`.
     # We print after a little bit of cleaning (remove all comments)
     print("\n".join(_ for _ in ccode['code'].split("\n") if "//" not in _))
 
-Another way is to use :epkg:`ONNX`. :epkg:`onnxruntime` provides an efficient way
+Another way is to use :epkg:`ONNX`.
+:epkg:`onnxruntime` provides an efficient way
 to compute predictions. The current code explores ways to be faster
-at implementing something working.
+at implementing something working and provides a :epkg:`python`
+runtime for :epkg:`ONNX`.
 
 .. runpython::
     :showcode:
