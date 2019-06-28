@@ -8,6 +8,7 @@ import numpy
 from sklearn.base import ClusterMixin, BiclusterMixin, OutlierMixin
 from sklearn.base import RegressorMixin, ClassifierMixin
 from sklearn.datasets import load_iris
+from sklearn.ensemble import AdaBoostRegressor
 from sklearn.feature_selection import RFE, RFECV
 from sklearn.model_selection import GridSearchCV
 from sklearn.multiclass import OneVsRestClassifier
@@ -192,6 +193,9 @@ def find_suitable_problem(model):
             except RuntimeError:
                 print("-", model['name'], ": no associated problem")
     """
+    # Exceptions
+    if model in {AdaBoostRegressor}:
+        return ['regression']
     if model in {LinearSVC, NearestCentroid}:
         return ['clnoproba']
     if model in {RFE, RFECV, GridSearchCV}:
@@ -210,6 +214,7 @@ def find_suitable_problem(model):
         elif "Regressor" in str(model):
             return ['regression', 'multi-reg']
 
+    # Generic case.
     res = []
     if hasattr(model, 'transform'):
         if issubclass(model, (RegressorMixin, ClassifierMixin)):

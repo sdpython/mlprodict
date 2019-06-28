@@ -7,13 +7,7 @@ import numpy
 import onnx.defs
 from onnxruntime import InferenceSession
 import skl2onnx.algebra.onnx_ops as alg
-from skl2onnx.common.data_types import (
-    DataType,
-    FloatTensorType, SequenceType, DictionaryType,
-    Int64Type, Int64TensorType, BooleanTensorType
-)
-from skl2onnx.common.data_types import _guess_type_proto
-from skl2onnx.algebra.type_helper import _guess_type
+from ..graph_schema_helper import get_defined_inputs, get_defined_outputs
 
 
 _schemas = {
@@ -58,19 +52,21 @@ class OpRunOnnxRuntime:
         self.outputs = list(self.onnx_node.output)
         self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
                                     **self.options)
-        inputs = self.get_defined_inputs(variables)
+        inputs = get_defined_inputs(self.inputs, variables)
         try:
             self.onnx_ = self.inst_.to_onnx(inputs)
             forced = False
         except RuntimeError:
             # Let's try again by forcing output types.
             forced = True
-            outputs = self.get_defined_outputs(variables)
+            outputs = get_defined_outputs(
+                self.outputs, self.onnx_node, inputs, variables)
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
         if len(self.onnx_.graph.output) != self.outputs:
             # Something is wrong, falls back to default plan.
             forced = True
-            outputs = self.get_defined_outputs(variables)
+            outputs = get_defined_outputs(
+                self.outputs, self.onnx_node, inputs, variables)
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
         try:
             self.sess_ = InferenceSession(self.onnx_.SerializeToString())
@@ -79,72 +75,6 @@ class OpRunOnnxRuntime:
                 self.onnx_node.op_type, "guessed" if forced else "inferred",
                 self.onnx_)) from e
         self.typed_outputs_ = outputs
-
-    def get_defined_inputs(self, variables=None):
-        """
-        Gets predefined inputs.
-
-        @param      variables               registered variables created by previous operators
-        """
-        def guess_type_variable(name):
-            if variables is None:
-                return FloatTensorType()
-            elif name in variables:
-                ty = variables[name]
-                if isinstance(ty, DataType):
-                    return variables[name]
-                elif isinstance(ty, dict) and 'value' in ty:
-                    # constant
-                    arr = ty['value']
-                    if isinstance(arr, numpy.ndarray) and arr.dtype == numpy.float64:
-                        arr = arr.astype(numpy.float32)
-                    return _guess_type(arr)
-                raise NotImplementedError("Unable to guess type for '{}' form '{}'.".format(
-                    name, variables[name]))
-            else:
-                # Inputs. Let's assume it is a vector of floats.
-                return FloatTensorType()
-
-        inputs = [(name, guess_type_variable(name)) for name in self.inputs]
-        return inputs
-
-    def _guess_type(self, var):
-        if isinstance(var, dict) and 'value' in var:
-            return _guess_type(var['value'])
-        else:
-            return _guess_type(var)
-
-    def get_defined_outputs(self, variables=None):
-        """
-        Gets predefined outputs when they cannot be inferred.
-
-        @param      variables               registered variables created by previous operators
-        """
-        if self.onnx_node.op_type == "ZipMap":
-            otype = SequenceType(DictionaryType(
-                Int64Type(), FloatTensorType()))
-            outputs = [(name, otype) for name in self.outputs]
-        elif self.onnx_node.op_type in ("ArgMin", "ArgMax") and len(self.outputs) == 1:
-            outputs = [(self.outputs[0], Int64TensorType())]
-        elif self.onnx_node.op_type in ("Greater", "Lesser") and len(self.outputs) == 1:
-            outputs = [(self.outputs[0], BooleanTensorType())]
-        elif self.onnx_node.op_type == "Cast" and len(self.outputs) == 1:
-            ttyp = _guess_type_proto(self.onnx_node.attribute[0].i, dims=None)
-            outputs = [(self.outputs[0], ttyp)]
-        elif self.onnx_node.op_type == "ArrayFeatureExtractor":
-            if variables is None:
-                raise RuntimeError(
-                    "Unable to guess output types without variables.")
-            name = self.onnx_node.input[0]
-            var = variables[name]
-            outputs = [(self.outputs[0], self._guess_type(var))]
-        elif self.outputs == ['label', 'probability_tensor']:
-            # Good chance that's a classifier.
-            outputs = [(self.outputs[0], Int64TensorType()),
-                       (self.outputs[1], FloatTensorType())]
-        else:
-            outputs = [(name, FloatTensorType()) for name in self.outputs]
-        return outputs
 
     def run(self, *args, **kwargs):
         """

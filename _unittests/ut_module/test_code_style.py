@@ -34,6 +34,7 @@ class TestCodeStyle(ExtTestCase):
                    skip=["Instance of 'tuple' has no ",
                          "R1720",
                          'if __name__ == "__main__":',
+                         "# pylint: disable=E0611",
                          ])
 
 

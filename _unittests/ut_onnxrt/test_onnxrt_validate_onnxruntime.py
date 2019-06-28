@@ -54,6 +54,26 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1)
 
+    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
+                     reason="int64 not implemented for constants")
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_validate_sklearn_operators_onnxruntime_AdaBoostRegressor(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        verbose = 1 if __name__ == "__main__" else 0
+
+        buffer = []
+
+        def myprint(*args, **kwargs):
+            buffer.append(" ".join(map(str, args)))
+
+        rows = list(enumerate_validated_operator_opsets(
+            verbose, models={"AdaBoostRegressor"}, opset_min=11, fLOG=myprint,
+            runtime='onnxruntime', debug=True))
+        self.assertGreater(len(rows), 1)
+        self.assertGreater(len(buffer), 1)
+
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_onnxruntime_LogisticRegression(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -105,5 +125,6 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtValidateOnnxRuntime().test_validate_sklearn_operators_onnxruntime_BernoulliNB()
+    TestOnnxrtValidateOnnxRuntime(
+    ).test_validate_sklearn_operators_onnxruntime_AdaBoostRegressor()
     unittest.main()

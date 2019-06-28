@@ -5,7 +5,7 @@ import unittest
 from logging import getLogger
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx.algebra.onnx_ops import OnnxAdd
+from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnxrt.nb_helper import OnnxNotebook
 
 
