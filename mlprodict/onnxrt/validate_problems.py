@@ -10,6 +10,7 @@ from sklearn.base import RegressorMixin, ClassifierMixin
 from sklearn.datasets import load_iris
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.feature_selection import RFE, RFECV
+from sklearn.gaussian_process import GaussianProcessClassifier, GaussianProcessRegressor
 from sklearn.model_selection import GridSearchCV
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.neighbors import NearestCentroid
@@ -43,7 +44,7 @@ def _problem_for_predictor_multi_classification():
             'predict_proba', 1, X.astype(numpy.float32))
 
 
-def _problem_for_predictor_regression():
+def _problem_for_predictor_regression(many_output=False, options=None, **kwargs):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     regression problem.
@@ -52,11 +53,15 @@ def _problem_for_predictor_regression():
     data = load_iris()
     X = data.data
     y = data.target
-    return (X, y.astype(float), [('X', X[:1].astype(numpy.float32))],
-            'predict', 0, X.astype(numpy.float32))
+    meth = 'predict' if kwargs is None else ('predict', kwargs)
+    itt = [('X', X[:1].astype(numpy.float32))]
+    if options is not None:
+        itt = itt, options
+    return (X, y.astype(float), itt,
+            meth, 'all' if many_output else 0, X.astype(numpy.float32))
 
 
-def _problem_for_predictor_multi_regression():
+def _problem_for_predictor_multi_regression(many_output=False, options=None, **kwargs):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     multi-regression problem.
@@ -68,8 +73,12 @@ def _problem_for_predictor_multi_regression():
     y2 = numpy.empty((y.shape[0], 2))
     y2[:, 0] = y
     y2[:, 1] = y + 0.5
-    return (X, y2, [('X', X[:1].astype(numpy.float32))],
-            'predict', 0, X.astype(numpy.float32))
+    meth = 'predict' if kwargs is None else ('predict', kwargs)
+    itt = [('X', X[:1].astype(numpy.float32))]
+    if options is not None:
+        itt = itt, options
+    return (X, y2, itt,
+            meth, 'all' if many_output else 0, X.astype(numpy.float32))
 
 
 def _problem_for_numerical_transform():
@@ -194,6 +203,13 @@ def find_suitable_problem(model):
                 print("-", model['name'], ": no associated problem")
     """
     # Exceptions
+    if model in {GaussianProcessRegressor}:
+        return ['reg-nofit', 'multi-reg-nofit',
+                'reg-nofit-cov', 'multi-reg-nofit-cov',
+                'reg-nofit-std', 'multi-reg-nofit-std',
+                'regression', 'multi-reg']
+    if model in {GaussianProcessClassifier}:
+        return ['bin-class', 'multi-class']
     if model in {AdaBoostRegressor}:
         return ['regression']
     if model in {LinearSVC, NearestCentroid}:
@@ -256,4 +272,19 @@ _problems = {
     'cluster': _problem_for_clustering,
     'num-trans-cluster': _problem_for_clustering_scores,
     'num+y-trans': _problem_for_numerical_trainable_transform,
+    #
+    "bin-class-nofit": (lambda: _problem_for_predictor_binary_classification() + (False, )),
+    "multi-class-nofit": (lambda: _problem_for_predictor_multi_classification() + (False, )),
+    "reg-nofit": (lambda: _problem_for_predictor_regression() + (False, )),
+    "multi-reg-nofit": (lambda: _problem_for_predictor_multi_regression() + (False, )),
+    #
+    "reg-nofit-cov": (lambda: _problem_for_predictor_regression(
+        True, options={GaussianProcessRegressor: {"return_cov": True}}, return_cov=True) + (False, )),
+    "multi-reg-nofit-cov": (lambda: _problem_for_predictor_multi_regression(
+        True, options={GaussianProcessRegressor: {"return_cov": True}}, return_cov=True) + (False, )),
+    #
+    "reg-nofit-std": (lambda: _problem_for_predictor_regression(
+        True, options={GaussianProcessRegressor: {"return_std": True}}, return_std=True) + (False, )),
+    "multi-reg-nofit-std": (lambda: _problem_for_predictor_multi_regression(
+        True, options={GaussianProcessRegressor: {"return_std": True}}, return_std=True) + (False, )),
 }

@@ -15,6 +15,7 @@ from .op_cast import Cast
 from .op_ceil import Ceil
 from .op_clip import Clip
 from .op_concat import Concat
+from .op_constant_of_shape import ConstantOfShape
 from .op_div import Div
 from .op_exp import Exp
 from .op_equal import Equal
@@ -41,8 +42,13 @@ from .op_relu import Relu
 from .op_reshape import Reshape
 from .op_rnn import RNN
 from .op_scaler import Scaler
+from .op_scan import Scan
+from .op_shape import Shape
+from .op_sigmoid import Sigmoid
 from .op_slice import Slice
+from .op_softmax import Softmax
 from .op_sqrt import Sqrt
+from .op_squeeze import Squeeze
 from .op_sub import Sub
 from .op_sum import Sum
 from .op_topk import TopK

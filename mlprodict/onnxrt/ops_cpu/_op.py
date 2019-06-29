@@ -34,7 +34,7 @@ class OpRun:
                 for a, b in desc['atts'].items():
                     if not isinstance(b, dict) or 'value' not in b:
                         raise ValueError("Unexpected value {}.".format(b))
-                    options[a] = b['value']
+                    options[a] = b['value_rt'] if 'value_rt' in b else b['value']
         if expected_attributes is not None:
             for a, b in expected_attributes.items():
                 if a not in options:

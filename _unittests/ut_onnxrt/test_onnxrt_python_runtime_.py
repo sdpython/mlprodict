@@ -4,8 +4,10 @@
 import unittest
 from logging import getLogger
 import numpy
+from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper.version_helper import compare_module_version
+from sklearn.utils.extmath import softmax
 from sklearn.utils.testing import ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
@@ -15,11 +17,13 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxGemm, OnnxIdentity, OnnxLog, OnnxMatMul, OnnxMean, OnnxMul,
     OnnxPow, OnnxReciprocal,
     OnnxReduceLogSumExp,
-    OnnxReduceMean,
+    OnnxReduceMean, OnnxShape,
     OnnxReduceProd, OnnxReduceSum,
     OnnxReduceSumSquare, OnnxReshape,
     OnnxSlice, OnnxSqrt, OnnxSub, OnnxSum,
-    OnnxTopK, OnnxTranspose, OnnxRelu
+    OnnxTopK, OnnxTranspose, OnnxRelu,
+    OnnxSigmoid, OnnxSoftmax, OnnxSqueeze,
+    OnnxConstantOfShape
 )
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
@@ -196,6 +200,15 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(got['Z'].shape, (6, 2))
         exp = numpy.vstack([X, Y, cst])
         self.assertEqualArray(exp, got['Z'])
+
+    def test_onnxt_runtime_constant_of_shape(self):
+        x = numpy.array([2, 2], dtype=numpy.int64)
+        y = numpy.zeros((2, 2))
+        onx = OnnxConstantOfShape('X', output_names=['Y'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType())])
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
 
     def test_onnxt_runtime_div(self):
         self.common_test_onnxt_runtime_binary(OnnxDiv, lambda x, y: x / y)
@@ -421,6 +434,17 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         exp = X.reshape(sh.tolist())
         self.assertEqualArray(exp, got['Y'])
 
+    def test_onnxt_runtime_shape(self):
+        x = numpy.random.randn(20, 2).astype(numpy.float32)
+        y = x.shape
+        onx = OnnxShape('X', output_names=['Y'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
+
+    def test_onnxt_runtime_sigmoid(self):
+        self.common_test_onnxt_runtime_unary(OnnxSigmoid, logistic_sigmoid)
+
     @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
                      reason="int64 not implemented for constants")
     def test_onnxt_runtime_slice(self):
@@ -456,6 +480,24 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_sqrt(self):
         self.common_test_onnxt_runtime_unary(OnnxSqrt, numpy.sqrt)
+
+    def test_onnxt_runtime_squeeze(self):
+        x = numpy.random.randn(20, 1).astype(numpy.float32)
+        y = numpy.squeeze(x)
+        onx = OnnxSqueeze('X', axes=[1], output_names=['Y'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
+
+        x = numpy.random.randn(1, 20).astype(numpy.float32)
+        y = numpy.squeeze(x)
+        onx = OnnxSqueeze('X', axes=[0], output_names=['Y'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
+
+    def test_onnxt_runtime_softmax(self):
+        self.common_test_onnxt_runtime_unary(OnnxSoftmax, softmax)
 
     def test_onnxt_runtime_sub(self):
         self.common_test_onnxt_runtime_binary(OnnxSub, lambda x, y: x - y)

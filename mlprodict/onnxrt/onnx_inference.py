@@ -9,6 +9,8 @@ import numpy
 from onnx import load, load_model, checker, shape_inference
 from onnx import onnx_pb as onnx_proto
 from onnx import numpy_helper
+from onnx.helper import make_model
+from onnx.onnx_ml_pb2 import GraphProto
 from .onnx_inference_node import OnnxInferenceNode
 
 
@@ -33,6 +35,9 @@ class OnnxInference:
             self.obj = load(onnx_or_bytes_or_stream)
         elif hasattr(onnx_or_bytes_or_stream, 'graph'):
             self.obj = onnx_or_bytes_or_stream
+        elif isinstance(onnx_or_bytes_or_stream, GraphProto):
+            self.obj = make_model(onnx_or_bytes_or_stream,
+                                  producer_name='mlprodict')
         else:
             raise TypeError("Unable to handle type {}.".format(
                 type(onnx_or_bytes_or_stream)))
@@ -76,7 +81,7 @@ class OnnxInference:
                 self.inits_ = self.graph_['inits']
                 variables = self.inits_.copy()
                 for node in self.sequence_:
-                    node.setup_runtime(self.runtime, variables)
+                    node.setup_runtime(self.runtime, variables, self.__class__)
                     if hasattr(node, 'ops_') and hasattr(node.ops_, 'typed_outputs_'):
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v
@@ -166,6 +171,8 @@ class OnnxInference:
                         dims = '?'
                     dtype = dict(kind='tensor', elem=elem_type,
                                  shape=tuple(dims))
+                elif var.type.real == 5 and hasattr(var, 'g'):
+                    dtype = dict(kind='graph', elem=var.type.real)
                 elif hasattr(var.type, 'real'):
                     dtype = dict(kind='real', elem=var.type.real)
                 elif hasattr(var.type, "sequence_type") and var.type.sequence_type is not None:
@@ -195,6 +202,8 @@ class OnnxInference:
                 res['value'] = var.s
             elif hasattr(var, 'i') and dtype.get('elem', None) == 2:
                 res['value'] = var.i
+            elif hasattr(var, 'g') and dtype.get('elem', None) == 5:
+                res['value'] = var.g
             elif "'value'" in str(var):
                 warnings.warn("No value: {} -- {}".format(
                     dtype, str(var).replace("\n", "").replace(" ", "")))
@@ -261,6 +270,20 @@ class OnnxInference:
             return "{{{0}, {1}}}".format(dtype_['key'], dtype_['value'])
         raise NotImplementedError(
             "Unable to convert into string {} or {}.".format(dtype, dtype_))
+
+    @property
+    def input_names(self):
+        """
+        Returns the names of all inputs.
+        """
+        return [_.name for _ in self.obj.graph.input]
+
+    @property
+    def output_names(self):
+        """
+        Returns the names of all outputs.
+        """
+        return [_.name for _ in self.obj.graph.output]
 
     def to_dot(self, **params):
         """
@@ -713,6 +736,8 @@ class OnnxInference:
                     fLOG("-k='{}' shape={} dtype={}".format(
                         k, values[k].shape, values[k].dtype))
             keys = set(values)
+            if verbose >= 1:
+                fLOG("-- OnnxInference: run {} nodes".format(len(self.sequence_)))
             for node in self.sequence_:
                 if verbose >= 1:
                     fLOG(node)

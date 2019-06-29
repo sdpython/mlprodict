@@ -3,6 +3,7 @@
 @brief
 """
 from .ops import load_op
+from onnx.onnx_ml_pb2 import GraphProto  # pylint: disable=C0411
 
 
 class OnnxInferenceNode:
@@ -54,18 +55,42 @@ class OnnxInferenceNode:
         "usual"
         return self.__str__()
 
-    def setup_runtime(self, runtime=None, variables=None):
+    def setup_runtime(self, runtime=None, variables=None, rt_class=None):
         """
         Loads runtime.
 
         @param      runtime     runtime options
         @param      variables   registered variables created by previous operators
+        @param      rt_class    runtime class used to compute
+                                prediction of subgraphs
         """
         if self.desc is None:
             raise AttributeError("desc should not be None.")
+        self.preprocess_parameters(runtime, rt_class)
         self.ops_ = load_op(self.onnx_node, desc=self.desc,
                             options={'provider': runtime} if runtime else None,
                             variables=variables)
+
+    def preprocess_parameters(self, runtime, rt_class):
+        """
+        Preprocesses the parameters,
+        loads *GraphProto*
+        (equivalent to :epkg:`ONNX` graph with
+        less metadata).
+
+        @param      runtime     runtime options
+        @param      rt_class    runtime class used to compute
+                                prediction of subgraphs
+        """
+        if 'atts' not in self.desc:
+            return
+        for _, v in self.desc['atts'].items():
+            if 'value' not in v:
+                continue
+            value = v['value']
+            if isinstance(value, GraphProto):
+                sess = rt_class(v['value'], runtime=runtime)
+                v['value_rt'] = sess
 
     def run(self, values):
         """

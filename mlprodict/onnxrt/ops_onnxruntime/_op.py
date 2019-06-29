@@ -41,6 +41,23 @@ class OpRunOnnxRuntime:
         self.options = options
         self._init(variables)
 
+    def _name_mapping(self, inputs):
+        mapping = {}
+        new_inputs = []
+        for name in inputs:
+            if name in mapping:
+                i = 0
+                new_name = "{}_{}".format(name, i)
+                while new_name in mapping:
+                    i += 1
+                    new_name = "{}_{}".format(name, i)
+                mapping[new_name] = name
+                new_inputs.append(new_name)
+            else:
+                new_inputs.append(name)
+                mapping[name] = name
+        return mapping, new_inputs
+
     def _init(self, variables=None):
         """
         Initializes the node.
@@ -48,7 +65,8 @@ class OpRunOnnxRuntime:
         @param      variables               registered variables created by previous operators
         """
         self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
-        self.inputs = list(self.onnx_node.input)
+        inputs = list(self.onnx_node.input)
+        self.mapping, self.inputs = self._name_mapping(inputs)
         self.outputs = list(self.onnx_node.output)
         self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
                                     **self.options)

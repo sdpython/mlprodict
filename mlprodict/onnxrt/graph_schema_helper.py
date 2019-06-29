@@ -73,8 +73,8 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None):
         otype = SequenceType(DictionaryType(
             Int64Type(), FloatTensorType()))
         outputs = [(name, otype) for name in outputs]
-    # ArgMin, ArgMax
-    elif onnx_node.op_type in ("ArgMin", "ArgMax") and len(outputs) == 1:
+    # ArgMin, ArgMax, Shape
+    elif onnx_node.op_type in ("ArgMin", "ArgMax", 'Shape') and len(outputs) == 1:
         outputs = [(outputs[0], Int64TensorType())]
     # Greater, Less, Equal
     elif onnx_node.op_type in ("Greater", "Less", 'Equal') and len(outputs) == 1:
@@ -103,6 +103,19 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None):
     # Reshape
     elif onnx_node.op_type in ('Reshape', 'Transpose'):
         outputs = [(outputs[0], typed_inputs[0][1].__class__())]
+    # Scan
+    elif onnx_node.op_type == 'Scan':
+        if len(outputs) != len(typed_inputs):
+            raise RuntimeError("Dimension mismatch, operator Scan should have "
+                               "the same number of inputs and outputs {} != {}"
+                               ".".format(len(outputs), len(typed_inputs)))
+        outputs = [(o, t[1].__class__())
+                   for o, t in zip(outputs, typed_inputs)]
+    # ConstantOfShape
+    elif onnx_node.op_type == "ConstantOfShape":
+        outputs = [(outputs[0], FloatTensorType())]
+
+    # Default case
     # Assuming the only output is the same as the only input.
     elif len(typed_inputs) == 1 and len(outputs) == 1:
         outputs = [(outputs[0], typed_inputs[0][1])]
