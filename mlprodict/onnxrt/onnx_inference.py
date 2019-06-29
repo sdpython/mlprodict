@@ -10,7 +10,6 @@ from onnx import load, load_model, checker, shape_inference
 from onnx import onnx_pb as onnx_proto
 from onnx import numpy_helper
 from onnx.helper import make_model
-from onnx.onnx_ml_pb2 import GraphProto
 from .onnx_inference_node import OnnxInferenceNode
 
 
@@ -35,7 +34,7 @@ class OnnxInference:
             self.obj = load(onnx_or_bytes_or_stream)
         elif hasattr(onnx_or_bytes_or_stream, 'graph'):
             self.obj = onnx_or_bytes_or_stream
-        elif isinstance(onnx_or_bytes_or_stream, GraphProto):
+        elif isinstance(onnx_or_bytes_or_stream, onnx_proto.GraphProto):
             self.obj = make_model(onnx_or_bytes_or_stream,
                                   producer_name='mlprodict')
         else:

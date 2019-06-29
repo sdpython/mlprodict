@@ -2,11 +2,11 @@
 @file
 @brief Helpers for notebooks.
 """
-from .onnx_inference import OnnxInference  # pylint: disable=C0411
-from IPython.core.magic import magics_class, line_magic  # pylint: disable=C0411
-from jyquickhelper import RenderJsDot  # pylint: disable=C0411
-from pyquickhelper.ipythonhelper import MagicCommandParser, MagicClassWithHelpers  # pylint: disable=C0411
-from pyquickhelper.cli.cli_helper import create_cli_parser  # pylint: disable=C0411
+from IPython.core.magic import magics_class, line_magic
+from jyquickhelper import RenderJsDot
+from pyquickhelper.ipythonhelper import MagicCommandParser, MagicClassWithHelpers
+from pyquickhelper.cli.cli_helper import create_cli_parser
+from .onnx_inference import OnnxInference
 
 
 def onnxview(graph):

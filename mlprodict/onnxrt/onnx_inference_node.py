@@ -2,8 +2,8 @@
 @file
 @brief
 """
+from onnx import onnx_pb as onnx_proto
 from .ops import load_op
-from onnx.onnx_ml_pb2 import GraphProto  # pylint: disable=C0411
 
 
 class OnnxInferenceNode:
@@ -88,7 +88,7 @@ class OnnxInferenceNode:
             if 'value' not in v:
                 continue
             value = v['value']
-            if isinstance(value, GraphProto):
+            if isinstance(value, onnx_proto.GraphProto):
                 sess = rt_class(v['value'], runtime=runtime)
                 v['value_rt'] = sess
 
