@@ -51,7 +51,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='python', debug=True, filter_exp=lambda s: "nofit" in s))
-        self.assertGreater(len(rows), 12)
+        self.assertGreater(len(rows), 6)
         self.assertGreater(len(buffer), 1)
 
 
