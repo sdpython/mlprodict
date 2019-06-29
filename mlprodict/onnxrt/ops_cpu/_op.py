@@ -78,5 +78,6 @@ class OpRun:
         try:
             return self._run(*args, **kwargs)
         except TypeError as e:
-            raise TypeError("Issues with types {}.".format(
-                ", ".join(str(type(_)) for _ in args))) from e
+            raise TypeError("Issues with types {} (operator {}).".format(
+                ", ".join(str(type(_)) for _ in args),
+                self.__class__.__name__)) from e

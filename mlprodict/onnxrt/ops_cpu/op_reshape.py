@@ -10,7 +10,7 @@ from ._op import OpRun
 class Reshape(OpRun):
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=None, **options)
+        OpRun.__init__(self, onnx_node, desc=desc, **options)
 
     def _run(self, data, shape):  # pylint: disable=W0221
         return (data.reshape(shape), )

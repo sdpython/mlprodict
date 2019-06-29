@@ -4,6 +4,7 @@
 @file
 @brief Runtime operator.
 """
+import numpy
 from ._op import OpRun
 
 
@@ -27,14 +28,18 @@ class ArrayFeatureExtractor(OpRun):
         """
         if len(indices.shape) == 2 and indices.shape[0] == 1:
             index = indices.ravel().tolist()
+            add = len(index)
         elif len(indices.shape) == 1:
             index = indices.tolist()
+            add = len(index)
         else:
-            raise RuntimeError("Unable to extract indices {} from data shape {}".format(
-                indices, data.shape))
+            add = 1
+            for s in indices.shape:
+                add *= s
+            index = indices.ravel().tolist()
         if len(data.shape) == 1:
-            new_shape = (1, len(index))
+            new_shape = (1, add)
         else:
-            new_shape = list(data.shape[:-1]) + [len(index)]
+            new_shape = list(data.shape[:-1]) + [add]
         res = data[..., index].reshape(new_shape)
         return (res, )

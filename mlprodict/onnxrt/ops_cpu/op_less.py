@@ -8,10 +8,10 @@ import numpy
 from ._op import OpRun
 
 
-class Sub(OpRun):
+class Less(OpRun):
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc, **options)
 
     def _run(self, a, b):  # pylint: disable=W0221
-        return (numpy.subtract(a, b), )
+        return (numpy.less(a, b), )

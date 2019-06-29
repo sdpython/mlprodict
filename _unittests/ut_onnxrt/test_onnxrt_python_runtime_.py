@@ -126,6 +126,45 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(got['Y'].shape, (2, 1))
         self.assertEqualArray(X[:, 1:2], got['Y'], decimal=6)
 
+    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
+                     reason="int64 not implemented for constants")
+    def test_onnxt_runtime_array_feature_extractor_cmp(self):
+        X = numpy.array([3.3626876, 2.204158, 2.267245, 1.297554, 0.97023404],
+                        dtype=numpy.float32)
+        indices = numpy.array([[4, 2, 0, 1, 3, ],
+                               [0, 1, 2, 3, 4],
+                               [0, 1, 2, 3, 4],
+                               [3, 4, 2, 0, 1],
+                               [0, 2, 3, 4, 1]],
+                              dtype=numpy.int64)
+        onx = OnnxArrayFeatureExtractor('X', indices,
+                                        output_names=['Y'])
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType([2]))])
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})['Y']
+        oinf2 = OnnxInference(model_def, runtime="onnxruntime")
+        got2 = oinf2.run({'X': X})['Y']
+        self.assertEqualArray(got, got2)
+
+    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
+                     reason="int64 not implemented for constants")
+    def test_onnxt_runtime_array_feature_extractor_cmp2(self):
+        X = numpy.array([[3.3626876, 2.204158, 2.267245, 1.297554, 0.97023404],
+                         [-3.3626876, -2.204158, -2.267245, -1.297554, -0.97023404]],
+                        dtype=numpy.float32)
+        indices = numpy.array([[2], [3]],
+                              dtype=numpy.int64)
+        onx = OnnxArrayFeatureExtractor('X', indices,
+                                        output_names=['Y'])
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType([2]))])
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})['Y']
+        oinf2 = OnnxInference(model_def, runtime="onnxruntime")
+        got2 = oinf2.run({'X': X})['Y']
+        self.assertEqualArray(got, got2)
+
     def test_onnxt_runtime_ceil(self):
         self.common_test_onnxt_runtime_unary(OnnxCeil, numpy.ceil)
 

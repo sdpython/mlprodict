@@ -22,6 +22,7 @@ from .op_gemm import Gemm
 from .op_greater import Greater
 from .op_floor import Floor
 from .op_identity import Identity
+from .op_less import Less
 from .op_linear_classifier import LinearClassifier
 from .op_linear_regressor import LinearRegressor
 from .op_log import Log
@@ -37,6 +38,7 @@ from .op_reduce_prod import ReduceProd
 from .op_reduce_sum import ReduceSum
 from .op_reduce_sum_square import ReduceSumSquare
 from .op_reshape import Reshape
+from .op_rnn import RNN
 from .op_scaler import Scaler
 from .op_slice import Slice
 from .op_sqrt import Sqrt

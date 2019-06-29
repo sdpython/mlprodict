@@ -76,8 +76,8 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None):
     # ArgMin, ArgMax
     elif onnx_node.op_type in ("ArgMin", "ArgMax") and len(outputs) == 1:
         outputs = [(outputs[0], Int64TensorType())]
-    # Greater, Less
-    elif onnx_node.op_type in ("Greater", "Less") and len(outputs) == 1:
+    # Greater, Less, Equal
+    elif onnx_node.op_type in ("Greater", "Less", 'Equal') and len(outputs) == 1:
         outputs = [(outputs[0], BooleanTensorType())]
     # TopK
     elif onnx_node.op_type == "TopK" and len(outputs) == 2:
@@ -96,10 +96,13 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None):
             raise RuntimeError(
                 "Wrong typed_inputs, got {}.".format(typed_inputs))
         outputs = [(outputs[0], typed_inputs[0][1])]
-    elif outputs == ['label', 'probability_tensor']:
+    elif 'Classifier' in onnx_node.op_type:
         # Good chance that's a classifier.
         outputs = [(outputs[0], Int64TensorType()),
                    (outputs[1], FloatTensorType())]
+    # Reshape
+    elif onnx_node.op_type in ('Reshape', 'Transpose'):
+        outputs = [(outputs[0], typed_inputs[0][1].__class__())]
     # Assuming the only output is the same as the only input.
     elif len(typed_inputs) == 1 and len(outputs) == 1:
         outputs = [(outputs[0], typed_inputs[0][1])]

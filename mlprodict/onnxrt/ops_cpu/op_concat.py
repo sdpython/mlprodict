@@ -17,5 +17,12 @@ class Concat(OpRun):
                        expected_attributes=Concat.atts,
                        **options)
 
+    def _preprocess(self, a):
+        if self.axis >= len(a.shape):
+            new_shape = a.shape + (1, ) * (self.axis + 1 - len(a.shape))
+            return a.reshape(new_shape)
+        return a
+
     def _run(self, *args):  # pylint: disable=W0221
+        args = [self._preprocess(a) for a in args]
         return (numpy.concatenate(args, self.axis), )
