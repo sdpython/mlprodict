@@ -35,6 +35,7 @@ class TestCodeStyle(ExtTestCase):
                          "R1720",
                          'if __name__ == "__main__":',
                          "# pylint: disable=E0611",
+                         "# noqa",
                          ])
 
 
