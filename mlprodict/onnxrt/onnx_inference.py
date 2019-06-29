@@ -170,7 +170,7 @@ class OnnxInference:
                         dims = '?'
                     dtype = dict(kind='tensor', elem=elem_type,
                                  shape=tuple(dims))
-                elif var.type.real == 5 and hasattr(var, 'g'):
+                elif hasattr(var.type, 'real') and var.type.real == 5 and hasattr(var, 'g'):
                     dtype = dict(kind='graph', elem=var.type.real)
                 elif hasattr(var.type, 'real'):
                     dtype = dict(kind='real', elem=var.type.real)
