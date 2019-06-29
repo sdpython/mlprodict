@@ -37,6 +37,7 @@ from .op_reduce_mean import ReduceMean
 from .op_reduce_prod import ReduceProd
 from .op_reduce_sum import ReduceSum
 from .op_reduce_sum_square import ReduceSumSquare
+from .op_relu import Relu
 from .op_reshape import Reshape
 from .op_rnn import RNN
 from .op_scaler import Scaler

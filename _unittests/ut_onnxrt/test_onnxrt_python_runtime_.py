@@ -19,7 +19,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceProd, OnnxReduceSum,
     OnnxReduceSumSquare, OnnxReshape,
     OnnxSlice, OnnxSqrt, OnnxSub, OnnxSum,
-    OnnxTopK, OnnxTranspose
+    OnnxTopK, OnnxTranspose, OnnxRelu
 )
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
@@ -404,6 +404,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.sum(numpy.square(X), axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
+
+    def test_onnxt_runtime_relu(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxRelu, lambda x: numpy.max(x, 0))
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
     def common_test_onnxt_runtime_reshape(self):

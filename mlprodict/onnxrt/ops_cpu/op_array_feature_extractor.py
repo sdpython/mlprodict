@@ -4,7 +4,6 @@
 @file
 @brief Runtime operator.
 """
-import numpy
 from ._op import OpRun
 
 
