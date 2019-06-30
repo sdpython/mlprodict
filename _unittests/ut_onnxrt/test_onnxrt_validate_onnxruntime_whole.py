@@ -27,7 +27,7 @@ class TestOnnxrtValidateOnnxRuntimeWhole(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GradientBoostingRegressor"}, opset_min=11, fLOG=fLOG,
             runtime='onnxruntime-whole', debug=False))
-        self.assertIn(len(rows), (2, 3))
+        self.assertIn(len(rows), (1, 2, 3))
         df = DataFrame(rows)
         self.assertIn("max_abs_diff_batch", df.columns)
         self.assertGreater(df.shape[0], 2)
