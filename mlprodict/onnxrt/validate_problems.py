@@ -7,14 +7,31 @@ The submodule relies on :epkg:`onnxconverter_common`,
 import numpy
 from sklearn.base import ClusterMixin, BiclusterMixin, OutlierMixin
 from sklearn.base import RegressorMixin, ClassifierMixin
+from sklearn.cross_decomposition import PLSSVD
 from sklearn.datasets import load_iris
-from sklearn.ensemble import AdaBoostRegressor
-from sklearn.feature_selection import RFE, RFECV
+from sklearn.ensemble import AdaBoostRegressor, GradientBoostingRegressor
+from sklearn.feature_selection import RFE, RFECV, GenericUnivariateSelect
 from sklearn.gaussian_process import GaussianProcessClassifier, GaussianProcessRegressor
+from sklearn.isotonic import IsotonicRegression
+from sklearn.linear_model import (
+    ARDRegression, ElasticNetCV,
+    LarsCV, LassoCV, LassoLarsCV, LassoLarsIC,
+    SGDRegressor, OrthogonalMatchingPursuitCV,
+    TheilSenRegressor, BayesianRidge, MultiTaskElasticNet,
+    MultiTaskElasticNetCV, MultiTaskLassoCV,
+    PassiveAggressiveClassifier, RidgeClassifier,
+    RidgeClassifierCV, PassiveAggressiveRegressor
+)
 from sklearn.model_selection import GridSearchCV
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.neighbors import NearestCentroid
-from sklearn.svm import LinearSVC
+from sklearn.multiclass import (
+    OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
+)
+from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
+from sklearn.neighbors import (
+    NearestCentroid, RadiusNeighborsClassifier,
+    NeighborhoodComponentsAnalysis,
+)
+from sklearn.svm import LinearSVC, LinearSVR, NuSVR
 
 
 def _problem_for_predictor_binary_classification():
@@ -169,6 +186,20 @@ def _problem_for_clnoproba():
             'predict', 0, X.astype(numpy.float32))
 
 
+def _problem_for_clnoproba_binary():
+    """
+    Returns *X, y, intial_types, method, name, X runtime* for a
+    scoring problem. Binary classification.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = data.data
+    y = data.target
+    y[y == 2] = 1
+    return (X, y, [('X', X[:1].astype(numpy.float32))],
+            'predict', 0, X.astype(numpy.float32))
+
+
 def find_suitable_problem(model):
     """
     Determines problems suitable for a given
@@ -218,6 +249,35 @@ def find_suitable_problem(model):
         return ['bin-class', 'multi-class',
                 'regression', 'multi-reg',
                 'cluster', 'outlier']
+
+    # specific scenarios
+    if model in {ARDRegression, BayesianRidge, ElasticNetCV,
+                 GradientBoostingRegressor, IsotonicRegression,
+                 LarsCV, LassoCV, LassoLarsCV, LassoLarsIC,
+                 LinearSVR, NuSVR, OrthogonalMatchingPursuitCV,
+                 PassiveAggressiveRegressor, SGDRegressor,
+                 TheilSenRegressor}:
+        return ['regression']
+
+    if model in {MultiOutputClassifier}:
+        return ['multi-class']
+
+    if model in {MultiOutputRegressor, MultiTaskElasticNet,
+                 MultiTaskElasticNetCV, MultiTaskLassoCV}:
+        return ['multi-reg']
+
+    if model in {OneVsOneClassifier, OutputCodeClassifier,
+                 PassiveAggressiveClassifier, RadiusNeighborsClassifier,
+                 RidgeClassifier, RidgeClassifierCV}:
+        return ['binclnoproba', 'clnoproba']
+
+    # trainable transform
+    if model in {GenericUnivariateSelect,
+                 NeighborhoodComponentsAnalysis,
+                 PLSSVD}:
+        return ["num+y-trans"]
+
+    # predict, predict_proba
     if hasattr(model, 'predict_proba'):
         if model is OneVsRestClassifier:
             return ['multi-class']
@@ -269,6 +329,7 @@ _problems = {
     "scoring": _problem_for_numerical_scoring,
     'outlier': _problem_for_outlier,
     'clnoproba': _problem_for_clnoproba,
+    'binclnoproba': _problem_for_clnoproba_binary,
     'cluster': _problem_for_clustering,
     'num-trans-cluster': _problem_for_clustering_scores,
     'num+y-trans': _problem_for_numerical_trainable_transform,

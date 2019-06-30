@@ -114,7 +114,8 @@ the cause of the error if it does not work.
 
             piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
 
-        print(df2rst(piv, number_format=2, replacements={'nan': ''}))
+        print(df2rst(piv, number_format=2,
+                     replacements={'nan': '', 'ERR: 4convert': ''}))
 
     build_table()
 

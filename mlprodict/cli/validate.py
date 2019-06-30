@@ -4,7 +4,9 @@
 """
 import os
 from logging import getLogger
+import warnings
 from pandas import DataFrame
+from sklearn.exceptions import ConvergenceWarning
 from ..onnxrt.validate import enumerate_validated_operator_opsets, summary_report  # pylint: disable=E0402
 
 
@@ -12,7 +14,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      check_runtime=True, runtime='CPU', debug=False,
                      models=None, out_raw="onnx_runtime_raw.xlsx",
                      out_summary="onnx_runtime_summary.xlsx",
-                     dump_folder=None, benchmark=False, fLOG=print):
+                     dump_folder=None, benchmark=False,
+                     catch_warnings=True, fLOG=print):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -35,6 +38,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     :param dump_folder: folder where to dump information (pickle)
         in case of mismatch
     :param benchmark: run benchmark
+    :param catch_warnings: catch warnings
     :param fLOG: logging function
 
     .. cmdref::
@@ -76,12 +80,25 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         opset_max = int(opset_max)
     if isinstance(verbose, str):
         verbose = int(verbose)
-    rows = list(enumerate_validated_operator_opsets(verbose, models=models, fLOG=fLOG,
-                                                    runtime=runtime, debug=debug,
-                                                    dump_folder=dump_folder,
-                                                    opset_min=opset_min,
-                                                    opset_max=opset_max,
-                                                    benchmark=benchmark))
+
+    def build_rows():
+        rows = list(enumerate_validated_operator_opsets(verbose, models=models, fLOG=fLOG,
+                                                        runtime=runtime, debug=debug,
+                                                        dump_folder=dump_folder,
+                                                        opset_min=opset_min,
+                                                        opset_max=opset_max,
+                                                        benchmark=benchmark))
+        return rows
+
+    if catch_warnings:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore",
+                                  (UserWarning, ConvergenceWarning,
+                                   RuntimeWarning, FutureWarning))
+            rows = build_rows()
+    else:
+        rows = build_rows()
+
     df = DataFrame(rows)
     df.to_excel(out_raw, index=False)
     piv = summary_report(df)

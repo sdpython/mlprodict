@@ -40,7 +40,8 @@ We create a table similar to :ref:`l-onnx-pyrun-tbl`.
 
             piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
 
-        print(df2rst(piv, number_format=2, replacements={'nan': ''}))
+        print(df2rst(piv, number_format=2,
+                     replacements={'nan': '', 'ERR: 4convert': ''}))
 
     build_table()
 
