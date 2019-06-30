@@ -48,11 +48,12 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
+        debug = False
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"BernoulliNB"}, opset_min=11, fLOG=myprint,
-            runtime='onnxruntime', debug=True))
+            runtime='onnxruntime', debug=debug))
         self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1)
+        self.assertGreater(len(buffer), 1 if debug else 0)
 
     @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
                      reason="int64 not implemented for constants")
