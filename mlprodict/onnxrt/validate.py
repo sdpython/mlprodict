@@ -656,22 +656,21 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 if not batch:
                     obs['available'] += "-NOBATCH"
 
-            else:
-                excs = []
-                for k, v in sorted(obs.items()):
-                    if k.endswith('_exc'):
-                        excs.append((k, v))
-                        break
-                if 'opset' not in obs:
-                    # It fails before the conversion happens.
-                    obs['opset'] = current_opset
-                if obs['opset'] == current_opset:
-                    if len(excs) > 0:
-                        k, v = excs[0]
-                        obs['available'] = 'ERROR-%s' % k
-                        obs['available-ERROR'] = v
-                    else:
-                        obs['available'] = 'ERROR-?'
+            excs = []
+            for k, v in sorted(obs.items()):
+                if k.endswith('_exc'):
+                    excs.append((k, v))
+                    break
+            if 'opset' not in obs:
+                # It fails before the conversion happens.
+                obs['opset'] = current_opset
+            if obs['opset'] == current_opset:
+                if len(excs) > 0:
+                    k, v = excs[0]
+                    obs['available'] = 'ERROR-%s' % k
+                    obs['available-ERROR'] = v
+                else:
+                    obs['available'] = 'ERROR-?'
 
             if 'bench-skl' in obs:
                 b1 = obs['bench-skl']

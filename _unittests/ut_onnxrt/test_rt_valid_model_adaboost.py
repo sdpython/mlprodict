@@ -23,6 +23,7 @@ class TestRtValidateAdaBoost(ExtTestCase):
         logger.disabled = True
         verbose = 1 if __name__ == "__main__" else 0
 
+        debug = False
         buffer = []
 
         def myprint(*args, **kwargs):
@@ -30,9 +31,9 @@ class TestRtValidateAdaBoost(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"AdaBoostRegressor"}, opset_min=11, fLOG=myprint,
-            runtime='onnxruntime', debug=True))
+            runtime='onnxruntime', debug=debug))
         self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1)
+        self.assertGreater(len(buffer), 1 if debug else 0)
 
     @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
                      reason="int64 not implemented for constants")
@@ -43,6 +44,7 @@ class TestRtValidateAdaBoost(ExtTestCase):
         logger.disabled = True
         verbose = 1 if __name__ == "__main__" else 0
 
+        debug = False
         buffer = []
 
         def myprint(*args, **kwargs):
@@ -50,9 +52,9 @@ class TestRtValidateAdaBoost(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"AdaBoostRegressor"}, opset_min=11, fLOG=myprint,
-            runtime='python', debug=True))
+            runtime='python', debug=debug))
         self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1)
+        self.assertGreater(len(buffer), 1 if debug else 0)
 
     @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
                      reason="int64 not implemented for constants")
