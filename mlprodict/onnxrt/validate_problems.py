@@ -32,7 +32,7 @@ from sklearn.neighbors import (
     NearestCentroid, RadiusNeighborsClassifier,
     NeighborhoodComponentsAnalysis,
 )
-from sklearn.svm import LinearSVC, LinearSVR, NuSVR
+from sklearn.svm import LinearSVC, LinearSVR, NuSVR, SVR
 
 
 def _problem_for_predictor_binary_classification():
@@ -265,6 +265,9 @@ def find_suitable_problem(model):
 
     if model in {MultiOutputClassifier}:
         return ['multi-class']
+
+    if model in {SVR}:
+        return ['regression']
 
     if model in {MultiOutputRegressor, MultiTaskElasticNet,
                  MultiTaskElasticNetCV, MultiTaskLassoCV}:
