@@ -178,7 +178,7 @@ if not r:
     if sys.platform.startswith("win"):
         libraries_thread = ['kernel32']
         extra_compile_args = ['/EHsc', '/O2',
-                              '/Ob2', '/Gy', '/std:c++11', '/openmp']
+                              '/Ob2', '/Gy', '/openmp']
         extra_link_args = None
     elif sys.platform.startswith("darwin"):
         libraries_thread = None
