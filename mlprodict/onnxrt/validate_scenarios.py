@@ -11,6 +11,7 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, ClassifierChain, RegressorChain
 from sklearn.neighbors import LocalOutlierFactor
+from sklearn.preprocessing import Normalizer
 from sklearn.svm import SVC, NuSVC
 from sklearn.tree import DecisionTreeRegressor
 
@@ -69,6 +70,11 @@ def build_custom_scenarios():
             ('linreg', {
                 'estimator': LinearRegression(),
             })
+        ],
+        Normalizer: [
+            ('l2', {'norm': 'l2', }),
+            ('l1', {'norm': 'l1', }),
+            ('max', {'norm': 'max', }),
         ],
         NuSVC: [
             ('prob', {

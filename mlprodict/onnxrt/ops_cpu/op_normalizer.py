@@ -39,7 +39,9 @@ class Normalizer(OpRun):
     @staticmethod
     def norm_l2(x):
         "L2 normalization"
-        return x / numpy.square(x).sum(axis=1).reshape((x.shape[0], -1))
+        norm = numpy.sqrt(numpy.square(x).sum(
+            axis=1)).reshape((x.shape[0], -1))
+        return x / norm
 
     def _run(self, x):  # pylint: disable=W0221
         return (self._norm(x), )

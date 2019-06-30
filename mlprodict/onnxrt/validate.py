@@ -466,6 +466,10 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                                      X_=X_, y_=y_, init_types=init_types,
                                      method=init_types, output_index=output_index,
                                      Xort_=Xort_)
+                if debug and max_abs_diff >= 0.1:
+                    import pprint
+                    raise RuntimeError("Two big differences {}\n{}\n{}\n{}".format(
+                        max_abs_diff, inst, conv, pprint.pformat(obs_op)))
 
     # compute single
     def fct_single(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
@@ -535,6 +539,10 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                                      X_=X_, y_=y_, init_types=init_types,
                                      method=init_types, output_index=output_index,
                                      Xort_=Xort_)
+                if debug and max_abs_diff >= 0.1:
+                    import pprint
+                    raise RuntimeError("Two big differences {}\n{}\n{}\n{}".format(
+                        max_abs_diff, inst, conv, pprint.pformat(obs_op)))
 
     if debug and len(debug_exc) == 2:
         raise debug_exc[0]
@@ -704,6 +712,10 @@ def summary_report(df):
             return ""
         else:
             return val
+
+    if 'opset' not in df.columns:
+        raise RuntimeError("Unable to create sumary (opset missing)\n{}\n--\n{}".format(
+            df.columns, df.head()))
 
     piv = pandas.pivot_table(df, values="available",
                              index=['name', 'problem', 'scenario'],
