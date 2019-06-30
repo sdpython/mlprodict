@@ -57,7 +57,7 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
                 verbose, opset_min=10, benchmark=True,
                 fLOG=fLOG, runtime="onnxruntime-whole"):
             rows.append(row)
-            if len(rows) > 20:
+            if len(rows) > 40:
                 break
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)

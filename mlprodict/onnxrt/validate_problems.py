@@ -20,7 +20,8 @@ from sklearn.linear_model import (
     TheilSenRegressor, BayesianRidge, MultiTaskElasticNet,
     MultiTaskElasticNetCV, MultiTaskLassoCV,
     PassiveAggressiveClassifier, RidgeClassifier,
-    RidgeClassifierCV, PassiveAggressiveRegressor
+    RidgeClassifierCV, PassiveAggressiveRegressor,
+    HuberRegressor
 )
 from sklearn.model_selection import GridSearchCV
 from sklearn.multiclass import (
@@ -259,7 +260,7 @@ def find_suitable_problem(model):
                  LarsCV, LassoCV, LassoLarsCV, LassoLarsIC,
                  LinearSVR, NuSVR, OrthogonalMatchingPursuitCV,
                  PassiveAggressiveRegressor, SGDRegressor,
-                 TheilSenRegressor}:
+                 TheilSenRegressor, HuberRegressor}:
         return ['regression']
 
     if model in {MultiOutputClassifier}:

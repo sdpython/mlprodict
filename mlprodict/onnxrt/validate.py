@@ -664,13 +664,16 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
             if 'opset' not in obs:
                 # It fails before the conversion happens.
                 obs['opset'] = current_opset
-            if obs['opset'] == current_opset:
-                if len(excs) > 0:
+            if obs['opset'] == current_opset and len(excs) > 0:
+                log_exc = True
+                if len(excs) == 1:
+                    name = excs[0][0]
+                    if '_9ort_run_single_exc' in name or '_6ort_run_batch_exc' in name:
+                        log_exc = False
+                if log_exc:
                     k, v = excs[0]
                     obs['available'] = 'ERROR-%s' % k
                     obs['available-ERROR'] = v
-                else:
-                    obs['available'] = 'ERROR-?'
 
             if 'bench-skl' in obs:
                 b1 = obs['bench-skl']
