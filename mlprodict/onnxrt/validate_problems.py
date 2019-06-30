@@ -251,8 +251,11 @@ def find_suitable_problem(model):
                 'cluster', 'outlier']
 
     # specific scenarios
+    if model in {IsotonicRegression}:
+        return ['num+y-trans', 'regression']
+
     if model in {ARDRegression, BayesianRidge, ElasticNetCV,
-                 GradientBoostingRegressor, IsotonicRegression,
+                 GradientBoostingRegressor,
                  LarsCV, LassoCV, LassoLarsCV, LassoLarsIC,
                  LinearSVR, NuSVR, OrthogonalMatchingPursuitCV,
                  PassiveAggressiveRegressor, SGDRegressor,

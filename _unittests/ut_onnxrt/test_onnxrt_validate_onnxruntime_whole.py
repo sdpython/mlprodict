@@ -29,7 +29,7 @@ class TestOnnxrtValidateOnnxRuntimeWhole(ExtTestCase):
             runtime='onnxruntime-whole', debug=False))
         self.assertIn(len(rows), (2, 3))
         df = DataFrame(rows)
-        self.assertIn("available-ERROR", df.columns)
+        self.assertIn("max_abs_diff_batch", df.columns)
         self.assertGreater(df.shape[0], 2)
         piv = summary_report(df)
         self.assertIn(piv.shape[0], (1, 2, 3))
