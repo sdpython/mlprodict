@@ -24,11 +24,11 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
     @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
                      reason="int64 not implemented for constants")
     def test_pdist(self):
-        from skl2onnx.algebra.complex_functions import squareform_cdist  # pylint: disable=E0401
+        from skl2onnx.algebra.complex_functions import squareform_pdist  # pylint: disable=E0401
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('input', 'input')
-        cdist = squareform_cdist(cop)
+        cdist = squareform_pdist(cop)
         cop2 = OnnxIdentity(cdist, output_names=['cdist'])
 
         model_def = cop2.to_onnx(

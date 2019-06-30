@@ -226,6 +226,23 @@ class TestOnnxrtSimple(ExtTestCase):
         dot = oinf.to_dot()
         self.assertNotIn("class_labels_0 -> ;", dot)
 
+    def test_getitem(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, __, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = KNeighborsClassifier()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def, skip_run=True)
+
+        topk = oinf['ArrayFeatureExtractor']
+        self.assertIn('ArrayFeatureExtractor', str(topk))
+        zm = oinf['ZipMap']
+        self.assertIn('ZipMap', str(zm))
+        par = oinf['ZipMap', 'classlabels_int64s']
+        self.assertIn('classlabels_int64s', str(par))
+
 
 if __name__ == "__main__":
     unittest.main()

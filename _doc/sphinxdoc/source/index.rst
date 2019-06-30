@@ -52,6 +52,7 @@ mlprodict
     i_cmd
     i_ex
     i_index
+    gyexamples/index
     all_notebooks
     blog/blogindex
     HISTORY

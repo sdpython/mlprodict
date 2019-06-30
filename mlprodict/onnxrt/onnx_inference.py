@@ -401,7 +401,8 @@ class OnnxInference:
                 for k, v in sorted(dobj['atts'].items()):
                     val = None
                     if 'value' in v:
-                        val = str(v['value'])
+                        val = str(v['value']).replace(
+                            "\n", "\\n").replace('"', "'")
                         sl = max(30 - len(k), 10)
                         if len(val) > sl:
                             val = val[:sl] + "..."
@@ -758,6 +759,35 @@ class OnnxInference:
             raise NotImplementedError("verbose option not implemented.")
         if clean_right_away:
             raise RuntimeError(
-                "clean_right_away=true does not wrok with this runtime.")
+                "clean_right_away=true does not work with this runtime.")
         res = self._whole.run(inputs)
         return {k: v for k, v in zip(self.outputs_, res)}
+
+    def __getitem__(self, item):
+        """
+        Returns the ONNX verions of a node.
+        """
+        if isinstance(item, tuple):
+            node_name, att_name = item
+        else:
+            node_name = item
+            att_name = None
+
+        node_ = None
+        for node in self.obj.graph.node:
+            if node.name == node_name:
+                node_ = node
+                break
+
+        if node_ is None:
+            raise IndexError("Unable to node name '{}'.".format(node_name))
+
+        if att_name is None:
+            return node_
+
+        for att in node_.attribute:
+            if att.name == att_name:
+                return att
+
+        raise IndexError("Unable to find attribute '{}' from node '{}'.".format(
+            att_name, node_name))
