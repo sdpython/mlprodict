@@ -172,6 +172,8 @@ class OnnxInference:
                                  shape=tuple(dims))
                 elif hasattr(var.type, 'real') and var.type.real == 5 and hasattr(var, 'g'):
                     dtype = dict(kind='graph', elem=var.type.real)
+                elif hasattr(var.type, 'real') and var.type.real == 4 and hasattr(var, 't'):
+                    dtype = dict(kind='tensor', elem=var.type.real)
                 elif hasattr(var.type, 'real'):
                     dtype = dict(kind='real', elem=var.type.real)
                 elif hasattr(var.type, "sequence_type") and var.type.sequence_type is not None:
@@ -203,6 +205,9 @@ class OnnxInference:
                 res['value'] = var.i
             elif hasattr(var, 'g') and dtype.get('elem', None) == 5:
                 res['value'] = var.g
+            elif hasattr(var, 't') and dtype.get('elem', None) == 4:
+                ts = OnnxInference._var_as_dict(var.t)
+                res['value'] = ts['value']
             elif "'value'" in str(var):
                 warnings.warn("No value: {} -- {}".format(
                     dtype, str(var).replace("\n", "").replace(" ", "")))

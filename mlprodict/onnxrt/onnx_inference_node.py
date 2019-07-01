@@ -48,8 +48,8 @@ class OnnxInferenceNode:
     def __str__(self):
         "usual"
         return "Onnx-{}({}) -> {}".format(
-            self.op_type, ", ".join(sorted(self.inputs)),
-            ", ".join(sorted(self.outputs)))
+            self.op_type, ", ".join(self.inputs),
+            ", ".join(self.outputs))
 
     def __repr__(self):
         "usual"

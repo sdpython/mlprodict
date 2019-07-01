@@ -10,13 +10,18 @@ from logging import getLogger
 import numpy
 import pandas
 from onnx.onnx_cpp2py_export.checker import ValidationError  # pylint: disable=E0401,E0611
+from onnx.helper import make_tensor
+from onnx import TensorProto
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.texthelper.version_helper import compare_module_version
-from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier  # pylint: disable=E0611
+from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
+    OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier,
+    OnnxConstantOfShape, OnnxShape
+)
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import to_onnx, __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
@@ -242,6 +247,19 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('ZipMap', str(zm))
         par = oinf['ZipMap', 'classlabels_int64s']
         self.assertIn('classlabels_int64s', str(par))
+
+    def test_constant_of_shape(self):
+        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((3, 2))
+        tensor_value = make_tensor(
+            "value", TensorProto.FLOAT, (1,), [-5])  # pylint: disable=E1101
+        cop2 = OnnxConstantOfShape(OnnxShape('input'), value=tensor_value,
+                                   output_names=['mat'])
+        model_def = cop2.to_onnx({'input': x},
+                                 outputs=[('mat', FloatTensorType())])
+        oinf = OnnxInference(model_def, skip_run=True)
+        dot = oinf.to_dot()
+        self.assertIn('ConstantOfShape', dot)
 
 
 if __name__ == "__main__":

@@ -24,4 +24,5 @@ class Squeeze(OpRun):
             self.axes = tuple(self.axes)
 
     def _run(self, data):  # pylint: disable=W0221
-        return (numpy.squeeze(data, axis=self.axes), )
+        sq = numpy.squeeze(data, axis=self.axes)
+        return (sq, )

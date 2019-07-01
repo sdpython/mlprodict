@@ -5,6 +5,8 @@
 """
 import numpy
 import onnx.defs
+from onnx.helper import make_tensor
+from onnx import TensorProto
 from onnxruntime import InferenceSession
 import skl2onnx.algebra.onnx_ops as alg
 from ..graph_schema_helper import get_defined_inputs, get_defined_outputs
@@ -68,18 +70,36 @@ class OpRunOnnxRuntime:
         inputs = list(self.onnx_node.input)
         self.mapping, self.inputs = self._name_mapping(inputs)
         self.outputs = list(self.onnx_node.output)
-        self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
-                                    **self.options)
-        inputs = get_defined_inputs(self.inputs, variables)
-        try:
+
+        options = self.options.copy()
+
+        if self.onnx_node.op_type == 'ConstantOfShape':
+            for k in options:
+                v = options[k]
+                if isinstance(v, numpy.ndarray):
+                    options[k] = make_tensor(
+                        k, TensorProto.FLOAT, v.shape, v.tolist())  # pylint: disable=E1101
+
+            self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
+                                        **options)
+            inputs = get_defined_inputs(self.inputs, variables)
             self.onnx_ = self.inst_.to_onnx(inputs)
             forced = False
-        except RuntimeError:
-            # Let's try again by forcing output types.
-            forced = True
-            outputs = get_defined_outputs(
-                self.outputs, self.onnx_node, inputs, variables)
-            self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
+        else:
+            self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
+                                        **options)
+            inputs = get_defined_inputs(self.inputs, variables)
+
+            try:
+                self.onnx_ = self.inst_.to_onnx(inputs)
+                forced = False
+            except (RuntimeError, ValueError):
+                # Let's try again by forcing output types.
+                forced = True
+                outputs = get_defined_outputs(
+                    self.outputs, self.onnx_node, inputs, variables)
+                self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
+
         if len(self.onnx_.graph.output) != self.outputs:
             # Something is wrong, falls back to default plan.
             forced = True
