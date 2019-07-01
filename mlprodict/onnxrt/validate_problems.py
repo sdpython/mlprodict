@@ -9,7 +9,7 @@ from sklearn.base import ClusterMixin, BiclusterMixin, OutlierMixin
 from sklearn.base import RegressorMixin, ClassifierMixin
 from sklearn.cross_decomposition import PLSSVD
 from sklearn.datasets import load_iris
-from sklearn.ensemble import AdaBoostRegressor, GradientBoostingRegressor
+from sklearn.ensemble import AdaBoostRegressor, GradientBoostingRegressor, AdaBoostClassifier
 from sklearn.feature_selection import RFE, RFECV, GenericUnivariateSelect
 from sklearn.gaussian_process import GaussianProcessClassifier, GaussianProcessRegressor
 from sklearn.isotonic import IsotonicRegression
@@ -21,7 +21,7 @@ from sklearn.linear_model import (
     MultiTaskElasticNetCV, MultiTaskLassoCV, MultiTaskLasso,
     PassiveAggressiveClassifier, RidgeClassifier,
     RidgeClassifierCV, PassiveAggressiveRegressor,
-    HuberRegressor
+    HuberRegressor, LogisticRegression
 )
 from sklearn.model_selection import GridSearchCV
 from sklearn.multiclass import (
@@ -300,6 +300,10 @@ def find_suitable_problem(model):
                  NeighborhoodComponentsAnalysis,
                  PLSSVD}:
         return ["num+y-trans"]
+
+    # no multi-label
+    if model in {AdaBoostClassifier, LogisticRegression}:
+        return ['bin-class', 'multi-class']
 
     # predict, predict_proba
     if hasattr(model, 'predict_proba'):
