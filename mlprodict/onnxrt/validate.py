@@ -556,7 +556,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         check_runtime=True, debug=False, runtime='CPU',
                                         models=None, dump_folder=None, store_models=False,
-                                        benchmark=False, fLOG=print, filter_exp=None):
+                                        benchmark=False, skip_models=None,
+                                        fLOG=print, filter_exp=None):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -579,6 +580,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                 to predict for different number of rows
     @param      filter_exp      function which tells if the experiment must be run,
                                 None to run all
+    @param      skip_models     models to skip
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -595,6 +597,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
             raise ValueError("Parameter models is wrong: {}\n{}".format(
                 models, ops[0]))
         ops = ops_
+    if skip_models is not None:
+        ops = [m for m in ops if m['name'] not in skip_models]
 
     if verbose > 0:
 

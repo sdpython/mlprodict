@@ -10,7 +10,10 @@ import pandas
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as CK, Sum
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.common.data_types import FloatTensorType
-from skl2onnx.operator_converters.gaussian_process import convert_kernel
+try:
+    from skl2onnx.operator_converters.gaussian_process import convert_kernel
+except ImportError:
+    convert_kernel = None
 from mlprodict.onnxrt import OnnxInference
 
 
@@ -34,6 +37,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
     def test_kernel_ker12_def(self):
         ker = (Sum(CK(0.1, (1e-3, 1e3)), CK(0.1, (1e-3, 1e3)) *
                    RBF(length_scale=1, length_scale_bounds=(1e-3, 1e3))))
@@ -46,6 +50,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         m2 = ker(Xtest_)
         self.assertEqualArray(m1, m2)
 
+    @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
     def test_kernel_ker2_def(self):
         ker = Sum(
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=10,
@@ -67,6 +72,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertGreater(len(res), 30)
         self.assertIsInstance(res, OrderedDict)
 
+    @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
     def test_kernel_ker2_def_ort(self):
         ker = Sum(
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=10,
@@ -84,6 +90,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         m2 = ker(Xtest_)
         self.assertEqualArray(m1, m2, decimal=5)
 
+    @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
     def test_kernel_ker2_def_ort_whole(self):
         ker = Sum(
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=10,

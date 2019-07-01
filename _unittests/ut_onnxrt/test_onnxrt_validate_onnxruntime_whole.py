@@ -33,9 +33,9 @@ class TestOnnxrtValidateOnnxRuntimeWhole(ExtTestCase):
                 runtime='onnxruntime-whole', debug=True))
         else:
             rows = []
-            for row in enumerate_validated_operator_opsets(verbose, debug=None, fLOG=fLOG,
-                                                           runtime='onnxruntime-whole',
-                                                           dump_folder=temp):
+            for row in enumerate_validated_operator_opsets(
+                    verbose, debug=None, fLOG=fLOG, runtime='onnxruntime-whole',
+                    dump_folder=temp, skip_models={"GaussianProcessRegressor"}):
                 rows.append(row)
                 if is_travis_or_appveyor() and len(rows) > 20:
                     break
