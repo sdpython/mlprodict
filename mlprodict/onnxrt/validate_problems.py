@@ -18,7 +18,7 @@ from sklearn.linear_model import (
     LarsCV, LassoCV, LassoLarsCV, LassoLarsIC,
     SGDRegressor, OrthogonalMatchingPursuitCV,
     TheilSenRegressor, BayesianRidge, MultiTaskElasticNet,
-    MultiTaskElasticNetCV, MultiTaskLassoCV,
+    MultiTaskElasticNetCV, MultiTaskLassoCV, MultiTaskLasso,
     PassiveAggressiveClassifier, RidgeClassifier,
     RidgeClassifierCV, PassiveAggressiveRegressor,
     HuberRegressor
@@ -59,6 +59,24 @@ def _problem_for_predictor_multi_classification():
     X = data.data
     y = data.target
     return (X, y, [('X', X[:1].astype(numpy.float32))],
+            'predict_proba', 1, X.astype(numpy.float32))
+
+
+def _problem_for_predictor_multi_classification_label():
+    """
+    Returns *X, y, intial_types, method, node name, X runtime* for a
+    multi-class classification problem.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = data.data
+    y = data.target
+    y2 = numpy.zeros((y.shape[0], 3), dtype=numpy.int64)
+    for i, _ in enumerate(y):
+        y2[i, _] = 1
+    for i in range(0, y.shape[0], 5):
+        y2[i, (y[i] + 1) % 3] = 1
+    return (X, y2, [('X', X[:1].astype(numpy.float32))],
             'predict_proba', 1, X.astype(numpy.float32))
 
 
@@ -241,7 +259,7 @@ def find_suitable_problem(model):
                 'reg-nofit-std', 'multi-reg-nofit-std',
                 'regression', 'multi-reg']
     if model in {GaussianProcessClassifier}:
-        return ['bin-class', 'multi-class']
+        return ['bin-class', 'multi-class', 'multi-label']
     if model in {AdaBoostRegressor}:
         return ['regression']
     if model in {LinearSVC, NearestCentroid}:
@@ -249,7 +267,7 @@ def find_suitable_problem(model):
     if model in {RFE, RFECV, GridSearchCV}:
         return ['bin-class', 'multi-class',
                 'regression', 'multi-reg',
-                'cluster', 'outlier']
+                'cluster', 'outlier', 'multi-label']
 
     # specific scenarios
     if model in {IsotonicRegression}:
@@ -260,17 +278,16 @@ def find_suitable_problem(model):
                  LarsCV, LassoCV, LassoLarsCV, LassoLarsIC,
                  LinearSVR, NuSVR, OrthogonalMatchingPursuitCV,
                  PassiveAggressiveRegressor, SGDRegressor,
-                 TheilSenRegressor, HuberRegressor}:
+                 TheilSenRegressor, HuberRegressor,
+                 SVR}:
         return ['regression']
 
     if model in {MultiOutputClassifier}:
-        return ['multi-class']
-
-    if model in {SVR}:
-        return ['regression']
+        return ['multi-class', 'multi-label']
 
     if model in {MultiOutputRegressor, MultiTaskElasticNet,
-                 MultiTaskElasticNetCV, MultiTaskLassoCV}:
+                 MultiTaskElasticNetCV, MultiTaskLassoCV,
+                 MultiTaskLasso}:
         return ['multi-reg']
 
     if model in {OneVsOneClassifier, OutputCodeClassifier,
@@ -287,13 +304,13 @@ def find_suitable_problem(model):
     # predict, predict_proba
     if hasattr(model, 'predict_proba'):
         if model is OneVsRestClassifier:
-            return ['multi-class']
+            return ['multi-class', 'multi-label']
         else:
-            return ['bin-class', 'multi-class']
+            return ['bin-class', 'multi-class', 'multi-label']
 
     if hasattr(model, 'predict'):
         if "Classifier" in str(model):
-            return ['bin-class', 'multi-class']
+            return ['bin-class', 'multi-class', 'multi-label']
         elif "Regressor" in str(model):
             return ['regression', 'multi-reg']
 
@@ -314,7 +331,7 @@ def find_suitable_problem(model):
         res.extend(['outlier'])
 
     if issubclass(model, ClassifierMixin):
-        res.extend(['bin-class', 'multi-class'])
+        res.extend(['bin-class', 'multi-class', 'multi-label'])
     if issubclass(model, RegressorMixin):
         res.extend(['regression', 'multi-reg'])
 
@@ -332,6 +349,7 @@ _problems = {
     "multi-class": _problem_for_predictor_multi_classification,
     "regression": _problem_for_predictor_regression,
     "multi-reg": _problem_for_predictor_multi_regression,
+    "multi-label": _problem_for_predictor_multi_classification_label,
     "num-transform": _problem_for_numerical_transform,
     "scoring": _problem_for_numerical_scoring,
     'outlier': _problem_for_outlier,

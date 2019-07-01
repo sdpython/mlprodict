@@ -359,7 +359,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                 try:
                     conv, t2 = _measure_time(fct_skl)
                     obs_op["convert_time"] = t2
-                except (RuntimeError, IndexError) as e:
+                except (RuntimeError, IndexError, AttributeError) as e:
                     if debug:
                         raise
                     obs_op["_4convert_exc"] = e
