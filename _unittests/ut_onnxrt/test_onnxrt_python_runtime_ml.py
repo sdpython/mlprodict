@@ -59,7 +59,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         exp = clr.predict(X_test)
         self.assertEqualArray(exp, got['label'])
         exp = clr.transform(X_test)
-        self.assertEqualArray(exp, got['scores'], decimal=5)
+        self.assertEqualArray(exp, got['scores'], decimal=4)
         self.assertGreater(len(rows), 2)
 
     @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,

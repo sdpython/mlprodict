@@ -1,7 +1,9 @@
 """
 @file
-@brief
+@brief Implements a class able to compute the predictions
+from on an :epkg:`ONNX` model.
 """
+from collections import OrderedDict
 from io import BytesIO
 import json
 import warnings
@@ -11,6 +13,7 @@ from onnx import onnx_pb as onnx_proto
 from onnx import numpy_helper
 from onnx.helper import make_model
 from .onnx_inference_node import OnnxInferenceNode
+from .onnx_inference_manipulations import select_model_inputs_outputs, enumerate_model_node_outputs
 
 
 class OnnxInference:
@@ -147,8 +150,8 @@ class OnnxInference:
             return {'kind': 'map', 'key': kt, 'value': vt}
 
         import pprint
-        raise NotImplementedError("elem_type {} is unknown\nfieds:\n{}.".format(
-            elem_type, pprint.pformat(dir(elem_type))))
+        raise NotImplementedError("elem_type '{}' is unknown\nfields:\n{}\n-----\n{}.".format(
+            elem_type, pprint.pformat(dir(elem_type)), type(elem_type)))
 
     @staticmethod
     def _var_as_dict(var):
@@ -157,7 +160,7 @@ class OnnxInference:
         The current implementation relies on :epkg:`json`.
         That's not the most efficient way.
         """
-        if hasattr(var, 'type'):
+        if hasattr(var, 'type') and str(var.type) != '':
             # variable
             if var.type is not None:
                 if hasattr(var.type, 'tensor_type') and var.type.tensor_type.elem_type > 0:
@@ -176,17 +179,18 @@ class OnnxInference:
                     dtype = dict(kind='tensor', elem=var.type.real)
                 elif hasattr(var.type, 'real'):
                     dtype = dict(kind='real', elem=var.type.real)
-                elif hasattr(var.type, "sequence_type") and var.type.sequence_type is not None:
+                elif (hasattr(var.type, "sequence_type") and var.type.sequence_type is not None and
+                        str(var.type.sequence_type.elem_type) != ''):
                     t = var.type.sequence_type
                     elem_type = OnnxInference._elem_type_as_str(t.elem_type)
                     dtype = dict(kind='sequence', elem=elem_type)
                 else:
                     import pprint
-                    raise NotImplementedError("Unable to convert a type into a dictionary for {}. "
+                    raise NotImplementedError("Unable to convert a type into a dictionary for '{}'. "
                                               "Available fields: {}.".format(var.type, pprint.pformat(dir(var.type))))
             else:
                 import pprint
-                raise NotImplementedError("Unable to convert variable into a dictionary for {}. "
+                raise NotImplementedError("Unable to convert variable into a dictionary for '{}'. "
                                           "Available fields: {}.".format(var, pprint.pformat(dir(var.type))))
 
             res = dict(name=var.name, type=dtype)
@@ -238,7 +242,7 @@ class OnnxInference:
                     "Iniatilizer {} cannot be converted into a dictionary.".format(var))
             return dict(name=var.name, value=data)
 
-        elif var.data_type > 0:
+        elif hasattr(var, 'data_type') and var.data_type > 0:
             if var.data_type == 1 and var.float_data is not None:
                 data = numpy.array(var.float_data, dtype=numpy.float32,
                                    copy=False)
@@ -597,7 +601,10 @@ class OnnxInference:
 
         # outputs
         for obj in self.obj.graph.output:
-            outputs[obj.name] = OnnxInference._var_as_dict(obj)
+            if hasattr(obj, 'type') and str(obj.type) != '':
+                outputs[obj.name] = OnnxInference._var_as_dict(obj)
+            else:
+                outputs[obj.name] = {'name': obj.name}
 
         # initializer
         for obj in self.obj.graph.initializer:
@@ -682,13 +689,16 @@ class OnnxInference:
         return dict(inits=inits, inputs=variables, outputs=outputs,
                     nodes=nodes, sequence=sequence, intermediate=intermediate)
 
-    def run(self, inputs, clean_right_away=False, verbose=0, fLOG=None):
+    def run(self, inputs, clean_right_away=False,
+            intermediate=False, verbose=0, fLOG=None):
         """
         Computes the predictions for this :epkg:`onnx` graph.
 
         @param      inputs              inputs as dictionary
         @param      clean_right_away    clean the intermediate outputs
                                         as soon as they are not needed
+        @param      intermediare        returns a dictionary of intermediate
+                                        variables instead of the results only
         @param      verbose             display information while predicting
         @param      fLOG                logging function if *verbose > 0*
         @return                         outputs as dictionary
@@ -723,13 +733,22 @@ class OnnxInference:
                 oinf = OnnxInference(model_def)
                 y = oinf.run({'X': X_test[:5]})
                 print(y)
-        """
-        return self._run(inputs, clean_right_away=False, verbose=verbose, fLOG=fLOG)
 
-    def _run_sequence_runtime(self, inputs, clean_right_away=False, verbose=0, fLOG=None):
+        The function returns all intermediate outputs
+        if *intermediate* is True. In case of runtime
+        *onnxruntime-whole*, if intermediate is True,
+        the first class builds all :epkg:`ONNX` cut out
+        to keep the one output and converted into
+        *OnnxInference*.
+        """
+        return self._run(inputs, clean_right_away=False, intermediate=intermediate,
+                         verbose=verbose, fLOG=fLOG)
+
+    def _run_sequence_runtime(self, inputs, clean_right_away=False,
+                              intermediate=False, verbose=0, fLOG=None):
         if clean_right_away:
             raise NotImplementedError("clean_right_away=true not implemented.")
-        values = inputs.copy()
+        values = OrderedDict(inputs)
         for k, v in self.inits_.items():
             values[k] = v['value']
         if verbose == 0 or fLOG is None:
@@ -757,16 +776,70 @@ class OnnxInference:
                                 k, type(values[k])))
                 keys = set(values)
 
-        return {k: values[k] for k in self.outputs_}
+        if intermediate:
+            return values
+        else:
+            return {k: values[k] for k in self.outputs_}
 
-    def _run_whole_runtime(self, inputs, clean_right_away=False, verbose=0, fLOG=None):
-        if verbose != 0:
-            raise NotImplementedError("verbose option not implemented.")
+    def build_intermediate(self):
+        """
+        Builds every possible :epkg:`ONNX` file
+        which computes one specific intermediate output
+        from the inputs.
+
+        @return         :epkg:`*py:collections:OrderedDict`
+        """
+        ord = OrderedDict()
+        for output in enumerate_model_node_outputs(self.obj):
+            subonx = select_model_inputs_outputs(self.obj, output)
+            ord[output] = OnnxInference(subonx, runtime=self.runtime,
+                                        skip_run=self.skip_run)
+        return ord
+
+    def _run_whole_runtime(self, inputs, clean_right_away=False,
+                           intermediate=False, verbose=0, fLOG=None):
         if clean_right_away:
             raise RuntimeError(
                 "clean_right_away=true does not work with this runtime.")
-        res = self._whole.run(inputs)
-        return {k: v for k, v in zip(self.outputs_, res)}
+        if intermediate:
+            if hasattr(self, "intermediate_onnx_inference_"):
+                inter_run = self.intermediate_onnx_inference_  # pylint: disable=E0203
+            else:
+                if verbose > 0:
+                    fLOG("-- OnnxInference: build intermediate")
+                inter_run = self.build_intermediate()
+                self.intermediate_onnx_inference_ = inter_run
+                graph = self.to_sequence()
+                self.inits_ = graph['inits']
+
+            if verbose >= 1:
+                fLOG("-- OnnxInference: run {} nodes".format(
+                    len(self.intermediate_onnx_inference_)))
+            values = OrderedDict(inputs)
+            for k, v in self.inits_.items():
+                values[k] = v['value']
+            if verbose >= 2:
+                for k in sorted(values):
+                    fLOG("-k='{}' shape={} dtype={}".format(
+                        k, values[k].shape, values[k].dtype))
+            for node, oinf in self.intermediate_onnx_inference_.items():
+                if verbose >= 1:
+                    fLOG(node)
+                output = oinf.run(inputs)[node]
+                values[node] = output
+                if verbose >= 1:
+                    if isinstance(output, numpy.ndarray):
+                        fLOG("+k='{}': {} (dtype={})".format(
+                            k, output.shape, output.dtype))
+                    else:
+                        fLOG("+k='{}': {}".format(
+                            k, type(output)))
+            return values
+        else:
+            if verbose != 0:
+                raise NotImplementedError("verbose option not implemented.")
+            res = self._whole.run(inputs)
+            return {k: v for k, v in zip(self.outputs_, res)}
 
     def __getitem__(self, item):
         """
