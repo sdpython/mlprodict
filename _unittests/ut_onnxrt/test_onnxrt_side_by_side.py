@@ -132,6 +132,12 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertIn('cmp', sbs[0])
         self.assertIn('cmp', sbs[1])
 
+        sess3 = OnnxInference(model_onnx.SerializeToString(),
+                              runtime="onnxruntime")
+        sbs = side_by_side_by_values(
+            [cpu, sess, sess3], {'X': Xtest_.astype(numpy.float32)})
+        self.assertNotEmpty(sbs)
+
 
 if __name__ == "__main__":
     unittest.main()

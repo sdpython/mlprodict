@@ -66,6 +66,9 @@ def side_by_side_by_values(sessions, inputs, *args, **kwargs):
         vals = []
         for j, r in enumerate(res_row):
             row['value[%d]' % j] = r[1]
+            if hasattr(r[1], 'shape'):
+                row['shape[%d]' % j] = r[1].shape
+
             if j == 0:
                 row['v[%d]' % j] = 0
             else:
