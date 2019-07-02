@@ -286,3 +286,4 @@ _doc/sphinxdoc/source/*.pkl
 _doc/sphinxdoc/source/*.xlsx
 *.xlsx
 _doc/sphinxdoc/source/api/onnxrt_ops.rst
+_doc/notebooks/model_onnx.onnx
