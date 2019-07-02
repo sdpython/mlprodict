@@ -27,7 +27,9 @@ def measure_absolute_difference(skl_pred, ort_pred):
             try:
                 diff = measure_absolute_difference(
                     skl_pred[i], [_[i] for _ in ort_pred])
-            except (RuntimeError, IndexError) as e:
+            except IndexError:
+                return 1e9
+            except RuntimeError as e:
                 raise RuntimeError("Unable to compute differences between"
                                    "\n{}--------\n{}".format(
                                        skl_pred, ort_pred)) from e
