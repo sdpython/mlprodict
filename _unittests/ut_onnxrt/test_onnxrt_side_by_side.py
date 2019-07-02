@@ -15,6 +15,7 @@ try:
 except ImportError:
     convert_kernel = None
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt.side_by_side import side_by_side_by_values
 
 
 Xtest_ = pandas.read_csv(StringIO("""
@@ -117,6 +118,19 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertGreater(len(res), 2)
         # m2 = ker(Xtest_)
         # self.assertEqualArray(m1, m2, decimal=5)
+
+        cpu = OnnxInference(model_onnx.SerializeToString())
+        sbs = side_by_side_by_values(
+            [cpu, sess], {'X': Xtest_.astype(numpy.float32)})
+        self.assertGreater(len(sbs), 2)
+        self.assertIsInstance(sbs, list)
+        self.assertIsInstance(sbs[0], dict)
+        self.assertIn('step', sbs[0])
+        self.assertIn('step', sbs[1])
+        self.assertIn('metric', sbs[0])
+        self.assertIn('metric', sbs[1])
+        self.assertIn('cmp', sbs[0])
+        self.assertIn('cmp', sbs[1])
 
 
 if __name__ == "__main__":

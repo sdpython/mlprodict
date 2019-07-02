@@ -19,6 +19,7 @@ from .onnx_inference import OnnxInference
 from .. import __version__ as ort_version
 from .validate_problems import _problems, find_suitable_problem
 from .validate_scenarios import _extra_parameters
+from .validate_difference import measure_absolute_difference
 
 
 def to_onnx(model, X=None, name=None, initial_types=None,
@@ -103,63 +104,6 @@ def _measure_time(fct):
     res = fct()
     end = perf_counter()
     return res, end - begin
-
-
-def _measure_absolute_difference(skl_pred, ort_pred):
-    """
-    *Measures the differences between predictions
-    between two ways of computing them.
-    The functions returns nan if shapes are different.
-    """
-    if isinstance(skl_pred, tuple):
-        diffs = []
-        for i in range(len(skl_pred)):  # pylint: disable=C0200
-            diff = _measure_absolute_difference(
-                skl_pred[i], [_[i] for _ in ort_pred])
-            diffs.append(diff)
-        return max(diffs)
-    else:
-        ort_pred_ = ort_pred
-        if isinstance(ort_pred, list):
-            if isinstance(ort_pred[0], dict):
-                ort_pred = pandas.DataFrame(ort_pred).values
-            elif (isinstance(ort_pred[0], list) and
-                    isinstance(ort_pred[0][0], dict)):
-                if len(ort_pred) == 1:
-                    ort_pred = pandas.DataFrame(ort_pred[0]).values
-                elif len(ort_pred[0]) == 1:
-                    ort_pred = pandas.DataFrame(
-                        [o[0] for o in ort_pred]).values
-                else:
-                    raise RuntimeError("Unable to compute differences between"
-                                       "\n{}--------\n{}".format(
-                                           skl_pred, ort_pred))
-            else:
-                ort_pred = numpy.array(ort_pred)
-
-        if hasattr(skl_pred, 'todense'):
-            skl_pred = skl_pred.todense()
-        if hasattr(ort_pred, 'todense'):
-            ort_pred = ort_pred.todense()
-
-        if isinstance(ort_pred, list):
-            raise RuntimeError("Issue with {}\n{}".format(ort_pred, ort_pred_))
-
-        if skl_pred.shape != ort_pred.shape and skl_pred.size == ort_pred.size:
-            ort_pred = ort_pred.ravel()
-            skl_pred = skl_pred.ravel()
-
-        if skl_pred.shape != ort_pred.shape:
-            return 1e9
-
-        diff = numpy.max(numpy.abs(skl_pred.ravel() - ort_pred.ravel()))
-
-        if numpy.isnan(diff):
-            raise RuntimeError("Unable to compute differences between {}-{}\n{}\n"
-                               "--------\n{}".format(
-                                   skl_pred.shape, ort_pred.shape,
-                                   skl_pred, ort_pred))
-        return diff
 
 
 def _shape_exc(obj):
@@ -450,7 +394,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
         debug_exc = []
         if opred is not None:
-            max_abs_diff = _measure_absolute_difference(
+            max_abs_diff = measure_absolute_difference(
                 ypred, opred)
             if numpy.isnan(max_abs_diff):
                 obs_op['_8max_abs_diff_batch_exc'] = (
@@ -526,7 +470,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                 opred = None
 
         if opred is not None:
-            max_abs_diff = _measure_absolute_difference(
+            max_abs_diff = measure_absolute_difference(
                 ypred, opred)
             if numpy.isnan(max_abs_diff):
                 obs_op['_Amax_abs_diff_single_exc'] = (
