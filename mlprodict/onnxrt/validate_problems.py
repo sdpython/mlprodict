@@ -225,7 +225,9 @@ def find_suitable_problem(model):
     :epkg:`scikit-learn` operator. It may be
 
     * `bin-class`: binary classification
-    * `mutli-class`: multi-class classification
+    * `multi-class`: multi-class classification
+    * `multi-label`: classification multi-label
+      (multi label possible at the same time)
     * `regression`: regression
     * `multi-reg`: regression multi-output
     * `num-transform`: transform numerical features
@@ -236,6 +238,13 @@ def find_suitable_problem(model):
     * `num+y-trans`: similar to transform with targets
     * `num-trans-cluster`: similar to cluster, but returns
         scores or distances instead of cluster
+
+    Suffix `nofit` indicates the predictions happens
+    without the model being fitted. This is the case
+    for :epkg:`sklearn:gaussian_process:GaussianProcessRegressor`.
+    The suffix `-cov` indicates the method `predict` was called
+    with parameter ``return_cov=True``, `-std` tells
+    method `predict` was called with parameter ``return_std=True``.
 
     The following script gives the list of :epkg:`scikit-learn`
     models and the problem they can be fitted on.

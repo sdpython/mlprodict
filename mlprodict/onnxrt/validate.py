@@ -342,7 +342,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                     continue
                 obs['prediction_time'] = t4
                 if benchmark and 'lambda-skl' in obs:
-                    obs['bench-skl'] = benchmark_fct(*obs['lambda-skl'])
+                    obs['bench-skl'] = benchmark_fct(*
+                                                     obs['lambda-skl'], obs=obs)
 
             # converting
             for opset in opsets:
@@ -425,7 +426,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             keep_exc = e
         obs_op['_6ort_run_batch_exc'] = e
     if benchmark and 'lambda-batch' in obs_op:
-        obs_op['bench-batch'] = benchmark_fct(*obs_op['lambda-batch'])
+        obs_op['bench-batch'] = benchmark_fct(*
+                                              obs_op['lambda-batch'], obs=obs_op)
 
     # difference
     if '_6ort_run_batch_exc' not in obs_op:
@@ -489,7 +491,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             raise keep_exc
         obs_op['_9ort_run_single_exc'] = e
     if benchmark and 'lambda-single' in obs_op and 'lambda-batch' not in obs_op:
-        obs_op['bench-single'] = benchmark_fct(*obs_op['lambda-single'])
+        obs_op['bench-single'] = benchmark_fct(*
+                                               obs_op['lambda-single'], obs=obs_op)
 
     # difference
     if '_9ort_run_single_exc' not in obs_op:
@@ -834,7 +837,7 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False):
     return mes
 
 
-def benchmark_fct(fct, X, time_limit=4):
+def benchmark_fct(fct, X, time_limit=4, obs=None):
     """
     Benchmarks a function which takes an array
     as an input and changes the number of rows.
@@ -843,7 +846,13 @@ def benchmark_fct(fct, X, time_limit=4):
                             is fct(xo)
     @param      X           array
     @param      time_limit  above this time, measurement as stopped
+    @param      obs         all information available in a dictionary
     @return                 dictionary with the results
+
+    The function uses *obs* to reduce the number of tries it does.
+    :epkg:`sklearn:gaussian_process:GaussianProcessRegressor`
+    produces huge *NxN* if predict method is called
+    with ``return_cov=True``.
     """
 
     def make(x, n):
@@ -856,8 +865,18 @@ def benchmark_fct(fct, X, time_limit=4):
                 r[i: end, :] = x[0: end - i, :]
             return r
 
+    def allow(N, obs):
+        if obs is None:
+            return True
+        prob = obs['problem']
+        if "-cov" in prob and N > 1000:
+            return False
+        return True
+
     res = {}
     for N in [1, 10, 100, 1000, 10000, 100000]:
+        if not allow(N, obs):
+            continue
         x = make(X, N)
         if N <= 10:
             repeat = 20
