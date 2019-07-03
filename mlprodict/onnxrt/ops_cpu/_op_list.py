@@ -31,6 +31,7 @@ from .op_matmul import MatMul
 from .op_mean import Mean
 from .op_mul import Mul
 from .op_normalizer import Normalizer
+from .op_not import Not
 from .op_pow import Pow
 from .op_reciprocal import Reciprocal
 from .op_reduce_log_sum_exp import ReduceLogSumExp

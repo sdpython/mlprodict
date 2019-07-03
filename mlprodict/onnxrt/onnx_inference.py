@@ -6,7 +6,6 @@ from on an :epkg:`ONNX` model.
 from collections import OrderedDict
 from io import BytesIO
 import json
-import warnings
 import numpy
 from onnx import load, load_model, checker, shape_inference
 from onnx import onnx_pb as onnx_proto
@@ -14,6 +13,7 @@ from onnx import numpy_helper
 from onnx.helper import make_model
 from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_manipulations import select_model_inputs_outputs, enumerate_model_node_outputs
+from .onnx2py_helper import _var_as_dict, _type_to_string
 
 
 class OnnxInference:
@@ -115,170 +115,6 @@ class OnnxInference:
         """
         return shape_inference.infer_shapes(self.obj)
 
-    @staticmethod
-    def _elem_type_as_str(elem_type):
-        if elem_type == onnx_proto.TensorProto.FLOAT:  # pylint: disable=E1101
-            return 'float'
-        if elem_type == onnx_proto.TensorProto.BOOL:  # pylint: disable=E1101
-            return 'bool'
-        if elem_type == onnx_proto.TensorProto.DOUBLE:  # pylint: disable=E1101
-            return 'double'
-        if elem_type == onnx_proto.TensorProto.STRING:  # pylint: disable=E1101
-            return 'str'
-        if elem_type == onnx_proto.TensorProto.INT64:  # pylint: disable=E1101
-            return 'int64'
-        if elem_type == onnx_proto.TensorProto.INT32:  # pylint: disable=E1101
-            return 'int32'
-
-        # The following code should be refactored.
-        selem = str(elem_type)
-
-        if selem.startswith("tensor_type"):
-            this = elem_type.tensor_type
-            et = OnnxInference._elem_type_as_str(this.elem_type)
-            shape = this.shape
-            dim = shape.dim
-            dims = [d.dim_value for d in dim]
-            if len(dims) == 0:
-                dims = '?'
-            return {'kind': 'tensor', 'elem': et, 'shape': shape}
-
-        if selem.startswith("map_type"):
-            this = elem_type.map_type
-            kt = OnnxInference._elem_type_as_str(this.key_type)
-            vt = OnnxInference._elem_type_as_str(this.value_type)
-            return {'kind': 'map', 'key': kt, 'value': vt}
-
-        import pprint
-        raise NotImplementedError("elem_type '{}' is unknown\nfields:\n{}\n-----\n{}.".format(
-            elem_type, pprint.pformat(dir(elem_type)), type(elem_type)))
-
-    @staticmethod
-    def _var_as_dict(var):
-        """
-        Converts a protobuf object into something readable.
-        The current implementation relies on :epkg:`json`.
-        That's not the most efficient way.
-        """
-        if hasattr(var, 'type') and str(var.type) != '':
-            # variable
-            if var.type is not None:
-                if hasattr(var.type, 'tensor_type') and var.type.tensor_type.elem_type > 0:
-                    t = var.type.tensor_type
-                    elem_type = OnnxInference._elem_type_as_str(t.elem_type)
-                    shape = t.shape
-                    dim = shape.dim
-                    dims = [d.dim_value for d in dim]
-                    if len(dims) == 0:
-                        dims = '?'
-                    dtype = dict(kind='tensor', elem=elem_type,
-                                 shape=tuple(dims))
-                elif hasattr(var.type, 'real') and var.type.real == 5 and hasattr(var, 'g'):
-                    dtype = dict(kind='graph', elem=var.type.real)
-                elif hasattr(var.type, 'real') and var.type.real == 4 and hasattr(var, 't'):
-                    dtype = dict(kind='tensor', elem=var.type.real)
-                elif hasattr(var.type, 'real'):
-                    dtype = dict(kind='real', elem=var.type.real)
-                elif (hasattr(var.type, "sequence_type") and var.type.sequence_type is not None and
-                        str(var.type.sequence_type.elem_type) != ''):
-                    t = var.type.sequence_type
-                    elem_type = OnnxInference._elem_type_as_str(t.elem_type)
-                    dtype = dict(kind='sequence', elem=elem_type)
-                else:
-                    import pprint
-                    raise NotImplementedError("Unable to convert a type into a dictionary for '{}'. "
-                                              "Available fields: {}.".format(var.type, pprint.pformat(dir(var.type))))
-            else:
-                import pprint
-                raise NotImplementedError("Unable to convert variable into a dictionary for '{}'. "
-                                          "Available fields: {}.".format(var, pprint.pformat(dir(var.type))))
-
-            res = dict(name=var.name, type=dtype)
-
-            if hasattr(var, 'floats') and dtype.get('elem', None) == 6:
-                res['value'] = numpy.array(var.floats)
-            elif hasattr(var, 'strings') and dtype.get('elem', None) == 8:
-                res['value'] = numpy.array(var.strings)
-            elif hasattr(var, 'ints') and dtype.get('elem', None) == 7:
-                res['value'] = numpy.array(var.ints)
-            elif hasattr(var, 'f') and dtype.get('elem', None) == 1:
-                res['value'] = var.f
-            elif hasattr(var, 's') and dtype.get('elem', None) == 3:
-                res['value'] = var.s
-            elif hasattr(var, 'i') and dtype.get('elem', None) == 2:
-                res['value'] = var.i
-            elif hasattr(var, 'g') and dtype.get('elem', None) == 5:
-                res['value'] = var.g
-            elif hasattr(var, 't') and dtype.get('elem', None) == 4:
-                ts = OnnxInference._var_as_dict(var.t)
-                res['value'] = ts['value']
-            elif "'value'" in str(var):
-                warnings.warn("No value: {} -- {}".format(
-                    dtype, str(var).replace("\n", "").replace(" ", "")))
-            return res
-
-        elif hasattr(var, 'op_type'):
-            if hasattr(var, 'attribute'):
-                atts = {}
-                for att in var.attribute:
-                    atts[att.name] = OnnxInference._var_as_dict(att)
-            return dict(name=var.name, op_type=var.op_type,
-                        domain=var.domain, atts=atts)
-
-        elif hasattr(var, 'dims') and len(var.dims) > 0:
-            # initializer
-            dims = [d for d in var.dims]
-            if var.data_type == 1 and var.float_data is not None:
-                data = numpy.array(var.float_data, dtype=numpy.float32,
-                                   copy=False).reshape(dims)
-            elif var.data_type == 6 and var.int32_data is not None:
-                data = numpy.array(var.int32_data, dtype=numpy.int32,
-                                   copy=False).reshape(dims)
-            elif var.data_type == 7 and var.int64_data is not None:
-                data = numpy.array(var.int64_data, dtype=numpy.int64,
-                                   copy=False).reshape(dims)
-            else:
-                raise NotImplementedError(
-                    "Iniatilizer {} cannot be converted into a dictionary.".format(var))
-            return dict(name=var.name, value=data)
-
-        elif hasattr(var, 'data_type') and var.data_type > 0:
-            if var.data_type == 1 and var.float_data is not None:
-                data = numpy.array(var.float_data, dtype=numpy.float32,
-                                   copy=False)
-            elif var.data_type == 6 and var.int32_data is not None:
-                data = numpy.array(var.int32_data, dtype=numpy.int32,
-                                   copy=False)
-            elif var.data_type == 7 and var.int64_data is not None:
-                data = numpy.array(var.int64_data, dtype=numpy.int64,
-                                   copy=False)
-            else:
-                raise NotImplementedError(
-                    "Iniatilizer {} cannot be converted into a dictionary.".format(var))
-            return dict(name=var.name, value=data)
-
-        else:
-            raise NotImplementedError(
-                "Unable to guess which object it is.\n{}".format(var))
-
-    @staticmethod
-    def _type_to_string(dtype):
-        """
-        Converts a type into a readable string.
-        """
-        if not isinstance(dtype, dict):
-            dtype_ = OnnxInference._var_as_dict(dtype)
-        else:
-            dtype_ = dtype
-        if dtype_["kind"] == 'tensor':
-            return "{0}({1})".format(dtype_['elem'], dtype_['shape'])
-        if dtype_['kind'] == 'sequence':
-            return "[{0}]".format(OnnxInference._type_to_string(dtype_['elem']))
-        if dtype_["kind"] == 'map':
-            return "{{{0}, {1}}}".format(dtype_['key'], dtype_['value'])
-        raise NotImplementedError(
-            "Unable to convert into string {} or {}.".format(dtype, dtype_))
-
     @property
     def input_names(self):
         """
@@ -293,11 +129,14 @@ class OnnxInference:
         """
         return [_.name for _ in self.obj.graph.output]
 
-    def to_dot(self, **params):
+    def to_dot(self, recursive=False, prefix='', **params):
         """
         Produces a :epkg:`DOT` language string for the graph.
 
         @param      params      additional params to draw the graph
+        @param      recursive   also show subgraphs inside operator like
+                                @see cl Scan
+        @param      prefix      prefix for every node name
         @return                 string
 
         Default options for the graph are:
@@ -359,23 +198,23 @@ class OnnxInference:
         # inputs
         exp.append("")
         for obj in self.obj.graph.input:
-            dobj = OnnxInference._var_as_dict(obj)
-            exp.append('  {0} [shape=box color=red label="{0}\\n{1}" fontsize={2}];'.format(
-                dobj['name'], OnnxInference._type_to_string(dobj['type']), fontsize))
+            dobj = _var_as_dict(obj)
+            exp.append('  {3}{0} [shape=box color=red label="{0}\\n{1}" fontsize={2}];'.format(
+                dobj['name'], _type_to_string(dobj['type']), fontsize, prefix))
             inter_vars[obj.name] = obj
 
         # outputs
         exp.append("")
         for obj in self.obj.graph.output:
-            dobj = OnnxInference._var_as_dict(obj)
-            exp.append('  {0} [shape=box color=green label="{0}\\n{1}" fontsize={2}];'.format(
-                dobj['name'], OnnxInference._type_to_string(dobj['type']), fontsize))
+            dobj = _var_as_dict(obj)
+            exp.append('  {3}{0} [shape=box color=green label="{0}\\n{1}" fontsize={2}];'.format(
+                dobj['name'], _type_to_string(dobj['type']), fontsize, prefix))
             inter_vars[obj.name] = obj
 
         # initializer
         exp.append("")
         for obj in self.obj.graph.initializer:
-            dobj = OnnxInference._var_as_dict(obj)
+            dobj = _var_as_dict(obj)
             val = dobj['value']
             flat = val.flatten()
             if flat.shape[0] < 9:
@@ -386,9 +225,9 @@ class OnnxInference:
                     st = st[:30] + '...'
             st = st.replace('\n', '\\n')
             kind = ""
-            exp.append('  {0} [shape=box label="{0}\\n{4}{1}({2})\\n{3}" fontsize={5}];'.format(
+            exp.append('  {6}{0} [shape=box label="{0}\\n{4}{1}({2})\\n{3}" fontsize={5}];'.format(
                 dobj['name'], dobj['value'].dtype,
-                dobj['value'].shape, st, kind, fontsize))
+                dobj['value'].shape, st, kind, fontsize, prefix))
             inter_vars[obj.name] = obj
 
         # nodes
@@ -398,9 +237,9 @@ class OnnxInference:
                 if out not in inter_vars:
                     inter_vars[out] = out
                     exp.append(
-                        '  {0} [shape=box label="{0}" fontsize={1}];'.format(out, fontsize))
+                        '  {2}{0} [shape=box label="{0}" fontsize={1}];'.format(out, fontsize, prefix))
 
-            dobj = OnnxInference._var_as_dict(node)
+            dobj = _var_as_dict(node)
             if dobj['name'].strip() == '':
                 raise RuntimeError(
                     "Issue with a node\n{}\n----\n{}".format(dobj, node))
@@ -418,13 +257,49 @@ class OnnxInference:
                     if val is not None:
                         atts.append('{}={}'.format(k, val))
             satts = "" if len(atts) == 0 else ("\\n" + "\\n".join(atts))
-            exp.append('  {1} [shape=box style="filled,rounded" color=orange label="{0}\\n({1}){2}" fontsize={3}];'.format(
-                dobj['op_type'], dobj['name'], satts, fontsize))
 
-            for inp in node.input:
-                exp.append("  {} -> {};".format(inp, node.name))
-            for out in node.output:
-                exp.append("  {} -> {};".format(node.name, out))
+            if recursive and node.op_type in {'Scan'}:
+                # creates the subgraph
+                body = dobj['atts']['body']['value']
+                oinf = OnnxInference(
+                    body, runtime=self.runtime, skip_run=self.skip_run)
+                subprefix = prefix + "B_"
+                subdot = oinf.to_dot(recursive=recursive, prefix=subprefix)
+                lines = subdot.split("\n")
+                start = 0
+                for i, line in enumerate(lines):
+                    if '[' in line:
+                        start = i
+                        break
+                subgraph = "\n".join(lines[start:])
+
+                # connecting the subgraph
+                exp.append("  subgraph cluster_{}{} {{".format(
+                    node.op_type, id(node)))
+                exp.append('    label="{0}\\n({1}){2}";'.format(
+                    dobj['op_type'], dobj['name'], satts))
+                exp.append('    fontsize={0};'.format(fontsize))
+                exp.append('    color=black;')
+                exp.append(
+                    '\n'.join(map(lambda s: '  ' + s, subgraph.split('\n'))))
+
+                for inp1, inp2 in zip(node.input, body.input):
+                    exp.append(
+                        "  {0}{1} -> {2}{3};".format(prefix, inp1, subprefix, inp2.name))
+                for out1, out2 in zip(body.output, node.output):
+                    exp.append(
+                        "  {0}{1} -> {2}{3};".format(subprefix, out1.name, prefix, out2))
+
+            else:
+                exp.append('  {4}{1} [shape=box style="filled,rounded" color=orange label="{0}\\n({1}){2}" fontsize={3}];'.format(
+                    dobj['op_type'], dobj['name'], satts, fontsize, prefix))
+
+                for inp in node.input:
+                    exp.append(
+                        "  {0}{1} -> {0}{2};".format(prefix, inp, node.name))
+                for out in node.output:
+                    exp.append(
+                        "  {0}{1} -> {0}{2};".format(prefix, node.name, out))
 
         exp.append('}')
         return "\n".join(exp)
@@ -597,18 +472,18 @@ class OnnxInference:
 
         # inputs
         for obj in self.obj.graph.input:
-            variables[obj.name] = OnnxInference._var_as_dict(obj)
+            variables[obj.name] = _var_as_dict(obj)
 
         # outputs
         for obj in self.obj.graph.output:
             if hasattr(obj, 'type') and str(obj.type) != '':
-                outputs[obj.name] = OnnxInference._var_as_dict(obj)
+                outputs[obj.name] = _var_as_dict(obj)
             else:
                 outputs[obj.name] = {'name': obj.name}
 
         # initializer
         for obj in self.obj.graph.initializer:
-            init_obj = OnnxInference._var_as_dict(obj)
+            init_obj = _var_as_dict(obj)
             if init_obj is None:
                 raise RuntimeError(
                     "Unable to convert an initializer\n{}".format(obj))
@@ -619,7 +494,7 @@ class OnnxInference:
 
         # nodes
         for node in self.obj.graph.node:
-            dobj = OnnxInference._var_as_dict(node)
+            dobj = _var_as_dict(node)
             if dobj is None:
                 raise RuntimeError("Unable to convert a node\n{}".format(node))
             if 'atts' in dobj:

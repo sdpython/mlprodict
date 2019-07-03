@@ -37,6 +37,14 @@ class TestOnnxNotebook(ExtTestCase):
         self.assertNotEmpty(res)
         self.assertIn('RenderJsDot', str(res))
 
+        mg = OnnxNotebook()
+        mg.add_context(
+            {"model": model_def})
+        cmd = "-r 1 model"
+        res = mg.onnxview(cmd)
+        self.assertNotEmpty(res)
+        self.assertIn('RenderJsDot', str(res))
+
 
 if __name__ == "__main__":
     unittest.main()

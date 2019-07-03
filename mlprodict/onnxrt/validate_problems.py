@@ -7,10 +7,18 @@ The submodule relies on :epkg:`onnxconverter_common`,
 import numpy
 from sklearn.base import ClusterMixin, BiclusterMixin, OutlierMixin
 from sklearn.base import RegressorMixin, ClassifierMixin
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.cross_decomposition import PLSSVD
 from sklearn.datasets import load_iris
-from sklearn.ensemble import AdaBoostRegressor, GradientBoostingRegressor, AdaBoostClassifier
-from sklearn.feature_selection import RFE, RFECV, GenericUnivariateSelect
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.ensemble import (
+    AdaBoostRegressor, GradientBoostingRegressor, AdaBoostClassifier,
+    BaggingClassifier, VotingClassifier, GradientBoostingClassifier
+)
+from sklearn.feature_selection import (
+    RFE, RFECV, GenericUnivariateSelect,
+    SelectPercentile, SelectFwe, SelectKBest,
+)
 from sklearn.gaussian_process import GaussianProcessClassifier, GaussianProcessRegressor
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import (
@@ -21,18 +29,21 @@ from sklearn.linear_model import (
     MultiTaskElasticNetCV, MultiTaskLassoCV, MultiTaskLasso,
     PassiveAggressiveClassifier, RidgeClassifier,
     RidgeClassifierCV, PassiveAggressiveRegressor,
-    HuberRegressor, LogisticRegression
+    HuberRegressor, LogisticRegression, SGDClassifier,
+    LogisticRegressionCV, Perceptron
 )
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import (
     OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
 )
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
+from sklearn.naive_bayes import BernoulliNB, GaussianNB, MultinomialNB, ComplementNB
 from sklearn.neighbors import (
     NearestCentroid, RadiusNeighborsClassifier,
     NeighborhoodComponentsAnalysis,
 )
-from sklearn.svm import LinearSVC, LinearSVR, NuSVR, SVR
+from sklearn.semi_supervised import LabelPropagation, LabelSpreading
+from sklearn.svm import LinearSVC, LinearSVR, NuSVR, SVR, SVC, NuSVC
 
 
 def _problem_for_predictor_binary_classification():
@@ -267,16 +278,31 @@ def find_suitable_problem(model):
                 'reg-nofit-cov', 'multi-reg-nofit-cov',
                 'reg-nofit-std', 'multi-reg-nofit-std',
                 'regression', 'multi-reg']
-    if model in {GaussianProcessClassifier}:
-        return ['bin-class', 'multi-class', 'multi-label']
+
+    if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
+                 ComplementNB, GaussianNB, GaussianProcessClassifier,
+                 GradientBoostingClassifier, LabelPropagation, LabelSpreading,
+                 LinearDiscriminantAnalysis, LogisticRegressionCV,
+                 MultinomialNB, NuSVC, Perceptron, QuadraticDiscriminantAnalysis,
+                 RandomizedSearchCV, SGDClassifier, SVC}:
+        return ['bin-class', 'multi-class']
+
     if model in {AdaBoostRegressor}:
         return ['regression']
+
     if model in {LinearSVC, NearestCentroid}:
         return ['clnoproba']
-    if model in {RFE, RFECV, GridSearchCV}:
+
+    if model in {RFE, RFECV}:
+        return ['bin-class', 'multi-class', 'regression']
+
+    if model in {GridSearchCV}:
         return ['bin-class', 'multi-class',
                 'regression', 'multi-reg',
                 'cluster', 'outlier', 'multi-label']
+
+    if model in {VotingClassifier}:
+        return ['bin-class']
 
     # specific scenarios
     if model in {IsotonicRegression}:
@@ -307,7 +333,8 @@ def find_suitable_problem(model):
     # trainable transform
     if model in {GenericUnivariateSelect,
                  NeighborhoodComponentsAnalysis,
-                 PLSSVD}:
+                 PLSSVD, SelectFwe, SelectKBest,
+                 SelectPercentile}:
         return ["num+y-trans"]
 
     # no multi-label

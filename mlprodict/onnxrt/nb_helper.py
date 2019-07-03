@@ -9,14 +9,15 @@ from pyquickhelper.cli.cli_helper import create_cli_parser
 from .onnx_inference import OnnxInference
 
 
-def onnxview(graph):
+def onnxview(graph, recursive=False):
     """
     Displays an :epkg:`ONNX` graph into a notebook.
 
-    :param graph:  filename, bytes, or :epkg:`onnx` graph.
+    :param graph: filename, bytes, or :epkg:`onnx` graph.
+    :param recursive: display subgraph
     """
     sess = OnnxInference(graph, skip_run=True)
-    dot = sess.to_dot()
+    dot = sess.to_dot(recursive=recursive)
     return RenderJsDot(dot)
 
 
@@ -47,7 +48,7 @@ class OnnxNotebook(MagicClassWithHelpers):
         args = self.get_args(line, parser)
 
         if args is not None:
-            res = onnxview(args.graph)
+            res = onnxview(args.graph, recursive=args.recursive)
             return res
         return None
 

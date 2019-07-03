@@ -20,7 +20,7 @@ from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier,
-    OnnxConstantOfShape, OnnxShape
+    OnnxConstantOfShape, OnnxShape, OnnxIdentity
 )
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import to_onnx, __version__ as skl2onnx_version
@@ -260,6 +260,24 @@ class TestOnnxrtSimple(ExtTestCase):
         oinf = OnnxInference(model_def, skip_run=True)
         dot = oinf.to_dot()
         self.assertIn('ConstantOfShape', dot)
+
+    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
+                     reason="some node have null names")
+    def test_onnxt_pdist_dot(self):
+        from skl2onnx.algebra.complex_functions import squareform_pdist  # pylint: disable=E0401
+        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((3, 2))
+        cop = OnnxAdd('input', 'input')
+        cdist = squareform_pdist(cop)
+        cop2 = OnnxIdentity(cdist, output_names=['cdist'])
+
+        model_def = cop2.to_onnx(
+            {'input': x}, outputs=[('cdist', FloatTensorType())])
+
+        oinf = OnnxInference(model_def, skip_run=True)
+        dot = oinf.to_dot(recursive=True)
+        self.assertIn("B_next_out", dot)
+        self.assertIn("cluster", dot)
 
 
 if __name__ == "__main__":
