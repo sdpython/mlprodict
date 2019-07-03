@@ -84,7 +84,7 @@ class RuntimeTreeEnsembleRegressor
         
         py::array_t<float> compute(py::array_t<float> X) const;
 
-        void ProcessTreeNode(std::unordered_map < int64_t, std::tuple<float, float, float>>& classes,
+        void ProcessTreeNode(std::unordered_map <int64_t, std::tuple<float, float, float>>& classes,
                              int64_t treeindex,
                              const float* x_data,
                              int64_t feature_base) const;

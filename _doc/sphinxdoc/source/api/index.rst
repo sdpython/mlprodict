@@ -10,3 +10,4 @@ API
     sklearn
     onnxrt
     onnxrt_ops
+    sklapi

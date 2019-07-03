@@ -3,3 +3,7 @@
 
 Magic commands
 ==============
+==============
+
+.. nbreflist::
+    :contents:
