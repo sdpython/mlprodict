@@ -262,9 +262,9 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('ConstantOfShape', dot)
 
     @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="some node have null names")
+                     reason="pdist does not exist")
     def test_onnxt_pdist_dot(self):
-        from skl2onnx.algebra.complex_functions import squareform_pdist  # pylint: disable=E0401
+        from skl2onnx.algebra.complex_functions import squareform_pdist  # pylint: disable=E0401,E0611
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('input', 'input')
