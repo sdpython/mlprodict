@@ -68,7 +68,7 @@ class TestInferenceSessionOnnx2Onnx(ExtTestCase):
         self.assertEqual(list(y2), ['output_label', 'output_probability'])
         self.assertEqualArray(y1, y2['output_label'])
         y1 = pipe.predict_proba(X)
-        probas = DataFrame(y2['output_probability']).values
+        probas = DataFrame(list(y2['output_probability'])).values
         self.assertEqualArray(y1, probas)
 
 

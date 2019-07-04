@@ -15,4 +15,4 @@ class Relu(OpRun):
                        **options)
 
     def _run(self, x):  # pylint: disable=W0221
-        return (numpy.max(x, 0), )
+        return (numpy.maximum(x, 0), )

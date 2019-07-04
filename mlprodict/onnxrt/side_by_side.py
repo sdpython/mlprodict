@@ -9,7 +9,7 @@ def side_by_side_by_values(sessions, inputs, *args, **kwargs):
     """
     Compares the execution of two sessions.
     It calls method :meth:`OnnxInference.run
-    <mlprodict.onnxrt.onnx_inference.OnnxInference.run`
+    <mlprodict.onnxrt.onnx_inference.OnnxInference.run>`
     with value ``intermediate=True`` and compares the results.
 
     @param      sessions        list of class @see cl OnnxInference

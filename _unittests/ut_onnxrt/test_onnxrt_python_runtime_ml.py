@@ -81,7 +81,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
             self.assertEqualArray(lexp, y['output_label'])
 
             exp = clr.predict_proba(X_test[i:i + 1])
-            got = pandas.DataFrame(y['output_probability']).values
+            got = pandas.DataFrame(list(y['output_probability'])).values
             self.assertEqualArray(exp, got, decimal=5)
 
     def test_onnxrt_python_KNeighborsRegressor_simple_k1(self):
@@ -180,7 +180,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'])
 
         exp = clr.predict_proba(X_test)
-        got = pandas.DataFrame(y['output_probability']).values
+        got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
     def test_onnxrt_python_LogisticRegression_multi(self):
@@ -199,7 +199,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'])
 
         exp = clr.predict_proba(X_test)
-        got = pandas.DataFrame(y['output_probability']).values
+        got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
     def test_onnxrt_python_StandardScaler(self):

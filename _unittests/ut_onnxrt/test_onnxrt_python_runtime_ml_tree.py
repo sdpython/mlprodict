@@ -38,7 +38,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'])
 
         exp = clr.predict_proba(X_test)
-        got = pandas.DataFrame(y['output_probability']).values
+        got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
     def test_onnxrt_python_DecisionTreeRegressor(self):
@@ -76,7 +76,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'])
 
         exp = clr.predict_proba(X_test)
-        got = pandas.DataFrame(y['output_probability']).values
+        got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
     def test_onnxrt_python_RandomForestClassifer5(self):
@@ -98,7 +98,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'])
 
         exp = clr.predict_proba(X_test[:5])
-        got = pandas.DataFrame(y['output_probability']).values
+        got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
     def test_openmp_compilation(self):

@@ -39,11 +39,11 @@ def measure_absolute_difference(skl_pred, ort_pred):
         ort_pred_ = ort_pred
         if isinstance(ort_pred, list):
             if isinstance(ort_pred[0], dict):
-                ort_pred = pandas.DataFrame(ort_pred).values
+                ort_pred = pandas.DataFrame(list(ort_pred)).values
             elif (isinstance(ort_pred[0], list) and
                     isinstance(ort_pred[0][0], dict)):
                 if len(ort_pred) == 1:
-                    ort_pred = pandas.DataFrame(ort_pred[0]).values
+                    ort_pred = pandas.DataFrame(list(ort_pred[0])).values
                 elif len(ort_pred[0]) == 1:
                     ort_pred = pandas.DataFrame(
                         [o[0] for o in ort_pred]).values

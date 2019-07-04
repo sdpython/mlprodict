@@ -423,7 +423,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_relu(self):
         self.common_test_onnxt_runtime_unary(
-            OnnxRelu, lambda x: numpy.max(x, 0))
+            OnnxRelu, lambda x: numpy.maximum(x, 0))
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
     def common_test_onnxt_runtime_reshape(self):

@@ -214,7 +214,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'])
 
         exp = clr.predict_proba(X_test)
-        got = pandas.DataFrame(y['output_probability']).values
+        got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
     @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
@@ -278,6 +278,31 @@ class TestOnnxrtSimple(ExtTestCase):
         dot = oinf.to_dot(recursive=True)
         self.assertIn("B_next_out", dot)
         self.assertIn("cluster", dot)
+
+    def test_onnxt_lrc_iris_run_node_time(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = LogisticRegression(solver="liblinear")
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        _, mt = oinf.run({'X': X_test}, node_time=True)
+        self.assertIsInstance(mt, list)
+        self.assertGreater(len(mt), 1)
+        self.assertIsInstance(mt[0], dict)
+
+        rows = []
+
+        def myprint(*args):
+            rows.append(' '.join(map(str, args)))
+
+        _, mt = oinf.run({'X': X_test}, node_time=True,
+                         verbose=1, fLOG=myprint)
+        self.assertIsInstance(mt, list)
+        self.assertGreater(len(mt), 1)
+        self.assertIsInstance(mt[0], dict)
 
 
 if __name__ == "__main__":

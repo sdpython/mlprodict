@@ -141,7 +141,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                check_runtime=True, debug=False,
                                runtime='python', dump_folder=None,
                                store_models=False, benchmark=False,
-                               assume_finite=True,
+                               assume_finite=True, node_time=False,
                                fLOG=print, filter_exp=None):
     """
     Lists all compatible opsets for a specific model.
@@ -163,6 +163,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     @param      fLOG            logging function
     @param      filter_exp      function which tells if the experiment must be run,
                                 None to run all
+    @param      node_time       collect time for each node in the :epkg:`ONNX` graph
     @param      assume_finite   See `config_context
                                 <https://scikit-learn.org/stable/modules/generated/
                                 sklearn.config_context.html>`_, If True, validation for finiteness
@@ -337,7 +338,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                         ypred=ypred, Xort_test=Xort_test,
                                         model=model, dump_folder=dump_folder,
                                         benchmark=benchmark and opset == opsets[-1],
-                                        fLOG=fLOG)
+                                        node_time=node_time, fLOG=fLOG)
                 else:
                     yield obs_op
 
@@ -345,7 +346,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                   X_, y_, init_types, method, output_index,
                   Xort_, ypred, Xort_test, model, dump_folder,
-                  benchmark, fLOG):
+                  benchmark, node_time, fLOG):
     """
     Private.
     """
@@ -373,14 +374,14 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         opred, t7 = _measure_time(fct_batch)
         obs_op['ort_run_time_batch'] = t7
         obs_op['lambda-batch'] = (lambda xo: sess.run(
-            {init_types[0][0]: xo}), Xort_test)
+            {init_types[0][0]: xo}, node_time=node_time), Xort_test)
     except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
         if debug:
             keep_exc = e
         obs_op['_6ort_run_batch_exc'] = e
-    if benchmark and 'lambda-batch' in obs_op:
-        obs_op['bench-batch'] = benchmark_fct(*
-                                              obs_op['lambda-batch'], obs=obs_op)
+    if (benchmark or node_time) and 'lambda-batch' in obs_op:
+        obs_op['bench-batch'] = benchmark_fct(
+            *obs_op['lambda-batch'], obs=obs_op, node_time=node_time)
 
     # difference
     if '_6ort_run_batch_exc' not in obs_op:
@@ -435,7 +436,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         opred, t7 = _measure_time(fct_single)
         obs_op['ort_run_time_single'] = t7
         obs_op['lambda-single'] = (
-            lambda xo: [sess.run({init_types[0][0]: Xort_row})
+            lambda xo: [sess.run({init_types[0][0]: Xort_row}, node_time=node_time)
                         for Xort_row in xo],
             Xort_test
         )
@@ -443,9 +444,9 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         if debug and keep_exc is not None:
             raise keep_exc
         obs_op['_9ort_run_single_exc'] = e
-    if benchmark and 'lambda-single' in obs_op and 'lambda-batch' not in obs_op:
-        obs_op['bench-single'] = benchmark_fct(*
-                                               obs_op['lambda-single'], obs=obs_op)
+    if (benchmark or node_time) and 'lambda-single' in obs_op and 'lambda-batch' not in obs_op:
+        obs_op['bench-single'] = benchmark_fct(
+            *obs_op['lambda-single'], obs=obs_op, node_time=node_time)
 
     # difference
     if '_9ort_run_single_exc' not in obs_op:
@@ -513,7 +514,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         check_runtime=True, debug=False, runtime='python',
                                         models=None, dump_folder=None, store_models=False,
                                         benchmark=False, skip_models=None,
-                                        assume_finite=True,
+                                        assume_finite=True, node_time=False,
                                         fLOG=print, filter_exp=None):
     """
     Tests all possible configuration for all possible
@@ -543,6 +544,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                 sklearn.config_context.html>`_, If True, validation for finiteness
                                 will be skipped, saving time, but leading to potential crashes.
                                 If False, validation for finiteness will be performed, avoiding error.
+    @param      node_time       measure time execution for every node in the graph
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -593,7 +595,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 debug=debug, dump_folder=dump_folder,
                 store_models=store_models, benchmark=benchmark,
                 fLOG=fLOG, filter_exp=filter_exp,
-                assume_finite=assume_finite):
+                assume_finite=assume_finite, node_time=node_time):
 
             if verbose > 1:
                 fLOG("  ", obs)
@@ -797,7 +799,7 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False):
     return mes
 
 
-def benchmark_fct(fct, X, time_limit=4, obs=None):
+def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False):
     """
     Benchmarks a function which takes an array
     as an input and changes the number of rows.
@@ -807,6 +809,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None):
     @param      X           array
     @param      time_limit  above this time, measurement as stopped
     @param      obs         all information available in a dictionary
+    @param      node_time   measure time execution for each node in the graph
     @return                 dictionary with the results
 
     The function uses *obs* to reduce the number of tries it does.
@@ -850,9 +853,57 @@ def benchmark_fct(fct, X, time_limit=4, obs=None):
         else:
             repeat = 1
             number = 1
-        res[N] = measure_time(fct, x, repeat=repeat,
-                              number=number, div_by_number=True)
-        if res[N] is not None and res[N].get('total', time_limit) >= time_limit:
+        if node_time:
+            fct(x)
+            main = None
+            for __ in range(repeat):
+                agg = None
+                for _ in range(number):
+                    ms = fct(x)[1]
+                    if agg is None:
+                        agg = ms
+                        for row in agg:
+                            row['N'] = N
+                    else:
+                        if len(agg) != len(ms):
+                            raise RuntimeError(
+                                "Not the same number of nodes {} != {}.".format(len(agg), len(ms)))
+                        for a, b in zip(agg, ms):
+                            a['time'] += b['time']
+                if main is None:
+                    main = agg
+                else:
+                    if len(agg) != len(main):
+                        raise RuntimeError(
+                            "Not the same number of nodes {} != {}.".format(len(agg), len(main)))
+                    for a, b in zip(main, agg):
+                        a['time'] += b['time']
+                        a['max_time'] = max(
+                            a.get('max_time', b['time']), b['time'])
+                        a['min_time'] = min(
+                            a.get('min_time', b['time']), b['time'])
+            for row in main:
+                row['repeat'] = repeat
+                row['number'] = number
+                row['time'] /= repeat * number
+                if 'max_time' in row:
+                    row['max_time'] /= number
+                    row['min_time'] /= number
+                else:
+                    row['max_time'] = row['time']
+                    row['min_time'] = row['time']
+            res[N] = main
+        else:
+            res[N] = measure_time(fct, x, repeat=repeat,
+                                  number=number, div_by_number=True)
+        if (not node_time and res[N] is not None and
+                res[N].get('total', time_limit) >= time_limit):
             # too long
             break
-    return res
+    if node_time:
+        rows = []
+        for _, v in res.items():
+            rows.extend(v)
+        return rows
+    else:
+        return res

@@ -6,6 +6,7 @@ from on an :epkg:`ONNX` model.
 from collections import OrderedDict
 from io import BytesIO
 import json
+from time import perf_counter
 import numpy
 from onnx import load, load_model, checker, shape_inference
 from onnx import onnx_pb as onnx_proto
@@ -565,18 +566,22 @@ class OnnxInference:
                     nodes=nodes, sequence=sequence, intermediate=intermediate)
 
     def run(self, inputs, clean_right_away=False,
-            intermediate=False, verbose=0, fLOG=None):
+            intermediate=False, verbose=0, node_time=False,
+            fLOG=None):
         """
         Computes the predictions for this :epkg:`onnx` graph.
 
         @param      inputs              inputs as dictionary
         @param      clean_right_away    clean the intermediate outputs
                                         as soon as they are not needed
-        @param      intermediare        returns a dictionary of intermediate
+        @param      intermediate        returns a dictionary of intermediate
                                         variables instead of the results only
         @param      verbose             display information while predicting
+        @param      node_time           measure time of each node
         @param      fLOG                logging function if *verbose > 0*
         @return                         outputs as dictionary
+                                        and a second dictionary of the time spent
+                                        in each node if *node_time* is True
 
         .. exref::
             :title: Computes predictions with any runtime
@@ -617,18 +622,30 @@ class OnnxInference:
         *OnnxInference*.
         """
         return self._run(inputs, clean_right_away=False, intermediate=intermediate,
-                         verbose=verbose, fLOG=fLOG)
+                         verbose=verbose, node_time=node_time, fLOG=fLOG)
 
     def _run_sequence_runtime(self, inputs, clean_right_away=False,
-                              intermediate=False, verbose=0, fLOG=None):
+                              intermediate=False, verbose=0, node_time=False,
+                              fLOG=None):
         if clean_right_away:
             raise NotImplementedError("clean_right_away=true not implemented.")
         values = OrderedDict(inputs)
         for k, v in self.inits_.items():
             values[k] = v['value']
+
+        mtime = []
         if verbose == 0 or fLOG is None:
-            for node in self.sequence_:
-                node.run(values)
+            if node_time:
+                for i, node in enumerate(self.sequence_):
+                    t = perf_counter()
+                    node.run(values)
+                    t2 = perf_counter()
+                    mtime.append(dict(i=i, name=node.onnx_node.name,
+                                      op_type=node.onnx_node.op_type,
+                                      time=t2 - t))
+            else:
+                for node in self.sequence_:
+                    node.run(values)
         else:
             if verbose >= 2:
                 for k in sorted(values):
@@ -637,10 +654,18 @@ class OnnxInference:
             keys = set(values)
             if verbose >= 1:
                 fLOG("-- OnnxInference: run {} nodes".format(len(self.sequence_)))
-            for node in self.sequence_:
+            for i, node in enumerate(self.sequence_):
                 if verbose >= 1:
                     fLOG(node)
-                node.run(values)
+                if node_time:
+                    t = perf_counter()
+                    node.run(values)
+                    t2 = perf_counter()
+                    mtime.append(dict(i=i, name=node.onnx_node.name,
+                                      op_type=node.onnx_node.op_type,
+                                      time=t2 - t))
+                else:
+                    node.run(values)
                 for k in sorted(values):
                     if k not in keys:
                         if isinstance(values[k], numpy.ndarray):
@@ -652,13 +677,14 @@ class OnnxInference:
                 keys = set(values)
 
         if intermediate:
-            return values
+            return (values, mtime) if node_time else values
         else:
             try:
-                return {k: values[k] for k in self.outputs_}
+                res = {k: values[k] for k in self.outputs_}
             except KeyError as e:
                 raise RuntimeError("Unable to find one output in [{}].".format(
                     ", ".join(sorted(values)))) from e
+            return (res, mtime) if node_time else res
 
     def build_intermediate(self):
         """
@@ -676,7 +702,9 @@ class OnnxInference:
         return ord
 
     def _run_whole_runtime(self, inputs, clean_right_away=False,
-                           intermediate=False, verbose=0, fLOG=None):
+                           intermediate=False, verbose=0, node_time=False,
+                           fLOG=None):
+        # node_time is unused
         if clean_right_away:
             raise RuntimeError(
                 "clean_right_away=true does not work with this runtime.")
