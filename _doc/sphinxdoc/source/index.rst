@@ -87,15 +87,15 @@ runtime for :epkg:`ONNX`.
     # Conversion into ONNX.
     from skl2onnx import to_onnx
     model_onnx = to_onnx(lr, X.astype(numpy.float32))
-    print(str(model_onnx)[:200] + "\n...")
+    print("ONNX:", str(model_onnx)[:200] + "\n...")
 
     # Predictions with onnxruntime
     oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
-    ypred = oinf.run({'X': X[:5]})
-    print(ypred)
+    ypred = oinf.run({'X': X[:5].astype(numpy.float32)})
+    print("ONNX output:", ypred)
 
     # Measuring the maximum difference.
-    print(measure_absolute_difference(expected, ypred))
+    print("max abs diff:", measure_absolute_difference(expected, ypred['variable']))
 
 These predictions are obtained with the
 following :epkg:`ONNX` graph.
