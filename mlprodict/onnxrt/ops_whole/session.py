@@ -25,7 +25,11 @@ class OnnxWholeSession:
             onnx_data = onnx_data.SerializeToString()
         self.runtime = runtime
         sess_options = SessionOptions()
-        sess_options.session_log_severity_level = 3
+        try:
+            sess_options.session_log_severity_level = 3
+        except AttributeError:
+            # onnxruntime not recent enough.
+            pass
         self.sess = InferenceSession(onnx_data, sess_options=sess_options)
 
     def run(self, inputs):

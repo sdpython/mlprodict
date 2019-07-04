@@ -108,7 +108,11 @@ class OpRunOnnxRuntime:
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
 
         sess_options = SessionOptions()
-        sess_options.session_log_severity_level = 3
+        try:
+            sess_options.session_log_severity_level = 3
+        except AttributeError:
+            # onnxruntime not recent enough.
+            pass
         try:
             self.sess_ = InferenceSession(self.onnx_.SerializeToString(),
                                           sess_options=sess_options)
