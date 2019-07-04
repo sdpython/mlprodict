@@ -654,7 +654,11 @@ class OnnxInference:
         if intermediate:
             return values
         else:
-            return {k: values[k] for k in self.outputs_}
+            try:
+                return {k: values[k] for k in self.outputs_}
+            except KeyError as e:
+                raise RuntimeError("Unable to find one output in [{}].".format(
+                    ", ".join(sorted(values)))) from e
 
     def build_intermediate(self):
         """

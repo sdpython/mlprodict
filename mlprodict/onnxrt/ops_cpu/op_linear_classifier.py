@@ -43,7 +43,11 @@ class LinearClassifier(OpRun):
             pass
         elif self.post_transform == b'LOGISTIC':
             expit(score, out=score)
-
+        elif self.post_transform == b'SOFTMAX':
+            numpy.subtract(score, score.max(axis=1)[
+                           :, numpy.newaxis], out=score)
+            numpy.exp(score, out=score)
+            numpy.divide(score, score.sum(axis=1)[:, numpy.newaxis], out=score)
         else:
             raise NotImplementedError("Unknown post_transform: '{}'.".format(
                 self.post_transform))

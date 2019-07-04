@@ -1,10 +1,8 @@
 # coding: utf-8
 """
-Wraps runtime into a :epkg:`scikit-learn` transformer.
+@file
+@brief Wraps runtime into a :epkg:`scikit-learn` transformer.
 """
-# author: Xavier Dupré
-# license: MIT
-
 import numpy
 import pandas
 from onnx import helper
@@ -15,7 +13,6 @@ from skl2onnx.helpers.onnx_helper import load_onnx_model, enumerate_model_node_o
 from skl2onnx.helpers.onnx_helper import select_model_inputs_outputs
 from skl2onnx.common.data_types import FloatTensorType
 from ..onnxrt import OnnxInference
-from ..onnxrt.graph_schema_helper import _guess_type
 from ..onnxrt.onnx2py_helper import _var_as_dict
 
 
@@ -147,7 +144,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                 return outputs[0]
         else:
             names = self.output_name if self.output_name else [
-                o.name for o in self.onnxrt_.get_outputs()]
+                o.name for o in self.onnxrt_.output_names]
             return pandas.DataFrame({k: v for k, v in zip(names, outputs)})
 
     def fit_transform(self, X, y=None, **inputs):
@@ -235,22 +232,10 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         mapped to the first *scikit-learn* parent
         it can find.
         """
-        inputs = getattr(self, "parsed_inputs_", None)
-
-        if inputs is None:
-            inputs = []
-            for inp in self.onnxrt_.get_inputs():
-                shape = inp.type.shape
-                typ = _guess_type(inp.type)
-                inputs.append((inp.name, typ(shape)))
-        outputs = self.onnxrt_.output_names
-
-        def copy_inout(inout, scope):
+        def copy_inout(inout, scope, new_name):
             shape = [s.dim_value for s in inout.type.tensor_type.shape.dim]
             value_info = helper.make_tensor_value_info(
-                clean_variable_name(inout.name, scope),
-                inout.type.tensor_type.elem_type,
-                shape)
+                new_name, inout.type.tensor_type.elem_type, shape)
             return value_info
 
         def clean_variable_name(name, scope):
@@ -267,23 +252,48 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
             op = operator.raw_operator
 
             graph = op.onnxrt_.obj.graph
-            inputs = [copy_inout(o, scope) for o in graph.input]
-            outputs = [copy_inout(o, scope) for o in graph.output]
+            name_mapping = {}
+            node_mapping = {}
+            for node in graph.node:
+                name = node.name
+                if name is not None:
+                    node_mapping[node.name] = clean_initializer_name(
+                        node.name, scope)
+                for o in node.input:
+                    name_mapping[o] = clean_variable_name(o, scope)
+                for o in node.output:
+                    name_mapping[o] = clean_variable_name(o, scope)
+            for o in graph.initializer:
+                name_mapping[o.name] = clean_operator_name(o.name, scope)
+
+            inputs = [copy_inout(o, scope, name_mapping[o.name])
+                      for o in graph.input]
+            outputs = [copy_inout(o, scope, name_mapping[o.name])
+                       for o in graph.output]
+
+            for inp, to in zip(operator.inputs, inputs):
+                n = helper.make_node('Identity', [inp.onnx_name], [to.name],
+                                     name=clean_operator_name('Identity', scope))
+                container.nodes.append(n)
+
+            for inp, to in zip(outputs, operator.outputs):
+                n = helper.make_node('Identity', [inp.name], [to.onnx_name],
+                                     name=clean_operator_name('Identity', scope))
+                container.nodes.append(n)
+
             for node in graph.node:
                 n = helper.make_node(node.op_type,
-                                     [clean_variable_name(o, scope)
-                                      for o in node.input],
-                                     [clean_variable_name(o, scope) for o in node.output])
+                                     [name_mapping[o] for o in node.input],
+                                     [name_mapping[o] for o in node.output],
+                                     name=node_mapping[node.name] if node.name else None)
                 n.attribute.extend(node.attribute)  # pylint: disable=E1101
                 container.nodes.append(n)
 
-            inits = []
             for o in graph.initializer:
+                as_str = o.SerializeToString()
                 tensor = TensorProto()
-                tensor.data_type = o.data_type
-                tensor.name = clean_initializer_name(o.name, scope)
-                tensor.raw_data = o.raw_data
-                tensor.dims.extend(o.dims)  # pylint: disable=E1101
+                tensor.ParseFromString(as_str)
+                tensor.name = name_mapping[o.name]
                 container.initializers.append(tensor)
 
         return converter

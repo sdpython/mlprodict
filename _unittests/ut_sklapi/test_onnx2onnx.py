@@ -4,13 +4,14 @@
 import unittest
 from logging import getLogger
 import numpy
+from pandas import DataFrame
 from sklearn.pipeline import make_pipeline
 from sklearn.decomposition import PCA
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import convert_sklearn, to_onnx
-from skl2onnx.algebra.onnx_ops import OnnxAdd
+from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.sklapi import OnnxTransformer
 from mlprodict.onnxrt import OnnxInference
@@ -64,7 +65,11 @@ class TestInferenceSessionOnnx2Onnx(ExtTestCase):
         oinf = OnnxInference(model_onnx)
         y1 = pipe.predict(X)
         y2 = oinf.run({'X': X.astype(numpy.float32)})
-        self.assertEqualArray(y1, y2)
+        self.assertEqual(list(y2), ['output_label', 'output_probability'])
+        self.assertEqualArray(y1, y2['output_label'])
+        y1 = pipe.predict_proba(X)
+        probas = DataFrame(y2['output_probability']).values
+        self.assertEqualArray(y1, probas)
 
 
 if __name__ == '__main__':
