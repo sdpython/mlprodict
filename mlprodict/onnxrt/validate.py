@@ -12,6 +12,7 @@ from timeit import Timer
 import numpy
 import pandas
 import onnx
+import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import train_test_split
@@ -140,6 +141,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                check_runtime=True, debug=False,
                                runtime='CPU', dump_folder=None,
                                store_models=False, benchmark=False,
+                               assume_finite=True,
                                fLOG=print, filter_exp=None):
     """
     Lists all compatible opsets for a specific model.
@@ -161,6 +163,11 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     @param      fLOG            logging function
     @param      filter_exp      function which tells if the experiment must be run,
                                 None to run all
+    @param      assume_finite   See `config_context
+                                <https://scikit-learn.org/stable/modules/generated/
+                                sklearn.config_context.html>`_, If True, validation for finiteness
+                                will be skipped, saving time, but leading to potential crashes.
+                                If False, validation for finiteness will be performed, avoiding error.
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
                                 problem chosen to test the conversion...
@@ -260,34 +267,36 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 
             # runtime
             if check_runtime:
-
-                # compute sklearn prediction
-                obs['ort_version'] = ort_version
-                if isinstance(method, tuple):
-                    method, kwargs = method
-                else:
-                    kwargs = {}
-                try:
-                    meth = getattr(inst, method)
-                except AttributeError as e:
-                    if debug:
-                        raise
-                    obs['_2skl_meth_exc'] = str(e)
-                    yield obs
-                    continue
-                try:
-                    ypred, t4 = _measure_time(lambda: meth(X_test, **kwargs))
-                    obs['lambda-skl'] = (lambda xo: meth(xo, **kwargs), X_test)
-                except (ValueError, AttributeError, TypeError) as e:
-                    if debug:
-                        raise
-                    obs['_3prediction_exc'] = str(e)
-                    yield obs
-                    continue
-                obs['prediction_time'] = t4
-                if benchmark and 'lambda-skl' in obs:
-                    obs['bench-skl'] = benchmark_fct(*
-                                                     obs['lambda-skl'], obs=obs)
+                with sklearn.config_context(assume_finite=assume_finite):
+                    # compute sklearn prediction
+                    obs['ort_version'] = ort_version
+                    if isinstance(method, tuple):
+                        method, kwargs = method
+                    else:
+                        kwargs = {}
+                    try:
+                        meth = getattr(inst, method)
+                    except AttributeError as e:
+                        if debug:
+                            raise
+                        obs['_2skl_meth_exc'] = str(e)
+                        yield obs
+                        continue
+                    try:
+                        ypred, t4 = _measure_time(
+                            lambda: meth(X_test, **kwargs))
+                        obs['lambda-skl'] = (lambda xo: meth(xo,
+                                                             **kwargs), X_test)
+                    except (ValueError, AttributeError, TypeError) as e:
+                        if debug:
+                            raise
+                        obs['_3prediction_exc'] = str(e)
+                        yield obs
+                        continue
+                    obs['prediction_time'] = t4
+                    if benchmark and 'lambda-skl' in obs:
+                        obs['bench-skl'] = benchmark_fct(
+                            *obs['lambda-skl'], obs=obs)
 
             # converting
             for opset in opsets:
@@ -504,6 +513,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         check_runtime=True, debug=False, runtime='CPU',
                                         models=None, dump_folder=None, store_models=False,
                                         benchmark=False, skip_models=None,
+                                        assume_finite=True,
                                         fLOG=print, filter_exp=None):
     """
     Tests all possible configuration for all possible
@@ -528,6 +538,11 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     @param      filter_exp      function which tells if the experiment must be run,
                                 None to run all
     @param      skip_models     models to skip
+    @param      assume_finite   See `config_context
+                                <https://scikit-learn.org/stable/modules/generated/
+                                sklearn.config_context.html>`_, If True, validation for finiteness
+                                will be skipped, saving time, but leading to potential crashes.
+                                If False, validation for finiteness will be performed, avoiding error.
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -577,7 +592,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 check_runtime=check_runtime, runtime=runtime,
                 debug=debug, dump_folder=dump_folder,
                 store_models=store_models, benchmark=benchmark,
-                fLOG=fLOG, filter_exp=filter_exp):
+                fLOG=fLOG, filter_exp=filter_exp,
+                assume_finite=assume_finite):
 
             if verbose > 1:
                 fLOG("  ", obs)

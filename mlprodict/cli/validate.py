@@ -15,7 +15,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      models=None, out_raw="onnx_runtime_raw.xlsx",
                      out_summary="onnx_runtime_summary.xlsx",
                      dump_folder=None, benchmark=False,
-                     catch_warnings=True, fLOG=print):
+                     catch_warnings=True, assume_finite=True,
+                     fLOG=print):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -39,6 +40,11 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         in case of mismatch
     :param benchmark: run benchmark
     :param catch_warnings: catch warnings
+    :param assume_finite: See `config_context
+        <https://scikit-learn.org/stable/modules/generated/sklearn.config_context.html>`_,
+        If True, validation for finiteness will be skipped, saving time, but leading
+        to potential crashes. If False, validation for finiteness will be performed,
+        avoiding error.
     :param fLOG: logging function
 
     .. cmdref::
@@ -87,7 +93,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                                                         dump_folder=dump_folder,
                                                         opset_min=opset_min,
                                                         opset_max=opset_max,
-                                                        benchmark=benchmark))
+                                                        benchmark=benchmark,
+                                                        assume_finite=assume_finite))
         return rows
 
     if catch_warnings:

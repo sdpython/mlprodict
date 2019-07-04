@@ -102,7 +102,9 @@ def write_page_onnxrt_benches(app, runtime):
 
             The following metrics measure the ratio between the prediction time
             for the runtime compare to :epkg:`scikit-learn`.
-            It gives an order of magnitude.
+            It gives an order of magnitude. They are done by setting
+            ``assume_finite=True`` (see `config_context
+            <https://scikit-learn.org/stable/modules/generated/sklearn.config_context.html>`_).
 
             '''.format(runtime, title, "=" * len(title))))
             f.write(df2rst(piv, number_format=2,
