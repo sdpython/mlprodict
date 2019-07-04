@@ -20,8 +20,8 @@ because  the first one took too long.
     :maxdepth: 1
 
     skl_converters/bench_python
-    skl_converters/bench_onnxrt
-    skl_converters/bench_onnxrt_whole
+    skl_converters/bench_onnxrt1
+    skl_converters/bench_onnxrt2
 
 All results were obtained using out the following versions
 of modules below:

@@ -147,7 +147,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                 outputs=[('Y', FloatTensorType([2]))])
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})['Y']
-        oinf2 = OnnxInference(model_def, runtime="onnxruntime")
+        oinf2 = OnnxInference(model_def, runtime="onnxruntime2")
         got2 = oinf2.run({'X': X})['Y']
         self.assertEqualArray(got, got2)
 
@@ -165,7 +165,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                 outputs=[('Y', FloatTensorType([2]))])
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})['Y']
-        oinf2 = OnnxInference(model_def, runtime="onnxruntime")
+        oinf2 = OnnxInference(model_def, runtime="onnxruntime2")
         got2 = oinf2.run({'X': X})['Y']
         self.assertEqualArray(got, got2)
 

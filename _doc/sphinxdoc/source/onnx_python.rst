@@ -27,9 +27,11 @@ Main class is :class:`OnnxInference
     clr = LinearRegression()
     clr.fit(X_train, y_train)
 
+    # predictions with scikit-learn
     exp = clr.predict(X_test[:5])
     print(exp)
 
+    # predictions with onnxruntime
     model_def = to_onnx(clr, X_train.astype(numpy.float32))
     oinf = OnnxInference(model_def)
     y = oinf.run({'X': X_test[:5]})
@@ -119,4 +121,4 @@ the cause of the error if it does not work.
 
     build_table()
 
-Full results are available at :ref:`l-onnx-bench-CPU`.
+Full results are available at :ref:`l-onnx-bench-python`.

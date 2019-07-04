@@ -55,7 +55,7 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
         rows = []
         for row in enumerate_validated_operator_opsets(
                 verbose, opset_min=10, benchmark=True,
-                fLOG=fLOG, runtime="onnxruntime-whole"):
+                fLOG=fLOG, runtime="onnxruntime1"):
             rows.append(row)
             if len(rows) > 40:
                 break

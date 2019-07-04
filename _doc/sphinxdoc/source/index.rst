@@ -54,38 +54,13 @@ mlprodict
     i_index
     gyexamples/index
     all_notebooks
-    blog/blogindex
     HISTORY
 
 *mlprodict* explores couple of ways to compute predictions faster
 than the library used to build the machine learned model,
 mostly :epkg:`scikit-learn` which is optimized for training,
 which is equivalent to batch predictions.
-One way is to convert the prediction function into :epkg:`C`.
-
-.. runpython::
-    :showcode:
-
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.datasets import load_iris
-
-    iris = load_iris()
-    X = iris.data[:, :2]
-    y = iris.target
-    y[y == 2] = 1
-    lr = LogisticRegression()
-    lr.fit(X, y)
-
-    # Conversion into a graph.
-    from mlprodict.grammar_sklearn import sklearn2graph
-    gr = sklearn2graph(lr, output_names=['Prediction', 'Score'])
-
-    # Conversion into C
-    ccode = gr.export(lang='c')
-    # We print after a little bit of cleaning (remove all comments)
-    print("\n".join(_ for _ in ccode['code'].split("\n") if "//" not in _))
-
-Another way is to use :epkg:`ONNX`.
+One way is to use :epkg:`ONNX`.
 :epkg:`onnxruntime` provides an efficient way
 to compute predictions. The current code explores ways to be faster
 at implementing something working and provides a :epkg:`python`
@@ -96,7 +71,7 @@ runtime for :epkg:`ONNX`.
 
     from sklearn.linear_model import LinearRegression
     from sklearn.datasets import load_iris
-    from mlprodict.onnxrt import OnnxInference
+    from mlprodict.onnxrt import OnnxInference, measure_absolute_difference
     import numpy
 
     iris = load_iris()
@@ -105,19 +80,22 @@ runtime for :epkg:`ONNX`.
     lr = LinearRegression()
     lr.fit(X, y)
 
+    # Predictions with scikit-learn.
+    expected = lr.predict(X[:5])
+    print(expected)
+
     # Conversion into ONNX.
     from skl2onnx import to_onnx
     model_onnx = to_onnx(lr, X.astype(numpy.float32))
     print(str(model_onnx)[:200] + "\n...")
 
-    # Python Runtime
-    oinf = OnnxInference(model_onnx)
-    exp = lr.predict(X[:5])
-    print(exp)
+    # Predictions with onnxruntime
+    oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
+    ypred = oinf.run({'X': X[:5]})
+    print(ypred)
 
-    # Predictions
-    y = oinf.run({'X': X[:5]})
-    print(y)
+    # Measuring the maximum difference.
+    print(measure_absolute_difference(expected, ypred))
 
 These predictions are obtained with the
 following :epkg:`ONNX` graph.
@@ -143,6 +121,30 @@ following :epkg:`ONNX` graph.
 
 Notebook :ref:`onnxvisualizationrst`
 shows how to visualize an :epkg:`ONNX` pipeline.
+Another way is to convert the prediction function
+into :epkg:`C`.
+
+.. runpython::
+    :showcode:
+
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.datasets import load_iris
+
+    iris = load_iris()
+    X = iris.data[:, :2]
+    y = iris.target
+    y[y == 2] = 1
+    lr = LogisticRegression()
+    lr.fit(X, y)
+
+    # Conversion into a graph.
+    from mlprodict.grammar_sklearn import sklearn2graph
+    gr = sklearn2graph(lr, output_names=['Prediction', 'Score'])
+
+    # Conversion into C
+    ccode = gr.export(lang='c')
+    # We print after a little bit of cleaning (remove all comments)
+    print("\n".join(_ for _ in ccode['code'].split("\n") if "//" not in _))
 
 +----------------------+---------------------+---------------------+--------------------+------------------------+------------------------------------------------+
 | :ref:`l-modules`     |  :ref:`l-functions` | :ref:`l-classes`    | :ref:`l-methods`   | :ref:`l-staticmethods` | :ref:`l-properties`                            |

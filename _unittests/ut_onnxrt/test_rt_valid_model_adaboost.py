@@ -31,7 +31,7 @@ class TestRtValidateAdaBoost(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"AdaBoostRegressor"}, opset_min=11, fLOG=myprint,
-            runtime='onnxruntime', debug=debug))
+            runtime='onnxruntime2', debug=debug))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
@@ -72,7 +72,7 @@ class TestRtValidateAdaBoost(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"AdaBoostClassifier"}, opset_min=11, fLOG=myprint,
-            runtime='onnxruntime', debug=True))
+            runtime='onnxruntime2', debug=True))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1)
 

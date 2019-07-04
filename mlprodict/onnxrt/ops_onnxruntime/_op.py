@@ -7,7 +7,7 @@ import numpy
 import onnx.defs
 from onnx.helper import make_tensor
 from onnx import TensorProto
-from onnxruntime import InferenceSession
+from onnxruntime import InferenceSession, SessionOptions
 import skl2onnx.algebra.onnx_ops as alg
 from ..graph_schema_helper import get_defined_inputs, get_defined_outputs
 
@@ -106,8 +106,12 @@ class OpRunOnnxRuntime:
             outputs = get_defined_outputs(
                 self.outputs, self.onnx_node, inputs, variables)
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
+
+        sess_options = SessionOptions()
+        sess_options.session_log_severity_level = 3
         try:
-            self.sess_ = InferenceSession(self.onnx_.SerializeToString())
+            self.sess_ = InferenceSession(self.onnx_.SerializeToString(),
+                                          sess_options=sess_options)
         except RuntimeError as e:
             raise RuntimeError("Unable to load node '{}' (output type was {})\n{}".format(
                 self.onnx_node.op_type, "guessed" if forced else "inferred",

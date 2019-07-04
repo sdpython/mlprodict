@@ -23,8 +23,8 @@ The current package *mlprodict* implements a
     :maxdepth: 1
 
     onnx_python
-    onnx_onnxrt
-    onnx_onnxrt_whole
+    onnx_onnxrt1
+    onnx_onnxrt2
     skl_converters/index
     onnx_bench
 

@@ -20,7 +20,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         onx = OnnxAdd('X', idi, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float32)
-        oinf = OnnxInference(model_def, runtime='onnxruntime')
+        oinf = OnnxInference(model_def, runtime='onnxruntime2')
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(idi + X, got['Y'], decimal=6)

@@ -38,13 +38,46 @@ mlprodict
 =========
 
 The packages explores ways to productionize machine learning predictions.
-One approach consists in converting a pipeline into C.
-The second approach uses *ONNX* and tries to implement
-a Python runtime to see if it can speed up development of converters.
-`sklearn-onnx <https://github.com/onnx/sklearn-onnx/tree/master/skl2onnx>`_
-uses `onnxruntime <https://github.com/Microsoft/onnxruntime>`_
-to do unit test. Maybe a python runtime would help in that matter.
+One approach uses *ONNX* and tries to implement
+a runtime in python / numpy or wraps
+`onnxruntime <https://github.com/Microsoft/onnxruntime>`_
+into a single class. The package provides tools to compare
+predictions, to benchmark models converted with
+`sklearn-onnx <https://github.com/onnx/sklearn-onnx/tree/master/skl2onnx>`_.
+
+The second approach consists in converting
+a pipeline directly into C and is not much developed.
 
 * `GitHub/mlprodict <https://github.com/sdpython/mlprodict/>`_
 * `documentation <http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html>`_
 * `Blog <http://www.xavierdupre.fr/app/mlprodict/helpsphinx/blog/main_0000.html#ap-main-0>`_
+
+::
+
+    from sklearn.linear_model import LinearRegression
+    from sklearn.datasets import load_iris
+    from mlprodict.onnxrt import OnnxInference, measure_absolute_difference
+    import numpy
+
+    iris = load_iris()
+    X = iris.data[:, :2]
+    y = iris.target
+    lr = LinearRegression()
+    lr.fit(X, y)
+
+    # Predictions with scikit-learn.
+    expected = lr.predict(X[:5])
+    print(expected)
+
+    # Conversion into ONNX.
+    from skl2onnx import to_onnx
+    model_onnx = to_onnx(lr, X.astype(numpy.float32))
+    print(str(model_onnx)[:200] + "\n...")
+
+    # Predictions with onnxruntime
+    oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
+    ypred = oinf.run({'X': X[:5]})
+    print(ypred)
+
+    # Measuring the maximum difference.
+    print(measure_absolute_difference(expected, ypred))

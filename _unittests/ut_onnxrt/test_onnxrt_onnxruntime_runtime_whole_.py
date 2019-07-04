@@ -9,7 +9,7 @@ from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnxrt import OnnxInference
 
 
-class TestOnnxrtOnnxRuntimeRuntimeWhole(ExtTestCase):
+class TestOnnxrtOnnxRuntimeRuntime1(ExtTestCase):
 
     def setUp(self):
         logger = getLogger('skl2onnx')
@@ -19,7 +19,7 @@ class TestOnnxrtOnnxRuntimeRuntimeWhole(ExtTestCase):
         idi = numpy.identity(2)
         onx = OnnxAdd('X', idi, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
-        self.assertRaise(lambda: OnnxInference(model_def, runtime='onnxruntime_whole'),
+        self.assertRaise(lambda: OnnxInference(model_def, runtime='onnxruntime-1'),
                          ValueError)
 
     def test_onnxt_runtime_add(self):
@@ -27,7 +27,7 @@ class TestOnnxrtOnnxRuntimeRuntimeWhole(ExtTestCase):
         onx = OnnxAdd('X', idi, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float32)
-        oinf = OnnxInference(model_def, runtime='onnxruntime-whole')
+        oinf = OnnxInference(model_def, runtime='onnxruntime1')
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(idi + X, got['Y'], decimal=6)

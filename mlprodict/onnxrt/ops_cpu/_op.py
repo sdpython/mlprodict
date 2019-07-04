@@ -25,7 +25,7 @@ class OpRun:
         @param      expected_attributes     expected attributes for this node
         @param      options                 runtime options
         """
-        self._provider = 'CPU'
+        self._provider = 'python'
         self.onnx_node = onnx_node
         self.desc = desc
         self._schema = _schemas[onnx_node.op_type]

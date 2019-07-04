@@ -139,7 +139,7 @@ def dump_into_folder(dump_folder, obs_op=None, **kwargs):
 
 def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                check_runtime=True, debug=False,
-                               runtime='CPU', dump_folder=None,
+                               runtime='python', dump_folder=None,
                                store_models=False, benchmark=False,
                                assume_finite=True,
                                fLOG=print, filter_exp=None):
@@ -153,7 +153,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     @param      check_runtime   checks that runtime can consume the
                                 model and compute predictions
     @param      debug           catch exception (True) or not (False)
-    @param      runtime         test a specific runtime, by default ``'CPU'``
+    @param      runtime         test a specific runtime, by default ``'python'``
     @param      dump_folder     dump information to replicate in case of mismatch
     @param      store_models    if True, the function
                                 also stores the fitted model and its conversion
@@ -510,7 +510,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
 
 def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
-                                        check_runtime=True, debug=False, runtime='CPU',
+                                        check_runtime=True, debug=False, runtime='python',
                                         models=None, dump_folder=None, store_models=False,
                                         benchmark=False, skip_models=None,
                                         assume_finite=True,
@@ -528,7 +528,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                 set of model names
     @param      debug           stops whenever an exception
                                 is raised
-    @param      runtime         test a specific runtime, by default ``'CPU'``
+    @param      runtime         test a specific runtime, by default ``'python'``
     @param      dump_folder     dump information to replicate in case of mismatch
     @param      store_models    if True, the function
                                 also stores the fitted model and its conversion

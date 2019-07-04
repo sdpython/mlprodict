@@ -19,14 +19,14 @@ class TestRtValidateGradientBoosting(ExtTestCase):
         self.assertEqual(len(res[0]), 3)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def test_validate_GradientBoostingRegressor_whole(self):
+    def test_validate_GradientBoostingRegressor1(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
         verbose = 1 if __name__ == "__main__" else 0
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GradientBoostingRegressor"}, opset_min=10, fLOG=fLOG,
-            runtime='onnxruntime-whole', debug=False))
+            runtime='onnxruntime1', debug=False))
         self.assertIn(len(rows), (1, 2, 3))
         df = DataFrame(rows)
         self.assertIn("max_abs_diff_batch", df.columns)

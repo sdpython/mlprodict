@@ -12,7 +12,7 @@ from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import sklearn_operators, enumerate_validated_operator_opsets, summary_report
 
 
-class TestOnnxrtValidateOnnxRuntimeWhole(ExtTestCase):
+class TestOnnxrtValidateOnnxRuntime1(ExtTestCase):
 
     def test_sklearn_operators(self):
         res = sklearn_operators()
@@ -20,21 +20,21 @@ class TestOnnxrtValidateOnnxRuntimeWhole(ExtTestCase):
         self.assertEqual(len(res[0]), 3)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def test_validate_sklearn_operators_all_onnxruntime_whole(self):
+    def test_validate_sklearn_operators_all_onnxruntime1(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
         verbose = 1 if __name__ == "__main__" else 0
         temp = get_temp_folder(
-            __file__, "temp_validate_sklearn_operators_all_onnxruntime_whole")
+            __file__, "temp_validate_sklearn_operators_all_onnxruntime1")
         if False:  # pylint: disable=W0125
             rows = list(enumerate_validated_operator_opsets(
                 verbose, models={"GradientBoostingRegressor"}, opset_min=11, fLOG=fLOG,
-                runtime='onnxruntime-whole', debug=True))
+                runtime='onnxruntime1', debug=True))
         else:
             rows = []
             for row in enumerate_validated_operator_opsets(
-                    verbose, debug=None, fLOG=fLOG, runtime='onnxruntime-whole',
+                    verbose, debug=None, fLOG=fLOG, runtime='onnxruntime1',
                     dump_folder=temp, skip_models={"GaussianProcessRegressor"}):
                 rows.append(row)
                 if is_travis_or_appveyor() and len(rows) > 20:

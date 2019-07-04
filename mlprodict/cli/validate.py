@@ -11,7 +11,7 @@ from ..onnxrt.validate import enumerate_validated_operator_opsets, summary_repor
 
 
 def validate_runtime(verbose=1, opset_min=9, opset_max="",
-                     check_runtime=True, runtime='CPU', debug=False,
+                     check_runtime=True, runtime='python', debug=False,
                      models=None, out_raw="onnx_runtime_raw.xlsx",
                      out_summary="onnx_runtime_summary.xlsx",
                      dump_folder=None, benchmark=False,
@@ -28,9 +28,10 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     :param opset_max: tries every conversion up to maximum opset
     :param check_runtime: to check the runtime
         and not only the conversion
-    :param runtime: runtime to check, CPU for python,
-        onnxruntime to check every ONNX node independenlty
-        or onnxruntime-whole to check :epkg:`onnxruntime`
+    :param runtime: runtime to check, python,
+        onnxruntime1 to check :epkg:`onnxruntime`,
+        onnxruntime2 to check every ONNX node independently
+        with onnxruntime
     :param models: comma separated list of models to test or empty
         string to test them all
     :param debug: stops whenever an exception is raised
@@ -67,7 +68,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
 
         ::
 
-            python -m mlprodict validate_runtime -v 1 -o 10 -op 10 -c 1 -r onnxruntime-whole
+            python -m mlprodict validate_runtime -v 1 -o 10 -op 10 -c 1 -r onnxruntime1
                    -m RandomForestRegressor,DecisionTreeRegressor -out bench_onnxruntime.xlsx -b 1
     """
     models = None if models in (None, "") else models.strip().split(',')

@@ -10,7 +10,7 @@ import pandas
 
 def measure_absolute_difference(skl_pred, ort_pred):
     """
-    *Measures the differences between predictions
+    Measures the differences between predictions
     between two ways of computing them.
     The functions returns nan if shapes are different.
 

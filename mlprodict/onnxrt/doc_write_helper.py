@@ -76,8 +76,8 @@ def compose_page_onnxrt_ops(level="^"):
     .. contents::
         :local:
 
-    CPU
-    +++
+    Python
+    ++++++
 
     """)
     from .ops_cpu._op_list import _op_list

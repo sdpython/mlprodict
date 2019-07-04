@@ -85,14 +85,14 @@ class TestOnnxrtSideBySide(ExtTestCase):
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType(['None', 'None']))])
         sess = OnnxInference(model_onnx.SerializeToString(),
-                             runtime="onnxruntime")
+                             runtime="onnxruntime2")
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
         m1 = res['Y']
         m2 = ker(Xtest_)
         self.assertEqualArray(m1, m2, decimal=5)
 
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
-    def test_kernel_ker2_def_ort_whole(self):
+    def test_kernel_ker2_def_ort1(self):
         ker = Sum(
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=10,
                                        length_scale_bounds=(1e-3, 1e3)),
@@ -103,7 +103,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType(['None', 'None']))])
         sess = OnnxInference(model_onnx.SerializeToString(),
-                             runtime="onnxruntime-whole")
+                             runtime="onnxruntime1")
 
         rows = []
 
@@ -133,7 +133,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertIn('cmp', sbs[1])
 
         sess3 = OnnxInference(model_onnx.SerializeToString(),
-                              runtime="onnxruntime")
+                              runtime="onnxruntime2")
         sbs = side_by_side_by_values(
             [cpu, sess, sess3], {'X': Xtest_.astype(numpy.float32)})
         self.assertNotEmpty(sbs)

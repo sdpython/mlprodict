@@ -72,7 +72,7 @@ class OnnxInference:
         self.graph_ = self.to_sequence()
         self.outputs_ = self.graph_['outputs']
         if not self.skip_run:
-            if self.runtime == 'onnxruntime-whole':
+            if self.runtime == 'onnxruntime1':
                 # Loads the onnx with onnxruntime as a single file.
                 del self.graph_
                 from .ops_whole.session import OnnxWholeSession
@@ -611,7 +611,7 @@ class OnnxInference:
 
         The function returns all intermediate outputs
         if *intermediate* is True. In case of runtime
-        *onnxruntime-whole*, if intermediate is True,
+        *onnxruntime1*, if intermediate is True,
         the first class builds all :epkg:`ONNX` cut out
         to keep the one output and converted into
         *OnnxInference*.

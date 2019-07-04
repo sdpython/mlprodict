@@ -1,10 +1,13 @@
 
-onnxruntime-whole
-=================
+onnxruntime2: independent onnxruntime for every node
+====================================================
 
-:epkg:`onnxruntime` loads the :epkg:`ONNX` data in a single
-session and calls it onle once to compute the predictions.
-We create a table similar to :ref:`l-onnx-pyrun-tbl`.
+This runtime does not load the :epkg:`ONNX` data in a single
+session but instead calls :epkg:`onnxruntime` for each node
+independently. This was developped mostly to facilitate
+the implementation of converters from :epkg:`scikit-learn`
+object to :epkg:`ONNX`. We create a table similar to
+:ref:`l-onnx-pyrun-tbl`.
 
 .. runpython::
     :showcode:
@@ -24,7 +27,7 @@ We create a table similar to :ref:`l-onnx-pyrun-tbl`.
         logger = getLogger('skl2onnx')
         logger.disabled = True
         rows = list(enumerate_validated_operator_opsets(0, debug=None, fLOG=noLOG,
-                                                        runtime='onnxruntime-whole',
+                                                        runtime='onnxruntime2',
                                                         models=['LinearRegression',
                                                                 'LogisticRegression'],
                                                         benchmark=True))
@@ -45,4 +48,4 @@ We create a table similar to :ref:`l-onnx-pyrun-tbl`.
 
     build_table()
 
-Full results are available at :ref:`l-onnx-bench-onnxruntime-whole`.
+Full results are available at :ref:`l-onnx-bench-onnxruntime`.

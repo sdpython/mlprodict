@@ -3,7 +3,7 @@ FAQ, code, ...
 ==============
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
     glossary
     all_indexes
@@ -12,5 +12,6 @@ FAQ, code, ...
     index_module
     i_faq
     i_nb
+    blog/blogindex
     license
     README

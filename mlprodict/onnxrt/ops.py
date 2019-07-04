@@ -17,16 +17,16 @@ def load_op(onnx_node, desc=None, options=None, variables=None):
     if desc is None:
         raise ValueError("desc should not be None.")
     if options is None:
-        provider = 'CPU'
+        provider = 'python'
     else:
-        provider = options.get('provider', 'CPU')
+        provider = options.get('provider', 'python')
         if 'provider' in options:
             options = options.copy()
             del options['provider']
-    if provider in ('CPU', 'python'):
+    if provider == 'python':
         from .ops_cpu import load_op as lo
         return lo(onnx_node, desc=desc, options=options)
-    elif provider == 'onnxruntime':
+    elif provider == 'onnxruntime2':
         from .ops_onnxruntime import load_op as lo
         return lo(onnx_node, desc=desc, options=options,
                   variables=variables)

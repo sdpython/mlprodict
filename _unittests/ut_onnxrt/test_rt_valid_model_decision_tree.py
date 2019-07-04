@@ -31,7 +31,7 @@ class TestRtValidateDecisionTree(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"DecisionTreeRegressor"}, opset_min=11, fLOG=myprint,
-            runtime='onnxruntime', debug=debug))
+            runtime='onnxruntime2', debug=debug))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
