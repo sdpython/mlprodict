@@ -38,7 +38,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         exp = clr.predict(X_test)
         self.assertEqualArray(exp, got['label'])
         exp = clr.transform(X_test)
-        self.assertEqualArray(exp, got['scores'], decimal=5)
+        self.assertEqualArray(exp, got['scores'], decimal=4)
 
     def test_onnxrt_python_KMeans_verbose(self):
         iris = load_iris()
