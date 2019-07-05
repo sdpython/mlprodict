@@ -72,7 +72,6 @@ a pipeline directly into C and is not much developed.
     # Conversion into ONNX.
     from skl2onnx import to_onnx
     model_onnx = to_onnx(lr, X.astype(numpy.float32))
-    print(str(model_onnx)[:200] + "\n...")
 
     # Predictions with onnxruntime
     oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
