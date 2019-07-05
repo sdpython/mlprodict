@@ -4,13 +4,13 @@
 @file
 @brief Runtime operator.
 """
-import numpy
 from ._op import OpRun
 
 
 class ZipMapDictionary(dict):
     """
-    Custom dictionary class much faster for this runtime.
+    Custom dictionary class much faster for this runtime,
+    it implements a subet of the same methods.
     """
     __slots__ = ['_rev_keys', '_values', '_mat']
 
@@ -23,10 +23,11 @@ class ZipMapDictionary(dict):
 
     def __init__(self, rev_keys, values, mat=None):
         """
-        @param      keys            keys
-        @param      rev_keys        returns by @see me build_rev_keys
+        @param      rev_keys        returns by @see me build_rev_keys,
+                                    *{keys: column index}*
         @param      values          values
-        @param      mat             matrix if values is a row index
+        @param      mat             matrix if values is a row index,
+                                    one or two dimensions
         """
         dict.__init__(self)
         self._rev_keys = rev_keys
@@ -41,6 +42,9 @@ class ZipMapDictionary(dict):
             return self._values[self._rev_keys[key]]
         else:
             return self._mat[self._values, self._rev_keys[key]]
+
+    def __setitem__(self, pos, value):
+        raise RuntimeError("Changing an element is not supported.")
 
     def __len__(self):
         """
@@ -75,6 +79,62 @@ class ZipMapDictionary(dict):
             for v in self._mat[self._values]:
                 yield v
 
+    def asdict(self):
+        res = {}
+        for k, v in self.items():
+            res[k] = v
+        return res
+
+
+class ArrayZipMapDictionary(list):
+    """
+    Mocks an array without changing the data it receives.
+    Notebooks :ref:`onnxnodetimerst` illustrates the weaknesses
+    and the strengths of this class compare to a list
+    of dictionaries.
+
+    .. index:: ZipMap
+    """
+
+    def __init__(self, rev_keys, mat):
+        """
+        @param      rev_keys        dictionary *{keys: column index}*
+        @param      mat             matrix if values is a row index,
+                                    one or two dimensions
+        """
+        list.__init__(self)
+        self._rev_keys = rev_keys
+        self._mat = mat
+
+    def __len__(self):
+        return self._mat.shape[0]
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+
+    def __getitem__(self, i):
+        return ZipMapDictionary(self._rev_keys, i, self._mat)
+
+    def __setitem__(self, pos, value):
+        raise RuntimeError("Changing an element is not supported.")
+
+    @property
+    def values(self):
+        """
+        Equivalent to ``DataFrame(self).values``.
+        """
+        return self._mat
+
+    @property
+    def columns(self):
+        """
+        Equivalent to ``DataFrame(self).columns``.
+        """
+        res = [(v, k) for k, v in self._rev_keys.items()]
+        res.sort()
+        return [_[1] for _ in res]
+
 
 class ZipMap(OpRun):
 
@@ -85,17 +145,15 @@ class ZipMap(OpRun):
                        expected_attributes=ZipMap.atts,
                        **options)
         if hasattr(self, 'classlabels_int64s'):
-            self.rev_keys = ZipMapDictionary.build_rev_keys(
+            self.rev_keys_ = ZipMapDictionary.build_rev_keys(
                 self.classlabels_int64s)
         elif hasattr(self, 'classlabels_strings'):
-            self.rev_keys = ZipMapDictionary.build_rev_keys(
+            self.rev_keys_ = ZipMapDictionary.build_rev_keys(
                 self.classlabels_strings)
         else:
             raise RuntimeError(
                 "classlabels_int64s or classlabels_strings must be not empty.")
 
     def _run(self, x):  # pylint: disable=W0221
-        uf = numpy.frompyfunc(lambda _, d=self.rev_keys,
-                              m=x: ZipMapDictionary(d, _, m), 1, 1)
-        res = uf(numpy.arange(x.shape[0]))
+        res = ArrayZipMapDictionary(self.rev_keys_, x)
         return (res, )
