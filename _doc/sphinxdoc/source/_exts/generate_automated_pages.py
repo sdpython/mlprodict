@@ -105,7 +105,16 @@ def write_page_onnxrt_benches(app, runtime):
             It gives an order of magnitude. They are done by setting
             ``assume_finite=True`` (see `config_context
             <https://scikit-learn.org/stable/modules/generated/sklearn.config_context.html>`_).
+            The computed ratio is:
 
+            .. math::
+
+                \\frac{{\\textit{{execution when predicting with a custom ONNX runtime}}}}
+                {{\\textit{{execution when predicting with scikit-learn (assume_finite=True)}}}}
+
+            Some figures are missing when the number of observations is high.
+            That means the prediction is slow for one of the runtime
+            (ONNX, scikit-learn) and it would take too long to go further.
             '''.format(runtime, title, "=" * len(title))))
             f.write(df2rst(piv, number_format=2,
                            replacements={'nan': '', 'ERR: 4convert': ''}))
