@@ -49,6 +49,7 @@ class TestCode(ExtTestCase):
         code = v._translator._code_fct  # pylint: disable=W0212
         exp = ('FunctionDef',
                {'args': [('x', None), ('y', None)],
+                'name': 'addition',
                 'code': [('Assign',
                           {'args': [('BinOp',
                                      {'args': ['x',
@@ -79,6 +80,38 @@ class TestCode(ExtTestCase):
         node = ast.parse(dedent(code))
         v = CodeNodeVisitor()
         self.assertRaise(lambda: v.visit(node), RuntimeError, "Nested")
+
+    def test_export(self):
+
+        numpy_abs = numpy.abs
+
+        def addition(x, y):
+            z = x + numpy_abs(y)
+            return x * z
+
+        code = inspect.getsource(addition)
+        node = ast.parse(dedent(code))
+        v = CodeNodeVisitor()
+        v.visit(node)
+        onnx_code = v.export(context={'numpy_abs': numpy.abs})
+        exp = dedent("""
+            def addition(x, y):
+                z = (
+                    OnnxAdd(
+                        x,
+                        OnnxAbs(
+                            y
+                        )
+                    )
+                )
+                return (
+                    OnnxMult(
+                        x,
+                        z
+                    )
+                )
+        """)
+        self.assertEqual(exp.strip('\n '), onnx_code.strip('\n '))
 
 
 if __name__ == "__main__":

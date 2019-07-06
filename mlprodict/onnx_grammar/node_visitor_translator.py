@@ -42,12 +42,15 @@ class CodeNodeVisitor(ast.NodeVisitor):
     def __init__(self, translator=None):
         """
         @param      cl      @see cl CodeTranslator
+
+        By default the translator is @see cl OnnxTranslator.
         """
         ast.NodeVisitor.__init__(self)
         self._rows = []
         self._indent = 0
         self._stack = []
-        self._translator = OnnxTranslator(self)
+        self._translator = OnnxTranslator(
+            self) if translator is None else translator
 
     def push(self, row):
         """
@@ -136,6 +139,19 @@ class CodeNodeVisitor(ast.NodeVisitor):
         returns a list of dictionaries with all the elements of the code
         """
         return [_ for _ in self._rows if not _.get("remove", False)]
+
+    def export(self, context=None, **kwargs):
+        """
+        Calls method *export* from the translator class.
+
+        @param      context     known :epkg:`python` needed to run
+                                the translated function
+        @param      kwargs      whatever the method *export* from
+                                the translator class ingests
+        @return                 whatever the method *export* from
+                                the translator class returns
+        """
+        return self._translator.export(context=context, **kwargs)
 
     ###########
     # Methods for python code elements

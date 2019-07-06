@@ -3,6 +3,7 @@
 @brief One class which visits a syntax tree.
 """
 import pprint
+import numpy
 
 
 class CodeTranslator:
@@ -17,6 +18,13 @@ class CodeTranslator:
         @param      visitor     @see cl CodeNodeVisitor
         """
         self._visitor = visitor
+
+    def export(self, context=None, **kwargs):
+        """
+        Exports the parsed :epkg:`python` code
+        into something.
+        """
+        raise NotImplementedError("This function should be overwritten.")
 
     def visit(self, node, info):
         """
@@ -45,12 +53,15 @@ class OnnxTranslator(CodeTranslator):
     """
     _binary_operators = {'Add', 'Div', 'Mult', 'Sub'}
 
+    _numpy2onnx_op = {'absolute': 'Abs'}
+
     def __init__(self, visitor):
         """
         @param      visitor     @see cl CodeNodeVisitor
         """
         CodeTranslator.__init__(self, visitor)
         self._stack = []
+        self._code_fct = None
 
     def _is_stacked(self, name):
         for line in self._stack:
@@ -69,6 +80,93 @@ class OnnxTranslator(CodeTranslator):
                 pprint.pformat(info) if info else ""))
         return last
 
+    def export(self, context=None, format='code'):  # pylint: disable=W0221
+        """
+        Returns an :epkg:`ONNX` graph or a piece
+        of code which could generate the graph.
+
+        @param      format      ``'code'``
+        @return                 string or :epkg:`onnx` graph
+        """
+        if self._code_fct is None:
+            raise RuntimeError("No python code was parsed.")
+        if context is None:
+            context = {}
+
+        def find_onnx_correspondance(fct):
+            if isinstance(fct, numpy.ufunc):
+                name = fct.__name__
+                if name not in OnnxTranslator._numpy2onnx_op:
+                    raise RuntimeError("Unable to find a correspondance to '{}' in \n{}".format(
+                        name, "\n".join(sorted(OnnxTranslator._numpy2onnx_op))))
+                return OnnxTranslator._numpy2onnx_op[name]
+            raise RuntimeError(
+                "Unable to find a correspondance for function '{}'.".format(fct))
+
+        def write_expression(expr, indent):
+            if isinstance(expr, str):
+                # an argument
+                return ['{}{}'.format(" " * indent * 4, expr)]
+            rows = []
+            if isinstance(expr, tuple):
+                expr = [expr]
+            for op, args in expr:
+                if op == 'BinOp':
+                    opname = args["op"]
+                    opon = args["args"]
+                    rows.append('{}Onnx{}('.format(" " * indent * 4, opname))
+                    for _, expr2 in enumerate(opon):
+                        rows.extend(write_expression(expr2, indent + 1))
+                        if i < len(opon) - 1:
+                            rows[-1] += ","
+                    rows.append('{})'.format(" " * indent * 4))
+                elif op == 'Call':
+                    name = args['name']
+                    if name not in context:
+                        raise RuntimeError("Unable to find function '{}' in context\n{}".format(
+                            name, '\n'.join(sorted(context))))
+                    op_conv = find_onnx_correspondance(context[name])
+                    opon = args["args"]
+                    rows.append('{}Onnx{}('.format(" " * indent * 4, op_conv))
+                    opon = opon[1:]
+                    for i, expr2 in enumerate(opon):
+                        rows.extend(write_expression(expr2, indent + 1))
+                        if i < len(opon) - 1:
+                            rows[-1] += ","
+                    rows.append('{})'.format(" " * indent * 4))
+            return rows
+
+        def write_function(node):
+            rows = []
+            name, args = node
+            if name != 'FunctionDef':
+                raise RuntimeError("The code being translated should be a single function not "
+                                   "'{}'.".format(name))
+            fct_name = args['name']
+            rows.append("def {}({}):".format(
+                fct_name, ', '.join([_[0] for _ in args["args"]])))
+            indent = 1
+            code = args['code']
+            for op, args in code:
+                if op == "Assign":
+                    name = args['Name']
+                    args = args["args"]
+                    rows.append("{}{} = (".format(" " * (indent * 4), name))
+                    rows.extend(write_expression(args, indent + 1))
+                    rows.append("{})".format(" " * (indent * 4)))
+                elif op == "Return":
+                    args = args["code"]
+                    rows.append("{}return (".format(" " * (indent * 4)))
+                    rows.extend(write_expression(args, indent + 1))
+                    rows.append("{})".format(" " * (indent * 4)))
+                else:
+                    raise RuntimeError("Unable to process operator '{}'. Make sure it is "
+                                       "either an affectation, either a return.".format(op))
+            return rows
+
+        rows = write_function(self._code_fct)
+        return "\n".join(rows)
+
     def visit(self, node, info):
         """
         Visits a node.
@@ -85,7 +183,8 @@ class OnnxTranslator(CodeTranslator):
         if kind == "FunctionDef":
             if self._is_stacked('FunctionDef'):
                 raise RuntimeError("Nested functions are not allowed.")
-            self._stack.append(('FunctionDef', {'args': [], 'code': []}))
+            self._stack.append(
+                ('FunctionDef', {'args': [], 'code': [], 'name': info['name']}))
             return
         if kind == "arguments":
             _, buf = self._get_last('FunctionDef')
