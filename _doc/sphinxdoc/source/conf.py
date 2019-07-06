@@ -22,7 +22,7 @@ set_sphinx_variables(__file__, "mlprodict", "Xavier Dupré", 2019,
                      "readable", sphinx_readable_theme.get_html_theme_path(),
                      locals(), extlinks=dict(
                          issue=('https://github.com/sdpython/mlprodict/issues/%s', 'issue')),
-                     title="mlprodict", book=True)
+                     title="Python Runtime for ONNX", book=True)
 
 blog_root = "http://www.xavierdupre.fr/app/mlprodict/helpsphinx/"
 extensions.extend([
