@@ -607,7 +607,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
             batch = 'max_abs_diff_batch' in obs and diff is not None
             op1 = obs.get('domain_opset_', '')
             op2 = obs.get('domain_opset_ai.onnx.ml', '')
-            op = '{}|{}'.format(op1, op2)
+            op = '{}-{}'.format(op1, op2)
 
             if diff is not None:
                 if diff < 1e-5:

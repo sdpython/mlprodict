@@ -12,6 +12,10 @@ class MLActionTensorDot(MLActionFunctionCall):
     """
 
     def __init__(self, act1, act2):
+        """
+        @param  act1    first tensor
+        @param  act2    second tensor
+        """
         MLActionFunctionCall.__init__(self, "adot", act1.output, act1, act2)
         # dot product takes two vectors and returns a float
         self.output = act1.output.element_type
@@ -34,6 +38,10 @@ class MLActionTensorTake(MLActionFunctionCall):
     """
 
     def __init__(self, tens, ind):
+        """
+        @param  tens    tensor
+        @param  ind     index
+        """
         MLActionFunctionCall.__init__(self, "atake", tens.output, tens, ind)
         self.output = tens.output.element_type
 
@@ -60,6 +68,12 @@ class MLActionTensorVector(MLActionFunctionCall):
     """
 
     def __init__(self, act1, act2, name, fct):
+        """
+        @param  act1    first tensor
+        @param  act2    second tensor
+        @param  name    operator name
+        @param  fct     function
+        """
         MLActionFunctionCall.__init__(self, name, act1.output, act1, act2)
         self.output = act1.output
         self.fct = fct
@@ -82,6 +96,10 @@ class MLActionTensorSub(MLActionTensorVector):
     """
 
     def __init__(self, act1, act2):
+        """
+        @param  act1    first tensor
+        @param  act2    second tensor
+        """
         MLActionTensorVector.__init__(
             self, act1, act2, "asub", lambda v1, v2: v1 - v2)
 
@@ -92,6 +110,10 @@ class MLActionTensorMul(MLActionTensorVector):
     """
 
     def __init__(self, act1, act2):
+        """
+        @param  act1    first tensor
+        @param  act2    second tensor
+        """
         MLActionTensorVector.__init__(
             self, act1, act2, "amul", lambda v1, v2: numpy.multiply(v1, v2))
 
@@ -102,6 +124,10 @@ class MLActionTensorDiv(MLActionTensorVector):
     """
 
     def __init__(self, act1, act2):
+        """
+        @param  act1    first tensor
+        @param  act2    second tensor
+        """
         MLActionTensorVector.__init__(
             self, act1, act2, "adiv", lambda v1, v2: numpy.divide(v1, v2))
 
@@ -112,5 +138,9 @@ class MLActionTensorAdd(MLActionTensorVector):
     """
 
     def __init__(self, act1, act2):
+        """
+        @param  act1    first tensor
+        @param  act2    second tensor
+        """
         MLActionTensorVector.__init__(
             self, act1, act2, "aadd", lambda v1, v2: v1 + v2)

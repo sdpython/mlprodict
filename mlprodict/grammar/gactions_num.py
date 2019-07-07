@@ -12,6 +12,10 @@ class MLActionAdd(MLActionBinary):
     """
 
     def __init__(self, act1, act2):
+        """
+        @param  act1    first element
+        @param  act2    second element
+        """
         MLActionBinary.__init__(self, act1, act2, "+")
         if type(act1.output) != type(act2.output):
             raise TypeError("Not the same input type {0} != {1}".format(
@@ -29,6 +33,9 @@ class MLActionSign(MLActionFunctionCall):
     """
 
     def __init__(self, act1):
+        """
+        @param  act1    first element
+        """
         MLActionFunctionCall.__init__(self, "sign", act1.output, act1)
         if not isinstance(act1.output, MLNumTypeFloat32):
             raise TypeError(
@@ -46,6 +53,10 @@ class MLActionTestInf(MLActionBinary):
     """
 
     def __init__(self, act1, act2):
+        """
+        @param  act1    first element
+        @param  act2    second element
+        """
         MLActionBinary.__init__(self, act1, act2, "<=")
         if type(act1.output) != type(act2.output):
             raise TypeError("Not the same input type {0} != {1}".format(
@@ -64,6 +75,10 @@ class MLActionTestEqual(MLActionBinary):
     """
 
     def __init__(self, act1, act2):
+        """
+        @param  act1    first element
+        @param  act2    second element
+        """
         MLActionBinary.__init__(self, act1, act2, "==")
         if type(act1.output) != type(act2.output):
             raise TypeError("Not the same input type {0} != {1}".format(

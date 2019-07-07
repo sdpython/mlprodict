@@ -115,6 +115,11 @@ class MLActionCst(MLAction):
     """
 
     def __init__(self, cst, inout_type=None, comment=None):
+        """
+        @param  cst             constant
+        @param  inout_type      type
+        @param  comment         comment
+        """
         if inout_type is None:
             inout_type = MLActionCst.guess_type(cst)
         MLAction.__init__(self, [], inout_type, "cst")
@@ -175,6 +180,11 @@ class MLActionVar(MLActionCst):
     """
 
     def __init__(self, value, name, inout_type=None):
+        """
+        @param  value       value
+        @param  name        variable name
+        @param  inout_type  type
+        """
         MLActionCst.__init__(self, value, inout_type)
         self.name = "var"
         self.name_var = name
@@ -214,6 +224,11 @@ class MLActionFunctionCall(MLAction):
     """
 
     def __init__(self, name, output, *acts):
+        """
+        @param  name        function name
+        @param  output      type
+        @param  *acts       list of arguments
+        """
         for act in acts:
             if not isinstance(act, MLAction):
                 raise TypeError(
@@ -235,7 +250,7 @@ class MLActionFunctionCall(MLAction):
         dcf = MLAction._export_c(self, hook=hook, result_name=result_name)
         rows = [dcf['code']]
         fcall = ", ".join(dcf['child_names'])
-        add = self._optional_parameters()
+        add = self._optional_parameters()  # pylint: disable=E1128
         if add is not None:
             fcall = ", ".join([fcall, add])
         dc = self.output._export_c(hook='declare', result_name=result_name)
@@ -257,6 +272,11 @@ class MLActionBinary(MLAction):
     """
 
     def __init__(self, act1, act2, name):
+        """
+        @param  act1        first element
+        @param  act2        second element
+        @param  name        operator name
+        """
         if not isinstance(act1, MLAction):
             raise TypeError("act1 must be MLAction.")
         if not isinstance(act2, MLAction):
@@ -284,6 +304,10 @@ class MLActionUnary(MLAction):
     """
 
     def __init__(self, act1, name):
+        """
+        @param  act1        element
+        @param  name        operator name
+        """
         if not isinstance(act1, MLAction):
             raise TypeError("act1 must be MLAction.")
         MLAction.__init__(self, [act1.output], act1.output, name,
@@ -307,6 +331,10 @@ class MLActionConcat(MLActionFunctionCall):
     """
 
     def __init__(self, act1, act2):
+        """
+        @param  act1        first element
+        @param  act2        second element
+        """
         if not isinstance(act1, MLAction):
             raise TypeError("act1 must be MLAction.")
         if not isinstance(act2, MLAction):
@@ -333,6 +361,10 @@ class MLActionCast(MLActionUnary):
     """
 
     def __init__(self, act1, new_type):
+        """
+        @param  act1        element
+        @param  new_type    new type
+        """
         MLActionUnary.__init__(self, act1, "cast")
         self.output = new_type
 
@@ -352,6 +384,13 @@ class MLActionIfElse(MLAction):
     """
 
     def __init__(self, cond, act1, act2, check_type=True, comment=None):
+        """
+        @param  cond        condition
+        @param  act1        first action
+        @param  ect2        second action
+        @param  check_type  check ype
+        @param  comment     comment
+        """
         if not isinstance(act1, MLAction):
             raise TypeError("act1 must be MLAction.")
         if not isinstance(act2, MLAction):
@@ -401,6 +440,9 @@ class MLActionReturn(MLAction):
     """
 
     def __init__(self, act):
+        """
+        @param  act     action to return
+        """
         MLAction.__init__(self, [act.output],
                           act.output, "return", children=[act])
 
@@ -433,6 +475,10 @@ class MLActionFunction(MLActionUnary):
     """
 
     def __init__(self, act, name):
+        """
+        @param  act     action
+        @param  name    name
+        """
         if not isinstance(act, MLActionReturn):
             raise NotImplementedError("Last result must be MLActionReturn.")
         MLActionUnary.__init__(self, act, name)
