@@ -16,6 +16,11 @@ on the following operators :ref:`l-onnx-runtime-operators`.
 .. autosignature:: mlprodict.onnxrt.onnx_inference.OnnxInference
     :members:
 
+Python to ONNX
+++++++++++++++
+
+.. autosignature:: mlprodict.onnx_grammar import translate_fct2onnx
+
 Structure
 +++++++++
 

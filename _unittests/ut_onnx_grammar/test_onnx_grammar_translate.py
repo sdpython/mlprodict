@@ -1,5 +1,5 @@
 """
-@brief      test log(time=1s)
+@brief      test log(time=4s)
 """
 import unittest
 import inspect
@@ -7,10 +7,11 @@ import ast
 from textwrap import dedent
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.onnx_grammar import CodeNodeVisitor
+from mlprodict.onnx_grammar import CodeNodeVisitor, translate_fct2onnx
+from mlprodict.onnxrt import OnnxInference
 
 
-class TestCode(ExtTestCase):
+class TestOnnxGrammarTranslate(ExtTestCase):
 
     def test_tree_job(self):
 
@@ -50,7 +51,7 @@ class TestCode(ExtTestCase):
         exp = ('FunctionDef',
                {'args': [('x', None), ('y', None)],
                 'code': [('Assign',
-                          {'Name': 'z',
+                          {'name': 'z',
                            'args': [('BinOp',
                                      {'args': ['x',
                                                ('Call',
@@ -119,7 +120,7 @@ class TestCode(ExtTestCase):
                     )
                 )
                 return (
-                    OnnxMult(
+                    OnnxMul(
                         x,
                         z
                     )
@@ -141,6 +142,127 @@ class TestCode(ExtTestCase):
         v.visit(node)
         self.assertRaise(lambda: v.export(), RuntimeError, 'numpy_abs')
         self.assertRaise(lambda: v.export(), RuntimeError, 'line 2')
+
+    def test_export_numpy(self):
+
+        def addition(x, y):
+            z = x + numpy.abs(y)
+            return x * z
+
+        code = inspect.getsource(addition)
+        node = ast.parse(dedent(code))
+        v = CodeNodeVisitor()
+        v.visit(node)
+        onnx_code = v.export(context={'numpy.abs': numpy.abs})
+        exp = dedent("""
+            def addition(x, y):
+                z = (
+                    OnnxAdd(
+                        x,
+                        OnnxAbs(
+                            y
+                        )
+                    )
+                )
+                return (
+                    OnnxMul(
+                        x,
+                        z
+                    )
+                )
+        """)
+        self.assertEqual(exp.strip('\n '), onnx_code.strip('\n '))
+
+    def test_export_transpose(self):
+
+        def trs(x, y):
+            z = x + numpy.transpose(y, axes=[1, 0])
+            return x * z
+
+        code = inspect.getsource(trs)
+        node = ast.parse(dedent(code))
+        v = CodeNodeVisitor()
+        v.visit(node)
+        onnx_code = v.export(context={'numpy.transpose': numpy.transpose})
+        exp = dedent("""
+            def trs(x, y):
+                z = (
+                    OnnxAdd(
+                        x,
+                        OnnxTranspose(
+                            y,
+                            perm=[1, 0]
+                        )
+                    )
+                )
+                return (
+                    OnnxMul(
+                        x,
+                        z
+                    )
+                )
+        """)
+        self.assertEqual(exp.strip('\n '), onnx_code.strip('\n '))
+
+    def test_export_transpose_compile(self):
+
+        def trs(x, y):
+            z = x + numpy.transpose(y, axes=[1, 0])
+            return x * z
+
+        onnx_code = translate_fct2onnx(
+            trs, context={'numpy.transpose': numpy.transpose},
+            output_names=['Z'])
+        exp = dedent("""
+            def trs(x, y):
+                z = (
+                    OnnxAdd(
+                        x,
+                        OnnxTranspose(
+                            y,
+                            perm=[1, 0]
+                        )
+                    )
+                )
+                return OnnxIdentity(
+                    OnnxMul(
+                        x,
+                        z
+                    ),
+                    output_names=['Z']
+                )
+        """)
+        self.assertEqual(exp.strip('\n '), onnx_code.strip('\n '))
+
+        fct = translate_fct2onnx(
+            trs, context={'numpy.transpose': numpy.transpose},
+            cpl=True, output_names=['Z'])
+        self.assertTrue(callable(fct))
+
+        from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
+            OnnxAdd, OnnxTranspose, OnnxMul, OnnxIdentity
+        )
+        ctx = {'OnnxAdd': OnnxAdd,
+               'OnnxTranspose': OnnxTranspose,
+               'OnnxMul': OnnxMul, 'OnnxIdentity': OnnxIdentity}
+
+        fct = translate_fct2onnx(
+            trs, context={'numpy.transpose': numpy.transpose},
+            cpl=True, context_cpl=ctx, output_names=['Z'])
+
+        r = fct('x', 'y')
+        self.assertIsInstance(r, OnnxIdentity)
+
+        inputs = {'x': numpy.array([[1, 2]], dtype=numpy.float32),
+                  'y': numpy.array([[-0.3, 0.4]], dtype=numpy.float32).T}
+
+        expected = trs(inputs['x'], inputs['y'])
+
+        onnx_g = r.to_onnx(inputs)
+
+        oinf = OnnxInference(onnx_g)
+        res = oinf.run(inputs)
+        self.assertEqualArray(expected, res['Z'])
 
 
 if __name__ == "__main__":

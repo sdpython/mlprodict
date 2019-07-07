@@ -206,6 +206,13 @@ class CodeNodeVisitor(ast.NodeVisitor):
         self.push(cont)
         return self.generic_visit_args(node, cont)
 
+    def visit_List(self, node):  # pylint: disable=C0111
+        cont = {"indent": self._indent, "type": "List",
+                "str": "", "elts": node.elts,
+                "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
     def visit_arguments(self, node):  # pylint: disable=C0111
         cont = {"indent": self._indent, "type": "arguments", "str": "",
                 "node": node, "args": node.args}
