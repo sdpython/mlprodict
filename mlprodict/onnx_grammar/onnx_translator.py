@@ -53,11 +53,20 @@ class OnnxTranslator(CodeTranslator):
     """
     _binary_operators = {
         'Add': 'Add', 'Div': 'Div',
-        'Mult': 'Mul', 'Sub': 'Sub'
+        'Mult': 'Mul', 'Sub': 'Sub',
+        'Pow': 'Pow'
+    }
+
+    _unary_operators = {
+        'Sub': 'Neg',
     }
 
     _numpy2onnx_op = {
-        'absolute': 'Abs', 'transpose': 'Transpose'
+        'absolute': 'Abs',
+        'cos': 'Cos',
+        'exp': 'Exp',
+        'transpose': 'Transpose',
+        'sin': 'Sin',
     }
 
     _parameter_mapping = {
@@ -170,7 +179,8 @@ class OnnxTranslator(CodeTranslator):
         def find_onnx_correspondance(fct, info):
             if isinstance(fct, numpy.ufunc):
                 name = fct.__name__
-            elif callable(fct) and getattr(fct, '__module__', '') == 'numpy':
+            elif callable(fct) and getattr(fct, '__module__', '') in (
+                    'numpy', 'numpy.core.fromnumeric'):
                 name = fct.__name__
             else:
                 name = None
@@ -181,6 +191,8 @@ class OnnxTranslator(CodeTranslator):
                         "\n".join(sorted(OnnxTranslator._numpy2onnx_op))))
             if name is not None:
                 return OnnxTranslator._numpy2onnx_op[name]
+            if isinstance(fct, str):
+                return fct
             raise RuntimeError(
                 "Unable to find a correspondance for function name '{}' in module '{}', "
                 "'{}' (type {}) at {}.".format(
@@ -189,6 +201,9 @@ class OnnxTranslator(CodeTranslator):
 
         def write_expression(expr, indent, parameter_mapping=None):
             if isinstance(expr, str):
+                # an argument
+                return ['{}{}'.format(" " * indent * 4, expr)]
+            if isinstance(expr, (int, float)):
                 # an argument
                 return ['{}{}'.format(" " * indent * 4, expr)]
             if isinstance(expr, OnnxTranslator.Parameter):
@@ -206,6 +221,17 @@ class OnnxTranslator(CodeTranslator):
                     opname = args["op"]
                     opon = args["args"]
                     onnx_name = OnnxTranslator._binary_operators[opname]
+                    rows.append(
+                        '{}Onnx{}('.format(" " * indent * 4, onnx_name))
+                    for i, expr2 in enumerate(opon):
+                        rows.extend(write_expression(expr2, indent + 1))
+                        if i < len(opon) - 1:
+                            rows[-1] += ","
+                    rows.append('{})'.format(" " * indent * 4))
+                elif op == 'UnaryOp':
+                    opname = args["op"]
+                    opon = args["args"]
+                    onnx_name = OnnxTranslator._unary_operators[opname]
                     rows.append(
                         '{}Onnx{}('.format(" " * indent * 4, onnx_name))
                     for i, expr2 in enumerate(opon):
@@ -312,14 +338,19 @@ class OnnxTranslator(CodeTranslator):
                 ('Assign', {'args': [], 'lineno': node.lineno, 'col_offset': node.col_offset}))
             return
         if kind == 'Name':
-            self._get_last(('Assign', 'BinOp', 'Call'))
+            self._get_last(
+                ('Assign', 'BinOp', 'Call', 'FunctionDef', 'Return'))
             return
         if kind == 'BinOp':
             self._stack.append(
                 ('BinOp', {'args': [], 'lineno': node.lineno, 'col_offset': node.col_offset}))
             return
+        if kind == 'UnaryOp':
+            self._stack.append(
+                ('UnaryOp', {'args': [], 'lineno': node.lineno, 'col_offset': node.col_offset}))
+            return
         if kind in OnnxTranslator._binary_operators:
-            _, buf = self._get_last('BinOp')
+            _, buf = self._get_last(('BinOp', 'UnaryOp'))
             buf['op'] = kind
             return
         if kind == 'Call':
@@ -349,7 +380,10 @@ class OnnxTranslator(CodeTranslator):
                           'col_offset': getattr(node, 'col_offset', '?')}))
             return
         if kind == 'Num':
-            self._get_last('List')
+            self._get_last(('List', 'UnaryOp', 'BinOp'))
+            return
+        if kind == 'Str':
+            self._get_last('keyword')
             return
 
         raise NotImplementedError("Unable to interpret kind '{}' at {}\n{}\n---\n{}".format(
@@ -372,24 +406,34 @@ class OnnxTranslator(CodeTranslator):
         if kind == "arguments":
             _, buf = self._get_last('FunctionDef')
             for child in info['children']:
-                buf['args'].append((child['str'], child['annotation']))
+                buf['args'].append(
+                    (child['str'], child.get('annotation', None)))
             return
         if kind == "Name":
-            op, buf = self._get_last(('Assign', 'BinOp', 'Call'), info)
+            op, buf = self._get_last(
+                ('Assign', 'BinOp', 'Call', 'FunctionDef', 'Return'), info)
             if op == 'Assign':
                 buf['name'] = info['str']
                 return
             elif op in ('BinOp', 'Call'):
                 buf['args'].append(info['str'])
                 return
+            elif op == 'FunctionDef':
+                buf['namefct'] = info['str']
+                return
+            elif op == 'Return':
+                buf['code'] = info['str']
+                return
+
         if kind in OnnxTranslator._binary_operators:
-            _, buf = self._get_last('BinOp')
+            _, buf = self._get_last(('BinOp', 'UnaryOp'))
             return
-        if kind in ('Call', 'BinOp', 'Assign', 'Return'):
-            op, buf = self._get_last(('Call', 'BinOp', 'Assign', 'Return'))
+        if kind in ('Call', 'BinOp', 'Assign', 'Return', 'UnaryOp'):
+            op, buf = self._get_last(
+                ('Call', 'BinOp', 'Assign', 'Return', 'UnaryOp'))
             self._stack.pop()
             opp, parent = self._get_last(
-                ('Call', 'BinOp', 'Assign', 'FunctionDef', 'Return'))
+                ('Call', 'BinOp', 'Assign', 'FunctionDef', 'Return', 'UnaryOp'))
             if opp in ('FunctionDef', 'Return'):
                 parent['code'].append((op, buf))
             else:
@@ -416,8 +460,15 @@ class OnnxTranslator(CodeTranslator):
             buf['args'][0] = info["str"]
             return
         if kind == 'Num':
-            _, buf = self._get_last('List')
-            buf['elts'].append(info['n'])
+            op, buf = self._get_last(('List', 'BinOp', 'UnaryOp'))
+            if op == 'List':
+                buf['elts'].append(info['n'])
+            else:
+                buf['args'].append(info['n'])
+            return
+        if kind == 'Str':
+            _, buf = self._get_last('keyword')
+            buf['value'] = info['str']
             return
         if kind == 'List':
             _, buf = self._get_last('List')

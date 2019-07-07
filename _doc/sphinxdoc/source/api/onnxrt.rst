@@ -2,7 +2,7 @@
 onnxrt
 ======
 
-.. content::
+.. contents::
     :local:
 
 Inference
@@ -19,7 +19,7 @@ on the following operators :ref:`l-onnx-runtime-operators`.
 Python to ONNX
 ++++++++++++++
 
-.. autosignature:: mlprodict.onnx_grammar import translate_fct2onnx
+.. autosignature:: mlprodict.onnx_grammar.onnx_translation.translate_fct2onnx
 
 Structure
 +++++++++
@@ -31,8 +31,8 @@ Structure
 Validation
 ++++++++++
 
-.. autosignature:: mlprodict.onnxrt.validation.enumerate_validated_operator_opsets
+.. autosignature:: mlprodict.onnxrt.validate.enumerate_validated_operator_opsets
 
 .. autosignature:: mlprodict.onnxrt.side_by_side.side_by_side_by_values
 
-.. autosignature:: mlprodict.onnxrt.validation.summary_report
+.. autosignature:: mlprodict.onnxrt.validate.summary_report

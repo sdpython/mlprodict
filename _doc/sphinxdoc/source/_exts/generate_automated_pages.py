@@ -110,7 +110,7 @@ def write_page_onnxrt_benches(app, runtime):
             .. math::
 
                 \\frac{{\\textit{{execution when predicting with a custom ONNX runtime}}}}
-                {{\\textit{{execution when predicting with scikit-learn (assume_finite=True)}}}}
+                {{\\textit{{execution when predicting with scikit-learn (assume\\_finite=True)}}}}
 
             Some figures are missing when the number of observations is high.
             That means the prediction is slow for one of the runtime
