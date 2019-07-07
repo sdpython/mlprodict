@@ -33,6 +33,8 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         graph if executed.
 
         .. runpython::
+            :showcode:
+            :process:
 
             import numpy
             from mlprodict.onnx_grammar import translate_fct2onnx
@@ -58,6 +60,8 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         them to the original.
 
         .. runpython::
+            :showcode:
+            :process:
 
             import numpy
             from mlprodict.onnx_grammar import translate_fct2onnx

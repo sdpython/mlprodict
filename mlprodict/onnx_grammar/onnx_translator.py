@@ -182,8 +182,8 @@ class OnnxTranslator(CodeTranslator):
             if name is not None:
                 return OnnxTranslator._numpy2onnx_op[name]
             raise RuntimeError(
-                "Unable to find a correspondance for function '{}' (type {}) at {}.".format(
-                    fct, type(fct), self.make_msg(info)))
+                "Unable to find a correspondance for function name '{}', '{}' (type {}) at {}.".format(
+                    name, fct, type(fct), self.make_msg(info)))
 
         def write_expression(expr, indent, parameter_mapping=None):
             if isinstance(expr, str):
