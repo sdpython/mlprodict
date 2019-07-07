@@ -74,6 +74,10 @@ class CodeNodeVisitor(ast.NodeVisitor):
         @param      row         row (a dictionary)
         @return                 See ``ast.NodeVisitor.generic_visit``
         """
+        if hasattr(node, 'lineno'):
+            row['lineno'] = node.lineno
+        if hasattr(node, 'col_offset'):
+            row['col_offset'] = node.col_offset
         self._indent += 1
         last = len(self._rows)
         self._translator.visit(node, row)
@@ -86,6 +90,12 @@ class CodeNodeVisitor(ast.NodeVisitor):
         self._translator.depart(node, row)
         return res
 
+    def make_msg(self, node):
+        """
+        Displays line and column information into a string.
+        """
+        return "line {}, col {}".format(node.lineno, node.col_offset)
+
     def visit(self, node):
         """
         Visits a node, a method must exist for every object class.
@@ -93,7 +103,8 @@ class CodeNodeVisitor(ast.NodeVisitor):
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, None)
         if visitor is None:
-            raise TypeError("unable to find a method: " + method)
+            raise TypeError("Unable to find a method '{}' at {}.".format(
+                method, self.make_msg(node)))
         res = visitor(node)
         # print(method, CodeNodeVisitor.print_node(node))
         return res
@@ -103,7 +114,8 @@ class CodeNodeVisitor(ast.NodeVisitor):
         If an element is not found...
         """
         help(node)
-        raise NotImplementedError("Node '{}' not recognized.".format(node))
+        raise NotImplementedError("Node '{}' not recognized at {}".format(
+            node, self.make_msg(node)))
 
     @staticmethod
     def print_node(node):

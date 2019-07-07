@@ -80,6 +80,30 @@ class OnnxTranslator(CodeTranslator):
                 pprint.pformat(info) if info else ""))
         return last
 
+    def make_msg(self, info):
+        """
+        Make a message with line and column information.
+        """
+        lineno = '?'
+        col_offset = '?'
+        if isinstance(info, dict):
+            if 'node' in info:
+                node = info['node']
+                lineno = node.lineno
+                col_offset = node.col_offset
+            else:
+                if 'lineno' in info:
+                    lineno = info['lineno']
+                if 'col_offset' in info:
+                    col_offset = info['col_offset']
+        else:
+            if hasattr(info, 'lineno'):
+                lineno = info.lineno
+            if hasattr(info, 'col_offset'):
+                col_offset = info.col_offset
+
+        return "line {}, col {}".format(lineno, col_offset)
+
     def export(self, context=None, format='code'):  # pylint: disable=W0221
         """
         Returns an :epkg:`ONNX` graph or a piece
@@ -93,15 +117,18 @@ class OnnxTranslator(CodeTranslator):
         if context is None:
             context = {}
 
-        def find_onnx_correspondance(fct):
+        def find_onnx_correspondance(fct, info):
             if isinstance(fct, numpy.ufunc):
                 name = fct.__name__
                 if name not in OnnxTranslator._numpy2onnx_op:
-                    raise RuntimeError("Unable to find a correspondance to '{}' in \n{}".format(
-                        name, "\n".join(sorted(OnnxTranslator._numpy2onnx_op))))
+                    raise RuntimeError(
+                        "Unable to find a correspondance to '{}' at {} in \n{}".format(
+                            name, self.make_msg(info),
+                            "\n".join(sorted(OnnxTranslator._numpy2onnx_op))))
                 return OnnxTranslator._numpy2onnx_op[name]
             raise RuntimeError(
-                "Unable to find a correspondance for function '{}'.".format(fct))
+                "Unable to find a correspondance for function '{}' et {}.".format(
+                    fct, self.make_msg(info)))
 
         def write_expression(expr, indent):
             if isinstance(expr, str):
@@ -115,7 +142,7 @@ class OnnxTranslator(CodeTranslator):
                     opname = args["op"]
                     opon = args["args"]
                     rows.append('{}Onnx{}('.format(" " * indent * 4, opname))
-                    for _, expr2 in enumerate(opon):
+                    for i, expr2 in enumerate(opon):
                         rows.extend(write_expression(expr2, indent + 1))
                         if i < len(opon) - 1:
                             rows[-1] += ","
@@ -123,9 +150,10 @@ class OnnxTranslator(CodeTranslator):
                 elif op == 'Call':
                     name = args['name']
                     if name not in context:
-                        raise RuntimeError("Unable to find function '{}' in context\n{}".format(
-                            name, '\n'.join(sorted(context))))
-                    op_conv = find_onnx_correspondance(context[name])
+                        raise RuntimeError(
+                            "Unable to find function '{}' at {} in context\n{}".format(
+                                name, self.make_msg(args), '\n'.join(sorted(context))))
+                    op_conv = find_onnx_correspondance(context[name], args)
                     opon = args["args"]
                     rows.append('{}Onnx{}('.format(" " * indent * 4, op_conv))
                     opon = opon[1:]
@@ -140,8 +168,9 @@ class OnnxTranslator(CodeTranslator):
             rows = []
             name, args = node
             if name != 'FunctionDef':
-                raise RuntimeError("The code being translated should be a single function not "
-                                   "'{}'.".format(name))
+                raise RuntimeError(
+                    "The code being translated should be a single function not '{}' at {}.".format(
+                        name, self.make_msg(args)))
             fct_name = args['name']
             rows.append("def {}({}):".format(
                 fct_name, ', '.join([_[0] for _ in args["args"]])))
@@ -160,8 +189,9 @@ class OnnxTranslator(CodeTranslator):
                     rows.extend(write_expression(args, indent + 1))
                     rows.append("{})".format(" " * (indent * 4)))
                 else:
-                    raise RuntimeError("Unable to process operator '{}'. Make sure it is "
-                                       "either an affectation, either a return.".format(op))
+                    raise RuntimeError("Unable to process operator '{}' at {}. "
+                                       "Make sure it is either an affectation, "
+                                       "either a return.".format(op, self.make_msg(args)))
             return rows
 
         rows = write_function(self._code_fct)
@@ -182,9 +212,11 @@ class OnnxTranslator(CodeTranslator):
             return
         if kind == "FunctionDef":
             if self._is_stacked('FunctionDef'):
-                raise RuntimeError("Nested functions are not allowed.")
+                raise RuntimeError("Nested functions are not allowed at {}.".format(
+                    self.make_msg(node)))
             self._stack.append(
-                ('FunctionDef', {'args': [], 'code': [], 'name': info['name']}))
+                ('FunctionDef', {'args': [], 'code': [], 'name': info['name'],
+                                 'lineno': node.lineno, 'col_offset': node.col_offset}))
             return
         if kind == "arguments":
             _, buf = self._get_last('FunctionDef')
@@ -192,30 +224,35 @@ class OnnxTranslator(CodeTranslator):
         if kind == "arg":
             return
         if kind == "Assign":
-            self._stack.append(('Assign', {'args': []}))
+            self._stack.append(
+                ('Assign', {'args': [], 'lineno': node.lineno, 'col_offset': node.col_offset}))
             return
         if kind == 'Name':
             self._get_last(('Assign', 'BinOp', 'Call'))
             return
         if kind == 'BinOp':
-            self._stack.append(('BinOp', {'args': []}))
+            self._stack.append(
+                ('BinOp', {'args': [], 'lineno': node.lineno, 'col_offset': node.col_offset}))
             return
         if kind in OnnxTranslator._binary_operators:
             _, buf = self._get_last('BinOp')
             buf['op'] = kind
             return
         if kind == 'Call':
-            self._stack.append(('Call', {'name': info['str'], 'args': []}))
+            self._stack.append(
+                ('Call', {'name': info['str'], 'args': [], 'lineno': node.lineno,
+                          'col_offset': node.col_offset}))
             return
         if kind == 'Attribute':
             _, buf = self._get_last('Call')
             return
         if kind == 'Return':
             self._get_last('FunctionDef')
-            self._stack.append(('Return', {'code': []}))
+            self._stack.append(
+                ('Return', {'code': [], 'lineno': node.lineno, 'col_offset': node.col_offset}))
             return
-        raise NotImplementedError("Unable to interpret kind '{}'\n{}\n---\n{}".format(
-            info.get('type', '?'), pprint.pformat(info),
+        raise NotImplementedError("Unable to interpret kind '{}' at {}\n{}\n---\n{}".format(
+            info.get('type', '?'), self.make_msg(node), pprint.pformat(info),
             pprint.pformat(self._stack)))
 
     def depart(self, node, info):
@@ -265,6 +302,6 @@ class OnnxTranslator(CodeTranslator):
         if kind == 'Module':
             return
 
-        raise NotImplementedError("Unable to interpret kind '{}'\n{}\n---\n{}".format(
-            info.get('type', '?'), pprint.pformat(info),
+        raise NotImplementedError("Unable to interpret kind '{}' at {}\n{}\n---\n{}".format(
+            info.get('type', '?'), self.make_msg(node), pprint.pformat(info),
             pprint.pformat(self._stack)))

@@ -49,23 +49,37 @@ class TestCode(ExtTestCase):
         code = v._translator._code_fct  # pylint: disable=W0212
         exp = ('FunctionDef',
                {'args': [('x', None), ('y', None)],
-                'name': 'addition',
                 'code': [('Assign',
-                          {'args': [('BinOp',
+                          {'Name': 'z',
+                           'args': [('BinOp',
                                      {'args': ['x',
                                                ('Call',
-                                                {'name': 'numpy_dot',
-                                                 'args': ['numpy_dot',
+                                                {'args': ['numpy_dot',
                                                           ('Call',
-                                                           {'name': 'numpy_abs',
-                                                            'args': ['numpy_abs', 'y']}),
-                                                          'x']})],
+                                                           {'args': ['numpy_abs', 'y'],
+                                                            'col_offset': 22,
+                                                            'lineno': 2,
+                                                            'name': 'numpy_abs'}),
+                                                          'x'],
+                                                 'col_offset': 12,
+                                                 'lineno': 2,
+                                                 'name': 'numpy_dot'})],
+                                      'col_offset': 8,
+                                      'lineno': 2,
                                       'op': 'Add'})],
-                           'Name': 'z'}),
+                           'col_offset': 4,
+                           'lineno': 2}),
                          ('Return',
                           {'code': [('BinOp',
                                      {'args': ['x', 'z'],
-                                      'op': 'Mult'})]})]})
+                                      'col_offset': 11,
+                                      'lineno': 3,
+                                      'op': 'Mult'})],
+                           'col_offset': 4,
+                           'lineno': 3})],
+                'col_offset': 0,
+                'lineno': 1,
+                'name': 'addition'})
         self.assertEqual(exp, code)
 
     def test_translate_nested(self):
@@ -77,8 +91,8 @@ class TestCode(ExtTestCase):
             return x * z
 
         code = inspect.getsource(addition)
-        node = ast.parse(dedent(code))
         v = CodeNodeVisitor()
+        node = ast.parse(dedent(code))
         self.assertRaise(lambda: v.visit(node), RuntimeError, "Nested")
 
     def test_export(self):
@@ -112,6 +126,21 @@ class TestCode(ExtTestCase):
                 )
         """)
         self.assertEqual(exp.strip('\n '), onnx_code.strip('\n '))
+
+    def test_export_error(self):
+
+        numpy_abs = numpy.abs
+
+        def addition(x, y):
+            z = x + numpy_abs(y)
+            return x * z
+
+        code = inspect.getsource(addition)
+        node = ast.parse(dedent(code))
+        v = CodeNodeVisitor()
+        v.visit(node)
+        self.assertRaise(lambda: v.export(), RuntimeError, 'numpy_abs')
+        self.assertRaise(lambda: v.export(), RuntimeError, 'line 2')
 
 
 if __name__ == "__main__":
