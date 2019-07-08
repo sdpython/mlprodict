@@ -65,6 +65,9 @@ class OpRunOnnxRuntime:
         Initializes the node.
 
         @param      variables               registered variables created by previous operators
+
+        The current implementation for operator *Scan*
+        only works for matrices.
         """
         self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
         inputs = list(self.onnx_node.input)
@@ -85,6 +88,17 @@ class OpRunOnnxRuntime:
             inputs = get_defined_inputs(self.inputs, variables)
             self.onnx_ = self.inst_.to_onnx(inputs)
             forced = False
+        elif self.onnx_node.op_type == 'Scan':
+            self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
+                                        **options)
+            inputs = get_defined_inputs(self.inputs, variables)
+            outputs = get_defined_outputs(
+                self.outputs, self.onnx_node, inputs, variables)
+            inputs = [(name, cl.__class__(['', ''])) for (name, cl) in inputs]
+            outputs = [(name, cl.__class__(['', '']))
+                       for (name, cl) in outputs]
+            self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
+            forced = True
         else:
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
                                         **options)
