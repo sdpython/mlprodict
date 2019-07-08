@@ -81,7 +81,6 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     Compiles a C function with :epkg:`cffi`.
     It takes one features vector.
 
-    @param      name                function name
     @param      nbout               number of expected outputs
     @param      code_c              code C
     @param      dtype               numeric type to use

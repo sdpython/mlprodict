@@ -12,6 +12,7 @@ def sklearn2graph(model, output_names=None, **kwargs):
 
     @param  model           scikit-learn model
     @param  output_names    names of the outputs
+    @param  kwargs          additional parameters, sent to the converter
     @return                 converter to grammar model
 
     Short list of additional parameters:

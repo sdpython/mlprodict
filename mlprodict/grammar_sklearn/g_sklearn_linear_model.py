@@ -20,6 +20,7 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
     @param      model           *scikit-learn* model
     @param      input_names     name of the input features
     @param      output_names    name of the output predictions
+    @param      kwargs          additional parameters (*with_loop*)
     @return                     graph model
 
     If *input* is None or *output* is None, default values
@@ -67,12 +68,14 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
 
 def sklearn_linear_regression(model, input_names=None, output_names=None, **kwargs):
     """
-    Converts a `linear regression <http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html>`_
+    Converts a `linear regression <http://scikit-learn.org/stable/modules/
+    generated/sklearn.linear_model.LinearRegression.html>`_
     into a *grammar* model (semantic graph representation).
 
     @param      model           *scikit-learn* model
     @param      input_names     name of the input features
     @param      output_names    name of the output predictions
+    @param      kwargs          additional parameter (*with_loop*)
     @return                     graph model
 
     If *input* is None or *output* is None, default values

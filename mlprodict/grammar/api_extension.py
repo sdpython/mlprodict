@@ -77,9 +77,9 @@ class AutoType:
         The method is looking for one method call
         '_export_<lang>' and calls it if found.
 
+        @param      value           value to format
         @param      lang            language
         @param      hook            tweaking parameters
-        @param      result_name     the name of the result decided by the parent of this node
         @return                     depends on the language
         """
         name = "_format_value_{0}".format(lang)

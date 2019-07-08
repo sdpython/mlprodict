@@ -19,7 +19,7 @@ def sklearn_decision_tree_regressor(model, input_names=None, output_names=None, 
     @param      model           scikit-learn model
     @param      input_names     name of the input features
     @param      output_names    name of the output predictions
-    @param      no_loop         implements the model without any loop
+    @param      kwargs          addition parameter (*with_loop*)
     @return                     graph model
 
     If *input* is None or *output* is None, default values
@@ -33,7 +33,8 @@ def sklearn_decision_tree_regressor(model, input_names=None, output_names=None, 
     .. note::
 
         The code to compute on output is
-        `here <https://github.com/scikit-learn/scikit-learn/blob/ef5cb84a805efbe4bb06516670a9b8c690992bd7/sklearn/tree/_tree.pyx#L806>`_:
+        `here <https://github.com/scikit-learn/scikit-learn/blob/
+        ef5cb84a805efbe4bb06516670a9b8c690992bd7/sklearn/tree/_tree.pyx#L806>`_:
 
         ::
 

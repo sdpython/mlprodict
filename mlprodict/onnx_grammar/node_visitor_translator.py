@@ -41,7 +41,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
 
     def __init__(self, translator=None):
         """
-        @param      cl      @see cl CodeTranslator
+        @param      translator      @see cl CodeTranslator
 
         By default the translator is @see cl OnnxTranslator.
         """

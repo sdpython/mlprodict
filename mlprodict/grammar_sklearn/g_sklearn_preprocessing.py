@@ -18,6 +18,7 @@ def sklearn_standard_scaler(model, input_names=None, output_names=None, **kwargs
     @param      model           scikit-learn model
     @param      input_names     name of the input features
     @param      output_names    name of the output predictions
+    @param      kwargs          additional parameters (none)
     @return                     graph model
 
     If *input* is None or *output* is None, default values
