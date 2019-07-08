@@ -81,7 +81,9 @@ class TestOnnxGrammarTranslate(ExtTestCase):
                 'col_offset': 0,
                 'lineno': 1,
                 'name': 'addition'})
-        self.assertEqual(exp, code)
+        self.assertEqual(exp[0], 'FunctionDef')
+        self.assertEqual(len(exp[1]['args']), 2)
+        self.assertEqual(exp[1]['code'], code[1]['code'])
 
     def test_translate_nested(self):
 
