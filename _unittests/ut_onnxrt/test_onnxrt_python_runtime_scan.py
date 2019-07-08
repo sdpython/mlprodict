@@ -21,7 +21,7 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.4.0") <= 0,
+    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
                      reason="int64 not implemented for constants")
     def test_pdist(self):
         from skl2onnx.algebra.complex_functions import squareform_pdist  # pylint: disable=E0401
