@@ -36,6 +36,7 @@ class TestCodeStyle(ExtTestCase):
                          'if __name__ == "__main__":',
                          "# pylint: disable=E0611",
                          "test_onnxrt_python_runtime_scan.py:27: E0611",
+                         "test_onnx_grammar_specific.py:115",
                          ])
 
 
