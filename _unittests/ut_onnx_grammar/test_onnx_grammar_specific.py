@@ -5,7 +5,9 @@ import unittest
 import numpy
 from scipy.spatial.distance import squareform, pdist
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.gaussian_process.kernels import ExpSineSquared
+from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_grammar import translate_fct2onnx
 from mlprodict.onnxrt import OnnxInference
 
@@ -63,6 +65,8 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         self.assertIn("-2", onnx_code)
         self.assertIn('metric="euclidean"', onnx_code)
 
+    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
+                     reason="missing complex functions")
     def test_export_sklearn_kernel(self):
 
         x = numpy.array([[1, 2], [3, 4]], dtype=float)
