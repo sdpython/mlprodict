@@ -109,7 +109,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         self.assertIn("-2", onnx_code)
         self.assertIn('metric="euclidean"', onnx_code)
 
-        from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
+        from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611,E0401
             OnnxAdd, OnnxSin, OnnxMul, OnnxIdentity, OnnxPow, OnnxDiv, OnnxExp
         )
         from skl2onnx.algebra.complex_functions import squareform_pdist as Onnxsquareform_pdist
