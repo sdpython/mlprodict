@@ -78,13 +78,14 @@ class OnnxTranslator(CodeTranslator):
         Holds parameter information.
         """
 
-        def __init__(self, name, value):
+        def __init__(self, name, value=('#NODEFAULT#', ), annotation=None):
             """
             @param      name        parameter name
             @param      value       parameter value
             """
             self.name = name
             self.value = value
+            self.annotation = annotation
 
         @staticmethod
         def format_value(value):
@@ -96,6 +97,8 @@ class OnnxTranslator(CodeTranslator):
             if isinstance(value, list):
                 return "[{}]".format(", ".join(map(OnnxTranslator.Parameter.format_value, value)))
             if isinstance(value, tuple):
+                if value == ('#NODEFAULT#', ):
+                    return None
                 return "({})".format(", ".join(map(OnnxTranslator.Parameter.format_value, value)))
             return str(value)
 
@@ -105,6 +108,16 @@ class OnnxTranslator(CodeTranslator):
             Returns a formatted value in python code.
             """
             return OnnxTranslator.Parameter.format_value(self.value)
+
+        def __str__(self):
+            """
+            Into python syntax.
+            """
+            rows = [self.name]
+            if self.value != ('#NODEFAULT#', ):
+                rows.append('=')
+                rows.append(self.formatted_value)
+            return ''.join(rows)
 
     def __init__(self, visitor):
         """
@@ -182,6 +195,8 @@ class OnnxTranslator(CodeTranslator):
             elif callable(fct) and getattr(fct, '__module__', '') in (
                     'numpy', 'numpy.core.fromnumeric'):
                 name = fct.__name__
+            elif callable(fct) and fct.__name__.startswith("py_"):
+                return fct
             else:
                 name = None
             if name is not None and name not in OnnxTranslator._numpy2onnx_op:
@@ -248,8 +263,13 @@ class OnnxTranslator(CodeTranslator):
                                 '\n'.join(sorted(context)),
                                 pprint.pformat(args)))
                     op_conv = find_onnx_correspondance(context[name], args)
+                    if callable(op_conv) and op_conv.__name__.startswith('py_'):
+                        rows.append(
+                            '{}{}('.format(" " * indent * 4, op_conv.__name__))
+                    else:
+                        rows.append(
+                            '{}Onnx{}('.format(" " * indent * 4, op_conv))
                     opon = args["args"]
-                    rows.append('{}Onnx{}('.format(" " * indent * 4, op_conv))
                     opon = opon[1:]
                     for i, expr2 in enumerate(opon):
                         rows.extend(
@@ -273,7 +293,7 @@ class OnnxTranslator(CodeTranslator):
                         name, self.make_msg(args)))
             fct_name = args['name']
             rows.append("def {}({}):".format(
-                fct_name, ', '.join([_[0] for _ in args["args"]])))
+                fct_name, ', '.join(map(str, args["args"]))))
             indent = 1
             code = args['code']
             for op, args in code:
@@ -325,7 +345,7 @@ class OnnxTranslator(CodeTranslator):
                 raise RuntimeError("Nested functions are not allowed at {}.".format(
                     self.make_msg(node)))
             self._stack.append(
-                ('FunctionDef', {'args': [], 'code': [], 'name': info['name'],
+                ('FunctionDef', {'args': [], 'code': [], 'name': info['name'], 'default': [],
                                  'lineno': node.lineno, 'col_offset': node.col_offset}))
             return
         if kind == "arguments":
@@ -339,7 +359,7 @@ class OnnxTranslator(CodeTranslator):
             return
         if kind == 'Name':
             self._get_last(
-                ('Assign', 'BinOp', 'Call', 'FunctionDef', 'Return'))
+                ('Assign', 'BinOp', 'Call', 'Return', 'FunctionDef'))
             return
         if kind == 'BinOp':
             self._stack.append(
@@ -380,7 +400,7 @@ class OnnxTranslator(CodeTranslator):
                           'col_offset': getattr(node, 'col_offset', '?')}))
             return
         if kind == 'Num':
-            self._get_last(('List', 'UnaryOp', 'BinOp'))
+            self._get_last(('List', 'UnaryOp', 'BinOp', 'FunctionDef', 'Call'))
             return
         if kind == 'Str':
             self._get_last('keyword')
@@ -389,6 +409,40 @@ class OnnxTranslator(CodeTranslator):
         raise NotImplementedError("Unable to interpret kind '{}' at {}\n{}\n---\n{}".format(
             info.get('type', '?'), self.make_msg(node), pprint.pformat(info),
             pprint.pformat(self._stack)))
+
+    def _fix_default_values(self, code_fct):
+        """
+        Maps default values with parameter names.
+        """
+        nbdef = len(code_fct[1]['default'])
+        nbpar = len(code_fct[1]['args'])
+        args = []
+        for i in range(nbpar):
+            name, annotation = code_fct[1]['args'][i]
+            j = nbdef - (nbpar - i)
+            if j >= 0:
+                default = code_fct[1]['default'][j]
+                p = OnnxTranslator.Parameter(
+                    name, annotation=annotation, value=default)
+            else:
+                p = OnnxTranslator.Parameter(name, annotation=annotation)
+            args.append(p)
+        code_fct[1]['args'] = args
+
+    def _post_process(self, op, node):
+        """
+        Simplifies some operator such as ``OnnxNeg(2)``.
+        """
+        if op is None and 'args' in node:
+            for i in range(len(node['args'])):
+                if not isinstance(node['args'][i], tuple):
+                    continue
+                o, v = node['args'][i]
+                if (o == 'UnaryOp' and len(v['args']) == 1 and
+                        isinstance(v['args'][0], (int, float, str, numpy.int64,
+                                                  numpy.float32, numpy.float64))):
+                    if v['op'] == 'Sub':
+                        node['args'][i] = -v['args'][0]
 
     def depart(self, node, info):
         """
@@ -406,24 +460,32 @@ class OnnxTranslator(CodeTranslator):
         if kind == "arguments":
             _, buf = self._get_last('FunctionDef')
             for child in info['children']:
-                buf['args'].append(
-                    (child['str'], child.get('annotation', None)))
+                if child['type'] == 'Str':
+                    buf['default'].append(child['str'])
+                elif child['type'] == 'Num':
+                    buf['default'].append(child['n'])
+                elif child['type'] == 'arg':
+                    buf['args'].append(
+                        (child['str'], child.get('annotation', None)))
+                else:
+                    raise RuntimeError("Unable to interpret type '{}' in function definition.\n{}".format(
+                        child['type'], pprint.pformat(info)))
             return
         if kind == "Name":
             op, buf = self._get_last(
-                ('Assign', 'BinOp', 'Call', 'FunctionDef', 'Return'), info)
+                ('Assign', 'BinOp', 'Call', 'Return', 'FunctionDef'), info)
             if op == 'Assign':
                 buf['name'] = info['str']
                 return
             elif op in ('BinOp', 'Call'):
                 buf['args'].append(info['str'])
                 return
-            elif op == 'FunctionDef':
-                buf['namefct'] = info['str']
-                return
             elif op == 'Return':
                 buf['code'] = info['str']
                 return
+            elif op == 'FunctionDef':
+                raise RuntimeError("Default value must be constant, variable '{}' was "
+                                   "detected.".format(info['str']))
 
         if kind in OnnxTranslator._binary_operators:
             _, buf = self._get_last(('BinOp', 'UnaryOp'))
@@ -431,6 +493,7 @@ class OnnxTranslator(CodeTranslator):
         if kind in ('Call', 'BinOp', 'Assign', 'Return', 'UnaryOp'):
             op, buf = self._get_last(
                 ('Call', 'BinOp', 'Assign', 'Return', 'UnaryOp'))
+            self._post_process(op, buf)
             self._stack.pop()
             opp, parent = self._get_last(
                 ('Call', 'BinOp', 'Assign', 'FunctionDef', 'Return', 'UnaryOp'))
@@ -438,10 +501,12 @@ class OnnxTranslator(CodeTranslator):
                 parent['code'].append((op, buf))
             else:
                 parent['args'].append((op, buf))
+            self._post_process(None, parent)
             return
         if kind == 'FunctionDef':
             if len(self._stack) == 1:
                 self._code_fct = self._stack[-1]
+                self._fix_default_values(self._code_fct)
                 self._stack = []
                 return
         if kind == 'Module':
@@ -460,7 +525,10 @@ class OnnxTranslator(CodeTranslator):
             buf['args'][0] = info["str"]
             return
         if kind == 'Num':
-            op, buf = self._get_last(('List', 'BinOp', 'UnaryOp'))
+            op, buf = self._get_last(
+                ('List', 'BinOp', 'UnaryOp', 'FunctionDef', 'Call'))
+            if op == 'FunctionDef':
+                return
             if op == 'List':
                 buf['elts'].append(info['n'])
             else:
@@ -471,19 +539,23 @@ class OnnxTranslator(CodeTranslator):
             buf['value'] = info['str']
             return
         if kind == 'List':
-            _, buf = self._get_last('List')
+            op, buf = self._get_last('List')
             value = buf['elts']
+            self._post_process(op, buf)
             self._stack.pop()
             opp, parent = self._get_last('keyword')
             parent['value'] = value
+            self._post_process(None, parent)
             return
         if kind == 'keyword':
-            _, buf = self._get_last('keyword')
+            op, buf = self._get_last('keyword')
             name = buf["name"]
             value = buf['value']
+            self._post_process(op, buf)
             self._stack.pop()
             opp, parent = self._get_last('Call')
             parent['args'].append(OnnxTranslator.Parameter(name, value))
+            self._post_process(None, parent)
             return
 
         raise NotImplementedError("Unable to interpret kind '{}' at {}\n{}\n---\n{}".format(

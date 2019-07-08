@@ -23,7 +23,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSlice, OnnxSqrt, OnnxSub, OnnxSum,
     OnnxTopK, OnnxTranspose, OnnxRelu,
     OnnxSigmoid, OnnxSoftmax, OnnxSqueeze,
-    OnnxConstantOfShape, OnnxNot
+    OnnxConstantOfShape, OnnxNot, OnnxSin
 )
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
@@ -447,6 +447,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_sigmoid(self):
         self.common_test_onnxt_runtime_unary(OnnxSigmoid, logistic_sigmoid)
+
+    def test_onnxt_runtime_sin(self):
+        self.common_test_onnxt_runtime_unary(OnnxSin, numpy.sin)
 
     @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
                      reason="int64 not implemented for constants")

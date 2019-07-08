@@ -46,6 +46,7 @@ from .op_scaler import Scaler
 from .op_scan import Scan
 from .op_shape import Shape
 from .op_sigmoid import Sigmoid
+from .op_sin import Sin
 from .op_slice import Slice
 from .op_softmax import Softmax
 from .op_sqrt import Sqrt
