@@ -32,7 +32,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
                 n = delta ** 2
                 return n
 
-            code = dedent(inspect.getsource(myjob))
+            code = dedent(inspect.getsource(norm2))
             node = ast.parse(code)
             v = CodeNodeVisitor()
             v.visit(node)

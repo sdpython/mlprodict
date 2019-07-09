@@ -3,13 +3,16 @@
 """
 import unittest
 import numpy
-from scipy.spatial.distance import squareform, pdist
 from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct
 from skl2onnx import __version__ as skl2onnx_version
+from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
 from mlprodict.onnx_grammar import translate_fct2onnx
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnx_grammar.onnx_translation import get_default_context, get_default_context_cpl
+from mlprodict.onnx_grammar.onnx_translation import py_make_float_array, py_pow, squareform_pdist
+
 
 threshold = "1.5.0"
 
@@ -21,9 +24,6 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         length_scale = 3
         periodicity = 4
         numpy_pi = numpy.pi
-
-        def squareform_pdist(X, metric='sqeuclidean'):
-            return squareform(pdist(X, metric=metric))
 
         def kernel_call_ynone(X, length_scale=length_scale, periodicity=periodicity):
             dists = squareform_pdist(X, metric='euclidean')
@@ -43,9 +43,6 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         x = numpy.array([[1, 2], [3, 4]], dtype=float)
 
         kernel = ExpSineSquared(length_scale=1.2, periodicity=1.1)
-
-        def squareform_pdist(X, metric='sqeuclidean'):
-            return squareform(pdist(X, metric=metric))
 
         def kernel_call_ynone(X, length_scale=1.2, periodicity=1.1, pi=3.141592653589793):
             dists = squareform_pdist(X, metric='euclidean')
@@ -74,12 +71,6 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         x = numpy.array([[1, 2], [3, 4]], dtype=float)
 
         kernel = ExpSineSquared(length_scale=1.2, periodicity=1.1)
-
-        def squareform_pdist(X, metric='sqeuclidean'):
-            return squareform(pdist(X, metric=metric))
-
-        def py_make_float_array(cst):
-            return numpy.array([cst], dtype=numpy.float32)
 
         def kernel_call_ynone(X, length_scale=1.2, periodicity=1.1, pi=3.141592653589793):
             dists = squareform_pdist(X, metric='euclidean')
@@ -112,7 +103,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         self.assertIn('metric="euclidean"', onnx_code)
 
         from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611,E0401
-            OnnxAdd, OnnxSin, OnnxMul, OnnxIdentity, OnnxPow, OnnxDiv, OnnxExp
+            OnnxAdd, OnnxSin, OnnxMul, OnnxPow, OnnxDiv, OnnxExp
         )
         from skl2onnx.algebra.complex_functions import squareform_pdist as Onnxsquareform_pdist
         ctx = {'OnnxAdd': OnnxAdd, 'OnnxPow': OnnxPow,
@@ -137,12 +128,6 @@ class TestOnnxGrammarSpecific(ExtTestCase):
 
     def test_export_sklearn_kernel_dot_product(self):
 
-        def py_make_float_array(cst):
-            return numpy.array([cst], dtype=numpy.float32)
-
-        def py_pow(x, p):
-            return x ** p
-
         def kernel_call_ynone(X, sigma_0=2.):
             t_sigma_0 = py_make_float_array(py_pow(sigma_0, 2))
             K = X @ numpy.transpose(X, axes=[1, 0]) + t_sigma_0
@@ -159,7 +144,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
                    'py_make_float_array': py_make_float_array}
 
         from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611,E0401
-            OnnxIdentity, OnnxTranspose, OnnxMatMul, OnnxAdd, OnnxPow
+            OnnxTranspose, OnnxMatMul, OnnxAdd, OnnxPow
         )
         ctx = {'OnnxPow': OnnxPow, 'OnnxAdd': OnnxAdd,
                'OnnxIdentity': OnnxIdentity, 'OnnxTranspose': OnnxTranspose,
@@ -170,6 +155,47 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         fct = translate_fct2onnx(kernel_call_ynone, context=context,
                                  cpl=True, context_cpl=ctx,
                                  output_names=['Z'])
+
+        r = fct('X')
+        self.assertIsInstance(r, OnnxIdentity)
+        inputs = {'X': x.astype(numpy.float32)}
+        onnx_g = r.to_onnx(inputs)
+        oinf = OnnxInference(onnx_g)
+        res = oinf.run(inputs)
+        self.assertEqualArray(exp, res['Z'])
+
+        exp = kernel(x.T, None)
+        got = kernel_call_ynone(x.T)
+        self.assertEqualArray(exp, got)
+        inputs = {'X': x.T.astype(numpy.float32)}
+        res = oinf.run(inputs)
+        self.assertEqualArray(exp, res['Z'])
+
+    def test_default_context(self):
+        ctx = get_default_context()
+        self.assertGreater(len(ctx), 10)
+
+    def test_default_context_cpl(self):
+        ctx = get_default_context_cpl()
+        self.assertGreater(len(ctx), 10)
+        self.assertIn('OnnxAdd', ctx)
+        self.assertIn('OnnxAdd', str(ctx['OnnxAdd']))
+
+    def test_export_sklearn_kernel_dot_product_default(self):
+
+        def kernel_call_ynone(X, sigma_0=2.):
+            t_sigma_0 = py_make_float_array(py_pow(sigma_0, 2))
+            K = X @ numpy.transpose(X, axes=[1, 0]) + t_sigma_0
+            return K
+
+        x = numpy.array([[1, 2], [3, 4], [5, 6]], dtype=float)
+        kernel = DotProduct(sigma_0=2.)
+        exp = kernel(x, None)
+        got = kernel_call_ynone(x, sigma_0=2.)
+        self.assertEqualArray(exp, got)
+
+        fct = translate_fct2onnx(
+            kernel_call_ynone, cpl=True, output_names=['Z'])
 
         r = fct('X')
         self.assertIsInstance(r, OnnxIdentity)

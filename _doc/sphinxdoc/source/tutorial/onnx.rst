@@ -28,17 +28,8 @@ Convert a function base on :epkg:`numpy` an :epkg:`scipy`.
         from scipy.spatial.distance import squareform, pdist
         from sklearn.gaussian_process.kernels import ExpSineSquared
         from mlprodict.onnx_grammar import translate_fct2onnx
+        from mlprodict.onnx_grammar.onnx_translation import squareform_pdist, py_make_float_array
         from mlprodict.onnxrt import OnnxInference
-        from skl2onnx.algebra.onnx_ops import (
-            OnnxAdd, OnnxSin, OnnxMul, OnnxIdentity, OnnxPow, OnnxDiv, OnnxExp
-        )
-        from skl2onnx.algebra.complex_functions import squareform_pdist as Onnxsquareform_pdist
-
-        def squareform_pdist(X, metric='sqeuclidean'):
-            return squareform(pdist(X, metric=metric))
-
-        def py_make_float_array(cst):
-            return numpy.array([cst], dtype=numpy.float32)
 
         def kernel_call_ynone(X, length_scale=1.2, periodicity=1.1, pi=3.141592653589793):
             dists = squareform_pdist(X, metric='euclidean')
@@ -67,21 +58,8 @@ Convert a function base on :epkg:`numpy` an :epkg:`scipy`.
         print("numpy function:")
         print(got)
 
-        # conversion to ONNX and execution
-        context = {'numpy.sin': numpy.sin, 'numpy.exp': numpy.exp,
-                   'squareform_pdist': 'squareform_pdist',
-                   'py_make_float_array': py_make_float_array}
-
-        ctx = {'OnnxAdd': OnnxAdd, 'OnnxPow': OnnxPow,
-               'OnnxSin': OnnxSin, 'OnnxDiv': OnnxDiv,
-               'OnnxMul': OnnxMul, 'OnnxIdentity': OnnxIdentity,
-               'OnnxExp': OnnxExp,
-               'Onnxsquareform_pdist': Onnxsquareform_pdist,
-               'py_make_float_array': py_make_float_array}
-
         # converts the numpy function into an ONNX function
-        fct_onnx = translate_fct2onnx(kernel_call_ynone, context=context,
-                                      cpl=True, context_cpl=ctx,
+        fct_onnx = translate_fct2onnx(kernel_call_ynone, cpl=True,
                                       output_names=['Z'])
 
         onnx_model = fct_onnx('X')
@@ -94,6 +72,7 @@ Convert a function base on :epkg:`numpy` an :epkg:`scipy`.
         res = oinf.run(inputs)
         print("ONNX output:")
         print(res['Z'])
+        print('-------------')
         print("Function code:")
-        print(translate_fct2onnx(kernel_call_ynone, context=context,
-                                 output_names=['Z']))
+        print('-------------')
+        print(translate_fct2onnx(kernel_call_ynone, output_names=['Z']))

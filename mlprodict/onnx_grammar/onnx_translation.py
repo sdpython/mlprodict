@@ -5,7 +5,90 @@
 import inspect
 import ast
 from textwrap import dedent
+import numpy
+from scipy.spatial.distance import squareform, pdist
 from .node_visitor_translator import CodeNodeVisitor
+
+
+def py_make_float_array(cst):
+    """
+    Creates an array with a single element
+    from a constant.
+
+    @param      cst     constant
+    @return             array
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.onnx_grammar.onnx_translation import py_make_float_array
+        print(py_make_float_array(5.5))
+    """
+    return numpy.array([cst], dtype=numpy.float32)
+
+
+def py_pow(x, p):
+    """
+    Functions for operator ``**``.
+
+    @param      x       float
+    @param      p       power
+    @return             :math:`x^p`
+    """
+    return x ** p
+
+
+def squareform_pdist(X, metric='sqeuclidean'):
+    """
+    Replacements for `squareform
+    <http://scipy.github.io/devdocs/generated/scipy.spatial.distance.squareform.html>`_
+    and `pdist
+    <http://scipy.github.io/devdocs/generated/scipy.spatial.distance.pdist.html>`_.
+    """
+    return squareform(pdist(X, metric=metric))
+
+
+def get_default_context():
+    """
+    Returns a default context useful for most of the conversion
+    from a function using :epkg:`numpy` into :epkg:`ONNX`.
+    """
+    context = {'py_pow': py_pow, 'py_make_float_array': py_make_float_array,
+               'cdist': 'cdist', 'squareform_pdist': 'squareform_pdist'}
+    allow = set(('abs add ceil arccos arccosh arcsin arcsinh arctan arctanh ceil cos cosh divide'
+                 'equal exp floor greater invert less log matmul maximum minimum mod'
+                 'multiply power sign sin sinh sqrt square subtract tan tanh transpose').split())
+    for k, v in numpy.__dict__.items():
+        if k not in allow:
+            continue
+        context['numpy.%s' % k] = v
+        context['np.%s' % k] = v
+    return context
+
+
+def get_default_context_cpl():
+    """
+    Returns a default useful context to compile the converter
+    returned by @see fn translate_fct2onnx.
+    """
+    ctx = {'py_make_float_array': py_make_float_array,
+           'py_pow': py_pow}
+    try:
+        from skl2onnx.algebra.complex_functions import squareform_pdist as Onnxsquareform_pdist
+        from skl2onnx.algebra.complex_functions import cdist as Onnxcdist
+        ctx['Onnxsquareform_pdist'] = Onnxsquareform_pdist
+        ctx['Onnxcdist'] = Onnxcdist
+    except ImportError:
+        # Too old version for skl2onnx.
+        pass
+
+    from skl2onnx.algebra import onnx_ops
+    from skl2onnx.algebra.onnx_operator import OnnxOperator
+    d = onnx_ops.__dict__
+    for k, v in d.items():
+        if k.startswith("Onnx") and issubclass(v, OnnxOperator):
+            ctx[k] = v
+    return ctx
 
 
 def translate_fct2onnx(fct, context=None, cpl=False,
@@ -17,11 +100,14 @@ def translate_fct2onnx(fct, context=None, cpl=False,
 
     @param      fct             function to convert
     @param      context         context of the function to convert
-                                something like
-                                ``{'numpy.transpose': numpy.transpose}``
+                                something like ``{'numpy.transpose': numpy.transpose}``,
+                                if *context* is None, it receives a default value
+                                returnd by @see fn get_default_context
     @param      cpl             compile the function after it was
                                 created
     @param      context_cpl     context used at compiling time
+                                if *context_cpl* is None, it receives a default value
+                                returnd by @see fn get_default_context_cpl
     @param      output_names    names of the output in the :epkg:`ONNX` graph
     @param      verbose         integer, display more information
     @param      fLOG            logging function
@@ -150,6 +236,8 @@ def translate_fct2onnx(fct, context=None, cpl=False,
     node = ast.parse(dedent(code))
     v = CodeNodeVisitor()
     v.visit(node)
+    if context is None:
+        context = get_default_context()
     onnx_code = v.export(context=context,
                          output_names=output_names)
     if not cpl:
@@ -159,4 +247,6 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         fLOG(code)
         fLOG('[translate_fct2onnx] ONNX code')
         fLOG(onnx_code)
+    if context_cpl is None:
+        context_cpl = get_default_context_cpl()
     return compile_code(fct.__name__, onnx_code, context_cpl)
