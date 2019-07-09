@@ -35,8 +35,8 @@ class TestCodeStyle(ExtTestCase):
                          "R1720",
                          'if __name__ == "__main__":',
                          "# pylint: disable=E0611",
-                         "test_onnxrt_python_runtime_scan.py:27: E0611",
-                         "test_onnx_grammar_specific.py:115",
+                         "Unable to import 'skl2onnx.algebra.complex_functions'",
+                         "No name 'complex_functions' in module 'skl2onnx.algebra'",
                          ])
 
 
