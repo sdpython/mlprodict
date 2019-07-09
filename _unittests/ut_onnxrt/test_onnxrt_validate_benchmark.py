@@ -6,7 +6,7 @@ import unittest
 from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase
+from pyquickhelper.pycode import get_temp_folder, ExtTestCase, is_travis_or_appveyor
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
@@ -57,7 +57,7 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
                 verbose, opset_min=10, benchmark=True,
                 fLOG=fLOG, runtime="onnxruntime1"):
             rows.append(row)
-            if len(rows) > 40:
+            if is_travis_or_appveyor() and len(rows) > 40:
                 break
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)

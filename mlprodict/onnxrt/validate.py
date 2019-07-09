@@ -576,10 +576,19 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
             loop = iterate()
         else:
             try:
-                from tqdm import tqdm
-                loop = tqdm(ops)
-            except ImportError:
+                from tqdm import trange
 
+                def iterate_tqdm():
+                    with trange(len(ops)) as t:
+                        for i in t:
+                            row = ops[i]
+                            disp = row['name'] + " " * (28 - len(row['name']))
+                            t.set_description("%s" % disp)
+                            yield row
+
+                loop = iterate_tqdm()
+
+            except ImportError:
                 loop = iterate()
     else:
         loop = ops

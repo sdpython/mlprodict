@@ -6,7 +6,7 @@ import unittest
 from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase
+from pyquickhelper.pycode import get_temp_folder, ExtTestCase, is_travis_or_appveyor
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
@@ -111,7 +111,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
             for row in enumerate_validated_operator_opsets(verbose, debug=None, fLOG=fLOG,
                                                            runtime='onnxruntime2', dump_folder=temp):
                 rows.append(row)
-                if __name__ != "__main__" and len(rows) >= 30:
+                if is_travis_or_appveyor() and len(rows) > 30:
                     break
 
         self.assertGreater(len(rows), 1)
@@ -127,6 +127,4 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxrtValidateOnnxRuntime(
-    ).test_validate_sklearn_operators_onnxruntime_AdaBoostRegressor()
     unittest.main()
