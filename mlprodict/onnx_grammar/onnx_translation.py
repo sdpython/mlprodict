@@ -35,6 +35,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         .. runpython::
             :showcode:
             :process:
+            :store_in_file: fct2onnx2.py
 
             import numpy
             from mlprodict.onnx_grammar import translate_fct2onnx
@@ -62,6 +63,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         .. runpython::
             :showcode:
             :process:
+            :store_in_file: fct2onnx3.py
 
             import numpy
             from mlprodict.onnx_grammar import translate_fct2onnx
@@ -137,7 +139,12 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         exec(obj, context_g, context_l)  # pylint: disable=W0122
         return context_l[name]
 
-    code = inspect.getsource(fct)
+    if isinstance(fct, str):
+        code = fct
+    elif callable(fct):
+        code = inspect.getsource(fct)
+    else:
+        raise TypeError("Unable to guess code from type {}.".format(type(fct)))
     node = ast.parse(dedent(code))
     v = CodeNodeVisitor()
     v.visit(node)

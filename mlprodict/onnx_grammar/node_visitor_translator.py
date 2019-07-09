@@ -20,6 +20,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
         .. runpython::
             :showcode:
             :process:
+            :store_in_file: fct2onnx1.py
 
             import ast
             import inspect

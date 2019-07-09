@@ -22,6 +22,7 @@ Convert a function base on :epkg:`numpy` an :epkg:`scipy`.
     .. runpython::
         :showcode:
         :process:
+        :store_in_file: fct2onnx_expsine.py
 
         import numpy
         from scipy.spatial.distance import squareform, pdist
