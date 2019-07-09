@@ -11,7 +11,7 @@ from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_grammar import translate_fct2onnx
 from mlprodict.onnxrt import OnnxInference
 
-threshold = "1.4.0"
+threshold = "1.5.0"
 
 
 class TestOnnxGrammarSpecific(ExtTestCase):
@@ -135,8 +135,6 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         res = oinf.run(inputs)
         self.assertEqualArray(exp, res['Z'])
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
-                     reason="missing complex functions")
     def test_export_sklearn_kernel_dot_product(self):
 
         def py_make_float_array(cst):
