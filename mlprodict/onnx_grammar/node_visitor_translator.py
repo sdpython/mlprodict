@@ -310,6 +310,12 @@ class CodeNodeVisitor(ast.NodeVisitor):
         self.push(cont)
         return self.generic_visit_args(node, cont)
 
+    def visit_MatMult(self, node):  # pylint: disable=C0111
+        cont = {"indent": self._indent, "type": "MatMult",
+                "str": "", "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
     def visit_Compare(self, node):  # pylint: disable=C0111
         cont = {"indent": self._indent, "type": "Compare",
                 "str": "", "node": node}

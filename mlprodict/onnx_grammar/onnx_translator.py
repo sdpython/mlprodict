@@ -54,7 +54,7 @@ class OnnxTranslator(CodeTranslator):
     _binary_operators = {
         'Add': 'Add', 'Div': 'Div',
         'Mult': 'Mul', 'Sub': 'Sub',
-        'Pow': 'Pow'
+        'Pow': 'Pow', 'MatMult': 'MatMul',
     }
 
     _unary_operators = {
@@ -67,6 +67,8 @@ class OnnxTranslator(CodeTranslator):
         'exp': 'Exp',
         'transpose': 'Transpose',
         'sin': 'Sin',
+        # complex function
+        'inner': 'inner',
     }
 
     _parameter_mapping = {
@@ -384,6 +386,12 @@ class OnnxTranslator(CodeTranslator):
                 ('Return', {'code': [], 'lineno': node.lineno, 'col_offset': node.col_offset}))
             return
         if kind == "Attribute":
+            if info.get('str', '') == 'T':
+                raise NotImplementedError(
+                    "Transpose should be done with numpy.transpose not with .T'{}' at {}\n{}\n---\n{}".format(
+                        info.get('type', '?'), self.make_msg(
+                            node), pprint.pformat(info),
+                        pprint.pformat(self._stack)))
             self._get_last('Call')
             return
         if kind == 'keyword':
@@ -512,7 +520,7 @@ class OnnxTranslator(CodeTranslator):
         if kind == 'Module':
             return
         if kind == 'Attribute':
-            _, buf = self._get_last('Call')
+            op, buf = self._get_last(('Call', 'BinOp'))
 
             if len(info["children"]) > 0:
                 fir = info["children"][0]

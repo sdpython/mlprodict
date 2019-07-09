@@ -6,10 +6,12 @@ import numpy
 from scipy.spatial.distance import squareform, pdist
 from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper.version_helper import compare_module_version
-from sklearn.gaussian_process.kernels import ExpSineSquared
+from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_grammar import translate_fct2onnx
 from mlprodict.onnxrt import OnnxInference
+
+threshold = "1.4.0"
 
 
 class TestOnnxGrammarSpecific(ExtTestCase):
@@ -65,9 +67,9 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         self.assertIn("-2", onnx_code)
         self.assertIn('metric="euclidean"', onnx_code)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
+    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
                      reason="missing complex functions")
-    def test_export_sklearn_kernel(self):
+    def test_export_sklearn_kernel_exp_sine_squared(self):
 
         x = numpy.array([[1, 2], [3, 4]], dtype=float)
 
@@ -130,6 +132,59 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         inputs = {'X': x.astype(numpy.float32)}
         onnx_g = r.to_onnx(inputs)
         oinf = OnnxInference(onnx_g)
+        res = oinf.run(inputs)
+        self.assertEqualArray(exp, res['Z'])
+
+    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
+                     reason="missing complex functions")
+    def test_export_sklearn_kernel_dot_product(self):
+
+        def py_make_float_array(cst):
+            return numpy.array([cst], dtype=numpy.float32)
+
+        def py_pow(x, p):
+            return x ** p
+
+        def kernel_call_ynone(X, sigma_0=2.):
+            t_sigma_0 = py_make_float_array(py_pow(sigma_0, 2))
+            K = X @ numpy.transpose(X, axes=[1, 0]) + t_sigma_0
+            return K
+
+        x = numpy.array([[1, 2], [3, 4], [5, 6]], dtype=float)
+        kernel = DotProduct(sigma_0=2.)
+        exp = kernel(x, None)
+        got = kernel_call_ynone(x, sigma_0=2.)
+        self.assertEqualArray(exp, got)
+
+        context = {'numpy.inner': numpy.inner, 'numpy.transpose': numpy.transpose,
+                   'py_pow': py_pow,
+                   'py_make_float_array': py_make_float_array}
+
+        from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611,E0401
+            OnnxIdentity, OnnxTranspose, OnnxMatMul, OnnxAdd, OnnxPow
+        )
+        ctx = {'OnnxPow': OnnxPow, 'OnnxAdd': OnnxAdd,
+               'OnnxIdentity': OnnxIdentity, 'OnnxTranspose': OnnxTranspose,
+               'OnnxMatMul': OnnxMatMul,
+               'py_make_float_array': py_make_float_array,
+               'py_pow': py_pow}
+
+        fct = translate_fct2onnx(kernel_call_ynone, context=context,
+                                 cpl=True, context_cpl=ctx,
+                                 output_names=['Z'])
+
+        r = fct('X')
+        self.assertIsInstance(r, OnnxIdentity)
+        inputs = {'X': x.astype(numpy.float32)}
+        onnx_g = r.to_onnx(inputs)
+        oinf = OnnxInference(onnx_g)
+        res = oinf.run(inputs)
+        self.assertEqualArray(exp, res['Z'])
+
+        exp = kernel(x.T, None)
+        got = kernel_call_ynone(x.T)
+        self.assertEqualArray(exp, got)
+        inputs = {'X': x.T.astype(numpy.float32)}
         res = oinf.run(inputs)
         self.assertEqualArray(exp, res['Z'])
 

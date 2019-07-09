@@ -9,8 +9,8 @@ from .node_visitor_translator import CodeNodeVisitor
 
 
 def translate_fct2onnx(fct, context=None, cpl=False,
-                       context_cpl=None,
-                       output_names=None):
+                       context_cpl=None, output_names=None,
+                       verbose=0, fLOG=None):
     """
     Translates a function into :epkg:`ONNX`. The code it produces
     is using classes *OnnxAbs*, *OnnxAdd*, ...
@@ -23,6 +23,8 @@ def translate_fct2onnx(fct, context=None, cpl=False,
                                 created
     @param      context_cpl     context used at compiling time
     @param      output_names    names of the output in the :epkg:`ONNX` graph
+    @param      verbose         integer, display more information
+    @param      fLOG            logging function
     @return                     code or compiled code
 
     .. exref::
@@ -152,4 +154,9 @@ def translate_fct2onnx(fct, context=None, cpl=False,
                          output_names=output_names)
     if not cpl:
         return onnx_code
+    if verbose > 0 and fLOG is not None:
+        fLOG('[translate_fct2onnx] python code')
+        fLOG(code)
+        fLOG('[translate_fct2onnx] ONNX code')
+        fLOG(onnx_code)
     return compile_code(fct.__name__, onnx_code, context_cpl)
