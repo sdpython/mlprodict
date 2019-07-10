@@ -7,11 +7,13 @@ Tutorial on ONNX
 .. contents::
     :local:
 
+.. index:: algebric function
+
 From numpy to ONNX
 ++++++++++++++++++
 
 *mlprodict* implements function
-:func:`translate_fct2onnx <mlprodict.onnx_grammar.onnx_translation.translate_fct2onnx>
+:func:`translate_fct2onnx <mlprodict.onnx_grammar.onnx_translation.translate_fct2onnx>`
 which converts the code
 of a function written with :epkg:`numpy` and :epkg:`scipy`
 function into an :epkg:`ONNX` graph.
@@ -35,47 +37,63 @@ produces the :epkg:`ONNX` graph.
     from mlprodict.onnx_grammar.onnx_translation import squareform_pdist, py_make_float_array
     from mlprodict.onnxrt import OnnxInference
 
+    # The function to convert into ONNX.
     def kernel_call_ynone(X, length_scale=1.2, periodicity=1.1, pi=3.141592653589793):
+
+        # squareform(pdist(X, ...)) in one function.
         dists = squareform_pdist(X, metric='euclidean')
 
+        # Function starting with 'py_' --> must not be converted into ONNX.
         t_pi = py_make_float_array(pi)
         t_periodicity = py_make_float_array(periodicity)
-        arg = dists / t_periodicity * t_pi
 
+        # This operator must be converted into ONNX.
+        arg = dists / t_periodicity * t_pi
         sin_of_arg = numpy.sin(arg)
 
         t_2 = py_make_float_array(2)
         t__2 = py_make_float_array(-2)
+
         t_length_scale = py_make_float_array(length_scale)
 
         K = numpy.exp((sin_of_arg / t_length_scale) ** t_2 * t__2)
         return K
 
+    # This function is equivalent to the following kernel.
     kernel = ExpSineSquared(length_scale=1.2, periodicity=1.1)
 
     x = numpy.array([[1, 2], [3, 4]], dtype=float)
 
+    # Checks that the new function and the kernel are the same.
     exp = kernel(x, None)
     got = kernel_call_ynone(x)
+
     print("ExpSineSquared:")
     print(exp)
     print("numpy function:")
     print(got)
 
-    # converts the numpy function into an ONNX function
+    # Converts the numpy function into an ONNX function.
     fct_onnx = translate_fct2onnx(kernel_call_ynone, cpl=True,
                                   output_names=['Z'])
 
+    # Calls the ONNX function to produce the ONNX algebric function.
+    # See below.
     onnx_model = fct_onnx('X')
 
-    # calls the ONNX function to get the ONNX graph
+    # Calls the ONNX algebric function to produce the ONNX graph.
     inputs = {'X': x.astype(numpy.float32)}
     onnx_g = onnx_model.to_onnx(inputs)
 
+    # Creates a python runtime associated to the ONNX function.
     oinf = OnnxInference(onnx_g)
+
+    # Compute the prediction with the python runtime.
     res = oinf.run(inputs)
     print("ONNX output:")
     print(res['Z'])
+
+    # Displays the code of the algebric function.
     print('-------------')
     print("Function code:")
     print('-------------')
