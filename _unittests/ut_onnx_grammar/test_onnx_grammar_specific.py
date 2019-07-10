@@ -66,6 +66,8 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         self.assertIn("-2", onnx_code)
         self.assertIn('metric="euclidean"', onnx_code)
 
+    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
+                     reason="missing complex functions")
     def test_export_sklearn_kernel_error_prefix(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
 
