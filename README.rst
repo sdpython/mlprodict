@@ -56,7 +56,7 @@ a pipeline directly into C and is not much developed.
 
     from sklearn.linear_model import LinearRegression
     from sklearn.datasets import load_iris
-    from mlprodict.onnxrt import OnnxInference, measure_absolute_difference
+    from mlprodict.onnxrt import OnnxInference, measure_relative_difference
     import numpy
 
     iris = load_iris()
@@ -79,4 +79,4 @@ a pipeline directly into C and is not much developed.
     print(ypred)
 
     # Measuring the maximum difference.
-    print(measure_absolute_difference(expected, ypred))
+    print(measure_relative_difference(expected, ypred))

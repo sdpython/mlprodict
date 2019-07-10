@@ -8,7 +8,7 @@ import numpy
 import pandas
 
 
-def measure_absolute_difference(skl_pred, ort_pred):
+def measure_relative_difference(skl_pred, ort_pred):
     """
     Measures the differences between predictions
     between two ways of computing them.
@@ -18,14 +18,14 @@ def measure_absolute_difference(skl_pred, ort_pred):
                                 or any other way
     @param      skl_ort         prediction from an :epkg:`ONNX` runtime
                                 or any other way
-    @return                     absolute max difference
+    @return                     relative max difference
                                 or nan if it does not make any sense
     """
     if isinstance(skl_pred, tuple):
         diffs = []
         for i in range(len(skl_pred)):  # pylint: disable=C0200
             try:
-                diff = measure_absolute_difference(
+                diff = measure_relative_difference(
                     skl_pred[i], [_[i] for _ in ort_pred])
             except IndexError:
                 return 1e9
@@ -69,7 +69,12 @@ def measure_absolute_difference(skl_pred, ort_pred):
         if skl_pred.shape != ort_pred.shape:
             return 1e9
 
-        diff = numpy.max(numpy.abs(skl_pred.ravel() - ort_pred.ravel()))
+        r_skl_pred = skl_pred.ravel()
+        r_ort_pred = ort_pred.ravel()
+        r_skl_pred = r_skl_pred[r_skl_pred != 0]
+        r_ort_pred = r_ort_pred[r_skl_pred != 0]
+        rel_diff = (r_ort_pred - r_skl_pred) / r_skl_pred
+        diff = numpy.max(numpy.abs(rel_diff))
 
         if numpy.isnan(diff):
             raise RuntimeError("Unable to compute differences between {}-{}\n{}\n"

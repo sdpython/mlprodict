@@ -20,7 +20,7 @@ from .onnx_inference import OnnxInference
 from .. import __version__ as ort_version
 from .validate_problems import _problems, find_suitable_problem
 from .validate_scenarios import _extra_parameters
-from .validate_difference import measure_absolute_difference
+from .validate_difference import measure_relative_difference
 
 
 def to_onnx(model, X=None, name=None, initial_types=None,
@@ -396,7 +396,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             except IndexError:
                 if debug:
                     raise
-                obs_op['_8max_abs_diff_batch_exc'] = (
+                obs_op['_8max_rel_diff_batch_exc'] = (
                     "Unable to fetch output {}/{} for model '{}'"
                     "".format(output_index, len(opred),
                               model.__name__))
@@ -404,10 +404,10 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
         debug_exc = []
         if opred is not None:
-            max_abs_diff = measure_absolute_difference(
+            max_rel_diff = measure_relative_difference(
                 ypred, opred)
-            if numpy.isnan(max_abs_diff):
-                obs_op['_8max_abs_diff_batch_exc'] = (
+            if numpy.isnan(max_rel_diff):
+                obs_op['_8max_rel_diff_batch_exc'] = (
                     "Unable to compute differences between"
                     " {}-{}\n{}\n--------\n{}".format(
                         _shape_exc(
@@ -415,18 +415,18 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                         ypred, opred))
                 if debug:
                     debug_exc.append(RuntimeError(
-                        obs_op['_8max_abs_diff_batch_exc']))
+                        obs_op['_8max_rel_diff_batch_exc']))
             else:
-                obs_op['max_abs_diff_batch'] = max_abs_diff
-                if dump_folder and max_abs_diff > 1e-5:
+                obs_op['max_rel_diff_batch'] = max_rel_diff
+                if dump_folder and max_rel_diff > 1e-5:
                     dump_into_folder(dump_folder, kind='batch', obs_op=obs_op,
                                      X_=X_, y_=y_, init_types=init_types,
                                      method=init_types, output_index=output_index,
                                      Xort_=Xort_)
-                if debug and max_abs_diff >= 0.1:
+                if debug and max_rel_diff >= 0.1:
                     import pprint
                     raise RuntimeError("Two big differences {}\n{}\n{}\n{}".format(
-                        max_abs_diff, inst, conv, pprint.pformat(obs_op)))
+                        max_rel_diff, inst, conv, pprint.pformat(obs_op)))
 
     # compute single
     def fct_single(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
@@ -462,7 +462,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             except IndexError:
                 if debug:
                     raise
-                obs_op['_Amax_abs_diff_single_exc'] = (
+                obs_op['_Amax_rel_diff_single_exc'] = (
                     "Unable to fetch output {}/{} for model '{}'"
                     "".format(output_index, len(opred),
                               model.__name__))
@@ -473,34 +473,34 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             except IndexError:
                 if debug:
                     raise
-                obs_op['_Amax_abs_diff_single_exc'] = (
+                obs_op['_Amax_rel_diff_single_exc'] = (
                     "Unable to fetch output {}/{} for model '{}'"
                     "".format(output_index, len(opred),
                               model.__name__))
                 opred = None
 
         if opred is not None:
-            max_abs_diff = measure_absolute_difference(
+            max_rel_diff = measure_relative_difference(
                 ypred, opred)
-            if numpy.isnan(max_abs_diff):
-                obs_op['_Amax_abs_diff_single_exc'] = (
+            if numpy.isnan(max_rel_diff):
+                obs_op['_Amax_rel_diff_single_exc'] = (
                     "Unable to compute differences between"
                     "\n{}\n--------\n{}".format(
                         ypred, opred))
                 if debug:
                     debug_exc.append(RuntimeError(
-                        obs_op['_Amax_abs_diff_single_exc']))
+                        obs_op['_Amax_rel_diff_single_exc']))
             else:
-                obs_op['max_abs_diff_single'] = max_abs_diff
-                if dump_folder and max_abs_diff > 1e-5:
+                obs_op['max_rel_diff_single'] = max_rel_diff
+                if dump_folder and max_rel_diff > 1e-5:
                     dump_into_folder(dump_folder, kind='single', obs_op=obs_op,
                                      X_=X_, y_=y_, init_types=init_types,
                                      method=init_types, output_index=output_index,
                                      Xort_=Xort_)
-                if debug and max_abs_diff >= 0.1:
+                if debug and max_rel_diff >= 0.1:
                     import pprint
                     raise RuntimeError("Two big differences {}\n{}\n{}\n{}".format(
-                        max_abs_diff, inst, conv, pprint.pformat(obs_op)))
+                        max_rel_diff, inst, conv, pprint.pformat(obs_op)))
 
     if debug and len(debug_exc) == 2:
         raise debug_exc[0]
@@ -629,9 +629,9 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
             elif verbose > 0 and "_0problem_exc" in obs:
                 fLOG("  ???", obs)
 
-            diff = obs.get('max_abs_diff_batch',
-                           obs.get('max_abs_diff_single', None))
-            batch = 'max_abs_diff_batch' in obs and diff is not None
+            diff = obs.get('max_rel_diff_batch',
+                           obs.get('max_rel_diff_single', None))
+            batch = 'max_rel_diff_batch' in obs and diff is not None
             op1 = obs.get('domain_opset_', '')
             op2 = obs.get('domain_opset_ai.onnx.ml', '')
             op = '{}-{}'.format(op1, op2)

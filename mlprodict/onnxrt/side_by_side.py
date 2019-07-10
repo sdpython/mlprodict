@@ -2,7 +2,7 @@
 @file
 @brief Helpers to compare executions.
 """
-from .validate_difference import measure_absolute_difference
+from .validate_difference import measure_relative_difference
 
 
 def side_by_side_by_values(sessions, inputs, *args, **kwargs):
@@ -72,7 +72,7 @@ def side_by_side_by_values(sessions, inputs, *args, **kwargs):
             if j == 0:
                 row['v[%d]' % j] = 0
             else:
-                v = measure_absolute_difference(res_row[0][1], r[1])
+                v = measure_relative_difference(res_row[0][1], r[1])
                 row['v[%d]' % j] = v
                 vals.append(v)
         diff = max(vals)

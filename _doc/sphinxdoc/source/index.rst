@@ -71,7 +71,7 @@ runtime for :epkg:`ONNX`.
 
     from sklearn.linear_model import LinearRegression
     from sklearn.datasets import load_iris
-    from mlprodict.onnxrt import OnnxInference, measure_absolute_difference
+    from mlprodict.onnxrt import OnnxInference, measure_relative_difference
     import numpy
 
     iris = load_iris()
@@ -95,7 +95,7 @@ runtime for :epkg:`ONNX`.
     print("ONNX output:", ypred)
 
     # Measuring the maximum difference.
-    print("max abs diff:", measure_absolute_difference(expected, ypred['variable']))
+    print("max abs diff:", measure_relative_difference(expected, ypred['variable']))
 
 These predictions are obtained with the
 following :epkg:`ONNX` graph.

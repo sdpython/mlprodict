@@ -53,10 +53,10 @@ contains concatenated flags whose meaning is the following:
   message,
 * ``OK``: the converter works fine and the runtime produces
   predictions almost equal to the orignal predictions,
-  absolute difference is below :math:`1e-5`,
+  relative difference is below :math:`1e-5`,
 * ``e<%f``: the converter works fine and the runtime produces
   predictions close to the orignal predictions,
-  absolute difference is below the threshold,
+  relative difference is below the threshold,
 * ``i|j``: the model was converted for a specific opset but
   the converted ONNX is compatible with smaller opset,
   *i* is the smallest compatible opset for the main domain,

@@ -33,7 +33,7 @@ class TestRtValidateCalibrated(ExtTestCase):
             runtime='python', debug=True))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1)
-        maxv = max(row['max_abs_diff_batch'] for row in rows)
+        maxv = max(row['max_rel_diff_batch'] for row in rows)
         self.assertLesser(maxv, 1e-5)
 
 

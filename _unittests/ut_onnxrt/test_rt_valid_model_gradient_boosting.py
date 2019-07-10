@@ -29,7 +29,7 @@ class TestRtValidateGradientBoosting(ExtTestCase):
             runtime='onnxruntime1', debug=False))
         self.assertIn(len(rows), (1, 2, 3))
         df = DataFrame(rows)
-        self.assertIn("max_abs_diff_batch", df.columns)
+        self.assertIn("max_rel_diff_batch", df.columns)
         self.assertGreater(df.shape[0], 1)
         piv = summary_report(df)
         self.assertIn(piv.shape[0], (1, 2, 3))
