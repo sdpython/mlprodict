@@ -71,14 +71,21 @@ def measure_relative_difference(skl_pred, ort_pred):
 
         r_skl_pred = skl_pred.ravel()
         r_ort_pred = ort_pred.ravel()
-        r_skl_pred = r_skl_pred[r_skl_pred != 0]
-        r_ort_pred = r_ort_pred[r_skl_pred != 0]
-        rel_diff = (r_ort_pred - r_skl_pred) / r_skl_pred
-        diff = numpy.max(numpy.abs(rel_diff))
+        r_skl_pred_z = r_skl_pred[r_skl_pred == 0]
+        r_ort_pred_z = r_ort_pred[r_skl_pred == 0]
+        r_skl_pred_ = r_skl_pred[r_skl_pred != 0]
+        r_ort_pred_ = r_ort_pred[r_skl_pred != 0]
+        rel_diff = 0
+        if r_skl_pred_.shape[0] > 0:
+            d = (r_ort_pred_ - r_skl_pred_) / r_skl_pred_
+            rel_diff += numpy.max(numpy.abs(d))
+        if r_skl_pred_z.shape[0] > 0:
+            d = r_ort_pred_z - r_skl_pred_z
+            rel_diff += numpy.max(numpy.abs(d))
 
-        if numpy.isnan(diff):
+        if numpy.isnan(rel_diff):
             raise RuntimeError("Unable to compute differences between {}-{}\n{}\n"
                                "--------\n{}".format(
                                    skl_pred.shape, ort_pred.shape,
                                    skl_pred, ort_pred))
-        return diff
+        return rel_diff
