@@ -16,7 +16,7 @@ from mlprodict.onnx_grammar.onnx_translation import (
 )
 
 
-threshold = "1.4.0"
+threshold = "1.5.0"
 
 
 class TestOnnxGrammarSpecific(ExtTestCase):
