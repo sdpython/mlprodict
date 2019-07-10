@@ -277,7 +277,9 @@ def find_suitable_problem(model):
         return ['reg-nofit', 'multi-reg-nofit',
                 'reg-nofit-cov', 'multi-reg-nofit-cov',
                 'reg-nofit-std', 'multi-reg-nofit-std',
-                'regression', 'multi-reg']
+                'regression', 'multi-reg',
+                'reg-cov', 'multi-reg-cov',
+                'reg-std', 'multi-reg-std']
 
     if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
                  ComplementNB, GaussianNB, GaussianProcessClassifier,
@@ -413,4 +415,14 @@ _problems = {
         True, options={GaussianProcessRegressor: {"return_std": True}}, return_std=True) + (False, )),
     "multi-reg-nofit-std": (lambda: _problem_for_predictor_multi_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}}, return_std=True) + (False, )),
+    #
+    "reg-cov": (lambda: _problem_for_predictor_regression(
+        True, options={GaussianProcessRegressor: {"return_cov": True}}, return_cov=True)),
+    "multi-reg-cov": (lambda: _problem_for_predictor_multi_regression(
+        True, options={GaussianProcessRegressor: {"return_cov": True}}, return_cov=True)),
+    #
+    "reg-std": (lambda: _problem_for_predictor_regression(
+        True, options={GaussianProcessRegressor: {"return_std": True}}, return_std=True)),
+    "multi-reg-std": (lambda: _problem_for_predictor_multi_regression(
+        True, options={GaussianProcessRegressor: {"return_std": True}}, return_std=True)),
 }
