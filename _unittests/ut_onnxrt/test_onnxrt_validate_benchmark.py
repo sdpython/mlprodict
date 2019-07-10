@@ -60,8 +60,6 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
             rows.append(row)
             if is_travis_or_appveyor() and len(rows) > 40:
                 break
-            if len(rows) > 20:
-                break
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
         for col in ['skl', 'batch']:

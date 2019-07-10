@@ -16,7 +16,7 @@ from mlprodict.onnx_grammar.onnx_translation import (
 )
 
 
-threshold = "1.5.0"
+threshold = "1.4.0"
 
 
 class TestOnnxGrammarSpecific(ExtTestCase):
@@ -66,6 +66,19 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         self.assertIn("-2", onnx_code)
         self.assertIn('metric="euclidean"', onnx_code)
 
+    def test_export_sklearn_kernel_error_prefix(self):
+        from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
+
+        def kernel_call_ynone(X, length_scale=1.2, periodicity=1.1, pi=3.141592653589793):
+            dists = onnx_squareform_pdist(X, metric='euclidean')
+            arg = dists / periodicity * pi
+            sin_of_arg = numpy.sin(arg)
+            K = numpy.exp((sin_of_arg / length_scale) ** 2 * (-2))
+            return K
+
+        self.assertRaise(lambda: translate_fct2onnx(kernel_call_ynone, output_names=['Z']),
+                         RuntimeError, "'onnx_'")
+
     @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
                      reason="missing complex functions")
     def test_export_sklearn_kernel_exp_sine_squared(self):
@@ -112,7 +125,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
                'OnnxSin': OnnxSin, 'OnnxDiv': OnnxDiv,
                'OnnxMul': OnnxMul, 'OnnxIdentity': OnnxIdentity,
                'OnnxExp': OnnxExp,
-               'Onnxsquareform_pdist': onnx_squareform_pdist,
+               'onnx_squareform_pdist': onnx_squareform_pdist,
                'py_make_float_array': py_make_float_array}
 
         fct = translate_fct2onnx(kernel_call_ynone, context=context,
@@ -214,6 +227,8 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         res = oinf.run(inputs)
         self.assertEqualArray(exp, res['Z'])
 
+    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
+                     reason="missing complex functions")
     def test_export_sklearn_kernel_rational_quadratic(self):
 
         def kernel_rational_quadratic_none(X, length_scale=1.0, alpha=2.0):

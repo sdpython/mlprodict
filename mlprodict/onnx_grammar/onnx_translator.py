@@ -259,6 +259,10 @@ class OnnxTranslator(CodeTranslator):
                     rows.append('{})'.format(" " * indent * 4))
                 elif op == 'Call':
                     name = args['name']
+                    if name.startswith("onnx_"):
+                        raise RuntimeError("The code must not use a function prefixed by 'onnx_' (%s). "
+                                           "It indicates that function manipulate ONNX node and "
+                                           "the fonction to convert must only deal with arrays." % name)
                     if name not in context:
                         raise RuntimeError(
                             "Unable to find function '{}' at {} in context\n{}\n--\n{}".format(
@@ -269,9 +273,14 @@ class OnnxTranslator(CodeTranslator):
                     if callable(op_conv) and op_conv.__name__.startswith('py_'):
                         rows.append(
                             '{}{}('.format(" " * indent * 4, op_conv.__name__))
-                    else:
+                    elif callable(op_conv) and op_conv.__name__.startswith('onnx_'):
                         rows.append(
-                            '{}Onnx{}('.format(" " * indent * 4, op_conv))
+                            '{}{}('.format(" " * indent * 4, op_conv))
+                    else:
+                        prefix = "onnx_" if 'a' <= op_conv[0] <= 'z' else 'Onnx'
+                        rows.append(
+                            '{}{}{}('.format(" " * indent * 4, prefix, op_conv))
+
                     opon = args["args"]
                     opon = opon[1:]
                     for i, expr2 in enumerate(opon):

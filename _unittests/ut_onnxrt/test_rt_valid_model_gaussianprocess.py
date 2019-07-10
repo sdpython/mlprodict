@@ -12,9 +12,12 @@ from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 
 
+threshold = "1.5.0"
+
+
 class TestRtValidateGaussianProcess(ExtTestCase):
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
+    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
                      reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_GaussianProcessRegressor_onnxruntime_nofit(self):
@@ -35,7 +38,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
+    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
                      reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_GaussianProcessRegressor_python_nofit(self):

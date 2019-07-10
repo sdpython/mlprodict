@@ -103,8 +103,8 @@ def get_default_context_cpl():
     try:
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         from skl2onnx.algebra.complex_functions import onnx_cdist
-        ctx['Onnxsquareform_pdist'] = onnx_squareform_pdist
-        ctx['Onnxcdist'] = onnx_cdist
+        ctx['onnx_squareform_pdist'] = onnx_squareform_pdist
+        ctx['onnx_cdist'] = onnx_cdist
     except ImportError:
         # Too old version for skl2onnx.
         pass
@@ -234,7 +234,10 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         def py_make_float_array(cst):
             return numpy.array([cst], dtype=numpy.float32)
 
-    See :ref:`l-onnx-tutorial`.
+    The function replaces empty contexts by default values which
+    covers many :epkg:`numpy` functions. The tutorial
+    :ref:`l-onnx-tutorial` gives an example of how it can be used
+    on a more complex function.
     """
     def compile_code(name, code, context=None):
         """
