@@ -29,13 +29,39 @@ def py_make_float_array(cst):
 
 def py_pow(x, p):
     """
-    Functions for operator ``**``.
+    Function for python operator ``**``.
 
     @param      x       float
     @param      p       power
     @return             :math:`x^p`
     """
     return x ** p
+
+
+def py_mul(*x):
+    """
+    Function for python operator ``*``.
+
+    @param      x       floats
+    @return             `x*y`
+    """
+    if len(x) == 2:
+        return x[0] * x[1]
+    else:
+        p = x[0]
+        for y in x[1:]:
+            p *= y
+        return p
+
+
+def py_opp(x):
+    """
+    Function for python unary operator ``-``.
+
+    @param      x       floats
+    @return             `-x`
+    """
+    return -x
 
 
 def squareform_pdist(X, metric='sqeuclidean'):
@@ -54,6 +80,7 @@ def get_default_context():
     from a function using :epkg:`numpy` into :epkg:`ONNX`.
     """
     context = {'py_pow': py_pow, 'py_make_float_array': py_make_float_array,
+               'py_mul': py_mul, 'py_opp': py_opp,
                'cdist': 'cdist', 'squareform_pdist': 'squareform_pdist'}
     allow = set(('abs add ceil arccos arccosh arcsin arcsinh arctan arctanh ceil cos cosh divide'
                  'equal exp floor greater invert less log matmul maximum minimum mod'
@@ -72,12 +99,12 @@ def get_default_context_cpl():
     returned by @see fn translate_fct2onnx.
     """
     ctx = {'py_make_float_array': py_make_float_array,
-           'py_pow': py_pow}
+           'py_pow': py_pow, 'py_mul': py_mul, 'py_opp': py_opp}
     try:
-        from skl2onnx.algebra.complex_functions import squareform_pdist as Onnxsquareform_pdist
-        from skl2onnx.algebra.complex_functions import cdist as Onnxcdist
-        ctx['Onnxsquareform_pdist'] = Onnxsquareform_pdist
-        ctx['Onnxcdist'] = Onnxcdist
+        from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
+        from skl2onnx.algebra.complex_functions import onnx_cdist
+        ctx['Onnxsquareform_pdist'] = onnx_squareform_pdist
+        ctx['Onnxcdist'] = onnx_cdist
     except ImportError:
         # Too old version for skl2onnx.
         pass

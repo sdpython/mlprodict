@@ -5,13 +5,15 @@ import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper.version_helper import compare_module_version
-from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct
+from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
 from mlprodict.onnx_grammar import translate_fct2onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_grammar.onnx_translation import get_default_context, get_default_context_cpl
-from mlprodict.onnx_grammar.onnx_translation import py_make_float_array, py_pow, squareform_pdist
+from mlprodict.onnx_grammar.onnx_translation import (
+    py_make_float_array, py_pow, squareform_pdist, py_mul, py_opp
+)
 
 
 threshold = "1.5.0"
@@ -105,12 +107,12 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611,E0401
             OnnxAdd, OnnxSin, OnnxMul, OnnxPow, OnnxDiv, OnnxExp
         )
-        from skl2onnx.algebra.complex_functions import squareform_pdist as Onnxsquareform_pdist
+        from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         ctx = {'OnnxAdd': OnnxAdd, 'OnnxPow': OnnxPow,
                'OnnxSin': OnnxSin, 'OnnxDiv': OnnxDiv,
                'OnnxMul': OnnxMul, 'OnnxIdentity': OnnxIdentity,
                'OnnxExp': OnnxExp,
-               'Onnxsquareform_pdist': Onnxsquareform_pdist,
+               'Onnxsquareform_pdist': onnx_squareform_pdist,
                'py_make_float_array': py_make_float_array}
 
         fct = translate_fct2onnx(kernel_call_ynone, context=context,
@@ -207,6 +209,44 @@ class TestOnnxGrammarSpecific(ExtTestCase):
 
         exp = kernel(x.T, None)
         got = kernel_call_ynone(x.T)
+        self.assertEqualArray(exp, got)
+        inputs = {'X': x.T.astype(numpy.float32)}
+        res = oinf.run(inputs)
+        self.assertEqualArray(exp, res['Z'])
+
+    def test_export_sklearn_kernel_rational_quadratic(self):
+
+        def kernel_rational_quadratic_none(X, length_scale=1.0, alpha=2.0):
+            dists = squareform_pdist(X, metric='sqeuclidean')
+            cst = py_pow(length_scale, 2)
+            cst = py_mul(cst, alpha, 2)
+            t_cst = py_make_float_array(cst)
+            tmp = dists / t_cst
+            t_one = py_make_float_array(1)
+            base = tmp + t_one
+            t_alpha = py_make_float_array(py_opp(alpha))
+            K = numpy.power(base, t_alpha)
+            return K
+
+        x = numpy.array([[1, 2], [3, 4], [5, 6]], dtype=float)
+        kernel = RationalQuadratic(length_scale=1.0, alpha=2.0)
+        exp = kernel(x, None)
+        got = kernel_rational_quadratic_none(x, length_scale=1.0, alpha=2.0)
+        self.assertEqualArray(exp, got)
+
+        fct = translate_fct2onnx(
+            kernel_rational_quadratic_none, cpl=True, output_names=['Z'])
+
+        r = fct('X')
+        self.assertIsInstance(r, OnnxIdentity)
+        inputs = {'X': x.astype(numpy.float32)}
+        onnx_g = r.to_onnx(inputs)
+        oinf = OnnxInference(onnx_g)
+        res = oinf.run(inputs)
+        self.assertEqualArray(exp, res['Z'])
+
+        exp = kernel(x.T, None)
+        got = kernel_rational_quadratic_none(x.T)
         self.assertEqualArray(exp, got)
         inputs = {'X': x.T.astype(numpy.float32)}
         res = oinf.run(inputs)

@@ -16,7 +16,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      out_summary="onnx_runtime_summary.xlsx",
                      dump_folder=None, benchmark=False,
                      catch_warnings=True, assume_finite=True,
-                     fLOG=print):
+                     versions=False, fLOG=print):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -46,6 +46,9 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         If True, validation for finiteness will be skipped, saving time, but leading
         to potential crashes. If False, validation for finiteness will be performed,
         avoiding error.
+    :param versions: add columns with versions of used packages,
+        :epkg:`numpy`, :epkg:`scikit-learn`, :epkg:`onnx`, :epkg:`onnxruntime`,
+        :epkg:`sklearn-onnx`
     :param fLOG: logging function
 
     .. cmdref::
@@ -89,13 +92,10 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         verbose = int(verbose)
 
     def build_rows():
-        rows = list(enumerate_validated_operator_opsets(verbose, models=models, fLOG=fLOG,
-                                                        runtime=runtime, debug=debug,
-                                                        dump_folder=dump_folder,
-                                                        opset_min=opset_min,
-                                                        opset_max=opset_max,
-                                                        benchmark=benchmark,
-                                                        assume_finite=assume_finite))
+        rows = list(enumerate_validated_operator_opsets(
+            verbose, models=models, fLOG=fLOG, runtime=runtime, debug=debug,
+            dump_folder=dump_folder, opset_min=opset_min, opset_max=opset_max,
+            benchmark=benchmark, assume_finite=assume_finite, versions=versions))
         return rows
 
     if catch_warnings:

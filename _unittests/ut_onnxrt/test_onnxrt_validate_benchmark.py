@@ -55,9 +55,12 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
         rows = []
         for row in enumerate_validated_operator_opsets(
                 verbose, opset_min=10, benchmark=True,
-                fLOG=fLOG, runtime="onnxruntime1"):
+                fLOG=fLOG, runtime="onnxruntime1",
+                versions=True):
             rows.append(row)
             if is_travis_or_appveyor() and len(rows) > 40:
+                break
+            if len(rows) > 20:
                 break
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
@@ -73,10 +76,12 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
         self.assertNotIn('RT/SKL-N=10', piv.columns)
         self.assertIn('N=10', piv.columns)
         fLOG("output results")
+        self.assertIn('v_numpy', df.columns)
         df.to_excel(os.path.join(
             temp, "sklearn_opsets_report.xlsx"), index=False)
         piv.to_excel(os.path.join(
             temp, "sklearn_opsets_summary.xlsx"), index=False)
+        self.assertIn('v_numpy', piv.columns)
 
 
 if __name__ == "__main__":

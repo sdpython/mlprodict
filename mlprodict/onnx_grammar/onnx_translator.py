@@ -65,6 +65,7 @@ class OnnxTranslator(CodeTranslator):
         'absolute': 'Abs',
         'cos': 'Cos',
         'exp': 'Exp',
+        'power': 'Pow',
         'transpose': 'Transpose',
         'sin': 'Sin',
         # complex function

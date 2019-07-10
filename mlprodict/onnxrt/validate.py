@@ -515,7 +515,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         models=None, dump_folder=None, store_models=False,
                                         benchmark=False, skip_models=None,
                                         assume_finite=True, node_time=False,
-                                        fLOG=print, filter_exp=None):
+                                        fLOG=print, filter_exp=None,
+                                        versions=False):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -545,6 +546,9 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                 will be skipped, saving time, but leading to potential crashes.
                                 If False, validation for finiteness will be performed, avoiding error.
     @param      node_time       measure time execution for every node in the graph
+    @param      versions        add columns with versions of used packages,
+                                :epkg:`numpy`, :epkg:`scikit-learn`, :epkg:`onnx`,
+                                :epkg:`onnxruntime`, :epkg:`sklearn-onnx`
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -592,6 +596,20 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 loop = iterate()
     else:
         loop = ops
+
+    if versions:
+        from numpy import __version__ as numpy_version
+        from onnx import __version__ as onnx_version
+        from scipy import __version__ as scipy_version
+        from skl2onnx import __version__ as skl2onnx_version
+        add_versions = {'v_numpy': numpy_version, 'v_onnx': onnx_version,
+                        'v_scipy': scipy_version, 'v_skl2onnx': skl2onnx_version,
+                        'v_sklearn': sklearn_version, 'v_onnxruntime': ort_version}
+        if "onnxruntime" in runtime:
+            from onnxruntime import __version__ as onnxrt_version
+            add_versions['v_onnxruntime'] = onnxrt_version
+    else:
+        add_versions = {}
 
     current_opset = get_opset_number_from_onnx()
     for row in loop:
@@ -669,6 +687,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                             obs[key] = b2[k]['average'] / b1[k]['average']
 
             obs.update(row)
+            obs.update(add_versions)
             yield obs
 
 
@@ -698,7 +717,8 @@ def summary_report(df):
         raise RuntimeError("Unable to create sumary (opset missing)\n{}\n--\n{}".format(
             df.columns, df.head()))
 
-    piv = pandas.pivot_table(df, values="available",
+    col_values = ["available"]
+    piv = pandas.pivot_table(df, values=col_values,
                              index=['name', 'problem', 'scenario'],
                              columns='opset',
                              aggfunc=aggfunc).reset_index(drop=False)
@@ -707,6 +727,7 @@ def summary_report(df):
     versions = ["opset%d" % (opmin + t - 1)
                 for t in range(1, piv.shape[1] - 2)]
     indices = ["name", "problem", "scenario"]
+    cols = list(piv.columns)
     piv.columns = indices + versions
     piv = piv[indices + list(reversed(versions))].copy()
 
@@ -763,6 +784,16 @@ def summary_report(df):
     for c in piv.columns:
         if "opset" in c:
             piv[c] = piv[c].apply(clean_values)
+
+    # adding versions
+    col_versions = [c for c in df.columns if c.startswith("v_")]
+    if len(col_versions) > 0:
+        for c in col_versions:
+            vals = set(df[c])
+            if len(vals) != 1:
+                raise RuntimeError(
+                    "Columns '{}' has multiple values {}.".format(c, vals))
+            piv[c] = list(vals)[0]
 
     return piv
 
