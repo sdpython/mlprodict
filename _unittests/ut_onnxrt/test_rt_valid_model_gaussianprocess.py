@@ -11,7 +11,6 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from sklearn.gaussian_process.kernels import RBF, ExpSineSquared
 from skl2onnx import __version__ as skl2onnx_version
-from skl2onnx.operator_converters.gaussian_process import convert_kernel
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 from mlprodict.onnxrt import OnnxInference
@@ -26,6 +25,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
                      reason="scan")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_kernel_rbf1(self):
+        from skl2onnx.operator_converters.gaussian_process import convert_kernel
         ker = RBF(length_scale=1, length_scale_bounds=(1e-3, 1e3))
         onx = convert_kernel(ker, 'X', output_names=['Y'])
         model_onnx = onx.to_onnx(
@@ -41,6 +41,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
                      reason="scan")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_kernel_exp_sine_squared(self):
+        from skl2onnx.operator_converters.gaussian_process import convert_kernel
         ker = ExpSineSquared()
         onx = convert_kernel(ker, 'X', output_names=['Y'])
         model_onnx = onx.to_onnx(
