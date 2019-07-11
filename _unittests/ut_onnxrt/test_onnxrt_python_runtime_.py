@@ -23,7 +23,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSlice, OnnxSqrt, OnnxSub, OnnxSum,
     OnnxTopK, OnnxTranspose, OnnxRelu,
     OnnxSigmoid, OnnxSoftmax, OnnxSqueeze,
-    OnnxConstantOfShape, OnnxNot, OnnxSin
+    OnnxConstantOfShape, OnnxNot, OnnxSin,
+    OnnxMin, OnnxMax
 )
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
@@ -267,6 +268,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_matmul(self):
         self.common_test_onnxt_runtime_binary(OnnxMatMul, lambda x, y: x @ y)
 
+    def test_onnxt_runtime_max(self):
+        self.common_test_onnxt_runtime_binary(
+            OnnxMax, lambda x, y: numpy.maximum(x, y))
+
     def test_onnxt_runtime_mean(self):
         idi = numpy.identity(2, dtype=numpy.float64)
         onx = OnnxMean('X', idi, output_names=['Y'])
@@ -276,6 +281,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray((idi + X) / 2, got['Y'], decimal=6)
+
+    def test_onnxt_runtime_min(self):
+        self.common_test_onnxt_runtime_binary(
+            OnnxMin, lambda x, y: numpy.minimum(x, y))
 
     def test_onnxt_runtime_mul(self):
         self.common_test_onnxt_runtime_binary(OnnxMul, lambda x, y: x * y)

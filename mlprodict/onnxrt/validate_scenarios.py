@@ -6,6 +6,8 @@ from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.decomposition import SparseCoder
 from sklearn.ensemble import VotingClassifier, AdaBoostRegressor, VotingRegressor
 from sklearn.feature_selection import SelectFromModel, RFE, RFECV
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct
 from sklearn.linear_model import LogisticRegression, SGDClassifier, LinearRegression
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
@@ -40,6 +42,18 @@ def build_custom_scenarios():
             ('logreg', {
                 'base_estimator': LogisticRegression(solver='liblinear'),
             })
+        ],
+        GaussianProcessRegressor: [
+            ('dotp', {
+                'kernel': DotProduct(),
+            }),
+            ('sine', {
+                'kernel': ExpSineSquared(),
+                'alpha': 20.,
+            }),
+            ('default', {
+                'kernel': None,
+            }),
         ],
         GridSearchCV: [
             ('cl', {

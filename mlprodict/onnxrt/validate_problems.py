@@ -91,7 +91,8 @@ def _problem_for_predictor_multi_classification_label():
             'predict_proba', 1, X.astype(numpy.float32))
 
 
-def _problem_for_predictor_regression(many_output=False, options=None, **kwargs):
+def _problem_for_predictor_regression(many_output=False, options=None,
+                                      nbfeat=None, nbrows=None, **kwargs):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     regression problem.
@@ -99,16 +100,24 @@ def _problem_for_predictor_regression(many_output=False, options=None, **kwargs)
     """
     data = load_iris()
     X = data.data
-    y = data.target
+    y = data.target + numpy.arange(len(data.target)) / 100
     meth = 'predict' if kwargs is None else ('predict', kwargs)
     itt = [('X', X[:1].astype(numpy.float32))]
+    if nbfeat is not None:
+        X = X[:, :nbfeat]
+        itt = [('X', X[:1].astype(numpy.float32))]
+    if nbrows is not None:
+        X = X[::nbrows, :]
+        y = y[::nbrows]
+        itt = [('X', X[:1].astype(numpy.float32))]
     if options is not None:
         itt = itt, options
     return (X, y.astype(float), itt,
             meth, 'all' if many_output else 0, X.astype(numpy.float32))
 
 
-def _problem_for_predictor_multi_regression(many_output=False, options=None, **kwargs):
+def _problem_for_predictor_multi_regression(many_output=False, options=None,
+                                            nbfeat=None, nbrows=None, **kwargs):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     multi-regression problem.
@@ -116,12 +125,19 @@ def _problem_for_predictor_multi_regression(many_output=False, options=None, **k
     """
     data = load_iris()
     X = data.data
-    y = data.target.astype(float)
+    y = data.target.astype(float) + numpy.arange(len(data.target)) / 100
     y2 = numpy.empty((y.shape[0], 2))
     y2[:, 0] = y
     y2[:, 1] = y + 0.5
     meth = 'predict' if kwargs is None else ('predict', kwargs)
     itt = [('X', X[:1].astype(numpy.float32))]
+    if nbfeat is not None:
+        X = X[:, :nbfeat]
+        itt = [('X', X[:1].astype(numpy.float32))]
+    if nbrows is not None:
+        X = X[::nbrows, :]
+        y = y[::nbrows]
+        itt = [('X', X[:1].astype(numpy.float32))]
     if options is not None:
         itt = itt, options
     return (X, y2, itt,
@@ -148,7 +164,7 @@ def _problem_for_numerical_trainable_transform():
     """
     data = load_iris()
     X = data.data
-    y = data.target
+    y = data.target + numpy.arange(len(data.target)) / 100
     return (X, y, [('X', X[:1].astype(numpy.float32))],
             'transform', 0, X.astype(numpy.float32))
 
@@ -197,7 +213,7 @@ def _problem_for_numerical_scoring():
     """
     data = load_iris()
     X = data.data
-    y = data.target.astype(float)
+    y = data.target.astype(float) + numpy.arange(len(data.target)) / 100
     y /= numpy.max(y)
     return (X, y, [('X', X[:1].astype(numpy.float32))],
             'score', 0, X.astype(numpy.float32))
@@ -279,7 +295,7 @@ def find_suitable_problem(model):
                 'reg-nofit-std', 'multi-reg-nofit-std',
                 'regression', 'multi-reg',
                 'reg-cov', 'multi-reg-cov',
-                'reg-std', 'multi-reg-std']
+                'reg-std-d2', 'multi-reg-std-d2']
 
     if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
                  ComplementNB, GaussianNB, GaussianProcessClassifier,
@@ -421,8 +437,10 @@ _problems = {
     "multi-reg-cov": (lambda: _problem_for_predictor_multi_regression(
         True, options={GaussianProcessRegressor: {"return_cov": True}}, return_cov=True)),
     #
-    "reg-std": (lambda: _problem_for_predictor_regression(
-        True, options={GaussianProcessRegressor: {"return_std": True}}, return_std=True)),
-    "multi-reg-std": (lambda: _problem_for_predictor_multi_regression(
-        True, options={GaussianProcessRegressor: {"return_std": True}}, return_std=True)),
+    "reg-std-d2": (lambda: _problem_for_predictor_regression(
+        True, options={GaussianProcessRegressor: {"return_std": True}},
+        return_std=True, nbfeat=2, nbrows=10)),
+    "multi-reg-std-d2": (lambda: _problem_for_predictor_multi_regression(
+        True, options={GaussianProcessRegressor: {"return_std": True}},
+        return_std=True, nbfeat=2, nbrows=10)),
 }

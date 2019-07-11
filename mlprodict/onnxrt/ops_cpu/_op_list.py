@@ -28,7 +28,9 @@ from .op_linear_classifier import LinearClassifier
 from .op_linear_regressor import LinearRegressor
 from .op_log import Log
 from .op_matmul import MatMul
+from .op_max import Max
 from .op_mean import Mean
+from .op_min import Min
 from .op_mul import Mul
 from .op_normalizer import Normalizer
 from .op_not import Not

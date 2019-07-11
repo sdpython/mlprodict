@@ -23,6 +23,22 @@ from .validate_scenarios import _extra_parameters
 from .validate_difference import measure_relative_difference
 
 
+def _dispsimple(arr, fLOG):
+    if isinstance(arr, (tuple, list)):
+        for i, a in enumerate(arr):
+            fLOG("output %d" % i)
+            _dispsimple(a, fLOG)
+    else:
+        if len(arr.shape) == 1:
+            threshold = 8
+        else:
+            threshold = min(
+                50, min(50 // arr.shape[1], 8) * arr.shape[1])
+        fLOG(numpy.array2string(arr, max_line_width=120,
+                                suppress_small=True,
+                                threshold=threshold))
+
+
 def to_onnx(model, X=None, name=None, initial_types=None,
             target_opset=None, options=None):
     """
@@ -142,7 +158,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                runtime='python', dump_folder=None,
                                store_models=False, benchmark=False,
                                assume_finite=True, node_time=False,
-                               fLOG=print, filter_exp=None):
+                               fLOG=print, filter_exp=None,
+                               disable_single=False, verbose=0):
     """
     Lists all compatible opsets for a specific model.
 
@@ -169,6 +186,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                 sklearn.config_context.html>`_, If True, validation for finiteness
                                 will be skipped, saving time, but leading to potential crashes.
                                 If False, validation for finiteness will be performed, avoiding error.
+    @param      disable_single  disable single prediction (one-off)
+    @param      verbose         verbosity
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
                                 problem chosen to test the conversion...
@@ -298,6 +317,9 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                     if benchmark and 'lambda-skl' in obs:
                         obs['bench-skl'] = benchmark_fct(
                             *obs['lambda-skl'], obs=obs)
+                    if verbose >= 3 and fLOG is not None:
+                        fLOG("[enumerate_compatible_opset] scikit-learn prediction")
+                        _dispsimple(ypred, fLOG)
 
             # converting
             for opset in opsets:
@@ -313,8 +335,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                     return to_onnx(itt, it, target_opset=ops, options=options)
 
                 try:
-                    conv, t2 = _measure_time(fct_skl)
-                    obs_op["convert_time"] = t2
+                    conv, t4 = _measure_time(fct_skl)
+                    obs_op["convert_time"] = t4
                 except (RuntimeError, IndexError, AttributeError) as e:
                     if debug:
                         raise
@@ -338,7 +360,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                         ypred=ypred, Xort_test=Xort_test,
                                         model=model, dump_folder=dump_folder,
                                         benchmark=benchmark and opset == opsets[-1],
-                                        node_time=node_time, fLOG=fLOG)
+                                        node_time=node_time, disable_single=disable_single,
+                                        fLOG=fLOG, verbose=verbose)
                 else:
                     yield obs_op
 
@@ -346,7 +369,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                   X_, y_, init_types, method, output_index,
                   Xort_, ypred, Xort_test, model, dump_folder,
-                  benchmark, node_time, fLOG):
+                  benchmark, node_time, disable_single, fLOG,
+                  verbose):
     """
     Private.
     """
@@ -367,7 +391,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
     # compute batch
     def fct_batch(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
-        return se.run({it[0][0]: xo}, verbose=1 if debug else 0, fLOG=fLOG)
+        return se.run({it[0][0]: xo}, verbose=max(verbose - 1, 1) if debug else 0, fLOG=fLOG)
     if debug:
         keep_exc = None
     try:
@@ -377,6 +401,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             {init_types[0][0]: xo}, node_time=node_time), Xort_test)
     except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
         if debug:
+            if disable_single:
+                raise e
             keep_exc = e
         obs_op['_6ort_run_batch_exc'] = e
     if (benchmark or node_time) and 'lambda-batch' in obs_op:
@@ -386,8 +412,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     # difference
     if '_6ort_run_batch_exc' not in obs_op:
         if isinstance(opred, dict):
-            ch = [(k, v) for k, v in sorted(opred.items())]
-            # names = [_[0] for _ in ch]
+            ch = [(k, v) for k, v in opred.items()]
             opred = [_[1] for _ in ch]
 
         if output_index != 'all':
@@ -404,6 +429,9 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
         debug_exc = []
         if opred is not None:
+            if verbose >= 3 and fLOG is not None:
+                fLOG("[_call_runtime] runtime prediction")
+                _dispsimple(opred, fLOG)
             max_rel_diff = measure_relative_difference(
                 ypred, opred)
             if numpy.isnan(max_rel_diff):
@@ -429,78 +457,80 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                         max_rel_diff, inst, conv, pprint.pformat(obs_op)))
 
     # compute single
-    def fct_single(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
-        return [se.run({it[0][0]: Xort_row}, verbose=1 if debug else 0, fLOG=fLOG)
-                for Xort_row in xo]
-    try:
-        opred, t7 = _measure_time(fct_single)
-        obs_op['ort_run_time_single'] = t7
-        obs_op['lambda-single'] = (
-            lambda xo: [sess.run({init_types[0][0]: Xort_row}, node_time=node_time)
-                        for Xort_row in xo],
-            Xort_test
-        )
-    except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
-        if debug and keep_exc is not None:
-            raise keep_exc
-        obs_op['_9ort_run_single_exc'] = e
-    if (benchmark or node_time) and 'lambda-single' in obs_op and 'lambda-batch' not in obs_op:
-        obs_op['bench-single'] = benchmark_fct(
-            *obs_op['lambda-single'], obs=obs_op, node_time=node_time)
+    if not disable_single:
 
-    # difference
-    if '_9ort_run_single_exc' not in obs_op:
-        if isinstance(opred[0], dict):
-            ch = [[(k, v) for k, v in sorted(o.items())]
-                  for o in opred]
-            # names = [[_[0] for _ in row] for row in ch]
-            opred = [[_[1] for _ in row] for row in ch]
+        def fct_single(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
+            return [se.run({it[0][0]: Xort_row}, verbose=max(verbose - 1, 1) if debug else 0, fLOG=fLOG)
+                    for Xort_row in xo]
+        try:
+            opred, t7 = _measure_time(fct_single)
+            obs_op['ort_run_time_single'] = t7
+            obs_op['lambda-single'] = (
+                lambda xo: [sess.run({init_types[0][0]: Xort_row}, node_time=node_time)
+                            for Xort_row in xo],
+                Xort_test
+            )
+        except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
+            if debug and keep_exc is not None:
+                raise keep_exc
+            obs_op['_9ort_run_single_exc'] = e
+        if (benchmark or node_time) and 'lambda-single' in obs_op and 'lambda-batch' not in obs_op:
+            obs_op['bench-single'] = benchmark_fct(
+                *obs_op['lambda-single'], obs=obs_op, node_time=node_time)
 
-        if output_index != 'all':
-            try:
-                opred = [o[output_index] for o in opred]
-            except IndexError:
-                if debug:
-                    raise
-                obs_op['_Amax_rel_diff_single_exc'] = (
-                    "Unable to fetch output {}/{} for model '{}'"
-                    "".format(output_index, len(opred),
-                              model.__name__))
-                opred = None
-        else:
-            try:
-                opred = [tuple(o) for o in opred]
-            except IndexError:
-                if debug:
-                    raise
-                obs_op['_Amax_rel_diff_single_exc'] = (
-                    "Unable to fetch output {}/{} for model '{}'"
-                    "".format(output_index, len(opred),
-                              model.__name__))
-                opred = None
+        # difference
+        if '_9ort_run_single_exc' not in obs_op:
+            if isinstance(opred[0], dict):
+                ch = [[(k, v) for k, v in o.items()]
+                      for o in opred]
+                # names = [[_[0] for _ in row] for row in ch]
+                opred = [[_[1] for _ in row] for row in ch]
 
-        if opred is not None:
-            max_rel_diff = measure_relative_difference(
-                ypred, opred)
-            if numpy.isnan(max_rel_diff):
-                obs_op['_Amax_rel_diff_single_exc'] = (
-                    "Unable to compute differences between"
-                    "\n{}\n--------\n{}".format(
-                        ypred, opred))
-                if debug:
-                    debug_exc.append(RuntimeError(
-                        obs_op['_Amax_rel_diff_single_exc']))
+            if output_index != 'all':
+                try:
+                    opred = [o[output_index] for o in opred]
+                except IndexError:
+                    if debug:
+                        raise
+                    obs_op['_Amax_rel_diff_single_exc'] = (
+                        "Unable to fetch output {}/{} for model '{}'"
+                        "".format(output_index, len(opred),
+                                  model.__name__))
+                    opred = None
             else:
-                obs_op['max_rel_diff_single'] = max_rel_diff
-                if dump_folder and max_rel_diff > 1e-5:
-                    dump_into_folder(dump_folder, kind='single', obs_op=obs_op,
-                                     X_=X_, y_=y_, init_types=init_types,
-                                     method=init_types, output_index=output_index,
-                                     Xort_=Xort_)
-                if debug and max_rel_diff >= 0.1:
-                    import pprint
-                    raise RuntimeError("Two big differences {}\n{}\n{}\n{}".format(
-                        max_rel_diff, inst, conv, pprint.pformat(obs_op)))
+                try:
+                    opred = [tuple(o) for o in opred]
+                except IndexError:
+                    if debug:
+                        raise
+                    obs_op['_Amax_rel_diff_single_exc'] = (
+                        "Unable to fetch output {}/{} for model '{}'"
+                        "".format(output_index, len(opred),
+                                  model.__name__))
+                    opred = None
+
+            if opred is not None:
+                max_rel_diff = measure_relative_difference(
+                    ypred, opred, batch=False)
+                if numpy.isnan(max_rel_diff):
+                    obs_op['_Amax_rel_diff_single_exc'] = (
+                        "Unable to compute differences between"
+                        "\n{}\n--------\n{}".format(
+                            ypred, opred))
+                    if debug:
+                        debug_exc.append(RuntimeError(
+                            obs_op['_Amax_rel_diff_single_exc']))
+                else:
+                    obs_op['max_rel_diff_single'] = max_rel_diff
+                    if dump_folder and max_rel_diff > 1e-5:
+                        dump_into_folder(dump_folder, kind='single', obs_op=obs_op,
+                                         X_=X_, y_=y_, init_types=init_types,
+                                         method=init_types, output_index=output_index,
+                                         Xort_=Xort_)
+                    if debug and max_rel_diff >= 0.1:
+                        import pprint
+                        raise RuntimeError("Two big differences {}\n{}\n{}\n{}".format(
+                            max_rel_diff, inst, conv, pprint.pformat(obs_op)))
 
     if debug and len(debug_exc) == 2:
         raise debug_exc[0]
@@ -516,7 +546,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         benchmark=False, skip_models=None,
                                         assume_finite=True, node_time=False,
                                         fLOG=print, filter_exp=None,
-                                        versions=False):
+                                        versions=False, disable_single=False):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -549,6 +579,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     @param      versions        add columns with versions of used packages,
                                 :epkg:`numpy`, :epkg:`scikit-learn`, :epkg:`onnx`,
                                 :epkg:`onnxruntime`, :epkg:`sklearn-onnx`
+    @param      disable_single  disable single prediction (loop on one-off prediction)
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -622,7 +653,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 debug=debug, dump_folder=dump_folder,
                 store_models=store_models, benchmark=benchmark,
                 fLOG=fLOG, filter_exp=filter_exp,
-                assume_finite=assume_finite, node_time=node_time):
+                assume_finite=assume_finite, node_time=node_time,
+                disable_single=disable_single, verbose=verbose):
 
             if verbose > 1:
                 fLOG("  ", obs)

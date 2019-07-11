@@ -4,6 +4,7 @@
 @file
 @brief Runtime operator.
 """
+import numpy
 from ._op import OpRun
 
 
@@ -13,4 +14,4 @@ class Mul(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc, **options)
 
     def _run(self, a, b):  # pylint: disable=W0221
-        return (a * b, )
+        return (numpy.multiply(a, b), )

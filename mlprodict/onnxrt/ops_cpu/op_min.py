@@ -8,10 +8,10 @@ import numpy
 from ._op import OpRun
 
 
-class MatMul(OpRun):
+class Min(OpRun):
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc, **options)
 
     def _run(self, a, b):  # pylint: disable=W0221
-        return (numpy.dot(a, b), )
+        return (numpy.minimum(a, b), )

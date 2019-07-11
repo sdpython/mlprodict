@@ -647,10 +647,21 @@ class OnnxInference:
                 for node in self.sequence_:
                     node.run(values)
         else:
+            def dispsimple(arr):
+                if len(arr.shape) == 1:
+                    threshold = 8
+                else:
+                    threshold = min(
+                        50, min(50 // arr.shape[1], 8) * arr.shape[1])
+                fLOG(numpy.array2string(arr, max_line_width=120,
+                                        suppress_small=True,
+                                        threshold=threshold))
+
             if verbose >= 2:
                 for k in sorted(values):
-                    fLOG("-k='{}' shape={} dtype={}".format(
-                        k, values[k].shape, values[k].dtype))
+                    fLOG("-k='{}' shape={} dtype={} min={} max={}".format(
+                        k, values[k].shape, values[k].dtype,
+                        numpy.min(values[k]), numpy.max(values[k])))
             keys = set(values)
             if verbose >= 1:
                 fLOG("-- OnnxInference: run {} nodes".format(len(self.sequence_)))
@@ -669,11 +680,16 @@ class OnnxInference:
                 for k in sorted(values):
                     if k not in keys:
                         if isinstance(values[k], numpy.ndarray):
-                            fLOG("+k='{}': {} (dtype={})".format(
-                                k, values[k].shape, values[k].dtype))
+                            fLOG("+k='{}': {} (dtype={} min={} max={})".format(
+                                k, values[k].shape, values[k].dtype,
+                                numpy.min(values[k]), numpy.max(values[k])))
+                            if verbose >= 3:
+                                dispsimple(values[k])
                         else:
                             fLOG("+k='{}': {}".format(
                                 k, type(values[k])))
+                            if verbose >= 3:
+                                dispsimple(values[k])
                 keys = set(values)
 
         if intermediate:
