@@ -71,8 +71,9 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
                 try:
                     ort_pred = numpy.array(ort_pred)
                 except ValueError as e:
-                    raise ValueError("Unable to interpret (type(skl_pred): {})\n{}\n-----\n{}".format(
-                        type(skl_pred), skl_pred, ort_pred)) from e
+                    raise ValueError(
+                        "Unable to interpret (batch={}, type(skl_pred): {})\n{}\n-----\n{}".format(
+                            batch, type(skl_pred), skl_pred, ort_pred)) from e
 
         if hasattr(skl_pred, 'todense'):
             skl_pred = skl_pred.todense()
