@@ -78,6 +78,8 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertIsInstance(res, OrderedDict)
 
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
+    @unittest.skipIf(compare_module_version(ort_version, "0.4.0") <= 0,
+                     reason="Node:Scan1 Field 'shape' of type is required but missing.")
     def test_kernel_ker2_def_ort(self):
         ker = Sum(
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=10,
