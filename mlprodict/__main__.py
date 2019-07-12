@@ -17,10 +17,13 @@ def main(args, fLOG=print):
     """
     try:
         from .cli.validate import validate_runtime
+        from .cli.convert_validate import convert_validate
     except ImportError:
         from mlprodict.cli.validate import validate_runtime
+        from mlprodict.cli.convert_validate import convert_validate
 
-    fcts = dict(validate_runtime=validate_runtime)
+    fcts = dict(validate_runtime=validate_runtime,
+                convert_validate=convert_validate)
     from pyquickhelper.cli import cli_main_helper
     return cli_main_helper(fcts, args=args, fLOG=fLOG)
 

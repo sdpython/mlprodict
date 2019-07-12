@@ -52,7 +52,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     :param fLOG: logging function
 
     .. cmdref::
-        :title: Valide a runtime against scikit-learn
+        :title: Validate a runtime against scikit-learn
         :cmd: -m mlprodict validate_runtime --help
         :lid: l-cmd-validate_runtime
 
