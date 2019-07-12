@@ -30,7 +30,7 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
     :math:`med(X)` the median of *X*. The function returns the
     following metric: :math:`\\max_i(|X_i - Y_i| / \\max(X_i, med(|X|))`.
     """
-    if isinstance(skl_pred, tuple):
+    if isinstance(skl_pred, tuple) or (batch and isinstance(skl_pred, list)):
         diffs = []
         if batch:
             if len(skl_pred) != len(ort_pred):
@@ -68,7 +68,11 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
                                        "\n{}--------\n{}".format(
                                            skl_pred, ort_pred))
             else:
-                ort_pred = numpy.array(ort_pred)
+                try:
+                    ort_pred = numpy.array(ort_pred)
+                except ValueError as e:
+                    raise ValueError("Unable to interpret (type(skl_pred): {})\n{}\n-----\n{}".format(
+                        type(skl_pred), skl_pred, ort_pred)) from e
 
         if hasattr(skl_pred, 'todense'):
             skl_pred = skl_pred.todense()
