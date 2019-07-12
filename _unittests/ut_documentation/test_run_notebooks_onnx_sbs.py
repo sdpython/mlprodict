@@ -11,6 +11,7 @@ from pyquickhelper.texthelper.version_helper import compare_module_version
 from pyquickhelper.ipythonhelper import test_notebook_execution_coverage
 from pyquickhelper.pycode import add_missing_development_version, ExtTestCase
 from skl2onnx import __version__ as skl2onnx_version
+from onnxruntime import __version__ as ort_version
 import mlprodict
 
 
@@ -22,6 +23,8 @@ class TestFunctionTestNotebookOnnxSbs(ExtTestCase):
     @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
                      reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @unittest.skipIf(compare_module_version(ort_version, "0.4.0") <= 0,
+                     reason="Node:Scan1 Field 'shape' of type is required but missing.")
     def test_notebook_onnx_sbs(self):
         fLOG(
             __file__,
