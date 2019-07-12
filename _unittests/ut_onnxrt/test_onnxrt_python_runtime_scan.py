@@ -28,7 +28,7 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
     @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
                      reason="int64 not implemented for constants")
     def test_pdist(self):
-        from skl2onnx.algebra.complex_functions import onnx_squareform_pdist  # pylint: disable=E0401
+        from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('input', 'input')
@@ -54,7 +54,7 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
     @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
                      reason="int64 not implemented for constants")
     def test_onnx_example_cdist_in(self):
-        from skl2onnx.algebra.complex_functions import onnx_cdist  # pylint: disable=E0401
+        from skl2onnx.algebra.complex_functions import onnx_cdist
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         x2 = numpy.array([1.1, 2.1, 4.01, 5.01, 5.001, 4.001, 0, 0]).astype(
