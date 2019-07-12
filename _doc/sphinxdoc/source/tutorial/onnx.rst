@@ -13,12 +13,14 @@ From numpy to ONNX
 ++++++++++++++++++
 
 *mlprodict* implements function
-:func:`translate_fct2onnx <mlprodict.onnx_grammar.onnx_translation.translate_fct2onnx>`
+:func:`translate_fct2onnx
+<mlprodict.onnx_grammar.onnx_translation.translate_fct2onnx>`
 which converts the code
 of a function written with :epkg:`numpy` and :epkg:`scipy`
-function into an :epkg:`ONNX` graph.
+into an :epkg:`ONNX` graph.
 
-This kernel is used by :epkg:`sklearn:gaussian_process:GaussianProcessRegressor`
+The kernel *ExpSineSquared*
+is used by :epkg:`sklearn:gaussian_process:GaussianProcessRegressor`
 and its conversion is required to convert the model.
 The first step is to write a standalone function which
 relies on :epkg:`scipy` or :epkg:`numpy` and which produces
@@ -98,3 +100,12 @@ produces the :epkg:`ONNX` graph.
     print("Function code:")
     print('-------------')
     print(translate_fct2onnx(kernel_call_ynone, output_names=['Z']))
+
+The output of function
+:func:`translate_fct2onnx
+<mlprodict.onnx_grammar.onnx_translation.translate_fct2onnx>`
+is not an :epkg:`ONNX` graph but the code of a function which
+produces an :epkg:`ONNX` graph. That's why the function is called
+twice. The first call compiles the code and a returns a new
+:epkg:`python` function. The second call starts all over but
+returns the code instead of its compiled version.

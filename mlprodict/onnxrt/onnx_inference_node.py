@@ -1,7 +1,9 @@
 """
 @file
-@brief
+@brief OnnxInferenceNode definition.
 """
+import pprint
+import numpy
 from onnx import onnx_pb as onnx_proto
 from .ops import load_op
 
@@ -104,9 +106,34 @@ class OnnxInferenceNode:
         if not isinstance(res, tuple):
             raise RuntimeError("Results of an operator should be a tuple.")
         if len(self.outputs) != len(res):
-            import pprint
             raise RuntimeError("Mismatch number of outputs got {} for names {}.\n{}".format(
                 len(res), list(sorted(self.outputs)),
                 pprint.pformat(self.desc)))
         for name, value in zip(self.outputs, res):
             values[name] = value
+
+    def switch_initializers_dtype(self, dtype_in=numpy.float32,
+                                  dtype_out=numpy.float64):
+        """
+        Switches all initializers to ``numpy.float64``.
+        This only works if the runtime is ``'python'``.
+
+        @param      dtype_in    previous type
+        @param      dtype_out   next type
+        @return                 done operations
+        """
+        done = []
+        for k, v in self.desc['atts'].items():
+            if 'value_rt' not in v:
+                continue
+            if isinstance(v['value_rt'], numpy.ndarray):
+                if v['value_rt'].dtype == dtype_in:
+                    v['value_rt'] = v['value_rt'].astype(dtype_out)
+                    done.append(("+", "desc", k, v['value_rt']))
+                else:
+                    done.append(("-", "desc", k, v['value_rt']))
+        if hasattr(self, 'ops_') and self.ops_ is not None:
+            res = self.ops_.switch_initializers_dtype(dtype_in, dtype_out)
+            for r in res:
+                done.append(("ops_", ) + r)
+        return done

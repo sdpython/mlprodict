@@ -102,7 +102,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        verbose = 1 if __name__ == "__main__" else 0
+        verbose = 4 if __name__ == "__main__" else 0
 
         buffer = []
 
@@ -112,7 +112,8 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         debug = False
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
-            runtime='python', debug=debug, filter_exp=lambda s: "nofit" not in s))
+            runtime='python', debug=debug,
+            filter_exp=lambda s: "nofit" not in s and "multi" not in s))
         self.assertGreater(len(rows), 6)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
@@ -162,5 +163,5 @@ class TestRtValidateGaussianProcess(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestRtValidateGaussianProcess().test_rt_GaussianProcessRegressor_debug_std()
+    TestRtValidateGaussianProcess().test_rt_GaussianProcessRegressor_python_fit()
     unittest.main()

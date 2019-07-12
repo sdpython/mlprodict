@@ -7,7 +7,7 @@ from sklearn.decomposition import SparseCoder
 from sklearn.ensemble import VotingClassifier, AdaBoostRegressor, VotingRegressor
 from sklearn.feature_selection import SelectFromModel, RFE, RFECV
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct
+from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic
 from sklearn.linear_model import LogisticRegression, SGDClassifier, LinearRegression
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
@@ -44,15 +44,21 @@ def build_custom_scenarios():
             })
         ],
         GaussianProcessRegressor: [
-            ('dotp', {
-                'kernel': DotProduct(),
-            }),
-            ('sine', {
-                'kernel': ExpSineSquared(),
-                'alpha': 20.,
+            ('rational', {
+                'kernel': RationalQuadratic(),
+                'alpha': 100.,
             }),
             ('default', {
                 'kernel': None,
+                'alpha': 100.,
+            }),
+            ('expsine', {
+                'kernel': ExpSineSquared(),
+                'alpha': 20.,
+            }),
+            ('dotproduct', {
+                'kernel': DotProduct(),
+                'alpha': 100.,
             }),
         ],
         GridSearchCV: [

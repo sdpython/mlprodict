@@ -15,6 +15,7 @@ from onnx.helper import make_model
 from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_manipulations import select_model_inputs_outputs, enumerate_model_node_outputs
 from .onnx2py_helper import _var_as_dict, _type_to_string
+from .sklearn_helper import enumerate_fitted_arrays, pairwise_array_distances
 
 
 class OnnxInference:
@@ -792,3 +793,68 @@ class OnnxInference:
 
         raise IndexError("Unable to find attribute '{}' from node '{}'.".format(
             att_name, node_name))
+
+    def switch_initializers_dtype(self, model=None,
+                                  dtype_in=numpy.float32,
+                                  dtype_out=numpy.float64):
+        """
+        Switches all initializers to ``numpy.float64``. If *model*
+        is None, a simple cast is done. Otherwise, the function assumes
+        the model is a :epkg:`scikit-learn` pipeline.
+        This only works if the runtime is ``'python'``.
+
+        @param      model       :epkg:`scikit-learn` model or None
+        @param      dtype_in    previous type
+        @param      dtype_out   next type
+        @return                 done operations
+        """
+        if self.runtime != 'python':
+            raise RuntimeError("Initializers can be casted only if the "
+                               "runtime is 'python' not '{}'.".format(self.runtime))
+
+        # first pass: simple cast
+        done = []
+        initializer = self.inits_
+        for k, v in initializer.items():
+            if isinstance(v['value'], numpy.ndarray):
+                if v['value'].dtype == dtype_in:
+                    v['value'] = v['value'].astype(dtype_out)
+                    done.append(("pass1", "+", "init", k, v['value']))
+                else:
+                    done.append(("pass1", "-", "init", k, v['value']))
+        for k, v in self.graph_['nodes'].items():
+            res = v.switch_initializers_dtype(dtype_in=dtype_in,
+                                              dtype_out=dtype_out)
+            for r in res:
+                done.append(("pass1", "node", k) + r)
+        for k, v in self.graph_['intermediate'].items():
+            if v is None:
+                continue
+            res = v.switch_initializers_dtype(dtype_in=dtype_in,
+                                              dtype_out=dtype_out)
+            for r in res:
+                done.append(("pass1", "sub", k) + r)
+
+        if model is not None:
+            # Second pass, we compare all arrays from the model
+            # to the arrays in the converted models.
+            def dist(a):
+                cast = a.astype(dtype_in).astype(dtype_out)
+                d = pairwise_array_distances([cast], [a])[0, 0]
+                return d
+
+            done_ = [(c, c[-1]) for c in done]
+            moda_ = [(a, a[-2][-1]) for a in enumerate_fitted_arrays(model)
+                     if dist(a[-2][-1]) > 0]
+            aconv = [_[-1] for _ in done_]
+            amoda = [_[-1] for _ in moda_]
+            distances = pairwise_array_distances(aconv, amoda)
+
+            for i in range(distances.shape[0]):
+                j = numpy.argmin(distances[i])
+                d = distances[i, j]
+                if d < 0.1:
+                    numpy.copyto(aconv[i], amoda[j])
+                    done.append(("pass2", d) + done_[i][0])
+
+        return done

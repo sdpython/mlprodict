@@ -6,37 +6,19 @@ The submodule relies on :epkg:`onnxconverter_common`,
 """
 import os
 from time import perf_counter
-from importlib import import_module
 import pickle
 from timeit import Timer
 import numpy
 import pandas
-import onnx
 import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
-from sklearn.base import BaseEstimator
 from sklearn.model_selection import train_test_split
 from .onnx_inference import OnnxInference
 from .. import __version__ as ort_version
 from .validate_problems import _problems, find_suitable_problem
 from .validate_scenarios import _extra_parameters
 from .validate_difference import measure_relative_difference
-
-
-def _dispsimple(arr, fLOG):
-    if isinstance(arr, (tuple, list)):
-        for i, a in enumerate(arr):
-            fLOG("output %d" % i)
-            _dispsimple(a, fLOG)
-    else:
-        if len(arr.shape) == 1:
-            threshold = 8
-        else:
-            threshold = min(
-                50, min(50 // arr.shape[1], 8) * arr.shape[1])
-        fLOG(numpy.array2string(arr, max_line_width=120,
-                                suppress_small=True,
-                                threshold=threshold))
+from .validate_helper import _dispsimple, get_opset_number_from_onnx, sklearn_operators
 
 
 def to_onnx(model, X=None, name=None, initial_types=None,
@@ -66,51 +48,6 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     initial_types = guess_initial_types(X, initial_types)
     return convert_sklearn(model, initial_types=initial_types, name=name,
                            target_opset=target_opset, options=options)
-
-
-def get_opset_number_from_onnx():
-    """
-    Retuns the current :epkg:`onnx` opset
-    based on the installed version of :epkg:`onnx`.
-    """
-    return onnx.defs.onnx_opset_version()
-
-
-def sklearn_operators(subfolder=None):
-    """
-    Builds the list of operators from :epkg:`scikit-learn`.
-    The function goes through the list of submodule
-    and get the list of class which inherit from
-    :epkg:`scikit-learn:base:BaseEstimator`.
-
-    @param      subfolder   look into only one subfolder
-    """
-    found = []
-    for sub in sklearn__all__:
-        if subfolder is not None and sub != subfolder:
-            continue
-        try:
-            mod = import_module("{0}.{1}".format("sklearn", sub))
-        except ModuleNotFoundError:
-            continue
-        cls = getattr(mod, "__all__", None)
-        if cls is None:
-            cls = list(mod.__dict__)
-        cls = [mod.__dict__[cl] for cl in cls]
-        for cl in cls:
-            try:
-                issub = issubclass(cl, BaseEstimator)
-            except TypeError:
-                continue
-            if cl.__name__ in {'Pipeline', 'ColumnTransformer',
-                               'FeatureUnion', 'BaseEstimator'}:
-                continue
-            if (sub in {'calibration', 'dummy', 'manifold'} and
-                    'Calibrated' not in cl.__name__):
-                continue
-            if issub:
-                found.append(dict(name=cl.__name__, subfolder=sub, cl=cl))
-    return found
 
 
 def _measure_time(fct):
@@ -218,6 +155,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     for prob in problems:
         if filter_exp is not None and not filter_exp(prob):
             continue
+        if verbose >= 2 and fLOG is not None:
+            fLOG("[enumerate_compatible_opset] problem={}".format(prob))
         data_problem = _problems[prob]()
         if len(data_problem) == 6:
             X_, y_, init_types, method, output_index, Xort_ = data_problem
@@ -243,11 +182,17 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 
         for scenario, extra in extras:
 
+            if verbose >= 2 and fLOG is not None:
+                fLOG("[enumerate_compatible_opset] ##############################")
+                fLOG("[enumerate_compatible_opset] scenario={} extra={} dofit={}".format(
+                    scenario, extra, dofit))
+
             # training
             obs = {'scenario': scenario, 'name': model.__name__,
                    'skl_version': sklearn_version, 'problem': prob,
                    'method': method, 'output_index': output_index,
                    'fit': dofit, 'conv_options': conv_options}
+            inst = None
             try:
                 inst = model(**extra)
             except TypeError as e:
@@ -259,11 +204,13 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                         model.__name__, pprint.pformat(extra))) from e
 
             if dofit:
+                if verbose >= 2 and fLOG is not None:
+                    fLOG("[enumerate_compatible_opset] fit")
                 try:
                     if y_ is None:
-                        t1 = _measure_time(lambda: inst.fit(X_train))[1]
+                        t4 = _measure_time(lambda: inst.fit(X_train))[1]
                     else:
-                        t1 = _measure_time(
+                        t4 = _measure_time(
                             lambda: inst.fit(X_train, y_train))[1]
                 except (AttributeError, TypeError, ValueError,
                         IndexError, NotImplementedError) as e:
@@ -273,7 +220,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                     yield obs
                     continue
 
-                obs["training_time"] = t1
+                obs["training_time"] = t4
                 if store_models:
                     obs['MODEL'] = inst
                     obs['X_test'] = X_test
@@ -287,15 +234,20 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 
             # runtime
             if check_runtime:
+                if verbose >= 2 and fLOG is not None:
+                    fLOG("[enumerate_compatible_opset] check_runtime SKL {}-{}".format(
+                        id(inst), method))
                 with sklearn.config_context(assume_finite=assume_finite):
                     # compute sklearn prediction
                     obs['ort_version'] = ort_version
                     if isinstance(method, tuple):
-                        method, kwargs = method
+                        method_name, kwargs = method
                     else:
+                        method_name = method
                         kwargs = {}
+                    meth = None
                     try:
-                        meth = getattr(inst, method)
+                        meth = getattr(inst, method_name)
                     except AttributeError as e:
                         if debug:
                             raise
@@ -320,9 +272,13 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                     if verbose >= 3 and fLOG is not None:
                         fLOG("[enumerate_compatible_opset] scikit-learn prediction")
                         _dispsimple(ypred, fLOG)
+                    if verbose >= 2 and fLOG is not None:
+                        fLOG("[enumerate_compatible_opset] predictions stored")
 
             # converting
             for opset in opsets:
+                if verbose >= 2 and fLOG is not None:
+                    fLOG("[enumerate_compatible_opset] opset={}".format(opset))
                 obs_op = obs.copy()
                 if opset is not None:
                     obs_op['opset'] = opset
@@ -334,11 +290,16 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                 def fct_skl(itt=inst, it=init_types[0][1], ops=opset, options=conv_options):  # pylint: disable=W0102
                     return to_onnx(itt, it, target_opset=ops, options=options)
 
+                if verbose >= 2 and fLOG is not None:
+                    fLOG("[enumerate_compatible_opset] conversion to onnx")
                 try:
                     conv, t4 = _measure_time(fct_skl)
                     obs_op["convert_time"] = t4
                 except (RuntimeError, IndexError, AttributeError) as e:
                     if debug:
+                        import pprint
+                        fLOG("--------------------")
+                        fLOG(pprint.pformat(obs_op))
                         raise
                     obs_op["_4convert_exc"] = e
                     yield obs_op
@@ -379,6 +340,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     obs_op['runtime'] = runtime
 
     # load
+    if verbose >= 2 and fLOG is not None:
+        fLOG("[enumerate_compatible_opset] load onnx")
     try:
         sess, t6 = _measure_time(
             lambda: OnnxInference(ser, runtime=runtime))
@@ -390,6 +353,9 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         return obs_op
 
     # compute batch
+    if verbose >= 2 and fLOG is not None:
+        fLOG("[enumerate_compatible_opset] compute batch")
+
     def fct_batch(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
         return se.run({it[0][0]: xo}, verbose=max(verbose - 1, 1) if debug else 0, fLOG=fLOG)
     if debug:
@@ -410,6 +376,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             *obs_op['lambda-batch'], obs=obs_op, node_time=node_time)
 
     # difference
+    if verbose >= 2 and fLOG is not None:
+        fLOG("[enumerate_compatible_opset] differences")
     if '_6ort_run_batch_exc' not in obs_op:
         if isinstance(opred, dict):
             ch = [(k, v) for k, v in opred.items()]
@@ -434,6 +402,9 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                 _dispsimple(opred, fLOG)
             max_rel_diff = measure_relative_difference(
                 ypred, opred)
+            if max_rel_diff >= 1e9 and debug:
+                raise RuntimeError("Big difference:\n-------\n{}\n--------\n{}".format(
+                    ypred, opred))
             if numpy.isnan(max_rel_diff):
                 obs_op['_8max_rel_diff_batch_exc'] = (
                     "Unable to compute differences between"
@@ -458,6 +429,9 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
     # compute single
     if not disable_single:
+
+        if verbose >= 2 and fLOG is not None:
+            fLOG("[enumerate_compatible_opset] single")
 
         def fct_single(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
             return [se.run({it[0][0]: Xort_row}, verbose=max(verbose - 1, 1) if debug else 0, fLOG=fLOG)
@@ -537,6 +511,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if debug:
         import pprint
         fLOG(pprint.pformat(obs_op))
+    if verbose >= 2 and fLOG is not None:
+        fLOG("[enumerate_compatible_opset] next...")
     return obs_op
 
 

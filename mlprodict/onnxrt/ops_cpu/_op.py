@@ -3,6 +3,7 @@
 @file
 @brief Shortcut to *ops_cpu*.
 """
+import numpy
 import onnx.defs
 
 _schemas = {
@@ -81,3 +82,26 @@ class OpRun:
             raise TypeError("Issues with types {} (operator {}).".format(
                 ", ".join(str(type(_)) for _ in args),
                 self.__class__.__name__)) from e
+
+    def switch_initializers_dtype(self, dtype_in=numpy.float32,
+                                  dtype_out=numpy.float64):
+        """
+        Switches all initializers to ``numpy.float64``. If *model*
+        is None, a simple cast is done.
+
+        @param      dtype_in    previous type
+        @param      dtype_out   next type
+        @return                 done operations
+        """
+        done = []
+        for k, v in sorted(self.__dict__.items()):
+            if k in {'desc', 'onnx_node'}:
+                continue
+            if isinstance(v, numpy.ndarray):
+                if v.dtype == dtype_in:
+                    v = v.astype(dtype_out)
+                    setattr(self, k, v)
+                    done.append(("+", "att", k, getattr(self, k)))
+                else:
+                    done.append(("-", "att", k, getattr(self, k)))
+        return done
