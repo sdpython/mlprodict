@@ -9,6 +9,8 @@ import numpy
 import pandas
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as CK, Sum
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper.version_helper import compare_module_version
+from onnxruntime import __version__ as ort_version
 from skl2onnx.common.data_types import FloatTensorType
 try:
     from skl2onnx.operator_converters.gaussian_process import convert_kernel
@@ -95,6 +97,8 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertEqualArray(m1, m2, decimal=5)
 
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
+    @unittest.skipIf(compare_module_version(ort_version, "0.4.0") <= 0,
+                     reason="Node:Scan1 Field 'shape' of type is required but missing.")
     def test_kernel_ker2_def_ort1(self):
         ker = Sum(
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=10,

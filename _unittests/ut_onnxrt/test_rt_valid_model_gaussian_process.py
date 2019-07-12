@@ -161,7 +161,28 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
+                     reason="int64 not implemented for constants")
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_rt_GaussianProcessRegressor_debug_multi(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        verbose = 2 if __name__ == "__main__" else 0
+
+        buffer = []
+
+        def myprint(*args, **kwargs):
+            buffer.append(" ".join(map(str, args)))
+
+        debug = True
+        rows = list(enumerate_validated_operator_opsets(
+            verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
+            runtime='python', debug=debug, filter_exp=lambda s: s == 'multi-reg-std-d2',
+            disable_single=True))
+        self.assertGreater(len(rows), 1)
+        self.assertGreater(len(buffer), 1 if debug else 0)
+
 
 if __name__ == "__main__":
-    TestRtValidateGaussianProcess().test_rt_GaussianProcessRegressor_python_fit()
     unittest.main()

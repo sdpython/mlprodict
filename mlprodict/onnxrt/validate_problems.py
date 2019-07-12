@@ -126,9 +126,6 @@ def _problem_for_predictor_multi_regression(many_output=False, options=None,
     data = load_iris()
     X = data.data
     y = data.target.astype(float) + numpy.arange(len(data.target)) / 100
-    y2 = numpy.empty((y.shape[0], 2))
-    y2[:, 0] = y
-    y2[:, 1] = y + 0.5
     meth = 'predict' if kwargs is None else ('predict', kwargs)
     itt = [('X', X[:1].astype(numpy.float32))]
     if nbfeat is not None:
@@ -140,6 +137,9 @@ def _problem_for_predictor_multi_regression(many_output=False, options=None,
         itt = [('X', X[:1].astype(numpy.float32))]
     if options is not None:
         itt = itt, options
+    y2 = numpy.empty((y.shape[0], 2))
+    y2[:, 0] = y
+    y2[:, 1] = y + 0.5
     return (X, y2, itt,
             meth, 'all' if many_output else 0, X.astype(numpy.float32))
 

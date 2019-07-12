@@ -44,20 +44,20 @@ def build_custom_scenarios():
             })
         ],
         GaussianProcessRegressor: [
-            ('rational', {
-                'kernel': RationalQuadratic(),
-                'alpha': 100.,
-            }),
-            ('default', {
-                'kernel': None,
-                'alpha': 100.,
-            }),
             ('expsine', {
                 'kernel': ExpSineSquared(),
                 'alpha': 20.,
             }),
             ('dotproduct', {
                 'kernel': DotProduct(),
+                'alpha': 100.,
+            }),
+            ('rational', {
+                'kernel': RationalQuadratic(),
+                'alpha': 100.,
+            }),
+            ('default', {
+                'kernel': None,
                 'alpha': 100.,
             }),
         ],

@@ -184,8 +184,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 
             if verbose >= 2 and fLOG is not None:
                 fLOG("[enumerate_compatible_opset] ##############################")
-                fLOG("[enumerate_compatible_opset] scenario={} extra={} dofit={}".format(
-                    scenario, extra, dofit))
+                fLOG("[enumerate_compatible_opset] scenario={} extra={} dofit={} (problem={})".format(
+                    scenario, extra, dofit, prob))
 
             # training
             obs = {'scenario': scenario, 'name': model.__name__,
