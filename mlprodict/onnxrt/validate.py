@@ -91,6 +91,45 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
     return True
 
 
+def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
+                        method_name, predict_kwargs, X_test,
+                        benchmark, debug, verbose, fLOG):
+    if not check_runtime:
+        return None
+    if verbose >= 2 and fLOG is not None:
+        fLOG("[enumerate_compatible_opset] check_runtime SKL {}-{}-{}".format(
+            id(inst), method_name, predict_kwargs))
+    with sklearn.config_context(assume_finite=assume_finite):
+        # compute sklearn prediction
+        obs['ort_version'] = ort_version
+        try:
+            meth = getattr(inst, method_name)
+        except AttributeError as e:
+            if debug:
+                raise
+            obs['_2skl_meth_exc'] = str(e)
+            return e
+        try:
+            ypred, t4 = _measure_time(
+                lambda: meth(X_test, **predict_kwargs))
+            obs['lambda-skl'] = (lambda xo: meth(xo, **predict_kwargs), X_test)
+        except (ValueError, AttributeError, TypeError) as e:
+            if debug:
+                raise
+            obs['_3prediction_exc'] = str(e)
+            return e
+        obs['prediction_time'] = t4
+        if benchmark and 'lambda-skl' in obs:
+            obs['bench-skl'] = benchmark_fct(
+                *obs['lambda-skl'], obs=obs)
+        if verbose >= 3 and fLOG is not None:
+            fLOG("[enumerate_compatible_opset] scikit-learn prediction")
+            _dispsimple(ypred, fLOG)
+        if verbose >= 2 and fLOG is not None:
+            fLOG("[enumerate_compatible_opset] predictions stored")
+    return ypred
+
+
 def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                check_runtime=True, debug=False,
                                runtime='python', dump_folder=None,
@@ -195,41 +234,13 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                 continue
 
             # runtime
-            if check_runtime:
-                if verbose >= 2 and fLOG is not None:
-                    fLOG("[enumerate_compatible_opset] check_runtime SKL {}-{}-{}".format(
-                        id(inst), method_name, predict_kwargs))
-                with sklearn.config_context(assume_finite=assume_finite):
-                    # compute sklearn prediction
-                    obs['ort_version'] = ort_version
-                    try:
-                        meth = getattr(inst, method_name)
-                    except AttributeError as e:
-                        if debug:
-                            raise
-                        obs['_2skl_meth_exc'] = str(e)
-                        yield obs
-                        continue
-                    try:
-                        ypred, t4 = _measure_time(
-                            lambda: meth(X_test, **predict_kwargs))
-                        obs['lambda-skl'] = (lambda xo: meth(xo,
-                                                             **predict_kwargs), X_test)
-                    except (ValueError, AttributeError, TypeError) as e:
-                        if debug:
-                            raise
-                        obs['_3prediction_exc'] = str(e)
-                        yield obs
-                        continue
-                    obs['prediction_time'] = t4
-                    if benchmark and 'lambda-skl' in obs:
-                        obs['bench-skl'] = benchmark_fct(
-                            *obs['lambda-skl'], obs=obs)
-                    if verbose >= 3 and fLOG is not None:
-                        fLOG("[enumerate_compatible_opset] scikit-learn prediction")
-                        _dispsimple(ypred, fLOG)
-                    if verbose >= 2 and fLOG is not None:
-                        fLOG("[enumerate_compatible_opset] predictions stored")
+            ypred = _run_skl_prediction(
+                obs, check_runtime, assume_finite, inst,
+                method_name, predict_kwargs, X_test,
+                benchmark, debug, verbose, fLOG)
+            if isinstance(ypred, Exception):
+                yield obs
+                continue
 
             # converting
             for opset in opsets:
