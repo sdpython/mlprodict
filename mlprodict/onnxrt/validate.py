@@ -4,9 +4,6 @@
 The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
-import os
-from time import perf_counter
-import pickle
 from timeit import Timer
 import numpy
 import pandas
@@ -18,76 +15,80 @@ from .. import __version__ as ort_version
 from .validate_problems import _problems, find_suitable_problem
 from .validate_scenarios import _extra_parameters
 from .validate_difference import measure_relative_difference
-from .validate_helper import _dispsimple, get_opset_number_from_onnx, sklearn_operators
+from .validate_helper import (
+    _dispsimple, get_opset_number_from_onnx, sklearn_operators,
+    to_onnx, _measure_time, _shape_exc, dump_into_folder
+)
 
 
-def to_onnx(model, X=None, name=None, initial_types=None,
-            target_opset=None, options=None):
-    """
-    Converts a model using on :epkg:`sklearn-onnx`.
+def _get_problem_data(prob):
+    data_problem = _problems[prob]()
+    if len(data_problem) == 6:
+        X_, y_, init_types, method, output_index, Xort_ = data_problem
+        dofit = True
+    elif len(data_problem) == 7:
+        X_, y_, init_types, method, output_index, Xort_, dofit = data_problem
+    else:
+        raise RuntimeError(
+            "Unable to interpret problem '{}'.".format(prob))
+    if y_ is None:
+        (X_train, X_test, Xort_train,  # pylint: disable=W0612
+            Xort_test) = train_test_split(
+                X_, Xort_, random_state=42)
+        y_train, y_test = None, None
+    else:
+        (X_train, X_test, y_train, y_test,  # pylint: disable=W0612
+            Xort_train, Xort_test) = train_test_split(
+                X_, y_, Xort_, random_state=42)
+    if isinstance(init_types, tuple):
+        init_types, conv_options = init_types
+    else:
+        conv_options = None
 
-    @param      model           model to convert
-    @param      X               training set (at least one row),
-                                can be None, it is used to infered the
-                                input types (*initial_types*)
-    @param      initial_types   if *X* is None, then *initial_types* must be
-                                defined
-    @param      name            name of the produced model
-    @param      target_opset    to do it with a different target opset
-    @param      options         additional parameters for the conversion
-    @return                     converted model
-    """
-    from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
-    from skl2onnx.algebra.type_helper import guess_initial_types
-    from skl2onnx import convert_sklearn
+    if isinstance(method, tuple):
+        method_name, predict_kwargs = method
+    else:
+        method_name = method
+        predict_kwargs = {}
 
-    if isinstance(model, OnnxOperatorMixin):
-        return model.to_onnx(X=X, name=name)
-    if name is None:
-        name = model.__class__.__name__
-    initial_types = guess_initial_types(X, initial_types)
-    return convert_sklearn(model, initial_types=initial_types, name=name,
-                           target_opset=target_opset, options=options)
-
-
-def _measure_time(fct):
-    """
-    Measures the execution time for a function.
-    """
-    begin = perf_counter()
-    res = fct()
-    end = perf_counter()
-    return res, end - begin
+    return (X_train, X_test, y_train,
+            y_test, Xort_test,
+            init_types, conv_options, method_name,
+            output_index, dofit, predict_kwargs)
 
 
-def _shape_exc(obj):
-    if hasattr(obj, 'shape'):
-        return obj.shape
-    if isinstance(obj, (list, dict, tuple)):
-        return "[{%d}]" % len(obj)
-    return None
+def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
+                 Xort_test, init_types, store_models,
+                 debug, verbose, fLOG):
+    if dofit:
+        if verbose >= 2 and fLOG is not None:
+            fLOG("[enumerate_compatible_opset] fit")
+        try:
+            if y_train is None:
+                t4 = _measure_time(lambda: inst.fit(X_train))[1]
+            else:
+                t4 = _measure_time(
+                    lambda: inst.fit(X_train, y_train))[1]
+        except (AttributeError, TypeError, ValueError,
+                IndexError, NotImplementedError) as e:
+            if debug:
+                raise
+            obs["_1training_time_exc"] = str(e)
+            return False
 
+        obs["training_time"] = t4
+        if store_models:
+            obs['MODEL'] = inst
+            obs['X_test'] = X_test
+            obs['Xort_test'] = Xort_test
+            obs['init_types'] = init_types
+    else:
+        obs["training_time"] = 0.
+        if store_models:
+            obs['MODEL'] = inst
+            obs['init_types'] = init_types
 
-def dump_into_folder(dump_folder, obs_op=None, **kwargs):
-    """
-    Dumps information when an error was detected
-    using :epkg:`*py:pickle`.
-
-    @param      dump_folder     dump_folder
-    @param      obs_op          obs_op (information)
-    @kwargs                     kwargs
-    """
-    parts = (obs_op['runtime'], obs_op['name'], obs_op['scenario'],
-             obs_op['problem'], obs_op.get('opset', '-'))
-    name = "dump-ERROR-{}.pkl".format("-".join(map(str, parts)))
-    name = os.path.join(dump_folder, name)
-    obs_op = obs_op.copy()
-    fcts = [k for k in obs_op if k.startswith('lambda')]
-    for fct in fcts:
-        del obs_op[fct]
-    kwargs.update({'obs_op': obs_op})
-    with open(name, "wb") as f:
-        pickle.dump(kwargs, f)
+    return True
 
 
 def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
@@ -157,28 +158,11 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
             continue
         if verbose >= 2 and fLOG is not None:
             fLOG("[enumerate_compatible_opset] problem={}".format(prob))
-        data_problem = _problems[prob]()
-        if len(data_problem) == 6:
-            X_, y_, init_types, method, output_index, Xort_ = data_problem
-            dofit = True
-        elif len(data_problem) == 7:
-            X_, y_, init_types, method, output_index, Xort_, dofit = data_problem
-        else:
-            raise RuntimeError(
-                "Unable to interpret problem '{}'.".format(prob))
-        if y_ is None:
-            (X_train, X_test, Xort_train,  # pylint: disable=W0612
-                Xort_test) = train_test_split(
-                    X_, Xort_, random_state=42)
-        else:
-            (X_train, X_test, y_train, y_test,  # pylint: disable=W0612
-                Xort_train, Xort_test) = train_test_split(
-                    X_, y_, Xort_, random_state=42)
 
-        if isinstance(init_types, tuple):
-            init_types, conv_options = init_types
-        else:
-            conv_options = None
+        (X_train, X_test, y_train,
+         y_test, Xort_test,
+         init_types, conv_options, method_name,
+         output_index, dofit, predict_kwargs) = _get_problem_data(prob)
 
         for scenario, extra in extras:
 
@@ -190,8 +174,9 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
             # training
             obs = {'scenario': scenario, 'name': model.__name__,
                    'skl_version': sklearn_version, 'problem': prob,
-                   'method': method, 'output_index': output_index,
-                   'fit': dofit, 'conv_options': conv_options}
+                   'method_name': method_name, 'output_index': output_index,
+                   'fit': dofit, 'conv_options': conv_options,
+                   'predict_kwargs': predict_kwargs, 'init_types': init_types}
             inst = None
             try:
                 inst = model(**extra)
@@ -203,49 +188,20 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                     "Unable to instantiate model '{}'.\nextra=\n{}".format(
                         model.__name__, pprint.pformat(extra))) from e
 
-            if dofit:
-                if verbose >= 2 and fLOG is not None:
-                    fLOG("[enumerate_compatible_opset] fit")
-                try:
-                    if y_ is None:
-                        t4 = _measure_time(lambda: inst.fit(X_train))[1]
-                    else:
-                        t4 = _measure_time(
-                            lambda: inst.fit(X_train, y_train))[1]
-                except (AttributeError, TypeError, ValueError,
-                        IndexError, NotImplementedError) as e:
-                    if debug:
-                        raise
-                    obs["_1training_time_exc"] = str(e)
-                    yield obs
-                    continue
-
-                obs["training_time"] = t4
-                if store_models:
-                    obs['MODEL'] = inst
-                    obs['X_test'] = X_test
-                    obs['Xort_test'] = Xort_test
-                    obs['init_types'] = init_types
-            else:
-                obs["training_time"] = 0.
-                if store_models:
-                    obs['MODEL'] = inst
-                    obs['init_types'] = init_types
+            if not _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
+                                Xort_test, init_types, store_models,
+                                debug, verbose, fLOG):
+                yield obs
+                continue
 
             # runtime
             if check_runtime:
                 if verbose >= 2 and fLOG is not None:
-                    fLOG("[enumerate_compatible_opset] check_runtime SKL {}-{}".format(
-                        id(inst), method))
+                    fLOG("[enumerate_compatible_opset] check_runtime SKL {}-{}-{}".format(
+                        id(inst), method_name, predict_kwargs))
                 with sklearn.config_context(assume_finite=assume_finite):
                     # compute sklearn prediction
                     obs['ort_version'] = ort_version
-                    if isinstance(method, tuple):
-                        method_name, kwargs = method
-                    else:
-                        method_name = method
-                        kwargs = {}
-                    meth = None
                     try:
                         meth = getattr(inst, method_name)
                     except AttributeError as e:
@@ -256,9 +212,9 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                         continue
                     try:
                         ypred, t4 = _measure_time(
-                            lambda: meth(X_test, **kwargs))
+                            lambda: meth(X_test, **predict_kwargs))
                         obs['lambda-skl'] = (lambda xo: meth(xo,
-                                                             **kwargs), X_test)
+                                                             **predict_kwargs), X_test)
                     except (ValueError, AttributeError, TypeError) as e:
                         if debug:
                             raise
@@ -315,9 +271,11 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                 # prediction
                 if check_runtime:
                     yield _call_runtime(obs_op=obs_op, conv=conv, opset=opset, debug=debug,
-                                        runtime=runtime, inst=inst, X_=X_, y_=y_,
-                                        init_types=init_types, method=method,
-                                        output_index=output_index, Xort_=Xort_,
+                                        runtime=runtime, inst=inst,
+                                        X_test=X_test, y_test=y_test,
+                                        init_types=init_types,
+                                        method_name=method_name,
+                                        output_index=output_index,
                                         ypred=ypred, Xort_test=Xort_test,
                                         model=model, dump_folder=dump_folder,
                                         benchmark=benchmark and opset == opsets[-1],
@@ -328,8 +286,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 
 
 def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
-                  X_, y_, init_types, method, output_index,
-                  Xort_, ypred, Xort_test, model, dump_folder,
+                  X_test, y_test, init_types, method_name, output_index,
+                  ypred, Xort_test, model, dump_folder,
                   benchmark, node_time, disable_single, fLOG,
                   verbose):
     """
@@ -419,9 +377,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                 obs_op['max_rel_diff_batch'] = max_rel_diff
                 if dump_folder and max_rel_diff > 1e-5:
                     dump_into_folder(dump_folder, kind='batch', obs_op=obs_op,
-                                     X_=X_, y_=y_, init_types=init_types,
-                                     method=init_types, output_index=output_index,
-                                     Xort_=Xort_)
+                                     X_test=X_test, y_test=y_test, Xort_test=Xort_test)
                 if debug and max_rel_diff >= 0.1:
                     import pprint
                     raise RuntimeError("Two big differences {}\n{}\n{}\n{}".format(
@@ -498,9 +454,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                     obs_op['max_rel_diff_single'] = max_rel_diff
                     if dump_folder and max_rel_diff > 1e-5:
                         dump_into_folder(dump_folder, kind='single', obs_op=obs_op,
-                                         X_=X_, y_=y_, init_types=init_types,
-                                         method=init_types, output_index=output_index,
-                                         Xort_=Xort_)
+                                         X_test=X_test, y_test=y_test, Xort_test=Xort_test)
                     if debug and max_rel_diff >= 0.1:
                         import pprint
                         raise RuntimeError("Two big differences {}\n{}\n{}\n{}".format(

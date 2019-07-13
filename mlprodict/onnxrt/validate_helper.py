@@ -4,7 +4,10 @@
 The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
+import os
 from importlib import import_module
+import pickle
+from time import perf_counter
 import numpy
 import onnx
 from sklearn.base import BaseEstimator
@@ -101,3 +104,72 @@ def sklearn_operators(subfolder=None):
             if issub:
                 found.append(dict(name=cl.__name__, subfolder=sub, cl=cl))
     return found
+
+
+def to_onnx(model, X=None, name=None, initial_types=None,
+            target_opset=None, options=None):
+    """
+    Converts a model using on :epkg:`sklearn-onnx`.
+
+    @param      model           model to convert
+    @param      X               training set (at least one row),
+                                can be None, it is used to infered the
+                                input types (*initial_types*)
+    @param      initial_types   if *X* is None, then *initial_types* must be
+                                defined
+    @param      name            name of the produced model
+    @param      target_opset    to do it with a different target opset
+    @param      options         additional parameters for the conversion
+    @return                     converted model
+    """
+    from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
+    from skl2onnx.algebra.type_helper import guess_initial_types
+    from skl2onnx import convert_sklearn
+
+    if isinstance(model, OnnxOperatorMixin):
+        return model.to_onnx(X=X, name=name)
+    if name is None:
+        name = model.__class__.__name__
+    initial_types = guess_initial_types(X, initial_types)
+    return convert_sklearn(model, initial_types=initial_types, name=name,
+                           target_opset=target_opset, options=options)
+
+
+def _measure_time(fct):
+    """
+    Measures the execution time for a function.
+    """
+    begin = perf_counter()
+    res = fct()
+    end = perf_counter()
+    return res, end - begin
+
+
+def _shape_exc(obj):
+    if hasattr(obj, 'shape'):
+        return obj.shape
+    if isinstance(obj, (list, dict, tuple)):
+        return "[{%d}]" % len(obj)
+    return None
+
+
+def dump_into_folder(dump_folder, obs_op=None, **kwargs):
+    """
+    Dumps information when an error was detected
+    using :epkg:`*py:pickle`.
+
+    @param      dump_folder     dump_folder
+    @param      obs_op          obs_op (information)
+    @kwargs                     kwargs
+    """
+    parts = (obs_op['runtime'], obs_op['name'], obs_op['scenario'],
+             obs_op['problem'], obs_op.get('opset', '-'))
+    name = "dump-ERROR-{}.pkl".format("-".join(map(str, parts)))
+    name = os.path.join(dump_folder, name)
+    obs_op = obs_op.copy()
+    fcts = [k for k in obs_op if k.startswith('lambda')]
+    for fct in fcts:
+        del obs_op[fct]
+    kwargs.update({'obs_op': obs_op})
+    with open(name, "wb") as f:
+        pickle.dump(kwargs, f)
