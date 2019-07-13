@@ -70,7 +70,8 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         debug = False
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
-            runtime='onnxruntime2', debug=debug, filter_exp=lambda s: "nofit-std" in s))
+            runtime='onnxruntime2', debug=debug,
+            filter_exp=lambda m, s: "nofit-std" in s))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
@@ -91,7 +92,8 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         debug = False
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
-            runtime='python', debug=debug, filter_exp=lambda s: "nofit" in s))
+            runtime='python', debug=debug,
+            filter_exp=lambda m, s: "nofit" in s))
         self.assertGreater(len(rows), 6)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
@@ -113,7 +115,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='python', debug=debug,
-            filter_exp=lambda s: "nofit" not in s and "multi" not in s))
+            filter_exp=lambda m, s: "nofit" not in s and "multi" not in s))
         self.assertGreater(len(rows), 6)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
@@ -134,7 +136,8 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         debug = True
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
-            runtime='python', debug=debug, filter_exp=lambda s: "regression" in s,
+            runtime='python', debug=debug,
+            filter_exp=lambda m, s: "regression" in s,
             disable_single=True))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
@@ -156,7 +159,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         debug = True
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
-            runtime='python', debug=debug, filter_exp=lambda s: s == "reg-std-d2",
+            runtime='python', debug=debug, filter_exp=lambda m, s: s == "reg-std-d2",
             disable_single=True))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
@@ -178,7 +181,8 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         debug = True
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
-            runtime='python', debug=debug, filter_exp=lambda s: s == 'multi-reg-std-d2',
+            runtime='python', debug=debug,
+            filter_exp=lambda m, s: s == 'multi-reg-std-d2',
             disable_single=True))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)

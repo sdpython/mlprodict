@@ -156,7 +156,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                 to predict for different number of rows
     @param      fLOG            logging function
     @param      filter_exp      function which tells if the experiment must be run,
-                                None to run all
+                                None to run all, takes *model, problem* as an input
     @param      node_time       collect time for each node in the :epkg:`ONNX` graph
     @param      assume_finite   See `config_context
                                 <https://scikit-learn.org/stable/modules/generated/
@@ -193,7 +193,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                '_0problem_exc': 'SKIPPED'}
 
     for prob in problems:
-        if filter_exp is not None and not filter_exp(prob):
+        if filter_exp is not None and not filter_exp(model, prob):
             continue
         if verbose >= 2 and fLOG is not None:
             fLOG("[enumerate_compatible_opset] problem={}".format(prob))
@@ -509,7 +509,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     @param      benchmark       if True, measures the time taken by each function
                                 to predict for different number of rows
     @param      filter_exp      function which tells if the experiment must be run,
-                                None to run all
+                                None to run all, takes *model, problem* as an input
     @param      skip_models     models to skip
     @param      assume_finite   See `config_context
                                 <https://scikit-learn.org/stable/modules/generated/

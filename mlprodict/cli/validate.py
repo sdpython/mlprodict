@@ -16,7 +16,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      out_summary="onnx_runtime_summary.xlsx",
                      dump_folder=None, benchmark=False,
                      catch_warnings=True, assume_finite=True,
-                     versions=False, fLOG=print):
+                     versions=False, skip_models=None,
+                     fLOG=print):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -34,6 +35,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         with onnxruntime
     :param models: comma separated list of models to test or empty
         string to test them all
+    :param skip_models: models to skip
     :param debug: stops whenever an exception is raised
     :param out_raw: output raw results into this file (excel format)
     :param out_summary: output an aggregated view into this file (excel format)
@@ -75,6 +77,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                    -m RandomForestRegressor,DecisionTreeRegressor -out bench_onnxruntime.xlsx -b 1
     """
     models = None if models in (None, "") else models.strip().split(',')
+    skip_models = {} if skip_models in (
+        None, "") else skip_models.strip().split(',')
     logger = getLogger('skl2onnx')
     logger.disabled = True
     if not dump_folder:
@@ -95,7 +99,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         rows = list(enumerate_validated_operator_opsets(
             verbose, models=models, fLOG=fLOG, runtime=runtime, debug=debug,
             dump_folder=dump_folder, opset_min=opset_min, opset_max=opset_max,
-            benchmark=benchmark, assume_finite=assume_finite, versions=versions))
+            benchmark=benchmark, assume_finite=assume_finite, versions=versions,
+            filter_exp=lambda m, s: str(m) not in skip_models))
         return rows
 
     if catch_warnings:

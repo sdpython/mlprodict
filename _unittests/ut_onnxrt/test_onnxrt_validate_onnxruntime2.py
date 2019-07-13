@@ -8,6 +8,8 @@ from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import get_temp_folder, ExtTestCase, is_travis_or_appveyor
 from pyquickhelper.texthelper.version_helper import compare_module_version
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from skl2onnx import __version__ as skl2onnx_version
@@ -101,15 +103,18 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         logger.disabled = True
         verbose = 1 if __name__ == "__main__" else 0
         temp = get_temp_folder(
-            __file__, "temp_validate_sklearn_operators_all_onnxruntime")
+            __file__, "temp_validate_sklearn_operators_all_onnxruntime2")
         if False:  # pylint: disable=W0125
             rows = list(enumerate_validated_operator_opsets(
                 verbose, models={"LogisticRegression"}, opset_min=11, fLOG=fLOG,
                 runtime='onnxruntime2', debug=True))
         else:
             rows = []
-            for row in enumerate_validated_operator_opsets(verbose, debug=None, fLOG=fLOG,
-                                                           runtime='onnxruntime2', dump_folder=temp):
+            for row in enumerate_validated_operator_opsets(
+                    verbose, debug=None, fLOG=fLOG, runtime='onnxruntime2',
+                    benchmark=True, dump_folder=temp,
+                    filter_exp=lambda m, s: m not in {AdaBoostRegressor,
+                                                      GaussianProcessClassifier}):
                 rows.append(row)
                 if is_travis_or_appveyor() and len(rows) > 30:
                     break
