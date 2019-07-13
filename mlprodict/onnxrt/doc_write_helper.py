@@ -35,7 +35,7 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         scenario = row['scenario']
         problem = row['problem']
         model = row['MODEL']
-        method = row['method']
+        method = row['method_name']
         title = " - ".join([name, problem, scenario])
         if title in done:
             continue
