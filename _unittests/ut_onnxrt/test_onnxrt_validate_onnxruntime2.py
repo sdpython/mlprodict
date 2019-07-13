@@ -112,7 +112,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
             rows = []
             for row in enumerate_validated_operator_opsets(
                     verbose, debug=None, fLOG=fLOG, runtime='onnxruntime2',
-                    benchmark=True, dump_folder=temp,
+                    benchmark=False, dump_folder=temp,
                     filter_exp=lambda m, s: m not in {AdaBoostRegressor,
                                                       GaussianProcessClassifier}):
                 rows.append(row)
