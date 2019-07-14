@@ -683,7 +683,7 @@ def summary_report(df):
             vals = set(values)
             if len(vals) != 1:
                 return " // ".join(map(str, values))
-        val = values.iloc[0] if not isinstance(val, list) else val[0]
+        val = values.iloc[0] if not isinstance(values, list) else values[0]
         if isinstance(val, float) and numpy.isnan(val):
             return ""
         else:
