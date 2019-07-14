@@ -7,6 +7,8 @@ from logging import getLogger
 from pandas import DataFrame, read_excel
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.gaussian_process import GaussianProcessClassifier
 import sphinx
 from pyquickhelper.loghelper import noLOG
 from pyquickhelper.pycode import is_travis_or_appveyor
@@ -149,7 +151,7 @@ def setup(app):
     """
     app.connect('builder-inited', write_page_onnxrt_benches_python)
     app.connect('builder-inited', write_page_onnxrt_benches_onnxruntime1)
-    app.connect('builder-inited', write_page_onnxrt_benches_onnxruntime2)
+    # app.connect('builder-inited', write_page_onnxrt_benches_onnxruntime2)
     app.connect('builder-inited', write_page_onnxrt_ops)
     return {'version': sphinx.__display_version__,
             'parallel_read_safe': False,
