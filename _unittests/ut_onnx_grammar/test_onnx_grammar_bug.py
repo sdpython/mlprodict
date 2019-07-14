@@ -22,9 +22,13 @@ class TestOnnxGrammarBug(ExtTestCase):
         node = ast.parse(code)
         v = CodeNodeVisitor()
         v.visit(node)
+        rows = []
         for r in v.Rows:
-            print("{0}{1}: {2}".format(
-                "    " * r["indent"], r["type"], r["str"]))
+            rows.append(
+                ("{0}{1}: {2}".format(
+                    "    " * r["indent"], r["type"], r["str"])))
+        final = "\n".join(rows)
+        self.assertIn("Assign:", final)
 
 
 if __name__ == "__main__":
