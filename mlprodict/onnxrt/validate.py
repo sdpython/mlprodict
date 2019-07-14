@@ -607,7 +607,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
             batch = 'max_rel_diff_batch' in obs and diff is not None
             op1 = obs.get('domain_opset_', '')
             op2 = obs.get('domain_opset_ai.onnx.ml', '')
-            op = '{}-{}'.format(op1, op2)
+            op = '{}/{}'.format(op1, op2)
 
             if diff is not None:
                 if diff < 1e-5:
@@ -638,7 +638,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 log_exc = True
                 if len(excs) == 1:
                     name = excs[0][0]
-                    if '_9ort_run_single_exc' in name or '_6ort_run_batch_exc' in name:
+                    if '_9ort_run_single_exc' in name and '_6ort_run_batch_exc' not in name:
                         log_exc = False
                 if log_exc:
                     k, v = excs[0]
@@ -677,6 +677,9 @@ def summary_report(df):
 
     def aggfunc(values):
         if len(values) != 1:
+            values = [str(_).replace("\n", " ").replace('\r', '').strip(" ")
+                      for _ in values]
+            values = [_ for _ in values if _]
             vals = set(values)
             if len(vals) != 1:
                 return " // ".join(map(str, values))
