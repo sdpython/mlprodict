@@ -95,7 +95,8 @@ class CodeNodeVisitor(ast.NodeVisitor):
         """
         Displays line and column information into a string.
         """
-        return "line {}, col {}".format(node.lineno, node.col_offset)
+        return "line {}, col {}".format(getattr(node, 'lineno', '?'),
+                                        getattr(node, 'col_offset', '?'))
 
     def visit(self, node):
         """
@@ -282,6 +283,12 @@ class CodeNodeVisitor(ast.NodeVisitor):
 
     def visit_Div(self, node):  # pylint: disable=C0111
         cont = {"indent": self._indent, "type": "Div",
+                "str": "", "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Sub(self, node):  # pylint: disable=C0111
+        cont = {"indent": self._indent, "type": "Sub",
                 "str": "", "node": node}
         self.push(cont)
         return self.generic_visit_args(node, cont)

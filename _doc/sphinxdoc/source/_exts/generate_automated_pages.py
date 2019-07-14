@@ -61,41 +61,41 @@ def write_page_onnxrt_benches(app, runtime, skip=None):
                " --skip_models={}".format(','.join(skip)) if skip else ""))
     logger.info("[mlprodict] cmd '{}'.".format(cmd))
     print("[mlprodict-sphinx] cmd '{}'".format(cmd))
-    out, err=run_cmd(cmd, wait=True, fLOG=print)
+    out, err = run_cmd(cmd, wait=True, fLOG=print)
 
     logger.info("[mlprodict] reading '{}'.".format(out_sum))
     print("[mlprodict-sphinx] reading '{}'".format(out_sum))
 
     if os.path.exists(out_sum):
-        piv=read_excel(out_sum)
+        piv = read_excel(out_sum)
 
         logger.info("[mlprodict] shape '{}'.".format(piv.shape))
         print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
 
         def make_link(row):
-            link=":ref:`{name} <l-{name}-{problem}-{scenario}>`"
-            name=row['name']
-            problem=row['problem']
-            scenario=row['scenario']
+            link = ":ref:`{name} <l-{name}-{problem}-{scenario}>`"
+            name = row['name']
+            problem = row['problem']
+            scenario = row['scenario']
             return link.format(name=name, problem=problem,
                                scenario=scenario)
 
-        piv['name']=piv.apply(lambda row: make_link(row), axis=1)
+        piv['name'] = piv.apply(lambda row: make_link(row), axis=1)
 
         if "ERROR-msg" in piv.columns:
             def shorten(text):
-                text=str(text)
+                text = str(text)
                 if len(text) > 75:
-                    text=text[:75] + "..."
+                    text = text[:75] + "..."
                 return text
 
-            piv["ERROR-msg"]=piv["ERROR-msg"].apply(shorten)
+            piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
 
         logger.info("[mlprodict] write '{}'.".format(whe))
         print("[mlprodict-sphinx] write '{}'".format(whe))
 
         with open(whe, 'w', encoding='utf-8') as f:
-            title="Available of scikit-learn model for runtime {0}".format(
+            title = "Available of scikit-learn model for runtime {0}".format(
                 runtime)
             f.write(dedent('''
             .. _l-onnx-bench-{0}:
@@ -138,7 +138,7 @@ def write_page_onnxrt_benches_python(app):
 
 def write_page_onnxrt_benches_onnxruntime2(app):
     write_page_onnxrt_benches(app, 'onnxruntime2',
-        {AdaBoostRegressor, GaussianProcessClassifier})
+                              {AdaBoostRegressor, GaussianProcessClassifier})
 
 
 def write_page_onnxrt_benches_onnxruntime1(app):

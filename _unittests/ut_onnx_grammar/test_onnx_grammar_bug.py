@@ -1,0 +1,31 @@
+"""
+@brief      test log(time=4s)
+"""
+import unittest
+import ast
+import inspect
+from textwrap import dedent
+from pyquickhelper.pycode import ExtTestCase
+from mlprodict.onnx_grammar import CodeNodeVisitor
+
+
+class TestOnnxGrammarBug(ExtTestCase):
+
+    def test_bug1(self):
+
+        def norm2(x, y):
+            delta = x - y
+            n = delta ** 2
+            return n
+
+        code = dedent(inspect.getsource(norm2))
+        node = ast.parse(code)
+        v = CodeNodeVisitor()
+        v.visit(node)
+        for r in v.Rows:
+            print("{0}{1}: {2}".format(
+                "    " * r["indent"], r["type"], r["str"]))
+
+
+if __name__ == "__main__":
+    unittest.main()
