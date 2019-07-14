@@ -56,7 +56,7 @@ def write_page_onnxrt_benches(app, runtime, skip=None):
     cmd = ('{0} -m mlprodict validate_runtime --verbose=1 --out_raw={1} --out_summary={2} '
            '--benchmark=1 --dump_folder={3} --runtime={4}{5}'.format(
                get_interpreter_path(), out_raw, out_sum, srcdir, runtime,
-               " --skip_models={}".format(','.join(skip)) if skip else "")
+               " --skip_models={}".format(','.join(skip)) if skip else ""))
     logger.info("[mlprodict] cmd '{}'.".format(cmd))
     print("[mlprodict-sphinx] cmd '{}'".format(cmd))
     out, err=run_cmd(cmd, wait=True, fLOG=print)

@@ -6,7 +6,7 @@ import unittest
 from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase, is_travis_or_appveyor
+from pyquickhelper.pycode import get_temp_folder, ExtTestCase
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.gaussian_process import GaussianProcessClassifier
@@ -116,7 +116,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
                     filter_exp=lambda m, s: m not in {AdaBoostRegressor,
                                                       GaussianProcessClassifier}):
                 rows.append(row)
-                if is_travis_or_appveyor() and len(rows) > 30:
+                if len(rows) > 30:
                     break
 
         self.assertGreater(len(rows), 1)

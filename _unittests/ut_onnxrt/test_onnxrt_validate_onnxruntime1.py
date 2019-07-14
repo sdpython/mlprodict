@@ -1,12 +1,12 @@
 """
-@brief      test log(time=218s)
+@brief      test log(time=5s)
 """
 import os
 import unittest
 from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase, is_travis_or_appveyor
+from pyquickhelper.pycode import get_temp_folder, ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import sklearn_operators, enumerate_validated_operator_opsets, summary_report
@@ -37,7 +37,7 @@ class TestOnnxrtValidateOnnxRuntime1(ExtTestCase):
                     verbose, debug=None, fLOG=fLOG, runtime='onnxruntime1',
                     dump_folder=temp, skip_models={"GaussianProcessRegressor"}):
                 rows.append(row)
-                if is_travis_or_appveyor() and len(rows) > 20:
+                if len(rows) > 20:
                     break
 
         self.assertGreater(len(rows), 1)
