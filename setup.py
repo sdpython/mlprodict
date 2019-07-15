@@ -184,7 +184,7 @@ if not r:
     except ImportError:
         clean_readme = None
     from mlprodict import __version__ as sversion
-    long_description = clean_readme(long_description) if clean_readme is None else long_description
+    long_description = clean_readme(long_description) if clean_readme is not None else long_description
     root = os.path.abspath(os.path.dirname(__file__))
 
     if sys.platform.startswith("win"):
