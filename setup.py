@@ -17,7 +17,7 @@ requirements = None
 
 KEYWORDS = project_var_name + ', Xavier Dupré'
 DESCRIPTION = ("Python Runtime for ONNX models, other helpers to convert "
-               "machine learned models in C++")
+               "machine learned models in C++.")
 CLASSIFIERS = [
     'Programming Language :: Python :: 3',
     'Intended Audience :: Developers',
