@@ -31,9 +31,12 @@ CLASSIFIERS = [
 # data
 #######
 
+here = os.path.dirname(__file__)
 packages = find_packages()
-package_dir = {k: os.path.join('.', k.replace(".", "/")) for k in packages}
-package_data = {}
+package_dir = {k: os.path.join(here, k.replace(".", "/")) for k in packages}
+package_data = {
+    project_var_name + ".onnxrt.ops_cpu": ["*.cpp", "*.hpp"],
+}
 
 ############
 # functions
