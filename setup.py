@@ -46,9 +46,10 @@ def ask_help():
 
 def is_local():
     file = os.path.abspath(__file__).replace("\\", "/").lower()
-    if "/temp/" in file and "pip-" in file:
+    try:
+        from pyquickhelper.pycode.setup_helper import available_commands_list
+    except ImportError:
         return False
-    from pyquickhelper.pycode.setup_helper import available_commands_list
     return available_commands_list(sys.argv)
 
 
@@ -91,18 +92,23 @@ if is_local() and not ask_help():
         from pyquickhelper.pycode import write_version_for_setup
         return write_version_for_setup(__file__)
 
-    write_version()
+    try:
+        write_version()
+        subversion = None
+    except Exception:
+        subversion = ""
 
-    versiontxt = os.path.join(os.path.dirname(__file__), "version.txt")
-    if os.path.exists(versiontxt):
-        with open(versiontxt, "r") as f:
-            lines = f.readlines()
-        subversion = "." + lines[0].strip("\r\n ")
-        if subversion == ".0":
-            raise Exception("git version is wrong: '{0}'.".format(subversion))
-    else:
-        raise FileNotFoundError(
-            "Unable to find '{0}' argv={1}".format(versiontxt, sys.argv))
+    if subversion is None:
+        versiontxt = os.path.join(os.path.dirname(__file__), "version.txt")
+        if os.path.exists(versiontxt):
+            with open(versiontxt, "r") as f:
+                lines = f.readlines()
+            subversion = "." + lines[0].strip("\r\n ")
+            if subversion == ".0":
+                raise Exception(
+                    "Git version is wrong: '{0}'.".format(subversion))
+        else:
+            subversion = ""
 else:
     # when the module is installed, no commit number is displayed
     subversion = ""
