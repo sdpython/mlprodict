@@ -17,7 +17,8 @@ from ..onnxrt.validate_difference import measure_relative_difference
 def convert_validate(pkl, data, method="predict",
                      name='Y', outonnx="model.onnx",
                      runtime='python', metric="l1med",
-                     noshape=False, fLOG=print, verbose=1):
+                     use_double=False, noshape=False,
+                     fLOG=print, verbose=1):
     """
     Converts a model stored in *pkl* file and measure the differences
     between the model and the ONNX predictions.
@@ -34,6 +35,7 @@ def convert_validate(pkl, data, method="predict",
         :func:`measure_relative_difference
         <mlprodict.onnxrt.validate_difference.measure_relative_difference>`
     :param noshape: run the conversion with no shape information
+    :param use_double: use double for the runtime if possible
     :param verbose: verbose level
     :param fLOG: logging function
     :return: a dictionary with the results
@@ -116,6 +118,10 @@ def convert_validate(pkl, data, method="predict",
     if verbose > 0:
         fLOG("[convert_validate] creates OnnxInference session")
     sess = OnnxInference(onx, runtime=runtime)
+    if use_double:
+        if verbose > 0:
+            fLOG("[convert_validate] switch to double")
+        sess.switch_initializers_dtype(model)
 
     if verbose > 0:
         fLOG("[convert_validate] compute prediction from model")

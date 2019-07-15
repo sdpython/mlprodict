@@ -7,6 +7,7 @@ from collections import OrderedDict
 from io import BytesIO
 import json
 from time import perf_counter
+import warnings
 import numpy
 from onnx import load, load_model, checker, shape_inference
 from onnx import onnx_pb as onnx_proto
@@ -761,7 +762,8 @@ class OnnxInference:
             return values
         else:
             if verbose != 0:
-                raise NotImplementedError("verbose option not implemented.")
+                warnings.warn(
+                    "verbose option not implemented if runtime is 'onnxruntime1'")
             res = self._whole.run(inputs)
             return {k: v for k, v in zip(self.outputs_, res)}
 
