@@ -69,7 +69,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
 
         res = oinf.run({'X': X_test})
         ym2, std2 = res['GPmean'], res['GPcovstd']
-        self.assertEqualArray(ym, ym2)
+        self.assertEqualArray(numpy.squeeze(ym), numpy.squeeze(ym2), decimal=5)
         self.assertEqualArray(std, std2)
 
         res = oinf.switch_initializers_dtype(clr)
@@ -109,7 +109,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
 
         res = oinf.run({'X': X_test})
         ym2, std2 = res['GPmean'], res['GPcovstd']
-        self.assertEqualArray(ym, ym2)
+        self.assertEqualArray(numpy.squeeze(ym), numpy.squeeze(ym2))
         self.assertEqualArray(std, std2, decimal=5)
 
         res = oinf.switch_initializers_dtype(clr)

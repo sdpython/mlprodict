@@ -44,7 +44,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
     def test_kernel_ker12_def(self):
         ker = (Sum(CK(0.1, (1e-3, 1e3)), CK(0.1, (1e-3, 1e3)) *
                    RBF(length_scale=1, length_scale_bounds=(1e-3, 1e3))))
-        onx = convert_kernel(ker, 'X', output_names=['Y'])
+        onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32)
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType(['', '']))],
             outputs=[('Y', FloatTensorType(['', '']))])
@@ -62,7 +62,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=1,
                                        length_scale_bounds=(1e-3, 1e3))
         )
-        onx = convert_kernel(ker, 'X', output_names=['Y'])
+        onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32)
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType(['', '']))],
             outputs=[('Y', FloatTensorType(['', '']))])

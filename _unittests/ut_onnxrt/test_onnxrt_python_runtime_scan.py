@@ -32,7 +32,7 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('input', 'input')
-        cdist = onnx_squareform_pdist(cop)
+        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
         cop2 = OnnxIdentity(cdist, output_names=['cdist'])
 
         model_def = cop2.to_onnx(
@@ -60,7 +60,8 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
         x2 = numpy.array([1.1, 2.1, 4.01, 5.01, 5.001, 4.001, 0, 0]).astype(
             numpy.float32).reshape((4, 2))
         cop = OnnxAdd('input', 'input')
-        cop2 = OnnxIdentity(onnx_cdist(cop, x2), output_names=['cdist'])
+        cop2 = OnnxIdentity(onnx_cdist(cop, x2, dtype=numpy.float32),
+                            output_names=['cdist'])
 
         model_def = cop2.to_onnx(
             inputs=[('input', FloatTensorType(['aaa', 'bbb']))],
@@ -80,7 +81,8 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
                          [5.6, 2.9, 3.6, 1.3],
                          [6.9, 3.1, 5.1, 2.3]], dtype=numpy.float32)
         cop = OnnxAdd('input', 'input')
-        cop2 = OnnxIdentity(onnx_cdist(cop, x), output_names=['cdist'])
+        cop2 = OnnxIdentity(onnx_cdist(cop, x, dtype=numpy.float32),
+                            output_names=['cdist'])
 
         model_def = cop2.to_onnx(
             inputs=[('input', FloatTensorType(['aaa', 'bbb']))],
@@ -104,7 +106,7 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
         X_test = X[1::2]
         # y_test = y[1::2]
         onx = OnnxIdentity(onnx_cdist(OnnxIdentity('X'), X_train.astype(numpy.float32),
-                                      metric="euclidean"),
+                                      metric="euclidean", dtype=numpy.float32),
                            output_names=['Y'])
         final = onx.to_onnx(inputs=[('X', FloatTensorType(['a', 'b']))],
                             outputs=[('Y', FloatTensorType())])
