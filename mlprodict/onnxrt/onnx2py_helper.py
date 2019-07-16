@@ -121,8 +121,19 @@ def _var_as_dict(var):
         # initializer
         dims = [d for d in var.dims]
         if var.data_type == 1 and var.float_data is not None:
-            data = numpy.array(var.float_data, dtype=numpy.float32,
-                               copy=False).reshape(dims)
+            try:
+                data = numpy.array(var.float_data, dtype=numpy.float32,
+                                   copy=False).reshape(dims)
+            except ValueError:
+                from onnx.numpy_helper import to_array
+                data = to_array(var)
+        elif var.data_type == 11 and var.double_data is not None:
+            try:
+                data = numpy.array(var.double_data, dtype=numpy.float64,
+                                   copy=False).reshape(dims)
+            except ValueError:
+                from onnx.numpy_helper import to_array
+                data = to_array(var)
         elif var.data_type == 6 and var.int32_data is not None:
             data = numpy.array(var.int32_data, dtype=numpy.int32,
                                copy=False).reshape(dims)

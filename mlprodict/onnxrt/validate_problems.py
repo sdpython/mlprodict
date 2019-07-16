@@ -44,6 +44,9 @@ from sklearn.neighbors import (
 )
 from sklearn.semi_supervised import LabelPropagation, LabelSpreading
 from sklearn.svm import LinearSVC, LinearSVR, NuSVR, SVR, SVC, NuSVC
+from skl2onnx.common.data_types import (
+    FloatTensorType, DoubleTensorType
+)
 
 
 def _problem_for_predictor_binary_classification():
@@ -272,6 +275,14 @@ def find_suitable_problem(model):
     The suffix `-cov` indicates the method `predict` was called
     with parameter ``return_cov=True``, `-std` tells
     method `predict` was called with parameter ``return_std=True``.
+    The suffix ``-noshapevar`` creates an input variable
+    like the following ``[('X', FloatTensorType(["da", "db"]))]``.
+    That's a way to bypass :epkg:`onnxruntime` shape checking
+    as one part of the graph is designed to handle any
+    kind of dimensions but apparently, if the input shape is
+    precise, every part of the graph has to be precise. The strings
+    used variables which means it is at the same time precise
+    and unprecise.
 
     The following script gives the list of :epkg:`scikit-learn`
     models and the problem they can be fitted on.
@@ -293,9 +304,9 @@ def find_suitable_problem(model):
         return ['reg-nofit', 'multi-reg-nofit',
                 'reg-nofit-cov', 'multi-reg-nofit-cov',
                 'reg-nofit-std', 'multi-reg-nofit-std',
-                'regression', 'multi-reg',
+                'reg-noshapevar', 'multi-reg-noshapevar',
                 'reg-cov', 'multi-reg-cov',
-                'reg-std-d2', 'multi-reg-std-d2']
+                'reg-std-d2-noshapevar', 'mreg-std-d2-noshapevar']
 
     if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
                  ComplementNB, GaussianNB, GaussianProcessClassifier,
@@ -402,6 +413,40 @@ def find_suitable_problem(model):
                        "".format(model.__name__, model.__bases__))
 
 
+def _guess_noshape(obj, shape):
+    if isinstance(obj, numpy.ndarray):
+        if obj.dtype == numpy.float32:
+            return FloatTensorType(shape)
+        elif obj.dtype == numpy.float64:
+            return DoubleTensorType(shape)
+        else:
+            raise NotImplementedError(
+                "Unable to process object(1) [{}].".format(obj))
+    else:
+        raise NotImplementedError(
+            "Unable to process object(2) [{}].".format(obj))
+
+
+def _noshapevar(fct):
+
+    def process_itt(itt, Xort):
+        if isinstance(itt, tuple):
+            return (process_itt(itt[0], Xort), itt[1])
+        else:
+            name = "V%s_" % str(id(Xort))[:5]
+            new_itt = []
+            for i, (a, b) in enumerate(itt):
+                shape = [name + str(i) for s in b.shape]
+                new_itt.append((a, _guess_noshape(b, shape)))
+            return new_itt
+
+    def new_fct(**kwargs):
+        X, y, itt, meth, mo, Xort = fct(**kwargs)
+        new_itt = process_itt(itt, Xort)
+        return X, y, new_itt, meth, mo, Xort
+    return new_fct
+
+
 _problems = {
     "bin-class": _problem_for_predictor_binary_classification,
     "multi-class": _problem_for_predictor_multi_classification,
@@ -443,4 +488,13 @@ _problems = {
     "multi-reg-std-d2": (lambda: _problem_for_predictor_multi_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
         return_std=True, nbfeat=2, nbrows=10)),
+    #
+    'reg-noshapevar': _noshapevar(_problem_for_predictor_regression),
+    'multi-reg-noshapevar': _noshapevar(_problem_for_predictor_multi_regression),
+    "reg-std-d2-noshapevar": (_noshapevar(lambda: _problem_for_predictor_regression(
+        True, options={GaussianProcessRegressor: {"return_std": True}},
+        return_std=True, nbfeat=2, nbrows=10))),
+    "mreg-std-d2-noshapevar": (_noshapevar(lambda: _problem_for_predictor_multi_regression(
+        True, options={GaussianProcessRegressor: {"return_std": True}},
+        return_std=True, nbfeat=2, nbrows=10))),
 }

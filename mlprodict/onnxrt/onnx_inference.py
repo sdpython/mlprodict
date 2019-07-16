@@ -750,6 +750,8 @@ class OnnxInference:
             for node, oinf in self.intermediate_onnx_inference_.items():
                 if verbose >= 1:
                     fLOG(node)
+                    if verbose >= 2:
+                        fLOG(oinf.obj)
                 output = oinf.run(inputs)[node]
                 values[node] = output
                 if verbose >= 1:

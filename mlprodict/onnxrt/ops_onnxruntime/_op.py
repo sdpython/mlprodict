@@ -7,7 +7,7 @@ import numpy
 import onnx.defs
 from onnx.helper import make_tensor
 from onnx import TensorProto
-from onnxruntime import InferenceSession, SessionOptions
+from onnxruntime import InferenceSession, SessionOptions, RunOptions
 import skl2onnx.algebra.onnx_ops as alg
 from ..graph_schema_helper import get_defined_inputs, get_defined_outputs
 
@@ -22,16 +22,19 @@ class OpRunOnnxRuntime:
     to compute predictions for one operator.
     """
 
-    def __init__(self, onnx_node, desc=None, variables=None, **options):
+    def __init__(self, onnx_node, desc=None, variables=None,
+                 f32=True, **options):
         """
         @param      onnx_node               :epkg:`onnx` node
         @param      desc                    internal representation
         @param      variables               registered variables created by previous operators
+        @param      f32                     forces float32 if True for every matrix with doubles
         @param      options                 runtime options
         """
         self._provider = 'onnxruntime'
         self.onnx_node = onnx_node
         self.desc = desc
+        self.f32 = f32
         self._schema = _schemas[onnx_node.op_type]
         if desc is not None:
             if 'atts' in desc:
@@ -122,8 +125,16 @@ class OpRunOnnxRuntime:
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
 
         sess_options = SessionOptions()
+        self.run_options = RunOptions()
         try:
             sess_options.session_log_severity_level = 3
+            # sess_options.sessions_log_verbosity_level = 0
+        except AttributeError:
+            # onnxruntime not recent enough.
+            pass
+        try:
+            self.run_options.run_log_severity_level = 3
+            # self.run_options.run_log_verbosity_level = 0
         except AttributeError:
             # onnxruntime not recent enough.
             pass
@@ -140,12 +151,16 @@ class OpRunOnnxRuntime:
         """
         Should be overwritten.
         """
-        def f32(X):
-            if hasattr(X, 'dtype') and X.dtype == numpy.float64:
-                return X.astype(numpy.float32)
-            else:
-                return X
+        if self.f32:
+            def f32(X):
+                if hasattr(X, 'dtype') and X.dtype == numpy.float64:
+                    return X.astype(numpy.float32)
+                else:
+                    return X
 
-        inputs = {name: f32(val) for name, val in zip(self.inputs, args)}
-        res = self.sess_.run(None, inputs)
+            inputs = {name: f32(val) for name, val in zip(self.inputs, args)}
+        else:
+            inputs = {name: val for name, val in zip(self.inputs, args)}
+
+        res = self.sess_.run(None, inputs, self.run_options)
         return tuple(res)

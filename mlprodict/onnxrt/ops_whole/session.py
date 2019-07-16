@@ -3,7 +3,7 @@
 @file
 @brief Shortcut to *ops_whole*.
 """
-from onnxruntime import InferenceSession, SessionOptions
+from onnxruntime import InferenceSession, SessionOptions, RunOptions
 
 
 class OnnxWholeSession:
@@ -25,8 +25,16 @@ class OnnxWholeSession:
             onnx_data = onnx_data.SerializeToString()
         self.runtime = runtime
         sess_options = SessionOptions()
+        self.run_options = RunOptions()
         try:
             sess_options.session_log_severity_level = 3
+            # sess_options.sessions_log_verbosity_level = 0
+        except AttributeError:
+            # onnxruntime not recent enough.
+            pass
+        try:
+            self.run_options.run_log_severity_level = 3
+            # self.run_options.run_log_verbosity_level = 0
         except AttributeError:
             # onnxruntime not recent enough.
             pass
@@ -39,4 +47,4 @@ class OnnxWholeSession:
         @param      inputs      dictionary *{variable, value}*
         @return                 list of outputs
         """
-        return self.sess.run(None, inputs)
+        return self.sess.run(None, inputs, self.run_options)
