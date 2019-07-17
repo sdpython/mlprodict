@@ -7,7 +7,6 @@ from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import get_temp_folder, ExtTestCase
-from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.exceptions import ConvergenceWarning
@@ -36,8 +35,6 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_onnxruntime_BernoulliNB(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -57,8 +54,6 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_onnxruntime_AdaBoostRegressor(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

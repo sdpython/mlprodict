@@ -112,7 +112,7 @@ class TestOnnxGrammarTranslate(ExtTestCase):
         v.visit(node)
         onnx_code = v.export(context={'numpy_abs': numpy.abs})
         exp = dedent("""
-            def addition(x, y):
+            def addition(x, y, dtype=numpy.float32):
                 z = (
                     OnnxAdd(
                         x,
@@ -157,7 +157,7 @@ class TestOnnxGrammarTranslate(ExtTestCase):
         v.visit(node)
         onnx_code = v.export(context={'numpy.abs': numpy.abs})
         exp = dedent("""
-            def addition(x, y):
+            def addition(x, y, dtype=numpy.float32):
                 z = (
                     OnnxAdd(
                         x,
@@ -187,7 +187,7 @@ class TestOnnxGrammarTranslate(ExtTestCase):
         v.visit(node)
         onnx_code = v.export(context={'numpy.transpose': numpy.transpose})
         exp = dedent("""
-            def trs(x, y):
+            def trs(x, y, dtype=numpy.float32):
                 z = (
                     OnnxAdd(
                         x,
@@ -216,7 +216,7 @@ class TestOnnxGrammarTranslate(ExtTestCase):
             trs, context={'numpy.transpose': numpy.transpose},
             output_names=['Z'])
         exp = dedent("""
-            def trs(x, y):
+            def trs(x, y, dtype=numpy.float32):
                 z = (
                     OnnxAdd(
                         x,

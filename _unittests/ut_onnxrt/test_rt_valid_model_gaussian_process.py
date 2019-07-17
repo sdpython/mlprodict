@@ -6,7 +6,6 @@ from logging import getLogger
 import numpy
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
-from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from sklearn.gaussian_process.kernels import RBF, ExpSineSquared
@@ -16,13 +15,8 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 from mlprodict.onnxrt import OnnxInference
 
 
-threshold = "1.5.0"
-
-
 class TestRtValidateGaussianProcess(ExtTestCase):
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
-                     reason="scan")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_kernel_rbf1(self):
         from skl2onnx.operator_converters.gaussian_process import convert_kernel
@@ -37,8 +31,6 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         m2 = ker(Xtest_)
         self.assertEqualArray(m1, m2)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
-                     reason="scan")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_kernel_exp_sine_squared(self):
         from skl2onnx.operator_converters.gaussian_process import convert_kernel
@@ -53,8 +45,6 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         m2 = ker(Xtest_)
         self.assertEqualArray(m1, m2, decimal=5)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
-                     reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_GaussianProcessRegressor_onnxruntime_nofit(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -75,8 +65,6 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
-                     reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_GaussianProcessRegressor_python_nofit(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -97,8 +85,6 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 6)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
-                     reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_GaussianProcessRegressor_python_fit(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -119,8 +105,6 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 6)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
-                     reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_GaussianProcessRegressor_debug(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -142,8 +126,6 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
-                     reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @skipif_circleci("to investigate, shape of predictions are different")
     def test_rt_GaussianProcessRegressor_debug_std(self):
@@ -165,8 +147,6 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
-                     reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @skipif_circleci("to investigate, shape of predictions are different")
     def test_rt_GaussianProcessRegressor_debug_multi(self):

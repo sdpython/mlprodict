@@ -374,7 +374,8 @@ class OnnxTranslator(CodeTranslator):
         for fct in stack_fct_used:
             header.append(
                 "    _{0} = lambda *args, **kwargs: {0}(*args, dtype=dtype, **kwargs)".format(fct))
-        header.append('')
+        if len(header) > 0:
+            header.append('')
         rows[index:index + 1] = header
 
         return "\n".join(rows)

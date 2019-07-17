@@ -4,7 +4,6 @@
 import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
@@ -14,9 +13,6 @@ from mlprodict.onnx_grammar.onnx_translation import get_default_context, get_def
 from mlprodict.onnx_grammar.onnx_translation import (
     py_make_float_array, py_pow, squareform_pdist, py_mul, py_opp
 )
-
-
-threshold = "1.5.0"
 
 
 class TestOnnxGrammarSpecific(ExtTestCase):
@@ -66,8 +62,6 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         self.assertIn("-2", onnx_code)
         self.assertIn('metric="euclidean"', onnx_code)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
-                     reason="missing complex functions")
     def test_export_sklearn_kernel_error_prefix(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
 
@@ -81,8 +75,6 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         self.assertRaise(lambda: translate_fct2onnx(kernel_call_ynone, output_names=['Z']),
                          RuntimeError, "'onnx_'")
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
-                     reason="missing complex functions")
     def test_export_sklearn_kernel_exp_sine_squared(self):
 
         x = numpy.array([[1, 2], [3, 4]], dtype=float)
@@ -229,8 +221,6 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         res = oinf.run(inputs)
         self.assertEqualArray(exp, res['Z'])
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, threshold) <= 0,
-                     reason="missing complex functions")
     def test_export_sklearn_kernel_rational_quadratic(self):
 
         def kernel_rational_quadratic_none(X, length_scale=1.0, alpha=2.0):

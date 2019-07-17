@@ -6,7 +6,6 @@ from logging import getLogger
 import numpy
 from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase
-from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.utils.extmath import softmax
 from sklearn.utils.testing import ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
@@ -117,8 +116,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(numpy.argmin(X, axis=1).ravel(),
                               got['Y'].ravel())
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="int64 not implemented for constants")
     def test_onnxt_runtime_array_feature_extractor(self):
         onx = OnnxArrayFeatureExtractor('X', numpy.array([1], dtype=numpy.int64),
                                         output_names=['Y'])
@@ -131,8 +128,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(got['Y'].shape, (2, 1))
         self.assertEqualArray(X[:, 1:2], got['Y'], decimal=6)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="int64 not implemented for constants")
     def test_onnxt_runtime_array_feature_extractor_cmp(self):
         X = numpy.array([3.3626876, 2.204158, 2.267245, 1.297554, 0.97023404],
                         dtype=numpy.float32)
@@ -152,8 +147,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         got2 = oinf2.run({'X': X})['Y']
         self.assertEqualArray(got, got2)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="int64 not implemented for constants")
     def test_onnxt_runtime_array_feature_extractor_cmp2(self):
         X = numpy.array([[3.3626876, 2.204158, 2.267245, 1.297554, 0.97023404],
                          [-3.3626876, -2.204158, -2.267245, -1.297554, -0.97023404]],
@@ -460,8 +453,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_sin(self):
         self.common_test_onnxt_runtime_unary(OnnxSin, numpy.sin)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="int64 not implemented for constants")
     def test_onnxt_runtime_slice(self):
         x = numpy.random.randn(20, 10, 5).astype(numpy.float32)
         y = x[0:3, 0:10]
@@ -520,8 +511,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_sum(self):
         self.common_test_onnxt_runtime_binary(OnnxSum, lambda x, y: x + y)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="int64 not implemented for constants")
     def test_onnxt_runtime_topk(self):
         X = numpy.array([[0, 1, 2, 3, 4],
                          [1, -1, -2, 4, 5],
@@ -606,8 +595,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                           dtype=numpy.float32)
         self.assertEqualArray(exp, got['Y'])
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="int64 not implemented for constants")
     def test_onnxt_runtime_topk2(self):
         X = numpy.array([[-0., -0.08000002, -2., -2.88000023]],
                         dtype=numpy.float32)

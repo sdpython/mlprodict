@@ -17,7 +17,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
-from pyquickhelper.texthelper.version_helper import compare_module_version
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier,
     OnnxConstantOfShape, OnnxShape, OnnxIdentity
@@ -217,8 +216,6 @@ class TestOnnxrtSimple(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="some node have null names")
     def test_onnxt_knn_iris_dot(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -261,8 +258,6 @@ class TestOnnxrtSimple(ExtTestCase):
         dot = oinf.to_dot()
         self.assertIn('ConstantOfShape', dot)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="pdist does not exist")
     def test_onnxt_pdist_dot(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist  # pylint: disable=E0401,E0611
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(

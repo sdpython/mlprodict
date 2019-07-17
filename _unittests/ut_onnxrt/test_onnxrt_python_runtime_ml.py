@@ -12,7 +12,6 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from pyquickhelper.pycode import ExtTestCase
-from pyquickhelper.texthelper.version_helper import compare_module_version
 from skl2onnx import to_onnx
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
@@ -62,8 +61,6 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         self.assertEqualArray(exp, got['scores'], decimal=4)
         self.assertGreater(len(rows), 2)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="int64 not implemented for constants")
     def test_onnxrt_python_KNeighborsClassifier(self):
         iris = load_iris()
         X, y = iris.data, iris.target

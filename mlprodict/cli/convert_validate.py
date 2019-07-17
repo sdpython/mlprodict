@@ -8,7 +8,7 @@ from logging import getLogger
 import warnings
 import numpy
 from pandas import read_csv
-from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from skl2onnx import to_onnx
 from ..onnxrt import OnnxInference
 from ..onnxrt.validate_difference import measure_relative_difference
@@ -17,7 +17,7 @@ from ..onnxrt.validate_difference import measure_relative_difference
 def convert_validate(pkl, data, method="predict",
                      name='Y', outonnx="model.onnx",
                      runtime='python', metric="l1med",
-                     use_double=False, noshape=False,
+                     use_double=None, noshape=False,
                      fLOG=print, verbose=1):
     """
     Converts a model stored in *pkl* file and measure the differences
@@ -35,7 +35,12 @@ def convert_validate(pkl, data, method="predict",
         :func:`measure_relative_difference
         <mlprodict.onnxrt.validate_difference.measure_relative_difference>`
     :param noshape: run the conversion with no shape information
-    :param use_double: use double for the runtime if possible
+    :param use_double: use double for the runtime if possible,
+        two possible options, ``"float64"`` or ``'switch'``,
+        the first option produces an ONNX file with doubles,
+        the second option loads an ONNX file (float or double)
+        and replaces matrices in ONNX with the matrices coming from
+        the model, this second way is just for testing purposes
     :param verbose: verbose level
     :param fLOG: logging function
     :return: a dictionary with the results
@@ -81,6 +86,9 @@ def convert_validate(pkl, data, method="predict",
     """
     if fLOG is None:
         verbose = 0
+    if use_double not in (None, 'float64', 'switch'):
+        raise ValueError(
+            "use_double must be either None, 'float64' or 'switch'")
     if verbose == 0:
         logger = getLogger('skl2onnx')
         logger.disabled = True
@@ -99,16 +107,24 @@ def convert_validate(pkl, data, method="predict",
     df = read_csv(data)
     if verbose > 0:
         fLOG("[convert_validate] convert data into matrix")
-    numerical = df.values.astype(numpy.float32)
+
+    if use_double == 'float64':
+        dtype = numpy.float64
+        tensor_type = DoubleTensorType
+    else:
+        dtype = numpy.float32
+        tensor_type = FloatTensorType
+    numerical = df.values.astype(dtype)
     if noshape:
         if verbose > 0:
             fLOG("[convert_validate] convert the model with no shape information")
         onx = to_onnx(model, initial_types=[
-                      ('X', FloatTensorType(['dim1', 'dim2']))])
+                      ('X', tensor_type(['dim1', 'dim2']))],
+                      dtype=dtype)
     else:
         if verbose > 0:
             fLOG("[convert_validate] convert the model with shapes")
-        onx = to_onnx(model, numerical)
+        onx = to_onnx(model, numerical, dtype=dtype)
     if verbose > 0:
         fLOG("[convert_validate] saves to '{}'".format(outonnx))
     memory = onx.SerializeToString()
@@ -118,7 +134,7 @@ def convert_validate(pkl, data, method="predict",
     if verbose > 0:
         fLOG("[convert_validate] creates OnnxInference session")
     sess = OnnxInference(onx, runtime=runtime)
-    if use_double:
+    if use_double == "switch":
         if verbose > 0:
             fLOG("[convert_validate] switch to double")
         sess.switch_initializers_dtype(model)

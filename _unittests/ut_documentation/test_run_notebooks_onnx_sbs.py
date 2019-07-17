@@ -20,8 +20,6 @@ class TestFunctionTestNotebookOnnxSbs(ExtTestCase):
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)
 
-    @unittest.skipIf(compare_module_version(skl2onnx_version, "1.5.0") <= 0,
-                     reason="int64 not implemented for constants")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @unittest.skipIf(compare_module_version(ort_version, "0.4.0") <= 0,
                      reason="Node:Scan1 Field 'shape' of type is required but missing.")
