@@ -9,12 +9,14 @@ from pyquickhelper.cli.cli_helper import create_cli_parser
 from .onnx_inference import OnnxInference
 
 
-def onnxview(graph, recursive=False):
+def onnxview(graph, recursive=False, local=False):
     """
     Displays an :epkg:`ONNX` graph into a notebook.
 
     :param graph: filename, bytes, or :epkg:`onnx` graph.
     :param recursive: display subgraph
+    :param local: use local path to javascript dependencies,
+        recommanded option if used on :epkg:`MyBinder`)
     """
     sess = OnnxInference(graph, skip_run=True)
     dot = sess.to_dot(recursive=recursive)
