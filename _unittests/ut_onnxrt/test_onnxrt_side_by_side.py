@@ -34,7 +34,7 @@ Xtest_ = pandas.read_csv(StringIO("""
 """.strip("\n\r ")), header=None).values
 
 
-threshold = "0.3.0"
+threshold = "0.4.0"
 
 
 class TestOnnxrtSideBySide(ExtTestCase):
