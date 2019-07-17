@@ -99,7 +99,8 @@ def get_default_context_cpl():
     returned by @see fn translate_fct2onnx.
     """
     ctx = {'py_make_float_array': py_make_float_array,
-           'py_pow': py_pow, 'py_mul': py_mul, 'py_opp': py_opp}
+           'py_pow': py_pow, 'py_mul': py_mul, 'py_opp': py_opp,
+           'numpy': numpy}
     try:
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         from skl2onnx.algebra.complex_functions import onnx_cdist
@@ -205,7 +206,6 @@ def translate_fct2onnx(fct, context=None, cpl=False,
 
             print('original output:', original)
 
-
             onnx_fct = translate_fct2onnx(
                 trs, context={'numpy.transpose': numpy.transpose},
                 cpl=True, context_cpl=ctx, output_names=['Z'])
@@ -281,4 +281,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         fLOG(onnx_code)
     if context_cpl is None:
         context_cpl = get_default_context_cpl()
+    if 'numpy' not in context_cpl:
+        context_cpl = context_cpl.copy()
+        context_cpl['numpy'] = numpy
     return compile_code(fct.__name__, onnx_code, context_cpl)

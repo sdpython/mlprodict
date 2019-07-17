@@ -126,7 +126,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         ctx = {'OnnxAdd': OnnxAdd, 'OnnxPow': OnnxPow,
                'OnnxSin': OnnxSin, 'OnnxDiv': OnnxDiv,
                'OnnxMul': OnnxMul, 'OnnxIdentity': OnnxIdentity,
-               'OnnxExp': OnnxExp,
+               'OnnxExp': OnnxExp, 'numpy': numpy,
                'onnx_squareform_pdist': onnx_squareform_pdist,
                'py_make_float_array': py_make_float_array}
 
@@ -255,7 +255,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
             kernel_rational_quadratic_none, cpl=True, output_names=['Z'],
             dtype=numpy.float32)
 
-        r = fct('X')
+        r = fct('X', dtype=numpy.float32)
         self.assertIsInstance(r, OnnxIdentity)
         inputs = {'X': x.astype(numpy.float32)}
         onnx_g = r.to_onnx(inputs)

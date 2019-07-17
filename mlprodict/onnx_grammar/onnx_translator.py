@@ -217,7 +217,7 @@ class OnnxTranslator(CodeTranslator):
                     name, getattr(fct, '__module__', ''),
                     fct, type(fct), self.make_msg(info)))
 
-        def write_expression(expr, indent, parameter_mapping=None):
+        def write_expression(stack_fct_used, expr, indent, parameter_mapping=None):
             if isinstance(expr, str):
                 # an argument
                 return ['{}{}'.format(" " * indent * 4, expr)]
@@ -242,7 +242,8 @@ class OnnxTranslator(CodeTranslator):
                     rows.append(
                         '{}Onnx{}('.format(" " * indent * 4, onnx_name))
                     for i, expr2 in enumerate(opon):
-                        rows.extend(write_expression(expr2, indent + 1))
+                        rows.extend(write_expression(
+                            stack_fct_used, expr2, indent + 1))
                         if i < len(opon) - 1:
                             rows[-1] += ","
                     rows.append('{})'.format(" " * indent * 4))
@@ -253,7 +254,8 @@ class OnnxTranslator(CodeTranslator):
                     rows.append(
                         '{}Onnx{}('.format(" " * indent * 4, onnx_name))
                     for i, expr2 in enumerate(opon):
-                        rows.extend(write_expression(expr2, indent + 1))
+                        rows.extend(write_expression(
+                            stack_fct_used, expr2, indent + 1))
                         if i < len(opon) - 1:
                             rows[-1] += ","
                     rows.append('{})'.format(" " * indent * 4))
@@ -274,10 +276,15 @@ class OnnxTranslator(CodeTranslator):
                         rows.append(
                             '{}{}('.format(" " * indent * 4, op_conv.__name__))
                     elif callable(op_conv) and op_conv.__name__.startswith('onnx_'):
+                        stack_fct_used.append(op_conv.__name__)
                         rows.append(
                             '{}{}('.format(" " * indent * 4, op_conv))
                     else:
                         prefix = "onnx_" if 'a' <= op_conv[0] <= 'z' else 'Onnx'
+                        if prefix == "onnx_":
+                            stack_fct_used.append(
+                                "{}{}".format(prefix, op_conv))
+                            prefix = '_' + prefix
                         rows.append(
                             '{}{}{}('.format(" " * indent * 4, prefix, op_conv))
 
@@ -286,6 +293,7 @@ class OnnxTranslator(CodeTranslator):
                     for i, expr2 in enumerate(opon):
                         rows.extend(
                             write_expression(
+                                stack_fct_used,
                                 expr2, indent + 1,
                                 OnnxTranslator._parameter_mapping.get(op_conv, None)))
                         if i < len(opon) - 1:
@@ -296,35 +304,46 @@ class OnnxTranslator(CodeTranslator):
                         expr))
             return rows
 
-        def write_function(node):
+        def write_function(stack_fct_used, to_replaces, node):
             rows = []
             name, args = node
             if name != 'FunctionDef':
                 raise RuntimeError(
                     "The code being translated should be a single function not '{}' at {}.".format(
                         name, self.make_msg(args)))
+            list_args = list(map(str, args['args']))
+            if all(map(lambda s: 'dtype=' not in s, list_args)):
+                list_args.append("dtype=numpy.float32")
             fct_name = args['name']
             rows.append("def {}({}):".format(
-                fct_name, ', '.join(map(str, args["args"]))))
+                fct_name, ', '.join(list_args)))
             indent = 1
+
+            to_replace = "# __HEADER__{}".format(id(node))
+            to_replaces.append(to_replace)
+            rows.append("{}{}".format(" " * (indent * 4), to_replace))
+
             code = args['code']
             for op, args in code:
                 if op == "Assign":
                     name = args['name']
                     args = args["args"]
                     rows.append("{}{} = (".format(" " * (indent * 4), name))
-                    rows.extend(write_expression(args, indent + 1))
+                    rows.extend(write_expression(
+                        stack_fct_used, args, indent + 1))
                     rows.append("{})".format(" " * (indent * 4)))
                 elif op == "Return":
                     args = args["code"]
                     if output_names is None:
                         rows.append("{}return (".format(" " * (indent * 4)))
-                        rows.extend(write_expression(args, indent + 1))
+                        rows.extend(write_expression(
+                            stack_fct_used, args, indent + 1))
                         rows.append("{})".format(" " * (indent * 4)))
                     else:
                         rows.append(
                             "{}return OnnxIdentity(".format(" " * (indent * 4)))
-                        subrows = write_expression(args, indent + 1)
+                        subrows = write_expression(
+                            stack_fct_used, args, indent + 1)
                         subrows[-1] += ","
                         rows.extend(subrows)
                         rows.append("{}output_names={}".format(
@@ -336,7 +355,28 @@ class OnnxTranslator(CodeTranslator):
                                        "either a return.".format(op, self.make_msg(args)))
             return rows
 
-        rows = write_function(self._code_fct)
+        stack_fct_used = []
+        to_replaces = []
+        rows = write_function(stack_fct_used, to_replaces, self._code_fct)
+
+        # handling dtype parameter
+        if len(to_replaces) != 1:
+            raise RuntimeError(
+                "The following code misses a placeholder:\n{}".format(
+                    "\n".join(rows)))
+        index = -1
+        for i, row in enumerate(rows):
+            if to_replaces[0] in row:
+                index = i
+                break
+
+        header = []
+        for fct in stack_fct_used:
+            header.append(
+                "    _{0} = lambda *args, **kwargs: {0}(*args, dtype=dtype, **kwargs)".format(fct))
+        header.append('')
+        rows[index:index + 1] = header
+
         return "\n".join(rows)
 
     def visit(self, node, info):
