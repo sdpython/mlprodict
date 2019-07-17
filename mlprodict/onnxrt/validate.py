@@ -637,8 +637,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
             if obs['opset'] == current_opset and len(excs) > 0:
                 log_exc = True
                 if len(excs) == 1:
-                    name = excs[0][0]
-                    if '_9ort_run_single_exc' in name and '_6ort_run_batch_exc' not in name:
+                    if ('_9ort_run_single_exc' not in obs or
+                            '_6ort_run_batch_exc' not in obs):
                         log_exc = False
                 if log_exc:
                     k, v = excs[0]

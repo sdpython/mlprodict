@@ -1,5 +1,5 @@
 // Inspired from 
-// https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc.
+// https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_regressor.cc.
 
 #if !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
@@ -23,7 +23,7 @@
 namespace py = pybind11;
 #endif
 
-#include "op_tree_ensemble_.hpp"
+#include "op_common_.hpp"
 
 
 class RuntimeTreeEnsembleRegressor

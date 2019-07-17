@@ -205,43 +205,56 @@ if not r:
         extra_link_args = ['-lgomp']
 
     # extensions
-    ext_tree_ensemble_classifier = Extension('mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_',
-                                             [os.path.join(
-                                                 root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_classifier_.cpp'),
-                                              os.path.join(
-                                                 root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_.cpp')],
-                                             extra_compile_args=extra_compile_args,
-                                             extra_link_args=extra_link_args,
-                                             include_dirs=[
-                                                 # Path to pybind11 headers
-                                                 get_pybind_include(),
-                                                 get_pybind_include(user=True),
-                                                 os.path.join(
-                                                     root, 'mlprodict/onnxrt/ops_cpu')
-                                             ],
-                                             define_macros=[
-                                                 ('USE_OPENMP', None)],
-                                             language='c++')
+    ext_tree_ensemble_classifier = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_classifier_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=[('USE_OPENMP', None)],
+        language='c++')
 
-    ext_tree_ensemble_regressor = Extension('mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_',
-                                            [os.path.join(
-                                                root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_regressor_.cpp'),
-                                             os.path.join(
-                                                root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_.cpp')],
-                                            extra_compile_args=extra_compile_args,
-                                            extra_link_args=extra_link_args,
-                                            include_dirs=[
-                                                # Path to pybind11 headers
-                                                get_pybind_include(),
-                                                get_pybind_include(user=True),
-                                                os.path.join(
-                                                    root, 'mlprodict/onnxrt/ops_cpu')
-                                            ],
-                                            define_macros=[
-                                                ('USE_OPENMP', None)],
-                                            language='c++')
+    ext_tree_ensemble_regressor = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_regressor_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=[('USE_OPENMP', None)],
+        language='c++')
 
-    ext_modules = [ext_tree_ensemble_classifier, ext_tree_ensemble_regressor]
+    ext_svm_regressor = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_svm_regressor_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_svm_regressor_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=[('USE_OPENMP', None)],
+        language='c++')
+
+    ext_modules = [
+        ext_svm_regressor,
+        ext_tree_ensemble_classifier,
+        ext_tree_ensemble_regressor,
+    ]
 
     setup(
         name=project_var_name,

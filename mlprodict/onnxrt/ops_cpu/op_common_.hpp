@@ -37,6 +37,21 @@ enum class AGGREGATE_FUNCTION {
 
 AGGREGATE_FUNCTION to_AGGREGATE_FUNCTION(const std::string& input);
 
+enum class SVM_TYPE {
+  SVM_LINEAR,
+  SVM_SVC
+};
+
+SVM_TYPE to_SVM_TYPE(const std::string &value);
+
+enum KERNEL {
+  LINEAR,
+  POLY,
+  RBF,
+  SIGMOID
+};
+
+KERNEL to_KERNEL(const std::string &value);
 
 static inline float ErfInv(float x) {
   float sgn = x < 0 ? -1.0f : 1.0f;

@@ -2,7 +2,7 @@
 #if !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
 #endif
-#include "op_tree_ensemble_.hpp"
+#include "op_common_.hpp"
 #include <string.h> // memcpy
 #include <stdlib.h> //realloc
 
@@ -16,7 +16,7 @@ POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value)
     if (value.compare("PROBIT") == 0) return POST_EVAL_TRANSFORM::PROBIT;
     throw std::runtime_error(std::string("NODE_MODE '") + 
                              value + 
-                             std::string(" is not defined."));
+                             std::string("' is not defined."));
 }
 
 
@@ -31,7 +31,28 @@ NODE_MODE to_NODE_MODE(const std::string &value)
     if (value.compare("LEAF") == 0) return NODE_MODE::LEAF;
     throw std::runtime_error(std::string("NODE_MODE '") + 
                              value + 
-                             std::string(" is not defined."));
+                             std::string("' is not defined."));
+}
+
+
+SVM_TYPE to_SVM_TYPE(const std::string &value)
+{
+    if (value.compare("SVM_LINEAR") == 0) return SVM_TYPE::SVM_LINEAR;
+    if (value.compare("SVM_SVC") == 0) return SVM_TYPE::SVM_SVC;
+    throw std::runtime_error(std::string("SVM_TYPE '") + 
+                             value + 
+                             std::string("' is not defined."));
+}
+
+KERNEL to_KERNEL(const std::string &value)
+{
+    if (value.compare("LINEAR") == 0) return KERNEL::LINEAR;
+    if (value.compare("POLY") == 0) return KERNEL::POLY;
+    if (value.compare("RBF") == 0) return KERNEL::RBF;
+    if (value.compare("SIGMOID") == 0) return KERNEL::SIGMOID;
+    throw std::runtime_error(std::string("KERNEL '") + 
+                             value + 
+                             std::string("' is not defined."));
 }
 
 
@@ -42,7 +63,7 @@ AGGREGATE_FUNCTION to_AGGREGATE_FUNCTION(const std::string& input) {
     if (input == "MAX") return AGGREGATE_FUNCTION::MAX;
     throw std::runtime_error(std::string("AGGREGATE_FUNCTION '") + 
                              input + 
-                             std::string(" is not defined."));
+                             std::string("' is not defined."));
 }
 
 

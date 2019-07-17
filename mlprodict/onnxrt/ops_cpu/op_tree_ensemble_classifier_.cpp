@@ -19,7 +19,7 @@
 namespace py = pybind11;
 #endif
 
-#include "op_tree_ensemble_.hpp"
+#include "op_common_.hpp"
 
 
 class RuntimeTreeEnsembleClassifier

@@ -55,6 +55,7 @@ from .op_sqrt import Sqrt
 from .op_squeeze import Squeeze
 from .op_sub import Sub
 from .op_sum import Sum
+from .op_svm_regressor import SVMRegressor
 from .op_topk import TopK
 from .op_transpose import Transpose
 from .op_tree_ensemble_classifier import TreeEnsembleClassifier
