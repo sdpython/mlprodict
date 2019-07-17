@@ -32,6 +32,13 @@
     :target: http://www.xavierdupre.fr/app/mlprodict/helpsphinx/all_notebooks_coverage.html
     :alt: Notebook Coverage
 
+.. image:: https://pepy.tech/badge/mlprodict
+    :target: https://pypi.org/project/mlprodict/
+    :alt: Downloads
+
+.. image:: https://mybinder.org/badge_logo.svg
+    :target: https://mybinder.org/v2/gh/sdpython/mlprodict/master?filepath=_doc%2Fnotebooks
+
 .. _l-README:
 
 mlprodict
