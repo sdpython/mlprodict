@@ -59,7 +59,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        verbose = 1 if __name__ == "__main__" else 0
+        verbose = 1
 
         buffer = []
 
@@ -79,7 +79,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        verbose = 1 if __name__ == "__main__" else 0
+        verbose = 1
 
         buffer = []
 
@@ -99,7 +99,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        verbose = 4 if __name__ == "__main__" else 0
+        verbose = 4
 
         buffer = []
 
@@ -121,7 +121,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        verbose = 0 if __name__ == "__main__" else 0
+        verbose = 0
 
         buffer = []
 
@@ -145,7 +145,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        verbose = 4 if __name__ == "__main__" else 0
+        verbose = 4
 
         buffer = []
 
@@ -169,7 +169,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        verbose = 2 if __name__ == "__main__" else 0
+        verbose = 2
 
         buffer = []
 
