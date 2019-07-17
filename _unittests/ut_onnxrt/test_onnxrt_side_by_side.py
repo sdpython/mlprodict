@@ -34,6 +34,9 @@ Xtest_ = pandas.read_csv(StringIO("""
 """.strip("\n\r ")), header=None).values
 
 
+threshold = "0.3.0"
+
+
 class TestOnnxrtSideBySide(ExtTestCase):
 
     def setUp(self):
@@ -78,7 +81,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertIsInstance(res, OrderedDict)
 
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
-    @unittest.skipIf(compare_module_version(ort_version, "0.4.0") <= 0,
+    @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,
                      reason="Node:Scan1 Field 'shape' of type is required but missing.")
     def test_kernel_ker2_def_ort(self):
         ker = Sum(
@@ -87,7 +90,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=1,
                                        length_scale_bounds=(1e-3, 1e3))
         )
-        onx = convert_kernel(ker, 'X', output_names=['Y'])
+        onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32)
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType(['', '']))],
             outputs=[('Y', FloatTensorType(['', '']))])
@@ -99,7 +102,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertEqualArray(m1, m2, decimal=5)
 
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
-    @unittest.skipIf(compare_module_version(ort_version, "0.4.0") <= 0,
+    @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,
                      reason="Node:Scan1 Field 'shape' of type is required but missing.")
     def test_kernel_ker2_def_ort1(self):
         ker = Sum(
@@ -108,7 +111,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=1,
                                        length_scale_bounds=(1e-3, 1e3))
         )
-        onx = convert_kernel(ker, 'X', output_names=['Y'])
+        onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32)
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType(['', '']))],
             outputs=[('Y', FloatTensorType(['', '']))])

@@ -39,6 +39,8 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         self.assertEqualArray(m1, m2)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,
+                     reason="Node:Scan1 Field 'shape' of type is required but missing.")
     def test_kernel_exp_sine_squared(self):
         from skl2onnx.operator_converters.gaussian_process import convert_kernel
         ker = ExpSineSquared()

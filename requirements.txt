@@ -1,13 +1,12 @@
 chardet
 coverage
-guzzle_sphinx_theme
 jyquickhelper
 onnx
 onnxruntime
 openpyxl
 pybind11
 pylint
-pyquickhelper>=1.9.3162
+pyquickhelper>=1.9.3179
 git+https://github.com/xadupre/sklearn-onnx.git@jenkins
 sphinx
 sphinx_readable_theme
