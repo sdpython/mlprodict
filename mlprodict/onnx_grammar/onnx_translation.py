@@ -120,6 +120,7 @@ def get_default_context_cpl():
 
 def translate_fct2onnx(fct, context=None, cpl=False,
                        context_cpl=None, output_names=None,
+                       dtype=numpy.float32,
                        verbose=0, fLOG=None):
     """
     Translates a function into :epkg:`ONNX`. The code it produces
@@ -136,6 +137,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
                                 if *context_cpl* is None, it receives a default value
                                 returnd by @see fn get_default_context_cpl
     @param      output_names    names of the output in the :epkg:`ONNX` graph
+    @param      dtype           :epkg:`numpy` float type used to produce the model
     @param      verbose         integer, display more information
     @param      fLOG            logging function
     @return                     code or compiled code

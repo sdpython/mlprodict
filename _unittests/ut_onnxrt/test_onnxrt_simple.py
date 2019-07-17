@@ -268,7 +268,7 @@ class TestOnnxrtSimple(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('input', 'input')
-        cdist = onnx_squareform_pdist(cop)
+        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
         cop2 = OnnxIdentity(cdist, output_names=['cdist'])
 
         model_def = cop2.to_onnx(

@@ -27,7 +27,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
     def test_kernel_rbf1(self):
         from skl2onnx.operator_converters.gaussian_process import convert_kernel
         ker = RBF(length_scale=1, length_scale_bounds=(1e-3, 1e3))
-        onx = convert_kernel(ker, 'X', output_names=['Y'])
+        onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32)
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType(['d1', 'd2']))])
         sess = OnnxInference(model_onnx)
@@ -43,7 +43,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
     def test_kernel_exp_sine_squared(self):
         from skl2onnx.operator_converters.gaussian_process import convert_kernel
         ker = ExpSineSquared()
-        onx = convert_kernel(ker, 'X', output_names=['Y'])
+        onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32)
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType(['d1', 'd2']))])
         sess = OnnxInference(model_onnx)
@@ -137,7 +137,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='python', debug=debug,
-            filter_exp=lambda m, s: "regression" in s,
+            filter_exp=lambda m, s: "reg-" in s,
             disable_single=True))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)

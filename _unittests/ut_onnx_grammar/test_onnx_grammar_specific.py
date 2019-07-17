@@ -132,7 +132,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
 
         fct = translate_fct2onnx(kernel_call_ynone, context=context,
                                  cpl=True, context_cpl=ctx,
-                                 output_names=['Z'])
+                                 output_names=['Z'], dtype=numpy.float32)
 
         r = fct('X')
         self.assertIsInstance(r, OnnxIdentity)
@@ -252,7 +252,8 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         self.assertEqualArray(exp, got)
 
         fct = translate_fct2onnx(
-            kernel_rational_quadratic_none, cpl=True, output_names=['Z'])
+            kernel_rational_quadratic_none, cpl=True, output_names=['Z'],
+            dtype=numpy.float32)
 
         r = fct('X')
         self.assertIsInstance(r, OnnxIdentity)
