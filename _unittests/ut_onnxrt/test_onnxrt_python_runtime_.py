@@ -47,13 +47,14 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
-    def common_test_onnxt_runtime_binary(self, onnx_cl, np_fct):
+    def common_test_onnxt_runtime_binary(self, onnx_cl, np_fct,
+                                         dtype=numpy.float32):
         idi = numpy.identity(2)
         onx = onnx_cl('X', idi, output_names=['Y'])
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
+        got = oinf.run({'X': X.astype(dtype)})
         self.assertEqual(list(sorted(got)), ['Y'])
         exp = np_fct(X, idi)
         self.assertEqualArray(exp, got['Y'], decimal=6)

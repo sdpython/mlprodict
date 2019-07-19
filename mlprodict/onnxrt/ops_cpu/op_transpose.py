@@ -5,17 +5,17 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRun
+from ._op import OpRunUnaryNum
 
 
-class Transpose(OpRun):
+class Transpose(OpRunUnaryNum):
 
     atts = {'perm': []}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=Transpose.atts,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=Transpose.atts,
+                               **options)
 
     def _run(self, data):  # pylint: disable=W0221
         return (numpy.transpose(data, axes=self.perm), )

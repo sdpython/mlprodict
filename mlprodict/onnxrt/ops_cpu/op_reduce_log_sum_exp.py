@@ -5,17 +5,17 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRun
+from ._op import OpRunUnaryNum
 
 
-class ReduceLogSumExp(OpRun):
+class ReduceLogSumExp(OpRunUnaryNum):
 
     atts = {'axes': [], 'keepdims': 1}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=ReduceLogSumExp.atts,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=ReduceLogSumExp.atts,
+                               **options)
         if isinstance(self.axes, numpy.ndarray):
             if len(self.axes.shape) == 0 or self.axes.shape[0] == 0:
                 self.axes = None

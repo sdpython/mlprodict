@@ -5,17 +5,17 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRun
+from ._op import OpRunUnaryNum
 
 
-class ReduceSumSquare(OpRun):
+class ReduceSumSquare(OpRunUnaryNum):
 
     atts = {'axes': [], 'keepdims': 1}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=ReduceSumSquare.atts,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=ReduceSumSquare.atts,
+                               **options)
         if isinstance(self.axes, numpy.ndarray):
             self.axes = tuple(self.axes)
         elif self.axes in [[], tuple()]:

@@ -5,17 +5,17 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRun
+from ._op import OpRunUnaryNum
 
 
-class Softmax(OpRun):
+class Softmax(OpRunUnaryNum):
 
     atts = {'axis': 1}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=Softmax.atts,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=Softmax.atts,
+                               **options)
 
     def _run(self, X):  # pylint: disable=W0221
         tmp = X - X.max(axis=self.axis)[:, numpy.newaxis]

@@ -72,7 +72,7 @@ class OpRun:
         """
         raise NotImplementedError("This method should be overwritten.")
 
-    def run(self, *args, **kwargs):
+    def run(self, *args, **kwargs):  # pylint: disable=E0202
         """
         Calls method ``_run``.
         """
@@ -104,6 +104,8 @@ class OpRun:
                     done.append(("+", "att", k, getattr(self, k)))
                 else:
                     done.append(("-", "att", k, getattr(self, k)))
+        if hasattr(self, '_run_no_checks_') and hasattr(self, 'run'):
+            self.run = self._run_no_checks_  # pylint: disable=E0202,E1101
         return done
 
 
@@ -112,6 +114,58 @@ class RuntimeTypeError(RuntimeError):
     Raised when a type of a variable is unexpected.
     """
     pass
+
+
+class OpRunUnary(OpRun):
+    """
+    Ancestor to all binary operators in this subfolder.
+    Checks that inputs type are the same.
+    """
+
+    def __init__(self, onnx_node, desc=None, expected_attributes=None,
+                 **options):
+        OpRun.__init__(self, onnx_node, desc=desc,
+                       expected_attributes=expected_attributes,
+                       **options)
+
+    def run(self, x):  # pylint: disable=E0202,W0221
+        """
+        Calls method ``_run``.
+        """
+        try:
+            res = self._run(x)
+        except TypeError as e:
+            raise TypeError("Issues with types {} (binary operator {}).".format(
+                ", ".join(str(type(_)) for _ in [x]),
+                self.__class__.__name__)) from e
+        return res
+
+
+class OpRunUnaryNum(OpRunUnary):
+    """
+    Ancestor to all binary operators in this subfolder.
+    Checks that inputs type are the same.
+    """
+
+    def __init__(self, onnx_node, desc=None, expected_attributes=None,
+                 **options):
+        OpRunUnary.__init__(self, onnx_node, desc=desc,
+                            expected_attributes=expected_attributes,
+                            **options)
+
+    def run(self, x):  # pylint: disable=E0202
+        """
+        Calls method ``_run``.
+        """
+        res = OpRunUnary.run(self, x)
+        if res[0].dtype != x.dtype:
+            raise RuntimeTypeError(
+                "Output type mismath: {} != {} (not type: '{}')".format(
+                    x.dtype, res[0].dtype, self.__class__.__name__))
+        return res
+
+    def _run_no_checks_(self, x):  # pylint: disable=W0221
+        return OpRunUnary.run(self, x)
 
 
 class OpRunBinary(OpRun):
@@ -126,7 +180,7 @@ class OpRunBinary(OpRun):
                        expected_attributes=expected_attributes,
                        **options)
 
-    def run(self, x, y):  # pylint: disable=W0221
+    def run(self, x, y):  # pylint: disable=E0202,W0221
         """
         Calls method ``_run``.
         """
@@ -140,8 +194,46 @@ class OpRunBinary(OpRun):
             raise TypeError("Issues with types {} (binary operator {}).".format(
                 ", ".join(str(type(_)) for _ in [x, y]),
                 self.__class__.__name__)) from e
+        return res
+
+    def _run_no_checks_(self, x, y):  # pylint: disable=W0221
+        """
+        Calls method ``_run``.
+        """
+        try:
+            res = self._run(x, y)
+        except TypeError as e:
+            raise TypeError("Issues with types {} (binary operator {}).".format(
+                ", ".join(str(type(_)) for _ in [x, y]),
+                self.__class__.__name__)) from e
+        return res
+
+
+class OpRunBinaryNum(OpRunBinary):
+    """
+    Ancestor to all binary operators in this subfolder.
+    Checks that inputs type are the same.
+    """
+
+    def __init__(self, onnx_node, desc=None, expected_attributes=None,
+                 **options):
+        OpRunBinary.__init__(self, onnx_node, desc=desc,
+                             expected_attributes=expected_attributes,
+                             **options)
+
+    def run(self, x, y):  # pylint: disable=E0202
+        """
+        Calls method ``_run``.
+        """
+        res = OpRunBinary.run(self, x, y)
         if res[0].dtype != x.dtype:
             raise RuntimeTypeError(
                 "Output type mismath: {} != {} (not type: '{}')".format(
                     x.dtype, res[0].dtype, self.__class__.__name__))
         return res
+
+    def _run_no_checks_(self, x, y):  # pylint: disable=W0221
+        """
+        Calls method ``_run``.
+        """
+        return OpRunBinary._run_no_checks_(self, x, y)

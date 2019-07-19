@@ -5,14 +5,14 @@
 @brief Runtime operator.
 """
 from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
-from ._op import OpRun
+from ._op import OpRunUnaryNum
 
 
-class Sigmoid(OpRun):
+class Sigmoid(OpRunUnaryNum):
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               **options)
 
     def _run(self, x):  # pylint: disable=W0221
         y = logistic_sigmoid(x)

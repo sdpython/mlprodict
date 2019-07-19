@@ -5,14 +5,14 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRun
+from ._op import OpRunUnaryNum
 
 
-class Abs(OpRun):
+class Abs(OpRunUnaryNum):
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               **options)
 
     def _run(self, x):  # pylint: disable=W0221
         return (numpy.abs(x), )

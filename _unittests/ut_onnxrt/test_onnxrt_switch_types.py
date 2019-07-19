@@ -31,7 +31,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
         oinf = OnnxInference(model_def, runtime="python")
         res = oinf.switch_initializers_dtype()
         self.assertEqual(len(res), 1)
-        self.assertEqual(res[0][:4], ('pass1', '+', 'init', 'Addcst'))
+        self.assertEqual(res[0][:4], ('pass1', '+', 'init', 'Ad_Addcst'))
 
     def test_onnxt_enumerate_arrays(self):
         iris = load_iris()
@@ -67,10 +67,10 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
             options={GaussianProcessRegressor: {'return_std': True}})
         oinf = OnnxInference(model_def, runtime='python')
 
-        res = oinf.run({'X': X_test})
+        res = oinf.run({'X': X_test.astype(numpy.float32)})
         ym2, std2 = res['GPmean'], res['GPcovstd']
         self.assertEqualArray(numpy.squeeze(ym), numpy.squeeze(ym2), decimal=5)
-        self.assertEqualArray(std, std2)
+        self.assertEqualArray(std, std2, decimal=5)
 
         res = oinf.switch_initializers_dtype(clr)
         last = res[-1]
@@ -80,10 +80,10 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
             if "_K_inv" in a[-2]:
                 _linv += 1
         self.assertEqual(_linv, 1)
-        res = oinf.run({'X': X_test})
+        res = oinf.run({'X': X_test.astype(numpy.float64)})
         ym3, std3 = res['GPmean'], res['GPcovstd']
         self.assertEqualArray(ym3, ym2)
-        self.assertEqualArray(std3, std2)
+        self.assertEqualArray(std3, std2, decimal=5)
         d1 = numpy.sum(numpy.abs(ym.ravel() - ym2.ravel()))
         d2 = numpy.sum(numpy.abs(ym.ravel() - ym3.ravel()))
         d3 = numpy.sum(numpy.abs(ym2.ravel() - ym3.ravel()))
@@ -107,10 +107,11 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
             options={GaussianProcessRegressor: {'return_std': True}})
         oinf = OnnxInference(model_def, runtime='python')
 
-        res = oinf.run({'X': X_test})
+        res = oinf.run({'X': X_test.astype(numpy.float32)})
         ym2, std2 = res['GPmean'], res['GPcovstd']
-        self.assertEqualArray(numpy.squeeze(ym), numpy.squeeze(ym2))
-        self.assertEqualArray(std, std2, decimal=5)
+        self.assertEqualArray(numpy.squeeze(ym), numpy.squeeze(ym2),
+                              decimal=5)
+        self.assertEqualArray(std, std2, decimal=4)
 
         res = oinf.switch_initializers_dtype(clr)
         last = res[-1]
@@ -122,8 +123,8 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
         self.assertEqual(_linv, 1)
         res = oinf.run({'X': X_test})
         ym3, std3 = res['GPmean'], res['GPcovstd']
-        self.assertEqualArray(ym3, ym2)
-        self.assertEqualArray(std3, std2, decimal=5)
+        self.assertEqualArray(ym3, ym2, decimal=5)
+        self.assertEqualArray(std3, std2, decimal=4)
         d1 = numpy.sum(numpy.abs(ym.ravel() - ym2.ravel()))
         d2 = numpy.sum(numpy.abs(ym.ravel() - ym3.ravel()))
         d3 = numpy.sum(numpy.abs(ym2.ravel() - ym3.ravel()))

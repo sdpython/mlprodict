@@ -4,13 +4,13 @@
 @file
 @brief Runtime operator.
 """
-from ._op import OpRunBinary
+from ._op import OpRunBinaryNum
 
 
-class Div(OpRunBinary):
+class Div(OpRunBinaryNum):
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRunBinary.__init__(self, onnx_node, desc=desc, **options)
+        OpRunBinaryNum.__init__(self, onnx_node, desc=desc, **options)
 
     def _run(self, a, b):  # pylint: disable=W0221
         return (a / b, )

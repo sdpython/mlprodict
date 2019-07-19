@@ -4,17 +4,17 @@
 @file
 @brief Runtime operator.
 """
-from ._op import OpRun
+from ._op import OpRunUnaryNum
 
 
-class Scaler(OpRun):
+class Scaler(OpRunUnaryNum):
 
     atts = {'offset': None, 'scale': None}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=Scaler.atts,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=Scaler.atts,
+                               **options)
 
     def _run(self, x):  # pylint: disable=W0221
         return ((x - self.offset) * self.scale, )
