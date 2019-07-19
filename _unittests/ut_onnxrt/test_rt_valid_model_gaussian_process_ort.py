@@ -121,7 +121,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        verbose = 0
+        verbose = 2
 
         buffer = []
 
