@@ -25,4 +25,5 @@ class ReduceMean(OpRunUnaryNum):
 
     def _run(self, data):  # pylint: disable=W0221
         return (numpy.mean(data, axis=self.axes,
-                           keepdims=self.keepdims), )
+                           keepdims=self.keepdims,
+                           dtype=data.dtype), )

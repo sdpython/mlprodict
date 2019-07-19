@@ -29,5 +29,6 @@ class ReduceLogSumExp(OpRunUnaryNum):
     def _run(self, data):  # pylint: disable=W0221
         res = numpy.log(numpy.sum(numpy.exp(data),
                                   axis=tuple(self.axes) if self.axes else None,
-                                  keepdims=self.keepdims == 1))
+                                  keepdims=self.keepdims == 1,
+                                  dtype=data.dtype))
         return (res, )

@@ -25,4 +25,5 @@ class ReduceSum(OpRunUnaryNum):
 
     def _run(self, data):  # pylint: disable=W0221
         return (numpy.sum(data, axis=self.axes,
-                          keepdims=self.keepdims), )
+                          keepdims=self.keepdims,
+                          dtype=data.dtype), )
