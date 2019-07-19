@@ -53,7 +53,7 @@ class LinearClassifier(OpRun):
                 self.post_transform))
 
         if self.nb_class == 1:
-            label = numpy.zeros((score.shape[0],))
+            label = numpy.zeros((score.shape[0],), dtype=x.dtype)
             label[score > 0] = 1
         else:
             label = numpy.argmax(score, axis=1)

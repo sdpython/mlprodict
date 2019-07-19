@@ -49,7 +49,7 @@ from skl2onnx.common.data_types import (
 )
 
 
-def _problem_for_predictor_binary_classification():
+def _problem_for_predictor_binary_classification(dtype=numpy.float32):
     """
     Returns *X, y, intial_types, method, node name, X runtime* for a
     binary classification problem.
@@ -59,11 +59,11 @@ def _problem_for_predictor_binary_classification():
     X = data.data
     y = data.target
     y[y == 2] = 1
-    return (X, y, [('X', X[:1].astype(numpy.float32))],
-            'predict_proba', 1, X.astype(numpy.float32))
+    return (X, y, [('X', X[:1].astype(dtype))],
+            'predict_proba', 1, X.astype(dtype))
 
 
-def _problem_for_predictor_multi_classification():
+def _problem_for_predictor_multi_classification(dtype=numpy.float32):
     """
     Returns *X, y, intial_types, method, node name, X runtime* for a
     multi-class classification problem.
@@ -72,11 +72,11 @@ def _problem_for_predictor_multi_classification():
     data = load_iris()
     X = data.data
     y = data.target
-    return (X, y, [('X', X[:1].astype(numpy.float32))],
-            'predict_proba', 1, X.astype(numpy.float32))
+    return (X, y, [('X', X[:1].astype(dtype))],
+            'predict_proba', 1, X.astype(dtype))
 
 
-def _problem_for_predictor_multi_classification_label():
+def _problem_for_predictor_multi_classification_label(dtype=numpy.float32):
     """
     Returns *X, y, intial_types, method, node name, X runtime* for a
     multi-class classification problem.
@@ -90,12 +90,13 @@ def _problem_for_predictor_multi_classification_label():
         y2[i, _] = 1
     for i in range(0, y.shape[0], 5):
         y2[i, (y[i] + 1) % 3] = 1
-    return (X, y2, [('X', X[:1].astype(numpy.float32))],
-            'predict_proba', 1, X.astype(numpy.float32))
+    return (X, y2, [('X', X[:1].astype(dtype))],
+            'predict_proba', 1, X.astype(dtype))
 
 
 def _problem_for_predictor_regression(many_output=False, options=None,
-                                      nbfeat=None, nbrows=None, **kwargs):
+                                      nbfeat=None, nbrows=None, dtype=numpy.float32,
+                                      **kwargs):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     regression problem.
@@ -105,22 +106,23 @@ def _problem_for_predictor_regression(many_output=False, options=None,
     X = data.data
     y = data.target + numpy.arange(len(data.target)) / 100
     meth = 'predict' if kwargs is None else ('predict', kwargs)
-    itt = [('X', X[:1].astype(numpy.float32))]
+    itt = [('X', X[:1].astype(dtype))]
     if nbfeat is not None:
         X = X[:, :nbfeat]
-        itt = [('X', X[:1].astype(numpy.float32))]
+        itt = [('X', X[:1].astype(dtype))]
     if nbrows is not None:
         X = X[::nbrows, :]
         y = y[::nbrows]
-        itt = [('X', X[:1].astype(numpy.float32))]
+        itt = [('X', X[:1].astype(dtype))]
     if options is not None:
         itt = itt, options
     return (X, y.astype(float), itt,
-            meth, 'all' if many_output else 0, X.astype(numpy.float32))
+            meth, 'all' if many_output else 0, X.astype(dtype))
 
 
 def _problem_for_predictor_multi_regression(many_output=False, options=None,
-                                            nbfeat=None, nbrows=None, **kwargs):
+                                            nbfeat=None, nbrows=None,
+                                            dtype=numpy.float32, **kwargs):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     multi-regression problem.
@@ -130,24 +132,24 @@ def _problem_for_predictor_multi_regression(many_output=False, options=None,
     X = data.data
     y = data.target.astype(float) + numpy.arange(len(data.target)) / 100
     meth = 'predict' if kwargs is None else ('predict', kwargs)
-    itt = [('X', X[:1].astype(numpy.float32))]
+    itt = [('X', X[:1].astype(dtype))]
     if nbfeat is not None:
         X = X[:, :nbfeat]
-        itt = [('X', X[:1].astype(numpy.float32))]
+        itt = [('X', X[:1].astype(dtype))]
     if nbrows is not None:
         X = X[::nbrows, :]
         y = y[::nbrows]
-        itt = [('X', X[:1].astype(numpy.float32))]
+        itt = [('X', X[:1].astype(dtype))]
     if options is not None:
         itt = itt, options
     y2 = numpy.empty((y.shape[0], 2))
     y2[:, 0] = y
     y2[:, 1] = y + 0.5
     return (X, y2, itt,
-            meth, 'all' if many_output else 0, X.astype(numpy.float32))
+            meth, 'all' if many_output else 0, X.astype(dtype))
 
 
-def _problem_for_numerical_transform():
+def _problem_for_numerical_transform(dtype=numpy.float32):
     """
     Returns *X, intial_types, method, name, X runtime* for a
     transformation problem.
@@ -155,11 +157,11 @@ def _problem_for_numerical_transform():
     """
     data = load_iris()
     X = data.data
-    return (X, None, [('X', X[:1].astype(numpy.float32))],
-            'transform', 0, X.astype(numpy.float32))
+    return (X, None, [('X', X[:1].astype(dtype))],
+            'transform', 0, X.astype(dtype=numpy.float32))
 
 
-def _problem_for_numerical_trainable_transform():
+def _problem_for_numerical_trainable_transform(dtype):
     """
     Returns *X, intial_types, method, name, X runtime* for a
     transformation problem.
@@ -168,11 +170,11 @@ def _problem_for_numerical_trainable_transform():
     data = load_iris()
     X = data.data
     y = data.target + numpy.arange(len(data.target)) / 100
-    return (X, y, [('X', X[:1].astype(numpy.float32))],
-            'transform', 0, X.astype(numpy.float32))
+    return (X, y, [('X', X[:1].astype(dtype))],
+            'transform', 0, X.astype(dtype))
 
 
-def _problem_for_clustering():
+def _problem_for_clustering(dtype=numpy.float32):
     """
     Returns *X, intial_types, method, name, X runtime* for a
     clustering problem.
@@ -180,11 +182,11 @@ def _problem_for_clustering():
     """
     data = load_iris()
     X = data.data
-    return (X, None, [('X', X[:1].astype(numpy.float32))],
-            'predict', 0, X.astype(numpy.float32))
+    return (X, None, [('X', X[:1].astype(dtype))],
+            'predict', 0, X.astype(dtype))
 
 
-def _problem_for_clustering_scores():
+def _problem_for_clustering_scores(dtype=numpy.float32):
     """
     Returns *X, intial_types, method, name, X runtime* for a
     clustering problem, the score part, not the cluster.
@@ -192,11 +194,11 @@ def _problem_for_clustering_scores():
     """
     data = load_iris()
     X = data.data
-    return (X, None, [('X', X[:1].astype(numpy.float32))],
-            'transform', 1, X.astype(numpy.float32))
+    return (X, None, [('X', X[:1].astype(dtype))],
+            'transform', 1, X.astype(dtype))
 
 
-def _problem_for_outlier():
+def _problem_for_outlier(dtype=numpy.float32):
     """
     Returns *X, intial_types, method, name, X runtime* for a
     transformation problem.
@@ -204,11 +206,11 @@ def _problem_for_outlier():
     """
     data = load_iris()
     X = data.data
-    return (X, None, [('X', X[:1].astype(numpy.float32))],
-            'predict', 0, X.astype(numpy.float32))
+    return (X, None, [('X', X[:1].astype(dtype))],
+            'predict', 0, X.astype(dtype))
 
 
-def _problem_for_numerical_scoring():
+def _problem_for_numerical_scoring(dtype=numpy.float32):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     scoring problem.
@@ -216,13 +218,13 @@ def _problem_for_numerical_scoring():
     """
     data = load_iris()
     X = data.data
-    y = data.target.astype(float) + numpy.arange(len(data.target)) / 100
+    y = data.target.astype(dtype) + numpy.arange(len(data.target)) / 100
     y /= numpy.max(y)
-    return (X, y, [('X', X[:1].astype(numpy.float32))],
-            'score', 0, X.astype(numpy.float32))
+    return (X, y, [('X', X[:1].astype(dtype))],
+            'score', 0, X.astype(dtype))
 
 
-def _problem_for_clnoproba():
+def _problem_for_clnoproba(dtype=numpy.float32):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     scoring problem.
@@ -231,11 +233,11 @@ def _problem_for_clnoproba():
     data = load_iris()
     X = data.data
     y = data.target
-    return (X, y, [('X', X[:1].astype(numpy.float32))],
-            'predict', 0, X.astype(numpy.float32))
+    return (X, y, [('X', X[:1].astype(dtype))],
+            'predict', 0, X.astype(dtype))
 
 
-def _problem_for_clnoproba_binary():
+def _problem_for_clnoproba_binary(dtype=numpy.float32):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     scoring problem. Binary classification.
@@ -245,8 +247,8 @@ def _problem_for_clnoproba_binary():
     X = data.data
     y = data.target
     y[y == 2] = 1
-    return (X, y, [('X', X[:1].astype(numpy.float32))],
-            'predict', 0, X.astype(numpy.float32))
+    return (X, y, [('X', X[:1].astype(dtype))],
+            'predict', 0, X.astype(dtype))
 
 
 def find_suitable_problem(model):
@@ -282,7 +284,8 @@ def find_suitable_problem(model):
     kind of dimensions but apparently, if the input shape is
     precise, every part of the graph has to be precise. The strings
     used variables which means it is at the same time precise
-    and unprecise.
+    and unprecise. Suffix ``'-64'`` means the model will
+    do double computations.
 
     The following script gives the list of :epkg:`scikit-learn`
     models and the problem they can be fitted on.
@@ -306,7 +309,8 @@ def find_suitable_problem(model):
                 'reg-nofit-std', 'multi-reg-nofit-std',
                 'reg-noshapevar', 'multi-reg-noshapevar',
                 'reg-cov', 'multi-reg-cov',
-                'reg-std-d2-noshapevar', 'mreg-std-d2-noshapevar']
+                'reg-std-d2-noshapevar', 'mreg-std-d2-noshapevar',
+                'regression', 'regression-64']
 
     if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
                  ComplementNB, GaussianNB, GaussianProcessClassifier,
@@ -320,7 +324,7 @@ def find_suitable_problem(model):
         return ['regression']
 
     if model in {LinearSVC, NearestCentroid}:
-        return ['clnoproba']
+        return ['clnoproba', 'clnoproba-64']
 
     if model in {RFE, RFECV}:
         return ['bin-class', 'multi-class', 'regression']
@@ -342,9 +346,8 @@ def find_suitable_problem(model):
                  LarsCV, LassoCV, LassoLarsCV, LassoLarsIC,
                  LinearSVR, NuSVR, OrthogonalMatchingPursuitCV,
                  PassiveAggressiveRegressor, SGDRegressor,
-                 TheilSenRegressor, HuberRegressor,
-                 SVR}:
-        return ['regression']
+                 TheilSenRegressor, HuberRegressor, SVR}:
+        return ['regression', 'regression-64']
 
     if model in {MultiOutputClassifier}:
         return ['multi-class', 'multi-label']
@@ -368,7 +371,7 @@ def find_suitable_problem(model):
 
     # no multi-label
     if model in {AdaBoostClassifier, LogisticRegression}:
-        return ['bin-class', 'multi-class']
+        return ['bin-class', 'bin-class-64', 'multi-class']
 
     # predict, predict_proba
     if hasattr(model, 'predict_proba'):
@@ -379,9 +382,9 @@ def find_suitable_problem(model):
 
     if hasattr(model, 'predict'):
         if "Classifier" in str(model):
-            return ['bin-class', 'multi-class', 'multi-label']
+            return ['bin-class', 'bin-class-64', 'multi-class', 'multi-label']
         elif "Regressor" in str(model):
-            return ['regression', 'multi-reg']
+            return ['regression', 'multi-reg', 'regression-64']
 
     # Generic case.
     res = []
@@ -400,9 +403,9 @@ def find_suitable_problem(model):
         res.extend(['outlier'])
 
     if issubclass(model, ClassifierMixin):
-        res.extend(['bin-class', 'multi-class', 'multi-label'])
+        res.extend(['bin-class', 'bin-class-64', 'multi-class', 'multi-label'])
     if issubclass(model, RegressorMixin):
-        res.extend(['regression', 'multi-reg'])
+        res.extend(['regression', 'multi-reg', 'regression-64'])
 
     if len(res) == 0 and hasattr(model, 'fit') and hasattr(model, 'score'):
         return ['scoring']
@@ -449,8 +452,10 @@ def _noshapevar(fct):
 
 _problems = {
     "bin-class": _problem_for_predictor_binary_classification,
+    "bin-class-64": lambda: _problem_for_predictor_binary_classification(dtype=numpy.float64),
     "multi-class": _problem_for_predictor_multi_classification,
     "regression": _problem_for_predictor_regression,
+    "regression-64": lambda: _problem_for_predictor_regression(dtype=numpy.float64),
     "multi-reg": _problem_for_predictor_multi_regression,
     "multi-label": _problem_for_predictor_multi_classification_label,
     "num-transform": _problem_for_numerical_transform,

@@ -12,6 +12,7 @@ import numpy
 import onnx
 from sklearn.base import BaseEstimator
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
+from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 
 
 def modules_list():
@@ -50,7 +51,7 @@ def _dispsimple(arr, fLOG):
         for i, a in enumerate(arr):
             fLOG("output %d" % i)
             _dispsimple(a, fLOG)
-    else:
+    elif hasattr(arr, 'shape'):
         if len(arr.shape) == 1:
             threshold = 8
         else:
@@ -59,6 +60,11 @@ def _dispsimple(arr, fLOG):
         fLOG(numpy.array2string(arr, max_line_width=120,
                                 suppress_small=True,
                                 threshold=threshold))
+    else:
+        s = str(arr)
+        if len(s) > 50:
+            s = s[:50] + "..."
+        fLOG(s)
 
 
 def get_opset_number_from_onnx():
@@ -107,7 +113,7 @@ def sklearn_operators(subfolder=None):
 
 
 def to_onnx(model, X=None, name=None, initial_types=None,
-            target_opset=None, options=None):
+            target_opset=None, options=None, dtype=None):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
 
@@ -120,6 +126,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     @param      name            name of the produced model
     @param      target_opset    to do it with a different target opset
     @param      options         additional parameters for the conversion
+    @param      dtype           type to use to convert the model
     @return                     converted model
     """
     from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
@@ -127,12 +134,31 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     from skl2onnx import convert_sklearn
 
     if isinstance(model, OnnxOperatorMixin):
-        return model.to_onnx(X=X, name=name)
+        if target_opset is not None:
+            raise NotImplementedError(
+                "target_opset not yet implemented for OnnxOperatorMixin.")
+        if options is not None:
+            raise NotImplementedError(
+                "options not yet implemented for OnnxOperatorMixin.")
+        return model.to_onnx(X=X, name=name, dtype=dtype)
     if name is None:
-        name = model.__class__.__name__
+        name = "ONNX(%s)" % model.__class__.__name__
     initial_types = guess_initial_types(X, initial_types)
+    if dtype is None:
+        raise RuntimeError("dtype cannot be None")
+    if isinstance(dtype, FloatTensorType):
+        dtype = numpy.float32
+    elif isinstance(dtype, DoubleTensorType):
+        dtype = numpy.float64
+    new_dtype = dtype
+    if isinstance(dtype, numpy.ndarray):
+        new_dtype = dtype.dtype
+    if new_dtype not in (numpy.float32, numpy.float64):
+        raise NotImplementedError(
+            "dtype should be real not {} ({})".format(new_dtype, dtype))
     return convert_sklearn(model, initial_types=initial_types, name=name,
-                           target_opset=target_opset, options=options)
+                           target_opset=target_opset, options=options,
+                           dtype=new_dtype)
 
 
 def _measure_time(fct):

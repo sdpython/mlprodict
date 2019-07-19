@@ -8,6 +8,21 @@ import numpy
 from onnx import onnx_pb as onnx_proto
 
 
+def _numpy_array(data, dtype=None, copy=True):
+    """
+    Single function to create an array.
+
+    @param      data        data
+    @param      dtype       dtype
+    @param      copy        copy
+    """
+    if isinstance(data, numpy.ndarray):
+        res = data
+    else:
+        res = numpy.array(data, dtype=dtype, copy=copy)
+    return res
+
+
 def _elem_type_as_str(elem_type):
     if elem_type == onnx_proto.TensorProto.FLOAT:  # pylint: disable=E1101
         return 'float'
@@ -88,11 +103,11 @@ def _var_as_dict(var):
         res = dict(name=var.name, type=dtype)
 
         if hasattr(var, 'floats') and dtype.get('elem', None) == 6:
-            res['value'] = numpy.array(var.floats)
+            res['value'] = _numpy_array(var.floats, dtype=numpy.float32)
         elif hasattr(var, 'strings') and dtype.get('elem', None) == 8:
-            res['value'] = numpy.array(var.strings)
+            res['value'] = _numpy_array(var.strings)
         elif hasattr(var, 'ints') and dtype.get('elem', None) == 7:
-            res['value'] = numpy.array(var.ints)
+            res['value'] = _numpy_array(var.ints)
         elif hasattr(var, 'f') and dtype.get('elem', None) == 1:
             res['value'] = var.f
         elif hasattr(var, 's') and dtype.get('elem', None) == 3:
@@ -122,24 +137,24 @@ def _var_as_dict(var):
         dims = [d for d in var.dims]
         if var.data_type == 1 and var.float_data is not None:
             try:
-                data = numpy.array(var.float_data, dtype=numpy.float32,
-                                   copy=False).reshape(dims)
+                data = _numpy_array(var.float_data, dtype=numpy.float32,
+                                    copy=False).reshape(dims)
             except ValueError:
                 from onnx.numpy_helper import to_array
-                data = to_array(var)
+                data = _numpy_array(to_array(var))
         elif var.data_type == 11 and var.double_data is not None:
             try:
-                data = numpy.array(var.double_data, dtype=numpy.float64,
-                                   copy=False).reshape(dims)
+                data = _numpy_array(var.double_data, dtype=numpy.float64,
+                                    copy=False).reshape(dims)
             except ValueError:
                 from onnx.numpy_helper import to_array
-                data = to_array(var)
+                data = _numpy_array(to_array(var))
         elif var.data_type == 6 and var.int32_data is not None:
-            data = numpy.array(var.int32_data, dtype=numpy.int32,
-                               copy=False).reshape(dims)
+            data = _numpy_array(var.int32_data, dtype=numpy.int32,
+                                copy=False).reshape(dims)
         elif var.data_type == 7 and var.int64_data is not None:
-            data = numpy.array(var.int64_data, dtype=numpy.int64,
-                               copy=False).reshape(dims)
+            data = _numpy_array(var.int64_data, dtype=numpy.int64,
+                                copy=False).reshape(dims)
         else:
             raise NotImplementedError(
                 "Iniatilizer {} cannot be converted into a dictionary.".format(var))
@@ -147,14 +162,14 @@ def _var_as_dict(var):
 
     elif hasattr(var, 'data_type') and var.data_type > 0:
         if var.data_type == 1 and var.float_data is not None:
-            data = numpy.array(var.float_data, dtype=numpy.float32,
-                               copy=False)
+            data = _numpy_array(var.float_data, dtype=numpy.float32,
+                                copy=False)
         elif var.data_type == 6 and var.int32_data is not None:
-            data = numpy.array(var.int32_data, dtype=numpy.int32,
-                               copy=False)
+            data = _numpy_array(var.int32_data, dtype=numpy.int32,
+                                copy=False)
         elif var.data_type == 7 and var.int64_data is not None:
-            data = numpy.array(var.int64_data, dtype=numpy.int64,
-                               copy=False)
+            data = _numpy_array(var.int64_data, dtype=numpy.int64,
+                                copy=False)
         else:
             raise NotImplementedError(
                 "Iniatilizer {} cannot be converted into a dictionary.".format(var))

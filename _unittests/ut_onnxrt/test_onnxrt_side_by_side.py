@@ -134,7 +134,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
 
         cpu = OnnxInference(model_onnx.SerializeToString())
         sbs = side_by_side_by_values(
-            [cpu, sess], {'X': Xtest_.astype(numpy.float32)})
+            [cpu, sess], inputs={'X': Xtest_.astype(numpy.float32)})
         self.assertGreater(len(sbs), 2)
         self.assertIsInstance(sbs, list)
         self.assertIsInstance(sbs[0], dict)
@@ -148,7 +148,12 @@ class TestOnnxrtSideBySide(ExtTestCase):
         sess3 = OnnxInference(model_onnx.SerializeToString(),
                               runtime="onnxruntime2")
         sbs = side_by_side_by_values(
-            [cpu, sess, sess3], {'X': Xtest_.astype(numpy.float32)})
+            [cpu, sess, sess3], inputs={'X': Xtest_.astype(numpy.float32)})
+        self.assertNotEmpty(sbs)
+
+        inputs = {'X': Xtest_.astype(numpy.float32)}
+        sbs = side_by_side_by_values(
+            [(cpu, inputs), (sess, inputs), (sess3, inputs)])
         self.assertNotEmpty(sbs)
 
 

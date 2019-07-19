@@ -5,7 +5,7 @@
 from .validate_difference import measure_relative_difference
 
 
-def side_by_side_by_values(sessions, inputs, *args, **kwargs):
+def side_by_side_by_values(sessions, *args, inputs=None, **kwargs):
     """
     Compares the execution of two sessions.
     It calls method :meth:`OnnxInference.run
@@ -24,6 +24,9 @@ def side_by_side_by_values(sessions, inputs, *args, **kwargs):
 
     The first session is considered as the baseline.
     See notebook :ref:`onnxsbsrst` for an example.
+    If *inputs* is None, the function assumes
+    *sessions* is a list of *tuple(sessions, inputs)*
+    because sometimes inputs must be different.
     """
     if not kwargs.get('intermediate', True):
         raise ValueError("kwargs must not set intermediate to True")
@@ -34,10 +37,15 @@ def side_by_side_by_values(sessions, inputs, *args, **kwargs):
     # run
     results = []
     for i, sess in enumerate(sessions):
+        if isinstance(sess, tuple) and inputs is None:
+            new_sess, new_inputs = sess
+        else:
+            new_sess = sess
+            new_inputs = inputs
         if verbose > 0 and fLOG:
             fLOG('[side_by_side_by_values] run session {}/{}'.format(
                 i + 1, len(sessions)))
-        res = sess.run(inputs, *args, **kwargs)
+        res = new_sess.run(new_inputs, *args, **kwargs)
         results.append([(k, v) for k, v in res.items()])
 
     # same number of results?

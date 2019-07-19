@@ -20,6 +20,8 @@ class Cast(OpRun):
         # type help(TensorProto) to see all the possible values
         if self.to == TensorProto.FLOAT:  # pylint: disable=E1101
             self._cast = lambda x: x.astype(numpy.float32)
+        elif self.to == TensorProto.DOUBLE:  # pylint: disable=E1101
+            self._cast = lambda x: x.astype(numpy.float64)
         elif self.to == TensorProto.INT32:  # pylint: disable=E1101
             self._cast = lambda x: x.astype(numpy.int32)
         elif self.to == TensorProto.INT64:  # pylint: disable=E1101

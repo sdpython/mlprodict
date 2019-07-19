@@ -5,7 +5,7 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRun
+from ._op import OpRun, RuntimeTypeError
 
 
 class LinearRegressor(OpRun):
@@ -33,4 +33,8 @@ class LinearRegressor(OpRun):
             raise NotImplementedError("Unknown post_transform: '{}'.".format(
                 self.post_transform))
 
+        if score.dtype != x.dtype:
+            raise RuntimeTypeError(
+                "Type mismatch between input and output {} != {} coef type={}.".format(
+                    x.dtype, score.dtype, self.coefficients.dtype))
         return (score, )

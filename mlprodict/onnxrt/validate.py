@@ -254,13 +254,14 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                     raise NotImplementedError("Multiple types are is not implemented: "
                                               "{}.".format(init_types))
 
-                def fct_skl(itt=inst, it=init_types[0][1], ops=opset, options=conv_options):  # pylint: disable=W0102
-                    return to_onnx(itt, it, target_opset=ops, options=options)
+                def fct_conv(itt=inst, it=init_types[0][1], ops=opset, options=conv_options):  # pylint: disable=W0102
+                    return to_onnx(itt, it, target_opset=ops, options=options,
+                                   dtype=init_types[0][1])
 
                 if verbose >= 2 and fLOG is not None:
                     fLOG("[enumerate_compatible_opset] conversion to onnx")
                 try:
-                    conv, t4 = _measure_time(fct_skl)
+                    conv, t4 = _measure_time(fct_conv)
                     obs_op["convert_time"] = t4
                 except (RuntimeError, IndexError, AttributeError) as e:
                     if debug:
@@ -291,7 +292,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                         model=model, dump_folder=dump_folder,
                                         benchmark=benchmark and opset == opsets[-1],
                                         node_time=node_time, disable_single=disable_single,
-                                        fLOG=fLOG, verbose=verbose)
+                                        fLOG=fLOG, verbose=verbose,
+                                        store_models=store_models)
                 else:
                     yield obs_op
 
@@ -300,7 +302,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                   X_test, y_test, init_types, method_name, output_index,
                   ypred, Xort_test, model, dump_folder,
                   benchmark, node_time, disable_single, fLOG,
-                  verbose):
+                  verbose, store_models):
     """
     Private.
     """
@@ -366,14 +368,18 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
         debug_exc = []
         if opred is not None:
+            if store_models:
+                obs_op['skl_outputs'] = ypred
+                obs_op['ort_outputs'] = opred
             if verbose >= 3 and fLOG is not None:
                 fLOG("[_call_runtime] runtime prediction")
                 _dispsimple(opred, fLOG)
             max_rel_diff = measure_relative_difference(
                 ypred, opred)
             if max_rel_diff >= 1e9 and debug:
-                raise RuntimeError("Big difference:\n-------\n{}\n--------\n{}".format(
-                    ypred, opred))
+                raise RuntimeError(
+                    "Big difference:\n-------\n{}\n--------\n{}".format(
+                        ypred, opred))
             if numpy.isnan(max_rel_diff):
                 obs_op['_8max_rel_diff_batch_exc'] = (
                     "Unable to compute differences between"
@@ -473,7 +479,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
     if debug and len(debug_exc) == 2:
         raise debug_exc[0]
-    if debug:
+    if debug and verbose >= 2:
         import pprint
         fLOG(pprint.pformat(obs_op))
     if verbose >= 2 and fLOG is not None:
@@ -487,7 +493,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         benchmark=False, skip_models=None,
                                         assume_finite=True, node_time=False,
                                         fLOG=print, filter_exp=None,
-                                        versions=False, disable_single=False):
+                                        versions=False, disable_single=False,
+                                        dtype=numpy.float32):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -521,6 +528,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                 :epkg:`numpy`, :epkg:`scikit-learn`, :epkg:`onnx`,
                                 :epkg:`onnxruntime`, :epkg:`sklearn-onnx`
     @param      disable_single  disable single prediction (loop on one-off prediction)
+    @parm       dtype           force the conversion to use that type
     @param      fLOG            logging function
     @return                     list of dictionaries
 

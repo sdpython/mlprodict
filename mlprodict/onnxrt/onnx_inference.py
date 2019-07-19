@@ -650,14 +650,20 @@ class OnnxInference:
                     node.run(values)
         else:
             def dispsimple(arr):
-                if len(arr.shape) == 1:
-                    threshold = 8
+                if hasattr(arr, 'shape'):
+                    if len(arr.shape) == 1:
+                        threshold = 8
+                    else:
+                        threshold = min(
+                            50, min(50 // arr.shape[1], 8) * arr.shape[1])
+                    fLOG(numpy.array2string(arr, max_line_width=120,
+                                            suppress_small=True,
+                                            threshold=threshold))
                 else:
-                    threshold = min(
-                        50, min(50 // arr.shape[1], 8) * arr.shape[1])
-                fLOG(numpy.array2string(arr, max_line_width=120,
-                                        suppress_small=True,
-                                        threshold=threshold))
+                    s = str(arr)
+                    if len(s) > 50:
+                        s = s[:50] + "..."
+                    fLOG(s)
 
             if verbose >= 2:
                 for k in sorted(values):

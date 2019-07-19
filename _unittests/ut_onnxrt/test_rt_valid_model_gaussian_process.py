@@ -9,7 +9,12 @@ from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from sklearn.gaussian_process.kernels import RBF, ExpSineSquared
+from sklearn.datasets import load_boston
+from sklearn.model_selection import train_test_split
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import DotProduct
 from skl2onnx import __version__ as skl2onnx_version
+from skl2onnx import to_onnx
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 from mlprodict.onnxrt import OnnxInference
@@ -170,6 +175,20 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    def test_partial_float64(self):
+        data = load_boston()
+        X, y = data.data, data.target
+        X_train, X_test, y_train, _ = train_test_split(X, y)
+        gau = GaussianProcessRegressor(alpha=10, kernel=DotProduct())
+        gau.fit(X_train, y_train)
+        onnxgau48 = to_onnx(gau, X_train.astype(numpy.float32), dtype=numpy.float32,
+                            options={GaussianProcessRegressor: {'float64': True}})
+        oinf48 = OnnxInference(onnxgau48, runtime="python")
+        out = oinf48.run({'X': X_test.astype(numpy.float32)})
+        y = out['GPmean']
+        self.assertEqual(y.dtype, numpy.float32)
+
 
 if __name__ == "__main__":
+    TestRtValidateGaussianProcess().test_partial_float64()
     unittest.main()

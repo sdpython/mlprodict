@@ -12,7 +12,7 @@ _schemas = {
 
 class OpRun:
     """
-    Ancestor to all operator in this subfolder.
+    Ancestor to all operators in this subfolder.
     The runtime for every node can checked into
     `ONNX unit tests
     <https://github.com/onnx/onnx/tree/master/onnx/backend/test/case/node>`_.
@@ -74,7 +74,7 @@ class OpRun:
 
     def run(self, *args, **kwargs):
         """
-        Should be overwritten.
+        Calls method ``_run``.
         """
         try:
             return self._run(*args, **kwargs)
@@ -105,3 +105,43 @@ class OpRun:
                 else:
                     done.append(("-", "att", k, getattr(self, k)))
         return done
+
+
+class RuntimeTypeError(RuntimeError):
+    """
+    Raised when a type of a variable is unexpected.
+    """
+    pass
+
+
+class OpRunBinary(OpRun):
+    """
+    Ancestor to all binary operators in this subfolder.
+    Checks that inputs type are the same.
+    """
+
+    def __init__(self, onnx_node, desc=None, expected_attributes=None,
+                 **options):
+        OpRun.__init__(self, onnx_node, desc=desc,
+                       expected_attributes=expected_attributes,
+                       **options)
+
+    def run(self, x, y):  # pylint: disable=W0221
+        """
+        Calls method ``_run``.
+        """
+        if x.dtype != y.dtype:
+            raise RuntimeTypeError(
+                "Input type mismath: {} != {} (not type: '{}')".format(
+                    x.dtype, y.dtype, self.__class__.__name__))
+        try:
+            res = self._run(x, y)
+        except TypeError as e:
+            raise TypeError("Issues with types {} (binary operator {}).".format(
+                ", ".join(str(type(_)) for _ in [x, y]),
+                self.__class__.__name__)) from e
+        if res[0].dtype != x.dtype:
+            raise RuntimeTypeError(
+                "Output type mismath: {} != {} (not type: '{}')".format(
+                    x.dtype, res[0].dtype, self.__class__.__name__))
+        return res
