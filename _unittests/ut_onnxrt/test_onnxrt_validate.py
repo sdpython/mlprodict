@@ -26,8 +26,8 @@ class TestOnnxrtValidate(ExtTestCase):
                 verbose, models={"RFE"}, opset_min=10,
                 debug=True, fLOG=fLOG))
         else:
-            rows = list(enumerate_validated_operator_opsets(verbose, debug=None, fLOG=fLOG,
-                                                            dump_folder=temp))
+            rows = list(enumerate_validated_operator_opsets(
+                verbose, debug=None, fLOG=fLOG, dump_folder=temp))
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
         self.assertGreater(df.shape[1], 1)

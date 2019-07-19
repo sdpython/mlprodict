@@ -85,12 +85,12 @@ class TestOnnxrtSimple(ExtTestCase):
         dot = oinf.to_dot()
         self.assertIn('Add [', dot)
         self.assertIn('Add1 [', dot)
-        self.assertIn('Add\\n(Add)', dot)
-        self.assertIn('Add\\n(Add1)', dot)
-        self.assertIn('X -> Add;', dot)
-        self.assertIn('Addcst1 -> Add1;', dot)
-        self.assertIn('Addcst -> Add;', dot)
-        self.assertIn('Add1 -> Y;', dot)
+        self.assertIn('Add\\n(Ad_Add)', dot)
+        self.assertIn('Add\\n(Ad_Add1)', dot)
+        self.assertIn('X -> Ad_Add;', dot)
+        self.assertIn('Ad_Addcst1 -> Ad_Add1;', dot)
+        self.assertIn('Ad_Addcst -> Ad_Add;', dot)
+        self.assertIn('Ad_Add1 -> Y;', dot)
 
     def test_onnxt_lreg(self):
         pars = dict(coefficients=numpy.array([1., 2.]), intercepts=numpy.array([1.]),
@@ -178,7 +178,7 @@ class TestOnnxrtSimple(ExtTestCase):
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         X = numpy.array([[1, 1], [3, 3]])
-        y = oinf.run({'X': X})
+        y = oinf.run({'X': X.astype(numpy.float32)})
         exp = numpy.array([[4, 1], [3, 6]], dtype=numpy.float32)
         self.assertEqual(list(y), ['Y'])
         self.assertEqualArray(y['Y'], exp)

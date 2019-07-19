@@ -328,7 +328,9 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         fLOG("[enumerate_compatible_opset] compute batch")
 
     def fct_batch(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
-        return se.run({it[0][0]: xo}, verbose=max(verbose - 1, 1) if debug else 0, fLOG=fLOG)
+        return se.run({it[0][0]: xo},
+                      verbose=max(verbose - 1, 1) if debug else 0, fLOG=fLOG)
+
     if debug:
         keep_exc = None
     try:

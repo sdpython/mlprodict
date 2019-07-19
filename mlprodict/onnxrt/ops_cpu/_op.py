@@ -10,6 +10,13 @@ _schemas = {
     schema.name: schema for schema in onnx.defs.get_all_schemas_with_history()}
 
 
+class RuntimeTypeError(RuntimeError):
+    """
+    Raised when a type of a variable is unexpected.
+    """
+    pass
+
+
 class OpRun:
     """
     Ancestor to all operators in this subfolder.
@@ -109,13 +116,6 @@ class OpRun:
         return done
 
 
-class RuntimeTypeError(RuntimeError):
-    """
-    Raised when a type of a variable is unexpected.
-    """
-    pass
-
-
 class OpRunUnary(OpRun):
     """
     Ancestor to all binary operators in this subfolder.
@@ -160,7 +160,7 @@ class OpRunUnaryNum(OpRunUnary):
         res = OpRunUnary.run(self, x)
         if res[0].dtype != x.dtype:
             raise RuntimeTypeError(
-                "Output type mismath: {} != {} (not type: '{}')".format(
+                "Output type mismatch: {} != {} (operator '{}')".format(
                     x.dtype, res[0].dtype, self.__class__.__name__))
         return res
 
@@ -186,7 +186,7 @@ class OpRunBinary(OpRun):
         """
         if x.dtype != y.dtype:
             raise RuntimeTypeError(
-                "Input type mismath: {} != {} (not type: '{}')".format(
+                "Input type mismatch: {} != {} (operator '{}')".format(
                     x.dtype, y.dtype, self.__class__.__name__))
         try:
             res = self._run(x, y)
@@ -228,7 +228,7 @@ class OpRunBinaryNum(OpRunBinary):
         res = OpRunBinary.run(self, x, y)
         if res[0].dtype != x.dtype:
             raise RuntimeTypeError(
-                "Output type mismath: {} != {} (not type: '{}')".format(
+                "Output type mismatch: {} != {} (operator '{}')".format(
                     x.dtype, res[0].dtype, self.__class__.__name__))
         return res
 

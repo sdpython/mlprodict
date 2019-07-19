@@ -43,7 +43,7 @@ class TestOnnxrtValidateHelper(ExtTestCase):
                 self.assertEqual(
                     prob, ['num+y-trans', 'regression'])
             elif model['name'] == 'NearestCentroid':
-                self.assertEqual(prob, ['clnoproba'])
+                self.assertEqual(prob, ['clnoproba', 'clnoproba-64'])
             self.assertIsInstance(prob, list)
 
     def test_module_list(self):

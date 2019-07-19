@@ -32,7 +32,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
         oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X_test})
+        got = oinf.run({'X': X_test.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['label', 'scores'])
         exp = clr.predict(X_test)
         self.assertEqualArray(exp, got['label'])
@@ -53,7 +53,8 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
         oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X_test}, verbose=2, fLOG=myprint)
+        got = oinf.run({'X': X_test.astype(numpy.float32)},
+                       verbose=2, fLOG=myprint)
         self.assertEqual(list(sorted(got)), ['label', 'scores'])
         exp = clr.predict(X_test)
         self.assertEqualArray(exp, got['label'])
@@ -71,7 +72,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
         oinf = OnnxInference(model_def)
         for i in range(0, X_test.shape[0]):
-            y = oinf.run({'X': X_test[i:i + 1]})
+            y = oinf.run({'X': X_test[i:i + 1].astype(numpy.float32)})
             self.assertEqual(list(sorted(y)), [
                              'output_label', 'output_probability'])
             lexp = clr.predict(X_test[i:i + 1])
@@ -131,7 +132,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
         oinf = OnnxInference(model_def)
         for i in range(0, 5):
-            y = oinf.run({'X': X_test[i:i + 1]})
+            y = oinf.run({'X': X_test[i:i + 1].astype(numpy.float32)})
 
             seq = oinf.sequence_
             text = "\n".join(map(lambda x: str(x.ops_), seq))

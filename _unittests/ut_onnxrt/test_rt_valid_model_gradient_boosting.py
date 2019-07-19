@@ -27,12 +27,12 @@ class TestRtValidateGradientBoosting(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GradientBoostingRegressor"}, opset_min=10, fLOG=fLOG,
             runtime='onnxruntime1', debug=False))
-        self.assertIn(len(rows), (1, 2, 3))
+        self.assertGreater(len(rows), 2)
         df = DataFrame(rows)
         self.assertIn("max_rel_diff_batch", df.columns)
         self.assertGreater(df.shape[0], 1)
         piv = summary_report(df)
-        self.assertIn(piv.shape[0], (1, 2, 3))
+        self.assertGreater(piv.shape[0], 2)
 
 
 if __name__ == "__main__":

@@ -161,7 +161,7 @@ def _problem_for_numerical_transform(dtype=numpy.float32):
             'transform', 0, X.astype(dtype=numpy.float32))
 
 
-def _problem_for_numerical_trainable_transform(dtype):
+def _problem_for_numerical_trainable_transform(dtype=numpy.float32):
     """
     Returns *X, intial_types, method, name, X runtime* for a
     transformation problem.
@@ -462,6 +462,7 @@ _problems = {
     "scoring": _problem_for_numerical_scoring,
     'outlier': _problem_for_outlier,
     'clnoproba': _problem_for_clnoproba,
+    'clnoproba-64': lambda: _problem_for_clnoproba(dtype=numpy.float64),
     'binclnoproba': _problem_for_clnoproba_binary,
     'cluster': _problem_for_clustering,
     'num-trans-cluster': _problem_for_clustering_scores,
