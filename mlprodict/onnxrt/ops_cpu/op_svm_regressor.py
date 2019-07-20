@@ -7,11 +7,11 @@
 from collections import OrderedDict
 import numpy
 from ._op_helper import _get_typed_class_attribute
-from ._op import OpRun
+from ._op import OpRunUnaryNum
 from .op_svm_regressor_ import RuntimeSVMRegressor  # pylint: disable=E0611
 
 
-class SVMRegressor(OpRun):
+class SVMRegressor(OpRunUnaryNum):
 
     atts = OrderedDict([
         ('coefficients', numpy.empty(0, dtype=numpy.float32)),
@@ -25,9 +25,9 @@ class SVMRegressor(OpRun):
     ])
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=SVMRegressor.atts,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=SVMRegressor.atts,
+                               **options)
         self._init()
 
     def _get_typed_attributes(self, k):

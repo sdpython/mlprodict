@@ -7,11 +7,11 @@
 from collections import OrderedDict
 import numpy
 from ._op_helper import _get_typed_class_attribute
-from ._op import OpRun
+from ._op import OpRunUnaryNum
 from .op_tree_ensemble_regressor_ import RuntimeTreeEnsembleRegressor  # pylint: disable=E0611
 
 
-class TreeEnsembleRegressor(OpRun):
+class TreeEnsembleRegressor(OpRunUnaryNum):
 
     atts = OrderedDict([
         ('aggregate_function', b'SUM'),
@@ -34,9 +34,9 @@ class TreeEnsembleRegressor(OpRun):
     ])
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=TreeEnsembleRegressor.atts,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=TreeEnsembleRegressor.atts,
+                               **options)
         self._init()
 
     def _get_typed_attributes(self, k):

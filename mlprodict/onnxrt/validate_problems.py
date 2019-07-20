@@ -66,7 +66,7 @@ def _problem_for_predictor_binary_classification(dtype=numpy.float32):
 def _problem_for_predictor_multi_classification(dtype=numpy.float32):
     """
     Returns *X, y, intial_types, method, node name, X runtime* for a
-    multi-class classification problem.
+    m-cl classification problem.
     It is based on Iris dataset.
     """
     data = load_iris()
@@ -79,7 +79,7 @@ def _problem_for_predictor_multi_classification(dtype=numpy.float32):
 def _problem_for_predictor_multi_classification_label(dtype=numpy.float32):
     """
     Returns *X, y, intial_types, method, node name, X runtime* for a
-    multi-class classification problem.
+    m-cl classification problem.
     It is based on Iris dataset.
     """
     data = load_iris()
@@ -125,7 +125,7 @@ def _problem_for_predictor_multi_regression(many_output=False, options=None,
                                             dtype=numpy.float32, **kwargs):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
-    multi-regression problem.
+    mregression problem.
     It is based on Iris dataset.
     """
     data = load_iris()
@@ -256,19 +256,19 @@ def find_suitable_problem(model):
     Determines problems suitable for a given
     :epkg:`scikit-learn` operator. It may be
 
-    * `bin-class`: binary classification
-    * `multi-class`: multi-class classification
-    * `multi-label`: classification multi-label
-      (multi label possible at the same time)
-    * `regression`: regression
-    * `multi-reg`: regression multi-output
-    * `num-transform`: transform numerical features
+    * `b-cl`: binary classification
+    * `m-cl`: m-cl classification
+    * `m-label`: classification m-label
+      (multiple labels possible at the same time)
+    * `reg`: regression
+    * `mreg`: regression multi-output
+    * `num-tr`: transform numerical features
     * `scoring`: transform numerical features, target is usually needed
     * `outlier`: outlier prediction
     * `linearsvc`: classifier without *predict_proba*
     * `cluster`: similar to transform
-    * `num+y-trans`: similar to transform with targets
-    * `num-trans-cluster`: similar to cluster, but returns
+    * `num+y-tr`: similar to transform with targets
+    * `num-tr-clu`: similar to cluster, but returns
         scores or distances instead of cluster
 
     Suffix `nofit` indicates the predictions happens
@@ -277,7 +277,7 @@ def find_suitable_problem(model):
     The suffix `-cov` indicates the method `predict` was called
     with parameter ``return_cov=True``, `-std` tells
     method `predict` was called with parameter ``return_std=True``.
-    The suffix ``-noshapevar`` creates an input variable
+    The suffix ``-NSV`` creates an input variable
     like the following ``[('X', FloatTensorType(["da", "db"]))]``.
     That's a way to bypass :epkg:`onnxruntime` shape checking
     as one part of the graph is designed to handle any
@@ -285,135 +285,158 @@ def find_suitable_problem(model):
     precise, every part of the graph has to be precise. The strings
     used variables which means it is at the same time precise
     and unprecise. Suffix ``'-64'`` means the model will
-    do double computations.
+    do double computations. Suffix ``-nop`` means the classifier
+    does not implement method *predict_proba*.
 
     The following script gives the list of :epkg:`scikit-learn`
     models and the problem they can be fitted on.
 
     .. runpython::
         :showcode:
+        :rst:
 
         from mlprodict.onnxrt.validate import sklearn_operators, find_suitable_problem
+        from pyquickhelper.pandashelper import df2rst
+        from pandas import DataFrame
         res = sklearn_operators()
-        for model in res:
+        rows = []
+        for model in res[:20]:
+            name = model['name']
+            row = dict(name=name)
             try:
                 prob = find_suitable_problem(model['cl'])
-                print(model['name'], ":", prob)
+                for p in prob:
+                    row[p] = 'X'
             except RuntimeError:
-                print("-", model['name'], ": no associated problem")
+                pass
+            rows.append(row)
+        df = DataFrame(rows).set_index('name')
+        df = df.sort_index()
+        print(df2rst(df, index=True))
+
+    The list is truncated. The full list can be found at
+    :ref:`l-model-problem-list`.
     """
-    # Exceptions
-    if model in {GaussianProcessRegressor}:
-        return ['reg-nofit', 'multi-reg-nofit',
-                'reg-nofit-cov', 'multi-reg-nofit-cov',
-                'reg-nofit-std', 'multi-reg-nofit-std',
-                'reg-noshapevar', 'multi-reg-noshapevar',
-                'reg-cov', 'multi-reg-cov',
-                'reg-std-d2-noshapevar', 'mreg-std-d2-noshapevar',
-                'regression', 'regression-64']
+    def _internal(model):
+        # Exceptions
+        if model in {GaussianProcessRegressor}:
+            return ['~b-reg-NF-64', '~m-reg-NF-64',
+                    '~b-reg-NF-cov-64', '~m-reg-NF-cov-64',
+                    '~b-reg-NF-std-64', '~m-reg-NF-std-64',
+                    '~b-reg-NSV-64', '~m-reg-NSV-64',
+                    '~b-reg-cov-64', '~m-reg-cov-64',
+                    '~b-reg-std-NSV-64', '~m-reg-std-NSV-64',
+                    'b-reg', '~b-reg-64', 'm-reg']
 
-    if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
-                 ComplementNB, GaussianNB, GaussianProcessClassifier,
-                 GradientBoostingClassifier, LabelPropagation, LabelSpreading,
-                 LinearDiscriminantAnalysis, LogisticRegressionCV,
-                 MultinomialNB, NuSVC, Perceptron, QuadraticDiscriminantAnalysis,
-                 RandomizedSearchCV, SGDClassifier, SVC}:
-        return ['bin-class', 'multi-class']
+        if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
+                     ComplementNB, GaussianNB, GaussianProcessClassifier,
+                     GradientBoostingClassifier, LabelPropagation, LabelSpreading,
+                     LinearDiscriminantAnalysis, LogisticRegressionCV,
+                     MultinomialNB, NuSVC, Perceptron, QuadraticDiscriminantAnalysis,
+                     RandomizedSearchCV, SGDClassifier, SVC}:
+            return ['b-cl', 'm-cl']
 
-    if model in {AdaBoostRegressor}:
-        return ['regression']
+        if model in {AdaBoostRegressor}:
+            return ['b-reg']
 
-    if model in {LinearSVC, NearestCentroid}:
-        return ['clnoproba', 'clnoproba-64']
+        if model in {LinearSVC, NearestCentroid}:
+            return ['~b-cl-nop', '~b-cl-nop-64']
 
-    if model in {RFE, RFECV}:
-        return ['bin-class', 'multi-class', 'regression']
+        if model in {RFE, RFECV}:
+            return ['b-cl', 'm-cl', 'b-reg']
 
-    if model in {GridSearchCV}:
-        return ['bin-class', 'multi-class',
-                'regression', 'multi-reg',
-                'cluster', 'outlier', 'multi-label']
+        if model in {GridSearchCV}:
+            return ['b-cl', 'm-cl',
+                    'b-reg', 'm-reg',
+                    'cluster', 'outlier', '~m-label']
 
-    if model in {VotingClassifier}:
-        return ['bin-class']
+        if model in {VotingClassifier}:
+            return ['b-cl']
 
-    # specific scenarios
-    if model in {IsotonicRegression}:
-        return ['num+y-trans', 'regression']
+        # specific scenarios
+        if model in {IsotonicRegression}:
+            return ['num+y-tr', 'b-reg']
 
-    if model in {ARDRegression, BayesianRidge, ElasticNetCV,
-                 GradientBoostingRegressor,
-                 LarsCV, LassoCV, LassoLarsCV, LassoLarsIC,
-                 LinearSVR, NuSVR, OrthogonalMatchingPursuitCV,
-                 PassiveAggressiveRegressor, SGDRegressor,
-                 TheilSenRegressor, HuberRegressor, SVR}:
-        return ['regression', 'regression-64']
+        if model in {ARDRegression, BayesianRidge, ElasticNetCV,
+                     GradientBoostingRegressor,
+                     LarsCV, LassoCV, LassoLarsCV, LassoLarsIC,
+                     LinearSVR, NuSVR, OrthogonalMatchingPursuitCV,
+                     PassiveAggressiveRegressor, SGDRegressor,
+                     TheilSenRegressor, HuberRegressor, SVR}:
+            return ['b-reg', '~b-reg-64']
 
-    if model in {MultiOutputClassifier}:
-        return ['multi-class', 'multi-label']
+        if model in {MultiOutputClassifier}:
+            return ['m-cl', '~m-label']
 
-    if model in {MultiOutputRegressor, MultiTaskElasticNet,
-                 MultiTaskElasticNetCV, MultiTaskLassoCV,
-                 MultiTaskLasso}:
-        return ['multi-reg']
+        if model in {MultiOutputRegressor, MultiTaskElasticNet,
+                     MultiTaskElasticNetCV, MultiTaskLassoCV,
+                     MultiTaskLasso}:
+            return ['m-reg']
 
-    if model in {OneVsOneClassifier, OutputCodeClassifier,
-                 PassiveAggressiveClassifier, RadiusNeighborsClassifier,
-                 RidgeClassifier, RidgeClassifierCV}:
-        return ['binclnoproba', 'clnoproba']
+        if model in {OneVsOneClassifier, OutputCodeClassifier,
+                     PassiveAggressiveClassifier, RadiusNeighborsClassifier,
+                     RidgeClassifier, RidgeClassifierCV}:
+            return ['~b-cl-nop', '~m-cl-nop']
 
-    # trainable transform
-    if model in {GenericUnivariateSelect,
-                 NeighborhoodComponentsAnalysis,
-                 PLSSVD, SelectFwe, SelectKBest,
-                 SelectPercentile}:
-        return ["num+y-trans"]
+        # trainable transform
+        if model in {GenericUnivariateSelect,
+                     NeighborhoodComponentsAnalysis,
+                     PLSSVD, SelectFwe, SelectKBest,
+                     SelectPercentile}:
+            return ["num+y-tr"]
 
-    # no multi-label
-    if model in {AdaBoostClassifier, LogisticRegression}:
-        return ['bin-class', 'bin-class-64', 'multi-class']
+        # no m-label
+        if model in {AdaBoostClassifier, LogisticRegression}:
+            return ['b-cl', '~b-cl-64', 'm-cl']
 
-    # predict, predict_proba
-    if hasattr(model, 'predict_proba'):
-        if model is OneVsRestClassifier:
-            return ['multi-class', 'multi-label']
-        else:
-            return ['bin-class', 'multi-class', 'multi-label']
+        # predict, predict_proba
+        if hasattr(model, 'predict_proba'):
+            if model is OneVsRestClassifier:
+                return ['m-cl', '~m-label']
+            else:
+                return ['b-cl', 'm-cl', '~m-label']
 
-    if hasattr(model, 'predict'):
-        if "Classifier" in str(model):
-            return ['bin-class', 'bin-class-64', 'multi-class', 'multi-label']
-        elif "Regressor" in str(model):
-            return ['regression', 'multi-reg', 'regression-64']
+        if hasattr(model, 'predict'):
+            if "Classifier" in str(model):
+                return ['b-cl', '~b-cl-64', 'm-cl', '~m-label']
+            elif "Regressor" in str(model):
+                return ['b-reg', 'm-reg', '~b-reg-64']
 
-    # Generic case.
-    res = []
-    if hasattr(model, 'transform'):
-        if issubclass(model, (RegressorMixin, ClassifierMixin)):
-            res.extend(['num+y-trans'])
-        elif issubclass(model, (ClusterMixin, BiclusterMixin)):
-            res.extend(['num-trans-cluster'])
-        else:
-            res.extend(['num-transform'])
+        # Generic case.
+        res = []
+        if hasattr(model, 'transform'):
+            if issubclass(model, (RegressorMixin, ClassifierMixin)):
+                res.extend(['num+y-tr'])
+            elif issubclass(model, (ClusterMixin, BiclusterMixin)):
+                res.extend(['~num-tr-clu'])
+            else:
+                res.extend(['num-tr'])
 
-    if hasattr(model, 'predict') and issubclass(model, (ClusterMixin, BiclusterMixin)):
-        res.extend(['cluster'])
+        if hasattr(model, 'predict') and issubclass(model, (ClusterMixin, BiclusterMixin)):
+            res.extend(['cluster'])
 
-    if issubclass(model, (OutlierMixin)):
-        res.extend(['outlier'])
+        if issubclass(model, (OutlierMixin)):
+            res.extend(['outlier'])
 
-    if issubclass(model, ClassifierMixin):
-        res.extend(['bin-class', 'bin-class-64', 'multi-class', 'multi-label'])
-    if issubclass(model, RegressorMixin):
-        res.extend(['regression', 'multi-reg', 'regression-64'])
+        if issubclass(model, ClassifierMixin):
+            res.extend(['b-cl', '~b-cl-64', 'm-cl', '~m-label'])
+        if issubclass(model, RegressorMixin):
+            res.extend(['b-reg', 'm-reg', '~b-reg-64'])
 
-    if len(res) == 0 and hasattr(model, 'fit') and hasattr(model, 'score'):
-        return ['scoring']
-    if len(res) > 0:
-        return res
+        if len(res) == 0 and hasattr(model, 'fit') and hasattr(model, 'score'):
+            return ['~scoring']
+        if len(res) > 0:
+            return res
 
-    raise RuntimeError("Unable to find problem for model '{}' - {}."
-                       "".format(model.__name__, model.__bases__))
+        raise RuntimeError("Unable to find problem for model '{}' - {}."
+                           "".format(model.__name__, model.__bases__))
+
+    res = _internal(model)
+    for r in res:
+        if r not in _problems:
+            raise ValueError("Unrecognized problem '{}' in\n{}".format(
+                r, "\n".join(sorted(_problems))))
+    return res
 
 
 def _guess_noshape(obj, shape):
@@ -451,56 +474,70 @@ def _noshapevar(fct):
 
 
 _problems = {
-    "bin-class": _problem_for_predictor_binary_classification,
-    "bin-class-64": lambda: _problem_for_predictor_binary_classification(dtype=numpy.float64),
-    "multi-class": _problem_for_predictor_multi_classification,
-    "regression": _problem_for_predictor_regression,
-    "regression-64": lambda: _problem_for_predictor_regression(dtype=numpy.float64),
-    "multi-reg": _problem_for_predictor_multi_regression,
-    "multi-label": _problem_for_predictor_multi_classification_label,
-    "num-transform": _problem_for_numerical_transform,
-    "scoring": _problem_for_numerical_scoring,
+    # standard
+    "b-cl": _problem_for_predictor_binary_classification,
+    "m-cl": _problem_for_predictor_multi_classification,
+    "b-reg": _problem_for_predictor_regression,
+    "m-reg": _problem_for_predictor_multi_regression,
+    "num-tr": _problem_for_numerical_transform,
     'outlier': _problem_for_outlier,
-    'clnoproba': _problem_for_clnoproba,
-    'clnoproba-64': lambda: _problem_for_clnoproba(dtype=numpy.float64),
-    'binclnoproba': _problem_for_clnoproba_binary,
     'cluster': _problem_for_clustering,
-    'num-trans-cluster': _problem_for_clustering_scores,
-    'num+y-trans': _problem_for_numerical_trainable_transform,
+    'num+y-tr': _problem_for_numerical_trainable_transform,
+    # 64
+    "~b-cl-64": lambda: _problem_for_predictor_binary_classification(dtype=numpy.float64),
+    "~b-reg-64": lambda: _problem_for_predictor_regression(dtype=numpy.float64),
+    '~b-cl-nop-64': lambda: _problem_for_clnoproba(dtype=numpy.float64),
+    # others
+    '~num-tr-clu': _problem_for_clustering_scores,
+    "~m-label": _problem_for_predictor_multi_classification_label,
+    "~scoring": _problem_for_numerical_scoring,
+    '~m-cl-nop': _problem_for_clnoproba,
+    '~b-cl-nop': _problem_for_clnoproba_binary,
     #
-    "bin-class-nofit": (lambda: _problem_for_predictor_binary_classification() + (False, )),
-    "multi-class-nofit": (lambda: _problem_for_predictor_multi_classification() + (False, )),
-    "reg-nofit": (lambda: _problem_for_predictor_regression() + (False, )),
-    "multi-reg-nofit": (lambda: _problem_for_predictor_multi_regression() + (False, )),
+    "~b-cl-NF": (lambda: _problem_for_predictor_binary_classification() + (False, )),
+    "~m-cl-NF": (lambda: _problem_for_predictor_multi_classification() + (False, )),
+    "~b-reg-NF": (lambda: _problem_for_predictor_regression() + (False, )),
+    "~m-reg-NF": (lambda: _problem_for_predictor_multi_regression() + (False, )),
     #
-    "reg-nofit-cov": (lambda: _problem_for_predictor_regression(
-        True, options={GaussianProcessRegressor: {"return_cov": True}}, return_cov=True) + (False, )),
-    "multi-reg-nofit-cov": (lambda: _problem_for_predictor_multi_regression(
-        True, options={GaussianProcessRegressor: {"return_cov": True}}, return_cov=True) + (False, )),
+    "~b-cl-NF-64": (lambda: _problem_for_predictor_binary_classification(dtype=numpy.float64) + (False, )),
+    "~m-cl-NF-64": (lambda: _problem_for_predictor_multi_classification(dtype=numpy.float64) + (False, )),
+    "~b-reg-NF-64": (lambda: _problem_for_predictor_regression(dtype=numpy.float64) + (False, )),
+    "~m-reg-NF-64": (lambda: _problem_for_predictor_multi_regression(dtype=numpy.float64) + (False, )),
+    # GaussianProcess
+    "~b-reg-NF-cov-64": (lambda: _problem_for_predictor_regression(
+        True, options={GaussianProcessRegressor: {"return_cov": True}},
+        return_cov=True, dtype=numpy.float64) + (False, )),
+    "~m-reg-NF-cov-64": (lambda: _problem_for_predictor_multi_regression(
+        True, options={GaussianProcessRegressor: {"return_cov": True}},
+        return_cov=True, dtype=numpy.float64) + (False, )),
     #
-    "reg-nofit-std": (lambda: _problem_for_predictor_regression(
-        True, options={GaussianProcessRegressor: {"return_std": True}}, return_std=True) + (False, )),
-    "multi-reg-nofit-std": (lambda: _problem_for_predictor_multi_regression(
-        True, options={GaussianProcessRegressor: {"return_std": True}}, return_std=True) + (False, )),
-    #
-    "reg-cov": (lambda: _problem_for_predictor_regression(
-        True, options={GaussianProcessRegressor: {"return_cov": True}}, return_cov=True)),
-    "multi-reg-cov": (lambda: _problem_for_predictor_multi_regression(
-        True, options={GaussianProcessRegressor: {"return_cov": True}}, return_cov=True)),
-    #
-    "reg-std-d2": (lambda: _problem_for_predictor_regression(
+    "~b-reg-NF-std-64": (lambda: _problem_for_predictor_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
-        return_std=True, nbfeat=2, nbrows=10)),
-    "multi-reg-std-d2": (lambda: _problem_for_predictor_multi_regression(
+        return_std=True, dtype=numpy.float64) + (False, )),
+    "~m-reg-NF-std-64": (lambda: _problem_for_predictor_multi_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
-        return_std=True, nbfeat=2, nbrows=10)),
+        return_std=True, dtype=numpy.float64) + (False, )),
     #
-    'reg-noshapevar': _noshapevar(_problem_for_predictor_regression),
-    'multi-reg-noshapevar': _noshapevar(_problem_for_predictor_multi_regression),
-    "reg-std-d2-noshapevar": (_noshapevar(lambda: _problem_for_predictor_regression(
+    "~b-reg-cov-64": (lambda: _problem_for_predictor_regression(
+        True, options={GaussianProcessRegressor: {"return_cov": True}},
+        return_cov=True, dtype=numpy.float64)),
+    "~m-reg-cov-64": (lambda: _problem_for_predictor_multi_regression(
+        True, options={GaussianProcessRegressor: {"return_cov": True}},
+        return_cov=True, dtype=numpy.float64)),
+    #
+    "~reg-std-64": (lambda: _problem_for_predictor_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
-        return_std=True, nbfeat=2, nbrows=10))),
-    "mreg-std-d2-noshapevar": (_noshapevar(lambda: _problem_for_predictor_multi_regression(
+        return_std=True, dtype=numpy.float64)),
+    "~m-reg-std-64": (lambda: _problem_for_predictor_multi_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
-        return_std=True, nbfeat=2, nbrows=10))),
+        return_std=True, dtype=numpy.float64)),
+    #
+    '~b-reg-NSV-64': _noshapevar(_problem_for_predictor_regression),
+    '~m-reg-NSV-64': _noshapevar(_problem_for_predictor_multi_regression),
+    "~b-reg-std-NSV-64": (_noshapevar(lambda: _problem_for_predictor_regression(
+        True, options={GaussianProcessRegressor: {"return_std": True}},
+        return_std=True, dtype=numpy.float64))),
+    "~m-reg-std-NSV-64": (_noshapevar(lambda: _problem_for_predictor_multi_regression(
+        True, options={GaussianProcessRegressor: {"return_std": True}},
+        return_std=True, dtype=numpy.float64))),
 }

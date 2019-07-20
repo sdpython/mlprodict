@@ -118,6 +118,9 @@ def write_page_onnxrt_benches(app, runtime, skip=None):
             Some figures are missing when the number of observations is high.
             That means the prediction is slow for one of the runtime
             (ONNX, scikit-learn) and it would take too long to go further.
+            The list of problems can be found in the documentation of
+            function :func:`find_suitable_problem
+            <mlprodict.onnxrt.validate_problems.find_suitable_problem>`.
 
             '''.format(runtime, title, "=" * len(title))))
             f.write(df2rst(piv, number_format=2,

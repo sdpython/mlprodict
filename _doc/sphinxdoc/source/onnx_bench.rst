@@ -34,3 +34,34 @@ of modules below:
     from pyquickhelper.pandashelper import df2rst
     from pandas import DataFrame
     print(df2rst(DataFrame(modules_list())))
+
+.. _l-model-problem-list:
+
+Every model is tested through a defined list of standard
+problems created from the :epkg:`Iris` dataset. Function
+:func:`find_suitable_problem
+<mlprodict.onnxrt.validate_problems.find_suitable_problem>`
+describes the list of considered problems.
+
+.. runpython::
+    :showcode:
+    :rst:
+
+    from mlprodict.onnxrt.validate import sklearn_operators, find_suitable_problem
+    from pyquickhelper.pandashelper import df2rst
+    from pandas import DataFrame
+    res = sklearn_operators()
+    rows = []
+    for model in res:
+        name = model['name']
+        row = dict(name=name)
+        try:
+            prob = find_suitable_problem(model['cl'])
+            for p in prob:
+                row[p] = 'X'
+        except RuntimeError:
+            pass
+        rows.append(row)
+    df = DataFrame(rows).set_index('name')
+    df = df.sort_index()
+    print(df2rst(df, index=True))
