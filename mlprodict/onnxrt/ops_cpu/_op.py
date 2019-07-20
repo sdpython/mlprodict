@@ -188,7 +188,7 @@ class OpRunClassifierProb(OpRunUnary):
         if res[1].dtype != x.dtype:
             raise RuntimeTypeError(
                 "Output type mismatch: {} != {} (operator '{}')".format(
-                    x.dtype, res[0].dtype, self.__class__.__name__))
+                    x.dtype, res[1].dtype, self.__class__.__name__))
         return res
 
     def _run_no_checks_(self, x):  # pylint: disable=W0221

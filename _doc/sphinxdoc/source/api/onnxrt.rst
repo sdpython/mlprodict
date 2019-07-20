@@ -36,3 +36,14 @@ Validation
 .. autosignature:: mlprodict.onnxrt.side_by_side.side_by_side_by_values
 
 .. autosignature:: mlprodict.onnxrt.validate.summary_report
+
+C++ classes
++++++++++++
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_svm_classifier_.RuntimeSVMClassifier
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_svm_regressor_.RuntimeSVMRegressor
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_.RuntimeSVMClassifier
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeSVMRegressor

@@ -7,7 +7,7 @@
 from collections import OrderedDict
 import numpy
 from ._op_helper import _get_typed_class_attribute
-from ._op import OpRunClassifierProb
+from ._op import OpRunClassifierProb, RuntimeTypeError
 from .op_tree_ensemble_classifier_ import RuntimeTreeEnsembleClassifier  # pylint: disable=E0611
 
 
@@ -57,7 +57,11 @@ class TreeEnsembleClassifier(OpRunClassifierProb):
         See class :class:`RuntimeTreeEnsembleClassifier
         <mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_.RuntimeTreeEnsembleClassifier>`.
         """
-        label, scores = self.rt_.compute(x)
+        if x.dtype == numpy.float32:
+            label, scores = self.rt_.compute(x)
+        else:
+            raise RuntimeTypeError(
+                "TreeEnsembleClassifier not implemented for {}.".format(x.dtype))
         if scores.shape[0] != label.shape[0]:
             scores = scores.reshape(label.shape[0],
                                     scores.shape[0] // label.shape[0])

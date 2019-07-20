@@ -98,7 +98,8 @@ class RuntimeTreeEnsembleClassifier
         void Initialize();
 
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                              const py::array_t<float>& X, py::array_t<int64_t>& Y, py::array_t<float>& Z) const;
+                              const py::array_t<float>& X, py::array_t<int64_t>& Y,
+                              py::array_t<float>& Z) const;
 };
 
 

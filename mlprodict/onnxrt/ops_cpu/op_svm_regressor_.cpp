@@ -261,7 +261,7 @@ in :epkg:`onnxruntime`.)pbdoc");
     cl.def("init", &RuntimeSVMRegressor::init,
            "Initializes the runtime with the ONNX attributes in alphabetical order.");
     cl.def("compute", &RuntimeSVMRegressor::compute,
-           "Computes the predictions for the random forest.");
+           "Computes the predictions for the SVM regressor.");
     cl.def("runtime_options", &RuntimeSVMRegressor::runtime_options,
            "Returns indications about how the runtime was compiled.");
     cl.def("omp_get_max_threads", &RuntimeSVMRegressor::omp_get_max_threads,

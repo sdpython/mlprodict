@@ -5,7 +5,7 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRunUnaryNum, RuntimeTypeError
+from ._op import OpRunUnaryNum
 
 
 class LinearRegressor(OpRunUnaryNum):

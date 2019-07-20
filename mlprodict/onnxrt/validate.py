@@ -641,7 +641,6 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 if k.endswith('_exc'):
                     excs.append((k, v))
                     break
-            print(excs)
             if 'opset' not in obs:
                 # It fails before the conversion happens.
                 obs['opset'] = current_opset
