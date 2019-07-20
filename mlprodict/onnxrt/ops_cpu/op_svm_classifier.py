@@ -14,7 +14,7 @@ from .op_svm_classifier_ import RuntimeSVMClassifier  # pylint: disable=E0611
 class SVMClassifier(OpRunClassifierProb):
 
     atts = OrderedDict([
-        ('classlabels_int64s', numpy.empty(0, dtype=numpy.int64)),
+        ('classlabels_ints', numpy.empty(0, dtype=numpy.int64)),
         ('classlabels_strings', []),
         ('coefficients', numpy.empty(0, dtype=numpy.float32)),
         ('kernel_params', numpy.empty(0, dtype=numpy.float32)),
@@ -24,7 +24,7 @@ class SVMClassifier(OpRunClassifierProb):
         ('prob_b', numpy.empty(0, dtype=numpy.float32)),
         ('rho', numpy.empty(0, dtype=numpy.float32)),
         ('support_vectors', numpy.empty(0, dtype=numpy.float32)),
-        ('vectors_per_class ', numpy.empty(0, dtype=numpy.float32)),
+        ('vectors_per_class', numpy.empty(0, dtype=numpy.float32)),
     ])
 
     def __init__(self, onnx_node, desc=None, **options):

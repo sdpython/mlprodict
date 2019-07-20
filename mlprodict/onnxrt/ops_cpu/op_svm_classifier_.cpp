@@ -47,7 +47,7 @@ class RuntimeSVMClassifier
         std::vector<float> proba_;
         std::vector<float> probb_;
         bool weights_are_all_positive_;
-        std::vector<int64_t> classlabels_int64s_;
+        std::vector<int64_t> classlabels_ints_;
         // std::vector<std::string> classlabels_strings_;
     
         int64_t class_count_;
@@ -159,22 +159,13 @@ void RuntimeSVMClassifier::init(
     if (classlabels_strings.size() > 0)
         throw std::runtime_error("This runtime only handles integers.");
     // classlabels_strings_ = classlabels_strings;
-    array2vector(classlabels_int64s_, classlabels_int64s, int64_t);
+    array2vector(classlabels_ints_, classlabels_int64s, int64_t);
     
     Initialize();
 }
 
 
 void RuntimeSVMClassifier::Initialize() {
-  if (vector_count_ > 0) {
-    feature_count_ = support_vectors_.size() / vector_count_;  //length of each support vector
-    mode_ = SVM_TYPE::SVM_SVC;
-  } else {
-    feature_count_ = coefficients_.size();
-    mode_ = SVM_TYPE::SVM_LINEAR;
-    kernel_type_ = KERNEL::LINEAR;
-  }
-  
   vector_count_ = 0;
   feature_count_ = 0;
   class_count_ = 0;
@@ -183,8 +174,8 @@ void RuntimeSVMClassifier::Initialize() {
     vector_count_ += vectors_per_class_[i];
   }
 
-  if (classlabels_int64s_.size() > 0) {
-    class_count_ = classlabels_int64s_.size();
+  if (classlabels_ints_.size() > 0) {
+    class_count_ = classlabels_ints_.size();
   } else {
     class_count_ = 1;
   }
@@ -462,9 +453,9 @@ void RuntimeSVMClassifier::compute_gil_free(
     if (rho_.size() == 1) {
       write_additional_scores = _set_score_svm(
           y_data, max_weight, maxclass, n, post_transform_, proba_,
-          weights_are_all_positive_, classlabels_int64s_, 1, 0);
-    } else if (classlabels_int64s_.size() > 0) {  //multiclass
-        y_data[n] = classlabels_int64s_[maxclass];
+          weights_are_all_positive_, classlabels_ints_, 1, 0);
+    } else if (classlabels_ints_.size() > 0) {  //multiclass
+        y_data[n] = classlabels_ints_[maxclass];
     } else {
         y_data[n] = maxclass;
     }
