@@ -168,6 +168,33 @@ class OpRunUnaryNum(OpRunUnary):
         return OpRunUnary.run(self, x)
 
 
+class OpRunClassifierProb(OpRunUnary):
+    """
+    Ancestor to all binary operators in this subfolder.
+    Checks that inputs type are the same.
+    """
+
+    def __init__(self, onnx_node, desc=None, expected_attributes=None,
+                 **options):
+        OpRunUnary.__init__(self, onnx_node, desc=desc,
+                            expected_attributes=expected_attributes,
+                            **options)
+
+    def run(self, x):  # pylint: disable=E0202
+        """
+        Calls method ``_run``.
+        """
+        res = OpRunUnary.run(self, x)
+        if res[1].dtype != x.dtype:
+            raise RuntimeTypeError(
+                "Output type mismatch: {} != {} (operator '{}')".format(
+                    x.dtype, res[0].dtype, self.__class__.__name__))
+        return res
+
+    def _run_no_checks_(self, x):  # pylint: disable=W0221
+        return OpRunUnary.run(self, x)
+
+
 class OpRunBinary(OpRun):
     """
     Ancestor to all binary operators in this subfolder.

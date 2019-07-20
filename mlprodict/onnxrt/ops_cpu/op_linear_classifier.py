@@ -6,19 +6,19 @@
 """
 import numpy
 from scipy.special import expit  # pylint: disable=E0611
-from ._op import OpRun
+from ._op import OpRunClassifierProb
 
 
-class LinearClassifier(OpRun):
+class LinearClassifier(OpRunClassifierProb):
 
     atts = {'classlabels_ints': [], 'classlabels_strings': [],
             'coefficients': None, 'intercepts': None,
             'multi_class': 0, 'post_transform': b'NONE'}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=LinearClassifier.atts,
-                       **options)
+        OpRunClassifierProb.__init__(self, onnx_node, desc=desc,
+                                     expected_attributes=LinearClassifier.atts,
+                                     **options)
         if not isinstance(self.coefficients, numpy.ndarray):
             raise TypeError("coefficient must be an array not {}.".format(
                 type(self.coefficients)))

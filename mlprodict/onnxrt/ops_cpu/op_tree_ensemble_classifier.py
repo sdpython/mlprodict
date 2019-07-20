@@ -7,11 +7,11 @@
 from collections import OrderedDict
 import numpy
 from ._op_helper import _get_typed_class_attribute
-from ._op import OpRun
+from ._op import OpRunClassifierProb
 from .op_tree_ensemble_classifier_ import RuntimeTreeEnsembleClassifier  # pylint: disable=E0611
 
 
-class TreeEnsembleClassifier(OpRun):
+class TreeEnsembleClassifier(OpRunClassifierProb):
 
     atts = OrderedDict([
         ('base_values', numpy.empty(0, dtype=numpy.float32)),
@@ -34,9 +34,9 @@ class TreeEnsembleClassifier(OpRun):
     ])
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=TreeEnsembleClassifier.atts,
-                       **options)
+        OpRunClassifierProb.__init__(self, onnx_node, desc=desc,
+                                     expected_attributes=TreeEnsembleClassifier.atts,
+                                     **options)
         self._init()
 
     def _get_typed_attributes(self, k):

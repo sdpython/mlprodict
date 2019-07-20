@@ -31,7 +31,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         oinf = OnnxInference(model_def)
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
         self.assertIn("TreeEnsembleClassifier", text)
-        y = oinf.run({'X': X_test})
+        y = oinf.run({'X': X_test.astype(numpy.float32)})
         self.assertEqual(list(sorted(y)), [
                          'output_label', 'output_probability'])
         lexp = clr.predict(X_test)
@@ -52,7 +52,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         oinf = OnnxInference(model_def)
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
         self.assertIn("TreeEnsembleRegressor", text)
-        y = oinf.run({'X': X_test})
+        y = oinf.run({'X': X_test.astype(numpy.float32)})
         self.assertEqual(list(sorted(y)), ['variable'])
         lexp = clr.predict(X_test)
         self.assertEqual(lexp.shape, y['variable'].shape)
@@ -69,7 +69,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         oinf = OnnxInference(model_def)
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
         self.assertIn("TreeEnsembleClassifier", text)
-        y = oinf.run({'X': X_test})
+        y = oinf.run({'X': X_test.astype(numpy.float32)})
         self.assertEqual(list(sorted(y)), [
                          'output_label', 'output_probability'])
         lexp = clr.predict(X_test)
@@ -91,7 +91,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         oinf = OnnxInference(model_def)
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
         self.assertIn("TreeEnsembleClassifier", text)
-        y = oinf.run({'X': X_test[:5]})
+        y = oinf.run({'X': X_test[:5].astype(numpy.float32)})
         self.assertEqual(list(sorted(y)), [
                          'output_label', 'output_probability'])
         lexp = clr.predict(X_test[:5])

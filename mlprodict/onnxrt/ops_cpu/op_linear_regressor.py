@@ -5,18 +5,18 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRun, RuntimeTypeError
+from ._op import OpRunUnaryNum, RuntimeTypeError
 
 
-class LinearRegressor(OpRun):
+class LinearRegressor(OpRunUnaryNum):
 
     atts = {'coefficients': None, 'intercepts': None,
             'targets': 1, 'post_transform': b'NONE'}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=LinearRegressor.atts,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=LinearRegressor.atts,
+                               **options)
         if not isinstance(self.coefficients, numpy.ndarray):
             raise TypeError("coefficient must be an array not {}.".format(
                 type(self.coefficients)))
@@ -32,9 +32,4 @@ class LinearRegressor(OpRun):
         else:
             raise NotImplementedError("Unknown post_transform: '{}'.".format(
                 self.post_transform))
-
-        if score.dtype != x.dtype:
-            raise RuntimeTypeError(
-                "Type mismatch between input and output {} != {} coef type={}.".format(
-                    x.dtype, score.dtype, self.coefficients.dtype))
         return (score, )

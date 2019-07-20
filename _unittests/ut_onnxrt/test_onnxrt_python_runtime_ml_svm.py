@@ -37,7 +37,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         oinf = OnnxInference(model_def)
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
         self.assertIn("SVMRegressor", text)
-        y = oinf.run({'X': X_test})
+        y = oinf.run({'X': X_test.astype(numpy.float32)})
         self.assertEqual(list(sorted(y)), ['variable'])
         lexp = clr.predict(X_test)
         self.assertEqual(lexp.shape, y['variable'].shape)
