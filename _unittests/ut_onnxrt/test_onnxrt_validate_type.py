@@ -28,9 +28,9 @@ class TestOnnxrtValidateType(ExtTestCase):
 
         def filter_exp(cl, prob):
             if dtype == numpy.float32:
-                return '-64' not in prob
+                return '-64' not in prob and '-cov' not in prob
             if dtype == numpy.float64:
-                return '-64' in prob
+                return '-64' in prob and '-cov' not in prob
             raise NotImplementedError(dtype)
 
         if models is None:
