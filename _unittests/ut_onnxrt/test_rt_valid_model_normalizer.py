@@ -27,7 +27,7 @@ class TestRtValidateNormalizer(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"Normalizer"}, opset_min=11, fLOG=myprint,
-            runtime='onnxruntime2', debug=True))
+            runtime='onnxruntime2', debug=True, disable_single=True))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1)
 

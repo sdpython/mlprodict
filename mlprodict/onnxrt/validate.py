@@ -6,6 +6,7 @@ The submodule relies on :epkg:`onnxconverter_common`,
 """
 from timeit import Timer
 import numpy
+from numpy import AxisError
 import pandas
 import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
@@ -421,7 +422,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                              dump_folder=dump_folder, benchmark=benchmark,
                              node_time=node_time, disable_single=disable_single,
                              fLOG=fLOG, verbose=verbose, store_models=store_models,
-                             sess=sess)
+                             sess=sess, keep_exc=keep_exc, debug_exc=debug_exc)
 
     if debug and len(debug_exc) == 2:
         raise debug_exc[0]
@@ -437,7 +438,8 @@ def _call_runtime_single(obs_op, conv, opset, debug, inst, runtime,
                          X_test, y_test, init_types, method_name, output_index,
                          ypred, Xort_test, model, dump_folder,
                          benchmark, node_time, disable_single, fLOG,
-                         verbose, store_models, sess):
+                         verbose, store_models, sess,
+                         keep_exc, debug_exc):
 
     if verbose >= 2 and fLOG is not None:
         fLOG("[enumerate_compatible_opset] single")
@@ -453,7 +455,8 @@ def _call_runtime_single(obs_op, conv, opset, debug, inst, runtime,
                         for Xort_row in xo],
             Xort_test
         )
-    except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
+    except (RuntimeError, TypeError, ValueError, KeyError,
+            IndexError, AxisError) as e:
         if debug and keep_exc is not None:
             raise keep_exc
         obs_op['_9ort_run_single_exc'] = e
