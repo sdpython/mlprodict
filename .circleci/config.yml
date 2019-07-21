@@ -71,7 +71,7 @@ jobs:
           name: install sklearn-onnx
           command: |
             . venv/bin/activate
-            pip install git+https://github.com/xadupre/sklearn-onnx.git@jenkins
+            pip install git+https://github.com/xadupre/sklearn-onnx.git@jenkins --upgrade
         
       - run:
           name: compile and build

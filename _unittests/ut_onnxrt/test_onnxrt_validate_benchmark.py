@@ -58,7 +58,7 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
                 fLOG=fLOG, runtime="onnxruntime1",
                 versions=True):
             rows.append(row)
-            if is_travis_or_appveyor() and len(rows) > 40:
+            if len(rows) > 40:
                 break
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
