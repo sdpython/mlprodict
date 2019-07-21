@@ -413,87 +413,15 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
     # compute single
     if not disable_single:
-
-        if verbose >= 2 and fLOG is not None:
-            fLOG("[enumerate_compatible_opset] single")
-
-        def fct_single(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
-            return [se.run({it[0][0]: Xort_row}, verbose=max(verbose - 1, 1) if debug else 0, fLOG=fLOG)
-                    for Xort_row in xo]
-        try:
-            opred, t5 = _measure_time(fct_single)
-            obs_op['ort_run_time_single'] = t5
-            obs_op['lambda-single'] = (
-                lambda xo: [sess.run({init_types[0][0]: Xort_row}, node_time=node_time)
-                            for Xort_row in xo],
-                Xort_test
-            )
-        except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
-            if debug and keep_exc is not None:
-                raise keep_exc
-            obs_op['_9ort_run_single_exc'] = e
-        if (benchmark or node_time) and 'lambda-single' in obs_op and 'lambda-batch' not in obs_op:
-            try:
-                benres = benchmark_fct(*obs_op['lambda-single'], obs=obs_op, node_time=node_time)
-                obs_op['bench-single'] = benres
-            except RuntimeError as e:
-                if debug:
-                    raise e
-                keep_exc = e
-                obs_op['_9ort_run_single_exc'] = e
-                obs_op['_9ort_run_single_bench_exc'] = e
-
-        # difference
-        if '_9ort_run_single_exc' not in obs_op:
-            if isinstance(opred[0], dict):
-                ch = [[(k, v) for k, v in o.items()]
-                      for o in opred]
-                # names = [[_[0] for _ in row] for row in ch]
-                opred = [[_[1] for _ in row] for row in ch]
-
-            if output_index != 'all':
-                try:
-                    opred = [o[output_index] for o in opred]
-                except IndexError:
-                    if debug:
-                        raise
-                    obs_op['_Amax_rel_diff_single_exc'] = (
-                        "Unable to fetch output {}/{} for model '{}'"
-                        "".format(output_index, len(opred),
-                                  model.__name__))
-                    opred = None
-            else:
-                try:
-                    opred = [tuple(o) for o in opred]
-                except IndexError:
-                    if debug:
-                        raise
-                    obs_op['_Amax_rel_diff_single_exc'] = (
-                        "Unable to fetch output {}/{} for model '{}'"
-                        "".format(output_index, len(opred),
-                                  model.__name__))
-                    opred = None
-
-            if opred is not None:
-                max_rel_diff = measure_relative_difference(
-                    ypred, opred, batch=False)
-                if numpy.isnan(max_rel_diff):
-                    obs_op['_Amax_rel_diff_single_exc'] = (
-                        "Unable to compute differences between"
-                        "\n{}\n--------\n{}".format(
-                            ypred, opred))
-                    if debug:
-                        debug_exc.append(RuntimeError(
-                            obs_op['_Amax_rel_diff_single_exc']))
-                else:
-                    obs_op['max_rel_diff_single'] = max_rel_diff
-                    if dump_folder and max_rel_diff > 1e-5:
-                        dump_into_folder(dump_folder, kind='single', obs_op=obs_op,
-                                         X_test=X_test, y_test=y_test, Xort_test=Xort_test)
-                    if debug and max_rel_diff >= 0.1:
-                        import pprint
-                        raise RuntimeError("Two big differences {}\n{}\n{}\n{}".format(
-                            max_rel_diff, inst, conv, pprint.pformat(obs_op)))
+        _call_runtime_single(obs_op=obs_op, conv=conv, opset=opset, debug=debug,
+                             inst=inst, runtime=runtime, X_test=X_test,
+                             y_test=y_test, init_types=init_types,
+                             method_name=method_name, output_index=output_index,
+                             ypred=ypred, Xort_test=Xort_test, model=model,
+                             dump_folder=dump_folder, benchmark=benchmark,
+                             node_time=node_time, disable_single=disable_single,
+                             fLOG=fLOG, verbose=verbose, store_models=store_models,
+                             sess=sess)
 
     if debug and len(debug_exc) == 2:
         raise debug_exc[0]
@@ -503,6 +431,94 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if verbose >= 2 and fLOG is not None:
         fLOG("[enumerate_compatible_opset] next...")
     return obs_op
+
+
+def _call_runtime_single(obs_op, conv, opset, debug, inst, runtime,
+                         X_test, y_test, init_types, method_name, output_index,
+                         ypred, Xort_test, model, dump_folder,
+                         benchmark, node_time, disable_single, fLOG,
+                         verbose, store_models, sess):
+
+    if verbose >= 2 and fLOG is not None:
+        fLOG("[enumerate_compatible_opset] single")
+
+    def fct_single(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
+        return [se.run({it[0][0]: Xort_row}, verbose=max(verbose - 1, 1) if debug else 0, fLOG=fLOG)
+                for Xort_row in xo]
+    try:
+        opred, t5 = _measure_time(fct_single)
+        obs_op['ort_run_time_single'] = t5
+        obs_op['lambda-single'] = (
+            lambda xo: [sess.run({init_types[0][0]: Xort_row}, node_time=node_time)
+                        for Xort_row in xo],
+            Xort_test
+        )
+    except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
+        if debug and keep_exc is not None:
+            raise keep_exc
+        obs_op['_9ort_run_single_exc'] = e
+    if (benchmark or node_time) and 'lambda-single' in obs_op and 'lambda-batch' not in obs_op:
+        try:
+            benres = benchmark_fct(*obs_op['lambda-single'], obs=obs_op, node_time=node_time)
+            obs_op['bench-single'] = benres
+        except RuntimeError as e:
+            if debug:
+                raise e
+            keep_exc = e
+            obs_op['_9ort_run_single_exc'] = e
+            obs_op['_9ort_run_single_bench_exc'] = e
+
+    # difference
+    if '_9ort_run_single_exc' not in obs_op:
+        if isinstance(opred[0], dict):
+            ch = [[(k, v) for k, v in o.items()]
+                  for o in opred]
+            # names = [[_[0] for _ in row] for row in ch]
+            opred = [[_[1] for _ in row] for row in ch]
+
+        if output_index != 'all':
+            try:
+                opred = [o[output_index] for o in opred]
+            except IndexError:
+                if debug:
+                    raise
+                obs_op['_Amax_rel_diff_single_exc'] = (
+                    "Unable to fetch output {}/{} for model '{}'"
+                    "".format(output_index, len(opred),
+                              model.__name__))
+                opred = None
+        else:
+            try:
+                opred = [tuple(o) for o in opred]
+            except IndexError:
+                if debug:
+                    raise
+                obs_op['_Amax_rel_diff_single_exc'] = (
+                    "Unable to fetch output {}/{} for model '{}'"
+                    "".format(output_index, len(opred),
+                              model.__name__))
+                opred = None
+
+        if opred is not None:
+            max_rel_diff = measure_relative_difference(
+                ypred, opred, batch=False)
+            if numpy.isnan(max_rel_diff):
+                obs_op['_Amax_rel_diff_single_exc'] = (
+                    "Unable to compute differences between"
+                    "\n{}\n--------\n{}".format(
+                        ypred, opred))
+                if debug:
+                    debug_exc.append(RuntimeError(
+                        obs_op['_Amax_rel_diff_single_exc']))
+            else:
+                obs_op['max_rel_diff_single'] = max_rel_diff
+                if dump_folder and max_rel_diff > 1e-5:
+                    dump_into_folder(dump_folder, kind='single', obs_op=obs_op,
+                                     X_test=X_test, y_test=y_test, Xort_test=Xort_test)
+                if debug and max_rel_diff >= 0.1:
+                    import pprint
+                    raise RuntimeError("Two big differences {}\n{}\n{}\n{}".format(
+                        max_rel_diff, inst, conv, pprint.pformat(obs_op)))
 
 
 def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,

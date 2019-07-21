@@ -185,6 +185,29 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @skipif_circleci("to investigate, shape of predictions are different")
+    @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,
+                     reason="Node:Scan1 Field 'shape' of type is required but missing.")
+    def test_rt_GaussianProcessRegressor_debug_all(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        verbose = 2
+
+        buffer = []
+
+        def myprint(*args, **kwargs):
+            buffer.append(" ".join(map(str, args)))
+
+        debug = False
+        rows = list(enumerate_validated_operator_opsets(
+            verbose, models={"GaussianProcessRegressor"}, opset_min=11,
+            fLOG=myprint, runtime='onnxruntime1', debug=debug,
+            disable_single=True))
+        self.assertGreater(len(rows), 1)
+        self.assertGreater(len(buffer), 1 if debug else 0)
+
 
 if __name__ == "__main__":
     unittest.main()

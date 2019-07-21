@@ -102,7 +102,8 @@ def sklearn_operators(subfolder=None):
             except TypeError:
                 continue
             if cl.__name__ in {'Pipeline', 'ColumnTransformer',
-                               'FeatureUnion', 'BaseEstimator'}:
+                               'FeatureUnion', 'BaseEstimator',
+                               'BaseEnsemble'}:
                 continue
             if (sub in {'calibration', 'dummy', 'manifold'} and
                     'Calibrated' not in cl.__name__):
