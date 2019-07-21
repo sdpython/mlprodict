@@ -4,17 +4,19 @@ Extensions for mlprodict.
 import os
 from textwrap import dedent
 from logging import getLogger
-from pandas import DataFrame, read_excel
+from pandas import DataFrame, read_excel, read_csv, concat
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.gaussian_process import GaussianProcessClassifier
 import sphinx
+from tqdm import tqdm
 from pyquickhelper.loghelper import noLOG
 from pyquickhelper.pycode import is_travis_or_appveyor
 from pyquickhelper.pandashelper import df2rst
 from pyquickhelper.loghelper import run_cmd
 from pyquickhelper.loghelper.run_cmd import get_interpreter_path
+from mlprodict.onnxrt.validate_helper import sklearn_operators
 
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning,
@@ -22,7 +24,7 @@ from pyquickhelper.loghelper.run_cmd import get_interpreter_path
 def write_page_onnxrt_ops(app):
     from mlprodict.onnxrt.doc_write_helper import compose_page_onnxrt_ops
     logger = getLogger('mlprodict')
-    srcdir = app.builder.srcdir
+    srcdir = app.builder.srcdir if app is not None else ".."
     whe = os.path.join(os.path.abspath(srcdir), "api", "onnxrt_ops.rst")
     logger.info("[mlprodict] create page '{}'.".format(whe))
     print("[mlprodict-sphinx] create page '{}'.".format(whe))
@@ -32,11 +34,39 @@ def write_page_onnxrt_ops(app):
     print("[mlprodict-sphinx] done page '{}'.".format(whe))
 
 
+def run_benchmark(runtime, srcdir, logger, skip):
+    filenames = []
+    skls = sklearn_operators()
+    skls = [_['name'] for _ in skls]
+    skls.sort()
+    pbar = tqdm(skls)
+    for op in pbar:
+        if skip is not None and op in skip:
+            continue
+        pbar.set_description("[%s]" % (op + " " * (25 - len(op))))
+
+        out_raw = os.path.join(srcdir, "bench_raw_%s_%s.csv" % (runtime, op))
+        out_sum = os.path.join(srcdir, "bench_sum_%s_%s.csv" % (runtime, op))
+        cmd = ('{0} -m mlprodict validate_runtime --verbose=0 --out_raw={1} --out_summary={2} '
+               '--benchmark=1 --dump_folder={3} --runtime={4} --models={5}'.format(
+                   get_interpreter_path(), out_raw, out_sum, srcdir, runtime, op))
+        logger.info("[mlprodict] cmd '{}'.".format(cmd))
+        out, err = run_cmd(cmd, wait=True, fLOG=None)
+        if not os.path.exists(out_sum):
+            logger.warning("[mlprodict] unable to find '{}'.".format(out_sum))
+            print("[mlprodict-sphinx] cmd '{}'".format(cmd))
+            print("[mlprodict-sphinx] unable to find '{}'".format(out_sum))
+            raise RuntimeError(
+                "Unable to find '{}'\n--OUT--\n{}\n--ERR--\n{}".format(out_sum, out, err))
+        filenames.append(out_sum)
+    return filenames
+
+
 def write_page_onnxrt_benches(app, runtime, skip=None):
 
     from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
     logger = getLogger('mlprodict')
-    srcdir = app.builder.srcdir
+    srcdir = app.builder.srcdir if app is not None else ".."
 
     if runtime in ('python'):
         whe = os.path.join(os.path.abspath(srcdir),
@@ -53,86 +83,74 @@ def write_page_onnxrt_benches(app, runtime, skip=None):
     logger.info("[mlprodict] create page '{}'.".format(whe))
     print("[mlprodict-sphinx] create page runtime '{}' - '{}'.".format(runtime, whe))
 
-    out_raw = os.path.join(srcdir, "bench_raw_%s.xlsx" % runtime)
+    filenames = run_benchmark(runtime, srcdir, logger, skip)
+    dfs = [read_csv(name) for name in filenames]
+    piv = concat(dfs)
     out_sum = os.path.join(srcdir, "bench_sum_%s.xlsx" % runtime)
-    cmd = ('{0} -m mlprodict validate_runtime --verbose=1 --out_raw={1} --out_summary={2} '
-           '--benchmark=1 --dump_folder={3} --runtime={4}{5}'.format(
-               get_interpreter_path(), out_raw, out_sum, srcdir, runtime,
-               " --skip_models={}".format(','.join(skip)) if skip else ""))
-    logger.info("[mlprodict] cmd '{}'.".format(cmd))
-    print("[mlprodict-sphinx] cmd '{}'".format(cmd))
-    out, err = run_cmd(cmd, wait=True, fLOG=print)
+    piv.to_excel(out_sum)
 
-    logger.info("[mlprodict] reading '{}'.".format(out_sum))
-    print("[mlprodict-sphinx] reading '{}'".format(out_sum))
+    logger.info("[mlprodict] wrote '{}'.".format(out_sum))
+    print("[mlprodict-sphinx] wrote '{}'".format(out_sum))
 
-    if os.path.exists(out_sum):
-        piv = read_excel(out_sum)
+    logger.info("[mlprodict] shape '{}'.".format(piv.shape))
+    print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
 
-        logger.info("[mlprodict] shape '{}'.".format(piv.shape))
-        print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
+    def make_link(row):
+        link = ":ref:`{name} <l-{name}-{problem}-{scenario}>`"
+        name = row['name']
+        problem = row['problem']
+        scenario = row['scenario']
+        return link.format(name=name, problem=problem,
+                           scenario=scenario)
 
-        def make_link(row):
-            link = ":ref:`{name} <l-{name}-{problem}-{scenario}>`"
-            name = row['name']
-            problem = row['problem']
-            scenario = row['scenario']
-            return link.format(name=name, problem=problem,
-                               scenario=scenario)
+    piv['name'] = piv.apply(lambda row: make_link(row), axis=1)
 
-        piv['name'] = piv.apply(lambda row: make_link(row), axis=1)
+    if "ERROR-msg" in piv.columns:
+        def shorten(text):
+            text = str(text)
+            if len(text) > 75:
+                text = text[:75] + "..."
+            return text
 
-        if "ERROR-msg" in piv.columns:
-            def shorten(text):
-                text = str(text)
-                if len(text) > 75:
-                    text = text[:75] + "..."
-                return text
+        piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
 
-            piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
+    logger.info("[mlprodict] write '{}'.".format(whe))
+    print("[mlprodict-sphinx] write '{}'".format(whe))
 
-        logger.info("[mlprodict] write '{}'.".format(whe))
-        print("[mlprodict-sphinx] write '{}'".format(whe))
+    with open(whe, 'w', encoding='utf-8') as f:
+        title = "Available of scikit-learn model for runtime {0}".format(
+            runtime)
+        f.write(dedent('''
+        .. _l-onnx-bench-{0}:
 
-        with open(whe, 'w', encoding='utf-8') as f:
-            title = "Available of scikit-learn model for runtime {0}".format(
-                runtime)
-            f.write(dedent('''
-            .. _l-onnx-bench-{0}:
+        {1}
+        {2}
 
-            {1}
-            {2}
+        The following metrics measure the ratio between the prediction time
+        for the runtime compare to :epkg:`scikit-learn`.
+        It gives an order of magnitude. They are done by setting
+        ``assume_finite=True`` (see `config_context
+        <https://scikit-learn.org/stable/modules/generated/sklearn.config_context.html>`_).
+        The computed ratio is:
 
-            The following metrics measure the ratio between the prediction time
-            for the runtime compare to :epkg:`scikit-learn`.
-            It gives an order of magnitude. They are done by setting
-            ``assume_finite=True`` (see `config_context
-            <https://scikit-learn.org/stable/modules/generated/sklearn.config_context.html>`_).
-            The computed ratio is:
+        .. math::
 
-            .. math::
+            \\frac{{\\textit{{execution when predicting with a custom ONNX runtime}}}}
+            {{\\textit{{execution when predicting with scikit-learn (assume\\_finite=True)}}}}
 
-                \\frac{{\\textit{{execution when predicting with a custom ONNX runtime}}}}
-                {{\\textit{{execution when predicting with scikit-learn (assume\\_finite=True)}}}}
+        Some figures are missing when the number of observations is high.
+        That means the prediction is slow for one of the runtime
+        (ONNX, scikit-learn) and it would take too long to go further.
+        The list of problems can be found in the documentation of
+        function :func:`find_suitable_problem
+        <mlprodict.onnxrt.validate_problems.find_suitable_problem>`.
 
-            Some figures are missing when the number of observations is high.
-            That means the prediction is slow for one of the runtime
-            (ONNX, scikit-learn) and it would take too long to go further.
-            The list of problems can be found in the documentation of
-            function :func:`find_suitable_problem
-            <mlprodict.onnxrt.validate_problems.find_suitable_problem>`.
-
-            '''.format(runtime, title, "=" * len(title))))
-            f.write(df2rst(piv, number_format=2,
-                           replacements={'nan': '', 'ERR: 4convert': ''}))
-        logger.info(
-            "[mlprodict] done page '{}'.".format(whe))
-        print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))
-
-    else:
-        logger.warning("[mlprodict] unable to find '{}'.".format(out_sum))
-        print("[mlprodict-sphinx] unable to find '{}'".format(out_sum))
-        raise RuntimeError("--OUT--\n{}\n--ERR--\n{}".format(out, err))
+        '''.format(runtime, title, "=" * len(title))))
+        f.write(df2rst(piv, number_format=2,
+                       replacements={'nan': '', 'ERR: 4convert': ''}))
+    logger.info(
+        "[mlprodict] done page '{}'.".format(whe))
+    print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))
 
 
 def write_page_onnxrt_benches_python(app):
@@ -159,3 +177,7 @@ def setup(app):
     return {'version': sphinx.__display_version__,
             'parallel_read_safe': False,
             'parallel_write_safe': False}
+
+
+# if __name__ == '__main__':
+#     write_page_onnxrt_benches_python(None)

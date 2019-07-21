@@ -284,6 +284,7 @@ _doc/sphinxdoc/source/skl_converters/skl2onnx_*.rst
 _doc/sphinxdoc/source/skl_converters/bench_*.rst
 _doc/sphinxdoc/source/*.pkl
 _doc/sphinxdoc/source/*.xlsx
+_doc/sphinxdoc/source/bench_*.csv
 *.xlsx
 _doc/sphinxdoc/source/api/onnxrt_ops.rst
 _doc/notebooks/model_onnx.onnx

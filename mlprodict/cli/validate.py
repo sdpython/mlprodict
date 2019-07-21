@@ -113,8 +113,14 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         rows = build_rows()
 
     df = DataFrame(rows)
-    df.to_excel(out_raw, index=False)
+    if os.path.splitext(out_raw)[-1] == ".xlsx":
+        df.to_excel(out_raw, index=False)
+    else:
+        df.to_csv(out_raw, index=False)
     piv = summary_report(df)
-    piv.to_excel(out_summary, index=False)
+    if os.path.splitext(out_summary)[-1] == ".xlsx":
+        piv.to_excel(out_summary, index=False)
+    else:
+        piv.to_csv(out_summary, index=False)
     if verbose > 0 and models is not None:
         fLOG(piv.T)

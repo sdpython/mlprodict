@@ -347,7 +347,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         obs_op['_6ort_run_batch_exc'] = e
     if (benchmark or node_time) and 'lambda-batch' in obs_op:
         try:
-            benres = benchmark_fct(*obs_op['lambda-batch'], obs=obs_op, node_time=node_time)
+            benres = benchmark_fct(
+                *obs_op['lambda-batch'], obs=obs_op, node_time=node_time)
             obs_op['bench-batch'] = benres
         except RuntimeError as e:
             if debug:
@@ -461,7 +462,8 @@ def _call_runtime_single(obs_op, conv, opset, debug, inst, runtime,
         obs_op['_9ort_run_single_exc'] = e
     if (benchmark or node_time) and 'lambda-single' in obs_op and 'lambda-batch' not in obs_op:
         try:
-            benres = benchmark_fct(*obs_op['lambda-single'], obs=obs_op, node_time=node_time)
+            benres = benchmark_fct(
+                *obs_op['lambda-single'], obs=obs_op, node_time=node_time)
             obs_op['bench-single'] = benres
         except RuntimeError as e:
             if debug:
