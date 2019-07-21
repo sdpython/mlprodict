@@ -315,9 +315,9 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if verbose >= 2 and fLOG is not None:
         fLOG("[enumerate_compatible_opset] load onnx")
     try:
-        sess, t6 = _measure_time(
+        sess, t5 = _measure_time(
             lambda: OnnxInference(ser, runtime=runtime))
-        obs_op['tostring_time'] = t6
+        obs_op['tostring_time'] = t5
     except (RuntimeError, ValueError, KeyError) as e:
         if debug:
             raise
@@ -335,8 +335,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if debug:
         keep_exc = None
     try:
-        opred, t7 = _measure_time(fct_batch)
-        obs_op['ort_run_time_batch'] = t7
+        opred, t5 = _measure_time(fct_batch)
+        obs_op['ort_run_time_batch'] = t5
         obs_op['lambda-batch'] = (lambda xo: sess.run(
             {init_types[0][0]: xo}, node_time=node_time), Xort_test)
     except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
@@ -421,8 +421,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             return [se.run({it[0][0]: Xort_row}, verbose=max(verbose - 1, 1) if debug else 0, fLOG=fLOG)
                     for Xort_row in xo]
         try:
-            opred, t7 = _measure_time(fct_single)
-            obs_op['ort_run_time_single'] = t7
+            opred, t5 = _measure_time(fct_single)
+            obs_op['ort_run_time_single'] = t5
             obs_op['lambda-single'] = (
                 lambda xo: [sess.run({init_types[0][0]: Xort_row}, node_time=node_time)
                             for Xort_row in xo],
