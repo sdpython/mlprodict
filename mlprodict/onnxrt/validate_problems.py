@@ -532,8 +532,8 @@ _problems = {
         True, options={GaussianProcessRegressor: {"return_std": True}},
         return_std=True, dtype=numpy.float64)),
     #
-    '~b-reg-NSV-64': _noshapevar(_problem_for_predictor_regression),
-    '~m-reg-NSV-64': _noshapevar(_problem_for_predictor_multi_regression),
+    '~b-reg-NSV-64': _noshapevar(lambda: _problem_for_predictor_regression(dtype=numpy.float64)),
+    '~m-reg-NSV-64': _noshapevar(lambda: _problem_for_predictor_multi_regression(dtype=numpy.float64)),
     "~b-reg-std-NSV-64": (_noshapevar(lambda: _problem_for_predictor_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
         return_std=True, dtype=numpy.float64))),

@@ -10,6 +10,7 @@ from pyquickhelper.pycode import get_temp_folder, ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
+from mlprodict.onnxrt.validate_helper import get_opset_number_from_onnx
 
 
 class TestOnnxrtValidateBenchmarkSummary(ExtTestCase):
@@ -39,7 +40,8 @@ class TestOnnxrtValidateBenchmarkSummary(ExtTestCase):
         self.assertNotIn('RT/SKL-N=10', piv.columns)
         self.assertIn('N=10', piv.columns)
         fLOG("output results")
-        li = len(piv['opset11'].notnull())
+        ops = 'opset%d' % get_opset_number_from_onnx()
+        li = len(piv[ops].notnull())
         self.assertEqual(li, piv.shape[0])
         df.to_excel(os.path.join(
             temp, "sklearn_opsets_report.xlsx"), index=False)

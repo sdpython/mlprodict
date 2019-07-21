@@ -70,7 +70,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
-            filter_exp=lambda m, s: "nofit-std" in s))
+            filter_exp=lambda m, s: "NF-std" in s))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
@@ -90,7 +90,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
-            filter_exp=lambda m, s: "nofit" in s))
+            filter_exp=lambda m, s: "NF" in s))
         self.assertGreater(len(rows), 6)
         self.assertGreater(len(buffer), 1 if debug else 0)
 

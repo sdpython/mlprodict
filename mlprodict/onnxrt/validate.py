@@ -215,6 +215,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                    'skl_version': sklearn_version, 'problem': prob,
                    'method_name': method_name, 'output_index': output_index,
                    'fit': dofit, 'conv_options': conv_options,
+                   'idtype': Xort_test.dtype,
                    'predict_kwargs': predict_kwargs, 'init_types': init_types}
             inst = None
             try:

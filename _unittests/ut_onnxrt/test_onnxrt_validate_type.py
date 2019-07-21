@@ -81,8 +81,8 @@ class TestOnnxrtValidateType(ExtTestCase):
                     continue
                 else:
                     raise AssertionError(
-                        'Issue with one model {}-{}-{}\n----\n{}\n---\n{}'.format(
-                            row['name'], row['problem'], dtypes,
+                        'Issue with one model {}-{}-{} ({})\n----\n{}\n---\n{}'.format(
+                            row['name'], row['problem'], dtypes, dtype,
                             pprint.pformat(row), pprint.pformat(outputs)))
             rows.append(row)
 
@@ -100,5 +100,4 @@ class TestOnnxrtValidateType(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxrtValidateType().test_validate_sklearn_operators_float64_gpr()
     unittest.main()
