@@ -333,8 +333,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         return se.run({it[0][0]: xo},
                       verbose=max(verbose - 1, 1) if debug else 0, fLOG=fLOG)
 
-    if debug:
-        keep_exc = None
+    keep_exc = None
     try:
         opred, t5 = _measure_time(fct_batch)
         obs_op['ort_run_time_batch'] = t5
