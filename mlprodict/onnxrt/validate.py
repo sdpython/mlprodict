@@ -358,6 +358,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             obs_op['_6ort_run_batch_bench_exc'] = e
 
     # difference
+    debug_exc = []
     if verbose >= 2 and fLOG is not None:
         fLOG("[enumerate_compatible_opset] differences")
     if '_6ort_run_batch_exc' not in obs_op:
@@ -377,7 +378,6 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                               model.__name__))
                 opred = None
 
-        debug_exc = []
         if opred is not None:
             if store_models:
                 obs_op['skl_outputs'] = ypred
