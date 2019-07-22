@@ -320,13 +320,15 @@ def find_suitable_problem(model):
     def _internal(model):
         # Exceptions
         if model in {GaussianProcessRegressor}:
-            return ['~b-reg-NF-64', '~m-reg-NF-64',
-                    '~b-reg-NF-cov-64', '~m-reg-NF-cov-64',
-                    '~b-reg-NF-std-64', '~m-reg-NF-std-64',
-                    '~b-reg-NSV-64', '~m-reg-NSV-64',
-                    '~b-reg-cov-64', '~m-reg-cov-64',
-                    '~b-reg-std-NSV-64', '~m-reg-std-NSV-64',
-                    'b-reg', '~b-reg-64', 'm-reg']
+            # m-reg causes MemoryError on some machine.
+            return ['~b-reg-NF-64',  # '~m-reg-NF-64',
+                    '~b-reg-NF-cov-64',  # '~m-reg-NF-cov-64',
+                    '~b-reg-NF-std-64',  # '~m-reg-NF-std-64',
+                    '~b-reg-NSV-64',  # '~m-reg-NSV-64',
+                    '~b-reg-cov-64',  # '~m-reg-cov-64',
+                    '~b-reg-std-NSV-64',  # '~m-reg-std-NSV-64',
+                    'b-reg', '~b-reg-64',  # 'm-reg'
+                    ]
 
         if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
                      ComplementNB, GaussianNB, GaussianProcessClassifier,
