@@ -71,7 +71,7 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
                 t4 = _measure_time(
                     lambda: inst.fit(X_train, y_train))[1]
         except (AttributeError, TypeError, ValueError,
-                IndexError, NotImplementedError) as e:
+                IndexError, NotImplementedError, MemoryError) as e:
             if debug:
                 raise
             obs["_1training_time_exc"] = str(e)
@@ -114,7 +114,7 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
             ypred, t4 = _measure_time(
                 lambda: meth(X_test, **predict_kwargs))
             obs['lambda-skl'] = (lambda xo: meth(xo, **predict_kwargs), X_test)
-        except (ValueError, AttributeError, TypeError) as e:
+        except (ValueError, AttributeError, TypeError, MemoryError) as e:
             if debug:
                 raise
             obs['_3prediction_exc'] = str(e)
