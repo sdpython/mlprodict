@@ -26,7 +26,7 @@ class TestOnnxrtValidateHelper(ExtTestCase):
             self.assertNotEmpty(prob)
             if model['name'] == 'IsotonicRegression':
                 self.assertEqual(
-                    prob, ['num+y-tr', 'b-reg'])
+                    prob, ['~num+y-tr-1d', '~b-reg-1d'])
 
         ra = {'BaseEnsemble', 'NearestNeighbors', 'AgglomerativeClustering', 'DBSCAN',
               'OPTICS', 'SpectralClustering', 'SpectralBiclustering',
@@ -41,7 +41,7 @@ class TestOnnxrtValidateHelper(ExtTestCase):
             self.assertNotEmpty(prob)
             if model['name'] == 'IsotonicRegression':
                 self.assertEqual(
-                    prob, ['num+y-tr', 'b-reg'])
+                    prob, ['~num+y-tr-1d', '~b-reg-1d'])
             elif model['name'] == 'NearestCentroid':
                 self.assertEqual(prob, ['~b-cl-nop', '~b-cl-nop-64'])
             self.assertIsInstance(prob, list)
