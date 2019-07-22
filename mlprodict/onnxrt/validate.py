@@ -120,6 +120,7 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
             obs['_3prediction_exc'] = str(e)
             return e
         obs['prediction_time'] = t4
+        obs['assume_finite'] = assume_finite
         if benchmark and 'lambda-skl' in obs:
             obs['bench-skl'] = benchmark_fct(
                 *obs['lambda-skl'], obs=obs)

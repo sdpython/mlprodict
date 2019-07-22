@@ -57,7 +57,7 @@ def run_benchmark(runtime, srcdir, logger, skip):
             print("[mlprodict-sphinx] cmd '{}'".format(cmd))
             print("[mlprodict-sphinx] unable to find '{}'".format(out_sum))
             raise RuntimeError(
-                "Unable to find '{}'\n--OUT--\n{}\n--ERR--\n{}".format(out_sum, out, err))
+                "Unable to find '{}'\n--CMD--\n{}\n--OUT--\n{}\n--ERR--\n{}".format(out_sum, cmd, out, err))
         filenames.append(out_sum)
     return filenames
 
