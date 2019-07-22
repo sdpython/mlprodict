@@ -172,8 +172,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
             runtime='python', debug=debug,
             filter_exp=lambda m, s: s == '~m-reg-std-NSV-64',
             disable_single=True))
-        self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1 if debug else 0)
+        self.assertGreater(len(rows), 0)
 
     def test_partial_float64(self):
         data = load_boston()

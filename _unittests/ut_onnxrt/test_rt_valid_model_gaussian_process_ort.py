@@ -182,8 +182,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
             runtime='onnxruntime1', debug=debug,
             filter_exp=lambda m, s: 'm-reg-std-NSV' in s,
             disable_single=True))
-        self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1 if debug else 0)
+        self.assertGreater(len(rows), 0)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @skipif_circleci("to investigate, shape of predictions are different")
