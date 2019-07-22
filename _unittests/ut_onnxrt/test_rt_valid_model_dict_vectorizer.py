@@ -1,5 +1,5 @@
 """
-@brief      test log(time=9s)
+@brief      test log(time=4s)
 """
 import unittest
 from logging import getLogger
@@ -14,7 +14,7 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 class TestRtValidateDictVectorizer(ExtTestCase):
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def test_rt_isonotic_regression(self):
+    def test_rt_dict_vectorizer(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
@@ -28,7 +28,7 @@ class TestRtValidateDictVectorizer(ExtTestCase):
         debug = True
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"DictVectorizer"}, opset_min=11, fLOG=myprint,
-            runtime='python', debug=debug,
+            runtime='python', debug=debug, benchmark=True,
             filter_exp=lambda m, p: "64" not in p))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)

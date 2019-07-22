@@ -897,12 +897,17 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False):
     def make(x, n):
         if n < x.shape[0]:
             return x[:n].copy()
+        elif len(x.shape) < 2:
+            r = numpy.empty((N, ), dtype=x.dtype)
+            for i in range(0, N, x.shape[0]):
+                end = min(i + x.shape[0], N)
+                r[i: end] = x[0: end - i]
         else:
             r = numpy.empty((N, x.shape[1]), dtype=x.dtype)
             for i in range(0, N, x.shape[0]):
                 end = min(i + x.shape[0], N)
                 r[i: end, :] = x[0: end - i, :]
-            return r
+        return r
 
     def allow(N, obs):
         if obs is None:
