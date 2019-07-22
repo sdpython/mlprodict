@@ -114,7 +114,7 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
             ypred, t4 = _measure_time(
                 lambda: meth(X_test, **predict_kwargs))
             obs['lambda-skl'] = (lambda xo: meth(xo, **predict_kwargs), X_test)
-        except (ValueError, AttributeError, TypeError, MemoryError) as e:
+        except (ValueError, AttributeError, TypeError, MemoryError, IndexError) as e:
             if debug:
                 raise
             obs['_3prediction_exc'] = str(e)
@@ -326,7 +326,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         sess, t5 = _measure_time(
             lambda: OnnxInference(ser, runtime=runtime))
         obs_op['tostring_time'] = t5
-    except (RuntimeError, ValueError, KeyError) as e:
+    except (RuntimeError, ValueError, KeyError, IndexError) as e:
         if debug:
             raise
         obs_op['_5ort_load_exc'] = e
