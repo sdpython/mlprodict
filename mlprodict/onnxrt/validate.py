@@ -740,6 +740,9 @@ def summary_report(df):
             df.columns, df.head()))
 
     col_values = ["available"]
+    for col in ['problem', 'scenario', 'opset']:
+        if col not in df.columns:
+            df[col] = '' if col != 'opset' else numpy.nan
     piv = pandas.pivot_table(df, values=col_values,
                              index=['name', 'problem', 'scenario'],
                              columns='opset',
