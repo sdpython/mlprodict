@@ -34,10 +34,12 @@ def write_page_onnxrt_ops(app):
     print("[mlprodict-sphinx] done page '{}'.".format(whe))
 
 
-def run_benchmark(runtime, srcdir, logger, skip):
+def run_benchmark(runtime, srcdir, logger, skip, white_list=None):
     filenames = []
     skls = sklearn_operators()
     skls = [_['name'] for _ in skls]
+    if white_list:
+        skls = [_ for _ in skls if _ in white_list]
     skls.sort()
     pbar = tqdm(skls)
     for op in pbar:
@@ -62,7 +64,7 @@ def run_benchmark(runtime, srcdir, logger, skip):
     return filenames
 
 
-def write_page_onnxrt_benches(app, runtime, skip=None):
+def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
     from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
     logger = getLogger('mlprodict')
@@ -83,9 +85,23 @@ def write_page_onnxrt_benches(app, runtime, skip=None):
     logger.info("[mlprodict] create page '{}'.".format(whe))
     print("[mlprodict-sphinx] create page runtime '{}' - '{}'.".format(runtime, whe))
 
-    filenames = run_benchmark(runtime, srcdir, logger, skip)
+    filenames = run_benchmark(runtime, srcdir, logger, skip,
+                              white_list=white_list)
     dfs = [read_csv(name) for name in filenames]
     piv = concat(dfs)
+
+    opset_cols = [(int(oc.replace("opset", "")), oc)
+                  for oc in piv.columns if 'opset' in oc]
+    opset_cols.sort(reverse=True)
+    new_cols = opset_cols[:1]
+    new_cols.extend([
+        "ERROR-msg", "name", "problem", "scenario",
+        "RT/SKL-N=1", "N=10", "N=100", "N=1000", "N=10000",
+        "N=100000"])
+    new_cols.extend(opset_cols[1:])
+    new_cols = [_ for _ in new_cols if _ in piv.columns]
+    piv = piv[new_cols]
+
     out_sum = os.path.join(srcdir, "bench_sum_%s.xlsx" % runtime)
     piv.to_excel(out_sum)
 
@@ -145,7 +161,10 @@ def write_page_onnxrt_benches(app, runtime, skip=None):
         function :func:`find_suitable_problem
         <mlprodict.onnxrt.validate_problems.find_suitable_problem>`.
 
-        '''.format(runtime, title, "=" * len(title))))
+        Full data: :download:`{3} <../{3}>`
+
+        '''.format(runtime, title, "=" * len(title),
+                   "bench_sum_%s.xlsx" % runtime)))
         f.write(df2rst(piv, number_format=2,
                        replacements={'nan': '', 'ERR: 4convert': ''}))
     logger.info(
@@ -153,17 +172,19 @@ def write_page_onnxrt_benches(app, runtime, skip=None):
     print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))
 
 
-def write_page_onnxrt_benches_python(app):
-    write_page_onnxrt_benches(app, 'python')
+def write_page_onnxrt_benches_python(app, white_list=None):
+    write_page_onnxrt_benches(app, 'python', white_list=white_list)
 
 
-def write_page_onnxrt_benches_onnxruntime2(app):
-    write_page_onnxrt_benches(app, 'onnxruntime2',
-                              {AdaBoostRegressor, GaussianProcessClassifier})
+def write_page_onnxrt_benches_onnxruntime2(app, white_list=None):
+    write_page_onnxrt_benches(
+        app, 'onnxruntime2',
+        {AdaBoostRegressor, GaussianProcessClassifier},
+        white_list=white_list)
 
 
-def write_page_onnxrt_benches_onnxruntime1(app):
-    write_page_onnxrt_benches(app, 'onnxruntime1')
+def write_page_onnxrt_benches_onnxruntime1(app, white_list=None):
+    write_page_onnxrt_benches(app, 'onnxruntime1', white_list=white_list)
 
 
 def setup(app):
@@ -179,5 +200,5 @@ def setup(app):
             'parallel_write_safe': False}
 
 
-# if __name__ == '__main__':
-#     write_page_onnxrt_benches_python(None)
+if __name__ == '__main__':
+    write_page_onnxrt_benches_python(None, white_list={'LinearRegression'})

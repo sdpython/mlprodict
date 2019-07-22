@@ -1,6 +1,8 @@
 
 .. _l-onnx-availability:
 
+.. _l-model-problem-list:
+
 Availability and Benchmarks
 ===========================
 
@@ -35,8 +37,6 @@ of modules below:
     from pandas import DataFrame
     print(df2rst(DataFrame(modules_list())))
 
-.. _l-model-problem-list:
-
 Every model is tested through a defined list of standard
 problems created from the :epkg:`Iris` dataset. Function
 :func:`find_suitable_problem
@@ -64,4 +64,6 @@ describes the list of considered problems.
         rows.append(row)
     df = DataFrame(rows).set_index('name')
     df = df.sort_index()
+    cols = list(sorted(df.columns))
+    df = df[cols]
     print(df2rst(df, index=True))
