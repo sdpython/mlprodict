@@ -15,6 +15,7 @@ from sklearn.ensemble import (
     AdaBoostRegressor, GradientBoostingRegressor, AdaBoostClassifier,
     BaggingClassifier, VotingClassifier, GradientBoostingClassifier
 )
+from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_selection import (
     RFE, RFECV, GenericUnivariateSelect,
     SelectPercentile, SelectFwe, SelectKBest,
@@ -45,7 +46,7 @@ from sklearn.neighbors import (
 from sklearn.semi_supervised import LabelPropagation, LabelSpreading
 from sklearn.svm import LinearSVC, LinearSVR, NuSVR, SVR, SVC, NuSVC
 from skl2onnx.common.data_types import (
-    FloatTensorType, DoubleTensorType
+    FloatTensorType, DoubleTensorType, StringTensorType, DictionaryType
 )
 
 
@@ -251,6 +252,20 @@ def _problem_for_clnoproba_binary(dtype=numpy.float32):
             'predict', 0, X.astype(dtype))
 
 
+def _problem_for_dict_vectorizer(dtype=numpy.float32):
+    """
+    Returns a problem for the :epkg:`sklearn:preprocessing:DictVectorizer`.
+    """
+    data = load_iris()
+    # X = data.data
+    y = data.target
+    y2 = [{_: dtype(1000 + i)} for i, _ in enumerate(y)]
+    y2[0][2] = -2
+    itt = [("X", DictionaryType(StringTensorType([1]), FloatTensorType([1])))]
+    y2 = numpy.array(y2)
+    return (y2, y, itt, 'transform', 0, y2)
+
+
 def find_suitable_problem(model):
     """
     Determines problems suitable for a given
@@ -261,7 +276,7 @@ def find_suitable_problem(model):
     * `m-label`: classification m-label
       (multiple labels possible at the same time)
     * `reg`: regression
-    * `mreg`: regression multi-output
+    * `m-reg`: regression multi-output
     * `num-tr`: transform numerical features
     * `scoring`: transform numerical features, target is usually needed
     * `outlier`: outlier prediction
@@ -270,6 +285,7 @@ def find_suitable_problem(model):
     * `num+y-tr`: similar to transform with targets
     * `num-tr-clu`: similar to cluster, but returns
         scores or distances instead of cluster
+    * `key-col`: list of dictionaries
 
     Suffix `nofit` indicates the predictions happens
     without the model being fitted. This is the case
@@ -286,7 +302,8 @@ def find_suitable_problem(model):
     used variables which means it is at the same time precise
     and unprecise. Suffix ``'-64'`` means the model will
     do double computations. Suffix ``-nop`` means the classifier
-    does not implement method *predict_proba*.
+    does not implement method *predict_proba*. Suffix ``-1d``
+    means a one dimension problem (one feature).
 
     The following script gives the list of :epkg:`scikit-learn`
     models and the problem they can be fitted on.
@@ -330,6 +347,9 @@ def find_suitable_problem(model):
                     'b-reg', '~b-reg-64',  # 'm-reg'
                     ]
 
+        if model in {DictVectorizer}:
+            return ['key-col']
+
         if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
                      ComplementNB, GaussianNB, GaussianProcessClassifier,
                      GradientBoostingClassifier, LabelPropagation, LabelSpreading,
@@ -350,6 +370,7 @@ def find_suitable_problem(model):
         if model in {GridSearchCV}:
             return ['b-cl', 'm-cl',
                     'b-reg', 'm-reg',
+                    '~b-reg-64', '~b-cl-64',
                     'cluster', 'outlier', '~m-label']
 
         if model in {VotingClassifier}:
@@ -357,7 +378,7 @@ def find_suitable_problem(model):
 
         # specific scenarios
         if model in {IsotonicRegression}:
-            return ['num+y-tr', 'b-reg']
+            return ['~num+y-tr-1d', '~b-reg-1d']
 
         if model in {ARDRegression, BayesianRidge, ElasticNetCV,
                      GradientBoostingRegressor,
@@ -475,6 +496,16 @@ def _noshapevar(fct):
     return new_fct
 
 
+def _1d_problem(fct):
+
+    def new_fct(**kwargs):
+        X, y, itt, meth, mo, Xort = fct(**kwargs)
+        new_itt = itt  # process_itt(itt, Xort)
+        X = X[:, 0]
+        return X, y, new_itt, meth, mo, Xort
+    return new_fct
+
+
 _problems = {
     # standard
     "b-cl": _problem_for_predictor_binary_classification,
@@ -542,4 +573,9 @@ _problems = {
     "~m-reg-std-NSV-64": (_noshapevar(lambda: _problem_for_predictor_multi_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
         return_std=True, dtype=numpy.float64))),
+    # isotonic
+    "~b-reg-1d": _1d_problem(_problem_for_predictor_regression),
+    '~num+y-tr-1d': _1d_problem(_problem_for_numerical_trainable_transform),
+    # text
+    "key-col": _problem_for_dict_vectorizer,
 }

@@ -12,7 +12,7 @@ import numpy
 import onnx
 from sklearn.base import BaseEstimator
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
-from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
+from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType, DataType
 
 
 def modules_list():
@@ -154,6 +154,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     new_dtype = dtype
     if isinstance(dtype, numpy.ndarray):
         new_dtype = dtype.dtype
+    elif isinstance(dtype, DataType):
+        new_dtype = numpy.float32
     if new_dtype not in (numpy.float32, numpy.float64):
         raise NotImplementedError(
             "dtype should be real not {} ({})".format(new_dtype, dtype))

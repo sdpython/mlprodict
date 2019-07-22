@@ -3,8 +3,10 @@
 @brief Scenarios for validation.
 """
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
+from sklearn.cluster import KMeans
 from sklearn.decomposition import SparseCoder
 from sklearn.ensemble import VotingClassifier, AdaBoostRegressor, VotingRegressor
+from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_selection import SelectFromModel, RFE, RFECV
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic
@@ -43,6 +45,9 @@ def build_custom_scenarios():
                 'base_estimator': LogisticRegression(solver='liblinear'),
             })
         ],
+        DictVectorizer: [
+            ('default', {}),
+        ],
         GaussianProcessRegressor: [
             ('expsine', {
                 'kernel': ExpSineSquared(),
@@ -65,11 +70,15 @@ def build_custom_scenarios():
             ('cl', {
                 'estimator': LogisticRegression(solver='liblinear'),
                 'param_grid': {'fit_intercept': [False, True]},
-            }),
+            }, ['b-cl', 'm-cl', '~b-cl-64']),
             ('reg', {
                 'estimator': LinearRegression(),
                 'param_grid': {'fit_intercept': [False, True]},
-            }),
+            }, ['b-reg', 'm-reg', '~b-reg-64']),
+            ('reg', {
+                'estimator': KMeans(),
+                'param_grid': {'n_clusters': [2, 3]},
+            }, ['cluster']),
         ],
         LocalOutlierFactor: [
             ('novelty', {

@@ -63,7 +63,7 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
                  debug, verbose, fLOG):
     if dofit:
         if verbose >= 2 and fLOG is not None:
-            fLOG("[enumerate_compatible_opset] fit")
+            fLOG("[enumerate_compatible_opset] fit, type: '{}'".format(type(X_train)))
         try:
             if y_train is None:
                 t4 = _measure_time(lambda: inst.fit(X_train))[1]
@@ -205,7 +205,13 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
          init_types, conv_options, method_name,
          output_index, dofit, predict_kwargs) = _get_problem_data(prob)
 
-        for scenario, extra in extras:
+        for scenario_extra in extras:
+            if len(scenario_extra) > 2:
+                subset_problems = scenario_extra[2]
+                if prob not in subset_problems:
+                    # Skips unrelated problem for a specific configuration.
+                    continue
+            scenario, extra = scenario_extra[:2]
 
             if verbose >= 2 and fLOG is not None:
                 fLOG("[enumerate_compatible_opset] ##############################")
@@ -766,6 +772,10 @@ def summary_report(df):
                 return "NO CONVERTER"
             if str(text).startswith("Unable to find a shape calculator for type '"):
                 return "NO CONVERTER"
+            if str(text).startswith("Unable to find problem for model '"):
+                return "NO PROBLEM"
+            if "not implemented for float64" in str(text):
+                return "NO RUNTIME 64"
             return str(text)
 
         piv2 = pandas.pivot_table(df, values="available-ERROR",

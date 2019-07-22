@@ -5,14 +5,16 @@ import unittest
 from logging import getLogger
 import numpy
 import pandas
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
 from sklearn.cluster import KMeans
+from sklearn.datasets import load_iris
+from sklearn.feature_extraction import DictVectorizer
 from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, Binarizer
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx import to_onnx
+from skl2onnx import to_onnx, convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType, StringTensorType, DictionaryType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
 
@@ -214,7 +216,33 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         exp = clr.transform(X_test)
         self.assertEqualArray(exp, got['variable'], decimal=6)
 
+    def test_onnxrt_python_Binarizer(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = Binarizer()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X_test})
+        self.assertEqual(list(sorted(got)), ['variable'])
+        exp = clr.transform(X_test)
+        self.assertEqualArray(exp, got['variable'], decimal=6)
+
+    def test_dict_vectorizer(self):
+        model = DictVectorizer()
+        data = [{"amy": 1.0, "chin": 200.0}, {"nice": 3.0, "amy": 1.0}]
+        model.fit_transform(data)
+        exp = model.transform(data)
+        model_def = convert_sklearn(model, "dictionary vectorizer",
+                                    [("input", DictionaryType(StringTensorType([1]), FloatTensorType([1])))])
+        oinf = OnnxInference(model_def)
+        array_data = numpy.array(data)
+        got = oinf.run({'input': array_data})
+        self.assertEqual(list(sorted(got)), ['variable'])
+        self.assertEqualArray(exp.todense(), got['variable'].todense())
+
 
 if __name__ == "__main__":
-    TestOnnxrtPythonRuntimeMl().test_onnxrt_python_KNeighborsRegressor_simple_k2()
     unittest.main()

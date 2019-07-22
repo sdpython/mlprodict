@@ -41,6 +41,34 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
+    def test_onnxrt_python_DecisionTreeClassifier_mlabel(self):
+        iris = load_iris()
+        X, y_ = iris.data, iris.target
+        y = numpy.zeros((y_.shape[0], 3), dtype=int)
+        y[y_ == 0, 0] = 1
+        y[y_ == 1, 1] = 1
+        y[y_ == 2, 2] = 1
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = DecisionTreeClassifier()
+        clr.fit(X_train, y_train)
+
+        try:
+            model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        except NotImplementedError:
+            # multi-label is not supported yet
+            return
+        oinf = OnnxInference(model_def)
+        text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
+        self.assertIn("TreeEnsembleClassifier", text)
+        y = oinf.run({'X': X_test.astype(numpy.float32)})
+        self.assertEqual(list(sorted(y)), [
+                         'output_label', 'output_probability'])
+        exp = clr.predict_proba(X_test)
+        got = pandas.DataFrame(list(y['output_probability'])).values
+        self.assertEqualArray(exp, got, decimal=5)
+        lexp = clr.predict(X_test)
+        self.assertEqualArray(lexp, y['output_label'])
+
     def test_onnxrt_python_DecisionTreeRegressor(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -118,4 +146,5 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_DecisionTreeClassifier_mlabel()
     unittest.main()

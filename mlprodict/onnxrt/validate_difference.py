@@ -90,10 +90,16 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
         if skl_pred.shape != ort_pred.shape:
             return 1e11
 
+        if hasattr(skl_pred, 'A'):
+            # ravel() on matrix still returns a matrix
+            skl_pred = skl_pred.A
+        if hasattr(ort_pred, 'A'):
+            # ravel() on matrix still returns a matrix
+            ort_pred = ort_pred.A
         r_skl_pred = skl_pred.ravel()
         r_ort_pred = ort_pred.ravel()
         ab = numpy.abs(r_skl_pred)
-        median = numpy.median(ab)
+        median = numpy.median(ab.ravel())
         mx = numpy.max(ab)
         if median == 0:
             median = mx

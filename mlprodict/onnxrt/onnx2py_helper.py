@@ -91,6 +91,13 @@ def _var_as_dict(var):
                 t = var.type.sequence_type
                 elem_type = _elem_type_as_str(t.elem_type)
                 dtype = dict(kind='sequence', elem=elem_type)
+            elif (hasattr(var.type, "map_type") and var.type.map_type is not None and
+                    str(var.type.map_type.key_type) != '' and
+                    str(var.type.map_type.value_type) != ''):
+                t = var.type.map_type
+                key_type = _elem_type_as_str(t.key_type)
+                value_type = _elem_type_as_str(t.value_type)
+                dtype = dict(kind='map', key=key_type, value=value_type)
             else:
                 import pprint
                 raise NotImplementedError("Unable to convert a type into a dictionary for '{}'. "
