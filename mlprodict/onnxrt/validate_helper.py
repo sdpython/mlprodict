@@ -88,7 +88,7 @@ def sklearn_operators(subfolder=None):
     for subm in sorted(sklearn__all__):
         if isinstance(subm, list):
             continue
-        if subfolder is not None and sub != subfolder:
+        if subfolder is not None and subm != subfolder:
             continue
 
         if subm == 'feature_extraction':
