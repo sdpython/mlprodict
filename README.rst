@@ -10,6 +10,9 @@
 .. image:: https://circleci.com/gh/sdpython/mlprodict/tree/master.svg?style=svg
     :target: https://circleci.com/gh/sdpython/mlprodict/tree/master
 
+.. image:: https://dev.azure.com/xavierdupre3/mlprodict/_apis/build/status/sdpython.mlprodict
+    :target: https://dev.azure.com/xavierdupre3/mlprodict/
+
 .. image:: https://badge.fury.io/py/mlprodict.svg
     :target: https://pypi.org/project/mlprodict/
 
@@ -35,6 +38,14 @@
 .. image:: https://pepy.tech/badge/mlprodict
     :target: https://pypi.org/project/mlprodict/
     :alt: Downloads
+
+.. image:: https://img.shields.io/github/forks/sdpython/pyquickhelper.svg
+    :target: https://github.com/sdpython/pyquickhelper/
+    :alt: Forks
+
+.. image:: https://img.shields.io/github/stars/sdpython/pyquickhelper.svg
+    :target: https://github.com/sdpython/pyquickhelper/
+    :alt: Stars
 
 .. image:: https://mybinder.org/badge_logo.svg
     :target: https://mybinder.org/v2/gh/sdpython/mlprodict/master?filepath=_doc%2Fnotebooks
