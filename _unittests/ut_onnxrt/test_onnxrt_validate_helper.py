@@ -28,6 +28,9 @@ class TestOnnxrtValidateHelper(ExtTestCase):
                 self.assertEqual(
                     prob, ['~num+y-tr-1d', '~b-reg-1d'])
 
+        names = set(_['name'] for _ in res)
+        self.assertIn('Perceptron', names)
+        self.assertIn('TfidfVectorizer', names)
         ra = {'BaseEnsemble', 'NearestNeighbors', 'AgglomerativeClustering', 'DBSCAN',
               'OPTICS', 'SpectralClustering', 'SpectralBiclustering',
               'SpectralCoclustering'}

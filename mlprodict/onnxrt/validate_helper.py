@@ -85,31 +85,40 @@ def sklearn_operators(subfolder=None):
     @param      subfolder   look into only one subfolder
     """
     found = []
-    for sub in sklearn__all__:
+    for subm in sorted(sklearn__all__):
+        if isinstance(subm, list):
+            continue
         if subfolder is not None and sub != subfolder:
             continue
-        try:
-            mod = import_module("{0}.{1}".format("sklearn", sub))
-        except ModuleNotFoundError:
-            continue
-        cls = getattr(mod, "__all__", None)
-        if cls is None:
-            cls = list(mod.__dict__)
-        cls = [mod.__dict__[cl] for cl in cls]
-        for cl in cls:
+
+        if subm == 'feature_extraction':
+            subs = [subm, 'feature_extraction.text']
+        else:
+            subs = [subm]
+
+        for sub in subs:
             try:
-                issub = issubclass(cl, BaseEstimator)
-            except TypeError:
+                mod = import_module("{0}.{1}".format("sklearn", sub))
+            except ModuleNotFoundError:
                 continue
-            if cl.__name__ in {'Pipeline', 'ColumnTransformer',
-                               'FeatureUnion', 'BaseEstimator',
-                               'BaseEnsemble'}:
-                continue
-            if (sub in {'calibration', 'dummy', 'manifold'} and
-                    'Calibrated' not in cl.__name__):
-                continue
-            if issub:
-                found.append(dict(name=cl.__name__, subfolder=sub, cl=cl))
+            cls = getattr(mod, "__all__", None)
+            if cls is None:
+                cls = list(mod.__dict__)
+            cls = [mod.__dict__[cl] for cl in cls]
+            for cl in cls:
+                try:
+                    issub = issubclass(cl, BaseEstimator)
+                except TypeError:
+                    continue
+                if cl.__name__ in {'Pipeline', 'ColumnTransformer',
+                                   'FeatureUnion', 'BaseEstimator',
+                                   'BaseEnsemble'}:
+                    continue
+                if (sub in {'calibration', 'dummy', 'manifold'} and
+                        'Calibrated' not in cl.__name__):
+                    continue
+                if issub:
+                    found.append(dict(name=cl.__name__, subfolder=sub, cl=cl))
     return found
 
 

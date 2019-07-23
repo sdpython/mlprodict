@@ -510,7 +510,7 @@ def find_suitable_problem(model):
             if issubclass(model, (RegressorMixin, ClassifierMixin)):
                 res.extend(['num+y-tr'])
             elif issubclass(model, (ClusterMixin, BiclusterMixin)):
-                res.extend(['~num-tr-clu'])
+                res.extend(['~num-tr-clu', '~num-tr-clu-64'])
             else:
                 res.extend(['num-tr'])
 
@@ -609,6 +609,7 @@ _problems = {
     '~b-cl-nop-64': lambda: _problem_for_clnoproba(dtype=numpy.float64),
     '~b-clu-64': lambda: _problem_for_clustering(dtype=numpy.float64),
     '~b-cl-dec-64': lambda: _problem_for_cl_decision_function_binary(dtype=numpy.float64),
+    '~num-tr-clu-64': lambda: _problem_for_clustering_scores(dtype=numpy.float64),
     #
     "~b-cl-NF": (lambda: _problem_for_predictor_binary_classification() + (False, )),
     "~m-cl-NF": (lambda: _problem_for_predictor_multi_classification() + (False, )),

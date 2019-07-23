@@ -71,7 +71,7 @@ def build_custom_scenarios():
             }),
         ],
         GaussianRandomProjection: [
-            ('eps05', {'eps': 0.5}),
+            ('eps05', {'eps': 0.75}),
         ],
         GridSearchCV: [
             ('cl', {
@@ -174,7 +174,7 @@ def build_custom_scenarios():
             }),
         ],
         SparseRandomProjection: [
-            ('eps05', {'eps': 0.5}),
+            ('eps05', {'eps': 0.75}),
         ],
         SVC: [
             ('prob', {
