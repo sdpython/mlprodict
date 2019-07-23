@@ -54,10 +54,8 @@ class TestOnnxrtValidateType(ExtTestCase):
                 range(nb),
                 enumerate_validated_operator_opsets(
                     verbose, debug=True, fLOG=myfLOG, dump_folder=temp,
-                    models=models,
-                    filter_exp=filter_exp,
-                    dtype=dtype, opset_min=11, disable_single=True,
-                    store_models=True)):
+                    models=models, filter_exp=filter_exp,
+                    dtype=dtype, opset_min=11, store_models=True)):
 
             up = {}
             outputs = []

@@ -6,7 +6,7 @@ from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.cluster import KMeans
 from sklearn.decomposition import SparseCoder
 from sklearn.ensemble import VotingClassifier, AdaBoostRegressor, VotingRegressor
-from sklearn.feature_extraction import DictVectorizer
+from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_selection import SelectFromModel, RFE, RFECV
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic
@@ -16,6 +16,7 @@ from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCo
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, ClassifierChain, RegressorChain
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.preprocessing import Normalizer
+from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
 from sklearn.svm import SVC, NuSVC
 from sklearn.tree import DecisionTreeRegressor
 
@@ -48,6 +49,9 @@ def build_custom_scenarios():
         DictVectorizer: [
             ('default', {}),
         ],
+        FeatureHasher: [
+            ('default', {}),
+        ],
         GaussianProcessRegressor: [
             ('expsine', {
                 'kernel': ExpSineSquared(),
@@ -65,6 +69,9 @@ def build_custom_scenarios():
                 'kernel': None,
                 'alpha': 100.,
             }),
+        ],
+        GaussianRandomProjection: [
+            ('eps05', {'eps': 0.5}),
         ],
         GridSearchCV: [
             ('cl', {
@@ -165,6 +172,9 @@ def build_custom_scenarios():
             ('log', {
                 'loss': 'log',
             }),
+        ],
+        SparseRandomProjection: [
+            ('eps05', {'eps': 0.5}),
         ],
         SVC: [
             ('prob', {

@@ -21,14 +21,18 @@ from .op_dict_vectorizer import DictVectorizer
 from .op_div import Div
 from .op_exp import Exp
 from .op_equal import Equal
+from .op_feature_vectorizer import FeatureVectorizer
 from .op_gemm import Gemm
 from .op_greater import Greater
 from .op_floor import Floor
 from .op_identity import Identity
+from .op_imputer import Imputer
+from .op_label_encoder import LabelEncoder
 from .op_less import Less
 from .op_linear_classifier import LinearClassifier
 from .op_linear_regressor import LinearRegressor
 from .op_log import Log
+from .op_lp_normalization import LpNormalization
 from .op_matmul import MatMul
 from .op_max import Max
 from .op_mean import Mean
@@ -36,6 +40,7 @@ from .op_min import Min
 from .op_mul import Mul
 from .op_normalizer import Normalizer
 from .op_not import Not
+from .op_one_hot_encoder import OneHotEncoder
 from .op_pow import Pow
 from .op_reciprocal import Reciprocal
 from .op_reduce_log_sum_exp import ReduceLogSumExp
@@ -50,6 +55,7 @@ from .op_scaler import Scaler
 from .op_scan import Scan
 from .op_shape import Shape
 from .op_sigmoid import Sigmoid
+from .op_sign import Sign
 from .op_sin import Sin
 from .op_slice import Slice
 from .op_softmax import Softmax
@@ -63,6 +69,7 @@ from .op_topk import TopK
 from .op_transpose import Transpose
 from .op_tree_ensemble_classifier import TreeEnsembleClassifier
 from .op_tree_ensemble_regressor import TreeEnsembleRegressor
+from .op_where import Where
 from .op_zipmap import ZipMap
 
 

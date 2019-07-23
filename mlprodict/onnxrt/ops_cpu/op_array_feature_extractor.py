@@ -40,5 +40,6 @@ class ArrayFeatureExtractor(OpRun):
             new_shape = (1, add)
         else:
             new_shape = list(data.shape[:-1]) + [add]
-        res = data[..., index].reshape(new_shape)
+        tem = data[..., index]
+        res = tem.reshape(new_shape)
         return (res, )

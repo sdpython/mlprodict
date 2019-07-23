@@ -132,8 +132,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
-            filter_exp=lambda m, s: "reg-NSV" in s,
-            disable_single=True))
+            filter_exp=lambda m, s: "reg-NSV" in s))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
@@ -156,8 +155,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
-            filter_exp=lambda m, s: "b-reg-std-NSV" in s,
-            disable_single=True))
+            filter_exp=lambda m, s: "b-reg-std-NSV" in s))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
@@ -180,8 +178,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
-            filter_exp=lambda m, s: 'm-reg-std-NSV' in s,
-            disable_single=True))
+            filter_exp=lambda m, s: 'm-reg-std-NSV' in s))
         self.assertGreater(len(rows), 0)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
@@ -202,8 +199,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         debug = False
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11,
-            fLOG=myprint, runtime='onnxruntime1', debug=debug,
-            disable_single=True))
+            fLOG=myprint, runtime='onnxruntime1', debug=debug))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 

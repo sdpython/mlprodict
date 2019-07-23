@@ -23,7 +23,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxTopK, OnnxTranspose, OnnxRelu,
     OnnxSigmoid, OnnxSoftmax, OnnxSqueeze,
     OnnxConstantOfShape, OnnxNot, OnnxSin,
-    OnnxMin, OnnxMax
+    OnnxMin, OnnxMax, OnnxSign, OnnxLpNormalization
 )
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
@@ -259,6 +259,25 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_log(self):
         self.common_test_onnxt_runtime_unary(OnnxLog, numpy.log)
 
+    def test_onnxt_runtime_lp_normalization(self):
+        onx = OnnxLpNormalization('X', output_names=['Y'], p=2, axis=1)
+        X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': X})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([[0.4472136, 0.8944272],
+                           [0.6, -0.8]], dtype=numpy.float32)
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxLpNormalization('X', output_names=['Y'], p=2, axis=0)
+        X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': X})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([[0.3162278, 0.4472136],
+                           [0.9486833, -0.8944272]], dtype=numpy.float32)
+        self.assertEqualArray(got['Y'], exp)
+
     def test_onnxt_runtime_matmul(self):
         self.common_test_onnxt_runtime_binary(OnnxMatMul, lambda x, y: x @ y)
 
@@ -450,6 +469,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_sigmoid(self):
         self.common_test_onnxt_runtime_unary(OnnxSigmoid, logistic_sigmoid)
+
+    def test_onnxt_runtime_sign(self):
+        self.common_test_onnxt_runtime_unary(OnnxSign, numpy.sign)
 
     def test_onnxt_runtime_sin(self):
         self.common_test_onnxt_runtime_unary(OnnxSin, numpy.sin)

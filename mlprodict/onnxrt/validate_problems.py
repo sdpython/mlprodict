@@ -15,7 +15,7 @@ from sklearn.ensemble import (
     AdaBoostRegressor, GradientBoostingRegressor, AdaBoostClassifier,
     BaggingClassifier, VotingClassifier, GradientBoostingClassifier
 )
-from sklearn.feature_extraction import DictVectorizer
+from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_selection import (
     RFE, RFECV, GenericUnivariateSelect,
     SelectPercentile, SelectFwe, SelectKBest,
@@ -43,8 +43,10 @@ from sklearn.neighbors import (
     NearestCentroid, RadiusNeighborsClassifier,
     NeighborhoodComponentsAnalysis,
 )
+from sklearn.preprocessing import LabelBinarizer, LabelEncoder, OneHotEncoder
 from sklearn.semi_supervised import LabelPropagation, LabelSpreading
 from sklearn.svm import LinearSVC, LinearSVR, NuSVR, SVR, SVC, NuSVC
+from sklearn.utils import shuffle
 from skl2onnx.common.data_types import (
     FloatTensorType, DoubleTensorType, StringTensorType, DictionaryType
 )
@@ -252,9 +254,47 @@ def _problem_for_clnoproba_binary(dtype=numpy.float32):
             'predict', 0, X.astype(dtype))
 
 
+def _problem_for_cl_decision_function(dtype=numpy.float32):
+    """
+    Returns *X, y, intial_types, method, name, X runtime* for a
+    scoring problem.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = data.data
+    y = data.target
+    return (X, y, [('X', X[:1].astype(dtype))],
+            'decision_function', 0, X.astype(dtype))
+
+
+def _problem_for_cl_decision_function_binary(dtype=numpy.float32):
+    """
+    Returns *X, y, intial_types, method, name, X runtime* for a
+    scoring problem. Binary classification.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = data.data
+    y = data.target
+    y[y == 2] = 1
+    return (X, y, [('X', X[:1].astype(dtype))],
+            'decision_function', 0, X.astype(dtype))
+
+
+def _problem_for_label_encoder(dtype=numpy.int64):
+    """
+    Returns a problem for the :epkg:`sklearn:preprocessing:LabelEncoder`.
+    """
+    data = load_iris()
+    # X = data.data
+    y = data.target.astype(dtype)
+    itt = [('X', y[:1].astype(dtype))]
+    return (y, None, itt, 'transform', 0, y)
+
+
 def _problem_for_dict_vectorizer(dtype=numpy.float32):
     """
-    Returns a problem for the :epkg:`sklearn:preprocessing:DictVectorizer`.
+    Returns a problem for the :epkg:`sklearn:feature_extraction:DictVectorizer`.
     """
     data = load_iris()
     # X = data.data
@@ -264,6 +304,32 @@ def _problem_for_dict_vectorizer(dtype=numpy.float32):
     itt = [("X", DictionaryType(StringTensorType([1]), FloatTensorType([1])))]
     y2 = numpy.array(y2)
     return (y2, y, itt, 'transform', 0, y2)
+
+
+def _problem_for_feature_hasher(dtype=numpy.float32):
+    """
+    Returns a problem for the :epkg:`sklearn:feature_extraction:DictVectorizer`.
+    """
+    data = load_iris()
+    # X = data.data
+    y = data.target
+    y2 = [{("cl%d" % _): dtype(1000 + i)} for i, _ in enumerate(y)]
+    y2[0]["cl2"] = -2
+    itt = [("X", DictionaryType(StringTensorType([1]), FloatTensorType([1])))]
+    y2 = numpy.array(y2)
+    return (y2, y, itt, 'transform', 0, y2)
+
+
+def _problem_for_one_hot_encoder(dtype=numpy.float32):
+    """
+    Returns a problem for the :epkg:`sklearn:preprocessing:OneHotEncoder`.
+    """
+    data = load_iris()
+    X = data.data.astype(numpy.int32).astype(dtype)
+    y = data.target
+    X, y = shuffle(X, y, random_state=1)
+    itt = [('X', X[:1].astype(dtype))]
+    return (X[:, :1], y, itt, 'transform', 0, X[:, :1].astype(dtype))
 
 
 def find_suitable_problem(model):
@@ -303,7 +369,8 @@ def find_suitable_problem(model):
     and unprecise. Suffix ``'-64'`` means the model will
     do double computations. Suffix ``-nop`` means the classifier
     does not implement method *predict_proba*. Suffix ``-1d``
-    means a one dimension problem (one feature).
+    means a one dimension problem (one feature). Suffix ``-dec``
+    checks method `decision_function`.
 
     The following script gives the list of :epkg:`scikit-learn`
     models and the problem they can be fitted on.
@@ -348,15 +415,27 @@ def find_suitable_problem(model):
                     ]
 
         if model in {DictVectorizer}:
-            return ['key-col']
+            return ['key-int-col']
+
+        if model in {FeatureHasher}:
+            return ['key-str-col']
+
+        if model in {OneHotEncoder}:
+            return ['one-hot']
+
+        if model in {LabelBinarizer, LabelEncoder}:
+            return ['int-col']
 
         if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
                      ComplementNB, GaussianNB, GaussianProcessClassifier,
                      GradientBoostingClassifier, LabelPropagation, LabelSpreading,
                      LinearDiscriminantAnalysis, LogisticRegressionCV,
-                     MultinomialNB, NuSVC, Perceptron, QuadraticDiscriminantAnalysis,
+                     MultinomialNB, NuSVC, QuadraticDiscriminantAnalysis,
                      RandomizedSearchCV, SGDClassifier, SVC}:
             return ['b-cl', 'm-cl']
+
+        if model in {Perceptron}:
+            return ['~b-cl-nop', '~m-cl-nop', '~b-cl-dec', '~m-cl-dec']
 
         if model in {AdaBoostRegressor}:
             return ['b-reg']
@@ -436,7 +515,7 @@ def find_suitable_problem(model):
                 res.extend(['num-tr'])
 
         if hasattr(model, 'predict') and issubclass(model, (ClusterMixin, BiclusterMixin)):
-            res.extend(['cluster'])
+            res.extend(['cluster', '~b-clu-64'])
 
         if issubclass(model, (OutlierMixin)):
             res.extend(['outlier'])
@@ -516,16 +595,20 @@ _problems = {
     'outlier': _problem_for_outlier,
     'cluster': _problem_for_clustering,
     'num+y-tr': _problem_for_numerical_trainable_transform,
-    # 64
-    "~b-cl-64": lambda: _problem_for_predictor_binary_classification(dtype=numpy.float64),
-    "~b-reg-64": lambda: _problem_for_predictor_regression(dtype=numpy.float64),
-    '~b-cl-nop-64': lambda: _problem_for_clnoproba(dtype=numpy.float64),
     # others
     '~num-tr-clu': _problem_for_clustering_scores,
     "~m-label": _problem_for_predictor_multi_classification_label,
     "~scoring": _problem_for_numerical_scoring,
-    '~m-cl-nop': _problem_for_clnoproba,
     '~b-cl-nop': _problem_for_clnoproba_binary,
+    '~m-cl-nop': _problem_for_clnoproba,
+    '~b-cl-dec': _problem_for_cl_decision_function_binary,
+    '~m-cl-dec': _problem_for_cl_decision_function,
+    # 64
+    "~b-cl-64": lambda: _problem_for_predictor_binary_classification(dtype=numpy.float64),
+    "~b-reg-64": lambda: _problem_for_predictor_regression(dtype=numpy.float64),
+    '~b-cl-nop-64': lambda: _problem_for_clnoproba(dtype=numpy.float64),
+    '~b-clu-64': lambda: _problem_for_clustering(dtype=numpy.float64),
+    '~b-cl-dec-64': lambda: _problem_for_cl_decision_function_binary(dtype=numpy.float64),
     #
     "~b-cl-NF": (lambda: _problem_for_predictor_binary_classification() + (False, )),
     "~m-cl-NF": (lambda: _problem_for_predictor_multi_classification() + (False, )),
@@ -577,5 +660,8 @@ _problems = {
     "~b-reg-1d": _1d_problem(_problem_for_predictor_regression),
     '~num+y-tr-1d': _1d_problem(_problem_for_numerical_trainable_transform),
     # text
-    "key-col": _problem_for_dict_vectorizer,
+    "key-int-col": _problem_for_dict_vectorizer,
+    "key-str-col": _problem_for_feature_hasher,
+    "int-col": _problem_for_label_encoder,
+    "one-hot": _problem_for_one_hot_encoder,
 }

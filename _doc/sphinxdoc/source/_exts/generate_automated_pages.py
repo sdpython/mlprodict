@@ -93,6 +93,7 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     opset_cols = [(int(oc.replace("opset", "")), oc)
                   for oc in piv.columns if 'opset' in oc]
     opset_cols.sort(reverse=True)
+    opset_cols = [oc[1] for oc in opset_cols]
     new_cols = opset_cols[:1]
     new_cols.extend([
         "ERROR-msg", "name", "problem", "scenario",

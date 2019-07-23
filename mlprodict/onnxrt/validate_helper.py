@@ -156,7 +156,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
         new_dtype = dtype.dtype
     elif isinstance(dtype, DataType):
         new_dtype = numpy.float32
-    if new_dtype not in (numpy.float32, numpy.float64):
+    if new_dtype not in (numpy.float32, numpy.float64, numpy.int64,
+                         numpy.int32):
         raise NotImplementedError(
             "dtype should be real not {} ({})".format(new_dtype, dtype))
     return convert_sklearn(model, initial_types=initial_types, name=name,
