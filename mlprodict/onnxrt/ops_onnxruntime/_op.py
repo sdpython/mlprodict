@@ -78,6 +78,7 @@ class OpRunOnnxRuntime:
         self.outputs = list(self.onnx_node.output)
 
         options = self.options.copy()
+        target_opset = options.pop('target_opset', None)
 
         if self.onnx_node.op_type == 'ConstantOfShape':
             for k in options:
@@ -89,7 +90,7 @@ class OpRunOnnxRuntime:
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
                                         **options)
             inputs = get_defined_inputs(self.inputs, variables)
-            self.onnx_ = self.inst_.to_onnx(inputs)
+            self.onnx_ = self.inst_.to_onnx(inputs, target_opset=target_opset)
             forced = False
         elif self.onnx_node.op_type == 'Scan':
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
@@ -97,10 +98,12 @@ class OpRunOnnxRuntime:
             inputs = get_defined_inputs(self.inputs, variables)
             outputs = get_defined_outputs(
                 self.outputs, self.onnx_node, inputs, variables)
-            inputs = [(name, cl.__class__(['', ''])) for (name, cl) in inputs]
-            outputs = [(name, cl.__class__(['', '']))
+            inputs = [(name, cl.__class__([None, None]))
+                      for (name, cl) in inputs]
+            outputs = [(name, cl.__class__([None, None]))
                        for (name, cl) in outputs]
-            self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
+            self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
+                                            target_opset=target_opset)
             forced = True
         else:
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
@@ -108,24 +111,28 @@ class OpRunOnnxRuntime:
             inputs = get_defined_inputs(self.inputs, variables)
 
             try:
-                self.onnx_ = self.inst_.to_onnx(inputs)
+                self.onnx_ = self.inst_.to_onnx(
+                    inputs, target_opset=target_opset)
                 forced = False
             except (RuntimeError, ValueError):
                 # Let's try again by forcing output types.
                 forced = True
                 outputs = get_defined_outputs(
                     self.outputs, self.onnx_node, inputs, variables)
-                self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
+                self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
+                                                target_opset=target_opset)
 
         if len(self.onnx_.graph.output) != self.outputs:
             # Something is wrong, falls back to default plan.
             forced = True
             outputs = get_defined_outputs(
                 self.outputs, self.onnx_node, inputs, variables)
-            self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs)
+            self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
+                                            target_opset=target_opset)
 
         sess_options = SessionOptions()
         self.run_options = RunOptions()
+
         try:
             sess_options.session_log_severity_level = 3
             # sess_options.sessions_log_verbosity_level = 0

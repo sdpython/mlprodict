@@ -56,8 +56,8 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
                             output_names=['cdist'])
 
         model_def = cop2.to_onnx(
-            inputs=[('input', FloatTensorType(['aaa', 'bbb']))],
-            outputs=[('cdist', FloatTensorType())])
+            inputs=[('input', FloatTensorType([None, None]))],
+            outputs=[('cdist', FloatTensorType(None, None))])
 
         sess = OnnxInference(model_def)
         res = sess.run({'input': x})
@@ -77,7 +77,7 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
                             output_names=['cdist'])
 
         model_def = cop2.to_onnx(
-            inputs=[('input', FloatTensorType(['aaa', 'bbb']))],
+            inputs=[('input', FloatTensorType([None, None]))],
             outputs=[('cdist', FloatTensorType())])
 
         sess = OnnxInference(model_def)
@@ -98,7 +98,7 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
         onx = OnnxIdentity(onnx_cdist(OnnxIdentity('X'), X_train.astype(numpy.float32),
                                       metric="euclidean", dtype=numpy.float32),
                            output_names=['Y'])
-        final = onx.to_onnx(inputs=[('X', FloatTensorType(['a', 'b']))],
+        final = onx.to_onnx(inputs=[('X', FloatTensorType([None, None]))],
                             outputs=[('Y', FloatTensorType())])
 
         oinf = OnnxInference(final, runtime="python")

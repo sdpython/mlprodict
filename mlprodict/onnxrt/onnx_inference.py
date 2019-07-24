@@ -74,6 +74,7 @@ class OnnxInference:
         """
         self.graph_ = self.to_sequence()
         self.outputs_ = self.graph_['outputs']
+        self.target_opset_ = self.graph_['targets'].get('', None)
         if not self.skip_run:
             if self.runtime == 'onnxruntime1':
                 # Loads the onnx with onnxruntime as a single file.
@@ -86,7 +87,8 @@ class OnnxInference:
                 self.inits_ = self.graph_['inits']
                 variables = self.inits_.copy()
                 for node in self.sequence_:
-                    node.setup_runtime(self.runtime, variables, self.__class__)
+                    node.setup_runtime(self.runtime, variables, self.__class__,
+                                       target_opset=self.target_opset_)
                     if hasattr(node, 'ops_') and hasattr(node.ops_, 'typed_outputs_'):
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v
@@ -472,6 +474,9 @@ class OnnxInference:
         variables = {}
         outputs = {}
         nodes = {}
+        targets = {}
+        for o in self.obj.opset_import:
+            targets[o.domain] = o.version
 
         # inputs
         for obj in self.obj.graph.input:
@@ -565,7 +570,8 @@ class OnnxInference:
             sequence[ord].add_variable_to_clean(k)
 
         return dict(inits=inits, inputs=variables, outputs=outputs,
-                    nodes=nodes, sequence=sequence, intermediate=intermediate)
+                    nodes=nodes, sequence=sequence, intermediate=intermediate,
+                    targets=targets)
 
     def run(self, inputs, clean_right_away=False,
             intermediate=False, verbose=0, node_time=False,

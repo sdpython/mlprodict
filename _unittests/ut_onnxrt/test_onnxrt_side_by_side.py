@@ -49,8 +49,8 @@ class TestOnnxrtSideBySide(ExtTestCase):
                    RBF(length_scale=1, length_scale_bounds=(1e-3, 1e3))))
         onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32)
         model_onnx = onx.to_onnx(
-            inputs=[('X', FloatTensorType(['', '']))],
-            outputs=[('Y', FloatTensorType(['', '']))])
+            inputs=[('X', FloatTensorType([None, None]))],
+            outputs=[('Y', FloatTensorType([None, None]))])
         sess = OnnxInference(model_onnx.SerializeToString())
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
         m1 = res['Y']
@@ -67,8 +67,8 @@ class TestOnnxrtSideBySide(ExtTestCase):
         )
         onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32)
         model_onnx = onx.to_onnx(
-            inputs=[('X', FloatTensorType(['', '']))],
-            outputs=[('Y', FloatTensorType(['', '']))])
+            inputs=[('X', FloatTensorType([None, None]))],
+            outputs=[('Y', FloatTensorType([None, None]))])
         sess = OnnxInference(model_onnx.SerializeToString())
 
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
@@ -92,8 +92,8 @@ class TestOnnxrtSideBySide(ExtTestCase):
         )
         onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32)
         model_onnx = onx.to_onnx(
-            inputs=[('X', FloatTensorType(['', '']))],
-            outputs=[('Y', FloatTensorType(['', '']))])
+            inputs=[('X', FloatTensorType([None, None]))],
+            outputs=[('Y', FloatTensorType([None, None]))])
         sess = OnnxInference(model_onnx.SerializeToString(),
                              runtime="onnxruntime2")
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
@@ -113,8 +113,8 @@ class TestOnnxrtSideBySide(ExtTestCase):
         )
         onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32)
         model_onnx = onx.to_onnx(
-            inputs=[('X', FloatTensorType(['', '']))],
-            outputs=[('Y', FloatTensorType(['', '']))])
+            inputs=[('X', FloatTensorType([None, None]))],
+            outputs=[('Y', FloatTensorType([None, None]))])
         sess = OnnxInference(model_onnx.SerializeToString(),
                              runtime="onnxruntime1")
 
