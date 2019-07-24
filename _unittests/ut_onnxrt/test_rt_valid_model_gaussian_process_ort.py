@@ -30,7 +30,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         ker = RBF(length_scale=1, length_scale_bounds=(1e-3, 1e3))
         onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32)
         model_onnx = onx.to_onnx(
-            inputs=[('X', FloatTensorType(['d1', 'd2']))])
+            inputs=[('X', FloatTensorType([None, None]))])
         sess = OnnxInference(model_onnx, runtime='onnxruntime1')
         Xtest_ = numpy.arange(6).reshape((3, 2))
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
@@ -46,7 +46,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         ker = ExpSineSquared()
         onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32)
         model_onnx = onx.to_onnx(
-            inputs=[('X', FloatTensorType(['d1', 'd2']))])
+            inputs=[('X', FloatTensorType([None, None]))])
         sess = OnnxInference(model_onnx, runtime='onnxruntime1')
         Xtest_ = numpy.arange(6).reshape((3, 2))
         res = sess.run({'X': Xtest_.astype(numpy.float32)})

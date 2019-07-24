@@ -119,7 +119,7 @@ def convert_validate(pkl, data, method="predict",
         if verbose > 0:
             fLOG("[convert_validate] convert the model with no shape information")
         onx = to_onnx(model, initial_types=[
-                      ('X', tensor_type(['dim1', 'dim2']))],
+                      ('X', tensor_type([None, None]))],
                       dtype=dtype)
     else:
         if verbose > 0:

@@ -561,10 +561,11 @@ def _noshapevar(fct):
         if isinstance(itt, tuple):
             return (process_itt(itt[0], Xort), itt[1])
         else:
-            name = "V%s_" % str(id(Xort))[:5]
+            # name = "V%s_" % str(id(Xort))[:5]
             new_itt = []
-            for i, (a, b) in enumerate(itt):
-                shape = [name + str(i) for s in b.shape]
+            for a, b in itt:
+                # shape = [name + str(i) for s in b.shape]
+                shape = [None for s in b.shape]
                 new_itt.append((a, _guess_noshape(b, shape)))
             return new_itt
 
