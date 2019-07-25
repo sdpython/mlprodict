@@ -58,8 +58,13 @@ def run_benchmark(runtime, srcdir, logger, skip, white_list=None):
             logger.warning("[mlprodict] unable to find '{}'.".format(out_sum))
             print("[mlprodict-sphinx] cmd '{}'".format(cmd))
             print("[mlprodict-sphinx] unable to find '{}'".format(out_sum))
-            raise RuntimeError(
-                "Unable to find '{}'\n--CMD--\n{}\n--OUT--\n{}\n--ERR--\n{}".format(out_sum, cmd, out, err))
+            msg = "Unable to find '{}'\n--CMD--\n{}\n--OUT--\n{}\n--ERR--\n{}".format(
+                out_sum, cmd, out, err)
+            print(msg)
+            rows = [{'name': op, 'scenario': 'CRASH',
+                     'ERROR-msg': msg.replace("\n", " -- ")}]
+            df = pandas.DataFrame(rows)
+            df.to_csv(out_sum, index=False)
         filenames.append(out_sum)
     return filenames
 
@@ -202,4 +207,6 @@ def setup(app):
 
 
 if __name__ == '__main__':
-    write_page_onnxrt_benches_python(None, white_list={'LinearRegression'})
+    # write_page_onnxrt_benches_python(None, white_list={'AdaBoostRegressor'})
+    write_page_onnxrt_benches_onnxruntime1(
+        None, white_list={'AdaBoostRegressor'})
