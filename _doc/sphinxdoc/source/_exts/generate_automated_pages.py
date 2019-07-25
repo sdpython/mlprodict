@@ -63,7 +63,7 @@ def run_benchmark(runtime, srcdir, logger, skip, white_list=None):
             print(msg)
             rows = [{'name': op, 'scenario': 'CRASH',
                      'ERROR-msg': msg.replace("\n", " -- ")}]
-            df = pandas.DataFrame(rows)
+            df = DataFrame(rows)
             df.to_csv(out_sum, index=False)
         filenames.append(out_sum)
     return filenames
