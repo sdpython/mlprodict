@@ -75,7 +75,7 @@ jobs:
     displayName: 'install llvm'
   - script: brew install p7zip
     displayName: 'Install p7zip'
-  - script: brew install -y libomp-dev
+  - script: brew install libomp
     displayName: 'Install omp'
   - script: brew install pandoc
     displayName: 'Install Pandoc'
