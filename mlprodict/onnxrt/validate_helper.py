@@ -5,6 +5,7 @@ The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
 import os
+import warnings
 from importlib import import_module
 import pickle
 from time import perf_counter
@@ -75,7 +76,7 @@ def get_opset_number_from_onnx():
     return onnx.defs.onnx_opset_version()
 
 
-def sklearn_operators(subfolder=None):
+def sklearn_operators(subfolder=None, extended=False):
     """
     Builds the list of operators from :epkg:`scikit-learn`.
     The function goes through the list of submodule
@@ -83,6 +84,8 @@ def sklearn_operators(subfolder=None):
     :epkg:`scikit-learn:base:BaseEstimator`.
 
     @param      subfolder   look into only one subfolder
+    @param      extended    extends the list to the list of operators
+                            this package implements a converter for
     """
     found = []
     for subm in sorted(sklearn__all__):
@@ -118,7 +121,19 @@ def sklearn_operators(subfolder=None):
                         'Calibrated' not in cl.__name__):
                     continue
                 if issub:
-                    found.append(dict(name=cl.__name__, subfolder=sub, cl=cl))
+                    found.append(
+                        dict(name=cl.__name__, subfolder=sub, cl=cl, package='sklearn'))
+
+    if extended:
+        from ..onnx_conv import register_converters
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ResourceWarning)
+            models = register_converters(True)
+        for m in models:
+            name = m.__module__.split('.')
+            sub = '.'.join(name[1:])
+            pack = name[0]
+            found.append(dict(name=m.__name__, cl=m, package=pack, sub=sub))
     return found
 
 

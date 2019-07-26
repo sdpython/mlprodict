@@ -10,4 +10,5 @@ API
     sklearn
     onnxrt
     onnxrt_ops
+    onnx_conv
     sklapi

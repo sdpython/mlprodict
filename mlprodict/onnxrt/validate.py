@@ -137,7 +137,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                store_models=False, benchmark=False,
                                assume_finite=True, node_time=False,
                                fLOG=print, filter_exp=None,
-                               verbose=0):
+                               verbose=0, extended_list=False):
     """
     Lists all compatible opsets for a specific model.
 
@@ -165,6 +165,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                 will be skipped, saving time, but leading to potential crashes.
                                 If False, validation for finiteness will be performed, avoiding error.
     @param      verbose         verbosity
+    @param      extended_list   extends the list to custom converters
+                                and problems
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
                                 problem chosen to test the conversion...
@@ -173,14 +175,34 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     The outcome can be seen at pages references
     by :ref:`l-onnx-availability`.
     """
-    try:
-        problems = find_suitable_problem(model)
-    except RuntimeError as e:
-        yield {'name': model.__name__, 'skl_version': sklearn_version,
-               '_0problem_exc': e}
-        problems = []
+    if extended_list:
+        from ..onnx_conv.validate_scenarios import find_suitable_problem as fsp_extended
+        problems = fsp_extended(model)
+        if problems is not None:
+            from ..onnx_conv.validate_scenarios import build_custom_scenarios as fsp_scenarios
+            extra_parameters = fsp_scenarios()
 
-    extras = _extra_parameters.get(model, [('default', {})])
+            if verbose >= 2 and fLOG is not None:
+                fLOG(
+                    "[enumerate_compatible_opset] found custom for model={}".format(model))
+                extras = extra_parameters.get(model, None)
+                if extras is not None:
+                    fLOG(
+                        "[enumerate_compatible_opset] found custom scenarios={}".format(extras))
+    else:
+        problems = None
+
+    if problems is None:
+        # scikit-learn
+        extra_parameters = _extra_parameters
+        try:
+            problems = find_suitable_problem(model)
+        except RuntimeError as e:
+            yield {'name': model.__name__, 'skl_version': sklearn_version,
+                   '_0problem_exc': e}
+            problems = []
+
+    extras = extra_parameters.get(model, [('default', {})])
 
     if opset_max is None:
         opset_max = get_opset_number_from_onnx()
@@ -428,7 +450,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         benchmark=False, skip_models=None,
                                         assume_finite=True, node_time=False,
                                         fLOG=print, filter_exp=None,
-                                        versions=False, dtype=numpy.float32):
+                                        versions=False, dtype=numpy.float32,
+                                        extended_list=False):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -461,14 +484,15 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     @param      versions        add columns with versions of used packages,
                                 :epkg:`numpy`, :epkg:`scikit-learn`, :epkg:`onnx`,
                                 :epkg:`onnxruntime`, :epkg:`sklearn-onnx`
-    @parm       dtype           force the conversion to use that type
+    @param      dtype           force the conversion to use that type
+    @param      extended_list   also check models this module implements a converter for
     @param      fLOG            logging function
     @return                     list of dictionaries
 
     The function is available through command line
     :ref:`validate_runtime <l-cmd-validate_runtime>`.
     """
-    ops = [_ for _ in sklearn_operators()]
+    ops = [_ for _ in sklearn_operators(extended=extended_list)]
 
     if models is not None:
         if not all(map(lambda m: isinstance(m, str), models)):
@@ -536,7 +560,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 store_models=store_models, benchmark=benchmark,
                 fLOG=fLOG, filter_exp=filter_exp,
                 assume_finite=assume_finite, node_time=node_time,
-                verbose=verbose):
+                verbose=verbose, extended_list=extended_list):
 
             if verbose > 1:
                 fLOG("  ", obs)

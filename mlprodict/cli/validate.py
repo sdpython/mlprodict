@@ -17,7 +17,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      dump_folder=None, benchmark=False,
                      catch_warnings=True, assume_finite=True,
                      versions=False, skip_models=None,
-                     fLOG=print):
+                     extended_list=True, fLOG=print):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -51,6 +51,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     :param versions: add columns with versions of used packages,
         :epkg:`numpy`, :epkg:`scikit-learn`, :epkg:`onnx`, :epkg:`onnxruntime`,
         :epkg:`sklearn-onnx`
+    :param extended_list: extends the list of :epkg:`scikit-learn` converters
+        with converters implemented in this module
     :param fLOG: logging function
 
     .. cmdref::
@@ -94,12 +96,15 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         opset_max = int(opset_max)
     if isinstance(verbose, str):
         verbose = int(verbose)
+    if isinstance(extended_list, str):
+        extended_list = extended_list in ('1', 'True', 'true')
 
     def build_rows():
         rows = list(enumerate_validated_operator_opsets(
             verbose, models=models, fLOG=fLOG, runtime=runtime, debug=debug,
             dump_folder=dump_folder, opset_min=opset_min, opset_max=opset_max,
             benchmark=benchmark, assume_finite=assume_finite, versions=versions,
+            extended_list=extended_list,
             filter_exp=lambda m, s: str(m) not in skip_models))
         return rows
 

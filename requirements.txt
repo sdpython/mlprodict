@@ -1,6 +1,7 @@
 chardet
 coverage
 jyquickhelper
+lightgbm
 onnx
 onnxruntime
 openpyxl
@@ -11,3 +12,4 @@ git+https://github.com/xadupre/sklearn-onnx.git@jenkins
 sphinx
 sphinx_readable_theme
 wheel
+xgboost

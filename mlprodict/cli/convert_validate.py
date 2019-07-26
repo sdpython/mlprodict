@@ -18,7 +18,7 @@ def convert_validate(pkl, data, method="predict",
                      name='Y', outonnx="model.onnx",
                      runtime='python', metric="l1med",
                      use_double=None, noshape=False,
-                     fLOG=print, verbose=1):
+                     fLOG=print, verbose=1, register=True):
     """
     Converts a model stored in *pkl* file and measure the differences
     between the model and the ONNX predictions.
@@ -42,6 +42,7 @@ def convert_validate(pkl, data, method="predict",
         and replaces matrices in ONNX with the matrices coming from
         the model, this second way is just for testing purposes
     :param verbose: verbose level
+    :param register: registers additional converters implemented by this package
     :param fLOG: logging function
     :return: a dictionary with the results
 
@@ -114,6 +115,11 @@ def convert_validate(pkl, data, method="predict",
     else:
         dtype = numpy.float32
         tensor_type = FloatTensorType
+
+    if register:
+        from ..onnx_conv import register_converters
+        register_converters()
+
     numerical = df.values.astype(dtype)
     if noshape:
         if verbose > 0:
