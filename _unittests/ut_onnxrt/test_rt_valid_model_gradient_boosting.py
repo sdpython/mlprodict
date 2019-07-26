@@ -16,7 +16,7 @@ class TestRtValidateGradientBoosting(ExtTestCase):
     def test_sklearn_operators(self):
         res = sklearn_operators()
         self.assertGreater(len(res), 1)
-        self.assertEqual(len(res[0]), 3)
+        self.assertEqual(len(res[0]), 4)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_GradientBoostingRegressor1(self):

@@ -15,7 +15,7 @@ class TestOnnxrtValidateHelper(ExtTestCase):
     def test_sklearn_operators(self):
         res = sklearn_operators()
         self.assertGreater(len(res), 1)
-        self.assertEqual(len(res[0]), 3)
+        self.assertEqual(len(res[0]), 4)
 
         short = ['IsotonicRegression']
         for model in res:
