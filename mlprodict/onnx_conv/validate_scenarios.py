@@ -14,6 +14,7 @@ def find_suitable_problem(model):
         :rst:
 
         from mlprodict.onnx_conv.validate_scenarios import find_suitable_problem
+        from mlprodict.onnxrt import sklearn_operators
         from pyquickhelper.pandashelper import df2rst
         from pandas import DataFrame
         res = sklearn_operators(extended=True)
