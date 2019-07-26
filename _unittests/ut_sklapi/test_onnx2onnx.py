@@ -50,8 +50,8 @@ class TestInferenceSessionOnnx2Onnx(ExtTestCase):
 
         add = OnnxAdd('X', numpy.full((1, X.shape[1]), 1, dtype=numpy.float32),
                       output_names=['Yadd'])
-        onx = add.to_onnx(inputs=[('X', FloatTensorType(('None', X.shape[1])))],
-                          outputs=[('Yadd', FloatTensorType(('None', X.shape[1])))])
+        onx = add.to_onnx(inputs=[('X', FloatTensorType((None, X.shape[1])))],
+                          outputs=[('Yadd', FloatTensorType((None, X.shape[1])))])
 
         tr = OnnxTransformer(onx)
         tr.fit()
