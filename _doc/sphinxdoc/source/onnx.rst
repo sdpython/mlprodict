@@ -22,9 +22,7 @@ The current package *mlprodict* implements a
 .. toctree::
     :maxdepth: 1
 
-    onnx_python
-    onnx_onnxrt1
-    onnx_onnxrt2
+    onnx_runtime
     skl_converters/index
     onnx_bench
 

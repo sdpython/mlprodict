@@ -36,7 +36,7 @@ def write_page_onnxrt_ops(app):
 
 def run_benchmark(runtime, srcdir, logger, skip, white_list=None):
     filenames = []
-    skls = sklearn_operators()
+    skls = sklearn_operators(extended=True)
     skls = [_['name'] for _ in skls]
     if white_list:
         skls = [_ for _ in skls if _ in white_list]
