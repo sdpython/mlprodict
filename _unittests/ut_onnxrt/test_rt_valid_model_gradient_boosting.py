@@ -34,8 +34,8 @@ class TestRtValidateGradientBoosting(ExtTestCase):
             verbose, models={"GradientBoostingRegressor"}, opset_min=10, fLOG=fLOG,
             runtime='python', debug=False))
         self.assertGreater(len(rows), 1)
-        max_diff = max(_['max_rel_diff_batch'] for _ in rows)
-        print(max_diff)
+        max_diff = max(_.get('max_rel_diff_batch', 1e-11) for _ in rows)
+        self.assertLesser(max_diff, 1e-5)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_GradientBoostingClassifier(self):
@@ -48,8 +48,8 @@ class TestRtValidateGradientBoosting(ExtTestCase):
             runtime='python', debug=True,
             filter_exp=lambda m, p: 'm-cl' in p))
         self.assertGreater(len(rows), 1)
-        max_diff = max(_['max_rel_diff_batch'] for _ in rows)
-        print(max_diff)
+        max_diff = max(_.get('max_rel_diff_batch', 1e-11) for _ in rows)
+        self.assertLesser(max_diff, 1e-5)
 
     def test_validate_GradientBoostingClassifier_custom(self):
         mcl = _problems['m-cl']()

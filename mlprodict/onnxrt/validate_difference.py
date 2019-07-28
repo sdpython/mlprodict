@@ -111,7 +111,7 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
         mx = numpy.maximum(ab, median)
         d = (r_ort_pred - r_skl_pred) / mx
         rel_sort = numpy.sort(numpy.abs(d))
-        rel_diff = rel_sort[-4]
+        rel_diff = rel_sort[-4] if len(rel_sort) > 5 else rel_sort[-1]
 
         if numpy.isnan(rel_diff):
             raise RuntimeError("Unable to compute differences between {}-{}\n{}\n"
