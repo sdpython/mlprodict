@@ -3,6 +3,7 @@
 @brief Scenario for addition converters.
 """
 from lightgbm import LGBMRegressor, LGBMClassifier
+from xgboost import XGBRegressor, XGBClassifier
 
 
 def find_suitable_problem(model):
@@ -37,10 +38,10 @@ def find_suitable_problem(model):
     """
     def _internal(model):
         # Exceptions
-        if model in {LGBMRegressor}:
+        if model in {LGBMRegressor, XGBRegressor}:
             return ['b-reg', '~b-reg-64']
 
-        if model in {LGBMClassifier}:
+        if model in {LGBMClassifier, XGBClassifier}:
             return ['b-cl', 'm-cl', '~b-cl-64']
 
         # Not in this list

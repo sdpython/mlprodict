@@ -101,7 +101,7 @@ def sklearn_operators(subfolder=None, extended=False):
             subs = [subm]
 
         for sub in subs:
-            if '.' in sub:
+            if '.' in sub and sub not in {'feature_extraction.text'}:
                 name_sub = sub
             else:
                 name_sub = "{0}.{1}".format("sklearn", sub)

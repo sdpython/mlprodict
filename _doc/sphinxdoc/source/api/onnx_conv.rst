@@ -17,3 +17,10 @@ LightGBM
 Converters for package :epkg:`lightgbm`.
 
 .. autosignature:: mlprodict.onnx_conv.operator_converters.conv_lightgbm.convert_lightgbm
+
+XGBoost
++++++++
+
+Converters for package :epkg:`xgboost`.
+
+.. autosignature:: mlprodict.onnx_conv.operator_converters.conv_xgboost.conv_xgboost

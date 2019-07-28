@@ -1,5 +1,5 @@
 """
-@brief      test log(time=9s)
+@brief      test log(time=2s)
 """
 import unittest
 import warnings
@@ -22,6 +22,24 @@ class TestRtValidateLightGbm(ExtTestCase):
         names = set(_['name'] for _ in res)
         self.assertIn('LGBMClassifier', names)
         self.assertIn('LGBMRegressor', names)
+        self.assertIn('XGBClassifier', names)
+        self.assertIn('XGBRegressor', names)
+
+    def test_sklearn_operators(self):
+        res = sklearn_operators(extended=True)
+        self.assertGreater(len(res), 1)
+        self.assertEqual(len(res[0]), 4)
+
+    def test_sklearn_operator_here(self):
+        subfolders = ['ensemble'] + ['mlprodict.onnx_conv']
+        for sub in sorted(subfolders):
+            models = sklearn_operators(sub)
+            if len(models) == 0:
+                raise AssertionError(
+                    "models is empty for subfolder '{}'.".format(sub))
+            if sub == "mlprodict.onnx_conv":
+                names = set(_['name'] for _ in models)
+                self.assertIn("LGBMClassifier", names)
 
 
 if __name__ == "__main__":
