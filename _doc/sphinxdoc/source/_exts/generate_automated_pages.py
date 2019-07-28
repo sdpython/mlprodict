@@ -160,6 +160,12 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
             \\frac{{\\textit{{execution when predicting with a custom ONNX runtime}}}}
             {{\\textit{{execution when predicting with scikit-learn (assume\\_finite=True)}}}}
 
+        Due to float32 conversion, it may happen than the highest difference
+        is quite high. The proposition :math:`a < b \\Rightarrow [a] < [b]`
+        is usually true and but not true all the time. It is the same after number
+        where rounded to float32, that's why the result considers the
+        fourth highest difference and not the first three.
+
         Some figures are missing when the number of observations is high.
         That means the prediction is slow for one of the runtime
         (ONNX, scikit-learn) and it would take too long to go further.

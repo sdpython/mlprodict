@@ -4,13 +4,14 @@
 import unittest
 from logging import getLogger
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 
 
 class TestRtValidateXGBoost(ExtTestCase):
 
+    @skipif_circleci("no end")
     def test_rt_xgboost_regressor(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -30,6 +31,7 @@ class TestRtValidateXGBoost(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    @skipif_circleci("no end")
     def test_rt_xgboost_classifier(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')

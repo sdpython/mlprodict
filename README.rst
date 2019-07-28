@@ -39,12 +39,12 @@
     :target: https://pypi.org/project/mlprodict/
     :alt: Downloads
 
-.. image:: https://img.shields.io/github/forks/sdpython/pyquickhelper.svg
-    :target: https://github.com/sdpython/pyquickhelper/
+.. image:: https://img.shields.io/github/forks/sdpython/mlprodict.svg
+    :target: https://github.com/sdpython/mlprodict/
     :alt: Forks
 
-.. image:: https://img.shields.io/github/stars/sdpython/pyquickhelper.svg
-    :target: https://github.com/sdpython/pyquickhelper/
+.. image:: https://img.shields.io/github/stars/sdpython/mlprodict.svg
+    :target: https://github.com/sdpython/mlprodict/
     :alt: Stars
 
 .. image:: https://mybinder.org/badge_logo.svg

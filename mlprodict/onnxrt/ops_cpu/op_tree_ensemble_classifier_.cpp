@@ -441,6 +441,7 @@ void RuntimeTreeEnsembleClassifier::compute_gil_free(
             for (auto& classe : classes)
                 scores.push_back(classe.second);
         }
+        
         write_scores(scores, post_transform_, (float*)Z_.data(i * class_count_),
                      write_additional_scores);
     }
@@ -463,22 +464,34 @@ void RuntimeTreeEnsembleClassifier::ProcessTreeNode(std::map<int64_t, float>& cl
     float threshold = nodes_values_[treeindex];
     switch (mode) {
       case NODE_MODE::BRANCH_LEQ:
-        treeindex = val <= threshold || tracktrue ? nodes_truenodeids_[treeindex] : nodes_falsenodeids_[treeindex];
+        treeindex = val <= threshold || tracktrue
+                    ? nodes_truenodeids_[treeindex]
+                    : nodes_falsenodeids_[treeindex];
         break;
       case NODE_MODE::BRANCH_LT:
-        treeindex = val < threshold || tracktrue ? nodes_truenodeids_[treeindex] : nodes_falsenodeids_[treeindex];
+        treeindex = val < threshold || tracktrue
+                    ? nodes_truenodeids_[treeindex]
+                    : nodes_falsenodeids_[treeindex];
         break;
       case NODE_MODE::BRANCH_GTE:
-        treeindex = val >= threshold || tracktrue ? nodes_truenodeids_[treeindex] : nodes_falsenodeids_[treeindex];
+        treeindex = val >= threshold || tracktrue
+                    ? nodes_truenodeids_[treeindex]
+                    : nodes_falsenodeids_[treeindex];
         break;
       case NODE_MODE::BRANCH_GT:
-        treeindex = val > threshold || tracktrue ? nodes_truenodeids_[treeindex] : nodes_falsenodeids_[treeindex];
+        treeindex = val > threshold || tracktrue
+                    ? nodes_truenodeids_[treeindex]
+                    : nodes_falsenodeids_[treeindex];
         break;
       case NODE_MODE::BRANCH_EQ:
-        treeindex = val == threshold || tracktrue ? nodes_truenodeids_[treeindex] : nodes_falsenodeids_[treeindex];
+        treeindex = val == threshold || tracktrue
+                    ? nodes_truenodeids_[treeindex]
+                    : nodes_falsenodeids_[treeindex];
         break;
       case NODE_MODE::BRANCH_NEQ:
-        treeindex = val != threshold || tracktrue ? nodes_truenodeids_[treeindex] : nodes_falsenodeids_[treeindex];
+        treeindex = val != threshold || tracktrue
+                    ? nodes_truenodeids_[treeindex]
+                    : nodes_falsenodeids_[treeindex];
         break;
       default: {
         std::ostringstream err_msg;

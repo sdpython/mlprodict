@@ -27,6 +27,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.utils.testing import ignore_warnings
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import convert_sklearn
 from mlprodict.sklapi import OnnxTransformer
@@ -45,9 +47,8 @@ onx_bytes = []
 
 for model in dec_models:
     model.fit(X_train)
-    onx = convert_sklearn(model,
-                          initial_types=[('X',
-                                          FloatTensorType((1, X.shape[1])))])
+    onx = convert_sklearn(
+        model, initial_types=[('X', FloatTensorType((None, X.shape[1])))])
     onx_bytes.append(onx.SerializeToString())
 
 ##############################
@@ -69,8 +70,15 @@ param_grid = [{'onnxtransformer__onnx_bytes': onx_bytes,
                'logisticregression__solver': ['liblinear', 'saga']
                }]
 
-clf = GridSearchCV(pipe, param_grid, cv=3)
-clf.fit(X_train, y_train)
+
+@ignore_warnings(category=ConvergenceWarning)
+def fit(pipe, param_grid, cv=3):
+    clf = GridSearchCV(pipe, param_grid, cv=3)
+    clf.fit(X_train, y_train)
+    return clf
+
+
+clf = fit(pipe, param_grid)
 
 y_true, y_pred = y_test, clf.predict(X_test)
 cl = classification_report(y_true, y_pred)

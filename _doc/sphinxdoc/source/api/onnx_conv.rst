@@ -23,4 +23,4 @@ XGBoost
 
 Converters for package :epkg:`xgboost`.
 
-.. autosignature:: mlprodict.onnx_conv.operator_converters.conv_xgboost.conv_xgboost
+.. autosignature:: mlprodict.onnx_conv.operator_converters.conv_xgboost.convert_xgboost
