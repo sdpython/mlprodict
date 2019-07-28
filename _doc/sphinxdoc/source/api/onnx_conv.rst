@@ -14,4 +14,6 @@ existing converters. They can be registered and uses by
 LightGBM
 ++++++++
 
+Converters for package :epkg:`lightgbm`.
+
 .. autosignature:: mlprodict.onnx_conv.operator_converters.conv_lightgbm.convert_lightgbm

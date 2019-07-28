@@ -87,8 +87,9 @@ def sklearn_operators(subfolder=None, extended=False):
     @param      extended    extends the list to the list of operators
                             this package implements a converter for
     """
+    subfolders = sklearn__all__ + ['mlprodict.onnx_conv']
     found = []
-    for subm in sorted(sklearn__all__):
+    for subm in sorted(subfolders):
         if isinstance(subm, list):
             continue
         if subfolder is not None and subm != subfolder:
@@ -100,14 +101,24 @@ def sklearn_operators(subfolder=None, extended=False):
             subs = [subm]
 
         for sub in subs:
+            if '.' in sub:
+                name_sub = sub
+            else:
+                name_sub = "{0}.{1}".format("sklearn", sub)
             try:
-                mod = import_module("{0}.{1}".format("sklearn", sub))
+                mod = import_module(name_sub)
             except ModuleNotFoundError:
                 continue
-            cls = getattr(mod, "__all__", None)
-            if cls is None:
-                cls = list(mod.__dict__)
-            cls = [mod.__dict__[cl] for cl in cls]
+
+            if hasattr(mod, "register_converters"):
+                fct = getattr(mod, "register_converters")
+                cls = fct()
+            else:
+                cls = getattr(mod, "__all__", None)
+                if cls is None:
+                    cls = list(mod.__dict__)
+                cls = [mod.__dict__[cl] for cl in cls]
+
             for cl in cls:
                 try:
                     issub = issubclass(cl, BaseEstimator)

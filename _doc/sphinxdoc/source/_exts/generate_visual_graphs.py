@@ -27,8 +27,9 @@ def generate_dot_converters(app):
     print("[mlprodict-sphinx] create visual representation in '{}'.".format(whe))
 
     index = os.path.join(whe, "index.rst")
+    subfolders = sklearn__all__ + ['mlprodict.onnx_conv']
     subs = []
-    for sub in sorted(sklearn__all__):
+    for sub in sorted(subfolders):
         logger.info(
             "[mlprodict] graph for subfolder '{}'.".format(sub))
         print("[mlprodict] graph for subfolder '{}'.".format(sub))

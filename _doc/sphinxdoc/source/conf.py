@@ -50,6 +50,7 @@ epkg_dictionary.update({
     'Iris': 'https://en.wikipedia.org/wiki/Iris_flower_data_set',
     'json': 'https://docs.python.org/3/library/json.html',
     'JSON': 'https://en.wikipedia.org/wiki/JSON',
+    'lightgbm': 'https://lightgbm.readthedocs.io/en/latest/',
     'ONNX': 'https://onnx.ai/',
     'onnx': 'https://github.com/onnx/onnx',
     'ONNX Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators.md',

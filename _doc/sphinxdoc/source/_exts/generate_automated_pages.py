@@ -209,4 +209,4 @@ def setup(app):
 if __name__ == '__main__':
     # write_page_onnxrt_benches_python(None, white_list={'AdaBoostRegressor'})
     write_page_onnxrt_benches_onnxruntime1(
-        None, white_list={'AdaBoostRegressor'})
+        None, white_list={'LGBMClassifier'})

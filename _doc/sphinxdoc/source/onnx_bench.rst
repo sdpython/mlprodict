@@ -50,7 +50,7 @@ describes the list of considered problems.
     from mlprodict.onnxrt.validate import sklearn_operators, find_suitable_problem
     from pyquickhelper.pandashelper import df2rst
     from pandas import DataFrame
-    res = sklearn_operators()
+    res = sklearn_operators(extended=True)
     rows = []
     for model in res:
         name = model['name']

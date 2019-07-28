@@ -133,7 +133,8 @@ def convert_lightgbm(scope, operator, container):
     This converters reuses the code from
     `LightGbm.py <https://github.com/onnx/onnxmltools/blob/master/onnxmltools/convert/
     lightgbm/operator_converters/LightGbm.py>`_ and makes
-    some modifications.
+    some modifications. It implements converters
+    for models in :epkg:`lightgbm`.
     """
     gbm_model = operator.raw_operator
     gbm_text = gbm_model.booster_.dump_model()
