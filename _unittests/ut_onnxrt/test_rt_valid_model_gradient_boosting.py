@@ -25,7 +25,7 @@ class TestRtValidateGradientBoosting(ExtTestCase):
         self.assertEqual(len(res[0]), 4)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def _test_validate_GradientBoostingRegressor1(self):
+    def test_validate_GradientBoostingRegressor1(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
@@ -38,7 +38,7 @@ class TestRtValidateGradientBoosting(ExtTestCase):
         print(max_diff)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def _test_validate_GradientBoostingClassifier(self):
+    def test_validate_GradientBoostingClassifier(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
