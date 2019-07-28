@@ -111,8 +111,7 @@ RuntimeTreeEnsembleClassifier::~RuntimeTreeEnsembleClassifier() {
 }
 
 
-std::string RuntimeTreeEnsembleClassifier::runtime_options()
-{
+std::string RuntimeTreeEnsembleClassifier::runtime_options() {
     std::string res;
 #ifdef USE_OPENMP
     res += "OPENMP";
@@ -121,8 +120,7 @@ std::string RuntimeTreeEnsembleClassifier::runtime_options()
 }
 
 
-int RuntimeTreeEnsembleClassifier::omp_get_max_threads()
-{
+int RuntimeTreeEnsembleClassifier::omp_get_max_threads() {
 #if USE_OPENMP
     return ::omp_get_max_threads();
 #else
