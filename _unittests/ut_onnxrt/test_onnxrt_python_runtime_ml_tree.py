@@ -10,8 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx import to_onnx
-from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt import OnnxInference, to_onnx
 
 
 class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
@@ -129,6 +128,25 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqual(lexp.shape, y['variable'].shape)
         self.assertEqualArray(lexp, y['variable'])
 
+    def test_onnxrt_python_DecisionTreeRegressor64(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)  # pylint: disable=W0612
+        clr = DecisionTreeRegressor()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(
+            numpy.float64), dtype=numpy.float64)
+        oinf = OnnxInference(model_def)
+        text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
+        self.assertIn("TreeEnsembleRegressor", text)
+        # self.assertIn("TreeEnsembleRegressorDouble", text)
+        # y = oinf.run({'X': X_test.astype(numpy.float64)})
+        # self.assertEqual(list(sorted(y)), ['variable'])
+        # lexp = clr.predict(X_test)
+        # self.assertEqual(lexp.shape, y['variable'].shape)
+        # self.assertEqualArray(lexp, y['variable'])
+
     def test_onnxrt_python_DecisionTree_depth2(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -173,8 +191,8 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqualArray(exp, got, decimal=5)
 
     def test_openmp_compilation(self):
-        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_ import RuntimeTreeEnsembleRegressor  # pylint: disable=E0611
-        ru = RuntimeTreeEnsembleRegressor()
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_ import RuntimeTreeEnsembleRegressorFloat  # pylint: disable=E0611
+        ru = RuntimeTreeEnsembleRegressorFloat()
         r = ru.runtime_options()
         self.assertEqual('OPENMP', r)
         nb = ru.omp_get_max_threads()

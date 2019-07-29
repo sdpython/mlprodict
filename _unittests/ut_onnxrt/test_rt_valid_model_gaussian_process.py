@@ -14,10 +14,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import DotProduct
 from skl2onnx import __version__ as skl2onnx_version
-from skl2onnx import to_onnx
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
-from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt import OnnxInference, to_onnx
 
 
 class TestRtValidateGaussianProcess(ExtTestCase):

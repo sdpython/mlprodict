@@ -7,9 +7,8 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx import to_onnx
 from mlprodict.onnxrt.model_checker import onnx_shaker
-from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt import OnnxInference, to_onnx
 
 
 class TestOnnxrtModelChecker(ExtTestCase):

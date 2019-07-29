@@ -14,10 +14,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler, Binarizer
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx import to_onnx, convert_sklearn
+from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType, StringTensorType, DictionaryType
 from skl2onnx import __version__ as skl2onnx_version
-from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt import OnnxInference, to_onnx
 
 
 class TestOnnxrtPythonRuntimeMl(ExtTestCase):

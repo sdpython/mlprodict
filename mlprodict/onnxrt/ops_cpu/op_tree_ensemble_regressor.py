@@ -7,11 +7,54 @@
 from collections import OrderedDict
 import numpy
 from ._op_helper import _get_typed_class_attribute
-from ._op import OpRunUnaryNum
-from .op_tree_ensemble_regressor_ import RuntimeTreeEnsembleRegressor  # pylint: disable=E0611
+from ._op import OpRunUnaryNum, RuntimeTypeError
+from .op_tree_ensemble_regressor_ import (  # pylint: disable=E0611
+    RuntimeTreeEnsembleRegressorFloat,
+    RuntimeTreeEnsembleRegressorDouble,
+)
 
 
-class TreeEnsembleRegressor(OpRunUnaryNum):
+class TreeEnsembleRegressorCommon(OpRunUnaryNum):
+
+    def __init__(self, dtype, onnx_node, desc=None,
+                 expected_attributes=None, **options):
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=expected_attributes,
+                               **options)
+        self._init(dtype=dtype)
+
+    def _get_typed_attributes(self, k):
+        return _get_typed_class_attribute(self, k, TreeEnsembleRegressor.atts)
+
+    def _init(self, dtype):
+        if dtype == numpy.float32:
+            self.rt_ = RuntimeTreeEnsembleRegressorFloat()
+        elif dtype == numpy.float64:
+            self.rt_ = RuntimeTreeEnsembleRegressorDouble()
+        else:
+            raise RuntimeTypeError("Unsupported dtype={}.".format(dtype))
+        atts = [self._get_typed_attributes(k)
+                for k in TreeEnsembleRegressor.atts]
+        self.rt_.init(*atts)
+
+    def _run(self, x):  # pylint: disable=W0221
+        """
+        This is a C++ implementation coming from
+        :epkg:`onnxruntime`.
+        `tree_ensemble_classifier.cc
+        <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_classifier.cc>`_.
+        See class :class:`RuntimeTreeEnsembleRegressorFloat
+        <mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeTreeEnsembleRegressorFloat>` or
+        class :class:`RuntimeTreeEnsembleRegressorDouble
+        <mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeTreeEnsembleRegressorDouble>`.
+        """
+        pred = self.rt_.compute(x)
+        if pred.shape[0] != x.shape[0]:
+            pred = pred.reshape(x.shape[0], pred.shape[0] // x.shape[0])
+        return (pred, )
+
+
+class TreeEnsembleRegressor(TreeEnsembleRegressorCommon):
 
     atts = OrderedDict([
         ('aggregate_function', b'SUM'),
@@ -34,30 +77,36 @@ class TreeEnsembleRegressor(OpRunUnaryNum):
     ])
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
-                               expected_attributes=TreeEnsembleRegressor.atts,
-                               **options)
-        self._init()
+        TreeEnsembleRegressorCommon.__init__(
+            self, numpy.float32, onnx_node, desc=desc,
+            expected_attributes=TreeEnsembleRegressor.atts,
+            **options)
 
-    def _get_typed_attributes(self, k):
-        return _get_typed_class_attribute(self, k, TreeEnsembleRegressor.atts)
 
-    def _init(self):
-        self.rt_ = RuntimeTreeEnsembleRegressor()
-        atts = [self._get_typed_attributes(k)
-                for k in TreeEnsembleRegressor.atts]
-        self.rt_.init(*atts)
+class TreeEnsembleRegressorDouble(TreeEnsembleRegressorCommon):
 
-    def _run(self, x):  # pylint: disable=W0221
-        """
-        This is a C++ implementation coming from
-        :epkg:`onnxruntime`.
-        `tree_ensemble_classifier.cc
-        <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_classifier.cc>`_.
-        See class :class:`RuntimeTreeEnsembleRegressor
-        <mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeTreeEnsembleRegressor>`.
-        """
-        pred = self.rt_.compute(x)
-        if pred.shape[0] != x.shape[0]:
-            pred = pred.reshape(x.shape[0], pred.shape[0] // x.shape[0])
-        return (pred, )
+    atts = OrderedDict([
+        ('aggregate_function', b'SUM'),
+        ('base_values', numpy.empty(0, dtype=numpy.float64)),
+        ('n_targets', 1),
+        ('nodes_falsenodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_featureids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_hitrates', numpy.empty(0, dtype=numpy.float64)),
+        ('nodes_missing_value_tracks_true', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_modes', []),
+        ('nodes_nodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_treeids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_truenodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_values', numpy.empty(0, dtype=numpy.float64)),
+        ('post_transform', b'NONE'),
+        ('target_ids', numpy.empty(0, dtype=numpy.int64)),
+        ('target_nodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('target_treeids', numpy.empty(0, dtype=numpy.int64)),
+        ('target_weights', numpy.empty(0, dtype=numpy.float64)),
+    ])
+
+    def __init__(self, onnx_node, desc=None, **options):
+        TreeEnsembleRegressorCommon.__init__(
+            self, numpy.float64, onnx_node, desc=desc,
+            expected_attributes=TreeEnsembleRegressor.atts,
+            **options)

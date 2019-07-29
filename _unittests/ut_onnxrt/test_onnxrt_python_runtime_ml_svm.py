@@ -10,8 +10,7 @@ from sklearn.svm import SVR, SVC, LinearSVC
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx import to_onnx
-from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt import OnnxInference, to_onnx
 
 
 class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):

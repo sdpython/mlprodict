@@ -103,7 +103,7 @@ runtime for :epkg:`ONNX`.
     print(expected)
 
     # Conversion into ONNX.
-    from skl2onnx import to_onnx
+    from mlprodict.onnxrt import to_onnx
     model_onnx = to_onnx(lr, X.astype(numpy.float32))
     print("ONNX:", str(model_onnx)[:200] + "\n...")
 
@@ -132,7 +132,7 @@ following :epkg:`ONNX` graph.
     lr = LinearRegression()
     lr.fit(X, y)
 
-    from skl2onnx import to_onnx
+    from mlprodict.onnxrt import to_onnx
     model_onnx = to_onnx(lr, X.astype(numpy.float32))
     oinf = OnnxInference(model_onnx)
     print("DOT-SECTION", oinf.to_dot())

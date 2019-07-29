@@ -149,7 +149,8 @@ def sklearn_operators(subfolder=None, extended=False):
 
 
 def to_onnx(model, X=None, name=None, initial_types=None,
-            target_opset=None, options=None, dtype=None):
+            target_opset=None, options=None,
+            dtype=numpy.float32):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
 
@@ -164,6 +165,9 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     @param      options         additional parameters for the conversion
     @param      dtype           type to use to convert the model
     @return                     converted model
+
+    The function rewrites function *to_onnx* from :epkg:`sklearn-onnx`
+    but changes a few converters.
     """
     from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
     from skl2onnx.algebra.type_helper import guess_initial_types

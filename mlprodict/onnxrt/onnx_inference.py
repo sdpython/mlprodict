@@ -605,8 +605,7 @@ class OnnxInference:
                 from sklearn.linear_model import LinearRegression
                 from sklearn.datasets import load_iris
                 from sklearn.model_selection import train_test_split
-                from skl2onnx import to_onnx
-                from mlprodict.onnxrt import OnnxInference
+                from mlprodict.onnxrt import OnnxInference, to_onnx
 
                 iris = load_iris()
                 X, y = iris.data, iris.target

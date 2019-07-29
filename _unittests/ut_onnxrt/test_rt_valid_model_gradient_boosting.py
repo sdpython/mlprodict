@@ -10,8 +10,7 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from sklearn.model_selection import train_test_split
-from skl2onnx import to_onnx
-from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt import OnnxInference, to_onnx
 from mlprodict.onnxrt.validate import sklearn_operators, enumerate_validated_operator_opsets
 from mlprodict.onnxrt.validate_problems import _problems
 from mlprodict.onnxrt.validate_difference import measure_relative_difference
