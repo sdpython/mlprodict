@@ -70,6 +70,26 @@ class TestRtValidateDecisionTree(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_rt_DecisionTreeRegressor_python_64(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        verbose = 1 if __name__ == "__main__" else 0
+
+        debug = True
+        buffer = []
+
+        def myprint(*args, **kwargs):
+            buffer.append(" ".join(map(str, args)))
+
+        rows = list(enumerate_validated_operator_opsets(
+            verbose, models={"DecisionTreeRegressor"}, opset_min=11, fLOG=myprint,
+            runtime='python', debug=debug,
+            filter_exp=lambda m, p: '-64' in p))
+        self.assertGreater(len(rows), 1)
+        self.assertGreater(len(buffer), 1 if debug else 0)
+
 
 if __name__ == "__main__":
     unittest.main()

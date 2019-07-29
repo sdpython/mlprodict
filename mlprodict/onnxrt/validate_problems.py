@@ -502,7 +502,7 @@ def find_suitable_problem(model):
             if "Classifier" in str(model):
                 return ['b-cl', '~b-cl-64', 'm-cl', '~m-label']
             elif "Regressor" in str(model):
-                return ['b-reg', 'm-reg', '~b-reg-64']
+                return ['b-reg', 'm-reg', '~b-reg-64', '~m-reg-64']
 
         # Generic case.
         res = []

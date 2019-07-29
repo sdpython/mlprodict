@@ -285,7 +285,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 
                 def fct_conv(itt=inst, it=init_types[0][1], ops=opset, options=conv_options):  # pylint: disable=W0102
                     return to_onnx(itt, it, target_opset=ops, options=options,
-                                   dtype=init_types[0][1])
+                                   dtype=init_types[0][1], rewrite_ops=runtime == "python")
 
                 if verbose >= 2 and fLOG is not None:
                     fLOG("[enumerate_compatible_opset] conversion to onnx")
