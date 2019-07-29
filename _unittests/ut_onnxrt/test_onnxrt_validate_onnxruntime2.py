@@ -31,9 +31,9 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"KMeans"}, opset_min=11, fLOG=myprint,
-            runtime='onnxruntime2', debug=True))
+            runtime='onnxruntime2', debug=False))
         self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1)
+        # self.assertGreater(len(buffer), 1)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_onnxruntime_BernoulliNB(self):
