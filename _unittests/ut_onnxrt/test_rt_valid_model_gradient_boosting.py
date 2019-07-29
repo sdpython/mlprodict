@@ -34,7 +34,7 @@ class TestRtValidateGradientBoosting(ExtTestCase):
             runtime='python', debug=False))
         self.assertGreater(len(rows), 1)
         max_diff = max(_.get('max_rel_diff_batch', 1e-11) for _ in rows)
-        self.assertLesser(max_diff, 1e-5)
+        self.assertLesser(max_diff, 1e-2)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_GradientBoostingClassifier(self):
