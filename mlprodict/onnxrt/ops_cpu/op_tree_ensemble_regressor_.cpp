@@ -305,17 +305,25 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute(py::array_t<NTYP
     }
     return Z;
 }
-    
-    
+
+
+py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float>& Z) {
+    return Z.mutable_unchecked<1>();
+}
+
+
+py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double>& Z) {
+    return Z.mutable_unchecked<1>();
+}
+
+
 template<typename NTYPE>
 void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                 const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z) const {
 
     // expected primary-expression before ')' token
-    // Z.mutable_unchecked<1>();
-    // py::array::mutable_unchecked<NTYPE, 1>(Z);
-    auto Z_ = Z.mutable_unchecked<(size_t)1>();
+    auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
                     
     const NTYPE* x_data = X.data(0);
                     
