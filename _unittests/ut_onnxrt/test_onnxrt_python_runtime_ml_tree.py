@@ -7,7 +7,7 @@ import numpy
 import pandas
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference, to_onnx
@@ -143,6 +143,54 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         text = "\n".join(map(lambda x: str(x.ops_), oinf64.sequence_))
         self.assertIn("TreeEnsembleRegressor", text)
         self.assertIn("TreeEnsembleRegressorDouble", text)
+        smodel_def64 = str(model_def64)
+        self.assertIn('double_data', smodel_def64)
+        self.assertNotIn('floats', smodel_def64)
+        y64 = oinf64.run({'X': X_test.astype(numpy.float64)})
+        self.assertEqual(list(sorted(y64)), ['variable'])
+        self.assertEqual(lexp.shape, y64['variable'].shape)
+        self.assertEqualArray(lexp, y64['variable'])
+
+        model_def32 = to_onnx(clr, X_train.astype(
+            numpy.float32), dtype=numpy.float32, rewrite_ops=True)
+        oinf32 = OnnxInference(model_def32)
+        text = "\n".join(map(lambda x: str(x.ops_), oinf32.sequence_))
+        self.assertIn("TreeEnsembleRegressor", text)
+        self.assertNotIn("TreeEnsembleRegressorDouble", text)
+        smodel_def32 = str(model_def32)
+        self.assertNotIn('doubles', smodel_def32)
+        self.assertNotIn('double_data', smodel_def32)
+        self.assertIn('floats', smodel_def32)
+        y32 = oinf32.run({'X': X_test.astype(numpy.float32)})
+        self.assertEqual(list(sorted(y32)), ['variable'])
+        self.assertEqual(lexp.shape, y32['variable'].shape)
+        self.assertEqualArray(lexp, y32['variable'])
+
+        onx32 = model_def32.SerializeToString()
+        onx64 = model_def64.SerializeToString()
+        s32 = len(onx32)
+        s64 = len(onx64)
+        self.assertGreater(s64, s32 + 100)
+        self.assertNotEqual(y32['variable'].dtype, y64['variable'].dtype)
+        diff = numpy.max(numpy.abs(y32['variable'].astype(numpy.float64) -
+                                   y64['variable'].astype(numpy.float64)))
+        self.assertLesser(diff, 1e-5)
+
+    def test_onnxrt_python_GradientBoostingRegressor64(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(
+            X, y, random_state=11)  # pylint: disable=W0612
+        clr = GradientBoostingRegressor(n_estimators=20)
+        clr.fit(X_train, y_train)
+        lexp = clr.predict(X_test)
+
+        model_def64 = to_onnx(clr, X_train.astype(
+            numpy.float64), dtype=numpy.float64, rewrite_ops=True)
+        oinf64 = OnnxInference(model_def64)
+        text = "\n".join(map(lambda x: str(x.ops_), oinf64.sequence_))
+        self.assertIn("TreeEnsembleRegressor", text)
+        #self.assertIn("TreeEnsembleRegressorDouble", text)
         smodel_def64 = str(model_def64)
         self.assertIn('double_data', smodel_def64)
         self.assertNotIn('floats', smodel_def64)

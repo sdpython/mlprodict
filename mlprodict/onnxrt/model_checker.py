@@ -6,7 +6,7 @@ import numpy
 from numpy.random import randint
 
 
-def astype_range(arr, dtype=numpy.float32, force=2):
+def astype_range(arr, dtype=numpy.float32, force=1):
     """
     Computes ranges for every number in an array
     once converted into *float32*. The function returns
@@ -21,12 +21,13 @@ def astype_range(arr, dtype=numpy.float32, force=2):
     """
     conv = arr.astype(dtype)
     delta = numpy.abs(arr - conv)
+    delta = numpy.maximum(numpy.abs(arr) * 1e-7, delta)
     maxa = (conv + delta * force).astype(dtype)
     mina = (conv - delta * force).astype(dtype)
     return mina, maxa
 
 
-def enumerate_random_inputs(inputs, n=100, dtype=numpy.float32, force=2):
+def enumerate_random_inputs(inputs, n=100, dtype=numpy.float32, force=1):
     """
     Enumerates random matrices.
 
@@ -53,7 +54,7 @@ def enumerate_random_inputs(inputs, n=100, dtype=numpy.float32, force=2):
         yield new_inputs
 
 
-def onnx_shaker(oinf, inputs, output_fct, n=100, dtype=numpy.float32, force=2):
+def onnx_shaker(oinf, inputs, output_fct, n=100, dtype=numpy.float32, force=1):
     """
     Shakes a model :epkg:`ONNX`.
     Explores the ranges for every prediction.
@@ -66,6 +67,8 @@ def onnx_shaker(oinf, inputs, output_fct, n=100, dtype=numpy.float32, force=2):
     @param      dtype       type to convert to
     @param      force       does something like *[i] +/- force |i - [i]|*
     @return                 ranges for each predictions
+
+    See notebook :ref:`onnxshakerrst` for an example of use.
     """
     results = None
     for i, new_inputs in enumerate(enumerate_random_inputs(

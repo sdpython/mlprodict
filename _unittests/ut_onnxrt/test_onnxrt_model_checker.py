@@ -7,7 +7,7 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.onnxrt.model_checker import onnx_shaker
+from mlprodict.onnxrt.model_checker import onnx_shaker, astype_range
 from mlprodict.onnxrt import OnnxInference, to_onnx
 
 
@@ -16,12 +16,18 @@ class TestOnnxrtModelChecker(ExtTestCase):
     def test_onnxt_model_checker(self):
         arr = numpy.array([1.111111111111111,
                            -1.11111111111111111,
+                           1,
+                           1 + 1e-6,
                            2.222222222222222222,
                            -2.22222222222222222])
         conv = arr.astype(numpy.float32)
         delta = numpy.abs(arr - conv)
         pos = numpy.sum(delta > 0)
-        self.assertEqual(pos, 4)
+        self.assertEqual(pos, 5)
+        mi, ma = astype_range(arr, force=1)
+        delta = ma - mi
+        mx = numpy.max(delta)
+        self.assertGreater(float(mx), 1e-10)
 
     def test_onnx_shaker(self):
         iris = load_iris()

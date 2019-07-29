@@ -167,7 +167,7 @@ class OpRunUnaryNum(OpRunUnary):
         res = OpRunUnary.run(self, x)
         if res[0].dtype != x.dtype:
             raise RuntimeTypeError(
-                "Output type mismatch: {} != {} (operator '{}')".format(
+                "Output type mismatch: input '{}' != output '{}' (operator '{}')".format(
                     x.dtype, res[0].dtype, self.__class__.__name__))
         return res
 
