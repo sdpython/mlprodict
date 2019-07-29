@@ -523,7 +523,7 @@ def find_suitable_problem(model):
         if issubclass(model, ClassifierMixin):
             res.extend(['b-cl', '~b-cl-64', 'm-cl', '~m-label'])
         if issubclass(model, RegressorMixin):
-            res.extend(['b-reg', 'm-reg', '~b-reg-64'])
+            res.extend(['b-reg', 'm-reg', '~b-reg-64', '~m-reg-64'])
 
         if len(res) == 0 and hasattr(model, 'fit') and hasattr(model, 'score'):
             return ['~scoring']
@@ -611,6 +611,7 @@ _problems = {
     '~b-clu-64': lambda: _problem_for_clustering(dtype=numpy.float64),
     '~b-cl-dec-64': lambda: _problem_for_cl_decision_function_binary(dtype=numpy.float64),
     '~num-tr-clu-64': lambda: _problem_for_clustering_scores(dtype=numpy.float64),
+    "~m-reg-64": lambda: _problem_for_predictor_multi_regression(dtype=numpy.float64),
     #
     "~b-cl-NF": (lambda: _problem_for_predictor_binary_classification() + (False, )),
     "~m-cl-NF": (lambda: _problem_for_predictor_multi_classification() + (False, )),

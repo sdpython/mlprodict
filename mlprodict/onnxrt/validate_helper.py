@@ -14,6 +14,7 @@ import onnx
 from sklearn.base import BaseEstimator
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType, DataType
+from .rewritten_converters import register_rewritten_operators
 
 
 def modules_list():
@@ -150,7 +151,7 @@ def sklearn_operators(subfolder=None, extended=False):
 
 def to_onnx(model, X=None, name=None, initial_types=None,
             target_opset=None, options=None,
-            dtype=numpy.float32):
+            dtype=numpy.float32, rewrite_ops=False):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
 
@@ -164,10 +165,12 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     @param      target_opset    to do it with a different target opset
     @param      options         additional parameters for the conversion
     @param      dtype           type to use to convert the model
+    @param      rewrite_ops     rewrites some existing converters,
+                                the changes are permanent
     @return                     converted model
 
     The function rewrites function *to_onnx* from :epkg:`sklearn-onnx`
-    but changes a few converters.
+    but may changes a few converters if
     """
     from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
     from skl2onnx.algebra.type_helper import guess_initial_types
@@ -199,9 +202,16 @@ def to_onnx(model, X=None, name=None, initial_types=None,
                          numpy.int32):
         raise NotImplementedError(
             "dtype should be real not {} ({})".format(new_dtype, dtype))
-    return convert_sklearn(model, initial_types=initial_types, name=name,
-                           target_opset=target_opset, options=options,
-                           dtype=new_dtype)
+    if rewrite_ops:
+        old_values = register_rewritten_operators()
+    else:
+        old_values = None
+    res = convert_sklearn(model, initial_types=initial_types, name=name,
+                          target_opset=target_opset, options=options,
+                          dtype=new_dtype)
+    if old_values is not None:
+        register_rewritten_operators(old_values)
+    return res
 
 
 def _measure_time(fct):

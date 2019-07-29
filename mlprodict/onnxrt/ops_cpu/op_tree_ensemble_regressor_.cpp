@@ -312,7 +312,11 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                 const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z) const {
 
-    auto Z_ = Z.mutable_unchecked<1>();
+    // expected primary-expression before ')' token
+    // Z.mutable_unchecked<1>();
+    // py::array::mutable_unchecked<NTYPE, 1>(Z);
+    auto Z_ = Z.mutable_unchecked<(size_t)1>();
+                    
     const NTYPE* x_data = X.data(0);
                     
 #ifdef USE_OPENMP

@@ -68,7 +68,7 @@ from .op_svm_regressor import SVMRegressor
 from .op_topk import TopK
 from .op_transpose import Transpose
 from .op_tree_ensemble_classifier import TreeEnsembleClassifier
-from .op_tree_ensemble_regressor import TreeEnsembleRegressor
+from .op_tree_ensemble_regressor import TreeEnsembleRegressor, TreeEnsembleRegressorDouble
 from .op_where import Where
 from .op_zipmap import ZipMap
 

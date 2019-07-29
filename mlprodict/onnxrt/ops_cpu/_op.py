@@ -36,7 +36,10 @@ class OpRun:
         self._provider = 'python'
         self.onnx_node = onnx_node
         self.desc = desc
-        self._schema = _schemas[onnx_node.op_type]
+        if onnx_node.op_type in _schemas:
+            self._schema = _schemas[onnx_node.op_type]
+        else:
+            self._schema = self._find_custom_operator_schema(onnx_node.op_type)
         if desc is not None:
             if 'atts' in desc:
                 for a, b in desc['atts'].items():
@@ -58,6 +61,10 @@ class OpRun:
             if not hasattr(self, k):
                 raise RuntimeError("Attribute '{}' is expected based on ONNX specifications '{}'.".format(
                     k, v))
+
+    def _find_custom_operator_schema(self, op_name):
+        raise NotImplementedError(
+            "This method should be overwritten for operator '{}'.".format(op_name))
 
     def __str__(self):
         """

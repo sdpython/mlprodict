@@ -8,6 +8,7 @@ from collections import OrderedDict
 import numpy
 from ._op_helper import _get_typed_class_attribute
 from ._op import OpRunUnaryNum, RuntimeTypeError
+from ._new_ops import OperatorSchema
 from .op_tree_ensemble_regressor_ import (  # pylint: disable=E0611
     RuntimeTreeEnsembleRegressorFloat,
     RuntimeTreeEnsembleRegressorDouble,
@@ -25,6 +26,15 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
 
     def _get_typed_attributes(self, k):
         return _get_typed_class_attribute(self, k, TreeEnsembleRegressor.atts)
+
+    def _find_custom_operator_schema(self, op_name):
+        """
+        Finds a custom operator defined by this runtime.
+        """
+        if op_name == "TreeEnsembleRegressorDouble":
+            return TreeEnsembleRegressorDoubleSchema()
+        raise RuntimeError(
+            "Unable to find a schema for operator '{}'.".format(op_name))
 
     def _init(self, dtype):
         if dtype == numpy.float32:
@@ -110,3 +120,14 @@ class TreeEnsembleRegressorDouble(TreeEnsembleRegressorCommon):
             self, numpy.float64, onnx_node, desc=desc,
             expected_attributes=TreeEnsembleRegressor.atts,
             **options)
+
+
+class TreeEnsembleRegressorDoubleSchema(OperatorSchema):
+    """
+    Defines a schema for operators added in this package
+    such as @see cl TreeEnsembleRegressorDouble.
+    """
+
+    def __init__(self):
+        OperatorSchema.__init__(self, 'TreeEnsembleRegressorDouble')
+        self.attributes = TreeEnsembleRegressorDouble.atts

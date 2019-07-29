@@ -6,6 +6,7 @@ import keyword
 import textwrap
 import re
 from jinja2 import Template
+from jinja2.runtime import Undefined
 from onnx.defs import OpSchema
 
 
@@ -127,6 +128,17 @@ def _get_doc_template():
 _template_operator = _get_doc_template()
 
 
+class NewOperatorSchema:
+    """
+    Defines a schema for operators added in this package
+    such as @see cl TreeEnsembleRegressorDouble.
+    """
+
+    def __init__(self, name):
+        self.name = name
+        self.domain = 'mlprodict'
+
+
 def get_rst_doc(op_name):
     """
     Returns a documentation in RST format
@@ -139,7 +151,7 @@ def get_rst_doc(op_name):
     with a simple rendering if not present.
     """
     from .ops_cpu._op import _schemas
-    schemas = [_schemas[op_name]]
+    schemas = [_schemas.get(op_name, NewOperatorSchema(op_name))]
 
     def format_name_with_domain(sch):
         if sch.domain:
@@ -179,6 +191,10 @@ def get_rst_doc(op_name):
     def process_documentation(doc):
         if doc is None:
             doc = ''
+        if isinstance(doc, Undefined):
+            doc = ''
+        if not isinstance(doc, str):
+            raise TypeError("Unexpected type {} for {}".format(type(doc), doc))
         doc = textwrap.dedent(doc)
         main_docs_url = "https://github.com/onnx/onnx/blob/master/"
         rep = {
