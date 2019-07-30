@@ -5,18 +5,19 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRun
+from ._op import OpRunUnaryNum
 
 
-class Clip(OpRun):
+class Clip(OpRunUnaryNum):
 
     atts = {'min': -3.4028234663852886e+38,
             'max': 3.4028234663852886e+38}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=Clip.atts,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=Clip.atts,
+                               **options)
 
     def _run(self, data):  # pylint: disable=W0221
-        return (numpy.clip(data, self.min, self.max), )
+        res = numpy.clip(data, self.min, self.max)        
+        return (res, ) if res.dtype == data.dtype else (res.astype(data.dtype), )

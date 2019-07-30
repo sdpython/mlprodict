@@ -220,8 +220,9 @@ class OpRunBinary(OpRun):
         """
         if x.dtype != y.dtype:
             raise RuntimeTypeError(
-                "Input type mismatch: {} != {} (operator '{}')".format(
-                    x.dtype, y.dtype, self.__class__.__name__))
+                "Input type mismatch: {} != {} (operator '{}', shapes {}, {})".format(
+                    x.dtype, y.dtype, self.__class__.__name__,
+                    x.shape, y.shape))
         try:
             res = self._run(x, y)
         except TypeError as e:
