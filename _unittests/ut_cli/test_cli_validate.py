@@ -4,7 +4,7 @@
 import os
 import unittest
 from pyquickhelper.loghelper import BufferedPrint
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import ExtTestCase, get_temp_folder, skipif_circleci
 from mlprodict.__main__ import main
 
 
@@ -61,6 +61,7 @@ class TestCliValidate(ExtTestCase):
         self.assertExists(out1)
         self.assertExists(out2)
 
+    @skipif_circleci('too long')
     def test_cli_validate_model_lightgbm(self):
         temp = get_temp_folder(__file__, "temp_validate_model_lgbm_csv")
         out1 = os.path.join(temp, "raw.csv")
