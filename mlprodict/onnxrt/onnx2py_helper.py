@@ -177,6 +177,9 @@ def _var_as_dict(var):
         elif var.data_type == 7 and var.int64_data is not None:
             data = _numpy_array(var.int64_data, dtype=numpy.int64,
                                 copy=False)
+        elif var.data_type == 11 and var.double_data is not None:
+            data = _numpy_array(var.double_data, dtype=numpy.float64,
+                                copy=False)
         else:
             raise NotImplementedError(
                 "Iniatilizer {} cannot be converted into a dictionary.".format(var))
