@@ -25,7 +25,7 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
         self._init(dtype=dtype)
 
     def _get_typed_attributes(self, k):
-        return _get_typed_class_attribute(self, k, TreeEnsembleRegressor.atts)
+        return _get_typed_class_attribute(self, k, self.__class__.atts)
 
     def _find_custom_operator_schema(self, op_name):
         """
@@ -44,7 +44,7 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
         else:
             raise RuntimeTypeError("Unsupported dtype={}.".format(dtype))
         atts = [self._get_typed_attributes(k)
-                for k in TreeEnsembleRegressor.atts]
+                for k in self.__class__.atts]
         self.rt_.init(*atts)
 
     def _run(self, x):  # pylint: disable=W0221
@@ -118,7 +118,7 @@ class TreeEnsembleRegressorDouble(TreeEnsembleRegressorCommon):
     def __init__(self, onnx_node, desc=None, **options):
         TreeEnsembleRegressorCommon.__init__(
             self, numpy.float64, onnx_node, desc=desc,
-            expected_attributes=TreeEnsembleRegressor.atts,
+            expected_attributes=TreeEnsembleRegressorDouble.atts,
             **options)
 
 

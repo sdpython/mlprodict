@@ -89,6 +89,9 @@ def compose_page_onnxrt_ops(level="^"):
 
     rows = [begin]
     for name, op in names:
+        rows.append("")
+        rows.append(".. _lpyort-{}:".format(name))
+        rows.append("")
         rows.append(name)
         rows.append(level * len(name))
         rows.append("")

@@ -85,9 +85,14 @@ class TestRtValidateDecisionTree(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"DecisionTreeRegressor"}, opset_min=11, fLOG=myprint,
-            runtime='python', debug=debug,
+            runtime='python', debug=debug, store_models=True,
             filter_exp=lambda m, p: '-64' in p))
-        self.assertGreater(len(rows), 1)
+        rows = [row for row in rows if 'OK' not in row['available']]
+        available = [row['available'] for row in rows]
+        if len(available) > 0:
+            import pprint
+            raise AssertionError(
+                "The runtime did have an issue with double\n{}".format(pprint.pformat(rows)))
         self.assertGreater(len(buffer), 1 if debug else 0)
 
 

@@ -353,6 +353,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         return obs_op
 
     # compute batch
+    if store_models:
+        obs_op['OINF'] = sess
     if verbose >= 2 and fLOG is not None:
         fLOG("[enumerate_compatible_opset] compute batch")
 

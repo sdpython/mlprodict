@@ -499,6 +499,25 @@ in :epkg:`onnxruntime`.)pbdoc");
     clf.def("omp_get_max_threads", &RuntimeTreeEnsembleRegressorFloat::omp_get_max_threads,
             "Returns omp_get_max_threads from openmp library.");
 
+    clf.def_readonly("nodes_treeids_", &RuntimeTreeEnsembleRegressorFloat::nodes_treeids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("nodes_nodeids_", &RuntimeTreeEnsembleRegressorFloat::nodes_nodeids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("nodes_featureids_", &RuntimeTreeEnsembleRegressorFloat::nodes_featureids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("nodes_values_", &RuntimeTreeEnsembleRegressorFloat::nodes_values_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("nodes_hitrates_", &RuntimeTreeEnsembleRegressorFloat::nodes_hitrates_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("nodes_modes_", &RuntimeTreeEnsembleRegressorFloat::nodes_modes_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleRegressorFloat::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleRegressorFloat::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("nodes_falsenodeids_", &RuntimeTreeEnsembleRegressorFloat::nodes_falsenodeids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("missing_tracks_true_", &RuntimeTreeEnsembleRegressorFloat::missing_tracks_true_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("target_nodeids_", &RuntimeTreeEnsembleRegressorFloat::target_nodeids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("target_treeids_", &RuntimeTreeEnsembleRegressorFloat::target_treeids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("target_ids_", &RuntimeTreeEnsembleRegressorFloat::target_ids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("target_weights_", &RuntimeTreeEnsembleRegressorFloat::target_weights_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("base_values_", &RuntimeTreeEnsembleRegressorFloat::base_values_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("n_targets_", &RuntimeTreeEnsembleRegressorFloat::n_targets_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    clf.def_readonly("post_transform_", &RuntimeTreeEnsembleRegressorFloat::post_transform_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+    // clf.def_readonly("leafnode_data_", &RuntimeTreeEnsembleRegressorFloat::leafnode_data_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+
     py::class_<RuntimeTreeEnsembleRegressorDouble> cld (m, "RuntimeTreeEnsembleRegressorDouble",
         R"pbdoc(Implements double runtime for operator TreeEnsembleRegressor. The code is inspired from
 `tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
@@ -515,6 +534,25 @@ in :epkg:`onnxruntime`.)pbdoc");
             "Returns indications about how the runtime was compiled.");
     cld.def("omp_get_max_threads", &RuntimeTreeEnsembleRegressorDouble::omp_get_max_threads,
             "Returns omp_get_max_threads from openmp library.");
+
+    cld.def_readonly("nodes_treeids_", &RuntimeTreeEnsembleRegressorDouble::nodes_treeids_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("nodes_nodeids_", &RuntimeTreeEnsembleRegressorDouble::nodes_nodeids_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("nodes_featureids_", &RuntimeTreeEnsembleRegressorDouble::nodes_featureids_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("nodes_values_", &RuntimeTreeEnsembleRegressorDouble::nodes_values_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("nodes_hitrates_", &RuntimeTreeEnsembleRegressorDouble::nodes_hitrates_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("nodes_modes_", &RuntimeTreeEnsembleRegressorDouble::nodes_modes_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleRegressorDouble::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleRegressorDouble::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("nodes_falsenodeids_", &RuntimeTreeEnsembleRegressorDouble::nodes_falsenodeids_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("missing_tracks_true_", &RuntimeTreeEnsembleRegressorDouble::missing_tracks_true_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("target_nodeids_", &RuntimeTreeEnsembleRegressorDouble::target_nodeids_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("target_treeids_", &RuntimeTreeEnsembleRegressorDouble::target_treeids_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("target_ids_", &RuntimeTreeEnsembleRegressorDouble::target_ids_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("target_weights_", &RuntimeTreeEnsembleRegressorDouble::target_weights_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("base_values_", &RuntimeTreeEnsembleRegressorDouble::base_values_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("n_targets_", &RuntimeTreeEnsembleRegressorDouble::n_targets_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    cld.def_readonly("post_transform_", &RuntimeTreeEnsembleRegressorDouble::post_transform_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    // cld.def_readonly("leafnode_data_", &RuntimeTreeEnsembleRegressorDouble::leafnode_data_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
 }
 
 #endif
