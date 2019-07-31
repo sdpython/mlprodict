@@ -6,7 +6,7 @@ import unittest
 from logging import getLogger
 from pandas import DataFrame, read_csv
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase
+from pyquickhelper.pycode import get_temp_folder, ExtTestCase, skipif_circleci
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
@@ -14,6 +14,7 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summa
 
 class TestOnnxrtValidate(ExtTestCase):
 
+    @skipif_circleci("too long")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_all(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

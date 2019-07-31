@@ -85,14 +85,31 @@ class OnnxInference:
             else:
                 self.sequence_ = self.graph_['sequence']
                 self.inits_ = self.graph_['inits']
+                dtype = self._guess_input_dtype()
                 variables = self.inits_.copy()
                 for node in self.sequence_:
-                    node.setup_runtime(self.runtime, variables, self.__class__,
-                                       target_opset=self.target_opset_)
+                    if self.runtime == 'onnxruntime2':
+                        node.setup_runtime(self.runtime, variables, self.__class__,
+                                           target_opset=self.target_opset_,
+                                           dtype=dtype)
+                    else:
+                        node.setup_runtime(self.runtime, variables, self.__class__,
+                                           target_opset=self.target_opset_)
                     if hasattr(node, 'ops_') and hasattr(node.ops_, 'typed_outputs_'):
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v
                 self._run = self._run_sequence_runtime
+
+    def _guess_input_dtype(self):
+        for _, v in self.graph_['inputs'].items():
+            if 'type' not in v:
+                continue
+            t = v['type']
+            if 'elem' not in t:
+                continue
+            if t['elem'] == 'double':
+                return numpy.float64
+        return numpy.float32
 
     def __str__(self):
         """

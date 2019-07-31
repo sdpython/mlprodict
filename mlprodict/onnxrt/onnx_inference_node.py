@@ -58,7 +58,7 @@ class OnnxInferenceNode:
         return self.__str__()
 
     def setup_runtime(self, runtime=None, variables=None, rt_class=None,
-                      target_opset=None):
+                      target_opset=None, dtype=None):
         """
         Loads runtime.
 
@@ -67,6 +67,7 @@ class OnnxInferenceNode:
         @param      rt_class        runtime class used to compute
                                     prediction of subgraphs
         @param      target_opset    use a specific target opset
+        @param      dtype           float computational type
         """
         if self.desc is None:
             raise AttributeError("desc should not be None.")
@@ -74,9 +75,14 @@ class OnnxInferenceNode:
         options = {'provider': runtime} if runtime else {}
         if target_opset is not None:
             options['target_opset'] = target_opset
-        self.ops_ = load_op(self.onnx_node, desc=self.desc,
-                            options=options if options else None,
-                            variables=variables)
+        if runtime == 'onnxruntime2':
+            self.ops_ = load_op(self.onnx_node, desc=self.desc,
+                                options=options if options else None,
+                                variables=variables, dtype=dtype)
+        else:
+            self.ops_ = load_op(self.onnx_node, desc=self.desc,
+                                options=options if options else None,
+                                variables=variables)
 
     def preprocess_parameters(self, runtime, rt_class):
         """

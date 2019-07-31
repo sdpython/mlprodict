@@ -6,7 +6,8 @@ import numpy
 from skl2onnx.common.data_types import (
     DataType,
     FloatTensorType, SequenceType, DictionaryType,
-    Int64Type, Int64TensorType, BooleanTensorType
+    Int64Type, Int64TensorType, BooleanTensorType,
+    DoubleTensorType
 )
 from skl2onnx.common.data_types import _guess_type_proto
 from skl2onnx.algebra.type_helper import _guess_type as skl2onnx__guess_type
@@ -19,7 +20,7 @@ def _guess_type(var):
         return skl2onnx__guess_type(var)
 
 
-def get_defined_inputs(input_names, variables=None):
+def get_defined_inputs(input_names, variables=None, dtype=None):
     """
     Retrieves defined inputs in already declared variables
     bsed on their names.
@@ -27,12 +28,13 @@ def get_defined_inputs(input_names, variables=None):
     @param      input_names     input names
     @param      variables       registered variables created
                                 by previous operators
+    @param      dtype           float computational type
     @return                     typed inputs
                                 as ``tuple(name, type)``
     """
     def guess_type_variable(name):
         if variables is None:
-            return FloatTensorType()
+            return DoubleTensorType() if dtype == numpy.float64 else FloatTensorType()
         elif name in variables:
             ty = variables[name]
             if isinstance(ty, DataType):
@@ -40,20 +42,18 @@ def get_defined_inputs(input_names, variables=None):
             elif isinstance(ty, dict) and 'value' in ty:
                 # constant
                 arr = ty['value']
-                if isinstance(arr, numpy.ndarray) and arr.dtype == numpy.float64:
-                    arr = arr.astype(numpy.float32)
                 return _guess_type(arr)
             raise NotImplementedError("Unable to guess type for '{}' form '{}'.".format(
                 name, variables[name]))
         else:
             # Inputs. Let's assume it is a vector of floats.
-            return FloatTensorType()
+            return DoubleTensorType() if dtype == numpy.float64 else FloatTensorType()
 
     inputs = [(name, guess_type_variable(name)) for name in input_names]
     return inputs
 
 
-def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None):
+def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None, dtype=None):
     """
     Gets types of predefined outputs when they cannot be inferred.
     Some part of it should be automated based
@@ -65,13 +65,16 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None):
                                 as ``tuple(name, type)``
     @param      variables       registered variables created
                                 by previous operators
+    @param      dtype           float computational type
     @return                     typed outputs
                                 as ``tuple(name, type)``
     """
+    ft = DoubleTensorType if dtype == numpy.float64 else FloatTensorType
+
     # ZipMap
     if onnx_node.op_type == "ZipMap":
         otype = SequenceType(DictionaryType(
-            Int64Type(), FloatTensorType()))
+            Int64Type(), ft()))
         outputs = [(name, otype) for name in outputs]
     # ArgMin, ArgMax, Shape
     elif onnx_node.op_type in ("ArgMin", "ArgMax", 'Shape') and len(outputs) == 1:
@@ -99,7 +102,7 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None):
     elif 'Classifier' in onnx_node.op_type:
         # Good chance that's a classifier.
         outputs = [(outputs[0], Int64TensorType()),
-                   (outputs[1], FloatTensorType())]
+                   (outputs[1], ft())]
     # Reshape
     elif onnx_node.op_type in ('Reshape', 'Transpose'):
         outputs = [(outputs[0], typed_inputs[0][1].__class__())]
@@ -113,7 +116,7 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None):
                    for o, t in zip(outputs, typed_inputs)]
     # ConstantOfShape
     elif onnx_node.op_type == "ConstantOfShape":
-        outputs = [(outputs[0], FloatTensorType())]
+        outputs = [(outputs[0], ft())]
 
     # Default case
     # Assuming the only output is the same as the only input.
@@ -121,5 +124,5 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None):
         outputs = [(outputs[0], typed_inputs[0][1])]
     # Default
     else:
-        outputs = [(name, FloatTensorType()) for name in outputs]
+        outputs = [(name, ft()) for name in outputs]
     return outputs
