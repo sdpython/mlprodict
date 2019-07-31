@@ -32,6 +32,26 @@ class TestRtValidateXGBoost(ExtTestCase):
         self.assertGreater(len(buffer), 1 if debug else 0)
 
     @skipif_circleci("no end")
+    def test_rt_xgboost_regressor64(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        verbose = 1 if __name__ == "__main__" else 0
+
+        debug = True
+        buffer = []
+
+        def myprint(*args, **kwargs):
+            buffer.append(" ".join(map(str, args)))
+
+        rows = list(enumerate_validated_operator_opsets(
+            verbose, models={"XGBRegressor"}, opset_min=11, fLOG=myprint,
+            runtime='python', debug=debug, extended_list=True,
+            filter_exp=lambda m, p: "-64" in p))
+        self.assertGreater(len(rows), 1)
+        self.assertGreater(len(buffer), 1 if debug else 0)
+
+    @skipif_circleci("no end")
     def test_rt_xgboost_classifier(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')

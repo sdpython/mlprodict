@@ -5,6 +5,7 @@
 xgboost/operator_converters/XGBoost.py>`_.
 """
 import json
+import numpy
 from xgboost import XGBClassifier
 
 
@@ -201,11 +202,18 @@ class XGBRegressorConverter(XGBConverter):
             js_trees, attr_pairs, [1 for _ in js_trees], False)
 
         # add nodes
-        container.add_node('TreeEnsembleRegressor', operator.input_full_names,
-                           operator.output_full_names,
-                           name=scope.get_unique_operator_name(
-                               'TreeEnsembleRegressor'),
-                           op_domain='ai.onnx.ml', **attr_pairs)
+        if container.dtype == numpy.float64:
+            container.add_node('TreeEnsembleRegressorDouble', operator.input_full_names,
+                               operator.output_full_names,
+                               name=scope.get_unique_operator_name(
+                                   'TreeEnsembleRegressorDouble'),
+                               op_domain='mlprodict', **attr_pairs)
+        else:
+            container.add_node('TreeEnsembleRegressor', operator.input_full_names,
+                               operator.output_full_names,
+                               name=scope.get_unique_operator_name(
+                                   'TreeEnsembleRegressor'),
+                               op_domain='ai.onnx.ml', **attr_pairs)
 
 
 class XGBClassifierConverter(XGBConverter):

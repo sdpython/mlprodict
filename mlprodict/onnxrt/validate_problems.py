@@ -16,6 +16,7 @@ from sklearn.ensemble import (
     BaggingClassifier, VotingClassifier, GradientBoostingClassifier
 )
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_selection import (
     RFE, RFECV, GenericUnivariateSelect,
     SelectPercentile, SelectFwe, SelectKBest,
@@ -360,7 +361,7 @@ def find_suitable_problem(model):
     with parameter ``return_cov=True``, `-std` tells
     method `predict` was called with parameter ``return_std=True``.
     The suffix ``-NSV`` creates an input variable
-    like the following ``[('X', FloatTensorType(["da", "db"]))]``.
+    like the following ``[('X', FloatTensorType([None, None]))]``.
     That's a way to bypass :epkg:`onnxruntime` shape checking
     as one part of the graph is designed to handle any
     kind of dimensions but apparently, if the input shape is
@@ -417,7 +418,7 @@ def find_suitable_problem(model):
         if model in {DictVectorizer}:
             return ['key-int-col']
 
-        if model in {FeatureHasher}:
+        if model in {FeatureHasher, CountVectorizer}:
             return ['key-str-col']
 
         if model in {OneHotEncoder}:
@@ -438,7 +439,7 @@ def find_suitable_problem(model):
             return ['~b-cl-nop', '~m-cl-nop', '~b-cl-dec', '~m-cl-dec']
 
         if model in {AdaBoostRegressor}:
-            return ['b-reg']
+            return ['b-reg', '~b-reg-64']
 
         if model in {LinearSVC, NearestCentroid}:
             return ['~b-cl-nop', '~b-cl-nop-64']

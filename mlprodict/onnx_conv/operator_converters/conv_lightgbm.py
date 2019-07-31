@@ -271,8 +271,13 @@ def convert_lightgbm(scope, operator, container):
             # different ONNX attributes
             attrs['target' + k[5:]] = copy.deepcopy(attrs[k])
             del attrs[k]
-        container.add_node('TreeEnsembleRegressor', operator.input_full_names,
-                           output_name, op_domain='ai.onnx.ml', **attrs)
+
+        if container.dtype == np.float64:
+            container.add_node('TreeEnsembleRegressorDouble', operator.input_full_names,
+                               output_name, op_domain='mlprodict', **attrs)
+        else:
+            container.add_node('TreeEnsembleRegressor', operator.input_full_names,
+                               output_name, op_domain='ai.onnx.ml', **attrs)
 
         if gbm_model.boosting_type == 'rf':
             denominator_name = scope.get_unique_variable_name('denominator')
