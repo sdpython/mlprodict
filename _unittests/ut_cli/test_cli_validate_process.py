@@ -4,12 +4,13 @@
 import os
 import unittest
 from pyquickhelper.loghelper import BufferedPrint
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import ExtTestCase, get_temp_folder, skipif_appveyor
 from mlprodict.__main__ import main
 
 
 class TestCliValidateProcess(ExtTestCase):
 
+    @skipif_appveyor("tries to recompile the module...")
     def test_cli_validate_model_process_csv(self):
         temp = get_temp_folder(__file__, "temp_validate_model_process_csv")
         out1 = os.path.join(temp, "raw.csv")

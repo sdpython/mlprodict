@@ -5,14 +5,15 @@
 History
 =======
 
-current - 2019-07-30 - 0.00Mb
+current - 2019-08-01 - 0.00Mb
 =============================
 
+* `26`: Tests all converters in separate processeses to make it easier to catch crashes (2019-08-01)
 * `25`: Ensures operator clip returns an array of the same type (ONNX Python Runtime) (2019-07-30)
-* `19`: Enables support for SVM operators in python runtime (ONNX). (2019-07-28)
-* `20`: Enables support for TreeEnsemble operators in python runtime (ONNX). (2019-07-28)
 * `22`: Implements a function to shake an ONNX model and test float32 conversion (2019-07-28)
 * `21`: Add customized converters (2019-07-28)
+* `20`: Enables support for TreeEnsemble operators in python runtime (ONNX). (2019-07-28)
+* `19`: Enables support for SVM operators in python runtime (ONNX). (2019-07-28)
 * `16`: fix documentation, visual graph are not being rendered in notebooks (2019-07-23)
 * `18`: implements python runtime for SVM (2019-07-20)
 
