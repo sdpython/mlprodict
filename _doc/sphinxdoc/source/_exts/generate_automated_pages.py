@@ -173,6 +173,16 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
         function :func:`find_suitable_problem
         <mlprodict.onnxrt.validate_problems.find_suitable_problem>`.
 
+        The benchmark can generated with a command line:
+
+        ::
+
+            python -m mlprodict validate_runtime --verbose=1 --out_raw=data.csv --out_summary=summary.xlsx --benchmark=1 --dump_folder=. --runtime={0}
+
+        The option ``-se 1`` may be used if the process crashes or the command line
+        can be extended to test only one model or to skip another one. The whole
+        batch takes between 5 and 15 minutes depending on your machine.
+
         Full data: :download:`{3} <../{3}>`
 
         '''.format(runtime, title, "=" * len(title),
