@@ -87,7 +87,8 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LogisticRegression"}, opset_min=11, fLOG=myprint,
-            runtime='onnxruntime2', debug=True))
+            runtime='onnxruntime2', debug=True,
+            filter_exp=lambda m, p: '-64' not in p))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1)
 
