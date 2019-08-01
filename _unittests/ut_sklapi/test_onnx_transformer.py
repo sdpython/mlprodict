@@ -40,6 +40,9 @@ class TestInferenceSessionSklearn(ExtTestCase):
         res = tr.transform(x)
         exp = np.array([[1., 4.], [9., 16.], [25., 36.]], dtype=np.float32)
         self.assertEqual(list(res.ravel()), list(exp.ravel()))
+        rp = repr(tr)
+        self.assertStartsWith("OnnxTransformer(onnx_bytes=b'\\", rp)
+        self.assertEndsWith("')", rp)
 
     def test_transform_list(self):
         x = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]

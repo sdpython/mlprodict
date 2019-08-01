@@ -196,7 +196,7 @@ if not r:
     elif sys.platform.startswith("darwin"):
         libraries_thread = None
         extra_compile_args = ['-stdlib=libc++', '-mmacosx-version-min=10.7',
-                              '-fpermissive', '-std=c++11', '-fopenmp']
+                              '-fpermissive', '-std=c++11', '-openmp']
         extra_link_args = ['-lomp']
     else:
         libraries_thread = None

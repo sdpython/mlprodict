@@ -20,7 +20,7 @@ def _register_converters_lightgbm(exc=True):
 
     try:
         from lightgbm import LGBMClassifier
-    except ImportError as e:
+    except ImportError as e:  # pragma: no cover
         if exc:
             raise e
         else:
@@ -37,7 +37,7 @@ def _register_converters_lightgbm(exc=True):
 
     try:
         from lightgbm import LGBMRegressor
-    except ImportError as e:
+    except ImportError as e:  # pragma: no cover
         if exc:
             raise e
         else:
@@ -68,7 +68,7 @@ def _register_converters_xgboost(exc=True):
 
     try:
         from xgboost import XGBClassifier
-    except ImportError as e:
+    except ImportError as e:  # pragma: no cover
         if exc:
             raise e
         else:
@@ -85,7 +85,7 @@ def _register_converters_xgboost(exc=True):
 
     try:
         from xgboost import XGBRegressor
-    except ImportError as e:
+    except ImportError as e:  # pragma: no cover
         if exc:
             raise e
         else:

@@ -53,7 +53,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         ob = self.onnx_bytes
         if len(ob) > 20:
             ob = ob[:10] + b"..." + ob[-10:]
-        return "{0}(onnx_bytes=b'{1}', output_name={2}, enforce_float32={3}, runtime='{4}')".format(
+        return "{0}(onnx_bytes={1}, output_name={2}, enforce_float32={3}, runtime='{4}')".format(
             self.__class__.__name__, ob, self.output_name,
             self.enforce_float32, self.runtime)
 
