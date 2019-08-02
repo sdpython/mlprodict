@@ -7,10 +7,12 @@ Tutorial on ONNX
 .. contents::
     :local:
 
-.. index:: algebric function
+.. _l-numpy2onnx-tutorial:
 
 From numpy to ONNX
 ++++++++++++++++++
+
+.. index:: algebric function
 
 *mlprodict* implements function
 :func:`translate_fct2onnx
