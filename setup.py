@@ -291,6 +291,7 @@ if not r:
         packages=packages,
         package_dir=package_dir,
         package_data=package_data,
-        setup_requires=["pybind11", "numpy", "onnx", "scikit-learn", "jinja2"],
-        install_requires=["pybind11"],
+        setup_requires=["pybind11", "numpy", "onnx", "scikit-learn",
+                        "jinja2"],
+        install_requires=["pybind11", "numpy", "onnx>=1.5"],
     )
