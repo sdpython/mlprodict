@@ -220,16 +220,16 @@ def _validate_runtime_separate_process(**kwargs):
         new_kwargs['models'] = op
         new_kwargs['verbose'] = 0  # tqdm fails
 
-        p = Pool(1)
-        try:
-            result = p.apply_async(_validate_runtime_dict, [new_kwargs])
-            lrows = result.get(timeout=150)  # timeout fixed to 150s
-            all_rows.extend(lrows)
-        except Exception as e:  # pylint: disable=W0703
-            all_rows.append({
-                'name': op, 'scenario': 'CRASH',
-                'ERROR-msg': str(e).replace("\n", " -- ")
-            })
+        with Pool(1) as p:
+            try:
+                result = p.apply_async(_validate_runtime_dict, [new_kwargs])
+                lrows = result.get(timeout=150)  # timeout fixed to 150s
+                all_rows.extend(lrows)
+            except Exception as e:  # pylint: disable=W0703
+                all_rows.append({
+                    'name': op, 'scenario': 'CRASH',
+                    'ERROR-msg': str(e).replace("\n", " -- ")
+                })
 
     return _finalize(all_rows, kwargs['out_raw'], kwargs['out_summary'],
                      verbose, models, fLOG)
