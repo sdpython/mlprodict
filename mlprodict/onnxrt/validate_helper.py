@@ -207,8 +207,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     else:
         old_values = None
     res = convert_sklearn(model, initial_types=initial_types, name=name,
-                          target_opset=target_opset, options=options,
-                          dtype=new_dtype)
+                          target_opset=target_opset, options=options)
     if old_values is not None:
         register_rewritten_operators(old_values)
     return res
