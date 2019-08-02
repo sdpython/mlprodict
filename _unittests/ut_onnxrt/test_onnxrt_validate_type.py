@@ -6,9 +6,10 @@ from logging import getLogger
 import pprint
 import numpy
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase
+from pyquickhelper.pycode import get_temp_folder, ExtTestCase, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
+import skl2onnx
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 
 
@@ -92,6 +93,7 @@ class TestOnnxrtValidateType(ExtTestCase):
     def test_validate_sklearn_operators_float64(self):
         self.dtype_test_validate_sklearn_operators(numpy.float64)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_validate_sklearn_operators_float64_gpr(self):
         self.dtype_test_validate_sklearn_operators(
             numpy.float64, {'GaussianProcessRegressor'})

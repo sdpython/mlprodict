@@ -10,7 +10,7 @@ openpyxl
 pybind11
 pyinstrument
 pylint
-pyquickhelper>=1.9.3179
+pyquickhelper>=1.9.3186
 git+https://github.com/xadupre/sklearn-onnx.git@jenkins
 sphinx
 sphinx_readable_theme

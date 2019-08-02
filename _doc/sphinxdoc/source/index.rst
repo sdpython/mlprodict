@@ -64,6 +64,7 @@ mlprodict
 .. toctree::
     :maxdepth: 1
 
+    installation
     tutorial/index
     api/index
     onnx
