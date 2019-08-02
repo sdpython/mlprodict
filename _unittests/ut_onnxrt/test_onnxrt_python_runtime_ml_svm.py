@@ -3,6 +3,7 @@
 """
 import unittest
 from logging import getLogger
+import platform
 import numpy
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
@@ -23,9 +24,13 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         from mlprodict.onnxrt.ops_cpu.op_svm_regressor_ import RuntimeSVMRegressor  # pylint: disable=E0611
         ru = RuntimeSVMRegressor()
         r = ru.runtime_options()
-        self.assertEqual('OPENMP', r)
-        nb = ru.omp_get_max_threads()
-        self.assertGreater(nb, 0)
+        if platform.system() == 'darwin':
+            # openmp disabled
+            self.assertEqual('', r)
+        else:
+            self.assertEqual('OPENMP', r)
+            nb = ru.omp_get_max_threads()
+            self.assertGreater(nb, 0)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVR(self):

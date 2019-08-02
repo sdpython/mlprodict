@@ -280,8 +280,8 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
             self.assertEqual('', r)
         else:
             self.assertEqual('OPENMP', r)
-        nb = ru.omp_get_max_threads()
-        self.assertGreater(nb, 0)
+            nb = ru.omp_get_max_threads()
+            self.assertGreater(nb, 0)
 
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_ import RuntimeTreeEnsembleClassifier  # pylint: disable=E0611
         ru = RuntimeTreeEnsembleClassifier()
@@ -291,8 +291,8 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
             self.assertEqual('', r)
         else:
             self.assertEqual('OPENMP', r)
-        nb2 = ru.omp_get_max_threads()
-        self.assertEqual(nb2, nb)
+            nb2 = ru.omp_get_max_threads()
+            self.assertEqual(nb2, nb)
 
 
 if __name__ == "__main__":

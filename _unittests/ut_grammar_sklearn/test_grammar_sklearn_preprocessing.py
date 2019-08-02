@@ -2,6 +2,7 @@
 @brief      test log(time=2s)
 """
 import unittest
+import platform
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing import check_model_representation
@@ -9,6 +10,7 @@ from mlprodict.testing import check_model_representation
 
 class TestGrammarSklearnPreprocessing(ExtTestCase):
 
+    @unittest.skipIf(platform.system() == "darwin", reason="compilaion issue with CFFI")
     def test_sklearn_scaler(self):
         from sklearn.preprocessing import StandardScaler
         data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],

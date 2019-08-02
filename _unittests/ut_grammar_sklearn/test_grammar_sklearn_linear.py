@@ -2,6 +2,7 @@
 @brief      test log(time=2s)
 """
 import unittest
+import platform
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing import iris_data, check_model_representation
@@ -66,6 +67,7 @@ class TestGrammarSklearnLinear(ExtTestCase):
         self.assertEqual(e1[0], e2[0])
         self.assertEqualFloat(p1, e2[1])
 
+    @unittest.skipIf(platform.system() == "darwin", reason="compilaion issue with CFFI")
     def test_sklearn_linear_regression_verbose(self):
         from sklearn.linear_model import LinearRegression
         X, y = iris_data()
