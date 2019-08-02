@@ -5,9 +5,10 @@ import unittest
 from logging import getLogger
 import numpy
 from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.utils.extmath import softmax
 from sklearn.utils.testing import ignore_warnings
+import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
     OnnxArrayFeatureExtractor, OnnxConcat,
@@ -62,6 +63,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_abs(self):
         self.common_test_onnxt_runtime_unary(OnnxAbs, numpy.abs)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_add(self):
         self.common_test_onnxt_runtime_binary(OnnxAdd, numpy.add)
 
@@ -618,6 +620,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                           dtype=numpy.float32)
         self.assertEqualArray(exp, got['Y'])
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_topk2(self):
         X = numpy.array([[-0., -0.08000002, -2., -2.88000023]],
                         dtype=numpy.float32)

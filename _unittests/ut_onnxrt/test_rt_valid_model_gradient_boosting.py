@@ -5,11 +5,12 @@ import unittest
 from logging import getLogger
 import numpy
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from sklearn.model_selection import train_test_split
+import skl2onnx
 from mlprodict.onnxrt import OnnxInference, to_onnx
 from mlprodict.onnxrt.validate import sklearn_operators, enumerate_validated_operator_opsets
 from mlprodict.onnxrt.validate_problems import _problems
@@ -36,6 +37,7 @@ class TestRtValidateGradientBoosting(ExtTestCase):
         max_diff = max(_.get('max_rel_diff_batch', 1e-11) for _ in rows)
         self.assertLesser(max_diff, 1e-2)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_GradientBoostingClassifier(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -50,6 +52,7 @@ class TestRtValidateGradientBoosting(ExtTestCase):
         max_diff = max(_.get('max_rel_diff_batch', 1e-11) for _ in rows)
         self.assertLesser(max_diff, 1e-5)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_validate_GradientBoostingClassifier_custom(self):
         mcl = _problems['m-cl']()
         (X, y, init_types, _, __, ___) = mcl

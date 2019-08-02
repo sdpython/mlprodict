@@ -12,6 +12,7 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 
 class TestRtValidateLightGbm(ExtTestCase):
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @skipif_circleci("too long")
     def test_rt_lightgbm_regressor(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

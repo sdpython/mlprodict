@@ -85,6 +85,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=3)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxrt_python_DecisionTreeClassifier_mlabel(self):
         iris = load_iris()
         X, y_ = iris.data, iris.target

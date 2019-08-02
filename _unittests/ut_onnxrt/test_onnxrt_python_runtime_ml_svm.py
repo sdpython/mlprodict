@@ -10,7 +10,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import SVR, SVC, LinearSVC
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
-from pyquickhelper.pycode import ExtTestCase
+import skl2onnx
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from mlprodict.onnxrt import OnnxInference, to_onnx
 
 
@@ -50,6 +51,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqual(lexp.shape, y['variable'].shape)
         self.assertEqualArray(lexp, y['variable'], decimal=5)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVC_proba(self):
         iris = load_iris()
@@ -94,6 +96,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqualArray(lexp, y['label'], decimal=5)
         self.assertEqualArray(lprob, y['probabilities'], decimal=5)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVC_proba_bin(self):
         iris = load_iris()
