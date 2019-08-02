@@ -193,16 +193,19 @@ if not r:
         extra_compile_args = ['/EHsc', '/O2',
                               '/Ob2', '/Gy', '/openmp']
         extra_link_args = None
+        define_macros=[('USE_OPENMP', None)]
     elif sys.platform.startswith("darwin"):
         libraries_thread = None
         extra_compile_args = ['-stdlib=libc++', '-mmacosx-version-min=10.7',
-                              '-fpermissive', '-std=c++11', '-openmp']
-        extra_link_args = ['-lomp']
+                              '-fpermissive', '-std=c++11']  # , '-openmp']
+        extra_link_args = None  # ['-lomp']
+        define_macros=None  # [('USE_OPENMP', None)]
     else:
         libraries_thread = None
         # , '-o2', '-mavx512f']
         extra_compile_args = ['-fpermissive', '-std=c++11', '-fopenmp']
         extra_link_args = ['-lgomp']
+        define_macros=[('USE_OPENMP', None)]
 
     # extensions
     ext_tree_ensemble_classifier = Extension(
@@ -217,7 +220,7 @@ if not r:
             get_pybind_include(user=True),
             os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
         ],
-        define_macros=[('USE_OPENMP', None)],
+        define_macros=define_macros,
         language='c++')
 
     ext_tree_ensemble_regressor = Extension(
@@ -232,7 +235,7 @@ if not r:
             get_pybind_include(user=True),
             os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
         ],
-        define_macros=[('USE_OPENMP', None)],
+        define_macros=define_macros,
         language='c++')
 
     ext_svm_regressor = Extension(
@@ -247,7 +250,7 @@ if not r:
             get_pybind_include(user=True),
             os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
         ],
-        define_macros=[('USE_OPENMP', None)],
+        define_macros=define_macros,
         language='c++')
 
     ext_svm_classifier = Extension(
@@ -262,7 +265,7 @@ if not r:
             get_pybind_include(user=True),
             os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
         ],
-        define_macros=[('USE_OPENMP', None)],
+        define_macros=define_macros,
         language='c++')
 
     ext_modules = [

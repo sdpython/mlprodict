@@ -1,3 +1,4 @@
+cffi
 chardet
 coverage
 jyquickhelper
