@@ -648,7 +648,7 @@ def summary_report(df):
             return str(val)
 
     if 'opset' not in df.columns:
-        raise RuntimeError("Unable to create sumary (opset missing)\n{}\n--\n{}".format(
+        raise RuntimeError("Unable to create summary (opset missing)\n{}\n--\n{}".format(
             df.columns, df.head()))
 
     col_values = ["available"]

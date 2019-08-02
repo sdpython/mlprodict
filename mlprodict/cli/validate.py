@@ -143,6 +143,16 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
 
 def _finalize(rows, out_raw, out_summary, verbose, models, fLOG):
     from ..onnxrt.validate import summary_report  # pylint: disable=E0402
+
+    # Drops data which cannot be serialized.
+    for row in rows:
+        keys = []
+        for k in row:
+            if 'lambda' in k:
+                keys.append(k)
+        for k in keys:
+            del row[k]
+
     df = DataFrame(rows)
     if os.path.splitext(out_raw)[-1] == ".xlsx":
         df.to_excel(out_raw, index=False)
@@ -155,15 +165,6 @@ def _finalize(rows, out_raw, out_summary, verbose, models, fLOG):
         piv.to_csv(out_summary, index=False)
     if verbose > 0 and models is not None:
         fLOG(piv.T)
-
-    # Drops data which cannot be serialized.
-    for row in rows:
-        keys = []
-        for k in row:
-            if 'lambda' in k:
-                keys.append(k)
-        for k in keys:
-            del row[k]
     return rows
 
 
@@ -223,7 +224,7 @@ def _validate_runtime_separate_process(**kwargs):
         try:
             result = p.apply_async(_validate_runtime_dict, [new_kwargs])
             lrows = result.get(timeout=150)  # timeout fixed to 150s
-            all_rows.extend(lrows[0])
+            all_rows.extend(lrows)
         except Exception as e:  # pylint: disable=W0703
             all_rows.append({
                 'name': op, 'scenario': 'CRASH',

@@ -2,10 +2,12 @@ chardet
 coverage
 jyquickhelper
 lightgbm
+memory_profiler
 onnx
 onnxruntime
 openpyxl
 pybind11
+pyinstrument
 pylint
 pyquickhelper>=1.9.3179
 git+https://github.com/xadupre/sklearn-onnx.git@jenkins
