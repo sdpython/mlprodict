@@ -289,3 +289,4 @@ _doc/sphinxdoc/source/bench_*.csv
 _doc/sphinxdoc/source/api/onnxrt_ops.rst
 _doc/notebooks/model_onnx.onnx
 *.onnx
+_doc/notebooks/mprof*.py

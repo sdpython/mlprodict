@@ -221,7 +221,8 @@ def _validate_runtime_separate_process(**kwargs):
 
         p = Pool(1)
         try:
-            lrows = p.map(_validate_runtime_dict, [new_kwargs])
+            result = p.apply_async(_validate_runtime_dict, [new_kwargs])
+            lrows = result.get(timeout=150)  # timeout fixed to 150s
             all_rows.extend(lrows[0])
         except Exception as e:  # pylint: disable=W0703
             all_rows.append({
