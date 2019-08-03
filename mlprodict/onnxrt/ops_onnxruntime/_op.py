@@ -106,6 +106,11 @@ class OpRunOnnxRuntime:
             except AttributeError:
                 # older version of skl2onnx
                 self.onnx_ = self.inst_.to_onnx(inputs)
+            except TypeError as e:
+                import skl2onnx
+                raise TypeError(
+                    "skl2onnx 1.6.0 is required and you have '{}'.".format(
+                        skl2onnx.__version__)) from e
             forced = False
         elif self.onnx_node.op_type == 'Scan':
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
