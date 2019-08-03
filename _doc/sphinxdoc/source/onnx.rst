@@ -25,7 +25,6 @@ The current package *mlprodict* implements a
     onnx_runtime
     onnx_conv
     skl_converters/index
-    onnx_bench
 
 All results were obtained using out the following versions
 of modules below:

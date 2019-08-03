@@ -8,8 +8,9 @@ import pandas
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
+import skl2onnx
 from pyquickhelper.loghelper import BufferedPrint
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import ExtTestCase, get_temp_folder, unittest_require_at_least
 from mlprodict.__main__ import main
 from mlprodict.cli import convert_validate
 
@@ -22,6 +23,7 @@ class TestCliConvertValidate(ExtTestCase):
         res = str(st)
         self.assertIn("verbose", res)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_convert_validate(self):
         iris = load_iris()
         X, y = iris.data, iris.target

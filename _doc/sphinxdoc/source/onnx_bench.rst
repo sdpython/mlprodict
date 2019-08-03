@@ -3,20 +3,23 @@
 
 .. _l-model-problem-list:
 
-Availability and Benchmarks
-===========================
+ONNX Converters Coverage and Benchmarks
+=======================================
 
 :epkg:`sklearn-onnx` converts many :epkg:`scikit-learn`
 models into :epkg:`ONNX`. Every of them is tested against
 a couple of runtimes. The following pages shows
 which models are correctly converted and compares
-the predictions obtained by every runtime. It also
-displays some benchmark. The benchmark evaluates
-every model on a dataset inspired from the :epkg:`Iris`
-dataset, so with four features, and different number of
+the predictions obtained by every runtime
+(see :ref:`l-onnx-runtimes`). It also
+displays some figures on how the runtime behave
+compare to :epkg:`scikit-learn` in term of speed processing.
+The benchmark evaluates every model on a dataset
+inspired from the :epkg:`Iris` dataset,
+so with four features, and different number of
 observations *N= 1, 10, 100, 1000, 100.00, 100.000*.
 The measures for high values of *N* may be missing
-because  the first one took too long.
+because the first one took too long.
 
 .. toctree::
     :maxdepth: 1

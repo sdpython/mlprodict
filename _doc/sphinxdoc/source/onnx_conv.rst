@@ -1,8 +1,8 @@
 
 .. _l-onnx-conv:
 
-ONNX Converters
-===============
+ONNX New Converters
+===================
 
 *mlprodict* implements a couple of converters.
 The function :func:`register_converters

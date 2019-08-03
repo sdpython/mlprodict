@@ -100,8 +100,12 @@ class OpRunOnnxRuntime:
                                         op_version=target_opset, **options)
             inputs = get_defined_inputs(
                 self.inputs, variables, dtype=self.dtype)
-            self.onnx_ = self.inst_.to_onnx(inputs, target_opset=target_opset,
-                                            dtype=self.dtype)
+            try:
+                self.onnx_ = self.inst_.to_onnx(inputs, target_opset=target_opset,
+                                                dtype=self.dtype)
+            except AttributeError:
+                # older version of skl2onnx
+                self.onnx_ = self.inst_.to_onnx(inputs)
             forced = False
         elif self.onnx_node.op_type == 'Scan':
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,

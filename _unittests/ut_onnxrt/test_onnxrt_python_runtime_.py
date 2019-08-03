@@ -536,6 +536,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_sum(self):
         self.common_test_onnxt_runtime_binary(OnnxSum, lambda x, y: x + y)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_topk(self):
         X = numpy.array([[0, 1, 2, 3, 4],
                          [1, -1, -2, 4, 5],

@@ -6,14 +6,18 @@ import unittest
 from logging import getLogger
 from pandas import DataFrame, read_csv
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase, skipif_circleci
+from pyquickhelper.pycode import (
+    get_temp_folder, ExtTestCase, skipif_circleci, unittest_require_at_least
+)
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
+import skl2onnx
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
 
 
 class TestOnnxrtValidate(ExtTestCase):
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @skipif_circleci("too long")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_all(self):

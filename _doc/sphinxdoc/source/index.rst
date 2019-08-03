@@ -68,6 +68,7 @@ mlprodict
     tutorial/index
     api/index
     onnx
+    onnx_bench
     i_cmd
     i_ex
     i_index

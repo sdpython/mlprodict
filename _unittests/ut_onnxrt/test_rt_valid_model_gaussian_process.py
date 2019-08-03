@@ -5,7 +5,7 @@ import unittest
 from logging import getLogger
 import numpy
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase, skipif_circleci
+from pyquickhelper.pycode import ExtTestCase, skipif_circleci, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from sklearn.gaussian_process.kernels import RBF, ExpSineSquared
@@ -13,6 +13,7 @@ from sklearn.datasets import load_boston
 from sklearn.model_selection import train_test_split
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import DotProduct
+import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
@@ -129,6 +130,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @skipif_circleci("to investigate, shape of predictions are different")
     def test_rt_GaussianProcessRegressor_debug_std(self):

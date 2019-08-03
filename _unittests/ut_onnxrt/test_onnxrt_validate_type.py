@@ -90,6 +90,7 @@ class TestOnnxrtValidateType(ExtTestCase):
     def test_validate_sklearn_operators_float32(self):
         self.dtype_test_validate_sklearn_operators(numpy.float32)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_validate_sklearn_operators_float64(self):
         self.dtype_test_validate_sklearn_operators(numpy.float64)
 

@@ -3,8 +3,9 @@
 """
 import unittest
 import numpy
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic
+import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
 from mlprodict.onnx_grammar import translate_fct2onnx
@@ -221,6 +222,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         res = oinf.run(inputs)
         self.assertEqualArray(exp, res['Z'])
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_export_sklearn_kernel_rational_quadratic(self):
 
         def kernel_rational_quadratic_none(X, length_scale=1.0, alpha=2.0):
