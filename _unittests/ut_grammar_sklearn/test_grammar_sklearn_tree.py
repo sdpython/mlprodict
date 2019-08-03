@@ -9,14 +9,14 @@ from mlprodict.testing import iris_data, check_model_representation
 
 class TestGrammarSklearnTree(ExtTestCase):
 
-    @unittest.skipIf(platform.system() == 'darwin', reason="compilation FFI fails")
+    @unittest.skipIf(platform.system().lower() == 'darwin', reason="compilation FFI fails")
     def test_sklearn_tree1(self):
         from sklearn.tree import DecisionTreeRegressor
         X, y = iris_data()
         check_model_representation(DecisionTreeRegressor(max_depth=1), X, y,
                                    verbose=False, suffix="t1")
 
-    @unittest.skipIf(platform.system() == 'darwin', reason="compilation FFI fails")
+    @unittest.skipIf(platform.system().lower() == 'darwin', reason="compilation FFI fails")
     def test_sklearn_tree2(self):
         from sklearn.tree import DecisionTreeRegressor
         X, y = iris_data()

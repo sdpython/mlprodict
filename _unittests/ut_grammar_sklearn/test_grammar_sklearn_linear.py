@@ -19,7 +19,6 @@ class TestGrammarSklearnLinear(ExtTestCase):
         self.assertCallable(gr)
 
     def test_sklearn_train_lr(self):
-        print("*********", [platform.system()])
         from sklearn.linear_model import LogisticRegression
         from sklearn.datasets import load_iris
         iris = load_iris()
@@ -44,7 +43,8 @@ class TestGrammarSklearnLinear(ExtTestCase):
         # print(json.dumps(ser, sort_keys=True, indent=2))
         # self.assertEqual(ser, exp) # training not always the same
 
-    @unittest.skipIf(platform.system() == "darwin", reason="compilation issue with CFFI")
+    @unittest.skipIf(platform.system().lower() == "darwin",
+                     reason="compilation issue with CFFI")
     def test_sklearn_train_lr_into_c(self):
         from sklearn.linear_model import LogisticRegression
         from sklearn.datasets import load_iris
@@ -69,7 +69,7 @@ class TestGrammarSklearnLinear(ExtTestCase):
         self.assertEqual(e1[0], e2[0])
         self.assertEqualFloat(p1, e2[1])
 
-    @unittest.skipIf(platform.system() == "darwin", reason="compilation issue with CFFI")
+    @unittest.skipIf(platform.system().lower() == "darwin", reason="compilation issue with CFFI")
     def test_sklearn_linear_regression_verbose(self):
         from sklearn.linear_model import LinearRegression
         X, y = iris_data()

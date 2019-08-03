@@ -276,7 +276,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_ import RuntimeTreeEnsembleRegressorFloat  # pylint: disable=E0611
         ru = RuntimeTreeEnsembleRegressorFloat()
         r = ru.runtime_options()
-        if platform.system() == 'darwin':
+        if platform.system().lower() == 'darwin':
             # openmp disabled
             self.assertEqual('', r)
         else:
@@ -287,7 +287,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_ import RuntimeTreeEnsembleClassifier  # pylint: disable=E0611
         ru = RuntimeTreeEnsembleClassifier()
         r = ru.runtime_options()
-        if platform.system() == 'darwin':
+        if platform.system().lower() == 'darwin':
             # openmp disabled
             self.assertEqual('', r)
         else:

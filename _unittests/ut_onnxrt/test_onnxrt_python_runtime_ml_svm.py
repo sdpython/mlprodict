@@ -25,7 +25,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         from mlprodict.onnxrt.ops_cpu.op_svm_regressor_ import RuntimeSVMRegressor  # pylint: disable=E0611
         ru = RuntimeSVMRegressor()
         r = ru.runtime_options()
-        if platform.system() == 'darwin':
+        if platform.system().lower() == 'darwin':
             # openmp disabled
             self.assertEqual('', r)
         else:
