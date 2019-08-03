@@ -23,6 +23,7 @@ threshold = "0.4.0"
 
 class TestRtValidateGaussianProcessOrt(ExtTestCase):
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,
                      reason="Node:Scan1 Field 'shape' of type is required but missing.")

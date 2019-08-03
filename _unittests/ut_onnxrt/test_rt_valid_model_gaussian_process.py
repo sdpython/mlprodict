@@ -36,6 +36,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         m2 = ker(Xtest_)
         self.assertEqualArray(m1, m2)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_kernel_exp_sine_squared(self):
         from skl2onnx.operator_converters.gaussian_process import convert_kernel
