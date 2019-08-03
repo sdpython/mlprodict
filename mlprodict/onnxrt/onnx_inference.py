@@ -890,3 +890,9 @@ class OnnxInference:
                     done.append(("pass2", d) + done_[i][0])
 
         return done
+
+    def shape_inference_runtime(self):
+        """
+        Shape inference relying on the runtime.
+        """
+        pass
