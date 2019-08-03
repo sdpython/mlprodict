@@ -10,7 +10,7 @@ from mlprodict.testing import check_model_representation
 
 class TestGrammarSklearnPreprocessing(ExtTestCase):
 
-    @unittest.skipIf(platform.system().tolower() == "darwin",
+    @unittest.skipIf(platform.system().lower() == "darwin",
                      reason="compilation issue with CFFI")
     def test_sklearn_scaler(self):
         from sklearn.preprocessing import StandardScaler

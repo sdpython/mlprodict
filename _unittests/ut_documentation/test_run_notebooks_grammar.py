@@ -16,7 +16,7 @@ class TestFunctionTestNotebookGrammar(ExtTestCase):
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)
 
-    @unittest.skipIf(platform.system().tolower() == "darwin",
+    @unittest.skipIf(platform.system().lower() == "darwin",
                      reason="compilation issue with CFFI")
     def test_notebook_sklearn_grammar(self):
         fLOG(
