@@ -19,8 +19,8 @@ jobs:
     displayName: 'Install Pandoc'
   - script: sudo apt-get install -y libomp-dev
     displayName: 'Install omp'
-  - script: sudo apt-get install -y texlive texlive-latex-extra texlive-xetex dvipng
-    displayName: 'Install Latex'
+  # - script: sudo apt-get install -y texlive texlive-latex-extra texlive-xetex dvipng
+  #   displayName: 'Install Latex'
   - script: sudo apt-get install -y p7zip-full
     displayName: 'Install 7z, rar'
   - script: sudo apt-get install -y inkscape
@@ -81,8 +81,8 @@ jobs:
     displayName: 'Install Pandoc'
   - script: brew install graphviz
     displayName: 'Install Graphviz'
-  - script: brew cask install mactex
-    displayName: 'Install latex'
+  # - script: brew cask install mactex
+  #   displayName: 'Install latex'
   - script: python -m pip install --upgrade pip setuptools wheel
     displayName: 'Install tools'
   - script: brew install pybind11
