@@ -4,6 +4,7 @@
 """
 import os
 import unittest
+import platform
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.ipythonhelper import test_notebook_execution_coverage
 from pyquickhelper.pycode import add_missing_development_version, ExtTestCase
@@ -15,6 +16,8 @@ class TestFunctionTestNotebookGrammar(ExtTestCase):
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)
 
+    @unittest.skipIf(platform.system().tolower() == "darwin",
+                     reason="compilation issue with CFFI")
     def test_notebook_sklearn_grammar(self):
         fLOG(
             __file__,

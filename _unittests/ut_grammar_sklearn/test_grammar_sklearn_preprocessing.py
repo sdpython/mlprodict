@@ -10,7 +10,8 @@ from mlprodict.testing import check_model_representation
 
 class TestGrammarSklearnPreprocessing(ExtTestCase):
 
-    @unittest.skipIf(platform.system() == "darwin", reason="compilation issue with CFFI")
+    @unittest.skipIf(platform.system().tolower() == "darwin",
+                     reason="compilation issue with CFFI")
     def test_sklearn_scaler(self):
         from sklearn.preprocessing import StandardScaler
         data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
