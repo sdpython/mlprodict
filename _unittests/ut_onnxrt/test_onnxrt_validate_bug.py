@@ -3,13 +3,15 @@
 """
 import unittest
 import numpy
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+import skl2onnx
 from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxMatMul  # pylint: disable=E0611
 from mlprodict.onnxrt import OnnxInference
 
 
 class TestOnnxrtValidateBug(ExtTestCase):
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_validate_sklearn_operators_all(self):
         coef = numpy.array([-8.43436238e-02, 5.47765517e-02, 6.77578341e-02, 1.56675273e+00,
                             -1.45737317e+01, 3.78662574e+00 - 6.52943746e-03 - 1.39463522e+00,

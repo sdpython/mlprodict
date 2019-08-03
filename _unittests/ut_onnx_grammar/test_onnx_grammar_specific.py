@@ -63,6 +63,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         self.assertIn("-2", onnx_code)
         self.assertIn('metric="euclidean"', onnx_code)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_export_sklearn_kernel_error_prefix(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
 
@@ -76,6 +77,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         self.assertRaise(lambda: translate_fct2onnx(kernel_call_ynone, output_names=['Z']),
                          RuntimeError, "'onnx_'")
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_export_sklearn_kernel_exp_sine_squared(self):
 
         x = numpy.array([[1, 2], [3, 4]], dtype=float)
@@ -115,7 +117,10 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611,E0401
             OnnxAdd, OnnxSin, OnnxMul, OnnxPow, OnnxDiv, OnnxExp
         )
-        from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
+        try:
+            from skl2onnx.algebra.complex_functions import onnx_squareform_pdist  # pylint: disable=E0401
+        except ImportError:
+            return
         ctx = {'OnnxAdd': OnnxAdd, 'OnnxPow': OnnxPow,
                'OnnxSin': OnnxSin, 'OnnxDiv': OnnxDiv,
                'OnnxMul': OnnxMul, 'OnnxIdentity': OnnxIdentity,

@@ -5,12 +5,13 @@ import unittest
 from logging import getLogger
 import numpy
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
+import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference, to_onnx
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
@@ -57,6 +58,7 @@ class TestRtValidateMLPRegressor(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_MLPRegressor_python64(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

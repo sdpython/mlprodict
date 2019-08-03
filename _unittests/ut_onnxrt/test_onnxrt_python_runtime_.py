@@ -119,6 +119,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(numpy.argmin(X, axis=1).ravel(),
                               got['Y'].ravel())
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_array_feature_extractor(self):
         onx = OnnxArrayFeatureExtractor('X', numpy.array([1], dtype=numpy.int64),
                                         output_names=['Y'])
@@ -131,6 +132,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(got['Y'].shape, (2, 1))
         self.assertEqualArray(X[:, 1:2], got['Y'], decimal=6)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_array_feature_extractor_cmp(self):
         X = numpy.array([3.3626876, 2.204158, 2.267245, 1.297554, 0.97023404],
                         dtype=numpy.float32)
@@ -150,6 +152,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         got2 = oinf2.run({'X': X})['Y']
         self.assertEqualArray(got, got2)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_array_feature_extractor_cmp2(self):
         X = numpy.array([[3.3626876, 2.204158, 2.267245, 1.297554, 0.97023404],
                          [-3.3626876, -2.204158, -2.267245, -1.297554, -0.97023404]],
@@ -478,6 +481,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_sin(self):
         self.common_test_onnxt_runtime_unary(OnnxSin, numpy.sin)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_slice(self):
         x = numpy.random.randn(20, 10, 5).astype(numpy.float32)
         y = x[0:3, 0:10]

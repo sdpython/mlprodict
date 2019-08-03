@@ -39,6 +39,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         m2 = ker(Xtest_)
         self.assertEqualArray(m1, m2)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,
                      reason="Node:Scan1 Field 'shape' of type is required but missing.")
@@ -115,6 +116,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         self.assertGreater(len(rows), 6)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,
                      reason="Node:Scan1 Field 'shape' of type is required but missing.")

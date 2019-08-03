@@ -110,6 +110,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 6)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_GaussianProcessRegressor_debug(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -172,6 +173,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
             filter_exp=lambda m, s: s == '~m-reg-std-NSV-64'))
         self.assertGreater(len(rows), 0)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_partial_float64(self):
         data = load_boston()
         X, y = data.data, data.target

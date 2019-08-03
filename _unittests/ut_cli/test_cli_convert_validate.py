@@ -117,6 +117,7 @@ class TestCliConvertValidate(ExtTestCase):
         self.assertIn(
             "[convert_validate] compute predictions with method 'predict_proba'", res)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_cli_convert_validater_float64(self):
         iris = load_iris()
         X, y = iris.data, iris.target
