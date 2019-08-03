@@ -19,6 +19,7 @@ class TestGrammarSklearnLinear(ExtTestCase):
         self.assertCallable(gr)
 
     def test_sklearn_train_lr(self):
+        print("*********", [platform.system()])
         from sklearn.linear_model import LogisticRegression
         from sklearn.datasets import load_iris
         iris = load_iris()
