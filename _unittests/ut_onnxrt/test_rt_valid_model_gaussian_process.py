@@ -22,6 +22,7 @@ from mlprodict.onnxrt import OnnxInference, to_onnx
 
 class TestRtValidateGaussianProcess(ExtTestCase):
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_kernel_rbf1(self):
         from skl2onnx.operator_converters.gaussian_process import convert_kernel
