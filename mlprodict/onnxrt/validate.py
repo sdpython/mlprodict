@@ -727,10 +727,15 @@ def summary_report(df):
             piv[c] = piv[c].apply(clean_values)
 
     # adding versions
+    def keep_values(x):
+        if isinstance(x, float) and numpy.isnan(x):
+            return False
+        return True
+
     col_versions = [c for c in df.columns if c.startswith("v_")]
     if len(col_versions) > 0:
         for c in col_versions:
-            vals = set(df[c])
+            vals = set(filter(keep_values, df[c]))
             if len(vals) != 1:
                 raise RuntimeError(
                     "Columns '{}' has multiple values {}.".format(c, vals))

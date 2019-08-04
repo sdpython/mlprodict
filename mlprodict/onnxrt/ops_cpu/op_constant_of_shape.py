@@ -6,6 +6,7 @@
 """
 import numpy
 from ._op import OpRun
+from ..shape_object import ShapeObject
 
 
 class ConstantOfShape(OpRun):
@@ -25,3 +26,7 @@ class ConstantOfShape(OpRun):
     def _run(self, data):  # pylint: disable=W0221
         res = numpy.full(tuple(data), self.cst)
         return (res, )
+
+    def _infer_shapes(self, data):  # pylint: disable=W0221
+        shape = ["N%s_%d" % (id(self), i) for i in range(len(data))]
+        return (ShapeObject(shape, self.cst.dtype), )

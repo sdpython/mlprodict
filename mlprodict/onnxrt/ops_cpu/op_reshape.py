@@ -5,6 +5,7 @@
 @brief Runtime operator.
 """
 from ._op import OpRun
+from ..shape_object import ShapeObject
 
 
 class Reshape(OpRun):
@@ -14,3 +15,6 @@ class Reshape(OpRun):
 
     def _run(self, data, shape):  # pylint: disable=W0221
         return (data.reshape(shape), )
+
+    def _infer_shapes(self, data, shape):  # pylint: disable=W0221
+        return (ShapeObject(None, dtype=data.dtype), )

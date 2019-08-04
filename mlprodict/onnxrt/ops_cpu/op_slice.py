@@ -5,6 +5,7 @@
 @brief Runtime operator.
 """
 from ._op import OpRun
+from ..shape_object import ShapeObject
 
 
 class Slice(OpRun):
@@ -30,3 +31,7 @@ class Slice(OpRun):
                 for s, e, a, d in zip(starts, ends, axes, steps):
                     slices[a] = slice(s, e, d)
         return (data[tuple(slices)], )
+
+    def _infer_shapes(self, data, starts, ends, axes=None, steps=None):  # pylint: disable=W0221
+        shape = ["N%s_%d" % (id(self), i) for i in range(len(data))]
+        return (ShapeObject(shape, data.dtype), )

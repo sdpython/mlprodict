@@ -26,3 +26,11 @@ class Concat(OpRun):
     def _run(self, *args):  # pylint: disable=W0221
         args = [self._preprocess(a) for a in args]
         return (numpy.concatenate(args, self.axis), )
+
+    def _infer_shapes(self, *args):  # pylint: disable=W0221
+        dim_axis = args[0][self.axis]
+        for a in args[1:]:
+            dim_axis = dim_axis + a[self.axis]
+        a0 = args[0].copy()
+        a0[self.axis] = dim_axis
+        return (a0, )

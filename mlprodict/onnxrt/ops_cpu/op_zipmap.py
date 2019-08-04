@@ -5,6 +5,7 @@
 @brief Runtime operator.
 """
 from ._op import OpRun
+from ..shape_object import ShapeObject
 
 
 class ZipMapDictionary(dict):
@@ -157,3 +158,9 @@ class ZipMap(OpRun):
     def _run(self, x):  # pylint: disable=W0221
         res = ArrayZipMapDictionary(self.rev_keys_, x)
         return (res, )
+
+    def _infer_shapes(self, x):  # pylint: disable=W0221
+        """
+        Returns the same shape by default.
+        """
+        return (ShapeObject((x[0], ), dtype='map'), )

@@ -5,6 +5,7 @@
 """
 import numpy
 import onnx.defs
+from ..shape_object import ShapeObject
 
 _schemas = {
     schema.name: schema for schema in onnx.defs.get_all_schemas_with_history()}
@@ -122,10 +123,31 @@ class OpRun:
             self.run = self._run_no_checks_  # pylint: disable=E0202,E1101
         return done
 
+    def infer_shapes(self, *args, **kwargs):
+        """
+        Infer shapes of the output given the shapes
+        of the input. It works the same way as method
+        *run*.
+        """
+        try:
+            return self._infer_shapes(*args, **kwargs)
+        except TypeError as e:
+            raise TypeError("Issues with types {} (operator {}).".format(
+                ", ".join(str(type(_)) for _ in args),
+                self.__class__.__name__)) from e
+
+    def _infer_shapes(self, *args, **kwargs):
+        """
+        Should be overwritten.
+        """
+        raise NotImplementedError(
+            "This method should be overwritten for operator '{}'.".format(
+                self.__class__.__name__))
+
 
 class OpRunUnary(OpRun):
     """
-    Ancestor to all binary operators in this subfolder.
+    Ancestor to all unary operators in this subfolder.
     Checks that inputs type are the same.
     """
 
@@ -147,11 +169,65 @@ class OpRunUnary(OpRun):
                 self.__class__.__name__)) from e
         return res
 
+    def infer_shapes(self, x):  # pylint: disable=E0202,W0221
+        try:
+            return self._infer_shapes(x)
+        except TypeError as e:
+            raise TypeError("Issues with types {} (operator {}).".format(
+                x.dtype, self.__class__.__name__)) from e
+
+    def _infer_shapes(self, x):  # pylint: disable=E0202,W0221
+        """
+        Returns the same shape by default.
+        """
+        return (x, )
+
+
+class OpRunArg(OpRunUnary):
+    """
+    Ancestor to all unary operators in this subfolder
+    and which produces posution of extremas.
+    Checks that inputs type are the same.
+    The class must have attributes *axis*, *keepdim*.
+    """
+
+    def __init__(self, onnx_node, desc=None, expected_attributes=None,
+                 **options):
+        OpRunUnary.__init__(self, onnx_node, desc=desc,
+                            expected_attributes=expected_attributes,
+                            **options)
+        if not hasattr(self, 'keepdims'):
+            raise AttributeError("Attribute 'keepdims' is missing.")
+        if not hasattr(self, 'axis'):
+            raise AttributeError("Attribute 'axis' is missing.")
+
+    def run(self, x):  # pylint: disable=E0202
+        """
+        Calls method ``_run``.
+        """
+        res = OpRunUnary.run(self, x)
+        if res[0].dtype != numpy.int64:
+            raise RuntimeTypeError(
+                "Output type mismatch: should be '{}' != output '{}' (operator '{}')".format(
+                    numpy.int64, res[0].dtype, self.__class__.__name__))
+        return res
+
+    def _infer_shapes(self, x):  # pylint: disable=W0221
+        """
+        Returns the same shape by default.
+        """
+        sh = x.reduce(self.axis, self.keepdims, dtype=numpy.int64)  # pylint: disable=E1101
+        return (sh, )
+
+    def _run_no_checks_(self, x):  # pylint: disable=W0221
+        return OpRunUnary.run(self, x)
+
 
 class OpRunUnaryNum(OpRunUnary):
     """
-    Ancestor to all binary operators in this subfolder.
-    Checks that inputs type are the same.
+    Ancestor to all unary and numerical operators
+    in this subfolder. Checks that inputs type
+    are the same.
     """
 
     def __init__(self, onnx_node, desc=None, expected_attributes=None,
@@ -170,6 +246,12 @@ class OpRunUnaryNum(OpRunUnary):
                 "Output type mismatch: input '{}' != output '{}' (operator '{}')".format(
                     x.dtype, res[0].dtype, self.__class__.__name__))
         return res
+
+    def _infer_shapes(self, x):  # pylint: disable=W0221
+        """
+        Returns the same shape by default.
+        """
+        return (x, )
 
     def _run_no_checks_(self, x):  # pylint: disable=W0221
         return OpRunUnary.run(self, x)
@@ -198,8 +280,22 @@ class OpRunClassifierProb(OpRunUnary):
                     x.dtype, res[1].dtype, self.__class__.__name__))
         return res
 
+    @property
+    def nb_classes(self):
+        """
+        Returns the number of expected classes.
+        """
+        return max(len(self.classlabels_ints), len(self.classlabels_strings))  # pylint: disable=E1101
+
     def _run_no_checks_(self, x):  # pylint: disable=W0221
         return OpRunUnary.run(self, x)
+
+    def _infer_shapes(self, x):  # pylint: disable=W0221
+        """
+        Returns the same shape by default.
+        """
+        return (ShapeObject((x[0], ), dtype=numpy.int64),
+                ShapeObject((x[0], self.nb_classes), dtype=x.dtype))
 
 
 class OpRunBinary(OpRun):
@@ -242,6 +338,14 @@ class OpRunBinary(OpRun):
                 ", ".join(str(type(_)) for _ in [x, y]),
                 self.__class__.__name__)) from e
         return res
+
+    def _infer_shapes(self, x, y):  # pylint: disable=W0221
+        """
+        Returns the same shape by default.
+        We assume the operator returns the biggest
+        shapes as the operator could be using broacasting.
+        """
+        return (max(x, y), )
 
 
 class OpRunBinaryNum(OpRunBinary):

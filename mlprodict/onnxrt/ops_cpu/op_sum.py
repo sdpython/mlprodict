@@ -14,3 +14,6 @@ class Sum(OpRun):
 
     def _run(self, *args):  # pylint: disable=W0221
         return (sum(args), )
+
+    def _infer_shapes(self, *args):  # pylint: disable=W0221
+        return (args[0], )

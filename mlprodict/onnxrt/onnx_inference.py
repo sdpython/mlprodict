@@ -17,6 +17,7 @@ from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_manipulations import select_model_inputs_outputs, enumerate_model_node_outputs
 from .onnx2py_helper import _var_as_dict, _type_to_string
 from .sklearn_helper import enumerate_fitted_arrays, pairwise_array_distances
+from .shape_object import ShapeObject
 
 
 class OnnxInference:
@@ -74,6 +75,7 @@ class OnnxInference:
         """
         self.graph_ = self.to_sequence()
         self.outputs_ = self.graph_['outputs']
+        self.inputs_ = self.graph_['inputs']
         self.target_opset_ = self.graph_['targets'].get('', None)
         if not self.skip_run:
             if self.runtime == 'onnxruntime1':
@@ -99,6 +101,8 @@ class OnnxInference:
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v
                 self._run = self._run_sequence_runtime
+        if self.runtime in ('python', None):
+            self.shapes_ = self._set_shape_inference_runtime()
 
     def _guess_input_dtype(self):
         for _, v in self.graph_['inputs'].items():
@@ -131,7 +135,8 @@ class OnnxInference:
 
     def shape_inference(self):
         """
-        Infers the shape of the outputs.
+        Infers the shape of the outputs
+        with :epkg:`onnx` package.
 
         @return     A new :epkg:`ONNX` graph which defined outputs.
         """
@@ -891,8 +896,21 @@ class OnnxInference:
 
         return done
 
-    def shape_inference_runtime(self):
+    def _set_shape_inference_runtime(self):
         """
-        Shape inference relying on the runtime.
+        Set shapes based on shape inference
+        relying on the runtime.
+        The values are stored in every node.
         """
-        pass
+        if not hasattr(self, 'sequence_') or not hasattr(self, 'inputs_'):
+            raise RuntimeError(
+                "This method only works if the runtime is 'python' not "
+                "'{}'.".format(self.runtime))
+        values = OrderedDict()
+        for k, v in self.inputs_.items():
+            values[k] = ShapeObject(v)
+        for k, v in self.inits_.items():
+            values[k] = ShapeObject(v['value'])
+        for node in self.sequence_:
+            node._set_shape_inference_runtime(values)
+        return values

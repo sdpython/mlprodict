@@ -42,3 +42,6 @@ class Gemm(OpRun):
 
     def _run(self, a, b, c):  # pylint: disable=W0221
         return (self._meth(a, b, c), )
+
+    def _infer_shapes(self, a, b, c):  # pylint: disable=W0221
+        return (a, )

@@ -5,17 +5,17 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRun
+from ._op import OpRunArg
 
 
-class ArgMin(OpRun):
+class ArgMin(OpRunArg):
 
     atts = {'axis': 0, 'keepdims': 1}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=ArgMin.atts,
-                       **options)
+        OpRunArg.__init__(self, onnx_node, desc=desc,
+                          expected_attributes=ArgMin.atts,
+                          **options)
 
     def _run(self, data):  # pylint: disable=W0221
         r = numpy.argmin(data, axis=self.axis)

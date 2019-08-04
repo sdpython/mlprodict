@@ -26,3 +26,6 @@ class Squeeze(OpRunUnaryNum):
     def _run(self, data):  # pylint: disable=W0221
         sq = numpy.squeeze(data, axis=self.axes)
         return (sq, )
+
+    def _infer_shapes(self, x):  # pylint: disable=W0221
+        return (x.squeeze(axis=self.axes), )

@@ -5,17 +5,17 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRun
+from ._op import OpRunUnaryNum
 
 
-class LpNormalization(OpRun):
+class LpNormalization(OpRunUnaryNum):
 
     atts = {'axis': -1, 'p': 2}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=LpNormalization.atts,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=LpNormalization.atts,
+                               **options)
 
     def _run(self, x):  # pylint: disable=W0221
         norm = numpy.power(numpy.power(x, self.p).sum(

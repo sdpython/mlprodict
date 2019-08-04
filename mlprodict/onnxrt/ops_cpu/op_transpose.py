@@ -19,3 +19,6 @@ class Transpose(OpRunUnaryNum):
 
     def _run(self, data):  # pylint: disable=W0221
         return (numpy.transpose(data, axes=self.perm), )
+
+    def _infer_shapes(self, x):  # pylint: disable=W0221
+        return (x.transpose(perm=self.perm), )

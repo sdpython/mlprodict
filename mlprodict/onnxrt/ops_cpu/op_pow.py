@@ -15,3 +15,9 @@ class Pow(OpRun):
 
     def _run(self, a, b):  # pylint: disable=W0221
         return (numpy.power(a, b), )
+
+    def _infer_shapes(self, x, b):  # pylint: disable=W0221
+        """
+        Returns the same shape by default.
+        """
+        return (x, )

@@ -148,3 +148,22 @@ class OnnxInferenceNode:
             for r in res:
                 done.append(("ops_", ) + r)
         return done
+
+    def _set_shape_inference_runtime(self, values):
+        """
+        Updates *values* which shapes of the outputs.
+
+        @param      values      container for shapes
+        """
+        args = [values[k] for k in self.inputs]
+        res = self.ops_.infer_shapes(*args)
+        if not isinstance(res, tuple):
+            raise RuntimeError(
+                "Results of an operator should be a tuple for operator '{}'"
+                ".".format(type(self.ops_)))
+        if len(self.outputs) != len(res):
+            raise RuntimeError("Mismatch number of outputs got {} for names {}.\n{}".format(
+                len(res), list(sorted(self.outputs)),
+                pprint.pformat(self.desc)))
+        for name, value in zip(self.outputs, res):
+            values[name] = value

@@ -2,11 +2,92 @@
 @brief      test log(time=3s)
 """
 import unittest
-from pyquickhelper.pycode import ExtTestCase
-from mlprodict.onnxrt.shape_object import DimensionObject
+from logging import getLogger
+import numpy
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+import skl2onnx
+from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
+    OnnxAdd
+)
+from mlprodict.onnxrt.shape_object import (
+    DimensionObject, ShapeObject, ShapeOperator,
+    ShapeBinaryOperator
+)
+from mlprodict.onnxrt import OnnxInference
 
 
 class TestShapeObject(ExtTestCase):
+
+    def test_missing_stmt(self):
+        sh = ShapeOperator("+", lambda x, y: x + y,
+                           "lambda x, y: x + y",
+                           DimensionObject(1),
+                           DimensionObject(2))
+        r = repr(sh)
+        self.assertIn("ShapeOperator('+', lambda x, y: x + y", r)
+        a = sh.evaluate()
+        self.assertEqual(a, 3)
+        self.assertRaise(
+            lambda: ShapeOperator("+", lambda x, y: x + y,
+                                  "lambda x, y: x + y", 1, (2, )),
+            TypeError)
+
+        sh = ShapeOperator("+", lambda x, y: x + str(y),
+                           "lambda x, y: x + y",
+                           DimensionObject(1),
+                           DimensionObject(2))
+        self.assertRaise(lambda: sh.evaluate(), RuntimeError)
+
+    def test_missing_stmt_binary(self):
+        def fct1():
+            return ShapeBinaryOperator(
+                "+", lambda x, y: x + y, "lambda x, y: x + y",
+                DimensionObject(1), DimensionObject((2, 3)))
+
+        def fct2():
+            return ShapeBinaryOperator(
+                "+", lambda x, y: x + y, "lambda x, y: x + y",
+                DimensionObject((1, 2)), DimensionObject(3))
+
+        self.assertRaise(fct1, TypeError)
+        self.assertRaise(fct2, TypeError)
+
+        sh = ShapeBinaryOperator(
+            "+", lambda x, y: x + y, "lambda x, y: x + y",
+            DimensionObject(1), DimensionObject(2))
+        st = sh.to_string()
+        self.assertEqual(st, '3')
+
+        sh = ShapeBinaryOperator(
+            "+", lambda x, y: x + y, "lambda x, y: x + y",
+            DimensionObject('1'), DimensionObject('2'))
+        st = sh.to_string()
+        self.assertEqual(st, '(1)+(2)')
+
+        sh = ShapeBinaryOperator(
+            "+", lambda x, y: x + y, "lambda x, y: x + y",
+            DimensionObject('X'), DimensionObject(2))
+        st = sh.to_string()
+        self.assertEqual(st, 'X+2')
+
+        sh = ShapeBinaryOperator(
+            "+", lambda x, y: x + y, "lambda x, y: x + y",
+            DimensionObject(2), DimensionObject('X'))
+        st = sh.to_string()
+        self.assertEqual(st, '2+X')
+
+        sh = ShapeBinaryOperator(
+            "+", lambda x, y: x + y, "lambda x, y: x + y",
+            DimensionObject(2), DimensionObject(None))
+        st = sh.to_string()
+        self.assertEqual(st, '2+x')
+
+        d = DimensionObject(None)
+        self.assertEqual(d.dim, 'x')
+
+        d = DimensionObject(DimensionObject(2))
+        st = repr(d)
+        self.assertEqual(st, "DimensionObject(2)")
 
     def test_addition(self):
         i1 = DimensionObject(1)
@@ -55,6 +136,56 @@ class TestShapeObject(ExtTestCase):
         self.assertRaise(lambda: DimensionObject((1, )) * 1, TypeError)
         self.assertRaise(lambda: DimensionObject(
             1) * DimensionObject((1, )), TypeError)
+
+    def test_shape_object(self):
+        self.assertRaise(lambda: ShapeObject((1, 2, 3)), ValueError)
+        sh = ShapeObject((1, 2, 3), dtype=numpy.float32)
+        self.assertEqual(
+            repr(sh), "ShapeObject((1, 2, 3), dtype=numpy.float32)")
+        red = sh.reduce(0)
+        self.assertTrue(red == (2, 3))
+        self.assertRaise(lambda: sh.reduce(10), IndexError)
+        red = sh.reduce(1, True)
+        self.assertTrue(red == (1, 1, 3))
+
+    def test_shape_object_max(self):
+        sh1 = ShapeObject((1, 2, 3), dtype=numpy.float32)
+        sh2 = ShapeObject((1, 2), dtype=numpy.float32)
+        sh = max(sh1, sh2)
+        self.assertEqual(
+            repr(sh), "ShapeObject((1, 2, 3), dtype=numpy.float32)")
+        sh = max(sh2, sh1)
+        self.assertEqual(
+            repr(sh), "ShapeObject((1, 2, 3), dtype=numpy.float32)")
+        sh1 = ShapeObject((1, 2, 3), dtype=numpy.float32)
+        sh2 = ShapeObject((1, 2, 3), dtype=numpy.float32)
+        sh = max(sh2, sh1)
+        self.assertEqual(
+            repr(sh), "ShapeObject((1, 2, 3), dtype=numpy.float32)")
+
+    def setUp(self):
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+
+    def common_test_onnxt_runtime_binary(self, onnx_cl, np_fct,
+                                         dtype=numpy.float32):
+        idi = numpy.identity(2)
+        onx = onnx_cl('X', idi, output_names=['Y'])
+        X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X.astype(dtype)})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        exp = np_fct(X, idi)
+        self.assertEqualArray(exp, got['Y'], decimal=6)
+        shapes = oinf.shapes_
+        for _, v in shapes.items():
+            ev = v.evaluate(x=3)
+            self.assertIn(ev, ((3, 2), (2, 2)))
+
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    def test_onnxt_runtime_add(self):
+        self.common_test_onnxt_runtime_binary(OnnxAdd, numpy.add)
 
 
 if __name__ == "__main__":

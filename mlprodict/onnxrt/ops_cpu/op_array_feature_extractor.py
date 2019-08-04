@@ -5,6 +5,7 @@
 @brief Runtime operator.
 """
 from ._op import OpRun
+from ..shape_object import ShapeObject
 
 
 class ArrayFeatureExtractor(OpRun):
@@ -43,3 +44,16 @@ class ArrayFeatureExtractor(OpRun):
         tem = data[..., index]
         res = tem.reshape(new_shape)
         return (res, )
+
+    def _infer_shapes(self, data, indices):  # pylint: disable=W0221
+        """
+        Should be overwritten.
+        """
+        add = indices.product()
+
+        if len(data) == 1:
+            dim = ShapeObject((1, add), dtype=data.dtype)
+        else:
+            dim = data.copy()
+            dim.append(add)
+        return (dim, )

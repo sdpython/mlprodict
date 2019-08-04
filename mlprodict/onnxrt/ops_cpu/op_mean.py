@@ -18,3 +18,6 @@ class Mean(OpRun):
         for m in args[1:]:
             res += m
         return (res / len(args), )
+
+    def _infer_shapes(self, *args):  # pylint: disable=W0221
+        return (args[0], )

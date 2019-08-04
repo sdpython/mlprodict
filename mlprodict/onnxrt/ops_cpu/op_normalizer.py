@@ -5,17 +5,17 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRun
+from ._op import OpRunUnaryNum
 
 
-class Normalizer(OpRun):
+class Normalizer(OpRunUnaryNum):
 
     atts = {'norm': 'MAX'}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=Normalizer.atts,
-                       **options)
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=Normalizer.atts,
+                               **options)
         if self.norm == b'MAX':  # pylint: disable=E1101
             self._norm = Normalizer.norm_max
         elif self.norm == b'L1':  # pylint: disable=E1101

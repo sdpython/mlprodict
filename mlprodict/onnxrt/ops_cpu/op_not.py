@@ -5,14 +5,17 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRun
+from ._op import OpRunUnary
 
 
-class Not(OpRun):
+class Not(OpRunUnary):
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRun.__init__(self, onnx_node, desc=desc,
-                       **options)
+        OpRunUnary.__init__(self, onnx_node, desc=desc,
+                            **options)
 
     def _run(self, x):  # pylint: disable=W0221
         return (numpy.logical_not(x), )
+
+    def _infer_shapes(self, x):  # pylint: disable=W0221
+        return (x.copy(dtype=numpy.bool), )
