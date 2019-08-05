@@ -295,7 +295,7 @@ class OpRunClassifierProb(OpRunUnary):
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
         """
-        Returns the same shape by default.
+        Returns the same for the labels and the probabilities.
         """
         return (ShapeObject((x[0], ), dtype=numpy.int64),
                 ShapeObject((x[0], self.nb_classes), dtype=x.dtype))
@@ -348,7 +348,12 @@ class OpRunBinary(OpRun):
         We assume the operator returns the biggest
         shapes as the operator could be using broacasting.
         """
-        return (max(x, y), )
+        try:
+            return (max(x, y), )
+        except RuntimeError:
+            # We know x and y and the same number of dimensions.
+            # We pick the first one even if it might be wrong.
+            return (x, )
 
 
 class OpRunBinaryNum(OpRunBinary):

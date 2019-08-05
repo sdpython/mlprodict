@@ -14,7 +14,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.shape_object import (
     DimensionObject, ShapeObject, ShapeOperator,
-    ShapeBinaryOperator
+    ShapeBinaryOperator, ShapeOperatorMax
 )
 from mlprodict.onnxrt import OnnxInference
 
@@ -112,6 +112,31 @@ class TestShapeObject(ExtTestCase):
         self.assertEqual(v, 2)
         v = i3.evaluate()
         self.assertEqual(v, "(1)+(x)")
+
+        self.assertRaise(lambda: DimensionObject((1, )) + 1, TypeError)
+        self.assertRaise(lambda: DimensionObject(
+            1) + DimensionObject((1, )), TypeError)
+
+    def test_maximum(self):
+        i1 = DimensionObject(1)
+        i2 = DimensionObject(3)
+        i3 = DimensionObject(ShapeOperatorMax(i1, i2))
+        self.assertEqual(
+            "DimensionObject(ShapeOperatorMax(DimensionObject(1), DimensionObject(3)))", repr(i3))
+        self.assertEqual(i3.to_string(), '3')
+        v = i3.evaluate()
+        self.assertEqual(v, 3)
+
+        i1 = DimensionObject(1)
+        i2 = DimensionObject("x")
+        i3 = DimensionObject(ShapeOperatorMax(i1, i2))
+        self.assertEqual(i3.to_string(), 'max(1,x)')
+        self.assertEqual(
+            "DimensionObject(ShapeOperatorMax(DimensionObject(1), DimensionObject('x')))", repr(i3))
+        v = i3.evaluate(x=1)
+        self.assertEqual(v, 1)
+        v = i3.evaluate()
+        self.assertEqual(v, "max(1,x)")
 
         self.assertRaise(lambda: DimensionObject((1, )) + 1, TypeError)
         self.assertRaise(lambda: DimensionObject(
@@ -219,5 +244,5 @@ class TestShapeObject(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestShapeObject().test_onnx_example_cdist_bigger()
+    TestShapeObject().test_maximum()
     unittest.main()

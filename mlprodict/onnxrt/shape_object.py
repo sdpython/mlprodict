@@ -81,7 +81,7 @@ class ShapeOperator(BaseDimensionShape):
                 has_string = True
             args.append(v)
         if has_string:
-            res = self._name.join(map(lambda s: '({})'.format(s), args))
+            res = self._evaluate_string_(args, **kwargs)
         else:
             try:
                 res = self._fct(*args)
@@ -89,6 +89,16 @@ class ShapeOperator(BaseDimensionShape):
                 raise RuntimeError(
                     "Unable to evaluate operator {} due to {}".format(repr(self), e))
         return res
+
+    def _evaluate_string_(self, args, **kwargs):
+        """
+        Evalutes the operator assuming some of them are still strings.
+
+        @param  args        arguments extracted by method *evaluate*
+        @param  kwargs      value for the variables.
+        @return             string or integer
+        """
+        raise NotImplementedError("This function must be overwritten.")
 
 
 class ShapeBinaryOperator(ShapeOperator):
@@ -143,6 +153,64 @@ class ShapeBinaryOperator(ShapeOperator):
             raise TypeError(
                 "Unable to handle type '{}'.".format(type(x._dim)))
 
+    def _evaluate_string_(self, args, **kwargs):
+        """
+        Evalutes the operator assuming some of them are still strings.
+
+        @param  args        arguments extracted by method *evaluate*
+        @param  kwargs      value for the variables.
+        @return             string or integer
+        """
+        return self._name.join(map(lambda s: '({})'.format(s), args))
+
+
+class ShapeBinaryFctOperator(ShapeBinaryOperator):
+    """
+    Base class for shape binary operator defined by a function.
+    """
+
+    def to_string(self, use_x=True):
+        """
+        Applies binary operator to a dimension.
+
+        @param      use_x   use `'x'` if dimension is unknown
+        @return             a string
+        """
+        x, y = self._args  # pylint: disable=W0632
+        if isinstance(x._dim, int):
+            if isinstance(y, DimensionObject):
+                if isinstance(y._dim, int):
+                    return DimensionObject(self._fct(x._dim, y._dim)).to_string()
+                if isinstance(y._dim, str):
+                    return DimensionObject("{}({},{})".format(self._name, x._dim, y._dim)).to_string()
+                if y._dim is None:
+                    if use_x:
+                        return DimensionObject("{}({},x)".format(self._name, x._dim)).to_string()
+                    else:
+                        return DimensionObject("{}({},DimensionObject())".format(self._name, x._dim)).to_string()
+                raise TypeError(
+                    "Unable to handle type '{}'.".format(type(y._dim)))
+            raise TypeError("Unable to handle type '{}'.".format(type(y)))
+        elif isinstance(x._dim, str):
+            if isinstance(y._dim, int):
+                return DimensionObject("{}({},{})".format(self._name, x._dim, y._dim)).to_string()
+            elif isinstance(y._dim, str):
+                return DimensionObject("{}({},{})".format(self._name, x._dim, y._dim)).to_string()
+            raise TypeError("Unable to handle type '{}'.".format(type(y._dim)))
+        else:
+            raise TypeError(
+                "Unable to handle type '{}'.".format(type(x._dim)))
+
+    def _evaluate_string_(self, args, **kwargs):
+        """
+        Evalutes the operator assuming some of them are still strings.
+
+        @param  args        arguments extracted by method *evaluate*
+        @param  kwargs      value for the variables.
+        @return             string or integer
+        """
+        return "{}({})".format(self._name, ",".join(map(str, args)))
+
 
 class ShapeOperatorAdd(ShapeBinaryOperator):
     """
@@ -171,6 +239,25 @@ class ShapeOperatorMul(ShapeBinaryOperator):
     def __init__(self, x, y):
         ShapeBinaryOperator.__init__(
             self, '*', lambda a, b: a * b, 'lambda a, b: a * b', x, y)
+
+    def __repr__(self):
+        """
+        Displays a string.
+
+        @return             a string
+        """
+        return "{0}({1}, {2})".format(
+            self.__class__.__name__, repr(self._args[0]), repr(self._args[1]))
+
+
+class ShapeOperatorMax(ShapeBinaryFctOperator):
+    """
+    Shape multiplication.
+    """
+
+    def __init__(self, x, y):
+        ShapeBinaryFctOperator.__init__(
+            self, 'max', lambda a, b: max(a, b), 'max(a, b)', x, y)
 
     def __repr__(self):
         """
@@ -248,19 +335,24 @@ class DimensionObject(BaseDimensionShape):
         @param  kwargs      value for the variables.
         @return             string or integer
         """
-        if isinstance(self._dim, int):
-            return self._dim
-        if isinstance(self._dim, (ShapeOperator, DimensionObject)):
-            return self._dim.evaluate(**kwargs)
-        if isinstance(self._dim, str):
+        if isinstance(self._dim, (int, ShapeOperator, DimensionObject)):
+            res = self._dim
+        elif isinstance(self._dim, str):
             if self._dim in kwargs:
-                return kwargs[self._dim]
-            return self._dim
-        if self._dim is None:
+                res = kwargs[self._dim]
+            else:
+                res = self._dim
+        elif self._dim is None:
             pref = str(hex(id(self)))[2:]
-            return "n{}".format(pref)
-        raise NotImplementedError(
-            "Not implemented for '{}'.".format(repr(self)))
+            res = "n{}".format(pref)
+        elif isinstance(self._dim, ):
+            res = self._dim.evaluate(**kwargs)
+        else:
+            raise NotImplementedError(
+                "Not implemented for '{}'.".format(repr(self)))
+        if isinstance(res, (ShapeOperator, DimensionObject)):
+            return res.evaluate(**kwargs)
+        return res
 
     def __eq__(self, v):
         """
@@ -315,6 +407,8 @@ class DimensionObject(BaseDimensionShape):
             ev2 = obj.evaluate()
             if ev1 == ev2:
                 return False
+            if isinstance(ev1, int) and isinstance(ev2, int):
+                return ev1 > ev2
             raise RuntimeError(
                 "Cannot decide between\n{} and\n{}".format(self, obj))
 
@@ -368,7 +462,7 @@ class ShapeObject(BaseDimensionShape):
                     raise TypeError('Dimension {} has a wrong type {}'.format(
                         i, type(a)))
             if use_n1:
-                sh = self._shape[0]
+                sh = self._shape[0] if self._shape else None
                 if isinstance(sh, DimensionObject) and sh._dim is None:
                     sh._dim = 'n'
 

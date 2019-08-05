@@ -162,8 +162,11 @@ class OnnxInferenceNode:
                 "Results of an operator should be a tuple for operator '{}'"
                 ".".format(type(self.ops_)))
         if len(self.outputs) != len(res):
-            raise RuntimeError("Mismatch number of outputs got {} for names {}.\n{}".format(
-                len(res), list(sorted(self.outputs)),
-                pprint.pformat(self.desc)))
+            raise RuntimeError(
+                "Mismatch number of outputs got {} for names {} (node='{}')."
+                "\n{}".format(
+                    len(res), list(self.outputs),
+                    self.ops_.__class__.__name__,
+                    pprint.pformat(self.desc)))
         for name, value in zip(self.outputs, res):
             values[name] = value

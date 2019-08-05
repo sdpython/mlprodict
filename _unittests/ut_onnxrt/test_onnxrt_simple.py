@@ -22,7 +22,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier,
     OnnxConstantOfShape, OnnxShape, OnnxIdentity
 )
-from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference, to_onnx
 
@@ -108,9 +108,10 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_lrc(self):
         pars = dict(coefficients=numpy.array([1., 2.]), intercepts=numpy.array([1.]),
                     classlabels_ints=[0, 1], post_transform='NONE')
-        onx = OnnxLinearClassifier('X', output_names=['Y'], **pars)
+        onx = OnnxLinearClassifier('X', output_names=['Y', 'Yp'], **pars)
         model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
-                                outputs=[('Y', FloatTensorType([1]))])
+                                outputs=[('Y', Int64TensorType()),
+                                         ('Yp', FloatTensorType())])
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot()
         self.assertIn('coefficients=[1. 2.]', dot)
@@ -305,4 +306,5 @@ class TestOnnxrtSimple(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestOnnxrtSimple().test_onnxt_lrc()
     unittest.main()

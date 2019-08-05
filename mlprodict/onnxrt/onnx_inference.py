@@ -101,7 +101,7 @@ class OnnxInference:
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v
                 self._run = self._run_sequence_runtime
-        if self.runtime in ('python', None):
+        if not self.skip_run and self.runtime in ('python', None):
             self.shapes_ = self._set_shape_inference_runtime()
 
     def _guess_input_dtype(self):
