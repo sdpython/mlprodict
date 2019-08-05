@@ -6,6 +6,7 @@
 """
 import numpy
 from ._op import OpRun
+from ..shape_object import ShapeObject
 
 
 class Concat(OpRun):
@@ -29,7 +30,11 @@ class Concat(OpRun):
 
     def _infer_shapes(self, *args):  # pylint: disable=W0221
         dim_axis = args[0][self.axis]
+        if dim_axis is None:
+            return (ShapeObject(None, dtype=args[0].dtype), )
         for a in args[1:]:
+            if a[self.axis] is None:
+                return (ShapeObject(None, dtype=args[0].dtype), )
             dim_axis = dim_axis + a[self.axis]
         a0 = args[0].copy()
         a0[self.axis] = dim_axis

@@ -16,3 +16,9 @@ class Where(OpRun):
 
     def _run(self, condition, x, y):  # pylint: disable=W0221
         return (numpy.where(condition, x, y), )
+
+    def _infer_shapes(self, condition, x, y):  # pylint: disable=W0221
+        """
+        Returns the same shape by default.
+        """
+        return (x, )

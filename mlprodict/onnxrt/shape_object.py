@@ -482,12 +482,18 @@ class ShapeObject(BaseDimensionShape):
         """
         Extracts a specific dimension.
         """
+        if self._shape is None:
+            return None
+        if index >= len(self._shape):
+            return 1
         return self._shape[index]
 
     def __setitem__(self, index, value):
         """
         Changes a specific dimension.
         """
+        while len(self._shape) <= index:
+            self._shape.append(DimensionObject(1))
         self._shape[index] = value
 
     @property
@@ -612,6 +618,8 @@ class ShapeObject(BaseDimensionShape):
         """
         Appends a dimension.
         """
+        if self._shape is None:
+            return
         if isinstance(dim, DimensionObject):
             self._shape.append(dim)
         else:
