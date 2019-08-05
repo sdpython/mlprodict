@@ -261,6 +261,25 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['variable'])
         exp = clr.transform(X_test)
         self.assertEqualArray(exp, got['variable'], decimal=6)
+        self.assertRaise(lambda: oinf.run({'X': X_test[0]}), RuntimeError)
+
+    def test_onnxrt_python_SimpleImputer_int(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X = X.astype(numpy.int64)
+        for i in range(X.shape[1]):
+            X[i::10, i] = numpy.nan
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = SimpleImputer()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X_test})
+        self.assertEqual(list(sorted(got)), ['variable'])
+        exp = clr.transform(X_test)
+        self.assertEqualArray(exp, got['variable'], decimal=6)
+        self.assertRaise(lambda: oinf.run({'X': X_test[0]}), RuntimeError)
 
 
 if __name__ == "__main__":

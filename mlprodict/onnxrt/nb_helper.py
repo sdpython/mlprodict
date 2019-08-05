@@ -60,7 +60,7 @@ class OnnxNotebook(MagicClassWithHelpers):
         return None
 
 
-def register_onnx_magics(ip=None):
+def register_onnx_magics(ip=None):  # pragma: no cover
     """
     Register magics function, can be called from a notebook.
 

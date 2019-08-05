@@ -29,13 +29,13 @@ class OnnxWholeSession:
         try:
             sess_options.session_log_severity_level = 3
             # sess_options.sessions_log_verbosity_level = 0
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
             # onnxruntime not recent enough.
             pass
         try:
             self.run_options.run_log_severity_level = 3
             # self.run_options.run_log_verbosity_level = 0
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
             # onnxruntime not recent enough.
             pass
         self.sess = InferenceSession(onnx_data, sess_options=sess_options)
