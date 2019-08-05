@@ -142,6 +142,12 @@ class TestShapeObject(ExtTestCase):
         self.assertRaise(lambda: DimensionObject(
             1) + DimensionObject((1, )), TypeError)
 
+    def test_maximum_none(self):
+        i1 = ShapeObject((1, ), dtype=numpy.float32, name="A")
+        i2 = ShapeObject(None, dtype=numpy.float32, name="B")
+        i3 = max(i1, i2)
+        self.assertEqual(i3.name, 'B')
+
     def test_multiplication(self):
         i1 = DimensionObject(2)
         i2 = DimensionObject(3)

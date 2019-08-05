@@ -910,9 +910,9 @@ class OnnxInference:
         for k, v in self.inputs_.items():
             # The function assumes the first dimension is unknown
             # and is the batch size.
-            values[k] = ShapeObject(v, use_n1=True)
+            values[k] = ShapeObject(v, use_n1=True, name=k)
         for k, v in self.inits_.items():
-            values[k] = ShapeObject(v['value'])
+            values[k] = ShapeObject(v['value'], name=k)
         for node in self.sequence_:
             node._set_shape_inference_runtime(values)
         return values

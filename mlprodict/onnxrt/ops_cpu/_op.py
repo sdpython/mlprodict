@@ -132,9 +132,9 @@ class OpRun:
         try:
             return self._infer_shapes(*args, **kwargs)
         except TypeError as e:
-            raise TypeError("Issues with types {} (operator {}).".format(
-                ", ".join(str(type(_)) for _ in args),
-                self.__class__.__name__)) from e
+            raise TypeError("Issues with (operator {}) and shapes\n{}".format(
+                self.__class__.__name__,
+                "\n".join(str(_) for _ in args))) from e
 
     def _infer_shapes(self, *args, **kwargs):
         """
@@ -297,8 +297,10 @@ class OpRunClassifierProb(OpRunUnary):
         """
         Returns the same for the labels and the probabilities.
         """
-        return (ShapeObject((x[0], ), dtype=numpy.int64),
-                ShapeObject((x[0], self.nb_classes), dtype=x.dtype))
+        return (ShapeObject((x[0], ), dtype=numpy.int64,
+                            name="{}-0".format(self.__class__.__name__)),
+                ShapeObject((x[0], self.nb_classes), dtype=x.dtype,
+                            name="{}-1".format(self.__class__.__name__)))
 
 
 class OpRunBinary(OpRun):
@@ -349,11 +351,19 @@ class OpRunBinary(OpRun):
         shapes as the operator could be using broacasting.
         """
         try:
-            return (max(x, y), )
+            res = max(x, y)
+            add = "Max"
         except RuntimeError:
             # We know x and y and the same number of dimensions.
             # We pick the first one even if it might be wrong.
-            return (x, )
+            res = x
+            add = "1"
+        if res.name is None:
+            return (res.copy(name="{}{}".format(
+                self.__class__.__name__, add)), )
+        else:
+            return (res.copy(name="{}-{}{}".format(
+                res.name, self.__class__.__name__, add)), )
 
 
 class OpRunBinaryNum(OpRunBinary):

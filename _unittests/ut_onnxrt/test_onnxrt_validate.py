@@ -28,11 +28,12 @@ class TestOnnxrtValidate(ExtTestCase):
         temp = get_temp_folder(__file__, "temp_validate_sklearn_operators_all")
         if False:  # pylint: disable=W0125
             rows = list(enumerate_validated_operator_opsets(
-                verbose, models={"RFE"}, opset_min=10,
+                verbose, models={"AdaBoostRegressor"}, opset_min=10,
                 debug=True, fLOG=fLOG))
         else:
             rows = list(enumerate_validated_operator_opsets(
-                verbose, debug=None, fLOG=fLOG, dump_folder=temp))
+                verbose, debug=None, fLOG=fLOG, dump_folder=temp,
+                opset_min=10))
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
         self.assertGreater(df.shape[1], 1)

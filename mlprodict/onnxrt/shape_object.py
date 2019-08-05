@@ -418,12 +418,14 @@ class ShapeObject(BaseDimensionShape):
     Handles mathematical operations around shapes.
     """
 
-    def __init__(self, shape, dtype=None, use_n1=False):
+    def __init__(self, shape, dtype=None, use_n1=False, name=None):
         """
         @param      shape       tuple or `numpy.array`
         @param      dtype       dtype
         @param      use_n1      use `'n'` if the first dimension is unknown
+        @param      name        optional, for debugging purposes
         """
+        self.name = name
         if isinstance(shape, numpy.ndarray):
             self._shape = [DimensionObject(s) for s in shape.shape]
             self._dtype = shape.dtype
@@ -466,17 +468,19 @@ class ShapeObject(BaseDimensionShape):
                 if isinstance(sh, DimensionObject) and sh._dim is None:
                     sh._dim = 'n'
 
-    def copy(self, dtype=None):
+    def copy(self, dtype=None, name=None):
         """
         A copy not a deepcopy.
 
         @param      dtype   None or a value to rewrite the type.
+        @param      name    overwrites the name
         @return             @see cl ShapeObject
         """
         if self._shape is None:
-            return ShapeObject(None, dtype=self.dtype)
+            return ShapeObject(None, dtype=self.dtype, name=name or self.name)
         return ShapeObject(self._shape.copy(),
-                           self.dtype if dtype is None else dtype)
+                           self.dtype if dtype is None else dtype,
+                           name=name or self.name)
 
     def __getitem__(self, index):
         """
@@ -492,6 +496,8 @@ class ShapeObject(BaseDimensionShape):
         """
         Changes a specific dimension.
         """
+        if self._shape is None:
+            return
         while len(self._shape) <= index:
             self._shape.append(DimensionObject(1))
         self._shape[index] = value
@@ -530,13 +536,19 @@ class ShapeObject(BaseDimensionShape):
         @param      dtype       if not None, changes the type
         @return                 new dimension
         """
+        if self._shape is None:
+            if self.name is None:
+                return self.copy()
+            else:
+                return self.copy(name="{}-RD".format(self.name))
         if 0 <= axis < len(self._shape):
             cp = self._shape.copy()
             if keepdims:
                 cp[axis] = DimensionObject(1)
             else:
                 del cp[axis]
-            return ShapeObject(cp, self._dtype if dtype is None else dtype)
+            return ShapeObject(cp, self._dtype if dtype is None else dtype,
+                               name="{}-RD".format(self.name))
         raise IndexError("axis={} is wrong, shape is {}".format(axis, self))
 
     def __repr__(self):
@@ -547,7 +559,10 @@ class ShapeObject(BaseDimensionShape):
         if "'" in st:
             st = st.split("'")[1]
         if self.shape is None:
-            return "ShapeObject(None, dtype={})".format(st)
+            if self.name is None:
+                return "ShapeObject(None, dtype={})".format(st)
+            else:
+                return "ShapeObject(None, dtype={}, name='{}')".format(st, self.name)
         else:
             st_shape = []
             for s in self.shape:
@@ -556,7 +571,11 @@ class ShapeObject(BaseDimensionShape):
                 else:
                     st_shape.append(repr(s))
             st_shape = '({})'.format(", ".join(st_shape))
-            return "ShapeObject({}, dtype={})".format(st_shape, st)
+            if self.name is None:
+                return "ShapeObject({}, dtype={})".format(st_shape, st)
+            else:
+                return "ShapeObject({}, dtype={}, name='{}')".format(
+                    st_shape, st, self.name)
 
     def __iter__(self):
         """
@@ -570,6 +589,14 @@ class ShapeObject(BaseDimensionShape):
         """
         Compares shapes. Operator ``>``.
         """
+        if isinstance(a, tuple):
+            a = ShapeObject(a, dtype=self._dtype)
+        if self._shape is None and a._shape is None:
+            return False
+        if self._shape is None:
+            return True
+        if a._shape is None:
+            return False
         if len(self) > len(a):
             return True
         if len(self) < len(a):
@@ -585,6 +612,12 @@ class ShapeObject(BaseDimensionShape):
         """
         Tests equality between two shapes.
         """
+        if isinstance(a, tuple):
+            a = ShapeObject(a, dtype=self._dtype)
+        if self._shape is None and a._shape is None:
+            return True
+        if self._shape is None or a._shape is None:
+            return False
         if len(self) != len(a):
             return False
         for d1, d2 in zip(self, a):
@@ -601,7 +634,7 @@ class ShapeObject(BaseDimensionShape):
         for v in self:
             d = v.evaluate(**kwargs)
             vs.append(d)
-        return ShapeObject(tuple(vs), self._dtype)
+        return ShapeObject(tuple(vs), self._dtype, name="{}-EV".format(self.name))
 
     def product(self):
         """
@@ -629,7 +662,7 @@ class ShapeObject(BaseDimensionShape):
         """
         Removes one dimension.
         """
-        cp = self.copy()
+        cp = self.copy(name='{}-SZ'.format(self.name))
         cp.drop_axis(axis)
         return cp
 
@@ -638,8 +671,9 @@ class ShapeObject(BaseDimensionShape):
         Removes one dimension.
         """
         if self.shape is None:
-            return self.copy()
-        cp = ShapeObject([None for p in perm], dtype=self.dtype)
+            return self.copy(name='{}-TR'.format(self.name))
+        cp = ShapeObject([None for p in perm], dtype=self.dtype,
+                         name="{}-TR".format(self.name))
         for i, p in enumerate(perm):
             if p >= len(self):
                 # This should not happen.
