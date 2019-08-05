@@ -6,6 +6,7 @@
 """
 import numpy
 from ._op import OpRun
+from ..shape_object import ShapeObject
 
 
 class Scan(OpRun):
@@ -41,8 +42,7 @@ class Scan(OpRun):
         self.input_names = self.body.input_names
         self.output_names = self.body.output_names
 
-    def _run(self, *args):  # pylint: disable=W0221
-
+    def _common_run_shape(self, *args):
         num_loop_state_vars = len(args) - self.num_scan_inputs
         num_scan_outputs = len(args) - num_loop_state_vars
 
@@ -66,6 +66,18 @@ class Scan(OpRun):
         scan_values = args[num_loop_state_vars:]
 
         states = args[:num_loop_state_vars]
+
+        return (num_loop_state_vars, num_scan_outputs, output_directions,
+                max_dir_out, output_axes, max_axe_out, state_names_in,
+                state_names_out, scan_names_in, scan_names_out,
+                scan_values, states)
+
+    def _run(self, *args):  # pylint: disable=W0221
+        (num_loop_state_vars, num_scan_outputs, output_directions,  # pylint: disable=W0612
+         max_dir_out, output_axes, max_axe_out, state_names_in,  # pylint: disable=W0612
+         state_names_out, scan_names_in, scan_names_out,  # pylint: disable=W0612
+         scan_values, states) = self._common_run_shape(*args)  # pylint: disable=W0612
+
         max_iter = args[num_loop_state_vars].shape[self.input_axes_[0]]
         results = [[] for _ in scan_names_out]
 
@@ -85,3 +97,24 @@ class Scan(OpRun):
             conc = numpy.vstack(res)
             states.append(conc)
         return tuple(states)
+
+    def _infer_shapes(self, *args):  # pylint: disable=W0221
+        (num_loop_state_vars, num_scan_outputs, output_directions,  # pylint: disable=W0612
+         max_dir_out, output_axes, max_axe_out, state_names_in,  # pylint: disable=W0612
+         state_names_out, scan_names_in, scan_names_out,  # pylint: disable=W0612
+         scan_values, states) = self._common_run_shape(*args)  # pylint: disable=W0612
+
+        shapes = list(states)
+
+        shape = args[num_loop_state_vars].shape
+        if shape is None:
+            for sout in scan_values:
+                shapes.append(ShapeObject(None, dtype=sout.dtype))
+        else:
+            max_iter = shape[self.input_axes_[0]]
+            for sout in scan_values:
+                sc = sout.copy()
+                sc[0] = max_iter
+                shapes.append(sc)
+
+        return tuple(shapes)

@@ -5,7 +5,27 @@
 import numpy
 
 
-class ShapeOperator:
+class BaseDimensionShape:
+    """
+    Base class to @see cl DimensionObject,
+    @see cl ShapeOperator, @see cl ShapeObject.
+    """
+
+    def to_string(self, use_x=True):
+        """
+        Converts the object into a string.
+        """
+        raise NotImplementedError()
+
+    def evaluate(self, **kwargs):
+        """
+        Evaluates the object, reduces the expression
+        to a number or a string.
+        """
+        raise NotImplementedError()
+
+
+class ShapeOperator(BaseDimensionShape):
     """
     Base class for all shapes operator.
     """
@@ -35,7 +55,7 @@ class ShapeOperator:
             self.__class__.__name__, self._name,
             self._fct_string, self._args)
 
-    def to_string(self):
+    def to_string(self, use_x=True):
         """
         Displays as a string.
 
@@ -53,15 +73,21 @@ class ShapeOperator:
         @return             string or integer
         """
         args = []
+        has_string = False
         for a in self._args:
             a = DimensionObject._same_(a)
             v = a.evaluate(**kwargs)
+            if isinstance(v, str):
+                has_string = True
             args.append(v)
-        try:
-            res = self._fct(*args)
-        except TypeError as e:
-            raise RuntimeError(
-                "Unable to evaluate operator {} due to {}".format(repr(self), e))
+        if has_string:
+            res = self._name.join(map(lambda s: '({})'.format(s), args))
+        else:
+            try:
+                res = self._fct(*args)
+            except TypeError as e:
+                raise RuntimeError(
+                    "Unable to evaluate operator {} due to {}".format(repr(self), e))
         return res
 
 
@@ -85,19 +111,28 @@ class ShapeBinaryOperator(ShapeOperator):
         if isinstance(y, tuple):
             raise TypeError('y cannot be a tuple')
 
-    def to_string(self):
+    def to_string(self, use_x=True):
         """
         Applies binary operator to a dimension.
 
+        @param      use_x   use `'x'` if dimension is unknown
         @return             a string
         """
         x, y = self._args  # pylint: disable=W0632
         if isinstance(x._dim, int):
-            if isinstance(y._dim, int):
-                return DimensionObject(self._fct(x._dim, y._dim)).to_string()
-            if isinstance(y._dim, str):
-                return DimensionObject("{}{}{}".format(x._dim, self._name, y._dim)).to_string()
-            raise TypeError("Unable to handle type '{}'.".format(type(y._dim)))
+            if isinstance(y, DimensionObject):
+                if isinstance(y._dim, int):
+                    return DimensionObject(self._fct(x._dim, y._dim)).to_string()
+                if isinstance(y._dim, str):
+                    return DimensionObject("{}{}{}".format(x._dim, self._name, y._dim)).to_string()
+                if y._dim is None:
+                    if use_x:
+                        return DimensionObject("{}{}x".format(x._dim, self._name)).to_string()
+                    else:
+                        return DimensionObject("{}{}DimensionObject()".format(x._dim, self._name)).to_string()
+                raise TypeError(
+                    "Unable to handle type '{}'.".format(type(y._dim)))
+            raise TypeError("Unable to handle type '{}'.".format(type(y)))
         elif isinstance(x._dim, str):
             if isinstance(y._dim, int):
                 return DimensionObject("{}{}{}".format(x._dim, self._name, y._dim)).to_string()
@@ -147,7 +182,7 @@ class ShapeOperatorMul(ShapeBinaryOperator):
             self.__class__.__name__, repr(self._args[0]), repr(self._args[1]))
 
 
-class DimensionObject:
+class DimensionObject(BaseDimensionShape):
     """
     One dimension of a shape.
     """
@@ -157,8 +192,8 @@ class DimensionObject:
         @param  obj     int or @see cl DimensionObject or None to
                         specify something unknown
         """
-        if obj is None or obj == 0:
-            self._dim = 'x'
+        if obj is None or obj == 0 or obj == '?':
+            self._dim = None
         elif isinstance(obj, (int, str, ShapeOperator, DimensionObject)):
             self._dim = obj
         else:
@@ -193,7 +228,7 @@ class DimensionObject:
             return obj
         return DimensionObject(obj)
 
-    def to_string(self):
+    def to_string(self, use_x=True):
         """
         Represents the dimension as a string.
         """
@@ -217,10 +252,13 @@ class DimensionObject:
             return self._dim
         if isinstance(self._dim, (ShapeOperator, DimensionObject)):
             return self._dim.evaluate(**kwargs)
-        if isinstance(self._dim, str) and self._dim in kwargs:
-            return kwargs[self._dim]
         if isinstance(self._dim, str):
-            return self
+            if self._dim in kwargs:
+                return kwargs[self._dim]
+            return self._dim
+        if self._dim is None:
+            pref = str(hex(id(self)))[2:]
+            return "n{}".format(pref)
         raise NotImplementedError(
             "Not implemented for '{}'.".format(repr(self)))
 
@@ -233,7 +271,10 @@ class DimensionObject:
         if isinstance(v, DimensionObject):
             return v == self._dim
         if isinstance(v, ShapeOperator):
-            return v.evaluate() == self._dim
+            ve = v.evaluate()
+            return ve == self._dim
+        if v is None:
+            return self._dim is None
         raise TypeError(
             "Unable to compare a DimensionObject to {}".format(type(v)))
 
@@ -255,8 +296,14 @@ class DimensionObject:
         """
         usual
         """
+        if obj is None:
+            return not isinstance(self._dim, int)
         if isinstance(self._dim, int) and isinstance(obj._dim, int):
             return self._dim < obj._dim
+        if isinstance(self._dim, int) and obj._dim is None:
+            return False
+        if self._dim is None and isinstance(obj._dim, int):
+            return True
         elif isinstance(self._dim, int) and isinstance(obj._dim, str):
             return False
         elif isinstance(self._dim, str) and isinstance(obj._dim, int):
@@ -264,19 +311,24 @@ class DimensionObject:
         else:
             if self._dim == obj._dim:
                 return False
+            ev1 = self.evaluate()
+            ev2 = obj.evaluate()
+            if ev1 == ev2:
+                return False
             raise RuntimeError(
-                "Cannot decide between {} and {}".format(self, obj))
+                "Cannot decide between\n{} and\n{}".format(self, obj))
 
 
-class ShapeObject:
+class ShapeObject(BaseDimensionShape):
     """
     Handles mathematical operations around shapes.
     """
 
-    def __init__(self, shape, dtype=None):
+    def __init__(self, shape, dtype=None, use_n1=False):
         """
         @param      shape       tuple or `numpy.array`
         @param      dtype       dtype
+        @param      use_n1      use `'n'` if the first dimension is unknown
         """
         if isinstance(shape, numpy.ndarray):
             self._shape = [DimensionObject(s) for s in shape.shape]
@@ -284,7 +336,10 @@ class ShapeObject:
         elif isinstance(shape, dict) and 'type' in shape:
             tshape = shape['type']
             if tshape['kind'] == 'tensor':
-                self._shape = [DimensionObject(s) for s in tshape['shape']]
+                if tshape['shape'] == ('?', ):
+                    self._shape = None
+                else:
+                    self._shape = [DimensionObject(s) for s in tshape['shape']]
                 self._dtype = tshape['elem']
             elif tshape['kind'] == 'map':
                 self._shape = []
@@ -312,6 +367,10 @@ class ShapeObject:
                 if not isinstance(a, DimensionObject):
                     raise TypeError('Dimension {} has a wrong type {}'.format(
                         i, type(a)))
+            if use_n1:
+                sh = self._shape[0]
+                if isinstance(sh, DimensionObject) and sh._dim is None:
+                    sh._dim = 'n'
 
     def copy(self, dtype=None):
         """
@@ -320,6 +379,8 @@ class ShapeObject:
         @param      dtype   None or a value to rewrite the type.
         @return             @see cl ShapeObject
         """
+        if self._shape is None:
+            return ShapeObject(None, dtype=self.dtype)
         return ShapeObject(self._shape.copy(),
                            self.dtype if dtype is None else dtype)
 
@@ -340,6 +401,8 @@ class ShapeObject:
         """
         Returns the stored shape.
         """
+        if self._shape is None:
+            return None
         return tuple(self._shape)
 
     def __len__(self):
@@ -383,21 +446,25 @@ class ShapeObject:
         st = str(self.dtype)
         if "'" in st:
             st = st.split("'")[1]
-        st_shape = []
-        for s in self.shape:
-            if isinstance(s._dim, (int, str)):
-                st_shape.append(str(s._dim))
-            else:
-                st_shape.append(repr(s))
-        st_shape = '({})'.format(", ".join(st_shape))
-        return "ShapeObject({}, dtype={})".format(st_shape, st)
+        if self.shape is None:
+            return "ShapeObject(None, dtype={})".format(st)
+        else:
+            st_shape = []
+            for s in self.shape:
+                if isinstance(s._dim, (int, str)):
+                    st_shape.append(str(s._dim))
+                else:
+                    st_shape.append(repr(s))
+            st_shape = '({})'.format(", ".join(st_shape))
+            return "ShapeObject({}, dtype={})".format(st_shape, st)
 
     def __iter__(self):
         """
         Iterators over dimensions.
         """
-        for d in self._shape:
-            yield d
+        if self._shape is not None:
+            for d in self._shape:
+                yield d
 
     def __gt__(self, a):
         """
@@ -468,17 +535,24 @@ class ShapeObject:
         """
         Removes one dimension.
         """
-        cp = self.copy()
+        if self.shape is None:
+            return self.copy()
+        cp = ShapeObject([None for p in perm], dtype=self.dtype)
         for i, p in enumerate(perm):
-            cp._shape[i] = self._shape[p]
+            if p >= len(self):
+                # This should not happen.
+                cp._shape[i] = None
+            else:
+                cp._shape[i] = self._shape[p]
         return cp
 
     def drop_axis(self, axis):
         """
         Drops an axis.
         """
-        if isinstance(axis, (tuple, list)):
-            for i in sorted(axis, reverse=True):
-                del self._shape[i]
-        else:
-            del self._shape[axis]
+        if self._shape is not None:
+            if isinstance(axis, (tuple, list)):
+                for i in sorted(axis, reverse=True):
+                    del self._shape[i]
+            else:
+                del self._shape[axis]

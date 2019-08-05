@@ -908,7 +908,9 @@ class OnnxInference:
                 "'{}'.".format(self.runtime))
         values = OrderedDict()
         for k, v in self.inputs_.items():
-            values[k] = ShapeObject(v)
+            # The function assumes the first dimension is unknown
+            # and is the batch size.
+            values[k] = ShapeObject(v, use_n1=True)
         for k, v in self.inits_.items():
             values[k] = ShapeObject(v['value'])
         for node in self.sequence_:

@@ -50,5 +50,5 @@ class DictVectorizer(OpRun):
         return (coo_matrix((values, (rows, cols)), shape=(len(x), len(self.dict_labels))), )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
-        pref = str(id(self))
-        return (ShapeObject(["N%s_0" % pref, "N%s_1" % pref], dtype=x.dtype), )
+        pref = str(hex(id(self))[2:])
+        return (ShapeObject(["ndv%s_0" % pref, "N%s_1" % pref], dtype=x.dtype), )

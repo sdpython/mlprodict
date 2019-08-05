@@ -45,6 +45,7 @@ class TopK(OpRun):
     def _infer_shapes(self, data, ink):  # pylint: disable=W0221
         axis = self.axis if self.axis >= 0 else (self.axis + len(data))
         sh = data.copy()
-        sh[axis] = "topk%s" % str(id(self))
+        pref = str(hex(id(self))[2:])
+        sh[axis] = "ntopk%s" % pref
         shi = sh.copy(dtype=numpy.int64)
         return (sh, shi)

@@ -4,11 +4,14 @@
 import unittest
 from logging import getLogger
 import numpy
+from scipy.spatial.distance import cdist as scipy_cdist
+from sklearn.datasets import load_iris
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAdd
+    OnnxAdd, OnnxIdentity
 )
+from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.shape_object import (
     DimensionObject, ShapeObject, ShapeOperator,
     ShapeBinaryOperator
@@ -83,7 +86,7 @@ class TestShapeObject(ExtTestCase):
         self.assertEqual(st, '2+x')
 
         d = DimensionObject(None)
-        self.assertEqual(d.dim, 'x')
+        self.assertEqual(d.dim, None)
 
         d = DimensionObject(DimensionObject(2))
         st = repr(d)
@@ -107,7 +110,8 @@ class TestShapeObject(ExtTestCase):
             "DimensionObject(ShapeOperatorAdd(DimensionObject(1), DimensionObject('x')))", repr(i3))
         v = i3.evaluate(x=1)
         self.assertEqual(v, 2)
-        self.assertRaise(lambda: i3.evaluate(), NotImplementedError)
+        v = i3.evaluate()
+        self.assertEqual(v, "(1)+(x)")
 
         self.assertRaise(lambda: DimensionObject((1, )) + 1, TypeError)
         self.assertRaise(lambda: DimensionObject(
@@ -131,7 +135,8 @@ class TestShapeObject(ExtTestCase):
             "DimensionObject(ShapeOperatorMul(DimensionObject(2), DimensionObject('x')))", repr(i3))
         v = i3.evaluate(x=2)
         self.assertEqual(v, 4)
-        self.assertRaise(lambda: i3.evaluate(), NotImplementedError)
+        v = i3.evaluate()
+        self.assertEqual(v, "(2)*(x)")
 
         self.assertRaise(lambda: DimensionObject((1, )) * 1, TypeError)
         self.assertRaise(lambda: DimensionObject(
@@ -180,13 +185,39 @@ class TestShapeObject(ExtTestCase):
         self.assertEqualArray(exp, got['Y'], decimal=6)
         shapes = oinf.shapes_
         for _, v in shapes.items():
-            ev = v.evaluate(x=3)
+            ev = v.evaluate(n=3)
             self.assertIn(ev, ((3, 2), (2, 2)))
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_add(self):
         self.common_test_onnxt_runtime_binary(OnnxAdd, numpy.add)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    def test_onnx_example_cdist_bigger(self):
+
+        from skl2onnx.algebra.complex_functions import onnx_cdist
+        data = load_iris()
+        X, y = data.data, data.target
+        self.assertNotEmpty(y)
+        X_train = X[::2]
+        # y_train = y[::2]
+        X_test = X[1::2]
+        # y_test = y[1::2]
+        onx = OnnxIdentity(onnx_cdist(OnnxIdentity('X'), X_train.astype(numpy.float32),
+                                      metric="euclidean", dtype=numpy.float32),
+                           output_names=['Y'])
+        final = onx.to_onnx(inputs=[('X', FloatTensorType([None, None]))],
+                            outputs=[('Y', FloatTensorType())])
+
+        oinf = OnnxInference(final, runtime="python")
+        res = oinf.run({'X': X_train.astype(numpy.float32)})['Y']
+        exp = scipy_cdist(X_train, X_train, metric="euclidean")
+        self.assertEqualArray(exp, res, decimal=6)
+        res = oinf.run({'X': X_test.astype(numpy.float32)})['Y']
+        exp = scipy_cdist(X_test, X_train, metric="euclidean")
+        self.assertEqualArray(exp, res, decimal=6)
+
 
 if __name__ == "__main__":
+    TestShapeObject().test_onnx_example_cdist_bigger()
     unittest.main()

@@ -216,7 +216,8 @@ class OpRunArg(OpRunUnary):
         """
         Returns the same shape by default.
         """
-        sh = x.reduce(self.axis, self.keepdims, dtype=numpy.int64)  # pylint: disable=E1101
+        sh = x.reduce(self.axis, self.keepdims,  # pylint: disable=E1101
+                      dtype=numpy.int64)  # pylint: disable=E1101
         return (sh, )
 
     def _run_no_checks_(self, x):  # pylint: disable=W0221
@@ -285,7 +286,9 @@ class OpRunClassifierProb(OpRunUnary):
         """
         Returns the number of expected classes.
         """
-        return max(len(self.classlabels_ints), len(self.classlabels_strings))  # pylint: disable=E1101
+        return max(len(getattr(self, 'classlabels_ints', [])),
+                   len(getattr(self, 'classlabels_int64s', [])),
+                   len(self.classlabels_strings))  # pylint: disable=E1101
 
     def _run_no_checks_(self, x):  # pylint: disable=W0221
         return OpRunUnary.run(self, x)
