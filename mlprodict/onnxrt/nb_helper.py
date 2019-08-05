@@ -9,7 +9,7 @@ from pyquickhelper.cli.cli_helper import create_cli_parser
 from .onnx_inference import OnnxInference
 
 
-def onnxview(graph, recursive=False, local=False):
+def onnxview(graph, recursive=False, local=False, add_rt_shapes=False):
     """
     Displays an :epkg:`ONNX` graph into a notebook.
 
@@ -17,9 +17,12 @@ def onnxview(graph, recursive=False, local=False):
     :param recursive: display subgraph
     :param local: use local path to javascript dependencies,
         recommanded option if used on :epkg:`MyBinder`)
+    :param add_rt_shapes: add information about the shapes
+        the runtime was able to find out,
+        the runtime has to be `'python'`
     """
-    sess = OnnxInference(graph, skip_run=True)
-    dot = sess.to_dot(recursive=recursive)
+    sess = OnnxInference(graph, skip_run=not add_rt_shapes)
+    dot = sess.to_dot(recursive=recursive, add_rt_shapes=add_rt_shapes)
     return RenderJsDot(dot, local=local)
 
 
@@ -55,7 +58,7 @@ class OnnxNotebook(MagicClassWithHelpers):
 
         if args is not None:
             res = onnxview(args.graph, recursive=args.recursive,
-                           local=args.local)
+                           local=args.local, add_rt_shapes=args.add_rt_shapes)
             return res
         return None
 

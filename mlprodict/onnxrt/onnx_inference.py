@@ -156,15 +156,16 @@ class OnnxInference:
         """
         return [_.name for _ in self.obj.graph.output]
 
-    def to_dot(self, recursive=False, prefix='', **params):
+    def to_dot(self, recursive=False, prefix='', add_rt_shapes=False, **params):
         """
         Produces a :epkg:`DOT` language string for the graph.
 
-        @param      params      additional params to draw the graph
-        @param      recursive   also show subgraphs inside operator like
-                                @see cl Scan
-        @param      prefix      prefix for every node name
-        @return                 string
+        @param      params          additional params to draw the graph
+        @param      recursive       also show subgraphs inside operator like
+                                    @see cl Scan
+        @param      prefix          prefix for every node name
+        @param      add_rt_shapes   adds shapes infered from the python runtime
+        @return                     string
 
         Default options for the graph are:
 
@@ -222,20 +223,35 @@ class OnnxInference:
                 exp.append("  {}={};".format(opt, options[opt]))
         fontsize = 10
 
+        shapes = {}
+        if add_rt_shapes:
+            if not hasattr(self, 'shapes_'):
+                raise RuntimeError(
+                    "No information on shapes, check the runtime '{}'.".format(self.runtime))
+            for name, shape in self.shapes_.items():
+                va = shape.evaluate().to_string()
+                shapes[name] = va
+
         # inputs
         exp.append("")
         for obj in self.obj.graph.input:
             dobj = _var_as_dict(obj)
-            exp.append('  {3}{0} [shape=box color=red label="{0}\\n{1}" fontsize={2}];'.format(
-                dobj['name'], _type_to_string(dobj['type']), fontsize, prefix))
+            sh = shapes.get(dobj['name'], '')
+            if sh:
+                sh = "\\nshape={}".format(sh)
+            exp.append('  {3}{0} [shape=box color=red label="{0}\\n{1}{4}" fontsize={2}];'.format(
+                dobj['name'], _type_to_string(dobj['type']), fontsize, prefix, sh))
             inter_vars[obj.name] = obj
 
         # outputs
         exp.append("")
         for obj in self.obj.graph.output:
             dobj = _var_as_dict(obj)
-            exp.append('  {3}{0} [shape=box color=green label="{0}\\n{1}" fontsize={2}];'.format(
-                dobj['name'], _type_to_string(dobj['type']), fontsize, prefix))
+            sh = shapes.get(dobj['name'], '')
+            if sh:
+                sh = "\\nshape={}".format(sh)
+            exp.append('  {3}{0} [shape=box color=green label="{0}\\n{1}{4}" fontsize={2}];'.format(
+                dobj['name'], _type_to_string(dobj['type']), fontsize, prefix, sh))
             inter_vars[obj.name] = obj
 
         # initializer
@@ -263,8 +279,12 @@ class OnnxInference:
             for out in node.output:
                 if out not in inter_vars:
                     inter_vars[out] = out
+                    sh = shapes.get(out, '')
+                    if sh:
+                        sh = "\\nshape={}".format(sh)
                     exp.append(
-                        '  {2}{0} [shape=box label="{0}" fontsize={1}];'.format(out, fontsize, prefix))
+                        '  {2}{0} [shape=box label="{0}{3}" fontsize={1}];'.format(
+                            out, fontsize, prefix, sh))
 
             dobj = _var_as_dict(node)
             if dobj['name'].strip() == '':
@@ -291,7 +311,8 @@ class OnnxInference:
                 oinf = OnnxInference(
                     body, runtime=self.runtime, skip_run=self.skip_run)
                 subprefix = prefix + "B_"
-                subdot = oinf.to_dot(recursive=recursive, prefix=subprefix)
+                subdot = oinf.to_dot(recursive=recursive, prefix=subprefix,
+                                     add_rt_shapes=add_rt_shapes)
                 lines = subdot.split("\n")
                 start = 0
                 for i, line in enumerate(lines):

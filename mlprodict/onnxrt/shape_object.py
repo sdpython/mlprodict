@@ -639,6 +639,15 @@ class ShapeObject(BaseDimensionShape):
             vs.append(d)
         return ShapeObject(tuple(vs), self._dtype, name="{}-EV".format(self.name))
 
+    def to_string(self, use_x=False):
+        """
+        Converts shapes into a string.
+        """
+        shapes = []
+        for a in self._shape:
+            shapes.append(a.to_string(use_x=use_x))
+        return '({})'.format(', '.join(shapes))
+
     def product(self):
         """
         Multiplies all the dimension.

@@ -94,6 +94,24 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('Ad_Addcst -> Ad_Add;', dot)
         self.assertIn('Ad_Add1 -> Y;', dot)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    def test_onnxt_dot_shape(self):
+        idi = numpy.identity(2)
+        idi2 = numpy.identity(2) * 2
+        onx = OnnxAdd(OnnxAdd('X', idi), idi2, output_names=['Y'])
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        dot = oinf.to_dot(add_rt_shapes=True)
+        self.assertIn('Add [', dot)
+        self.assertIn('Add1 [', dot)
+        self.assertIn('Add\\n(Ad_Add)', dot)
+        self.assertIn('Add\\n(Ad_Add1)', dot)
+        self.assertIn('X -> Ad_Add;', dot)
+        self.assertIn('Ad_Addcst1 -> Ad_Add1;', dot)
+        self.assertIn('Ad_Addcst -> Ad_Add;', dot)
+        self.assertIn('Ad_Add1 -> Y;', dot)
+        self.assertIn('shape=(n, 2)', dot)
+
     def test_onnxt_lreg(self):
         pars = dict(coefficients=numpy.array([1., 2.]), intercepts=numpy.array([1.]),
                     post_transform='NONE')
@@ -306,5 +324,4 @@ class TestOnnxrtSimple(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxrtSimple().test_onnxt_lrc()
     unittest.main()
