@@ -10,7 +10,7 @@ Inference
 
 The main class reads an :epkg:`ONNX` file
 and may computes predictions based on a runtime
-implementated in Python. The ONNX model relies
+implementated in :epkg:`Python`. The :epkg:`ONNX` model relies
 on the following operators :ref:`l-onnx-runtime-operators`.
 
 .. autosignature:: mlprodict.onnxrt.onnx_inference.OnnxInference
@@ -21,8 +21,8 @@ Python to ONNX
 
 .. autosignature:: mlprodict.onnx_grammar.onnx_translation.translate_fct2onnx
 
-Structure
-+++++++++
+ONNX Structure
+++++++++++++++
 
 .. autosignature:: mlprodict.onnxrt.onnx_inference_manipulations.enumerate_model_node_outputs
 
@@ -51,3 +51,25 @@ C++ classes
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeTreeEnsembleRegressorDouble
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeTreeEnsembleRegressorFloat
+
+Shapes
+++++++
+
+The computation of the predictions through epkg:`ONNX` may
+be optimized if the shape of every nodes is known. For example,
+one possible optimization is to do inplace computation every time
+it is possible but this is only possible if the size of
+the input and output are the same. We could compute the predictions
+for a sample and check the sizes are the same
+but that could be luck. We could also guess from a couple of samples
+with different sizes and assume sizes and polynomial functions
+of the input size. But in rare occasions, that could be luck too.
+So one way of doing it is to implement a method
+:meth:`_set_shape_inference_runtime
+<mlprodict.onnxrt.onnx_inference.OnnxInference._set_shape_inference_runtime>`
+which works the same say as method :meth:`_run_sequence_runtime
+<mlprodict.onnxrt.onnx_inference.OnnxInference._run_sequence_runtime>`
+but handles shapes instead. Following class tries to implement
+a way to keep track of shape along the shape.
+
+.. autosignature:: mlprodict.onnxrt.shape_object.ShapeObject

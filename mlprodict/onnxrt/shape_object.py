@@ -416,6 +416,9 @@ class DimensionObject(BaseDimensionShape):
 class ShapeObject(BaseDimensionShape):
     """
     Handles mathematical operations around shapes.
+    It stores a type (:epkg:`numpy` type),
+    and a name to somehow have an idea of where
+    the shape comes from in the :epkg:`ONNX` graph.
     """
 
     def __init__(self, shape, dtype=None, use_n1=False, name=None):
