@@ -325,6 +325,8 @@ class DimensionObject(BaseDimensionShape):
             return self._dim.to_string()
         if isinstance(self._dim, str):
             return self._dim
+        if self._dim is None:
+            return 'x' if use_x else '?'
         raise NotImplementedError(
             "Not implemented for '{}'.".format(repr(self)))
 
@@ -391,7 +393,7 @@ class DimensionObject(BaseDimensionShape):
         if obj is None:
             return not isinstance(self._dim, int)
         if isinstance(self._dim, int) and isinstance(obj._dim, int):
-            return self._dim < obj._dim
+            return self._dim > obj._dim
         if isinstance(self._dim, int) and obj._dim is None:
             return False
         if self._dim is None and isinstance(obj._dim, int):
@@ -419,6 +421,35 @@ class ShapeObject(BaseDimensionShape):
     It stores a type (:epkg:`numpy` type),
     and a name to somehow have an idea of where
     the shape comes from in the :epkg:`ONNX` graph.
+    The shape itself is defined by a list of
+    @see cl DimensionObject or @see cl ShapeOperator
+    or *None* if the shape is unknown. A dimension is an
+    integer or a variable encoded as a string. This variable
+    is a way to tell the dimension may vary.
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from mlprodict.onnxrt.shape_object import ShapeObject
+
+        sh1 = ShapeObject((1, 2), dtype=numpy.float32)
+        sh2 = ShapeObject((45, 2), dtype=numpy.float32)
+        mx = max(sh1, sh2)
+        print(mx)
+
+        sh1 = ShapeObject((1, 2), dtype=numpy.float32)
+        sh2 = ShapeObject((None, 2), dtype=numpy.float32)
+        print(sh2)
+        mx = max(sh1, sh2)
+        print(mx.to_string())
+
+
+        sh1 = ShapeObject((1, 2), dtype=numpy.float32)
+        sh2 = ShapeObject(('n', 2), dtype=numpy.float32)
+        print(sh2)
+        mx = max(sh1, sh2)
+        print(mx.evaluate(n=4))
     """
 
     def __init__(self, shape, dtype=None, use_n1=False, name=None):

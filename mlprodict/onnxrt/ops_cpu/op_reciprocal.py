@@ -15,4 +15,7 @@ class Reciprocal(OpRunUnaryNum):
                                **options)
 
     def _run(self, x):  # pylint: disable=W0221
-        return (numpy.reciprocal(x), )
+        if self.inplaces.get(0, False):
+            return (numpy.reciprocal(x, out=x), )
+        else:
+            return (numpy.reciprocal(x), )

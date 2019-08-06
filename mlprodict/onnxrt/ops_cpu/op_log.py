@@ -15,4 +15,7 @@ class Log(OpRunUnaryNum):
                                **options)
 
     def _run(self, x):  # pylint: disable=W0221
-        return (numpy.log(x), )
+        if self.inplaces.get(0, False):
+            return (numpy.log(x, out=x), )
+        else:
+            return (numpy.log(x), )

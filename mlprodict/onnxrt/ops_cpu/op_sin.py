@@ -15,4 +15,7 @@ class Sin(OpRunUnaryNum):
                                **options)
 
     def _run(self, x):  # pylint: disable=W0221
-        return (numpy.sin(x), )
+        if self.inplaces.get(0, False):
+            return (numpy.sin(x, out=x), )
+        else:
+            return (numpy.sin(x), )

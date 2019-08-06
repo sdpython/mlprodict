@@ -248,6 +248,12 @@ class TestShapeObject(ExtTestCase):
         exp = scipy_cdist(X_test, X_train, metric="euclidean")
         self.assertEqualArray(exp, res, decimal=6)
 
+    def test_max(self):
+        sh1 = ShapeObject((1, 2), dtype=numpy.float32)
+        sh2 = ShapeObject((45, 2), dtype=numpy.float32)
+        mx = max(sh1, sh2)
+        self.assertEqual(mx, (45, 2))
+
 
 if __name__ == "__main__":
     TestShapeObject().test_maximum()

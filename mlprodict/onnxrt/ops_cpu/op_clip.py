@@ -19,5 +19,8 @@ class Clip(OpRunUnaryNum):
                                **options)
 
     def _run(self, data):  # pylint: disable=W0221
-        res = numpy.clip(data, self.min, self.max)
+        if self.inplaces.get(0, False):
+            res = numpy.clip(data, self.min, self.max, out=data)
+        else:
+            res = numpy.clip(data, self.min, self.max)
         return (res, ) if res.dtype == data.dtype else (res.astype(data.dtype), )

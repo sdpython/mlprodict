@@ -37,6 +37,7 @@ class OpRun:
         self._provider = 'python'
         self.onnx_node = onnx_node
         self.desc = desc
+        self.inplaces = {}
         if onnx_node.op_type in _schemas:
             self._schema = _schemas[onnx_node.op_type]
         else:
@@ -143,6 +144,14 @@ class OpRun:
         raise NotImplementedError(
             "This method should be overwritten for operator '{}'.".format(
                 self.__class__.__name__))
+
+    def enable_inplace_compute(self, index):
+        """
+        Tells the node that one input can be overwritten.
+
+        @param      index       input index
+        """
+        self.inplaces[index] = True
 
 
 class OpRunUnary(OpRun):

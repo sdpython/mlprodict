@@ -15,4 +15,7 @@ class Floor(OpRunUnaryNum):
                                **options)
 
     def _run(self, x):  # pylint: disable=W0221
-        return (numpy.floor(x), )
+        if self.inplaces.get(0, False):
+            return (numpy.floor(x, out=x), )
+        else:
+            return (numpy.floor(x), )

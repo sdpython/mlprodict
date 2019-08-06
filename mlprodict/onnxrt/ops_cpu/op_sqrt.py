@@ -15,4 +15,7 @@ class Sqrt(OpRunUnaryNum):
                                **options)
 
     def _run(self, x):  # pylint: disable=W0221
-        return (numpy.sqrt(x), )
+        if self.inplaces.get(0, False):
+            return (numpy.sqrt(x, out=x), )
+        else:
+            return (numpy.sqrt(x), )

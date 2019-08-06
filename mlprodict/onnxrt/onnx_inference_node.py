@@ -33,6 +33,7 @@ class OnnxInferenceNode:
         self.variable_to_clean = []
         self.inputs = list(self.onnx_node.input)
         self.outputs = list(self.onnx_node.output)
+        self.inplaces = []
 
     def set_order(self, order):
         """
@@ -170,3 +171,12 @@ class OnnxInferenceNode:
                     pprint.pformat(self.desc)))
         for name, value in zip(self.outputs, res):
             values[name] = value
+
+    def enable_inplace_compute(self, name):
+        """
+        Let the node know that one input can be overwritten.
+
+        @param      name        input name
+        """
+        self.inplaces.append(name)
+        self.ops_.enable_inplace_compute(self.inputs.index(name))

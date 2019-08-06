@@ -17,4 +17,10 @@ class Scaler(OpRunUnaryNum):
                                **options)
 
     def _run(self, x):  # pylint: disable=W0221
-        return ((x - self.offset) * self.scale, )
+
+        if self.inplaces.get(0, False):
+            x -= self.offset
+            x *= self.scale
+            return (x, )
+        else:
+            return ((x - self.offset) * self.scale, )

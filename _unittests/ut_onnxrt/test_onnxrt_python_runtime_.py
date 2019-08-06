@@ -42,10 +42,29 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         onx = onnx_cl('X', output_names=['Y'])
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
-        oinf = OnnxInference(model_def)
+        # no inplace
+        oinf = OnnxInference(model_def, inplace=False)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
+        # inplace
+        oinf = OnnxInference(model_def, input_inplace=False, inplace=True)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
+        # inplace2
+        onx2 = OnnxIdentity(onnx_cl('X'), output_names=['Y'])
+        model_def2 = onx2.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def2, input_inplace=False, inplace=True)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
+        # input inplace
+        expe = np_fct(X)
+        oinf = OnnxInference(model_def, input_inplace=True, inplace=True)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(expe, got['Y'], decimal=6)
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
     def common_test_onnxt_runtime_binary(self, onnx_cl, np_fct,
@@ -673,5 +692,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_topk2()
+    TestOnnxrtPythonRuntime().test_onnxt_runtime_exp()
     unittest.main()

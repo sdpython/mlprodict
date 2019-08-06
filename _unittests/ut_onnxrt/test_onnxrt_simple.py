@@ -111,6 +111,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('Ad_Addcst -> Ad_Add;', dot)
         self.assertIn('Ad_Add1 -> Y;', dot)
         self.assertIn('shape=(n, 2)', dot)
+        self.assertIn('inplace', dot)
 
     def test_onnxt_lreg(self):
         pars = dict(coefficients=numpy.array([1., 2.]), intercepts=numpy.array([1.]),
