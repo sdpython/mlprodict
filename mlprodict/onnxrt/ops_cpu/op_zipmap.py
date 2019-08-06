@@ -138,6 +138,13 @@ class ArrayZipMapDictionary(list):
 
 
 class ZipMap(OpRun):
+    """
+    The class does not output a dictionary as
+    specified in :epkg:`ONNX` specifications
+    but a @see cl ArrayZipMapDictionary which
+    is wrapper on the input so that it does not
+    get copied.
+    """
 
     atts = {'classlabels_int64s': [], 'classlabels_strings': []}
 

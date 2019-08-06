@@ -26,19 +26,31 @@ class Gemm(OpRun):
 
     @staticmethod
     def _gemm00(a, b, c, alpha, beta):
-        return numpy.dot(a, b) * alpha + c * beta
+        o = numpy.dot(a, b) * alpha
+        if beta != 0:
+            o += c * beta
+        return o
 
     @staticmethod
     def _gemm01(a, b, c, alpha, beta):
-        return numpy.dot(a, b.T) * alpha + c * beta
+        o = numpy.dot(a, b.T) * alpha
+        if beta != 0:
+            o += c * beta
+        return o
 
     @staticmethod
     def _gemm10(a, b, c, alpha, beta):
-        return numpy.dot(a.T, b) * alpha + c * beta
+        o = numpy.dot(a.T, b) * alpha
+        if beta != 0:
+            o += c * beta
+        return o
 
     @staticmethod
     def _gemm11(a, b, c, alpha, beta):
-        return numpy.dot(a.T, b.T) * alpha + c * beta
+        o = numpy.dot(a.T, b.T) * alpha
+        if beta != 0:
+            o += c * beta
+        return o
 
     def _run(self, a, b, c):  # pylint: disable=W0221
         return (self._meth(a, b, c), )
