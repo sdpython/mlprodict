@@ -62,13 +62,8 @@ a runtime in python / numpy or wraps
 into a single class. The package provides tools to compare
 predictions, to benchmark models converted with
 `sklearn-onnx <https://github.com/onnx/sklearn-onnx/tree/master/skl2onnx>`_.
-
 The second approach consists in converting
 a pipeline directly into C and is not much developed.
-
-* `GitHub/mlprodict <https://github.com/sdpython/mlprodict/>`_
-* `documentation <http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html>`_
-* `Blog <http://www.xavierdupre.fr/app/mlprodict/helpsphinx/blog/main_0000.html#ap-main-0>`_
 
 ::
 
@@ -125,3 +120,6 @@ for Linux. When this project becomes more stable,
 it will changed to be using official releases.
 Experiments with float64 are not supported with
 ``sklearn-onnx <= 1.5.0``.
+The code is available at 
+`GitHub/mlprodict <https://github.com/sdpython/mlprodict/>`_
+and has `online documentation <http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html>`_.
