@@ -402,7 +402,15 @@ def find_suitable_problem(model):
     The list is truncated. The full list can be found at
     :ref:`l-model-problem-list`.
     """
+    from ..onnx_conv.validate_scenarios import find_suitable_problem as ext_find_suitable_problem
+
     def _internal(model):
+
+        # checks that this model is not overwritten by this module
+        ext = ext_find_suitable_problem(model)
+        if ext is not None:
+            return ext
+
         # Exceptions
         if model in {GaussianProcessRegressor}:
             # m-reg causes MemoryError on some machine.

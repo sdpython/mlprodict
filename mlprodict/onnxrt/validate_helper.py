@@ -141,11 +141,15 @@ def sklearn_operators(subfolder=None, extended=False):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", ResourceWarning)
             models = register_converters(True)
+
+        done = set(_['name'] for _ in found)
         for m in models:
             name = m.__module__.split('.')
             sub = '.'.join(name[1:])
             pack = name[0]
-            found.append(dict(name=m.__name__, cl=m, package=pack, sub=sub))
+            if m.__name__ not in done:
+                found.append(
+                    dict(name=m.__name__, cl=m, package=pack, sub=sub))
     return found
 
 

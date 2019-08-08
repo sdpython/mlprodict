@@ -3,12 +3,21 @@
 """
 import unittest
 import warnings
+from xgboost import XGBRegressor, XGBClassifier
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnx_conv import register_converters
+from mlprodict.onnx_conv.validate_scenarios import find_suitable_problem
+from mlprodict.onnxrt.validate import find_suitable_problem as main_find_suitable_problem
 from mlprodict.onnxrt import sklearn_operators
 
 
 class TestRtValidateLightGbm(ExtTestCase):
+
+    def test_find_suitable_problem(self):
+        found = find_suitable_problem(XGBRegressor)
+        self.assertEqual(found, ['b-reg', '~b-reg-64'])
+        found = find_suitable_problem(XGBClassifier)
+        self.assertEqual(found, ['b-cl', 'm-cl', '~b-cl-64'])
 
     def test_register_converters(self):
 
@@ -40,6 +49,27 @@ class TestRtValidateLightGbm(ExtTestCase):
             if sub == "mlprodict.onnx_conv":
                 names = set(_['name'] for _ in models)
                 self.assertIn("LGBMClassifier", names)
+
+    def test_check_whole_model_list(self):
+        res = sklearn_operators(extended=True)
+        rows = []
+        for model in res:
+            name = model['name']
+            row = dict(name=name)
+            try:
+                prob = main_find_suitable_problem(model['cl'])
+                row['prob'] = prob
+            except RuntimeError:
+                pass
+            rows.append(row)
+        set_names = set(_['name'] for _ in rows)
+        names = list(_['name'] for _ in rows)
+        self.assertEqual(len(set_names), len(names))
+        xgb_reg = [_ for _ in rows if _['name'] == 'XGBRegressor']
+        self.assertEqual(len(xgb_reg), 1)
+        xgb_reg = xgb_reg[0]
+        exp = find_suitable_problem(XGBRegressor)
+        self.assertEqual(list(sorted(exp)), list(sorted(xgb_reg['prob'])))
 
 
 if __name__ == "__main__":

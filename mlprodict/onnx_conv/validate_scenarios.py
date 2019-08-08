@@ -47,13 +47,7 @@ def find_suitable_problem(model):
         # Not in this list
         return None
 
-    from ..onnxrt.validate_problems import _problems
     res = _internal(model)
-    if res is not None:
-        for r in res:
-            if r not in _problems:
-                raise ValueError("Unrecognized problem '{}' in\n{}".format(
-                    r, "\n".join(sorted(_problems))))
     return res
 
 

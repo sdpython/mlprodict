@@ -120,6 +120,6 @@ for Linux. When this project becomes more stable,
 it will changed to be using official releases.
 Experiments with float64 are not supported with
 ``sklearn-onnx <= 1.5.0``.
-The code is available at 
+The code is available at
 `GitHub/mlprodict <https://github.com/sdpython/mlprodict/>`_
 and has `online documentation <http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html>`_.
