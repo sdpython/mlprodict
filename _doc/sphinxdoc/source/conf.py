@@ -46,6 +46,7 @@ epkg_dictionary.update({
     'C': "https://en.wikipedia.org/wiki/C_(programming_language)",
     'cffi': "https://cffi.readthedocs.io/en/latest/",
     "DataFrame": "https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html",
+    'dot': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'DOT': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'Iris': 'https://en.wikipedia.org/wiki/Iris_flower_data_set',
     'json': 'https://docs.python.org/3/library/json.html',

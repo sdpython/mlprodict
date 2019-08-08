@@ -133,8 +133,10 @@ def sklearn_operators(subfolder=None, extended=False):
                         'Calibrated' not in cl.__name__):
                     continue
                 if issub:
+                    pack = "sklearn" if sub in sklearn__all__ else cl.__module__.split('.')[
+                        0]
                     found.append(
-                        dict(name=cl.__name__, subfolder=sub, cl=cl, package='sklearn'))
+                        dict(name=cl.__name__, subfolder=sub, cl=cl, package=pack))
 
     if extended:
         from ..onnx_conv import register_converters
