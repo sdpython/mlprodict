@@ -4,6 +4,7 @@
 The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
+from timeit import Timer
 import os
 import warnings
 from importlib import import_module
@@ -225,14 +226,27 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     return res
 
 
-def _measure_time(fct):
+def _measure_time(fct, repeat=1, number=1):
     """
     Measures the execution time for a function.
+
+    @param      fct     function to measure
+    @param      repeat  number of times to repeat
+    @param      number  number of times between two measures
+    @return             last result, average, values
     """
-    begin = perf_counter()
-    res = fct()
-    end = perf_counter()
-    return res, end - begin
+    res = None
+    values = []
+    for __ in range(repeat):
+        begin = perf_counter()
+        for _ in range(number):
+            res = fct()
+        end = perf_counter()
+        values.append(end - begin)
+    if repeat * number == 1:
+        return res, values[0], values
+    else:
+        return res, sum(values) / (repeat * number), values
 
 
 def _shape_exc(obj):
@@ -263,3 +277,69 @@ def dump_into_folder(dump_folder, obs_op=None, **kwargs):
     kwargs.update({'obs_op': obs_op})
     with open(name, "wb") as f:
         pickle.dump(kwargs, f)
+
+
+def default_time_kwargs():
+    """
+    Returns default values *number* and *repeat* to measure
+    the execution of a function.
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.onnxrt.validate_helper import default_time_kwargs
+        import pprint
+        pprint.pprint(default_time_kwargs())
+
+    keys define the number of rows,
+    values defines *number* and *repeat*.
+    """
+    return {
+        1: dict(number=30, repeat=20),
+        10: dict(number=20, repeat=20),
+        100: dict(number=8, repeat=5),
+        1000: dict(number=5, repeat=5),
+        10000: dict(number=3, repeat=3),
+        100000: dict(number=1, repeat=1),
+    }
+
+
+def measure_time(stmt, x, repeat=10, number=50, div_by_number=False):
+    """
+    Measures a statement and returns the results as a dictionary.
+
+    @param      stmt            string
+    @param      x               matrix
+    @param      repeat          average over *repeat* experiment
+    @param      number          number of executions in one row
+    @param      div_by_number   divide by the number of executions
+    @return                     dictionary
+
+    See `Timer.repeat <https://docs.python.org/3/library/timeit.html?timeit.Timer.repeat>`_
+    for a better understanding of parameter *repeat* and *number*.
+    The function returns a duration corresponding to
+    *number* times the execution of the main statement.
+    """
+    if x is None:
+        raise ValueError("x cannot be None")
+
+    try:
+        stmt(x)
+    except RuntimeError as e:
+        raise RuntimeError("{}-{}".format(type(x), x.dtype)) from e
+
+    def fct():
+        stmt(x)
+
+    tim = Timer(fct)
+    res = numpy.array(tim.repeat(repeat=repeat, number=number))
+    total = numpy.sum(res)
+    if div_by_number:
+        res /= number
+    mean = numpy.mean(res)
+    dev = numpy.mean(res ** 2)
+    dev = (dev - mean**2) ** 0.5
+    mes = dict(average=mean, deviation=dev, min_exec=numpy.min(res),
+               max_exec=numpy.max(res), repeat=repeat, number=number,
+               total=total)
+    return mes

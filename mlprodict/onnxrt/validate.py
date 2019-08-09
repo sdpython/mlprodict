@@ -4,7 +4,6 @@
 The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
-from timeit import Timer
 import numpy
 import pandas
 import sklearn
@@ -17,7 +16,8 @@ from .validate_scenarios import _extra_parameters
 from .validate_difference import measure_relative_difference
 from .validate_helper import (
     _dispsimple, get_opset_number_from_onnx, sklearn_operators,
-    to_onnx, _measure_time, _shape_exc, dump_into_folder
+    to_onnx, _measure_time, _shape_exc, dump_into_folder,
+    default_time_kwargs, measure_time
 )
 
 
@@ -93,12 +93,13 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
 
 def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
                         method_name, predict_kwargs, X_test,
-                        benchmark, debug, verbose, fLOG):
+                        benchmark, debug, verbose, time_kwargs,
+                        fLOG):
     if not check_runtime:
         return None
     if verbose >= 2 and fLOG is not None:
-        fLOG("[enumerate_compatible_opset] check_runtime SKL {}-{}-{}".format(
-            id(inst), method_name, predict_kwargs))
+        fLOG("[enumerate_compatible_opset] check_runtime SKL {}-{}-{}-{}".format(
+            id(inst), method_name, predict_kwargs, time_kwargs))
     with sklearn.config_context(assume_finite=assume_finite):
         # compute sklearn prediction
         obs['ort_version'] = ort_version
@@ -110,7 +111,7 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
             obs['_2skl_meth_exc'] = str(e)
             return e
         try:
-            ypred, t4 = _measure_time(
+            ypred, t4, ___ = _measure_time(
                 lambda: meth(X_test, **predict_kwargs))
             obs['lambda-skl'] = (lambda xo: meth(xo, **predict_kwargs), X_test)
         except (ValueError, AttributeError, TypeError, MemoryError, IndexError) as e:
@@ -122,7 +123,7 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
         obs['assume_finite'] = assume_finite
         if benchmark and 'lambda-skl' in obs:
             obs['bench-skl'] = benchmark_fct(
-                *obs['lambda-skl'], obs=obs)
+                *obs['lambda-skl'], obs=obs, time_kwargs=time_kwargs)
         if verbose >= 3 and fLOG is not None:
             fLOG("[enumerate_compatible_opset] scikit-learn prediction")
             _dispsimple(ypred, fLOG)
@@ -137,7 +138,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                store_models=False, benchmark=False,
                                assume_finite=True, node_time=False,
                                fLOG=print, filter_exp=None,
-                               verbose=0, extended_list=False):
+                               verbose=0, time_kwargs=None,
+                               extended_list=False):
     """
     Lists all compatible opsets for a specific model.
 
@@ -167,6 +169,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     @param      verbose         verbosity
     @param      extended_list   extends the list to custom converters
                                 and problems
+    @param      time_kwargs     to define a more precise way to measure a model
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
                                 problem chosen to test the conversion...
@@ -174,7 +177,20 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     The function requires :epkg:`sklearn-onnx`.
     The outcome can be seen at pages references
     by :ref:`l-onnx-availability`.
+    The parameter *time_kwargs* is a dictionary which defines the
+    number of times to repeat the same predictions in order
+    to give more precise figures. The default value (if None) is returned
+    by the following code:
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.onnxrt.validate_helper import default_time_kwargs
+        import pprint
+        pprint.pprint(default_time_kwargs())
     """
+    if time_kwargs is None:
+        time_kwargs = default_time_kwargs()
     if extended_list:
         from ..onnx_conv.validate_scenarios import find_suitable_problem as fsp_extended
         problems = fsp_extended(model)
@@ -266,7 +282,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
             ypred = _run_skl_prediction(
                 obs, check_runtime, assume_finite, inst,
                 method_name, predict_kwargs, X_test,
-                benchmark, debug, verbose, fLOG)
+                benchmark, debug, verbose, time_kwargs,
+                fLOG)
             if isinstance(ypred, Exception):
                 yield obs
                 continue
@@ -290,7 +307,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                 if verbose >= 2 and fLOG is not None:
                     fLOG("[enumerate_compatible_opset] conversion to onnx")
                 try:
-                    conv, t4 = _measure_time(fct_conv)
+                    conv, t4, ___ = _measure_time(fct_conv)
                     obs_op["convert_time"] = t4
                 except (RuntimeError, IndexError, AttributeError) as e:
                     if debug:
@@ -320,7 +337,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                         ypred=ypred, Xort_test=Xort_test,
                                         model=model, dump_folder=dump_folder,
                                         benchmark=benchmark and opset == opsets[-1],
-                                        node_time=node_time,
+                                        node_time=node_time, time_kwargs=time_kwargs,
                                         fLOG=fLOG, verbose=verbose,
                                         store_models=store_models)
                 else:
@@ -331,11 +348,11 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                   X_test, y_test, init_types, method_name, output_index,
                   ypred, Xort_test, model, dump_folder,
                   benchmark, node_time, fLOG,
-                  verbose, store_models):
+                  verbose, store_models, time_kwargs):
     """
     Private.
     """
-    ser, t5 = _measure_time(lambda: conv.SerializeToString())
+    ser, t5, ___ = _measure_time(lambda: conv.SerializeToString())
     obs_op['tostring_time'] = t5
     obs_op['runtime'] = runtime
 
@@ -343,7 +360,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if verbose >= 2 and fLOG is not None:
         fLOG("[enumerate_compatible_opset] load onnx")
     try:
-        sess, t5 = _measure_time(
+        sess, t5, ___ = _measure_time(
             lambda: OnnxInference(ser, runtime=runtime))
         obs_op['tostring_time'] = t5
     except (RuntimeError, ValueError, KeyError, IndexError) as e:
@@ -363,7 +380,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                       verbose=max(verbose - 1, 1) if debug else 0, fLOG=fLOG)
 
     try:
-        opred, t5 = _measure_time(fct_batch)
+        opred, t5, ___ = _measure_time(fct_batch)
         obs_op['ort_run_time_batch'] = t5
         obs_op['lambda-batch'] = (lambda xo: sess.run(
             {init_types[0][0]: xo}, node_time=node_time), Xort_test)
@@ -373,8 +390,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         obs_op['_6ort_run_batch_exc'] = e
     if (benchmark or node_time) and 'lambda-batch' in obs_op:
         try:
-            benres = benchmark_fct(
-                *obs_op['lambda-batch'], obs=obs_op, node_time=node_time)
+            benres = benchmark_fct(*obs_op['lambda-batch'], obs=obs_op,
+                                   node_time=node_time, time_kwargs=time_kwargs)
             obs_op['bench-batch'] = benres
         except RuntimeError as e:
             if debug:
@@ -453,7 +470,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         assume_finite=True, node_time=False,
                                         fLOG=print, filter_exp=None,
                                         versions=False, dtype=numpy.float32,
-                                        extended_list=False):
+                                        extended_list=False, time_kwargs=None):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -488,11 +505,20 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                 :epkg:`onnxruntime`, :epkg:`sklearn-onnx`
     @param      dtype           force the conversion to use that type
     @param      extended_list   also check models this module implements a converter for
+    @param      time_kwargs     to define a more precise way to measure a model
     @param      fLOG            logging function
     @return                     list of dictionaries
 
     The function is available through command line
     :ref:`validate_runtime <l-cmd-validate_runtime>`.
+    The default for *time_kwargs* is the following:
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.onnxrt.validate_helper import default_time_kwargs
+        import pprint
+        pprint.pprint(default_time_kwargs())
     """
     ops = [_ for _ in sklearn_operators(extended=extended_list)]
 
@@ -562,7 +588,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 store_models=store_models, benchmark=benchmark,
                 fLOG=fLOG, filter_exp=filter_exp,
                 assume_finite=assume_finite, node_time=node_time,
-                verbose=verbose, extended_list=extended_list):
+                verbose=verbose, extended_list=extended_list,
+                time_kwargs=time_kwargs):
 
             if verbose > 1:
                 fLOG("  ", obs)
@@ -616,6 +643,10 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                         if k in b2 and b2[k] is not None and b1[k] is not None:
                             key = 'time-ratio-N=%d' % k
                             obs[key] = b2[k]['average'] / b1[k]['average']
+                            key = 'time-ratio-N=%d-min' % k
+                            obs[key] = b2[k]['min_exec'] / b1[k]['max_exec']
+                            key = 'time-ratio-N=%d-max' % k
+                            obs[key] = b2[k]['max_exec'] / b1[k]['min_exec']
 
             obs.update(row)
             obs.update(add_versions)
@@ -691,7 +722,7 @@ def summary_report(df):
         col = piv2.iloc[:, piv2.shape[1] - 1]
         piv["ERROR-msg"] = col.apply(replace_msg)
 
-    if "time-ratio-N=1" in df.columns:
+    if any('time-ratio-' in c for c in df.columns):
         cols = [c for c in df.columns if c.startswith('time-ratio')]
         cols.sort()
 
@@ -706,6 +737,16 @@ def summary_report(df):
                 return c.replace("time-ratio-", "")
         cols = [rep(c) for c in piv.columns]
         piv.columns = cols
+
+        # min, max
+        mins = [c for c in piv.columns if c.endswith('-min')]
+        maxs = [c for c in piv.columns if c.endswith('-max')]
+        combined = []
+        for mi, ma in zip(mins, maxs):
+            combined.append(mi)
+            combined.append(ma)
+        first = [c for c in piv.columns if c not in combined]
+        piv = piv[first + combined]
 
     def clean_values(value):
         if not isinstance(value, str):
@@ -744,48 +785,8 @@ def summary_report(df):
     return piv
 
 
-def measure_time(stmt, x, repeat=10, number=50, div_by_number=False):
-    """
-    Measures a statement and returns the results as a dictionary.
-
-    @param      stmt            string
-    @param      x               matrix
-    @param      repeat          average over *repeat* experiment
-    @param      number          number of executions in one row
-    @param      div_by_number   divide by the number of executions
-    @return                     dictionary
-
-    See `Timer.repeat <https://docs.python.org/3/library/timeit.html?timeit.Timer.repeat>`_
-    for a better understanding of parameter *repeat* and *number*.
-    The function returns a duration corresponding to
-    *number* times the execution of the main statement.
-    """
-    if x is None:
-        raise ValueError("x cannot be None")
-
-    try:
-        stmt(x)
-    except RuntimeError as e:
-        raise RuntimeError("{}-{}".format(type(x), x.dtype)) from e
-
-    def fct():
-        stmt(x)
-
-    tim = Timer(fct)
-    res = numpy.array(tim.repeat(repeat=repeat, number=number))
-    total = numpy.sum(res)
-    if div_by_number:
-        res /= number
-    mean = numpy.mean(res)
-    dev = numpy.mean(res ** 2)
-    dev = (dev - mean**2) ** 0.5
-    mes = dict(average=mean, deviation=dev, min_exec=numpy.min(res),
-               max_exec=numpy.max(res), repeat=repeat, number=number,
-               total=total)
-    return mes
-
-
-def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False):
+def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
+                  time_kwargs=None):
     """
     Benchmarks a function which takes an array
     as an input and changes the number of rows.
@@ -796,26 +797,37 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False):
     @param      time_limit  above this time, measurement as stopped
     @param      obs         all information available in a dictionary
     @param      node_time   measure time execution for each node in the graph
+    @param      time_kwargs to define a more precise way to measure a model
     @return                 dictionary with the results
 
     The function uses *obs* to reduce the number of tries it does.
     :epkg:`sklearn:gaussian_process:GaussianProcessRegressor`
     produces huge *NxN* if predict method is called
     with ``return_cov=True``.
+    The default for *time_kwargs* is the following:
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.onnxrt.validate_helper import default_time_kwargs
+        import pprint
+        pprint.pprint(default_time_kwargs())
     """
+    if time_kwargs is None:
+        time_kwargs = default_time_kwargs()
 
     def make(x, n):
         if n < x.shape[0]:
             return x[:n].copy()
         elif len(x.shape) < 2:
-            r = numpy.empty((N, ), dtype=x.dtype)
-            for i in range(0, N, x.shape[0]):
-                end = min(i + x.shape[0], N)
+            r = numpy.empty((n, ), dtype=x.dtype)
+            for i in range(0, n, x.shape[0]):
+                end = min(i + x.shape[0], n)
                 r[i: end] = x[0: end - i]
         else:
-            r = numpy.empty((N, x.shape[1]), dtype=x.dtype)
-            for i in range(0, N, x.shape[0]):
-                end = min(i + x.shape[0], N)
+            r = numpy.empty((n, x.shape[1]), dtype=x.dtype)
+            for i in range(0, n, x.shape[0]):
+                end = min(i + x.shape[0], n)
                 r[i: end, :] = x[0: end - i, :]
         return r
 
@@ -827,23 +839,14 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False):
             return False
         return True
 
+    Ns = list(sorted(time_kwargs))
     res = {}
-    for N in [1, 10, 100, 1000, 10000, 100000]:
+    for N in Ns:
         if not allow(N, obs):
             continue
         x = make(X, N)
-        if N <= 10:
-            repeat = 20
-            number = 20
-        elif N <= 1000:
-            repeat = 5
-            number = 5
-        elif N <= 10000:
-            repeat = 3
-            number = 3
-        else:
-            repeat = 1
-            number = 1
+        number = time_kwargs[N]['number']
+        repeat = time_kwargs[N]['repeat']
         if node_time:
             fct(x)
             main = None

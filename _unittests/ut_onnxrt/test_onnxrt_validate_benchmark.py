@@ -51,7 +51,7 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
         logger.disabled = True
         verbose = 11 if __name__ == "__main__" else 0
         temp = get_temp_folder(
-            __file__, "temp_validate_sklearn_operators_benchmark")
+            __file__, "temp_validate_sklearn_operators_benchmark_all")
         rows = []
         for row in enumerate_validated_operator_opsets(
                 verbose, opset_min=10, benchmark=True,

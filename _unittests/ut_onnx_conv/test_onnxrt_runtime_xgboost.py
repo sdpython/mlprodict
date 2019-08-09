@@ -8,7 +8,8 @@ from xgboost import XGBRegressor, XGBClassifier
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_regression, make_classification
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+import skl2onnx
 from mlprodict.onnxrt import OnnxInference, to_onnx
 from mlprodict.onnx_conv import register_converters
 
@@ -47,6 +48,7 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
         logger.disabled = True
         register_converters()
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxrt_python_xgbregressor(self):
         nb_tests = 0
         for objective in obj_classes:

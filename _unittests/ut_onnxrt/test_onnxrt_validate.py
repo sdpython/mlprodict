@@ -33,7 +33,7 @@ class TestOnnxrtValidate(ExtTestCase):
         else:
             rows = list(enumerate_validated_operator_opsets(
                 verbose, debug=None, fLOG=fLOG, dump_folder=temp,
-                opset_min=10))
+                opset_min=10, time_kwargs={10: dict(number=2, repeat=2)}))
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
         self.assertGreater(df.shape[1], 1)
