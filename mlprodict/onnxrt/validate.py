@@ -842,6 +842,9 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
     Ns = list(sorted(time_kwargs))
     res = {}
     for N in Ns:
+        if not isinstance(N, int):
+            raise RuntimeError("time_kwargs ({}) is wrong:\n{}".format(
+                type(time_kwargs), time_kwargs))
         if not allow(N, obs):
             continue
         x = make(X, N)

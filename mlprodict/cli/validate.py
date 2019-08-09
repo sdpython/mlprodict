@@ -5,6 +5,7 @@
 import os
 from logging import getLogger
 import warnings
+import json
 from multiprocessing import Pool
 from pandas import DataFrame
 from sklearn.exceptions import ConvergenceWarning
@@ -18,7 +19,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      catch_warnings=True, assume_finite=True,
                      versions=False, skip_models=None,
                      extended_list=True, separate_process=False,
-                     fLOG=print):
+                     time_kwargs=None, fLOG=print):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -57,6 +58,9 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     :param separate_process: run every model in a separate process,
         this option must be used to run all model in one row
         even if one of them is crashing
+    :param time_kwargs: a dictionary which defines the number of rows and
+        the parameter *number* and *repeat* when benchmarking a model,
+        the value must follow :epkg:`json` format
     :param fLOG: logging function
 
     .. cmdref::
@@ -81,6 +85,14 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
 
             python -m mlprodict validate_runtime -v 1 -o 10 -op 10 -c 1 -r onnxruntime1
                    -m RandomForestRegressor,DecisionTreeRegressor -out bench_onnxruntime.xlsx -b 1
+
+    Parameter ``--time_kwargs`` may be used to reduce or increase
+    bencharmak precisions. The following value tells the function
+    to run a benchmarks with datasets of 1 or 10 number, to repeat
+    a given number of time *number* predictions in one row.
+    The total time is divided by :math:`number \\times repeat``.
+
+        -t "{\\"1\\":{\\"number\\":10,\\"repeat\\":10},\\"10\\":{\\"number\\":5,\\"repeat\\":5}}"
     """
     if separate_process:
         return _validate_runtime_separate_process(
@@ -91,7 +103,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             dump_folder=dump_folder, benchmark=benchmark,
             catch_warnings=catch_warnings, assume_finite=assume_finite,
             versions=versions, skip_models=skip_models,
-            extended_list=extended_list,
+            extended_list=extended_list, time_kwargs=time_kwargs,
             fLOG=fLOG)
 
     from ..onnxrt.validate import enumerate_validated_operator_opsets  # pylint: disable=E0402
@@ -106,6 +118,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     if dump_folder and not os.path.exists(dump_folder):
         raise FileNotFoundError("Cannot find dump_folder '{0}'.".format(
             dump_folder))
+
+    # handling parameters
     if opset_max == "":
         opset_max = None
     if isinstance(opset_min, str):
@@ -116,13 +130,24 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         verbose = int(verbose)
     if isinstance(extended_list, str):
         extended_list = extended_list in ('1', 'True', 'true')
+    if time_kwargs in (None, ''):
+        time_kwargs = None
+    if isinstance(time_kwargs, str):
+        time_kwargs = json.loads(time_kwargs)
+        # json only allows string as keys
+        time_kwargs = {int(k): v for k, v in time_kwargs.items()}
+    if time_kwargs is not None and not isinstance(time_kwargs, dict):
+        raise ValueError("time_kwargs must be a dictionary not {}\n{}".format(
+            type(time_kwargs), time_kwargs))
+
+    # body
 
     def build_rows(models_):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models=models_, fLOG=fLOG, runtime=runtime, debug=debug,
             dump_folder=dump_folder, opset_min=opset_min, opset_max=opset_max,
             benchmark=benchmark, assume_finite=assume_finite, versions=versions,
-            extended_list=extended_list,
+            extended_list=extended_list, time_kwargs=time_kwargs,
             filter_exp=lambda m, s: str(m) not in skip_models))
         return rows
 
