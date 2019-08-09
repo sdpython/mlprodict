@@ -62,7 +62,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
         exp = clr.predict_proba(X_test)
         got = pandas.DataFrame(list(y['output_probability'])).values
-        self.assertEqualArray(exp, got, decimal=5)
+        self.assertEqualArray(exp, got, decimal=3)
 
     def test_onnxrt_python_GradientBoostingClassifier3(self):
         iris = load_iris()
