@@ -294,4 +294,9 @@ if not r:
         setup_requires=["pybind11", "numpy", "onnx", "scikit-learn",
                         "jinja2"],
         install_requires=["pybind11", "numpy", "onnx>=1.5"],
-    )
+        extras_require={
+            'onnx_conv': ['scikit-learn>=0.21', 'skl2onnx>=1.5.0'],
+            'sklapi': ['scikit-learn>=0.21'],
+            'onnx_val': ['scikit-learn>=0.21', 'skl2onnx>=1.5.0'],
+        },
+        )
