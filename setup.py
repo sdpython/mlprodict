@@ -299,4 +299,4 @@ if not r:
             'sklapi': ['scikit-learn>=0.21'],
             'onnx_val': ['scikit-learn>=0.21', 'skl2onnx>=1.5.0'],
         },
-        )
+    )
