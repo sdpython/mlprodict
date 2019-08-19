@@ -24,7 +24,11 @@ class LinearRegressor(OpRunUnaryNum):
         self.coefficients = self.coefficients.reshape(self.targets, n).T
 
     def _run(self, x):  # pylint: disable=W0221
-        score = numpy.dot(x, self.coefficients)
+        if self.inplaces.get(0, False):
+            numpy.dot(x, self.coefficients, out=x[:, 0])
+            score = x[:, 0]
+        else:
+            score = numpy.dot(x, self.coefficients)
         if self.intercepts is not None:
             score += self.intercepts
         if self.post_transform == b'NONE':
