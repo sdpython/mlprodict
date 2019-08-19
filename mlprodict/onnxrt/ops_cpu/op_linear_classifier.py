@@ -7,6 +7,7 @@
 import numpy
 from scipy.special import expit  # pylint: disable=E0611
 from ._op import OpRunClassifierProb
+from ._op_numpy_helper import numpy_dot_inplace
 
 
 class LinearClassifier(OpRunClassifierProb):
@@ -35,11 +36,7 @@ class LinearClassifier(OpRunClassifierProb):
         self.coefficients = self.coefficients.reshape(self.nb_class, n).T
 
     def _run(self, x):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
-            numpy.dot(x, self.coefficients, out=x[:, 0])
-            score = x[:, 0]
-        else:
-            score = numpy.dot(x, self.coefficients)
+        score = numpy_dot_inplace(self.inplaces, x, self.coefficients)
         if self.intercepts is not None:
             score += self.intercepts
 
