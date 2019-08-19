@@ -15,14 +15,14 @@ class MatMul(OpRunBinaryNum):
 
     def _run(self, a, b):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
-            if len(b.shape) == len(a.shape) == 2 and b.shape[0] <= a.shape[1]:
+            if len(b.shape) == len(a.shape) == 2 and b.shape[1] <= a.shape[1]:
                 numpy.dot(a, b, out=a[:, :b.shape[1]])
                 return (a[:, :b.shape[1]], )
             if len(b.shape) == 1:
                 numpy.dot(a, b, out=a[:, :1])
                 return (a[:, :1], )
         if self.inplaces.get(1, False):
-            if len(b.shape) == len(a.shape) == 2 and b.shape[1] <= a.shape[0]:
+            if len(b.shape) == len(a.shape) == 2 and a.shape[0] <= b.shape[0]:
                 numpy.dot(a, b, out=b[:a.shape[0], :])
                 return (b[:a.shape[0], :], )
             if len(a.shape) == 1:
