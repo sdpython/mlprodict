@@ -100,11 +100,13 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     opset_cols.sort(reverse=True)
     opset_cols = [oc[1] for oc in opset_cols]
     new_cols = opset_cols[:1]
-    new_cols.extend([
-        "ERROR-msg", "name", "problem", "scenario",
-        "RT/SKL-N=1", "N=10", "N=100", "N=1000", "N=10000",
-        "N=100000"])
+    bench_cols = ["RT/SKL-N=1", "N=10", "N=100", "N=1000", "N=10000", "N=100000"]
+    new_cols.extend(["ERROR-msg", "name", "problem", "scenario"])
+    new_cols.extend(bench_cols)
     new_cols.extend(opset_cols[1:])
+    for c in bench_cols:
+        new_cols.append(c + '-min')
+        new_cols.append(c + '-max')
     new_cols = [_ for _ in new_cols if _ in piv.columns]
     piv = piv[new_cols]
 
