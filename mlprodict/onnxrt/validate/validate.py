@@ -9,8 +9,8 @@ import pandas
 import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.model_selection import train_test_split
-from .onnx_inference import OnnxInference
-from .. import __version__ as ort_version
+from ..onnx_inference import OnnxInference
+from ... import __version__ as ort_version
 from .validate_problems import _problems, find_suitable_problem
 from .validate_scenarios import _extra_parameters
 from .validate_difference import measure_relative_difference
@@ -192,10 +192,10 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     if time_kwargs is None:
         time_kwargs = default_time_kwargs()
     if extended_list:
-        from ..onnx_conv.validate_scenarios import find_suitable_problem as fsp_extended
+        from ...onnx_conv.validate_scenarios import find_suitable_problem as fsp_extended
         problems = fsp_extended(model)
         if problems is not None:
-            from ..onnx_conv.validate_scenarios import build_custom_scenarios as fsp_scenarios
+            from ...onnx_conv.validate_scenarios import build_custom_scenarios as fsp_scenarios
             extra_parameters = fsp_scenarios()
 
             if verbose >= 2 and fLOG is not None:

@@ -4,7 +4,7 @@
 import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.onnxrt.validate_difference import measure_relative_difference
+from mlprodict.onnxrt.validate.validate_difference import measure_relative_difference
 
 
 class TestOnnxrtValidateDifference(ExtTestCase):

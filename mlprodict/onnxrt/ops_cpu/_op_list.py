@@ -73,7 +73,7 @@ from .op_where import Where
 from .op_zipmap import ZipMap
 
 
-from ..doc_helper import get_rst_doc
+from ..doc.doc_helper import get_rst_doc
 _op_list = []
 clo = locals().copy()
 for name, cl in clo.items():

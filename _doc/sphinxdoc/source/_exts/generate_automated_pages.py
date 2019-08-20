@@ -16,13 +16,13 @@ from pyquickhelper.pycode import is_travis_or_appveyor
 from pyquickhelper.pandashelper import df2rst
 from pyquickhelper.loghelper import run_cmd
 from pyquickhelper.loghelper.run_cmd import get_interpreter_path
-from mlprodict.onnxrt.validate_helper import sklearn_operators
+from mlprodict.onnxrt.validate.validate_helper import sklearn_operators
 
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning,
                            RuntimeWarning, FutureWarning))
 def write_page_onnxrt_ops(app):
-    from mlprodict.onnxrt.doc_write_helper import compose_page_onnxrt_ops
+    from mlprodict.onnxrt.doc.doc_write_helper import compose_page_onnxrt_ops
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir if app is not None else ".."
     whe = os.path.join(os.path.abspath(srcdir), "api", "onnxrt_ops.rst")
@@ -71,7 +71,7 @@ def run_benchmark(runtime, srcdir, logger, skip, white_list=None):
 
 def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
-    from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
+    from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets, summary_report
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir if app is not None else ".."
 
@@ -174,7 +174,7 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
         (ONNX, scikit-learn) and it would take too long to go further.
         The list of problems can be found in the documentation of
         function :func:`find_suitable_problem
-        <mlprodict.onnxrt.validate_problems.find_suitable_problem>`.
+        <mlprodict.onnxrt.validate.validate_problems.find_suitable_problem>`.
         The benchmark can be generated with a command line:
 
         ::

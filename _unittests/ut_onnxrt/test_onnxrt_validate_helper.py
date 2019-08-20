@@ -5,9 +5,9 @@ import unittest
 from pandas import DataFrame
 from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.pandashelper import df2rst
-from mlprodict.onnxrt.validate import sklearn_operators
-from mlprodict.onnxrt.validate_problems import find_suitable_problem
-from mlprodict.onnxrt.validate_helper import modules_list
+from mlprodict.onnxrt.validate.validate import sklearn_operators
+from mlprodict.onnxrt.validate.validate_problems import find_suitable_problem
+from mlprodict.onnxrt.validate.validate_helper import modules_list
 
 
 class TestOnnxrtValidateHelper(ExtTestCase):

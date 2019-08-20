@@ -150,7 +150,7 @@ def get_rst_doc(op_name):
     The function relies on module :epkg:`jinja2` or replaces it
     with a simple rendering if not present.
     """
-    from .ops_cpu._op import _schemas
+    from ..ops_cpu._op import _schemas
     schemas = [_schemas.get(op_name, NewOperatorSchema(op_name))]
 
     def format_name_with_domain(sch):
@@ -363,7 +363,7 @@ def visual_rst_template():
 
     Fitted on a problem type *{{ kind }}*
     (see :func:`find_suitable_problem
-    <mlprodict.onnxrt.validate_problems.find_suitable_problem>`),
+    <mlprodict.onnxrt.validate.validate_problems.find_suitable_problem>`),
     method {{ method }} matches output {{ output_index }}.
 
     ::

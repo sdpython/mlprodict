@@ -17,7 +17,7 @@ try:
 except ImportError:
     convert_kernel = None
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.side_by_side import side_by_side_by_values
+from mlprodict.onnxrt.validate.side_by_side import side_by_side_by_values
 
 
 Xtest_ = pandas.read_csv(StringIO("""

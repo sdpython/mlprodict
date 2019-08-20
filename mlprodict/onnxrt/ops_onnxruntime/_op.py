@@ -9,7 +9,7 @@ from onnx.helper import make_tensor
 from onnx import TensorProto
 from onnxruntime import InferenceSession, SessionOptions, RunOptions
 import skl2onnx.algebra.onnx_ops as alg
-from ..graph_schema_helper import get_defined_inputs, get_defined_outputs
+from ..optim.graph_schema_helper import get_defined_inputs, get_defined_outputs
 
 
 _schemas = {

@@ -9,10 +9,10 @@ from sklearn.utils.testing import ignore_warnings
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 import skl2onnx
-from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, sklearn_operators
-from mlprodict.onnxrt.validate import sklearn__all__
+from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets, sklearn_operators
+from mlprodict.onnxrt.validate.validate import sklearn__all__
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.doc_write_helper import enumerate_visual_onnx_representation_into_rst
+from mlprodict.onnxrt.doc.doc_write_helper import enumerate_visual_onnx_representation_into_rst
 
 
 class TestOnnxrtValidateDocumentation(ExtTestCase):

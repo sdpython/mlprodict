@@ -17,8 +17,8 @@ def generate_dot_converters(app):
     Creates visual representation of each converters
     implemented in :epkg:`sklearn-onnx`.
     """
-    from mlprodict.onnxrt.validate import sklearn_operators, sklearn__all__
-    from mlprodict.onnxrt.doc_write_helper import enumerate_visual_onnx_representation_into_rst
+    from mlprodict.onnxrt.validate.validate import sklearn_operators, sklearn__all__
+    from mlprodict.onnxrt.doc.doc_write_helper import enumerate_visual_onnx_representation_into_rst
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir
     whe = os.path.join(os.path.abspath(srcdir), "skl_converters")

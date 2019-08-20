@@ -402,7 +402,7 @@ def find_suitable_problem(model):
     The list is truncated. The full list can be found at
     :ref:`l-model-problem-list`.
     """
-    from ..onnx_conv.validate_scenarios import find_suitable_problem as ext_find_suitable_problem
+    from ...onnx_conv.validate_scenarios import find_suitable_problem as ext_find_suitable_problem
 
     def _internal(model):
 

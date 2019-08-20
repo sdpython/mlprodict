@@ -72,7 +72,7 @@ contains concatenated flags whose meaning is the following:
 The model are tested through simple problems using the Iris dataset.
 The datasets is split into train test datasets.
 Function :func:`find_suitable_problem
-<mlprodict.onnxrt.validate_problems.find_suitable_problem>` gives
+<mlprodict.onnxrt.validate.validate_problems.find_suitable_problem>` gives
 the list of problem every :epkg:`scikit-learn` is tested on.
 The main ones are the following:
 

@@ -8,7 +8,7 @@ from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, MinMaxScaler
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.onnxrt.sklearn_helper import enumerate_pipeline_models
+from mlprodict.onnxrt.optim.sklearn_helper import enumerate_pipeline_models
 
 
 class TestSklearnHelper(ExtTestCase):

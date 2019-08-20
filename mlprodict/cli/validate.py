@@ -200,7 +200,7 @@ def _validate_runtime_dict(kwargs):
 def _validate_runtime_separate_process(**kwargs):
     models = kwargs['models']
     if models in (None, ""):
-        from ..onnxrt.validate_helper import sklearn_operators
+        from ..onnxrt.validate.validate_helper import sklearn_operators
         models = [_['name'] for _ in sklearn_operators(extended=True)]
     else:
         models = models.strip().split(',')

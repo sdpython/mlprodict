@@ -7,10 +7,10 @@ from textwrap import indent, dedent
 from jinja2 import Template
 from sklearn.linear_model import LinearRegression
 from pyquickhelper.loghelper import noLOG
-from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, sklearn_operators
-from mlprodict.onnxrt.validate import get_opset_number_from_onnx, sklearn__all__
-from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.doc_helper import visual_rst_template
+from ..validate.validate import enumerate_validated_operator_opsets, sklearn_operators
+from ..validate.validate import get_opset_number_from_onnx, sklearn__all__
+from ..onnx_inference import OnnxInference
+from .doc_helper import visual_rst_template
 
 
 def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
@@ -80,7 +80,7 @@ def compose_page_onnxrt_ops(level="^"):
     ++++++
 
     """)
-    from .ops_cpu._op_list import _op_list
+    from ..ops_cpu._op_list import _op_list
 
     names = []
     for op in _op_list:

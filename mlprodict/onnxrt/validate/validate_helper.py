@@ -15,7 +15,7 @@ import onnx
 from sklearn.base import BaseEstimator
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType, DataType
-from .rewritten_converters import register_rewritten_operators
+from ..conv.rewritten_converters import register_rewritten_operators
 
 
 def modules_list():
@@ -140,7 +140,7 @@ def sklearn_operators(subfolder=None, extended=False):
                         dict(name=cl.__name__, subfolder=sub, cl=cl, package=pack))
 
     if extended:
-        from ..onnx_conv import register_converters
+        from ...onnx_conv import register_converters
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", ResourceWarning)
             models = register_converters(True)

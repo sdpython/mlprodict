@@ -43,7 +43,7 @@ of modules below:
 Every model is tested through a defined list of standard
 problems created from the :epkg:`Iris` dataset. Function
 :func:`find_suitable_problem
-<mlprodict.onnxrt.validate_problems.find_suitable_problem>`
+<mlprodict.onnxrt.validate.validate_problems.find_suitable_problem>`
 describes the list of considered problems.
 
 .. runpython::

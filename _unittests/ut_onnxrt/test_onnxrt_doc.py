@@ -3,8 +3,8 @@
 """
 import unittest
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.onnxrt.doc_helper import get_rst_doc, debug_onnx_object, type_mapping
-from mlprodict.onnxrt.doc_write_helper import compose_page_onnxrt_ops
+from mlprodict.onnxrt.doc.doc_helper import get_rst_doc, debug_onnx_object, type_mapping
+from mlprodict.onnxrt.doc.doc_write_helper import compose_page_onnxrt_ops
 from mlprodict.onnxrt.ops_cpu._op import _schemas
 from mlprodict.onnxrt.ops_cpu.op_add import Add as opAdd
 

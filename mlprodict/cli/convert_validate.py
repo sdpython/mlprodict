@@ -10,7 +10,7 @@ import numpy
 from pandas import read_csv
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from ..onnxrt import OnnxInference, to_onnx
-from ..onnxrt.validate_difference import measure_relative_difference
+from ..onnxrt.validate.validate_difference import measure_relative_difference
 
 
 def convert_validate(pkl, data, method="predict",
@@ -32,7 +32,7 @@ def convert_validate(pkl, data, method="predict",
         'python', 'onnxruntime1' or 'onnxruntime2'
     :param metric: the metric 'l1med' is given by function
         :func:`measure_relative_difference
-        <mlprodict.onnxrt.validate_difference.measure_relative_difference>`
+        <mlprodict.onnxrt.validate.validate_difference.measure_relative_difference>`
     :param noshape: run the conversion with no shape information
     :param use_double: use double for the runtime if possible,
         two possible options, ``"float64"`` or ``'switch'``,

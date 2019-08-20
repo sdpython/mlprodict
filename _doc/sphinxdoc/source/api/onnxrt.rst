@@ -31,11 +31,11 @@ ONNX Structure
 Validation
 ++++++++++
 
-.. autosignature:: mlprodict.onnxrt.validate.enumerate_validated_operator_opsets
+.. autosignature:: mlprodict.onnxrt.validate.validate.enumerate_validated_operator_opsets
 
-.. autosignature:: mlprodict.onnxrt.side_by_side.side_by_side_by_values
+.. autosignature:: mlprodict.onnxrt.validate.side_by_side.side_by_side_by_values
 
-.. autosignature:: mlprodict.onnxrt.validate.summary_report
+.. autosignature:: mlprodict.onnxrt.validate.validate.summary_report
 
 .. autosignature:: mlprodict.onnxrt.model_checker.onnx_shaker
 

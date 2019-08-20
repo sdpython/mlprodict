@@ -6,7 +6,7 @@ from IPython.core.magic import magics_class, line_magic
 from jyquickhelper import RenderJsDot
 from pyquickhelper.ipythonhelper import MagicCommandParser, MagicClassWithHelpers
 from pyquickhelper.cli.cli_helper import create_cli_parser
-from .onnx_inference import OnnxInference
+from ..onnx_inference import OnnxInference
 
 
 def onnxview(graph, recursive=False, local=False, add_rt_shapes=False):
@@ -45,7 +45,7 @@ class OnnxNotebook(MagicClassWithHelpers):
             :title: onnxview
 
             The magic command ``%onnxview model_onnx`` is equivalent to function
-            :func:`onnxview <mlprodict.onnxrt.nb_helper.onnxview>`:
+            :func:`onnxview <mlprodict.onnxrt.doc.nb_helper.onnxview>`:
 
             ::
 

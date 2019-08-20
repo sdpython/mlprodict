@@ -7,7 +7,7 @@ from xgboost import XGBRegressor, XGBClassifier
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnx_conv import register_converters
 from mlprodict.onnx_conv.validate_scenarios import find_suitable_problem
-from mlprodict.onnxrt.validate import find_suitable_problem as main_find_suitable_problem
+from mlprodict.onnxrt.validate.validate import find_suitable_problem as main_find_suitable_problem
 from mlprodict.onnxrt import sklearn_operators
 
 

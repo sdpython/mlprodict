@@ -16,7 +16,7 @@ import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnxrt import OnnxInference, to_onnx
-from mlprodict.onnxrt.sklearn_helper import enumerate_fitted_arrays, pairwise_array_distances
+from mlprodict.onnxrt.optim.sklearn_helper import enumerate_fitted_arrays, pairwise_array_distances
 
 
 class TestOnnxrtSwitchTypes(ExtTestCase):

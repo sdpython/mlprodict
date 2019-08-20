@@ -14,7 +14,6 @@ from onnx.helper import make_model
 from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_manipulations import select_model_inputs_outputs, enumerate_model_node_outputs
 from .onnx2py_helper import _var_as_dict
-from .sklearn_helper import enumerate_fitted_arrays, pairwise_array_distances
 from .shape_object import ShapeObject
 from .onnx_inference_exports import OnnxInferenceExport
 
@@ -560,6 +559,8 @@ class OnnxInference:
         @param      dtype_out   next type
         @return                 done operations
         """
+        from .optim.sklearn_helper import enumerate_fitted_arrays, pairwise_array_distances
+
         if self.runtime != 'python':
             raise RuntimeError("Initializers can be casted only if the "
                                "runtime is 'python' not '{}'.".format(self.runtime))

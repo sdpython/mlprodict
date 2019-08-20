@@ -12,9 +12,9 @@ from sklearn.utils.testing import ignore_warnings
 from sklearn.model_selection import train_test_split
 import skl2onnx
 from mlprodict.onnxrt import OnnxInference, to_onnx
-from mlprodict.onnxrt.validate import sklearn_operators, enumerate_validated_operator_opsets
-from mlprodict.onnxrt.validate_problems import _problems
-from mlprodict.onnxrt.validate_difference import measure_relative_difference
+from mlprodict.onnxrt.validate.validate import sklearn_operators, enumerate_validated_operator_opsets
+from mlprodict.onnxrt.validate.validate_problems import _problems
+from mlprodict.onnxrt.validate.validate_difference import measure_relative_difference
 
 
 class TestRtValidateGradientBoosting(ExtTestCase):

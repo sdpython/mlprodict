@@ -36,5 +36,5 @@ def load_ipython_extension(ip):
 
     @param      ip      from ``get_ipython()``
     """
-    from .onnxrt.nb_helper import register_onnx_magics as freg
+    from .onnxrt.doc.nb_helper import register_onnx_magics as freg
     freg(ip)
