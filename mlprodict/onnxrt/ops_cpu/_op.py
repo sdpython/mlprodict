@@ -78,7 +78,7 @@ class OpRun:
             if k in {'desc', 'onnx_node'}:
                 continue
             if 'a' <= k[0] <= 'z' and k[-1] != '_':
-                atts.append('    {0}={1}'.format(k, v))
+                atts.append('    {0}={1},'.format(k, v))
         atts.append(')')
         return "\n".join(atts)
 

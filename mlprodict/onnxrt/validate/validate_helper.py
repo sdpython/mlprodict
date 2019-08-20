@@ -177,7 +177,10 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     @return                     converted model
 
     The function rewrites function *to_onnx* from :epkg:`sklearn-onnx`
-    but may changes a few converters if
+    but may changes a few converters if *rewrite_ops* is True.
+    For example, :epkg:`ONNX` only supports *TreeEnsembleRegressor*
+    for float but not for double. It becomes available
+    if ``dtype=numpy.float64`` and ``rewrite_ops=True``.
     """
     from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
     from skl2onnx.algebra.type_helper import guess_initial_types

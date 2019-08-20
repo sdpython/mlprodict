@@ -338,6 +338,8 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
     for (size_t j = 0; j < roots_.size(); j++) {
       //walk each tree from its root
       ProcessTreeNode(scores, roots_[j], x_data, current_weight_0);
+      // printf(" i=%d: tree %d: %f, %f, %f\n", i, j, 
+      //           std::get<0>(scores[0]), std::get<1>(scores[0]), std::get<2>(scores[0]));
     }
     //find aggregate, could use a heap here if there are many classes
     std::vector<NTYPE> outputs;
@@ -356,6 +358,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
           val += std::get<2>(scores[j]);  // third element of tuple is max
         }
       }
+      // printf("-i=%d val=%f\n", i, val);
       outputs.push_back(val);
     }
     write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_), -1);
