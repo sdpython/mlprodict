@@ -422,9 +422,13 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
 
     def _run(self, a, b):  # pylint: disable=W0221
         if self.inplaces.get(0, False) and a.size >= b.size:
+            if len(a.shape) == 1 and b.shape == (1, 1):
+                a = a.reshape(1, a.shape[0])
             self.numpy_fct(a, b, out=a)
             return (a, )
         if self.inplaces.get(1, False) and a.size <= b.size:
+            if len(b.shape) == 1 and a.shape == (1, 1):
+                b = b.reshape(b.shape[0], 1)
             self.numpy_fct(a, b, out=b)
             return (b, )
         return (self.numpy_fct(a, b), )
