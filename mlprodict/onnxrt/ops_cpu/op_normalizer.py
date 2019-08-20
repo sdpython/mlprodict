@@ -27,21 +27,36 @@ class Normalizer(OpRunUnaryNum):
                 "Unexpected value for norm='{}'.".format(self.norm))  # pylint: disable=E1101
 
     @staticmethod
-    def norm_max(x):
+    def norm_max(x, inplace):
         "max normalization"
-        return x / numpy.abs(x).max(axis=1).reshape((x.shape[0], -1))
+        if inplace:
+            numpy.divide(x, numpy.abs(x).max(axis=1).reshape((x.shape[0], -1)),
+                         out=x)
+            return x
+        else:
+            return x / numpy.abs(x).max(axis=1).reshape((x.shape[0], -1))
 
     @staticmethod
-    def norm_l1(x):
+    def norm_l1(x, inplace):
         "L1 normalization"
-        return x / numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1))
+        if inplace:
+            numpy.divide(x, numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1)),
+                         out=x)
+            return x
+        else:
+            return x / numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1))
 
     @staticmethod
-    def norm_l2(x):
+    def norm_l2(x, inplace):
         "L2 normalization"
-        norm = numpy.sqrt(numpy.square(x).sum(
-            axis=1)).reshape((x.shape[0], -1))
-        return x / norm
+        xn = numpy.square(x).sum(axis=1)
+        numpy.sqrt(xn, out=xn)
+        norm = xn.reshape((x.shape[0], -1))
+        if inplace:
+            numpy.divide(x, norm, out=x)
+            return x
+        else:
+            return x / norm
 
     def _run(self, x):  # pylint: disable=W0221
-        return (self._norm(x), )
+        return (self._norm(x, inplace=self.inplaces.get(0, False)), )
