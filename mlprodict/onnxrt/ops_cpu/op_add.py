@@ -4,13 +4,12 @@
 @file
 @brief Runtime operator.
 """
-from ._op import OpRunBinaryNum
+import numpy
+from ._op import OpRunBinaryNumpy
 
 
-class Add(OpRunBinaryNum):
+class Add(OpRunBinaryNumpy):
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRunBinaryNum.__init__(self, onnx_node, desc=desc, **options)
-
-    def _run(self, a, b):  # pylint: disable=W0221
-        return (a + b, )
+        OpRunBinaryNumpy.__init__(self, numpy.add, onnx_node,
+                                  desc=desc, **options)

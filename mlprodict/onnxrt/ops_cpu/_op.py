@@ -403,3 +403,28 @@ class OpRunBinaryNum(OpRunBinary):
         Calls method ``_run``.
         """
         return OpRunBinary._run_no_checks_(self, x, y)
+
+
+class OpRunBinaryNumpy(OpRunBinaryNum):
+    """
+    Implements the inplaces logic.
+    *numpy_fct* is a binary numpy function which
+    takes two matrices and has a argument *out*
+    for inplace operations.
+    """
+
+    def __init__(self, numpy_fct, onnx_node, desc=None,
+                 expected_attributes=None, **options):
+        OpRunBinaryNum.__init__(self, onnx_node, desc=desc,
+                                expected_attributes=expected_attributes,
+                                **options)
+        self.numpy_fct = numpy_fct
+
+    def _run(self, a, b):  # pylint: disable=W0221
+        if self.inplaces.get(0, False) and a.size >= b.size:
+            self.numpy_fct(a, b, out=a)
+            return (a, )
+        if self.inplaces.get(1, False) and a.size <= b.size:
+            self.numpy_fct(a, b, out=b)
+            return (b, )
+        return (self.numpy_fct(a, b), )

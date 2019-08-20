@@ -5,13 +5,11 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRunBinaryNum
+from ._op import OpRunBinaryNumpy
 
 
-class Sub(OpRunBinaryNum):
+class Sub(OpRunBinaryNumpy):
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRunBinaryNum.__init__(self, onnx_node, desc=desc, **options)
-
-    def _run(self, a, b):  # pylint: disable=W0221
-        return (numpy.subtract(a, b), )
+        OpRunBinaryNumpy.__init__(self, numpy.subtract, onnx_node,
+                                  desc=desc, **options)
