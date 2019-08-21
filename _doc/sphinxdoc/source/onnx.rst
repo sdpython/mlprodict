@@ -33,7 +33,7 @@ of modules below:
     :showcode:
     :rst:
 
-    from mlprodict.onnxrt.validate_helper import modules_list
+    from mlprodict.onnxrt.validate.validate_helper import modules_list
     from pyquickhelper.pandashelper import df2rst
     from pandas import DataFrame
     print(df2rst(DataFrame(modules_list())))

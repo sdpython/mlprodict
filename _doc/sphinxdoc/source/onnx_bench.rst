@@ -35,7 +35,7 @@ of modules below:
     :showcode:
     :rst:
 
-    from mlprodict.onnxrt.validate_helper import modules_list
+    from mlprodict.onnxrt.validate.validate_helper import modules_list
     from pyquickhelper.pandashelper import df2rst
     from pandas import DataFrame
     print(df2rst(DataFrame(modules_list())))
@@ -50,7 +50,7 @@ describes the list of considered problems.
     :showcode:
     :rst:
 
-    from mlprodict.onnxrt.validate import sklearn_operators, find_suitable_problem
+    from mlprodict.onnxrt.validate.validate import sklearn_operators, find_suitable_problem
     from pyquickhelper.pandashelper import df2rst
     from pandas import DataFrame
     res = sklearn_operators(extended=True)

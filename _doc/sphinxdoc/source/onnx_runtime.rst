@@ -84,7 +84,7 @@ The main ones are the following:
 * *num-tr*: no label, only numerical features
 
 The full list is given by :func:`find_suitable_problem
-<mlprodict.onnxrt.validate_problems.find_suitable_problem>`.
+<mlprodict.onnxrt.validate.validate_problems.find_suitable_problem>`.
 Next table tracks what is available,
 what is working and some indication about
 the cause of the error if it does not work.
@@ -100,7 +100,7 @@ the cause of the error if it does not work.
     from pyquickhelper.pandashelper import df2rst
     from sklearn.exceptions import ConvergenceWarning
     from sklearn.utils.testing import ignore_warnings
-    from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
+    from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets, summary_report
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning, FutureWarning))
     def build_table():
@@ -147,7 +147,7 @@ We create a table similar to :ref:`l-onnx-pyrun-tbl`.
     from pyquickhelper.pandashelper import df2rst
     from sklearn.exceptions import ConvergenceWarning
     from sklearn.utils.testing import ignore_warnings
-    from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
+    from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets, summary_report
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning, FutureWarning))
     def build_table():
@@ -198,7 +198,7 @@ object to :epkg:`ONNX`. We create a table similar to
     from pyquickhelper.pandashelper import df2rst
     from sklearn.exceptions import ConvergenceWarning
     from sklearn.utils.testing import ignore_warnings
-    from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
+    from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets, summary_report
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning, FutureWarning))
     def build_table():

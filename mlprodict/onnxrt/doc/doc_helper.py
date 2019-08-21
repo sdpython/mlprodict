@@ -17,7 +17,7 @@ def type_mapping(name):
     .. runpython::
         :showcode:
 
-        from mlprodict.onnxrt.doc_helper import type_mapping
+        from mlprodict.onnxrt.doc.doc_helper import type_mapping
         import pprint
         pprint.pprint(type_mapping(None))
         print(type_mapping("INT"))
@@ -351,7 +351,7 @@ def visual_rst_template():
     .. runpython::
         :showcode:
 
-        from mlprodict.onnxrt.doc_helper import visual_rst_template
+        from mlprodict.onnxrt.doc.doc_helper import visual_rst_template
         print(visual_rst_template())
     """
     return textwrap.dedent("""
