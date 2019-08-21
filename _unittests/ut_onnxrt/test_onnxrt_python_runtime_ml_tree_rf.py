@@ -100,7 +100,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"RandomForestRegressor"}, opset_min=10, opset_max=11, fLOG=myprint,
+            verbose, models={"RandomForestRegressor"}, opset_min=10, fLOG=myprint,
             runtime='python', debug=debug, filter_exp=lambda m, p: p == "~b-reg-64"))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
