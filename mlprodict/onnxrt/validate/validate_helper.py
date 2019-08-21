@@ -26,7 +26,7 @@ def modules_list():
         :showcode:
         :rst:
 
-        from mlprodict.onnxrt.validate_helper import modules_list
+        from mlprodict.onnxrt.validate.validate_helper import modules_list
         from pyquickhelper.pandashelper import df2rst
         from pandas import DataFrame
         print(df2rst(DataFrame(modules_list())))
@@ -290,7 +290,7 @@ def default_time_kwargs():
     .. runpython::
         :showcode:
 
-        from mlprodict.onnxrt.validate_helper import default_time_kwargs
+        from mlprodict.onnxrt.validate.validate_helper import default_time_kwargs
         import pprint
         pprint.pprint(default_time_kwargs())
 

@@ -28,7 +28,7 @@ def build_custom_scenarios():
     .. runpython::
         :showcode:
 
-        from mlprodict.onnxrt.validate_scenarios import build_custom_scenarios
+        from mlprodict.onnxrt.validate.validate_scenarios import build_custom_scenarios
         import pprint
         pprint.pprint(build_custom_scenarios())
     """

@@ -29,7 +29,7 @@ def enumerate_pipeline_models(pipe, coor=None, vs=None):
         from sklearn.linear_model import LogisticRegression
         from sklearn.pipeline import make_pipeline
         from sklearn.model_selection import train_test_split
-        from mlprodict.onnxrt.sklearn_helper import enumerate_pipeline_models
+        from mlprodict.onnxrt.optim.sklearn_helper import enumerate_pipeline_models
 
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -104,7 +104,7 @@ def enumerate_fitted_arrays(model):
         from sklearn.linear_model import LogisticRegression
         from sklearn.pipeline import make_pipeline
         from sklearn.model_selection import train_test_split
-        from mlprodict.onnxrt.sklearn_helper import enumerate_fitted_arrays
+        from mlprodict.onnxrt.optim.sklearn_helper import enumerate_fitted_arrays
 
         iris = load_iris()
         X, y = iris.data, iris.target

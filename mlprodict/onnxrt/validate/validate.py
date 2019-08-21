@@ -185,7 +185,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     .. runpython::
         :showcode:
 
-        from mlprodict.onnxrt.validate_helper import default_time_kwargs
+        from mlprodict.onnxrt.validate.validate_helper import default_time_kwargs
         import pprint
         pprint.pprint(default_time_kwargs())
     """
@@ -516,7 +516,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     .. runpython::
         :showcode:
 
-        from mlprodict.onnxrt.validate_helper import default_time_kwargs
+        from mlprodict.onnxrt.validate.validate_helper import default_time_kwargs
         import pprint
         pprint.pprint(default_time_kwargs())
     """
@@ -809,7 +809,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
     .. runpython::
         :showcode:
 
-        from mlprodict.onnxrt.validate_helper import default_time_kwargs
+        from mlprodict.onnxrt.validate.validate_helper import default_time_kwargs
         import pprint
         pprint.pprint(default_time_kwargs())
     """
