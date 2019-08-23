@@ -284,8 +284,8 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
             nb = ru.omp_get_max_threads()
             self.assertGreater(nb, 0)
 
-        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_ import RuntimeTreeEnsembleClassifier  # pylint: disable=E0611
-        ru = RuntimeTreeEnsembleClassifier()
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_ import RuntimeTreeEnsembleClassifierFloat  # pylint: disable=E0611
+        ru = RuntimeTreeEnsembleClassifierFloat()
         r = ru.runtime_options()
         if platform.system().lower() == 'darwin':
             # openmp disabled
