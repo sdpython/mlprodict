@@ -1,4 +1,10 @@
 
+.. image:: https://github.com/sdpython/mlprodict/blob/master/_doc/sphinxdoc/source/phdoc_static/project_ico.png?raw=true
+    :target: https://github.com/sdpython/mlprodict/
+
+mlprodict
+=========
+
 .. image:: https://travis-ci.org/sdpython/mlprodict.svg?branch=master
     :target: https://travis-ci.org/sdpython/mlprodict
     :alt: Build status
@@ -51,9 +57,6 @@
     :target: https://mybinder.org/v2/gh/sdpython/mlprodict/master?filepath=_doc%2Fnotebooks
 
 .. _l-README:
-
-mlprodict
-=========
 
 The packages explores ways to productionize machine learning predictions.
 One approach uses *ONNX* and tries to implement

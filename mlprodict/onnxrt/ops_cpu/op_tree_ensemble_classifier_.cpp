@@ -377,12 +377,22 @@ py::tuple RuntimeTreeEnsembleClassifier<NTYPE>::compute(py::array_t<NTYPE> X) co
 }
 
 
+py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float>& Z) {
+    return Z.mutable_unchecked<1>();
+}
+
+
+py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double>& Z) {
+    return Z.mutable_unchecked<1>();
+}
+
+
 template<typename NTYPE>
 void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                 const py::array_t<NTYPE>& X, py::array_t<int64_t>& Y, py::array_t<NTYPE>& Z) const {
     auto Y_ = Y.mutable_unchecked<1>();
-    auto Z_ = Z.mutable_unchecked<1>();
+    auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
     const NTYPE* x_data = X.data(0);
 
     // for each class
