@@ -416,7 +416,7 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
         int write_additional_scores = -1;
         if (class_count_ > 2) {
             // add base values
-            std::map<int64_t, NTYPE>::iterator it_classes;
+            std::map<int64_t, typename NTYPE>::iterator it_classes;
             for (int64_t k = 0, end = static_cast<int64_t>(base_values_.size()); k < end; ++k) {
                 it_classes = classes.find(k);
                 if (it_classes == classes.end()) {
@@ -433,7 +433,7 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
         else { // binary case
             if (base_values_.size() == 2) {
                 // add base values
-                std::map<int64_t, NTYPE>::iterator it_classes;
+                std::map<int64_t, typename NTYPE>::iterator it_classes;
                 it_classes = classes.find(1);
                 if (it_classes == classes.end()) {
                     // base_value_[0] is not used. It assumes base_value[0] == base_value[1] in this case.
