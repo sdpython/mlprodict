@@ -31,7 +31,8 @@ def convert_sklearn_decision_tree_regressor(scope, operator, container):
     attrs = get_default_tree_regressor_attribute_pairs()
     attrs['name'] = scope.get_unique_operator_name(op_type)
     attrs['n_targets'] = int(op.n_outputs_)
-    add_tree_to_attribute_pairs(attrs, False, op.tree_, 0, 1., 0, False)
+    add_tree_to_attribute_pairs(attrs, False, op.tree_, 0, 1., 0, False,
+                                True, dtype=container.dtype)
 
     input_name = operator.input_full_names
     if type(operator.inputs[0].type) == Int64TensorType:
@@ -91,7 +92,7 @@ def convert_sklearn_gradient_boosting_regressor(scope, operator, container):
         tree = op.estimators_[i][0].tree_
         tree_id = i
         add_tree_to_attribute_pairs(attrs, False, tree, tree_id, tree_weight,
-                                    0, False)
+                                    0, False, True, dtype=container.dtype)
 
     input_name = operator.input_full_names
     if type(operator.inputs[0].type) == Int64TensorType:
@@ -134,7 +135,8 @@ def convert_sklearn_random_forest_regressor_converter(scope, operator, container
     for tree_id in range(estimtator_count):
         tree = op.estimators_[tree_id].tree_
         add_tree_to_attribute_pairs(attrs, False, tree, tree_id,
-                                    tree_weight, 0, False)
+                                    tree_weight, 0, False, True,
+                                    dtype=container.dtype)
 
     input_name = operator.input_full_names
     if type(operator.inputs[0].type) == Int64TensorType:

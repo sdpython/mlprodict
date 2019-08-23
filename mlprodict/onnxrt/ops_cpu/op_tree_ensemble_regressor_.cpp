@@ -87,11 +87,16 @@ class RuntimeTreeEnsembleRegressor
         void ProcessTreeNode(std::unordered_map <int64_t, std::tuple<NTYPE, NTYPE, NTYPE>>& classes,
                              int64_t treeindex,
                              const NTYPE* x_data,
-                             int64_t feature_base) const;
+                             int64_t feature_base,
+                             bool debug=false) const;
     
         std::string runtime_options();
 
         int omp_get_max_threads();
+        
+        py::array_t<int> debug_threshold(py::array_t<NTYPE> values) const;
+
+        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> values, bool debug=false) const;
 
 private:
 
@@ -193,12 +198,10 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::Initialize() {
     }
     int64_t offset = tree_offsets[tree_offsets.size() - 1];
     nodes_nodeids_[i] = nodes_nodeids_[i] - offset;
-    if (nodes_falsenodeids_[i] >= 0) {
+    if (nodes_falsenodeids_[i] >= 0)
       nodes_falsenodeids_[i] = nodes_falsenodeids_[i] - offset;
-    }
-    if (nodes_truenodeids_[i] >= 0) {
+    if (nodes_truenodeids_[i] >= 0)
       nodes_truenodeids_[i] = nodes_truenodeids_[i] - offset;
-    }
   }
   for (size_t i = 0; i < target_nodeids_.size(); i++) {
     int64_t offset = tree_offsets[target_treeids_[i]];
@@ -238,6 +241,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::Initialize() {
   //treenode ids, some are roots, and roots have no parents
   std::unordered_map<int64_t, size_t> parents;  //holds count of all who point to you
   std::unordered_map<int64_t, size_t> indices;
+  std::unordered_map<int64_t, size_t> tree_ids;
   //add all the nodes to a map, and the ones that have parents are not roots
   std::unordered_map<int64_t, size_t>::iterator it;
   size_t start_counter = 0L;
@@ -246,6 +250,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::Initialize() {
     int64_t id = nodes_treeids_[i] * four_billion_ + nodes_nodeids_[i];
     auto p3 = std::make_pair(id, i);  // i is the position
     indices.insert(p3);
+    tree_ids.insert(std::make_pair(id, nodes_treeids_[i]));
     it = parents.find(id);
     if (it == parents.end()) {
       //start counter at 0
@@ -277,6 +282,16 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::Initialize() {
       int64_t id = parent.first;
       it = indices.find(id);
       roots_.push_back(it->second);
+    }
+  }
+  // bad implementation, one loop is enough.
+  int tid;
+  for (auto& parent : parents) {
+    if (parent.second == 0) {
+      int64_t id = parent.first;
+      it = indices.find(id);
+      tid = tree_ids.find(id)->second;
+      roots_[tid] = it->second;
     }
   }
 }
@@ -365,22 +380,35 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
   }
 }
 
+
 template<typename NTYPE>
 void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
         std::unordered_map < int64_t, std::tuple<NTYPE, NTYPE, NTYPE>>& classes,
         int64_t treeindex,
         const NTYPE* x_data,
-        int64_t feature_base) const {
+        int64_t feature_base,
+        bool debug) const {
   //walk down tree to the leaf
   auto mode = nodes_modes_[treeindex];
   int64_t loopcount = 0;
   int64_t root = treeindex;
+  if (debug)
+      printf("++ root=%d - %d\n", (int)treeindex, (int)nodes_treeids_[treeindex]);
   while (mode != NODE_MODE::LEAF) {
     NTYPE val = x_data[feature_base + nodes_featureids_[treeindex]];
     bool tracktrue = missing_tracks_true_.size() != nodes_truenodeids_.size()
                      ? false
                      : (missing_tracks_true_[treeindex] != 0) && std::isnan(val);
     NTYPE threshold = nodes_values_[treeindex];
+    if (debug)
+        printf("+++ path treeindex=%d root=%d mode=%d val=%1.16g fval=%1.16g th=%1.16g cmp='%s''%s' F.%d.%d.T\n",
+            (int)treeindex - (int)root, (int)root, (int)mode,
+            val, (float)val, threshold,
+            val <= threshold ? "<=" : ">",
+            ((float)val) <= threshold ? "<=" : ">",
+            nodes_falsenodeids_[treeindex],
+            nodes_truenodeids_[treeindex]
+            );
     switch(mode) {
         case NODE_MODE::BRANCH_LEQ:
             treeindex = val <= threshold || tracktrue 
@@ -458,6 +486,72 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
 }
 
 
+template<typename NTYPE>
+py::array_t<int> RuntimeTreeEnsembleRegressor<NTYPE>::debug_threshold(py::array_t<NTYPE> values) const {
+    std::vector<int> result(values.size() * nodes_values_.size());
+    const NTYPE* x_data = values.data(0);
+    const NTYPE* end = x_data + values.size();
+    const NTYPE* pv;
+    auto itb = result.begin();
+    for(auto it = nodes_values_.begin(); it != nodes_values_.end(); ++it)
+        for(pv=x_data; pv != end; ++pv, ++itb)
+            *itb = *pv <= *it ? 1 : 0;
+            // { *itb = *pv <= *it; printf("++ %f <= %f = %d\n", *pv, *it, *itb ? 1 : 0); }
+    std::vector<ssize_t> shape = { (ssize_t)nodes_values_.size(), values.size() };
+    std::vector<ssize_t> strides = { (ssize_t)(values.size()*sizeof(int)),
+                                     (ssize_t)sizeof(int) };
+    return py::array_t<bool>(
+        py::buffer_info(
+            &result[0],
+            sizeof(int),
+            py::format_descriptor<int>::format(),
+            2,
+            shape,                                   /* shape of the matrix       */
+            strides                                  /* strides for each axis     */
+        ));
+}
+
+
+template<typename NTYPE>
+py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute_tree_outputs(py::array_t<NTYPE> X, bool debug) const {
+    
+    std::vector<int64_t> x_dims;
+    arrayshape2vector(x_dims, X);
+    if (x_dims.size() != 2)
+        throw std::runtime_error("X must have 2 dimensions.");
+
+    int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];  
+    int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];
+    
+    std::vector<NTYPE> result(N * roots_.size());
+    const NTYPE* x_data = X.data(0);
+    auto itb = result.begin();
+
+    for (int64_t i=0; i < N; ++i)  //for each class
+    {
+        int64_t current_weight_0 = i * stride;
+        for (size_t j = 0; j < roots_.size(); ++j, ++itb) {
+            std::unordered_map<int64_t, std::tuple<NTYPE, NTYPE, NTYPE>> scores; // sum, min, max
+            ProcessTreeNode(scores, roots_[j], x_data, current_weight_0, debug);
+            *itb = std::get<0>(scores[0]);
+        }
+    }
+    
+    std::vector<ssize_t> shape = { (ssize_t)N, (ssize_t)roots_.size() };
+    std::vector<ssize_t> strides = { (ssize_t)(roots_.size()*sizeof(NTYPE)),
+                                     (ssize_t)sizeof(NTYPE) };
+    return py::array_t<bool>(
+        py::buffer_info(
+            &result[0],
+            sizeof(NTYPE),
+            py::format_descriptor<NTYPE>::format(),
+            2,
+            shape,                                   /* shape of the matrix       */
+            strides                                  /* strides for each axis     */
+        ));
+}
+
+
 class RuntimeTreeEnsembleRegressorFloat : public RuntimeTreeEnsembleRegressor<float>
 {
     public:
@@ -519,7 +613,12 @@ in :epkg:`onnxruntime`.)pbdoc");
     clf.def_readonly("base_values_", &RuntimeTreeEnsembleRegressorFloat::base_values_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
     clf.def_readonly("n_targets_", &RuntimeTreeEnsembleRegressorFloat::n_targets_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
     clf.def_readonly("post_transform_", &RuntimeTreeEnsembleRegressorFloat::post_transform_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
-    // clf.def_readonly("leafnode_data_", &RuntimeTreeEnsembleRegressorFloat::leafnode_data_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
+
+    clf.def("debug_threshold", &RuntimeTreeEnsembleRegressorFloat::debug_threshold,
+        "Checks every features against every features against every threshold. Returns a matrix of boolean.");
+    clf.def("compute_tree_outputs", &RuntimeTreeEnsembleRegressorFloat::compute_tree_outputs,
+        "Computes every tree output.");
+        
 
     py::class_<RuntimeTreeEnsembleRegressorDouble> cld (m, "RuntimeTreeEnsembleRegressorDouble",
         R"pbdoc(Implements double runtime for operator TreeEnsembleRegressor. The code is inspired from
@@ -556,6 +655,11 @@ in :epkg:`onnxruntime`.)pbdoc");
     cld.def_readonly("n_targets_", &RuntimeTreeEnsembleRegressorDouble::n_targets_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
     cld.def_readonly("post_transform_", &RuntimeTreeEnsembleRegressorDouble::post_transform_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
     // cld.def_readonly("leafnode_data_", &RuntimeTreeEnsembleRegressorDouble::leafnode_data_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
+    
+    cld.def("debug_threshold", &RuntimeTreeEnsembleRegressorDouble::debug_threshold,
+        "Checks every features against every features against every threshold. Returns a matrix of boolean.");
+    cld.def("compute_tree_outputs", &RuntimeTreeEnsembleRegressorDouble::compute_tree_outputs,
+        "Computes every tree output.");
 }
 
 #endif

@@ -50,7 +50,8 @@ def _get_estimators_label(scope, operator, container, model):
         attrs['name'] = scope.get_unique_operator_name(op_type)
         attrs['n_targets'] = int(model.estimators_[tree_id].n_outputs_)
         add_tree_to_attribute_pairs(
-            attrs, False, model.estimators_[tree_id].tree_, 0, 1, 0, False)
+            attrs, False, model.estimators_[tree_id].tree_, 0, 1, 0, False,
+            True, dtype=container.dtype)
         container.add_node(op_type, input_name, estimator_label_name,
                            op_domain=op_domain, **attrs)
         estimators_results_list.append(estimator_label_name)
