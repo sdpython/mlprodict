@@ -210,9 +210,14 @@ def convert_lightgbm(scope, operator, container):
             'probability_tensor')
         label_tensor_name = scope.get_unique_variable_name('label_tensor')
 
-        container.add_node('TreeEnsembleClassifier', operator.input_full_names,
-                           [label_tensor_name, probability_tensor_name],
-                           op_domain='ai.onnx.ml', **attrs)
+        if container.dtype == np.float64:
+            container.add_node('TreeEnsembleClassifierDouble', operator.input_full_names,
+                               [label_tensor_name, probability_tensor_name],
+                               op_domain='ai.onnx.ml', **attrs)
+        else:
+            container.add_node('TreeEnsembleClassifier', operator.input_full_names,
+                               [label_tensor_name, probability_tensor_name],
+                               op_domain='ai.onnx.ml', **attrs)
         prob_tensor = probability_tensor_name
 
         if gbm_model.boosting_type == 'rf':

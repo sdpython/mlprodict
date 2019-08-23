@@ -582,7 +582,7 @@ in :epkg:`onnxruntime`.)pbdoc"
     py::class_<RuntimeTreeEnsembleRegressorFloat> clf (m, "RuntimeTreeEnsembleRegressorFloat",
         R"pbdoc(Implements float runtime for operator TreeEnsembleRegressor. The code is inspired from
 `tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
-in :epkg:`onnxruntime`.)pbdoc");
+in :epkg:`onnxruntime`. Supports float only.)pbdoc");
 
     clf.def(py::init<>());
     clf.def_readonly("roots_", &RuntimeTreeEnsembleRegressorFloat::roots_,
@@ -623,7 +623,7 @@ in :epkg:`onnxruntime`.)pbdoc");
     py::class_<RuntimeTreeEnsembleRegressorDouble> cld (m, "RuntimeTreeEnsembleRegressorDouble",
         R"pbdoc(Implements double runtime for operator TreeEnsembleRegressor. The code is inspired from
 `tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
-in :epkg:`onnxruntime`.)pbdoc");
+in :epkg:`onnxruntime`. Supports double only.)pbdoc");
 
     cld.def(py::init<>());
     cld.def_readonly("roots_", &RuntimeTreeEnsembleRegressorDouble::roots_,

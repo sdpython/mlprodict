@@ -263,29 +263,34 @@ class XGBClassifierConverter(XGBConverter):
 
         attr_pairs['classlabels_int64s'] = class_labels
 
+        if container.dtype == numpy.float64:
+            op_name = "TreeEnsembleClassifierDouble"
+        else:
+            op_name = "TreeEnsembleClassifier"
+
         # add nodes
         if objective == "binary:logistic":
             ncl = 2
-            container.add_node('TreeEnsembleClassifier', operator.input_full_names,
+            container.add_node(op_name, operator.input_full_names,
                                operator.output_full_names,
                                name=scope.get_unique_operator_name(
-                                   'TreeEnsembleClassifier'),
+                                   op_name),
                                op_domain='ai.onnx.ml', **attr_pairs)
         elif objective == "multi:softprob":
             ncl = len(js_trees) // params['n_estimators']
-            container.add_node('TreeEnsembleClassifier', operator.input_full_names,
+            container.add_node(op_name, operator.input_full_names,
                                operator.output_full_names,
                                name=scope.get_unique_operator_name(
-                                   'TreeEnsembleClassifier'),
+                                   op_name),
                                op_domain='ai.onnx.ml', **attr_pairs)
         elif objective == "reg:logistic":
             ncl = len(js_trees) // params['n_estimators']
             if ncl == 1:
                 ncl = 2
-            container.add_node('TreeEnsembleClassifier', operator.input_full_names,
+            container.add_node(op_name, operator.input_full_names,
                                operator.output_full_names,
                                name=scope.get_unique_operator_name(
-                                   'TreeEnsembleClassifier'),
+                                   op_name),
                                op_domain='ai.onnx.ml', **attr_pairs)
         else:
             raise RuntimeError("Unexpected objective: {0}".format(objective))
