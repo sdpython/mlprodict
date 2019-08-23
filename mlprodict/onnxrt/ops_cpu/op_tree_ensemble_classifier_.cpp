@@ -436,7 +436,7 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
                 if (it_classes == classes.end()) {
                     // base_value_[0] is not used. It assumes base_value[0] == base_value[1] in this case.
                     // The specification does not forbid it but does not say what the output should be in that case.
-                    std::map<int64_t, NTYPE>::iterator it_classes0 = classes.find(0);
+                    auto it_classes0 = classes.find(0);
                     classes[1] = base_values_[1] + it_classes0->second;
                     it_classes0->second = -classes[1];
                 }
@@ -541,8 +541,7 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(std::map<int64_t, NTY
   while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) {
     int64_t classid = std::get<2>(leafnodedata_[index]);
     NTYPE weight = std::get<3>(leafnodedata_[index]);
-    std::map<int64_t, NTYPE>::iterator it_classes;
-    it_classes = classes.find(classid);
+    auto it_classes = classes.find(classid);
     if (it_classes != classes.end()) {
       it_classes->second += weight;
     } else {
