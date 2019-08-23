@@ -380,7 +380,7 @@ def find_suitable_problem(model):
         :showcode:
         :rst:
 
-        from mlprodict.onnxrt.validate import sklearn_operators, find_suitable_problem
+        from mlprodict.onnxrt.validate.validate import sklearn_operators, find_suitable_problem
         from pyquickhelper.pandashelper import df2rst
         from pandas import DataFrame
         res = sklearn_operators()
