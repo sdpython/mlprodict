@@ -87,8 +87,7 @@ class RuntimeTreeEnsembleRegressor
         void ProcessTreeNode(std::unordered_map <int64_t, std::tuple<NTYPE, NTYPE, NTYPE>>& classes,
                              int64_t treeindex,
                              const NTYPE* x_data,
-                             int64_t feature_base,
-                             bool debug=false) const;
+                             int64_t feature_base) const;
     
         std::string runtime_options();
 
@@ -96,7 +95,7 @@ class RuntimeTreeEnsembleRegressor
         
         py::array_t<int> debug_threshold(py::array_t<NTYPE> values) const;
 
-        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> values, bool debug=false) const;
+        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> values) const;
 
 private:
 
@@ -386,29 +385,17 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
         std::unordered_map < int64_t, std::tuple<NTYPE, NTYPE, NTYPE>>& classes,
         int64_t treeindex,
         const NTYPE* x_data,
-        int64_t feature_base,
-        bool debug) const {
+        int64_t feature_base) const {
   //walk down tree to the leaf
   auto mode = nodes_modes_[treeindex];
   int64_t loopcount = 0;
   int64_t root = treeindex;
-  if (debug)
-      printf("++ root=%d - %d\n", (int)treeindex, (int)nodes_treeids_[treeindex]);
   while (mode != NODE_MODE::LEAF) {
     NTYPE val = x_data[feature_base + nodes_featureids_[treeindex]];
     bool tracktrue = missing_tracks_true_.size() != nodes_truenodeids_.size()
                      ? false
                      : (missing_tracks_true_[treeindex] != 0) && std::isnan(val);
     NTYPE threshold = nodes_values_[treeindex];
-    if (debug)
-        printf("+++ path treeindex=%d root=%d mode=%d val=%1.16g fval=%1.16g th=%1.16g cmp='%s''%s' F.%d.%d.T\n",
-            (int)treeindex - (int)root, (int)root, (int)mode,
-            val, (float)val, threshold,
-            val <= threshold ? "<=" : ">",
-            ((float)val) <= threshold ? "<=" : ">",
-            nodes_falsenodeids_[treeindex],
-            nodes_truenodeids_[treeindex]
-            );
     switch(mode) {
         case NODE_MODE::BRANCH_LEQ:
             treeindex = val <= threshold || tracktrue 
@@ -513,7 +500,7 @@ py::array_t<int> RuntimeTreeEnsembleRegressor<NTYPE>::debug_threshold(py::array_
 
 
 template<typename NTYPE>
-py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute_tree_outputs(py::array_t<NTYPE> X, bool debug) const {
+py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute_tree_outputs(py::array_t<NTYPE> X) const {
     
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
@@ -532,7 +519,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute_tree_outputs(py:
         int64_t current_weight_0 = i * stride;
         for (size_t j = 0; j < roots_.size(); ++j, ++itb) {
             std::unordered_map<int64_t, std::tuple<NTYPE, NTYPE, NTYPE>> scores; // sum, min, max
-            ProcessTreeNode(scores, roots_[j], x_data, current_weight_0, debug);
+            ProcessTreeNode(scores, roots_[j], x_data, current_weight_0);
             *itb = std::get<0>(scores[0]);
         }
     }
@@ -603,7 +590,6 @@ in :epkg:`onnxruntime`. Supports float only.)pbdoc");
     clf.def_readonly("nodes_hitrates_", &RuntimeTreeEnsembleRegressorFloat::nodes_hitrates_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
     clf.def_readonly("nodes_modes_", &RuntimeTreeEnsembleRegressorFloat::nodes_modes_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
     clf.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleRegressorFloat::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
-    clf.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleRegressorFloat::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
     clf.def_readonly("nodes_falsenodeids_", &RuntimeTreeEnsembleRegressorFloat::nodes_falsenodeids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
     clf.def_readonly("missing_tracks_true_", &RuntimeTreeEnsembleRegressorFloat::missing_tracks_true_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
     clf.def_readonly("target_nodeids_", &RuntimeTreeEnsembleRegressorFloat::target_nodeids_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
@@ -643,7 +629,6 @@ in :epkg:`onnxruntime`. Supports double only.)pbdoc");
     cld.def_readonly("nodes_values_", &RuntimeTreeEnsembleRegressorDouble::nodes_values_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
     cld.def_readonly("nodes_hitrates_", &RuntimeTreeEnsembleRegressorDouble::nodes_hitrates_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
     cld.def_readonly("nodes_modes_", &RuntimeTreeEnsembleRegressorDouble::nodes_modes_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
-    cld.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleRegressorDouble::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
     cld.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleRegressorDouble::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
     cld.def_readonly("nodes_falsenodeids_", &RuntimeTreeEnsembleRegressorDouble::nodes_falsenodeids_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
     cld.def_readonly("missing_tracks_true_", &RuntimeTreeEnsembleRegressorDouble::missing_tracks_true_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");

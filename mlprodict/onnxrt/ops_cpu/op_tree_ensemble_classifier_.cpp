@@ -604,6 +604,25 @@ in :epkg:`onnxruntime`. Supports float only.)pbdoc");
     clf.def("omp_get_max_threads", &RuntimeTreeEnsembleClassifierFloat::omp_get_max_threads,
             "Returns omp_get_max_threads from openmp library.");
 
+    clf.def_readonly("nodes_treeids_", &RuntimeTreeEnsembleClassifierFloat::nodes_treeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("nodes_nodeids_", &RuntimeTreeEnsembleClassifierFloat::nodes_nodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("nodes_featureids_", &RuntimeTreeEnsembleClassifierFloat::nodes_featureids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("nodes_values_", &RuntimeTreeEnsembleClassifierFloat::nodes_values_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("nodes_hitrates_", &RuntimeTreeEnsembleClassifierFloat::nodes_hitrates_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("nodes_modes_", &RuntimeTreeEnsembleClassifierFloat::nodes_modes_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleClassifierFloat::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleClassifierFloat::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("nodes_falsenodeids_", &RuntimeTreeEnsembleClassifierFloat::nodes_falsenodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("missing_tracks_true_", &RuntimeTreeEnsembleClassifierFloat::missing_tracks_true_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("class_nodeids_", &RuntimeTreeEnsembleClassifierFloat::class_nodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("class_treeids_", &RuntimeTreeEnsembleClassifierFloat::class_treeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("class_ids_", &RuntimeTreeEnsembleClassifierFloat::class_ids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("class_weights_", &RuntimeTreeEnsembleClassifierFloat::class_weights_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("base_values_", &RuntimeTreeEnsembleClassifierFloat::base_values_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("class_count_", &RuntimeTreeEnsembleClassifierFloat::class_count_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("classlabels_int64s_", &RuntimeTreeEnsembleClassifierFloat::classlabels_int64s_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("post_transform_", &RuntimeTreeEnsembleClassifierFloat::post_transform_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+
     py::class_<RuntimeTreeEnsembleClassifierDouble> cld (m, "RuntimeTreeEnsembleClassifierDouble",
         R"pbdoc(Implements runtime for operator TreeEnsembleClassifier. The code is inspired from
 `tree_ensemble_classifier.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_classifier.cc>`_
@@ -620,6 +639,25 @@ in :epkg:`onnxruntime`. Supports double only.)pbdoc");
             "Returns indications about how the runtime was compiled.");
     cld.def("omp_get_max_threads", &RuntimeTreeEnsembleClassifierDouble::omp_get_max_threads,
             "Returns omp_get_max_threads from openmp library.");
+            
+    cld.def_readonly("nodes_treeids_", &RuntimeTreeEnsembleClassifierDouble::nodes_treeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("nodes_nodeids_", &RuntimeTreeEnsembleClassifierDouble::nodes_nodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("nodes_featureids_", &RuntimeTreeEnsembleClassifierDouble::nodes_featureids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("nodes_values_", &RuntimeTreeEnsembleClassifierDouble::nodes_values_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("nodes_hitrates_", &RuntimeTreeEnsembleClassifierDouble::nodes_hitrates_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("nodes_modes_", &RuntimeTreeEnsembleClassifierDouble::nodes_modes_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleClassifierDouble::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleClassifierDouble::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("nodes_falsenodeids_", &RuntimeTreeEnsembleClassifierDouble::nodes_falsenodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("missing_tracks_true_", &RuntimeTreeEnsembleClassifierDouble::missing_tracks_true_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("class_nodeids_", &RuntimeTreeEnsembleClassifierDouble::class_nodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("class_treeids_", &RuntimeTreeEnsembleClassifierDouble::class_treeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("class_ids_", &RuntimeTreeEnsembleClassifierDouble::class_ids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("class_weights_", &RuntimeTreeEnsembleClassifierDouble::class_weights_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("base_values_", &RuntimeTreeEnsembleClassifierDouble::base_values_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("class_count_", &RuntimeTreeEnsembleClassifierDouble::class_count_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("classlabels_int64s_", &RuntimeTreeEnsembleClassifierDouble::classlabels_int64s_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("post_transform_", &RuntimeTreeEnsembleClassifierDouble::post_transform_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
 }
 
 #endif
