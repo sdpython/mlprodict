@@ -260,18 +260,22 @@ def _shape_exc(obj):
     return None
 
 
-def dump_into_folder(dump_folder, obs_op=None, **kwargs):
+def dump_into_folder(dump_folder, obs_op=None, is_error=True,
+                     **kwargs):
     """
     Dumps information when an error was detected
     using :epkg:`*py:pickle`.
 
     @param      dump_folder     dump_folder
     @param      obs_op          obs_op (information)
+    @param      is_error        is it an error or not?
     @kwargs                     kwargs
     """
     parts = (obs_op['runtime'], obs_op['name'], obs_op['scenario'],
              obs_op['problem'], obs_op.get('opset', '-'))
-    name = "dump-ERROR-{}.pkl".format("-".join(map(str, parts)))
+    name = "dump-{}-{}.pkl".format(
+        "ERROR" if is_error else "i",
+        "-".join(map(str, parts)))
     name = os.path.join(dump_folder, name)
     obs_op = obs_op.copy()
     fcts = [k for k in obs_op if k.startswith('lambda')]

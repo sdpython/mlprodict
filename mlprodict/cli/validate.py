@@ -15,7 +15,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      check_runtime=True, runtime='python', debug=False,
                      models=None, out_raw="onnx_runtime_raw.xlsx",
                      out_summary="onnx_runtime_summary.xlsx",
-                     dump_folder=None, benchmark=False,
+                     dump_folder=None, dump_all=False, benchmark=False,
                      catch_warnings=True, assume_finite=True,
                      versions=False, skip_models=None,
                      extended_list=True, separate_process=False,
@@ -43,6 +43,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     :param out_summary: output an aggregated view into this file (excel format)
     :param dump_folder: folder where to dump information (pickle)
         in case of mismatch
+    :param dump_all: dumps all models, not only the failing ones
     :param benchmark: run benchmark
     :param catch_warnings: catch warnings
     :param assume_finite: See `config_context
@@ -99,7 +100,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             verbose=verbose, opset_min=opset_min, opset_max=opset_max,
             check_runtime=check_runtime, runtime=runtime, debug=debug,
             models=models, out_raw=out_raw,
-            out_summary=out_summary,
+            out_summary=out_summary, dump_all=dump_all,
             dump_folder=dump_folder, benchmark=benchmark,
             catch_warnings=catch_warnings, assume_finite=assume_finite,
             versions=versions, skip_models=skip_models,
@@ -147,7 +148,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             verbose, models=models_, fLOG=fLOG, runtime=runtime, debug=debug,
             dump_folder=dump_folder, opset_min=opset_min, opset_max=opset_max,
             benchmark=benchmark, assume_finite=assume_finite, versions=versions,
-            extended_list=extended_list, time_kwargs=time_kwargs,
+            extended_list=extended_list, time_kwargs=time_kwargs, dump_all=dump_all,
             filter_exp=lambda m, s: str(m) not in skip_models))
         return rows
 

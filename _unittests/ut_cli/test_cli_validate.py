@@ -71,12 +71,16 @@ class TestCliValidate(ExtTestCase):
         main(args=["validate_runtime", "--out_raw", out1,
                    "--out_summary", out2, "--models",
                    "LGBMClassifier",
-                   '-o', '10', '-op', '10', '-v', '1', '-b', '1'],
+                   '-o', '10', '-op', '10', '-v', '1', '-b', '1',
+                   '-dum', '1', '-du', temp],
              fLOG=st.fprint)
         res = str(st)
         self.assertIn('LGBMClassifier', res)
         self.assertExists(out1)
         self.assertExists(out2)
+        exp = os.path.join(
+            temp, "dump-ERROR-python-LGBMClassifier-default-b-cl--.pkl")
+        self.assertExists(exp)
 
 
 if __name__ == "__main__":

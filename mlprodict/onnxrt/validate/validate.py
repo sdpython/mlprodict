@@ -139,7 +139,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                assume_finite=True, node_time=False,
                                fLOG=print, filter_exp=None,
                                verbose=0, time_kwargs=None,
-                               extended_list=False):
+                               extended_list=False, dump_all=False):
     """
     Lists all compatible opsets for a specific model.
 
@@ -152,6 +152,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     @param      debug           catch exception (True) or not (False)
     @param      runtime         test a specific runtime, by default ``'python'``
     @param      dump_folder     dump information to replicate in case of mismatch
+    @param      dump_all        dump all models not only the one which fail
     @param      store_models    if True, the function
                                 also stores the fitted model and its conversion
                                 into :epkg:`ONNX`
@@ -307,7 +308,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                 if verbose >= 2 and fLOG is not None:
                     fLOG("[enumerate_compatible_opset] conversion to onnx")
                 try:
-                    conv, t4, ___ = _measure_time(fct_conv)
+                    conv, t4 = _measure_time(fct_conv)[:2]
                     obs_op["convert_time"] = t4
                 except (RuntimeError, IndexError, AttributeError) as e:
                     if debug:
@@ -339,7 +340,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                         benchmark=benchmark and opset == opsets[-1],
                                         node_time=node_time, time_kwargs=time_kwargs,
                                         fLOG=fLOG, verbose=verbose,
-                                        store_models=store_models)
+                                        store_models=store_models,
+                                        dump_all=dump_all)
                 else:
                     yield obs_op
 
@@ -348,7 +350,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                   X_test, y_test, init_types, method_name, output_index,
                   ypred, Xort_test, model, dump_folder,
                   benchmark, node_time, fLOG,
-                  verbose, store_models, time_kwargs):
+                  verbose, store_models, time_kwargs,
+                  dump_all):
     """
     Private.
     """
@@ -460,6 +463,10 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         fLOG(pprint.pformat(obs_op))
     if verbose >= 2 and fLOG is not None:
         fLOG("[enumerate_compatible_opset] next...")
+    if dump_all:
+        dump_into_folder(dump_folder, kind='batch', obs_op=obs_op,
+                         X_test=X_test, y_test=y_test, Xort_test=Xort_test,
+                         is_error=len(debug_exc) <= 1)
     return obs_op
 
 
@@ -470,7 +477,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         assume_finite=True, node_time=False,
                                         fLOG=print, filter_exp=None,
                                         versions=False, dtype=numpy.float32,
-                                        extended_list=False, time_kwargs=None):
+                                        extended_list=False, time_kwargs=None,
+                                        dump_all=False):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -486,6 +494,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                 is raised
     @param      runtime         test a specific runtime, by default ``'python'``
     @param      dump_folder     dump information to replicate in case of mismatch
+    @param      dump_all        dump all models not only the one which fail
     @param      store_models    if True, the function
                                 also stores the fitted model and its conversion
                                 into :epkg:`ONNX`
@@ -589,7 +598,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 fLOG=fLOG, filter_exp=filter_exp,
                 assume_finite=assume_finite, node_time=node_time,
                 verbose=verbose, extended_list=extended_list,
-                time_kwargs=time_kwargs):
+                time_kwargs=time_kwargs, dump_all=dump_all):
 
             if verbose > 1:
                 fLOG("  ", obs)
