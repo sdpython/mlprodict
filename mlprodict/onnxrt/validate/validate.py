@@ -713,15 +713,14 @@ def summary_report(df):
     for col in ['problem', 'scenario', 'opset']:
         if col not in df.columns:
             df[col] = '' if col != 'opset' else numpy.nan
+    indices = ["name", "problem", "scenario", 'n_features']
     piv = pandas.pivot_table(df, values=col_values,
-                             index=['name', 'problem', 'scenario'],
-                             columns='opset',
+                             index=indices, columns='opset',
                              aggfunc=aggfunc).reset_index(drop=False)
 
     opmin = min(df['opset'].dropna())
     versions = ["opset%d" % (opmin + t - 1)
-                for t in range(1, piv.shape[1] - 2)]
-    indices = ["name", "problem", "scenario"]
+                for t in range(1, piv.shape[1] - len(indices) + 1)]
     cols = list(piv.columns)
     piv.columns = indices + versions
     piv = piv[indices + list(reversed(versions))].copy()
@@ -742,7 +741,7 @@ def summary_report(df):
             return str(text)
 
         piv2 = pandas.pivot_table(df, values="available-ERROR",
-                                  index=['name', 'problem', 'scenario'],
+                                  index=indices,
                                   columns='opset',
                                   aggfunc=aggfunc).reset_index(drop=False)
 
@@ -753,9 +752,9 @@ def summary_report(df):
         cols = [c for c in df.columns if c.startswith('time-ratio')]
         cols.sort()
 
-        df_sub = df[['name', 'problem', 'scenario'] + cols]
-        piv2 = df_sub.groupby(['name', 'problem', 'scenario']).mean()
-        piv = piv.merge(piv2, on=['name', 'problem', 'scenario'], how='left')
+        df_sub = df[indices + cols]
+        piv2 = df_sub.groupby(indices).mean()
+        piv = piv.merge(piv2, on=indices, how='left')
 
         def rep(c):
             if 'N=1' in c and 'N=10' not in c:
