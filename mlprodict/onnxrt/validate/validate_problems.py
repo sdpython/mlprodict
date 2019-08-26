@@ -53,7 +53,42 @@ from skl2onnx.common.data_types import (
 )
 
 
-def _problem_for_predictor_binary_classification(dtype=numpy.float32):
+def _modify_dimension(X, n_features):
+    """
+    Modifies the number of features to increase
+    or reduce the number of features.
+    """
+    if n_features is None or n_features == X.shape[1]:
+        return X
+    if n_features < X.shape[1]:
+        return X[:, :n_features]
+    res = numpy.empty((X.shape[0], n_features), dtype=X.dtype)
+    res[:, :X.shape[1]] = X[:, :]
+    div = max((n_features // X.shape[1]) + 1, 2)
+    for i in range(X.shape[1], res.shape[1]):
+        j = i % X.shape[1]
+        col = X[:, j]
+        if X.dtype in (numpy.float32, numpy.float64):
+            sigma = numpy.var(col) ** 0.5
+            rnd = numpy.random.randn(len(col)) * sigma / div
+            col2 = col + rnd
+            res[:, j] -= col2 / div
+            res[:, i] = col2
+        elif X.dtype in (numpy.int32, numpy.int64):
+            perm = numpy.random.permutation(col)
+            h = numpy.random.randint(0, div) % X.shape[0]
+            col2 = col.copy()
+            col2[h::div] = perm[h::div]
+            res[:, i] = col2
+            h = (h + 1) % X.shape[0]
+            res[h, j] = perm[h]
+        else:
+            raise NotImplementedError(
+                "Unable to add noise to a feature for this type {}".format(X.dtype))
+    return res
+
+
+def _problem_for_predictor_binary_classification(dtype=numpy.float32, n_features=None):
     """
     Returns *X, y, intial_types, method, node name, X runtime* for a
     binary classification problem.
@@ -61,13 +96,14 @@ def _problem_for_predictor_binary_classification(dtype=numpy.float32):
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     y = data.target
     y[y == 2] = 1
     return (X, y, [('X', X[:1].astype(dtype))],
             'predict_proba', 1, X.astype(dtype))
 
 
-def _problem_for_predictor_multi_classification(dtype=numpy.float32):
+def _problem_for_predictor_multi_classification(dtype=numpy.float32, n_features=None):
     """
     Returns *X, y, intial_types, method, node name, X runtime* for a
     m-cl classification problem.
@@ -75,12 +111,13 @@ def _problem_for_predictor_multi_classification(dtype=numpy.float32):
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     y = data.target
     return (X, y, [('X', X[:1].astype(dtype))],
             'predict_proba', 1, X.astype(dtype))
 
 
-def _problem_for_predictor_multi_classification_label(dtype=numpy.float32):
+def _problem_for_predictor_multi_classification_label(dtype=numpy.float32, n_features=None):
     """
     Returns *X, y, intial_types, method, node name, X runtime* for a
     m-cl classification problem.
@@ -88,6 +125,7 @@ def _problem_for_predictor_multi_classification_label(dtype=numpy.float32):
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     y = data.target
     y2 = numpy.zeros((y.shape[0], 3), dtype=numpy.int64)
     for i, _ in enumerate(y):
@@ -99,8 +137,8 @@ def _problem_for_predictor_multi_classification_label(dtype=numpy.float32):
 
 
 def _problem_for_predictor_regression(many_output=False, options=None,
-                                      nbfeat=None, nbrows=None, dtype=numpy.float32,
-                                      **kwargs):
+                                      n_features=None, nbrows=None,
+                                      dtype=numpy.float32, **kwargs):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     regression problem.
@@ -108,11 +146,12 @@ def _problem_for_predictor_regression(many_output=False, options=None,
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     y = data.target + numpy.arange(len(data.target)) / 100
     meth = 'predict' if kwargs is None else ('predict', kwargs)
     itt = [('X', X[:1].astype(dtype))]
-    if nbfeat is not None:
-        X = X[:, :nbfeat]
+    if n_features is not None:
+        X = X[:, :n_features]
         itt = [('X', X[:1].astype(dtype))]
     if nbrows is not None:
         X = X[::nbrows, :]
@@ -125,7 +164,7 @@ def _problem_for_predictor_regression(many_output=False, options=None,
 
 
 def _problem_for_predictor_multi_regression(many_output=False, options=None,
-                                            nbfeat=None, nbrows=None,
+                                            n_features=None, nbrows=None,
                                             dtype=numpy.float32, **kwargs):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
@@ -134,11 +173,12 @@ def _problem_for_predictor_multi_regression(many_output=False, options=None,
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     y = data.target.astype(float) + numpy.arange(len(data.target)) / 100
     meth = 'predict' if kwargs is None else ('predict', kwargs)
     itt = [('X', X[:1].astype(dtype))]
-    if nbfeat is not None:
-        X = X[:, :nbfeat]
+    if n_features is not None:
+        X = X[:, :n_features]
         itt = [('X', X[:1].astype(dtype))]
     if nbrows is not None:
         X = X[::nbrows, :]
@@ -153,7 +193,7 @@ def _problem_for_predictor_multi_regression(many_output=False, options=None,
             meth, 'all' if many_output else 0, X.astype(dtype))
 
 
-def _problem_for_numerical_transform(dtype=numpy.float32):
+def _problem_for_numerical_transform(dtype=numpy.float32, n_features=None):
     """
     Returns *X, intial_types, method, name, X runtime* for a
     transformation problem.
@@ -161,11 +201,12 @@ def _problem_for_numerical_transform(dtype=numpy.float32):
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     return (X, None, [('X', X[:1].astype(dtype))],
             'transform', 0, X.astype(dtype=numpy.float32))
 
 
-def _problem_for_numerical_trainable_transform(dtype=numpy.float32):
+def _problem_for_numerical_trainable_transform(dtype=numpy.float32, n_features=None):
     """
     Returns *X, intial_types, method, name, X runtime* for a
     transformation problem.
@@ -173,12 +214,13 @@ def _problem_for_numerical_trainable_transform(dtype=numpy.float32):
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     y = data.target + numpy.arange(len(data.target)) / 100
     return (X, y, [('X', X[:1].astype(dtype))],
             'transform', 0, X.astype(dtype))
 
 
-def _problem_for_clustering(dtype=numpy.float32):
+def _problem_for_clustering(dtype=numpy.float32, n_features=None):
     """
     Returns *X, intial_types, method, name, X runtime* for a
     clustering problem.
@@ -186,11 +228,12 @@ def _problem_for_clustering(dtype=numpy.float32):
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     return (X, None, [('X', X[:1].astype(dtype))],
             'predict', 0, X.astype(dtype))
 
 
-def _problem_for_clustering_scores(dtype=numpy.float32):
+def _problem_for_clustering_scores(dtype=numpy.float32, n_features=None):
     """
     Returns *X, intial_types, method, name, X runtime* for a
     clustering problem, the score part, not the cluster.
@@ -202,7 +245,7 @@ def _problem_for_clustering_scores(dtype=numpy.float32):
             'transform', 1, X.astype(dtype))
 
 
-def _problem_for_outlier(dtype=numpy.float32):
+def _problem_for_outlier(dtype=numpy.float32, n_features=None):
     """
     Returns *X, intial_types, method, name, X runtime* for a
     transformation problem.
@@ -210,11 +253,12 @@ def _problem_for_outlier(dtype=numpy.float32):
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     return (X, None, [('X', X[:1].astype(dtype))],
             'predict', 0, X.astype(dtype))
 
 
-def _problem_for_numerical_scoring(dtype=numpy.float32):
+def _problem_for_numerical_scoring(dtype=numpy.float32, n_features=None):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     scoring problem.
@@ -228,7 +272,7 @@ def _problem_for_numerical_scoring(dtype=numpy.float32):
             'score', 0, X.astype(dtype))
 
 
-def _problem_for_clnoproba(dtype=numpy.float32):
+def _problem_for_clnoproba(dtype=numpy.float32, n_features=None):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     scoring problem.
@@ -236,12 +280,13 @@ def _problem_for_clnoproba(dtype=numpy.float32):
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     y = data.target
     return (X, y, [('X', X[:1].astype(dtype))],
             'predict', 0, X.astype(dtype))
 
 
-def _problem_for_clnoproba_binary(dtype=numpy.float32):
+def _problem_for_clnoproba_binary(dtype=numpy.float32, n_features=None):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     scoring problem. Binary classification.
@@ -249,13 +294,14 @@ def _problem_for_clnoproba_binary(dtype=numpy.float32):
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     y = data.target
     y[y == 2] = 1
     return (X, y, [('X', X[:1].astype(dtype))],
             'predict', 0, X.astype(dtype))
 
 
-def _problem_for_cl_decision_function(dtype=numpy.float32):
+def _problem_for_cl_decision_function(dtype=numpy.float32, n_features=None):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     scoring problem.
@@ -263,12 +309,13 @@ def _problem_for_cl_decision_function(dtype=numpy.float32):
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     y = data.target
     return (X, y, [('X', X[:1].astype(dtype))],
             'decision_function', 0, X.astype(dtype))
 
 
-def _problem_for_cl_decision_function_binary(dtype=numpy.float32):
+def _problem_for_cl_decision_function_binary(dtype=numpy.float32, n_features=None):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     scoring problem. Binary classification.
@@ -276,13 +323,14 @@ def _problem_for_cl_decision_function_binary(dtype=numpy.float32):
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
     y = data.target
     y[y == 2] = 1
     return (X, y, [('X', X[:1].astype(dtype))],
             'decision_function', 0, X.astype(dtype))
 
 
-def _problem_for_label_encoder(dtype=numpy.int64):
+def _problem_for_label_encoder(dtype=numpy.int64, n_features=None):
     """
     Returns a problem for the :epkg:`sklearn:preprocessing:LabelEncoder`.
     """
@@ -293,7 +341,7 @@ def _problem_for_label_encoder(dtype=numpy.int64):
     return (y, None, itt, 'transform', 0, y)
 
 
-def _problem_for_dict_vectorizer(dtype=numpy.float32):
+def _problem_for_dict_vectorizer(dtype=numpy.float32, n_features=None):
     """
     Returns a problem for the :epkg:`sklearn:feature_extraction:DictVectorizer`.
     """
@@ -307,7 +355,7 @@ def _problem_for_dict_vectorizer(dtype=numpy.float32):
     return (y2, y, itt, 'transform', 0, y2)
 
 
-def _problem_for_feature_hasher(dtype=numpy.float32):
+def _problem_for_feature_hasher(dtype=numpy.float32, n_features=None):
     """
     Returns a problem for the :epkg:`sklearn:feature_extraction:DictVectorizer`.
     """
@@ -321,12 +369,13 @@ def _problem_for_feature_hasher(dtype=numpy.float32):
     return (y2, y, itt, 'transform', 0, y2)
 
 
-def _problem_for_one_hot_encoder(dtype=numpy.float32):
+def _problem_for_one_hot_encoder(dtype=numpy.float32, n_features=None):
     """
     Returns a problem for the :epkg:`sklearn:preprocessing:OneHotEncoder`.
     """
     data = load_iris()
-    X = data.data.astype(numpy.int32).astype(dtype)
+    X = _modify_dimension(data.data, n_features)
+    X = X.astype(numpy.int32).astype(dtype)
     y = data.target
     X, y = shuffle(X, y, random_state=1)
     itt = [('X', X[:1].astype(dtype))]
@@ -588,6 +637,10 @@ def _noshapevar(fct):
 def _1d_problem(fct):
 
     def new_fct(**kwargs):
+        n_features = kwargs.get('n_features', None)
+        if n_features not in (None, 1):
+            raise RuntimeError("Misconfiguration: the number of features must not be "
+                               "specified for a 1D problem.")
         X, y, itt, meth, mo, Xort = fct(**kwargs)
         new_itt = itt  # process_itt(itt, Xort)
         X = X[:, 0]
@@ -614,60 +667,77 @@ _problems = {
     '~b-cl-dec': _problem_for_cl_decision_function_binary,
     '~m-cl-dec': _problem_for_cl_decision_function,
     # 64
-    "~b-cl-64": lambda: _problem_for_predictor_binary_classification(dtype=numpy.float64),
-    "~b-reg-64": lambda: _problem_for_predictor_regression(dtype=numpy.float64),
-    '~b-cl-nop-64': lambda: _problem_for_clnoproba(dtype=numpy.float64),
-    '~b-clu-64': lambda: _problem_for_clustering(dtype=numpy.float64),
-    '~b-cl-dec-64': lambda: _problem_for_cl_decision_function_binary(dtype=numpy.float64),
-    '~num-tr-clu-64': lambda: _problem_for_clustering_scores(dtype=numpy.float64),
-    "~m-reg-64": lambda: _problem_for_predictor_multi_regression(dtype=numpy.float64),
+    "~b-cl-64": lambda n_features=None: _problem_for_predictor_binary_classification(
+        dtype=numpy.float64, n_features=n_features),
+    "~b-reg-64": lambda n_features=None: _problem_for_predictor_regression(
+        dtype=numpy.float64, n_features=n_features),
+    '~b-cl-nop-64': lambda n_features=None: _problem_for_clnoproba(
+        dtype=numpy.float64, n_features=n_features),
+    '~b-clu-64': lambda n_features=None: _problem_for_clustering(
+        dtype=numpy.float64, n_features=n_features),
+    '~b-cl-dec-64': lambda n_features=None: _problem_for_cl_decision_function_binary(
+        dtype=numpy.float64, n_features=n_features),
+    '~num-tr-clu-64': lambda n_features=None: _problem_for_clustering_scores(
+        dtype=numpy.float64, n_features=n_features),
+    "~m-reg-64": lambda n_features=None: _problem_for_predictor_multi_regression(
+        dtype=numpy.float64, n_features=n_features),
     #
-    "~b-cl-NF": (lambda: _problem_for_predictor_binary_classification() + (False, )),
-    "~m-cl-NF": (lambda: _problem_for_predictor_multi_classification() + (False, )),
-    "~b-reg-NF": (lambda: _problem_for_predictor_regression() + (False, )),
-    "~m-reg-NF": (lambda: _problem_for_predictor_multi_regression() + (False, )),
+    "~b-cl-NF": (lambda n_features=None: _problem_for_predictor_binary_classification(
+        n_features=n_features) + (False, )),
+    "~m-cl-NF": (lambda n_features=None: _problem_for_predictor_multi_classification(
+        n_features=n_features) + (False, )),
+    "~b-reg-NF": (lambda n_features=None: _problem_for_predictor_regression(
+        n_features=n_features) + (False, )),
+    "~m-reg-NF": (lambda n_features=None: _problem_for_predictor_multi_regression(
+        n_features=n_features) + (False, )),
     #
-    "~b-cl-NF-64": (lambda: _problem_for_predictor_binary_classification(dtype=numpy.float64) + (False, )),
-    "~m-cl-NF-64": (lambda: _problem_for_predictor_multi_classification(dtype=numpy.float64) + (False, )),
-    "~b-reg-NF-64": (lambda: _problem_for_predictor_regression(dtype=numpy.float64) + (False, )),
-    "~m-reg-NF-64": (lambda: _problem_for_predictor_multi_regression(dtype=numpy.float64) + (False, )),
+    "~b-cl-NF-64": (lambda n_features=None: _problem_for_predictor_binary_classification(
+        dtype=numpy.float64, n_features=n_features) + (False, )),
+    "~m-cl-NF-64": (lambda n_features=None: _problem_for_predictor_multi_classification(
+        dtype=numpy.float64, n_features=n_features) + (False, )),
+    "~b-reg-NF-64": (lambda n_features=None: _problem_for_predictor_regression(
+        dtype=numpy.float64, n_features=n_features) + (False, )),
+    "~m-reg-NF-64": (lambda n_features=None: _problem_for_predictor_multi_regression(
+        dtype=numpy.float64, n_features=n_features) + (False, )),
     # GaussianProcess
-    "~b-reg-NF-cov-64": (lambda: _problem_for_predictor_regression(
+    "~b-reg-NF-cov-64": (lambda n_features=None: _problem_for_predictor_regression(
         True, options={GaussianProcessRegressor: {"return_cov": True}},
-        return_cov=True, dtype=numpy.float64) + (False, )),
-    "~m-reg-NF-cov-64": (lambda: _problem_for_predictor_multi_regression(
+        return_cov=True, dtype=numpy.float64, n_features=n_features) + (False, )),
+    "~m-reg-NF-cov-64": (lambda n_features=None: _problem_for_predictor_multi_regression(
         True, options={GaussianProcessRegressor: {"return_cov": True}},
-        return_cov=True, dtype=numpy.float64) + (False, )),
+        return_cov=True, dtype=numpy.float64, n_features=n_features) + (False, )),
     #
-    "~b-reg-NF-std-64": (lambda: _problem_for_predictor_regression(
+    "~b-reg-NF-std-64": (lambda n_features=None: _problem_for_predictor_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
-        return_std=True, dtype=numpy.float64) + (False, )),
-    "~m-reg-NF-std-64": (lambda: _problem_for_predictor_multi_regression(
+        return_std=True, dtype=numpy.float64, n_features=n_features) + (False, )),
+    "~m-reg-NF-std-64": (lambda n_features=None: _problem_for_predictor_multi_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
-        return_std=True, dtype=numpy.float64) + (False, )),
+        return_std=True, dtype=numpy.float64, n_features=n_features) + (False, )),
     #
-    "~b-reg-cov-64": (lambda: _problem_for_predictor_regression(
+    "~b-reg-cov-64": (lambda n_features=None: _problem_for_predictor_regression(
         True, options={GaussianProcessRegressor: {"return_cov": True}},
-        return_cov=True, dtype=numpy.float64)),
-    "~m-reg-cov-64": (lambda: _problem_for_predictor_multi_regression(
+        return_cov=True, dtype=numpy.float64, n_features=n_features)),
+    "~m-reg-cov-64": (lambda n_features=None: _problem_for_predictor_multi_regression(
         True, options={GaussianProcessRegressor: {"return_cov": True}},
-        return_cov=True, dtype=numpy.float64)),
+        return_cov=True, dtype=numpy.float64, n_features=n_features)),
     #
-    "~reg-std-64": (lambda: _problem_for_predictor_regression(
+    "~reg-std-64": (lambda n_features=None: _problem_for_predictor_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
-        return_std=True, dtype=numpy.float64)),
-    "~m-reg-std-64": (lambda: _problem_for_predictor_multi_regression(
+        return_std=True, dtype=numpy.float64, n_features=n_features)),
+    "~m-reg-std-64": (lambda n_features=None: _problem_for_predictor_multi_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
-        return_std=True, dtype=numpy.float64)),
+        return_std=True, dtype=numpy.float64, n_features=n_features)),
     #
-    '~b-reg-NSV-64': _noshapevar(lambda: _problem_for_predictor_regression(dtype=numpy.float64)),
-    '~m-reg-NSV-64': _noshapevar(lambda: _problem_for_predictor_multi_regression(dtype=numpy.float64)),
-    "~b-reg-std-NSV-64": (_noshapevar(lambda: _problem_for_predictor_regression(
+    '~b-reg-NSV-64': _noshapevar(lambda n_features=None: _problem_for_predictor_regression(
+        dtype=numpy.float64, n_features=n_features)),
+    '~m-reg-NSV-64': _noshapevar(lambda n_features=None: _problem_for_predictor_multi_regression(
+        dtype=numpy.float64, n_features=n_features)),
+    "~b-reg-std-NSV-64": (_noshapevar(lambda n_features=None: _problem_for_predictor_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
-        return_std=True, dtype=numpy.float64))),
-    "~m-reg-std-NSV-64": (_noshapevar(lambda: _problem_for_predictor_multi_regression(
+        return_std=True, dtype=numpy.float64, n_features=n_features))),
+    "~m-reg-std-NSV-64": (_noshapevar(lambda n_features=None: _problem_for_predictor_multi_regression(
         True, options={GaussianProcessRegressor: {"return_std": True}},
-        return_std=True, dtype=numpy.float64))),
+        return_std=True, dtype=numpy.float64, n_features=n_features))),
     # isotonic
     "~b-reg-1d": _1d_problem(_problem_for_predictor_regression),
     '~num+y-tr-1d': _1d_problem(_problem_for_numerical_trainable_transform),

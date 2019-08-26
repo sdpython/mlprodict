@@ -4,6 +4,7 @@
 import os
 import unittest
 from logging import getLogger
+import numpy
 from pandas import DataFrame, read_csv
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import (
@@ -13,6 +14,7 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
+from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 
 
 class TestOnnxrtValidate(ExtTestCase):
@@ -56,6 +58,36 @@ class TestOnnxrtValidate(ExtTestCase):
             temp, "sklearn_opsets_summary.csv"), index=False)
         piv.to_excel(os.path.join(
             temp, "sklearn_opsets_summary.xlsx"), index=False)
+
+    def test_n_features_float(self):
+        X = numpy.arange(20).reshape((5, 4)).astype(numpy.float64)
+        X2 = _modify_dimension(X, 2)
+        self.assertEqualArray(X[:, :2], X2)
+        X2 = _modify_dimension(X, None)
+        self.assertEqualArray(X, X2)
+        X2 = _modify_dimension(X, 4)
+        self.assertEqualArray(X, X2)
+        X2 = _modify_dimension(X, 6)
+        self.assertEqualArray(X[:, 2:4], X2[:, 2:4])
+        self.assertNotEqualArray(X[:, :2], X2[:, :2])
+        self.assertNotEqualArray(X[:, :2], X2[:, 4:6])
+        cor = numpy.corrcoef(X2)
+        for i in range(0, 2):
+            cor = numpy.corrcoef(X[:, i], X2[:, i])
+            self.assertLess(cor[0, 1], 0.9999)
+
+    def test_n_features_int(self):
+        X = numpy.arange(20).reshape((5, 4)).astype(numpy.int64)
+        X2 = _modify_dimension(X, 2)
+        self.assertEqualArray(X[:, :2], X2)
+        X2 = _modify_dimension(X, None)
+        self.assertEqualArray(X, X2)
+        X2 = _modify_dimension(X, 4)
+        self.assertEqualArray(X, X2)
+        X2 = _modify_dimension(X, 6)
+        self.assertEqualArray(X[:, 2:4], X2[:, 2:4])
+        self.assertNotEqualArray(X[:, :2], X2[:, :2])
+        self.assertNotEqualArray(X[:, :2], X2[:, 4:6])
 
 
 if __name__ == "__main__":

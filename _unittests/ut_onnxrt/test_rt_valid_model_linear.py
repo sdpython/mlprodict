@@ -53,6 +53,30 @@ class TestRtValidateLinear(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_rt_LinearClassifier_python_feat20(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        verbose = 1 if __name__ == "__main__" else 0
+
+        debug = False
+        buffer = []
+
+        def myprint(*args, **kwargs):
+            buffer.append(" ".join(map(str, args)))
+
+        rows = list(enumerate_validated_operator_opsets(
+            verbose, models={"LogisticRegression"}, opset_min=11, fLOG=myprint,
+            runtime='python', debug=debug, n_features=20,
+            filter_exp=lambda m, p: '-64' not in p))
+        self.assertGreater(len(rows), 1)
+        self.assertGreater(len(buffer), 1 if debug else 0)
+        for row in rows:
+            lb = row['lambda-batch']
+            m = lb[1]
+            self.assertEqual(m.shape[1], 20)
+
 
 if __name__ == "__main__":
     unittest.main()

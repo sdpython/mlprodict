@@ -21,8 +21,8 @@ from .validate_helper import (
 )
 
 
-def _get_problem_data(prob):
-    data_problem = _problems[prob]()
+def _get_problem_data(prob, n_features):
+    data_problem = _problems[prob](n_features=n_features)
     if len(data_problem) == 6:
         X_, y_, init_types, method, output_index, Xort_ = data_problem
         dofit = True
@@ -132,6 +132,39 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
     return ypred
 
 
+def _retrieve_problems_extra(model, verbose, fLOG, extended_list):
+    """
+    Use by @see fn enumerate_compatible_opset.
+    """
+    if extended_list:
+        from ...onnx_conv.validate_scenarios import find_suitable_problem as fsp_extended
+        problems = fsp_extended(model)
+        if problems is not None:
+            from ...onnx_conv.validate_scenarios import build_custom_scenarios as fsp_scenarios
+            extra_parameters = fsp_scenarios()
+
+            if verbose >= 2 and fLOG is not None:
+                fLOG(
+                    "[enumerate_compatible_opset] found custom for model={}".format(model))
+                extras = extra_parameters.get(model, None)
+                if extras is not None:
+                    fLOG(
+                        "[enumerate_compatible_opset] found custom scenarios={}".format(extras))
+    else:
+        problems = None
+
+    if problems is None:
+        # scikit-learn
+        extra_parameters = _extra_parameters
+        try:
+            problems = find_suitable_problem(model)
+        except RuntimeError as e:
+            return {'name': model.__name__, 'skl_version': sklearn_version,
+                    '_0problem_exc': e}
+    extras = extra_parameters.get(model, [('default', {})])
+    return problems, extras
+
+
 def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                check_runtime=True, debug=False,
                                runtime='python', dump_folder=None,
@@ -139,7 +172,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                assume_finite=True, node_time=False,
                                fLOG=print, filter_exp=None,
                                verbose=0, time_kwargs=None,
-                               extended_list=False, dump_all=False):
+                               extended_list=False, dump_all=False,
+                               n_features=None):
     """
     Lists all compatible opsets for a specific model.
 
@@ -171,6 +205,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     @param      extended_list   extends the list to custom converters
                                 and problems
     @param      time_kwargs     to define a more precise way to measure a model
+    @param      n_features      modifies the shorts datasets used to train the models
+                                to use exactly this number of features
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
                                 problem chosen to test the conversion...
@@ -192,34 +228,13 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     """
     if time_kwargs is None:
         time_kwargs = default_time_kwargs()
-    if extended_list:
-        from ...onnx_conv.validate_scenarios import find_suitable_problem as fsp_extended
-        problems = fsp_extended(model)
-        if problems is not None:
-            from ...onnx_conv.validate_scenarios import build_custom_scenarios as fsp_scenarios
-            extra_parameters = fsp_scenarios()
-
-            if verbose >= 2 and fLOG is not None:
-                fLOG(
-                    "[enumerate_compatible_opset] found custom for model={}".format(model))
-                extras = extra_parameters.get(model, None)
-                if extras is not None:
-                    fLOG(
-                        "[enumerate_compatible_opset] found custom scenarios={}".format(extras))
+    problems = _retrieve_problems_extra(
+        model, verbose, fLOG, extended_list)
+    if isinstance(problems, dict):
+        yield problems
+        problems = []
     else:
-        problems = None
-
-    if problems is None:
-        # scikit-learn
-        extra_parameters = _extra_parameters
-        try:
-            problems = find_suitable_problem(model)
-        except RuntimeError as e:
-            yield {'name': model.__name__, 'skl_version': sklearn_version,
-                   '_0problem_exc': e}
-            problems = []
-
-    extras = extra_parameters.get(model, [('default', {})])
+        problems, extras = problems
 
     if opset_max is None:
         opset_max = get_opset_number_from_onnx()
@@ -240,7 +255,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
         (X_train, X_test, y_train,
          y_test, Xort_test,
          init_types, conv_options, method_name,
-         output_index, dofit, predict_kwargs) = _get_problem_data(prob)
+         output_index, dofit, predict_kwargs) = _get_problem_data(prob, n_features)
 
         for scenario_extra in extras:
             if len(scenario_extra) > 2:
@@ -260,8 +275,9 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                    'skl_version': sklearn_version, 'problem': prob,
                    'method_name': method_name, 'output_index': output_index,
                    'fit': dofit, 'conv_options': conv_options,
-                   'idtype': Xort_test.dtype,
-                   'predict_kwargs': predict_kwargs, 'init_types': init_types}
+                   'idtype': Xort_test.dtype, 'predict_kwargs': predict_kwargs,
+                   'init_types': init_types,
+                   'n_features': X_train.shape[1] if len(X_train.shape) == 2 else 1}
             inst = None
             try:
                 inst = model(**extra)
@@ -361,7 +377,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
 
     # load
     if verbose >= 2 and fLOG is not None:
-        fLOG("[enumerate_compatible_opset] load onnx")
+        fLOG("[enumerate_compatible_opset-R] load onnx")
     try:
         sess, t5, ___ = _measure_time(
             lambda: OnnxInference(ser, runtime=runtime))
@@ -376,7 +392,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if store_models:
         obs_op['OINF'] = sess
     if verbose >= 2 and fLOG is not None:
-        fLOG("[enumerate_compatible_opset] compute batch")
+        fLOG("[enumerate_compatible_opset-R] compute batch")
 
     def fct_batch(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
         return se.run({it[0][0]: xo},
@@ -405,7 +421,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     # difference
     debug_exc = []
     if verbose >= 2 and fLOG is not None:
-        fLOG("[enumerate_compatible_opset] differences")
+        fLOG("[enumerate_compatible_opset-R] differences")
     if '_6ort_run_batch_exc' not in obs_op:
         if isinstance(opred, dict):
             ch = [(k, v) for k, v in opred.items()]
@@ -462,7 +478,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         import pprint
         fLOG(pprint.pformat(obs_op))
     if verbose >= 2 and fLOG is not None:
-        fLOG("[enumerate_compatible_opset] next...")
+        fLOG("[enumerate_compatible_opset-R] next...")
     if dump_all:
         dump_into_folder(dump_folder, kind='batch', obs_op=obs_op,
                          X_test=X_test, y_test=y_test, Xort_test=Xort_test,
@@ -478,7 +494,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         fLOG=print, filter_exp=None,
                                         versions=False, dtype=numpy.float32,
                                         extended_list=False, time_kwargs=None,
-                                        dump_all=False):
+                                        dump_all=False, n_features=None):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -515,6 +531,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     @param      dtype           force the conversion to use that type
     @param      extended_list   also check models this module implements a converter for
     @param      time_kwargs     to define a more precise way to measure a model
+    @param      n_features      modifies the shorts datasets used to train the models
+                                to use exactly this number of features
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -598,7 +616,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 fLOG=fLOG, filter_exp=filter_exp,
                 assume_finite=assume_finite, node_time=node_time,
                 verbose=verbose, extended_list=extended_list,
-                time_kwargs=time_kwargs, dump_all=dump_all):
+                time_kwargs=time_kwargs, dump_all=dump_all,
+                n_features=n_features):
 
             if verbose > 1:
                 fLOG("  ", obs)

@@ -26,3 +26,7 @@ for Linux. When this project becomes more stable,
 it will changed to be using official releases.
 Experiments with float64 are not supported with
 ``sklearn-onnx <= 1.5.0``.
+
+.. toctree::
+
+    README

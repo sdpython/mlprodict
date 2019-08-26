@@ -43,8 +43,8 @@ mlprodict
     :target: http://www.xavierdupre.fr/app/mlprodict/helpsphinx/all_notebooks_coverage.html
     :alt: Notebook Coverage
 
-.. image:: https://pepy.tech/badge/mlprodict
-    :target: https://pypi.org/project/mlprodict/
+.. image:: https://pepy.tech/badge/mlprodict/month
+    :target: https://pepy.tech/project/mlprodict/month
     :alt: Downloads
 
 .. image:: https://img.shields.io/github/forks/sdpython/mlprodict.svg

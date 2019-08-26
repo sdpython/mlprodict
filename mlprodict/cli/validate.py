@@ -19,7 +19,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      catch_warnings=True, assume_finite=True,
                      versions=False, skip_models=None,
                      extended_list=True, separate_process=False,
-                     time_kwargs=None, fLOG=print):
+                     time_kwargs=None, n_features=None, fLOG=print):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -62,6 +62,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     :param time_kwargs: a dictionary which defines the number of rows and
         the parameter *number* and *repeat* when benchmarking a model,
         the value must follow :epkg:`json` format
+    :param n_features: change the default number of features for
+        a specific problem
     :param fLOG: logging function
 
     .. cmdref::
@@ -105,7 +107,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             catch_warnings=catch_warnings, assume_finite=assume_finite,
             versions=versions, skip_models=skip_models,
             extended_list=extended_list, time_kwargs=time_kwargs,
-            fLOG=fLOG)
+            n_features=n_features, fLOG=fLOG)
 
     from ..onnxrt.validate import enumerate_validated_operator_opsets  # pylint: disable=E0402
 
@@ -140,6 +142,10 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     if time_kwargs is not None and not isinstance(time_kwargs, dict):
         raise ValueError("time_kwargs must be a dictionary not {}\n{}".format(
             type(time_kwargs), time_kwargs))
+    if n_features in (None, ""):
+        n_features = None
+    else:
+        n_features = int(n_features)
 
     # body
 
@@ -149,6 +155,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             dump_folder=dump_folder, opset_min=opset_min, opset_max=opset_max,
             benchmark=benchmark, assume_finite=assume_finite, versions=versions,
             extended_list=extended_list, time_kwargs=time_kwargs, dump_all=dump_all,
+            n_features=n_features,
             filter_exp=lambda m, s: str(m) not in skip_models))
         return rows
 
