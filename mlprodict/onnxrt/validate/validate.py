@@ -713,10 +713,17 @@ def summary_report(df):
     for col in ['problem', 'scenario', 'opset']:
         if col not in df.columns:
             df[col] = '' if col != 'opset' else numpy.nan
-    indices = ["name", "problem", "scenario", 'n_features']
-    piv = pandas.pivot_table(df, values=col_values,
-                             index=indices, columns='opset',
-                             aggfunc=aggfunc).reset_index(drop=False)
+    indices = ["name", "problem", "scenario"]
+    if 'n_features' in df.columns:
+        indices.append('n_features')
+
+    try:
+        piv = pandas.pivot_table(df, values=col_values,
+                                 index=indices, columns='opset',
+                                 aggfunc=aggfunc).reset_index(drop=False)
+    except KeyError as e:
+        raise RuntimeError("Issue with keys={}, values={}\namong {}.".format(
+            indices, col_values, df.columns)) from e
 
     opmin = min(df['opset'].dropna())
     versions = ["opset%d" % (opmin + t - 1)
