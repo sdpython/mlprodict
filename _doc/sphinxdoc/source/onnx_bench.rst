@@ -131,18 +131,13 @@ it is *1/r* faster than *scikit-learn*.
         ax[index].barh(xl, yl, label=runtime, height=height)
         ax[index].set_title(place)
     for i in range(len(ax)):
-        ax[i].plot([1, 1], [0, dfp.shape[0]], 'k-')
-        ax[i].plot([2, 2], [0, dfp.shape[0]], 'k--')
+        ax[i].plot([1, 1], [0, dfp.shape[0]], 'g-')
+        ax[i].plot([2, 2], [0, dfp.shape[0]], 'r--')
         ax[i].legend()
         ax[i].set_xscale('log')
 
-    for a in ax:
-        for yl in a.get_yticklabels():
-            yl.set_visible(False)
-
     ax[0].set_yticks(x)
     ax[0].set_yticklabels(dfp['label'])
-    for yl in ax[0].get_yticklabels():
-        yl.set_visible(True)
+    fig.subplots_adjust(left=0.25)
 
     plt.show()
