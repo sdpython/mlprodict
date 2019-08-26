@@ -136,6 +136,7 @@ def _retrieve_problems_extra(model, verbose, fLOG, extended_list):
     """
     Use by @see fn enumerate_compatible_opset.
     """
+    extras = None
     if extended_list:
         from ...onnx_conv.validate_scenarios import find_suitable_problem as fsp_extended
         problems = fsp_extended(model)
@@ -160,7 +161,7 @@ def _retrieve_problems_extra(model, verbose, fLOG, extended_list):
             problems = find_suitable_problem(model)
         except RuntimeError as e:
             return {'name': model.__name__, 'skl_version': sklearn_version,
-                    '_0problem_exc': e}
+                    '_0problem_exc': e}, extras
     extras = extra_parameters.get(model, [('default', {})])
     return problems, extras
 
@@ -228,13 +229,11 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     """
     if time_kwargs is None:
         time_kwargs = default_time_kwargs()
-    problems = _retrieve_problems_extra(
+    problems, extras = _retrieve_problems_extra(
         model, verbose, fLOG, extended_list)
     if isinstance(problems, dict):
         yield problems
         problems = []
-    else:
-        problems, extras = problems
 
     if opset_max is None:
         opset_max = get_opset_number_from_onnx()
