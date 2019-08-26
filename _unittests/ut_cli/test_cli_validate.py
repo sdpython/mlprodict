@@ -78,9 +78,13 @@ class TestCliValidate(ExtTestCase):
         self.assertIn('LGBMClassifier', res)
         self.assertExists(out1)
         self.assertExists(out2)
-        exp = os.path.join(
+        exp1 = os.path.join(
             temp, "dump-ERROR-python-LGBMClassifier-default-b-cl--.pkl")
-        self.assertExists(exp)
+        exp2 = os.path.join(
+            temp, "dump-i-python-LGBMClassifier-default-b-cl--.pkl")
+        if not os.path.exists(exp1) and not os.path.exists(exp2):
+            raise FileNotFoundError(
+                "Unable to find '{}' or '{}'.".format(exp1, exp2))
 
 
 if __name__ == "__main__":

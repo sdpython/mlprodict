@@ -5,7 +5,20 @@
 History
 =======
 
-current - 2019-08-01 - 0.00Mb
+current - 2019-08-26 - 0.00Mb
+=============================
+
+* `39`: Add a parameter to dump all models even if they don't produce errors when being validated (ONNX) (2019-08-26)
+* `24`: support double for TreeEnsembleClassifier (python runtime ONNX) (2019-08-23)
+* `38`: See issue on onnxmltools. https://github.com/onnx/onnxmltools/issues/321 (2019-08-19)
+* `35`: Supports parameter time_kwargs in the command line (ONNX) (2019-08-09)
+* `34`: Add intervals when measuring time ratios between scikit-learn and onnx (ONNX) (2019-08-09)
+* `31`: Implements shape inference for the python runtime (ONNX) (2019-08-06)
+* `15`: Tells operator if the execution can be done inplace for unary operators (ONNX). (2019-08-06)
+* `27`: Bug fix (2019-08-02)
+* `23`: support double for TreeEnsembleRegressor (python runtime ONNX) (2019-08-02)
+
+0.2.363 - 2019-08-01 - 0.11Mb
 =============================
 
 * `26`: Tests all converters in separate processeses to make it easier to catch crashes (2019-08-01)
