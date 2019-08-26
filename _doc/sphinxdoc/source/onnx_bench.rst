@@ -17,9 +17,15 @@ compare to :epkg:`scikit-learn` in term of speed processing.
 The benchmark evaluates every model on a dataset
 inspired from the :epkg:`Iris` dataset,
 so with four features, and different number of
-observations *N= 1, 10, 100, 1000, 100.00, 100.000*.
+observations *N= 1, 10, 100, 1.000, 10.000, 100.000*.
 The measures for high values of *N* may be missing
 because the first one took too long.
+
+.. contents::
+    :local:
+
+Benchmarks
+++++++++++
 
 .. toctree::
     :maxdepth: 1
@@ -27,6 +33,9 @@ because the first one took too long.
     skl_converters/bench_python
     skl_converters/bench_onnxrt1
     skl_converters/bench_onnxrt2
+
+Versions
+++++++++
 
 All results were obtained using out the following versions
 of modules below:
@@ -39,6 +48,9 @@ of modules below:
     from pyquickhelper.pandashelper import df2rst
     from pandas import DataFrame
     print(df2rst(DataFrame(modules_list())))
+
+Supported models
+++++++++++++++++
 
 Every model is tested through a defined list of standard
 problems created from the :epkg:`Iris` dataset. Function
@@ -70,3 +82,67 @@ describes the list of considered problems.
     cols = list(sorted(df.columns))
     df = df[cols]
     print(df2rst(df, index=True))
+
+Summary graph
++++++++++++++
+
+The following graph summarizes the performance for every
+supported models and compares *python runtime* and *onnxruntime*
+to *scikit-learn* in the same condition. It displays a ratio *r*.
+Above 1, it is *r* times slower than *scikit-learn*. Below 1,
+it is *1/r* faster than *scikit-learn*.
+
+.. plot::
+
+    import pandas
+    import matplotlib.pyplot as plt
+    import numpy
+
+    df1 = pandas.read_excel("bench_sum_python.xlsx")
+    df2 = pandas.read_excel("bench_sum_onnxruntime1.xlsx")
+    if 'n_features' not in df1.columns:
+        df1["n_features"] = 4
+    if 'n_features' not in df2.columns:
+        df2["n_features"] = 4
+    fmt = "{} [{}-{}] D{}"
+    df1["label"] = df1.apply(lambda row: fmt.format(
+                             row["name"], row["problem"], row["scenario"], row["n_features"]), axis=1)
+    df2["label"] = df2.apply(lambda row: fmt.format(
+                             row["name"], row["problem"], row["scenario"], row["n_features"]), axis=1)
+    indices = ['label']
+    values = ['RT/SKL-N=1', 'N=10', 'N=100', 'N=1000', 'N=10000', 'N=100000']
+    df1 = df1[indices + values]
+    df2 = df2[indices + values]
+    df = df1.merge(df2, on="label", suffixes=("__pyrt", "__ort"))
+
+    na = df["RT/SKL-N=1__pyrt"].isnull() & df["RT/SKL-N=1__ort"].isnull()
+    dfp = df[~na].sort_values("label", ascending=False)
+
+    total = dfp.shape[0] * 0.45
+    fig, ax = plt.subplots(1, (dfp.shape[1]-1) // 2, figsize=(14,total), sharex=False, sharey=True)
+    x = numpy.arange(dfp.shape[0])
+    height = total / dfp.shape[0] * 0.65
+    for c in df.columns[1:]:
+        place, runtime = c.split('__')
+        dec = {'pyrt': 1, 'ort': -1}
+        index = values.index(place)
+        yl = dfp.loc[:, c]
+        xl = x + dec[runtime] * height / 2
+        ax[index].barh(xl, yl, label=runtime, height=height)
+        ax[index].set_title(place)
+    for i in range(len(ax)):
+        ax[i].plot([1, 1], [0, dfp.shape[0]], 'k-')
+        ax[i].plot([2, 2], [0, dfp.shape[0]], 'k--')
+        ax[i].legend()
+        ax[i].set_xscale('log')
+
+    for a in ax:
+        for yl in a.get_yticklabels():
+            yl.set_visible(False)
+
+    ax[0].set_yticks(x)
+    ax[0].set_yticklabels(dfp['label'])
+    for yl in ax[0].get_yticklabels():
+        yl.set_visible(True)
+
+    plt.show()
