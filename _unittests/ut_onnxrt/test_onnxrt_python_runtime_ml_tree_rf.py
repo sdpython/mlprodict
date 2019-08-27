@@ -73,7 +73,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             numpy.float64, full=True)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
-    def test_rt_RandomForestRegressor_python(self):
+    def test_rt_RandomForestRegressor_python64(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
