@@ -13,13 +13,14 @@ from sklearn.exceptions import ConvergenceWarning
 
 def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      check_runtime=True, runtime='python', debug=False,
-                     models=None, out_raw="onnx_runtime_raw.xlsx",
-                     out_summary="onnx_runtime_summary.xlsx",
+                     models=None, out_raw="model_onnx_raw.xlsx",
+                     out_summary="model_onnx_summary.xlsx",
                      dump_folder=None, dump_all=False, benchmark=False,
                      catch_warnings=True, assume_finite=True,
                      versions=False, skip_models=None,
                      extended_list=True, separate_process=False,
-                     time_kwargs=None, n_features=None, fLOG=print):
+                     time_kwargs=None, n_features=None, fLOG=print,
+                     force_return=False):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -34,7 +35,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     :param runtime: runtime to check, python,
         onnxruntime1 to check :epkg:`onnxruntime`,
         onnxruntime2 to check every ONNX node independently
-        with onnxruntime
+        with onnxruntime, many runtime can be checked at the same time
+        if the value is a comma separated list
     :param models: comma separated list of models to test or empty
         string to test them all
     :param skip_models: models to skip
@@ -64,6 +66,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         the value must follow :epkg:`json` format
     :param n_features: change the default number of features for
         a specific problem, it can also be a comma separated list
+    :param force_return: forces the function to return the results,
+        used when the results are produces through a separate process
     :param fLOG: logging function
 
     .. cmdref::
@@ -107,7 +111,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             catch_warnings=catch_warnings, assume_finite=assume_finite,
             versions=versions, skip_models=skip_models,
             extended_list=extended_list, time_kwargs=time_kwargs,
-            n_features=n_features, fLOG=fLOG)
+            n_features=n_features, fLOG=fLOG, force_return=True)
 
     from ..onnxrt.validate import enumerate_validated_operator_opsets  # pylint: disable=E0402
 
@@ -148,6 +152,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         n_features = list(map(int, n_features.split(',')))
     else:
         n_features = int(n_features)
+    if ',' in runtime:
+        runtime = runtime.split(',')
 
     # body
 
@@ -174,7 +180,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
 
     rows = catch_build_rows(models)
     res = _finalize(rows, out_raw, out_summary, verbose, models, fLOG)
-    return res if verbose >= 2 else None
+    return res if (force_return or verbose >= 2) else None
 
 
 def _finalize(rows, out_raw, out_summary, verbose, models, fLOG):

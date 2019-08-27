@@ -349,19 +349,22 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
 
                     # prediction
                     if check_runtime:
-                        yield _call_runtime(obs_op=obs_op, conv=conv, opset=opset, debug=debug,
-                                            runtime=runtime, inst=inst,
-                                            X_test=X_test, y_test=y_test,
-                                            init_types=init_types,
-                                            method_name=method_name,
-                                            output_index=output_index,
-                                            ypred=ypred, Xort_test=Xort_test,
-                                            model=model, dump_folder=dump_folder,
-                                            benchmark=benchmark and opset == opsets[-1],
-                                            node_time=node_time, time_kwargs=time_kwargs,
-                                            fLOG=fLOG, verbose=verbose,
-                                            store_models=store_models,
-                                            dump_all=dump_all)
+                        if not isinstance(runtime, list):
+                            runtime = [runtime]
+                        for rt in runtime:
+                            yield _call_runtime(obs_op=obs_op.copy(), conv=conv, opset=opset, debug=debug,
+                                                runtime=rt, inst=inst,
+                                                X_test=X_test, y_test=y_test,
+                                                init_types=init_types,
+                                                method_name=method_name,
+                                                output_index=output_index,
+                                                ypred=ypred, Xort_test=Xort_test,
+                                                model=model, dump_folder=dump_folder,
+                                                benchmark=benchmark and opset == opsets[-1],
+                                                node_time=node_time, time_kwargs=time_kwargs,
+                                                fLOG=fLOG, verbose=verbose,
+                                                store_models=store_models,
+                                                dump_all=dump_all)
                     else:
                         yield obs_op
 
@@ -396,7 +399,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if store_models:
         obs_op['OINF'] = sess
     if verbose >= 2 and fLOG is not None:
-        fLOG("[enumerate_compatible_opset-R] compute batch")
+        fLOG("[enumerate_compatible_opset-R] compute batch with runtime "
+             "'{}'".format(runtime))
 
     def fct_batch(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
         return se.run({it[0][0]: xo},
@@ -720,8 +724,9 @@ def summary_report(df):
         if col not in df.columns:
             df[col] = '' if col != 'opset' else numpy.nan
     indices = ["name", "problem", "scenario"]
-    if 'n_features' in df.columns:
-        indices.append('n_features')
+    for c in ['n_features', 'runtime']:
+        if c in df.columns:
+            indices.append(c)
 
     try:
         piv = pandas.pivot_table(df, values=col_values,
