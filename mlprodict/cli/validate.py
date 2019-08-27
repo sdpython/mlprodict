@@ -20,7 +20,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      versions=False, skip_models=None,
                      extended_list=True, separate_process=False,
                      time_kwargs=None, n_features=None, fLOG=print,
-                     force_return=False):
+                     out_graph=None, force_return=False):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -68,6 +68,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         a specific problem, it can also be a comma separated list
     :param force_return: forces the function to return the results,
         used when the results are produces through a separate process
+    :param out_graph: image name, to output a graph which summarizes
+        a benchmark in case it was run
     :param fLOG: logging function
 
     .. cmdref::
@@ -111,7 +113,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             catch_warnings=catch_warnings, assume_finite=assume_finite,
             versions=versions, skip_models=skip_models,
             extended_list=extended_list, time_kwargs=time_kwargs,
-            n_features=n_features, fLOG=fLOG, force_return=True)
+            n_features=n_features, fLOG=fLOG, force_return=True,
+            out_graph=None)
 
     from ..onnxrt.validate import enumerate_validated_operator_opsets  # pylint: disable=E0402
 
@@ -179,11 +182,12 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         return rows
 
     rows = catch_build_rows(models)
-    res = _finalize(rows, out_raw, out_summary, verbose, models, fLOG)
+    res = _finalize(rows, out_raw, out_summary,
+                    verbose, models, out_graph, fLOG)
     return res if (force_return or verbose >= 2) else None
 
 
-def _finalize(rows, out_raw, out_summary, verbose, models, fLOG):
+def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
     from ..onnxrt.validate import summary_report  # pylint: disable=E0402
 
     # Drops data which cannot be serialized.
@@ -207,6 +211,13 @@ def _finalize(rows, out_raw, out_summary, verbose, models, fLOG):
         piv.to_csv(out_summary, index=False)
     if verbose > 0 and models is not None:
         fLOG(piv.T)
+    if out_graph is not None:
+        if verbose > 0:
+            fLOG("Saving graph into '{}'.".format(out_graph))
+        from ..onnxrt.validate.validate_graph import plot_validate_benchmark
+        fig = plot_validate_benchmark(piv)[0]
+        fig.savefig(out_graph)
+
     return rows
 
 
@@ -261,6 +272,7 @@ def _validate_runtime_separate_process(**kwargs):
         new_kwargs['out_summary'] = out_summary
         new_kwargs['models'] = op
         new_kwargs['verbose'] = 0  # tqdm fails
+        new_kwargs['out_graph'] = None
 
         with Pool(1) as p:
             try:
@@ -274,4 +286,4 @@ def _validate_runtime_separate_process(**kwargs):
                 })
 
     return _finalize(all_rows, kwargs['out_raw'], kwargs['out_summary'],
-                     verbose, models, fLOG)
+                     verbose, models, kwargs.get('out_graph', None), fLOG)

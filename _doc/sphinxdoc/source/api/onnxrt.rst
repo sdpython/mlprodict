@@ -39,6 +39,8 @@ Validation
 
 .. autosignature:: mlprodict.onnxrt.model_checker.onnx_shaker
 
+.. autosignature:: mlprodict.onnxrt.validate.validate_graph.plot_validate_benchmark
+
 C++ classes
 +++++++++++
 

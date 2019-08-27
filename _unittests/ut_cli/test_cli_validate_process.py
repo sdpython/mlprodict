@@ -21,7 +21,7 @@ class TestCliValidateProcess(ExtTestCase):
                    "LogisticRegression,LinearRegression",
                    '-o', '10', '-op', '11', '-v', '3', '-b', '1',
                    '-se', '1',
-                   '-d', '1',
+                   # '-d', '1',
                    ],
              fLOG=st.fprint)
         res = str(st)

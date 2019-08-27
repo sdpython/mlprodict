@@ -20,17 +20,20 @@ class TestCliValidate(ExtTestCase):
         temp = get_temp_folder(__file__, "temp_validate_model")
         out1 = os.path.join(temp, "raw.xlsx")
         out2 = os.path.join(temp, "sum.xlsx")
+        gr = os.path.join(temp, 'gr.png')
         st = BufferedPrint()
         main(args=["validate_runtime", "--out_raw", out1,
                    "--out_summary", out2, "--models",
                    "LogisticRegression,LinearRegression",
                    '-o', '10', '-op', '10', '-v', '1', '-b', '1',
-                   '-t', '{"1":{"number":10,"repeat":10},"10":{"number":5,"repeat":5}}'],
+                   '-t', '{"1":{"number":10,"repeat":10},"10":{"number":5,"repeat":5}}',
+                   '--out_graph', gr],
              fLOG=st.fprint)
         res = str(st)
         self.assertIn('Linear', res)
         self.assertExists(out1)
         self.assertExists(out2)
+        self.assertExists(gr)
 
     def test_cli_validate_model_csv(self):
         temp = get_temp_folder(__file__, "temp_validate_model_csv")
