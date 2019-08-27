@@ -63,7 +63,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         the parameter *number* and *repeat* when benchmarking a model,
         the value must follow :epkg:`json` format
     :param n_features: change the default number of features for
-        a specific problem
+        a specific problem, it can also be a comma separated list
     :param fLOG: logging function
 
     .. cmdref::
@@ -144,6 +144,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             type(time_kwargs), time_kwargs))
     if n_features in (None, ""):
         n_features = None
+    elif ',' in n_features:
+        n_features = list(map(int, n_features.split(',')))
     else:
         n_features = int(n_features)
 
@@ -171,7 +173,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         return rows
 
     rows = catch_build_rows(models)
-    return _finalize(rows, out_raw, out_summary, verbose, models, fLOG)
+    res = _finalize(rows, out_raw, out_summary, verbose, models, fLOG)
+    return res if verbose >= 2 else None
 
 
 def _finalize(rows, out_raw, out_summary, verbose, models, fLOG):

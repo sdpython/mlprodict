@@ -207,7 +207,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                 and problems
     @param      time_kwargs     to define a more precise way to measure a model
     @param      n_features      modifies the shorts datasets used to train the models
-                                to use exactly this number of features
+                                to use exactly this number of features, it can also
+                                be a list to test multiple datasets
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
                                 problem chosen to test the conversion...
@@ -245,120 +246,124 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
         yield {'name': model.__name__, 'skl_version': sklearn_version,
                '_0problem_exc': 'SKIPPED'}
 
+    if not isinstance(n_features, list):
+        n_features = [n_features]
+
     for prob in problems:
         if filter_exp is not None and not filter_exp(model, prob):
             continue
         if verbose >= 2 and fLOG is not None:
             fLOG("[enumerate_compatible_opset] problem={}".format(prob))
+        for n_feature in n_features:
+            (X_train, X_test, y_train,
+             y_test, Xort_test,
+             init_types, conv_options, method_name,
+             output_index, dofit, predict_kwargs) = _get_problem_data(prob, n_feature)
 
-        (X_train, X_test, y_train,
-         y_test, Xort_test,
-         init_types, conv_options, method_name,
-         output_index, dofit, predict_kwargs) = _get_problem_data(prob, n_features)
-
-        for scenario_extra in extras:
-            if len(scenario_extra) > 2:
-                subset_problems = scenario_extra[2]
-                if prob not in subset_problems:
-                    # Skips unrelated problem for a specific configuration.
-                    continue
-            scenario, extra = scenario_extra[:2]
-
-            if verbose >= 2 and fLOG is not None:
-                fLOG("[enumerate_compatible_opset] ##############################")
-                fLOG("[enumerate_compatible_opset] scenario={} extra={} dofit={} (problem={})".format(
-                    scenario, extra, dofit, prob))
-
-            # training
-            obs = {'scenario': scenario, 'name': model.__name__,
-                   'skl_version': sklearn_version, 'problem': prob,
-                   'method_name': method_name, 'output_index': output_index,
-                   'fit': dofit, 'conv_options': conv_options,
-                   'idtype': Xort_test.dtype, 'predict_kwargs': predict_kwargs,
-                   'init_types': init_types,
-                   'n_features': X_train.shape[1] if len(X_train.shape) == 2 else 1}
-            inst = None
-            try:
-                inst = model(**extra)
-            except TypeError as e:
-                if debug:
-                    raise
-                import pprint
-                raise RuntimeError(
-                    "Unable to instantiate model '{}'.\nextra=\n{}".format(
-                        model.__name__, pprint.pformat(extra))) from e
-
-            if not _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
-                                Xort_test, init_types, store_models,
-                                debug, verbose, fLOG):
-                yield obs
-                continue
-
-            # runtime
-            ypred = _run_skl_prediction(
-                obs, check_runtime, assume_finite, inst,
-                method_name, predict_kwargs, X_test,
-                benchmark, debug, verbose, time_kwargs,
-                fLOG)
-            if isinstance(ypred, Exception):
-                yield obs
-                continue
-
-            # converting
-            for opset in opsets:
-                if verbose >= 2 and fLOG is not None:
-                    fLOG("[enumerate_compatible_opset] opset={}".format(opset))
-                obs_op = obs.copy()
-                if opset is not None:
-                    obs_op['opset'] = opset
-
-                if len(init_types) != 1:
-                    raise NotImplementedError("Multiple types are is not implemented: "
-                                              "{}.".format(init_types))
-
-                def fct_conv(itt=inst, it=init_types[0][1], ops=opset, options=conv_options):  # pylint: disable=W0102
-                    return to_onnx(itt, it, target_opset=ops, options=options,
-                                   dtype=init_types[0][1], rewrite_ops=runtime in ('', None, 'python'))
+            for scenario_extra in extras:
+                if len(scenario_extra) > 2:
+                    subset_problems = scenario_extra[2]
+                    if prob not in subset_problems:
+                        # Skips unrelated problem for a specific configuration.
+                        continue
+                scenario, extra = scenario_extra[:2]
 
                 if verbose >= 2 and fLOG is not None:
-                    fLOG("[enumerate_compatible_opset] conversion to onnx")
+                    fLOG("[enumerate_compatible_opset] ##############################")
+                    fLOG("[enumerate_compatible_opset] scenario={} extra={} dofit={} (problem={})".format(
+                        scenario, extra, dofit, prob))
+
+                # training
+                obs = {'scenario': scenario, 'name': model.__name__,
+                       'skl_version': sklearn_version, 'problem': prob,
+                       'method_name': method_name, 'output_index': output_index,
+                       'fit': dofit, 'conv_options': conv_options,
+                       'idtype': Xort_test.dtype, 'predict_kwargs': predict_kwargs,
+                       'init_types': init_types,
+                       'n_features': X_train.shape[1] if len(X_train.shape) == 2 else 1}
+                inst = None
                 try:
-                    conv, t4 = _measure_time(fct_conv)[:2]
-                    obs_op["convert_time"] = t4
-                except (RuntimeError, IndexError, AttributeError) as e:
+                    inst = model(**extra)
+                except TypeError as e:
                     if debug:
-                        import pprint
-                        fLOG("--------------------")
-                        fLOG(pprint.pformat(obs_op))
                         raise
-                    obs_op["_4convert_exc"] = e
-                    yield obs_op
+                    import pprint
+                    raise RuntimeError(
+                        "Unable to instantiate model '{}'.\nextra=\n{}".format(
+                            model.__name__, pprint.pformat(extra))) from e
+
+                if not _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
+                                    Xort_test, init_types, store_models,
+                                    debug, verbose, fLOG):
+                    yield obs
                     continue
 
-                if store_models:
-                    obs_op['ONNX'] = conv
+                # runtime
+                ypred = _run_skl_prediction(
+                    obs, check_runtime, assume_finite, inst,
+                    method_name, predict_kwargs, X_test,
+                    benchmark, debug, verbose, time_kwargs,
+                    fLOG)
+                if isinstance(ypred, Exception):
+                    yield obs
+                    continue
 
-                # opset_domain
-                for op_imp in list(conv.opset_import):
-                    obs_op['domain_opset_%s' % op_imp.domain] = op_imp.version
+                # converting
+                for opset in opsets:
+                    if verbose >= 2 and fLOG is not None:
+                        fLOG("[enumerate_compatible_opset] opset={}".format(opset))
+                    obs_op = obs.copy()
+                    if opset is not None:
+                        obs_op['opset'] = opset
 
-                # prediction
-                if check_runtime:
-                    yield _call_runtime(obs_op=obs_op, conv=conv, opset=opset, debug=debug,
-                                        runtime=runtime, inst=inst,
-                                        X_test=X_test, y_test=y_test,
-                                        init_types=init_types,
-                                        method_name=method_name,
-                                        output_index=output_index,
-                                        ypred=ypred, Xort_test=Xort_test,
-                                        model=model, dump_folder=dump_folder,
-                                        benchmark=benchmark and opset == opsets[-1],
-                                        node_time=node_time, time_kwargs=time_kwargs,
-                                        fLOG=fLOG, verbose=verbose,
-                                        store_models=store_models,
-                                        dump_all=dump_all)
-                else:
-                    yield obs_op
+                    if len(init_types) != 1:
+                        raise NotImplementedError("Multiple types are is not implemented: "
+                                                  "{}.".format(init_types))
+
+                    def fct_conv(itt=inst, it=init_types[0][1], ops=opset, options=conv_options):  # pylint: disable=W0102
+                        return to_onnx(itt, it, target_opset=ops, options=options,
+                                       dtype=init_types[0][1], rewrite_ops=runtime in ('', None, 'python'))
+
+                    if verbose >= 2 and fLOG is not None:
+                        fLOG("[enumerate_compatible_opset] conversion to onnx")
+                    try:
+                        conv, t4 = _measure_time(fct_conv)[:2]
+                        obs_op["convert_time"] = t4
+                    except (RuntimeError, IndexError, AttributeError) as e:
+                        if debug:
+                            import pprint
+                            fLOG("--------------------")
+                            fLOG(pprint.pformat(obs_op))
+                            raise
+                        obs_op["_4convert_exc"] = e
+                        yield obs_op
+                        continue
+
+                    if store_models:
+                        obs_op['ONNX'] = conv
+
+                    # opset_domain
+                    for op_imp in list(conv.opset_import):
+                        obs_op['domain_opset_%s' %
+                               op_imp.domain] = op_imp.version
+
+                    # prediction
+                    if check_runtime:
+                        yield _call_runtime(obs_op=obs_op, conv=conv, opset=opset, debug=debug,
+                                            runtime=runtime, inst=inst,
+                                            X_test=X_test, y_test=y_test,
+                                            init_types=init_types,
+                                            method_name=method_name,
+                                            output_index=output_index,
+                                            ypred=ypred, Xort_test=Xort_test,
+                                            model=model, dump_folder=dump_folder,
+                                            benchmark=benchmark and opset == opsets[-1],
+                                            node_time=node_time, time_kwargs=time_kwargs,
+                                            fLOG=fLOG, verbose=verbose,
+                                            store_models=store_models,
+                                            dump_all=dump_all)
+                    else:
+                        yield obs_op
 
 
 def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
@@ -481,7 +486,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if dump_all:
         dump_into_folder(dump_folder, kind='batch', obs_op=obs_op,
                          X_test=X_test, y_test=y_test, Xort_test=Xort_test,
-                         is_error=len(debug_exc) <= 1)
+                         is_error=len(debug_exc) > 1)
     return obs_op
 
 
@@ -531,7 +536,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     @param      extended_list   also check models this module implements a converter for
     @param      time_kwargs     to define a more precise way to measure a model
     @param      n_features      modifies the shorts datasets used to train the models
-                                to use exactly this number of features
+                                to use exactly this number of features, it can also
+                                be a list to test multiple datasets
     @param      fLOG            logging function
     @return                     list of dictionaries
 
