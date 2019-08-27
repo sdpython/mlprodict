@@ -45,6 +45,8 @@ def plot_validate_benchmark(df):
     df["label"] = df.apply(lambda row: fmt.format(
                            row["name"], row["problem"], row["scenario"],
                            row["n_features"]).replace("-default]", "]"), axis=1)
+    df = df.sort_values(["name", "problem", "scenario", "n_features", "runtime"],
+                        ascending=False).reset_index(drop=True).copy()
     indices = ['label', 'runtime']
     values = [c for c in df.columns
               if 'N=' in c and '-min' not in c and '-max' not in c]
@@ -55,7 +57,7 @@ def plot_validate_benchmark(df):
             indices + values, df.columns)) from e
 
     na = df["RT/SKL-N=1"].isnull()
-    dfp = df[~na].sort_values(["label", "runtime"], ascending=False)
+    dfp = df[~na]
     runtimes = list(sorted(set(dfp['runtime'])))
     final = None
     for rt in runtimes:

@@ -20,7 +20,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      versions=False, skip_models=None,
                      extended_list=True, separate_process=False,
                      time_kwargs=None, n_features=None, fLOG=print,
-                     out_graph=None, force_return=False):
+                     out_graph=None, force_return=False,
+                     dtype=None):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -40,7 +41,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     :param models: comma separated list of models to test or empty
         string to test them all
     :param skip_models: models to skip
-    :param debug: stops whenever an exception is raised
+    :param debug: stops whenever an exception is raised,
+        only if *separate_process* is False
     :param out_raw: output raw results into this file (excel format)
     :param out_summary: output an aggregated view into this file (excel format)
     :param dump_folder: folder where to dump information (pickle)
@@ -70,6 +72,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         used when the results are produces through a separate process
     :param out_graph: image name, to output a graph which summarizes
         a benchmark in case it was run
+    :param dtype: '32' or '64' or None for both,
+        limits the test to one specific number types
     :param fLOG: logging function
 
     .. cmdref::
@@ -114,7 +118,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             versions=versions, skip_models=skip_models,
             extended_list=extended_list, time_kwargs=time_kwargs,
             n_features=n_features, fLOG=fLOG, force_return=True,
-            out_graph=None)
+            out_graph=None, dtype=dtype)
 
     from ..onnxrt.validate import enumerate_validated_operator_opsets  # pylint: disable=E0402
 
@@ -158,6 +162,22 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     if ',' in runtime:
         runtime = runtime.split(',')
 
+    def fct_filter_exp(m, s):
+        return str(m) not in skip_models
+
+    if dtype in ('', None):
+        fct_filter = fct_filter_exp
+    elif dtype == '32':
+        def fct_filter_exp2(m, p):
+            return fct_filter_exp(m, p) and '64' not in p
+        fct_filter = fct_filter_exp2
+    elif dtype == '64':
+        def fct_filter_exp3(m, p):
+            return fct_filter_exp(m, p) and '64' in p
+        fct_filter = fct_filter_exp3
+    else:
+        raise ValueError("dtype must be empty, 32, 64 not '{}'.".format(dtype))
+
     # body
 
     def build_rows(models_):
@@ -166,8 +186,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             dump_folder=dump_folder, opset_min=opset_min, opset_max=opset_max,
             benchmark=benchmark, assume_finite=assume_finite, versions=versions,
             extended_list=extended_list, time_kwargs=time_kwargs, dump_all=dump_all,
-            n_features=n_features,
-            filter_exp=lambda m, s: str(m) not in skip_models))
+            n_features=n_features, filter_exp=fct_filter))
         return rows
 
     def catch_build_rows(models_):
