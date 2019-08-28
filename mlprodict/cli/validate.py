@@ -21,7 +21,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
                      extended_list=True, separate_process=False,
                      time_kwargs=None, n_features=None, fLOG=print,
                      out_graph=None, force_return=False,
-                     dtype=None):
+                     dtype=None, skip_long_test=False):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -74,6 +74,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
         a benchmark in case it was run
     :param dtype: '32' or '64' or None for both,
         limits the test to one specific number types
+    :param skip_long_test: skips tests for high values of N if
+        they seem too long
     :param fLOG: logging function
 
     .. cmdref::
@@ -106,6 +108,19 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     The total time is divided by :math:`number \\times repeat``.
 
         -t "{\\"1\\":{\\"number\\":10,\\"repeat\\":10},\\"10\\":{\\"number\\":5,\\"repeat\\":5}}"
+
+    The following example dumps every model in the list:
+
+    ::
+
+        python -m mlprodict validate_runtime --out_raw raw.csv --out_summary sum.csv
+               --models LinearRegression,LogisticRegression,DecisionTreeRegressor,DecisionTreeClassifier
+               -r python,onnxruntime1 -o 10 -op 10 -v 1 -b 1 -dum 1
+               -du model_dump -n 20,100,500 --out_graph benchmark.png --dtype 32
+
+    The command line generates a graph produced by function
+    :func:`plot_validate_benchmark
+    <mlprodict.onnxrt.validate.validate_graph.plot_validate_benchmark>`.
     """
     if separate_process:
         return _validate_runtime_separate_process(
@@ -118,7 +133,7 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             versions=versions, skip_models=skip_models,
             extended_list=extended_list, time_kwargs=time_kwargs,
             n_features=n_features, fLOG=fLOG, force_return=True,
-            out_graph=None, dtype=dtype)
+            out_graph=None, dtype=dtype, skip_long_test=skip_long_test)
 
     from ..onnxrt.validate import enumerate_validated_operator_opsets  # pylint: disable=E0402
 
@@ -186,7 +201,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
             dump_folder=dump_folder, opset_min=opset_min, opset_max=opset_max,
             benchmark=benchmark, assume_finite=assume_finite, versions=versions,
             extended_list=extended_list, time_kwargs=time_kwargs, dump_all=dump_all,
-            n_features=n_features, filter_exp=fct_filter))
+            n_features=n_features, filter_exp=fct_filter,
+            skip_long_test=skip_long_test))
         return rows
 
     def catch_build_rows(models_):

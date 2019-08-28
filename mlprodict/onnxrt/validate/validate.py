@@ -94,7 +94,7 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
 def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
                         method_name, predict_kwargs, X_test,
                         benchmark, debug, verbose, time_kwargs,
-                        fLOG):
+                        skip_long_test, fLOG):
     if not check_runtime:
         return None
     if verbose >= 2 and fLOG is not None:
@@ -123,7 +123,8 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
         obs['assume_finite'] = assume_finite
         if benchmark and 'lambda-skl' in obs:
             obs['bench-skl'] = benchmark_fct(
-                *obs['lambda-skl'], obs=obs, time_kwargs=time_kwargs)
+                *obs['lambda-skl'], obs=obs, time_kwargs=time_kwargs,
+                skip_long_test=skip_long_test)
         if verbose >= 3 and fLOG is not None:
             fLOG("[enumerate_compatible_opset] scikit-learn prediction")
             _dispsimple(ypred, fLOG)
@@ -174,7 +175,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                fLOG=print, filter_exp=None,
                                verbose=0, time_kwargs=None,
                                extended_list=False, dump_all=False,
-                               n_features=None):
+                               n_features=None, skip_long_test=True):
     """
     Lists all compatible opsets for a specific model.
 
@@ -209,6 +210,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
     @param      n_features      modifies the shorts datasets used to train the models
                                 to use exactly this number of features, it can also
                                 be a list to test multiple datasets
+    @param      skip_long_test  skips tests for high values of N if they seem too long
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
                                 problem chosen to test the conversion...
@@ -305,7 +307,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                     obs, check_runtime, assume_finite, inst,
                     method_name, predict_kwargs, X_test,
                     benchmark, debug, verbose, time_kwargs,
-                    fLOG)
+                    skip_long_test, fLOG)
                 if isinstance(ypred, Exception):
                     yield obs
                     continue
@@ -368,8 +370,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
                                                 benchmark=benchmark and opset == opsets[-1],
                                                 node_time=node_time, time_kwargs=time_kwargs,
                                                 fLOG=fLOG, verbose=verbose,
-                                                store_models=store_models,
-                                                dump_all=dump_all)
+                                                store_models=store_models, dump_all=dump_all,
+                                                skip_long_test=skip_long_test)
                         else:
                             yield obs_op
 
@@ -379,7 +381,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                   ypred, Xort_test, model, dump_folder,
                   benchmark, node_time, fLOG,
                   verbose, store_models, time_kwargs,
-                  dump_all):
+                  dump_all, skip_long_test):
     """
     Private.
     """
@@ -423,7 +425,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if (benchmark or node_time) and 'lambda-batch' in obs_op:
         try:
             benres = benchmark_fct(*obs_op['lambda-batch'], obs=obs_op,
-                                   node_time=node_time, time_kwargs=time_kwargs)
+                                   node_time=node_time, time_kwargs=time_kwargs,
+                                   skip_long_test=skip_long_test)
             obs_op['bench-batch'] = benres
         except RuntimeError as e:
             if debug:
@@ -509,7 +512,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         fLOG=print, filter_exp=None,
                                         versions=False, extended_list=False,
                                         time_kwargs=None, dump_all=False,
-                                        n_features=None):
+                                        n_features=None, skip_long_test=True):
     """
     Tests all possible configuration for all possible
     operators and returns the results.
@@ -548,6 +551,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
     @param      n_features      modifies the shorts datasets used to train the models
                                 to use exactly this number of features, it can also
                                 be a list to test multiple datasets
+    @param      skip_long_test  skips tests for high values of N if they seem too long
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -632,7 +636,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 assume_finite=assume_finite, node_time=node_time,
                 verbose=verbose, extended_list=extended_list,
                 time_kwargs=time_kwargs, dump_all=dump_all,
-                n_features=n_features):
+                n_features=n_features, skip_long_test=skip_long_test):
 
             if verbose > 1:
                 fLOG("  ", obs)
@@ -836,19 +840,20 @@ def summary_report(df):
 
 
 def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
-                  time_kwargs=None):
+                  time_kwargs=None, skip_long_test=True):
     """
     Benchmarks a function which takes an array
     as an input and changes the number of rows.
 
-    @param      fct         function to benchmark, signature
-                            is fct(xo)
-    @param      X           array
-    @param      time_limit  above this time, measurement as stopped
-    @param      obs         all information available in a dictionary
-    @param      node_time   measure time execution for each node in the graph
-    @param      time_kwargs to define a more precise way to measure a model
-    @return                 dictionary with the results
+    @param      fct             function to benchmark, signature
+                                is fct(xo)
+    @param      X               array
+    @param      time_limit      above this time, measurement as stopped
+    @param      obs             all information available in a dictionary
+    @param      node_time       measure time execution for each node in the graph
+    @param      time_kwargs     to define a more precise way to measure a model
+    @param      skip_long_test  skips tests for high values of N if they seem too long
+    @return                     dictionary with the results
 
     The function uses *obs* to reduce the number of tries it does.
     :epkg:`sklearn:gaussian_process:GaussianProcessRegressor`
@@ -943,7 +948,8 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
         else:
             res[N] = measure_time(fct, x, repeat=repeat,
                                   number=number, div_by_number=True)
-        if (not node_time and res[N] is not None and
+        if (skip_long_test and not node_time and
+                res[N] is not None and
                 res[N].get('total', time_limit) >= time_limit):
             # too long
             break

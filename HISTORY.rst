@@ -5,9 +5,12 @@
 History
 =======
 
-current - 2019-08-26 - 0.00Mb
+current - 2019-08-28 - 0.00Mb
 =============================
 
+* `42`: Adds a graph which visually summarize the validating benchmark (ONNX). (2019-08-27)
+* `41`: Enables to test multiple number of features at the same time (ONNX) (2019-08-27)
+* `40`: Add a parameter to change the number of featuress when validating a model (ONNX). (2019-08-26)
 * `39`: Add a parameter to dump all models even if they don't produce errors when being validated (ONNX) (2019-08-26)
 * `24`: support double for TreeEnsembleClassifier (python runtime ONNX) (2019-08-23)
 * `38`: See issue on onnxmltools. https://github.com/onnx/onnxmltools/issues/321 (2019-08-19)
