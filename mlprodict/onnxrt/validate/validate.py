@@ -167,7 +167,7 @@ def _retrieve_problems_extra(model, verbose, fLOG, extended_list):
     return problems, extras
 
 
-def enumerate_compatible_opset(model, opset_min=9, opset_max=None,
+def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: disable=R0914
                                check_runtime=True, debug=False,
                                runtime='python', dump_folder=None,
                                store_models=False, benchmark=False,
