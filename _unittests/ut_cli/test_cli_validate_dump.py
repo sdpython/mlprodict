@@ -42,7 +42,7 @@ class TestCliValidateDump(ExtTestCase):
             'SGDRegressor',
             'RandomForestRegressor',
         ])
-        """
+        """  # pylint: disable=W0105
         args = ["validate_runtime", "--out_raw", out1,
                 "--out_summary", out2, "--models",
                 models, '-r', "python,onnxruntime1",
