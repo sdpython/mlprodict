@@ -2,6 +2,7 @@
 @file
 @brief Shape calculator for LGBMClassifier, handles doubles.
 """
+import numbers
 import numpy
 from skl2onnx.common.data_types import (
     Int64TensorType, FloatTensorType, StringTensorType,
