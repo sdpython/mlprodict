@@ -28,7 +28,8 @@ def _register_converters_lightgbm(exc=True):
                 "Cannot register LGBMClassifier due to '{}'.".format(e))
             LGBMClassifier = None
     if LGBMClassifier is not None:
-        from skl2onnx.common.shape_calculator import calculate_linear_classifier_output_shapes
+        # from skl2onnx.common.shape_calculator import calculate_linear_classifier_output_shapes
+        from onnxconverter_common.shape_calculator import calculate_linear_classifier_output_shapes
         from .operator_converters.conv_lightgbm import convert_lightgbm
         update_registered_converter(LGBMClassifier, 'LightGbmLGBMClassifier',
                                     calculate_linear_classifier_output_shapes,
