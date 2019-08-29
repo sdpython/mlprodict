@@ -22,6 +22,7 @@ from .op_div import Div
 from .op_exp import Exp
 from .op_equal import Equal
 from .op_feature_vectorizer import FeatureVectorizer
+from .op_flatten import Flatten
 from .op_gemm import Gemm
 from .op_greater import Greater
 from .op_floor import Floor

@@ -43,7 +43,7 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         link = "-".join([name, problem, scenario])
 
         oinf = OnnxInference(row['ONNX'], skip_run=True)
-        dot = oinf.to_dot()
+        dot = oinf.to_dot(recursive=True)
         res = templ.render(dot=dot, model=repr(model), method=method,
                            kind=problem, title=title,
                            indent=indent, len=len,

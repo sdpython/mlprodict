@@ -24,7 +24,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxTopK, OnnxTranspose, OnnxRelu,
     OnnxSigmoid, OnnxSoftmax, OnnxSqueeze,
     OnnxConstantOfShape, OnnxNot, OnnxSin,
-    OnnxMin, OnnxMax, OnnxSign, OnnxLpNormalization
+    OnnxMin, OnnxMax, OnnxSign, OnnxLpNormalization,
+    OnnxFlatten,
 )
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
@@ -237,6 +238,21 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_exp(self):
         self.common_test_onnxt_runtime_unary(OnnxExp, numpy.exp)
+
+    def test_onnxt_runtime_flatten(self):
+        shape = (2, 3, 4, 5)
+        x = numpy.random.random_sample(shape).astype(numpy.float32)
+
+        for i in range(len(shape)):
+            node = OnnxFlatten('X', axis=i, output_names='Y')
+            model_def = node.to_onnx(
+                {'X': x}, outputs=[('Y', FloatTensorType())])
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': x})['Y']
+            new_shape = (
+                1, -1) if i == 0 else (numpy.prod(shape[0:i]).astype(int), -1)
+            exp = numpy.reshape(x, new_shape)
+            self.assertEqualArray(exp, got)
 
     def test_onnxt_runtime_floor(self):
         self.common_test_onnxt_runtime_unary(OnnxFloor, numpy.floor)
