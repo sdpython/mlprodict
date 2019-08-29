@@ -211,9 +211,15 @@ def convert_lightgbm(scope, operator, container):
             'probability_tensor')
         label_tensor_name = scope.get_unique_variable_name('label_tensor')
 
-        container.add_node('TreeEnsembleClassifier', operator.input_full_names,
-                           [label_tensor_name, probability_tensor_name],
-                           op_domain='ai.onnx.ml', **attrs)
+        if container.dtype == np.float64:
+            container.add_node('TreeEnsembleClassifierDouble', operator.input_full_names,
+                               [label_tensor_name, probability_tensor_name],
+                               op_domain='mlprodict', **attrs)
+        else:
+            container.add_node('TreeEnsembleClassifier', operator.input_full_names,
+                               [label_tensor_name, probability_tensor_name],
+                               op_domain='ai.onnx.ml', **attrs)
+
         prob_tensor = probability_tensor_name
 
         if gbm_model.boosting_type == 'rf':
@@ -260,7 +266,7 @@ def convert_lightgbm(scope, operator, container):
         else:
             container.add_node('Identity', label_tensor_name,
                                operator.outputs[0].full_name,
-                               name='Identity')
+                               name=scope.get_unique_operator_name('Identity'))
 
         # Convert probability tensor to probability map (keys are labels while values are the associated probabilities)
         container.add_node('ZipMap', prob_tensor, operator.outputs[1].full_name,
@@ -277,9 +283,12 @@ def convert_lightgbm(scope, operator, container):
             # different ONNX attributes
             attrs['target' + k[5:]] = copy.deepcopy(attrs[k])
             del attrs[k]
-        container.add_node('TreeEnsembleRegressor', operator.input_full_names,
-                           output_name, op_domain='ai.onnx.ml', **attrs)
-
+        if container.dtype == np.float64:
+            container.add_node('TreeEnsembleRegressorDouble', operator.input_full_names,
+                               output_name, op_domain='mlprodict', **attrs)
+        else:
+            container.add_node('TreeEnsembleRegressor', operator.input_full_names,
+                               output_name, op_domain='ai.onnx.ml', **attrs)
         if gbm_model.boosting_type == 'rf':
             denominator_name = scope.get_unique_variable_name('denominator')
 
@@ -290,4 +299,5 @@ def convert_lightgbm(scope, operator, container):
                       operator.output_full_names, container, broadcast=1)
         else:
             container.add_node('Identity', output_name,
-                               operator.output_full_names)
+                               operator.output_full_names,
+                               name=scope.get_unique_operator_name('Identity'))
