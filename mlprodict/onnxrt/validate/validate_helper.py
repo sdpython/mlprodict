@@ -15,7 +15,7 @@ import onnx
 from sklearn.base import BaseEstimator
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType, DataType
-from ..conv.rewritten_converters import register_rewritten_operators
+from ...onnx_conv.rewritten_converters import register_rewritten_operators
 
 
 def modules_list():

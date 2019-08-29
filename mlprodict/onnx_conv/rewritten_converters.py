@@ -4,8 +4,8 @@
 :epkg:`sklearn-onnx`.
 """
 from skl2onnx.common._registration import _converter_pool
-from ..converters64.ada_boost import convert_sklearn_ada_boost_regressor
-from ..converters64.tree_converters import (
+from .sklconv.ada_boost import convert_sklearn_ada_boost_regressor
+from .sklconv.tree_converters import (
     convert_sklearn_decision_tree_regressor,
     convert_sklearn_gradient_boosting_regressor,
     convert_sklearn_random_forest_regressor_converter,

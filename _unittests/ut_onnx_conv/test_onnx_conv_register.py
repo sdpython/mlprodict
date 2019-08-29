@@ -11,7 +11,7 @@ from mlprodict.onnxrt.validate.validate import find_suitable_problem as main_fin
 from mlprodict.onnxrt import sklearn_operators
 
 
-class TestRtValidateLightGbm(ExtTestCase):
+class TestOnnxConvRegister(ExtTestCase):
 
     def test_find_suitable_problem(self):
         found = find_suitable_problem(XGBRegressor)
@@ -20,7 +20,6 @@ class TestRtValidateLightGbm(ExtTestCase):
         self.assertEqual(found, ['b-cl', 'm-cl', '~b-cl-64'])
 
     def test_register_converters(self):
-
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", ResourceWarning)
             res = register_converters(True)
