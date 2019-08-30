@@ -370,6 +370,8 @@ def visual_rst_template():
 
         {{ indent(model, "    ") }}
 
+    {{ indent(table, "    ") }}
+
     .. gdot::
 
         {{ indent(dot, "    ") }}
