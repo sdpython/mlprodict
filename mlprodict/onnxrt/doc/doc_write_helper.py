@@ -5,10 +5,13 @@
 from logging import getLogger
 from textwrap import indent, dedent
 from jinja2 import Template
+from pandas import DataFrame
 from sklearn.linear_model import LinearRegression
 from pyquickhelper.loghelper import noLOG
+from pyquickhelper.pandashelper.tblformat import df2rst
 from ..validate.validate import enumerate_validated_operator_opsets, sklearn_operators
 from ..validate.validate import get_opset_number_from_onnx, sklearn__all__
+from ..optim.sklearn_helper import inspect_sklearn_model
 from ..onnx_inference import OnnxInference
 from .doc_helper import visual_rst_template
 
@@ -36,6 +39,11 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         problem = row['problem']
         model = row['MODEL']
         method = row['method_name']
+        stats = inspect_sklearn_model(model)
+
+        df = DataFrame([stats])
+        table = df2rst(df.T)
+
         title = " - ".join([name, problem, scenario])
         if title in done:
             continue
@@ -47,7 +55,7 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         res = templ.render(dot=dot, model=repr(model), method=method,
                            kind=problem, title=title,
                            indent=indent, len=len,
-                           link=link)
+                           link=link, table=table)
         yield res
 
 

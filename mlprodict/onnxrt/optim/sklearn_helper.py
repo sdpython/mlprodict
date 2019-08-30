@@ -81,6 +81,10 @@ def enumerate_pipeline_models(pipe, coor=None, vs=None):
         pass
     elif isinstance(pipe, BaseEstimator):
         pass
+    elif isinstance(pipe, (list, numpy.ndarray)):
+        for i, m in enumerate(pipe):
+            for couple in enumerate_pipeline_models(m, coor + (i,)):
+                yield couple
     else:
         raise TypeError(
             "pipe is not a scikit-learn object: {}\n{}".format(type(pipe), pipe))
@@ -170,3 +174,73 @@ def pairwise_array_distances(l1, l2, metric='l1med'):
             diff = numpy.sum(numpy.abs(a1 - a2)) / a
             dist[i, j] = diff / diff.size
     return dist
+
+
+def max_depth(estimator):
+    """
+    Retrieves the max depth assuming the estimator
+    is a decision tree.
+    """
+    n_nodes = estimator.tree_.node_count
+    children_left = estimator.tree_.children_left
+    children_right = estimator.tree_.children_right
+
+    node_depth = numpy.zeros(shape=n_nodes, dtype=numpy.int64)
+    is_leaves = numpy.zeros(shape=n_nodes, dtype=bool)
+    stack = [(0, -1)]  # seed is the root node id and its parent depth
+    while len(stack) > 0:
+        node_id, parent_depth = stack.pop()
+        node_depth[node_id] = parent_depth + 1
+
+        # If we have a test node
+        if children_left[node_id] != children_right[node_id]:
+            stack.append((children_left[node_id], parent_depth + 1))
+            stack.append((children_right[node_id], parent_depth + 1))
+        else:
+            is_leaves[node_id] = True
+    return max(node_depth)
+
+
+def inspect_sklearn_model(model, recursive=True):
+    """
+    Inspects a :epkg:`scikit-learn` model and produces
+    some figures which tries to represent the complexity of it.
+
+    @param      model       model
+    @param      recursive   recursive look
+    @return                 dictionary
+    """
+    def update(sts, st):
+        for k, v in st.items():
+            if k in sts:
+                if 'max_' in k:
+                    sts[k] = max(v, sts[k])
+                else:
+                    sts[k] += v
+            else:
+                sts[k] = v
+
+    def insmodel(m):
+        st = {'nop': 1}
+        if hasattr(m, 'tree_'):
+            st['nnodes'] = m.tree_.node_count
+            st['ntree'] = 1
+            st['max_depth'] = max_depth(m)
+        if hasattr(m, 'coef_'):
+            st['ncoef'] = len(m.coef_)
+            st['nlin'] = 1
+        if hasattr(m, 'estimators_'):
+            for est in m.estimators_:
+                st_ = inspect_sklearn_model(est, recursive=recursive)
+                update(st, st_)
+        return st
+
+    if recursive:
+        sts = {}
+        for __, m, _ in enumerate_pipeline_models(model):
+            st = inspect_sklearn_model(m, recursive=False)
+            update(sts, st)
+            st = insmodel(m)
+            update(sts, st)
+        return st
+    return insmodel(model)
