@@ -867,6 +867,9 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
         from mlprodict.onnxrt.validate.validate_helper import default_time_kwargs
         import pprint
         pprint.pprint(default_time_kwargs())
+
+    See also notebook :ref:`onnxnodetimerst` to see how this function
+    can be used to measure time spent in each node.
     """
     if time_kwargs is None:
         time_kwargs = default_time_kwargs()
