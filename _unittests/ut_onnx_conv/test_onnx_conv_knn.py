@@ -10,6 +10,7 @@ from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
+from sklearn.utils.testing import ignore_warnings
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxIdentity
@@ -175,15 +176,16 @@ class TestOnnxConvKNN(ExtTestCase):
     def test_onnx_test_knn_single_regressor32_minkowski(self):
         self.onnx_test_knn_single_regressor(numpy.float32, metric='minkowski')
 
+    @ignore_warnings(category=(SyntaxWarning, ))
     def test_onnx_test_knn_single_regressor32_minkowski_p1(self):
         self.onnx_test_knn_single_regressor(numpy.float32, metric='minkowski',
                                             metric_params={'p': 1}, add_noise=True)
 
+    @ignore_warnings(category=(SyntaxWarning, ))
     def test_onnx_test_knn_single_regressor32_minkowski_p21(self):
         self.onnx_test_knn_single_regressor(numpy.float32, metric='minkowski',
                                             algorithm='brute', metric_params={'p': 2.1})
 
-    @unittest.skip(reason="not yet implemented")
     def test_onnx_test_knn_single_regressor32_distance(self):
         self.onnx_test_knn_single_regressor(numpy.float32, weights='distance')
 

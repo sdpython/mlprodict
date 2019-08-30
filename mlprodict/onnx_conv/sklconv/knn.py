@@ -11,8 +11,9 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxFlatten, OnnxShape, OnnxReshape,
     OnnxConcat, OnnxTranspose, OnnxSub,
     OnnxIdentity, OnnxReduceSumSquare,
-    OnnxScan, OnnxSqrt,
-    OnnxPow, OnnxReduceSum, OnnxAbs
+    OnnxScan, OnnxSqrt, OnnxReciprocal,
+    OnnxPow, OnnxReduceSum, OnnxAbs,
+    OnnxMax, OnnxDiv
 )
 
 
@@ -137,7 +138,8 @@ def _onnx_cdist_manhattan(X, Y, dtype=None, op_version=None, **kwargs):
 
 
 def onnx_nearest_neighbors_indices(X, Y, k, metric='euclidean', dtype=None,
-                                   op_version=None, **kwargs):
+                                   op_version=None, keep_distances=False,
+                                   **kwargs):
     """
     Retrieves the nearest neigbours :epkg:`ONNX`.
     :param X: features or :epkg:`OnnxOperatorMixin`
@@ -146,6 +148,7 @@ def onnx_nearest_neighbors_indices(X, Y, k, metric='euclidean', dtype=None,
     :param metric: requires metric
     :param dtype: numerical type
     :param op_version: opset version
+    :param keep_distance: returns the distances as well (second position)
     :param kwargs: additional parameters such as *op_version*
     :return: top indices
     """
@@ -153,9 +156,13 @@ def onnx_nearest_neighbors_indices(X, Y, k, metric='euclidean', dtype=None,
                       op_version=op_version, **kwargs)
     neg_dist = OnnxMul(dist, numpy.array(
         [-1], dtype=dtype), op_version=op_version)
-    topk = OnnxTopK(neg_dist, numpy.array([k], dtype=numpy.int64),
-                    op_version=op_version, **kwargs)[1]
-    return topk
+    node = OnnxTopK(neg_dist, numpy.array([k], dtype=numpy.int64),
+                    op_version=op_version, **kwargs)
+    if keep_distances:
+        return (node[1], OnnxMul(node[0], numpy.array(
+                    [-1], dtype=dtype), op_version=op_version))
+    else:
+        return node[1]
 
 
 def convert_nearest_neighbors_regressor(scope, operator, container):
@@ -185,9 +192,19 @@ def convert_nearest_neighbors_regressor(scope, operator, container):
         else:
             metric = "euclidean"
 
-    top_indices = onnx_nearest_neighbors_indices(
-        X, neighb, k, metric=metric, dtype=dtype,
-        op_version=opv, **distance_kwargs)
+    if op.weights == 'uniform':
+        top_indices = onnx_nearest_neighbors_indices(
+            X, neighb, k, metric=metric, dtype=dtype,
+            op_version=opv, **distance_kwargs)
+        top_distances = None
+    elif op.weights == 'distance':
+        top_indices, top_distances = onnx_nearest_neighbors_indices(
+            X, neighb, k, metric=metric, dtype=dtype,
+            op_version=opv, keep_distances=True, **distance_kwargs)
+    else:
+        raise RuntimeError(
+            "Unable to convert KNeighborsRegressor when weights is callable.")
+
     shape = OnnxShape(top_indices, op_version=opv)
     flattened = OnnxFlatten(top_indices, op_version=opv)
     if ndim > 1:
@@ -199,12 +216,23 @@ def convert_nearest_neighbors_regressor(scope, operator, container):
     else:
         training_labels = training_labels.ravel()
         axis = 1
+
     extracted = OnnxArrayFeatureExtractor(
         training_labels, flattened, op_version=opv)
     reshaped = OnnxReshape(extracted, shape, op_version=opv)
     if ndim > 1:
         reshaped = OnnxTranspose(reshaped, op_version=opv, perm=[1, 0, 2])
 
-    res = OnnxReduceMean(reshaped, axes=[axis], op_version=opv,
-                         keepdims=0, output_names=out)
+    if top_distances is not None:
+        modified = OnnxMax(top_distances, numpy.array([1e-6], dtype=dtype),
+                           op_version=opv)
+        wei = OnnxReciprocal(modified, op_version=opv)
+        norm = OnnxReduceSum(wei, op_version=opv, axes=[1], keepdims=0)
+        weighted = OnnxMul(reshaped, wei, op_version=opv)
+        res = OnnxReduceSum(weighted, axes=[axis], op_version=opv,
+                            keepdims=0)
+        res = OnnxDiv(res, norm, op_version=opv, output_names=out)
+    else:
+        res = OnnxReduceMean(reshaped, axes=[axis], op_version=opv,
+                             keepdims=0, output_names=out)
     res.add_to(scope, container)

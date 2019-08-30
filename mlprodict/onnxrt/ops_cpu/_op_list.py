@@ -45,6 +45,8 @@ from .op_one_hot_encoder import OneHotEncoder
 from .op_pow import Pow
 from .op_reciprocal import Reciprocal
 from .op_reduce_log_sum_exp import ReduceLogSumExp
+from .op_reduce_min import ReduceMin
+from .op_reduce_max import ReduceMax
 from .op_reduce_mean import ReduceMean
 from .op_reduce_prod import ReduceProd
 from .op_reduce_sum import ReduceSum

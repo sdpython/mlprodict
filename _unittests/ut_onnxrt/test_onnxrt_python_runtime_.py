@@ -25,7 +25,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSigmoid, OnnxSoftmax, OnnxSqueeze,
     OnnxConstantOfShape, OnnxNot, OnnxSin,
     OnnxMin, OnnxMax, OnnxSign, OnnxLpNormalization,
-    OnnxFlatten,
+    OnnxFlatten, OnnxReduceMax, OnnxReduceMin,
 )
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
@@ -379,6 +379,33 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         res = numpy.log(numpy.sum(numpy.exp(X), axis=1, keepdims=1))
         self.assertEqualArray(res.ravel(), got['Y'].ravel())
 
+    def test_onnxt_runtime_reduce_max(self):
+        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+
+        onx = OnnxReduceMax('X', output_names=['Y'], keepdims=0)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.maximum.reduce(X, keepdims=False, axis=None),  # pylint: disable=E1101
+                              got['Y'], decimal=6)
+
+        onx = OnnxReduceMax('X', output_names=['Y'], axes=[1])
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.maximum.reduce(X, axis=1).ravel(),  # pylint: disable=E1101
+                              got['Y'].ravel())
+
+        onx = OnnxReduceMax('X', output_names=['Y'], axes=[1], keepdims=1)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.maximum.reduce(X, axis=1, keepdims=1).ravel(),  # pylint: disable=E1101
+                              got['Y'].ravel())
+
     def test_onnxt_runtime_reduce_mean(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
@@ -403,6 +430,33 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.mean(X, axis=1, keepdims=1).ravel(),
+                              got['Y'].ravel())
+
+    def test_onnxt_runtime_reduce_min(self):
+        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+
+        onx = OnnxReduceMin('X', output_names=['Y'], keepdims=0)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.minimum.reduce(X, keepdims=False, axis=None),  # pylint: disable=E1101
+                              got['Y'], decimal=6)
+
+        onx = OnnxReduceMin('X', output_names=['Y'], axes=[1])
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.minimum.reduce(X, axis=1).ravel(),  # pylint: disable=E1101
+                              got['Y'].ravel())
+
+        onx = OnnxReduceMin('X', output_names=['Y'], axes=[1], keepdims=1)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.minimum.reduce(X, axis=1, keepdims=1).ravel(),  # pylint: disable=E1101
                               got['Y'].ravel())
 
     def test_onnxt_runtime_reduce_prod(self):

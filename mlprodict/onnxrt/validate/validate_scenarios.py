@@ -89,9 +89,10 @@ def build_custom_scenarios():
         ],
         KNeighborsRegressor: [
             ('default', {'algorithm': 'brute'}),
+            ('weights', {'algorithm': 'brute', 'weights': 'distance'}),
             ('kd_tree', {'algorithm': 'kd_tree'}),
             ('mink', {'algorithm': 'kd_tree',
-                      'distance': "minkowski",
+                      'metric': "minkowski",
                       'metric_params': {'p': 2.1}}),
         ],
         LocalOutlierFactor: [
