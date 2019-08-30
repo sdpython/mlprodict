@@ -3,30 +3,158 @@
 @brief Rewrites some of the converters implemented in
 :epkg:`sklearn-onnx`.
 """
+from collections import OrderedDict
 import numpy
-from skl2onnx.algebra.complex_functions import onnx_cdist
+from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxTopK, OnnxMul, OnnxArrayFeatureExtractor, OnnxReduceMean,
     OnnxFlatten, OnnxShape, OnnxReshape,
-    OnnxConcat, OnnxTranspose
+    OnnxConcat, OnnxTranspose, OnnxSub,
+    OnnxIdentity, OnnxReduceSumSquare,
+    OnnxScan, OnnxSqrt,
+    OnnxPow, OnnxReduceSum, OnnxAbs
 )
 
 
-def onnx_nearest_neighbors_indices(X, Y, k, metric='euclidean', dtype=None, **kwargs):
+def onnx_cdist(X, Y, metric='sqeuclidean', dtype=None, op_version=None, **kwargs):
+    """
+    Returns the ONNX graph which computes
+    ``cdist(X, Y, metric=metric)``.
+
+    :param X: :epkg:`numpy:ndarray` or :epkg:`OnnxOperatorMixin`
+    :param Y: :epkg:`numpy:ndarray` or :epkg:`OnnxOperatorMixin`
+    :param metric: distance type
+    :param dtype: *numpy.float32* or *numpy.float64*
+    :param op_version: opset version
+    :param kwargs: addition parameter
+    :return: :epkg:`OnnxOperatorMixin`
+    """
+    if metric == 'sqeuclidean':
+        return _onnx_cdist_sqeuclidean(
+            X, Y, dtype=dtype, op_version=op_version, **kwargs)
+    elif metric == 'euclidean':
+        res = _onnx_cdist_sqeuclidean(X, Y, dtype=dtype, op_version=op_version)
+        return OnnxSqrt(res, op_version=op_version, **kwargs)
+    elif metric == 'minkowski':
+        p = kwargs.pop('p')
+        res = _onnx_cdist_minkowski(
+            X, Y, dtype=dtype, op_version=op_version, p=p)
+        return OnnxPow(res, numpy.array([1. / p], dtype=dtype),
+                       op_version=op_version, **kwargs)
+    elif metric == 'manhattan':
+        return _onnx_cdist_manhattan(
+            X, Y, dtype=dtype, op_version=op_version, **kwargs)
+    else:
+        raise NotImplementedError("metric='{}' is not implemented.".format(
+            metric))
+
+
+def _onnx_cdist_sqeuclidean(X, Y, dtype=None, op_version=None, **kwargs):
+    """
+    Returns the ONNX graph which computes
+    ``cdist(X, metric='sqeuclidean')``.
+    """
+    diff = OnnxSub('next_in', 'next', output_names=[
+                   'diff'], op_version=op_version)
+    id_next = OnnxIdentity('next_in', output_names=[
+                           'next_out'], op_version=op_version)
+    norm = OnnxReduceSumSquare(diff, output_names=['norm'], axes=[
+                               1], keepdims=0, op_version=op_version)
+    flat = OnnxIdentity(norm, output_names=['scan_out'], op_version=op_version)
+    tensor_type = FloatTensorType if dtype == numpy.float32 else DoubleTensorType
+    id_next.set_onnx_name_prefix('cdistsqe')
+    scan_body = id_next.to_onnx(
+        OrderedDict([('next_in', tensor_type()),
+                     ('next', tensor_type())]),
+        outputs=[('next_out', tensor_type()),
+                 ('scan_out', tensor_type())],
+        other_outputs=[flat],
+        dtype=dtype)
+
+    node = OnnxScan(X, Y, output_names=['scan0_{idself}', 'scan1_{idself}'],
+                    num_scan_inputs=1, body=scan_body.graph, op_version=op_version)
+    return OnnxTranspose(node[1], perm=[1, 0], op_version=op_version,
+                         **kwargs)
+
+
+def _onnx_cdist_minkowski(X, Y, dtype=None, op_version=None, p=2, **kwargs):
+    """
+    Returns the ONNX graph which computes the :epkg:`Minkowski distance`
+    or ``minkowski(X, Y, p)``.
+    """
+    diff = OnnxSub('next_in', 'next', output_names=[
+                   'diff'], op_version=op_version)
+    id_next = OnnxIdentity('next_in', output_names=[
+                           'next_out'], op_version=op_version)
+    diff_pow = OnnxPow(OnnxAbs(diff, op_version=op_version),
+                       numpy.array([p], dtype=dtype), op_version=op_version)
+    norm = OnnxReduceSum(diff_pow, axes=[1], output_names=[
+                         'norm'], keepdims=0, op_version=op_version)
+    flat = OnnxIdentity(norm, output_names=['scan_out'], op_version=op_version)
+    tensor_type = FloatTensorType if dtype == numpy.float32 else DoubleTensorType
+    id_next.set_onnx_name_prefix('cdistmink')
+    scan_body = id_next.to_onnx(
+        OrderedDict([('next_in', tensor_type()),
+                     ('next', tensor_type())]),
+        outputs=[('next_out', tensor_type()),
+                 ('scan_out', tensor_type())],
+        other_outputs=[flat],
+        dtype=dtype)
+
+    node = OnnxScan(X, Y, output_names=['scan0_{idself}', 'scan1_{idself}'],
+                    num_scan_inputs=1, body=scan_body.graph, op_version=op_version)
+    return OnnxTranspose(node[1], perm=[1, 0], op_version=op_version,
+                         **kwargs)
+
+
+def _onnx_cdist_manhattan(X, Y, dtype=None, op_version=None, **kwargs):
+    """
+    Returns the ONNX graph which computes the :epkg:`Minkowski distance`
+    or ``minkowski(X, Y, p)``.
+    """
+    diff = OnnxSub('next_in', 'next', output_names=[
+                   'diff'], op_version=op_version)
+    id_next = OnnxIdentity('next_in', output_names=[
+                           'next_out'], op_version=op_version)
+    diff_pow = OnnxAbs(diff, op_version=op_version)
+    norm = OnnxReduceSum(diff_pow, axes=[1], output_names=[
+                         'norm'], keepdims=0, op_version=op_version)
+    flat = OnnxIdentity(norm, output_names=['scan_out'], op_version=op_version)
+    tensor_type = FloatTensorType if dtype == numpy.float32 else DoubleTensorType
+    id_next.set_onnx_name_prefix('cdistmink')
+    scan_body = id_next.to_onnx(
+        OrderedDict([('next_in', tensor_type()),
+                     ('next', tensor_type())]),
+        outputs=[('next_out', tensor_type()),
+                 ('scan_out', tensor_type())],
+        other_outputs=[flat],
+        dtype=dtype)
+
+    node = OnnxScan(X, Y, output_names=['scan0_{idself}', 'scan1_{idself}'],
+                    num_scan_inputs=1, body=scan_body.graph, op_version=op_version)
+    return OnnxTranspose(node[1], perm=[1, 0], op_version=op_version,
+                         **kwargs)
+
+
+def onnx_nearest_neighbors_indices(X, Y, k, metric='euclidean', dtype=None,
+                                   op_version=None, **kwargs):
     """
     Retrieves the nearest neigbours :epkg:`ONNX`.
-    :param X: features
-    :param Y: neighbours
+    :param X: features or :epkg:`OnnxOperatorMixin`
+    :param Y: neighbours or :epkg:`OnnxOperatorMixin`
     :param k: number of neighbours to retrieve
     :param metric: requires metric
     :param dtype: numerical type
+    :param op_version: opset version
     :param kwargs: additional parameters such as *op_version*
     :return: top indices
     """
-    dist = onnx_cdist(X, Y, metric=metric, dtype=dtype, **kwargs)
-    neg_dist = OnnxMul(dist, numpy.array([-1], dtype=dtype))
+    dist = onnx_cdist(X, Y, metric=metric, dtype=dtype,
+                      op_version=op_version, **kwargs)
+    neg_dist = OnnxMul(dist, numpy.array(
+        [-1], dtype=dtype), op_version=op_version)
     topk = OnnxTopK(neg_dist, numpy.array([k], dtype=numpy.int64),
-                    **kwargs)[1]
+                    op_version=op_version, **kwargs)[1]
     return topk
 
 
@@ -50,12 +178,16 @@ def convert_nearest_neighbors_regressor(scope, operator, container):
     neighb = op._fit_X.astype(container.dtype)
     k = op.n_neighbors
     training_labels = op._y
-    # distance_power = (
-    #     op.p if op.metric == 'minkowski'
-    #     else (2 if op.metric in ('euclidean', 'l2') else 1))
+    distance_kwargs = {}
+    if metric == 'minkowski':
+        if op.p != 2:
+            distance_kwargs['p'] = op.p
+        else:
+            metric = "euclidean"
 
     top_indices = onnx_nearest_neighbors_indices(
-        X, neighb, k, metric=metric, dtype=dtype, op_version=opv)
+        X, neighb, k, metric=metric, dtype=dtype,
+        op_version=opv, **distance_kwargs)
     shape = OnnxShape(top_indices, op_version=opv)
     flattened = OnnxFlatten(top_indices, op_version=opv)
     if ndim > 1:
