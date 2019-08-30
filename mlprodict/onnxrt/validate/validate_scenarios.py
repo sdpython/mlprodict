@@ -14,7 +14,7 @@ from sklearn.linear_model import LogisticRegression, SGDClassifier, LinearRegres
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, ClassifierChain, RegressorChain
-from sklearn.neighbors import LocalOutlierFactor
+from sklearn.neighbors import LocalOutlierFactor, KNeighborsRegressor
 from sklearn.preprocessing import Normalizer
 from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
 from sklearn.svm import SVC, NuSVC
@@ -86,6 +86,14 @@ def build_custom_scenarios():
                 'estimator': KMeans(),
                 'param_grid': {'n_clusters': [2, 3]},
             }, ['cluster']),
+        ],
+        KNeighborsRegressor: [
+            ('default', {'algorithm': 'brute'}),
+            ('weights', {'algorithm': 'brute', 'weights': 'distance'}),
+            ('kd_tree', {'algorithm': 'kd_tree'}),
+            ('mink', {'algorithm': 'kd_tree',
+                      'metric': "minkowski",
+                      'metric_params': {'p': 2.1}}),
         ],
         LocalOutlierFactor: [
             ('novelty', {

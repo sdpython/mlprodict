@@ -10,14 +10,16 @@ from .sklconv.tree_converters import (
     convert_sklearn_gradient_boosting_regressor,
     convert_sklearn_random_forest_regressor_converter,
 )
+from .sklconv.knn import convert_nearest_neighbors_regressor
 
 
 _overwritten_operators = {
     'SklearnAdaBoostRegressor': convert_sklearn_ada_boost_regressor,
     'SklearnDecisionTreeRegressor': convert_sklearn_decision_tree_regressor,
-    'SklearnGradientBoostingRegressor': convert_sklearn_gradient_boosting_regressor,
-    'SklearnRandomForestRegressor': convert_sklearn_random_forest_regressor_converter,
     'SklearnExtraTreesRegressor': convert_sklearn_random_forest_regressor_converter,
+    'SklearnGradientBoostingRegressor': convert_sklearn_gradient_boosting_regressor,
+    'SklearnKNeighborsRegressor': convert_nearest_neighbors_regressor,
+    'SklearnRandomForestRegressor': convert_sklearn_random_forest_regressor_converter,
 }
 
 
