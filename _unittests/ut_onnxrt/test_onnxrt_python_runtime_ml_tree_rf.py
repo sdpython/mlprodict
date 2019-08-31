@@ -9,7 +9,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils.testing import ignore_warnings
 from sklearn.ensemble import RandomForestRegressor
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+import skl2onnx
 from mlprodict.onnxrt import OnnxInference, to_onnx
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 
@@ -67,6 +68,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         self.onnxrt_python_RandomForestRegressor_dtype(
             numpy.float32, full=True)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_onnxrt_python_RandomForestRegressor_full64(self):
         self.onnxrt_python_RandomForestRegressor_dtype(

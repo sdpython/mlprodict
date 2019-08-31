@@ -77,6 +77,7 @@ class TestOnnxrtValidate(ExtTestCase):
             cor = numpy.corrcoef(X[:, i], X2[:, i])
             self.assertLess(cor[0, 1], 0.9999)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_n_features_int(self):
         X = numpy.arange(20).reshape((5, 4)).astype(numpy.int64)
         X2 = _modify_dimension(X, 2)
