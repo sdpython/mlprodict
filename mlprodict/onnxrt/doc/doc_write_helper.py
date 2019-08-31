@@ -42,7 +42,7 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         stats = inspect_sklearn_model(model)
 
         df = DataFrame([stats])
-        table = df2rst(df.T)
+        table = df2rst(df.T.reset_index(drop=False))
 
         title = " - ".join([name, problem, scenario])
         if title in done:
