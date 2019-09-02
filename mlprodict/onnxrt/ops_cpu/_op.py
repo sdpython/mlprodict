@@ -7,8 +7,22 @@ import numpy
 import onnx.defs
 from ..shape_object import ShapeObject
 
-_schemas = {
-    schema.name: schema for schema in onnx.defs.get_all_schemas_with_history()}
+
+def _build_schemas():
+    res = {}
+    for schema in onnx.defs.get_all_schemas_with_history():
+        # Multiple version can coexist. The last one is kept.
+        if schema.name in res:
+            if schema.since_version > res[schema.name].since_version:
+                # We keep the most recent one.
+                res[schema.name] = schema
+        else:
+            res[schema.name] = schema
+        res[schema.name + '_' + str(schema.since_version)] = schema
+    return res
+
+
+_schemas = _build_schemas()
 
 
 class RuntimeTypeError(RuntimeError):
@@ -38,10 +52,14 @@ class OpRun:
         self.onnx_node = onnx_node
         self.desc = desc
         self.inplaces = {}
-        if onnx_node.op_type in _schemas:
+
+        if '_' in self.__class__.__name__:
+            self._schema = _schemas[self.__class__.__name__]
+        elif onnx_node.op_type in _schemas:
             self._schema = _schemas[onnx_node.op_type]
         else:
             self._schema = self._find_custom_operator_schema(onnx_node.op_type)
+
         if desc is not None:
             if 'atts' in desc:
                 for a, b in desc['atts'].items():
@@ -61,8 +79,11 @@ class OpRun:
 
         for k, v in self._schema.attributes.items():
             if not hasattr(self, k):
-                raise RuntimeError("Attribute '{}' is expected based on ONNX specifications '{}'.".format(
-                    k, v))
+                import pprint
+                raise RuntimeError(
+                    "Attribute '{}' is expected based on ONNX specifications "
+                    "for node '{}' and options {}.".format(
+                        k, onnx_node.op_type, pprint.pformat(options)))
 
     def _find_custom_operator_schema(self, op_name):
         raise NotImplementedError(

@@ -136,7 +136,13 @@ class TestOnnxConvKNN(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(dtype),
                             dtype=dtype, rewrite_ops=True,
                             target_opset=target_opset)
-        oinf = OnnxInference(model_def, runtime=runtime)
+        try:
+            oinf = OnnxInference(model_def, runtime=runtime)
+        except RuntimeError as e:
+            if debug:
+                raise RuntimeError(
+                    "Unable to create a model\n{}".format(model_def)) from e
+            raise e
 
         if debug:
             y = oinf.run({'X': X_test}, verbose=1, fLOG=print)
@@ -153,7 +159,8 @@ class TestOnnxConvKNN(ExtTestCase):
         self.onnx_test_knn_single_regressor(numpy.float32)
 
     def test_onnx_test_knn_single_regressor32_op10(self):
-        self.onnx_test_knn_single_regressor(numpy.float32, target_opset=10)
+        self.onnx_test_knn_single_regressor(
+            numpy.float32, target_opset=10, debug=False)
 
     def test_onnx_test_knn_single_regressor32_onnxruntime1(self):
         self.onnx_test_knn_single_regressor(
