@@ -224,7 +224,7 @@ def inspect_sklearn_model(model, recursive=True):
         st = {'nop': 1}
         if hasattr(m, 'tree_'):
             st['nnodes'] = m.tree_.node_count
-            st['ntree'] = 1
+            st['ntrees'] = 1
             st['max_depth'] = max_depth(m)
         if hasattr(m, 'coef_'):
             st['ncoef'] = len(m.coef_)

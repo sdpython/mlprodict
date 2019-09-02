@@ -87,6 +87,7 @@ class OpRunOnnxRuntime:
 
         options = self.options.copy()
         target_opset = options.pop('target_opset', None)
+        domain = options.pop('domain', None)
 
         if self.onnx_node.op_type == 'ConstantOfShape':
             for k in options:
@@ -102,7 +103,7 @@ class OpRunOnnxRuntime:
                 self.inputs, variables, dtype=self.dtype)
             try:
                 self.onnx_ = self.inst_.to_onnx(inputs, target_opset=target_opset,
-                                                dtype=self.dtype)
+                                                dtype=self.dtype, domain=domain)
             except AttributeError:
                 # older version of skl2onnx
                 self.onnx_ = self.inst_.to_onnx(inputs)
@@ -126,18 +127,19 @@ class OpRunOnnxRuntime:
                        for (name, cl) in outputs]
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                             target_opset=target_opset,
-                                            dtype=self.dtype)
+                                            dtype=self.dtype, domain=domain)
             forced = True
         else:
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
-                                        op_version=target_opset, **options)
+                                        op_version=target_opset, domain=domain,
+                                        **options)
             inputs = get_defined_inputs(
                 self.inputs, variables, dtype=self.dtype)
 
             try:
                 self.onnx_ = self.inst_.to_onnx(
                     inputs, target_opset=target_opset,
-                    dtype=self.dtype)
+                    dtype=self.dtype, domain=domain)
                 forced = False
             except (RuntimeError, ValueError):
                 # Let's try again by forcing output types.
@@ -147,7 +149,7 @@ class OpRunOnnxRuntime:
                     dtype=self.dtype)
                 self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                                 target_opset=target_opset,
-                                                dtype=self.dtype)
+                                                dtype=self.dtype, domain=domain)
 
         if len(self.onnx_.graph.output) != self.outputs:
             # Something is wrong, falls back to default plan.
@@ -157,7 +159,7 @@ class OpRunOnnxRuntime:
                 dtype=self.dtype)
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                             target_opset=target_opset,
-                                            dtype=self.dtype)
+                                            dtype=self.dtype, domain=domain)
 
         sess_options = SessionOptions()
         self.run_options = RunOptions()

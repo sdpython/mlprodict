@@ -10,7 +10,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler, MinMaxScaler
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.utils.testing import ignore_warnings
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt.optim.sklearn_helper import enumerate_pipeline_models, inspect_sklearn_model
 
@@ -56,7 +56,18 @@ class TestSklearnHelper(ExtTestCase):
         clr.fit(X_train, y_train)
         res = inspect_sklearn_model(clr)
         self.assertEqual(res['max_depth'], 4)
-        self.assertEqual(res['ntree'], 10)
+        self.assertEqual(res['ntrees'], 10)
+
+    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
+    def test_statistics_adaboost(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, __, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = AdaBoostRegressor(n_estimators=10)
+        clr.fit(X_train, y_train)
+        res = inspect_sklearn_model(clr)
+        self.assertEqual(res['max_depth'], 3)
+        self.assertGreater(res['ntrees'], 1)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_statistics_pipeline_rf(self):
@@ -68,7 +79,7 @@ class TestSklearnHelper(ExtTestCase):
         clr.fit(X_train, y_train)
         res = inspect_sklearn_model(clr)
         self.assertEqual(res['max_depth'], 4)
-        self.assertEqual(res['ntree'], 10)
+        self.assertEqual(res['ntrees'], 10)
         self.assertEqual(res['nop'], 11)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))

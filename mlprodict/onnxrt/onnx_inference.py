@@ -106,10 +106,11 @@ class OnnxInference:
                     target_opset = self.target_opset_.get(domain, None)
                     if self.runtime == 'onnxruntime2':
                         node.setup_runtime(self.runtime, variables, self.__class__,
-                                           target_opset=target_opset, dtype=dtype)
+                                           target_opset=target_opset, dtype=dtype,
+                                           domain=domain)
                     else:
                         node.setup_runtime(self.runtime, variables, self.__class__,
-                                           target_opset=target_opset)
+                                           target_opset=target_opset, domain=domain)
                     if hasattr(node, 'ops_') and hasattr(node.ops_, 'typed_outputs_'):
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v
