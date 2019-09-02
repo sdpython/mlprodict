@@ -88,7 +88,7 @@ class OnnxInference:
         self.graph_ = self.to_sequence()
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
-        self.target_opset_ = self.graph_['targets'].get('', None)
+        self.target_opset_ = self.graph_['targets']
         if not self.skip_run:
             if self.runtime == 'onnxruntime1':
                 # Loads the onnx with onnxruntime as a single file.
@@ -102,13 +102,14 @@ class OnnxInference:
                 dtype = self._guess_input_dtype()
                 variables = self.inits_.copy()
                 for node in self.sequence_:
+                    domain = node.onnx_node.domain
+                    target_opset = self.target_opset_.get(domain, None)
                     if self.runtime == 'onnxruntime2':
                         node.setup_runtime(self.runtime, variables, self.__class__,
-                                           target_opset=self.target_opset_,
-                                           dtype=dtype)
+                                           target_opset=target_opset, dtype=dtype)
                     else:
                         node.setup_runtime(self.runtime, variables, self.__class__,
-                                           target_opset=self.target_opset_)
+                                           target_opset=target_opset)
                     if hasattr(node, 'ops_') and hasattr(node.ops_, 'typed_outputs_'):
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v

@@ -19,10 +19,22 @@ def load_op(onnx_node, desc=None, options=None):
     if desc is None:
         raise ValueError("desc should not be None.")
     name = onnx_node.op_type
-    if name in d_op_list:
+    opset = options.get('target_opset', None) if options is not None else None
+    if opset is not None:
+        if not isinstance(opset, int):
+            raise TypeError(
+                "opset must be an integer not {}".format(type(opset)))
+        name_opset = name + "_" + str(opset)
+    else:
+        name_opset = name
+    if name_opset in d_op_list:
+        cl = d_op_list[name_opset]
+    elif name in d_op_list:
         cl = d_op_list[name]
-        if options is None:
-            options = {}
-        return cl(onnx_node, desc=desc, **options)
+    else:
+        raise NotImplementedError("Operator '{}' has no runtime yet. Available list:\n"
+                                  "{}".format(name, "\n".join(sorted(d_op_list))))
 
-    raise NotImplementedError("Operator '{}' has no runtime yet.".format(name))
+    if options is None:
+        options = {}
+    return cl(onnx_node, desc=desc, **options)

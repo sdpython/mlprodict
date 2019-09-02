@@ -116,7 +116,8 @@ class TestOnnxConvKNN(ExtTestCase):
         self.assertGreater(len(res), 2)
 
     def onnx_test_knn_single_regressor(self, dtype, n_targets=1, debug=False,
-                                       add_noise=False, **kwargs):
+                                       add_noise=False, runtime='python',
+                                       target_opset=None, **kwargs):
         iris = load_iris()
         X, y = iris.data, iris.target
         if add_noise:
@@ -133,8 +134,9 @@ class TestOnnxConvKNN(ExtTestCase):
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(dtype),
-                            dtype=dtype, rewrite_ops=True)
-        oinf = OnnxInference(model_def, runtime='python')
+                            dtype=dtype, rewrite_ops=True,
+                            target_opset=target_opset)
+        oinf = OnnxInference(model_def, runtime=runtime)
 
         if debug:
             y = oinf.run({'X': X_test}, verbose=1, fLOG=print)
@@ -149,6 +151,17 @@ class TestOnnxConvKNN(ExtTestCase):
 
     def test_onnx_test_knn_single_regressor32(self):
         self.onnx_test_knn_single_regressor(numpy.float32)
+
+    def test_onnx_test_knn_single_regressor32_op10(self):
+        self.onnx_test_knn_single_regressor(numpy.float32, target_opset=10)
+
+    def test_onnx_test_knn_single_regressor32_onnxruntime1(self):
+        self.onnx_test_knn_single_regressor(
+            numpy.float32, runtime="onnxruntime1", target_opset=10)
+
+    def test_onnx_test_knn_single_regressor32_onnxruntime2(self):
+        self.onnx_test_knn_single_regressor(
+            numpy.float32, runtime="onnxruntime2", target_opset=10)
 
     def test_onnx_test_knn_single_regressor32_balltree(self):
         self.onnx_test_knn_single_regressor(
@@ -191,5 +204,4 @@ class TestOnnxConvKNN(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxConvKNN().test_onnx_example_cdist_in_minkowski()
     unittest.main()
