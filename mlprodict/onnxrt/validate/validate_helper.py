@@ -187,13 +187,11 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     from skl2onnx import convert_sklearn
 
     if isinstance(model, OnnxOperatorMixin):
-        if target_opset is not None:
-            raise NotImplementedError(
-                "target_opset not yet implemented for OnnxOperatorMixin.")
         if options is not None:
             raise NotImplementedError(
                 "options not yet implemented for OnnxOperatorMixin.")
-        return model.to_onnx(X=X, name=name, dtype=dtype)
+        return model.to_onnx(X=X, name=name, dtype=dtype,
+                             target_opset=target_opset)
     if name is None:
         name = "ONNX(%s)" % model.__class__.__name__
     initial_types = guess_initial_types(X, initial_types)
