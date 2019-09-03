@@ -18,6 +18,27 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from mlprodict.onnx_conv import register_converters
 from mlprodict.onnx_conv.sklconv.knn import onnx_cdist
 from mlprodict.onnxrt import OnnxInference, to_onnx
+from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
+
+
+def old_topk_sorted_implementation(X, k, axis, largest):
+    """
+    Retrieves the top-k elements.
+    @param      X           data
+    @param      k           k in top-k
+    @param      axis        axis chosen to select the top-k elements
+    @param      largest     largest (1) or smallest (0)
+    @return                 top-k values, top-k indices
+    """
+    sorted_indices = numpy.argsort(X, axis=axis)
+    sorted_values = numpy.sort(X, axis=axis)
+    if largest:
+        sorted_indices = numpy.flip(sorted_indices, axis=axis)
+        sorted_values = numpy.flip(sorted_values, axis=axis)
+    ark = numpy.arange(k)
+    topk_sorted_indices = numpy.take(sorted_indices, ark, axis=axis)
+    topk_sorted_values = numpy.take(sorted_values, ark, axis=axis)
+    return topk_sorted_values, topk_sorted_indices
 
 
 class TestOnnxConvKNN(ExtTestCase):
@@ -25,6 +46,23 @@ class TestOnnxConvKNN(ExtTestCase):
     def setUp(self):
         logger = getLogger('skl2onnx')
         logger.disabled = True
+        
+    def test_topk_sorted_implementation(self):
+        X = numpy.array([[0, 1, 0, 2],
+                         [1, 0, 4, 5],
+                         [9, 8, 5, 6]], dtype=numpy.float64)
+        vals, inds = old_topk_sorted_implementation(X, 2, 1, 0)
+        vals2, inds2 = topk_sorted_implementation(X, 2, 1, 0)
+        self.assertEqualArray(vals, vals2)
+        self.assertEqualArray(inds, inds2)        
+
+        X = numpy.array([[0, 1, 0, 2],
+                         [1, 0, 4, 5],
+                         [9, 8, 5, 6]], dtype=numpy.float64)
+        vals, inds = old_topk_sorted_implementation(X, 2, 1, 1)
+        vals2, inds2 = topk_sorted_implementation(X, 2, 1, 1)
+        self.assertEqualArray(vals, vals2)
+        self.assertEqualArray(inds, inds2)        
 
     def test_onnx_example_cdist_in_euclidean(self):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
@@ -208,6 +246,26 @@ class TestOnnxConvKNN(ExtTestCase):
 
     def test_onnx_test_knn_single_regressor32_distance(self):
         self.onnx_test_knn_single_regressor(numpy.float32, weights='distance')
+
+    def test_onnx_test_knn_single_regressor_equal(self):
+        # We need to make scikit-learn and the runtime handles the
+        # ex aequo the same way.
+        X = numpy.full((100, 4), 1, dtype=numpy.float32)
+        X[:0:5] = 2
+        X[1:1:5] = 3
+        X[2:2:5] = 4
+        y = X.sum(axis=1) + numpy.arange(X.shape[0]) / 10
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = KNeighborsRegressor(algorithm='brute')
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train,
+                            dtype=numpy.float32, rewrite_ops=True)
+        oinf = OnnxInference(model_def, runtime='python')
+        y = oinf.run({'X': X_test})
+        self.assertEqual(list(sorted(y)), ['variable'])
+        lexp = clr.predict(X_test)
+        self.assertEqualArray(lexp, y['variable'], decimal=5)
 
 
 if __name__ == "__main__":
