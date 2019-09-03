@@ -14,7 +14,7 @@ from .op_array_feature_extractor import ArrayFeatureExtractor
 from .op_binarizer import Binarizer
 from .op_cast import Cast
 from .op_ceil import Ceil
-from .op_clip import Clip
+from .op_clip import Clip, Clip_6
 from .op_concat import Concat
 from .op_constant_of_shape import ConstantOfShape
 from .op_dict_vectorizer import DictVectorizer

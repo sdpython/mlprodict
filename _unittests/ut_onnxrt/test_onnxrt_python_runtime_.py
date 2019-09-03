@@ -195,15 +195,21 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_clip(self):
         self.common_test_onnxt_runtime_unary(
             lambda x, output_names=None: OnnxClip(
-                x, min=0, output_names=output_names),
+                x, numpy.array([0], dtype=numpy.float32),
+                output_names=output_names),
             lambda x: numpy.clip(x, 0, 1e5))
         self.common_test_onnxt_runtime_unary(
             lambda x, output_names=None: OnnxClip(
-                x, max=0, output_names=output_names),
+                x, numpy.array([-1000], dtype=numpy.float32),
+                numpy.array([0], dtype=numpy.float32),
+                output_names=output_names),
             lambda x: numpy.clip(x, -1e5, 0))
         self.common_test_onnxt_runtime_unary(
             lambda x, output_names=None: OnnxClip(
-                x, min=0.1, max=2.1, output_names=output_names),
+                x,
+                numpy.array([0.1], dtype=numpy.float32),
+                numpy.array([2.1], dtype=numpy.float32),
+                output_names=output_names),
             lambda x: numpy.clip(x, 0.1, 2.1))
 
     def test_onnxt_runtime_concat(self):
@@ -636,49 +642,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                          [2, -2, -3, 5, -4]],
                         dtype=numpy.float32)
 
-        # axis=0, k=-1
-        onx = OnnxTopK('X', numpy.array([-1], dtype=numpy.int64),
-                       axis=0, output_names=['Y', 'Yi'])
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                outputs=[('Y', FloatTensorType(X.shape)),
-                                         ('Yi', Int64TensorType(X.shape))])
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y', 'Yi'])
-        exp = numpy.array([[0., -2., -3., 3., -4.],
-                           [1., -1., -2., 4., 4.],
-                           [2., 1., 2., 5., 5.]], dtype=numpy.float32)
-        self.assertEqualArray(exp, got['Y'])
-
-        # axis=0, k=2
-        onx = OnnxTopK('X', numpy.array([2], dtype=numpy.int64),
-                       axis=0, output_names=['Y', 'Yi'])
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                outputs=[('Y', FloatTensorType(X.shape)),
-                                         ('Yi', Int64TensorType(X.shape))])
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y', 'Yi'])
-        exp = numpy.array([[1., -1., -2., 4., 4.],
-                           [2., 1., 2., 5., 5.]],
-                          dtype=numpy.float32)
-        self.assertEqualArray(exp, got['Y'])
-
-        # axis=1, k=-1
-        onx = OnnxTopK('X', numpy.array([-1], dtype=numpy.int64),
-                       axis=1, output_names=['Y', 'Yi'])
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                outputs=[('Y', FloatTensorType(X.shape)),
-                                         ('Yi', Int64TensorType(X.shape))])
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y', 'Yi'])
-        exp = numpy.array([[0., 1., 2., 3., 4.],
-                           [-2., -1., 1., 4., 5.],
-                           [-4., -3., -2., 2., 5.]],
-                          dtype=numpy.float32)
-        self.assertEqualArray(exp, got['Y'])
-
         # axis=1, k=2
         onx = OnnxTopK('X', numpy.array([2], dtype=numpy.int64),
                        axis=1, output_names=['Y', 'Yi'])
@@ -688,16 +651,30 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y', 'Yi'])
-        exp = numpy.array([[3., 4.],
-                           [4., 5.],
-                           [2., 5.]],
+        exp = numpy.array([[4., 3.],
+                           [5., 4.],
+                           [5., 2.]],
                           dtype=numpy.float32)
         self.assertEqualArray(exp, got['Y'])
-        exp = numpy.array([[3, 4],
-                           [3, 4],
-                           [0, 3]],
+        exp = numpy.array([[4, 3],
+                           [4, 3],
+                           [3, 0]],
                           dtype=numpy.int64)
         self.assertEqualArray(exp, got['Yi'])
+
+        # axis=0, k=2
+        onx = OnnxTopK('X', numpy.array([2], dtype=numpy.int64),
+                       axis=0, largest=1, output_names=['Y', 'Yi'])
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType(X.shape)),
+                                         ('Yi', Int64TensorType(X.shape))])
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y', 'Yi'])
+        exp = numpy.array([[2., 1., 2., 5., 5.],
+                           [1., -1., -2., 4., 4.]],
+                          dtype=numpy.float32)
+        self.assertEqualArray(exp, got['Y'])
 
         # axis=-1, k=2
         onx = OnnxTopK('X', numpy.array([2], dtype=numpy.int64),
@@ -708,9 +685,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y', 'Yi'])
-        exp = numpy.array([[3., 4.],
-                           [4., 5.],
-                           [2., 5.]],
+        exp = numpy.array([[4., 3.],
+                           [5., 4.],
+                           [5., 2.]],
                           dtype=numpy.float32)
         self.assertEqualArray(exp, got['Y'])
 
