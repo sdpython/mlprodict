@@ -664,7 +664,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
         # axis=0, k=2
         onx = OnnxTopK('X', numpy.array([2], dtype=numpy.int64),
-                       axis=0, largest=1, output_names=['Y', 'Yi'])
+                       axis=0, output_names=['Y', 'Yi'])
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 outputs=[('Y', FloatTensorType(X.shape)),
                                          ('Yi', Int64TensorType(X.shape))])

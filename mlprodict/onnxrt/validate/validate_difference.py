@@ -113,7 +113,7 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
         rel_sort = numpy.sort(numpy.abs(d))
         rel_diff = rel_sort[-4] if len(rel_sort) > 5 else rel_sort[-1]
 
-        if numpy.isnan(rel_diff):
+        if numpy.isnan(rel_diff) and not all(numpy.isnan(r_ort_pred)):
             raise RuntimeError("Unable to compute differences between {}-{}\n{}\n"
                                "--------\n{}".format(
                                    skl_pred.shape, ort_pred.shape,
