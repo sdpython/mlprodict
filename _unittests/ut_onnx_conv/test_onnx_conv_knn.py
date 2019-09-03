@@ -46,7 +46,7 @@ class TestOnnxConvKNN(ExtTestCase):
     def setUp(self):
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        
+
     def test_topk_sorted_implementation(self):
         X = numpy.array([[0, 1, 0, 2],
                          [1, 0, 4, 5],
@@ -54,7 +54,7 @@ class TestOnnxConvKNN(ExtTestCase):
         vals, inds = old_topk_sorted_implementation(X, 2, 1, 0)
         vals2, inds2 = topk_sorted_implementation(X, 2, 1, 0)
         self.assertEqualArray(vals, vals2)
-        self.assertEqualArray(inds, inds2)        
+        self.assertEqualArray(inds, inds2)
 
         X = numpy.array([[0, 1, 0, 2],
                          [1, 0, 4, 5],
@@ -62,7 +62,7 @@ class TestOnnxConvKNN(ExtTestCase):
         vals, inds = old_topk_sorted_implementation(X, 2, 1, 1)
         vals2, inds2 = topk_sorted_implementation(X, 2, 1, 1)
         self.assertEqualArray(vals, vals2)
-        self.assertEqualArray(inds, inds2)        
+        self.assertEqualArray(inds, inds2)
 
     def test_onnx_example_cdist_in_euclidean(self):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
