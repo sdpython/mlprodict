@@ -233,21 +233,21 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_clip_10(self):
         self.common_test_onnxt_runtime_unary(
             lambda x, output_names=None: OnnxClip_6(
-                x, min=0, max=1e5, output_names=output_names,
+                x, min=1e-5, max=1e5, output_names=output_names,
                 op_version=10),
-            lambda x: numpy.clip(x, 0, 1e5),
+            lambda x: numpy.clip(x, 1e-5, 1e5),
             op_version=10)
         self.common_test_onnxt_runtime_unary(
             lambda x, output_names=None: OnnxClip(
-                x, min=0, max=1e5, output_names=output_names,
+                x, min=1e-5, max=1e5, output_names=output_names,
                 op_version=10),
-            lambda x: numpy.clip(x, 0, 1e5),
+            lambda x: numpy.clip(x, 1e-5, 1e5),
             op_version=10)
         self.common_test_onnxt_runtime_unary(
             lambda x, output_names=None: OnnxClip(
-                x, max=0, output_names=output_names,
+                x, max=1e-5, output_names=output_names,
                 op_version=10),
-            lambda x: numpy.clip(x, -1e5, 0),
+            lambda x: numpy.clip(x, -1e5, 1e-5),
             op_version=10)
         self.common_test_onnxt_runtime_unary(
             lambda x, output_names=None: OnnxClip(
