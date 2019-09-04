@@ -3,8 +3,16 @@
 @file
 @brief Shortcut to *ops_cpu*.
 """
-
+from onnx.defs import onnx_opset_version
 from ._op_list import __dict__ as d_op_list
+
+
+def get_opset_number_from_onnx():
+    """
+    Retuns the current :epkg:`onnx` opset
+    based on the installed version of :epkg:`onnx`.
+    """
+    return onnx_opset_version()
 
 
 def load_op(onnx_node, desc=None, options=None):
@@ -20,6 +28,8 @@ def load_op(onnx_node, desc=None, options=None):
         raise ValueError("desc should not be None.")
     name = onnx_node.op_type
     opset = options.get('target_opset', None) if options is not None else None
+    if opset == get_opset_number_from_onnx():
+        opset = None
     if opset is not None:
         if not isinstance(opset, int):
             raise TypeError(

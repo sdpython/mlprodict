@@ -160,7 +160,12 @@ class OnnxInferenceNode:
         @param      values      container for shapes
         """
         args = [values[k] for k in self.inputs]
-        res = self.ops_.infer_shapes(*args)
+        try:
+            res = self.ops_.infer_shapes(*args)
+        except TypeError as e:
+            raise TypeError(
+                "Unable to call infer_shapes with {} arguments for class"
+                " '{}'".format(len(args), self.ops_.__class__.__name__)) from e
         if not isinstance(res, tuple):
             raise RuntimeError(
                 "Results of an operator should be a tuple for operator '{}'"

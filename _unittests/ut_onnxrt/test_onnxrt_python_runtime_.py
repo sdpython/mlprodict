@@ -43,7 +43,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                         op_version=None, debug=False):
         onx = onnx_cl('X', output_names=['Y'])
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)}, target_opset=op_version)
+        model_def = onx.to_onnx(
+            {'X': X.astype(numpy.float32)}, target_opset=op_version)
         if debug:
             print(model_def)
         # no inplace
@@ -60,8 +61,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
         # inplace2
-        onx2 = OnnxIdentity(onnx_cl('X'), output_names=['Y'])
-        model_def2 = onx2.to_onnx({'X': X.astype(numpy.float32)})
+        onx2 = OnnxIdentity(onnx_cl('X'), output_names=[
+                            'Y'], op_version=op_version)
+        model_def2 = onx2.to_onnx(
+            {'X': X.astype(numpy.float32)}, target_opset=op_version)
         oinf = OnnxInference(model_def2, input_inplace=False, inplace=True)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
