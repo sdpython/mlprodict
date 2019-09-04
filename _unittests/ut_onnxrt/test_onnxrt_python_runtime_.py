@@ -30,6 +30,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt.validate.validate_helper import get_opset_number_from_onnx
 
 
 class TestOnnxrtPythonRuntime(ExtTestCase):
@@ -41,7 +42,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
     def common_test_onnxt_runtime_unary(self, onnx_cl, np_fct,
                                         op_version=None, debug=False):
-        onx = onnx_cl('X', output_names=['Y'])
+        try:
+            onx = onnx_cl('X', output_names=['Y'])
+        except RuntimeError as e:
+            raise RuntimeError('onnx.opset={} op_version={}'.format(
+                get_opset_number_from_onnx(), op_version)) from e
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
         model_def = onx.to_onnx(
             {'X': X.astype(numpy.float32)}, target_opset=op_version)
@@ -54,7 +59,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         else:
             got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
+        try:
+            self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
+        except AssertionError as e:
+            raise AssertionError('onnx.opset={} op_version={}'.format(
+                get_opset_number_from_onnx(), op_version)) from e
         # inplace
         oinf = OnnxInference(model_def, input_inplace=False, inplace=True)
         got = oinf.run({'X': X})
