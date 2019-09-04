@@ -25,8 +25,14 @@ def load_op(onnx_node, desc=None, options=None):
             raise TypeError(
                 "opset must be an integer not {}".format(type(opset)))
         name_opset = name + "_" + str(opset)
+        for op in range(opset, 1, -1):
+            nop = name + "_" + str(op)
+            if nop in d_op_list:
+                name_opset = nop
+                break
     else:
         name_opset = name
+
     if name_opset in d_op_list:
         cl = d_op_list[name_opset]
     elif name in d_op_list:

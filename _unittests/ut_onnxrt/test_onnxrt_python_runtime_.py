@@ -12,7 +12,7 @@ import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
     OnnxArrayFeatureExtractor, OnnxConcat,
-    OnnxCeil, OnnxClip,
+    OnnxCeil, OnnxClip, OnnxClip_6,
     OnnxDiv, OnnxEqual, OnnxExp, OnnxFloor, OnnxGreater,
     OnnxGemm, OnnxIdentity, OnnxLog, OnnxMatMul, OnnxMean, OnnxMul,
     OnnxPow, OnnxReciprocal,
@@ -39,13 +39,19 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         logger.disabled = True
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
-    def common_test_onnxt_runtime_unary(self, onnx_cl, np_fct):
+    def common_test_onnxt_runtime_unary(self, onnx_cl, np_fct,
+                                        op_version=None, debug=False):
         onx = onnx_cl('X', output_names=['Y'])
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)}, target_opset=op_version)
+        if debug:
+            print(model_def)
         # no inplace
         oinf = OnnxInference(model_def, inplace=False)
-        got = oinf.run({'X': X})
+        if debug:
+            got = oinf.run({'X': X}, verbose=1, fLOG=print)
+        else:
+            got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
         # inplace
@@ -211,6 +217,33 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                 numpy.array([2.1], dtype=numpy.float32),
                 output_names=output_names),
             lambda x: numpy.clip(x, 0.1, 2.1))
+
+    def test_onnxt_runtime_clip_10(self):
+        self.common_test_onnxt_runtime_unary(
+            lambda x, output_names=None: OnnxClip_6(
+                x, min=0, max=1e5, output_names=output_names,
+                op_version=10),
+            lambda x: numpy.clip(x, 0, 1e5),
+            op_version=10)
+        self.common_test_onnxt_runtime_unary(
+            lambda x, output_names=None: OnnxClip(
+                x, min=0, max=1e5, output_names=output_names,
+                op_version=10),
+            lambda x: numpy.clip(x, 0, 1e5),
+            op_version=10)
+        self.common_test_onnxt_runtime_unary(
+            lambda x, output_names=None: OnnxClip(
+                x, max=0, output_names=output_names,
+                op_version=10),
+            lambda x: numpy.clip(x, -1e5, 0),
+            op_version=10)
+        self.common_test_onnxt_runtime_unary(
+            lambda x, output_names=None: OnnxClip(
+                x, min=0.1, max=2.1,
+                output_names=output_names,
+                op_version=10),
+            lambda x: numpy.clip(x, 0.1, 2.1),
+            op_version=10)
 
     def test_onnxt_runtime_concat(self):
         cst = numpy.array([[1, 2]], dtype=numpy.float32)
@@ -739,5 +772,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxrtPythonRuntime().test_onnxt_runtime_exp()
+    TestOnnxrtPythonRuntime().test_onnxt_runtime_clip_10()
     unittest.main()

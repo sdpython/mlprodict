@@ -15,7 +15,7 @@ class Clip_6(OpRunUnaryNum):
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
-                               expected_attributes=Clip.atts,
+                               expected_attributes=Clip_6.atts,
                                **options)
 
     def _run(self, data):  # pylint: disable=W0221
