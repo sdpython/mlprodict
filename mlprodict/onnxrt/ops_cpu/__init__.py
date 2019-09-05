@@ -61,8 +61,10 @@ def load_op(onnx_node, desc=None, options=None):
             # the opset version, we need to downgrade it.
             if 'target_opset' in options and options['target_opset'] is not None:
                 raise RuntimeError(
-                    "Unable to find an implementation version {} found "
+                    "Supported version {} > {} (opset={}) required version, "
+                    "unable to find an implementation version {} found "
                     "'{}'\n--ONNX--\n{}\n--AVAILABLE--\n{}".format(
+                        cl.version_higher_than, opv, opset,
                         options['target_opset'], cl.__name__, onnx_node,
                         "\n".join(sorted(d_op_list))))
             options = options.copy()
