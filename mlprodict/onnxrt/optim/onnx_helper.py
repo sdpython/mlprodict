@@ -14,31 +14,28 @@ def onnx_statistics(onnx_model):
     .. runpython::
         :showcode:
 
+        import pprint
         from sklearn.linear_model import LogisticRegression
+        from sklearn.ensemble import RandomForestClassifier
         from sklearn.datasets import load_iris
         from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
+        from mlprodict.onnxrt import to_onnx
 
         iris = load_iris()
         X = iris.data
         y = iris.target
         lr = LogisticRegression()
         lr.fit(X, y)
-
-        import pprint
-        pprint.pprint(lr, onnx_statistics(lr))
-
-        from sklearn.ensemble import RandomForestClassifier
-        from sklearn.datasets import load_iris
-        from mlprodict.onnxrt.optim.sklearn_helper import inspect_sklearn_model
+        onx = to_onnx(lr, X[:1])
+        pprint.pprint((lr, onnx_statistics(onx)))
 
         iris = load_iris()
         X = iris.data
         y = iris.target
         rf = RandomForestClassifier()
         rf.fit(X, y)
-
-        import pprint
-        pprint.pprint(rf, onnx_statistics(rf))
+        onx = to_onnx(rf, X[:1])
+        pprint.pprint((rf, onnx_statistics(onx)))
     """
     content = onnx_model.SerializeToString()
     nnodes = len(onnx_model.graph.node)

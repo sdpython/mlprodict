@@ -5,6 +5,7 @@
 @brief Runtime operator.
 """
 import numpy
+from onnx.defs import onnx_opset_version
 from ._op import OpRunUnaryNum
 
 
@@ -26,7 +27,7 @@ class Clip_6(OpRunUnaryNum):
         return (res, ) if res.dtype == data.dtype else (res.astype(data.dtype), )
 
 
-class Clip(OpRunUnaryNum):
+class Clip_11(OpRunUnaryNum):
 
     version_higher_than = 11
 
@@ -61,3 +62,9 @@ class Clip(OpRunUnaryNum):
         except TypeError as e:
             raise TypeError("Issues with types {} (operator {}).".format(
                 x.dtype, self.__class__.__name__)) from e
+
+
+if onnx_opset_version() >= 11:
+    Clip = Clip_11
+else:
+    Clip = Clip_6
