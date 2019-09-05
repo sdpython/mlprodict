@@ -79,8 +79,11 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
             return False
 
         obs["training_time"] = t4
-        obs.update(
-            {'skl_' + k: v for k, v in inspect_sklearn_model(inst).items()})
+        try:
+            skl_st = inspect_sklearn_model(inst)
+        except NotImplementedError:
+            skl_st = {}
+        obs.update({'skl_' + k: v for k, v in skl_st.items()})
 
         if store_models:
             obs['MODEL'] = inst
