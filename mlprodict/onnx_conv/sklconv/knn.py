@@ -70,7 +70,7 @@ def _onnx_cdist_sqeuclidean(X, Y, dtype=None, op_version=None, **kwargs):
         outputs=[('next_out', tensor_type()),
                  ('scan_out', tensor_type())],
         other_outputs=[flat],
-        dtype=dtype)
+        dtype=dtype, target_opset=op_version)
 
     node = OnnxScan(X, Y, output_names=['scan0_{idself}', 'scan1_{idself}'],
                     num_scan_inputs=1, body=scan_body.graph, op_version=op_version)
@@ -100,7 +100,7 @@ def _onnx_cdist_minkowski(X, Y, dtype=None, op_version=None, p=2, **kwargs):
         outputs=[('next_out', tensor_type()),
                  ('scan_out', tensor_type())],
         other_outputs=[flat],
-        dtype=dtype)
+        dtype=dtype, target_opset=op_version)
 
     node = OnnxScan(X, Y, output_names=['scan0_{idself}', 'scan1_{idself}'],
                     num_scan_inputs=1, body=scan_body.graph, op_version=op_version)
@@ -129,7 +129,7 @@ def _onnx_cdist_manhattan(X, Y, dtype=None, op_version=None, **kwargs):
         outputs=[('next_out', tensor_type()),
                  ('scan_out', tensor_type())],
         other_outputs=[flat],
-        dtype=dtype)
+        dtype=dtype, target_opset=op_version)
 
     node = OnnxScan(X, Y, output_names=['scan0_{idself}', 'scan1_{idself}'],
                     num_scan_inputs=1, body=scan_body.graph, op_version=op_version)

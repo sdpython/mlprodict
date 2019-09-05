@@ -1,5 +1,5 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=4s)
 """
 import unittest
 from logging import getLogger
@@ -269,4 +269,5 @@ class TestOnnxConvKNN(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestOnnxConvKNN().test_onnx_test_knn_single_regressor32_op10()
     unittest.main()
