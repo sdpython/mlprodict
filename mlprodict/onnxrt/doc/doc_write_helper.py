@@ -12,6 +12,7 @@ from pyquickhelper.pandashelper.tblformat import df2rst
 from ..validate.validate import enumerate_validated_operator_opsets, sklearn_operators
 from ..validate.validate import get_opset_number_from_onnx, sklearn__all__
 from ..optim.sklearn_helper import inspect_sklearn_model
+from ..optim.onnx_helper import onnx_statistics
 from ..onnx_inference import OnnxInference
 from .doc_helper import visual_rst_template
 
