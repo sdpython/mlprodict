@@ -124,9 +124,9 @@ def split_columns_subsets(df):
                           'scenario', 'optim'] if c in df.columns]
     subsets = []
     subsets.append([c for c in df.columns if 'opset' in c])
-    subsets.append([c for c in df.columns if 'N=' in c])
     subsets.append([c for c in df.columns if 'ERROR' in c])
     subsets.append([c for c in df.columns if c.startswith(
         'skl_') or c.startswith('onx_')])
+    subsets.append([c for c in df.columns if 'N=' in c])
     subsets = [s for s in subsets if len(s) > 0]
     return common, subsets

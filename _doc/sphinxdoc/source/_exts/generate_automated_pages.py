@@ -143,6 +143,12 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     logger.info("[mlprodict] write '{}'.".format(whe))
     print("[mlprodict-sphinx] write '{}'".format(whe))
 
+    def build_key_split(key):
+        try:
+            return key.split('`')[1].split('<')[0].strip()
+        except IndexError:
+            return key
+
     with open(whe, 'w', encoding='utf-8') as f:
         title = "Available of scikit-learn model for runtime {0}".format(
             runtime)
@@ -196,7 +202,9 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
         common, subsets = split_columns_subsets(piv)
         f.write(df2rst(piv, number_format=2,
                        replacements={'nan': '', 'ERR: 4convert': ''},
-                       split_row="name", split_col_common=common,
+                       split_row=lambda index: build_key_split(
+                           piv.loc[index, "name"]),
+                       split_col_common=common,
                        split_col_subsets=subsets))
     logger.info(
         "[mlprodict] done page '{}'.".format(whe))
