@@ -28,6 +28,8 @@ class Clip_6(OpRunUnaryNum):
 
 class Clip(OpRunUnaryNum):
 
+    version_higher_than = 11
+
     def __init__(self, onnx_node, desc=None, **options):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
                                **options)

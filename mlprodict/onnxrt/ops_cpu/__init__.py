@@ -28,17 +28,20 @@ def load_op(onnx_node, desc=None, options=None):
         raise ValueError("desc should not be None.")
     name = onnx_node.op_type
     opset = options.get('target_opset', None) if options is not None else None
-    if opset == get_opset_number_from_onnx():
+    current_opset = get_opset_number_from_onnx()
+    chosen_opset = current_opset
+    if opset == current_opset:
         opset = None
     if opset is not None:
         if not isinstance(opset, int):
             raise TypeError(
                 "opset must be an integer not {}".format(type(opset)))
         name_opset = name + "_" + str(opset)
-        for op in range(opset, 1, -1):
+        for op in range(opset, 0, -1):
             nop = name + "_" + str(op)
             if nop in d_op_list:
                 name_opset = nop
+                chosen_opset = op
                 break
     else:
         name_opset = name
@@ -50,6 +53,19 @@ def load_op(onnx_node, desc=None, options=None):
     else:
         raise NotImplementedError("Operator '{}' has no runtime yet. Available list:\n"
                                   "{}".format(name, "\n".join(sorted(d_op_list))))
+
+    if hasattr(cl, 'version_higher_than'):
+        opv = min(current_opset, chosen_opset)
+        if cl.version_higher_than > opv:
+            # The chosen implementation does not support
+            # the opset version, we need to downgrade it.
+            if 'target_opset' in options and options['target_opset'] is not None:
+                raise RuntimeError(
+                    "Unable to find an implementation for '{}' version {}.".format(
+                        onnx_node, options['target_opset']))
+            options = options.copy()
+            options['target_opset'] = current_opset
+            return load_op(onnx_node, desc=desc, options=options)
 
     if options is None:
         options = {}

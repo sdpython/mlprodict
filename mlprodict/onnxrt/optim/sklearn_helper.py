@@ -209,6 +209,35 @@ def inspect_sklearn_model(model, recursive=True):
     @param      model       model
     @param      recursive   recursive look
     @return                 dictionary
+
+    .. runpython::
+        :showcode:
+
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.datasets import load_iris
+        from mlprodict.onnxrt.optim.sklearn_helper import inspect_sklearn_model
+
+        iris = load_iris()
+        X = iris.data
+        y = iris.target
+        lr = LogisticRegression()
+        lr.fit(X, y)
+
+        import pprint
+        pprint.pprint(lr, inspect_sklearn_model(lr))
+
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.datasets import load_iris
+        from mlprodict.onnxrt.optim.sklearn_helper import inspect_sklearn_model
+
+        iris = load_iris()
+        X = iris.data
+        y = iris.target
+        rf = RandomForestClassifier()
+        rf.fit(X, y)
+
+        import pprint
+        pprint.pprint(rf, inspect_sklearn_model(rf))
     """
     def update(sts, st):
         for k, v in st.items():

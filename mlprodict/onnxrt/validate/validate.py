@@ -9,8 +9,10 @@ import pandas
 import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.model_selection import train_test_split
-from ..onnx_inference import OnnxInference
 from ... import __version__ as ort_version
+from ..onnx_inference import OnnxInference
+from ..optim.sklearn_helper import inspect_sklearn_model
+from ..optim.onnx_helper import onnx_statistics
 from .validate_problems import _problems, find_suitable_problem
 from .validate_scenarios import _extra_parameters
 from .validate_difference import measure_relative_difference
@@ -77,6 +79,9 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
             return False
 
         obs["training_time"] = t4
+        obs.update(
+            {'skl_' + k: v for k, v in inspect_sklearn_model(inst).items()})
+
         if store_models:
             obs['MODEL'] = inst
             obs['X_test'] = X_test
@@ -351,6 +356,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                             if verbose >= 2 and fLOG is not None:
                                 fLOG("[enumerate_compatible_opset] onnx nodes: {}".format(
                                     len(conv.graph.node)))
+                        obs_op.update(
+                            {'onx_' + k: v for k, v in onnx_statistics(conv).items()})
 
                         # opset_domain
                         for op_imp in list(conv.opset_import):
@@ -649,6 +656,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
             op2 = obs.get('domain_opset_ai.onnx.ml', '')
             op = '{}/{}'.format(op1, op2)
 
+            obs['available'] = "?"
             if diff is not None:
                 if diff < 1e-5:
                     obs['available'] = 'OK'
@@ -741,7 +749,7 @@ def summary_report(df):
     try:
         piv = pandas.pivot_table(df, values=col_values,
                                  index=indices, columns='opset',
-                                 aggfunc=aggfunc).reset_index(drop=False)
+                                 aggfunc=aggfunc, dropna=False).reset_index(drop=False)
     except KeyError as e:
         raise RuntimeError("Issue with keys={}, values={}\namong {}.".format(
             indices, col_values, df.columns)) from e
