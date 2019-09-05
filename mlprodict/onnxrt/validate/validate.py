@@ -768,15 +768,15 @@ def summary_report(df, add_cols=None):
     try:
         piv = pandas.pivot_table(df, values=col_values,
                                  index=indices, columns='opset',
-                                 aggfunc=aggfunc, dropna=False).reset_index(drop=False)
+                                 aggfunc=aggfunc).reset_index(drop=False)
     except KeyError as e:
         raise RuntimeError("Issue with keys={}, values={}\namong {}.".format(
             indices, col_values, df.columns)) from e
 
-    opmin = min(df['opset'].dropna())
-    versions = ["opset%d" % (opmin + t - 1)
-                for t in range(1, piv.shape[1] - len(indices) + 1)]
     cols = list(piv.columns)
+    opsets = [c[1] for c in cols if isinstance(c[1], int)]
+
+    versions = ["opset%d" % i for i in opsets]
     if len(piv.columns) != len(indices + versions):
         raise RuntimeError(
             "Mismatch between {} != {}\n{}\n{}\n---\n{}\n{}\n{}".format(

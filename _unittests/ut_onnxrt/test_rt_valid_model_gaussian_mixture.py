@@ -39,7 +39,7 @@ class TestRtValidateGaussianMixture(ExtTestCase):
         self.assertIn('onx_size', rows[-1])
         piv = summary_report(DataFrame(rows))
         opset = [c for c in piv.columns if 'opset' in c]
-        self.assertEqual(['opset11', 'opset10', 'opset9'], opset)
+        self.assertIn('opset11', opset)
         self.assertGreater(len(buffer), 1 if debug else 0)
         common, subsets = split_columns_subsets(piv)
         try:
