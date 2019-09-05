@@ -17,6 +17,7 @@ from pyquickhelper.pandashelper import df2rst
 from pyquickhelper.loghelper import run_cmd
 from pyquickhelper.loghelper.run_cmd import get_interpreter_path
 from mlprodict.onnxrt.validate.validate_helper import sklearn_operators
+from mlprodict.onnxrt.doc.doc_write_helper import split_columns_subsets
 
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning,
@@ -71,7 +72,7 @@ def run_benchmark(runtime, srcdir, logger, skip, white_list=None):
 
 def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
-    from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets, summary_report
+    from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir if app is not None else ".."
 
@@ -187,10 +188,16 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
         Full data: :download:`{3} <../{3}>`
 
+        .. contents::
+            :local:
+
         '''.format(runtime, title, "=" * len(title),
                    "bench_sum_%s.xlsx" % runtime)))
+        common, subsets = split_columns_subsets(piv)
         f.write(df2rst(piv, number_format=2,
-                       replacements={'nan': '', 'ERR: 4convert': ''}))
+                       replacements={'nan': '', 'ERR: 4convert': ''},
+                       split_row="name", split_col_common=common,
+                       split_col_subsets=subsets))
     logger.info(
         "[mlprodict] done page '{}'.".format(whe))
     print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))

@@ -39,7 +39,10 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         problem = row['problem']
         model = row['MODEL']
         method = row['method_name']
-        stats = inspect_sklearn_model(model)
+        stats_skl = inspect_sklearn_model(model)
+        stats_onx = onnx_statistics(row['ONNX'])
+        stats = {'skl_' + k: v for k, v in stats_skl.items()}
+        stats.update({'onx_' + k: v for k, v in stats_onx.items()})
 
         df = DataFrame([stats])
         table = df2rst(df.T.reset_index(drop=False))
@@ -108,3 +111,21 @@ def compose_page_onnxrt_ops(level="^"):
             ".. autosignature:: mlprodict.onnxrt.ops_cpu.{}.{}".format(mod, name))
         rows.append('')
     return "\n".join(rows)
+
+
+def split_columns_subsets(df):
+    """
+    Functions used in the documentation to split
+    a dataframe by columns into multiple dataframe to
+    reduce the scrolling.
+    """
+    common = [c for c in ['name', 'problem',
+                          'scenario', 'optim'] if c in df.columns]
+    subsets = []
+    subsets.append([c for c in df.columns if 'opset' in c])
+    subsets.append([c for c in df.columns if 'N=' in c])
+    subsets.append([c for c in df.columns if 'ERROR' in c])
+    subsets.append([c for c in df.columns if c.startswith(
+        'skl_') or c.startswith('onx_')])
+    subsets = [s for s in subsets if len(s) > 0]
+    return common, subsets

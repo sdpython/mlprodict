@@ -5,6 +5,7 @@ import unittest
 from logging import getLogger
 import numpy
 from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
+from onnx.defs import onnx_opset_version
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.utils.extmath import softmax
 from sklearn.utils.testing import ignore_warnings
@@ -216,6 +217,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_ceil(self):
         self.common_test_onnxt_runtime_unary(OnnxCeil, numpy.ceil)
 
+    @unittest.skipIf(onnx_opset_version() < 11,
+                     reason="Explicitely tests Clip >= 11")
     def test_onnxt_runtime_clip(self):
         self.common_test_onnxt_runtime_unary(
             lambda x, output_names=None: OnnxClip(

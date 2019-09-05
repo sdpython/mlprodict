@@ -6,10 +6,12 @@ from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pandashelper import df2rst
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
+from mlprodict.onnxrt.doc.doc_write_helper import split_columns_subsets
 
 
 class TestRtValidateGaussianMixture(ExtTestCase):
@@ -33,10 +35,15 @@ class TestRtValidateGaussianMixture(ExtTestCase):
             runtime='python', debug=debug,
             filter_exp=lambda m, p: 'b-cl' in p))
         self.assertGreater(len(rows), 1)
+        self.assertIn('skl_nop', rows[0])
+        self.assertIn('onx_size', rows[-1])
         piv = summary_report(DataFrame(rows))
         opset = [c for c in piv.columns if 'opset' in c]
         self.assertEqual(['opset11', 'opset10', 'opset9'], opset)
         self.assertGreater(len(buffer), 1 if debug else 0)
+        common, subsets = split_columns_subsets(piv)
+        conv = df2rst(piv, split_col_common=common, split_col_subsets=subsets)
+        self.assertIn('| GaussianMixture |', conv)
 
 
 if __name__ == "__main__":

@@ -711,13 +711,14 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
             yield obs
 
 
-def summary_report(df):
+def summary_report(df, add_cols=None):
     """
     Finalizes the results computed by function
     @see fn enumerate_validated_operator_opsets.
 
-    @param      df      dataframe
-    @return             pivoted dataframe
+    @param      df          dataframe
+    @param      add_cols    additional columns to take into account
+    @return                 pivoted dataframe
 
     The outcome can be seen at page about :ref:`l-onnx-pyrun`.
     """
@@ -747,6 +748,15 @@ def summary_report(df):
     indices = ["name", "problem", "scenario"]
     for c in ['n_features', 'runtime']:
         if c in df.columns:
+            indices.append(c)
+
+    # Adds information about the models in the index
+    for c in df.columns:
+        if (isinstance(c, str) and len(c) >= 5 and (
+                c.startswith("onx_") or c.startswith("skl_"))):
+            if c in {'onx_domain', 'onx_doc_string', 'onx_ir_version',
+                     'onx_model_version'}:
+                continue
             indices.append(c)
 
     try:
