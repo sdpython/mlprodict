@@ -55,7 +55,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         # no inplace
         oinf = OnnxInference(model_def, inplace=False)
         all_names = "\n".join(
-            op.ops_.__class__.__name__ for op in oinf.sequence_)
+            "%s>=v%d" % (op.ops_.__class__.__name__,
+                         op.ops_._schema.since_version)  # pylint: disable=W0212
+            for op in oinf.sequence_)
         if debug:
             got = oinf.run({'X': X}, verbose=1, fLOG=print)
         else:
