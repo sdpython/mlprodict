@@ -54,6 +54,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
             print(model_def)
         # no inplace
         oinf = OnnxInference(model_def, inplace=False)
+        all_names = "\n".join(
+            op.ops_.__class__.__name__ for op in oinf.sequence_)
         if debug:
             got = oinf.run({'X': X}, verbose=1, fLOG=print)
         else:
@@ -62,8 +64,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         try:
             self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
         except AssertionError as e:
-            raise AssertionError('onnx.opset={} op_version={}\n--ONNX--\n{}'.format(
-                get_opset_number_from_onnx(), op_version, model_def)) from e
+            raise AssertionError(
+                'onnx.opset={} op_version={}\n--ONNX--\n{}\n--NAMES--\n{}'.format(
+                    get_opset_number_from_onnx(), op_version, model_def,
+                    all_names)) from e
         # inplace
         oinf = OnnxInference(model_def, input_inplace=False, inplace=True)
         got = oinf.run({'X': X})
