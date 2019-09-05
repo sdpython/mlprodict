@@ -774,7 +774,7 @@ def summary_report(df, add_cols=None):
             indices, col_values, df.columns)) from e
 
     cols = list(piv.columns)
-    opsets = [c[1] for c in cols if isinstance(c[1], int)]
+    opsets = [c[1] for c in cols if isinstance(c[1], (int, float))]
 
     versions = ["opset%d" % i for i in opsets]
     if len(piv.columns) != len(indices + versions):

@@ -39,11 +39,11 @@ class TestRtValidateGaussianMixture(ExtTestCase):
         self.assertIn('onx_size', rows[-1])
         piv = summary_report(DataFrame(rows))
         opset = [c for c in piv.columns if 'opset' in c]
-        self.assertIn('opset11', opset)
+        self.assertTrue('opset11' in opset or 'opset10' in opset)
         self.assertGreater(len(buffer), 1 if debug else 0)
         common, subsets = split_columns_subsets(piv)
         try:
-            conv = df2rst(piv, split_col_common=common,
+            conv = df2rst(piv, split_col_common=common,  # pylint: disable=E1123
                           split_col_subsets=subsets)
             self.assertIn('| GaussianMixture |', conv)
         except TypeError as e:
