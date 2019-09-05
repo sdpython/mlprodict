@@ -757,6 +757,12 @@ def summary_report(df, add_cols=None):
             if c in {'onx_domain', 'onx_doc_string', 'onx_ir_version',
                      'onx_model_version'}:
                 continue
+            if df[c].dtype in (numpy.float32, numpy.float64, float,
+                               int, numpy.int32, numpy.int64):
+                defval = -1
+            else:
+                defval = ''
+            df[c].fillna(defval, inplace=True)
             indices.append(c)
 
     try:
@@ -771,6 +777,12 @@ def summary_report(df, add_cols=None):
     versions = ["opset%d" % (opmin + t - 1)
                 for t in range(1, piv.shape[1] - len(indices) + 1)]
     cols = list(piv.columns)
+    if len(piv.columns) != len(indices + versions):
+        raise RuntimeError(
+            "Mismatch between {} != {}\n{}\n{}\n---\n{}\n{}\n{}".format(
+                len(piv.columns), len(indices + versions),
+                piv.columns, indices + versions,
+                df.columns, indices, col_values))
     piv.columns = indices + versions
     piv = piv[indices + list(reversed(versions))].copy()
 
