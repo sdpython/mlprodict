@@ -145,9 +145,9 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
     def build_key_split(key):
         try:
-            return key.split('`')[1].split('<')[0].strip()
+            return str(key).split('`')[1].split('<')[0].strip()
         except IndexError:
-            return key
+            return str(key)
 
     with open(whe, 'w', encoding='utf-8') as f:
         title = "Available of scikit-learn model for runtime {0}".format(
