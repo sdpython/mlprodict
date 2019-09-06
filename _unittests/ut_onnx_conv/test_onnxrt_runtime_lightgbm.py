@@ -43,7 +43,6 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
                                    "E": pandas.Categorical(numpy.random.permutation(['z', 'y'] * 30),
                                                            ordered=True)})
         cat_cols_actual = ["A", "B", "C", "D"]
-        cat_cols_to_store = cat_cols_actual + ["E"]
         X[cat_cols_actual] = X[cat_cols_actual].astype('category')
         X_test[cat_cols_actual] = X_test[cat_cols_actual].astype('category')
         gbm0 = LGBMClassifier().fit(X, y)
