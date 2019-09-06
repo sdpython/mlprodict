@@ -8,8 +8,13 @@ from onnx import AttributeProto, NodeProto
 from onnx.helper import make_attribute
 
 
-def make_node(op_type, inputs, outputs, name=None, doc_string=None,
-              domain=None, attributes=None):
+#######################################
+# remove_node_identity
+#######################################
+
+
+def _make_node(op_type, inputs, outputs, name=None, doc_string=None,
+               domain=None, attributes=None):
     """
     Constructs a NodeProto.
 
@@ -78,9 +83,9 @@ def _rename_node_input(onnx_node, old_name, new_name):
         atts = new_atts
     else:
         atts = onnx_node.attribute
-    node = make_node(onnx_node.op_type, inputs,
-                     outputs, name=onnx_node.name,
-                     attributes=atts)
+    node = _make_node(onnx_node.op_type, inputs,
+                      outputs, name=onnx_node.name,
+                      attributes=atts)
     return node
 
 
@@ -104,7 +109,7 @@ def _rename_graph_output(graph, old_name, new_name):
                 value_info.doc_string = o.type.doc_string
             outputs.append(value_info)
     nodes = list(graph.node)
-    nodes.append(make_node('Identity', [old_name], [new_name]))
+    nodes.append(_make_node('Identity', [old_name], [new_name]))
     new_graph = make_graph(nodes, graph.name, graph.input, outputs,
                            graph.initializer)
     new_graph.value_info.extend(graph.value_info)  # pylint: disable=E1101
@@ -131,7 +136,7 @@ def _rename_graph_input(graph, old_name, new_name):
                 value_info.doc_string = i.type.doc_string
             inputs.append(value_info)
     nodes = list(graph.node)
-    nodes.append(make_node('Identity', [new_name], [old_name]))
+    nodes.append(_make_node('Identity', [new_name], [old_name]))
     new_graph = make_graph(nodes, graph.name, inputs, graph.output,
                            graph.initializer)
     new_graph.value_info.extend(graph.value_info)  # pylint: disable=E1101
@@ -168,9 +173,9 @@ def _rename_node_output(onnx_node, old_name, new_name):
         atts = new_atts
     else:
         atts = onnx_node.attribute
-    node = make_node(onnx_node.op_type, inputs,
-                     outputs, name=onnx_node.name,
-                     attributes=atts)
+    node = _make_node(onnx_node.op_type, inputs,
+                      outputs, name=onnx_node.name,
+                      attributes=atts)
     return node
 
 
@@ -194,9 +199,9 @@ def _remove_node_identity_node(node, recursive=True):
         else:
             new_atts.append(att)
     if modified > 0:
-        new_node = make_node(node.op_type, node.input,
-                             node.output, name=node.name,
-                             attributes=new_atts)
+        new_node = _make_node(node.op_type, node.input,
+                              node.output, name=node.name,
+                              attributes=new_atts)
         return new_node
     return node
 

@@ -3,14 +3,16 @@
 @brief Statistics on :epkg:`ONNX` models.
 """
 from collections import Counter
+from .onnx_optimization import remove_node_identity
 
 
-def onnx_statistics(onnx_model, recursive=True):
+def onnx_statistics(onnx_model, recursive=True, optim=True):
     """
     Computes statistics on :epkg:`ONNX` models.
 
     @param      onnx_model      onnx model
     @param      recursive       looks into subgraphs
+    @param      optim           adds statistics because of optimisation
     @return                     dictionary
 
     .. runpython::
@@ -95,4 +97,9 @@ def onnx_statistics(onnx_model, recursive=True):
                 update(stats, {'subgraphs': 1})
                 update(stats, substats)
 
+    # optimisation: remove_identity nodes
+    if optim:
+        new_model = remove_node_identity(onnx_model, recursive=recursive)
+        st = onnx_statistics(new_model, recursive=recursive, optim=False)
+        stats["op_Identity_reduced"] = st.get('op_Identity', 0)
     return stats
