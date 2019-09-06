@@ -93,8 +93,8 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
     filenames = run_benchmark(runtime, srcdir, logger, skip,
                               white_list=white_list)
-    dfs_raw = [read_csv(name[0]) for name in filenames]
-    dfs_sum = [read_csv(name[1]) for name in filenames]
+    dfs_raw = [read_csv(name[0]) for name in filenames if os.path.exists(name[0])]
+    dfs_sum = [read_csv(name[1]) for name in filenames if os.path.exists(name[1])]
     df_raw = concat(dfs_raw, sort=False)
     piv = concat(dfs_sum, sort=False)
 

@@ -345,7 +345,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                         try:
                             conv, t4 = _measure_time(fct_conv)[:2]
                             obs_op["convert_time"] = t4
-                        except (RuntimeError, IndexError, AttributeError, TypeError) as e:
+                        except (RuntimeError, IndexError, AttributeError, TypeError,
+                                ValueError) as e:
                             if debug:
                                 import pprint
                                 fLOG(pprint.pformat(obs_op))
@@ -438,7 +439,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                                    node_time=node_time, time_kwargs=time_kwargs,
                                    skip_long_test=skip_long_test)
             obs_op['bench-batch'] = benres
-        except RuntimeError as e:
+        except (RuntimeError, TypeError, ValueError) as e:
             if debug:
                 raise e
             obs_op['_6ort_run_batch_exc'] = e
