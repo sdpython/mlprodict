@@ -345,7 +345,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                         try:
                             conv, t4 = _measure_time(fct_conv)[:2]
                             obs_op["convert_time"] = t4
-                        except (RuntimeError, IndexError, AttributeError) as e:
+                        except (RuntimeError, IndexError, AttributeError, TypeError) as e:
                             if debug:
                                 import pprint
                                 fLOG(pprint.pformat(obs_op))
@@ -406,7 +406,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         sess, t5, ___ = _measure_time(
             lambda: OnnxInference(ser, runtime=runtime))
         obs_op['tostring_time'] = t5
-    except (RuntimeError, ValueError, KeyError, IndexError) as e:
+    except (RuntimeError, ValueError, KeyError, IndexError, TypeError) as e:
         if debug:
             raise
         obs_op['_5ort_load_exc'] = e
