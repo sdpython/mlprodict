@@ -93,8 +93,10 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
     filenames = run_benchmark(runtime, srcdir, logger, skip,
                               white_list=white_list)
-    dfs_raw = [read_csv(name[0]) for name in filenames if os.path.exists(name[0])]
-    dfs_sum = [read_csv(name[1]) for name in filenames if os.path.exists(name[1])]
+    dfs_raw = [read_csv(name[0])
+               for name in filenames if os.path.exists(name[0])]
+    dfs_sum = [read_csv(name[1])
+               for name in filenames if os.path.exists(name[1])]
     df_raw = concat(dfs_raw, sort=False)
     piv = concat(dfs_sum, sort=False)
 
@@ -155,6 +157,17 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
             new_key = str(key).split('`')[1].split('<')[0].strip()
         except IndexError:
             new_key = str(key)
+
+        if 'Neighbors' in new_key:
+            return 'Neighbors'
+
+        for begin in ["Lasso", "Select", "Label", 'Tfidf']:
+            if new_key.startswith(begin):
+                return begin
+
+        for end in ['CV', 'Regressor', 'Classifier']:
+            if new_key.endswith(end):
+                new_key = new_key[:-len(end)]
         return new_key
 
     def filter_rows(df):
