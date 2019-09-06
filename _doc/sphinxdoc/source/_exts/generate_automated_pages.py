@@ -4,7 +4,7 @@ Extensions for mlprodict.
 import os
 from textwrap import dedent
 from logging import getLogger
-from pandas import DataFrame, read_excel, read_csv, concat
+from pandas import DataFrame, read_excel, read_csv, concat, Series, notnull
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from sklearn.ensemble import AdaBoostRegressor
@@ -66,7 +66,7 @@ def run_benchmark(runtime, srcdir, logger, skip, white_list=None):
                      'ERROR-msg': msg.replace("\n", " -- ")}]
             df = DataFrame(rows)
             df.to_csv(out_sum, index=False)
-        filenames.append(out_sum)
+        filenames.append((out_raw, out_sum))
     return filenames
 
 
@@ -93,8 +93,10 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
     filenames = run_benchmark(runtime, srcdir, logger, skip,
                               white_list=white_list)
-    dfs = [read_csv(name) for name in filenames]
-    piv = concat(dfs)
+    dfs_raw = [read_csv(name[0]) for name in filenames]
+    dfs_sum = [read_csv(name[1]) for name in filenames]
+    df_raw = concat(dfs_raw, sort=False)
+    piv = concat(dfs_sum, sort=False)
 
     opset_cols = [(int(oc.replace("opset", "")), oc)
                   for oc in piv.columns if 'opset' in oc]
@@ -113,10 +115,14 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     piv = piv[new_cols]
 
     out_sum = os.path.join(srcdir, "bench_sum_%s.xlsx" % runtime)
-    piv.to_excel(out_sum)
-
+    piv.to_excel(out_sum, index=False)
     logger.info("[mlprodict] wrote '{}'.".format(out_sum))
     print("[mlprodict-sphinx] wrote '{}'".format(out_sum))
+
+    out_raw = os.path.join(srcdir, "bench_raw_%s.xlsx" % runtime)
+    df_raw.to_excel(out_raw, index=False)
+    logger.info("[mlprodict] wrote '{}'.".format(out_raw))
+    print("[mlprodict-sphinx] wrote '{}'".format(out_raw))
 
     logger.info("[mlprodict] shape '{}'.".format(piv.shape))
     print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
@@ -130,6 +136,7 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
                            scenario=scenario)
 
     piv['name'] = piv.apply(lambda row: make_link(row), axis=1)
+    piv.reset_index(drop=True, inplace=True)
 
     if "ERROR-msg" in piv.columns:
         def shorten(text):
@@ -143,11 +150,18 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     logger.info("[mlprodict] write '{}'.".format(whe))
     print("[mlprodict-sphinx] write '{}'".format(whe))
 
-    def build_key_split(key):
+    def build_key_split(key, index):
         try:
-            return str(key).split('`')[1].split('<')[0].strip()
+            new_key = str(key).split('`')[1].split('<')[0].strip()
         except IndexError:
-            return str(key)
+            new_key = str(key)
+        return new_key
+
+    def filter_rows(df):
+        for c in ['ERROR-msg', 'RT/SKL-N=1']:
+            if c in df.columns:
+                return df[df[c].apply(lambda x: notnull(x) and x not in (None, '', 'nan'))]
+        return df
 
     with open(whe, 'w', encoding='utf-8') as f:
         title = "Available of scikit-learn model for runtime {0}".format(
@@ -202,10 +216,11 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
         common, subsets = split_columns_subsets(piv)
         f.write(df2rst(piv, number_format=2,
                        replacements={'nan': '', 'ERR: 4convert': ''},
-                       split_row=lambda index: build_key_split(
-                           piv.loc[index, "name"]),
+                       split_row=lambda index, dp=piv: build_key_split(
+                           dp.loc[index, "name"], index),
                        split_col_common=common,
-                       split_col_subsets=subsets))
+                       split_col_subsets=subsets,
+                       filter_rows=filter_rows))
     logger.info(
         "[mlprodict] done page '{}'.".format(whe))
     print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))
@@ -242,4 +257,4 @@ def setup(app):
 if __name__ == '__main__':
     # write_page_onnxrt_benches_python(None, white_list={'AdaBoostRegressor'})
     write_page_onnxrt_benches_onnxruntime1(
-        None, white_list={'LGBMClassifier'})
+        None, white_list={'LGBMClassifier', 'ARDRegression'})

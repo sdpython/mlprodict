@@ -118,6 +118,7 @@ class TestSklearnHelper(ExtTestCase):
                      'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
             self.assertEqual(ostats[k], v)
         self.assertIn('', ostats)
+        self.assertIn("op_Cast", ostats)
 
 
 if __name__ == "__main__":

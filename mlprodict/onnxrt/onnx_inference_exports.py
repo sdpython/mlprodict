@@ -129,8 +129,8 @@ class OnnxInferenceExport:
                 st = str(val)
             else:
                 st = str(val)
-                if len(st) > 30:
-                    st = st[:30] + '...'
+                if len(st) > 50:
+                    st = st[:50] + '...'
             st = st.replace('\n', '\\n')
             kind = ""
             exp.append('  {6}{0} [shape=box label="{0}\\n{4}{1}({2})\\n{3}" fontsize={5}];'.format(

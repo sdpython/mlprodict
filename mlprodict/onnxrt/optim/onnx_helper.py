@@ -2,6 +2,7 @@
 @file
 @brief Statistics on :epkg:`ONNX` models.
 """
+from collections import Counter
 
 
 def onnx_statistics(onnx_model):
@@ -57,4 +58,11 @@ def onnx_statistics(onnx_model):
 
     for opi in onnx_model.opset_import:
         stats[opi.domain] = opi.version
+
+    # Number of identities
+    counts = Counter(map(lambda obj: obj.op_type, onnx_model.graph.node))
+    for op in ['Cast', 'Identity', 'ZipMap', 'Reshape']:
+        if op in counts:
+            stats['op_' + op] = counts[op]
+
     return stats
