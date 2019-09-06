@@ -113,6 +113,9 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     for c in bench_cols:
         new_cols.append(c + '-min')
         new_cols.append(c + '-max')
+    for c in piv.columns:
+        if c.startswith("skl_") or c.startswith("onx_"):
+            new_cols.append(c)
     new_cols = [_ for _ in new_cols if _ in piv.columns]
     piv = piv[new_cols]
 
@@ -157,14 +160,13 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
             new_key = str(key).split('`')[1].split('<')[0].strip()
         except IndexError:
             new_key = str(key)
-
+        if 'SVC' in new_key or 'SVR' in new_key:
+            return 'SVM'
         if 'Neighbors' in new_key:
             return 'Neighbors'
-
         for begin in ["Lasso", "Select", "Label", 'Tfidf']:
             if new_key.startswith(begin):
                 return begin
-
         for end in ['CV', 'Regressor', 'Classifier']:
             if new_key.endswith(end):
                 new_key = new_key[:-len(end)]
