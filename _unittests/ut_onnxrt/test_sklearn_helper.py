@@ -3,6 +3,7 @@
 """
 import unittest
 import numpy
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.pipeline import Pipeline, FeatureUnion
@@ -12,7 +13,11 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.utils.testing import ignore_warnings
 from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor
-from pyquickhelper.pycode import ExtTestCase
+import skl2onnx
+from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
+    OnnxIdentity, OnnxAdd
+)
+from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.optim.sklearn_helper import enumerate_pipeline_models, inspect_sklearn_model
 from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
 from mlprodict.onnxrt import to_onnx
@@ -119,6 +124,21 @@ class TestSklearnHelper(ExtTestCase):
             self.assertEqual(ostats[k], v)
         self.assertIn('', ostats)
         self.assertIn("op_Cast", ostats)
+
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    def test_onnx_stat_recursive(self):
+        from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
+        cop = OnnxAdd(OnnxIdentity('input'), 'input')
+        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
+        cop2 = OnnxIdentity(cdist, output_names=['cdist'])
+
+        model_def = cop2.to_onnx(
+            {'input': FloatTensorType()},
+            outputs=[('cdist', FloatTensorType())])
+        stats = onnx_statistics(model_def)
+        self.assertIn('subgraphs', stats)
+        self.assertGreater(stats['subgraphs'], 1)
+        self.assertGreater(stats['op_Identity'], 2)
 
 
 if __name__ == "__main__":
