@@ -3,7 +3,6 @@
 """
 import os
 import unittest
-import platform
 import numpy
 from pandas import DataFrame
 from pyquickhelper.pycode import ExtTestCase
@@ -16,7 +15,7 @@ class TestOnnxOnnxRuntime(ExtTestCase):
     def onnx_test_oinf(self, name, runtime, dtype):
         this = os.path.join(os.path.dirname(__file__), "data", name)
         data = load_iris()
-        X, y = data.data, data.target
+        X, _ = data.data, data.target
         X = X.astype(dtype)
         oinf = OnnxInference(this, runtime=runtime)
         res = oinf.run({'X': X})
