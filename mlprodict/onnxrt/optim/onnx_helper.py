@@ -3,7 +3,7 @@
 @brief Statistics on :epkg:`ONNX` models.
 """
 from collections import Counter
-from .onnx_optimization import remove_node_identity
+from .onnx_optimization_identity import onnx_remove_node_identity
 
 
 def onnx_statistics(onnx_model, recursive=True, optim=True):
@@ -74,6 +74,15 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
             stats[opi.domain] = opi.version
 
         graph = onnx_model.graph
+    elif not hasattr(onnx_model, 'node'):
+        # We're in a node.
+        stats = {'nnodes': 1}
+        if hasattr(onnx_model, 'attribute') and onnx_model.attribute:
+            for att in onnx_model.attribute:
+                if att.name == 'body':
+                    st = onnx_statistics(att.g)
+                    update(stats, st)
+        return stats
     else:
         graph = onnx_model
         nnodes = len(graph.node)
@@ -93,13 +102,15 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
             for att in node.attribute:
                 if att.name != 'body':
                     continue
-                substats = onnx_statistics(att.g, recursive=True)
+                substats = onnx_statistics(att.g, recursive=True, optim=False)
                 update(stats, {'subgraphs': 1})
                 update(stats, substats)
 
     # optimisation: remove_identity nodes
     if optim:
-        new_model = remove_node_identity(onnx_model, recursive=recursive)
-        st = onnx_statistics(new_model, recursive=recursive, optim=False)
-        stats["op_Identity_reduced"] = st.get('op_Identity', 0)
+        if stats.get('op_Identity', 0) > 0:
+            new_model = onnx_remove_node_identity(
+                onnx_model, recursive=recursive)
+            st = onnx_statistics(new_model, recursive=recursive, optim=False)
+            stats["op_Identity_reduced"] = st.get('op_Identity', 0)
     return stats

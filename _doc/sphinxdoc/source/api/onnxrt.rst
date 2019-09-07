@@ -56,6 +56,14 @@ C++ classes
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeTreeEnsembleRegressorFloat
 
+Optimisation
+++++++++++++
+
+The following functions reduce the number of ONNX operators in a graph
+while keeping the same results.
+
+.. autosignature:: mlprodict.onnxrt.optim.onnx_optimization_identity.onnx_remove_node_identity
+
 Shapes
 ++++++
 

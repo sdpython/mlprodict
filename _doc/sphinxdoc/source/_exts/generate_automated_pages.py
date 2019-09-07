@@ -164,9 +164,14 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
             return 'SVM'
         if 'Neighbors' in new_key:
             return 'Neighbors'
-        for begin in ["Lasso", "Select", "Label", 'Tfidf']:
+        for begin in ["Lasso", "Select", "Label", 'Tfidf', 'Feature',
+                      'Bernoulli', 'MultiTask', 'OneVs', 'PLS',
+                      'Sparse', 'Spectral', 'MiniBatch',
+                      'Bayesian']:
             if new_key.startswith(begin):
-                return begin
+                return begin + '...'
+        if new_key.endswith("NB"):
+            return "...NB"
         for end in ['CV', 'Regressor', 'Classifier']:
             if new_key.endswith(end):
                 new_key = new_key[:-len(end)]
@@ -235,7 +240,8 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
                            dp.loc[index, "name"], index),
                        split_col_common=common,
                        split_col_subsets=subsets,
-                       filter_rows=filter_rows))
+                       filter_rows=filter_rows,
+                       column_size={'problem': 20}))
     logger.info(
         "[mlprodict] done page '{}'.".format(whe))
     print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))

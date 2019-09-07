@@ -2,15 +2,9 @@
 @file
 @brief Optimisation of :epkg:`ONNX` graphs.
 """
-from collections import Counter
 from onnx.helper import make_model, make_graph, ValueInfoProto
 from onnx import AttributeProto, NodeProto
 from onnx.helper import make_attribute
-
-
-#######################################
-# remove_node_identity
-#######################################
 
 
 def _make_node(op_type, inputs, outputs, name=None, doc_string=None,
@@ -179,7 +173,7 @@ def _rename_node_output(onnx_node, old_name, new_name):
     return node
 
 
-def _remove_node_identity_node(node, recursive=True):
+def _remove_node_identity_node(node, recursive, debug_info):
     """
     Removes *Identity* in subgraph.
 
@@ -193,7 +187,9 @@ def _remove_node_identity_node(node, recursive=True):
     new_atts = []
     for att in node.attribute:
         if att.name == 'body':
-            new_body = remove_node_identity(att.g, recursive=recursive)
+            new_body = onnx_remove_node_identity(
+                att.g, recursive=recursive,
+                debug_info=debug_info + [att.name])
             new_atts.append(_make_att_graph(att.name, new_body))
             modified += 1
         else:
@@ -206,16 +202,30 @@ def _remove_node_identity_node(node, recursive=True):
     return node
 
 
-def remove_node_identity(onnx_model, recursive=True):
+def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None):
     """
     Removes as many *Identity* nodes as possible.
 
     @param      onnx_model      onnx model
     @param      recursive       looks into subgraphs
+    @param      debug_info      debug information (private)
     @return                     new onnx _model
+
+    The function looks into every node and subgraphs if
+    *recursive* is True for identity node. Unless such a
+    node directy connects one input to one output, it will
+    be removed and every other node gets its inputs or
+    outputs accordingly renamed.
     """
+    if debug_info is None:
+        debug_info = [str(type(onnx_model)).split('.')[-1].strip("'>")]
+    else:
+        debug_info = debug_info + \
+            [str(type(onnx_model)).split('.')[-1].strip("'>")]
+
     if hasattr(onnx_model, 'graph'):
-        graph = remove_node_identity(onnx_model.graph)
+        graph = onnx_remove_node_identity(
+            onnx_model.graph, debug_info=debug_info + ['GRAPH'])
         new_model = make_model(graph)
         new_model.ir_version = onnx_model.ir_version
         new_model.producer_name = onnx_model.producer_name
@@ -223,13 +233,11 @@ def remove_node_identity(onnx_model, recursive=True):
         new_model.domain = onnx_model.domain
         new_model.model_version = onnx_model.model_version
         new_model.doc_string = onnx_model.doc_string
+        if hasattr(onnx_model, 'value_info'):
+            graph.value_info.extend(onnx_model.value_info)
         return new_model
 
     graph = onnx_model
-
-    counts = Counter(map(lambda obj: obj.op_type, graph.node))
-    if counts['Identity'] == 0:
-        return onnx_model
 
     inputs = set(i.name for i in graph.input)
     outputs = set(o.name for o in graph.output)
@@ -291,14 +299,14 @@ def remove_node_identity(onnx_model, recursive=True):
             node = nodes[i]
             if node is None or not (node.attribute):  # pylint: disable=C0325
                 continue
-            nodes[i] = _remove_node_identity_node(node, recursive=True)
+            nodes[i] = _remove_node_identity_node(
+                node, recursive=True, debug_info=debug_info + [node.name])
 
-    if any(map(lambda n: n is None, nodes)):
-        nodes = list(filter(lambda n: n is not None, nodes))
+    # Finally create the new graph.
+    nodes = list(filter(lambda n: n is not None, nodes))
+    graph = make_graph(nodes, onnx_model.name,
+                       onnx_model.input, onnx_model.output,
+                       onnx_model.initializer)
 
-        graph = make_graph(nodes, onnx_model.name,
-                           onnx_model.input, onnx_model.output,
-                           onnx_model.initializer)
-
-    graph.value_info.extend(onnx_model.value_info)
+    graph.value_info.extend(onnx_model.value_info)  # pylint: disable=E1101
     return graph
