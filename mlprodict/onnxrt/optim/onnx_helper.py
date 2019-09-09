@@ -109,9 +109,11 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
 
     # optimisation: remove_identity nodes
     if optim:
-        if stats.get('op_Identity', 0) > 0:
-            new_model = onnx_remove_node(
-                onnx_model, recursive=recursive)
-            st = onnx_statistics(new_model, recursive=recursive, optim=False)
-            stats["op_Identity_reduced"] = st.get('op_Identity', 0)
+        new_model = onnx_remove_node(
+            onnx_model, recursive=recursive)
+        st = onnx_statistics(new_model, recursive=recursive, optim=False)
+        for key in ["op_Identity", "subgraphs", "size",
+                    "nnodes", "ninits"]:
+            if key in st:
+                stats[key + "_optim"] = st[key]
     return stats

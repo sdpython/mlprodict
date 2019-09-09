@@ -125,7 +125,11 @@ class TestOptimOnnxIdentity(ExtTestCase):
         stats2 = onnx_statistics(new_model, optim=False)
         self.assertEqual(stats.get('op_Identity', 0), expected[0])
         self.assertEqual(stats2.get('op_Identity', 0), expected[1])
-        self.assertEqual(stats.get('op_Identity_reduced', 0), expected[1])
+        self.assertEqual(stats.get('op_Identity_optim', 0), expected[1])
+        self.assertIn('nnodes_optim', stats)
+        self.assertIn('ninits_optim', stats)
+        self.assertIn('size_optim', stats)
+        self.assertIn('subgraphs_optim', stats)
 
     def test_onnx_test_knn_single_regressor32(self):
         self.onnx_test_knn_single_regressor(numpy.float32, expected=[2, 1])
