@@ -60,9 +60,14 @@ Optimisation
 ++++++++++++
 
 The following functions reduce the number of ONNX operators in a graph
-while keeping the same results.
+while keeping the same results. The optimized graph
+is left unchanged.
+
+.. autosignature:: mlprodict.onnxrt.optim.onnx_optimisation.onnx_remove_node
 
 .. autosignature:: mlprodict.onnxrt.optim.onnx_optimisation_identity.onnx_remove_node_identity
+
+.. autosignature:: mlprodict.onnxrt.optim.onnx_optimisation_redundant.onnx_remove_node_redundant
 
 Shapes
 ++++++

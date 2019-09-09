@@ -4,8 +4,8 @@
 :epkg:`sklearn-onnx`.
 """
 import numpy
-from skl2onnx.common._apply_operation import apply_cast
 from skl2onnx.common.data_types import Int64TensorType
+from skl2onnx.common._apply_operation import apply_cast
 from skl2onnx.common.tree_ensemble import (
     add_tree_to_attribute_pairs,
     get_default_tree_regressor_attribute_pairs

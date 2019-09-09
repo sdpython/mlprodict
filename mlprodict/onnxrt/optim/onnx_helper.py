@@ -3,7 +3,7 @@
 @brief Statistics on :epkg:`ONNX` models.
 """
 from collections import Counter
-from .onnx_optimisation_identity import onnx_remove_node_identity
+from .onnx_optimisation import onnx_remove_node
 
 
 def onnx_statistics(onnx_model, recursive=True, optim=True):
@@ -56,7 +56,8 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
     if hasattr(onnx_model, 'graph'):
         content = onnx_model.SerializeToString()
         nnodes = len(onnx_model.graph.node)
-        stats = {'size': len(content), 'nnodes': nnodes}
+        ninits = len(onnx_model.graph.initializer)
+        stats = {'size': len(content), 'nnodes': nnodes, 'ninits': ninits}
         for a in atts:
             v = getattr(onnx_model, a)
             if isinstance(v, str):
@@ -109,7 +110,7 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
     # optimisation: remove_identity nodes
     if optim:
         if stats.get('op_Identity', 0) > 0:
-            new_model = onnx_remove_node_identity(
+            new_model = onnx_remove_node(
                 onnx_model, recursive=recursive)
             st = onnx_statistics(new_model, recursive=recursive, optim=False)
             stats["op_Identity_reduced"] = st.get('op_Identity', 0)

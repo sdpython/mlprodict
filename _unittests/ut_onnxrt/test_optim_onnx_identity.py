@@ -117,7 +117,10 @@ class TestOptimOnnxIdentity(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(dtype),
                             dtype=dtype, rewrite_ops=True,
                             target_opset=target_opset)
+        c1 = model_def.SerializeToString()
         new_model = onnx_remove_node_identity(model_def)
+        c2 = model_def.SerializeToString()
+        self.assertEqual(c1, c2)
         stats = onnx_statistics(model_def, optim=True)
         stats2 = onnx_statistics(new_model, optim=False)
         self.assertEqual(stats.get('op_Identity', 0), expected[0])

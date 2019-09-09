@@ -3,9 +3,70 @@
 @brief Common functions to reduce the number of
 nodes of an :epkg:`ONNX` graphs.
 """
-from onnx.helper import make_graph, ValueInfoProto
+from onnx.helper import make_graph, ValueInfoProto, make_model
 from onnx import AttributeProto, NodeProto
 from onnx.helper import make_attribute
+
+
+def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=None,
+                                 **kwargs):
+    """
+    Applies an optimisation function *fct* on a graph
+    and not on the model.
+
+    @param      fct             function to optimise like
+                                @see fn onnx_remove_node_identity
+    @param      onnx_model      onnx model
+    @param      recursive       looks into subgraphs
+    @param      debug_info      debug information (private)
+    @param      kwargs          additional parameters
+    @return                     new onnx _model
+    """
+    if hasattr(onnx_model, 'graph'):
+        graph = fct(
+            onnx_model.graph, debug_info=debug_info + ['GRAPH'],
+            **kwargs)
+        new_model = make_model(graph)
+        new_model.ir_version = onnx_model.ir_version
+        new_model.producer_name = onnx_model.producer_name
+        new_model.producer_version = onnx_model.producer_version
+        new_model.domain = onnx_model.domain
+        new_model.model_version = onnx_model.model_version
+        new_model.doc_string = onnx_model.doc_string
+        if hasattr(onnx_model, 'value_info'):
+            graph.value_info.extend(onnx_model.value_info)
+        return new_model
+    raise TypeError("This function only works on 'ModelProto' anod not not on"
+                    " {}.".format(type(onnx_model)))
+
+
+def _apply_remove_node_fct_node(fct, node, recursive, debug_info):
+    """
+    Applies an optimizing function on a subgraphs.
+
+    @param      node        onnx node
+    @param      recursive   does it in subgraphs as well
+    @return                 new node
+    """
+    if not hasattr(node, 'attribute'):
+        return node
+    modified = 0
+    new_atts = []
+    for att in node.attribute:
+        if att.name == 'body':
+            new_body = fct(
+                att.g, recursive=recursive,
+                debug_info=debug_info + [att.name])
+            new_atts.append(_make_att_graph(att.name, new_body))
+            modified += 1
+        else:
+            new_atts.append(att)
+    if modified > 0:
+        new_node = _make_node(node.op_type, node.input,
+                              node.output, name=node.name,
+                              attributes=new_atts)
+        return new_node
+    return node
 
 
 def _make_node(op_type, inputs, outputs, name=None, doc_string=None,
@@ -47,18 +108,20 @@ def _make_node(op_type, inputs, outputs, name=None, doc_string=None,
 
 
 def _replace(name, old_name, new_name):
+    if isinstance(old_name, dict) and new_name is None:
+        return old_name.get(name, name)
     if name == old_name:
         return new_name
     return name
 
 
-def _rename_node_input(onnx_node, old_name, new_name):
+def _rename_node_input(onnx_node, old_name, new_name=None):
     """
     Renames an input from a node.
 
     @param      onnx_node       onnx_node
     @param      old_name        old name
-    @param      new_name        new name
+    @param      new_name        new name or None if *old_name* is a dictionary
     @return                     new node
     """
     inputs = [_replace(name, old_name, new_name) for name in onnx_node.input]

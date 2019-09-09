@@ -2,40 +2,13 @@
 @file
 @brief Optimisation of :epkg:`ONNX` graphs.
 """
-from onnx.helper import make_model, make_graph
-from ._onnx_optimisation_common import (
-    _make_node, _rename_node_input,
-    _make_att_graph, _rename_node_output
+from onnx.helper import make_graph
+from ._onnx_optimisation_common import (  # pylint: disable=E0611
+    _rename_node_input,
+    _rename_node_output,
+    _apply_optimisation_on_graph,
+    _apply_remove_node_fct_node
 )
-
-
-def _remove_node_identity_node(node, recursive, debug_info):
-    """
-    Removes *Identity* in subgraph.
-
-    @param      node        onnx node
-    @param      recursive   does it in subgraphs as well
-    @return                 new node
-    """
-    if not hasattr(node, 'attribute'):
-        return node
-    modified = 0
-    new_atts = []
-    for att in node.attribute:
-        if att.name == 'body':
-            new_body = onnx_remove_node_identity(
-                att.g, recursive=recursive,
-                debug_info=debug_info + [att.name])
-            new_atts.append(_make_att_graph(att.name, new_body))
-            modified += 1
-        else:
-            new_atts.append(att)
-    if modified > 0:
-        new_node = _make_node(node.op_type, node.input,
-                              node.output, name=node.name,
-                              attributes=new_atts)
-        return new_node
-    return node
 
 
 def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None):
@@ -59,18 +32,9 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None):
             [str(type(onnx_model)).split('.')[-1].strip("'>")]
 
     if hasattr(onnx_model, 'graph'):
-        graph = onnx_remove_node_identity(
-            onnx_model.graph, debug_info=debug_info + ['GRAPH'])
-        new_model = make_model(graph)
-        new_model.ir_version = onnx_model.ir_version
-        new_model.producer_name = onnx_model.producer_name
-        new_model.producer_version = onnx_model.producer_version
-        new_model.domain = onnx_model.domain
-        new_model.model_version = onnx_model.model_version
-        new_model.doc_string = onnx_model.doc_string
-        if hasattr(onnx_model, 'value_info'):
-            graph.value_info.extend(onnx_model.value_info)
-        return new_model
+        return _apply_optimisation_on_graph(
+            onnx_remove_node_identity, onnx_model,
+            recursive=recursive, debug_info=debug_info)
 
     graph = onnx_model
 
@@ -134,7 +98,8 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None):
             node = nodes[i]
             if node is None or not (node.attribute):  # pylint: disable=C0325
                 continue
-            nodes[i] = _remove_node_identity_node(
+            nodes[i] = _apply_remove_node_fct_node(
+                onnx_remove_node_identity,
                 node, recursive=True, debug_info=debug_info + [node.name])
 
     # Finally create the new graph.

@@ -5,7 +5,7 @@
 """
 
 import numpy
-from skl2onnx.common._apply_operation import (
+from skl2onnx.common._apply_operation import (  # pylint: disable=E0611
     apply_cast, apply_concat, apply_mul,
     apply_reshape, apply_topk
 )

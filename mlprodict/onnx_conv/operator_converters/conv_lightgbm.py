@@ -8,7 +8,7 @@ from collections import Counter
 import copy
 import numbers
 import numpy as np
-from skl2onnx.common._apply_operation import apply_div, apply_reshape, apply_sub
+from skl2onnx.common._apply_operation import apply_div, apply_reshape, apply_sub  # pylint: disable=E0611
 from skl2onnx.common.tree_ensemble import get_default_tree_classifier_attribute_pairs
 from skl2onnx.proto import onnx_proto
 
