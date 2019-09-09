@@ -3,7 +3,7 @@
 @brief Optimisation of :epkg:`ONNX` graphs.
 """
 from onnx.helper import make_model, make_graph
-from ._onnx_optimization_common import (
+from ._onnx_optimisation_common import (
     _make_node, _rename_node_input,
     _make_att_graph, _rename_node_output
 )

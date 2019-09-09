@@ -3,7 +3,7 @@
 @brief Statistics on :epkg:`ONNX` models.
 """
 from collections import Counter
-from .onnx_optimization_identity import onnx_remove_node_identity
+from .onnx_optimisation_identity import onnx_remove_node_identity
 
 
 def onnx_statistics(onnx_model, recursive=True, optim=True):

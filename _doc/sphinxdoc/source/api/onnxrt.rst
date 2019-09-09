@@ -62,14 +62,14 @@ Optimisation
 The following functions reduce the number of ONNX operators in a graph
 while keeping the same results.
 
-.. autosignature:: mlprodict.onnxrt.optim.onnx_optimization_identity.onnx_remove_node_identity
+.. autosignature:: mlprodict.onnxrt.optim.onnx_optimisation_identity.onnx_remove_node_identity
 
 Shapes
 ++++++
 
 The computation of the predictions through epkg:`ONNX` may
 be optimized if the shape of every nodes is known. For example,
-one possible optimization is to do inplace computation every time
+one possible optimisation is to do inplace computation every time
 it is possible but this is only possible if the size of
 the input and output are the same. We could compute the predictions
 for a sample and check the sizes are the same
