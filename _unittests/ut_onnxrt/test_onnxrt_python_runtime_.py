@@ -241,7 +241,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_clip_10(self):
-        from skl2onnx.algebra.onnx_ops import OnnxClip_6
+        from skl2onnx.algebra.onnx_ops import OnnxClip_6  # pylint: disable=E0611
         self.common_test_onnxt_runtime_unary(
             lambda x, output_names=None: OnnxClip_6(
                 x, min=1e-5, max=1e5, output_names=output_names,
