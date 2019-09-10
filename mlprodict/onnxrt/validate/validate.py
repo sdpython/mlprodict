@@ -454,7 +454,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             {init_types[0][0]: xo}, node_time=node_time), Xort_test)
     except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
         if debug:
-            raise e
+            raise RuntimeError("Issue with {}.".format(obs_op)) from e
         obs_op['_6ort_run_batch_exc'] = e
     if (benchmark or node_time) and 'lambda-batch' in obs_op:
         try:
