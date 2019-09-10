@@ -13,6 +13,7 @@ from ... import __version__ as ort_version
 from ..onnx_inference import OnnxInference
 from ..optim.sklearn_helper import inspect_sklearn_model
 from ..optim.onnx_helper import onnx_statistics
+from ..optim import onnx_optimisations
 from .validate_problems import _problems, find_suitable_problem
 from .validate_scenarios import _extra_parameters
 from .validate_difference import measure_relative_difference
@@ -273,12 +274,23 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
              output_index, dofit, predict_kwargs) = _get_problem_data(prob, n_feature)
 
             for scenario_extra in extras:
+                subset_problems = None
+                optimisations = None
                 if len(scenario_extra) > 2:
+                    options = scenario_extra[2]
+                    if isinstance(options, dict):
+                        subset_problems = options.get('subset_problems', None)
+                        optimisations = options.get('optim', None)
+                    else:
+                        subset_problems = options
+                if subset_problems:
                     subset_problems = scenario_extra[2]
                     if prob not in subset_problems:
                         # Skips unrelated problem for a specific configuration.
                         continue
                 scenario, extra = scenario_extra[:2]
+                if optimisations is None:
+                    optimisations = [None]
 
                 if verbose >= 2 and fLOG is not None:
                     fLOG("[enumerate_compatible_opset] ##############################")
@@ -355,36 +367,47 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                             yield obs_op
                             continue
 
-                        if store_models:
-                            obs_op['ONNX'] = conv
-                            if verbose >= 2 and fLOG is not None:
-                                fLOG("[enumerate_compatible_opset] onnx nodes: {}".format(
-                                    len(conv.graph.node)))
-                        obs_op.update(
-                            {'onx_' + k: v for k, v in onnx_statistics(conv).items()})
+                        obs_op0 = obs_op.copy()
+                        for optimisation in optimisations:
+                            obs_op = obs_op0.copy()
+                            if optimisation is not None:
+                                if optimisation == 'onnx':
+                                    obs_op['optimisation'] = optimisation
+                                    conv = onnx_optimisations(conv)
+                                else:
+                                    raise ValueError("Unknown optimisation option '{}' (extra={})"
+                                                     "".format(optimisation, extras))
 
-                        # opset_domain
-                        for op_imp in list(conv.opset_import):
-                            obs_op['domain_opset_%s' %
-                                   op_imp.domain] = op_imp.version
+                            if store_models:
+                                obs_op['ONNX'] = conv
+                                if verbose >= 2 and fLOG is not None:
+                                    fLOG("[enumerate_compatible_opset] onnx nodes: {}".format(
+                                        len(conv.graph.node)))
+                            obs_op.update(
+                                {'onx_' + k: v for k, v in onnx_statistics(conv).items()})
 
-                        # prediction
-                        if check_runtime:
-                            yield _call_runtime(obs_op=obs_op.copy(), conv=conv, opset=opset, debug=debug,
-                                                runtime=rt, inst=inst,
-                                                X_test=X_test, y_test=y_test,
-                                                init_types=init_types,
-                                                method_name=method_name,
-                                                output_index=output_index,
-                                                ypred=ypred, Xort_test=Xort_test,
-                                                model=model, dump_folder=dump_folder,
-                                                benchmark=benchmark and opset == opsets[-1],
-                                                node_time=node_time, time_kwargs=time_kwargs,
-                                                fLOG=fLOG, verbose=verbose,
-                                                store_models=store_models, dump_all=dump_all,
-                                                skip_long_test=skip_long_test)
-                        else:
-                            yield obs_op
+                            # opset_domain
+                            for op_imp in list(conv.opset_import):
+                                obs_op['domain_opset_%s' %
+                                       op_imp.domain] = op_imp.version
+
+                            # prediction
+                            if check_runtime:
+                                yield _call_runtime(obs_op=obs_op.copy(), conv=conv, opset=opset, debug=debug,
+                                                    runtime=rt, inst=inst,
+                                                    X_test=X_test, y_test=y_test,
+                                                    init_types=init_types,
+                                                    method_name=method_name,
+                                                    output_index=output_index,
+                                                    ypred=ypred, Xort_test=Xort_test,
+                                                    model=model, dump_folder=dump_folder,
+                                                    benchmark=benchmark and opset == opsets[-1],
+                                                    node_time=node_time, time_kwargs=time_kwargs,
+                                                    fLOG=fLOG, verbose=verbose,
+                                                    store_models=store_models, dump_all=dump_all,
+                                                    skip_long_test=skip_long_test)
+                            else:
+                                yield obs_op
 
 
 def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
@@ -525,7 +548,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         time_kwargs=None, dump_all=False,
                                         n_features=None, skip_long_test=True):
     """
-    Tests all possible configuration for all possible
+    Tests all possible configurations for all possible
     operators and returns the results.
 
     @param      verbose         integer 0, 1, 2

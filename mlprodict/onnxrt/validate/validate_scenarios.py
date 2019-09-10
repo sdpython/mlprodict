@@ -56,7 +56,7 @@ def build_custom_scenarios():
             ('expsine', {
                 'kernel': ExpSineSquared(),
                 'alpha': 20.,
-            }),
+            }, {'optim': [None, 'onnx']}),
             ('dotproduct', {
                 'kernel': DotProduct(),
                 'alpha': 100.,
@@ -68,7 +68,7 @@ def build_custom_scenarios():
             ('default', {
                 'kernel': None,
                 'alpha': 100.,
-            }),
+            }, {'optim': [None, 'onnx']}),
         ],
         GaussianRandomProjection: [
             ('eps95', {'eps': 0.95}),

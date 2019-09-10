@@ -111,6 +111,11 @@ class TestRtValidateGaussianProcess(ExtTestCase):
             filter_exp=lambda m, s: "nofit" not in s and "multi" not in s))
         self.assertGreater(len(rows), 6)
         self.assertGreater(len(buffer), 1 if debug else 0)
+        nbonnx = 0
+        for row in rows:
+            if row.get('optimisation', '-') != 'onnx':
+                nbonnx += 1
+        self.assertGreater(nbonnx, 1)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
@@ -125,7 +130,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        debug = True
+        debug = True  # should be true
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='python', debug=debug,
@@ -147,7 +152,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        debug = True
+        debug = True  # should be true
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='python', debug=debug,

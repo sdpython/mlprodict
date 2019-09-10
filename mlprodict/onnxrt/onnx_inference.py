@@ -449,8 +449,9 @@ class OnnxInference:
             try:
                 res = {k: values[k] for k in self.outputs_}
             except KeyError as e:
-                raise RuntimeError("Unable to find one output in [{}].".format(
-                    ", ".join(sorted(values)))) from e
+                raise RuntimeError("Unable to find one output [{}]\n in [{}]"
+                                   ".".format(", ".join(sorted(self.outputs_)),
+                                              ", ".join(sorted(values)))) from e
             return (res, mtime) if node_time else res
 
     def build_intermediate(self):
