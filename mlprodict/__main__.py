@@ -18,12 +18,15 @@ def main(args, fLOG=print):
     try:
         from .cli.validate import validate_runtime
         from .cli.convert_validate import convert_validate
+        from .cli.optimize import onnx_optim
     except ImportError:
         from mlprodict.cli.validate import validate_runtime
         from mlprodict.cli.convert_validate import convert_validate
+        from mlprodict.cli.optimize import onnx_optim
 
     fcts = dict(validate_runtime=validate_runtime,
-                convert_validate=convert_validate)
+                convert_validate=convert_validate,
+                onnx_optim=onnx_optim)
     from pyquickhelper.cli import cli_main_helper
     return cli_main_helper(fcts, args=args, fLOG=fLOG)
 
