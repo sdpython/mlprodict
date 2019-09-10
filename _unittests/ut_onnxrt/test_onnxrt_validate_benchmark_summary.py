@@ -9,8 +9,10 @@ from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import get_temp_folder, ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
-from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets, summary_report
-from mlprodict.onnxrt.validate.validate_helper import get_opset_number_from_onnx
+from mlprodict.onnxrt.validate import (
+    enumerate_validated_operator_opsets, summary_report,
+    get_opset_number_from_onnx
+)
 
 
 class TestOnnxrtValidateBenchmarkSummary(ExtTestCase):

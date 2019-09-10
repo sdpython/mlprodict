@@ -9,7 +9,7 @@ from sklearn.ensemble import VotingClassifier, AdaBoostRegressor, VotingRegresso
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_selection import SelectFromModel, RFE, RFECV
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic
+from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic, RBF
 from sklearn.linear_model import LogisticRegression, SGDClassifier, LinearRegression
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
@@ -65,8 +65,8 @@ def build_custom_scenarios():
                 'kernel': RationalQuadratic(),
                 'alpha': 100.,
             }),
-            ('default', {
-                'kernel': None,
+            ('rbf', {
+                'kernel': RBF(),
                 'alpha': 100.,
             }, {'optim': [None, 'onnx']}),
         ],

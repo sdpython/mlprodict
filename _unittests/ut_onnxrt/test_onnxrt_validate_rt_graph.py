@@ -8,7 +8,7 @@ from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
-from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets, summary_report
+from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
 from mlprodict.onnxrt.validate.validate_graph import plot_validate_benchmark
 
 
