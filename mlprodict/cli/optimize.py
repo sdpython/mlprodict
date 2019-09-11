@@ -6,6 +6,28 @@ import os
 import onnx
 
 
+def onnx_stats(name, optim=False):
+    """
+    Computes statistics on an ONNX model.
+
+    :param name: filename
+    :param optim: computes statistics before an after optimisation was done
+
+    .. cmdref::
+        :title: Optimises an ONNX graph
+        :cmd: -m mlprodict onnx_stats --help
+        :lid: l-cmd-onnx_stats
+
+        The command computes statistics on an ONNX model.
+    """
+    from ..onnxrt.optim import onnx_statistics
+    if not os.path.exists(name):
+        raise FileNotFoundError("Unable to find file '{}'.".format(name))
+    with open(name, 'rb') as f:
+        model = onnx.load(f)
+    return onnx_statistics(model, optim=optim)
+
+
 def onnx_optim(name, outfile=None, recursive=True, options=None, verbose=0, fLOG=None):
     """
     Optimises an ONNX model.

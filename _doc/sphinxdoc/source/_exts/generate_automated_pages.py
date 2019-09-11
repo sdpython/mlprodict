@@ -241,7 +241,7 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
                        split_col_common=common,
                        split_col_subsets=subsets,
                        filter_rows=filter_rows,
-                       column_size={'problem': 20}))
+                       column_size={'problem': 25}))
     logger.info(
         "[mlprodict] done page '{}'.".format(whe))
     print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))
