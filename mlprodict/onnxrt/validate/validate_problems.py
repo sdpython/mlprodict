@@ -511,7 +511,7 @@ def find_suitable_problem(model):
                     'cluster', 'outlier', '~m-label']
 
         if model in {VotingClassifier}:
-            return ['b-cl']
+            return ['b-cl', 'm-cl']
 
         # specific scenarios
         if model in {IsotonicRegression}:

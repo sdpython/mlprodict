@@ -194,7 +194,8 @@ def build_custom_scenarios():
                 'voting': 'soft',
                 'flatten_transform': False,
                 'estimators': [
-                    ('lr1', LogisticRegression(solver='liblinear')),
+                    ('lr1', LogisticRegression(
+                        solver='liblinear', fit_intercept=True)),
                     ('lr2', LogisticRegression(
                         solver='liblinear', fit_intercept=False)),
                 ],
