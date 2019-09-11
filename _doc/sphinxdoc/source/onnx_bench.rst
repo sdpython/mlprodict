@@ -57,6 +57,14 @@ On:
     import datetime
     print(datetime.datetime.now())
 
+:epkg:`onnxruntime` is compiled with the following options:
+
+.. runpython
+    :showcode:
+
+    import onnxruntime
+    print(onnxruntime.get_device())
+
 Supported models
 ++++++++++++++++
 
