@@ -40,6 +40,7 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         problem = row['problem']
         model = row['MODEL']
         method = row['method_name']
+        optim = row['optim']
         stats_skl = inspect_sklearn_model(model)
         stats_onx = onnx_statistics(row['ONNX'])
         stats = {'skl_' + k: v for k, v in stats_skl.items()}
@@ -48,11 +49,11 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         df = DataFrame([stats])
         table = df2rst(df.T.reset_index(drop=False))
 
-        title = " - ".join([name, problem, scenario])
+        title = " - ".join([name, problem, scenario, optim])
         if title in done:
             continue
         done.add(title)
-        link = "-".join([name, problem, scenario])
+        link = "-".join([name, problem, scenario, optim])
 
         oinf = OnnxInference(row['ONNX'], skip_run=True)
         dot = oinf.to_dot(recursive=True)

@@ -122,9 +122,9 @@ it is *1/r* faster than *scikit-learn*.
         df2["n_features"] = 4
     fmt = "{} [{}-{}] D{}"
     df1["label"] = df1.apply(lambda row: fmt.format(
-                             row["name"], row["problem"], row["scenario"], row["n_features"]), axis=1)
+                             row["name"], row["problem"], row["scenario"], row["optim"], row["n_features"]), axis=1)
     df2["label"] = df2.apply(lambda row: fmt.format(
-                             row["name"], row["problem"], row["scenario"], row["n_features"]), axis=1)
+                             row["name"], row["problem"], row["scenario"], row["optim"], row["n_features"]), axis=1)
     indices = ['label']
     values = ['RT/SKL-N=1', 'N=10', 'N=100', 'N=1000', 'N=10000', 'N=100000']
     df1 = df1[indices + values]

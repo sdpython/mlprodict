@@ -42,10 +42,12 @@ def plot_validate_benchmark(df):
         df['runtime'] = '?'
 
     fmt = "{} [{}-{}] D{}"
-    df["label"] = df.apply(lambda row: fmt.format(
-                           row["name"], row["problem"], row["scenario"],
-                           row["n_features"]).replace("-default]", "]"), axis=1)
-    df = df.sort_values(["name", "problem", "scenario", "n_features", "runtime"],
+    df["label"] = df.apply(
+        lambda row: fmt.format(
+            row["name"], row["problem"], row["scenario"],
+            row['optim'], row["n_features"]).replace("-default]", "]"), axis=1)
+    df = df.sort_values(["name", "problem", "scenario", "optim",
+                         "n_features", "runtime"],
                         ascending=False).reset_index(drop=True).copy()
     indices = ['label', 'runtime']
     values = [c for c in df.columns

@@ -6,7 +6,7 @@ from logging import getLogger
 import warnings
 import numpy
 from scipy.spatial.distance import cdist as scipy_cdist
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
@@ -15,6 +15,7 @@ from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxIdentity
 )
+import skl2onnx
 from mlprodict.onnx_conv import register_converters
 from mlprodict.onnx_conv.sklconv.knn import onnx_cdist
 from mlprodict.onnxrt import OnnxInference, to_onnx
@@ -204,6 +205,7 @@ class TestOnnxConvKNN(ExtTestCase):
         self.onnx_test_knn_single_regressor(
             numpy.float32, runtime="onnxruntime1", target_opset=10)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_test_knn_single_regressor32_onnxruntime2(self):
         self.onnx_test_knn_single_regressor(
             numpy.float32, runtime="onnxruntime2", target_opset=10)
