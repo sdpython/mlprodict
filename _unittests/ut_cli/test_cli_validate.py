@@ -98,9 +98,9 @@ class TestCliValidate(ExtTestCase):
         self.assertExists(out1)
         self.assertExists(out2)
         exp1 = os.path.join(
-            temp, "dump-ERROR-python-LGBMClassifier-default-b-cl-op10-nf4.pkl")
+            temp, "dump-ERROR-python-LGBMClassifier-default-b-cl--op10-nf4.pkl")
         exp2 = os.path.join(
-            temp, "dump-i-python-LGBMClassifier-default-b-cl-op10-nf4.pkl")
+            temp, "dump-i-python-LGBMClassifier-default-b-cl--op10-nf4.pkl")
         if not os.path.exists(exp1) and not os.path.exists(exp2):
             names = os.listdir(temp)
             raise FileNotFoundError(

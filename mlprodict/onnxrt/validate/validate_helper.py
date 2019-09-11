@@ -270,7 +270,7 @@ def dump_into_folder(dump_folder, obs_op=None, is_error=True,
     @kwargs                     kwargs
     """
     parts = (obs_op['runtime'], obs_op['name'], obs_op['scenario'],
-             obs_op['problem'], obs_op['optim'],
+             obs_op['problem'], obs_op.get('optim', ''),
              "op" + str(obs_op.get('opset', '-')),
              "nf" + str(obs_op.get('n_features', '-')))
     name = "dump-{}-{}.pkl".format(
