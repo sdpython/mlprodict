@@ -49,6 +49,14 @@ of modules below:
     from pandas import DataFrame
     print(df2rst(DataFrame(modules_list())))
 
+On:
+
+.. runpython
+    :showcode:
+
+    import datetime
+    print(datetime.datetime.now())
+
 Supported models
 ++++++++++++++++
 
