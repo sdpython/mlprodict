@@ -26,6 +26,8 @@ def find_suitable_problem(model):
             row = dict(name=name)
             try:
                 prob = find_suitable_problem(model['cl'])
+                if prob is None:
+                    continue
                 for p in prob:
                     row[p] = 'X'
             except RuntimeError:
