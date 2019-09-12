@@ -15,7 +15,7 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summa
 class TestRtValidateVotingClassifier(ExtTestCase):
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def test_rt_GaussianMixture_python(self):
+    def test_rt_VotingClassifier_python(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True

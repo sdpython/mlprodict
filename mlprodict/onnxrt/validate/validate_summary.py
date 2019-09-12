@@ -39,7 +39,7 @@ def summary_report(df, add_cols=None):
             df.columns, df.head()))
 
     col_values = ["available"]
-    for col in ['problem', 'scenario', 'opset']:
+    for col in ['problem', 'scenario', 'opset', 'optim']:
         if col not in df.columns:
             df[col] = '' if col != 'opset' else numpy.nan
     indices = ["name", "problem", "scenario", 'optim']
