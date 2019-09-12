@@ -10,6 +10,7 @@ import numpy
 from pandas import read_csv
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from ..onnxrt import OnnxInference, to_onnx
+from ..onnxrt.optim import onnx_optimisations
 from ..onnxrt.validate.validate_difference import measure_relative_difference
 
 
@@ -17,7 +18,8 @@ def convert_validate(pkl, data, method="predict",
                      name='Y', outonnx="model.onnx",
                      runtime='python', metric="l1med",
                      use_double=None, noshape=False,
-                     fLOG=print, verbose=1, register=True):
+                     optim='onnx', fLOG=print, verbose=1,
+                     register=True):
     """
     Converts a model stored in *pkl* file and measure the differences
     between the model and the ONNX predictions.
@@ -40,6 +42,9 @@ def convert_validate(pkl, data, method="predict",
         the second option loads an ONNX file (float or double)
         and replaces matrices in ONNX with the matrices coming from
         the model, this second way is just for testing purposes
+    :param optim: applies optimisations on the first ONNX graph,
+        use 'onnx' to reduce the number of node Identity and
+        redundant subgraphs
     :param verbose: verbose level
     :param register: registers additional converters implemented by this package
     :param fLOG: logging function
@@ -89,6 +94,8 @@ def convert_validate(pkl, data, method="predict",
     if use_double not in (None, 'float64', 'switch'):
         raise ValueError(
             "use_double must be either None, 'float64' or 'switch'")
+    if optim == '':
+        optim = None
     if verbose == 0:
         logger = getLogger('skl2onnx')
         logger.disabled = True
@@ -130,6 +137,10 @@ def convert_validate(pkl, data, method="predict",
         if verbose > 0:
             fLOG("[convert_validate] convert the model with shapes")
         onx = to_onnx(model, numerical, dtype=dtype)
+    if optim is not None:
+        if verbose > 0:
+            fLOG("[convert_validate] run optimisations '{}'".format(optim))
+        onx = onnx_optimisations(onx, optim=optim)
     if verbose > 0:
         fLOG("[convert_validate] saves to '{}'".format(outonnx))
     memory = onx.SerializeToString()
