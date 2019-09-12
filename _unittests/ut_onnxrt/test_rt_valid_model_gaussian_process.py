@@ -4,6 +4,7 @@
 import unittest
 from logging import getLogger
 import numpy
+from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
@@ -16,7 +17,7 @@ from sklearn.gaussian_process.kernels import DotProduct
 import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.common.data_types import FloatTensorType
-from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
+from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
 from mlprodict.onnxrt import OnnxInference, to_onnx
 
 
@@ -111,11 +112,12 @@ class TestRtValidateGaussianProcess(ExtTestCase):
             filter_exp=lambda m, s: "nofit" not in s and "multi" not in s))
         self.assertGreater(len(rows), 6)
         self.assertGreater(len(buffer), 1 if debug else 0)
-        nbonnx = 0
+        optim_values = []
         for row in rows:
-            if row.get('optimisation', '-') != 'onnx':
-                nbonnx += 1
-        self.assertGreater(nbonnx, 1)
+            optim_values.append(row.get('optim', '-'))
+        self.assertEqual(set(optim_values), {'-', 'onnx'})
+        piv = summary_report(DataFrame(rows))
+        self.assertEqual(set(piv['optim']), {'', 'onnx'})
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
@@ -196,5 +198,4 @@ class TestRtValidateGaussianProcess(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestRtValidateGaussianProcess().test_partial_float64()
     unittest.main()

@@ -294,8 +294,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
 
                 if verbose >= 2 and fLOG is not None:
                     fLOG("[enumerate_compatible_opset] ##############################")
-                    fLOG("[enumerate_compatible_opset] scenario={} extra={} dofit={} (problem={})".format(
-                        scenario, extra, dofit, prob))
+                    fLOG("[enumerate_compatible_opset] scenario={} optim={} extra={} dofit={} (problem={})".format(
+                        scenario, optimisations, extra, dofit, prob))
 
                 # training
                 obs = {'scenario': scenario, 'name': model.__name__,
@@ -372,7 +372,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                             obs_op = obs_op0.copy()
                             if optimisation is not None:
                                 if optimisation == 'onnx':
-                                    obs_op['optimisation'] = optimisation
+                                    obs_op['optim'] = optimisation
                                     conv = onnx_optimisations(conv)
                                 else:
                                     raise ValueError("Unknown optimisation option '{}' (extra={})"
