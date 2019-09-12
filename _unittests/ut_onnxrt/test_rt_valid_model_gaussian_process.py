@@ -17,8 +17,9 @@ from sklearn.gaussian_process.kernels import DotProduct
 import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.common.data_types import FloatTensorType
+from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
-from mlprodict.onnxrt import OnnxInference, to_onnx
+from mlprodict.onnxrt import OnnxInference
 
 
 class TestRtValidateGaussianProcess(ExtTestCase):

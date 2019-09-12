@@ -12,7 +12,8 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
 from skl2onnx import __version__ as skl2onnx_version
-from mlprodict.onnxrt import OnnxInference, to_onnx
+from mlprodict.onnx_conv import to_onnx
+from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 
 

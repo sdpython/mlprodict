@@ -13,6 +13,7 @@ from .op_argmin import ArgMin
 from .op_array_feature_extractor import ArrayFeatureExtractor
 from .op_binarizer import Binarizer
 from .op_cast import Cast
+from .op_cdist import CDist
 from .op_ceil import Ceil
 from .op_clip import Clip, Clip_6
 from .op_concat import Concat

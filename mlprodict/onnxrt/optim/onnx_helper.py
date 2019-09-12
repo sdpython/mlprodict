@@ -23,7 +23,7 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
         from sklearn.ensemble import RandomForestClassifier
         from sklearn.datasets import load_iris
         from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
-        from mlprodict.onnxrt import to_onnx
+        from mlprodict.onnx_conv import to_onnx
 
         iris = load_iris()
         X = iris.data

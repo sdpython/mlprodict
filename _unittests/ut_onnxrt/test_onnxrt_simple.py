@@ -24,7 +24,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 )
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
-from mlprodict.onnxrt import OnnxInference, to_onnx
+from mlprodict.onnx_conv import to_onnx
+from mlprodict.onnxrt import OnnxInference
 
 
 class TestOnnxrtSimple(ExtTestCase):

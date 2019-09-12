@@ -9,7 +9,8 @@ import warnings
 import numpy
 from pandas import read_csv
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
-from ..onnxrt import OnnxInference, to_onnx
+from ..onnx_conv import to_onnx
+from ..onnxrt import OnnxInference
 from ..onnxrt.optim import onnx_optimisations
 from ..onnxrt.validate.validate_difference import measure_relative_difference
 

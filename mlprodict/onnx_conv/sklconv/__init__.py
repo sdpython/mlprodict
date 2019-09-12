@@ -1,4 +1,4 @@
 """
 @file
-@brief Shortcuts to *converters64*.
+@brief Shortcuts to *sklconv*.
 """

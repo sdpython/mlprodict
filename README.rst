@@ -86,7 +86,7 @@ a pipeline directly into C and is not much developed.
     print(expected)
 
     # Conversion into ONNX.
-    from mlprodict.onnxrt import to_onnx
+    from mlprodict.onnx_conv import to_onnx
     model_onnx = to_onnx(lr, X.astype(numpy.float32))
 
     # Predictions with onnxruntime

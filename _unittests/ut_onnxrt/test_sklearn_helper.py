@@ -20,7 +20,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.optim.sklearn_helper import enumerate_pipeline_models, inspect_sklearn_model
 from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
-from mlprodict.onnxrt import to_onnx
+from mlprodict.onnx_conv import to_onnx
 
 
 class TestSklearnHelper(ExtTestCase):

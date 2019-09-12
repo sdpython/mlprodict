@@ -3,4 +3,5 @@
 @file
 @brief Shortcut to *onnx_conv*.
 """
-from .register import register_converters
+from .register import register_converters, register_scorers
+from .convert import to_onnx

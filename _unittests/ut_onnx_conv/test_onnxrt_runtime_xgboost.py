@@ -10,8 +10,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_regression, make_classification
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 import skl2onnx
-from mlprodict.onnxrt import OnnxInference, to_onnx
-from mlprodict.onnx_conv import register_converters
+from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnx_conv import register_converters, to_onnx
 
 
 def fct_cl2(y):

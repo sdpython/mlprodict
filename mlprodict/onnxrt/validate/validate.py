@@ -9,6 +9,7 @@ import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.model_selection import train_test_split
 from ... import __version__ as ort_version
+from ...onnx_conv import to_onnx
 from ..onnx_inference import OnnxInference
 from ..optim.sklearn_helper import inspect_sklearn_model
 from ..optim.onnx_helper import onnx_statistics
@@ -18,7 +19,7 @@ from .validate_scenarios import _extra_parameters
 from .validate_difference import measure_relative_difference
 from .validate_helper import (
     _dispsimple, get_opset_number_from_onnx, sklearn_operators,
-    to_onnx, _measure_time, _shape_exc, dump_into_folder,
+    _measure_time, _shape_exc, dump_into_folder,
     default_time_kwargs
 )
 from .validate_benchmark import benchmark_fct

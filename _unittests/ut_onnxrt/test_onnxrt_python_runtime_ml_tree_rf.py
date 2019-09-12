@@ -11,7 +11,8 @@ from sklearn.ensemble import RandomForestRegressor
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 import skl2onnx
-from mlprodict.onnxrt import OnnxInference, to_onnx
+from mlprodict.onnx_conv import to_onnx
+from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 
 

@@ -107,7 +107,7 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     new_cols = opset_cols[:1]
     bench_cols = ["RT/SKL-N=1", "N=10", "N=100",
                   "N=1000", "N=10000", "N=100000"]
-    new_cols.extend(["ERROR-msg", "name", "problem", "scenario"])
+    new_cols.extend(["ERROR-msg", "name", "problem", "scenario", 'optim'])
     new_cols.extend(bench_cols)
     new_cols.extend(opset_cols[1:])
     for c in bench_cols:
@@ -133,12 +133,13 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
 
     def make_link(row):
-        link = ":ref:`{name} <l-{name}-{problem}-{scenario}>`"
+        link = ":ref:`{name} <l-{name}-{problem}-{scenario}-{optim}>`"
         name = row['name']
         problem = row['problem']
         scenario = row['scenario']
+        optim = row.get('optim', '')
         return link.format(name=name, problem=problem,
-                           scenario=scenario)
+                           scenario=scenario, optim=optim)
 
     piv['name'] = piv.apply(lambda row: make_link(row), axis=1)
     piv.reset_index(drop=True, inplace=True)
@@ -278,4 +279,4 @@ def setup(app):
 if __name__ == '__main__':
     # write_page_onnxrt_benches_python(None, white_list={'AdaBoostRegressor'})
     write_page_onnxrt_benches_onnxruntime1(
-        None, white_list={'LGBMClassifier', 'ARDRegression'})
+        None, white_list={'LGBMClassifier', 'ARDRegression', 'LogisticRegression'})

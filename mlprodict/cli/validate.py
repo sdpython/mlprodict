@@ -240,6 +240,9 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
     else:
         df.to_csv(out_raw, index=False)
     piv = summary_report(df)
+    if 'optim' not in piv:
+        raise RuntimeError("Unable to produce a summary. Missing column in \n{}".format(
+            piv.columns))
     if os.path.splitext(out_summary)[-1] == ".xlsx":
         piv.to_excel(out_summary, index=False)
     else:

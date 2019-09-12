@@ -12,7 +12,8 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier,
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 import skl2onnx
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
-from mlprodict.onnxrt import OnnxInference, to_onnx
+from mlprodict.onnx_conv import to_onnx
+from mlprodict.onnxrt import OnnxInference
 
 
 class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):

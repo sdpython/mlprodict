@@ -16,9 +16,9 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxIdentity
 )
 import skl2onnx
-from mlprodict.onnx_conv import register_converters
+from mlprodict.onnx_conv import register_converters, to_onnx
 from mlprodict.onnx_conv.sklconv.knn import onnx_cdist
-from mlprodict.onnxrt import OnnxInference, to_onnx
+from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 
 

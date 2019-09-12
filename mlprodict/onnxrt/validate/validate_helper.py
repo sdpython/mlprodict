@@ -14,8 +14,6 @@ import numpy
 import onnx
 from sklearn.base import BaseEstimator
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
-from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType, DataType
-from ...onnx_conv.rewritten_converters import register_rewritten_operators
 
 
 def modules_list():
@@ -147,84 +145,16 @@ def sklearn_operators(subfolder=None, extended=False):
 
         done = set(_['name'] for _ in found)
         for m in models:
-            name = m.__module__.split('.')
+            try:
+                name = m.__module__.split('.')
+            except AttributeError as e:
+                raise AttributeError("Unexpected value, m={}".format(m)) from e
             sub = '.'.join(name[1:])
             pack = name[0]
             if m.__name__ not in done:
                 found.append(
                     dict(name=m.__name__, cl=m, package=pack, sub=sub))
     return found
-
-
-def to_onnx(model, X=None, name=None, initial_types=None,
-            target_opset=None, options=None,
-            dtype=numpy.float32, rewrite_ops=False):
-    """
-    Converts a model using on :epkg:`sklearn-onnx`.
-
-    @param      model           model to convert
-    @param      X               training set (at least one row),
-                                can be None, it is used to infered the
-                                input types (*initial_types*)
-    @param      initial_types   if *X* is None, then *initial_types* must be
-                                defined
-    @param      name            name of the produced model
-    @param      target_opset    to do it with a different target opset
-    @param      options         additional parameters for the conversion
-    @param      dtype           type to use to convert the model
-    @param      rewrite_ops     rewrites some existing converters,
-                                the changes are permanent
-    @return                     converted model
-
-    The function rewrites function *to_onnx* from :epkg:`sklearn-onnx`
-    but may changes a few converters if *rewrite_ops* is True.
-    For example, :epkg:`ONNX` only supports *TreeEnsembleRegressor*
-    for float but not for double. It becomes available
-    if ``dtype=numpy.float64`` and ``rewrite_ops=True``.
-    """
-    from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
-    from skl2onnx.algebra.type_helper import guess_initial_types
-    from skl2onnx import convert_sklearn
-
-    if isinstance(model, OnnxOperatorMixin):
-        if options is not None:
-            raise NotImplementedError(
-                "options not yet implemented for OnnxOperatorMixin.")
-        return model.to_onnx(X=X, name=name, dtype=dtype,
-                             target_opset=target_opset)
-    if name is None:
-        name = "ONNX(%s)" % model.__class__.__name__
-    initial_types = guess_initial_types(X, initial_types)
-    if dtype is None:
-        raise RuntimeError("dtype cannot be None")
-    if isinstance(dtype, FloatTensorType):
-        dtype = numpy.float32
-    elif isinstance(dtype, DoubleTensorType):
-        dtype = numpy.float64
-    new_dtype = dtype
-    if isinstance(dtype, numpy.ndarray):
-        new_dtype = dtype.dtype
-    elif isinstance(dtype, DataType):
-        new_dtype = numpy.float32
-    if new_dtype not in (numpy.float32, numpy.float64, numpy.int64,
-                         numpy.int32):
-        raise NotImplementedError(
-            "dtype should be real not {} ({})".format(new_dtype, dtype))
-    if rewrite_ops:
-        old_values = register_rewritten_operators()
-    else:
-        old_values = None
-    try:
-        res = convert_sklearn(model, initial_types=initial_types, name=name,
-                              target_opset=target_opset, options=options,
-                              dtype=new_dtype)
-    except TypeError:
-        # older version of sklearn-onnx
-        res = convert_sklearn(model, initial_types=initial_types, name=name,
-                              target_opset=target_opset, options=options)
-    if old_values is not None:
-        register_rewritten_operators(old_values)
-    return res
 
 
 def _measure_time(fct, repeat=1, number=1):

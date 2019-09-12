@@ -4,6 +4,7 @@
 @brief Shortcut to *onnx_conv*.
 """
 import warnings
+from .scorers import register_scorers
 
 
 def _register_converters_lightgbm(exc=True):
@@ -114,4 +115,5 @@ def register_converters(exc=True):
     """
     ext = _register_converters_lightgbm(exc=exc)
     ext += _register_converters_xgboost(exc=exc)
+    ext += register_scorers()
     return ext

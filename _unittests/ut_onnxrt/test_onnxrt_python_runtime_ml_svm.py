@@ -12,7 +12,8 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
-from mlprodict.onnxrt import OnnxInference, to_onnx
+from mlprodict.onnx_conv import to_onnx
+from mlprodict.onnxrt import OnnxInference
 
 
 class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):

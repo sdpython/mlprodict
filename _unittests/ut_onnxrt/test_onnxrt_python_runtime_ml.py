@@ -18,7 +18,8 @@ import skl2onnx
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType, StringTensorType, DictionaryType
 from skl2onnx import __version__ as skl2onnx_version
-from mlprodict.onnxrt import OnnxInference, to_onnx
+from mlprodict.onnx_conv import to_onnx
+from mlprodict.onnxrt import OnnxInference
 
 
 class TestOnnxrtPythonRuntimeMl(ExtTestCase):

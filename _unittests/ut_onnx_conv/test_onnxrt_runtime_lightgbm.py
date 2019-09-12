@@ -12,8 +12,8 @@ from skl2onnx.common.data_types import (
     StringTensorType, FloatTensorType, Int64TensorType,
     BooleanTensorType
 )
-from mlprodict.onnxrt import OnnxInference, to_onnx
-from mlprodict.onnx_conv import register_converters
+from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnx_conv import register_converters, to_onnx
 
 
 class TestOnnxrtRuntimeLightGbm(ExtTestCase):

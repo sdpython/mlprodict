@@ -43,9 +43,11 @@ language = "en"
 mathdef_link_only = True
 
 epkg_dictionary.update({
+    '_PredictScorer': 'https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/scorer.py#L168',
     'C': "https://en.wikipedia.org/wiki/C_(programming_language)",
     'cffi': "https://cffi.readthedocs.io/en/latest/",
     "DataFrame": "https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html",
+    'cdist': 'https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html',
     'dot': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'DOT': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'Iris': 'https://en.wikipedia.org/wiki/Iris_flower_data_set',

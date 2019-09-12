@@ -103,7 +103,7 @@ def build_custom_scenarios():
         LogisticRegression: [
             ('liblinear', {
                 'solver': 'liblinear',
-            }),
+            }, {'optim': [None, 'onnx']}),
         ],
         MultiOutputClassifier: [
             ('logreg', {
