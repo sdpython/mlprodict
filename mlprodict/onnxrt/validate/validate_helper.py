@@ -128,6 +128,8 @@ def sklearn_operators(subfolder=None, extended=False):
                                    'FeatureUnion', 'BaseEstimator',
                                    'BaseEnsemble'}:
                     continue
+                if cl.__name__ in {'CustomScorerTransform'}:
+                    continue
                 if (sub in {'calibration', 'dummy', 'manifold'} and
                         'Calibrated' not in cl.__name__):
                     continue
