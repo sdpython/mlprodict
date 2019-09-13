@@ -115,10 +115,13 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(buffer), 1 if debug else 0)
         optim_values = []
         for row in rows:
-            optim_values.append(row.get('optim', '-'))
-        self.assertEqual(set(optim_values), {'-', 'onnx'})
+            optim_values.append(row.get('optim', ''))
+        exp = [{'', 'onnx-optim=cdist', 'optim=cdist', 'onnx'},
+               {'', 'onnx-optim=cdist', 'optim=cdist'},
+               {'', 'onnx'}]
+        self.assertIn(set(optim_values), exp)
         piv = summary_report(DataFrame(rows))
-        self.assertEqual(set(piv['optim']), {'', 'onnx'})
+        self.assertIn(set(piv['optim']), exp)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))

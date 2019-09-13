@@ -6,7 +6,7 @@ from logging import getLogger
 import numpy
 from pandas import DataFrame, concat
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
@@ -14,6 +14,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
+import skl2onnx
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType, StringTensorType
 from mlprodict.onnxrt import OnnxInference
@@ -26,6 +27,7 @@ class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_gradient_boosting_regressor_pipeline(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
 

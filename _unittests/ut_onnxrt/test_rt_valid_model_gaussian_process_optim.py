@@ -34,12 +34,12 @@ class TestRtValidateGaussianProcessOptim(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
         opt = set(_.get('optim', '') for _ in rows)
-        self.assertEqual(opt, {'', 'onnx-optim=cdist', 'optim=cdist', 'onnx'})
+        exp = [{'', 'onnx-optim=cdist', 'optim=cdist', 'onnx'},
+               {'', 'onnx-optim=cdist', 'optim=cdist'}]
+        self.assertIn(opt, exp)
         piv = summary_report(DataFrame(rows))
-        ops = set(piv['opset11'])
         opt = set(piv['optim'])
-        self.assertEqual(opt, {'', 'onnx-optim=cdist', 'optim=cdist', 'onnx'})
-        self.assertGreater(len(ops), 1)
+        self.assertIn(opt, exp)
 
 
 if __name__ == "__main__":
