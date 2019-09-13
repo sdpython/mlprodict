@@ -4,6 +4,7 @@
 """
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.cluster import KMeans
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.decomposition import SparseCoder
 from sklearn.ensemble import VotingClassifier, AdaBoostRegressor, VotingRegressor
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
@@ -40,6 +41,12 @@ def build_custom_scenarios():
             ('default', {
                 'n_estimators': 5,
             }),
+        ],
+        CalibratedClassifierCV: [
+            ('sgd', {
+                'base_estimator': SGDClassifier(),
+            }),
+            ('default', {}),
         ],
         ClassifierChain: [
             ('logreg', {

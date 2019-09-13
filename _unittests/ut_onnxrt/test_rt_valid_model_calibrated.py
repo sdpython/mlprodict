@@ -27,7 +27,8 @@ class TestRtValidateCalibrated(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"CalibratedClassifierCV"}, opset_min=11, fLOG=myprint,
-            runtime='python', debug=True))
+            runtime='python', debug=True,
+            filter_scenario=lambda m, p, sc, ex: 'sgd' in sc))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1)
         maxv = max(row['max_rel_diff_batch'] for row in rows)

@@ -185,7 +185,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                                fLOG=print, filter_exp=None,
                                verbose=0, time_kwargs=None,
                                extended_list=False, dump_all=False,
-                               n_features=None, skip_long_test=True):
+                               n_features=None, skip_long_test=True,
+                               filter_scenario=None):
     """
     Lists all compatible opsets for a specific model.
 
@@ -207,6 +208,9 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
     @param      fLOG            logging function
     @param      filter_exp      function which tells if the experiment must be run,
                                 None to run all, takes *model, problem* as an input
+    @param      filter_scenario second function which tells if the experiment must be run,
+                                None to run all, takes *model, problem, scenario, extra*
+                                as an input
     @param      node_time       collect time for each node in the :epkg:`ONNX` graph
     @param      assume_finite   See `config_context
                                 <https://scikit-learn.org/stable/modules/generated/
@@ -292,6 +296,10 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                 scenario, extra = scenario_extra[:2]
                 if optimisations is None:
                     optimisations = [None]
+
+                if (filter_scenario is not None and
+                        not filter_scenario(model, prob, scenario, extra)):
+                    continue
 
                 if verbose >= 2 and fLOG is not None:
                     fLOG("[enumerate_compatible_opset] ##############################")
@@ -547,7 +555,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                         fLOG=print, filter_exp=None,
                                         versions=False, extended_list=False,
                                         time_kwargs=None, dump_all=False,
-                                        n_features=None, skip_long_test=True):
+                                        n_features=None, skip_long_test=True,
+                                        filter_scenario=None):
     """
     Tests all possible configurations for all possible
     operators and returns the results.
@@ -571,6 +580,9 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                                 to predict for different number of rows
     @param      filter_exp      function which tells if the experiment must be run,
                                 None to run all, takes *model, problem* as an input
+    @param      filter_scenario second function which tells if the experiment must be run,
+                                None to run all, takes *model, problem, scenario, extra*
+                                as an input
     @param      skip_models     models to skip
     @param      assume_finite   See `config_context
                                 <https://scikit-learn.org/stable/modules/generated/
@@ -671,7 +683,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
                 assume_finite=assume_finite, node_time=node_time,
                 verbose=verbose, extended_list=extended_list,
                 time_kwargs=time_kwargs, dump_all=dump_all,
-                n_features=n_features, skip_long_test=skip_long_test):
+                n_features=n_features, skip_long_test=skip_long_test,
+                filter_scenario=filter_scenario):
 
             if verbose > 1:
                 fLOG("  ", obs)
