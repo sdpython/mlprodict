@@ -170,9 +170,14 @@ class TestCliConvertValidate(ExtTestCase):
         with open(pkl, "wb") as f:
             pickle.dump(clr, f)
 
-        res = convert_validate(pkl=pkl, data=data, verbose=0,
-                               method="predict", name="GPmean",
-                               options="{GaussianProcessRegressor:{'optim':'cdist'}}")
+        try:
+            res = convert_validate(pkl=pkl, data=data, verbose=0,
+                                   method="predict", name="GPmean",
+                                   options="{GaussianProcessRegressor:{'optim':'cdist'}}")
+        except RuntimeError as e:
+            if "requested version 10 < 11 schema version" in str(e):
+                return
+            raise e
         self.assertNotEmpty(res)
         st = BufferedPrint()
         args = ["convert_validate", "--pkl", pkl, '--data', data,
