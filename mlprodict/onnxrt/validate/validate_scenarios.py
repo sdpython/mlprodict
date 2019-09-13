@@ -221,4 +221,17 @@ def build_custom_scenarios():
     }
 
 
+def interpret_options_from_string(st):
+    """
+    Converts a string into a dictionary.
+
+    @param      st      string
+    @return             evaluated object
+    """
+    if isinstance(st, dict):
+        return st
+    value = eval(st)  # pylint: disable=W0123
+    return value
+
+
 _extra_parameters = build_custom_scenarios()

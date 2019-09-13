@@ -25,6 +25,8 @@ class CDist(OpRunBinaryNum):
             res = cdist(a, b, metric=metric, p=self.p)
         else:
             res = cdist(a, b, metric=metric)
+        # scipy may change the output type
+        res = res.astype(a.dtype)
         return (res, )
 
     def _find_custom_operator_schema(self, op_name):

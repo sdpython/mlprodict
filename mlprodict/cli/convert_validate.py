@@ -19,7 +19,8 @@ def convert_validate(pkl, data, method="predict",
                      name='Y', outonnx="model.onnx",
                      runtime='python', metric="l1med",
                      use_double=None, noshape=False,
-                     optim='onnx', fLOG=print, verbose=1,
+                     optim='onnx', rewrite_ops=True,
+                     options=None, fLOG=print, verbose=1,
                      register=True):
     """
     Converts a model stored in *pkl* file and measure the differences
@@ -46,6 +47,9 @@ def convert_validate(pkl, data, method="predict",
     :param optim: applies optimisations on the first ONNX graph,
         use 'onnx' to reduce the number of node Identity and
         redundant subgraphs
+    :param rewrite_ops: rewrites some converters from skl2onnx
+    :param options: additional options for conversion,
+        dictionary as a string
     :param verbose: verbose level
     :param register: registers additional converters implemented by this package
     :param fLOG: logging function
@@ -122,6 +126,13 @@ def convert_validate(pkl, data, method="predict",
     else:
         dtype = numpy.float32
         tensor_type = FloatTensorType
+    if options in(None, ''):
+        options = None
+    else:
+        from ..onnxrt.validate.validate_scenarios import interpret_options_from_string
+        options = interpret_options_from_string(options)
+        if verbose > 0:
+            fLOG("[convert_validate] options={}".format(repr(options)))
 
     if register:
         from ..onnx_conv import register_converters
@@ -133,11 +144,13 @@ def convert_validate(pkl, data, method="predict",
             fLOG("[convert_validate] convert the model with no shape information")
         onx = to_onnx(model, initial_types=[
                       ('X', tensor_type([None, None]))],
-                      dtype=dtype)
+                      dtype=dtype, rewrite_ops=rewrite_ops,
+                      options=options)
     else:
         if verbose > 0:
             fLOG("[convert_validate] convert the model with shapes")
-        onx = to_onnx(model, numerical, dtype=dtype)
+        onx = to_onnx(model, numerical, dtype=dtype, rewrite_ops=rewrite_ops,
+                      options=options)
     if optim is not None:
         if verbose > 0:
             fLOG("[convert_validate] run optimisations '{}'".format(optim))
@@ -176,9 +189,10 @@ def convert_validate(pkl, data, method="predict",
         raise ValueError("Unknown metric '{}'".format(metric))
 
     if verbose > 0:
-        fLOG("[convert_validate] compute predictions from ONNX with name '{}'".format(
-            name))
-    ort_preds = sess.run({'X': numerical})
+        fLOG("[convert_validate] compute predictions from ONNX with name '{}'"
+             "".format(name))
+    ort_preds = sess.run(
+        {'X': numerical}, verbose=max(verbose - 1, 0), fLOG=fLOG)
 
     metrics = []
     out_skl_preds = []

@@ -5,9 +5,12 @@ import os
 import unittest
 import pickle
 import pandas
+import onnx
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from pyquickhelper.loghelper import BufferedPrint
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder, unittest_require_at_least
@@ -24,6 +27,7 @@ class TestCliConvertValidate(ExtTestCase):
         self.assertIn("verbose", res)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @ignore_warnings(category=(UserWarning, ))
     def test_convert_validate(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -63,6 +67,7 @@ class TestCliConvertValidate(ExtTestCase):
         self.assertLess(res['metrics'][0], 1e-5)
         self.assertLess(res['metrics'][1], 1e-5)
 
+    @ignore_warnings(category=(UserWarning, ))
     def test_cli_convert_validater_run(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -90,6 +95,7 @@ class TestCliConvertValidate(ExtTestCase):
         self.assertIn(
             "[convert_validate] compute predictions with method 'predict_proba'", res)
 
+    @ignore_warnings(category=(UserWarning, ))
     def test_cli_convert_validater_switch(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -118,6 +124,7 @@ class TestCliConvertValidate(ExtTestCase):
             "[convert_validate] compute predictions with method 'predict_proba'", res)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @ignore_warnings(category=(UserWarning, ))
     def test_cli_convert_validater_float64(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -144,6 +151,41 @@ class TestCliConvertValidate(ExtTestCase):
         res = str(st)
         self.assertIn(
             "[convert_validate] compute predictions with method 'predict_proba'", res)
+
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @ignore_warnings(category=(UserWarning, ))
+    def test_cli_convert_validater_float64_gpr(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = GaussianProcessRegressor()
+        clr.fit(X_train, y_train)
+
+        temp = get_temp_folder(
+            __file__, "temp_cli_convert_validate_float64_gpr")
+        monx = os.path.join(temp, "gpr.onnx")
+        data = os.path.join(temp, "data.csv")
+        pandas.DataFrame(X_test).to_csv(data, index=False)
+        pkl = os.path.join(temp, "model.pkl")
+        with open(pkl, "wb") as f:
+            pickle.dump(clr, f)
+
+        res = convert_validate(pkl=pkl, data=data, verbose=0,
+                               method="predict", name="GPmean",
+                               options="{GaussianProcessRegressor:{'optim':'cdist'}}")
+        self.assertNotEmpty(res)
+        st = BufferedPrint()
+        args = ["convert_validate", "--pkl", pkl, '--data', data,
+                '--method', "predict", '--name', "GPmean",
+                '--verbose', '1', '--use_double', 'float64',
+                '--options', "{GaussianProcessRegressor:{'optim':'cdist'}}",
+                '--outonnx', monx]
+        main(args, fLOG=st.fprint)
+        res = str(st)
+        self.assertExists(monx)
+        with open(monx, 'rb') as f:
+            model = onnx.load(f)
+        self.assertIn('CDist', str(model))
 
 
 if __name__ == "__main__":

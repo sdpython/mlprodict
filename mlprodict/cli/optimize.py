@@ -14,7 +14,7 @@ def onnx_stats(name, optim=False):
     :param optim: computes statistics before an after optimisation was done
 
     .. cmdref::
-        :title: Optimises an ONNX graph
+        :title: Computes statistics on an ONNX graph
         :cmd: -m mlprodict onnx_stats --help
         :lid: l-cmd-onnx_stats
 
