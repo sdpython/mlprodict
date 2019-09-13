@@ -15,7 +15,7 @@ from .op_binarizer import Binarizer
 from .op_cast import Cast
 from .op_cdist import CDist
 from .op_ceil import Ceil
-from .op_clip import Clip, Clip_6
+from .op_clip import Clip_6, Clip_11, Clip
 from .op_concat import Concat
 from .op_constant_of_shape import ConstantOfShape
 from .op_dict_vectorizer import DictVectorizer
@@ -69,7 +69,7 @@ from .op_sub import Sub
 from .op_sum import Sum
 from .op_svm_classifier import SVMClassifier
 from .op_svm_regressor import SVMRegressor
-from .op_topk import TopK, TopK_10
+from .op_topk import TopK_10, TopK_11, TopK
 from .op_transpose import Transpose
 from .op_tree_ensemble_classifier import TreeEnsembleClassifier, TreeEnsembleClassifierDouble
 from .op_tree_ensemble_regressor import TreeEnsembleRegressor, TreeEnsembleRegressorDouble

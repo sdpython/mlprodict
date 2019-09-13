@@ -254,6 +254,12 @@ class TestShapeObject(ExtTestCase):
         mx = max(sh1, sh2)
         self.assertEqual(mx, (45, 2))
 
+    def test_shape_object_reshape(self):
+        sh = ShapeObject((1, 2, 3), dtype=numpy.float32)
+        sk = sh.reshape((6, 1, 1))
+        self.assertEqual(sk, (6, 1, 1))
+        self.assertRaise(lambda: sh.reshape((9, 1, 1)))
+
 
 if __name__ == "__main__":
     TestShapeObject().test_maximum()

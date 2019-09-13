@@ -27,13 +27,13 @@ class OneHotEncoder(OpRun):
         if len(self.cats_int64s) > 0:
             self.classes_ = {v: i for i, v in enumerate(self.cats_int64s)}
         elif len(self.cats_strings) > 0:
-            self.classes_ = {v: i for i, v in enumerate(self.cats_strings)}
+            self.classes_ = {v.decode('utf-8'): i for i,
+                             v in enumerate(self.cats_strings)}
         else:
             raise RuntimeError("No encoding was defined.")
 
     def _run(self, x):  # pylint: disable=W0221
-        shape = x.shape[:-1] if x.shape[-1] == 1 else x.shape
-        x = x.reshape(shape)
+        shape = x.shape
         new_shape = shape + (len(self.classes_), )
         res = numpy.zeros(new_shape, dtype=numpy.float32)
         if len(x.shape) == 1:
@@ -50,9 +50,25 @@ class OneHotEncoder(OpRun):
         else:
             raise RuntimeError(
                 "This operator is not implemented for shape {}.".format(x.shape))
-        if self.zeros:
+
+        if not self.zeros:
             red = res.sum(axis=len(res.shape) - 1)
             if numpy.min(red) == 0:
+                rows = []
+                for i, val in enumerate(red):
+                    if val == 0:
+                        rows.append(dict(row=i, value=x[i]))
+                        if len(rows) > 5:
+                            break
                 raise RuntimeError(
-                    "One observation did not have any category defined.")
+                    "One observation did not have any category defined.\n"
+                    "classes: {}\nfirst rows:\n{}".format(
+                        self.classes_, "\n".join(str(_) for _ in rows)))
+
         return (res, )
+
+    def _infer_shapes(self, x):  # pylint: disable=W0221
+        new_shape = x.copy()
+        new_shape.append(len(self.classes_))
+        new_shape[-1] = "nohe"
+        return (new_shape, )

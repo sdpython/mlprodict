@@ -488,6 +488,7 @@ class ShapeObject(BaseDimensionShape):
         else:
             raise TypeError(
                 "Unexpected type for shape: {}".format(type(shape)))
+
         if self._dtype is None:
             raise ValueError(
                 "dtype cannot be None, shape type is {}\n{}".format(
@@ -501,6 +502,19 @@ class ShapeObject(BaseDimensionShape):
                 sh = self._shape[0] if self._shape else None
                 if isinstance(sh, DimensionObject) and sh._dim is None:
                     sh._dim = 'n'
+
+    def reshape(self, shape):
+        """
+        Creates a new shape, checks the number of elements is the same.
+        """
+        sh = ShapeObject(shape, self.dtype, getattr(self, '_dim', None),
+                         self.name)
+        p1 = self.product().evaluate()
+        p2 = sh.product().evaluate()
+        if isinstance(p1, int) and p1 != p2:
+            raise ValueError("Shape {} cannot be reshaped into {} "
+                             "(p1={}, p2={}).".format(sh, shape, p1, p2))
+        return sh
 
     def copy(self, dtype=None, name=None):
         """
@@ -522,7 +536,7 @@ class ShapeObject(BaseDimensionShape):
         """
         if self._shape is None:
             return None
-        if index >= len(self._shape):
+        if isinstance(index, int) and index >= len(self._shape):
             return 1
         return self._shape[index]
 

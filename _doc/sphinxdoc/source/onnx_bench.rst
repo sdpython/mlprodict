@@ -118,11 +118,14 @@ it is *1/r* faster than *scikit-learn*.
 
     df1 = pandas.read_excel("bench_sum_python.xlsx")
     df2 = pandas.read_excel("bench_sum_onnxruntime1.xlsx")
+
     if 'n_features' not in df1.columns:
         df1["n_features"] = 4
     if 'n_features' not in df2.columns:
         df2["n_features"] = 4
-    fmt = "{} [{}-{}] D{}"
+    df1['optim'] = df1['optim'].fillna('')
+    df2['optim'] = df2['optim'].fillna('')
+    fmt = "{} [{}-{}] {}-D{}"
     df1["label"] = df1.apply(lambda row: fmt.format(
                              row["name"], row["problem"],
                              row["scenario"], row["optim"],
@@ -138,10 +141,29 @@ it is *1/r* faster than *scikit-learn*.
     df = df1.merge(df2, on="label", suffixes=("__pyrt", "__ort"))
 
     na = df["RT/SKL-N=1__pyrt"].isnull() & df["RT/SKL-N=1__ort"].isnull()
-    dfp = df[~na].sort_values("label", ascending=False)
+    dfp = df[~na].sort_values("label", ascending=False).reset_index(drop=True)
+    # dfp = dfp.iloc[:50, :]
 
-    total = dfp.shape[0] * 0.45
-    fig, ax = plt.subplots(1, (dfp.shape[1]-1) // 2, figsize=(14,total), sharex=False, sharey=True)
+    total = dfp.shape[0] * 0.5
+    fig = plt.figure(figsize=(14, total))
+
+    ax = list(None for c in range((dfp.shape[1]-1) // 2))
+    p = 1.2
+    b = 0.35
+    for i in range(len(ax)):
+        x1 = i * 1. / len(ax)
+        x2 = (i + 1) * 1. / len(ax)
+        x1 = x1 ** p
+        x2 = x2 ** p
+        x1 = b + (0.99 - b) * x1
+        x2 = b + (0.99 - b) * x2
+        bo = [x1, 0.1, x2 - x1, 0.8]
+        if True or i == 0:
+            ax[i] = fig.add_axes(bo)
+        else:
+            ax[i] = fig.add_axes(bo, sharey=ax[i-1])
+    # fig, ax = plt.subplots(1, (dfp.shape[1]-1) // 2, figsize=(14, total),
+    #                        sharex=False, sharey=True)
     x = numpy.arange(dfp.shape[0])
     height = total / dfp.shape[0] * 0.65
     for c in df.columns[1:]:
@@ -157,9 +179,12 @@ it is *1/r* faster than *scikit-learn*.
         ax[i].plot([2, 2], [min(x), max(x)], 'r--')
         ax[i].legend()
         ax[i].set_xscale('log')
+        ax[i].set_xlim([0, 10])
 
+    for i in range(1, len(ax)):
+        ax[i].set_yticklabels([])
     ax[0].set_yticks(x)
     ax[0].set_yticklabels(dfp['label'])
-    fig.subplots_adjust(left=0.25)
+    fig.subplots_adjust(left=0.35)
 
     plt.show()

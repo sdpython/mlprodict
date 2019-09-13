@@ -446,6 +446,9 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
                     classes[0] += base_values_[0];
                 }
             }
+            else
+                // ONNX is vague about two classes and only one base_values.
+                classes[0] += base_values_[0];
             Y_(i) = _set_score_binary(i, write_additional_scores,
                               weights_are_all_positive_,
                               classes, classlabels_int64s_,

@@ -5,6 +5,7 @@
 @brief Runtime operator.
 """
 import numpy
+from onnx.defs import onnx_opset_version
 from ._op import OpRun
 
 
@@ -108,7 +109,7 @@ class TopK_10(_CommonTopK):
         return _CommonTopK._common_run(self, data, ink)
 
 
-class TopK(_CommonTopK):
+class TopK_11(_CommonTopK):
 
     atts = {'axis': -1, 'largest': 1, 'sorted': 1}
 
@@ -134,3 +135,9 @@ class TopK(_CommonTopK):
             <https://github.com/Microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/math/top_k.cc#L63>`_.
         """
         return _CommonTopK._common_run(self, data, ink, self.largest)
+
+
+if onnx_opset_version() >= 11:
+    TopK = TopK_11
+else:
+    TopK = TopK_10
