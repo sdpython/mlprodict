@@ -6,11 +6,12 @@ from logging import getLogger
 from io import StringIO
 import numpy
 import pandas
-from pyquickhelper.pycode import ExtTestCase
+import skl2onnx
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from mlprodict.onnx_conv import to_onnx, unittest_require_at_least
+from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
 
