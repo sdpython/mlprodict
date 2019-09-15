@@ -116,11 +116,16 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         optim_values = []
         for row in rows:
             optim_values.append(row.get('optim', ''))
-        exp = [{'', 'onnx-optim=cdist', 'optim=cdist', 'onnx'},
-               {'', 'onnx-optim=cdist', 'optim=cdist'},
+        expcl = "<class 'sklearn.gaussian_process.gpr.GaussianProcessRegressor'>={'optim': 'cdist'}"
+        exp = [{'', 'onnx-' + expcl, expcl, 'onnx'},
+               {'', 'onnx-' + expcl, expcl},
                {'', 'onnx'}]
         self.assertIn(set(optim_values), exp)
         piv = summary_report(DataFrame(rows))
+        expcl = 'cdist'
+        exp = [{'', 'onnx-' + expcl, expcl, 'onnx'},
+               {'', 'onnx-' + expcl, expcl},
+               {'', 'onnx'}]
         self.assertIn(set(piv['optim']), exp)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
@@ -136,7 +141,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        debug = True  # should be true
+        debug = False  # should be true
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='python', debug=debug,

@@ -64,7 +64,7 @@ def build_custom_scenarios():
                 'kernel': ExpSineSquared(),
                 'alpha': 20.,
             }, {'optim': [None, 'onnx'],
-                'conv_options': [{}, {'optim': 'cdist'}]}),
+                'conv_options': [{}, {GaussianProcessRegressor: {'optim': 'cdist'}}]}),
             ('dotproduct', {
                 'kernel': DotProduct(),
                 'alpha': 100.,
@@ -72,12 +72,12 @@ def build_custom_scenarios():
             ('rational', {
                 'kernel': RationalQuadratic(),
                 'alpha': 100.,
-            }, {'conv_options': [{}, {'optim': 'cdist'}]}),
+            }, {'conv_options': [{}, {GaussianProcessRegressor: {'optim': 'cdist'}}]}),
             ('rbf', {
                 'kernel': RBF(),
                 'alpha': 100.,
             }, {'optim': [None, 'onnx'],
-                'conv_options': [{}, {'optim': 'cdist'}]}),
+                'conv_options': [{}, {GaussianProcessRegressor: {'optim': 'cdist'}}]}),
         ],
         GaussianRandomProjection: [
             ('eps95', {'eps': 0.95}),

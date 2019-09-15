@@ -398,6 +398,15 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                                 yield obs_op
                                 continue
 
+                            if all_conv_options.get('optim', '') == 'cdist':
+                                check_cdist = [_ for _ in str(
+                                    conv).split('\n') if 'CDist' in _]
+                                check_scan = [_ for _ in str(
+                                    conv).split('\n') if 'Scan' in _]
+                                if len(check_cdist) == 0 and len(check_scan) > 0:
+                                    raise RuntimeError("Operator CDist was not used in\n{}"
+                                                       "".format(conv))
+
                             obs_op0 = obs_op.copy()
                             for optimisation in optimisations:
                                 obs_op = obs_op0.copy()
