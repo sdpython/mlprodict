@@ -30,15 +30,19 @@ class TestRtValidateGaussianProcessOptim(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='python', debug=debug,
-            filter_scenario=lambda m, p, s, e: p == "b-reg" and s == "rbf"))
+            filter_scenario=lambda m, p, s, e, e2: p == "b-reg" and s == "rbf"))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
         opt = set(_.get('optim', '') for _ in rows)
-        exp = [{'', 'onnx-optim=cdist', 'optim=cdist', 'onnx'},
-               {'', 'onnx-optim=cdist', 'optim=cdist'}]
+        expcl = "<class 'sklearn.gaussian_process.gpr.GaussianProcessRegressor'>={'optim': 'cdist'}"
+        exp = [{'', 'onnx-' + expcl, expcl, 'onnx'},
+               {'', 'onnx-' + expcl, expcl}]
         self.assertIn(opt, exp)
         piv = summary_report(DataFrame(rows))
         opt = set(piv['optim'])
+        expcl = "cdist"
+        exp = [{'', 'onnx-' + expcl, expcl, 'onnx'},
+               {'', 'onnx-' + expcl, expcl}]
         self.assertIn(opt, exp)
 
 

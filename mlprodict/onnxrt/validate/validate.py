@@ -4,6 +4,7 @@
 The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
+import copy
 import numpy
 import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
@@ -184,6 +185,22 @@ def _dictionary2str(di):
     return '/'.join(el)
 
 
+def _merge_options(all_conv_options, aoptions):
+    if not isinstance(aoptions, dict):
+        return copy.deepcopy(aoptions)
+    merged = {}
+    for k, v in all_conv_options.items():
+        if k in aoptions:
+            merged[k] = _merge_options(v, aoptions[k])
+        else:
+            merged[k] = copy.deepcopy(v)
+    for k, v in aoptions.items():
+        if k in all_conv_options:
+            continue
+        merged[k] = copy.deepcopy(v)
+    return merged
+
+
 def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: disable=R0914
                                check_runtime=True, debug=False,
                                runtime='python', dump_folder=None,
@@ -309,7 +326,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                     new_conv_options = [{}]
 
                 if (filter_scenario is not None and
-                        not filter_scenario(model, prob, scenario, extra)):
+                        not filter_scenario(model, prob, scenario,
+                                            extra, new_conv_options)):
                     continue
 
                 if verbose >= 2 and fLOG is not None:
@@ -372,8 +390,14 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                     for aoptions in new_conv_options:
                         obs_op = obs_op_0c.copy()
                         all_conv_options = {} if conv_options is None else conv_options.copy()
-                        all_conv_options.update(aoptions)
+                        all_conv_options = _merge_options(
+                            all_conv_options, aoptions)
                         obs_op['conv_options'] = all_conv_options
+
+                        if (filter_scenario is not None and
+                                not filter_scenario(model, prob, scenario,
+                                                    extra, all_conv_options)):
+                            continue
 
                         for rt in runtime:
                             def fct_conv(itt=inst, it=init_types[0][1], ops=opset,

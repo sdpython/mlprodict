@@ -141,7 +141,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        debug = False  # should be true
+        debug = True  # should be true
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='python', debug=debug,

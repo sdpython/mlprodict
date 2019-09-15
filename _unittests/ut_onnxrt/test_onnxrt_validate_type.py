@@ -34,6 +34,9 @@ class TestOnnxrtValidateType(ExtTestCase):
                 return '-64' in prob and '-cov' not in prob
             raise NotImplementedError(dtype)
 
+        def filter_scenario(m, p, o, e, e2):
+            return True
+
         if models is None:
             models = {
                 # 'DecisionTreeRegressor',
@@ -56,7 +59,8 @@ class TestOnnxrtValidateType(ExtTestCase):
                 enumerate_validated_operator_opsets(
                     verbose, debug=True, fLOG=myfLOG, dump_folder=temp,
                     models=models, filter_exp=filter_exp,
-                    opset_min=11, store_models=True)):
+                    opset_min=11, store_models=True,
+                    filter_scenario=filter_scenario)):
 
             up = {}
             outputs = []

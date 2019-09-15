@@ -9,6 +9,7 @@ from pyquickhelper.pycode import ExtTestCase, skipif_circleci, unittest_require_
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
+from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ExpSineSquared
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.common.data_types import FloatTensorType
@@ -132,11 +133,19 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
+        def filter_scenario(a, b, c, d, e):
+            if isinstance(e, dict) and GaussianProcessRegressor in e:
+                opt = e[GaussianProcessRegressor]
+                if opt.get('optim', '') == 'cdist':
+                    return False
+            return True
+
         debug = True
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
-            filter_exp=lambda m, s: "reg-NSV" in s))
+            filter_exp=lambda m, s: "reg-NSV" in s,
+            filter_scenario=filter_scenario))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
@@ -156,11 +165,19 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
+        def filter_scenario(a, b, c, d, e):
+            if isinstance(e, dict) and GaussianProcessRegressor in e:
+                opt = e[GaussianProcessRegressor]
+                if opt.get('optim', '') == 'cdist':
+                    return False
+            return True
+
         debug = True
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
-            filter_exp=lambda m, s: "b-reg-std-NSV" in s))
+            filter_exp=lambda m, s: "b-reg-std-NSV" in s,
+            filter_scenario=filter_scenario))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
