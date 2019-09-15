@@ -9,6 +9,7 @@ from onnx.helper import make_tensor
 from onnx import TensorProto
 from onnxruntime import InferenceSession, SessionOptions, RunOptions
 import skl2onnx.algebra.onnx_ops as alg
+import skl2onnx.algebra.custom_ops as alg2
 from ..optim.graph_schema_helper import get_defined_inputs, get_defined_outputs
 
 
@@ -34,7 +35,7 @@ class OpRunOnnxRuntime:
         self._provider = 'onnxruntime'
         self.onnx_node = onnx_node
         self.desc = desc
-        self._schema = _schemas[onnx_node.op_type]
+        self._schema = _schemas.get(onnx_node.op_type, None)
         if desc is not None:
             if 'atts' in desc:
                 for a, b in desc['atts'].items():
@@ -80,7 +81,10 @@ class OpRunOnnxRuntime:
         The current implementation for operator *Scan*
         only works for matrices.
         """
-        self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
+        try:
+            self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
+        except AttributeError:
+            self.alg_class = getattr(alg2, 'Onnx' + self.onnx_node.op_type)
         inputs = list(self.onnx_node.input)
         self.mapping, self.inputs = self._name_mapping(inputs)
         self.outputs = list(self.onnx_node.output)

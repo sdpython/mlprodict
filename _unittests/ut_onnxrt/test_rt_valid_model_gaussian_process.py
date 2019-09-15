@@ -130,6 +130,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertIn(set(piv['optim']), exp)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(onnx, '1.5.29')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_GaussianProcessRegressor_debug(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
