@@ -3,6 +3,7 @@
 """
 import unittest
 from logging import getLogger
+import onnx
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, unittest_require_at_least
 from pyquickhelper.texthelper.version_helper import compare_module_version
@@ -20,6 +21,7 @@ threshold = "0.4.0"
 class TestRtValidateGaussianProcessOrt2(ExtTestCase):
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(onnx, '1.5.29')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @skipif_circleci("to investigate, shape of predictions are different")
     @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,

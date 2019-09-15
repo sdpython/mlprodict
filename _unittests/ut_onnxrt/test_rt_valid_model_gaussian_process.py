@@ -5,6 +5,7 @@ import unittest
 from logging import getLogger
 import numpy
 from pandas import DataFrame
+import onnx
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
@@ -150,6 +151,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(buffer), 1 if debug else 0)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(onnx, '1.5.29')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @skipif_circleci("to investigate, shape of predictions are different")
     def test_rt_GaussianProcessRegressor_debug_std(self):
