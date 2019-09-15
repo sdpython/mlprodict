@@ -271,5 +271,4 @@ class TestOnnxConvKNN(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxConvKNN().test_onnx_test_knn_single_regressor32_op10()
     unittest.main()

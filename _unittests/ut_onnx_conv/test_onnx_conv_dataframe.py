@@ -10,7 +10,7 @@ from pyquickhelper.pycode import ExtTestCase
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from mlprodict.onnx_conv import to_onnx
+from mlprodict.onnx_conv import to_onnx, unittest_require_at_least
 from mlprodict.onnxrt import OnnxInference
 
 
@@ -20,6 +20,7 @@ class TestOnnxConvDataframe(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_pipeline_dataframe(self):
         text = """
                 fixed_acidity,volatile_acidity,citric_acid,residual_sugar,chlorides,free_sulfur_dioxide,total_sulfur_dioxide,density,pH,sulphates,alcohol,quality,color

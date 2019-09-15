@@ -5,7 +5,23 @@
 History
 =======
 
-current - 2019-08-28 - 0.00Mb
+current - 2019-09-15 - 0.00Mb
+=============================
+
+* `57`: ONNX: handles dataframe when converting a model (2019-09-15)
+* `56`: ONNX: implements cdist operator (2019-09-12)
+* `54`: ONNX: fix summary, it produces multiple row when model are different when opset is different (2019-09-12)
+* `51`: ONNX: measure the time performance obtained by using optimization (2019-09-11)
+* `52`: ONNC-cli: add a command line to optimize an onnx model (2019-09-10)
+* `49`: ONNX optimization: remove redundant subparts of a graph (2019-09-09)
+* `48`: ONNX optimization: reduce the number of Identity nodes (2019-09-09)
+* `47`: Implements statistics on onnx graph and sklearn models, add them to the documentation (2019-09-06)
+* `46`: Implements KNearestNeibhorsRegressor supporting batch mode (ONNX) (2019-08-31)
+* `45`: KNearestNeighborsRegressor (2019-08-30)
+* `44`: Add an example to look into the performance of every node for a particular dataset (2019-08-30)
+* `43`: LGBMClassifier has wrong shape (2019-08-29)
+
+0.2.452 - 2019-08-28 - 0.13Mb
 =============================
 
 * `42`: Adds a graph which visually summarize the validating benchmark (ONNX). (2019-08-27)
