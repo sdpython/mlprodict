@@ -38,7 +38,7 @@ class TestOnnxrtSimpleGaussianProcess(ExtTestCase):
         self.assertEqualArray(res1['GPmean'], res2['GPmean'])
         self.assertNotIn('op_type: "CDist"', str(new_model))
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_gpr_iris_cdist(self):
         iris = load_iris()
         X, y = iris.data, iris.target
