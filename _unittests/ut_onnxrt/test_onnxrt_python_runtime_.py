@@ -5,6 +5,7 @@ import unittest
 from logging import getLogger
 import numpy
 from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
+import onnx
 from onnx.defs import onnx_opset_version
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.utils.extmath import softmax
@@ -27,7 +28,6 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxConstantOfShape, OnnxNot, OnnxSin,
     OnnxMin, OnnxMax, OnnxSign, OnnxLpNormalization,
     OnnxFlatten, OnnxReduceMax, OnnxReduceMin,
-    OnnxGatherElements,
 )
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
@@ -321,7 +321,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.common_test_onnxt_runtime_unary(OnnxFloor, numpy.floor)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_runtime_gather_elements(self):
+        from skl2onnx.algebra.onnx_ops import OnnxGatherElements
         # ex 1
         data = numpy.array([[1, 2],
                             [3, 4]], dtype=numpy.float32)
