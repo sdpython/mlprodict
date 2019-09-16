@@ -27,6 +27,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxConstantOfShape, OnnxNot, OnnxSin,
     OnnxMin, OnnxMax, OnnxSign, OnnxLpNormalization,
     OnnxFlatten, OnnxReduceMax, OnnxReduceMin,
+    OnnxGatherElements,
 )
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
@@ -318,6 +319,39 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_floor(self):
         self.common_test_onnxt_runtime_unary(OnnxFloor, numpy.floor)
+
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    def test_onnxt_runtime_gather_elements(self):
+        # ex 1
+        data = numpy.array([[1, 2],
+                            [3, 4]], dtype=numpy.float32)
+        indices = numpy.array([[0, 0],
+                               [1, 0]], dtype=numpy.int64)
+
+        onx = OnnxGatherElements('X', 'Y', output_names=['Z'], axis=1)
+        model_def = onx.to_onnx({'X': data, 'Y': indices},
+                                outputs=[('Z', FloatTensorType())])
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': data, 'Y': indices})
+        exp = numpy.array([[1, 1],
+                           [4, 3]], dtype=numpy.float32)
+        self.assertEqual(exp, got['Z'])
+
+        # ex 2
+        data = numpy.array([[1, 2, 3],
+                            [4, 5, 6],
+                            [7, 8, 9]], dtype=numpy.float32)
+        indices = numpy.array([[1, 2, 0],
+                               [2, 0, 0]], dtype=numpy.int32)
+
+        onx = OnnxGatherElements('X', 'Y', output_names=['Z'], axis=0)
+        model_def = onx.to_onnx({'X': data, 'Y': indices},
+                                outputs=[('Z', FloatTensorType())])
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': data, 'Y': indices})
+        exp = numpy.array([[4, 8, 3],
+                           [7, 2, 3]], dtype=numpy.float32)
+        self.assertEqual(exp, got['Z'])
 
     def test_onnxt_runtime_gemm(self):
         idi = numpy.array([[1, 0], [1, 1]], dtype=numpy.float64)
@@ -795,5 +829,4 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxrtPythonRuntime().test_onnxt_runtime_clip_10()
     unittest.main()

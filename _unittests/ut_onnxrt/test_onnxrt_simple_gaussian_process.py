@@ -4,12 +4,12 @@
 import unittest
 from logging import getLogger
 import numpy
+import onnx
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ExpSineSquared
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
-import onnx
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
