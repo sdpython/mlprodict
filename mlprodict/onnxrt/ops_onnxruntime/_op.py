@@ -82,9 +82,9 @@ class OpRunOnnxRuntime:
         only works for matrices.
         """
         try:
-            self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
-        except AttributeError:
             self.alg_class = getattr(alg2, 'Onnx' + self.onnx_node.op_type)
+        except AttributeError:
+            self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
         inputs = list(self.onnx_node.input)
         self.mapping, self.inputs = self._name_mapping(inputs)
         self.outputs = list(self.onnx_node.output)

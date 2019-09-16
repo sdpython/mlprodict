@@ -72,7 +72,8 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         debug = False
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"AdaBoostRegressor"}, opset_min=11, fLOG=myprint,
-            runtime='onnxruntime2', debug=debug))
+            runtime='onnxruntime2', debug=debug,
+            filter_exp=lambda m, p: "-64" not in p))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
