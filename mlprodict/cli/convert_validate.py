@@ -56,7 +56,7 @@ def convert_validate(pkl, data, method="predict",
     :return: a dictionary with the results
 
     .. cmdref::
-        :title: Convert and compare an ONNX file
+        :title: Converts and compares an ONNX file
         :cmd: -m mlprodict convert_validate --help
         :lid: l-cmd-convert_validate
 

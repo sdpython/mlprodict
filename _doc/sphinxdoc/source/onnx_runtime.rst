@@ -130,8 +130,8 @@ the cause of the error if it does not work.
 
 Full results are available at :ref:`l-onnx-bench-python`.
 
-onnxruntime
-+++++++++++
+onnxruntime1
+++++++++++++
 
 :epkg:`onnxruntime` loads the :epkg:`ONNX` data in a single
 session and calls it onle once to compute the predictions.

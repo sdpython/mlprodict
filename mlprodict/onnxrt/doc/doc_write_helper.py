@@ -49,18 +49,23 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         df = DataFrame([stats])
         table = df2rst(df.T.reset_index(drop=False))
 
-        title = " - ".join([name, problem, scenario, optim])
+        clean_optim = _clean_values_optim(optim)
+        title = " - ".join([name, problem, scenario, clean_optim])
         if title in done:
             continue
         done.add(title)
-        link = "-".join([name, problem, scenario, optim])
+        link = "-".join([name, problem, scenario, clean_optim])
+
+        optim_param = ("Model was converted with additional parameter: ``{}``.".format(optim)
+                       if optim else "")
 
         oinf = OnnxInference(row['ONNX'], skip_run=True)
         dot = oinf.to_dot(recursive=True)
         res = templ.render(dot=dot, model=repr(model), method=method,
                            kind=problem, title=title,
                            indent=indent, len=len,
-                           link=link, table=table)
+                           link=link, table=table,
+                           optim_param=optim_param)
         yield res
 
 

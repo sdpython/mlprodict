@@ -8,6 +8,17 @@ from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from ... import __version__ as ort_version
 
 
+def _clean_values_optim(val):
+    if not isinstance(val, str):
+        return val
+    rep = {
+        "<class 'sklearn.gaussian_process.gpr.GaussianProcessRegressor'>={'optim': 'cdist'}": "cdist"
+    }
+    for k, v in rep.items():
+        val = val.replace(k, v)
+    return val
+
+
 def summary_report(df, add_cols=None):
     """
     Finalizes the results computed by function
@@ -148,21 +159,11 @@ def summary_report(df, add_cols=None):
             value = value.replace("-", " ")
         return value
 
-    def clean_values_optim(val):
-        if not isinstance(val, str):
-            return val
-        rep = {
-            "<class 'sklearn.gaussian_process.gpr.GaussianProcessRegressor'>={'optim': 'cdist'}": "cdist"
-        }
-        for k, v in rep.items():
-            val = val.replace(k, v)
-        return val
-
     for c in piv.columns:
         if "opset" in c:
             piv[c] = piv[c].apply(clean_values)
         if 'optim' in c:
-            piv[c] = piv[c].apply(clean_values_optim)
+            piv[c] = piv[c].apply(_clean_values_optim)
 
     # adding versions
     def keep_values(x):

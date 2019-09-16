@@ -35,6 +35,27 @@ class TestOnnxrtSimpleGaussianProcess(ExtTestCase):
         oinf = OnnxInference(new_model)
         res2 = oinf.run({'X': X_train})
         self.assertEqualArray(res1['GPmean'], res2['GPmean'])
+        self.assertNotIn('op_type: "CDist"', str(new_model))
+
+    def test_onnxt_gpr_iris_cdist(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, _, y_train, __ = train_test_split(X, y, random_state=11)
+        clr = GaussianProcessRegressor(ExpSineSquared(), alpha=20.)
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train, dtype=numpy.float64,
+                            options={GaussianProcessRegressor: {'optim': 'cdist'}})
+        oinf = OnnxInference(model_def)
+        res1 = oinf.run({'X': X_train})
+        new_model = onnx_optimisations(model_def)
+        oinf = OnnxInference(new_model)
+        res2 = oinf.run({'X': X_train})
+        self.assertEqualArray(res1['GPmean'], res2['GPmean'])
+        self.assertIn('op_type: "CDist"', str(new_model))
+        dot = oinf.to_dot()
+        self.assertIn(
+            '''label="CDist\\n(kgpd_CDist)\\nmetric=b'euclidean'"''', dot)
 
 
 if __name__ == "__main__":

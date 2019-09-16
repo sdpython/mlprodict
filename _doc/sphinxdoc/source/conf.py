@@ -55,6 +55,7 @@ epkg_dictionary.update({
     'JSON': 'https://en.wikipedia.org/wiki/JSON',
     'lightgbm': 'https://lightgbm.readthedocs.io/en/latest/',
     'Minkowski distance': 'https://en.wikipedia.org/wiki/Minkowski_distance',
+    'mlprodict': 'http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html',
     'ONNX': 'https://onnx.ai/',
     'onnx': 'https://github.com/onnx/onnx',
     'ONNX Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators.md',

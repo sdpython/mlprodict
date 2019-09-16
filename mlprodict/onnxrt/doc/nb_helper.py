@@ -50,6 +50,9 @@ class OnnxNotebook(MagicClassWithHelpers):
             ::
 
                 onnx_view(model_onnx)
+
+            It displays a visual representation of an :epkg:`ONNX` graph.
+
         """
         parser = self.get_parser(
             lambda: create_cli_parser(onnxview, cls=MagicCommandParser,

@@ -9,7 +9,11 @@ from onnx.helper import make_tensor
 from onnx import TensorProto
 from onnxruntime import InferenceSession, SessionOptions, RunOptions
 import skl2onnx.algebra.onnx_ops as alg
-import skl2onnx.algebra.custom_ops as alg2
+try:
+    import skl2onnx.algebra.custom_ops as alg2
+except ImportError:
+    # older version of skl2onnx
+    alg2 = alg
 from ..optim.graph_schema_helper import get_defined_inputs, get_defined_outputs
 
 
