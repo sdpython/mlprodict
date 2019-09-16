@@ -9,7 +9,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils.testing import ignore_warnings
 from sklearn.ensemble import RandomForestRegressor
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import (
+    ExtTestCase, unittest_require_at_least, skipif_appveyor
+)
 import skl2onnx
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
@@ -61,6 +63,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         self.onnxrt_python_RandomForestRegressor_dtype(numpy.float32)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
+    @skipif_appveyor("issue with opset 11")
     def test_onnxrt_python_RandomForestRegressor64(self):
         self.onnxrt_python_RandomForestRegressor_dtype(numpy.float64)
 
