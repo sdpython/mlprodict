@@ -323,7 +323,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_runtime_gather_elements(self):
-        from skl2onnx.algebra.onnx_ops import OnnxGatherElements
+        from skl2onnx.algebra.onnx_ops import OnnxGatherElements  # pylint: disable=E0611
         # ex 1
         data = numpy.array([[1, 2],
                             [3, 4]], dtype=numpy.float32)

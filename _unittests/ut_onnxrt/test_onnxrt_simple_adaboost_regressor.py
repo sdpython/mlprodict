@@ -4,12 +4,14 @@
 import unittest
 from logging import getLogger
 import numpy
+import onnx
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import AdaBoostRegressor, RandomForestRegressor
 from sklearn.tree import DecisionTreeRegressor
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
@@ -21,6 +23,8 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_iris_adaboost_regressor_dt(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -42,6 +46,8 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         self.assertEqualArray(res0, res1['variable'].ravel())
 
     @unittest.skip(reason="still failing")
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_iris_adaboost_regressor_rf(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -60,6 +66,8 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         self.assertEqualArray(res0, res1['variable'])
 
     @unittest.skip(reason="still failing")
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_iris_adaboost_regressor_lr(self):
         iris = load_iris()
         X, y = iris.data, iris.target
