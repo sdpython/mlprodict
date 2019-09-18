@@ -382,7 +382,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                 {'X': x}, outputs=[('Y', DoubleTensorType())])
             got = OnnxInference(model_def).run({'X': x})
             self.assertEqualArray(exp, got['Y'])
-        except RuntimeError as e:
+        except RuntimeError:
             pass
 
         # reverse = 1
@@ -395,7 +395,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                 {'X': x}, outputs=[('Y', DoubleTensorType())])
             got = OnnxInference(model_def).run({'X': x})
             self.assertEqualArray(exp, got['Y'])
-        except RuntimeError as e:
+        except RuntimeError:
             pass
 
     def test_onnxt_runtime_div(self):
