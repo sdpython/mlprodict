@@ -18,18 +18,11 @@ class GatherElements(OpRun):
                        **options)
 
     def _run(self, data, indices):  # pylint: disable=W0221
-        res = numpy.empty(indices.shape, dtype=data.dtype)
-        if len(indices.shape) == 2:
-            if self.axis == 0:
-                for j in range(indices.shape[1]):
-                    res[:, j] = data[indices[:, j], j]
-            else:
-                for i in range(indices.shape[0]):
-                    res[i, :] = data[i, indices[i, :]]
-            return (res, )
-        else:
-            raise RuntimeError("Operator GatherElements is not implement for dimension={}."
-                               "".format(len(indices.shape)))
+        data_swaped = numpy.swapaxes(data, 0, self.axis)
+        index_swaped = numpy.swapaxes(indices, 0, self.axis)
+        gathered = numpy.choose(index_swaped, data_swaped, mode='wrap')
+        y = numpy.swapaxes(gathered, 0, self.axis)
+        return (y, )
 
     def _infer_shapes(self, data, indices):  # pylint: disable=W0221
         return (indices, )
