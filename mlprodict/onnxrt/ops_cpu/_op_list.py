@@ -18,6 +18,7 @@ from .op_ceil import Ceil
 from .op_clip import Clip_6, Clip_11, Clip
 from .op_concat import Concat
 from .op_constant_of_shape import ConstantOfShape
+from .op_cum_sum import CumSum
 from .op_dict_vectorizer import DictVectorizer
 from .op_div import Div
 from .op_exp import Exp

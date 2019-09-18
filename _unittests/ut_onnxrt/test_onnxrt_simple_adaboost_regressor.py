@@ -45,7 +45,28 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel())
 
-    @unittest.skip(reason="still failing")
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(onnx, '1.5.29')
+    def test_onnxt_iris_adaboost_regressor_dt_10(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, __ = train_test_split(X, y, random_state=11)
+        y_train = y_train.astype(numpy.float32)
+        clr = AdaBoostRegressor(
+            base_estimator=DecisionTreeRegressor(max_depth=3),
+            n_estimators=3)
+        clr.fit(X_train, y_train)
+        X_test = X_test.astype(numpy.float32)
+        X_test = numpy.vstack([X_test[:3], X_test[-3:]])
+        res0 = clr.predict(X_test).astype(numpy.float32)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32),
+                            dtype=numpy.float32, target_opset=10)
+
+        oinf = OnnxInference(model_def, runtime='python')
+        res1 = oinf.run({'X': X_test})
+        self.assertEqualArray(res0, res1['variable'].ravel())
+
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_iris_adaboost_regressor_rf(self):
@@ -62,10 +83,9 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         X_test = X_test.astype(numpy.float32)
         oinf = OnnxInference(model_def)
         res0 = clr.predict(X_test).astype(numpy.float32)
-        res1 = oinf.run({'X': X_test}, verbose=1, fLOG=print)
-        self.assertEqualArray(res0, res1['variable'])
+        res1 = oinf.run({'X': X_test})
+        self.assertEqualArray(res0, res1['variable'].ravel(), decimal=5)
 
-    @unittest.skip(reason="still failing")
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_iris_adaboost_regressor_lr(self):
@@ -82,8 +102,8 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         X_test = X_test.astype(numpy.float32)
         oinf = OnnxInference(model_def)
         res0 = clr.predict(X_test).astype(numpy.float32)
-        res1 = oinf.run({'X': X_test}, verbose=1, fLOG=print)
-        self.assertEqualArray(res0, res1['variable'])
+        res1 = oinf.run({'X': X_test})
+        self.assertEqualArray(res0, res1['variable'].ravel(), decimal=5)
 
 
 if __name__ == "__main__":
