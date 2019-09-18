@@ -330,7 +330,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         try:
             got = OnnxInference(model_def).run({'X': x, 'axis': axis})
             self.assertEqualArray(exp, got['Y'])
-        except NotImplementedError as e:
+        except NotImplementedError:
             pass
 
         # 2d axis = 0
