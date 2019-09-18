@@ -252,7 +252,7 @@ class ShapeOperatorMul(ShapeBinaryOperator):
 
 class ShapeOperatorMax(ShapeBinaryFctOperator):
     """
-    Shape multiplication.
+    Best on each dimension.
     """
 
     def __init__(self, x, y):
@@ -597,7 +597,8 @@ class ShapeObject(BaseDimensionShape):
                 del cp[axis]
             return ShapeObject(cp, self._dtype if dtype is None else dtype,
                                name="{}-RD".format(self.name))
-        raise IndexError("axis={} is wrong, shape is {}".format(axis, self))
+        raise IndexError("axis={} is wrong, shape is {}-tuple and equal to "
+                         "{}".format(axis, len(self._shape), self))
 
     def __repr__(self):
         """
@@ -618,6 +619,8 @@ class ShapeObject(BaseDimensionShape):
                     st_shape.append(str(s._dim))
                 else:
                     st_shape.append(repr(s))
+            if len(st_shape) == 1:
+                st_shape.append('')
             st_shape = '({})'.format(", ".join(st_shape))
             if self.name is None:
                 return "ShapeObject({}, dtype={})".format(st_shape, st)
@@ -749,3 +752,26 @@ class ShapeObject(BaseDimensionShape):
                     del self._shape[i]
             else:
                 del self._shape[axis]
+
+    def broadcast(self, a):
+        """
+        Computes the shape after a broadcast.
+        """
+        if a is None:
+            raise ValueError("a should not be None")
+        if a._shape is None:
+            return a.copy()
+        if self._shape is None:
+            return self.copy()
+        mx = max(len(self._shape), len(a._shape))
+        res = []
+        for i in range(mx):
+            if i < len(self._shape):
+                if i < len(a._shape):
+                    res.append(ShapeOperatorMax(self[i], a[i]))
+                else:
+                    res.append(self[i])
+            else:
+                res.append(a[i])
+        return ShapeObject(tuple(res), self.dtype, False,
+                           name="broadcast-{}-{}".format(self.name, a.name))

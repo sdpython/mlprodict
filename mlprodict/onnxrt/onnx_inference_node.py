@@ -162,7 +162,7 @@ class OnnxInferenceNode:
         args = [values[k] for k in self.inputs]
         try:
             res = self.ops_.infer_shapes(*args)
-        except TypeError as e:
+        except (TypeError, ValueError) as e:
             raise TypeError(
                 "Unable to call infer_shapes with {} arguments for class"
                 " '{}'".format(len(args), self.ops_.__class__.__name__)) from e
@@ -179,6 +179,7 @@ class OnnxInferenceNode:
                     pprint.pformat(self.desc)))
         for name, value in zip(self.outputs, res):
             values[name] = value
+        return values
 
     def enable_inplace_compute(self, name):
         """

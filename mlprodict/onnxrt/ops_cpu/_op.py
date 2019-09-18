@@ -381,8 +381,8 @@ class OpRunBinary(OpRun):
         shapes as the operator could be using broacasting.
         """
         try:
-            res = max(x, y)
-            add = "Max"
+            res = x.broadcast(y)
+            add = "broadcast"
         except RuntimeError:
             # We know x and y and the same number of dimensions.
             # We pick the first one even if it might be wrong.

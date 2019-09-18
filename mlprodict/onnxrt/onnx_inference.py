@@ -633,8 +633,20 @@ class OnnxInference:
             values[k] = ShapeObject(v, use_n1=True, name=k)
         for k, v in self.inits_.items():
             values[k] = ShapeObject(v['value'], name=k)
-        for node in self.sequence_:
-            node._set_shape_inference_runtime(values)
+        last = None
+        for i, node in enumerate(self.sequence_):
+            try:
+                s = node._set_shape_inference_runtime(values)
+                last = s
+            except IndexError as e:
+                rows = []
+                if last is not None:
+                    for k, v in last.items():
+                        rows.append("{}: {}".format(k, v))
+                for k in range(i + 1):
+                    rows.append("{} --> {}".format(k, self.sequence_[k]))
+                raise RuntimeError("Unable to infer shape of node {}\n{}".format(
+                    i, '\n'.join(rows))) from e
         return values
 
     def _guess_inplace(self, input_inplace=False):

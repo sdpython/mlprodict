@@ -20,7 +20,8 @@ class ConstantOfShape(OpRun):
         self.cst = (self.value[0]
                     if isinstance(self.value, numpy.ndarray)
                     else self.value)
-        if not isinstance(self.cst, (float, numpy.float32, numpy.float64)):
+        if not isinstance(self.cst, (float, numpy.float32, numpy.float64,
+                                     numpy.int64, numpy.int32, numpy.bool)):
             raise TypeError("cst must be a real not {}".format(type(self.cst)))
 
     def _run(self, data):  # pylint: disable=W0221
@@ -28,6 +29,5 @@ class ConstantOfShape(OpRun):
         return (res, )
 
     def _infer_shapes(self, data):  # pylint: disable=W0221
-        pref = str(hex(id(self))[2:])
-        shape = ["ncof%s_%d" % (pref, i) for i in range(len(data))]
-        return (ShapeObject(shape, self.cst.dtype), )
+        # pref = str(hex(id(self))[2:])
+        return (ShapeObject(None, self.cst.dtype), )

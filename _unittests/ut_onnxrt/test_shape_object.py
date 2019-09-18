@@ -254,6 +254,21 @@ class TestShapeObject(ExtTestCase):
         mx = max(sh1, sh2)
         self.assertEqual(mx, (45, 2))
 
+    def test_broadcast(self):
+        for a, b in [[(1, 2), (45, 2)],
+                     [(1, ), (45, 2)],
+                     [(3, 1), (1, 3)],
+                     [(3, 1), (1, )],
+                     [(3, 1), (1, 1)],
+                     [(1, 3), (3, 1)]]:
+            sh1 = ShapeObject(a, dtype=numpy.float32)
+            sh2 = ShapeObject(b, dtype=numpy.float32)
+            ma = numpy.zeros(a)
+            mb = numpy.zeros(b)
+            mx = sh1.broadcast(sh2)
+            mc = ma + mb
+            self.assertEqual(mx, mc.shape)
+
     def test_shape_object_reshape(self):
         sh = ShapeObject((1, 2, 3), dtype=numpy.float32)
         sk = sh.reshape((6, 1, 1))
