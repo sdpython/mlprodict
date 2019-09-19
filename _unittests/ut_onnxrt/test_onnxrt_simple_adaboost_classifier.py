@@ -36,7 +36,7 @@ class TestOnnxrtSimpleAdaboostClassifier(ExtTestCase):
             n_estimators=3, algorithm='SAMME', random_state=42)
         clr.fit(X_train, y_train)
         X_test = X_test.astype(numpy.float32)
-        # X_test = numpy.vstack([X_test[:3], X_test[-3:]])
+        X_test = numpy.vstack([X_test[:3], X_test[-3:]])
         res0 = clr.predict(X_test).astype(numpy.float32)
         resp = clr.predict_proba(X_test).astype(numpy.float32)
 
