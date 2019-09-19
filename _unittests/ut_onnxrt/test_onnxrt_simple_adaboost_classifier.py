@@ -28,13 +28,15 @@ class TestOnnxrtSimpleAdaboostClassifier(ExtTestCase):
     def test_onnxt_iris_adaboost_classifier_lr(self):
         iris = load_iris()
         X, y = iris.data, iris.target
-        X_train, X_test, y_train, __ = train_test_split(X, y, random_state=11)
+        X_train, X_test, y_train, __ = train_test_split(
+            X, y, random_state=11, test_size=0.8)
         clr = AdaBoostClassifier(
-            base_estimator=LogisticRegression(solver='liblinear'),
-            n_estimators=3, algorithm='SAMME')
+            base_estimator=LogisticRegression(
+                solver='liblinear', random_state=42),
+            n_estimators=3, algorithm='SAMME', random_state=42)
         clr.fit(X_train, y_train)
         X_test = X_test.astype(numpy.float32)
-        X_test = numpy.vstack([X_test[:3], X_test[-3:]])
+        # X_test = numpy.vstack([X_test[:3], X_test[-3:]])
         res0 = clr.predict(X_test).astype(numpy.float32)
         resp = clr.predict_proba(X_test).astype(numpy.float32)
 

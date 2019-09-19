@@ -370,6 +370,17 @@ class OnnxInference:
         return self._run(inputs, clean_right_away=False, intermediate=intermediate,
                          verbose=verbose, node_time=node_time, fLOG=fLOG)
 
+    def display_sequence(self, verbose=1):
+        """
+        Shows the sequence of nodes to run if ``runtime=='python'``.
+        """
+        rows = []
+        rows.append("#node: {}".format(len(self.sequence_)))
+        for i, node in enumerate(self.sequence_):
+            if verbose >= 1:
+                rows.append("{}: {}".format(i, str(node)))
+        return "\n".join(rows)
+
     def _run_sequence_runtime(self, inputs, clean_right_away=False,
                               intermediate=False, verbose=0, node_time=False,
                               fLOG=None):

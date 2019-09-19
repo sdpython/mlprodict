@@ -13,6 +13,8 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.datasets import make_regression
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from skl2onnx import __version__ as skl2onnx_version
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import Int64TensorType
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
@@ -114,6 +116,21 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
                             dtype=numpy.float32, target_opset=10)
         X_test = X_test.astype(numpy.float32)
         oinf = OnnxInference(model_def)
+        res0 = clr.predict(X_test).astype(numpy.float32)
+        res1 = oinf.run({'X': X_test})
+        self.assertEqualArray(res0, res1['variable'].ravel(), decimal=5)
+
+    def test_onnxt_iris_adaboost_regressor_lr_ds2_10_int(self):
+        clr = AdaBoostRegressor(n_estimators=5)
+        model, X_test = fit_regression_model(clr, is_int=True)
+
+        itypes = [('X', Int64TensorType([None, X_test.shape[1]]))]
+        model_def = convert_sklearn(
+            model, initial_types=itypes, target_opset=10)
+        X_test = X_test.astype(numpy.float32)
+        oinf = OnnxInference(model_def)
+        seq = oinf.display_sequence()
+        self.assertNotEmpty(seq)
         res0 = clr.predict(X_test).astype(numpy.float32)
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel(), decimal=5)
