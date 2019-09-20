@@ -261,7 +261,13 @@ class XGBClassifierConverter(XGBConverter):
                                        ncl for v in attr_pairs['class_treeids']]
         class_labels = list(range(ncl))
 
-        attr_pairs['classlabels_int64s'] = class_labels
+        classes = xgb_node.classes_
+        if (numpy.issubdtype(classes.dtype, numpy.floating) or
+                numpy.issubdtype(classes.dtype, numpy.signedinteger)):
+            attr_pairs['classlabels_int64s'] = classes.astype('int')
+        else:
+            classes = numpy.array([s.encode('utf-8') for s in classes])
+            attr_pairs['classlabels_strings'] = classes
 
         if container.dtype == numpy.float64:
             op_name = "TreeEnsembleClassifierDouble"

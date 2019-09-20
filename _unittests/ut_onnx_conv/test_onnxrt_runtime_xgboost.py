@@ -19,6 +19,11 @@ def fct_cl2(y):
     return y
 
 
+def fct_cl3(y):
+    y[y == 0] = 6
+    return y
+
+
 def fct_id(y):
     return y
 
@@ -33,6 +38,9 @@ obj_classes = {
     'multi:softmax': (XGBClassifier, fct_id,
                       make_classification(n_features=7, n_classes=3,
                                           n_clusters_per_class=1)),
+    'multi:softmax2': (XGBClassifier, fct_cl3,
+                       make_classification(n_features=7, n_classes=3,
+                                           n_clusters_per_class=1)),
     'multi:softprob': (XGBClassifier, fct_id,
                        make_classification(n_features=7, n_classes=3,
                                            n_clusters_per_class=1)),
@@ -88,6 +96,9 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
                                          'label', 'probabilities'])
                         self.assertEqualArray(
                             exp, y['probabilities'], decimal=6)
+
+                        exp = clr.predict(X_test)
+                        self.assertEqualArray(exp, y['label'])
 
                     nb_tests += 1
 
