@@ -58,6 +58,11 @@ def summary_report(df, add_cols=None):
     for c in ['n_features', 'runtime']:
         if c in df.columns:
             indices.append(c)
+            if c == 'runtime':
+                df[c].fillna('-', inplace=True)
+    for c in df.columns:
+        if c.startswith('opset') or c in {'available'}:
+            df[c].fillna('?', inplace=True)
 
     # Adds information about the models in the index
     for c in df.columns:
@@ -94,6 +99,8 @@ def summary_report(df, add_cols=None):
                 df.columns, indices, col_values))
     piv.columns = indices + versions
     piv = piv[indices + list(reversed(versions))].copy()
+    for c in versions:
+        piv[c].fillna('-', inplace=True)
 
     if "available-ERROR" in df.columns:
 
