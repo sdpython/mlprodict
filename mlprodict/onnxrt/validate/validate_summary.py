@@ -91,7 +91,11 @@ def summary_report(df, add_cols=None):
     opsets = [c[1] for c in cols if isinstance(c[1], (int, float))]
 
     versions = ["opset%d" % i for i in opsets]
-    if len(piv.columns) != len(indices + versions):
+    last = piv.columns[-1]
+    if isinstance(last, tuple) and last == ('available', '?'):
+        versions.append('FAIL')
+    nbvalid = len(indices + versions)
+    if len(piv.columns) != nbvalid:
         raise RuntimeError(
             "Mismatch between {} != {}\n{}\n{}\n---\n{}\n{}\n{}".format(
                 len(piv.columns), len(indices + versions),
