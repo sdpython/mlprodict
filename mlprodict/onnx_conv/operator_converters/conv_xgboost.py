@@ -257,9 +257,8 @@ class XGBClassifierConverter(XGBConverter):
             # See https://github.com/dmlc/xgboost/blob/master/src/common/math.h#L35.
             attr_pairs['post_transform'] = "SOFTMAX"
             # attr_pairs['base_values'] = [base_score for n in range(ncl)]
-            attr_pairs['class_ids'] = [v %
-                                       ncl for v in attr_pairs['class_treeids']]
-        class_labels = list(range(ncl))
+            attr_pairs['class_ids'] = [v % ncl
+                                       for v in attr_pairs['class_treeids']]
 
         classes = xgb_node.classes_
         if (numpy.issubdtype(classes.dtype, numpy.floating) or
