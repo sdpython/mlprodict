@@ -137,7 +137,7 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
         name = row['name']
         problem = row['problem']
         scenario = row['scenario']
-        optim = row.get('optim', '')
+        optim = str(row.get('optim', '')).replace("nan", "")
         return link.format(name=name, problem=problem,
                            scenario=scenario, optim=optim)
 
