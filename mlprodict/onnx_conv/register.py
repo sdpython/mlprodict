@@ -5,6 +5,7 @@
 """
 import warnings
 import numbers
+import numpy
 from skl2onnx._parse import _parse_sklearn_classifier
 from skl2onnx.common.data_types import (
     SequenceType, DictionaryType, Int64TensorType, StringTensorType
