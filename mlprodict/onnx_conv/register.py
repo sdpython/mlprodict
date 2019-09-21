@@ -4,7 +4,52 @@
 @brief Shortcut to *onnx_conv*.
 """
 import warnings
+import numbers
+from skl2onnx._parse import _parse_sklearn_classifier
+from skl2onnx.common.data_types import (
+    SequenceType, DictionaryType, Int64TensorType, StringTensorType
+)
 from .scorers import register_scorers
+
+
+def _custom_parser_xgboost(scope, model, inputs, custom_parsers=None):
+    """
+    Custom parser for *XGBClassifier*.
+    """
+    if custom_parsers is not None and model in custom_parsers:
+        return custom_parsers[model](
+            scope, model, inputs, custom_parsers=custom_parsers)
+    if not all(isinstance(i, (numbers.Real, bool, numpy.bool_))
+               for i in model.classes_):
+        raise NotImplementedError(
+            "Current converter does not support string labels.")
+    return _parse_sklearn_classifier(scope, model, inputs)
+
+
+def _custom_parser_lightgbm(scope, model, inputs, custom_parsers=None):
+    """
+    Custom parser for *LGBMClassifier*.
+    """
+    if custom_parsers is not None and model in custom_parsers:
+        return custom_parsers[model](
+            scope, model, inputs, custom_parsers=custom_parsers)
+    if all(isinstance(i, (numbers.Real, bool, numpy.bool_))
+           for i in model.classes_):
+        label_type = Int64TensorType()
+    else:
+        label_type = StringTensorType()
+    output_label = scope.declare_local_variable(
+        'output_label', label_type)
+
+    this_operator = scope.declare_local_operator(
+        'LgbmClassifier', model)
+    this_operator.inputs = inputs
+    probability_map_variable = scope.declare_local_variable(
+        'output_probability', SequenceType(DictionaryType(
+            label_type, scope.tensor_type())))
+    this_operator.outputs.append(output_label)
+    this_operator.outputs.append(probability_map_variable)
+    return this_operator.outputs
 
 
 def _register_converters_lightgbm(exc=True):
@@ -33,7 +78,7 @@ def _register_converters_lightgbm(exc=True):
         from .operator_converters.conv_lightgbm import convert_lightgbm
         update_registered_converter(LGBMClassifier, 'LightGbmLGBMClassifier',
                                     calculate_linear_classifier_output_shapes,
-                                    convert_lightgbm)
+                                    convert_lightgbm, parser=_custom_parser_lightgbm)
         registered.append(LGBMClassifier)
 
     try:
@@ -81,7 +126,7 @@ def _register_converters_xgboost(exc=True):
         from .operator_converters.conv_xgboost import convert_xgboost
         update_registered_converter(XGBClassifier, 'XGBoostXGBClassifier',
                                     calculate_linear_classifier_output_shapes,
-                                    convert_xgboost)
+                                    convert_xgboost, parser=_custom_parser_xgboost)
         registered.append(XGBClassifier)
 
     try:
