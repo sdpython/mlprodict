@@ -65,8 +65,9 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
         oinf = OnnxInference(model_def)
         y = oinf.run({'X': X_test})
-        self.assertEqual(list(sorted(y)), ['label', 'probabilities'])
-        df = pandas.DataFrame(y['probabilities'])
+        self.assertEqual(list(sorted(y)),
+                         ['output_label', 'output_probability'])
+        df = pandas.DataFrame(y['output_probability'])
         self.assertEqual(df.shape, (X_test.shape[0], 2))
         self.assertEqual(exp.shape, (X_test.shape[0], 2))
         # self.assertEqualArray(exp, df.values, decimal=6)

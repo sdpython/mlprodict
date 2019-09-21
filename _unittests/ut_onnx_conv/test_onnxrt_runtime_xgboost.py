@@ -4,6 +4,7 @@
 import unittest
 from logging import getLogger
 import numpy
+from pandas import DataFrame
 from xgboost import XGBRegressor, XGBClassifier
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
@@ -93,12 +94,12 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
                     else:
                         exp = clr.predict_proba(X_test)
                         self.assertEqual(list(sorted(y)), [
-                                         'label', 'probabilities'])
-                        self.assertEqualArray(
-                            exp, y['probabilities'], decimal=6)
+                                         'output_label', 'output_probability'])
+                        got = DataFrame(y['output_probability']).values
+                        self.assertEqualArray(exp, got, decimal=6)
 
                         exp = clr.predict(X_test)
-                        self.assertEqualArray(exp, y['label'])
+                        self.assertEqualArray(exp, y['output_label'])
 
                     nb_tests += 1
 
