@@ -34,6 +34,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @unittest_require_at_least(onnx, "1.5.29")
     def test_onnxt_iris_adaboost_regressor_dt(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -54,6 +55,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel())
 
+    @unittest_require_at_least(onnx, "1.5.29")
     def test_onnxt_iris_adaboost_regressor_dt_10(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -74,6 +76,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel())
 
+    @unittest_require_at_least(onnx, "1.5.29")
     def test_onnxt_iris_adaboost_regressor_rf(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -91,6 +94,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel(), decimal=5)
 
+    @unittest_require_at_least(onnx, "1.5.29")
     def test_onnxt_iris_adaboost_regressor_lr(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -108,6 +112,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel(), decimal=5)
 
+    @unittest_require_at_least(onnx, "1.5.29")
     def test_onnxt_iris_adaboost_regressor_lr_ds2_10(self):
         clr = AdaBoostRegressor(n_estimators=5)
         model, X_test = fit_regression_model(clr)
@@ -120,6 +125,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel(), decimal=5)
 
+    @unittest_require_at_least(onnx, "1.5.29")
     def test_onnxt_iris_adaboost_regressor_lr_ds2_10_int(self):
         clr = AdaBoostRegressor(n_estimators=5)
         model, X_test = fit_regression_model(clr, is_int=True)
