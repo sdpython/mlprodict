@@ -77,9 +77,15 @@ def _register_converters_lightgbm(exc=True):
     if LGBMClassifier is not None:
         from .shape_calculators.conv_lightgbm import calculate_linear_classifier_output_shapes
         from .operator_converters.conv_lightgbm import convert_lightgbm
-        update_registered_converter(LGBMClassifier, 'LgbmClassifier',
-                                    calculate_linear_classifier_output_shapes,
-                                    convert_lightgbm, parser=_custom_parser_lightgbm)
+        try:
+            update_registered_converter(LGBMClassifier, 'LgbmClassifier',
+                                        calculate_linear_classifier_output_shapes,
+                                        convert_lightgbm, parser=_custom_parser_lightgbm)
+        except TypeError:
+            # skl2onnx <= 1.5
+            update_registered_converter(LGBMClassifier, 'LgbmClassifier',
+                                        calculate_linear_classifier_output_shapes,
+                                        convert_lightgbm)
         registered.append(LGBMClassifier)
 
     try:
@@ -125,9 +131,15 @@ def _register_converters_xgboost(exc=True):
     if XGBClassifier is not None:
         from skl2onnx.common.shape_calculator import calculate_linear_classifier_output_shapes
         from .operator_converters.conv_xgboost import convert_xgboost
-        update_registered_converter(XGBClassifier, 'XGBoostXGBClassifier',
-                                    calculate_linear_classifier_output_shapes,
-                                    convert_xgboost, parser=_custom_parser_xgboost)
+        try:
+            update_registered_converter(XGBClassifier, 'XGBoostXGBClassifier',
+                                        calculate_linear_classifier_output_shapes,
+                                        convert_xgboost, parser=_custom_parser_xgboost)
+        except TypeError:
+            # skl2onnx <= 1.5
+            update_registered_converter(XGBClassifier, 'XGBoostXGBClassifier',
+                                        calculate_linear_classifier_output_shapes,
+                                        convert_xgboost)
         registered.append(XGBClassifier)
 
     try:
