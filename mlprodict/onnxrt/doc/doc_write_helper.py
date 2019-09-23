@@ -20,11 +20,16 @@ from .doc_helper import visual_rst_template
 
 def _make_opset(row):
     opsets = []
-    for k, v in row.to_dict().items():
+    if hasattr(row, 'to_dict'):
+        row = row.to_dict()
+    for k, v in row.items():
         if k.startswith('opset'):
-            vv = list(_ for _ in v if 'OK' in str(v))
-            if len(vv) > 0:
-                opsets.append(k.replace("opset", "o"))
+            if isinstance(v, int):
+                opsets.append('o%d' % v)
+            else:
+                vv = list(_ for _ in v if 'OK' in str(v))
+                if len(vv) > 0:
+                    opsets.append(k.replace("opset", "o"))
     vals = list(sorted(opsets))
     return "-".join(vals)
 

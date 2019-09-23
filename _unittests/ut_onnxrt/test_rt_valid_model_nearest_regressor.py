@@ -11,6 +11,7 @@ from sklearn.utils.testing import ignore_warnings
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
+import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference

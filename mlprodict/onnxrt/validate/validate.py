@@ -349,15 +349,18 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                 except TypeError as e:
                     if debug:
                         raise
-                    import pprint
-                    raise RuntimeError(
-                        "Unable to instantiate model '{}'.\nextra=\n{}".format(
-                            model.__name__, pprint.pformat(extra))) from e
+                    if "__init__() missing" not in str(e):
+                        import pprint
+                        raise RuntimeError(
+                            "Unable to instantiate model '{}'.\nextra=\n{}".format(
+                                model.__name__, pprint.pformat(extra))) from e
+                    yield obs.copy()
+                    continue
 
                 if not _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
                                     Xort_test, init_types, store_models,
                                     debug, verbose, fLOG):
-                    yield obs
+                    yield obs.copy()
                     continue
 
                 # runtime
@@ -367,7 +370,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                     benchmark, debug, verbose, time_kwargs,
                     skip_long_test, fLOG)
                 if isinstance(ypred, Exception):
-                    yield obs
+                    yield obs.copy()
                     continue
 
                 # converting
@@ -426,7 +429,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                                     fLOG(pprint.pformat(obs_op))
                                     raise
                                 obs_op["_4convert_exc"] = e
-                                yield obs_op
+                                yield obs_op.copy()
                                 continue
 
                             if all_conv_options.get('optim', '') == 'cdist':
@@ -490,7 +493,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                                                         store_models=store_models, dump_all=dump_all,
                                                         skip_long_test=skip_long_test)
                                 else:
-                                    yield obs_op
+                                    yield obs_op.copy()
 
 
 def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
@@ -820,4 +823,4 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
 
             obs.update(row)
             obs.update(add_versions)
-            yield obs
+            yield obs.copy()

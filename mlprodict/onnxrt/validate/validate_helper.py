@@ -201,8 +201,18 @@ def dump_into_folder(dump_folder, obs_op=None, is_error=True,
     @param      is_error        is it an error or not?
     @kwargs                     kwargs
     """
+    optim = obs_op.get('optim', '')
+    optim = str(optim)
+    optim = optim.replace("<class 'sklearn.", "")
+    optim = optim.replace(" ", "")
+    optim = optim.replace(">", "")
+    optim = optim.replace("=", "")
+    optim = optim.replace("{", "")
+    optim = optim.replace("}", "")
+    optim = optim.replace(":", "")
+    optim = optim.replace("'", "")
     parts = (obs_op['runtime'], obs_op['name'], obs_op['scenario'],
-             obs_op['problem'], obs_op.get('optim', ''),
+             obs_op['problem'], optim,
              "op" + str(obs_op.get('opset', '-')),
              "nf" + str(obs_op.get('n_features', '-')))
     name = "dump-{}-{}.pkl".format(
