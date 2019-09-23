@@ -5,7 +5,7 @@ import unittest
 from logging import getLogger
 import numpy
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from sklearn.datasets import load_iris
@@ -57,6 +57,7 @@ class TestRtValidateKNeighborsRegressor(ExtTestCase):
         self.assertIn('variable', res)
         self.assertEqual(res['variable'].shape, (38, ))
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_KNeighborsRegressor_python_validate(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

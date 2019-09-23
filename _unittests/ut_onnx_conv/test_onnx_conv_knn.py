@@ -203,6 +203,7 @@ class TestOnnxConvKNN(ExtTestCase):
     def test_onnx_test_knn_single_regressor32(self):
         self.onnx_test_knn_single_regressor(numpy.float32)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_test_knn_single_regressor32_cdist(self):
         self.onnx_test_knn_single_regressor(numpy.float32, optim='cdist')
 
