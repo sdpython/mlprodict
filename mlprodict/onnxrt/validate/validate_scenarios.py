@@ -98,6 +98,8 @@ def build_custom_scenarios():
         ],
         KNeighborsRegressor: [
             ('default', {'algorithm': 'brute'}),
+            ('cdist', {'algorithm': 'brute'},
+             {'conv_options': [{}, {KNeighborsRegressor: {'optim': 'cdist'}}]}),
             ('weights', {'algorithm': 'brute', 'weights': 'distance'}),
             ('kd_tree', {'algorithm': 'kd_tree'}),
             ('mink', {'algorithm': 'kd_tree',

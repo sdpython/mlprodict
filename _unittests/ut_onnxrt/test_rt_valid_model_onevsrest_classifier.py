@@ -37,7 +37,7 @@ class TestRtValidateOneVsRestClassifier(ExtTestCase):
             verbose, models={"OneVsRestClassifier"}, opset_min=9,
             opset_max=11, fLOG=myprint, benchmark=True,
             runtime='python', debug=debug,
-            filter_exp=lambda m, p: 'm-cl' in p))
+            filter_exp=lambda m, p: True or 'm-cl' in p))
         self.assertGreater(len(rows), 1)
         self.assertIn('skl_nop', rows[0])
         self.assertIn('onx_size', rows[-1])

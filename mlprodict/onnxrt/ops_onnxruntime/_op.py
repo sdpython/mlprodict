@@ -199,5 +199,17 @@ class OpRunOnnxRuntime:
         """
         inputs = {name: val for name, val in zip(self.inputs, args)}
 
-        res = self.sess_.run(None, inputs, self.run_options)
+        try:
+            res = self.sess_.run(None, inputs, self.run_options)
+        except RuntimeError as e:
+            dtypes = {k: v.dtype for k, v in inputs.items()}
+            shapes = {k: v.shape for k, v in inputs.items()}
+            exp = [_.name for _ in self.sess_.get_inputs()]
+            exp_types = [_.type for _ in self.sess_.get_inputs()]
+            raise RuntimeError(
+                "Predictions failed. List of inputs: {}, class={}"
+                "\ndtypes={}\nshapes={}\nexpected={}\nexpected={}\n"
+                "exception={}".format(
+                    list(sorted(inputs)), self.alg_class, dtypes,
+                    shapes, exp, exp_types, e)) from e
         return tuple(res)

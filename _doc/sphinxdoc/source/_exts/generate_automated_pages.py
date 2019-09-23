@@ -18,7 +18,7 @@ from pyquickhelper.loghelper import run_cmd
 from pyquickhelper.loghelper.run_cmd import get_interpreter_path
 from mlprodict.onnxrt.validate.validate_helper import sklearn_operators
 from mlprodict.onnxrt.doc.doc_write_helper import (
-    split_columns_subsets, build_key_split, filter_rows
+    split_columns_subsets, build_key_split, filter_rows, _make_opset
 )
 
 
@@ -135,13 +135,15 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
 
     def make_link(row):
-        link = ":ref:`{name} <l-{name}-{problem}-{scenario}-{optim}>`"
+        link = ":ref:`{name} <l-{name}-{problem}-{scenario}-{optim}-{opset}>`"
         name = row['name']
         problem = row['problem']
         scenario = row['scenario']
         optim = str(row.get('optim', '')).replace("nan", "")
+        opset = _make_opset(row)
         return link.format(name=name, problem=problem,
-                           scenario=scenario, optim=optim)
+                           scenario=scenario, optim=optim,
+                           opset=opset)
 
     piv['name'] = piv.apply(lambda row: make_link(row), axis=1)
     piv.reset_index(drop=True, inplace=True)
@@ -253,5 +255,15 @@ def setup(app):
 
 if __name__ == '__main__':
     # write_page_onnxrt_benches_python(None, white_list={'AdaBoostRegressor'})
+    write_page_onnxrt_benches_python(
+        None, white_list={
+            # 'LGBMClassifier',
+            # 'ARDRegression',
+            'LogisticRegression'
+        })
     write_page_onnxrt_benches_onnxruntime1(
-        None, white_list={'LGBMClassifier', 'ARDRegression', 'LogisticRegression'})
+        None, white_list={
+            # 'LGBMClassifier',
+            # 'ARDRegression',
+            'LogisticRegression'
+        })

@@ -139,7 +139,7 @@ def _onnx_cdist_manhattan(X, Y, dtype=None, op_version=None, **kwargs):
 
 def onnx_nearest_neighbors_indices(X, Y, k, metric='euclidean', dtype=None,
                                    op_version=None, keep_distances=False,
-                                   **kwargs):
+                                   optim=None, **kwargs):
     """
     Retrieves the nearest neigbours :epkg:`ONNX`.
     :param X: features or :epkg:`OnnxOperatorMixin`
@@ -149,11 +149,20 @@ def onnx_nearest_neighbors_indices(X, Y, k, metric='euclidean', dtype=None,
     :param dtype: numerical type
     :param op_version: opset version
     :param keep_distance: returns the distances as well (second position)
-    :param kwargs: additional parameters such as *op_version*
+    :param optim: implements specific optimisations,
+        ``'cdist'`` replaces *Scan* operator by operator *CDist*
+    :param kwargs: additional parameters for function @see fn onnx_cdist
     :return: top indices
     """
-    dist = onnx_cdist(X, Y, metric=metric, dtype=dtype,
-                      op_version=op_version, **kwargs)
+    if optim == 'cdist':
+        from skl2onnx.algebra.custom_ops import OnnxCDist
+        dist = OnnxCDist(X, Y, metric=metric, op_version=op_version,
+                         **kwargs)
+    elif optim is None:
+        dist = onnx_cdist(X, Y, metric=metric, dtype=dtype,
+                          op_version=op_version, **kwargs)
+    else:
+        raise ValueError("Unknown optimisation '{}'.".format(optim))
     neg_dist = OnnxMul(dist, numpy.array(
         [-1], dtype=dtype), op_version=op_version)
     node = OnnxTopK(neg_dist, numpy.array([k], dtype=numpy.int64),
@@ -177,6 +186,8 @@ def convert_nearest_neighbors_regressor(scope, operator, container):
     dtype = container.dtype
     out = operator.outputs
 
+    options = container.get_options(op, dict(optim=None))
+
     single_reg = (len(op._y.shape) == 1 or len(
         op._y.shape) == 2 and op._y.shape[1] == 1)
     ndim = 1 if single_reg else op._y.shape[1]
@@ -195,12 +206,15 @@ def convert_nearest_neighbors_regressor(scope, operator, container):
     if op.weights == 'uniform':
         top_indices = onnx_nearest_neighbors_indices(
             X, neighb, k, metric=metric, dtype=dtype,
-            op_version=opv, **distance_kwargs)
+            op_version=opv, optim=options.get('optim', None),
+            **distance_kwargs)
         top_distances = None
     elif op.weights == 'distance':
         top_indices, top_distances = onnx_nearest_neighbors_indices(
             X, neighb, k, metric=metric, dtype=dtype,
-            op_version=opv, keep_distances=True, **distance_kwargs)
+            op_version=opv, keep_distances=True,
+            optim=options.get('optim', None),
+            **distance_kwargs)
     else:
         raise RuntimeError(
             "Unable to convert KNeighborsRegressor when weights is callable.")

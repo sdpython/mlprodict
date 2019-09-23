@@ -18,6 +18,17 @@ from ..validate.validate_summary import _clean_values_optim
 from .doc_helper import visual_rst_template
 
 
+def _make_opset(row):
+    opsets = []
+    for k, v in row.to_dict().items():
+        if k.startswith('opset'):
+            vv = list(_ for _ in v if 'OK' in str(v))
+            if len(vv) > 0:
+                opsets.append(k.replace("opset", "o"))
+    vals = list(sorted(opsets))
+    return "-".join(vals)
+
+
 def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
     """
     Returns content for pages such as
@@ -42,6 +53,7 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         model = row['MODEL']
         method = row['method_name']
         optim = row.get('optim', '')
+        opset = _make_opset(row)
         stats_skl = inspect_sklearn_model(model)
         stats_onx = onnx_statistics(row['ONNX'])
         stats = {'skl_' + k: v for k, v in stats_skl.items()}
@@ -55,7 +67,7 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         if title in done:
             continue
         done.add(title)
-        link = "-".join([name, problem, scenario, clean_optim])
+        link = "-".join([name, problem, scenario, clean_optim, opset])
 
         optim_param = ("Model was converted with additional parameter: ``{}``.".format(optim)
                        if optim else "")

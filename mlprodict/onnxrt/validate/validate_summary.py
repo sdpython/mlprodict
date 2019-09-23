@@ -38,6 +38,8 @@ def summary_report(df, add_cols=None):
             if all(map(lambda x: isinstance(x, num_types),
                        values)):
                 mi, ma = min(values), max(values)
+                if numpy.isnan(mi) and numpy.isnan(ma):
+                    return ""
                 if mi == ma:
                     return mi
                 return '[{},{}]'.format(mi, ma)
