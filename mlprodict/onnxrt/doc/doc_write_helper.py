@@ -5,7 +5,7 @@
 from logging import getLogger
 from textwrap import indent, dedent
 from jinja2 import Template
-from pandas import DataFrame
+from pandas import DataFrame, notnull
 from sklearn.linear_model import LinearRegression
 from pyquickhelper.loghelper import noLOG
 from pyquickhelper.pandashelper.tblformat import df2rst
@@ -130,10 +130,47 @@ def split_columns_subsets(df):
     common = [c for c in ['name', 'problem',
                           'scenario', 'optim'] if c in df.columns]
     subsets = []
-    subsets.append([c for c in df.columns if 'opset' in c])
-    subsets.append([c for c in df.columns if 'ERROR' in c])
+    subsets.append(
+        [c for c in df.columns if 'opset' in c or 'onx_nnodes' == c])
+    subsets.append([c for c in df.columns if 'ERROR' in c or 'opset' in c])
     subsets.append([c for c in df.columns if c.startswith(
-        'skl_') or c.startswith('onx_')])
-    subsets.append([c for c in df.columns if 'N=' in c])
+        'skl_') or c.startswith('onx_') or 'opset' in c])
+    subsets.append([c for c in df.columns if 'N=' in c or 'opset' in c])
     subsets = [s for s in subsets if len(s) > 0]
     return common, subsets
+
+
+def build_key_split(key, index):
+    """
+    Used for documentation.
+    """
+    try:
+        new_key = str(key).split('`')[1].split('<')[0].strip()
+    except IndexError:
+        new_key = str(key)
+    if 'SVC' in new_key or 'SVR' in new_key:
+        return 'SVM'
+    if 'Neighbors' in new_key:
+        return 'Neighbors'
+    for begin in ["Lasso", "Select", "Label", 'Tfidf', 'Feature',
+                  'Bernoulli', 'MultiTask', 'OneVs', 'PLS',
+                  'Sparse', 'Spectral', 'MiniBatch',
+                  'Bayesian']:
+        if new_key.startswith(begin):
+            return begin + '...'
+    if new_key.endswith("NB"):
+        return "...NB"
+    for end in ['CV', 'Regressor', 'Classifier']:
+        if new_key.endswith(end):
+            new_key = new_key[:-len(end)]
+    return new_key
+
+
+def filter_rows(df):
+    """
+    Used for documentation.
+    """
+    for c in ['ERROR-msg', 'RT/SKL-N=1']:
+        if c in df.columns:
+            return df[df[c].apply(lambda x: notnull(x) and x not in (None, '', 'nan'))]
+    return df

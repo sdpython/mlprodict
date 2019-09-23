@@ -130,5 +130,4 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
         for _, v in res.items():
             rows.extend(v)
         return rows
-    else:
-        return res
+    return res

@@ -4,7 +4,7 @@ Extensions for mlprodict.
 import os
 from textwrap import dedent
 from logging import getLogger
-from pandas import DataFrame, read_excel, read_csv, concat, Series, notnull
+from pandas import DataFrame, read_excel, read_csv, concat, Series
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from sklearn.ensemble import AdaBoostRegressor
@@ -17,7 +17,9 @@ from pyquickhelper.pandashelper import df2rst
 from pyquickhelper.loghelper import run_cmd
 from pyquickhelper.loghelper.run_cmd import get_interpreter_path
 from mlprodict.onnxrt.validate.validate_helper import sklearn_operators
-from mlprodict.onnxrt.doc.doc_write_helper import split_columns_subsets
+from mlprodict.onnxrt.doc.doc_write_helper import (
+    split_columns_subsets, build_key_split, filter_rows
+)
 
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning,
@@ -155,34 +157,6 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
     logger.info("[mlprodict] write '{}'.".format(whe))
     print("[mlprodict-sphinx] write '{}'".format(whe))
-
-    def build_key_split(key, index):
-        try:
-            new_key = str(key).split('`')[1].split('<')[0].strip()
-        except IndexError:
-            new_key = str(key)
-        if 'SVC' in new_key or 'SVR' in new_key:
-            return 'SVM'
-        if 'Neighbors' in new_key:
-            return 'Neighbors'
-        for begin in ["Lasso", "Select", "Label", 'Tfidf', 'Feature',
-                      'Bernoulli', 'MultiTask', 'OneVs', 'PLS',
-                      'Sparse', 'Spectral', 'MiniBatch',
-                      'Bayesian']:
-            if new_key.startswith(begin):
-                return begin + '...'
-        if new_key.endswith("NB"):
-            return "...NB"
-        for end in ['CV', 'Regressor', 'Classifier']:
-            if new_key.endswith(end):
-                new_key = new_key[:-len(end)]
-        return new_key
-
-    def filter_rows(df):
-        for c in ['ERROR-msg', 'RT/SKL-N=1']:
-            if c in df.columns:
-                return df[df[c].apply(lambda x: notnull(x) and x not in (None, '', 'nan'))]
-        return df
 
     with open(whe, 'w', encoding='utf-8') as f:
         title = "Available of scikit-learn model for runtime {0}".format(

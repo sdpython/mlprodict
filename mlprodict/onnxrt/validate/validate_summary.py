@@ -2,6 +2,7 @@
 @file
 @brief Summarizes results produces by function in *validate.py*.
 """
+import decimal
 import numpy
 import pandas
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
@@ -30,9 +31,16 @@ def summary_report(df, add_cols=None):
 
     The outcome can be seen at page about :ref:`l-onnx-pyrun`.
     """
+    num_types = (int, float, decimal.Decimal, numpy.number)
 
     def aggfunc(values):
         if len(values) != 1:
+            if all(map(lambda x: isinstance(x, num_types),
+                       values)):
+                mi, ma = min(values), max(values)
+                if mi == ma:
+                    return mi
+                return '[{},{}]'.format(mi, ma)
             values = [str(_).replace("\n", " ").replace('\r', '').strip(" ")
                       for _ in values]
             values = [_ for _ in values if _]
@@ -65,6 +73,7 @@ def summary_report(df, add_cols=None):
             df[c].fillna('?', inplace=True)
 
     # Adds information about the models in the index
+    indices2 = []
     for c in df.columns:
         if (isinstance(c, str) and len(c) >= 5 and (
                 c.startswith("onx_") or c.startswith("skl_"))):
@@ -77,11 +86,16 @@ def summary_report(df, add_cols=None):
             else:
                 defval = ''
             df[c].fillna(defval, inplace=True)
-            indices.append(c)
+            if c.startswith('skl_'):
+                indices.append(c)
+            else:
+                indices2.append(c)
 
+    columns = ['opset']
+    indices = indices + indices2
     try:
         piv = pandas.pivot_table(df, values=col_values,
-                                 index=indices, columns='opset',
+                                 index=indices, columns=columns,
                                  aggfunc=aggfunc).reset_index(drop=False)
     except KeyError as e:
         raise RuntimeError("Issue with keys={}, values={}\namong {}.".format(

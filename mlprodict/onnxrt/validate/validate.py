@@ -371,7 +371,14 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                     continue
 
                 # converting
-                for opset in opsets:
+                if None in opsets:
+                    set_opsets = [None] + list(sorted((_ for _ in opsets if _ is not None),
+                                                      reverse=True))
+                else:
+                    set_opsets = list(sorted(opsets, reverse=True))
+                bench_memo = []
+
+                for opset in set_opsets:
                     if verbose >= 2 and fLOG is not None:
                         fLOG("[enumerate_compatible_opset] opset={} init_types={}".format(
                             opset, init_types))
@@ -452,13 +459,20 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                                     if verbose >= 2 and fLOG is not None:
                                         fLOG("[enumerate_compatible_opset] onnx nodes: {}".format(
                                             len(conv.graph.node)))
+                                stat_onnx = onnx_statistics(conv)
                                 obs_op.update(
-                                    {'onx_' + k: v for k, v in onnx_statistics(conv).items()})
+                                    {'onx_' + k: v for k, v in stat_onnx.items()})
 
                                 # opset_domain
                                 for op_imp in list(conv.opset_import):
                                     obs_op['domain_opset_%s' %
                                            op_imp.domain] = op_imp.version
+
+                                unique = set(stat_onnx.items())
+                                run_benchmark = benchmark and all(
+                                    map(lambda u: unique != u, bench_memo))
+                                if run_benchmark:
+                                    bench_memo.append(unique)
 
                                 # prediction
                                 if check_runtime:
@@ -470,7 +484,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                                                         output_index=output_index,
                                                         ypred=ypred, Xort_test=Xort_test,
                                                         model=model, dump_folder=dump_folder,
-                                                        benchmark=benchmark and opset == opsets[-1],
+                                                        benchmark=run_benchmark,
                                                         node_time=node_time, time_kwargs=time_kwargs,
                                                         fLOG=fLOG, verbose=verbose,
                                                         store_models=store_models, dump_all=dump_all,
