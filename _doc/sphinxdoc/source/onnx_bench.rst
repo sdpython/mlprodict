@@ -183,6 +183,7 @@ it is *1/r* faster than *scikit-learn*.
 
     for i in range(1, len(ax)):
         ax[i].set_yticklabels([])
+        ax[i].set_ylim([min(x) - 1, max(x) + 1])
     ax[0].set_yticks(x)
     ax[0].set_yticklabels(dfp['label'])
     fig.subplots_adjust(left=0.35)

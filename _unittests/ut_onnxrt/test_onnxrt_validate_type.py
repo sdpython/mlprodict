@@ -83,11 +83,10 @@ class TestOnnxrtValidateType(ExtTestCase):
             for dt in dtypes:
                 if dt in (dtype, numpy.int32, numpy.int64, numpy.str):
                     continue
-                else:
-                    raise AssertionError(
-                        'Issue with one model {}-{}-{} ({})\n----\n{}\n---\n{}'.format(
-                            row['name'], row['problem'], dtypes, dtype,
-                            pprint.pformat(row), pprint.pformat(outputs)))
+                raise AssertionError(
+                    'Issue with one model {}-{}-{} ({})\n----\n{}\n---\n{}'.format(
+                        row['name'], row['problem'], dtypes, dtype,
+                        pprint.pformat(row), pprint.pformat(outputs)))
             rows.append(row)
 
         self.assertGreater(len(rows), 1)
