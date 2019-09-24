@@ -359,7 +359,8 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
 
                 if not _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
                                     Xort_test, init_types, store_models,
-                                    debug, verbose, fLOG):
+                                    debug, verbose, dump_folder,
+                                    fLOG):
                     yield obs.copy()
                     continue
 
@@ -373,127 +374,145 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                     yield obs.copy()
                     continue
 
-                # converting
-                if None in opsets:
-                    set_opsets = [None] + list(sorted((_ for _ in opsets if _ is not None),
-                                                      reverse=True))
-                else:
-                    set_opsets = list(sorted(opsets, reverse=True))
-                bench_memo = []
+                for run_obs in _call_runtime_opset(
+                        obs_op=obs_op.copy(), conv=conv, opset=opset, debug=debug,
+                        new_conv_options=new_conv_options,
+                        model=model, prob=prob, scenario=scenario,
+                        extra=extra, all_conv_options=all_conv_options,
+                        init_types=init_types, inst=inst,
+                        optimisations=optimisations, verbose=verbose,
+                        store_models=store_models, benchmark=benchmark,
+                        dump_folder=dump_folder, runtime=runtime,
+                        fLOG=fLOG):
+                    yield run_obs
 
-                for opset in set_opsets:
-                    if verbose >= 2 and fLOG is not None:
-                        fLOG("[enumerate_compatible_opset] opset={} init_types={}".format(
-                            opset, init_types))
-                    obs_op = obs.copy()
-                    if opset is not None:
-                        obs_op['opset'] = opset
 
-                    if len(init_types) != 1:
-                        raise NotImplementedError("Multiple types are is not implemented: "
-                                                  "{}.".format(init_types))
+def _call_conv_runtime_opset(
+        obs, conv, opset, debug, new_conv_options,
+        model, prob, scenario, extra, all_conv_options,
+        init_types, inst, optimisations, verbose, store_models,
+        benchmark, dump_folder, runtime, fLOG):
+    # Calls the conversion and runtime for different opets
+    if None in opsets:
+        set_opsets = [None] + list(sorted((_ for _ in opsets if _ is not None),
+                                          reverse=True))
+    else:
+        set_opsets = list(sorted(opsets, reverse=True))
+    bench_memo = []
 
-                    if not isinstance(runtime, list):
-                        runtime = [runtime]
+    for opset in set_opsets:
+        if verbose >= 2 and fLOG is not None:
+            fLOG("[enumerate_compatible_opset] opset={} init_types={}".format(
+                opset, init_types))
+        obs_op = obs.copy()
+        if opset is not None:
+            obs_op['opset'] = opset
 
-                    obs_op_0c = obs_op.copy()
-                    for aoptions in new_conv_options:
-                        obs_op = obs_op_0c.copy()
-                        all_conv_options = {} if conv_options is None else conv_options.copy()
-                        all_conv_options = _merge_options(
-                            all_conv_options, aoptions)
-                        obs_op['conv_options'] = all_conv_options
+        if len(init_types) != 1:
+            raise NotImplementedError("Multiple types are is not implemented: "
+                                      "{}.".format(init_types))
 
-                        if (filter_scenario is not None and
-                                not filter_scenario(model, prob, scenario,
-                                                    extra, all_conv_options)):
-                            continue
+        if not isinstance(runtime, list):
+            runtime = [runtime]
 
-                        for rt in runtime:
-                            def fct_conv(itt=inst, it=init_types[0][1], ops=opset,
-                                         options=all_conv_options):
-                                return to_onnx(itt, it, target_opset=ops, options=options,
-                                               dtype=init_types[0][1],
-                                               rewrite_ops=rt in ('', None, 'python'))
+        obs_op_0c = obs_op.copy()
+        for aoptions in new_conv_options:
+            obs_op = obs_op_0c.copy()
+            all_conv_options = {} if conv_options is None else conv_options.copy()
+            all_conv_options = _merge_options(
+                all_conv_options, aoptions)
+            obs_op['conv_options'] = all_conv_options
 
-                            if verbose >= 2 and fLOG is not None:
-                                fLOG(
-                                    "[enumerate_compatible_opset] conversion to onnx")
-                            try:
-                                conv, t4 = _measure_time(fct_conv)[:2]
-                                obs_op["convert_time"] = t4
-                            except (RuntimeError, IndexError, AttributeError, TypeError,
-                                    ValueError) as e:
-                                if debug:
-                                    import pprint
-                                    fLOG(pprint.pformat(obs_op))
-                                    raise
-                                obs_op["_4convert_exc"] = e
-                                yield obs_op.copy()
-                                continue
+            if (filter_scenario is not None and
+                    not filter_scenario(model, prob, scenario,
+                                        extra, all_conv_options)):
+                continue
 
-                            if all_conv_options.get('optim', '') == 'cdist':
-                                check_cdist = [_ for _ in str(
-                                    conv).split('\n') if 'CDist' in _]
-                                check_scan = [_ for _ in str(
-                                    conv).split('\n') if 'Scan' in _]
-                                if len(check_cdist) == 0 and len(check_scan) > 0:
-                                    raise RuntimeError("Operator CDist was not used in\n{}"
-                                                       "".format(conv))
+            for rt in runtime:
+                def fct_conv(itt=inst, it=init_types[0][1], ops=opset,
+                             options=all_conv_options):
+                    return to_onnx(itt, it, target_opset=ops, options=options,
+                                   dtype=init_types[0][1],
+                                   rewrite_ops=rt in ('', None, 'python'))
 
-                            obs_op0 = obs_op.copy()
-                            for optimisation in optimisations:
-                                obs_op = obs_op0.copy()
-                                if optimisation is not None:
-                                    if optimisation == 'onnx':
-                                        obs_op['optim'] = optimisation
-                                        if len(aoptions) != 0:
-                                            obs_op['optim'] += '-' + \
-                                                _dictionary2str(aoptions)
-                                        conv = onnx_optimisations(conv)
-                                    else:
-                                        raise ValueError("Unknown optimisation option '{}' (extra={})"
-                                                         "".format(optimisation, extras))
-                                else:
-                                    obs_op['optim'] = _dictionary2str(aoptions)
+                if verbose >= 2 and fLOG is not None:
+                    fLOG(
+                        "[enumerate_compatible_opset] conversion to onnx")
+                try:
+                    conv, t4 = _measure_time(fct_conv)[:2]
+                    obs_op["convert_time"] = t4
+                except (RuntimeError, IndexError, AttributeError, TypeError,
+                        ValueError) as e:
+                    if debug:
+                        import pprint
+                        fLOG(pprint.pformat(obs_op))
+                        raise
+                    obs_op["_4convert_exc"] = e
+                    yield obs_op.copy()
+                    continue
 
-                                if store_models:
-                                    obs_op['ONNX'] = conv
-                                    if verbose >= 2 and fLOG is not None:
-                                        fLOG("[enumerate_compatible_opset] onnx nodes: {}".format(
-                                            len(conv.graph.node)))
-                                stat_onnx = onnx_statistics(conv)
-                                obs_op.update(
-                                    {'onx_' + k: v for k, v in stat_onnx.items()})
+                if all_conv_options.get('optim', '') == 'cdist':
+                    check_cdist = [_ for _ in str(
+                        conv).split('\n') if 'CDist' in _]
+                    check_scan = [_ for _ in str(
+                        conv).split('\n') if 'Scan' in _]
+                    if len(check_cdist) == 0 and len(check_scan) > 0:
+                        raise RuntimeError("Operator CDist was not used in\n{}"
+                                           "".format(conv))
 
-                                # opset_domain
-                                for op_imp in list(conv.opset_import):
-                                    obs_op['domain_opset_%s' %
-                                           op_imp.domain] = op_imp.version
+                obs_op0 = obs_op.copy()
+                for optimisation in optimisations:
+                    obs_op = obs_op0.copy()
+                    if optimisation is not None:
+                        if optimisation == 'onnx':
+                            obs_op['optim'] = optimisation
+                            if len(aoptions) != 0:
+                                obs_op['optim'] += '-' + \
+                                    _dictionary2str(aoptions)
+                            conv = onnx_optimisations(conv)
+                        else:
+                            raise ValueError("Unknown optimisation option '{}' (extra={})"
+                                             "".format(optimisation, extras))
+                    else:
+                        obs_op['optim'] = _dictionary2str(aoptions)
 
-                                unique = set(stat_onnx.items())
-                                run_benchmark = benchmark and all(
-                                    map(lambda u: unique != u, bench_memo))
-                                if run_benchmark:
-                                    bench_memo.append(unique)
+                    if store_models:
+                        obs_op['ONNX'] = conv
+                        if verbose >= 2 and fLOG is not None:
+                            fLOG("[enumerate_compatible_opset] onnx nodes: {}".format(
+                                len(conv.graph.node)))
+                    stat_onnx = onnx_statistics(conv)
+                    obs_op.update(
+                        {'onx_' + k: v for k, v in stat_onnx.items()})
 
-                                # prediction
-                                if check_runtime:
-                                    yield _call_runtime(obs_op=obs_op.copy(), conv=conv, opset=opset, debug=debug,
-                                                        runtime=rt, inst=inst,
-                                                        X_test=X_test, y_test=y_test,
-                                                        init_types=init_types,
-                                                        method_name=method_name,
-                                                        output_index=output_index,
-                                                        ypred=ypred, Xort_test=Xort_test,
-                                                        model=model, dump_folder=dump_folder,
-                                                        benchmark=run_benchmark,
-                                                        node_time=node_time, time_kwargs=time_kwargs,
-                                                        fLOG=fLOG, verbose=verbose,
-                                                        store_models=store_models, dump_all=dump_all,
-                                                        skip_long_test=skip_long_test)
-                                else:
-                                    yield obs_op.copy()
+                    # opset_domain
+                    for op_imp in list(conv.opset_import):
+                        obs_op['domain_opset_%s' %
+                               op_imp.domain] = op_imp.version
+
+                    unique = set(stat_onnx.items())
+                    run_benchmark = benchmark and all(
+                        map(lambda u: unique != u, bench_memo))
+                    if run_benchmark:
+                        bench_memo.append(unique)
+
+                    # prediction
+                    if check_runtime:
+                        yield _call_runtime(obs_op=obs_op.copy(), conv=conv, opset=opset, debug=debug,
+                                            runtime=rt, inst=inst,
+                                            X_test=X_test, y_test=y_test,
+                                            init_types=init_types,
+                                            method_name=method_name,
+                                            output_index=output_index,
+                                            ypred=ypred, Xort_test=Xort_test,
+                                            model=model, dump_folder=dump_folder,
+                                            benchmark=run_benchmark,
+                                            node_time=node_time, time_kwargs=time_kwargs,
+                                            fLOG=fLOG, verbose=verbose,
+                                            store_models=store_models, dump_all=dump_all,
+                                            skip_long_test=skip_long_test)
+                    else:
+                        yield obs_op.copy()
 
 
 def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
