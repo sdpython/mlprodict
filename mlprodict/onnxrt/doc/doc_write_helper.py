@@ -28,7 +28,7 @@ def _make_opset(row):
             if isinstance(v, int):
                 opsets.append('o%d' % v)
             elif isinstance(v, float):
-                if numpy.isnane(v):
+                if numpy.isnan(v):
                     opsets.append('o0')
                 else:
                     opsets.append(('o%d' % int(v)))
