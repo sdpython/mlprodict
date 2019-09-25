@@ -239,6 +239,8 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
         df.to_excel(out_raw, index=False)
     else:
         df.to_csv(out_raw, index=False)
+    if df.shape[0] == 0:
+        raise RuntimeError("No result produced by the benchmark.")
     piv = summary_report(df)
     if 'optim' not in piv:
         raise RuntimeError("Unable to produce a summary. Missing column in \n{}".format(
