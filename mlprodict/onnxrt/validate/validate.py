@@ -380,15 +380,22 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                         extra=extra, extras=extras, conv_options=conv_options,
                         init_types=init_types, inst=inst,
                         optimisations=optimisations, verbose=verbose,
-                        store_models=store_models, benchmark=benchmark,
-                        dump_folder=dump_folder, runtime=runtime,
+                        benchmark=benchmark,
+                        runtime=runtime,
                         filter_scenario=filter_scenario,
-                        check_runtime=check_runtime,
                         X_test=X_test, y_test=y_test, ypred=ypred,
                         Xort_test=Xort_test, method_name=method_name,
-                        output_index=output_index, node_time=node_time,
-                        time_kwargs=time_kwargs, dump_all=dump_all,
-                        skip_long_test=skip_long_test, fLOG=fLOG):
+                        check_runtime=check_runtime,
+                        output_index=output_index,
+                        kwargs=dict(
+                            dump_all=dump_all,
+                            dump_folder=dump_folder,
+                            node_time=node_time,
+                            skip_long_test=skip_long_test,
+                            store_models=store_models,
+                            time_kwargs=time_kwargs,
+                        ),
+                        fLOG=fLOG):
                     yield run_obs
 
 
@@ -404,11 +411,11 @@ def _check_run_benchmark(benchmark, stat_onnx, bench_memo):
 def _call_conv_runtime_opset(
         obs, opsets, debug, new_conv_options,
         model, prob, scenario, extra, extras, conv_options,
-        init_types, inst, optimisations, verbose, store_models,
-        benchmark, dump_folder, runtime, filter_scenario,
+        init_types, inst, optimisations, verbose,
+        benchmark, runtime, filter_scenario,
         check_runtime, X_test, y_test, ypred, Xort_test,
-        method_name, output_index, node_time, time_kwargs,
-        dump_all, skip_long_test, fLOG):
+        method_name, output_index,
+        kwargs, fLOG):
     # Calls the conversion and runtime for different opets
     if None in opsets:
         set_opsets = [None] + list(sorted((_ for _ in opsets if _ is not None),
@@ -493,7 +500,7 @@ def _call_conv_runtime_opset(
                     else:
                         obs_op['optim'] = _dictionary2str(aoptions)
 
-                    if store_models:
+                    if kwargs['store_models']:
                         obs_op['ONNX'] = conv
                         if verbose >= 2 and fLOG is not None:
                             fLOG("[enumerate_compatible_opset] onnx nodes: {}".format(
@@ -520,12 +527,15 @@ def _call_conv_runtime_opset(
                                             method_name=method_name,
                                             output_index=output_index,
                                             ypred=ypred, Xort_test=Xort_test,
-                                            model=model, dump_folder=dump_folder,
+                                            model=model,
+                                            dump_folder=kwargs['dump_folder'],
                                             benchmark=run_benchmark,
-                                            node_time=node_time, time_kwargs=time_kwargs,
+                                            node_time=kwargs['node_time'],
+                                            time_kwargs=kwargs['time_kwargs'],
                                             fLOG=fLOG, verbose=verbose,
-                                            store_models=store_models, dump_all=dump_all,
-                                            skip_long_test=skip_long_test)
+                                            store_models=kwargs['store_models'],
+                                            dump_all=kwargs['dump_all'],
+                                            skip_long_test=kwargs['skip_long_test'])
                     else:
                         yield obs_op.copy()
 
