@@ -377,7 +377,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                         obs=obs.copy(), opsets=opsets, debug=debug,
                         new_conv_options=new_conv_options,
                         model=model, prob=prob, scenario=scenario,
-                        extra=extra, conv_options=conv_options,
+                        extra=extra, extras=extras, conv_options=conv_options,
                         init_types=init_types, inst=inst,
                         optimisations=optimisations, verbose=verbose,
                         store_models=store_models, benchmark=benchmark,
@@ -392,9 +392,18 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                     yield run_obs
 
 
+def _check_run_benchmark(benchmark, stat_onnx, bench_memo):
+    unique = set(stat_onnx.items())
+    run_benchmark = benchmark and all(
+        map(lambda u: unique != u, bench_memo))
+    if run_benchmark:
+        bench_memo.append(unique)
+    return run_benchmark
+
+
 def _call_conv_runtime_opset(
         obs, opsets, debug, new_conv_options,
-        model, prob, scenario, extra, conv_options,
+        model, prob, scenario, extra, extras, conv_options,
         init_types, inst, optimisations, verbose, store_models,
         benchmark, dump_folder, runtime, filter_scenario,
         check_runtime, X_test, y_test, ypred, Xort_test,
@@ -460,10 +469,10 @@ def _call_conv_runtime_opset(
                     continue
 
                 if all_conv_options.get('optim', '') == 'cdist':
-                    check_cdist = [_ for _ in str(
-                        conv).split('\n') if 'CDist' in _]
-                    check_scan = [_ for _ in str(
-                        conv).split('\n') if 'Scan' in _]
+                    check_cdist = [_ for _ in str(conv).split('\n')
+                                   if 'CDist' in _]
+                    check_scan = [_ for _ in str(conv).split('\n')
+                                  if 'Scan' in _]
                     if len(check_cdist) == 0 and len(check_scan) > 0:
                         raise RuntimeError("Operator CDist was not used in\n{}"
                                            "".format(conv))
@@ -498,15 +507,13 @@ def _call_conv_runtime_opset(
                         obs_op['domain_opset_%s' %
                                op_imp.domain] = op_imp.version
 
-                    unique = set(stat_onnx.items())
-                    run_benchmark = benchmark and all(
-                        map(lambda u: unique != u, bench_memo))
-                    if run_benchmark:
-                        bench_memo.append(unique)
+                    run_benchmark = _check_run_benchmark(
+                        benchmark, stat_onnx, bench_memo)
 
                     # prediction
                     if check_runtime:
-                        yield _call_runtime(obs_op=obs_op.copy(), conv=conv, opset=opset, debug=debug,
+                        yield _call_runtime(obs_op=obs_op.copy(), conv=conv,
+                                            opset=opset, debug=debug,
                                             runtime=rt, inst=inst,
                                             X_test=X_test, y_test=y_test,
                                             init_types=init_types,
