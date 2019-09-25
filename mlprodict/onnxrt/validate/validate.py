@@ -359,8 +359,7 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
 
                 if not _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
                                     Xort_test, init_types, store_models,
-                                    debug, verbose, dump_folder,
-                                    fLOG):
+                                    debug, verbose, fLOG):
                     yield obs.copy()
                     continue
 
@@ -374,24 +373,33 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                     yield obs.copy()
                     continue
 
-                for run_obs in _call_runtime_opset(
-                        obs_op=obs_op.copy(), conv=conv, opset=opset, debug=debug,
+                for run_obs in _call_conv_runtime_opset(
+                        obs=obs.copy(), opsets=opsets, debug=debug,
                         new_conv_options=new_conv_options,
                         model=model, prob=prob, scenario=scenario,
-                        extra=extra, all_conv_options=all_conv_options,
+                        extra=extra, conv_options=conv_options,
                         init_types=init_types, inst=inst,
                         optimisations=optimisations, verbose=verbose,
                         store_models=store_models, benchmark=benchmark,
                         dump_folder=dump_folder, runtime=runtime,
-                        fLOG=fLOG):
+                        filter_scenario=filter_scenario,
+                        check_runtime=check_runtime,
+                        X_test=X_test, y_test=y_test, ypred=ypred,
+                        Xort_test=Xort_test, method_name=method_name,
+                        output_index=output_index, node_time=node_time,
+                        time_kwargs=time_kwargs, dump_all=dump_all,
+                        skip_long_test=skip_long_test, fLOG=fLOG):
                     yield run_obs
 
 
 def _call_conv_runtime_opset(
-        obs, conv, opset, debug, new_conv_options,
-        model, prob, scenario, extra, all_conv_options,
+        obs, opsets, debug, new_conv_options,
+        model, prob, scenario, extra, conv_options,
         init_types, inst, optimisations, verbose, store_models,
-        benchmark, dump_folder, runtime, fLOG):
+        benchmark, dump_folder, runtime, filter_scenario,
+        check_runtime, X_test, y_test, ypred, Xort_test,
+        method_name, output_index, node_time, time_kwargs,
+        dump_all, skip_long_test, fLOG):
     # Calls the conversion and runtime for different opets
     if None in opsets:
         set_opsets = [None] + list(sorted((_ for _ in opsets if _ is not None),

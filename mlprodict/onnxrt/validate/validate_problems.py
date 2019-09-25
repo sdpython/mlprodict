@@ -78,10 +78,10 @@ def _modify_dimension(X, n_features):
             perm = numpy.random.permutation(col)
             h = numpy.random.randint(0, div) % X.shape[0]
             col2 = col.copy()
-            col2[h::div] = perm[h::div]
+            col2[h::div] = perm[h::div]  # pylint: disable=E1136
             res[:, i] = col2
             h = (h + 1) % X.shape[0]
-            res[h, j] = perm[h]
+            res[h, j] = perm[h]  # pylint: disable=E1136
         else:
             raise NotImplementedError(
                 "Unable to add noise to a feature for this type {}".format(X.dtype))

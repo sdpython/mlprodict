@@ -409,7 +409,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_flatten(self):
         shape = (2, 3, 4, 5)
-        x = numpy.random.random_sample(shape).astype(numpy.float32)
+        x = numpy.random.random_sample(shape).astype(numpy.float32)  # pylint: disable=E1101
 
         for i in range(len(shape)):
             node = OnnxFlatten('X', axis=i, output_names='Y')
@@ -757,7 +757,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(exp, got['Y'])
 
     def test_onnxt_runtime_shape(self):
-        x = numpy.random.randn(20, 2).astype(numpy.float32)
+        x = numpy.random.randn(20, 2).astype(numpy.float32)  # pylint: disable=E1101
         y = x.shape
         onx = OnnxShape('X', output_names=['Y'])
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)})
@@ -775,7 +775,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_slice(self):
-        x = numpy.random.randn(20, 10, 5).astype(numpy.float32)
+        x = numpy.random.randn(20, 10, 5).astype(numpy.float32)  # pylint: disable=E1101
         y = x[0:3, 0:10]
         starts = numpy.array([0, 0], dtype=numpy.int64)
         ends = numpy.array([3, 10], dtype=numpy.int64)
@@ -784,7 +784,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(y, got['Y'])
 
-        x = numpy.random.randn(20, 10, 5).astype(numpy.float32)
+        x = numpy.random.randn(20, 10, 5).astype(numpy.float32)  # pylint: disable=E1101
         y = x[0:3, 0:10]
         starts = numpy.array([0, 0], dtype=numpy.int64)
         ends = numpy.array([3, 10], dtype=numpy.int64)
@@ -794,7 +794,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(y, got['Y'])
 
-        x = numpy.random.randn(20, 10, 5).astype(numpy.float32)
+        x = numpy.random.randn(20, 10, 5).astype(numpy.float32)  # pylint: disable=E1101
         y = x[0:3:-1, 0:10:2]
         starts = numpy.array([0, 0], dtype=numpy.int64)
         ends = numpy.array([3, 10], dtype=numpy.int64)
@@ -809,14 +809,14 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.common_test_onnxt_runtime_unary(OnnxSqrt, numpy.sqrt)
 
     def test_onnxt_runtime_squeeze(self):
-        x = numpy.random.randn(20, 1).astype(numpy.float32)
+        x = numpy.random.randn(20, 1).astype(numpy.float32)  # pylint: disable=E1101
         y = numpy.squeeze(x)
         onx = OnnxSqueeze('X', axes=[1], output_names=['Y'])
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)})
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(y, got['Y'])
 
-        x = numpy.random.randn(1, 20).astype(numpy.float32)
+        x = numpy.random.randn(1, 20).astype(numpy.float32)  # pylint: disable=E1101
         y = numpy.squeeze(x)
         onx = OnnxSqueeze('X', axes=[0], output_names=['Y'])
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)})

@@ -42,7 +42,7 @@ def enumerate_random_inputs(inputs, n=100, dtype=numpy.float32, force=1):
     for _ in range(n):
         new_inputs = {}
         for k in keys:
-            rnd = randint(0, 2, inputs[k].size).reshape(inputs[k].shape)
+            rnd = randint(0, 2, inputs[k].size).reshape(inputs[k].shape)  # pylint: disable=E1101
             if rnd.min() == rnd.max() or rnd.max() != 1:
                 raise RuntimeError("Minimum and maximum are equal or maximum is not 1. "
                                    "Randomness failed.")
