@@ -4,6 +4,7 @@
 """
 from logging import getLogger
 from textwrap import indent, dedent
+import numpy
 from jinja2 import Template
 from pandas import DataFrame, notnull
 from sklearn.linear_model import LinearRegression
