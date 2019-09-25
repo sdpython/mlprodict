@@ -27,7 +27,10 @@ def _make_opset(row):
             if isinstance(v, int):
                 opsets.append('o%d' % v)
             elif isinstance(v, float):
-                opsets.append(('o%d' % int(v)))
+                if numpy.isnane(v):
+                    opsets.append('o0')
+                else:
+                    opsets.append(('o%d' % int(v)))
             else:
                 vv = list(_ for _ in v if 'OK' in str(v))
                 if len(vv) > 0:
