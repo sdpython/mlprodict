@@ -20,6 +20,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_selection import (
     RFE, RFECV, GenericUnivariateSelect,
     SelectPercentile, SelectFwe, SelectKBest,
+    SelectFdr, SelectFpr, SelectFromModel,
 )
 from sklearn.gaussian_process import GaussianProcessClassifier, GaussianProcessRegressor
 from sklearn.isotonic import IsotonicRegression
@@ -220,6 +221,20 @@ def _problem_for_numerical_trainable_transform(dtype=numpy.float32, n_features=N
             'transform', 0, X.astype(dtype))
 
 
+def _problem_for_numerical_trainable_transform_cl(dtype=numpy.float32, n_features=None):
+    """
+    Returns *X, intial_types, method, name, X runtime* for a
+    transformation problem.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = data.data
+    X = _modify_dimension(X, n_features)
+    y = data.target
+    return (X, y, [('X', X[:1].astype(dtype))],
+            'transform', 0, X.astype(dtype))
+
+
 def _problem_for_clustering(dtype=numpy.float32, n_features=None):
     """
     Returns *X, intial_types, method, name, X runtime* for a
@@ -312,7 +327,7 @@ def _problem_for_cl_decision_function(dtype=numpy.float32, n_features=None):
     X = _modify_dimension(X, n_features)
     y = data.target
     return (X, y, [('X', X[:1].astype(dtype))],
-            'decision_function', 0, X.astype(dtype))
+            'decision_function', 1, X.astype(dtype))
 
 
 def _problem_for_cl_decision_function_binary(dtype=numpy.float32, n_features=None):
@@ -327,7 +342,7 @@ def _problem_for_cl_decision_function_binary(dtype=numpy.float32, n_features=Non
     y = data.target
     y[y == 2] = 1
     return (X, y, [('X', X[:1].astype(dtype))],
-            'decision_function', 0, X.astype(dtype))
+            'decision_function', 1, X.astype(dtype))
 
 
 def _problem_for_label_encoder(dtype=numpy.int64, n_features=None):
@@ -399,6 +414,7 @@ def find_suitable_problem(model):
     * `linearsvc`: classifier without *predict_proba*
     * `cluster`: similar to transform
     * `num+y-tr`: similar to transform with targets
+    * `num+y-tr-cl`: similar to transform with classes
     * `num-tr-clu`: similar to cluster, but returns
         scores or distances instead of cluster
     * `key-col`: list of dictionaries
@@ -504,7 +520,7 @@ def find_suitable_problem(model):
             return ['~b-cl-nop', '~b-cl-nop-64']
 
         if model in {RFE, RFECV}:
-            return ['b-cl', 'm-cl', 'b-reg']
+            return ['num+y-tr']
 
         if model in {GridSearchCV}:
             return ['b-cl', 'm-cl',
@@ -543,9 +559,12 @@ def find_suitable_problem(model):
         # trainable transform
         if model in {GenericUnivariateSelect,
                      NeighborhoodComponentsAnalysis,
-                     PLSSVD, SelectFwe, SelectKBest,
-                     SelectPercentile}:
+                     PLSSVD, SelectKBest,
+                     SelectPercentile, SelectFromModel}:
             return ["num+y-tr"]
+
+        if model in {SelectFwe, SelectFdr, SelectFpr}:
+            return ["num+y-tr-cl"]
 
         # no m-label
         if model in {AdaBoostClassifier, LogisticRegression}:
@@ -660,6 +679,7 @@ _problems = {
     'outlier': _problem_for_outlier,
     'cluster': _problem_for_clustering,
     'num+y-tr': _problem_for_numerical_trainable_transform,
+    'num+y-tr-cl': _problem_for_numerical_trainable_transform_cl,
     # others
     '~num-tr-clu': _problem_for_clustering_scores,
     "~m-label": _problem_for_predictor_multi_classification_label,

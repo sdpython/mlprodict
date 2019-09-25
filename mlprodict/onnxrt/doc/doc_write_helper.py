@@ -26,6 +26,8 @@ def _make_opset(row):
         if k.startswith('opset'):
             if isinstance(v, int):
                 opsets.append('o%d' % v)
+            elif isinstance(v, float):
+                opsets.append(('o%d' % int(v)))
             else:
                 vv = list(_ for _ in v if 'OK' in str(v))
                 if len(vv) > 0:

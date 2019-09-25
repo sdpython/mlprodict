@@ -156,6 +156,17 @@ def sklearn_operators(subfolder=None, extended=False):
             if m.__name__ not in done:
                 found.append(
                     dict(name=m.__name__, cl=m, package=pack, sub=sub))
+
+    # let's remove models which cannot predict
+    all_found = found
+    found = []
+    for mod in all_found:
+        cl = mod['cl']
+        if hasattr(cl, 'fit_predict') and not hasattr(cl, 'predict'):
+            continue
+        if hasattr(cl, 'fit_transform') and not hasattr(cl, 'transform'):
+            continue
+        found.append(mod)
     return found
 
 

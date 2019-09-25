@@ -8,7 +8,10 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.decomposition import SparseCoder
 from sklearn.ensemble import VotingClassifier, AdaBoostRegressor, VotingRegressor
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
-from sklearn.feature_selection import SelectFromModel, RFE, RFECV
+from sklearn.feature_selection import (
+    SelectFromModel, SelectPercentile, RFE, RFECV,
+    SelectKBest, SelectFwe
+)
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic, RBF
 from sklearn.linear_model import LogisticRegression, SGDClassifier, LinearRegression
@@ -167,17 +170,11 @@ def build_custom_scenarios():
             })
         ],
         RFE: [
-            ('cl', {
-                'estimator': LogisticRegression(solver='liblinear'),
-            }),
             ('reg', {
                 'estimator': LinearRegression(),
             })
         ],
         RFECV: [
-            ('cl', {
-                'estimator': LogisticRegression(solver='liblinear'),
-            }),
             ('reg', {
                 'estimator': LinearRegression(),
             })
@@ -185,6 +182,21 @@ def build_custom_scenarios():
         SelectFromModel: [
             ('rf', {
                 'estimator': DecisionTreeRegressor(),
+            }),
+        ],
+        SelectFwe: [
+            ('alpha100', {
+                'alpha': 100.0,
+            }),
+        ],
+        SelectKBest: [
+            ('k2', {
+                'k': 2,
+            }),
+        ],
+        SelectPercentile: [
+            ('p50', {
+                'percentile': 50,
             }),
         ],
         SGDClassifier: [
