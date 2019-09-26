@@ -498,7 +498,7 @@ def _call_conv_runtime_opset(
                         if optimisation == 'onnx':
                             obs_op['optim'] = optimisation
                             if len(aoptions) != 0:
-                                obs_op['optim'] += '-' + \
+                                obs_op['optim'] += '/' + \
                                     _dictionary2str(aoptions)
                             conv = onnx_optimisations(conv)
                         else:
@@ -507,6 +507,9 @@ def _call_conv_runtime_opset(
                     else:
                         obs_op['optim'] = _dictionary2str(aoptions)
 
+                    if verbose >= 3 and fLOG is not None:
+                        fLOG("[enumerate_compatible_opset] optim='{}' optimisation={} all_conv_options={}".format(
+                            obs_op['optim'], optimisation, all_conv_options))
                     if kwargs['store_models']:
                         obs_op['ONNX'] = conv
                         if verbose >= 2 and fLOG is not None:

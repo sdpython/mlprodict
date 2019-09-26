@@ -118,14 +118,14 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         for row in rows:
             optim_values.append(row.get('optim', ''))
         expcl = "<class 'sklearn.gaussian_process.gpr.GaussianProcessRegressor'>={'optim': 'cdist'}"
-        exp = [{'', 'onnx-' + expcl, expcl, 'onnx'},
-               {'', 'onnx-' + expcl, expcl},
+        exp = [{'', 'onnx/' + expcl, expcl, 'onnx'},
+               {'', 'onnx/' + expcl, expcl},
                {'', 'onnx'}]
         self.assertIn(set(optim_values), exp)
         piv = summary_report(DataFrame(rows))
         expcl = 'cdist'
-        exp = [{'', 'onnx-' + expcl, expcl, 'onnx'},
-               {'', 'onnx-' + expcl, expcl},
+        exp = [{'', 'onnx/' + expcl, expcl, 'onnx'},
+               {'', 'onnx/' + expcl, expcl},
                {'', 'cdist', 'onnx'},
                {'', 'onnx'}]
         self.assertIn(set(piv['optim']), exp)

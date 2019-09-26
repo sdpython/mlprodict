@@ -12,6 +12,9 @@ from ... import __version__ as ort_version
 def _clean_values_optim(val):
     if not isinstance(val, str):
         return val
+    if '/' in val:
+        spl = val.split('/')
+        return "/".join(_clean_values_optim(v) for v in spl)
     if "'>=" in val:
         val = val.split("'>=")
         if len(val) == 2:
