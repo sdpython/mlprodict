@@ -25,11 +25,13 @@ class TestCliValidate(ExtTestCase):
         main(args=["validate_runtime", "--out_raw", out1,
                    "--out_summary", out2, "--models",
                    "LogisticRegression,LinearRegression",
-                   '-o', '10', '-op', '10', '-v', '1', '-b', '1',
+                   '-o', '10', '-op', '10', '-v', '2', '-b', '1',
                    '-t', '{"1":{"number":10,"repeat":10},"10":{"number":5,"repeat":5}}',
                    '--out_graph', gr],
              fLOG=st.fprint)
         res = str(st)
+        print('-----------------')
+        print(res)
         self.assertIn('Linear', res)
         self.assertExists(out1)
         self.assertExists(out2)
@@ -43,7 +45,7 @@ class TestCliValidate(ExtTestCase):
         main(args=["validate_runtime", "--out_raw", out1,
                    "--out_summary", out2, "--models",
                    "LogisticRegression,LinearRegression",
-                   '-o', '10', '-op', '10', '-v', '1', '-b', '1'],
+                   '-o', '10', '-op', '10', '-v', '2', '-b', '1'],
              fLOG=st.fprint)
         res = str(st)
         self.assertIn('Linear', res)
@@ -58,7 +60,7 @@ class TestCliValidate(ExtTestCase):
         main(args=["validate_runtime", "--out_raw", out1,
                    "--out_summary", out2, "--models",
                    "LogisticRegression,LinearRegression",
-                   '-o', '10', '-op', '10', '-v', '1', '-b', '1',
+                   '-o', '10', '-op', '10', '-v', '2', '-b', '1',
                    '-n', '20'],
              fLOG=st.fprint)
         res = str(st)
@@ -75,7 +77,7 @@ class TestCliValidate(ExtTestCase):
             args=["validate_runtime", "--out_raw", out1,
                   "--out_summary", out2, "--models",
                   "AgglomerativeClustering",
-                  '-o', '10', '-op', '10', '-v', '1', '-b', '1'],
+                  '-o', '10', '-op', '10', '-v', '0', '-b', '1'],
             fLOG=st.fprint),
             RuntimeError, "No result produced by the benchmark.")
         res = str(st)
@@ -92,7 +94,7 @@ class TestCliValidate(ExtTestCase):
         main(args=["validate_runtime", "--out_raw", out1,
                    "--out_summary", out2, "--models",
                    "LGBMClassifier",
-                   '-o', '10', '-op', '10', '-v', '1', '-b', '1',
+                   '-o', '10', '-op', '10', '-v', '2', '-b', '1',
                    '-dum', '1', '-du', temp],
              fLOG=st.fprint)
         res = str(st)

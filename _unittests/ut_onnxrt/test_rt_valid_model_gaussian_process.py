@@ -126,6 +126,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         expcl = 'cdist'
         exp = [{'', 'onnx-' + expcl, expcl, 'onnx'},
                {'', 'onnx-' + expcl, expcl},
+               {'', 'cdist', 'onnx'},
                {'', 'onnx'}]
         self.assertIn(set(piv['optim']), exp)
 

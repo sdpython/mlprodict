@@ -3,9 +3,9 @@
 """
 import unittest
 from logging import getLogger
+import onnx
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
-import onnx
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
 from skl2onnx import __version__ as skl2onnx_version

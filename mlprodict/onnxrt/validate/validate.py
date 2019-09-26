@@ -268,6 +268,12 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
         import pprint
         pprint.pprint(default_time_kwargs())
     """
+    if verbose > 1 and fLOG:
+        fLOG("[enumerate_compatible_opset] validate class '{}'.".format(
+            model.__name__))
+        if verbose > 2:
+            fLOG(model)
+
     if time_kwargs is None:
         time_kwargs = default_time_kwargs()
     problems, extras = _retrieve_problems_extra(
