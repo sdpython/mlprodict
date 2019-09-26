@@ -52,11 +52,11 @@ validate_runtime(
     n_features=[4, 10], dtype="32",
     out_graph="bench.png",
     time_kwargs={
-        1: {"number": 100,"repeat": 100},
-        10: {"number": 50,"repeat": 50},
-        100: {"number": 40,"repeat": 50},
-        1000: {"number": 40,"repeat": 40},
-        10000: {"number": 20,"repeat": 20},
+        1: {"number": 100, "repeat": 100},
+        10: {"number": 50, "repeat": 50},
+        100: {"number": 40, "repeat": 50},
+        1000: {"number": 40, "repeat": 40},
+        10000: {"number": 20, "repeat": 20},
     }
 )
 

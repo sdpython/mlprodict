@@ -305,7 +305,7 @@ class OpRunClassifierProb(OpRunUnary):
         Calls method ``_run``.
         """
         res = OpRunUnary.run(self, x)
-        if res[1].dtype != x.dtype:
+        if x.dtype in (numpy.float32, numpy.float64) and res[1].dtype != x.dtype:
             raise RuntimeTypeError(
                 "Output type mismatch: {} != {} (operator '{}')".format(
                     x.dtype, res[1].dtype, self.__class__.__name__))

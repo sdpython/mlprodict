@@ -5,12 +5,14 @@ import unittest
 from logging import getLogger
 import numpy
 import pandas
-from lightgbm import LGBMClassifier
+from lightgbm import LGBMClassifier, Dataset, train as lgb_train
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
 import skl2onnx
 from skl2onnx.common.data_types import (
     StringTensorType, FloatTensorType, Int64TensorType,
-    BooleanTensorType
+    BooleanTensorType, Int32TensorType
 )
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
@@ -71,6 +73,56 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         self.assertEqual(df.shape, (X_test.shape[0], 2))
         self.assertEqual(exp.shape, (X_test.shape[0], 2))
         # self.assertEqualArray(exp, df.values, decimal=6)
+
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    def test_onnxrt_python_lightgbm_categorical_iris(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X = (X * 10).astype(numpy.int32)
+        X_train, X_test, y_train, _ = train_test_split(
+            X, y, random_state=11)
+        other_x = numpy.random.randint(
+            0, high=10000, size=(1000, X_train.shape[1]))
+        X_train = numpy.vstack([X_train, other_x]).astype(dtype=numpy.int32)
+        y_train = numpy.hstack(
+            [y_train, numpy.zeros(1000) + 4]).astype(dtype=numpy.int32)
+
+        # Classic
+        gbm = LGBMClassifier()
+        gbm.fit(X_train, y_train)
+        exp = gbm.predict_proba(X_test)
+        onx = to_onnx(gbm, initial_types=[
+            ('X', Int32TensorType([None, X_train.shape[1]]))])
+        oif = OnnxInference(onx)
+        got = oif.run({'X': X_test})
+        values = pandas.DataFrame(got['output_probability']).values
+        self.assertEqualArray(exp, values, decimal=5)
+
+        # categorical_feature=[0, 1]
+        train_data = Dataset(
+            X_train, label=y_train,
+            feature_name=['c1', 'c2', 'c3', 'c4'],
+            categorical_feature=['c1', 'c2'])
+
+        params = {
+            "boosting_type": "gbdt",
+            "learning_rate": 0.05,
+            "n_estimators": 100,
+            "objective": "binary",
+            "max_bin": 10,
+            "min_child_samples": 100,
+            'verbose': -1,
+        }
+
+        booster = lgb_train(params, train_data)
+        exp = booster.predict(X_test)
+
+        onx = to_onnx(booster, initial_types=[
+            ('X', Int32TensorType([None, X_train.shape[1]]))])
+        oif = OnnxInference(onx)
+        got = oif.run({'X': X_test})
+        values = pandas.DataFrame(got['output_probability']).values
+        self.assertEqualArray(exp, values[:, 1], decimal=5)
 
 
 if __name__ == "__main__":

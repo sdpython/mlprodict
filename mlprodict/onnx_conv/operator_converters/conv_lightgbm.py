@@ -157,7 +157,10 @@ def convert_lightgbm(scope, operator, container):
         attrs['post_transform'] = 'NONE'
         attrs['n_targets'] = n_classes
     else:
-        assert False, 'LightGBM objective should be cleaned already'
+        raise RuntimeError(
+            "LightGBM objective should be cleaned already not '{}'.".format(
+                gbm_text['objective']))
+
     # Use the same algorithm to parse the tree
     for i, tree in enumerate(gbm_text['tree_info']):
         tree_id = i
@@ -190,10 +193,12 @@ def convert_lightgbm(scope, operator, container):
     # Create ONNX object
     if (gbm_text['objective'].startswith('binary') or
             gbm_text['objective'].startswith('multiclass')):
-        # Prepare label information for both of TreeEnsembleClassifier and ZipMap
+        # Prepare label information for both of TreeEnsembleClassifier
+        # and ZipMap
         class_type = onnx_proto.TensorProto.STRING  # pylint: disable=E1101
         zipmap_attrs = {'name': scope.get_unique_variable_name('ZipMap')}
-        if all(isinstance(i, (numbers.Real, bool, np.bool_)) for i in gbm_model.classes_):
+        if all(isinstance(i, (numbers.Real, bool, np.bool_))
+               for i in gbm_model.classes_):
             class_type = onnx_proto.TensorProto.INT64  # pylint: disable=E1101
             class_labels = [int(i) for i in gbm_model.classes_]
             attrs['classlabels_int64s'] = class_labels
@@ -268,9 +273,10 @@ def convert_lightgbm(scope, operator, container):
                                operator.outputs[0].full_name,
                                name=scope.get_unique_operator_name('Identity'))
 
-        # Convert probability tensor to probability map (keys are labels while values are the associated probabilities)
-        container.add_node('ZipMap', prob_tensor, operator.outputs[1].full_name,
-                           op_domain='ai.onnx.ml', **zipmap_attrs)
+        # Convert probability tensor to probability map
+        # (keys are labels while values are the associated probabilities)
+        container.add_node('Identity', prob_tensor, operator.outputs[1].full_name,
+                           op_domain='ai.onnx.ml')
     else:
         # Create tree regressor
         output_name = scope.get_unique_variable_name('output')
@@ -279,8 +285,8 @@ def convert_lightgbm(scope, operator, container):
             k for k in attrs if k.startswith('class_'))
 
         for k in keys_to_be_renamed:
-            # Rename class_* attribute to target_* because TreeEnsebmleClassifier and TreeEnsembleClassifier have
-            # different ONNX attributes
+            # Rename class_* attribute to target_* because TreeEnsebmleClassifier
+            # and TreeEnsembleClassifier have different ONNX attributes
             attrs['target' + k[5:]] = copy.deepcopy(attrs[k])
             del attrs[k]
         if container.dtype == np.float64:

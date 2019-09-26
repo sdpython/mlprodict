@@ -75,7 +75,7 @@ def _register_converters_lightgbm(exc=True):
                 "Cannot register LGBMClassifier due to '{}'.".format(e))
             LGBMClassifier = None
     if LGBMClassifier is not None:
-        from .shape_calculators.conv_lightgbm import calculate_linear_classifier_output_shapes
+        from .shape_calculators.shape_lightgbm import calculate_linear_classifier_output_shapes
         from .operator_converters.conv_lightgbm import convert_lightgbm
         try:
             update_registered_converter(LGBMClassifier, 'LgbmClassifier',
@@ -104,6 +104,39 @@ def _register_converters_lightgbm(exc=True):
                                     calculate_linear_regressor_output_shapes,
                                     convert_lightgbm)
         registered.append(LGBMRegressor)
+
+    try:
+        from lightgbm import Booster
+    except ImportError as e:  # pragma: no cover
+        if exc:
+            raise e
+        else:
+            warnings.warn(
+                "Cannot register LGBMRegressor due to '{}'.".format(e))
+            Booster = None
+    if Booster is not None:
+        from skl2onnx.common.shape_calculator import calculate_linear_regressor_output_shapes
+        from .operator_converters.conv_lightgbm import convert_lightgbm
+        from .shape_calculators.shape_lightgbm import calculate_lightgbm_output_shapes
+        from .parsers.parse_lightgbm import (
+            lightgbm_parser, WrappedLightGbmBooster,
+            WrappedLightGbmBoosterClassifier
+        )
+        update_registered_converter(
+            Booster, 'LightGbmBooster', calculate_lightgbm_output_shapes,
+            convert_lightgbm, parser=lightgbm_parser)
+        update_registered_converter(
+            WrappedLightGbmBooster, 'WrapperLightGbmBooster',
+            calculate_lightgbm_output_shapes,
+            convert_lightgbm, parser=lightgbm_parser)
+        update_registered_converter(
+            WrappedLightGbmBoosterClassifier, 'WrappedLightGbmBoosterClassifier',
+            calculate_lightgbm_output_shapes,
+            convert_lightgbm, parser=lightgbm_parser)
+        registered.append(Booster)
+        registered.append(WrappedLightGbmBooster)
+        registered.append(WrappedLightGbmBoosterClassifier)
+
     return registered
 
 
