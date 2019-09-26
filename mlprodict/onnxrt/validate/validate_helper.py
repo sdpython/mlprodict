@@ -166,6 +166,10 @@ def sklearn_operators(subfolder=None, extended=False):
             continue
         if hasattr(cl, 'fit_transform') and not hasattr(cl, 'transform'):
             continue
+        if (not hasattr(cl, 'transform') and
+                not hasattr(cl, 'predict') and
+                not hasattr(cl, 'decision_function')):
+            continue
         found.append(mod)
     return found
 

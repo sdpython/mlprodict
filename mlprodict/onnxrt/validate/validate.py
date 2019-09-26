@@ -399,8 +399,9 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
                     yield run_obs
 
 
-def _check_run_benchmark(benchmark, stat_onnx, bench_memo):
+def _check_run_benchmark(benchmark, stat_onnx, bench_memo, runtime):
     unique = set(stat_onnx.items())
+    unique.add(runtime)
     run_benchmark = benchmark and all(
         map(lambda u: unique != u, bench_memo))
     if run_benchmark:
@@ -515,7 +516,7 @@ def _call_conv_runtime_opset(
                                op_imp.domain] = op_imp.version
 
                     run_benchmark = _check_run_benchmark(
-                        benchmark, stat_onnx, bench_memo)
+                        benchmark, stat_onnx, bench_memo, rt)
 
                     # prediction
                     if check_runtime:

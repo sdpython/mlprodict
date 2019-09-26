@@ -125,15 +125,15 @@ it is *1/r* faster than *scikit-learn*.
         df2["n_features"] = 4
     df1['optim'] = df1['optim'].fillna('')
     df2['optim'] = df2['optim'].fillna('')
-    fmt = "{} [{}-{}] {}-D{}"
-    df1["label"] = df1.apply(lambda row: fmt.format(
-                             row["name"], row["problem"],
-                             row["scenario"], row["optim"],
-                             row["n_features"]), axis=1)
-    df2["label"] = df2.apply(lambda row: fmt.format(
-                             row["name"], row["problem"],
-                             row["scenario"], row["optim"],
-                             row["n_features"]), axis=1)
+    fmt = "{} [{}-{}|{}] D{}"
+    df1["label"] = df1.apply(
+        lambda row: fmt.format(
+            row["name"], row["problem"], row["scenario"], row["optim"],
+            row["n_features"]).replace("-default|", "-**]"), axis=1)
+    df2["label"] = df2.apply(
+        lambda row: fmt.format(
+            row["name"], row["problem"], row["scenario"], row["optim"],
+            row["n_features"]).replace("-default|", "-**]"), axis=1)
     indices = ['label']
     values = ['RT/SKL-N=1', 'N=10', 'N=100', 'N=1000', 'N=10000', 'N=100000']
     df1 = df1[indices + values]
@@ -142,8 +142,29 @@ it is *1/r* faster than *scikit-learn*.
 
     na = df["RT/SKL-N=1__pyrt"].isnull() & df["RT/SKL-N=1__ort"].isnull()
     dfp = df[~na].sort_values("label", ascending=False).reset_index(drop=True)
-    # dfp = dfp.iloc[:50, :]
 
+    # dfp = dfp[-10:]
+
+    # We add the runtime name as model.
+    ncol = (dfp.shape[1] - 1) // 2
+    dfp_legend = dfp.iloc[:3, :].copy()
+    dfp_legend.iloc[:, 1:] = numpy.nan
+    dfp_legend.iloc[1, 1:1+ncol] = dfp.iloc[:, 1:1+ncol].mean()
+    dfp_legend.iloc[2, 1+ncol:] = dfp.iloc[:, 1+ncol:].mean()
+    dfp_legend.iloc[1, 0] = "avg_" + dfp_legend.columns[1].split('__')[-1]
+    dfp_legend.iloc[2, 0] = "avg_" + dfp_legend.columns[1+ncol].split('__')[-1]
+    dfp_legend.iloc[0, 0] = "------"
+
+    rleg = dfp_legend.iloc[::-1, :].copy()
+    rleg.iloc[1, 1:1+ncol] = dfp.iloc[:, 1:1+ncol].median()
+    rleg.iloc[0, 1+ncol:] = dfp.iloc[:, 1+ncol:].median()
+    rleg.iloc[1, 0] = "med_" + dfp_legend.columns[1].split('__')[-1]
+    rleg.iloc[0, 0] = "med_" + dfp_legend.columns[1+ncol].split('__')[-1]
+
+    dfp = pandas.concat([rleg, dfp, dfp_legend]).reset_index(drop=True)
+    dfp["x"] = numpy.arange(0, dfp.shape[0])
+
+    # plot
     total = dfp.shape[0] * 0.5
     fig = plt.figure(figsize=(14, total))
 
@@ -152,7 +173,7 @@ it is *1/r* faster than *scikit-learn*.
     b = 0.35
     for i in range(len(ax)):
         x1 = i * 1. / len(ax)
-        x2 = (i + 1) * 1. / len(ax)
+        x2 = (i + 0.95) * 1. / len(ax)
         x1 = x1 ** p
         x2 = x2 ** p
         x1 = b + (0.99 - b) * x1
@@ -161,29 +182,31 @@ it is *1/r* faster than *scikit-learn*.
         if True or i == 0:
             ax[i] = fig.add_axes(bo)
         else:
+            # Does not work because all graph shows the same
+            # labels.
             ax[i] = fig.add_axes(bo, sharey=ax[i-1])
     # fig, ax = plt.subplots(1, (dfp.shape[1]-1) // 2, figsize=(14, total),
     #                        sharex=False, sharey=True)
-    x = numpy.arange(dfp.shape[0])
+    x = dfp['x']
     height = total / dfp.shape[0] * 0.65
-    for c in df.columns[1:]:
+    for c in df.columns[1:-1]:
         place, runtime = c.split('__')
         dec = {'pyrt': 1, 'ort': -1}
         index = values.index(place)
-        yl = dfp.loc[:, c]
-        xl = x + dec[runtime] * height / 2
+        yl = dfp.loc[:, c].fillna(0)
+        xl = xl = x + dec[runtime] * height / 2
         ax[index].barh(xl, yl, label=runtime, height=height)
         ax[index].set_title(place)
     for i in range(len(ax)):
         ax[i].plot([1, 1], [min(x), max(x)], 'g-')
         ax[i].plot([2, 2], [min(x), max(x)], 'r--')
-        ax[i].legend()
         ax[i].set_xscale('log')
         ax[i].set_xlim([0, 10])
+        ax[i].set_ylim([min(x) - 2, max(x) + 1])
 
     for i in range(1, len(ax)):
         ax[i].set_yticklabels([])
-        ax[i].set_ylim([min(x) - 1, max(x) + 1])
+
     ax[0].set_yticks(x)
     ax[0].set_yticklabels(dfp['label'])
     fig.subplots_adjust(left=0.35)

@@ -20,6 +20,7 @@ from mlprodict.onnxrt.validate.validate_helper import sklearn_operators
 from mlprodict.onnxrt.doc.doc_write_helper import (
     split_columns_subsets, build_key_split, filter_rows, _make_opset
 )
+from mlprodict.onnxrt.validate.validate_summary import _clean_values_optim
 
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning,
@@ -139,7 +140,8 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
         name = row['name']
         problem = row['problem']
         scenario = row['scenario']
-        optim = str(row.get('optim', '')).replace("nan", "")
+        optim = _clean_values_optim(
+            str(row.get('optim', '')).replace("nan", ""))
         opset = _make_opset(row)
         return link.format(name=name, problem=problem,
                            scenario=scenario, optim=optim,

@@ -3,6 +3,7 @@
 @brief Functions to help visualizing performances.
 """
 import numpy
+import pandas
 
 
 def plot_validate_benchmark(df):
@@ -41,11 +42,11 @@ def plot_validate_benchmark(df):
     if 'runtime' not in df.columns:
         df['runtime'] = '?'
 
-    fmt = "{} [{}-{}] D{}"
+    fmt = "{} [{}-{}|{}] D{}"
     df["label"] = df.apply(
         lambda row: fmt.format(
             row["name"], row["problem"], row["scenario"],
-            row['optim'], row["n_features"]).replace("-default]", "]"), axis=1)
+            row['optim'], row["n_features"]).replace("-default|", "-**]"), axis=1)
     df = df.sort_values(["name", "problem", "scenario", "optim",
                          "n_features", "runtime"],
                         ascending=False).reset_index(drop=True).copy()
@@ -74,6 +75,25 @@ def plot_validate_benchmark(df):
         else:
             final = final.merge(sub, on='label', how='outer')
 
+    # let's add average and median
+    ncol = (final.shape[1] - 1) // len(runtimes)
+    dfp_legend = final.iloc[:len(runtimes) + 1, :].copy()
+    rleg = dfp_legend.copy()
+    dfp_legend.iloc[:, 1:] = numpy.nan
+    rleg.iloc[:, 1:] = numpy.nan
+
+    for r, runt in enumerate(runtimes):
+        sli = slice(1 + ncol * r, 1 + ncol * r + ncol)
+        dfp_legend.iloc[r + 1, sli] = final.iloc[:, sli].mean()
+        rleg.iloc[r, sli] = final.iloc[:, sli].median()
+        dfp_legend.iloc[r + 1, 0] = "avg_" + runt
+        rleg.iloc[r, 0] = "med_" + runt
+    dfp_legend.iloc[0, 0] = "------"
+    rleg.iloc[-1, 0] = "------"
+
+    final = pandas.concat([rleg, final, dfp_legend]).reset_index(drop=True)
+
+    # graph beginning
     total = final.shape[0] * 0.45
     fig, ax = plt.subplots(1, len(values), figsize=(14, total),
                            sharex=False, sharey=True)
@@ -114,6 +134,9 @@ def plot_validate_benchmark(df):
             ax[i].plot([1, 1], [0, max(x)], 'g-')
             ax[i].plot([2, 2], [0, max(x)], 'r--')
             ax[i].set_xscale('log')
+            ax[i].set_xlim([0, 10])
+            ax[i].set_ylim([min(x) - 2, max(x) + 1])
+
         ax[min(ax.shape[0] - 1, 2)].legend()
         ax[0].set_yticks(x)
         ax[0].set_yticklabels(final['label'])
@@ -124,6 +147,8 @@ def plot_validate_benchmark(df):
         ax.legend()
         ax.set_yticks(x)
         ax.set_yticklabels(final['label'])
+        ax.set_xlim([0, 10])
+        ax.set_ylim([min(x) - 2, max(x) + 1])
 
     fig.subplots_adjust(left=0.25)
     return fig, ax

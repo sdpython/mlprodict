@@ -137,9 +137,12 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
 
     from ..onnxrt.validate import enumerate_validated_operator_opsets  # pylint: disable=E0402
 
-    models = None if models in (None, "") else models.strip().split(',')
-    skip_models = {} if skip_models in (
-        None, "") else skip_models.strip().split(',')
+    if not isinstance(models, list):
+        models = (None if models in (None, "")
+                  else models.strip().split(','))
+    if not isinstance(skip_models, list):
+        skip_models = ({} if skip_models in (None, "")
+                       else skip_models.strip().split(','))
     logger = getLogger('skl2onnx')
     logger.disabled = True
     if not dump_folder:
@@ -168,13 +171,14 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     if time_kwargs is not None and not isinstance(time_kwargs, dict):
         raise ValueError("time_kwargs must be a dictionary not {}\n{}".format(
             type(time_kwargs), time_kwargs))
-    if n_features in (None, ""):
-        n_features = None
-    elif ',' in n_features:
-        n_features = list(map(int, n_features.split(',')))
-    else:
-        n_features = int(n_features)
-    if ',' in runtime:
+    if not isinstance(n_features, list):
+        if n_features in (None, ""):
+            n_features = None
+        elif ',' in n_features:
+            n_features = list(map(int, n_features.split(',')))
+        else:
+            n_features = int(n_features)
+    if not isinstance(runtime, list) and ',' in runtime:
         runtime = runtime.split(',')
 
     def fct_filter_exp(m, s):
@@ -235,21 +239,31 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
             del row[k]
 
     df = DataFrame(rows)
-    if os.path.splitext(out_raw)[-1] == ".xlsx":
-        df.to_excel(out_raw, index=False)
-    else:
-        df.to_csv(out_raw, index=False)
+
+    if out_raw:
+        if verbose > 0:
+            fLOG("Saving raw_data into '{}'.".format(out_raw))
+        if os.path.splitext(out_raw)[-1] == ".xlsx":
+            df.to_excel(out_raw, index=False)
+        else:
+            df.to_csv(out_raw, index=False)
+
     if df.shape[0] == 0:
         raise RuntimeError("No result produced by the benchmark.")
     piv = summary_report(df)
     if 'optim' not in piv:
         raise RuntimeError("Unable to produce a summary. Missing column in \n{}".format(
             piv.columns))
-    if os.path.splitext(out_summary)[-1] == ".xlsx":
-        piv.to_excel(out_summary, index=False)
-    else:
-        piv.to_csv(out_summary, index=False)
-    if verbose > 0 and models is not None:
+
+    if out_summary:
+        if verbose > 0:
+            fLOG("Saving summary into '{}'.".format(out_summary))
+        if os.path.splitext(out_summary)[-1] == ".xlsx":
+            piv.to_excel(out_summary, index=False)
+        else:
+            piv.to_csv(out_summary, index=False)
+
+    if verbose > 1 and models is not None:
         fLOG(piv.T)
     if out_graph is not None:
         if verbose > 0:

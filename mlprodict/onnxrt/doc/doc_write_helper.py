@@ -26,18 +26,20 @@ def _make_opset(row):
     for k, v in row.items():
         if k.startswith('opset'):
             if isinstance(v, int):
-                opsets.append('o%d' % v)
+                opsets.append(v)
             elif isinstance(v, float):
                 if numpy.isnan(v):
-                    opsets.append('o0')
+                    opsets.append(0)
                 else:
-                    opsets.append(('o%d' % int(v)))
+                    opsets.append(int(v))
             else:
                 vv = list(_ for _ in v if 'OK' in str(v))
                 if len(vv) > 0:
-                    opsets.append(k.replace("opset", "o"))
-    vals = list(sorted(opsets))
-    return "-".join(vals)
+                    opsets.append(int(k.replace("opset", "")))
+    if len(opsets) == 0:
+        return ""
+    val = max(opsets)
+    return "o%d" % val
 
 
 def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):

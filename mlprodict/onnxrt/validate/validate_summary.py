@@ -12,8 +12,12 @@ from ... import __version__ as ort_version
 def _clean_values_optim(val):
     if not isinstance(val, str):
         return val
+    if "'>=" in val:
+        val = val.split("'>=")
+        if len(val) == 2:
+            val = val[-1]
     rep = {
-        "<class 'sklearn.gaussian_process.gpr.GaussianProcessRegressor'>={'optim': 'cdist'}": "cdist"
+        "{'optim': 'cdist'}": "cdist"
     }
     for k, v in rep.items():
         val = val.replace(k, v)
