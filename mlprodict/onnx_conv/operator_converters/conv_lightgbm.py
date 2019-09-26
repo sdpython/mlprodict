@@ -275,8 +275,8 @@ def convert_lightgbm(scope, operator, container):
 
         # Convert probability tensor to probability map
         # (keys are labels while values are the associated probabilities)
-        container.add_node('Identity', prob_tensor, operator.outputs[1].full_name,
-                           op_domain='ai.onnx.ml')
+        container.add_node('Identity', prob_tensor,
+                           operator.outputs[1].full_name)
     else:
         # Create tree regressor
         output_name = scope.get_unique_variable_name('output')

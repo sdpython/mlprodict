@@ -66,6 +66,9 @@ def build_custom_scenarios():
     """
     return {
         # scenarios
+        LGBMClassifier: [
+            ('default', {'n_estimators': 5}),
+        ],
         LGBMRegressor: [
             ('default', {'n_estimators': 5}),
         ],

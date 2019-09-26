@@ -64,6 +64,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         gbm0 = LGBMClassifier().fit(X, y, categorical_feature=[0])
         exp = gbm0.predict_proba(X_test, raw_score=False)
         model_def = to_onnx(gbm0, X)
+        self.assertIn('ZipMap', str(model_def))
 
         oinf = OnnxInference(model_def)
         y = oinf.run({'X': X_test})
@@ -93,6 +94,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         exp = gbm.predict_proba(X_test)
         onx = to_onnx(gbm, initial_types=[
             ('X', Int32TensorType([None, X_train.shape[1]]))])
+        self.assertIn('ZipMap', str(onx))
         oif = OnnxInference(onx)
         got = oif.run({'X': X_test})
         values = pandas.DataFrame(got['output_probability']).values
@@ -119,6 +121,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
         onx = to_onnx(booster, initial_types=[
             ('X', Int32TensorType([None, X_train.shape[1]]))])
+        self.assertIn('ZipMap', str(onx))
         oif = OnnxInference(onx)
         got = oif.run({'X': X_test})
         values = pandas.DataFrame(got['output_probability']).values

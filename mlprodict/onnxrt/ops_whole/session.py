@@ -4,6 +4,7 @@
 @brief Shortcut to *ops_whole*.
 """
 from onnxruntime import InferenceSession, SessionOptions, RunOptions
+import onnxruntime.capi.onnxruntime_pybind11_state as ORT
 
 
 class OnnxWholeSession:
@@ -36,7 +37,10 @@ class OnnxWholeSession:
         except AttributeError:  # pragma: no cover
             # onnxruntime not recent enough.
             pass
-        self.sess = InferenceSession(onnx_data, sess_options=sess_options)
+        try:
+            self.sess = InferenceSession(onnx_data, sess_options=sess_options)
+        except ORT.Fail as e:  # pylint: disable=E1101
+            raise RuntimeError("Unable to create InferenceSession") from e
 
     def run(self, inputs):
         """
