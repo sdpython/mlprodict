@@ -107,6 +107,8 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     a given number of time *number* predictions in one row.
     The total time is divided by :math:`number \\times repeat``.
 
+    ::
+
         -t "{\\"1\\":{\\"number\\":10,\\"repeat\\":10},\\"10\\":{\\"number\\":5,\\"repeat\\":5}}"
 
     The following example dumps every model in the list:

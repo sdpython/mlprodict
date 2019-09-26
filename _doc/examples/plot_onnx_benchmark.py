@@ -28,8 +28,8 @@ if not os.path.exists("dump_errors"):
     os.mkdir("dump_errors")
 
 ###############################################
-# Let's run the benchmark, it is equivalent to the
-# command line:
+# The benchmark can be run with a python instruction
+# or a command line:
 #
 # ::
 #
@@ -37,6 +37,10 @@ if not os.path.exists("dump_errors"):
 #              -b 1 --dump_folder dump_errors --runtime python,onnxruntime1
 #              --models LinearRegression,DecisionTreeRegressor
 #              --n_features 4,10 --out_graph bench_png
+#              -t "{"1":{"number":10,"repeat":10},"10":{"number":5,"repeat":5}}"
+#
+# We use the python instruction in this example.
+#
 from mlprodict.cli import validate_runtime
 
 validate_runtime(
@@ -47,6 +51,13 @@ validate_runtime(
     models=['LinearRegression', 'DecisionTreeRegressor'],
     n_features=[4, 10], dtype="32",
     out_graph="bench.png",
+    time_kwargs={
+        1: {"number": 100,"repeat": 100},
+        10: {"number": 50,"repeat": 50},
+        100: {"number": 40,"repeat": 50},
+        1000: {"number": 40,"repeat": 40},
+        10000: {"number": 20,"repeat": 20},
+    }
 )
 
 ########################################
