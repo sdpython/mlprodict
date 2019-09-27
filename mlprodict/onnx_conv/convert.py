@@ -93,6 +93,67 @@ def guess_initial_types(X, initial_types):
     return initial_types
 
 
+def _replace_tensor_type(schema, tensor_type):
+    res = []
+    for name, ty in schema:
+        cl = ty.__class__
+        if cl in (FloatTensorType, DoubleTensorType) and cl != tensor_type:
+            ty = tensor_type(ty.shape)
+        res.append((name, ty))
+    return res
+
+
+def guess_schema_from_data(X, tensor_type=None, schema=None):
+    """
+    Guesses initial types from a dataset.
+
+    @param      X               dataset (dataframe, array)
+    @param      tensor_type     if not None, replaces every
+                                *FloatTensorType* or *DoubleTensorType*
+                                by this one
+    @param      schema          known schema
+    @return                     schema (list of typed and named columns)
+    """
+    init = guess_initial_types(X, schema)
+    if tensor_type is not None:
+        init = _replace_tensor_type(init, tensor_type)
+    # Grouping column
+    unique = set()
+    for _, col in init:
+        if len(col.shape) != 2:
+            return init
+        if col.shape[0] is not None:
+            return init
+        if len(unique) > 0 and col.__class__ not in unique:
+            return init
+        unique.add(col.__class__)
+    unique = list(unique)
+    return [('X', unique[0]([None, sum(_[1].shape[1] for _ in init)]))]
+
+
+def guess_schema_from_model(model, tensor_type=None, schema=None):
+    """
+    Guesses initial types from a model.
+
+    @param      X               dataset (dataframe, array)
+    @param      tensor_type     if not None, replaces every
+                                *FloatTensorType* or *DoubleTensorType*
+                                by this one
+    @param      schema          known schema
+    @return                     schema (list of typed and named columns)
+    """
+    if hasattr(model, 'coef_'):
+        # linear model
+        init = [('X', FloatTensorType([None, model.coef_.shape[1]]))]
+    else:
+        import pprint
+        data = pprint.pformat(model.__dict__)
+        raise NotImplementedError(
+            "Unable to guess schema for model {}\n{}".format(
+                model.__class__, data))
+    return _replace_tensor_type(init, tensor_type)
+
+
 def to_onnx(model, X=None, name=None, initial_types=None,
             target_opset=None, options=None,
             dtype=numpy.float32, rewrite_ops=False):

@@ -13,10 +13,12 @@ from ..onnx_conv import to_onnx
 from ..onnxrt import OnnxInference
 from ..onnxrt.optim import onnx_optimisations
 from ..onnxrt.validate.validate_difference import measure_relative_difference
+from ..onnx_conv import guess_schema_from_data, guess_schema_from_model
 
 
-def convert_validate(pkl, data, method="predict",
-                     name='Y', outonnx="model.onnx",
+def convert_validate(pkl, data=None, schema=None,
+                     method="predict", name='Y',
+                     outonnx="model.onnx",
                      runtime='python', metric="l1med",
                      use_double=None, noshape=False,
                      optim='onnx', rewrite_ops=True,
@@ -28,7 +30,9 @@ def convert_validate(pkl, data, method="predict",
 
     :param pkl: pickle file
     :param data: data file, loaded with pandas,
-        converted to a single array
+        converted to a single array, the data is used to guess
+        the schema if *schema* not specified
+    :param schema: initial type of the model
     :param method: method to call
     :param name: output name
     :param outonnx: produced ONNX model
@@ -106,19 +110,12 @@ def convert_validate(pkl, data, method="predict",
         logger.disabled = True
     if not os.path.exists(pkl):
         raise FileNotFoundError("Unable to find model '{}'.".format(pkl))
-    if not os.path.exists(data):
-        raise FileNotFoundError("Unable to find data '{}'.".format(data))
     if os.path.exists(outonnx):
         warnings.warn("File '{}' will be overwritten.".format(outonnx))
     if verbose > 0:
         fLOG("[convert_validate] load model '{}'".format(pkl))
     with open(pkl, "rb") as f:
         model = pickle.load(f)
-    if verbose > 0:
-        fLOG("[convert_validate] load data '{}'".format(data))
-    df = read_csv(data)
-    if verbose > 0:
-        fLOG("[convert_validate] convert data into matrix")
 
     if use_double == 'float64':
         dtype = numpy.float64
@@ -138,19 +135,41 @@ def convert_validate(pkl, data, method="predict",
         from ..onnx_conv import register_converters
         register_converters()
 
-    numerical = df.values.astype(dtype)
+    # data and schema
+    if data is None or not os.path.exists(data):
+        if schema is None:
+            schema = guess_schema_from_model(model, tensor_type)
+        if verbose > 0:
+            fLOG("[convert_validate] model schema={}".format(schema))
+        df = None
+    else:
+        if verbose > 0:
+            fLOG("[convert_validate] load data '{}'".format(data))
+        df = read_csv(data)
+        if verbose > 0:
+            fLOG("[convert_validate] convert data into matrix")
+        if schema is None:
+            schema = guess_schema_from_data(df, tensor_type)
+        if schema is None:
+            schema = [('X', tensor_type([None, df.shape[1]]))]
+        if len(schema) == 1:
+            df = df.values
+        if verbose > 0:
+            fLOG("[convert_validate] data schema={}".format(schema))
+
     if noshape:
         if verbose > 0:
             fLOG("[convert_validate] convert the model with no shape information")
-        onx = to_onnx(model, initial_types=[
-                      ('X', tensor_type([None, None]))],
+        schema = [(name, col.__class__([None, None])) for name, col in schema]
+        onx = to_onnx(model, initial_types=schema,
                       dtype=dtype, rewrite_ops=rewrite_ops,
                       options=options)
     else:
         if verbose > 0:
             fLOG("[convert_validate] convert the model with shapes")
-        onx = to_onnx(model, numerical, dtype=dtype, rewrite_ops=rewrite_ops,
-                      options=options)
+        onx = to_onnx(model, initial_types=schema, dtype=dtype,
+                      rewrite_ops=rewrite_ops, options=options)
+
     if optim is not None:
         if verbose > 0:
             fLOG("[convert_validate] run optimisations '{}'".format(optim))
@@ -188,11 +207,16 @@ def convert_validate(pkl, data, method="predict",
     if metric != 'l1med':
         raise ValueError("Unknown metric '{}'".format(metric))
 
+    if df is None:
+        # no test on data
+        return dict(onnx=memory)
+
     if verbose > 0:
         fLOG("[convert_validate] compute predictions from ONNX with name '{}'"
              "".format(name))
+
     ort_preds = sess.run(
-        {'X': numerical}, verbose=max(verbose - 1, 0), fLOG=fLOG)
+        {'X': df}, verbose=max(verbose - 1, 0), fLOG=fLOG)
 
     metrics = []
     out_skl_preds = []
@@ -202,8 +226,8 @@ def convert_validate(pkl, data, method="predict",
             fLOG("[convert_validate] compute predictions with method '{}'".format(
                 method_))
         meth = getattr(model, method_)
-        skl_pred = meth(numerical)
-        out_skl_preds.append(skl_pred)
+        skl_pred = meth(df)
+        out_skl_preds.append(df)
 
         if name_ not in ort_preds:
             raise KeyError("Unable to find output name '{}' in {}".format(

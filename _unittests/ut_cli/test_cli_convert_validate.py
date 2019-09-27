@@ -171,9 +171,10 @@ class TestCliConvertValidate(ExtTestCase):
             pickle.dump(clr, f)
 
         try:
-            res = convert_validate(pkl=pkl, data=data, verbose=0,
-                                   method="predict", name="GPmean",
-                                   options="{GaussianProcessRegressor:{'optim':'cdist'}}")
+            res = convert_validate(
+                pkl=pkl, data=data, verbose=0,
+                method="predict", name="GPmean", use_double='float64',
+                options="{GaussianProcessRegressor:{'optim':'cdist'}}")
         except RuntimeError as e:
             if "requested version 10 < 11 schema version" in str(e):
                 return
@@ -192,6 +193,34 @@ class TestCliConvertValidate(ExtTestCase):
             model = onnx.load(f)
         self.assertIn('CDist', str(model))
 
+    @ignore_warnings(category=(UserWarning, ))
+    def test_cli_convert_validater_nodata(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = LogisticRegression()
+        clr.fit(X_train, y_train)
+
+        temp = get_temp_folder(__file__, "temp_cli_convert_validate_nodata")
+        data = os.path.join(temp, "data.csv")
+        pandas.DataFrame(X_test).to_csv(data, index=False)
+        pkl = os.path.join(temp, "model.pkl")
+        with open(pkl, "wb") as f:
+            pickle.dump(clr, f)
+
+        res = convert_validate(pkl=pkl, data=None, verbose=0,
+                               method="predict,predict_proba",
+                               name="output_label,output_probability")
+        st = BufferedPrint()
+        args = ["convert_validate", "--pkl", pkl,
+                '--method', "predict,predict_proba",
+                '--name', "output_label,output_probability",
+                '--verbose', '1']
+        main(args, fLOG=st.fprint)
+        res = str(st)
+        self.assertNotIn("[convert_validate] compute predictions", res)
+
 
 if __name__ == "__main__":
+    TestCliConvertValidate().test_convert_validate()
     unittest.main()
