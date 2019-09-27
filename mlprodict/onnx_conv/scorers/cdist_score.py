@@ -67,5 +67,6 @@ def convert_score_cdist_sum(scope, operator, container):
                                metric=kwargs['metric'])
 
         res = OnnxReduceSum(dists, axes=[1], keepdims=0,
-                            output_names=[out[0].full_name])
+                            output_names=[out[0].full_name],
+                            op_version=opv)
         res.add_to(scope, container)

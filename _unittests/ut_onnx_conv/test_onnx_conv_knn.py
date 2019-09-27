@@ -16,7 +16,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxIdentity
 )
 import skl2onnx
-from mlprodict.onnx_conv import register_converters, to_onnx
+from mlprodict.onnx_conv import register_converters, to_onnx, get_onnx_opset
 from mlprodict.onnx_conv.sklconv.knn import onnx_cdist
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
@@ -70,9 +70,11 @@ class TestOnnxConvKNN(ExtTestCase):
             numpy.float32).reshape((3, 2))
         x2 = numpy.array([1.1, 2.1, 4.01, 5.01, 5.001, 4.001, 0, 0]).astype(
             numpy.float32).reshape((4, 2))
-        cop = OnnxAdd('input', 'input')
-        cop2 = OnnxIdentity(onnx_cdist(cop, x2, dtype=numpy.float32, metric='euclidean'),
-                            output_names=['cdist'])
+        cop = OnnxAdd('input', 'input', op_version=get_onnx_opset())
+        cop2 = OnnxIdentity(onnx_cdist(cop, x2, dtype=numpy.float32,
+                                       metric='euclidean',
+                                       op_version=get_onnx_opset()),
+                            output_names=['cdist'], op_version=get_onnx_opset())
 
         model_def = cop2.to_onnx(
             inputs=[('input', FloatTensorType([None, None]))],
@@ -92,9 +94,11 @@ class TestOnnxConvKNN(ExtTestCase):
              [5.4, 3.4, 1.5, 0.4],
              [5.6, 2.9, 3.6, 1.3],
              [6.9, 3.1, 5.1, 2.3]], dtype=numpy.float32)
-        cop = OnnxAdd('input', 'input')
-        cop2 = OnnxIdentity(onnx_cdist(cop, x, dtype=numpy.float32),
-                            output_names=['cdist'])
+        cop = OnnxAdd('input', 'input', op_version=get_onnx_opset())
+        cop2 = OnnxIdentity(onnx_cdist(cop, x, dtype=numpy.float32,
+                                       op_version=get_onnx_opset()),
+                            output_names=['cdist'],
+                            op_version=get_onnx_opset())
 
         model_def = cop2.to_onnx(
             inputs=[('input', FloatTensorType([None, None]))],
@@ -110,11 +114,13 @@ class TestOnnxConvKNN(ExtTestCase):
             numpy.float32).reshape((4, 2))
         x2 = numpy.array([[1, 2], [2, 2], [2.1, 2.1], [2, 2]]).astype(
             numpy.float32).reshape((4, 2))
-        cop = OnnxIdentity('input')
+        cop = OnnxIdentity('input', op_version=get_onnx_opset())
         pp = 1.
         cop2 = OnnxIdentity(
-            onnx_cdist(cop, x2, dtype=numpy.float32, metric="minkowski", p=pp),
-            output_names=['cdist'])
+            onnx_cdist(cop, x2, dtype=numpy.float32,
+                       metric="minkowski", p=pp,
+                       op_version=get_onnx_opset()),
+            output_names=['cdist'], op_version=get_onnx_opset())
 
         model_def = cop2.to_onnx(
             inputs=[('input', FloatTensorType([None, None]))],
@@ -134,10 +140,11 @@ class TestOnnxConvKNN(ExtTestCase):
              [5.4, 3.4, 1.5, 0.4],
              [5.6, 2.9, 3.6, 1.3],
              [6.9, 3.1, 5.1, 2.3]], dtype=numpy.float32)
-        cop = OnnxAdd('input', 'input')
+        cop = OnnxAdd('input', 'input', op_version=get_onnx_opset())
         cop2 = OnnxIdentity(
-            onnx_cdist(cop, x, dtype=numpy.float32, metric="minkowski", p=3),
-            output_names=['cdist'])
+            onnx_cdist(cop, x, dtype=numpy.float32, metric="minkowski",
+                       p=3, op_version=get_onnx_opset()),
+            output_names=['cdist'], op_version=get_onnx_opset())
 
         model_def = cop2.to_onnx(
             inputs=[('input', FloatTensorType([None, None]))],
