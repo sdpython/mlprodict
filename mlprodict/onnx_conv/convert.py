@@ -142,16 +142,42 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
     @param      schema          known schema
     @return                     schema (list of typed and named columns)
     """
+    if schema is not None:
+        try:
+            guessed = guess_schema_from_model(model)
+        except NotImplementedError:
+            return _replace_tensor_type(schema, tensor_type)
+        if len(guessed) != len(schema):
+            raise RuntimeError(
+                "Given schema and guessed schema are not the same:\nGOT: {}\n-----\nGOT:\n{}".format(
+                    schema, guessed))
+        return _replace_tensor_type(schema, tensor_type)
+
     if hasattr(model, 'coef_'):
         # linear model
         init = [('X', FloatTensorType([None, model.coef_.shape[1]]))]
+        return _replace_tensor_type(init, tensor_type)
+    elif hasattr(model, 'dump_model'):
+        dumped = model.dump_model()
+        if isinstance(dumped, dict) and 'feature_names' in dumped:
+            names = dumped['feature_names']
+            init = [(name, FloatTensorType([None, 1])) for name in names]
+            return _replace_tensor_type(init, tensor_type)
+
+    import pprint
+    data = pprint.pformat(model.__dict__)
+    dirs = pprint.pformat(dir(model))
+    if hasattr(model, 'dump_model'):
+        dumped = model.dump_model()
+        keys = list(sorted(dumped))
+        last = pprint.pformat([keys, dumped])
+        if len(last) >= 200000:
+            last = last[:200000] + "\n..."
     else:
-        import pprint
-        data = pprint.pformat(model.__dict__)
-        raise NotImplementedError(
-            "Unable to guess schema for model {}\n{}".format(
-                model.__class__, data))
-    return _replace_tensor_type(init, tensor_type)
+        last = ""
+    raise NotImplementedError(
+        "Unable to guess schema for model {}\n{}\n----\n{}\n------\n{}".format(
+            model.__class__, data, dirs, last))
 
 
 def to_onnx(model, X=None, name=None, initial_types=None,

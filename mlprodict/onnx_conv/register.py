@@ -91,7 +91,9 @@ def _register_converters_lightgbm(exc=True):
         from .shape_calculators.shape_lightgbm import calculate_lightgbm_output_shapes
         from .parsers.parse_lightgbm import (
             lightgbm_parser, WrappedLightGbmBooster,
-            WrappedLightGbmBoosterClassifier
+            WrappedLightGbmBoosterClassifier,
+            shape_calculator_lightgbm_concat,
+            converter_lightgbm_concat
         )
         update_registered_converter(
             Booster, 'LightGbmBooster', calculate_lightgbm_output_shapes,
@@ -104,6 +106,10 @@ def _register_converters_lightgbm(exc=True):
             WrappedLightGbmBoosterClassifier, 'WrappedLightGbmBoosterClassifier',
             calculate_lightgbm_output_shapes,
             convert_lightgbm, parser=lightgbm_parser)
+        update_registered_converter(
+            None, 'LightGBMConcat',
+            shape_calculator_lightgbm_concat,
+            converter_lightgbm_concat)
         registered.append(Booster)
         registered.append(WrappedLightGbmBooster)
         registered.append(WrappedLightGbmBoosterClassifier)

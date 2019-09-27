@@ -61,6 +61,16 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
     attrs['nodes_featureids'].append(tree_structure['split_feature'])
     attrs['nodes_modes'].append(
         _translate_split_criterion(tree_structure['decision_type']))
+    if isinstance(tree_structure['threshold'], str):
+        try:
+            attrs['nodes_values'].append(float(tree_structure['threshold']))
+        except ValueError:
+            import pprint
+            text = pprint.pformat(tree_structure)
+            if len(text) > 100000:
+                text = text[:100000] + "\n..."
+            raise TypeError("threshold must be a number not '{}'"
+                            "\n{}".format(tree_structure['threshold'], text))
     attrs['nodes_values'].append(tree_structure['threshold'])
 
     # Assume left is the true branch and right is the false branch
@@ -89,7 +99,18 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, learning_rate, node, a
         attrs['nodes_featureids'].append(node['split_feature'])
         attrs['nodes_modes'].append(
             _translate_split_criterion(node['decision_type']))
-        attrs['nodes_values'].append(node['threshold'])
+        if isinstance(node['threshold'], str):
+            try:
+                attrs['nodes_values'].append(float(node['threshold']))
+            except ValueError:
+                import pprint
+                text = pprint.pformat(node)
+                if len(text) > 100000:
+                    text = text[:100000] + "\n..."
+                raise TypeError("threshold must be a number not '{}'"
+                                "\n{}".format(node['threshold'], text))
+        else:
+            attrs['nodes_values'].append(node['threshold'])
 
         # Assume left is the true branch and right is the false branch
         attrs['nodes_truenodeids'].append(left_id)
@@ -141,6 +162,7 @@ def convert_lightgbm(scope, operator, container):
     """
     gbm_model = operator.raw_operator
     gbm_text = gbm_model.booster_.dump_model()
+    modify_tree_for_rule_in_set(gbm_text, use_float=True)
 
     attrs = get_default_tree_classifier_attribute_pairs()
     attrs['name'] = operator.full_name
@@ -307,3 +329,88 @@ def convert_lightgbm(scope, operator, container):
             container.add_node('Identity', output_name,
                                operator.output_full_names,
                                name=scope.get_unique_operator_name('Identity'))
+
+
+def modify_tree_for_rule_in_set(gbm, use_float=False):  # pylint: disable=R1710
+    """
+    LightGBM produces sometimes a tree with a node set
+    to use rule ``==`` to a set of values (= in set),
+    the values are separated by ``||``.
+    This function unfold theses nodes. A child looks
+    like the following:
+
+    .. runpython::
+        :showcode:
+
+        import pprint
+        from mlprodict.onnx_conv.operator_converters.conv_lightgbm import modify_tree_for_rule_in_set
+
+        tree = {'decision_type': '==',
+                'default_left': True,
+                'internal_count': 6805,
+                'internal_value': 0.117558,
+                'left_child': {'leaf_count': 4293,
+                               'leaf_index': 18,
+                               'leaf_value': 0.003519117642745049},
+                'missing_type': 'None',
+                'right_child': {'leaf_count': 2512,
+                                'leaf_index': 25,
+                                'leaf_value': 0.012305307958365394},
+                'split_feature': 24,
+                'split_gain': 12.233599662780762,
+                'split_index': 24,
+                'threshold': '10||12||13'}
+
+        modify_tree_for_rule_in_set(tree)
+
+        pprint.pprint(tree)
+    """
+    if 'tree_info' in gbm:
+        for tree in gbm['tree_info']:
+            modify_tree_for_rule_in_set(tree, use_float=use_float)
+        return
+
+    if 'tree_structure' in gbm:
+        modify_tree_for_rule_in_set(gbm['tree_structure'], use_float=use_float)
+        return
+
+    if 'decision_type' not in gbm:
+        return
+
+    def recursive_call(this):
+        if 'left_child' in this:
+            modify_tree_for_rule_in_set(
+                this['left_child'], use_float=use_float)
+        if 'right_child' in this:
+            modify_tree_for_rule_in_set(
+                this['right_child'], use_float=use_float)
+
+    def str2number(val):
+        if use_float:
+            return float(val)
+        else:
+            try:
+                return int(val)
+            except ValueError:
+                return float(val)
+
+    dec = gbm['decision_type']
+    if dec != '==':
+        return recursive_call(gbm)
+
+    th = gbm['threshold']
+    if not isinstance(th, str) or '||' not in th:
+        return recursive_call(gbm)
+
+    pos = th.index('||')
+    th1 = str2number(th[:pos])
+
+    rest = th[pos + 2:]
+    if '||' not in rest:
+        rest = str2number(rest)
+
+    gbm['threshold'] = th1
+    new_node = gbm.copy()
+    gbm['right_child'] = new_node
+    new_node['threshold'] = rest
+    return recursive_call(gbm)

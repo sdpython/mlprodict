@@ -220,7 +220,24 @@ class TestCliConvertValidate(ExtTestCase):
         res = str(st)
         self.assertNotIn("[convert_validate] compute predictions", res)
 
+    @ignore_warnings(category=(UserWarning, ))
+    def test_cli_convert_validater_pkl_nodata(self):
+        temp = get_temp_folder(
+            __file__, "temp_cli_convert_validate_pkl_nodata")
+        monx = os.path.join(temp, "gpr.onnx")
+        pkl = os.path.join(temp, "booster.pickle")
+        if not os.path.exists(pkl):
+            return
+
+        st = BufferedPrint()
+        res = convert_validate(pkl=pkl, data=None, verbose=0,
+                               method="predict,predict_proba",
+                               name="output_label,output_probability",
+                               outonnx=monx, fLOG=st.fprint)
+        res = str(st)
+        self.assertNotIn("[convert_validate] compute predictions", res)
+
 
 if __name__ == "__main__":
-    TestCliConvertValidate().test_convert_validate()
+    TestCliConvertValidate().test_cli_convert_validater_pkl_nodata()
     unittest.main()

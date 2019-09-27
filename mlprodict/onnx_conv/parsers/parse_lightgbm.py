@@ -5,6 +5,7 @@
 import numpy
 from sklearn.base import ClassifierMixin
 from skl2onnx._parse import _parse_sklearn_classifier, _parse_sklearn_simple_model
+from skl2onnx.common._apply_operation import apply_concat
 
 
 class WrappedLightGbmBooster:
@@ -57,14 +58,39 @@ def lightgbm_parser(scope, model, inputs, custom_parsers=None):
         raise TypeError("This converter does not apply on type '{}'."
                         "".format(type(model)))
 
-    wrapped = WrappedLightGbmBooster(model)
-    if wrapped._model_dict['objective'].startswith('binary'):
-        wrapped = WrappedLightGbmBoosterClassifier(wrapped)
-        return _parse_sklearn_classifier(
-            scope, wrapped, inputs, custom_parsers=custom_parsers)
-    if wrapped._model_dict['objective'].startswith('regression'):
-        return _parse_sklearn_simple_model(
-            scope, wrapped, inputs, custom_parsers=custom_parsers)
-    raise NotImplementedError(
-        "Objective '{}' is not implemented yet.".format(
-            wrapped._model_dict['objective']))
+    if len(inputs) == 1:
+        wrapped = WrappedLightGbmBooster(model)
+        if wrapped._model_dict['objective'].startswith('binary'):
+            wrapped = WrappedLightGbmBoosterClassifier(wrapped)
+            return _parse_sklearn_classifier(
+                scope, wrapped, inputs, custom_parsers=custom_parsers)
+        if wrapped._model_dict['objective'].startswith('regression'):
+            return _parse_sklearn_simple_model(
+                scope, wrapped, inputs, custom_parsers=custom_parsers)
+        raise NotImplementedError(
+            "Objective '{}' is not implemented yet.".format(
+                wrapped._model_dict['objective']))
+
+    # Multiple columns
+    this_operator = scope.declare_local_operator('LightGBMConcat')
+    this_operator.inputs = inputs
+    var = scope.declare_local_variable(
+        'Xlgbm', inputs[0].type.__class__([None, None]))
+    this_operator.outputs.append(var)
+    return lightgbm_parser(scope, model, this_operator.outputs, custom_parsers=custom_parsers)
+
+
+def shape_calculator_lightgbm_concat(operator):
+    """
+    Shape calculator for operator *LightGBMConcat*.
+    """
+    pass
+
+
+def converter_lightgbm_concat(scope, operator, container):
+    """
+    Converter for operator *LightGBMConcat*.
+    """
+    apply_concat(scope, [_.full_name for _ in operator.inputs],
+                 operator.outputs[0].full_name,
+                 container, axis=1)
