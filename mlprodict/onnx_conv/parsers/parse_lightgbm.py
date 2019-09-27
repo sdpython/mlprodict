@@ -44,10 +44,24 @@ class WrappedLightGbmBoosterClassifier(ClassifierMixin):
     Trick to wrap a LGBMClassifier into a class.
     """
 
-    def __init__(self, wrapped):
+    def __init__(self, wrapped):  # pylint: disable=W0231
         for k in {'boosting_type', '_model_dict', 'operator_name',
                   'classes_', 'booster_', 'n_features_'}:
             setattr(self, k, getattr(wrapped, k))
+
+
+class MockWrappedLightGbmBoosterClassifier(WrappedLightGbmBoosterClassifier):
+    """
+    Mocked lightgbm.
+    """
+
+    def __init__(self, tree):  # pylint: disable=W0231
+        self.dumped_ = tree
+
+    def dump_model(self):
+        "mock dump_model method"
+        self.visited = True
+        return self.dumped_
 
 
 def lightgbm_parser(scope, model, inputs, custom_parsers=None):

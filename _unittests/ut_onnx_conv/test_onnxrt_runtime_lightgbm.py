@@ -85,10 +85,13 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(
             X, y, random_state=11)
         other_x = numpy.random.randint(
-            0, high=10000, size=(1000, X_train.shape[1]))
+            0, high=10, size=(1500, X_train.shape[1]))
         X_train = numpy.vstack([X_train, other_x]).astype(dtype=numpy.int32)
         y_train = numpy.hstack(
-            [y_train, numpy.zeros(1000) + 4]).astype(dtype=numpy.int32)
+            [y_train, numpy.zeros(500) + 3, numpy.zeros(500) + 4,
+             numpy.zeros(500) + 5]).astype(dtype=numpy.int32)
+        self.assertEqual(y_train.shape, (X_train.shape[0], ))
+        y_train = y_train % 2
 
         # Classic
         gbm = LGBMClassifier()
@@ -111,9 +114,9 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         params = {
             "boosting_type": "gbdt",
             "learning_rate": 0.05,
-            "n_estimators": 100,
+            "n_estimators": 2,
             "objective": "binary",
-            "max_bin": 10,
+            "max_bin": 5,
             "min_child_samples": 100,
             'verbose': -1,
         }
