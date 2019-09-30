@@ -41,19 +41,40 @@ def _create_node_id(node_id_pool):
 
 
 def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attrs):
-    # The pool of all nodes' indexes created when parsing a single tree. Different trees may use different pools.
+    """
+    The pool of all nodes' indexes created when parsing a single tree.
+    Different tree use different pools.
+    """
     node_id_pool = set()
+    node_pyid_pool = dict()
 
     node_id = _create_node_id(node_id_pool)
+    node_pyid_pool[id(tree_structure)] = node_id
 
     # The root node is a leaf node.
     if 'left_child' not in tree_structure or 'right_child' not in tree_structure:
-        _parse_node(tree_id, class_id, node_id, node_id_pool,
+        _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
                     learning_rate, tree_structure, attrs)
         return
 
-    left_id = _create_node_id(node_id_pool)
-    right_id = _create_node_id(node_id_pool)
+    left_pyid = id(tree_structure['left_child'])
+    right_pyid = id(tree_structure['right_child'])
+
+    if left_pyid in node_pyid_pool:
+        left_id = node_pyid_pool[left_pyid]
+        left_parse = False
+    else:
+        left_id = _create_node_id(node_id_pool)
+        node_pyid_pool[left_pyid] = left_id
+        left_parse = True
+
+    if right_pyid in node_pyid_pool:
+        right_id = node_pyid_pool[right_pyid]
+        right_parse = False
+    else:
+        right_id = _create_node_id(node_id_pool)
+        node_pyid_pool[right_pyid] = right_id
+        right_parse = True
 
     attrs['nodes_treeids'].append(tree_id)
     attrs['nodes_nodeids'].append(node_id)
@@ -81,17 +102,40 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
     else:
         attrs['nodes_missing_value_tracks_true'].append(0)
     attrs['nodes_hitrates'].append(1.)
-    _parse_node(tree_id, class_id, left_id, node_id_pool, learning_rate,
-                tree_structure['left_child'], attrs)
-    _parse_node(tree_id, class_id, right_id, node_id_pool, learning_rate,
-                tree_structure['right_child'], attrs)
+    if left_parse:
+        _parse_node(tree_id, class_id, left_id, node_id_pool, node_pyid_pool,
+                    learning_rate, tree_structure['left_child'], attrs)
+    if right_parse:
+        _parse_node(tree_id, class_id, right_id, node_id_pool, node_pyid_pool,
+                    learning_rate, tree_structure['right_child'], attrs)
 
 
-def _parse_node(tree_id, class_id, node_id, node_id_pool, learning_rate, node, attrs):
+def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
+                learning_rate, node, attrs):
+    """
+    Parses nodes.
+    """
     if (hasattr(node, 'left_child') and hasattr(node, 'right_child')) or \
             ('left_child' in node and 'right_child' in node):
-        left_id = _create_node_id(node_id_pool)
-        right_id = _create_node_id(node_id_pool)
+
+        left_pyid = id(node['left_child'])
+        right_pyid = id(node['right_child'])
+
+        if left_pyid in node_pyid_pool:
+            left_id = node_pyid_pool[left_pyid]
+            left_parse = False
+        else:
+            left_id = _create_node_id(node_id_pool)
+            node_pyid_pool[left_pyid] = left_id
+            left_parse = True
+
+        if right_pyid in node_pyid_pool:
+            right_id = node_pyid_pool[right_pyid]
+            right_parse = False
+        else:
+            right_id = _create_node_id(node_id_pool)
+            node_pyid_pool[right_pyid] = right_id
+            right_parse = True
 
         attrs['nodes_treeids'].append(tree_id)
         attrs['nodes_nodeids'].append(node_id)
@@ -122,10 +166,12 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, learning_rate, node, a
         attrs['nodes_hitrates'].append(1.)
 
         # Recursively dive into the child nodes
-        _parse_node(tree_id, class_id, left_id, node_id_pool, learning_rate, node['left_child'],
-                    attrs)
-        _parse_node(tree_id, class_id, right_id, node_id_pool, learning_rate, node['right_child'],
-                    attrs)
+        if left_parse:
+            _parse_node(tree_id, class_id, left_id, node_id_pool, node_pyid_pool,
+                        learning_rate, node['left_child'], attrs)
+        if right_parse:
+            _parse_node(tree_id, class_id, right_id, node_id_pool, node_pyid_pool,
+                        learning_rate, node['right_child'], attrs)
     elif hasattr(node, 'left_child') or hasattr(node, 'right_child'):
         raise ValueError('Need two branches')
     else:
