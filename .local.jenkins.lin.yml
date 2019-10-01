@@ -20,6 +20,7 @@ before_script:
 script:
   - { CMD: "$PYINT -u setup.py unittests", NAME: "UT", TIMEOUT: 7200 }
   - { CMD: "$PYINT -u setup.py unittests_LONG", NAME: "UT_LONG", TIMEOUT: 3600 }
+  - { CMD: "bash run_asv.sh", NAME: "UT_BENCH", TIMEOUT: 7200, CLEAN: "0" }
 
 after_script:
   - $PYINT -u setup.py bdist_wheel
