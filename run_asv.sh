@@ -6,4 +6,4 @@ then
     rm dist/html/asv -r -f
 fi
 echo --PUBLISH--
-python3.7 -m asv publish --config mlprodict/asv_benchmark/asv.conf.json -o dist/html/asv || exit 1
+python3.7 -m asv publish --config mlprodict/asv_benchmark/asv.conf.json -o ../../dist/html/asv || exit 1
