@@ -293,3 +293,4 @@ _doc/notebooks/mprof*.py
 _doc/examples/summary.csv
 _doc/examples/data.csv
 _doc/examples/bench.png
+mlprodict/asv_benchmark/mlprodict

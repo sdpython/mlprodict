@@ -1,0 +1,1 @@
+python3.7 -m asv run --show-stderr --config mlprodict/asv_benchmark/asv.conf.json
