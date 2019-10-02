@@ -8,6 +8,43 @@ from ... import __version__ as ort_version
 from .validate_helper import default_time_kwargs, measure_time
 
 
+def make_n_rows(x, n, y=None):
+    """
+    Multiplies or reduces the rows of x to get
+    exactly *n* rows.
+
+    @param      x       matrix
+    @param      n       number of rows
+    @param      y       target
+    @return             new matrix or two new matrices if y is not None
+    """
+    if n < x.shape[0]:
+        if y is None:
+            return x[:n].copy()
+        return x[:n].copy(), y[:n].copy()
+    elif len(x.shape) < 2:
+        r = numpy.empty((n, ), dtype=x.dtype)
+        if y is not None:
+            ry = numpy.empty((n, ), dtype=x.dtype)
+        for i in range(0, n, x.shape[0]):
+            end = min(i + x.shape[0], n)
+            r[i: end] = x[0: end - i]
+            if y is not None:
+                ry[i: end] = y[0: end - i]
+    else:
+        r = numpy.empty((n, x.shape[1]), dtype=x.dtype)
+        if y is not None:
+            ry = numpy.empty((n, ), dtype=x.dtype)
+        for i in range(0, n, x.shape[0]):
+            end = min(i + x.shape[0], n)
+            r[i: end, :] = x[0: end - i, :]
+            if y is not None:
+                ry[i: end, :] = y[0: end - i, :]
+    if y is None:
+        return r
+    return y, ry
+
+
 def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
                   time_kwargs=None, skip_long_test=True):
     """
@@ -44,19 +81,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
         time_kwargs = default_time_kwargs()
 
     def make(x, n):
-        if n < x.shape[0]:
-            return x[:n].copy()
-        elif len(x.shape) < 2:
-            r = numpy.empty((n, ), dtype=x.dtype)
-            for i in range(0, n, x.shape[0]):
-                end = min(i + x.shape[0], n)
-                r[i: end] = x[0: end - i]
-        else:
-            r = numpy.empty((n, x.shape[1]), dtype=x.dtype)
-            for i in range(0, n, x.shape[0]):
-                end = min(i + x.shape[0], n)
-                r[i: end, :] = x[0: end - i, :]
-        return r
+        return make_n_rows(x, n)
 
     def allow(N, obs):
         if obs is None:
