@@ -20,13 +20,15 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl = TemplateBenchmark()
         res = {}
         cl.setup_cache()
-        N = 1
+        N = 60
+        nf = TemplateBenchmark.params[2][1]
         for runtime in ['skl', 'pyrt', 'ort']:
-            cl.setup(runtime, N)
+            cl.setup(runtime, N, nf)
+            self.assertEqual(cl.X.shape, (N, nf))
             for method in cl.__class__.__dict__:
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
-                    res[method, runtime] = meth(cl, runtime, N)
+                    res[method, runtime] = meth(cl, runtime, N, nf)
         self.assertEqual(len(res), 12)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),

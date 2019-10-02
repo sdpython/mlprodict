@@ -24,44 +24,46 @@ from sklearn.model_selection import train_test_split
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.validate.validate_benchmark import make_n_rows
-# from mlprodict.onnrt.validate.validate_problems import _modify_dimension
+from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 
 
 class TemplateBenchmark:
 
     params = [
         ['skl', 'pyrt', 'ort'],
-        [1, 100, 10000]
+        [1, 100, 10000],
+        [4, 20],
     ]
-    param_names = ['rt', 'N']
+    param_names = ['rt', 'N', 'nf']
 
-    @property
-    def _name(self):
-        last = 'cache_{}.pickle'.format(self.__class__.__name__)
+    def _name(self, nf):
+        last = 'cache-{}-{}.pickle'.format(self.__class__.__name__, nf)
         if os.path.exists('_cache'):
             return os.path.join('_cache', last)
         return last
 
     def setup_cache(self):
-        data = load_iris()
-        X, y = data.data, data.target
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, random_state=42)
-        X = X_test.astype(numpy.float32)
-        y = y_test
-        model = LogisticRegression(multi_class='ovr', solver='liblinear')
-        model.fit(X_train, y_train)
-        stored = {'model': model, 'X': X, 'y': y}
-        with open(self._name, "wb") as f:
-            pickle.dump(stored, f)
+        for nf in TemplateBenchmark.params[2]:
+            data = load_iris()
+            X, y = data.data, data.target
+            X = _modify_dimension(X, nf)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, random_state=42)
+            X = X_test.astype(numpy.float32)
+            y = y_test
+            model = LogisticRegression(multi_class='ovr', solver='liblinear')
+            model.fit(X_train, y_train)
+            stored = {'model': model, 'X': X, 'y': y}
+            with open(self._name(nf), "wb") as f:
+                pickle.dump(stored, f)
 
-    def setup(self, runtime, N):
+    def setup(self, runtime, N, nf):
         logger = getLogger('skl2onnx')
         logger.disabled = True
         if runtime not in TemplateBenchmark.params[0]:
             raise ValueError("Unknown runtime '{}'.".format(runtime))
         set_config(assume_finite=True)
-        with open(self._name, "rb") as f:
+        with open(self._name(nf), "rb") as f:
             stored = pickle.load(f)
         self.stored = stored
         self.model = stored['model']
@@ -71,7 +73,7 @@ class TemplateBenchmark:
         self.oinfpy = OnnxInference(self.onx, runtime='python')
         self.oinfort = OnnxInference(self.onx, runtime='onnxruntime1')
 
-    def time_predict(self, runtime, N):
+    def time_predict(self, runtime, N, nf):
         if runtime == 'skl':
             return self.model.predict_proba(self.X)
         if runtime == 'ort':
@@ -80,7 +82,7 @@ class TemplateBenchmark:
             return self.oinfpy.run({'X': self.X})
         raise ValueError("Unknown runtime '{}'.".format(runtime))
 
-    def peakmem_predict(self, runtime, N):
+    def peakmem_predict(self, runtime, N, nf):
         if runtime == 'skl':
             return self.model.predict_proba(self.X)
         if runtime == 'ort':
@@ -89,7 +91,7 @@ class TemplateBenchmark:
             return self.oinfpy.run({'X': self.X})
         raise ValueError("Unknown runtime '{}'.".format(runtime))
 
-    def track_score(self, runtime, N):
+    def track_score(self, runtime, N, nf):
         if runtime == 'skl':
             yp = self.model.predict(self.X)
         elif runtime == 'ort':
@@ -102,5 +104,5 @@ class TemplateBenchmark:
             raise ValueError("Unknown runtime '{}'.".format(runtime))
         return accuracy_score(self.y, yp)
 
-    def track_onnxsize(self, runtime, N):
+    def track_onnxsize(self, runtime, N, nf):
         return len(self.onx.SerializeToString())

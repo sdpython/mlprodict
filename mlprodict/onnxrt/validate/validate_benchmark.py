@@ -15,17 +15,17 @@ def make_n_rows(x, n, y=None):
 
     @param      x       matrix
     @param      n       number of rows
-    @param      y       target
+    @param      y       target (optional)
     @return             new matrix or two new matrices if y is not None
     """
     if n < x.shape[0]:
         if y is None:
             return x[:n].copy()
         return x[:n].copy(), y[:n].copy()
-    elif len(x.shape) < 2:
+    if len(x.shape) < 2:
         r = numpy.empty((n, ), dtype=x.dtype)
         if y is not None:
-            ry = numpy.empty((n, ), dtype=x.dtype)
+            ry = numpy.empty((n, ), dtype=y.dtype)
         for i in range(0, n, x.shape[0]):
             end = min(i + x.shape[0], n)
             r[i: end] = x[0: end - i]
@@ -34,15 +34,15 @@ def make_n_rows(x, n, y=None):
     else:
         r = numpy.empty((n, x.shape[1]), dtype=x.dtype)
         if y is not None:
-            ry = numpy.empty((n, ), dtype=x.dtype)
+            ry = numpy.empty((n, ), dtype=y.dtype)
         for i in range(0, n, x.shape[0]):
             end = min(i + x.shape[0], n)
             r[i: end, :] = x[0: end - i, :]
             if y is not None:
-                ry[i: end, :] = y[0: end - i, :]
+                ry[i: end] = y[0: end - i]
     if y is None:
         return r
-    return y, ry
+    return r, ry
 
 
 def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
