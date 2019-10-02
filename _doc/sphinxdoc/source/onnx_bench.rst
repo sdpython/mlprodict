@@ -24,6 +24,10 @@ because the first one took too long.
 .. contents::
     :local:
 
+Another benchmark based on :epkg:`asv` is available and shows
+similar results but also measure the memory peaks :
+`ASV Benchmark <http://www.xavierdupre.fr/app/mlprodict_bench/helpsphinx/index.html>`_.
+
 Benchmarks
 ++++++++++
 
