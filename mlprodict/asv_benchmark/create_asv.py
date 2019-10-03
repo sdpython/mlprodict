@@ -4,6 +4,7 @@ for many regressors and classifiers.
 """
 import os
 import json
+import textwrap
 from ..onnxrt.validate.validate_problems import _problems, find_suitable_problem
 from ..onnxrt.validate.validate_scenarios import _extra_parameters
 from ..onnxrt.validate.validate_helper import (
@@ -439,6 +440,7 @@ def _create_asv_benchmark_file(
             filename = name + ".py"
             names.append(filename)
             class_content = pattern_problem(prob)
+            class_name = name.replace("bench.", "").replace(".", "_")
 
             # n_features, N, runtimes
             rep = {
@@ -455,10 +457,115 @@ def _create_asv_benchmark_file(
                 "def _create_model(self):")[0].strip("\n ")
 
             # Model setup
-
-            # Model inference
+            class_content = add_model_import_init(
+                class_content, model, dofit, optimisation,
+                extra, conv_options)
+            class_content = class_content.replace(
+                "class TemplateBenchmarkClassifier",
+                "class {}".format(class_name))
 
             # Check compilation
-            compile(class_content, filename, 'exec')
+            try:
+                compile(class_content, filename, 'exec')
+            except SyntaxError as e:
+                raise SyntaxError("Unable to compile model '{}'\n{}".format(
+                    model.__name__, class_content)) from e
+
+            # Saves
+            with open(os.path.join(location, filename), "w", encoding='utf-8') as f:
+                f.write(class_content)
 
     return names
+
+
+def _format_dict(opts, indent):
+    """
+    Formats a dictionary as code.
+    """
+    rows = []
+    for k, v in sorted(opts.items()):
+        rows.append('%s=%r' % (k, v))
+    content = ', '.join(rows)
+    st1 = "\n".join(textwrap.wrap(content))
+    return textwrap.indent(st1, prefix=' ' * indent)
+
+
+def add_model_import_init(
+        class_content, model, dofit=True, optimisation=None,
+        extra=None, conv_options=None):
+    """
+    Modifies a template such as @see cl TemplateBenchmarkClassifier
+    with code associated to the model *model*.
+
+    @param  class_content       template (as a string)
+    @param  model               model class
+    @param  dofit               does the model need to be fit?
+    @param  optimisation        model optimisation
+    @param  extra               addition parameter to the constructor
+    @param  conv_options        options for the conversion to ONNX
+    @returm                     modified template
+    """
+    add_imports = []
+    add_methods = []
+    if not dofit:
+        raise NotImplementedError("dofit must be True")
+    if conv_options is not None and len(conv_options) > 0:
+        raise NotImplementedError("conv_options must be None not {}".format(
+            conv_options))
+
+    # additional methods and imports
+    if optimisation is not None:
+        add_imports.append(
+            'from mlprodict.onnxrt.optim import onnx_optimisations')
+        if optimisation == 'onnx':
+            add_methods.append(textwrap.dedent('''
+                def _optimize_onnx(self, onx):
+                    return onnx_optimisations(onx)'''))
+        elif isinstance(optimisation, dict):
+            add_methods.append(textwrap.dedent('''
+                def _optimize_onnx(self, onx):
+                    return onnx_optimisations(onx, {})''').format(
+                _format_dict(optimisation, indent=8)))
+        else:
+            raise ValueError(
+                "Unable to interpret optimisation {}.".format(optimisation))
+
+    # look for import place
+    lines = class_content.split('\n')
+    keep = None
+    for pos, line in enumerate(lines):
+        if "# Import specific to this model." in line:
+            keep = pos
+            break
+    if keep is None:
+        raise RuntimeError(
+            "Unable to locate where to insert import in\n".format(class_content))
+
+    # imports
+    loc_class = model.__module__
+    sub = loc_class.split('.')
+    skl = sub.index('sklearn')
+    mod = '.'.join(sub[skl:skl + 2])
+    imp_inst = "from {} import {}".format(mod, model.__name__)
+    add_imports.append(imp_inst)
+    lines[keep + 1] = "\n".join(add_imports)
+    content = "\n".join(lines)
+
+    # _create_model
+    content = content.split('def _create_model(self):')[0].strip(' \n')
+    lines = [content, "", "    def _create_model(self):"]
+    if extra is not None and len(extra) > 0:
+        lines.append("        return {}(".format(model.__name__))
+        lines.append(_format_dict(extra, 12))
+        lines.append("        )")
+    else:
+        lines.append("        return {}()".format(model.__name__))
+    lines.append("")
+
+    # methods
+    for meth in add_methods:
+        lines.append(textwrap.indent(meth, '    '))
+        lines.append('')
+
+    # end
+    return "\n".join(lines)

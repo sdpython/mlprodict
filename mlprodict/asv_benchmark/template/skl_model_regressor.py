@@ -26,6 +26,8 @@ from mlprodict.onnxrt import OnnxInference
 
 
 class TemplateBenchmarkRegressor(_CommonAsvSklBenchmarkRegressor):
+    # Full template can be found in
+    # https://github.com/sdpython/mlprodict/blob/master/mlprodict/asv_benchmark/common_asv_skl.py>`_
 
     params = [
         ['skl', 'pyrt', 'ort'],  # values for runtime

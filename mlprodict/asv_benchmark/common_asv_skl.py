@@ -21,13 +21,11 @@ from sklearn import set_config
 from sklearn.datasets import load_iris
 from sklearn.metrics import accuracy_score, r2_score
 from sklearn.model_selection import train_test_split
-
-# Import specific to this model.
-from sklearn.linear_model import LogisticRegression
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.validate.validate_benchmark import make_n_rows
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
+from mlprodict.onnxrt.optim import onnx_statistics
 
 
 class _CommonAsvSklBenchmark:
@@ -57,6 +55,9 @@ class _CommonAsvSklBenchmark:
 
     def _score_metric(self, y_exp, y_pred):
         raise NotImplementedError("This method must be overwritten.")
+
+    def _optimize_onnx(self, onx):
+        return onx
 
     def _get_dataset(self, nf):
         data = load_iris()
@@ -127,6 +128,14 @@ class _CommonAsvSklBenchmark:
     def track_onnxsize(self, runtime, N, nf):
         return len(self.onx.SerializeToString())
 
+    def track_nbnodes(self, runtime, N, nf):
+        stats = onnx_statistics(self.onx)
+        return stats.get('nnodes', 0)
+
+    def track_opset(self, runtime, N, nf):
+        stats = onnx_statistics(self.onx)
+        return stats.get('', 0)
+
 
 class _CommonAsvSklBenchmarkClassifier(_CommonAsvSklBenchmark):
     """
@@ -138,6 +147,7 @@ class _CommonAsvSklBenchmarkClassifier(_CommonAsvSklBenchmark):
 
     def _create_onnx_and_runtime(self, runtime, model, X):
         onx = to_onnx(model, X)
+        onx = self._optimize_onnx(onx)
         name = self.runtime_name(runtime)
         if name == 'skl':
             rt_ = None
