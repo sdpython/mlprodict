@@ -145,8 +145,9 @@ def validate_runtime(verbose=1, opset_min=9, opset_max="",
     if not isinstance(skip_models, list):
         skip_models = ({} if skip_models in (None, "")
                        else skip_models.strip().split(','))
-    logger = getLogger('skl2onnx')
-    logger.disabled = True
+    if verbose <= 1:
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
     if not dump_folder:
         dump_folder = None
     if dump_folder and not os.path.exists(dump_folder):

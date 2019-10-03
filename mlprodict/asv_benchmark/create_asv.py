@@ -118,7 +118,8 @@ def create_asv_benchmark(
         conf_params=None, filter_exp=None,
         filter_scenario=None):
     """
-    Creates an :epkg:`asv` benchmark in a folder.
+    Creates an :epkg:`asv` benchmark in a folder
+    but does not run it.
 
     :param n_features: number of features to try
     :param dims: number of observations to try
