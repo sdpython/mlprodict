@@ -511,7 +511,7 @@ def _create_asv_benchmark_file(
                     raise e
                 warnings.warn(str(e))
                 continue
-            filename = name + ".py"
+            filename = name.replace(".", "_") + ".py"
             names.append(filename)
             try:
                 class_content = pattern_problem(prob)
