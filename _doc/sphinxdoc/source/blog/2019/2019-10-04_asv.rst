@@ -12,3 +12,5 @@
     filenames did contain dots. So, for :epkg:`asv`
     don't add a file ``name.option.py`` but use
     ``name_option.py``.
+    A couple of benchmark for tries:
+    :epkg:`bench1`, :epkg:`bench2`.

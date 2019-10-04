@@ -46,6 +46,8 @@ epkg_dictionary.update({
     '_PredictScorer': 'https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/scorer.py#L168',
     'airspeed-velocity': 'https://github.com/airspeed-velocity/asv',
     'asv': 'https://github.com/airspeed-velocity/asv',
+    'bench1': 'http://www.xavierdupre.fr/app/mlprodict_bench/helpsphinx/index.html',
+    'bench2': 'http://www.xavierdupre.fr/app/mlprodict_bench2/helpsphinx/index.html',
     'C': "https://en.wikipedia.org/wiki/C_(programming_language)",
     'cffi': "https://cffi.readthedocs.io/en/latest/",
     "DataFrame": "https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html",
