@@ -3,7 +3,7 @@
     "project": "mlprodict",
     "project_url": "http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html",
     "repo": "https://github.com/sdpython/mlprodict.git",
-    "repo_subdir": "",
+    //"repo_subdir": "",
     "install_command": [
         "python -mpip install {wheel_file}"
     ],

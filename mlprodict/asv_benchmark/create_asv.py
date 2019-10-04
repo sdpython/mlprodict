@@ -7,12 +7,20 @@ import json
 import textwrap
 import hashlib
 import warnings
-from ..onnxrt.validate.validate_helper import (
-    get_opset_number_from_onnx, sklearn_operators
-)
-from ..onnxrt.validate.validate import (
-    _retrieve_problems_extra, _get_problem_data, _merge_options
-)
+try:
+    from ..onnxrt.validate.validate_helper import (
+        get_opset_number_from_onnx, sklearn_operators
+    )
+    from ..onnxrt.validate.validate import (
+        _retrieve_problems_extra, _get_problem_data, _merge_options
+    )
+except (ValueError, ImportError):
+    from mlprodict.onnxrt.validate.validate_helper import (
+        get_opset_number_from_onnx, sklearn_operators
+    )
+    from mlprodict.onnxrt.validate.validate import (
+        _retrieve_problems_extra, _get_problem_data, _merge_options
+    )
 
 
 default_asv_conf = {
