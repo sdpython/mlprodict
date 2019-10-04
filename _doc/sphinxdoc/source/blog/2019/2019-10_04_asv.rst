@@ -1,0 +1,14 @@
+
+.. blogpost::
+    :title: The bug which makes you waste time
+    :keywords: asv, bug
+    :date: 2019-10-04
+    :categories: benchmark
+
+    It is not a bug but it is something which makes
+    you waste some significant time just to understand
+    what's going on. :epkg:`asv` would refuse to detect
+    the benchmark I was trying to set up just because
+    filenames did contain dots. So, for :epkg:`asv`
+    don't add a file ``name.option.py`` but use
+    ``name_option.py``.

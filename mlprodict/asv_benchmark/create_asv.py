@@ -212,7 +212,7 @@ def create_asv_benchmark(
     created.append(dest)
     if verbose > 0 and fLOG is not None:
         fLOG("[create_asv_benchmark] create 'benches/__init__.py'.")
-    
+
     # flask_server
     tool_dir = os.path.join(location, 'tools')
     if not os.path.exists(tool_dir):

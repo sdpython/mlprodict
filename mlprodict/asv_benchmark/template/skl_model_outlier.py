@@ -10,6 +10,7 @@ on Windows.
     abide by the rule of the maximum path length even though
     the system is told otherwise.
 """
+import numpy  # pylint: disable=W0611
 # Import specific to this model.
 from sklearn.svm import OneClassSVM
 
