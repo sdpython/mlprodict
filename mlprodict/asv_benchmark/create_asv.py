@@ -28,14 +28,9 @@ default_asv_conf = {
         "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"
     ],
     "branches": ["master"],
-    # The DVCS being used.  If not set, it will be automatically
-    # determined from "repo" by looking at the protocol in the URL
-    # (if remote), or by looking for special directories, such as
-    # ".git" (if local).
-    # "dvcs": "git",
     "environment_type": "virtualenv",
     "install_timeout": 600,
-    "show_commit_url": "http://github.com/sdpython/mlprodict/commit/",
+    "show_commit_url": "https://github.com/sdpython/mlprodict/commit/",
     "pythons": ["3.7"],
     "matrix": {
         "cython": [],
@@ -51,9 +46,9 @@ default_asv_conf = {
         "skl2onnx": [],
         "scikit-learn": [],
     },
-    "benchmark_dir": ".",
-    "env_dir": "build/env",
-    "results_dir": "build/results",
+    "benchmark_dir": "benches",
+    "env_dir": "env",
+    "results_dir": "results",
     "html_dir": "html",
 }
 
@@ -70,7 +65,7 @@ app.config.from_object(__name__)
 
 
 def root_dir():
-    return os.path.join(os.path.abspath(os.path.dirname(__file__)), "html")
+    return os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "html")
 
 
 def get_file(filename):  # pragma: no cover
@@ -184,6 +179,7 @@ def create_asv_benchmark(
             if os.path.isfile(full_name):
                 os.remove(full_name)
 
+    # configuration
     conf = default_asv_conf.copy()
     if conf_params is not None:
         for k, v in conf_params.items():
@@ -191,11 +187,29 @@ def create_asv_benchmark(
     dest = os.path.join(location, "asv.conf.json")
     created.append(dest)
     with open(dest, "w", encoding='utf-8') as f:
-        json.dump(conf, f)
+        json.dump(conf, f, indent=4)
     if verbose > 0 and fLOG is not None:
         fLOG("[create_asv_benchmark] create 'asv.conf.json'.")
 
-    fl = os.path.join(location, 'flask_serve.py')
+    # __init__.py
+    dest = os.path.join(location, "__init__.py")
+    with open(dest, "w", encoding='utf-8') as f:
+        pass
+    created.append(dest)
+    if verbose > 0 and fLOG is not None:
+        fLOG("[create_asv_benchmark] create '__init__.py'.")
+    dest = os.path.join(location_test, '__init__.py')
+    with open(dest, "w", encoding='utf-8') as f:
+        pass
+    created.append(dest)
+    if verbose > 0 and fLOG is not None:
+        fLOG("[create_asv_benchmark] create 'benches/__init__.py'.")
+    
+    # flask_server
+    tool_dir = os.path.join(location, 'tools')
+    if not os.path.exists(tool_dir):
+        os.mkdir(tool_dir)
+    fl = os.path.join(tool_dir, 'flask_serve.py')
     with open(fl, "w", encoding='utf-8') as f:
         f.write(flask_helper)
     if verbose > 0 and fLOG is not None:

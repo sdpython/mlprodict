@@ -1,0 +1,44 @@
+{
+    "version": 1,
+    "project": "mlprodict",
+    "project_url": "http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html",
+    "repo": "https://github.com/sdpython/mlprodict.git",
+    "repo_subdir": "",
+    "install_command": [
+        "python -mpip install {wheel_file}"
+    ],
+    "uninstall_command": [
+        "return-code=any python -mpip uninstall -y {project}"
+    ],
+    "build_command": [
+        "python setup.py build",
+        "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"
+    ],
+    "branches": [
+        "master"
+    ],
+    "environment_type": "virtualenv",
+    "install_timeout": 600,
+    "show_commit_url": "https://github.com/sdpython/mlprodict/commit/",
+    "pythons": [
+        "3.7"
+    ],
+    "matrix": {
+        "cython": [],
+        "jinja2": [],
+        "joblib": [],
+        "numpy": [],
+        "onnx": [],
+        "onnxruntime": [],
+        "pandas": [],
+        "Pillow": [],
+        "pybind11": [],
+        "scipy": [],
+        "skl2onnx": [],
+        "scikit-learn": []
+    },
+    "benchmark_dir": ".",
+    "env_dir": "../build/env",
+    "results_dir": "../build/results",
+    "html_dir": "../build/html"
+}
