@@ -3,17 +3,29 @@
 """
 import os
 import unittest
-from logging import getLogger
-from io import StringIO
-import numpy
-import pandas
-import skl2onnx
+from skl2onnx.common.exceptions import MissingShapeCalculator
 from pyquickhelper.pycode import ExtTestCase
+
 from mlprodict.asv_benchmark.template.skl_model_classifier import (
     TemplateBenchmarkClassifier
 )
+from mlprodict.asv_benchmark.template.skl_model_clustering import (
+    TemplateBenchmarkClustering
+)
+from mlprodict.asv_benchmark.template.skl_model_multi_classifier import (
+    TemplateBenchmarkMultiClassifier
+)
 from mlprodict.asv_benchmark.template.skl_model_regressor import (
     TemplateBenchmarkRegressor
+)
+from mlprodict.asv_benchmark.template.skl_model_outlier import (
+    TemplateBenchmarkOutlier
+)
+from mlprodict.asv_benchmark.template.skl_model_trainable_transform import (
+    TemplateBenchmarkTrainableTransform
+)
+from mlprodict.asv_benchmark.template.skl_model_transform import (
+    TemplateBenchmarkTransform
 )
 
 
@@ -34,13 +46,40 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(cl, runtime, N, nf)
-        self.assertEqual(len(res), 12)
+        self.assertEqual(len(res), 18)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
                ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
                ('time_predict', 'ort'), ('peakmem_predict', 'ort'),
-               ('track_score', 'ort'), ('track_onnxsize', 'ort')]
+               ('track_score', 'ort'), ('track_onnxsize', 'ort'),
+               ('track_nbnodes', 'skl'), ('track_nbnodes', 'ort'),
+               ('track_opset', 'skl'), ('track_opset', 'pyrt'),
+               ('track_nbnodes', 'pyrt'), ('track_opset', 'ort')]
+        self.assertEqual(set(exp), set(res))
+
+    def test_template_benchmark_clustering(self):
+        if not os.path.exists('_cache'):
+            os.mkdir('_cache')
+        cl = TemplateBenchmarkClustering()
+        res = {}
+        cl.setup_cache()
+        N = 60
+        nf = cl.params[2][1]
+        for runtime in ['skl', 'pyrt']:
+            cl.setup(runtime, N, nf)
+            self.assertEqual(cl.X.shape, (N, nf))
+            for method in dir(cl):
+                if method.split('_')[0] in ('time', 'peakmem', 'track'):
+                    meth = getattr(cl.__class__, method)
+                    res[method, runtime] = meth(cl, runtime, N, nf)
+        self.assertEqual(len(res), 12)
+        exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
+               ('track_score', 'skl'), ('track_onnxsize', 'skl'),
+               ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
+               ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
+               ('track_nbnodes', 'skl'), ('track_opset', 'skl'),
+               ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
         self.assertEqual(set(exp), set(res))
 
     def test_template_benchmark_regressor(self):
@@ -58,13 +97,140 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(cl, runtime, N, nf)
-        self.assertEqual(len(res), 12)
+        self.assertEqual(len(res), 18)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
                ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
                ('time_predict', 'ort'), ('peakmem_predict', 'ort'),
-               ('track_score', 'ort'), ('track_onnxsize', 'ort')]
+               ('track_score', 'ort'), ('track_onnxsize', 'ort'),
+               ('track_nbnodes', 'skl'), ('track_nbnodes', 'ort'),
+               ('track_opset', 'skl'), ('track_opset', 'pyrt'),
+               ('track_nbnodes', 'pyrt'), ('track_opset', 'ort')]
+        self.assertEqual(set(exp), set(res))
+
+    def test_template_benchmark_multi_classifier(self):
+        if not os.path.exists('_cache'):
+            os.mkdir('_cache')
+        cl = TemplateBenchmarkMultiClassifier()
+        res = {}
+        cl.setup_cache()
+        N = 60
+        nf = cl.params[2][1]
+        for runtime in ['skl', 'pyrt']:
+            try:
+                cl.setup(runtime, N, nf)
+            except NotImplementedError:
+                # not implemented
+                return
+            self.assertEqual(cl.X.shape, (N, nf))
+            for method in dir(cl):
+                if method.split('_')[0] in ('time', 'peakmem', 'track'):
+                    meth = getattr(cl.__class__, method)
+                    res[method, runtime] = meth(cl, runtime, N, nf)
+        self.assertEqual(len(res), 18)
+        exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
+               ('track_score', 'skl'), ('track_onnxsize', 'skl'),
+               ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
+               ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
+               ('track_nbnodes', 'skl'), ('track_opset', 'skl'),
+               ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
+        self.assertEqual(set(exp), set(res))
+
+    def test_template_benchmark_outlier(self):
+        if not os.path.exists('_cache'):
+            os.mkdir('_cache')
+        cl = TemplateBenchmarkOutlier()
+        res = {}
+        cl.setup_cache()
+        N = 60
+        nf = cl.params[2][1]
+        expect = 12
+        for runtime in ['skl', 'pyrt']:
+            try:
+                cl.setup(runtime, N, nf)
+            except MissingShapeCalculator:
+                # Converter not yet implemented.
+                expect = 0
+                continue
+            self.assertEqual(cl.X.shape, (N, nf))
+            for method in dir(cl):
+                if method.split('_')[0] in ('time', 'peakmem', 'track'):
+                    meth = getattr(cl.__class__, method)
+                    res[method, runtime] = meth(cl, runtime, N, nf)
+        if expect == 0:
+            return
+        self.assertEqual(len(res), expect)
+        exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
+               ('track_score', 'skl'), ('track_onnxsize', 'skl'),
+               ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
+               ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
+               ('track_nbnodes', 'skl'), ('track_opset', 'skl'),
+               ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
+        self.assertEqual(set(exp), set(res))
+
+    def test_template_benchmark_trainable_transform(self):
+        if not os.path.exists('_cache'):
+            os.mkdir('_cache')
+        cl = TemplateBenchmarkTrainableTransform()
+        res = {}
+        cl.setup_cache()
+        N = 60
+        nf = cl.params[2][1]
+        expect = 12
+        for runtime in ['skl', 'pyrt']:
+            try:
+                cl.setup(runtime, N, nf)
+            except MissingShapeCalculator:
+                # Converter not yet implemented.
+                expect = 0
+                continue
+            self.assertEqual(cl.X.shape, (N, nf))
+            for method in dir(cl):
+                if method.split('_')[0] in ('time', 'peakmem', 'track'):
+                    meth = getattr(cl.__class__, method)
+                    res[method, runtime] = meth(cl, runtime, N, nf)
+        if expect == 0:
+            return
+        self.assertEqual(len(res), expect)
+        exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
+               ('track_score', 'skl'), ('track_onnxsize', 'skl'),
+               ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
+               ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
+               ('track_nbnodes', 'skl'), ('track_opset', 'skl'),
+               ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
+        self.assertEqual(set(exp), set(res))
+
+    def test_template_benchmark_transform(self):
+        if not os.path.exists('_cache'):
+            os.mkdir('_cache')
+        cl = TemplateBenchmarkTransform()
+        res = {}
+        cl.setup_cache()
+        N = 60
+        nf = cl.params[2][1]
+        expect = 12
+        for runtime in ['skl', 'pyrt']:
+            try:
+                cl.setup(runtime, N, nf)
+            except MissingShapeCalculator:
+                # Converter not yet implemented.
+                expect = 0
+                continue
+            self.assertEqual(cl.X.shape, (N, nf))
+            for method in dir(cl):
+                if method.split('_')[0] in ('time', 'peakmem', 'track'):
+                    meth = getattr(cl.__class__, method)
+                    res[method, runtime] = meth(cl, runtime, N, nf)
+        if expect == 0:
+            return
+        self.assertEqual(len(res), expect)
+        exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
+               ('track_score', 'skl'), ('track_onnxsize', 'skl'),
+               ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
+               ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
+               ('track_nbnodes', 'skl'), ('track_opset', 'skl'),
+               ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
         self.assertEqual(set(exp), set(res))
 
 

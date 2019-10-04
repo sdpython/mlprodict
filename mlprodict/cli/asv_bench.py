@@ -2,7 +2,6 @@
 @file
 @brief Command line about validation of prediction runtime.
 """
-import os
 from logging import getLogger
 from ..asv_benchmark import create_asv_benchmark
 

@@ -1,8 +1,8 @@
 """
 A template to benchmark a model
 with :epkg:`asv`. The benchmark can be run through
-file :epkg:`run_asv.sh` on Linux or :epkg:`run_asv.bat` on
-Windows.
+file :epkg:`run_asv.sh` on Linux or :epkg:`run_asv.bat`
+on Windows.
 
 .. warning::
     On Windows, you should avoid cloning the repository
@@ -11,15 +11,15 @@ Windows.
     the system is told otherwise.
 """
 # Import specific to this model.
-from sklearn.linear_model import LogisticRegression
+from sklearn.svm import OneClassSVM
 
-from mlprodict.asv_benchmark import _CommonAsvSklBenchmarkClassifier
+from mlprodict.asv_benchmark import _CommonAsvSklBenchmarkOutlier
 from mlprodict.onnx_conv import to_onnx  # pylint: disable=W0611
 from mlprodict.onnxrt import OnnxInference  # pylint: disable=W0611
 
 
-class TemplateBenchmarkClassifier(_CommonAsvSklBenchmarkClassifier):
-    "asv test for a classifier"
+class TemplateBenchmarkOutlier(_CommonAsvSklBenchmarkOutlier):
+    "asv example for an outlier detector"
     # Full template can be found in
     # https://github.com/sdpython/mlprodict/blob/master/mlprodict/asv_benchmark/common_asv_skl.py>`_
 
@@ -32,4 +32,4 @@ class TemplateBenchmarkClassifier(_CommonAsvSklBenchmarkClassifier):
     # additional parameters
 
     def _create_model(self):
-        return LogisticRegression(multi_class='ovr', solver='liblinear')
+        return OneClassSVM()

@@ -5,12 +5,14 @@ for many regressors and classifiers.
 import os
 import json
 import textwrap
-from ..onnxrt.validate.validate_problems import _problems, find_suitable_problem
-from ..onnxrt.validate.validate_scenarios import _extra_parameters
+import hashlib
+import warnings
 from ..onnxrt.validate.validate_helper import (
     get_opset_number_from_onnx, sklearn_operators
 )
-from ..onnxrt.validate.validate import _retrieve_problems_extra, _get_problem_data
+from ..onnxrt.validate.validate import (
+    _retrieve_problems_extra, _get_problem_data, _merge_options
+)
 
 
 default_asv_conf = {
@@ -111,12 +113,12 @@ if __name__ == '__main__':  # pragma: no cover
 
 def create_asv_benchmark(
         location, opset_min=9, opset_max=None,
-        runtime=['scikit-learn', 'python'], models=None,
+        runtime=('scikit-learn', 'python'), models=None,
         skip_models=None, extended_list=True,
-        dims=[1, 100, 10000], n_features=[4, 20], dtype=None,
+        dims=(1, 100, 10000), n_features=(4, 20), dtype=None,
         verbose=0, fLOG=print, clean=True,
         conf_params=None, filter_exp=None,
-        filter_scenario=None):
+        filter_scenario=None, exc=False):
     """
     Creates an :epkg:`asv` benchmark in a folder
     but does not run it.
@@ -148,6 +150,8 @@ def create_asv_benchmark(
     :param filter_scenario: second function which tells if the experiment must be run,
         None to run all, takes *model, problem, scenario, extra*
         as an input
+    :param exc: if False, raises warnings instead of exceptions
+        whenever possible
     :return: created files
 
     The default configuration is the following:
@@ -207,7 +211,7 @@ def create_asv_benchmark(
         n_features=n_features, dtype=dtype,
         verbose=verbose, filter_exp=filter_exp,
         filter_scenario=filter_scenario,
-        dims=dims, fLOG=fLOG)))
+        dims=dims, exc=exc, fLOG=fLOG)))
 
     if verbose > 0 and fLOG is not None:
         fLOG("[create_asv_benchmark] done.")
@@ -216,11 +220,12 @@ def create_asv_benchmark(
 
 def _enumerate_asv_benchmark_all_models(
         location, opset_min=9, opset_max=None,
-        runtime=['scikit-learn', 'python'], models=None,
+        runtime=('scikit-learn', 'python'), models=None,
         skip_models=None, extended_list=True,
         n_features=None, dtype=None,
         verbose=0, filter_exp=None,
-        dims=None, filter_scenario=None, fLOG=print):
+        dims=None, filter_scenario=None, exc=True,
+        fLOG=print):
     """
     Loops over all possible models and fills a folder
     with benchmarks following :epkg:`asv` concepts.
@@ -250,6 +255,8 @@ def _enumerate_asv_benchmark_all_models(
     :param filter_scenario: second function which tells if the experiment must be run,
         None to run all, takes *model, problem, scenario, extra*
         as an input
+    :param exc: if False, raises warnings instead of exceptions
+        whenever possible
     """
 
     ops = [_ for _ in sklearn_operators(extended=extended_list)]
@@ -349,38 +356,41 @@ def _enumerate_asv_benchmark_all_models(
                 if verbose >= 3 and fLOG is not None:
                     fLOG("[create_asv_benchmark] model={} scenario={} optim={} extra={} dofit={} (problem={})".format(
                         model.__name__, scenario, optimisations, extra, dofit, prob))
-                created = _create_asv_benchmark_file(
-                    location,
-                    model=model, scenario=scenario, optimisations=optimisations,
-                    extra=extra, dofit=dofit, prob=prob,
-                    runtime=runtime, new_conv_options=new_conv_options,
-                    X_train=X_train, X_test=X_test, y_train=y_train,
-                    y_test=y_test, Xort_test=Xort_test,
-                    init_types=init_types, conv_options=conv_options,
-                    method_name=method_name, dims=dims, n_features=n_features,
-                    output_index=output_index, predict_kwargs=predict_kwargs)
-                for cr in created:
-                    if verbose > 1 and fLOG is not None:
-                        fLOG("[create_asv_benchmark] add '{}'.".format(cr))
-                    yield cr
+                for opset in opsets:
+                    created = _create_asv_benchmark_file(
+                        location, opset=opset,
+                        model=model, scenario=scenario, optimisations=optimisations,
+                        extra=extra, dofit=dofit, prob=prob,
+                        runtime=runtime, new_conv_options=new_conv_options,
+                        X_train=X_train, X_test=X_test, y_train=y_train,
+                        y_test=y_test, Xort_test=Xort_test,
+                        init_types=init_types, conv_options=conv_options,
+                        method_name=method_name, dims=dims, n_features=n_features,
+                        output_index=output_index, predict_kwargs=predict_kwargs,
+                        exc=exc)
+                    for cr in created:
+                        if verbose > 1 and fLOG is not None:
+                            fLOG("[create_asv_benchmark] add '{}'.".format(cr))
+                        yield cr
 
 
-def _asv_class_name(model, prob, scenario, optimisation, extra, dofit, conv_options):
+def _asv_class_name(model, prob, scenario, optimisation,
+                    extra, dofit, conv_options, opset):
 
     def clean_str(val):
         s = str(val)
-        s = s.replace("{", "")
-        s = s.replace("}", "")
-        s = s.replace(",", "")
-        s = s.replace("\"", "")
-        s = s.replace("'", "")
-        s = s.replace(":", "_")
-        s = s.replace(" ", "")
-        s = s.replace("-", "_")
-        return s
+        r = ""
+        for c in s:
+            if c in ",-\n":
+                r += "_"
+                continue
+            if c in ": =.+()[]{}\"'<>":
+                continue
+            r += c
+        return r
 
     p = prob.replace("~", "")
-    els = ['bench', model.__name__, p, scenario]
+    els = ['bench', model.__name__, clean_str(p), scenario]
     if not dofit:
         els.append('nofit')
     if extra:
@@ -389,22 +399,33 @@ def _asv_class_name(model, prob, scenario, optimisation, extra, dofit, conv_opti
         els.append(clean_str(optimisation))
     if conv_options:
         els.append(clean_str(conv_options))
-    return ".".join(els).replace("-", "_")
+    res = ".".join(els).replace("-", "_")
+    if len(res) > 70:
+        m = hashlib.sha256()
+        m.update(res.encode('utf-8'))
+        sh = m.hexdigest()
+        if len(sh) > 6:
+            sh = sh[:6]
+        res = res[:70] + sh
+    res += "_" + str(opset)
+    return res
 
 
 def _create_asv_benchmark_file(
         location, model, scenario, optimisations, new_conv_options,
         extra, dofit, prob, runtime, X_train, X_test, y_train,
         y_test, Xort_test, init_types, conv_options,
-        method_name, n_features, dims,
-        output_index, predict_kwargs):
+        method_name, n_features, dims, opset,
+        output_index, predict_kwargs, exc):
     """
     Creates a benchmark file based in the information received
     through the argument. It uses template @see cl TemplateBenchmark.
     """
     # Reads the template
     patterns = {}
-    for suffix in ['classifier', 'regressor']:
+    for suffix in ['classifier', 'regressor', 'clustering',
+                   'outlier', 'trainable_transform', 'transform',
+                   'multi_classifier']:
         template_name = os.path.join(os.path.dirname(
             __file__), "template", "skl_model_%s.py" % suffix)
         if not os.path.exists(template_name):
@@ -420,8 +441,31 @@ def _create_asv_benchmark_file(
             return patterns['regressor']
         if '-cl' in prob:
             return patterns['classifier']
+        if 'cluster' in prob:
+            return patterns['clustering']
+        if 'outlier' in prob:
+            return patterns['outlier']
+        if 'num+y-tr' in prob:
+            return patterns['trainable_transform']
+        if 'num-tr' in prob:
+            return patterns['transform']
+        if 'm-label' in prob:
+            return patterns['multi_classifier']
         raise ValueError(
             "Unable to guess the right pattern for '{}'.".format(prob))
+
+    def format_conv_options(options, class_name):
+        res = {}
+        for k, v in options.items():
+            if isinstance(k, type):
+                if "." + class_name + "'" in str(k):
+                    res[class_name] = v
+                    continue
+                raise ValueError(
+                    "Class '{}', unable to format options {}".format(
+                        class_name, options))
+            res[k] = v
+        return res
 
     runtimes_abb = {
         'scikit-learn': 'skl',
@@ -433,14 +477,27 @@ def _create_asv_benchmark_file(
 
     # Looping over configuration.
     names = []
-    for conv_options in new_conv_options:
+    for nconv_options in new_conv_options:
         for optimisation in optimisations:
-            name = _asv_class_name(
-                model, prob, scenario, optimisation, extra,
-                dofit, conv_options)
+            merged_options = _merge_options(nconv_options, conv_options)
+            try:
+                name = _asv_class_name(
+                    model, prob, scenario, optimisation, extra,
+                    dofit, merged_options, opset)
+            except ValueError as e:
+                if exc:
+                    raise e
+                warnings.warn(str(e))
+                continue
             filename = name + ".py"
             names.append(filename)
-            class_content = pattern_problem(prob)
+            try:
+                class_content = pattern_problem(prob)
+            except ValueError as e:
+                if exc:
+                    raise e
+                warnings.warn(str(e))
+                continue
             class_name = name.replace("bench.", "").replace(".", "_")
 
             # n_features, N, runtimes
@@ -459,11 +516,26 @@ def _create_asv_benchmark_file(
 
             # Model setup
             class_content = add_model_import_init(
-                class_content, model, dofit, optimisation,
-                extra, conv_options)
+                class_content, model, optimisation,
+                extra, merged_options)
             class_content = class_content.replace(
-                "class TemplateBenchmarkClassifier",
+                "class TemplateBenchmark",
                 "class {}".format(class_name))
+
+            # dtype, dofit
+            atts = []
+            if '-64' in prob:
+                atts.append("xtest_dtype = numpy.float64")
+            if not dofit:
+                atts.append("dofit = False")
+            if merged_options is not None and len(merged_options) > 0:
+                atts.append("conv_options = %r" % format_conv_options(
+                    merged_options, model.__name__))
+            atts.append("target_opset = %r" % opset)
+            if atts:
+                class_content = class_content.replace(
+                    "# additional parameters",
+                    "\n    ".join(atts))
 
             # Check compilation
             try:
@@ -492,7 +564,7 @@ def _format_dict(opts, indent):
 
 
 def add_model_import_init(
-        class_content, model, dofit=True, optimisation=None,
+        class_content, model, optimisation=None,
         extra=None, conv_options=None):
     """
     Modifies a template such as @see cl TemplateBenchmarkClassifier
@@ -500,7 +572,6 @@ def add_model_import_init(
 
     @param  class_content       template (as a string)
     @param  model               model class
-    @param  dofit               does the model need to be fit?
     @param  optimisation        model optimisation
     @param  extra               addition parameter to the constructor
     @param  conv_options        options for the conversion to ONNX
@@ -508,11 +579,6 @@ def add_model_import_init(
     """
     add_imports = []
     add_methods = []
-    if not dofit:
-        raise NotImplementedError("dofit must be True")
-    if conv_options is not None and len(conv_options) > 0:
-        raise NotImplementedError("conv_options must be None not {}".format(
-            conv_options))
 
     # additional methods and imports
     if optimisation is not None:
@@ -540,7 +606,7 @@ def add_model_import_init(
             break
     if keep is None:
         raise RuntimeError(
-            "Unable to locate where to insert import in\n".format(class_content))
+            "Unable to locate where to insert import in\n{}\n".format(class_content))
 
     # imports
     loc_class = model.__module__

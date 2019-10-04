@@ -26,6 +26,7 @@ class TestCodeStyle(ExtTestCase):
                          "gactions.py:225: R1711",
                          "gactions.py:238: E1128",
                          "R1720",
+                         "[E731]",
                          ])
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
@@ -40,6 +41,7 @@ class TestCodeStyle(ExtTestCase):
                          "R1720",
                          'if __name__ == "__main__":',
                          "# pylint: disable=E0611",
+                         "[E731]",
                          ])
 
 

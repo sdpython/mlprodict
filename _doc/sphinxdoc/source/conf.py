@@ -66,6 +66,8 @@ epkg_dictionary.update({
     'OnnxOperatorMixin': 'https://github.com/onnx/sklearn-onnx/blob/master/skl2onnx/algebra/onnx_operator_mixin.py#L16',
     'onnxruntime': 'https://github.com/microsoft/onnxruntime',
     'Python': 'https://www.python.org/',
+    'run_asv.bat': 'https://github.com/sdpython/mlprodict/blob/master/bin/run_asv.bat',
+    'run_asv.sh': 'https://github.com/sdpython/mlprodict/blob/master/bin/run_asv.sh',
     'Rust': 'https://www.rust-lang.org/',
     'sklearn-onnx': 'https://github.com/onnx/sklearn-onnx',
     'xgboost': "https://xgboost.readthedocs.io/en/latest/",

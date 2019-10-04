@@ -4,7 +4,7 @@
 import os
 import unittest
 from pyquickhelper.loghelper import BufferedPrint
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder, skipif_circleci
+from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.__main__ import main
 
 

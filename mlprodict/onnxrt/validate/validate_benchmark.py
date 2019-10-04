@@ -34,12 +34,18 @@ def make_n_rows(x, n, y=None):
     else:
         r = numpy.empty((n, x.shape[1]), dtype=x.dtype)
         if y is not None:
-            ry = numpy.empty((n, ), dtype=y.dtype)
+            if len(y.shape) < 2:
+                ry = numpy.empty((n, ), dtype=y.dtype)
+            else:
+                ry = numpy.empty((n, y.shape[1]), dtype=y.dtype)
         for i in range(0, n, x.shape[0]):
             end = min(i + x.shape[0], n)
             r[i: end, :] = x[0: end - i, :]
             if y is not None:
-                ry[i: end] = y[0: end - i]
+                if len(y.shape) < 2:
+                    ry[i: end] = y[0: end - i]
+                else:
+                    ry[i: end, :] = y[0: end - i, :]
     if y is None:
         return r
     return r, ry
