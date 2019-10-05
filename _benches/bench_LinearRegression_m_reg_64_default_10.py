@@ -1,3 +1,4 @@
+import numpy
 # Import specific to this model.
 from sklearn.linear_model import LinearRegression
 

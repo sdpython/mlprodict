@@ -1,3 +1,4 @@
+import numpy
 # Import specific to this model.
 from mlprodict.onnxrt.optim import onnx_optimisations
 from sklearn.linear_model import LogisticRegression
