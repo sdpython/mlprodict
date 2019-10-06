@@ -8,6 +8,10 @@ import onnx.defs
 from onnx.helper import make_tensor
 from onnx import TensorProto
 from onnxruntime import InferenceSession, SessionOptions, RunOptions
+try:
+    from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument as OrtInvalidArgument
+except ImportError:
+    OrtInvalidArgument = RuntimeError
 import skl2onnx.algebra.onnx_ops as alg
 try:
     import skl2onnx.algebra.custom_ops as alg2

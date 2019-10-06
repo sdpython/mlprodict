@@ -89,7 +89,7 @@ class TestInferenceSessionSklearn(ExtTestCase):
         pipe = make_pipeline(PCA(n_components=2), LogisticRegression())
         pipe.fit(X, y)
         onx = convert_sklearn(pipe, initial_types=[
-                              ('input', FloatTensorType((1, X.shape[1])))])
+                              ('input', FloatTensorType((None, X.shape[1])))])
         onx_bytes = onx.SerializeToString()
         res = list(OnnxTransformer.enumerate_create(onx_bytes))
         outputs = []

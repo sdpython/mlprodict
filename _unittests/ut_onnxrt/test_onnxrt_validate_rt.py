@@ -32,6 +32,7 @@ class TestOnnxrtValidateRt(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LinearRegression"}, opset_min=11, fLOG=fLOG,
             runtime=['python', 'onnxruntime1'], debug=False,
+            filter_exp=lambda m, p: '-64' not in p,
             benchmark=True, n_features=[None, 10]))
 
         self.assertGreater(len(rows), 1)

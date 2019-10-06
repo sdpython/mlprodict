@@ -16,6 +16,10 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxIdentity
 )
 import skl2onnx
+try:
+    from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument as OrtInvalidArgument
+except ImportError:
+    OrtInvalidArgument = RuntimeError
 from mlprodict.onnx_conv import register_converters, to_onnx, get_onnx_opset
 from mlprodict.onnx_conv.sklconv.knn import onnx_cdist
 from mlprodict.onnxrt import OnnxInference
@@ -228,7 +232,7 @@ class TestOnnxConvKNN(ExtTestCase):
             self.onnx_test_knn_single_regressor(
                 numpy.float32, runtime="onnxruntime2", target_opset=10,
                 debug=False)
-        except RuntimeError as e:
+        except (RuntimeError, OrtInvalidArgument) as e:
             if "Invalid rank for input: Ar_Z0 Got: 2 Expected: 1" in str(e):
                 return
             raise e

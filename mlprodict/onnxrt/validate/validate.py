@@ -284,8 +284,10 @@ def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: di
 
     if opset_max is None:
         opset_max = get_opset_number_from_onnx()
-    opsets = list(range(opset_min, opset_max + 1))
-    opsets.append(None)
+        opsets = list(range(opset_min, opset_max + 1))
+        opsets.append(None)
+    else:
+        opsets = list(range(opset_min, opset_max + 1))
 
     if extras is None:
         problems = []

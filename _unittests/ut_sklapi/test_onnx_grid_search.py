@@ -29,7 +29,7 @@ class TestInferenceSessionSklearnGridSearch(ExtTestCase):
         pca.fit(X)
 
         onx = convert_sklearn(pca, initial_types=[
-                              ('input', FloatTensorType((1, X.shape[1])))])
+                              ('input', FloatTensorType((None, X.shape[1])))])
         onx_bytes = onx.SerializeToString()
         tr = OnnxTransformer(onx_bytes)
 
@@ -49,7 +49,7 @@ class TestInferenceSessionSklearnGridSearch(ExtTestCase):
         pca = PCA(n_components=2)
         pca.fit(X_train)
         onx = convert_sklearn(pca, initial_types=[
-                              ('input', FloatTensorType((1, X.shape[1])))])
+                              ('input', FloatTensorType((None, X.shape[1])))])
         onx_bytes = onx.SerializeToString()
         tr = OnnxTransformer(onx_bytes)
 
@@ -81,13 +81,13 @@ class TestInferenceSessionSklearnGridSearch(ExtTestCase):
         pca = PCA(n_components=2)
         pca.fit(X_train)
         onx = convert_sklearn(pca, initial_types=[
-                              ('input', FloatTensorType((1, X.shape[1])))])
+                              ('input', FloatTensorType((None, X.shape[1])))])
         onx_bytes2 = onx.SerializeToString()
 
         pca = PCA(n_components=3)
         pca.fit(X_train)
         onx = convert_sklearn(pca, initial_types=[
-                              ('input', FloatTensorType((1, X.shape[1])))])
+                              ('input', FloatTensorType((None, X.shape[1])))])
         onx_bytes3 = onx.SerializeToString()
 
         pipe = make_pipeline(OnnxTransformer(onx_bytes2),
