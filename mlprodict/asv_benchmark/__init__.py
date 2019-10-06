@@ -13,3 +13,4 @@ from .common_asv_skl import (
     _CommonAsvSklBenchmarkTransform,
 )
 from .create_asv import create_asv_benchmark
+from .exports import export_asv_json

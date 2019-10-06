@@ -25,6 +25,5 @@ class LogisticRegression_m_cl_liblinear_solverliblinear_onnx_9Classifier(_Common
             solver='liblinear'
         )
 
-
     def _optimize_onnx(self, onx):
         return onnx_optimisations(onx)

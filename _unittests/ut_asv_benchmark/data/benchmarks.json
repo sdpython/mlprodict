@@ -1,0 +1,99 @@
+{
+    "bench_ARDRegression_b_reg_64_default_10.ARDRegression_b_reg_64_default_10Regressor.peakmem_predict": {
+        "code": "class _CommonAsvSklBenchmark:\n    def peakmem_predict(self, runtime, N, nf):\n        \"asv API\"\n        return getattr(self, \"rt_fct_\" + runtime)(self.X)\n\n    def setup(self, runtime, N, nf):\n        \"asv API\"\n        logger = getLogger('skl2onnx')\n        logger.disabled = True\n        set_config(assume_finite=True)\n        with open(self._name(nf), \"rb\") as f:\n            stored = pickle.load(f)\n        self.stored = stored\n        self.model = stored['model']\n        self.X, self.y = make_n_rows(stored['X'], N, stored['y'])\n        onx, rt_, rt_fct_, rt_fct_track_ = self._create_onnx_and_runtime(\n            runtime, self.model, self.X)\n        self.onx = onx\n        setattr(self, \"rt_\" + runtime, rt_)\n        setattr(self, \"rt_fct_\" + runtime, rt_fct_)\n        setattr(self, \"rt_fct_track_\" + runtime, rt_fct_track_)\n\n    def setup_cache(self):\n        \"asv API\"\n        for nf in self.params[2]:\n            (X_train, y_train), (X, y) = self._get_dataset(nf)\n            model = self._create_model()\n            if self.dofit:\n                model.fit(X_train, y_train)\n            stored = {'model': model, 'X': X, 'y': y}\n            with open(self._name(nf), \"wb\") as f:\n                pickle.dump(stored, f)",
+        "name": "bench_ARDRegression_b_reg_64_default_10.ARDRegression_b_reg_64_default_10Regressor.peakmem_predict",
+        "param_names": [
+            "rt",
+            "N",
+            "nf"
+        ],
+        "params": [
+            [
+                "'skl'",
+                "'pyrt'",
+                "'ort'"
+            ],
+            [
+                "1",
+                "100",
+                "10000"
+            ],
+            [
+                "4",
+                "20"
+            ]
+        ],
+        "setup_cache_key": "asv_benchmark.common_asv_skl:111",
+        "timeout": 60.0,
+        "type": "peakmemory",
+        "unit": "bytes",
+        "version": "38fc90af63d0ae5a7dbe05dd25f73c8f9614a7cafad391b05eb71d38f208f916"
+    },
+    "bench_ARDRegression_b_reg_64_default_10.ARDRegression_b_reg_64_default_10Regressor.time_predict": {
+        "code": "class _CommonAsvSklBenchmark:\n    def time_predict(self, runtime, N, nf):\n        \"asv API\"\n        return getattr(self, \"rt_fct_\" + runtime)(self.X)\n\n    def setup(self, runtime, N, nf):\n        \"asv API\"\n        logger = getLogger('skl2onnx')\n        logger.disabled = True\n        set_config(assume_finite=True)\n        with open(self._name(nf), \"rb\") as f:\n            stored = pickle.load(f)\n        self.stored = stored\n        self.model = stored['model']\n        self.X, self.y = make_n_rows(stored['X'], N, stored['y'])\n        onx, rt_, rt_fct_, rt_fct_track_ = self._create_onnx_and_runtime(\n            runtime, self.model, self.X)\n        self.onx = onx\n        setattr(self, \"rt_\" + runtime, rt_)\n        setattr(self, \"rt_fct_\" + runtime, rt_fct_)\n        setattr(self, \"rt_fct_track_\" + runtime, rt_fct_track_)\n\n    def setup_cache(self):\n        \"asv API\"\n        for nf in self.params[2]:\n            (X_train, y_train), (X, y) = self._get_dataset(nf)\n            model = self._create_model()\n            if self.dofit:\n                model.fit(X_train, y_train)\n            stored = {'model': model, 'X': X, 'y': y}\n            with open(self._name(nf), \"wb\") as f:\n                pickle.dump(stored, f)",
+        "min_run_count": 2,
+        "name": "bench_ARDRegression_b_reg_64_default_10.ARDRegression_b_reg_64_default_10Regressor.time_predict",
+        "number": 0,
+        "param_names": [
+            "rt",
+            "N",
+            "nf"
+        ],
+        "params": [
+            [
+                "'skl'",
+                "'pyrt'",
+                "'ort'"
+            ],
+            [
+                "1",
+                "100",
+                "10000"
+            ],
+            [
+                "4",
+                "20"
+            ]
+        ],
+        "processes": 2,
+        "repeat": 0,
+        "sample_time": 0.01,
+        "setup_cache_key": "asv_benchmark.common_asv_skl:111",
+        "timeout": 60.0,
+        "type": "time",
+        "unit": "seconds",
+        "version": "f2e4164023e9413766246835b1be026c4a9b8a6103dbddf2bd6ef40bdc177edb",
+        "warmup_time": -1
+    },
+    "bench_ARDRegression_b_reg_64_default_10.ARDRegression_b_reg_64_default_10Regressor.track_nbnodes": {
+        "code": "class _CommonAsvSklBenchmark:\n    def track_nbnodes(self, runtime, N, nf):\n        \"asv API\"\n        stats = onnx_statistics(self.onx)\n        return stats.get('nnodes', 0)\n\n    def setup(self, runtime, N, nf):\n        \"asv API\"\n        logger = getLogger('skl2onnx')\n        logger.disabled = True\n        set_config(assume_finite=True)\n        with open(self._name(nf), \"rb\") as f:\n            stored = pickle.load(f)\n        self.stored = stored\n        self.model = stored['model']\n        self.X, self.y = make_n_rows(stored['X'], N, stored['y'])\n        onx, rt_, rt_fct_, rt_fct_track_ = self._create_onnx_and_runtime(\n            runtime, self.model, self.X)\n        self.onx = onx\n        setattr(self, \"rt_\" + runtime, rt_)\n        setattr(self, \"rt_fct_\" + runtime, rt_fct_)\n        setattr(self, \"rt_fct_track_\" + runtime, rt_fct_track_)\n\n    def setup_cache(self):\n        \"asv API\"\n        for nf in self.params[2]:\n            (X_train, y_train), (X, y) = self._get_dataset(nf)\n            model = self._create_model()\n            if self.dofit:\n                model.fit(X_train, y_train)\n            stored = {'model': model, 'X': X, 'y': y}\n            with open(self._name(nf), \"wb\") as f:\n                pickle.dump(stored, f)",
+        "name": "bench_ARDRegression_b_reg_64_default_10.ARDRegression_b_reg_64_default_10Regressor.track_nbnodes",
+        "param_names": [
+            "rt",
+            "N",
+            "nf"
+        ],
+        "params": [
+            [
+                "'skl'",
+                "'pyrt'",
+                "'ort'"
+            ],
+            [
+                "1",
+                "100",
+                "10000"
+            ],
+            [
+                "4",
+                "20"
+            ]
+        ],
+        "setup_cache_key": "asv_benchmark.common_asv_skl:111",
+        "timeout": 60.0,
+        "type": "track",
+        "unit": "unit",
+        "version": "55993a26d68a28a29003407afd24b260f23ac4aab7226902a5d8f35785265bb4"
+    },
+    "version": 2
+}
