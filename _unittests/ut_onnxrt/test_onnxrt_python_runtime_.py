@@ -461,38 +461,63 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                            [7, 2, 3]], dtype=numpy.float32)
         self.assertEqual(exp, got['Z'])
 
-    def test_onnxt_runtime_gemm(self):
+    def test_onnxt_runtime_gemm_python(self):
+        self.do_test_onnxt_runtime_gemm("python")
+
+    def test_onnxt_runtime_gemm_onnxruntime(self):
+        self.do_test_onnxt_runtime_gemm("onnxruntime1")
+
+    def do_test_onnxt_runtime_gemm(self, runtime):
         idi = numpy.array([[1, 0], [1, 1]], dtype=numpy.float64)
         cst = numpy.array([4, 5], dtype=numpy.float32)
         X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
 
         onx = OnnxGemm('X', idi, cst, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
+        oinf = OnnxInference(model_def, runtime=runtime)
+        got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X, idi) + cst, got['Y'], decimal=6)
 
         onx = OnnxGemm('X', idi, cst, transA=1, transB=1, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
+        oinf = OnnxInference(model_def, runtime=runtime)
+        got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X.T, idi.T) + cst, got['Y'], decimal=6)
 
         onx = OnnxGemm('X', idi, cst, transA=1, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
+        oinf = OnnxInference(model_def, runtime=runtime)
+        got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X.T, idi) + cst, got['Y'], decimal=6)
 
         onx = OnnxGemm('X', idi, cst, transB=1, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
+        oinf = OnnxInference(model_def, runtime=runtime)
+        got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X, idi.T) + cst, got['Y'], decimal=6)
+
+        onx = OnnxGemm('X', idi, cst, transB=1, output_names=['Y'],
+                       alpha=numpy.float32(1.))
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        oinf = OnnxInference(model_def, runtime=runtime)
+        got = oinf.run({'X': X.astype(numpy.float32)})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.dot(X, idi.T) + cst, got['Y'], decimal=6)
+
+        if runtime != 'onnxruntime1':
+            onx = OnnxGemm('X', idi, cst, transB=1, output_names=['Y'],
+                           alpha=numpy.float32(1.))
+            model_def = onx.to_onnx({'X': idi.astype(numpy.float64)},
+                                    dtype=numpy.float64)
+            oinf = OnnxInference(model_def, runtime=runtime)
+            got = oinf.run({'X': X.astype(numpy.float32)})
+            self.assertEqual(list(sorted(got)), ['Y'])
+            self.assertEqualArray(numpy.dot(X, idi.T) +
+                                  cst, got['Y'], decimal=6)
 
     def test_onnxt_runtime_greater(self):
         self.common_test_onnxt_runtime_binary(OnnxGreater, numpy.greater)

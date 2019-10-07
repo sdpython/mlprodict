@@ -9,9 +9,15 @@ from onnx.helper import make_tensor
 from onnx import TensorProto
 from onnxruntime import InferenceSession, SessionOptions, RunOptions
 try:
-    from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument as OrtInvalidArgument
+    from onnxruntime.capi.onnxruntime_pybind11_state import (
+        InvalidArgument as OrtInvalidArgument,
+        NotImplemented as OrtNotImplemented,
+        InvalidGraph as OrtInvalidGraph,
+    )
 except ImportError:
     OrtInvalidArgument = RuntimeError
+    OrtNotImplemented = RuntimeError
+    OrtInvalidGraph = RuntimeError
 import skl2onnx.algebra.onnx_ops as alg
 try:
     import skl2onnx.algebra.custom_ops as alg2
@@ -191,7 +197,7 @@ class OpRunOnnxRuntime:
         try:
             self.sess_ = InferenceSession(self.onnx_.SerializeToString(),
                                           sess_options=sess_options)
-        except RuntimeError as e:
+        except (RuntimeError, OrtNotImplemented, OrtInvalidGraph) as e:
             raise RuntimeError("Unable to load node '{}' (output type was {})\n{}".format(
                 self.onnx_node.op_type, "guessed" if forced else "inferred",
                 self.onnx_)) from e
@@ -205,7 +211,7 @@ class OpRunOnnxRuntime:
 
         try:
             res = self.sess_.run(None, inputs, self.run_options)
-        except RuntimeError as e:
+        except (RuntimeError, OrtInvalidArgument) as e:
             dtypes = {k: v.dtype for k, v in inputs.items()}
             shapes = {k: v.shape for k, v in inputs.items()}
             exp = [_.name for _ in self.sess_.get_inputs()]

@@ -5,9 +5,13 @@
 """
 from onnxruntime import InferenceSession, SessionOptions, RunOptions
 try:
-    from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
+    from onnxruntime.capi.onnxruntime_pybind11_state import (
+        Fail as OrtFail,
+        NotImplemented as OrtNotImplemented,
+    )
 except ImportError:
     OrtFail = Exception
+    OrtNotImplemented = RuntimeError
 
 
 class OnnxWholeSession:
@@ -42,7 +46,7 @@ class OnnxWholeSession:
             pass
         try:
             self.sess = InferenceSession(onnx_data, sess_options=sess_options)
-        except OrtFail as e:
+        except (OrtFail, OrtNotImplemented) as e:
             raise RuntimeError("Unable to create InferenceSession") from e
 
     def run(self, inputs):
