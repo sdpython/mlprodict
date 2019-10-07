@@ -2,6 +2,7 @@
 @file
 @brief Functions to help exporting json format into text.
 """
+import copy
 import os
 import json
 
@@ -38,7 +39,7 @@ def export_asv_json(folder, as_df=False, last_one=False):
         # looking into all tests or the last one
         subs = os.listdir(os.path.join(folder, machine))
         if last_one:
-            dates = [(os.stats(os.path.join(folder, m)).st_ctime, m)
+            dates = [(os.stat(os.path.join(folder, m)).st_ctime, m)
                      for m in subs if '-env' in m and '.json' in m]
             dates.sort()
             subs = [subs[-1][-1]]
@@ -48,7 +49,7 @@ def export_asv_json(folder, as_df=False, last_one=False):
             data = os.path.join(folder, machine, sub)
             with open(data, 'r', encoding='utf-8') as f:
                 test_content = json.load(f)
-            meta_res = {}
+            meta_res = copy.deepcopy(meta)
             for k, v in test_content.items():
                 if k != 'results':
                     meta_res[k] = v
@@ -57,4 +58,6 @@ def export_asv_json(folder, as_df=False, last_one=False):
                 for kk, vv in results.items():
                     if 'track_opset' not in kk:
                         continue
+                    if vv is None:
+                        raise RuntimeError('Unexpected empty value for vv')
     return content
