@@ -132,6 +132,75 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         values = pandas.DataFrame(got['output_probability']).values
         self.assertEqualArray(exp, values[:, 1], decimal=5)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @skipif_circleci('stuck')
+    def test_onnxrt_python_lightgbm_categorical_iris_dataframe(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X = (X * 10).astype(numpy.int32)
+        X_train, X_test, y_train, _ = train_test_split(
+            X, y, random_state=11)
+        other_x = numpy.random.randint(
+            0, high=10, size=(1500, X_train.shape[1]))
+        X_train = numpy.vstack([X_train, other_x]).astype(dtype=numpy.int32)
+        y_train = numpy.hstack(
+            [y_train, numpy.zeros(500) + 3, numpy.zeros(500) + 4,
+             numpy.zeros(500) + 5]).astype(dtype=numpy.int32)
+        self.assertEqual(y_train.shape, (X_train.shape[0], ))
+        y_train = y_train % 2
+
+        df_train = pandas.DataFrame(X_train)
+        df_train.columns = ['c1', 'c2', 'c3', 'c4']
+        df_train['c1'] = df_train['c1'].astype('category')
+        df_train['c2'] = df_train['c2'].astype('category')
+        df_train['c3'] = df_train['c3'].astype('category')
+        df_train['c4'] = df_train['c4'].astype('category')
+
+        df_test = pandas.DataFrame(X_test)
+        df_test.columns = ['c1', 'c2', 'c3', 'c4']
+        df_test['c1'] = df_test['c1'].astype('category')
+        df_test['c2'] = df_test['c2'].astype('category')
+        df_test['c3'] = df_test['c3'].astype('category')
+        df_test['c4'] = df_test['c4'].astype('category')
+
+        # categorical_feature=[0, 1]
+        train_data = Dataset(
+            df_train, label=y_train)
+
+        params = {
+            "boosting_type": "gbdt",
+            "learning_rate": 0.05,
+            "n_estimators": 2,
+            "objective": "binary",
+            "max_bin": 5,
+            "min_child_samples": 100,
+            'verbose': -1,
+        }
+
+        booster = lgb_train(params, train_data)
+        exp = booster.predict(X_test)
+
+        onx = to_onnx(booster, df_train)
+        self.assertIn('ZipMap', str(onx))
+
+        oif = OnnxInference(onx)
+        got = oif.run(df_test)
+        values = pandas.DataFrame(got['output_probability']).values
+        self.assertEqualArray(exp, values[:, 1], decimal=5)
+
+        oif = OnnxInference(onx, runtime='onnxruntime1')
+        got = oif.run(df_test)
+        values = pandas.DataFrame(got['output_probability']).values
+        self.assertEqualArray(exp, values[:, 1], decimal=5)
+
+        onx = to_onnx(booster, df_train,
+                      options={booster.__class__: {'cast': True}})
+        self.assertIn('op_type: "Cast"', str(onx))
+        oif = OnnxInference(onx)
+        got = oif.run(df_test)
+        values = pandas.DataFrame(got['output_probability']).values
+        self.assertEqualArray(exp, values[:, 1], decimal=5)
+
 
 if __name__ == "__main__":
     unittest.main()

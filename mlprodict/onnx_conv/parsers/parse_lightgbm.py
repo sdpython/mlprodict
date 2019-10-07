@@ -5,7 +5,7 @@
 import numpy
 from sklearn.base import ClassifierMixin
 from skl2onnx._parse import _parse_sklearn_classifier, _parse_sklearn_simple_model
-from skl2onnx.common._apply_operation import apply_concat
+from skl2onnx.common._apply_operation import apply_concat, apply_cast
 
 
 class WrappedLightGbmBooster:
@@ -87,11 +87,13 @@ def lightgbm_parser(scope, model, inputs, custom_parsers=None):
 
     # Multiple columns
     this_operator = scope.declare_local_operator('LightGBMConcat')
+    this_operator.raw_operator = model
     this_operator.inputs = inputs
     var = scope.declare_local_variable(
         'Xlgbm', inputs[0].type.__class__([None, None]))
     this_operator.outputs.append(var)
-    return lightgbm_parser(scope, model, this_operator.outputs, custom_parsers=custom_parsers)
+    return lightgbm_parser(scope, model, this_operator.outputs,
+                           custom_parsers=custom_parsers)
 
 
 def shape_calculator_lightgbm_concat(operator):
@@ -105,6 +107,16 @@ def converter_lightgbm_concat(scope, operator, container):
     """
     Converter for operator *LightGBMConcat*.
     """
+    op = operator.raw_operator
+    options = container.get_options(
+        op, dict(cast=False))
+    if options['cast']:
+        concat_name = scope.get_unique_variable_name('cast_lgbm')
+        apply_cast(scope, concat_name, operator.outputs[0].full_name, container,
+                   operator_name=scope.get_unique_operator_name('cast_lgmb'),
+                   to=container.proto_dtype)
+    else:
+        concat_name = operator.outputs[0].full_name
+
     apply_concat(scope, [_.full_name for _ in operator.inputs],
-                 operator.outputs[0].full_name,
-                 container, axis=1)
+                 concat_name, container, axis=1)

@@ -8,6 +8,7 @@ from io import BytesIO
 from time import perf_counter
 import warnings
 import numpy
+import pandas
 from onnx import load, load_model, checker, shape_inference
 from onnx import onnx_pb as onnx_proto
 from onnx.helper import make_model
@@ -317,7 +318,7 @@ class OnnxInference:
         """
         Computes the predictions for this :epkg:`onnx` graph.
 
-        @param      inputs              inputs as dictionary
+        @param      inputs              inputs as dictionary or a dataframe
         @param      clean_right_away    clean the intermediate outputs
                                         as soon as they are not needed
         @param      intermediate        returns a dictionary of intermediate
@@ -367,6 +368,15 @@ class OnnxInference:
         to keep the one output and converted into
         *OnnxInference*.
         """
+        def retype(col_array):
+            if isinstance(col_array, pandas.Categorical):
+                return col_array.astype(numpy.int64)
+            return col_array
+
+        if isinstance(inputs, pandas.DataFrame):
+            inputs = OrderedDict((
+                name, retype(numpy.expand_dims(inputs[name].values, axis=1)))
+                for name in inputs.columns)
         return self._run(inputs, clean_right_away=False, intermediate=intermediate,
                          verbose=verbose, node_time=node_time, fLOG=fLOG)
 
