@@ -51,7 +51,7 @@ default_asv_conf = {
         "Pillow": [],
         "pybind11": [],
         "scipy": [],
-        "skl2onnx": [],
+        "skl2onnx": ["git+https://github.com/xadupre/sklearn-onnx.git@jenkins"],
         "scikit-learn": [],
     },
     "benchmark_dir": "benches",

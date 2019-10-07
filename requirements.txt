@@ -1,3 +1,4 @@
+git+https://github.com/sdpython/asv.git@jenkins
 chardet
 coverage
 jyquickhelper
