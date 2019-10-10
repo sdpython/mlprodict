@@ -22,7 +22,7 @@ class TestCliAsvBench(ExtTestCase):
         main(args=["asv_bench", "-l", temp,
                    "-o", '10', '-m',
                    "LogisticRegression,LinearRegression",
-                   '-v', '2'],
+                   '-v', '2', '--flat', '1'],
              fLOG=st.fprint)
         res = str(st)
         self.assertIn('Linear', res)

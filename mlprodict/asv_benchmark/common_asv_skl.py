@@ -193,7 +193,12 @@ class _CommonAsvSklBenchmarkClustering(_CommonAsvSklBenchmark):
     """
 
     def _score_metric(self, X, y_exp, y_pred):
-        return silhouette_score(X, y_pred)
+        if X.shape[0] == 1:
+            return 0.
+        elif set(y_pred) == 1:
+            return 0.
+        else:
+            return silhouette_score(X, y_pred)
 
     def _create_onnx_and_runtime(self, runtime, model, X):
         onx = self._to_onnx(model, X)

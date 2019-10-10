@@ -21,12 +21,12 @@ class TestCreateAsvBenchmark(ExtTestCase):
             "azer3='razerazerazer', b='t', c=[0, 1], d=['r', [5]]", st)
         self.assertIn(", e={'t': 'f'}", st)
 
-    def test_create_asv_benchmark(self):
+    def test_create_asv_benchmark_flat(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
-        temp = get_temp_folder(__file__, "temp_create_asv_benchmark")
+        temp = get_temp_folder(__file__, "temp_create_asv_benchmark_flat")
         created = create_asv_benchmark(
             location=temp, models={'LogisticRegression', 'LinearRegression'},
-            verbose=5, fLOG=fLOG)
+            verbose=5, fLOG=fLOG, flat=True)
         self.assertGreater(len(created), 2)
 
         name = os.path.join(
@@ -35,11 +35,56 @@ class TestCreateAsvBenchmark(ExtTestCase):
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn(
-            "class LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10Classifier(", content)
+            "class LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         self.assertIn(
             "from sklearn.linear_model import LogisticRegression", content)
+
+    def test_create_asv_benchmark_noflat(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        temp = get_temp_folder(__file__, "temp_create_asv_benchmark_noflat")
+        created = create_asv_benchmark(
+            location=temp, models={'LogisticRegression', 'LinearRegression'},
+            verbose=5, fLOG=fLOG, flat=False)
+        self.assertGreater(len(created), 2)
+
+        name = os.path.join(
+            temp, 'benches', 'linear_model', 'LogisticRegression',
+            'bench_LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10.py')
+        self.assertExists(name)
+        with open(name, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn(
+            "class LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10_benchClassifier(", content)
+        self.assertIn("solver='liblinear'", content)
+        self.assertIn("return onnx_optimisations(onx)", content)
+        self.assertIn(
+            "from sklearn.linear_model import LogisticRegression", content)
+
+    def test_create_asv_benchmark_noflat_ext(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        temp = get_temp_folder(__file__, "temp_create_asv_benchmark_noflat__ext")
+        created = create_asv_benchmark(
+            location=temp, models={
+                'LogisticRegression', 'BernoulliNB', 'XGBRegressor'},
+            verbose=5, fLOG=fLOG, flat=False)
+        self.assertGreater(len(created), 2)
+
+        name = os.path.join(
+            temp, 'benches', 'linear_model', 'LogisticRegression',
+            'bench_LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10.py')
+        self.assertExists(name)
+
+        name = os.path.join(
+            temp, 'benches', 'naive_bayes', 'BernoulliNB',
+            'bench_BernoulliNB_b_cl_default_10.py')
+        self.assertExists(name)
+
+        name = os.path.join(
+            temp, 'benches', '_externals', 'XGBRegressor',
+            'bench_XGBRegressor_b_reg_64_default_10.py')
+        self.assertExists(name)
 
 
 if __name__ == "__main__":

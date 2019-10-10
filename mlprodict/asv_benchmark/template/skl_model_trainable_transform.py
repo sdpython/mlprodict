@@ -20,9 +20,12 @@ from mlprodict.onnxrt import OnnxInference  # pylint: disable=W0611
 
 
 class TemplateBenchmarkTrainableTransform(_CommonAsvSklBenchmarkTrainableTransform):
-    "asv example for a trainable transform"
-    # Full template can be found in
-    # https://github.com/sdpython/mlprodict/blob/master/mlprodict/asv_benchmark/common_asv_skl.py>`_
+    """
+    :epkg:`asv` example for a trainable transform,
+    Full template can be found in
+    `common_asv_skl.py <https://github.com/sdpython/mlprodict/
+    blob/master/mlprodict/asv_benchmark/common_asv_skl.py>`_.
+    """
 
     params = [
         ['skl', 'pyrt', 'ort'],  # values for runtime

@@ -17,16 +17,17 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
             location=temp, verbose=1, fLOG=fLOG,
             skip_models={
                 'DictVectorizer', 'FeatureHasher',  # 'CountVectorizer'
-            }, exc=False)
+            }, runtime=('scikit-learn', 'python', 'onnxruntime1'), exc=False)
         self.assertGreater(len(created), 2)
 
         name = os.path.join(
-            temp, 'benches', 'bench_LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10.py')
+            temp, 'benches', 'linear_model', 'LogisticRegression',
+            'bench_LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn(
-            "class LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10Classifier(", content)
+            "class LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         self.assertIn(

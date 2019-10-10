@@ -10,7 +10,7 @@ def asv_bench(location='asvsklonnx', opset_min=9, opset_max=None,
               runtime='scikit-learn,python', models=None,
               skip_models=None, extended_list=True,
               dims='1,100,10000', n_features='4,20', dtype=None,
-              verbose=1, fLOG=print, clean=True,
+              verbose=1, fLOG=print, clean=True, flat=False,
               conf_params=None):
     """
     Creates an :epkg:`asv` benchmark in a folder
@@ -37,6 +37,7 @@ def asv_bench(location='asvsklonnx', opset_min=9, opset_max=None,
     :param fLOG: logging function
     :param clean: clean the folder first, otherwise overwrites the content
     :param conf_params: to overwrite some of the configuration parameters
+    :param flat: one folder for all files or subfolders
     :return: created files
 
     .. cmdref::
@@ -78,6 +79,7 @@ def asv_bench(location='asvsklonnx', opset_min=9, opset_max=None,
             n_features = list(map(int, n_features.split(',')))
         else:
             n_features = int(n_features)
+    flat = flat in (True, 'True', 1, '1')
 
     def fct_filter_exp(m, s):
         return str(m) not in skip_models
@@ -105,4 +107,5 @@ def asv_bench(location='asvsklonnx', opset_min=9, opset_max=None,
         extended_list=extended_list, dims=dims,
         n_features=n_features, dtype=dtype, verbose=verbose,
         fLOG=fLOG, clean=clean, conf_params=conf_params,
-        filter_exp=fct_filter, filter_scenario=None)
+        filter_exp=fct_filter, filter_scenario=None,
+        flat=flat)

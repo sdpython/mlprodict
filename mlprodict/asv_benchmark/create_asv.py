@@ -121,7 +121,8 @@ def create_asv_benchmark(
         dims=(1, 100, 10000), n_features=(4, 20), dtype=None,
         verbose=0, fLOG=print, clean=True,
         conf_params=None, filter_exp=None,
-        filter_scenario=None, exc=False):
+        filter_scenario=None, flat=False,
+        exc=False):
     """
     Creates an :epkg:`asv` benchmark in a folder
     but does not run it.
@@ -153,6 +154,7 @@ def create_asv_benchmark(
     :param filter_scenario: second function which tells if the experiment must be run,
         None to run all, takes *model, problem, scenario, extra*
         as an input
+    :param flat: one folder for all files or subfolders
     :param exc: if False, raises warnings instead of exceptions
         whenever possible
     :return: created files
@@ -233,11 +235,31 @@ def create_asv_benchmark(
         n_features=n_features, dtype=dtype,
         verbose=verbose, filter_exp=filter_exp,
         filter_scenario=filter_scenario,
-        dims=dims, exc=exc, fLOG=fLOG)))
+        dims=dims, exc=exc, flat=flat,
+        fLOG=fLOG)))
 
     if verbose > 0 and fLOG is not None:
         fLOG("[create_asv_benchmark] done.")
     return created
+
+
+def _sklearn_subfolder(model):
+    """
+    Returns the list of subfolders for a model.
+    """
+    mod = model.__module__
+    spl = mod.split('.')
+    pos = spl.index('sklearn')
+    res = spl[pos+1: -1]
+    if len(res) == 0:
+        if spl[-1] == 'sklearn':
+            res = ['_externals']
+        elif spl[0] == 'sklearn':
+            res = spl[pos+1:]
+        else:
+            raise ValueError("Unable to guess subfolder for '{}'.".format(model.__class__))
+    res.append(model.__name__)
+    return res
 
 
 def _enumerate_asv_benchmark_all_models(
@@ -246,8 +268,8 @@ def _enumerate_asv_benchmark_all_models(
         skip_models=None, extended_list=True,
         n_features=None, dtype=None,
         verbose=0, filter_exp=None,
-        dims=None, filter_scenario=None, exc=True,
-        fLOG=print):
+        dims=None, filter_scenario=None,
+        exc=True, flat=False, fLOG=print):
     """
     Loops over all possible models and fills a folder
     with benchmarks following :epkg:`asv` concepts.
@@ -279,6 +301,7 @@ def _enumerate_asv_benchmark_all_models(
         as an input
     :param exc: if False, raises warnings instead of exceptions
         whenever possible
+    :param flat: one folder for all files or subfolders
     """
 
     ops = [_ for _ in sklearn_operators(extended=extended_list)]
@@ -328,6 +351,7 @@ def _enumerate_asv_benchmark_all_models(
     opsets = list(range(opset_min, opset_max + 1))
     created = []
 
+    # loop on all models
     for row in loop:
 
         model = row['cl']
@@ -338,6 +362,27 @@ def _enumerate_asv_benchmark_all_models(
             # Not tested yet.
             continue
 
+        # flat or not flat
+        if flat:
+            location_model = location
+            prefix_import = "."
+        else:
+            subf = _sklearn_subfolder(model)
+            location_model = os.path.join(location, *subf)
+            prefix_import = "." * (len(subf) + 1)
+            if not os.path.exists(location_model):
+                os.makedirs(location_model)
+                for fold in [location_model, os.path.dirname(location_model),
+                             os.path.dirname(os.path.dirname(location_model))]:
+                    init = os.path.join(fold, '__init__.py')
+                    if not os.path.exists(init):
+                        with open(init, 'w') as f:
+                            pass
+                        yield init
+                        if verbose > 1 and fLOG is not None:
+                            fLOG("[create_asv_benchmark] create '{}'.".format(init))
+
+        # loops on problems
         for prob in problems:
             if filter_exp is not None and not filter_exp(model, prob):
                 continue
@@ -380,7 +425,7 @@ def _enumerate_asv_benchmark_all_models(
                         model.__name__, scenario, optimisations, extra, dofit, prob))
                 for opset in opsets:
                     created = _create_asv_benchmark_file(
-                        location, opset=opset,
+                        location_model, opset=opset,
                         model=model, scenario=scenario, optimisations=optimisations,
                         extra=extra, dofit=dofit, prob=prob,
                         runtime=runtime, new_conv_options=new_conv_options,
@@ -389,7 +434,7 @@ def _enumerate_asv_benchmark_all_models(
                         init_types=init_types, conv_options=conv_options,
                         method_name=method_name, dims=dims, n_features=n_features,
                         output_index=output_index, predict_kwargs=predict_kwargs,
-                        exc=exc)
+                        exc=exc, prefix_import=prefix_import)
                     for cr in created:
                         if verbose > 1 and fLOG is not None:
                             fLOG("[create_asv_benchmark] add '{}'.".format(cr))
@@ -438,7 +483,8 @@ def _create_asv_benchmark_file(
         extra, dofit, prob, runtime, X_train, X_test, y_train,
         y_test, Xort_test, init_types, conv_options,
         method_name, n_features, dims, opset,
-        output_index, predict_kwargs, exc):
+        output_index, predict_kwargs, prefix_import,
+        exc):
     """
     Creates a benchmark file based in the information received
     through the argument. It uses template @see cl TemplateBenchmark.
@@ -520,7 +566,7 @@ def _create_asv_benchmark_file(
                     raise e
                 warnings.warn(str(e))
                 continue
-            class_name = name.replace("bench.", "").replace(".", "_")
+            class_name = name.replace("bench.", "").replace(".", "_") + "_bench"
 
             # n_features, N, runtimes
             rep = {
@@ -558,6 +604,9 @@ def _create_asv_benchmark_file(
                 class_content = class_content.replace(
                     "# additional parameters",
                     "\n    ".join(atts))
+            if prefix_import != '.':
+                class_content = class_content.replace(
+                    " from .", "from .{}".format(prefix_import))
 
             # Check compilation
             try:
