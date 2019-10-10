@@ -24,6 +24,9 @@ class LogisticRegression_b_cl_64_liblinear_solverliblinear_11_benchClassifier(_C
     xtest_dtype = numpy.float64
     target_opset = 11
 
+    def setup_cache(self):
+        super().setup_cache()
+
     def _create_model(self):
         return LogisticRegression(
             solver='liblinear'

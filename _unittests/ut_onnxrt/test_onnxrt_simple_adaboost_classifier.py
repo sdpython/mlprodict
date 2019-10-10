@@ -6,6 +6,7 @@ from logging import getLogger
 import numpy
 from pandas import DataFrame
 import onnx
+import sklearn
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
@@ -25,6 +26,7 @@ class TestOnnxrtSimpleAdaboostClassifier(ExtTestCase):
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @unittest_require_at_least(onnx, '1.6.0')
+    @unittest_require_at_least(sklearn, '0.22.0')
     def test_onnxt_iris_adaboost_classifier_lr(self):
         iris = load_iris()
         X, y = iris.data, iris.target

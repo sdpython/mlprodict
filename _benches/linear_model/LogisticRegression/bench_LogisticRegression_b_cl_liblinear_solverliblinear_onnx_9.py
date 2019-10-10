@@ -24,10 +24,14 @@ class LogisticRegression_b_cl_liblinear_solverliblinear_onnx_9_benchClassifier(_
     param_names = ['rt', 'N', 'nf']
     target_opset = 9
 
+    def setup_cache(self):
+        super().setup_cache()
+
     def _create_model(self):
         return LogisticRegression(
             solver='liblinear'
         )
+
 
     def _optimize_onnx(self, onx):
         return onnx_optimisations(onx)

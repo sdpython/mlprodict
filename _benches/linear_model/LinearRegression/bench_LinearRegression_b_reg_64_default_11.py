@@ -24,5 +24,8 @@ class LinearRegression_b_reg_64_default_11_benchRegressor(_CommonAsvSklBenchmark
     xtest_dtype = numpy.float64
     target_opset = 11
 
+    def setup_cache(self):
+        super().setup_cache()
+
     def _create_model(self):
         return LinearRegression()

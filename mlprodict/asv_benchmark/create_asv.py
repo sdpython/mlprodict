@@ -278,7 +278,7 @@ def _handle_init_files(model, flat, location, verbose, fLOG):
                          os.path.dirname(os.path.dirname(location_model))]:
                 init = os.path.join(fold, '__init__.py')
                 if not os.path.exists(init):
-                    with open(init, 'w') as f:
+                    with open(init, 'w') as _:
                         pass
                     created.append(init)
                     if verbose > 1 and fLOG is not None:
@@ -286,7 +286,7 @@ def _handle_init_files(model, flat, location, verbose, fLOG):
         return created, location_model, prefix_import
 
 
-def _enumerate_asv_benchmark_all_models(
+def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
         location, opset_min=9, opset_max=None,
         runtime=('scikit-learn', 'python'), models=None,
         skip_models=None, extended_list=True,

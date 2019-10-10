@@ -35,5 +35,8 @@ class TemplateBenchmarkTrainableTransform(_CommonAsvSklBenchmarkTrainableTransfo
     param_names = ['rt', 'N', 'nf']
     # additional parameters
 
+    def setup_cache(self):
+        super().setup_cache()
+
     def _create_model(self):
         return PLSCanonical()

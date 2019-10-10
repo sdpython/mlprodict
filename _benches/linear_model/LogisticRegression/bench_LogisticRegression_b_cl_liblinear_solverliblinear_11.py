@@ -23,6 +23,9 @@ class LogisticRegression_b_cl_liblinear_solverliblinear_11_benchClassifier(_Comm
     param_names = ['rt', 'N', 'nf']
     target_opset = 11
 
+    def setup_cache(self):
+        super().setup_cache()
+
     def _create_model(self):
         return LogisticRegression(
             solver='liblinear'

@@ -23,5 +23,8 @@ class LinearRegression_m_reg_default_11_benchRegressor(_CommonAsvSklBenchmarkReg
     param_names = ['rt', 'N', 'nf']
     target_opset = 11
 
+    def setup_cache(self):
+        super().setup_cache()
+
     def _create_model(self):
         return LinearRegression()
