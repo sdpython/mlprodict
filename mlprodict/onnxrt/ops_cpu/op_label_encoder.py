@@ -49,7 +49,8 @@ class LabelEncoder(OpRun):
             raise RuntimeError("This runtime does not implement version 1 of "
                                "operator LabelEncoder.")
         else:
-            raise RuntimeError("No encoding was defined in {}.".format(onnx_node))
+            raise RuntimeError(
+                "No encoding was defined in {}.".format(onnx_node))
         if len(self.classes_) == 0:
             raise RuntimeError(
                 "Empty classes for LabelEncoder, (onnx_node='{}')\n{}.".format(
