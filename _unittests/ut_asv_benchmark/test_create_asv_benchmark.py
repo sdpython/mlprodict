@@ -64,7 +64,8 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
     def test_create_asv_benchmark_noflat_ext(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
-        temp = get_temp_folder(__file__, "temp_create_asv_benchmark_noflat__ext")
+        temp = get_temp_folder(
+            __file__, "temp_create_asv_benchmark_noflat__ext")
         created = create_asv_benchmark(
             location=temp, models={
                 'LogisticRegression', 'BernoulliNB', 'XGBRegressor'},

@@ -250,14 +250,15 @@ def _sklearn_subfolder(model):
     mod = model.__module__
     spl = mod.split('.')
     pos = spl.index('sklearn')
-    res = spl[pos+1: -1]
+    res = spl[pos + 1: -1]
     if len(res) == 0:
         if spl[-1] == 'sklearn':
             res = ['_externals']
         elif spl[0] == 'sklearn':
-            res = spl[pos+1:]
+            res = spl[pos + 1:]
         else:
-            raise ValueError("Unable to guess subfolder for '{}'.".format(model.__class__))
+            raise ValueError(
+                "Unable to guess subfolder for '{}'.".format(model.__class__))
     res.append(model.__name__)
     return res
 
@@ -566,7 +567,8 @@ def _create_asv_benchmark_file(
                     raise e
                 warnings.warn(str(e))
                 continue
-            class_name = name.replace("bench.", "").replace(".", "_") + "_bench"
+            class_name = name.replace(
+                "bench.", "").replace(".", "_") + "_bench"
 
             # n_features, N, runtimes
             rep = {
