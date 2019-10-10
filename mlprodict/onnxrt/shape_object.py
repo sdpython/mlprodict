@@ -494,9 +494,9 @@ class ShapeObject(BaseDimensionShape):
             raise ValueError(
                 "dtype cannot be None, shape type is {}\n{}".format(
                     type(shape), shape))
-        if self._dtype in (float, 'float'):
+        if self._dtype in (float, 'double'):
             self._dtype = numpy.float64
-        elif self._dtype in ('float32', ):
+        elif self._dtype in ('float32', 'float'):
             self._dtype = numpy.float32
         elif self._dtype in ('int32', ):
             self._dtype = numpy.int32
