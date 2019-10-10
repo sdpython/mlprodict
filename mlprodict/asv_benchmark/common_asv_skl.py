@@ -114,7 +114,7 @@ class _CommonAsvSklBenchmark:
             if self.dofit:
                 model.fit(X_train, y_train)
             stored = {'model': model, 'X': X, 'y': y}
-            filname = self._name(nf)
+            filename = self._name(nf)
             with open(filename, "wb") as f:
                 pickle.dump(stored, f)
             if not os.path.exists(filename):
