@@ -35,7 +35,7 @@ class TemplateBenchmarkRegressor(_CommonAsvSklBenchmarkRegressor):
     param_names = ['rt', 'N', 'nf']
     # additional parameters
 
-    def setup_cache(self):
+    def setup_cache(self):  # pylint: disable=W0235
         super().setup_cache()
 
     def _create_model(self):

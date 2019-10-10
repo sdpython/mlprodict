@@ -118,7 +118,7 @@ class _CommonAsvSklBenchmark:
             with open(filename, "wb") as f:
                 pickle.dump(stored, f)
             if not os.path.exists(filename):
-                raise RuntimeError("Unable to dump model %r into %r.".format(
+                raise RuntimeError("Unable to dump model %r into %r." % (
                     model, filename))
 
     def setup(self, runtime, N, nf):

@@ -49,7 +49,7 @@ class LabelEncoder(OpRun):
             raise RuntimeError("This runtime does not implement version 1 of "
                                "operator LabelEncoder.")
         else:
-            raise RuntimeError("No encoding was defined in {}.", onnx_node)
+            raise RuntimeError("No encoding was defined in {}.".format(onnx_node))
         if len(self.classes_) == 0:
             raise RuntimeError(
                 "Empty classes for LabelEncoder, (onnx_node='{}')\n{}.".format(
@@ -62,7 +62,7 @@ class LabelEncoder(OpRun):
             res[i] = self.classes_.get(x[i], self.default_)
         return (res, )
 
-    def _infer_shapes(self, x):
+    def _infer_shapes(self, x):  # pylint: disable=W0221
         nb = max(self.classes_.values()) + 1
         return (ShapeObject((x[0], nb), dtype=self.dtype_,
                             name="{}-1".format(self.__class__.__name__)), )
