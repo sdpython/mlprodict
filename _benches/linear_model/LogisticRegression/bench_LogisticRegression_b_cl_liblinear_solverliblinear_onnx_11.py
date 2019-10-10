@@ -29,6 +29,5 @@ class LogisticRegression_b_cl_liblinear_solverliblinear_onnx_11_benchClassifier(
             solver='liblinear'
         )
 
-
     def _optimize_onnx(self, onx):
         return onnx_optimisations(onx)

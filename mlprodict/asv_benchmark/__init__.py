@@ -3,6 +3,7 @@
 @brief Shortcuts to *asv_benchmark*.
 """
 
+from .asv_exports import export_asv_json
 from .common_asv_skl import (
     _CommonAsvSklBenchmarkClassifier,
     _CommonAsvSklBenchmarkClustering,
@@ -13,4 +14,3 @@ from .common_asv_skl import (
     _CommonAsvSklBenchmarkTransform,
 )
 from .create_asv import create_asv_benchmark
-from .exports import export_asv_json

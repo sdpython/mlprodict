@@ -24,7 +24,7 @@ class TestOnnxrtSimpleAdaboostClassifier(ExtTestCase):
         logger.disabled = True
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
-    @unittest_require_at_least(onnx, '1.5.29')
+    @unittest_require_at_least(onnx, '1.6.0')
     def test_onnxt_iris_adaboost_classifier_lr(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -46,7 +46,11 @@ class TestOnnxrtSimpleAdaboostClassifier(ExtTestCase):
         oinf = OnnxInference(model_def, runtime='python')
         res1 = oinf.run({'X': X_test})
         probs = DataFrame(res1['output_probability']).values
-        self.assertEqualArray(resp, probs)
+        try:
+            self.assertEqualArray(resp, probs)
+        except AssertionError as e:
+            raise RuntimeError("Issue\n{}\n-----\n{}".format(
+                e, model_def)) from e
         self.assertEqualArray(res0, res1['output_label'].ravel())
 
 

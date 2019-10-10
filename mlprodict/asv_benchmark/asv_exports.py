@@ -55,6 +55,7 @@ def export_asv_json(folder, as_df=False, last_one=False):
                     meta_res[k] = v
                     continue
                 results = test_content['results']
+                print(results)
                 for kk, vv in results.items():
                     if 'track_opset' not in kk:
                         continue
