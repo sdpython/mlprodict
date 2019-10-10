@@ -152,11 +152,20 @@ class OpRun:
         *run*.
         """
         try:
-            return self._infer_shapes(*args, **kwargs)
+            res = self._infer_shapes(*args, **kwargs)
         except TypeError as e:
             raise TypeError("Issues with (operator {}) and shapes\n{}".format(
                 self.__class__.__name__,
                 "\n".join(str(_) for _ in args))) from e
+        if not isinstance(res, tuple):
+            raise TypeError("res must be tuple not {} (operator '{}')".format(
+                type(res), self.__class__.__name__))
+        for a in res:
+            if not isinstance(a, ShapeObject):
+                raise TypeError(
+                    "One shape is not a ShapeObject but {} (operator '{}')".format(
+                        type(a), self.__class__.__name__))
+        return res
 
     def _infer_shapes(self, *args, **kwargs):
         """

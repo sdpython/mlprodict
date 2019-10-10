@@ -6,6 +6,7 @@
 """
 import numpy
 from ._op import OpRun
+from ..shape_object import DimensionObject
 
 
 class OneHotEncoder(OpRun):
@@ -69,6 +70,8 @@ class OneHotEncoder(OpRun):
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
         new_shape = x.copy()
-        new_shape.append(len(self.classes_))
-        new_shape[-1] = "nohe"
+        dim = DimensionObject(len(self.classes_))
+        new_shape.append(dim)
+        new_shape._dtype = numpy.float32
+        new_shape.name = self.onnx_node.name
         return (new_shape, )

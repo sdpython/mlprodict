@@ -263,6 +263,29 @@ def _sklearn_subfolder(model):
     return res
 
 
+def _handle_init_files(model, flat, location, verbose, fLOG):
+    "Returns created, location_model, prefix_import."
+    if flat:
+        return [], location, "."
+    else:
+        created = []
+        subf = _sklearn_subfolder(model)
+        location_model = os.path.join(location, *subf)
+        prefix_import = "." * (len(subf) + 1)
+        if not os.path.exists(location_model):
+            os.makedirs(location_model)
+            for fold in [location_model, os.path.dirname(location_model),
+                         os.path.dirname(os.path.dirname(location_model))]:
+                init = os.path.join(fold, '__init__.py')
+                if not os.path.exists(init):
+                    with open(init, 'w') as f:
+                        pass
+                    created.append(init)
+                    if verbose > 1 and fLOG is not None:
+                        fLOG("[create_asv_benchmark] create '{}'.".format(init))
+        return created, location_model, prefix_import
+
+
 def _enumerate_asv_benchmark_all_models(
         location, opset_min=9, opset_max=None,
         runtime=('scikit-learn', 'python'), models=None,
@@ -364,24 +387,10 @@ def _enumerate_asv_benchmark_all_models(
             continue
 
         # flat or not flat
-        if flat:
-            location_model = location
-            prefix_import = "."
-        else:
-            subf = _sklearn_subfolder(model)
-            location_model = os.path.join(location, *subf)
-            prefix_import = "." * (len(subf) + 1)
-            if not os.path.exists(location_model):
-                os.makedirs(location_model)
-                for fold in [location_model, os.path.dirname(location_model),
-                             os.path.dirname(os.path.dirname(location_model))]:
-                    init = os.path.join(fold, '__init__.py')
-                    if not os.path.exists(init):
-                        with open(init, 'w') as f:
-                            pass
-                        yield init
-                        if verbose > 1 and fLOG is not None:
-                            fLOG("[create_asv_benchmark] create '{}'.".format(init))
+        created, location_model, prefix_import = _handle_init_files(
+            model, flat, location, verbose, fLOG)
+        for init in created:
+            yield init
 
         # loops on problems
         for prob in problems:

@@ -281,7 +281,8 @@ class DimensionObject(BaseDimensionShape):
         """
         if obj is None or obj == 0 or obj == '?':
             self._dim = None
-        elif isinstance(obj, (int, str, ShapeOperator, DimensionObject)):
+        elif isinstance(obj, (int, str, ShapeOperator, DimensionObject,
+                              numpy.int32, numpy.int64)):
             self._dim = obj
         else:
             raise TypeError("Unexpected type for obj: {}".format(type(obj)))
@@ -493,6 +494,21 @@ class ShapeObject(BaseDimensionShape):
             raise ValueError(
                 "dtype cannot be None, shape type is {}\n{}".format(
                     type(shape), shape))
+        if self._dtype in (float, 'float'):
+            self._dtype = numpy.float64
+        elif self._dtype in ('float32', ):
+            self._dtype = numpy.float32
+        elif self._dtype in ('int32', ):
+            self._dtype = numpy.int32
+        elif self._dtype in (int, 'int', 'int64'):
+            self._dtype = numpy.int64
+        elif self._dtype in (str, 'str'):
+            self._dtype = numpy.str
+        elif self._dtype not in {
+                numpy.float32, numpy.float64, numpy.int32, numpy.int64,
+                numpy.str, numpy.bool, None}:
+            raise ValueError(
+                "dtype has an unexpected value: {}.".format(self._dtype))
         if self._shape is not None:
             for i, a in enumerate(self._shape):
                 if not isinstance(a, DimensionObject):
@@ -775,3 +791,31 @@ class ShapeObject(BaseDimensionShape):
                 res.append(a[i])
         return ShapeObject(tuple(res), self.dtype, False,
                            name="broadcast-{}-{}".format(self.name, a.name))
+
+    @staticmethod
+    def _infer_merged_type(*args):
+        tys = set(a.dtype for a in args)
+        if len(tys) == 1:
+            return list(tys)[0]
+        if any(tys & {numpy.float64, numpy.int64,
+                      numpy.float32, numpy.int32}):
+            return numpy.float64
+        raise RuntimeError("Unable to infer types based on {}.".format(tys))
+
+    def concat_columns(self, axis, *shapes):
+        """
+        Concatenates columns from *shapes* to this one
+        along one axis.
+        """
+        args = [self] + list(shapes)
+        dtype = self._infer_merged_type(*args)
+        dim_axis = args[0][axis]
+        if dim_axis is None:
+            return ShapeObject(None, dtype=dtype)
+        for a in shapes:
+            if a[axis] is None:
+                return ShapeObject(None, dtype=dtype)
+            dim_axis = dim_axis + a[axis]
+        a0 = args[0].copy(dtype=dtype)
+        a0[axis] = dim_axis
+        return a0

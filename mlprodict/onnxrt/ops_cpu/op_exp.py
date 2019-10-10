@@ -17,5 +17,4 @@ class Exp(OpRunUnaryNum):
     def _run(self, x):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
             return (numpy.exp(x, out=x), )
-        else:
-            return (numpy.exp(x), )
+        return (numpy.exp(x), )
