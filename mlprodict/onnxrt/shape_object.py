@@ -506,7 +506,8 @@ class ShapeObject(BaseDimensionShape):
             self._dtype = numpy.str
         elif self._dtype not in {
                 numpy.float32, numpy.float64, numpy.int32, numpy.int64,
-                numpy.str, numpy.bool, None}:
+                numpy.str, numpy.bool, None,
+                'map'}:
             raise ValueError(
                 "dtype has an unexpected value: {}.".format(self._dtype))
         if self._shape is not None:
