@@ -2,6 +2,7 @@
 @file
 @brief Command line about exporting :epkg:`asv` results into a dataframe.
 """
+from datetime import datetime
 from ..asv_benchmark.asv_exports import enumerate_export_asv_json
 
 
@@ -26,6 +27,9 @@ def asv2csv(folder, outfile=None, last_one=False, baseline=None, fLOG=print):
         Example::
 
             python -m mlprodict asv2csv -f <folder> -o result.csv
+
+    The filename may contain ``<date>``, it is then replaced by
+    the time now.
     """
     if outfile is None:
         rows = []
@@ -37,5 +41,8 @@ def asv2csv(folder, outfile=None, last_one=False, baseline=None, fLOG=print):
         import pandas
         df = pandas.DataFrame(enumerate_export_asv_json(
             folder, last_one=last_one, baseline=baseline))
+        outfile = outfile.replace(
+            "<date>",
+            datetime.now().strftime("%Y%m%dT%H%M%S"))
         df.to_csv(outfile, index=False)
         return df

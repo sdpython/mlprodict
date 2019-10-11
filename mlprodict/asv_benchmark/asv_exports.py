@@ -127,7 +127,15 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False, baseline=None
                             "Test '{}', unable to interpret: {}.".format(
                                 kk, vv)) from e
 
-                    obs = meta_res.copy()
+                    obs = {}
+                    for mk, mv in meta_res.items():
+                        if mk in {'result_columns'}:
+                            continue
+                        if isinstance(mv, dict):
+                            for mk2, mv2 in mv.items():
+                                obs['{}_{}'.format(mk, mk2)] = mv2
+                        else:
+                            obs[mk] = mv
                     obs['test_name'] = kk
                     obs['test_hash'] = hash
                     if metrics is not None:

@@ -21,7 +21,7 @@ except (ValueError, ImportError):
     from mlprodict.onnxrt.validate.validate import (
         _retrieve_problems_extra, _get_problem_data, _merge_options
     )
-
+from .verify_code import verify_code
 
 default_asv_conf = {
     "version": 1,
@@ -626,6 +626,20 @@ def _create_asv_benchmark_file(
                 raise SyntaxError("Unable to compile model '{}'\n{}".format(
                     model.__name__, class_content)) from e
 
+            # Verifies missing imports.
+            to_import = verify_code(class_content, exc=False)
+            miss = find_missing_sklearn_imports(to_import)
+            class_content = class_content.replace(
+                "#  __IMPORTS__", "\n".join(miss))
+            verify_code(class_content, exc=True)
+
+            # Check compilation again
+            try:
+                compile(class_content, filename, 'exec')
+            except SyntaxError as e:
+                raise SyntaxError("Unable to compile model '{}'\n{}".format(
+                    model.__name__, class_content)) from e
+
             # Saves
             with open(os.path.join(location, filename), "w", encoding='utf-8') as f:
                 f.write(class_content)
@@ -697,6 +711,7 @@ def add_model_import_init(
     mod = '.'.join(sub[skl:skl + 2])
     imp_inst = "from {} import {}".format(mod, model.__name__)
     add_imports.append(imp_inst)
+    add_imports.append("#  __IMPORTS__")
     lines[keep + 1] = "\n".join(add_imports)
     content = "\n".join(lines)
 
@@ -718,3 +733,48 @@ def add_model_import_init(
 
     # end
     return "\n".join(lines)
+
+
+def find_missing_sklearn_imports(pieces):
+    """
+    Finds in :epkg:`scikit-learn` the missing pieces.
+
+    @param      pieces      list of names in scikit-learn
+    @return                 list of corresponding imports
+    """
+    res = {}
+    for piece in pieces:
+        mod = find_sklearn_module(piece)
+        if mod not in res:
+            res[mod] = []
+        res[mod].append(piece)
+
+    lines = []
+    for k, v in res.items():
+        lines.append("from {} import {}".format(
+            k, ", ".join(sorted(v))))
+    return lines
+
+
+def find_sklearn_module(piece):
+    """
+    Finds the corresponding modulee for an element of :epkg:`scikit-learn`.
+
+    @param      piece       name to import
+    @return                 module name
+
+    The implementation is not intelligence and should
+    be improved. It is a kind of white list.
+    """
+    if piece in {'LinearRegression', 'LogisticRegression',
+                 'SGDClassifier'}:
+        return "sklearn.linear_model"
+    if piece in {'DecisionTreeRegressor', 'DecisionTreeClassifier'}:
+        return "sklearn.tree"
+    if piece in {'ExpSineSquared', 'DotProduct', 'RationalQuadratic', 'RBF'}:
+        return "sklearn.gaussian_process.kernels"
+    if piece in {'LinearSVC', 'LinearSVR', 'NuSVR', 'SVR', 'SVC', 'NuSVC'}:
+        return "sklearn.svm"
+    if piece in {'KMeans'}:
+        return "sklearn.cluster"
+    raise ValueError("Unable to find module to import for '{}'.".format(piece))

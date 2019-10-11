@@ -29,11 +29,11 @@ class TestCliAsvBench(ExtTestCase):
         out = os.path.join(temp, "data.csv")
         st = BufferedPrint()
         main(args=["asv2csv", "-f", data, "-o", out], fLOG=st.fprint)
-        res = str(st)
-        self.assertNotEmpty(res)
         self.assertExists(out)
         df = pandas.read_csv(out)
-        self.assertEqual(df.shape, (28, 35))
+        self.assertEqual(df.shape, (28, 62))
+        out = os.path.join(temp, "data<date>.csv")
+        main(args=["asv2csv", "-f", data, "-o", out], fLOG=st.fprint)
 
 
 if __name__ == "__main__":

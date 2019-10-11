@@ -87,6 +87,28 @@ class TestCreateAsvBenchmark(ExtTestCase):
             'bench_XGBRegressor_b_reg_64_default_10.py')
         self.assertExists(name)
 
+    def test_create_asv_benchmark_noflat_vc(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        temp = get_temp_folder(__file__, "temp_create_asv_benchmark_noflat_vc")
+        created = create_asv_benchmark(
+            location=temp, models={'VotingClassifier'},
+            verbose=5, fLOG=fLOG, flat=False)
+        self.assertGreater(len(created), 2)
+
+        name = os.path.join(
+            temp, 'benches', 'ensemble', 'VotingClassifier',
+            'bench_VotingClassifier_b_cl_logreg_noflatten_votingsoft_flatten_transfda804c_10.py')
+        self.assertExists(name)
+        with open(name, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn(
+            "class VotingClassifier_b_cl_logreg_noflatten_votingsoft_flatten_transfda804c_10_benchClassifier(", content)
+        self.assertIn("LogisticRegression(", content)
+        self.assertIn(
+            "from sklearn.ensemble import VotingClassifier", content)
+        self.assertIn(
+            "from sklearn.linear_model import LogisticRegression", content)
+
 
 if __name__ == "__main__":
     unittest.main()
