@@ -95,14 +95,14 @@ class TestCreateAsvBenchmark(ExtTestCase):
             verbose=5, fLOG=fLOG, flat=False)
         self.assertGreater(len(created), 2)
 
-        name = os.path.join(
-            temp, 'benches', 'ensemble', 'VotingClassifier',
-            'bench_VotingClassifier_b_cl_logreg_noflatten_votingsoft_flatten_transfda804c_10.py')
-        self.assertExists(name)
-        with open(name, "r", encoding="utf-8") as f:
+        names = os.listdir(os.path.join(
+            temp, 'benches', 'ensemble', 'VotingClassifier'))
+        full_name = os.path.join(
+            temp, 'benches', 'ensemble', 'VotingClassifier', names[0])
+        self.assertExists(full_name)
+        with open(full_name, "r", encoding="utf-8") as f:
             content = f.read()
-        self.assertIn(
-            "class VotingClassifier_b_cl_logreg_noflatten_votingsoft_flatten_transfda804c_10_benchClassifier(", content)
+        self.assertIn("class VotingClassifier_", content)
         self.assertIn("LogisticRegression(", content)
         self.assertIn(
             "from sklearn.ensemble import VotingClassifier", content)
