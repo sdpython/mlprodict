@@ -63,8 +63,9 @@ def _figures2dict(metrics, coor, baseline=None):
 
     for k, v in m_bases.items():
         for ks in v:
-            if k in res and res[k] != 0 and ks in res:
-                res['R-' + ks[2:]] = res[ks] / res[k]
+            if (k in res and res[k] != 0 and ks in res and
+                    res[ks] is not None and res[k] is not None):
+                res['R-' + ks[2:]] = float(res[ks]) / res[k]
     return res
 
 
@@ -98,11 +99,12 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False, baseline=None
 
         # looking into all tests or the last one
         subs = os.listdir(os.path.join(folder, machine))
+        subs = [m for m in subs if m != 'machine.json']
         if last_one:
-            dates = [(os.stat(os.path.join(folder, m)).st_ctime, m)
-                     for m in subs if '-env' in m and '.json' in m]
+            dates = [(os.stat(os.path.join(folder, machine, m)).st_ctime, m)
+                     for m in subs if ('-env' in m or 'virtualenv-' in m) and '.json' in m]
             dates.sort()
-            subs = [subs[-1][-1]]
+            subs = [dates[-1][-1]]
 
         # look into tests
         for sub in subs:
@@ -116,8 +118,6 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False, baseline=None
                     continue
                 results = test_content['results']
                 for kk, vv in results.items():
-                    if 'track_opset' not in kk:
-                        continue
                     if vv is None:
                         raise RuntimeError('Unexpected empty value for vv')
                     try:
@@ -136,8 +136,20 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False, baseline=None
                                 obs['{}_{}'.format(mk, mk2)] = mv2
                         else:
                             obs[mk] = mv
-                    obs['test_name'] = kk
+                    spl = kk.split('.')
                     obs['test_hash'] = hash
+                    if len(spl) >= 4:
+                        obs['test_model_set'] = spl[0]
+                        obs['test_model_kind'] = spl[1]
+                        obs['test_model'] = ".".join(spl[2:-1])
+                        obs['test_name'] = spl[-1]
+                    elif len(spl) >= 3:
+                        obs['test_model_set'] = spl[0]
+                        obs['test_model'] = ".".join(spl[1:-1])
+                        obs['test_name'] = spl[-1]
+                    else:
+                        obs['test_model'] = ".".join(spl[:-1])
+                        obs['test_name'] = spl[-1]
                     if metrics is not None:
                         obs.update(
                             _figures2dict(metrics, coord, baseline=baseline))

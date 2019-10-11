@@ -25,6 +25,8 @@ class TestAsvJsonText(ExtTestCase):
                'M-pyrt-10000-20': 11, 'M-ort-1-4': 12, 'M-ort-1-20': 13, 'M-ort-100-4': 14,
                'M-ort-100-20': 15, 'M-ort-10000-4': 16, 'M-ort-10000-20': 17}
         self.assertEqual(res, exp)
+        res = _figures2dict(values, coor, baseline='skl')
+        self.assertIn('R-ort-10000-20', res)
 
     def test_asv_json_simplify(self):
         temp = get_temp_folder(__file__, 'temp_asv_json_simplify')
