@@ -55,9 +55,17 @@ class TestAsvJsonText(ExtTestCase):
         temp = get_temp_folder(__file__, 'temp_unzip_and_convert')
         unzip_files(file_zip, temp)
         data = os.path.join(temp, 'results')
-        exp = export_asv_json(data)
+        exp = export_asv_json(data, baseline="skl")
         self.assertIsInstance(exp, list)
         self.assertTrue(all(map(lambda x: isinstance(x, dict), exp)))
+        cc = 0
+        for e in exp:
+            ms = [k for k in e if k.startswith("M-")]
+            rs = [k for k in e if k.startswith("R-")]
+            if len(ms) > 0 and len(rs) > 0:
+                cc += 1
+        if cc == 0:
+            raise AssertionError("No rs")
 
 
 if __name__ == "__main__":

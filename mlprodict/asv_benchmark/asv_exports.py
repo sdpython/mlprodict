@@ -7,13 +7,51 @@ import os
 import json
 
 
-def _figures2dict(metrics, coor):
+def _figures2dict(metrics, coor, baseline=None):
+    """
+    Converts the data from list to dictionaries.
+
+    @param      metrics     single array of values
+    @param      coor        list of list of coordinates names
+    @param      baseline    one coordinates is the baseline
+    @return                 dictionary of metrics
+    """
+    def to_str(cc):
+        return 'M-' + "-".join(map(str, cc)).replace("'", "")
+
+    if baseline is None:
+        base_j = None
+    else:
+        quoted_base = "'{}'".format(baseline)
+        base_j = None
+        for i, base in enumerate(coor):
+            if baseline in base:
+                base_j = i, base.index(baseline)
+                break
+            if quoted_base in base:
+                base_j = i, base.index(quoted_base)
+                break
+        if base_j is None:
+            import pprint
+            raise ValueError("Unable to find value baseline '{}' or [{}] in {}".format(
+                baseline, quoted_base, pprint.pformat(coor)))
+    m_bases = {}
     ind = [0 for c in coor]
     res = {}
     pos = 0
     while ind[0] < len(coor[0]):
         cc = [coor[i][ind[i]] for i in range(len(ind))]
-        name = 'M-' + "-".join(map(str, cc)).replace("'", "")
+        if baseline is not None:
+            if cc[base_j[0]] != base_j[1]:
+                cc2 = cc.copy()
+                cc2[base_j[0]] = coor[base_j[0]][base_j[1]]
+                key = tuple(cc2)
+                skey = to_str(key)
+                if key not in m_bases:
+                    m_bases[skey] = []
+                m_bases[skey].append(to_str(cc))
+
+        name = to_str(cc)
         res[name] = metrics[pos]
         pos += 1
         ind[-1] += 1
@@ -22,16 +60,22 @@ def _figures2dict(metrics, coor):
             ind[last] = 0
             last -= 1
             ind[last] += 1
+
+    for k, v in m_bases.items():
+        for ks in v:
+            if k in res and res[k] != 0 and ks in res:
+                res['R-' + ks[2:]] = res[ks] / res[k]
     return res
 
 
-def enumerate_export_asv_json(folder, as_df=False, last_one=False):
+def enumerate_export_asv_json(folder, as_df=False, last_one=False, baseline=None):
     """
     Looks into :epkg:`asv` results and wraps all of them
     into a :epkg:`dataframe` or flat data.
 
     @param      folder      location of the results
     @param      last_one    to return only the last one
+    @param      baseline    defines a baseline and computes ratios
     @return                 :epkg:`dataframe` or flat data
     """
     bench = os.path.join(folder, 'benchmarks.json')
@@ -87,11 +131,12 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False):
                     obs['test_name'] = kk
                     obs['test_hash'] = hash
                     if metrics is not None:
-                        obs.update(_figures2dict(metrics, coord))
+                        obs.update(
+                            _figures2dict(metrics, coord, baseline=baseline))
                     yield obs
 
 
-def export_asv_json(folder, as_df=False, last_one=False):
+def export_asv_json(folder, as_df=False, last_one=False, baseline=None):
     """
     Looks into :epkg:`asv` results and wraps all of them
     into a :epkg:`dataframe` or flat data.
@@ -100,10 +145,11 @@ def export_asv_json(folder, as_df=False, last_one=False):
     @param      as_df       returns a dataframe or
                             a list of dictionaries
     @param      last_one    to return only the last one
+    @param      baseline    computes ratio against the baseline
     @return                 :epkg:`dataframe` or flat data
     """
     rows = list(enumerate_export_asv_json(
-        folder, last_one=last_one))
+        folder, last_one=last_one, baseline=baseline))
     if as_df:
         import pandas
         return pandas.DataFrame(rows)
