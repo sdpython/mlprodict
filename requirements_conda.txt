@@ -6,8 +6,8 @@ jupyter
 matplotlib
 notebook>=5.0.0
 numba
-numpy>=1.16.0
+numpy>=1.17.2
 pillow
-scikit-learn>=0.21
+scikit-learn>=0.21.3
 scipy
 Sphinx

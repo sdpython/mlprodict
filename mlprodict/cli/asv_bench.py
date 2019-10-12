@@ -36,7 +36,8 @@ def asv_bench(location='asvsklonnx', opset_min=9, opset_max=None,
         limits the test to one specific number types
     :param fLOG: logging function
     :param clean: clean the folder first, otherwise overwrites the content
-    :param conf_params: to overwrite some of the configuration parameters
+    :param conf_params: to overwrite some of the configuration parameters,
+        format ``name,value;name2,value2``
     :param flat: one folder for all files or subfolders
     :param build: location of the outputs (env, html, results)
     :return: created files
@@ -97,6 +98,17 @@ def asv_bench(location='asvsklonnx', opset_min=9, opset_max=None,
         fct_filter = fct_filter_exp3
     else:
         raise ValueError("dtype must be empty, 32, 64 not '{}'.".format(dtype))
+
+    if conf_params is not None:
+        res = {}
+        kvs = conf_params.split(';')
+        for kv in kvs:
+            spl = kv.split(',')
+            if len(spl) != 2:
+                raise ValueError("Unable to interpret '{}'.".format(kv))
+            k, v = spl
+            res[k] = v
+        conf_params = res
 
     if verbose <= 1:
         logger = getLogger('skl2onnx')

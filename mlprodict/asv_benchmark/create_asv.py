@@ -44,7 +44,6 @@ default_asv_conf = {
         "cython": [],
         "jinja2": [],
         "joblib": [],
-        "mlprodict": ["git+https://github.com/sdpython/mlprodict.git"],
         "numpy": [],
         "onnx": [],
         "onnxruntime": [],
