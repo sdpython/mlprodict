@@ -1,7 +1,5 @@
 echo --BENCH-CREATE--
-cd _benches
-python3.7 -m mlprodict asv_bench --location . --models "LinearRegression,LogisticRegression" --build "../build"
-cd ..
+python3.7 -m mlprodict asv_bench --location _benches --models "LinearRegression,LogisticRegression" --build "../build" || exit 1
 echo --BENCH-RUN--
 python3.7 -m asv run --show-stderr --config _benches/asv.conf.json
 if [ -d build/html ]
