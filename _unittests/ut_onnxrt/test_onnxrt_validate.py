@@ -93,4 +93,5 @@ class TestOnnxrtValidate(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestOnnxrtValidate().test_n_features_int()
     unittest.main()

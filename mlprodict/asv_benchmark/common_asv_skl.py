@@ -19,7 +19,7 @@ from sklearn import set_config
 from sklearn.datasets import load_iris
 from sklearn.metrics import (
     accuracy_score,
-    r2_score,
+    mean_absolute_error,
     silhouette_score,
     coverage_error,
 )
@@ -91,6 +91,14 @@ class _CommonAsvSklBenchmark:
         else:
             return to_onnx(model, X, options=self.par_convopts,
                            target_opset=opset)
+
+    def _create_onnx_inference(self, onx, runtime):
+        try:
+            return OnnxInference(onx, runtime=runtime)
+        except RuntimeError as e:
+            if "[ONNXRuntimeError]" in str(e):
+                return RuntimeError("onnxruntime fails due to {}".format(str(e)))
+            raise e
 
     # Part which does not change.
 
@@ -194,7 +202,7 @@ class _CommonAsvSklBenchmarkClassifier(_CommonAsvSklBenchmark):
             rt_fct_ = lambda X: model.predict_proba(X)
             rt_fct_track_ = lambda X: model.predict(X)
         else:
-            rt_ = OnnxInference(onx, runtime=name)
+            rt_ = self._create_onnx_inference(onx, name)
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['output_label']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -222,7 +230,7 @@ class _CommonAsvSklBenchmarkClustering(_CommonAsvSklBenchmark):
             rt_fct_ = lambda X: model.predict(X)
             rt_fct_track_ = lambda X: model.predict(X)
         else:
-            rt_ = OnnxInference(onx, runtime=name)
+            rt_ = self._create_onnx_inference(onx, name)
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['label']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -261,7 +269,7 @@ class _CommonAsvSklBenchmarkMultiClassifier(_CommonAsvSklBenchmark):
             rt_fct_ = lambda X: model.predict_proba(X)
             rt_fct_track_ = lambda X: model.predict(X)
         else:
-            rt_ = OnnxInference(onx, runtime=name)
+            rt_ = self._create_onnx_inference(onx, name)
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['output_label']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -284,7 +292,7 @@ class _CommonAsvSklBenchmarkOutlier(_CommonAsvSklBenchmark):
             rt_fct_ = lambda X: model.predict(X)
             rt_fct_track_ = lambda X: model.predict(X)
         else:
-            rt_ = OnnxInference(onx, runtime=name)
+            rt_ = self._create_onnx_inference(onx, name)
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['score']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -296,7 +304,7 @@ class _CommonAsvSklBenchmarkRegressor(_CommonAsvSklBenchmark):
     """
 
     def _score_metric(self, X, y_exp, y_pred):
-        return r2_score(y_exp, y_pred)
+        return mean_absolute_error(y_exp, y_pred)
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype):
         onx = self._to_onnx(model, X, opset, dtype)
@@ -306,7 +314,7 @@ class _CommonAsvSklBenchmarkRegressor(_CommonAsvSklBenchmark):
             rt_fct_ = lambda X: model.predict(X)
             rt_fct_track_ = lambda X: model.predict(X)
         else:
-            rt_ = OnnxInference(onx, runtime=name)
+            rt_ = self._create_onnx_inference(onx, name)
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['variable']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -329,7 +337,7 @@ class _CommonAsvSklBenchmarkTrainableTransform(_CommonAsvSklBenchmark):
             rt_fct_ = lambda X: model.transform(X)
             rt_fct_track_ = lambda X: model.transform(X)
         else:
-            rt_ = OnnxInference(onx, runtime=name)
+            rt_ = self._create_onnx_inference(onx, name)
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['variable']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -352,7 +360,7 @@ class _CommonAsvSklBenchmarkTransform(_CommonAsvSklBenchmark):
             rt_fct_ = lambda X: model.transform(X)
             rt_fct_track_ = lambda X: model.transform(X)
         else:
-            rt_ = OnnxInference(onx, runtime=name)
+            rt_ = self._create_onnx_inference(onx, name)
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['variable']
         return onx, rt_, rt_fct_, rt_fct_track_
