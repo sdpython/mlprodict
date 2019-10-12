@@ -83,7 +83,7 @@
         "pybind11": [],
 	    "scipy": [],
         "skl2onnx": ["git+https://github.com/xadupre/sklearn-onnx.git@jenkins"],
-        "scikit-learn": [],
+        "scikit-learn": [git+https://github.com/scikit-learn/sklearn-learn.git],
     },
 
     // Combinations of libraries/python versions can be excluded/included

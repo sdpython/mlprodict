@@ -52,7 +52,7 @@ default_asv_conf = {
         "pybind11": [],
         "scipy": [],
         "skl2onnx": ["git+https://github.com/xadupre/sklearn-onnx.git@jenkins"],
-        "scikit-learn": [],
+        "scikit-learn": ["git+https://github.com/scikit-learn/sklearn-learn.git"],
     },
     "benchmark_dir": "benches",
     "env_dir": "env",
@@ -122,7 +122,7 @@ def create_asv_benchmark(
         verbose=0, fLOG=print, clean=True,
         conf_params=None, filter_exp=None,
         filter_scenario=None, flat=False,
-        exc=False):
+        exc=False, build=None):
     """
     Creates an :epkg:`asv` benchmark in a folder
     but does not run it.
@@ -157,6 +157,7 @@ def create_asv_benchmark(
     :param flat: one folder for all files or subfolders
     :param exc: if False, raises warnings instead of exceptions
         whenever possible
+    :param build: where to put the outputs
     :return: created files
 
     The default configuration is the following:
@@ -194,6 +195,9 @@ def create_asv_benchmark(
     if conf_params is not None:
         for k, v in conf_params.items():
             conf[k] = v
+    if build is not None:
+        for fi in ['env_dir', 'results_dir', 'html_dir']:
+            conf[fi] = os.path.join(build, conf[fi])
     dest = os.path.join(location, "asv.conf.json")
     created.append(dest)
     with open(dest, "w", encoding='utf-8') as f:

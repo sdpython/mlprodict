@@ -297,3 +297,6 @@ mlprodict/asv_benchmark/mlprodict
 _unittests/ut_asv_benchmark/_cache
 _unittests/ut_asv_benchmark/cache_*.pickle
 _benches/mlprodict
+_benches/benches
+_benches/tools
+_benches/*.json
