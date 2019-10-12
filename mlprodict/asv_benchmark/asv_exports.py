@@ -138,6 +138,7 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False, baseline=None
                             obs[mk] = mv
                     spl = kk.split('.')
                     obs['test_hash'] = hash
+                    obs['test_fullname'] = kk
                     if len(spl) >= 4:
                         obs['test_model_set'] = spl[0]
                         obs['test_model_kind'] = spl[1]

@@ -124,7 +124,7 @@ def create_asv_benchmark(
         verbose=0, fLOG=print, clean=True,
         conf_params=None, filter_exp=None,
         filter_scenario=None, flat=False,
-        exc=False, build=None):
+        exc=False, build=None, execute=False):
     """
     Creates an :epkg:`asv` benchmark in a folder
     but does not run it.
@@ -160,6 +160,8 @@ def create_asv_benchmark(
     :param exc: if False, raises warnings instead of exceptions
         whenever possible
     :param build: where to put the outputs
+    :param execute: execute each script to make sure
+        imports are correct
     :return: created files
 
     The default configuration is the following:
@@ -299,7 +301,8 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
         n_features=None, dtype=None,
         verbose=0, filter_exp=None,
         dims=None, filter_scenario=None,
-        exc=True, flat=False, fLOG=print):
+        exc=True, flat=False, execute=False,
+        fLOG=print):
     """
     Loops over all possible models and fills a folder
     with benchmarks following :epkg:`asv` concepts.
@@ -332,6 +335,8 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
     :param exc: if False, raises warnings instead of exceptions
         whenever possible
     :param flat: one folder for all files or subfolders
+    :param execute: execute each script to make sure
+        imports are correct
     """
 
     ops = [_ for _ in sklearn_operators(extended=extended_list)]
@@ -449,7 +454,8 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                     init_types=init_types, conv_options=conv_options,
                     method_name=method_name, dims=dims, n_features=n_features,
                     output_index=output_index, predict_kwargs=predict_kwargs,
-                    exc=exc, prefix_import=prefix_import)
+                    exc=exc, prefix_import=prefix_import,
+                    execute=execute)
                 for cr in created:
                     if verbose > 1 and fLOG is not None:
                         fLOG("[create_asv_benchmark] add '{}'.".format(cr))
@@ -497,7 +503,7 @@ def _create_asv_benchmark_file(
         y_test, Xort_test, init_types, conv_options,
         method_name, n_features, dims, opsets,
         output_index, predict_kwargs, prefix_import,
-        exc):
+        exc, execute=False):
     """
     Creates a benchmark file based in the information received
     through the argument. It uses template @see cl TemplateBenchmark.
@@ -639,10 +645,19 @@ def _create_asv_benchmark_file(
 
             # Check compilation again
             try:
-                compile(class_content, filename, 'exec')
+                obj = compile(class_content, filename, 'exec')
             except SyntaxError as e:
                 raise SyntaxError("Unable to compile model '{}'\n{}".format(
                     model.__name__, class_content)) from e
+
+            # executes to check import
+            if execute:
+                try:
+                    exec(obj)  # pylint: disable=W0122
+                except Exception as e:
+                    raise RuntimeError(
+                        "Unable to process class '{}' a script due to '{}'\n{}".format(
+                            model.__name__, str(e), class_content))
 
             # Saves
             with open(os.path.join(location, filename), "w", encoding='utf-8') as f:

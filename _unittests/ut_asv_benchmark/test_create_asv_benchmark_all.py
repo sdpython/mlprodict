@@ -17,7 +17,8 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
             location=temp, verbose=1, fLOG=fLOG,
             skip_models={
                 'DictVectorizer', 'FeatureHasher',  # 'CountVectorizer'
-            }, runtime=('scikit-learn', 'python', 'onnxruntime1'), exc=False)
+            }, runtime=('scikit-learn', 'python', 'onnxruntime1'),
+            exc=False, execute=True)
         self.assertGreater(len(created), 2)
 
         name = os.path.join(
