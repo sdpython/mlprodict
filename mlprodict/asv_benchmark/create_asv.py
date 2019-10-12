@@ -720,9 +720,13 @@ def add_model_import_init(
     else:
         skl = sub.index('sklearn')
         if skl == 0:
-            mod = '.'.join(sub[skl:skl + 2])
+            if 'feature_extraction' in sub:
+                mod = '.'.join(sub[skl:])
+            else:
+                mod = '.'.join(sub[skl: -1])
         else:
             mod = '.'.join(sub[:-1])
+
     imp_inst = "from {} import {}".format(mod, model.__name__)
     add_imports.append(imp_inst)
     add_imports.append("#  __IMPORTS__")

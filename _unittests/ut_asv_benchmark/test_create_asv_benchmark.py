@@ -124,7 +124,26 @@ class TestCreateAsvBenchmark(ExtTestCase):
         self.assertIn(
             "from sklearn.linear_model import LogisticRegression", content)
 
+    def test_create_asv_benchmark_text(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        temp = get_temp_folder(__file__, "temp_create_asv_benchmark_text")
+        created = create_asv_benchmark(
+            location=temp, models={'HashingVectorizer'},
+            verbose=5, fLOG=fLOG, flat=False)
+        self.assertGreater(len(created), 2)
+
+        names = os.listdir(os.path.join(
+            temp, 'benches', 'feature_extraction', 'HashingVectorizer'))
+        full_name = os.path.join(
+            temp, 'benches', 'feature_extraction', 'HashingVectorizer', names[0])
+        self.assertExists(full_name)
+        with open(full_name, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("class HashingVectorizer_", content)
+        self.assertIn(
+            "from sklearn.feature_extraction.text import HashingVectorizer", content)
+
 
 if __name__ == "__main__":
-    # TestCreateAsvBenchmark().test_create_asv_benchmark_noflat_ext()
+    # TestCreateAsvBenchmark().test_create_asv_benchmark_text()
     unittest.main()
