@@ -75,6 +75,7 @@
         "cython": [],
         "jinja2": [],
         "joblib": [],
+        "lightgbm": [],
         "numpy": [],
         "onnx": [],
         "onnxruntime": [],
@@ -84,6 +85,7 @@
 	    "scipy": [],
         "skl2onnx": ["git+https://github.com/xadupre/sklearn-onnx.git@jenkins"],
         "scikit-learn": ["git+https://github.com/scikit-learn/scikit-learn.git"],
+        "xgboost": [],
     },
 
     // Combinations of libraries/python versions can be excluded/included
