@@ -30,16 +30,19 @@ class TestCreateAsvBenchmark(ExtTestCase):
         self.assertGreater(len(created), 2)
 
         name = os.path.join(
-            temp, 'benches', 'bench_LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10.py')
+            temp, 'benches', 'bench_LogisticRegression_liblinear_solverliblinear_onnx.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn(
-            "class LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10_benchClassifier(", content)
+            "class LogisticRegression_liblinear_solverliblinear_onnx_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         self.assertIn(
             "from sklearn.linear_model import LogisticRegression", content)
+        self.assertIn("par_optimonnx = True", content)
+        self.assertIn("par_scenario = ", content)
+        self.assertIn("par_problem = ", content)
 
     def test_create_asv_benchmark_noflat(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -51,16 +54,17 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         name = os.path.join(
             temp, 'benches', 'linear_model', 'LogisticRegression',
-            'bench_LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10.py')
+            'bench_LogisticRegression_liblinear_solverliblinear_onnx.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn(
-            "class LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10_benchClassifier(", content)
+            "class LogisticRegression_liblinear_solverliblinear_onnx_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         self.assertIn(
             "from sklearn.linear_model import LogisticRegression", content)
+        self.assertIn("par_optimonnx = True", content)
 
     def test_create_asv_benchmark_noflat_ext(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -68,24 +72,35 @@ class TestCreateAsvBenchmark(ExtTestCase):
             __file__, "temp_create_asv_benchmark_noflat__ext")
         created = create_asv_benchmark(
             location=temp, models={
-                'LogisticRegression', 'BernoulliNB', 'XGBRegressor'},
+                'LogisticRegression', 'BernoulliNB', 'XGBRegressor', 'LGBMRegressor'},
             verbose=5, fLOG=fLOG, flat=False)
         self.assertGreater(len(created), 2)
 
         name = os.path.join(
             temp, 'benches', 'linear_model', 'LogisticRegression',
-            'bench_LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10.py')
+            'bench_LogisticRegression_liblinear_solverliblinear.py')
         self.assertExists(name)
 
         name = os.path.join(
             temp, 'benches', 'naive_bayes', 'BernoulliNB',
-            'bench_BernoulliNB_b_cl_default_10.py')
+            'bench_BernoulliNB_default.py')
         self.assertExists(name)
 
         name = os.path.join(
             temp, 'benches', '_externals', 'XGBRegressor',
-            'bench_XGBRegressor_b_reg_64_default_10.py')
+            'bench_XGBRegressor_default.py')
         self.assertExists(name)
+        with open(name, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("from xgboost import XGBRegressor", content)
+
+        name = os.path.join(
+            temp, 'benches', '_externals', 'LGBMRegressor',
+            'bench_LGBMRegressor_default_n_estimators5.py')
+        self.assertExists(name)
+        with open(name, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("from lightgbm import LGBMRegressor", content)
 
     def test_create_asv_benchmark_noflat_vc(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -111,4 +126,5 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestCreateAsvBenchmark().test_create_asv_benchmark_noflat_ext()
     unittest.main()

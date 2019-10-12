@@ -3,6 +3,7 @@
 """
 import os
 import unittest
+from sklearn.utils.testing import ignore_warnings
 from skl2onnx.common.exceptions import MissingShapeCalculator
 from pyquickhelper.pycode import ExtTestCase
 
@@ -31,6 +32,7 @@ from mlprodict.asv_benchmark.template.skl_model_transform import (
 
 class TestAsvTemplateBenchmark(ExtTestCase):
 
+    @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_classifier(self):
         if not os.path.exists('_cache'):
             os.mkdir('_cache')
@@ -39,13 +41,16 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
+        opset = 10
+        dtype = 'float'
         for runtime in ['skl', 'pyrt', 'ort']:
-            cl.setup(runtime, N, nf)
+            cl.setup(runtime, N, nf, opset, dtype)
             self.assertEqual(cl.X.shape, (N, nf))
             for method in dir(cl):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
-                    res[method, runtime] = meth(cl, runtime, N, nf)
+                    res[method, runtime] = meth(
+                        cl, runtime, N, nf, opset, dtype)
         self.assertEqual(len(res), 18)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -58,6 +63,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_nbnodes', 'pyrt'), ('track_opset', 'ort')]
         self.assertEqual(set(exp), set(res))
 
+    @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_clustering(self):
         if not os.path.exists('_cache'):
             os.mkdir('_cache')
@@ -66,13 +72,16 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
+        opset = 10
+        dtype = 'float'
         for runtime in ['skl', 'pyrt']:
-            cl.setup(runtime, N, nf)
+            cl.setup(runtime, N, nf, opset, dtype)
             self.assertEqual(cl.X.shape, (N, nf))
             for method in dir(cl):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
-                    res[method, runtime] = meth(cl, runtime, N, nf)
+                    res[method, runtime] = meth(
+                        cl, runtime, N, nf, opset, dtype)
         self.assertEqual(len(res), 12)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -82,6 +91,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
         self.assertEqual(set(exp), set(res))
 
+    @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_regressor(self):
         if not os.path.exists('_cache'):
             os.mkdir('_cache')
@@ -90,13 +100,16 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
+        opset = 10
+        dtype = 'float'
         for runtime in ['skl', 'pyrt', 'ort']:
-            cl.setup(runtime, N, nf)
+            cl.setup(runtime, N, nf, opset, dtype)
             self.assertEqual(cl.X.shape, (N, nf))
             for method in dir(cl):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
-                    res[method, runtime] = meth(cl, runtime, N, nf)
+                    res[method, runtime] = meth(
+                        cl, runtime, N, nf, opset, dtype)
         self.assertEqual(len(res), 18)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -109,6 +122,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_nbnodes', 'pyrt'), ('track_opset', 'ort')]
         self.assertEqual(set(exp), set(res))
 
+    @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_multi_classifier(self):
         if not os.path.exists('_cache'):
             os.mkdir('_cache')
@@ -117,9 +131,11 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
+        opset = 10
+        dtype = 'float'
         for runtime in ['skl', 'pyrt']:
             try:
-                cl.setup(runtime, N, nf)
+                cl.setup(runtime, N, nf, opset, dtype)
             except NotImplementedError:
                 # not implemented
                 return
@@ -127,7 +143,8 @@ class TestAsvTemplateBenchmark(ExtTestCase):
             for method in dir(cl):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
-                    res[method, runtime] = meth(cl, runtime, N, nf)
+                    res[method, runtime] = meth(
+                        cl, runtime, N, nf, opset, dtype)
         self.assertEqual(len(res), 18)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -137,6 +154,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
         self.assertEqual(set(exp), set(res))
 
+    @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_outlier(self):
         if not os.path.exists('_cache'):
             os.mkdir('_cache')
@@ -146,9 +164,11 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         N = 60
         nf = cl.params[2][1]
         expect = 12
+        opset = 10
+        dtype = 'float'
         for runtime in ['skl', 'pyrt']:
             try:
-                cl.setup(runtime, N, nf)
+                cl.setup(runtime, N, nf, opset, dtype)
             except MissingShapeCalculator:
                 # Converter not yet implemented.
                 expect = 0
@@ -157,7 +177,8 @@ class TestAsvTemplateBenchmark(ExtTestCase):
             for method in dir(cl):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
-                    res[method, runtime] = meth(cl, runtime, N, nf)
+                    res[method, runtime] = meth(
+                        cl, runtime, N, nf, opset, dtype)
         if expect == 0:
             return
         self.assertEqual(len(res), expect)
@@ -169,6 +190,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
         self.assertEqual(set(exp), set(res))
 
+    @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_trainable_transform(self):
         if not os.path.exists('_cache'):
             os.mkdir('_cache')
@@ -177,10 +199,12 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
+        opset = 10
+        dtype = 'float'
         expect = 12
         for runtime in ['skl', 'pyrt']:
             try:
-                cl.setup(runtime, N, nf)
+                cl.setup(runtime, N, nf, opset, dtype)
             except MissingShapeCalculator:
                 # Converter not yet implemented.
                 expect = 0
@@ -189,7 +213,8 @@ class TestAsvTemplateBenchmark(ExtTestCase):
             for method in dir(cl):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
-                    res[method, runtime] = meth(cl, runtime, N, nf)
+                    res[method, runtime] = meth(
+                        cl, runtime, N, nf, opset, dtype)
         if expect == 0:
             return
         self.assertEqual(len(res), expect)
@@ -201,6 +226,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
         self.assertEqual(set(exp), set(res))
 
+    @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_transform(self):
         if not os.path.exists('_cache'):
             os.mkdir('_cache')
@@ -209,10 +235,12 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
+        opset = 10
+        dtype = 'float'
         expect = 12
         for runtime in ['skl', 'pyrt']:
             try:
-                cl.setup(runtime, N, nf)
+                cl.setup(runtime, N, nf, opset, dtype)
             except MissingShapeCalculator:
                 # Converter not yet implemented.
                 expect = 0
@@ -221,7 +249,8 @@ class TestAsvTemplateBenchmark(ExtTestCase):
             for method in dir(cl):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
-                    res[method, runtime] = meth(cl, runtime, N, nf)
+                    res[method, runtime] = meth(
+                        cl, runtime, N, nf, opset, dtype)
         if expect == 0:
             return
         self.assertEqual(len(res), expect)

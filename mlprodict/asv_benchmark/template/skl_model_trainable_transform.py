@@ -26,13 +26,14 @@ class TemplateBenchmarkTrainableTransform(_CommonAsvSklBenchmarkTrainableTransfo
     `common_asv_skl.py <https://github.com/sdpython/mlprodict/
     blob/master/mlprodict/asv_benchmark/common_asv_skl.py>`_.
     """
-
     params = [
         ['skl', 'pyrt', 'ort'],  # values for runtime
         [1, 100, 10000],  # values for N
         [4, 20],  # values for nf
+        [9, 10, 11],  # values for opset
+        ['float', 'double'],  # values for dtype
     ]
-    param_names = ['rt', 'N', 'nf']
+
     # additional parameters
 
     def setup_cache(self):  # pylint: disable=W0235

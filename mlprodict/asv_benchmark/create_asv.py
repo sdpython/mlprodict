@@ -433,26 +433,25 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                 if verbose >= 3 and fLOG is not None:
                     fLOG("[create_asv_benchmark] model={} scenario={} optim={} extra={} dofit={} (problem={})".format(
                         model.__name__, scenario, optimisations, extra, dofit, prob))
-                for opset in opsets:
-                    created = _create_asv_benchmark_file(
-                        location_model, opset=opset,
-                        model=model, scenario=scenario, optimisations=optimisations,
-                        extra=extra, dofit=dofit, prob=prob,
-                        runtime=runtime, new_conv_options=new_conv_options,
-                        X_train=X_train, X_test=X_test, y_train=y_train,
-                        y_test=y_test, Xort_test=Xort_test,
-                        init_types=init_types, conv_options=conv_options,
-                        method_name=method_name, dims=dims, n_features=n_features,
-                        output_index=output_index, predict_kwargs=predict_kwargs,
-                        exc=exc, prefix_import=prefix_import)
-                    for cr in created:
-                        if verbose > 1 and fLOG is not None:
-                            fLOG("[create_asv_benchmark] add '{}'.".format(cr))
-                        yield cr
+                created = _create_asv_benchmark_file(
+                    location_model, opsets=opsets,
+                    model=model, scenario=scenario, optimisations=optimisations,
+                    extra=extra, dofit=dofit, prob=prob,
+                    runtime=runtime, new_conv_options=new_conv_options,
+                    X_train=X_train, X_test=X_test, y_train=y_train,
+                    y_test=y_test, Xort_test=Xort_test,
+                    init_types=init_types, conv_options=conv_options,
+                    method_name=method_name, dims=dims, n_features=n_features,
+                    output_index=output_index, predict_kwargs=predict_kwargs,
+                    exc=exc, prefix_import=prefix_import)
+                for cr in created:
+                    if verbose > 1 and fLOG is not None:
+                        fLOG("[create_asv_benchmark] add '{}'.".format(cr))
+                    yield cr
 
 
-def _asv_class_name(model, prob, scenario, optimisation,
-                    extra, dofit, conv_options, opset):
+def _asv_class_name(model, scenario, optimisation,
+                    extra, dofit, conv_options):
 
     def clean_str(val):
         s = str(val)
@@ -466,8 +465,7 @@ def _asv_class_name(model, prob, scenario, optimisation,
             r += c
         return r
 
-    p = prob.replace("~", "")
-    els = ['bench', model.__name__, clean_str(p), scenario]
+    els = ['bench', model.__name__, scenario]
     if not dofit:
         els.append('nofit')
     if extra:
@@ -484,7 +482,6 @@ def _asv_class_name(model, prob, scenario, optimisation,
         if len(sh) > 6:
             sh = sh[:6]
         res = res[:70] + sh
-    res += "_" + str(opset)
     return res
 
 
@@ -492,7 +489,7 @@ def _create_asv_benchmark_file(
         location, model, scenario, optimisations, new_conv_options,
         extra, dofit, prob, runtime, X_train, X_test, y_train,
         y_test, Xort_test, init_types, conv_options,
-        method_name, n_features, dims, opset,
+        method_name, n_features, dims, opsets,
         output_index, predict_kwargs, prefix_import,
         exc):
     """
@@ -560,8 +557,8 @@ def _create_asv_benchmark_file(
             merged_options = _merge_options(nconv_options, conv_options)
             try:
                 name = _asv_class_name(
-                    model, prob, scenario, optimisation, extra,
-                    dofit, merged_options, opset)
+                    model, scenario, optimisation, extra,
+                    dofit, merged_options)
             except ValueError as e:
                 if exc:
                     raise e
@@ -584,6 +581,9 @@ def _create_asv_benchmark_file(
                 "['skl', 'pyrt', 'ort'],  # values for runtime": str(runtime),
                 "[1, 100, 10000],  # values for N": str(dims),
                 "[4, 20],  # values for nf": str(n_features),
+                "[9, 10, 11],  # values for opset": str(opsets),
+                "['float', 'double'],  # values for dtype":
+                    "['float']" if '-64' not in prob else "['float', 'double']",
             }
             for k, v in rep.items():
                 if k not in content:
@@ -594,7 +594,7 @@ def _create_asv_benchmark_file(
                 "def _create_model(self):")[0].strip("\n ")
 
             # Model setup
-            class_content = add_model_import_init(
+            class_content, atts = add_model_import_init(
                 class_content, model, optimisation,
                 extra, merged_options)
             class_content = class_content.replace(
@@ -602,15 +602,13 @@ def _create_asv_benchmark_file(
                 "class {}".format(class_name))
 
             # dtype, dofit
-            atts = []
-            if '-64' in prob:
-                atts.append("xtest_dtype = numpy.float64")
+            atts.append("par_scenario = %r" % scenario)
+            atts.append("par_problem = %r" % prob)
             if not dofit:
-                atts.append("dofit = False")
+                atts.append("par_dofit = False")
             if merged_options is not None and len(merged_options) > 0:
-                atts.append("conv_options = %r" % format_conv_options(
+                atts.append("par_convopts = %r" % format_conv_options(
                     merged_options, model.__name__))
-            atts.append("target_opset = %r" % opset)
             if atts:
                 class_content = class_content.replace(
                     "# additional parameters",
@@ -675,6 +673,8 @@ def add_model_import_init(
     """
     add_imports = []
     add_methods = []
+    add_params = ["par_modelname = '%s'" % model.__class__.__name__,
+                  "par_extra = %r" % extra]
 
     # additional methods and imports
     if optimisation is not None:
@@ -684,11 +684,13 @@ def add_model_import_init(
             add_methods.append(textwrap.dedent('''
                 def _optimize_onnx(self, onx):
                     return onnx_optimisations(onx)'''))
+            add_params.append('par_optimonnx = True')
         elif isinstance(optimisation, dict):
             add_methods.append(textwrap.dedent('''
                 def _optimize_onnx(self, onx):
-                    return onnx_optimisations(onx, {})''').format(
-                _format_dict(optimisation, indent=8)))
+                    return onnx_optimisations(onx, self.par_optims)'''))
+            add_params.append('par_optims = {}'.format(
+                _format_dict(optimisation, indent=4)))
         else:
             raise ValueError(
                 "Unable to interpret optimisation {}.".format(optimisation))
@@ -707,8 +709,14 @@ def add_model_import_init(
     # imports
     loc_class = model.__module__
     sub = loc_class.split('.')
-    skl = sub.index('sklearn')
-    mod = '.'.join(sub[skl:skl + 2])
+    if 'sklearn' not in sub:
+        mod = loc_class
+    else:
+        skl = sub.index('sklearn')
+        if skl == 0:
+            mod = '.'.join(sub[skl:skl + 2])
+        else:
+            mod = '.'.join(sub[:-1])
     imp_inst = "from {} import {}".format(mod, model.__name__)
     add_imports.append(imp_inst)
     add_imports.append("#  __IMPORTS__")
@@ -732,7 +740,7 @@ def add_model_import_init(
         lines.append('')
 
     # end
-    return "\n".join(lines)
+    return "\n".join(lines), add_params
 
 
 def find_missing_sklearn_imports(pieces):
