@@ -22,12 +22,12 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
 
         name = os.path.join(
             temp, 'benches', 'linear_model', 'LogisticRegression',
-            'bench_LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10.py')
+            'bench_LogisticRegression_liblinear_solverliblinear_onnx.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn(
-            "class LogisticRegression_b_cl_64_liblinear_solverliblinear_onnx_10_benchClassifier(", content)
+            "class LogisticRegression_liblinear_solverliblinear_onnx_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         self.assertIn(
