@@ -88,6 +88,7 @@ class TestAsvJsonText(ExtTestCase):
         df = export_asv_json(data, baseline="skl", as_df=True)
         df.to_excel(os.path.join(temp, "res.xlsx"))
 
+
 if __name__ == "__main__":
     TestAsvJsonText().test_unzip_and_convert2()
     unittest.main()
