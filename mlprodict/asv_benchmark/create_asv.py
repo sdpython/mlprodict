@@ -8,6 +8,11 @@ import textwrap
 import hashlib
 import warnings
 try:
+    from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8
+except ImportError:
+    remove_extra_spaces_and_pep8 = lambda code, *args, **kwargs: code
+
+try:
     from ..onnxrt.validate.validate_helper import (
         get_opset_number_from_onnx, sklearn_operators
     )
@@ -22,6 +27,7 @@ except (ValueError, ImportError):
         _retrieve_problems_extra, _get_problem_data, _merge_options
     )
 from .verify_code import verify_code
+
 
 default_asv_conf = {
     "version": 1,
@@ -244,7 +250,7 @@ def create_asv_benchmark(
         verbose=verbose, filter_exp=filter_exp,
         filter_scenario=filter_scenario,
         dims=dims, exc=exc, flat=flat,
-        fLOG=fLOG)))
+        fLOG=fLOG, execute=execute)))
 
     if verbose > 0 and fLOG is not None:
         fLOG("[create_asv_benchmark] done.")
@@ -642,28 +648,40 @@ def _create_asv_benchmark_file(
             class_content = class_content.replace(
                 "#  __IMPORTS__", "\n".join(miss))
             verify_code(class_content, exc=True)
+            class_content = class_content.replace(
+                "par_extra = {", "par_extra = {\n")
+            class_content = remove_extra_spaces_and_pep8(
+                class_content, aggressive=True)
 
             # Check compilation again
             try:
                 obj = compile(class_content, filename, 'exec')
             except SyntaxError as e:
                 raise SyntaxError("Unable to compile model '{}'\n{}".format(
-                    model.__name__, class_content)) from e
+                    model.__name__,
+                    _display_code_lines(class_content))) from e
 
             # executes to check import
             if execute:
                 try:
-                    exec(obj)  # pylint: disable=W0122
+                    exec(obj, globals(), locals())  # pylint: disable=W0122
                 except Exception as e:
                     raise RuntimeError(
                         "Unable to process class '{}' a script due to '{}'\n{}".format(
-                            model.__name__, str(e), class_content))
+                            model.__name__, str(e),
+                            _display_code_lines(class_content))) from e
 
             # Saves
             with open(os.path.join(location, filename), "w", encoding='utf-8') as f:
                 f.write(class_content)
 
     return names
+
+
+def _display_code_lines(code):
+    rows = ["%03d %s" % (i + 1, line)
+            for i, line in enumerate(code.split("\n"))]
+    return "\n".join(rows)
 
 
 def _format_dict(opts, indent):
@@ -735,10 +753,7 @@ def add_model_import_init(
     else:
         skl = sub.index('sklearn')
         if skl == 0:
-            if 'feature_extraction' in sub:
-                mod = '.'.join(sub[skl:])
-            else:
-                mod = '.'.join(sub[skl: -1])
+            mod = '.'.join(sub[skl:])
         else:
             mod = '.'.join(sub[:-1])
 
@@ -799,15 +814,26 @@ def find_sklearn_module(piece):
     The implementation is not intelligence and should
     be improved. It is a kind of white list.
     """
+    glo = globals()
     if piece in {'LinearRegression', 'LogisticRegression',
                  'SGDClassifier'}:
+        import sklearn.linear_model
+        glo[piece] = getattr(sklearn.linear_model, piece)
         return "sklearn.linear_model"
     if piece in {'DecisionTreeRegressor', 'DecisionTreeClassifier'}:
+        import sklearn.tree
+        glo[piece] = getattr(sklearn.tree, piece)
         return "sklearn.tree"
     if piece in {'ExpSineSquared', 'DotProduct', 'RationalQuadratic', 'RBF'}:
+        import sklearn.gaussian_process.kernels
+        glo[piece] = getattr(sklearn.gaussian_process.kernels, piece)
         return "sklearn.gaussian_process.kernels"
     if piece in {'LinearSVC', 'LinearSVR', 'NuSVR', 'SVR', 'SVC', 'NuSVC'}:
+        import sklearn.svm
+        glo[piece] = getattr(sklearn.svm, piece)
         return "sklearn.svm"
     if piece in {'KMeans'}:
+        import sklearn.cluster
+        glo[piece] = getattr(sklearn.cluster, piece)
         return "sklearn.cluster"
     raise ValueError("Unable to find module to import for '{}'.".format(piece))

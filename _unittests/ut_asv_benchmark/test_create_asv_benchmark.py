@@ -26,7 +26,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_flat")
         created = create_asv_benchmark(
             location=temp, models={'LogisticRegression', 'LinearRegression'},
-            verbose=5, fLOG=fLOG, flat=True)
+            verbose=5, fLOG=fLOG, flat=True, execute=True)
         self.assertGreater(len(created), 2)
 
         name = os.path.join(
@@ -38,8 +38,9 @@ class TestCreateAsvBenchmark(ExtTestCase):
             "class LogisticRegression_liblinear_solverliblinear_onnx_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
-        self.assertIn(
-            "from sklearn.linear_model import LogisticRegression", content)
+        if 'LogisticRegression' in content:
+            self.assertIn(
+                "from sklearn.linear_model.logistic import LogisticRegression", content)
         self.assertIn("par_optimonnx = True", content)
         self.assertIn("par_scenario = ", content)
         self.assertIn("par_problem = ", content)
@@ -49,7 +50,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_noflat")
         created = create_asv_benchmark(
             location=temp, models={'LogisticRegression', 'LinearRegression'},
-            verbose=5, fLOG=fLOG, flat=False)
+            verbose=5, fLOG=fLOG, flat=False, execute=True)
         self.assertGreater(len(created), 2)
 
         name = os.path.join(
@@ -62,8 +63,9 @@ class TestCreateAsvBenchmark(ExtTestCase):
             "class LogisticRegression_liblinear_solverliblinear_onnx_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
-        self.assertIn(
-            "from sklearn.linear_model import LogisticRegression", content)
+        if 'LogisticRegression' in content:
+            self.assertIn(
+                "from sklearn.linear_model.logistic import LogisticRegression", content)
         self.assertIn("par_optimonnx = True", content)
 
     def test_create_asv_benchmark_noflat_ext(self):
@@ -73,7 +75,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
         created = create_asv_benchmark(
             location=temp, models={
                 'LogisticRegression', 'BernoulliNB', 'XGBRegressor', 'LGBMRegressor'},
-            verbose=5, fLOG=fLOG, flat=False)
+            verbose=5, fLOG=fLOG, flat=False, execute=True)
         self.assertGreater(len(created), 2)
 
         name = os.path.join(
@@ -107,7 +109,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_noflat_vc")
         created = create_asv_benchmark(
             location=temp, models={'VotingClassifier'},
-            verbose=5, fLOG=fLOG, flat=False)
+            verbose=5, fLOG=fLOG, flat=False, execute=True)
         self.assertGreater(len(created), 2)
 
         names = os.listdir(os.path.join(
@@ -118,18 +120,20 @@ class TestCreateAsvBenchmark(ExtTestCase):
         with open(full_name, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn("class VotingClassifier_", content)
-        self.assertIn("LogisticRegression(", content)
+        if 'LogisticRegression' in content:
+            self.assertIn("LogisticRegression(", content)
         self.assertIn(
-            "from sklearn.ensemble import VotingClassifier", content)
-        self.assertIn(
-            "from sklearn.linear_model import LogisticRegression", content)
+            "from sklearn.ensemble.voting import VotingClassifier", content)
+        if "LogisticRegression" in content:
+            self.assertIn(
+                "from sklearn.linear_model import LogisticRegression", content)
 
     def test_create_asv_benchmark_text(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_text")
         created = create_asv_benchmark(
             location=temp, models={'HashingVectorizer'},
-            verbose=5, fLOG=fLOG, flat=False)
+            verbose=5, fLOG=fLOG, flat=False, execute=True)
         self.assertGreater(len(created), 2)
 
         names = os.listdir(os.path.join(
@@ -143,7 +147,30 @@ class TestCreateAsvBenchmark(ExtTestCase):
         self.assertIn(
             "from sklearn.feature_extraction.text import HashingVectorizer", content)
 
+    def test_create_asv_benchmark_calibrated(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        temp = get_temp_folder(
+            __file__, "temp_create_asv_benchmark_calibrated")
+        created = create_asv_benchmark(
+            location=temp, models={'CalibratedClassifierCV'},
+            verbose=5, fLOG=fLOG, flat=False, execute=True)
+        self.assertGreater(len(created), 2)
+
+        names = os.listdir(os.path.join(
+            temp, 'benches', 'calibration', 'CalibratedClassifierCV'))
+        full_name = os.path.join(
+            temp, 'benches', 'calibration', 'CalibratedClassifierCV', names[0])
+        self.assertExists(full_name)
+        with open(full_name, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("class CalibratedClassifierCV_", content)
+        self.assertIn(
+            "from sklearn.calibration import CalibratedClassifierCV", content)
+        if 'SGDclassifier' in content:
+            self.assertIn(
+                "from sklearn.linear_model import SGDClassifier", content)
+
 
 if __name__ == "__main__":
-    # TestCreateAsvBenchmark().test_create_asv_benchmark_text()
+    TestCreateAsvBenchmark().test_create_asv_benchmark_calibrated()
     unittest.main()

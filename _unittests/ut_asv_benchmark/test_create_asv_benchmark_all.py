@@ -32,7 +32,7 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         self.assertIn(
-            "from sklearn.linear_model import LogisticRegression", content)
+            "from sklearn.linear_model.logistic import LogisticRegression", content)
 
 
 if __name__ == "__main__":
