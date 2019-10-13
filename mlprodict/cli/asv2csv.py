@@ -6,7 +6,8 @@ from datetime import datetime
 from ..asv_benchmark.asv_exports import enumerate_export_asv_json
 
 
-def asv2csv(folder, outfile=None, last_one=False, baseline=None, fLOG=print):
+def asv2csv(folder, outfile=None, last_one=False, baseline=None,
+            conf=None, fLOG=print):
     """
     Converts results produced by :epkg:`asv` into :epkg:`csv`.
 
@@ -15,6 +16,7 @@ def asv2csv(folder, outfile=None, last_one=False, baseline=None, fLOG=print):
     :param last_one: converts only the last report into csv
     :param baseline: baseline usually ``'skl'``, if not empty,
         computes ratios
+    :param conf: test configuration, to retrieve more metadata
     :param fLOG: logging function
 
     .. cmdref::
@@ -33,14 +35,16 @@ def asv2csv(folder, outfile=None, last_one=False, baseline=None, fLOG=print):
     """
     if outfile is None:
         rows = []
-        for row in enumerate_export_asv_json(folder, last_one=last_one, baseline=baseline):
+        for row in enumerate_export_asv_json(
+                folder, last_one=last_one, baseline=baseline, conf=conf):
             fLOG(row)
             rows.append(row)
         return rows
     else:
         import pandas
         df = pandas.DataFrame(enumerate_export_asv_json(
-            folder, last_one=last_one, baseline=baseline))
+            folder, last_one=last_one, baseline=baseline,
+            conf=conf))
         outfile = outfile.replace(
             "<date>",
             datetime.now().strftime("%Y%m%dT%H%M%S"))

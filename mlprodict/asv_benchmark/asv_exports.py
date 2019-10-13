@@ -69,7 +69,8 @@ def _figures2dict(metrics, coor, baseline=None):
     return res
 
 
-def enumerate_export_asv_json(folder, as_df=False, last_one=False, baseline=None):
+def enumerate_export_asv_json(folder, as_df=False, last_one=False,
+                              baseline=None, conf=None):
     """
     Looks into :epkg:`asv` results and wraps all of them
     into a :epkg:`dataframe` or flat data.
@@ -77,8 +78,21 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False, baseline=None
     @param      folder      location of the results
     @param      last_one    to return only the last one
     @param      baseline    defines a baseline and computes ratios
+    @param      conf        configuration file, may be used to
+                            add additional data
     @return                 :epkg:`dataframe` or flat data
     """
+    if conf is not None:
+        if not os.path.exists(conf):
+            raise FileNotFoundError("Unable to find '{}'.".format(conf))
+        with open(conf, "r", encoding='utf-8') as f:
+            meta = json.load(f)
+        bdir = os.path.join(os.path.dirname(conf), meta['benchmark_dir'])
+        if os.path.exists(bdir):
+            meta_class = _retrieve_class_parameters(bdir)
+    else:
+        meta_class = None
+
     bench = os.path.join(folder, 'benchmarks.json')
     if not os.path.exists(bench):
         raise FileNotFoundError("Unable to find '{}'.".format(bench))
@@ -154,10 +168,13 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False, baseline=None
                     if metrics is not None:
                         obs.update(
                             _figures2dict(metrics, coord, baseline=baseline))
+                    if meta_class is not None:
+                        _update_test_metadata(obs, meta_class)
                     yield obs
 
 
-def export_asv_json(folder, as_df=False, last_one=False, baseline=None):
+def export_asv_json(folder, as_df=False, last_one=False, baseline=None,
+                    conf=None):
     """
     Looks into :epkg:`asv` results and wraps all of them
     into a :epkg:`dataframe` or flat data.
@@ -167,11 +184,62 @@ def export_asv_json(folder, as_df=False, last_one=False, baseline=None):
                             a list of dictionaries
     @param      last_one    to return only the last one
     @param      baseline    computes ratio against the baseline
+    @param      conf        configuration file, may be used to
+                            add additional data
     @return                 :epkg:`dataframe` or flat data
     """
     rows = list(enumerate_export_asv_json(
-        folder, last_one=last_one, baseline=baseline))
+        folder, last_one=last_one, baseline=baseline, conf=conf))
     if as_df:
         import pandas
         return pandas.DataFrame(rows)
     return rows
+
+
+def _retrieve_class_parameters(bdir):
+    """
+    Imports files in bdir, compile files and extra metadata from them.
+    """
+    found = {}
+    for path, _, files in os.walk(bdir):
+        fulls = [os.path.join(bdir, path, f) for f in files]
+        for full in fulls:
+            if (os.path.splitext(full)[-1] == '.py' and
+                    os.path.split(full)[-1] != '__init__.py'):
+                cls = list(_enumerate_classes(full))
+                for cl in cls:
+                    name = cl.__name__
+                    found[name] = cl
+    return found
+
+
+def _update_test_metadata(row, class_meta):
+    name = row.get('test_model', None)
+    if name is None:
+        return
+    sub = name.split('.')[-1]
+    if sub in class_meta:
+        for k, v in class_meta[sub].__dict__.items():
+            if k.startswith('par_'):
+                row[k] = v
+
+
+def _enumerate_classes(filename):
+    """
+    Extracts the classes of a file.
+    """
+    with open(filename, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    gl = {}
+    loc = {}
+    cp = compile(content, filename, mode='exec')
+
+    exec(cp, gl, loc)  # pylint: disable=W0122
+
+    for k, v in loc.items():
+        if k[0] < 'A' or k[0] > 'Z':
+            continue
+        if not hasattr(v, 'setup_cache'):
+            continue
+        yield v

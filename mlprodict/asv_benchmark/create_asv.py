@@ -694,7 +694,7 @@ def add_model_import_init(
     """
     add_imports = []
     add_methods = []
-    add_params = ["par_modelname = '%s'" % model.__class__.__name__,
+    add_params = ["par_modelname = '%s'" % model.__name__,
                   "par_extra = %r" % extra]
 
     # additional methods and imports

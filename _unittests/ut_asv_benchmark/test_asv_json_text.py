@@ -6,7 +6,7 @@ import json
 import unittest
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.filehelper.compression_helper import unzip_files
-from mlprodict.asv_benchmark import export_asv_json
+from mlprodict.asv_benchmark import export_asv_json, create_asv_benchmark
 from mlprodict.asv_benchmark.asv_exports import _figures2dict
 
 
@@ -88,7 +88,23 @@ class TestAsvJsonText(ExtTestCase):
         df = export_asv_json(data, baseline="skl", as_df=True)
         df.to_excel(os.path.join(temp, "res.xlsx"))
 
+    def test_unzip_and_convert_metadata(self):
+        file_zip = os.path.join(TestAsvJsonText.data, 'results2.zip')
+        temp = get_temp_folder(__file__, 'temp_unzip_and_convert_metadata')
+        create_asv_benchmark(
+            location=temp, models={'LogisticRegression', 'LinearRegression'})
+        unzip_files(file_zip, temp)
+        data = os.path.join(temp, 'results')
+        conf = os.path.join(temp, 'asv.conf.json')
+        exp = export_asv_json(data, baseline="skl", conf=conf)
+        par_problem = []
+        for row in exp:
+            if 'par_problem' in row:
+                par_problem.append(row['par_problem'])
+        s = set(par_problem)
+        self.assertEqual(s, {'m-cl', '~m-reg-64'})
+
 
 if __name__ == "__main__":
-    TestAsvJsonText().test_unzip_and_convert2()
+    # TestAsvJsonText().test_unzip_and_convert_metadata()
     unittest.main()

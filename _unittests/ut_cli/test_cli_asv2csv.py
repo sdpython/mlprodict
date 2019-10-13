@@ -31,7 +31,7 @@ class TestCliAsvBench(ExtTestCase):
         main(args=["asv2csv", "-f", data, "-o", out], fLOG=st.fprint)
         self.assertExists(out)
         df = pandas.read_csv(out)
-        self.assertEqual(df.shape, (168, 65))
+        self.assertEqual(df.shape, (168, 66))
         out = os.path.join(temp, "data<date>.csv")
         main(args=["asv2csv", "-f", data, "-o", out], fLOG=st.fprint)
 
