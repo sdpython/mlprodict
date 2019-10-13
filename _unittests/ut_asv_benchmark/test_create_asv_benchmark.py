@@ -114,6 +114,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         names = os.listdir(os.path.join(
             temp, 'benches', 'ensemble', 'VotingClassifier'))
+        names = [name for name in names if '__init__' not in name]
         full_name = os.path.join(
             temp, 'benches', 'ensemble', 'VotingClassifier', names[0])
         self.assertExists(full_name)
@@ -138,6 +139,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         names = os.listdir(os.path.join(
             temp, 'benches', 'feature_extraction', 'HashingVectorizer'))
+        names = [name for name in names if '__init__' not in name]
         full_name = os.path.join(
             temp, 'benches', 'feature_extraction', 'HashingVectorizer', names[0])
         self.assertExists(full_name)
@@ -158,6 +160,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         names = os.listdir(os.path.join(
             temp, 'benches', 'calibration', 'CalibratedClassifierCV'))
+        names = [name for name in names if '__init__' not in name]
         full_name = os.path.join(
             temp, 'benches', 'calibration', 'CalibratedClassifierCV', names[0])
         self.assertExists(full_name)
