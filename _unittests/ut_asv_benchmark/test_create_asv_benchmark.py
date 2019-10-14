@@ -1,5 +1,5 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=15s)
 """
 import os
 import unittest
@@ -30,12 +30,12 @@ class TestCreateAsvBenchmark(ExtTestCase):
         self.assertGreater(len(created), 2)
 
         name = os.path.join(
-            temp, 'benches', 'bench_LogisticRegression_liblinear_solverliblinear_onnx.py')
+            temp, 'benches', 'bench_LogisticRegression_liblinear_b_cl_solverliblinear_onnx.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn(
-            "class LogisticRegression_liblinear_solverliblinear_onnx_benchClassifier(", content)
+            "class LogisticRegression_liblinear_b_cl_solverliblinear_onnx_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         if 'LogisticRegression' in content:
@@ -55,12 +55,12 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         name = os.path.join(
             temp, 'benches', 'linear_model', 'LogisticRegression',
-            'bench_LogisticRegression_liblinear_solverliblinear_onnx.py')
+            'bench_LogisticRegression_liblinear_b_cl_solverliblinear_onnx.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn(
-            "class LogisticRegression_liblinear_solverliblinear_onnx_benchClassifier(", content)
+            "class LogisticRegression_liblinear_b_cl_solverliblinear_onnx_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         if 'LogisticRegression' in content:
@@ -80,17 +80,17 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         name = os.path.join(
             temp, 'benches', 'linear_model', 'LogisticRegression',
-            'bench_LogisticRegression_liblinear_solverliblinear.py')
+            'bench_LogisticRegression_liblinear_b_cl_solverliblinear.py')
         self.assertExists(name)
 
         name = os.path.join(
             temp, 'benches', 'naive_bayes', 'BernoulliNB',
-            'bench_BernoulliNB_default.py')
+            'bench_BernoulliNB_default_b_cl.py')
         self.assertExists(name)
 
         name = os.path.join(
             temp, 'benches', '_externals', 'XGBRegressor',
-            'bench_XGBRegressor_default.py')
+            'bench_XGBRegressor_default_b_reg.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
@@ -98,7 +98,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         name = os.path.join(
             temp, 'benches', '_externals', 'LGBMRegressor',
-            'bench_LGBMRegressor_default_n_estimators5.py')
+            'bench_LGBMRegressor_default_b_reg_n_estimators5.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
@@ -181,16 +181,10 @@ class TestCreateAsvBenchmark(ExtTestCase):
             location=temp, models={'KNeighborsRegressor'},
             verbose=5, fLOG=fLOG, flat=False, execute=True)
         self.assertGreater(len(created), 2)
-        self.assertNotExists(os.path.join(
-            temp, "benches", "neighbors", "KNeighborsRegressor",
-            "bench_KNeighborsRegressor_cdist_algorithmbrute_cdist.py"))
-        self.assertNotExists(os.path.join(
-            temp, "benches", "neighbors", "KNeighborsRegressor",
-            "bench_KNeighborsRegressor_cdist_algorithmbrute.py"))
 
         full_name = os.path.join(
             temp, "benches", "neighbors", "KNeighborsRegressor",
-            "bench_KNeighborsRegressor_default_algorithmbrute.py")
+            "bench_KNeighborsRegressor_default_b_reg_algorithmbrute.py")
         self.assertExists(full_name)
         with open(full_name, "r", encoding="utf-8") as f:
             content = f.read()
@@ -208,5 +202,5 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestCreateAsvBenchmark().test_create_asv_benchmark_gpr()
+    # TestCreateAsvBenchmark().test_create_asv_benchmark_flat()
     unittest.main()

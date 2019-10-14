@@ -30,7 +30,11 @@ from .verify_code import verify_code
 
 # exec function does not import models but potentially
 # requires all specific models used to defines scenarios
-from ..onnxrt.validate.validate_scenarios import *  # pylint: disable=W0614
+try:
+    from ..onnxrt.validate.validate_scenarios import *  # pylint: disable=W0614,W0401
+except ValueError:
+    # Skips this step if used in a benchmark.
+    pass
 
 
 default_asv_conf = {
@@ -394,7 +398,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
     if opset_max is None:
         opset_max = get_opset_number_from_onnx()
     opsets = list(range(opset_min, opset_max + 1))
-    created = []
+    all_created = set()
 
     # loop on all models
     for row in loop:
@@ -457,7 +461,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                 created = _create_asv_benchmark_file(
                     location_model, opsets=opsets,
                     model=model, scenario=scenario, optimisations=optimisations,
-                    extra=extra, dofit=dofit, prob=prob,
+                    extra=extra, dofit=dofit, problem=prob,
                     runtime=runtime, new_conv_options=new_conv_options,
                     X_train=X_train, X_test=X_test, y_train=y_train,
                     y_test=y_test, Xort_test=Xort_test,
@@ -467,13 +471,17 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                     exc=exc, prefix_import=prefix_import,
                     execute=execute)
                 for cr in created:
+                    if cr in all_created:
+                        raise RuntimeError(
+                            "File '{}' was already created.".format(cr))
+                    all_created.add(cr)
                     if verbose > 1 and fLOG is not None:
                         fLOG("[create_asv_benchmark] add '{}'.".format(cr))
                     yield cr
 
 
 def _asv_class_name(model, scenario, optimisation,
-                    extra, dofit, conv_options):
+                    extra, dofit, conv_options, problem):
 
     def clean_str(val):
         s = str(val)
@@ -482,7 +490,7 @@ def _asv_class_name(model, scenario, optimisation,
             if c in ",-\n":
                 r += "_"
                 continue
-            if c in ": =.+()[]{}\"'<>":
+            if c in ": =.+()[]{}\"'<>~":
                 continue
             r += c
         return r
@@ -494,7 +502,7 @@ def _asv_class_name(model, scenario, optimisation,
             return ".".join(clean_str_list(v) for v in val if v)
         return clean_str(val)
 
-    els = ['bench', model.__name__, scenario]
+    els = ['bench', model.__name__, scenario, clean_str(problem)]
     if not dofit:
         els.append('nofit')
     if extra:
@@ -516,7 +524,7 @@ def _asv_class_name(model, scenario, optimisation,
 
 def _create_asv_benchmark_file(  # pylint: disable=R0914
         location, model, scenario, optimisations, new_conv_options,
-        extra, dofit, prob, runtime, X_train, X_test, y_train,
+        extra, dofit, problem, runtime, X_train, X_test, y_train,
         y_test, Xort_test, init_types, conv_options,
         method_name, n_features, dims, opsets,
         output_index, predict_kwargs, prefix_import,
@@ -558,24 +566,20 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         raise ValueError(
             "Unable to guess the right pattern for '{}'.".format(prob))
 
-    def format_conv_options(list_options, class_name):
-        list_res = []
-        for options in list_options:
-            if options is None:
-                list_res.append(options)
-                continue
-            res = {}
-            for k, v in options.items():
-                if isinstance(k, type):
-                    if "." + class_name + "'" in str(k):
-                        res[class_name] = v
-                        continue
-                    raise ValueError(
-                        "Class '{}', unable to format options {}".format(
-                            class_name, options))
-                res[k] = v
-            list_res.append(res)
-        return list_res
+    def format_conv_options(d_options, class_name):
+        if d_options is None:
+            return None
+        res = {}
+        for k, v in d_options.items():
+            if isinstance(k, type):
+                if "." + class_name + "'" in str(k):
+                    res[class_name] = v
+                    continue
+                raise ValueError(
+                    "Class '{}', unable to format options {}".format(
+                        class_name, d_options))
+            res[k] = v
+        return res
 
     def _nick_name_options(model, opts):
         if opts is None:
@@ -610,7 +614,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         try:
             name = _asv_class_name(
                 model, scenario, optimisation, extra,
-                dofit, conv_options)
+                dofit, conv_options, problem)
         except ValueError as e:
             if exc:
                 raise e
@@ -618,7 +622,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             continue
         filename = name.replace(".", "_") + ".py"
         try:
-            class_content = pattern_problem(prob)
+            class_content = pattern_problem(problem)
         except ValueError as e:
             if exc:
                 raise e
@@ -634,7 +638,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             "[4, 20],  # values for nf": str(n_features),
             "[9, 10, 11],  # values for opset": str(opsets),
             "['float', 'double'],  # values for dtype":
-                "['float']" if '-64' not in prob else "['float', 'double']",
+                "['float']" if '-64' not in problem else "['float', 'double']",
             "[None],  # values for optim": "%r" % nck_opts,
         }
         for k, v in rep.items():
@@ -662,12 +666,13 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
 
         # dtype, dofit
         atts.append("par_scenario = %r" % scenario)
-        atts.append("par_problem = %r" % prob)
+        atts.append("par_problem = %r" % problem)
+        atts.append("par_optimisation = %r" % optimisation)
         if not dofit:
             atts.append("par_dofit = False")
         if merged_options is not None and len(merged_options) > 0:
             atts.append("par_convopts = %r" % format_conv_options(
-                merged_options, model.__name__))
+                conv_options, model.__name__))
         if atts:
             class_content = class_content.replace(
                 "# additional parameters",

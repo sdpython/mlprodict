@@ -85,9 +85,9 @@ class _CommonAsvSklBenchmark:
         return (X_train, y_train), (X, y)
 
     def _to_onnx(self, model, X, opset, dtype, optim):
-        if optim is None:
+        if optim is None or len(optim) == 0:
             options = self.par_convopts
-        elif self.par_convopts:
+        elif self.par_convopts and len(self.par_convopts) > 0:
             raise NotImplementedError(
                 "Conflict between par_convopts={} and optim={}".format(
                     self.par_convopts, optim))
