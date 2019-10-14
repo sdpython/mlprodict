@@ -9,7 +9,7 @@ onnxruntime>=0.5
 openpyxl
 pybind11
 pyinstrument
-pylint
+pylint>=2.4.2
 pyquickhelper>=1.9.3227
 git+https://github.com/xadupre/sklearn-onnx.git@jenkins
 sphinx
