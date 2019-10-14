@@ -503,7 +503,7 @@ def _asv_class_name(model, scenario, optimisation,
     return res
 
 
-def _create_asv_benchmark_file(
+def _create_asv_benchmark_file(  # pylint: disable=R0914
         location, model, scenario, optimisations, new_conv_options,
         extra, dofit, prob, runtime, X_train, X_test, y_train,
         y_test, Xort_test, init_types, conv_options,
@@ -583,7 +583,6 @@ def _create_asv_benchmark_file(
                 warnings.warn(str(e))
                 continue
             filename = name.replace(".", "_") + ".py"
-            names.append(filename)
             try:
                 class_content = pattern_problem(prob)
             except ValueError as e:
@@ -672,7 +671,9 @@ def _create_asv_benchmark_file(
                             _display_code_lines(class_content))) from e
 
             # Saves
-            with open(os.path.join(location, filename), "w", encoding='utf-8') as f:
+            fullname = os.path.join(location, filename)
+            names.append(fullname)
+            with open(fullname, "w", encoding='utf-8') as f:
                 f.write(class_content)
 
     return names
