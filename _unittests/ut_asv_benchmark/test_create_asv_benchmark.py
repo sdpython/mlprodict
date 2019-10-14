@@ -173,7 +173,40 @@ class TestCreateAsvBenchmark(ExtTestCase):
             self.assertIn(
                 "from sklearn.linear_model import SGDClassifier", content)
 
+    def test_create_asv_benchmark_knnr(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        temp = get_temp_folder(
+            __file__, "temp_create_asv_benchmark_knnr")
+        created = create_asv_benchmark(
+            location=temp, models={'KNeighborsRegressor'},
+            verbose=5, fLOG=fLOG, flat=False, execute=True)
+        self.assertGreater(len(created), 2)
+        self.assertNotExists(os.path.join(
+            temp, "benches", "neighbors", "KNeighborsRegressor",
+            "bench_KNeighborsRegressor_cdist_algorithmbrute_cdist.py"))
+        self.assertNotExists(os.path.join(
+            temp, "benches", "neighbors", "KNeighborsRegressor",
+            "bench_KNeighborsRegressor_cdist_algorithmbrute.py"))
+
+        full_name = os.path.join(
+            temp, "benches", "neighbors", "KNeighborsRegressor",
+            "bench_KNeighborsRegressor_default_algorithmbrute.py")
+        self.assertExists(full_name)
+        with open(full_name, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("class KNeighborsRegressor_", content)
+        self.assertIn("[{}, 'cdist'],", content)
+
+    def test_create_asv_benchmark_gpr(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        temp = get_temp_folder(
+            __file__, "temp_create_asv_benchmark_gpr")
+        created = create_asv_benchmark(
+            location=temp, models={'GaussianProcessRegressor'},
+            verbose=5, fLOG=fLOG, flat=False, execute=True)
+        self.assertGreater(len(created), 2)
+
 
 if __name__ == "__main__":
-    TestCreateAsvBenchmark().test_create_asv_benchmark_calibrated()
+    # TestCreateAsvBenchmark().test_create_asv_benchmark_gpr()
     unittest.main()

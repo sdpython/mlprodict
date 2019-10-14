@@ -43,14 +43,15 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         nf = cl.params[2][1]
         opset = 10
         dtype = 'float'
+        optim = None
         for runtime in ['skl', 'pyrt', 'ort']:
-            cl.setup(runtime, N, nf, opset, dtype)
+            cl.setup(runtime, N, nf, opset, dtype, optim)
             self.assertEqual(cl.X.shape, (N, nf))
             for method in dir(cl):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
-                        cl, runtime, N, nf, opset, dtype)
+                        cl, runtime, N, nf, opset, dtype, optim)
         self.assertEqual(len(res), 18)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -74,14 +75,15 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         nf = cl.params[2][1]
         opset = 10
         dtype = 'float'
+        optim = None
         for runtime in ['skl', 'pyrt']:
-            cl.setup(runtime, N, nf, opset, dtype)
+            cl.setup(runtime, N, nf, opset, dtype, optim)
             self.assertEqual(cl.X.shape, (N, nf))
             for method in dir(cl):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
-                        cl, runtime, N, nf, opset, dtype)
+                        cl, runtime, N, nf, opset, dtype, optim)
         self.assertEqual(len(res), 12)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -102,14 +104,15 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         nf = cl.params[2][1]
         opset = 10
         dtype = 'float'
+        optim = None
         for runtime in ['skl', 'pyrt', 'ort']:
-            cl.setup(runtime, N, nf, opset, dtype)
+            cl.setup(runtime, N, nf, opset, dtype, optim)
             self.assertEqual(cl.X.shape, (N, nf))
             for method in dir(cl):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
-                        cl, runtime, N, nf, opset, dtype)
+                        cl, runtime, N, nf, opset, dtype, optim)
         self.assertEqual(len(res), 18)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -133,9 +136,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         nf = cl.params[2][1]
         opset = 10
         dtype = 'float'
+        optim = None
         for runtime in ['skl', 'pyrt']:
             try:
-                cl.setup(runtime, N, nf, opset, dtype)
+                cl.setup(runtime, N, nf, opset, dtype, optim)
             except NotImplementedError:
                 # not implemented
                 return
@@ -144,7 +148,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
-                        cl, runtime, N, nf, opset, dtype)
+                        cl, runtime, N, nf, opset, dtype, optim)
         self.assertEqual(len(res), 18)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -166,9 +170,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         expect = 12
         opset = 10
         dtype = 'float'
+        optim = None
         for runtime in ['skl', 'pyrt']:
             try:
-                cl.setup(runtime, N, nf, opset, dtype)
+                cl.setup(runtime, N, nf, opset, dtype, optim)
             except MissingShapeCalculator:
                 # Converter not yet implemented.
                 expect = 0
@@ -178,7 +183,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
-                        cl, runtime, N, nf, opset, dtype)
+                        cl, runtime, N, nf, opset, dtype, optim)
         if expect == 0:
             return
         self.assertEqual(len(res), expect)
@@ -202,9 +207,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         opset = 10
         dtype = 'float'
         expect = 12
+        optim = None
         for runtime in ['skl', 'pyrt']:
             try:
-                cl.setup(runtime, N, nf, opset, dtype)
+                cl.setup(runtime, N, nf, opset, dtype, optim)
             except MissingShapeCalculator:
                 # Converter not yet implemented.
                 expect = 0
@@ -214,7 +220,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
-                        cl, runtime, N, nf, opset, dtype)
+                        cl, runtime, N, nf, opset, dtype, optim)
         if expect == 0:
             return
         self.assertEqual(len(res), expect)
@@ -238,9 +244,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         opset = 10
         dtype = 'float'
         expect = 12
+        optim = None
         for runtime in ['skl', 'pyrt']:
             try:
-                cl.setup(runtime, N, nf, opset, dtype)
+                cl.setup(runtime, N, nf, opset, dtype, optim)
             except MissingShapeCalculator:
                 # Converter not yet implemented.
                 expect = 0
@@ -250,7 +257,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                 if method.split('_')[0] in ('time', 'peakmem', 'track'):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
-                        cl, runtime, N, nf, opset, dtype)
+                        cl, runtime, N, nf, opset, dtype, optim)
         if expect == 0:
             return
         self.assertEqual(len(res), expect)

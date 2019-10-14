@@ -15,6 +15,11 @@ from sklearn.ensemble import (
     AdaBoostRegressor, GradientBoostingRegressor, AdaBoostClassifier,
     BaggingClassifier, VotingClassifier, GradientBoostingClassifier
 )
+try:
+    from sklearn.ensemble import StackingClassifier, StackingRegressor
+except ImportError:
+    # new in 0.22
+    StackingClassifier, StackingRegressor = None, None
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_selection import (
@@ -530,6 +535,12 @@ def find_suitable_problem(model):
 
         if model in {VotingClassifier}:
             return ['b-cl', 'm-cl']
+
+        if StackingClassifier is not None and model in {StackingClassifier}:
+            return ['b-cl']
+
+        if StackingRegressor is not None and model in {StackingRegressor}:
+            return ['b-reg']
 
         # specific scenarios
         if model in {IsotonicRegression}:

@@ -23,6 +23,11 @@ from sklearn.preprocessing import Normalizer
 from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
 from sklearn.svm import SVC, NuSVC
 from sklearn.tree import DecisionTreeRegressor
+try:
+    from sklearn.ensemble import StackingClassifier, StackingRegressor
+except ImportError:
+    # new in 0.22
+    StackingClassifier, StackingRegressor = None, None
 
 
 def build_custom_scenarios():
@@ -36,7 +41,7 @@ def build_custom_scenarios():
         import pprint
         pprint.pprint(build_custom_scenarios())
     """
-    return {
+    options = {
         # skips
         SparseCoder: None,
         # scenarios
@@ -100,8 +105,7 @@ def build_custom_scenarios():
             }, ['cluster']),
         ],
         KNeighborsRegressor: [
-            ('default', {'algorithm': 'brute'}),
-            ('cdist', {'algorithm': 'brute'},
+            ('default', {'algorithm': 'brute'},
              {'conv_options': [{}, {KNeighborsRegressor: {'optim': 'cdist'}}]}),
             ('weights', {'algorithm': 'brute', 'weights': 'distance'}),
             ('kd_tree', {'algorithm': 'kd_tree'}),
@@ -233,6 +237,27 @@ def build_custom_scenarios():
             })
         ],
     }
+    if StackingClassifier is not None and StackingRegressor is not None:
+        options.update({
+            StackingClassifier: [
+                ('logreg', {
+                    'estimators': [
+                        ('lr1', LogisticRegression(solver='liblinear')),
+                        ('lr2', LogisticRegression(
+                            solver='liblinear', fit_intercept=False)),
+                    ],
+                })
+            ],
+            StackingRegressor: [
+                ('linreg', {
+                    'estimators': [
+                        ('lr1', LinearRegression()),
+                        ('lr2', LinearRegression(fit_intercept=False)),
+                    ],
+                })
+            ],
+        })
+    return options
 
 
 def interpret_options_from_string(st):

@@ -32,6 +32,7 @@ class TemplateBenchmarkClustering(_CommonAsvSklBenchmarkClustering):
         [4, 20],  # values for nf
         [9, 10, 11],  # values for opset
         ['float', 'double'],  # values for dtype
+        [None],  # values for optim
     ]
 
     # additional parameters

@@ -46,8 +46,9 @@ class _CommonAsvSklBenchmark:
         [4, 20],  # values for nf
         [9, 10, 11],  # values for opset
         ["float", "double"],  # values for dtype
+        [None],  # values for optim
     ]
-    param_names = ['rt', 'N', 'nf', 'opset', 'dtype']
+    param_names = ['rt', 'N', 'nf', 'opset', 'dtype', 'optim']
 
     par_ydtype = numpy.int64
     par_dofit = True
@@ -56,7 +57,7 @@ class _CommonAsvSklBenchmark:
     def _create_model(self):
         raise NotImplementedError("This method must be overwritten.")
 
-    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype):
+    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
         raise NotImplementedError("This method must be overwritten.")
 
     def _score_metric(self, X, y_exp, y_pred):
@@ -83,14 +84,24 @@ class _CommonAsvSklBenchmark:
         y = y_test.astype(self.par_ydtype)
         return (X_train, y_train), (X, y)
 
-    def _to_onnx(self, model, X, opset, dtype):
+    def _to_onnx(self, model, X, opset, dtype, optim):
+        if optim is None:
+            options = self.par_convopts
+        elif self.par_convopts:
+            raise NotImplementedError(
+                "Conflict between par_convopts={} and optim={}".format(
+                    self.par_convopts, optim))
+        else:
+            if optim == 'cdist':
+                options = {model.__class__: {'optim': 'cdist'}}
+            else:
+                options = optim
+
         if dtype in (numpy.float64, 'double'):
             return to_onnx(model, X, dtype=numpy.float64,
-                           options=self.par_convopts,
-                           target_opset=opset)
-        else:
-            return to_onnx(model, X, options=self.par_convopts,
-                           target_opset=opset)
+                           options=options, target_opset=opset)
+        return to_onnx(model, X, options=options,
+                       target_opset=opset)
 
     def _create_onnx_inference(self, onx, runtime):
         try:
@@ -140,7 +151,7 @@ class _CommonAsvSklBenchmark:
                         raise RuntimeError("Unable to dump model %r into %r." % (
                             model, filename))
 
-    def setup(self, runtime, N, nf, opset, dtype):
+    def setup(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
         logger = getLogger('skl2onnx')
         logger.disabled = True
@@ -151,35 +162,35 @@ class _CommonAsvSklBenchmark:
         self.model = stored['model']
         self.X, self.y = make_n_rows(stored['X'], N, stored['y'])
         onx, rt_, rt_fct_, rt_fct_track_ = self._create_onnx_and_runtime(
-            runtime, self.model, self.X, opset, dtype)
+            runtime, self.model, self.X, opset, dtype, optim)
         self.onx = onx
         setattr(self, "rt_" + runtime, rt_)
         setattr(self, "rt_fct_" + runtime, rt_fct_)
         setattr(self, "rt_fct_track_" + runtime, rt_fct_track_)
 
-    def time_predict(self, runtime, N, nf, opset, dtype):
+    def time_predict(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
         return getattr(self, "rt_fct_" + runtime)(self.X)
 
-    def peakmem_predict(self, runtime, N, nf, opset, dtype):
+    def peakmem_predict(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
         return getattr(self, "rt_fct_" + runtime)(self.X)
 
-    def track_score(self, runtime, N, nf, opset, dtype):
+    def track_score(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
         yp = getattr(self, "rt_fct_track_" + runtime)(self.X)
         return self._score_metric(self.X, self.y, yp)
 
-    def track_onnxsize(self, runtime, N, nf, opset, dtype):
+    def track_onnxsize(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
         return len(self.onx.SerializeToString())
 
-    def track_nbnodes(self, runtime, N, nf, opset, dtype):
+    def track_nbnodes(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
         stats = onnx_statistics(self.onx)
         return stats.get('nnodes', 0)
 
-    def track_opset(self, runtime, N, nf, opset, dtype):
+    def track_opset(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
         stats = onnx_statistics(self.onx)
         return stats.get('', 0)
@@ -193,8 +204,8 @@ class _CommonAsvSklBenchmarkClassifier(_CommonAsvSklBenchmark):
     def _score_metric(self, X, y_exp, y_pred):
         return accuracy_score(y_exp, y_pred)
 
-    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype):
-        onx = self._to_onnx(model, X, opset, dtype)
+    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        onx = self._to_onnx(model, X, opset, dtype, optim)
         onx = self._optimize_onnx(onx)
         name = self.runtime_name(runtime)
         if name == 'skl':
@@ -221,8 +232,8 @@ class _CommonAsvSklBenchmarkClustering(_CommonAsvSklBenchmark):
         else:
             return silhouette_score(X, y_pred)
 
-    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype):
-        onx = self._to_onnx(model, X, opset, dtype)
+    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        onx = self._to_onnx(model, X, opset, dtype, optim)
         onx = self._optimize_onnx(onx)
         name = self.runtime_name(runtime)
         if name == 'skl':
@@ -260,8 +271,8 @@ class _CommonAsvSklBenchmarkMultiClassifier(_CommonAsvSklBenchmark):
     def _score_metric(self, X, y_exp, y_pred):
         return coverage_error(y_exp, y_pred)
 
-    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype):
-        onx = self._to_onnx(model, X, opset, dtype)
+    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        onx = self._to_onnx(model, X, opset, dtype, optim)
         onx = self._optimize_onnx(onx)
         name = self.runtime_name(runtime)
         if name == 'skl':
@@ -283,8 +294,8 @@ class _CommonAsvSklBenchmarkOutlier(_CommonAsvSklBenchmark):
     def _score_metric(self, X, y_exp, y_pred):
         return numpy.sum(y_pred) / y_pred.shape[0]
 
-    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype):
-        onx = self._to_onnx(model, X, opset, dtype)
+    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        onx = self._to_onnx(model, X, opset, dtype, optim)
         onx = self._optimize_onnx(onx)
         name = self.runtime_name(runtime)
         if name == 'skl':
@@ -306,8 +317,8 @@ class _CommonAsvSklBenchmarkRegressor(_CommonAsvSklBenchmark):
     def _score_metric(self, X, y_exp, y_pred):
         return mean_absolute_error(y_exp, y_pred)
 
-    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype):
-        onx = self._to_onnx(model, X, opset, dtype)
+    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        onx = self._to_onnx(model, X, opset, dtype, optim)
         name = self.runtime_name(runtime)
         if name == 'skl':
             rt_ = None
@@ -328,8 +339,8 @@ class _CommonAsvSklBenchmarkTrainableTransform(_CommonAsvSklBenchmark):
     def _score_metric(self, X, y_exp, y_pred):
         return numpy.sum(y_pred) / y_pred.shape[0]
 
-    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype):
-        onx = self._to_onnx(model, X, opset, dtype)
+    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        onx = self._to_onnx(model, X, opset, dtype, optim)
         onx = self._optimize_onnx(onx)
         name = self.runtime_name(runtime)
         if name == 'skl':
@@ -351,8 +362,8 @@ class _CommonAsvSklBenchmarkTransform(_CommonAsvSklBenchmark):
     def _score_metric(self, X, y_exp, y_pred):
         return numpy.sum(y_pred) / y_pred.shape[0]
 
-    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype):
-        onx = self._to_onnx(model, X, opset, dtype)
+    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        onx = self._to_onnx(model, X, opset, dtype, optim)
         onx = self._optimize_onnx(onx)
         name = self.runtime_name(runtime)
         if name == 'skl':

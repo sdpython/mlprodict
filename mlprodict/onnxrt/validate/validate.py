@@ -186,6 +186,8 @@ def _dictionary2str(di):
 
 
 def _merge_options(all_conv_options, aoptions):
+    if aoptions is None:
+        return copy.deepcopy(all_conv_options)
     if not isinstance(aoptions, dict):
         return copy.deepcopy(aoptions)
     merged = {}

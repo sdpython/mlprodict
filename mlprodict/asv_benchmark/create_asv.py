@@ -28,6 +28,10 @@ except (ValueError, ImportError):
     )
 from .verify_code import verify_code
 
+# exec function does not import models but potentially
+# requires all specific models used to defines scenarios
+from ..onnxrt.validate.validate_scenarios import *  # pylint: disable=W0614
+
 
 default_asv_conf = {
     "version": 1,
@@ -483,15 +487,22 @@ def _asv_class_name(model, scenario, optimisation,
             r += c
         return r
 
+    def clean_str_list(val):
+        if val is None:
+            return ""
+        if isinstance(val, list):
+            return ".".join(clean_str_list(v) for v in val if v)
+        return clean_str(val)
+
     els = ['bench', model.__name__, scenario]
     if not dofit:
         els.append('nofit')
     if extra:
         els.append(clean_str(extra))
     if optimisation:
-        els.append(clean_str(optimisation))
+        els.append(clean_str_list(optimisation))
     if conv_options:
-        els.append(clean_str(conv_options))
+        els.append(clean_str_list(conv_options))
     res = ".".join(els).replace("-", "_")
     if len(res) > 70:
         m = hashlib.sha256()
@@ -547,17 +558,37 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         raise ValueError(
             "Unable to guess the right pattern for '{}'.".format(prob))
 
-    def format_conv_options(options, class_name):
+    def format_conv_options(list_options, class_name):
+        list_res = []
+        for options in list_options:
+            if options is None:
+                list_res.append(options)
+                continue
+            res = {}
+            for k, v in options.items():
+                if isinstance(k, type):
+                    if "." + class_name + "'" in str(k):
+                        res[class_name] = v
+                        continue
+                    raise ValueError(
+                        "Class '{}', unable to format options {}".format(
+                            class_name, options))
+                res[k] = v
+            list_res.append(res)
+        return list_res
+
+    def _nick_name_options(model, opts):
+        if opts is None:
+            return opts
+        cdist = {model: {'optim': 'cdist'}}
+        if opts == cdist:
+            return 'cdist'
         res = {}
-        for k, v in options.items():
-            if isinstance(k, type):
-                if "." + class_name + "'" in str(k):
-                    res[class_name] = v
-                    continue
-                raise ValueError(
-                    "Class '{}', unable to format options {}".format(
-                        class_name, options))
-            res[k] = v
+        for k, v in opts.items():
+            if hasattr(k, '__name__'):
+                res["####" + k.__name__ + "####"] = v
+            else:
+                res[k] = v
         return res
 
     runtimes_abb = {
@@ -570,111 +601,122 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
 
     # Looping over configuration.
     names = []
-    for nconv_options in new_conv_options:
-        for optimisation in optimisations:
-            merged_options = _merge_options(nconv_options, conv_options)
-            try:
-                name = _asv_class_name(
-                    model, scenario, optimisation, extra,
-                    dofit, merged_options)
-            except ValueError as e:
-                if exc:
-                    raise e
-                warnings.warn(str(e))
-                continue
-            filename = name.replace(".", "_") + ".py"
-            try:
-                class_content = pattern_problem(prob)
-            except ValueError as e:
-                if exc:
-                    raise e
-                warnings.warn(str(e))
-                continue
-            class_name = name.replace(
-                "bench.", "").replace(".", "_") + "_bench"
+    for optimisation in optimisations:
+        merged_options = [_merge_options(nconv_options, conv_options)
+                          for nconv_options in new_conv_options]
 
-            # n_features, N, runtimes
-            rep = {
-                "['skl', 'pyrt', 'ort'],  # values for runtime": str(runtime),
-                "[1, 100, 10000],  # values for N": str(dims),
-                "[4, 20],  # values for nf": str(n_features),
-                "[9, 10, 11],  # values for opset": str(opsets),
-                "['float', 'double'],  # values for dtype":
-                    "['float']" if '-64' not in prob else "['float', 'double']",
-            }
-            for k, v in rep.items():
-                if k not in content:
-                    raise ValueError("Unable to find '{}' in '{}'\n{}.".format(
-                        k, template_name, content))
-                class_content = class_content.replace(k, v + ',')
-            class_content = class_content.split(
-                "def _create_model(self):")[0].strip("\n ")
+        nck_opts = [_nick_name_options(model, opts)
+                    for opts in merged_options]
+        try:
+            name = _asv_class_name(
+                model, scenario, optimisation, extra,
+                dofit, conv_options)
+        except ValueError as e:
+            if exc:
+                raise e
+            warnings.warn(str(e))
+            continue
+        filename = name.replace(".", "_") + ".py"
+        try:
+            class_content = pattern_problem(prob)
+        except ValueError as e:
+            if exc:
+                raise e
+            warnings.warn(str(e))
+            continue
+        class_name = name.replace(
+            "bench.", "").replace(".", "_") + "_bench"
 
-            # Model setup
-            class_content, atts = add_model_import_init(
-                class_content, model, optimisation,
-                extra, merged_options)
+        # n_features, N, runtimes
+        rep = {
+            "['skl', 'pyrt', 'ort'],  # values for runtime": str(runtime),
+            "[1, 100, 10000],  # values for N": str(dims),
+            "[4, 20],  # values for nf": str(n_features),
+            "[9, 10, 11],  # values for opset": str(opsets),
+            "['float', 'double'],  # values for dtype":
+                "['float']" if '-64' not in prob else "['float', 'double']",
+            "[None],  # values for optim": "%r" % nck_opts,
+        }
+        for k, v in rep.items():
+            if k not in content:
+                raise ValueError("Unable to find '{}' in '{}'\n{}.".format(
+                    k, template_name, content))
+            class_content = class_content.replace(k, v + ',')
+        class_content = class_content.split(
+            "def _create_model(self):")[0].strip("\n ")
+        if "####" in class_content:
             class_content = class_content.replace(
-                "class TemplateBenchmark",
-                "class {}".format(class_name))
+                "'####", "").replace("####'", "")
+        if "####" in class_content:
+            raise RuntimeError(
+                "Substring '####' should not be part of the script for '{}'\n{}".format(
+                    model.__name__, class_content))
 
-            # dtype, dofit
-            atts.append("par_scenario = %r" % scenario)
-            atts.append("par_problem = %r" % prob)
-            if not dofit:
-                atts.append("par_dofit = False")
-            if merged_options is not None and len(merged_options) > 0:
-                atts.append("par_convopts = %r" % format_conv_options(
-                    merged_options, model.__name__))
-            if atts:
-                class_content = class_content.replace(
-                    "# additional parameters",
-                    "\n    ".join(atts))
-            if prefix_import != '.':
-                class_content = class_content.replace(
-                    " from .", "from .{}".format(prefix_import))
+        # Model setup
+        class_content, atts = add_model_import_init(
+            class_content, model, optimisation,
+            extra, merged_options)
+        class_content = class_content.replace(
+            "class TemplateBenchmark",
+            "class {}".format(class_name))
 
-            # Check compilation
-            try:
-                compile(class_content, filename, 'exec')
-            except SyntaxError as e:
-                raise SyntaxError("Unable to compile model '{}'\n{}".format(
-                    model.__name__, class_content)) from e
-
-            # Verifies missing imports.
-            to_import = verify_code(class_content, exc=False)
-            miss = find_missing_sklearn_imports(to_import)
+        # dtype, dofit
+        atts.append("par_scenario = %r" % scenario)
+        atts.append("par_problem = %r" % prob)
+        if not dofit:
+            atts.append("par_dofit = False")
+        if merged_options is not None and len(merged_options) > 0:
+            atts.append("par_convopts = %r" % format_conv_options(
+                merged_options, model.__name__))
+        if atts:
             class_content = class_content.replace(
-                "#  __IMPORTS__", "\n".join(miss))
-            verify_code(class_content, exc=True)
+                "# additional parameters",
+                "\n    ".join(atts))
+        if prefix_import != '.':
             class_content = class_content.replace(
-                "par_extra = {", "par_extra = {\n")
-            class_content = remove_extra_spaces_and_pep8(
-                class_content, aggressive=True)
+                " from .", "from .{}".format(prefix_import))
 
-            # Check compilation again
+        # Check compilation
+        try:
+            compile(class_content, filename, 'exec')
+        except SyntaxError as e:
+            raise SyntaxError("Unable to compile model '{}'\n{}".format(
+                model.__name__, class_content)) from e
+
+        # Verifies missing imports.
+        to_import = verify_code(class_content, exc=False)
+        miss = find_missing_sklearn_imports(to_import)
+        class_content = class_content.replace(
+            "#  __IMPORTS__", "\n".join(miss))
+        verify_code(class_content, exc=True)
+        class_content = class_content.replace(
+            "par_extra = {", "par_extra = {\n")
+        class_content = remove_extra_spaces_and_pep8(
+            class_content, aggressive=True)
+
+        # Check compilation again
+        try:
+            obj = compile(class_content, filename, 'exec')
+        except SyntaxError as e:
+            raise SyntaxError("Unable to compile model '{}'\n{}".format(
+                model.__name__,
+                _display_code_lines(class_content))) from e
+
+        # executes to check import
+        if execute:
             try:
-                obj = compile(class_content, filename, 'exec')
-            except SyntaxError as e:
-                raise SyntaxError("Unable to compile model '{}'\n{}".format(
-                    model.__name__,
-                    _display_code_lines(class_content))) from e
+                exec(obj, globals(), locals())  # pylint: disable=W0122
+            except Exception as e:
+                raise RuntimeError(
+                    "Unable to process class '{}' ('{}') a script due to '{}'\n{}".format(
+                        model.__name__, filename, str(e),
+                        _display_code_lines(class_content))) from e
 
-            # executes to check import
-            if execute:
-                try:
-                    exec(obj, globals(), locals())  # pylint: disable=W0122
-                except Exception as e:
-                    raise RuntimeError(
-                        "Unable to process class '{}' a script due to '{}'\n{}".format(
-                            model.__name__, str(e),
-                            _display_code_lines(class_content))) from e
-
-            # Saves
-            fullname = os.path.join(location, filename)
-            names.append(fullname)
-            with open(fullname, "w", encoding='utf-8') as f:
-                f.write(class_content)
+        # Saves
+        fullname = os.path.join(location, filename)
+        names.append(fullname)
+        with open(fullname, "w", encoding='utf-8') as f:
+            f.write(class_content)
 
     return names
 
