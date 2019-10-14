@@ -98,11 +98,18 @@ class TestAsvJsonText(ExtTestCase):
         conf = os.path.join(temp, 'asv.conf.json')
         exp = export_asv_json(data, baseline="skl", conf=conf)
         par_problem = []
+        par_scenario = []
         for row in exp:
             if 'par_problem' in row:
                 par_problem.append(row['par_problem'])
+            if 'par_scenario' in row:
+                par_scenario.append(row['par_scenario'])
+        s = set(par_scenario)
+        self.assertEqual(s, {'default', 'liblinear'})
         s = set(par_problem)
-        self.assertEqual(s, {'m-cl', '~m-reg-64'})
+        self.assertEqual(s, {'m-cl', '~m-reg-64', 'b-cl',
+                             'm-reg', 'b-reg', '~b-cl-64',
+                             '~b-reg-64'})
 
 
 if __name__ == "__main__":

@@ -8,12 +8,14 @@ from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.loghelper.run_cmd import run_script
 from mlprodict.asv_benchmark import create_asv_benchmark
+import mlprodict
 
 
 class TestCreateAsvBenchmarkAllTiny(ExtTestCase):
 
-    def test_create_asv_benchmark_all(self):
+    def test_create_asv_benchmark_tiny(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        self.assertNotEmpty(mlprodict)
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_all_tiny")
         created = create_asv_benchmark(
             location=temp, verbose=1, fLOG=fLOG,
