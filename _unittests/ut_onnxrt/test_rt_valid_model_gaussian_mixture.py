@@ -36,7 +36,10 @@ class TestRtValidateGaussianMixture(ExtTestCase):
             filter_exp=lambda m, p: 'b-cl' in p))
         self.assertGreater(len(rows), 1)
         self.assertIn('skl_nop', rows[-1])
-        self.assertIn('onx_size', rows[0])
+        keys = set()
+        for row in rows:
+            keys.update(set(row))
+        self.assertIn('onx_size', keys)
         piv = summary_report(DataFrame(rows))
         opset = [c for c in piv.columns if 'opset' in c]
         self.assertTrue('opset11' in opset or 'opset10' in opset)

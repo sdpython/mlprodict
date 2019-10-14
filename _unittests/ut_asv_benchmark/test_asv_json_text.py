@@ -4,6 +4,7 @@
 import os
 import json
 import unittest
+import pandas
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.filehelper.compression_helper import unzip_files
 from mlprodict.asv_benchmark import export_asv_json, create_asv_benchmark
@@ -110,6 +111,9 @@ class TestAsvJsonText(ExtTestCase):
         self.assertEqual(s, {'m-cl', '~m-reg-64', 'b-cl',
                              'm-reg', 'b-reg', '~b-cl-64',
                              '~b-reg-64'})
+        out = os.path.join(temp, "df.xlsx")
+        df = pandas.DataFrame(exp)
+        df.to_excel(out)
 
 
 if __name__ == "__main__":
