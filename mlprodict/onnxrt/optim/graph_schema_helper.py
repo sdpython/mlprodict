@@ -7,7 +7,7 @@ from skl2onnx.common.data_types import (
     DataType,
     FloatTensorType, SequenceType, DictionaryType,
     Int64Type, Int64TensorType, BooleanTensorType,
-    DoubleTensorType
+    DoubleTensorType, FloatType
 )
 from skl2onnx.common.data_types import _guess_type_proto
 from skl2onnx.algebra.type_helper import _guess_type as skl2onnx__guess_type
