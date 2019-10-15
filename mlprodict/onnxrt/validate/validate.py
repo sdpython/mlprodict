@@ -646,8 +646,11 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                 ypred, opred)
             if max_rel_diff >= 1e9 and debug:
                 raise RuntimeError(
-                    "Big difference:\n-------\n{}\n{}\n--------\n{}\n{}".format(
-                        type(ypred), ypred, type(opred), opred))
+                    "Big difference (opset={}, runtime='{}' p='{}' s='{}')"
+                    ":\n-------\n{}-{}\n{}\n--------\n{}-{}\n{}".format(
+                        opset, runtime, obs_op['problem'], obs_op['scenario'],
+                        type(ypred), ypred.shape, ypred,
+                        type(opred), opred.shape, opred))
             if numpy.isnan(max_rel_diff):
                 obs_op['_8max_rel_diff_batch_exc'] = (
                     "Unable to compute differences between"

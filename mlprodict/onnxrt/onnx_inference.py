@@ -397,8 +397,15 @@ class OnnxInference:
         if clean_right_away:
             raise NotImplementedError("clean_right_away=true not implemented.")
         values = OrderedDict(inputs)
-        for k, v in self.inits_.items():
-            values[k] = v['value']
+        if verbose >= 1:
+            for k, v in self.inits_.items():
+                values[k] = v['value']
+                fLOG("+k='{}': {} (dtype={} min={} max={})".format(
+                    k, values[k].shape, values[k].dtype,
+                    numpy.min(values[k]), numpy.max(values[k])))
+        else:
+            for k, v in self.inits_.items():
+                values[k] = v['value']
 
         mtime = []
         if verbose == 0 or fLOG is None:

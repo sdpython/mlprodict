@@ -126,3 +126,40 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None, d
     else:
         outputs = [(name, ft()) for name in outputs]
     return outputs
+
+
+def proto2vars(values):
+    """
+    Converts proto values to Variables.
+    """
+    def ptype2vttype(it, shape):
+        if it == 1:
+            return FloatTensorType(shape)
+        if it == 7:
+            return Int64TensorType(shape)
+        if it == 9:
+            return BooleanTensorType(shape)
+        raise NotImplementedError(
+            "Unrecognized proto type {} with shape {}".format(it, shape))
+
+    res = []
+    for v in values:
+        name = v.name
+        if hasattr(v, 'type'):
+            t = v.type
+            if hasattr(t, 'tensor_type'):
+                tt = t.tensor_type
+                el = tt.elem_type
+                shape = tt.shape
+                dim = shape.dim
+                if len(dim) == 0:
+                    shape = []
+                else:
+                    shape = [dim[i].dim_value for i in range(len(dim))]
+                v = ptype2vttype(el, shape)
+            else:
+                raise NotImplementedError("Unable to convert {}.".format(t))
+        else:
+            raise RuntimeError("Unable to build a variable from {}.".format(v))
+        res.append((name, v))
+    return res

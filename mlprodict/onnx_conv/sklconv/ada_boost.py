@@ -14,7 +14,7 @@ from skl2onnx.common.tree_ensemble import (
     add_tree_to_attribute_pairs,
     get_default_tree_regressor_attribute_pairs
 )
-from skl2onnx.operator_converters.ada_boost import cum_sum
+from skl2onnx.operator_converters.ada_boost import cum_sum, _apply_gather_elements
 from skl2onnx.proto import onnx_proto
 
 
@@ -119,11 +119,12 @@ def convert_sklearn_ada_boost_regressor(scope, operator, container):
                container, to=container.proto_dtype)
     container.add_node('ArgMin', cast_result_name, median_idx_name,
                        name=scope.get_unique_operator_name('ArgMin'), axis=1)
-    container.add_node(
-        'ArrayFeatureExtractor', [sorted_indices_name, median_idx_name],
-        median_estimators_name, op_domain='ai.onnx.ml',
-        name=scope.get_unique_operator_name('ArrayFeatureExtractor'))
-    container.add_node(
-        'ArrayFeatureExtractor', [concatenated_labels, median_estimators_name],
-        operator.output_full_names, op_domain='ai.onnx.ml',
-        name=scope.get_unique_operator_name('ArrayFeatureExtractor'))
+    _apply_gather_elements(
+        scope, container, [sorted_indices_name, median_idx_name],
+        median_estimators_name, axis=1, dim=len(op.estimators_),
+        zero_type=onnx_proto.TensorProto.INT64, suffix="A")  # pylint: disable=E1101
+    output_name = operator.output_full_names[0]
+    _apply_gather_elements(
+        scope, container, [concatenated_labels, median_estimators_name],
+        output_name, axis=1, dim=len(op.estimators_),
+        zero_type=container.proto_dtype, suffix="B")

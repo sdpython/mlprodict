@@ -13,18 +13,20 @@ try:
         InvalidArgument as OrtInvalidArgument,
         NotImplemented as OrtNotImplemented,
         InvalidGraph as OrtInvalidGraph,
+        Fail as OrtFail,
     )
 except ImportError:
     OrtInvalidArgument = RuntimeError
     OrtNotImplemented = RuntimeError
     OrtInvalidGraph = RuntimeError
+    OrtFail = RuntimeError
 import skl2onnx.algebra.onnx_ops as alg
 try:
     import skl2onnx.algebra.custom_ops as alg2
 except ImportError:
     # older version of skl2onnx
     alg2 = alg
-from ..optim.graph_schema_helper import get_defined_inputs, get_defined_outputs
+from ..optim.graph_schema_helper import get_defined_inputs, get_defined_outputs, proto2vars
 
 
 _schemas = {
@@ -83,6 +85,8 @@ class OpRunOnnxRuntime:
             return TensorProto.FLOAT  # pylint: disable=E1101
         if dtype == numpy.float64:
             return TensorProto.DOUBLE  # pylint: disable=E1101
+        if dtype == numpy.int64:
+            return TensorProto.INT64  # pylint: disable=E1101
         raise RuntimeError(
             "Unable to guess type for dtype={}.".format(dtype))
 
@@ -169,7 +173,7 @@ class OpRunOnnxRuntime:
                                                 target_opset=target_opset,
                                                 dtype=self.dtype, domain=domain)
 
-        if len(self.onnx_.graph.output) != self.outputs:
+        if len(self.onnx_.graph.output) != len(self.outputs):
             # Something is wrong, falls back to default plan.
             forced = True
             outputs = get_defined_outputs(
@@ -178,6 +182,9 @@ class OpRunOnnxRuntime:
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                             target_opset=target_opset,
                                             dtype=self.dtype, domain=domain)
+        else:
+            lo = list(self.onnx_.graph.output)
+            outputs = proto2vars(lo)
 
         sess_options = SessionOptions()
         self.run_options = RunOptions()
@@ -197,7 +204,7 @@ class OpRunOnnxRuntime:
         try:
             self.sess_ = InferenceSession(self.onnx_.SerializeToString(),
                                           sess_options=sess_options)
-        except (RuntimeError, OrtNotImplemented, OrtInvalidGraph) as e:
+        except (RuntimeError, OrtNotImplemented, OrtInvalidGraph, OrtFail) as e:
             raise RuntimeError("Unable to load node '{}' (output type was {})\n{}".format(
                 self.onnx_node.op_type, "guessed" if forced else "inferred",
                 self.onnx_)) from e

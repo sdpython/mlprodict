@@ -42,7 +42,8 @@ class TestCreateAsvBenchmarkAllTiny(ExtTestCase):
                 __, err = run_script(fullname, wait=True)
                 lines = [_ for _ in err.split('\n') if _ and _[0] != ' ']
                 lines = [_ for _ in lines if "Warning" not in _]
-                lines = [_ for _ in lines if "No module named 'mlprodict'" not in _]
+                lines = [
+                    _ for _ in lines if "No module named 'mlprodict'" not in _]
                 lines = [_ for _ in lines if "Traceback " not in _]
                 err = "\n".join(lines).strip(' \n\r')
                 if len(err) > 0:
