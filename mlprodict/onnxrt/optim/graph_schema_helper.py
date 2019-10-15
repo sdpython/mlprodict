@@ -142,23 +142,38 @@ def proto2vars(values):
         raise NotImplementedError(
             "Unrecognized proto type {} with shape {}".format(it, shape))
 
+    def ptype2vtype(it):
+        if it == 1:
+            return FloatType()
+        if it == 7:
+            return Int64Type()
+        raise NotImplementedError(
+            "Unrecognized proto type {}".format(it))
+
     res = []
     for v in values:
-        name = v.name
-        if hasattr(v, 'type'):
+        name = v.name if hasattr(v, 'name') else None
+        if hasattr(v, 'type') and str(v.type) != '':
             t = v.type
-            if hasattr(t, 'tensor_type'):
-                tt = t.tensor_type
-                el = tt.elem_type
-                shape = tt.shape
-                dim = shape.dim
-                if len(dim) == 0:
-                    shape = []
-                else:
-                    shape = [dim[i].dim_value for i in range(len(dim))]
-                v = ptype2vttype(el, shape)
+            v = proto2vars([t])[0][1]
+        elif hasattr(v, 'sequence_type') and str(v.sequence_type) != '':
+            subtype = proto2vars([v.sequence_type.elem_type])[0][1]
+            v = SequenceType(subtype)
+        elif hasattr(v, 'tensor_type') and str(v.tensor_type) != '':
+            tt = v.tensor_type
+            el = tt.elem_type
+            shape = tt.shape
+            dim = shape.dim
+            if len(dim) == 0:
+                shape = []
             else:
-                raise NotImplementedError("Unable to convert {}.".format(t))
+                shape = [dim[i].dim_value for i in range(len(dim))]
+            v = ptype2vttype(el, shape)
+        elif hasattr(v, 'map_type') and str(v.map_type) != '':
+            mt = v.map_type
+            keyt = ptype2vtype(mt.key_type)
+            valt = proto2vars([mt.value_type])[0][1]
+            v = DictionaryType(keyt, valt)
         else:
             raise RuntimeError("Unable to build a variable from {}.".format(v))
         res.append((name, v))

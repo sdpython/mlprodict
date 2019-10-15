@@ -93,10 +93,10 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LogisticRegression"}, opset_min=11, fLOG=myprint,
-            runtime='onnxruntime2', debug=True,
+            runtime='onnxruntime2', debug=False,
             filter_exp=lambda m, p: '-64' not in p))
         self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1)
+        # self.assertGreater(len(buffer), 1)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
