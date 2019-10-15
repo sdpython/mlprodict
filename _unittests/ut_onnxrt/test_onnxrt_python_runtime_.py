@@ -13,7 +13,7 @@ from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
-    OnnxArrayFeatureExtractor, OnnxConcat,
+    OnnxConcat,
     OnnxCeil, OnnxClip,
     OnnxDiv, OnnxEqual, OnnxExp, OnnxFloor, OnnxGreater,
     OnnxGemm, OnnxIdentity, OnnxLog, OnnxMatMul, OnnxMean, OnnxMul,

@@ -4,35 +4,14 @@
 import unittest
 from logging import getLogger
 import numpy
-from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
-import onnx
-from onnx.defs import onnx_opset_version
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
-from sklearn.utils.extmath import softmax
-from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
-    OnnxArrayFeatureExtractor, OnnxConcat,
-    OnnxCeil, OnnxClip,
-    OnnxDiv, OnnxEqual, OnnxExp, OnnxFloor, OnnxGreater,
-    OnnxGemm, OnnxIdentity, OnnxLog, OnnxMatMul, OnnxMean, OnnxMul,
-    OnnxPow, OnnxReciprocal,
-    OnnxReduceLogSumExp,
-    OnnxReduceMean, OnnxShape,
-    OnnxReduceProd, OnnxReduceSum,
-    OnnxReduceSumSquare, OnnxReshape,
-    OnnxSlice, OnnxSqrt, OnnxSub, OnnxSum,
-    OnnxTopK, OnnxTranspose, OnnxRelu,
-    OnnxSigmoid, OnnxSoftmax, OnnxSqueeze,
-    OnnxConstantOfShape, OnnxNot, OnnxSin,
-    OnnxMin, OnnxMax, OnnxSign, OnnxLpNormalization,
-    OnnxFlatten, OnnxReduceMax, OnnxReduceMin,
+    OnnxArrayFeatureExtractor,
 )
-from skl2onnx.common.data_types import FloatTensorType, Int64TensorType, DoubleTensorType
+from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.validate.validate_helper import get_opset_number_from_onnx
 
 
 class TestOnnxrtPythonRuntime(ExtTestCase):
@@ -109,7 +88,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_array_feature_extractor_cmp4(self):
-        X = numpy.random.randn(38, 5).astype(
+        X = numpy.random.randn(38, 5).astype(  # pylint: disable=E1101
             numpy.float32)  # pylint: disable=E1101
         indices = numpy.ones((38, 1), dtype=numpy.int64)
         onx = OnnxArrayFeatureExtractor('X', indices,
