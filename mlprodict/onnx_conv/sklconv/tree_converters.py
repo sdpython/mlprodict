@@ -39,7 +39,7 @@ def convert_sklearn_decision_tree_regressor(scope, operator, container):
         cast_input_name = scope.get_unique_variable_name('cast_input')
 
         apply_cast(scope, operator.input_full_names, cast_input_name,
-                   container, to=container.proto_type)
+                   container, to=container.proto_dtype)
         input_name = cast_input_name
 
     container.add_node(op_type, input_name,
@@ -99,7 +99,7 @@ def convert_sklearn_gradient_boosting_regressor(scope, operator, container):
         cast_input_name = scope.get_unique_variable_name('cast_input')
 
         apply_cast(scope, operator.input_full_names, cast_input_name,
-                   container, to=container.proto_type)
+                   container, to=container.proto_dtype)
         input_name = cast_input_name
 
     container.add_node(op_type, input_name,
