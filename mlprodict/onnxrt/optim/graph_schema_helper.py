@@ -140,7 +140,7 @@ def proto2vars(values):
             return DoubleTensorType(shape)
         if it == TensorProto.INT64:  # pylint: disable=E1101
             return Int64TensorType(shape)
-        if it == TensorProto.BOOLEAN:  # pylint: disable=E1101
+        if it == TensorProto.BOOL:  # pylint: disable=E1101
             return BooleanTensorType(shape)
         raise NotImplementedError(
             "Unrecognized proto type {} with shape {}".format(it, shape))
