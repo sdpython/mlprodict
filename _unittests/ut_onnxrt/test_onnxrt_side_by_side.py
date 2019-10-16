@@ -11,10 +11,6 @@ from sklearn.gaussian_process.kernels import RBF, ConstantKernel as CK, Sum
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from onnxruntime import __version__ as ort_version
-try:
-    from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument as OrtInvalidArgument
-except ImportError:
-    OrtInvalidArgument = RuntimeError
 import skl2onnx
 from skl2onnx.common.data_types import FloatTensorType
 try:
