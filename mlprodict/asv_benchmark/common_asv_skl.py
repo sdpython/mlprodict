@@ -25,7 +25,9 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnx_conv import to_onnx
+from mlprodict.onnx_conv import (
+    to_onnx, register_rewritten_operators, register_converters
+)
 from mlprodict.onnxrt.validate.validate_benchmark import make_n_rows
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 from mlprodict.onnxrt.optim import onnx_statistics
@@ -155,6 +157,8 @@ class _CommonAsvSklBenchmark:
         "asv API"
         logger = getLogger('skl2onnx')
         logger.disabled = True
+        register_converters()
+        register_rewritten_operators()
         set_config(assume_finite=True)
         with open(self._name(nf, opset, dtype), "rb") as f:
             stored = pickle.load(f)

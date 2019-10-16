@@ -11,6 +11,7 @@ from skl2onnx.common.data_types import (
 )
 from skl2onnx.common.data_types import _guess_type_proto
 from skl2onnx.algebra.type_helper import _guess_type as skl2onnx__guess_type
+from skl2onnx.proto import TensorProto
 
 
 def _guess_type(var):
@@ -133,19 +134,21 @@ def proto2vars(values):
     Converts proto values to Variables.
     """
     def ptype2vttype(it, shape):
-        if it == 1:
+        if it == TensorProto.FLOAT:  # pylint: disable=E1101
             return FloatTensorType(shape)
-        if it == 7:
+        if it == TensorProto.DOUBLE:  # pylint: disable=E1101
+            return DoubleTensorType(shape)
+        if it == TensorProto.INT64:  # pylint: disable=E1101
             return Int64TensorType(shape)
-        if it == 9:
+        if it == TensorProto.BOOLEAN:  # pylint: disable=E1101
             return BooleanTensorType(shape)
         raise NotImplementedError(
             "Unrecognized proto type {} with shape {}".format(it, shape))
 
     def ptype2vtype(it):
-        if it == 1:
+        if it == TensorProto.FLOAT:  # pylint: disable=E1101
             return FloatType()
-        if it == 7:
+        if it == TensorProto.INT64:  # pylint: disable=E1101
             return Int64Type()
         raise NotImplementedError(
             "Unrecognized proto type {}".format(it))

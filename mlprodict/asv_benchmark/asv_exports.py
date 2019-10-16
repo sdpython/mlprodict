@@ -5,6 +5,45 @@
 import copy
 import os
 import json
+from json.decoder import JSONDecodeError
+
+
+def _dict2str(d):
+    vals = []
+    for k, v in d.items():
+        if isinstance(v, dict):
+            vals.append("{}{}".format(k, _dict2str(v)))
+        else:
+            vals.append("{}{}".format(k, v))
+    return "-".join(vals)
+
+
+def _coor_to_str(cc):
+    ccs = []
+    for c in cc:
+        if c in ('{}', {}):
+            c = "o"
+        elif len(c) > 1 and (c[0], c[-1]) == ('{', '}'):
+            c = c.replace("<class ", "")
+            c = c.replace(">:", ":")
+            c = c.replace("'", '"').replace("True", "1").replace("False", "0")
+            try:
+                d = json.loads(c)
+            except JSONDecodeError as e:
+                raise RuntimeError(
+                    "Unable to interpret '{}'.".format(c)) from e
+
+            if len(d) == 1:
+                its = list(d.items())[0]
+                if '.' in its[0]:
+                    c = _dict2str(its[1])
+                else:
+                    c = _dict2str(d)
+            else:
+                c = _dict2str(d)
+        c = str(c).strip("'")
+        ccs.append(c)
+    return 'M-' + "-".join(map(str, ccs)).replace("'", "")
 
 
 def _figures2dict(metrics, coor, baseline=None):
@@ -16,9 +55,6 @@ def _figures2dict(metrics, coor, baseline=None):
     @param      baseline    one coordinates is the baseline
     @return                 dictionary of metrics
     """
-    def to_str(cc):
-        return 'M-' + "-".join(map(str, cc)).replace("'", "")
-
     if baseline is None:
         base_j = None
     else:
@@ -46,12 +82,12 @@ def _figures2dict(metrics, coor, baseline=None):
                 cc2 = cc.copy()
                 cc2[base_j[0]] = coor[base_j[0]][base_j[1]]
                 key = tuple(cc2)
-                skey = to_str(key)
+                skey = _coor_to_str(key)
                 if key not in m_bases:
                     m_bases[skey] = []
-                m_bases[skey].append(to_str(cc))
+                m_bases[skey].append(_coor_to_str(cc))
 
-        name = to_str(cc)
+        name = _coor_to_str(cc)
         res[name] = metrics[pos]
         pos += 1
         ind[-1] += 1

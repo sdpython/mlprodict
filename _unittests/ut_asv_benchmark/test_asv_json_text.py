@@ -8,7 +8,7 @@ import pandas
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.filehelper.compression_helper import unzip_files
 from mlprodict.asv_benchmark import export_asv_json, create_asv_benchmark
-from mlprodict.asv_benchmark.asv_exports import _figures2dict
+from mlprodict.asv_benchmark.asv_exports import _figures2dict, _coor_to_str
 
 
 class TestAsvJsonText(ExtTestCase):
@@ -115,7 +115,19 @@ class TestAsvJsonText(ExtTestCase):
         df = pandas.DataFrame(exp)
         df.to_excel(out)
 
+    def test_to_str_coordinates(self):
+        val = ['ort', '1', '20', '11', 'double',
+               "{<class 'sklearn.gaussian_process.gpr.GaussianProcessRegressor'>: "
+               "{'optim': 'cdist'}}"]
+        sval = _coor_to_str(val)
+        self.assertEqual(sval, "M-ort-1-20-11-double-optimcdist")
+        val = ['ort', '1', '20', '11', 'double',
+               "{<class 'sklearn.gaussian_process.gpr.GaussianProcessRegressor'>: "
+               "{'optim': 'cdist', 'return_std': True}}"]
+        sval = _coor_to_str(val)
+        self.assertEqual(sval, "M-ort-1-20-11-double-optimcdist-return_std1")
+
 
 if __name__ == "__main__":
-    # TestAsvJsonText().test_unzip_and_convert_metadata()
+    # TestAsvJsonText().test_to_str_coordinates()
     unittest.main()
