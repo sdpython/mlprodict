@@ -106,7 +106,8 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
 
             exp = clr.predict(X[i:i + 1]).reshape((1, 1))
             self.assertEqual(list(sorted(y)), ['variable'])
-            self.assertEqualArray(exp.ravel(), y['variable'].ravel(), decimal=6)
+            self.assertEqualArray(
+                exp.ravel(), y['variable'].ravel(), decimal=6)
 
     def test_onnxrt_python_KNeighborsRegressor_simple_k2(self):
         X = numpy.array([[0, 1], [0.2, 1.2], [1, 2], [
@@ -126,7 +127,8 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
 
             exp = clr.predict(X[i:i + 1]).reshape((1, 1))
             self.assertEqual(list(sorted(y)), ['variable'])
-            self.assertEqualArray(exp.ravel(), y['variable'].ravel(), decimal=6)
+            self.assertEqualArray(
+                exp.ravel(), y['variable'].ravel(), decimal=6)
 
     def test_onnxrt_python_KNeighborsRegressor(self):
         iris = load_iris()
@@ -146,7 +148,8 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
 
             exp = clr.predict(X_test[i:i + 1]).reshape((1, 1))
             self.assertEqual(list(sorted(y)), ['variable'])
-            self.assertEqualArray(exp.ravel(), y['variable'].ravel(), decimal=6)
+            self.assertEqualArray(
+                exp.ravel(), y['variable'].ravel(), decimal=6)
 
     def test_onnxrt_python_LinearRegression(self):
         iris = load_iris()

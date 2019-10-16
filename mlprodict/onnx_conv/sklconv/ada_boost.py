@@ -9,13 +9,12 @@ from skl2onnx.common._apply_operation import (  # pylint: disable=E0611
     apply_cast, apply_concat, apply_mul,
     apply_reshape, apply_topk
 )
-from skl2onnx.common.data_types import Int64TensorType
-from skl2onnx.common.tree_ensemble import (
-    add_tree_to_attribute_pairs,
-    get_default_tree_regressor_attribute_pairs
+from skl2onnx.common.data_types import (
+    DoubleTensorType, FloatTensorType
 )
 from skl2onnx.operator_converters.ada_boost import cum_sum, _apply_gather_elements
 from skl2onnx.proto import onnx_proto
+from skl2onnx._supported_operators import sklearn_operator_name_map
 
 
 def _get_estimators_label(scope, operator, container, model):
@@ -23,38 +22,26 @@ def _get_estimators_label(scope, operator, container, model):
     This function computes labels for each estimator and returns
     a tensor produced by concatenating the labels.
     """
-    if container.dtype == numpy.float32:
-        op_type = 'TreeEnsembleRegressor'
-        op_domain = 'ai.onnx.ml'
-    elif container.dtype == numpy.float64:
-        op_type = 'TreeEnsembleRegressorDouble'
-        op_domain = 'mlprodict'
-    else:
-        raise RuntimeError("Unsupported dtype {}.".format(op_type))
-
+    var_type = (FloatTensorType if container.proto_dtype == numpy.float32
+                else DoubleTensorType)
     concatenated_labels_name = scope.get_unique_variable_name(
         'concatenated_labels')
 
-    input_name = operator.input_full_names
-    if type(operator.inputs[0].type) == Int64TensorType:
-        cast_input_name = scope.get_unique_variable_name('cast_input')
-        apply_cast(scope, operator.input_full_names, cast_input_name,
-                   container, to=container.proto_dtype)
-        input_name = cast_input_name
-
+    input_name = operator.inputs
     estimators_results_list = []
-    for tree_id in range(len(model.estimators_)):
-        estimator_label_name = scope.get_unique_variable_name(
-            'estimator_label')
-        attrs = get_default_tree_regressor_attribute_pairs()
-        attrs['name'] = scope.get_unique_operator_name(op_type)
-        attrs['n_targets'] = int(model.estimators_[tree_id].n_outputs_)
-        add_tree_to_attribute_pairs(
-            attrs, False, model.estimators_[tree_id].tree_, 0, 1, 0, False,
-            True, dtype=container.dtype)
-        container.add_node(op_type, input_name, estimator_label_name,
-                           op_domain=op_domain, **attrs)
-        estimators_results_list.append(estimator_label_name)
+    for i, estimator in enumerate(model.estimators_):
+        estimator_label_name = scope.declare_local_variable(
+            'est_label_%d' % i, var_type([None, 1]))
+
+        op_type = sklearn_operator_name_map[type(estimator)]
+
+        this_operator = scope.declare_local_operator(op_type)
+        this_operator.raw_operator = estimator
+        this_operator.inputs = input_name
+        this_operator.outputs.append(estimator_label_name)
+
+        estimators_results_list.append(estimator_label_name.onnx_name)
+
     apply_concat(scope, estimators_results_list, concatenated_labels_name,
                  container, axis=1)
     return concatenated_labels_name
