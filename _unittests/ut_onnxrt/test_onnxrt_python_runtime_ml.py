@@ -134,7 +134,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=13)
-        clr = KNeighborsRegressor()
+        clr = KNeighborsRegressor(n_neighbors=2)
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
@@ -148,8 +148,11 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
 
             exp = clr.predict(X_test[i:i + 1]).reshape((1, 1))
             self.assertEqual(list(sorted(y)), ['variable'])
-            self.assertEqualArray(
-                exp.ravel(), y['variable'].ravel(), decimal=6)
+            try:
+                self.assertEqualArray(
+                    exp.ravel(), y['variable'].ravel(), decimal=6)
+            except AssertionError as e:
+                raise AssertionError("Something is wrong with i={}".format(i)) from e
 
     def test_onnxrt_python_LinearRegression(self):
         iris = load_iris()
