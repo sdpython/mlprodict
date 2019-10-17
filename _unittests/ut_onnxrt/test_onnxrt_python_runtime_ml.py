@@ -133,7 +133,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
     def test_onnxrt_python_KNeighborsRegressor(self):
         iris = load_iris()
         X, y = iris.data, iris.target
-        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=13)
         clr = KNeighborsRegressor()
         clr.fit(X_train, y_train)
 
