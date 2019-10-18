@@ -8,6 +8,7 @@ import numpy
 from pandas import DataFrame
 from scipy.spatial.distance import cdist as scipy_cdist
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import (
@@ -23,7 +24,9 @@ try:
     from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument as OrtInvalidArgument
 except ImportError:
     OrtInvalidArgument = RuntimeError
-from mlprodict.onnx_conv import register_converters, to_onnx, get_onnx_opset
+from mlprodict.onnx_conv import (
+    register_converters, to_onnx, get_onnx_opset
+)
 from mlprodict.onnx_conv.sklconv.knn import onnx_cdist
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
@@ -279,6 +282,10 @@ class TestOnnxConvKNN(ExtTestCase):
     def test_onnx_test_knn_single_reg32_target2(self):
         self.onnx_test_knn_single_classreg(numpy.float32, n_targets=2)
 
+    def test_onnx_test_knn_single_reg32_target2_onnxruntime(self):
+        self.onnx_test_knn_single_classreg(
+            numpy.float32, n_targets=2, runtime="onnxruntime1")
+
     def test_onnx_test_knn_single_reg32_k1(self):
         self.onnx_test_knn_single_classreg(numpy.float32, n_neighbors=1)
 
@@ -326,6 +333,10 @@ class TestOnnxConvKNN(ExtTestCase):
 
     def test_onnx_test_knn_single_bin32(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='bin')
+
+    def test_onnx_test_knn_single_bin32_onnxruntime(self):
+        self.onnx_test_knn_single_classreg(
+            numpy.float32, kind='bin', runtime="onnxruntime1")
 
     def test_onnx_test_knn_single_bin32_cdist(self):
         self.onnx_test_knn_single_classreg(
@@ -383,6 +394,26 @@ class TestOnnxConvKNN(ExtTestCase):
             dist, DataFrame(y['distance']).values,
             decimal=5)
         self.assertEqualArray(ind, y['index'])
+
+    # calibrated
+
+    def test_model_calibrated_classifier_cv_isotonic_binary_knn(self):
+        data = load_iris()
+        X, y = data.data, data.target
+        y[y > 1] = 1
+        clf = KNeighborsClassifier().fit(X, y)
+        model = CalibratedClassifierCV(clf, cv=2, method="isotonic").fit(X, y)
+        model_onnx = skl2onnx.convert_sklearn(
+            model,
+            "scikit-learn CalibratedClassifierCV",
+            [("input", FloatTensorType([None, X.shape[1]]))],
+        )
+        oinf = OnnxInference(model_onnx, runtime='python')
+        y = oinf.run({'input': X.astype(numpy.float32)})
+        pred = clf.predict(X)
+        probs = clf.predict_proba(X)
+        self.assertEqual(pred, y['output_label'])
+        self.assertEqual(probs, DataFrame(y['output_probability']).values)
 
 
 if __name__ == "__main__":

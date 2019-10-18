@@ -242,7 +242,7 @@ def _convert_nearest_neighbors(scope, operator, container):
             # shape = (ntargets, ) + shape
             training_labels = training_labels.T
             shape = OnnxConcat(numpy.array([ndim], dtype=numpy.int64),
-                               shape, op_version=opv)
+                               shape, op_version=opv, axis=0)
             axis = 2
         else:
             training_labels = training_labels.ravel()
