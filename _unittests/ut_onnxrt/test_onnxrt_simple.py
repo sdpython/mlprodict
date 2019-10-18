@@ -262,8 +262,11 @@ class TestOnnxrtSimple(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
         oinf = OnnxInference(model_def, skip_run=True)
 
-        topk = oinf['ArrayFeatureExtractor']
-        self.assertIn('ArrayFeatureExtractor', str(topk))
+        exp_name = 'Ar_ArrayFeatureExtractor'
+        if exp_name not in str(model_def):
+            exp_name = "ArrayFeatureExtractor"
+        topk = oinf[exp_name]
+        self.assertIn(exp_name, str(topk))
         zm = oinf['ZipMap']
         self.assertIn('ZipMap', str(zm))
         par = oinf['ZipMap', 'classlabels_int64s']
