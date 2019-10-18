@@ -565,7 +565,9 @@ class OnnxInference:
                 break
 
         if node_ is None:
-            raise IndexError("Unable to node name '{}'.".format(node_name))
+            raise IndexError(
+                "Unable to get node name '{}'.\n{}".format(
+                    node_name, "\n".join(node.name for node in self.obj.graph.node)))
 
         if att_name is None:
             return node_

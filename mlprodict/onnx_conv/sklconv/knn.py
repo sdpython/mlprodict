@@ -203,14 +203,14 @@ def _convert_nearest_neighbors(scope, operator, container):
 
     options = container.get_options(op, dict(optim=None))
 
-    single_reg = (len(op._y.shape) == 1 or len(
-        op._y.shape) == 2 and op._y.shape[1] == 1)
+    single_reg = (not hasattr(op, '_y') or len(op._y.shape) == 1 or
+                  len(op._y.shape) == 2 and op._y.shape[1] == 1)
     ndim = 1 if single_reg else op._y.shape[1]
 
     metric = op.effective_metric_
     neighb = op._fit_X.astype(container.dtype)
     k = op.n_neighbors
-    training_labels = op._y
+    training_labels = op._y if hasattr(op, '_y') else None
     distance_kwargs = {}
     if metric == 'minkowski':
         if op.p != 2:
@@ -218,13 +218,14 @@ def _convert_nearest_neighbors(scope, operator, container):
         else:
             metric = "euclidean"
 
-    if op.weights == 'uniform':
+    weights = op.weights if hasattr(op, 'weights') else 'distance'
+    if weights == 'uniform':
         top_indices = onnx_nearest_neighbors_indices(
             X, neighb, k, metric=metric, dtype=dtype,
             op_version=opv, optim=options.get('optim', None),
             **distance_kwargs)
         top_distances = None
-    elif op.weights == 'distance':
+    elif weights == 'distance':
         top_indices, top_distances = onnx_nearest_neighbors_indices(
             X, neighb, k, metric=metric, dtype=dtype,
             op_version=opv, keep_distances=True,
@@ -236,24 +237,28 @@ def _convert_nearest_neighbors(scope, operator, container):
 
     shape = OnnxShape(top_indices, op_version=opv)
     flattened = OnnxFlatten(top_indices, op_version=opv)
-    if ndim > 1:
-        # shape = (ntargets, ) + shape
-        training_labels = training_labels.T
-        shape = OnnxConcat(numpy.array([ndim], dtype=numpy.int64),
-                           shape, op_version=opv)
-        axis = 2
+    if training_labels is not None:
+        if ndim > 1:
+            # shape = (ntargets, ) + shape
+            training_labels = training_labels.T
+            shape = OnnxConcat(numpy.array([ndim], dtype=numpy.int64),
+                               shape, op_version=opv)
+            axis = 2
+        else:
+            training_labels = training_labels.ravel()
+            axis = 1
+
+        if training_labels.dtype == numpy.int32:
+            training_labels = training_labels.astype(numpy.int64)
+        extracted = OnnxArrayFeatureExtractor(
+            training_labels, flattened, op_version=opv)
+        reshaped = OnnxReshape(extracted, shape, op_version=opv)
+
+        if ndim > 1:
+            reshaped = OnnxTranspose(reshaped, op_version=opv, perm=[1, 0, 2])
     else:
-        training_labels = training_labels.ravel()
+        reshaped = None
         axis = 1
-
-    if training_labels.dtype == numpy.int32:
-        training_labels = training_labels.astype(numpy.int64)
-    extracted = OnnxArrayFeatureExtractor(
-        training_labels, flattened, op_version=opv)
-    reshaped = OnnxReshape(extracted, shape, op_version=opv)
-
-    if ndim > 1:
-        reshaped = OnnxTranspose(reshaped, op_version=opv, perm=[1, 0, 2])
 
     if top_distances is not None:
         modified = OnnxMax(top_distances, numpy.array([1e-6], dtype=dtype),
@@ -328,3 +333,20 @@ def convert_nearest_neighbors_classifier(scope, operator, container):
 
     res.add_to(scope, container)
     probas.add_to(scope, container)
+
+
+def convert_nearest_neighbors_transform(scope, operator, container):
+    """
+    Converts :epkg:`sklearn:neighbors:NearestNeighbors` into
+    :epkg:`ONNX`.
+    """
+    many = _convert_nearest_neighbors(scope, operator, container)
+    top_indices, top_distances = many[:2]
+
+    out = operator.outputs
+
+    ind = OnnxIdentity(top_indices, output_names=out[:1])
+    dist = OnnxIdentity(top_distances, output_names=out[1:])
+
+    dist.add_to(scope, container)
+    ind.add_to(scope, container)

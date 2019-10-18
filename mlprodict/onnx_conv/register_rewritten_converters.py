@@ -12,7 +12,8 @@ from .sklconv.tree_converters import (
 )
 from .sklconv.knn import (
     convert_nearest_neighbors_classifier,
-    convert_nearest_neighbors_regressor
+    convert_nearest_neighbors_regressor,
+    convert_nearest_neighbors_transform,
 )
 
 
@@ -23,6 +24,7 @@ _overwritten_operators = {
     'SklearnGradientBoostingRegressor': convert_sklearn_gradient_boosting_regressor,
     'SklearnKNeighborsRegressor': convert_nearest_neighbors_regressor,
     'SklearnKNeighborsClassifier': convert_nearest_neighbors_classifier,
+    'SklearnNearestNeighbors': convert_nearest_neighbors_transform,
     'SklearnRandomForestRegressor': convert_sklearn_random_forest_regressor_converter,
 }
 

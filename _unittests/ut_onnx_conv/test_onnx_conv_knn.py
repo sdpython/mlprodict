@@ -10,7 +10,9 @@ from scipy.spatial.distance import cdist as scipy_cdist
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
+from sklearn.neighbors import (
+    KNeighborsRegressor, KNeighborsClassifier, NearestNeighbors
+)
 from sklearn.utils.testing import ignore_warnings
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
@@ -325,12 +327,20 @@ class TestOnnxConvKNN(ExtTestCase):
     def test_onnx_test_knn_single_bin32(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='bin')
 
+    def test_onnx_test_knn_single_bin32_cdist(self):
+        self.onnx_test_knn_single_classreg(
+            numpy.float32, kind='bin', optim='cdist')
+
     def test_onnx_test_knn_single_mcl32(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='mcl')
 
     def test_onnx_test_knn_single_weights_bin32(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='bin',
                                            weights='distance')
+
+    def test_onnx_test_knn_single_weights_bin32_cdist(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, kind='bin',
+                                           weights='distance', optim='cdist')
 
     def test_onnx_test_knn_single_weights_mcl32(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='mcl',
@@ -349,6 +359,30 @@ class TestOnnxConvKNN(ExtTestCase):
     def test_onnx_test_knn_single_weights_mcl64(self):
         self.onnx_test_knn_single_classreg(numpy.float64, kind='mcl',
                                            weights='distance')
+
+    # transform
+
+    def test_onnx_test_knn_transform(self):
+        iris = load_iris()
+        X, _ = iris.data, iris.target
+
+        X_train, X_test = train_test_split(X, random_state=11)
+        clr = NearestNeighbors(n_neighbors=3)
+        clr.fit(X_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32),
+                            rewrite_ops=True)
+        oinf = OnnxInference(model_def, runtime='python')
+
+        X_test = X_test[:3]
+        y = oinf.run({'X': X_test.astype(numpy.float32)})
+        dist, ind = clr.kneighbors(X_test)
+
+        self.assertEqual(list(sorted(y)), ['distance', 'index'])
+        self.assertEqualArray(
+            dist, DataFrame(y['distance']).values,
+            decimal=5)
+        self.assertEqualArray(ind, y['index'])
 
 
 if __name__ == "__main__":
