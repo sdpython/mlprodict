@@ -5,11 +5,12 @@ import unittest
 from logging import getLogger
 import warnings
 import numpy
+from pandas import DataFrame
 from scipy.spatial.distance import cdist as scipy_cdist
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsRegressor
+from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.utils.testing import ignore_warnings
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
@@ -165,15 +166,23 @@ class TestOnnxConvKNN(ExtTestCase):
             res = register_converters(True)
         self.assertGreater(len(res), 2)
 
-    def onnx_test_knn_single_regressor(self, dtype, n_targets=1, debug=False,
-                                       add_noise=False, runtime='python',
-                                       target_opset=None, optim=None,
-                                       **kwargs):
+    def onnx_test_knn_single_classreg(self, dtype, n_targets=1, debug=False,
+                                      add_noise=False, runtime='python',
+                                      target_opset=None, optim=None,
+                                      kind='reg', level=1, **kwargs):
         iris = load_iris()
         X, y = iris.data, iris.target
         if add_noise:
             X += numpy.random.randn(X.shape[0], X.shape[1]) * 10
-        y = y.astype(dtype)
+        if kind == 'reg':
+            y = y.astype(dtype)
+        elif kind == 'bin':
+            y = (y % 2).astype(numpy.int64)
+        elif kind == 'mcl':
+            y = y.astype(numpy.int64)
+        else:
+            raise AssertionError("unknown '{}'".format(kind))
+
         if n_targets != 1:
             yn = numpy.empty((y.shape[0], n_targets), dtype=dtype)
             for i in range(n_targets):
@@ -181,13 +190,16 @@ class TestOnnxConvKNN(ExtTestCase):
             y = yn
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         X_test = X_test.astype(dtype)
-        clr = KNeighborsRegressor(**kwargs)
+        if kind in ('bin', 'mcl'):
+            clr = KNeighborsClassifier(**kwargs)
+        elif kind == 'reg':
+            clr = KNeighborsRegressor(**kwargs)
         clr.fit(X_train, y_train)
 
         if optim is None:
             options = None
         else:
-            options = {KNeighborsRegressor: {'optim': 'cdist'}}
+            options = {clr.__class__: {'optim': 'cdist'}}
         model_def = to_onnx(clr, X_train.astype(dtype),
                             dtype=dtype, rewrite_ops=True,
                             target_opset=target_opset,
@@ -201,35 +213,45 @@ class TestOnnxConvKNN(ExtTestCase):
             raise e
 
         if debug:
-            y = oinf.run({'X': X_test}, verbose=1, fLOG=print)
+            y = oinf.run({'X': X_test}, verbose=level, fLOG=print)
         else:
             y = oinf.run({'X': X_test})
-        self.assertEqual(list(sorted(y)), ['variable'])
-        lexp = clr.predict(X_test)
-        if dtype == numpy.float32:
-            self.assertEqualArray(lexp, y['variable'], decimal=5)
-        else:
-            self.assertEqualArray(lexp, y['variable'])
 
-    def test_onnx_test_knn_single_regressor32(self):
-        self.onnx_test_knn_single_regressor(numpy.float32)
+        lexp = clr.predict(X_test)
+        if kind == 'reg':
+            self.assertEqual(list(sorted(y)), ['variable'])
+            if dtype == numpy.float32:
+                self.assertEqualArray(lexp, y['variable'], decimal=5)
+            else:
+                self.assertEqualArray(lexp, y['variable'])
+        else:
+            self.assertEqual(list(sorted(y)),
+                             ['output_label', 'output_probability'])
+            self.assertEqualArray(lexp, y['output_label'])
+            lprob = clr.predict_proba(X_test)
+            self.assertEqualArray(
+                lprob, DataFrame(y['output_probability']).values,
+                decimal=5)
+
+    def test_onnx_test_knn_single_reg32(self):
+        self.onnx_test_knn_single_classreg(numpy.float32)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
-    def test_onnx_test_knn_single_regressor32_cdist(self):
-        self.onnx_test_knn_single_regressor(numpy.float32, optim='cdist')
+    def test_onnx_test_knn_single_reg32_cdist(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, optim='cdist')
 
-    def test_onnx_test_knn_single_regressor32_op10(self):
-        self.onnx_test_knn_single_regressor(
+    def test_onnx_test_knn_single_reg32_op10(self):
+        self.onnx_test_knn_single_classreg(
             numpy.float32, target_opset=10, debug=False)
 
-    def test_onnx_test_knn_single_regressor32_onnxruntime1(self):
-        self.onnx_test_knn_single_regressor(
+    def test_onnx_test_knn_single_reg32_onnxruntime1(self):
+        self.onnx_test_knn_single_classreg(
             numpy.float32, runtime="onnxruntime1", target_opset=10)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
-    def test_onnx_test_knn_single_regressor32_onnxruntime2(self):
+    def test_onnx_test_knn_single_reg32_onnxruntime2(self):
         try:
-            self.onnx_test_knn_single_regressor(
+            self.onnx_test_knn_single_classreg(
                 numpy.float32, runtime="onnxruntime2", target_opset=10,
                 debug=False)
         except (RuntimeError, OrtInvalidArgument) as e:
@@ -239,46 +261,46 @@ class TestOnnxConvKNN(ExtTestCase):
                 return
             raise e
 
-    def test_onnx_test_knn_single_regressor32_balltree(self):
-        self.onnx_test_knn_single_regressor(
+    def test_onnx_test_knn_single_reg32_balltree(self):
+        self.onnx_test_knn_single_classreg(
             numpy.float32, algorithm='ball_tree')
 
-    def test_onnx_test_knn_single_regressor32_kd_tree(self):
-        self.onnx_test_knn_single_regressor(numpy.float32, algorithm='kd_tree')
+    def test_onnx_test_knn_single_reg32_kd_tree(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, algorithm='kd_tree')
 
-    def test_onnx_test_knn_single_regressor32_brute(self):
-        self.onnx_test_knn_single_regressor(numpy.float32, algorithm='brute')
+    def test_onnx_test_knn_single_reg32_brute(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, algorithm='brute')
 
-    def test_onnx_test_knn_single_regressor64(self):
-        self.onnx_test_knn_single_regressor(numpy.float64)
+    def test_onnx_test_knn_single_reg64(self):
+        self.onnx_test_knn_single_classreg(numpy.float64)
 
-    def test_onnx_test_knn_single_regressor32_target2(self):
-        self.onnx_test_knn_single_regressor(numpy.float32, n_targets=2)
+    def test_onnx_test_knn_single_reg32_target2(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, n_targets=2)
 
-    def test_onnx_test_knn_single_regressor32_k1(self):
-        self.onnx_test_knn_single_regressor(numpy.float32, n_neighbors=1)
+    def test_onnx_test_knn_single_reg32_k1(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, n_neighbors=1)
 
-    def test_onnx_test_knn_single_regressor32_k1_target2(self):
-        self.onnx_test_knn_single_regressor(
+    def test_onnx_test_knn_single_reg32_k1_target2(self):
+        self.onnx_test_knn_single_classreg(
             numpy.float32, n_neighbors=1, n_targets=2)
 
-    def test_onnx_test_knn_single_regressor32_minkowski(self):
-        self.onnx_test_knn_single_regressor(numpy.float32, metric='minkowski')
+    def test_onnx_test_knn_single_reg32_minkowski(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, metric='minkowski')
 
     @ignore_warnings(category=(SyntaxWarning, ))
-    def test_onnx_test_knn_single_regressor32_minkowski_p1(self):
-        self.onnx_test_knn_single_regressor(numpy.float32, metric='minkowski',
-                                            metric_params={'p': 1}, add_noise=True)
+    def test_onnx_test_knn_single_reg32_minkowski_p1(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, metric='minkowski',
+                                           metric_params={'p': 1}, add_noise=True)
 
     @ignore_warnings(category=(SyntaxWarning, ))
-    def test_onnx_test_knn_single_regressor32_minkowski_p21(self):
-        self.onnx_test_knn_single_regressor(numpy.float32, metric='minkowski',
-                                            algorithm='brute', metric_params={'p': 2.1})
+    def test_onnx_test_knn_single_reg32_minkowski_p21(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, metric='minkowski',
+                                           algorithm='brute', metric_params={'p': 2.1})
 
-    def test_onnx_test_knn_single_regressor32_distance(self):
-        self.onnx_test_knn_single_regressor(numpy.float32, weights='distance')
+    def test_onnx_test_knn_single_reg32_distance(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, weights='distance')
 
-    def test_onnx_test_knn_single_regressor_equal(self):
+    def test_onnx_test_knn_single_reg_equal(self):
         # We need to make scikit-learn and the runtime handles the
         # ex aequo the same way.
         X = numpy.full((100, 4), 1, dtype=numpy.float32)
@@ -297,6 +319,36 @@ class TestOnnxConvKNN(ExtTestCase):
         self.assertEqual(list(sorted(y)), ['variable'])
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y['variable'], decimal=5)
+
+    # classification
+
+    def test_onnx_test_knn_single_bin32(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, kind='bin')
+
+    def test_onnx_test_knn_single_mcl32(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, kind='mcl')
+
+    def test_onnx_test_knn_single_weights_bin32(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, kind='bin',
+                                           weights='distance')
+
+    def test_onnx_test_knn_single_weights_mcl32(self):
+        self.onnx_test_knn_single_classreg(numpy.float32, kind='mcl',
+                                           weights='distance')
+
+    def test_onnx_test_knn_single_bin64(self):
+        self.onnx_test_knn_single_classreg(numpy.float64, kind='bin')
+
+    def test_onnx_test_knn_single_mcl64(self):
+        self.onnx_test_knn_single_classreg(numpy.float64, kind='mcl')
+
+    def test_onnx_test_knn_single_weights_bin64(self):
+        self.onnx_test_knn_single_classreg(numpy.float64, kind='bin',
+                                           weights='distance')
+
+    def test_onnx_test_knn_single_weights_mcl64(self):
+        self.onnx_test_knn_single_classreg(numpy.float64, kind='mcl',
+                                           weights='distance')
 
 
 if __name__ == "__main__":

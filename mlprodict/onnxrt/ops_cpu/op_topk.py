@@ -73,7 +73,7 @@ class _CommonTopK(OpRun):
         k = ink[0]
         axis = self.axis if self.axis >= 0 else (self.axis + len(data.shape))
         sort, sorti = topk_sorted_implementation(data, k, axis, 1)
-        return (sort, sorti)
+        return (sort, sorti.astype(numpy.int64))
 
     def _infer_shapes(self, data, ink):  # pylint: disable=W0221
         axis = self.axis if self.axis >= 0 else (self.axis + len(data))

@@ -12,7 +12,7 @@ from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType, DataTy
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from skl2onnx import convert_sklearn
 from skl2onnx.algebra.type_helper import _guess_type
-from .rewritten_converters import register_rewritten_operators
+from .register_rewritten_converters import register_rewritten_operators
 from .register import register_converters
 from .scorers import CustomScorerTransform
 

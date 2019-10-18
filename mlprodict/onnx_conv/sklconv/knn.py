@@ -13,7 +13,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxIdentity, OnnxReduceSumSquare,
     OnnxScan, OnnxSqrt, OnnxReciprocal,
     OnnxPow, OnnxReduceSum, OnnxAbs,
-    OnnxMax, OnnxDiv
+    OnnxMax, OnnxDiv, OnnxArgMax,
+    OnnxEqual, OnnxCast
 )
 
 
@@ -174,17 +175,31 @@ def onnx_nearest_neighbors_indices(X, Y, k, metric='euclidean', dtype=None,
         return node[1]
 
 
-def convert_nearest_neighbors_regressor(scope, operator, container):
+def _convert_nearest_neighbors(scope, operator, container):
     """
-    Converts :epkg:`sklearn:neighbors:KNeighborsRegressor` into
-    :epkg:`ONNX`.
+    Common parts to regressor and classifier. Let's denote
+    *N* as the number of observations, *k*
+    the number of neighbours. It returns
+    the following intermediate results:
+
+    top_indices: [N, k] (int64), best indices for
+        every observation
+    top_distances: [N, k] (dtype), float distances
+        for every observation, it can be None
+        if the weights are uniform
+    top_labels: [N, k] (label type), labels
+        associated to every top index
+    weights: [N, k] (dtype), if top_distances is not None,
+        returns weights
+    norm: [N, k] (dtype), if top_distances is not None,
+        returns normalized weights
+    axis: 1 if there is one dimension only, 2 if
+        this is a multi-regression or a multi classification
     """
     X = operator.inputs[0]
-    out = operator.outputs
     op = operator.raw_operator
     opv = container.target_opset
     dtype = container.dtype
-    out = operator.outputs
 
     options = container.get_options(op, dict(optim=None))
 
@@ -231,9 +246,12 @@ def convert_nearest_neighbors_regressor(scope, operator, container):
         training_labels = training_labels.ravel()
         axis = 1
 
+    if training_labels.dtype == numpy.int32:
+        training_labels = training_labels.astype(numpy.int64)
     extracted = OnnxArrayFeatureExtractor(
         training_labels, flattened, op_version=opv)
     reshaped = OnnxReshape(extracted, shape, op_version=opv)
+
     if ndim > 1:
         reshaped = OnnxTranspose(reshaped, op_version=opv, perm=[1, 0, 2])
 
@@ -242,6 +260,25 @@ def convert_nearest_neighbors_regressor(scope, operator, container):
                            op_version=opv)
         wei = OnnxReciprocal(modified, op_version=opv)
         norm = OnnxReduceSum(wei, op_version=opv, axes=[1], keepdims=0)
+    else:
+        norm = None
+        wei = None
+
+    return top_indices, top_distances, reshaped, wei, norm, axis
+
+
+def convert_nearest_neighbors_regressor(scope, operator, container):
+    """
+    Converts :epkg:`sklearn:neighbors:KNeighborsRegressor` into
+    :epkg:`ONNX`.
+    """
+    many = _convert_nearest_neighbors(scope, operator, container)
+    _, top_distances, reshaped, wei, norm, axis = many
+
+    opv = container.target_opset
+    out = operator.outputs
+
+    if top_distances is not None:
         weighted = OnnxMul(reshaped, wei, op_version=opv)
         res = OnnxReduceSum(weighted, axes=[axis], op_version=opv,
                             keepdims=0)
@@ -250,3 +287,44 @@ def convert_nearest_neighbors_regressor(scope, operator, container):
         res = OnnxReduceMean(reshaped, axes=[axis], op_version=opv,
                              keepdims=0, output_names=out)
     res.add_to(scope, container)
+
+
+def convert_nearest_neighbors_classifier(scope, operator, container):
+    """
+    Converts :epkg:`sklearn:neighbors:KNeighborsClassifier` into
+    :epkg:`ONNX`.
+    """
+    many = _convert_nearest_neighbors(scope, operator, container)
+    _, __, reshaped, wei, ___, axis = many
+
+    opv = container.target_opset
+    out = operator.outputs
+    op = operator.raw_operator
+    nb_classes = len(op.classes_)
+
+    if axis == 0:
+        raise RuntimeError(
+            "Binary classification not implemented in scikit-learn. "
+            "Check this code is not reused for other libraries.")
+
+    conc = []
+    for cl in range(nb_classes):
+        cst = numpy.array([cl], dtype=numpy.int64)
+        mat_cast = OnnxCast(
+            OnnxEqual(reshaped, cst, op_version=opv),
+            op_version=opv,
+            to=container.proto_dtype)
+        if wei is not None:
+            mat_cast = OnnxMul(mat_cast, wei, op_version=opv)
+        wh = OnnxReduceSum(mat_cast, axes=[1], op_version=opv)
+        conc.append(wh)
+    all_together = OnnxConcat(*conc, axis=1, op_version=opv)
+    sum_prob = OnnxReduceSum(
+        all_together, axes=[1], op_version=opv, keepdims=1)
+    probas = OnnxDiv(all_together, sum_prob, op_version=opv,
+                     output_names=out[1:])
+    res = OnnxArgMax(all_together, axis=axis, op_version=opv,
+                     keepdims=0, output_names=out[:1])
+
+    res.add_to(scope, container)
+    probas.add_to(scope, container)

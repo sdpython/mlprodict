@@ -152,7 +152,8 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
                 self.assertEqualArray(
                     exp.ravel(), y['variable'].ravel(), decimal=6)
             except AssertionError as e:
-                raise AssertionError("Something is wrong with i={}".format(i)) from e
+                raise AssertionError(
+                    "Something is wrong with i={}".format(i)) from e
 
     def test_onnxrt_python_LinearRegression(self):
         iris = load_iris()
