@@ -4,6 +4,7 @@
 @brief Implements command line ``python -m mlprodict <command> <args>``.
 """
 import sys
+import warnings
 
 
 def main(args, fLOG=print):
@@ -32,7 +33,11 @@ def main(args, fLOG=print):
                 onnx_stats=onnx_stats,
                 asv_bench=asv_bench,
                 asv2csv=asv2csv)
-    from pyquickhelper.cli import cli_main_helper
+    try:
+        from pyquickhelper.cli import cli_main_helper
+    except ImportError:
+        warnings.warn("The command line requires module pyquickhelper.")
+        return None
     return cli_main_helper(fcts, args=args, fLOG=fLOG)
 
 

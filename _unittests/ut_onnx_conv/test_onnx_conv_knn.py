@@ -335,6 +335,7 @@ class TestOnnxConvKNN(ExtTestCase):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='bin')
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(onnxruntime, '0.5.99')
     def test_onnx_test_knn_single_bin32_onnxruntime(self):
         self.onnx_test_knn_single_classreg(
             numpy.float32, kind='bin', runtime="onnxruntime1")
