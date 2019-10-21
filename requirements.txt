@@ -14,5 +14,6 @@ pyquickhelper>=1.9.3240
 git+https://github.com/xadupre/sklearn-onnx.git@jenkins
 sphinx
 sphinx_readable_theme
+tqdm
 wheel
 xgboost
