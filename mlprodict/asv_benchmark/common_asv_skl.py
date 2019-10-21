@@ -309,7 +309,7 @@ class _CommonAsvSklBenchmarkOutlier(_CommonAsvSklBenchmark):
         else:
             rt_ = self._create_onnx_inference(onx, name)
             rt_fct_ = lambda X: rt_.run({'X': X})
-            rt_fct_track_ = lambda X: rt_fct_(X)['score']
+            rt_fct_track_ = lambda X: rt_fct_(X)['scores']
         return onx, rt_, rt_fct_, rt_fct_track_
 
 

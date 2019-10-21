@@ -129,15 +129,19 @@ it is *1/r* faster than *scikit-learn*.
         df2["n_features"] = 4
     df1['optim'] = df1['optim'].fillna('')
     df2['optim'] = df2['optim'].fillna('')
-    fmt = "{} [{}-{}|{}] D{}"
+    df1['opset'] = df1['opset11'].fillna('')
+    df2['opset'] = df2['opset11'].fillna('')
+    df1['opset'] = df1['opset'].apply(lambda x: "11" if "OK 11" in x else "")
+    df2['opset'] = df2['opset'].apply(lambda x: "11" if "OK 11" in x else "")
+    fmt = "{} [{}-{}|{}] D{}-o{}"
     df1["label"] = df1.apply(
         lambda row: fmt.format(
             row["name"], row["problem"], row["scenario"], row["optim"],
-            row["n_features"]).replace("-default|", "-**]"), axis=1)
+            row["n_features"], row["opset"]).replace("-default|", "-*]"), axis=1)
     df2["label"] = df2.apply(
         lambda row: fmt.format(
             row["name"], row["problem"], row["scenario"], row["optim"],
-            row["n_features"]).replace("-default|", "-**]"), axis=1)
+            row["n_features"], row["opset"]).replace("-default|", "-*]"), axis=1)
     indices = ['label']
     values = ['RT/SKL-N=1', 'N=10', 'N=100', 'N=1000', 'N=10000', 'N=100000']
     df1 = df1[indices + values]
