@@ -11,7 +11,7 @@ from pandas import DataFrame
 from sklearn.exceptions import ConvergenceWarning
 
 
-def validate_runtime(verbose=1, opset_min=9, opset_max="",
+def validate_runtime(verbose=1, opset_min=10, opset_max="",
                      check_runtime=True, runtime='python', debug=False,
                      models=None, out_raw="model_onnx_raw.xlsx",
                      out_summary="model_onnx_summary.xlsx",

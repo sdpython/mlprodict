@@ -6,7 +6,7 @@ from logging import getLogger
 from ..asv_benchmark import create_asv_benchmark
 
 
-def asv_bench(location='asvsklonnx', opset_min=9, opset_max=None,
+def asv_bench(location='asvsklonnx', opset_min=10, opset_max=None,
               runtime='scikit-learn,python', models=None,
               skip_models=None, extended_list=True,
               dims='1,100,10000', n_features='4,20', dtype=None,

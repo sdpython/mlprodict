@@ -203,7 +203,7 @@ def _merge_options(all_conv_options, aoptions):
     return merged
 
 
-def enumerate_compatible_opset(model, opset_min=9, opset_max=None,  # pylint: disable=R0914
+def enumerate_compatible_opset(model, opset_min=10, opset_max=None,  # pylint: disable=R0914
                                check_runtime=True, debug=False,
                                runtime='python', dump_folder=None,
                                store_models=False, benchmark=False,
@@ -687,7 +687,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     return obs_op
 
 
-def enumerate_validated_operator_opsets(verbose=0, opset_min=9, opset_max=None,
+def enumerate_validated_operator_opsets(verbose=0, opset_min=10, opset_max=None,
                                         check_runtime=True, debug=False, runtime='python',
                                         models=None, dump_folder=None, store_models=False,
                                         benchmark=False, skip_models=None,

@@ -131,7 +131,7 @@ if __name__ == '__main__':  # pragma: no cover
 
 
 def create_asv_benchmark(
-        location, opset_min=9, opset_max=None,
+        location, opset_min=10, opset_max=None,
         runtime=('scikit-learn', 'python'), models=None,
         skip_models=None, extended_list=True,
         dims=(1, 100, 10000), n_features=(4, 20), dtype=None,
@@ -309,7 +309,7 @@ def _handle_init_files(model, flat, location, verbose, fLOG):
 
 
 def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
-        location, opset_min=9, opset_max=None,
+        location, opset_min=10, opset_max=None,
         runtime=('scikit-learn', 'python'), models=None,
         skip_models=None, extended_list=True,
         n_features=None, dtype=None,
