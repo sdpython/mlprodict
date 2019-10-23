@@ -81,7 +81,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
 
         res = sess.run({'X': Xtest_.astype(numpy.float32)}, intermediate=True)
         self.assertGreater(len(res), 30)
-        self.assertIsInstance(res, OrderedDict)
+        self.assertIsInstance(res, dict)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")

@@ -423,8 +423,8 @@ class OnnxInference:
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
                     fLOG("+k='{}': {} (dtype={} min={} max={})".format(
-                        k, values[k].shape, values[k].dtype,
-                        numpy.min(values[k]), numpy.max(values[k])))
+                        k, v['value'].shape, v['value'].dtype,
+                        numpy.min(v['value']), numpy.max(v['value'])))
             else:
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
@@ -508,6 +508,7 @@ class OnnxInference:
                                 dispsimple(values[k])
 
         if intermediate:
+            values = {k: values[v] for k, v in self._global_index.items()}
             return (values, mtime) if node_time else values
         else:
             try:
