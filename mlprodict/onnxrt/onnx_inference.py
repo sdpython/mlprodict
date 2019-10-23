@@ -415,10 +415,13 @@ class OnnxInference:
         if clean_right_away:
             raise NotImplementedError("clean_right_away=true not implemented.")
 
+        if node_time:
+            mtime = []
+
         if hasattr(self, "_values_init"):
             values = self._values_init.copy()  # pylint: disable=E0203
         else:
-            values = [None] * len(self._global_index)  # OrderedDict(inputs)
+            values = [None] * len(self._global_index)
             if verbose >= 1 and fLOG is not None:
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
@@ -437,7 +440,6 @@ class OnnxInference:
 
         if verbose == 0 or fLOG is None:
             if node_time:
-                mtime = []
                 for i, node in enumerate(self.sequence_):
                     t = perf_counter()
                     node.run(values)
@@ -508,7 +510,9 @@ class OnnxInference:
                                 dispsimple(values[k])
 
         if intermediate:
-            values = {k: values[v] for k, v in self._global_index.items()}
+            values = [(v, k, values[v]) for k, v in self._global_index.items()]
+            values.sort()
+            values = OrderedDict((k, v) for _, k, v in values)
             return (values, mtime) if node_time else values
         else:
             try:
@@ -634,6 +638,9 @@ class OnnxInference:
         if self.runtime != 'python':
             raise RuntimeError("Initializers can be casted only if the "
                                "runtime is 'python' not '{}'.".format(self.runtime))
+
+        if hasattr(self, '_values_init'):
+            del self._values_init
 
         # first pass: simple cast
         done = []

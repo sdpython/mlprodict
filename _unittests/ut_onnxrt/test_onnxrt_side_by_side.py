@@ -17,7 +17,9 @@ try:
 except ImportError:
     convert_kernel = None
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.validate.side_by_side import side_by_side_by_values
+from mlprodict.onnxrt.validate.side_by_side import (
+    side_by_side_by_values, merge_results
+)
 
 
 Xtest_ = pandas.read_csv(StringIO("""
@@ -174,6 +176,46 @@ class TestOnnxrtSideBySide(ExtTestCase):
             [(cpu, inputs), (sess, inputs), (sess3, inputs)])
         self.assertNotEmpty(sbs)
 
+    def test_merge_results(self):
+        res1 = [('AA', [0, 0]), ('BB', [1, 1])]
+        res2 = [('AA', [2, 2]), ('BB', [3, 3])]
+        res = merge_results([res1, res2])
+        exp = [('AA', [[0, 0], [2, 2]]), ('BB', [[1, 1], [3, 3]])]
+        self.assertEqual(exp, res)
+
+        res1 = [('AA', [0, 0]), ('BB', [1, 1]), ('CC', [10, 10])]
+        res2 = [('AA', [2, 2]), ('BB', [3, 3])]
+        res = merge_results([res1, res2])
+        exp = [('AA', [[0, 0], [2, 2]]),
+               ('BB', [[1, 1], [3, 3]]),
+               ('CC', [[10, 10], None])]
+        self.assertEqual(exp, res)
+
+        res1 = [('AA', [0, 0]), ('BB', [1, 1])]
+        res2 = [('AA', [2, 2]), ('BB', [3, 3]), ('CC', [10, 10])]
+        res = merge_results([res1, res2])
+        exp = [('AA', [[0, 0], [2, 2]]),
+               ('BB', [[1, 1], [3, 3]]),
+               ('CC', [None, [10, 10]])]
+        self.assertEqual(exp, res)
+
+        res1 = [('AA', [0, 0]), ('CC', [10, 10]), ('BB', [1, 1])]
+        res2 = [('AA', [2, 2]), ('BB', [3, 3])]
+        res = merge_results([res1, res2])
+        exp = [('AA', [[0, 0], [2, 2]]),
+               ('CC', [[10, 10], None]),
+               ('BB', [[1, 1], [3, 3]])]
+        self.assertEqual(exp, res)
+
+        res1 = [('AA', [0, 0]), ('BB', [1, 1])]
+        res2 = [('AA', [2, 2]), ('CC', [10, 10]), ('BB', [3, 3])]
+        res = merge_results([res1, res2])
+        exp = [('AA', [[0, 0], [2, 2]]),
+               ('CC', [None, [10, 10]]),
+               ('BB', [[1, 1], [3, 3]])]
+        self.assertEqual(exp, res)
+
 
 if __name__ == "__main__":
+    # TestOnnxrtSideBySide().test_merge_results()
     unittest.main()

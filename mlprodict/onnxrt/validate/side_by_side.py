@@ -39,6 +39,9 @@ def side_by_side_by_values(sessions, *args, inputs=None, **kwargs):
     for i, sess in enumerate(sessions):
         if isinstance(sess, tuple) and inputs is None:
             new_sess, new_inputs = sess
+        elif isinstance(inputs, list):
+            new_sess = sess
+            new_inputs = inputs[i]
         else:
             new_sess = sess
             new_inputs = inputs
@@ -58,43 +61,89 @@ def side_by_side_by_values(sessions, *args, inputs=None, **kwargs):
     row['cmp'] = 'OK' if mnd == mxd else '!='
     rows.append(row)
 
+    merged = merge_results(results)
+
     # analysis
-    for i in range(mnd):
+    for i in range(len(merged)):  # pylint: disable=C0200
         row = {'step': i}
-        res_row = [res[i] for res in results]
-        names = [kv[0] for kv in res_row]
-        min_n = min(names)
-        max_n = max(names)
-        if min_n != max_n:
-            row['names'] = "{} -> {}".format(min_n, max_n)
-        else:
-            row['name'] = min_n
+        name, res_row = merged[i]
+        row['name'] = name
         row['metric'] = 'abs-diff'
 
         vals = []
         for j, r in enumerate(res_row):
-            row['value[%d]' % j] = r[1]
-            if hasattr(r[1], 'shape'):
-                row['shape[%d]' % j] = r[1].shape
+            row['value[%d]' % j] = r
+            if hasattr(r, 'shape'):
+                row['shape[%d]' % j] = r.shape
 
             if j == 0:
                 row['v[%d]' % j] = 0
-            else:
-                v = measure_relative_difference(res_row[0][1], r[1])
+            elif res_row[0] is not None and r is not None:
+                v = measure_relative_difference(res_row[0], r)
                 row['v[%d]' % j] = v
                 vals.append(v)
-        diff = max(vals)
-        if diff < 1e-5:
-            row['cmp'] = 'OK'
-        elif diff < 0.0001:
-            row['cmp'] = 'e<0.0001'
-        elif diff < 0.001:
-            row['cmp'] = 'e<0.001'
-        elif diff < 0.01:
-            row['cmp'] = 'e<0.01'
-        elif diff < 0.1:
-            row['cmp'] = 'e<0.1'
-        else:
-            row['cmp'] = "ERROR->=%1.1f" % diff
+        if len(vals) > 0:
+            diff = max(vals)
+            if diff < 1e-5:
+                row['cmp'] = 'OK'
+            elif diff < 0.0001:
+                row['cmp'] = 'e<0.0001'
+            elif diff < 0.001:
+                row['cmp'] = 'e<0.001'
+            elif diff < 0.01:
+                row['cmp'] = 'e<0.01'
+            elif diff < 0.1:
+                row['cmp'] = 'e<0.1'
+            else:
+                row['cmp'] = "ERROR->=%1.1f" % diff
         rows.append(row)
     return rows
+
+
+def merge_results(results):
+    """
+    Merges results by name. The first ones
+    are used to keep the order.
+    """
+    # matrix of names
+    rows = [(k, []) for k, _ in results[0]]
+    positions = {k[0]: i for i, k in enumerate(rows)}
+    todos = []
+    for result in results:
+        todo = []
+        for row in rows:
+            row[1].append(None)
+        for i, (k, v) in enumerate(result):
+            pos = positions.get(k, None)
+            if pos is None:
+                todo.append((i, k, v))
+            else:
+                rows[pos][1][-1] = (v, i)
+        todos.append(todo)
+
+    # left over
+    if len(todos) > 0:
+        for i, todo in enumerate(todos):
+            if len(todo) == 0:
+                continue
+            for pos, name, val in todo:
+                pos1 = pos + 1
+                found = -1
+                for ik, row in enumerate(rows):
+                    if row[1][i] is not None and row[1][i][1] == pos1:
+                        found = ik
+                        break
+                vv = [None] * len(results)
+                if found == -1:
+                    vv[i] = (val, len(rows))
+                    rows.append((name, vv))
+                else:
+                    vv[i] = (val, pos)
+                    rows.insert(found, (name, vv))
+
+    # final
+    final = []
+    for row in rows:
+        nrow = (row[0], [_ if _ is None else _[0] for _ in row[1]])
+        final.append(nrow)
+    return final
