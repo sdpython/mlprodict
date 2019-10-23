@@ -173,18 +173,36 @@ def build_key_split(key, index):
         new_key = str(key).split('`')[1].split('<')[0].strip()
     except IndexError:
         new_key = str(key)
-    if 'SVC' in new_key or 'SVR' in new_key:
+    if 'SVC' in new_key or 'SVR' in new_key or 'SVM' in new_key:
         return 'SVM'
     if 'Neighbors' in new_key:
         return 'Neighbors'
+    if 'Scaler' in new_key:
+        return 'Scaler'
+    if 'Normalizer' in new_key:
+        return 'Scaler'
+    if new_key.endswith("NB"):
+        return "...NB"
+    if new_key.endswith("RBM"):
+        return "...NB"
+    if "KMeans" in new_key:
+        return "KMeans"
+    if ('XGB' in new_key or 'LGBM' in new_key or 'Tree' in new_key or
+            'Forest' in new_key):
+        return 'Trees'
+    if ('ARDRegression' in new_key or 'ElasticNet' in new_key or
+            'HuberRegressor' in new_key or 'Lars' in new_key or
+            'Lasso' in new_key or 'LinearRegression' in new_key or
+            'LogisticRegression' in new_key or
+            'Ridge' in new_key or 'SGD' in new_key or
+            'TheilSen' in new_key):
+        return 'Linear'
     for begin in ["Lasso", "Select", "Label", 'Tfidf', 'Feature',
                   'Bernoulli', 'MultiTask', 'OneVs', 'PLS',
                   'Sparse', 'Spectral', 'MiniBatch',
                   'Bayesian']:
         if new_key.startswith(begin):
             return begin + '...'
-    if new_key.endswith("NB"):
-        return "...NB"
     for end in ['CV', 'Regressor', 'Classifier']:
         if new_key.endswith(end):
             new_key = new_key[:-len(end)]

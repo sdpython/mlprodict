@@ -13,18 +13,20 @@ class OnnxInferenceNode:
     A node to execute.
     """
 
-    def __init__(self, onnx_node, desc):
+    def __init__(self, onnx_node, desc, global_index):
         """
         @param      onnx_node       onnx_node
         @param      desc            internal description
+        @param      global_index    it is a function which returns a unique index
+                                    for the output this operator generates
         """
         if desc is None:
             raise ValueError("desc should not be None.")
         self.desc = desc
         self.onnx_node = onnx_node
-        self._init()
+        self._init(global_index)
 
-    def _init(self):
+    def _init(self, global_index):
         """
         Prepares the node.
         """
@@ -34,6 +36,8 @@ class OnnxInferenceNode:
         self.inputs = list(self.onnx_node.input)
         self.outputs = list(self.onnx_node.output)
         self.inplaces = []
+        self.inputs_indices = [global_index(name) for name in self.inputs]
+        self.outputs_indices = [global_index(name) for name in self.outputs]
 
     def set_order(self, order):
         """
@@ -116,16 +120,30 @@ class OnnxInferenceNode:
 
         @param      values      list of existing values
         """
-        args = [values[k] for k in self.inputs]
+        # This code takes times if the graph contains many nodes.
+        # Maybe a C++ container would help in that case (to skip GIL).
+        if self.inputs_indices is None:
+            args = [values[k] for k in self.inputs]
+        else:
+            args = [values[k] for k in self.inputs_indices]
+
         res = self.ops_.run(*args)
+
         if not isinstance(res, tuple):
             raise RuntimeError("Results of an operator should be a tuple.")
         if len(self.outputs) != len(res):
             raise RuntimeError("Mismatch number of outputs got {} for names {}.\n{}".format(
                 len(res), list(sorted(self.outputs)),
                 pprint.pformat(self.desc)))
-        for name, value in zip(self.outputs, res):
-            values[name] = value
+
+        # This code takes times if the graph contains many nodes.
+        # Maybe a C++ container would help in that case (to skip GIL).
+        if self.outputs_indices is None:
+            for name, value in zip(self.outputs, res):
+                values[name] = value
+        else:
+            for i, r in enumerate(res):
+                values[self.outputs_indices[i]] = r
 
     def switch_initializers_dtype(self, dtype_in=numpy.float32,
                                   dtype_out=numpy.float64):

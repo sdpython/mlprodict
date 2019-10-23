@@ -176,6 +176,21 @@ class OnnxInference:
         """
         return [_.name for _ in self.obj.graph.output]
 
+    def global_index(self, name):
+        """
+        Maps every name to one integer to avoid using dictionaries
+        when running the predictions.
+
+        @param      name        outputs name
+        @return                 integer
+        """
+        if not hasattr(self, '_global_index'):
+            self._global_index = {}
+        if name in self._global_index:
+            return self._global_index[name]
+        self._global_index[name] = len(self._global_index)
+        return self._global_index[name]
+
     def to_sequence(self):
         """
         Produces a graph to facilitate the execution.
@@ -220,6 +235,7 @@ class OnnxInference:
         # inputs
         for obj in self.obj.graph.input:
             variables[obj.name] = _var_as_dict(obj)
+            self.global_index(obj.name)
 
         # outputs
         for obj in self.obj.graph.output:
@@ -227,6 +243,7 @@ class OnnxInference:
                 outputs[obj.name] = _var_as_dict(obj)
             else:
                 outputs[obj.name] = {'name': obj.name}
+            self.global_index(obj.name)
 
         # initializer
         for obj in self.obj.graph.initializer:
@@ -235,6 +252,7 @@ class OnnxInference:
                 raise RuntimeError(
                     "Unable to convert an initializer\n{}".format(obj))
             inits[obj.name] = init_obj
+            self.global_index(obj.name)
             if 'value' not in inits[obj.name]:
                 raise RuntimeError("One initializer has no value: '{}'\n{}\n{}".format(
                     obj.name, inits[obj.name], obj))
@@ -250,7 +268,7 @@ class OnnxInference:
                     if not isinstance(v, dict) or 'value' not in v:
                         raise RuntimeError("A parameter has no value '{}' for node '{}'\nv={}\ndobj=[{}]".format(
                             k, node.name, v, node))
-            nodes[node.name] = OnnxInferenceNode(node, dobj)
+            nodes[node.name] = OnnxInferenceNode(node, dobj, self.global_index)
 
         # names
         names = {}
@@ -396,20 +414,30 @@ class OnnxInference:
                               fLOG=None):
         if clean_right_away:
             raise NotImplementedError("clean_right_away=true not implemented.")
-        values = OrderedDict(inputs)
-        if verbose >= 1:
-            for k, v in self.inits_.items():
-                values[k] = v['value']
-                fLOG("+k='{}': {} (dtype={} min={} max={})".format(
-                    k, values[k].shape, values[k].dtype,
-                    numpy.min(values[k]), numpy.max(values[k])))
-        else:
-            for k, v in self.inits_.items():
-                values[k] = v['value']
 
-        mtime = []
+        if hasattr(self, "_values_init"):
+            values = self._values_init.copy()  # pylint: disable=E0203
+        else:
+            values = [None] * len(self._global_index)  # OrderedDict(inputs)
+            if verbose >= 1 and fLOG is not None:
+                for k, v in self.inits_.items():
+                    values[self._global_index[k]] = v['value']
+                    fLOG("+k='{}': {} (dtype={} min={} max={})".format(
+                        k, values[k].shape, values[k].dtype,
+                        numpy.min(values[k]), numpy.max(values[k])))
+            else:
+                for k, v in self.inits_.items():
+                    values[self._global_index[k]] = v['value']
+            # stores the array to skip initialing a second time
+            if verbose == 0 or fLOG is None:
+                self._values_init = values.copy()
+
+        for name, value in inputs.items():
+            values[self._global_index[name]] = value
+
         if verbose == 0 or fLOG is None:
             if node_time:
+                mtime = []
                 for i, node in enumerate(self.sequence_):
                     t = perf_counter()
                     node.run(values)
@@ -438,11 +466,14 @@ class OnnxInference:
                     fLOG(s)
 
             if verbose >= 2:
-                for k in sorted(values):
+                for k in sorted(self._global_index):
+                    if values[self._global_index[k]] is None:
+                        continue
+                    obj = values[self._global_index[k]]
                     fLOG("-k='{}' shape={} dtype={} min={} max={}".format(
-                        k, values[k].shape, values[k].dtype,
-                        numpy.min(values[k]), numpy.max(values[k])))
-            keys = set(values)
+                        k, obj.shape, obj.dtype, numpy.min(obj), numpy.max(obj)))
+
+            keys = set(k for k in range(len(values)) if values[k] is not None)
             if verbose >= 1:
                 fLOG("-- OnnxInference: run {} nodes".format(len(self.sequence_)))
             for i, node in enumerate(self.sequence_):
@@ -457,26 +488,30 @@ class OnnxInference:
                                       time=t2 - t))
                 else:
                     node.run(values)
-                for k in sorted(values):
+                for k in range(len(values)):  # pylint: disable=C0200
+                    if values[k] is None:
+                        continue
                     if k not in keys:
+                        name = list(
+                            name for name in self._global_index if self._global_index[name] == k)
                         if isinstance(values[k], numpy.ndarray):
+                            name = name[0]
                             fLOG("+k='{}': {} (dtype={} min={} max={})".format(
-                                k, values[k].shape, values[k].dtype,
+                                name, values[k].shape, values[k].dtype,
                                 numpy.min(values[k]), numpy.max(values[k])))
                             if verbose >= 3:
                                 dispsimple(values[k])
                         else:
                             fLOG("+k='{}': {}".format(
-                                k, type(values[k])))
+                                name, type(values[k])))
                             if verbose >= 3:
                                 dispsimple(values[k])
-                keys = set(values)
 
         if intermediate:
             return (values, mtime) if node_time else values
         else:
             try:
-                res = {k: values[k] for k in self.outputs_}
+                res = {k: values[self._global_index[k]] for k in self.outputs_}
             except KeyError as e:
                 raise RuntimeError("Unable to find one output [{}]\n in [{}]"
                                    ".".format(", ".join(sorted(self.outputs_)),

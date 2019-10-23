@@ -3,6 +3,8 @@
 """
 import unittest
 from logging import getLogger
+from contextlib import redirect_stdout
+from io import StringIO
 import numpy
 from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
 import onnx
@@ -108,6 +110,12 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_abs(self):
         self.common_test_onnxt_runtime_unary(OnnxAbs, numpy.abs)
+
+    def test_onnxt_runtime_abs_debug(self):
+        f = StringIO()
+        with redirect_stdout(f):
+            self.common_test_onnxt_runtime_unary(
+                OnnxAbs, numpy.abs, debug=True)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_add(self):
