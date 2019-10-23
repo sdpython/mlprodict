@@ -1,7 +1,6 @@
 """
 @brief      test log(time=2s)
 """
-from collections import OrderedDict
 from io import StringIO
 import unittest
 from logging import getLogger
