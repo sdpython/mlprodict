@@ -5,6 +5,7 @@ The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
 import copy
+import pprint
 import numpy
 import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
@@ -24,6 +25,21 @@ from .validate_helper import (
     default_time_kwargs
 )
 from .validate_benchmark import benchmark_fct
+
+
+class RuntimeBadResultsError(RuntimeError):
+    """
+    Raised when the results are too different from
+    :epkg:`scikit-learn`.
+    """
+
+    def __init__(self, msg, obs):
+        """
+        @param      msg     to display
+        @param      obs     observations
+        """
+        RuntimeError.__init__(self, msg)
+        self.obs = obs
 
 
 def _get_problem_data(prob, n_features):
@@ -235,7 +251,7 @@ def enumerate_compatible_opset(model, opset_min=10, opset_max=None,  # pylint: d
     @param      filter_exp      function which tells if the experiment must be run,
                                 None to run all, takes *model, problem* as an input
     @param      filter_scenario second function which tells if the experiment must be run,
-                                None to run all, takes *model, problem, scenario, extra*
+                                None to run all, takes *model, problem, scenario, extra, options*
                                 as an input
     @param      node_time       collect time for each node in the :epkg:`ONNX` graph
     @param      assume_finite   See `config_context
@@ -360,7 +376,6 @@ def enumerate_compatible_opset(model, opset_min=10, opset_max=None,  # pylint: d
                     if debug:
                         raise
                     if "__init__() missing" not in str(e):
-                        import pprint
                         raise RuntimeError(
                             "Unable to instantiate model '{}'.\nextra=\n{}".format(
                                 model.__name__, pprint.pformat(extra))) from e
@@ -472,14 +487,13 @@ def _call_conv_runtime_opset(
 
                 if verbose >= 2 and fLOG is not None:
                     fLOG(
-                        "[enumerate_compatible_opset] conversion to onnx")
+                        "[enumerate_compatible_opset] conversion to onnx: {}".format(all_conv_options))
                 try:
                     conv, t4 = _measure_time(fct_conv)[:2]
                     obs_op["convert_time"] = t4
                 except (RuntimeError, IndexError, AttributeError, TypeError,
                         ValueError) as e:
                     if debug:
-                        import pprint
                         fLOG(pprint.pformat(obs_op))
                         raise
                     obs_op["_4convert_exc"] = e
@@ -667,14 +681,12 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                     dump_into_folder(dump_folder, kind='batch', obs_op=obs_op,
                                      X_test=X_test, y_test=y_test, Xort_test=Xort_test)
                 if debug and max_rel_diff >= 0.1:
-                    import pprint
                     raise RuntimeError("Two big differences {}\n{}\n{}\n{}".format(
                         max_rel_diff, inst, conv, pprint.pformat(obs_op)))
 
     if debug and len(debug_exc) == 2:
         raise debug_exc[0]
     if debug and verbose >= 2:
-        import pprint
         fLOG(pprint.pformat(obs_op))
     if verbose >= 2 and fLOG is not None:
         fLOG("[enumerate_compatible_opset-R] next...")
@@ -696,6 +708,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=10, opset_max=None,
                                         versions=False, extended_list=False,
                                         time_kwargs=None, dump_all=False,
                                         n_features=None, skip_long_test=True,
+                                        fail_bad_results=False,
                                         filter_scenario=None):
     """
     Tests all possible configurations for all possible
@@ -739,6 +752,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=10, opset_max=None,
                                 to use exactly this number of features, it can also
                                 be a list to test multiple datasets
     @param      skip_long_test  skips tests for high values of N if they seem too long
+    @param      fail_bad_results fails if the results are aligned with :epkg:`scikit-learn`
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -854,6 +868,9 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=10, opset_max=None,
                 obs['available'] += '-' + op
                 if not batch:
                     obs['available'] += "-NOBATCH"
+                if fail_bad_results and 'e<' in obs['available']:
+                    raise RuntimeBadResultsError(
+                        "Wrong results '{}'.".format(obs['available']), obs)
 
             excs = []
             for k, v in sorted(obs.items()):

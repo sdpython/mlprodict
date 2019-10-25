@@ -105,13 +105,15 @@ def build_custom_scenarios():
             }, ['cluster']),
         ],
         KNeighborsRegressor: [
-            ('default', {'algorithm': 'brute'},
+            ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},
              {'conv_options': [{}, {KNeighborsRegressor: {'optim': 'cdist'}}]}),
-            ('weights', {'algorithm': 'brute', 'weights': 'distance'}),
-            ('kd_tree', {'algorithm': 'kd_tree'}),
-            ('mink', {'algorithm': 'kd_tree',
-                      'metric': "minkowski",
-                      'metric_params': {'p': 2.1}}),
+            ('weights_k3', {'algorithm': 'brute',
+                            'weights': 'distance', 'n_neighbors': 3}),
+            ('kd_tree_k3', {'algorithm': 'kd_tree', 'n_neighbors': 3}),
+            ('mink_k3', {'algorithm': 'kd_tree',
+                         'metric': "minkowski",
+                         'metric_params': {'p': 2.1},
+                         'n_neighbors': 3}),
         ],
         LocalOutlierFactor: [
             ('novelty', {

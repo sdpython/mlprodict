@@ -417,6 +417,8 @@ class OnnxInference:
 
         if node_time:
             mtime = []
+        if verbose >= 1 and fLOG is not None:
+            printed = set()
 
         if hasattr(self, "_values_init"):
             values = self._values_init.copy()  # pylint: disable=E0203
@@ -425,9 +427,10 @@ class OnnxInference:
             if verbose >= 1 and fLOG is not None:
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
-                    fLOG("+k='{}': {} (dtype={} min={} max={})".format(
+                    fLOG("+ki='{}': {} (dtype={} min={} max={})".format(
                         k, v['value'].shape, v['value'].dtype,
                         numpy.min(v['value']), numpy.max(v['value'])))
+                    printed.add(k)
             else:
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
@@ -472,8 +475,10 @@ class OnnxInference:
                     if values[self._global_index[k]] is None:
                         continue
                     obj = values[self._global_index[k]]
-                    fLOG("-k='{}' shape={} dtype={} min={} max={}".format(
-                        k, obj.shape, obj.dtype, numpy.min(obj), numpy.max(obj)))
+                    if k not in printed:
+                        printed.add(k)
+                        fLOG("-kv='{}' shape={} dtype={} min={} max={}".format(
+                            k, obj.shape, obj.dtype, numpy.min(obj), numpy.max(obj)))
 
             keys = set(k for k in range(len(values)) if values[k] is not None)
             if verbose >= 1:
@@ -493,18 +498,19 @@ class OnnxInference:
                 for k in range(len(values)):  # pylint: disable=C0200
                     if values[k] is None:
                         continue
-                    if k not in keys:
+                    if k not in keys and k not in printed:
+                        printed.add(k)
                         name = list(
                             name for name in self._global_index if self._global_index[name] == k)
                         if isinstance(values[k], numpy.ndarray):
                             name = name[0]
-                            fLOG("+k='{}': {} (dtype={} min={} max={})".format(
+                            fLOG("+kr='{}': {} (dtype={} min={} max={})".format(
                                 name, values[k].shape, values[k].dtype,
                                 numpy.min(values[k]), numpy.max(values[k])))
                             if verbose >= 3:
                                 dispsimple(values[k])
                         else:
-                            fLOG("+k='{}': {}".format(
+                            fLOG("+kr='{}': {}".format(
                                 name, type(values[k])))
                             if verbose >= 3:
                                 dispsimple(values[k])
