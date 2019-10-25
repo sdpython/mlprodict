@@ -186,7 +186,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         full_name = os.path.join(
             temp, "benches", "neighbors", "KNeighborsRegressor",
-            "bench_KNeighborsRegressor_default_b_reg_algorithmbrute.py")
+            "bench_KNeighborsRegressor_default_k3_b_reg_algorithmbrute_n_neighbors3.py")
         self.assertExists(full_name)
         with open(full_name, "r", encoding="utf-8") as f:
             content = f.read()
