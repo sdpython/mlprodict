@@ -209,8 +209,8 @@ class _CommonAsvSklBenchmarkClassifier(_CommonAsvSklBenchmark):
         return accuracy_score(y_exp, y_pred)
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
-        onx = self._to_onnx(model, X, opset, dtype, optim)
-        onx = self._optimize_onnx(onx)
+        onx_ = self._to_onnx(model, X, opset, dtype, optim)
+        onx = self._optimize_onnx(onx_)
         name = self.runtime_name(runtime)
         if name == 'skl':
             rt_ = None
@@ -237,8 +237,8 @@ class _CommonAsvSklBenchmarkClustering(_CommonAsvSklBenchmark):
             return silhouette_score(X, y_pred)
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
-        onx = self._to_onnx(model, X, opset, dtype, optim)
-        onx = self._optimize_onnx(onx)
+        onx_ = self._to_onnx(model, X, opset, dtype, optim)
+        onx = self._optimize_onnx(onx_)
         name = self.runtime_name(runtime)
         if name == 'skl':
             rt_ = None
@@ -276,8 +276,8 @@ class _CommonAsvSklBenchmarkMultiClassifier(_CommonAsvSklBenchmark):
         return coverage_error(y_exp, y_pred)
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
-        onx = self._to_onnx(model, X, opset, dtype, optim)
-        onx = self._optimize_onnx(onx)
+        onx_ = self._to_onnx(model, X, opset, dtype, optim)
+        onx = self._optimize_onnx(onx_)
         name = self.runtime_name(runtime)
         if name == 'skl':
             rt_ = None
@@ -299,8 +299,8 @@ class _CommonAsvSklBenchmarkOutlier(_CommonAsvSklBenchmark):
         return numpy.sum(y_pred) / y_pred.shape[0]
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
-        onx = self._to_onnx(model, X, opset, dtype, optim)
-        onx = self._optimize_onnx(onx)
+        onx_ = self._to_onnx(model, X, opset, dtype, optim)
+        onx = self._optimize_onnx(onx_)
         name = self.runtime_name(runtime)
         if name == 'skl':
             rt_ = None
@@ -344,8 +344,8 @@ class _CommonAsvSklBenchmarkTrainableTransform(_CommonAsvSklBenchmark):
         return numpy.sum(y_pred) / y_pred.shape[0]
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
-        onx = self._to_onnx(model, X, opset, dtype, optim)
-        onx = self._optimize_onnx(onx)
+        onx_ = self._to_onnx(model, X, opset, dtype, optim)
+        onx = self._optimize_onnx(onx_)
         name = self.runtime_name(runtime)
         if name == 'skl':
             rt_ = None
@@ -367,8 +367,8 @@ class _CommonAsvSklBenchmarkTransform(_CommonAsvSklBenchmark):
         return numpy.sum(y_pred) / y_pred.shape[0]
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
-        onx = self._to_onnx(model, X, opset, dtype, optim)
-        onx = self._optimize_onnx(onx)
+        onx_ = self._to_onnx(model, X, opset, dtype, optim)
+        onx = self._optimize_onnx(onx_)
         name = self.runtime_name(runtime)
         if name == 'skl':
             rt_ = None

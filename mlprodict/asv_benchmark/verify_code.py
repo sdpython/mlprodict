@@ -44,7 +44,9 @@ def verify_code(source, exc=True):
         raise ImperfectPythonCode(
             "Unknown identifiers: {} in\n{}".format(
                 ",".join(issues), source))
-    return issues
+    if len(issues) > 0:
+        return issues, v
+    return v
 
 
 class CodeNodeVisitor(ast.NodeVisitor):

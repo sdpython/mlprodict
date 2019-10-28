@@ -50,11 +50,27 @@ class VotingClassifier_b_cl_logreg_noflatten_votingsoft_flatten_transfda804c_9_b
         )
 '''
 
+source2 = '''
+def fct(a, b):
+    return a * b
+'''
+
 
 class TestVerifyCode(ExtTestCase):
 
     def test_verify_code(self):
         self.assertRaise(lambda: verify_code(source), ImperfectPythonCode)
+
+    def test_verify_code2(self):
+        res = verify_code(source2)
+        self.assertIn('CodeNodeVisitor', str(res))
+        tree = res.print_tree()
+        self.assertIn('BinOp:', tree)
+        self.assertIn('\n', tree)
+        rows = res.Rows
+        node = rows[0]['node']
+        text = res.print_node(node)
+        self.assertIn('body=', text)
 
 
 if __name__ == "__main__":

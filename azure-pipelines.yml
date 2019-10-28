@@ -1,7 +1,7 @@
 jobs:
 - job: 'TestLinux'
   pool:
-    vmImage: 'ubuntu-16.04' # other options: 'macOS-10.13', 'vs2017-win2016'
+    vmImage: 'ubuntu-16.04' # other options: 'vs2017-win2016'
   strategy:
     matrix:
       Python37-Linux:
@@ -52,7 +52,7 @@ jobs:
 
 - job: 'TestMac'
   pool:
-    vmImage: 'macOS-10.13' # other options: 'ubuntu-16.04', 'vs2017-win2016'
+    vmImage: 'macOS-10.14' # other options: 'ubuntu-16.04', 'vs2017-win2016'
   strategy:
     matrix:
       Python37-Mac:
@@ -94,7 +94,7 @@ jobs:
   - script: pip install -r requirements.txt
     displayName: 'Install Requirements'
   - script: |
-          export MACOSX_DEPLOYMENT_TARGET=10.13
+          export MACOSX_DEPLOYMENT_TARGET=10.14
           python setup.py build_ext --inplace
     displayName: 'Build package'
   - script: |

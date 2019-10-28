@@ -400,6 +400,8 @@ class TestOnnxConvKNN(ExtTestCase):
 
     # calibrated
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(onnxruntime, '0.5.99')
     def test_model_calibrated_classifier_cv_isotonic_binary_knn(self):
         data = load_iris()
         X, y = data.data, data.target
