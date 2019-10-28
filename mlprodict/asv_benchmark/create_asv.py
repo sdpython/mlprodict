@@ -689,7 +689,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                 model.__name__, class_content)) from e
 
         # Verifies missing imports.
-        to_import = verify_code(class_content, exc=False)
+        to_import, _ = verify_code(class_content, exc=False)
         miss = find_missing_sklearn_imports(to_import)
         class_content = class_content.replace(
             "#  __IMPORTS__", "\n".join(miss))

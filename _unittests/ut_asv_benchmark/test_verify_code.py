@@ -62,7 +62,7 @@ class TestVerifyCode(ExtTestCase):
         self.assertRaise(lambda: verify_code(source), ImperfectPythonCode)
 
     def test_verify_code2(self):
-        res = verify_code(source2)
+        _, res = verify_code(source2)
         self.assertIn('CodeNodeVisitor', str(res))
         tree = res.print_tree()
         self.assertIn('BinOp:', tree)

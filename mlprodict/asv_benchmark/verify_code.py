@@ -20,7 +20,7 @@ def verify_code(source, exc=True):
     @param      source      source to look into
     @param      exc         raise an exception or return the list of
                             missing identifiers
-    @return                 missing identifiers
+    @return                 tuple(missing identifiers, @see cl CodeNodeVisitor)
     """
     node = ast.parse(source)
     v = CodeNodeVisitor()
@@ -44,9 +44,7 @@ def verify_code(source, exc=True):
         raise ImperfectPythonCode(
             "Unknown identifiers: {} in\n{}".format(
                 ",".join(issues), source))
-    if len(issues) > 0:
-        return issues, v
-    return v
+    return issues, v
 
 
 class CodeNodeVisitor(ast.NodeVisitor):
