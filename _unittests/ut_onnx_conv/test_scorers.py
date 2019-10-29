@@ -9,7 +9,10 @@ import numpy
 # unittest_require_at_least
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from sklearn.metrics import make_scorer
-from sklearn.metrics.scorer import _PredictScorer
+try:
+    from sklearn.metrics._scorer import _PredictScorer
+except ImportError:
+    from sklearn.metrics.scorer import _PredictScorer
 from mlprodict.onnx_conv import to_onnx, register_scorers
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv.scorers.cdist_score import score_cdist_sum

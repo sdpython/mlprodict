@@ -62,6 +62,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
         self._alias = []
         self._assign = []
         self._args = []
+        self._fits = []
 
     def push(self, row):
         """
@@ -102,6 +103,13 @@ class CodeNodeVisitor(ast.NodeVisitor):
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, None)
         if visitor is None:
+            if method.startswith("visit_"):
+                cont = {
+                    "indent": self._indent,
+                    "str": method[6:],
+                    "node": node}
+                self.push(cont)
+                return self.generic_visit_args(node, cont)
             raise TypeError("unable to find a method: " + method)
         res = visitor(node)
         # print(method, CodeNodeVisitor.print_node(node))
@@ -257,7 +265,10 @@ class CodeNodeVisitor(ast.NodeVisitor):
                 "targets": node.targets, "value": node.value}
         self.push(cont)
         for t in node.targets:
-            self._assign.append((t.id, node))
+            if hasattr(t, 'id'):
+                self._assign.append((t.id, node))
+            else:
+                self._assign.append((id(t), node))
         return self.generic_visit_args(node, cont)
 
     def visit_Store(self, node):  # pylint: disable=C0116
@@ -270,10 +281,15 @@ class CodeNodeVisitor(ast.NodeVisitor):
         if "attr" in node.func.__dict__:
             cont = {"indent": self._indent, "type": "Call", "str": node.func.attr,
                     "node": node, "func": node.func}
-        else:
+        elif "id" in node.func.__dict__:
             cont = {"indent": self._indent, "type": "Call", "str": node.func.id,
                     "node": node, "func": node.func}
+        else:
+            cont = {"indent": self._indent, "type": "Call", "str": "",
+                    "node": node, "func": node.func}
         self.push(cont)
+        if cont['str'] == 'fit':
+            self._fits.append(cont)
         return self.generic_visit_args(node, cont)
 
     def visit_Attribute(self, node):  # pylint: disable=C0116
@@ -285,7 +301,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
 
         if len(cont["children"]) > 0:
             fir = cont["children"][0]
-            if fir["type"] == "Name":
+            if 'type' in fir and fir["type"] == "Name":
                 parent = fir["node"].id
                 cont["str"] = "{0}.{1}".format(parent, cont["str"])
                 cont["children"][0]["remove"] = True
@@ -310,10 +326,190 @@ class CodeNodeVisitor(ast.NodeVisitor):
         self.push(cont)
         return self.generic_visit_args(node, cont)
 
+    def visit_UnaryOp(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "UnaryOp",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Not(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "Not",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Invert(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "Invert",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_BoolOp(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "BoolOp",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
     def visit_Mult(self, node):  # pylint: disable=C0116
         cont = {
             "indent": self._indent,
             "type": "Mult",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Div(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "Div",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_FloorDiv(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "FloorDiv",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Add(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "Add",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Pow(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "Pow",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_In(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "In",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_AugAssign(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "AugAssign",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Eq(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "Eq",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_IsNot(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "IsNot",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Is(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "Is",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_And(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "And",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_BitAnd(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "BitAnd",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Or(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "Or",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_NotEq(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "NotEq",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Mod(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "Mod",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Sub(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "Sub",
+            "str": "",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_USub(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "USub",
             "str": "",
             "node": node}
         self.push(cont)
@@ -330,6 +526,11 @@ class CodeNodeVisitor(ast.NodeVisitor):
 
     def visit_Gt(self, node):  # pylint: disable=C0116
         cont = {"indent": self._indent, "type": "Gt", "str": "", "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_GtE(self, node):  # pylint: disable=C0116
+        cont = {"indent": self._indent, "type": "GtE", "str": "", "node": node}
         self.push(cont)
         return self.generic_visit_args(node, cont)
 
@@ -363,6 +564,22 @@ class CodeNodeVisitor(ast.NodeVisitor):
         self.push(cont)
         return self.generic_visit_args(node, cont)
 
+    def visit_ListComp(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "ListComp",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_comprehension(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "comprehension",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
     def visit_Dict(self, node):  # pylint: disable=C0116
         cont = {
             "indent": self._indent,
@@ -390,3 +607,67 @@ class CodeNodeVisitor(ast.NodeVisitor):
     def visit_(self, node):  # pylint: disable=C0116
         help(node)
         assert False
+
+    def visit_Subscript(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "str": "Subscript",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_ExtSlice(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "str": "ExtSlice",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Slice(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "str": "Slice",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Index(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "str": "Index",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_If(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "str": "If",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_IfExp(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "str": "IfExp",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_Lambda(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "str": "Lambda",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)
+
+    def visit_GeneratorExp(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "str": "GeneratorExp",
+            "node": node}
+        self.push(cont)
+        return self.generic_visit_args(node, cont)

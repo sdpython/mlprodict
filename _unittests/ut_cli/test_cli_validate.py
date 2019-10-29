@@ -30,8 +30,6 @@ class TestCliValidate(ExtTestCase):
                    '--out_graph', gr],
              fLOG=st.fprint)
         res = str(st)
-        print('-----------------')
-        print(res)
         self.assertIn('Linear', res)
         self.assertExists(out1)
         self.assertExists(out2)

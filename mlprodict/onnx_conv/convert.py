@@ -6,7 +6,11 @@
 from collections import OrderedDict
 import numpy
 import pandas
-from sklearn.metrics.scorer import _PredictScorer
+try:
+    from sklearn.metrics._scorer import _PredictScorer
+except ImportError:
+    # scikit-learn < 0.22
+    from sklearn.metrics.scorer import _PredictScorer
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType, DataType
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin

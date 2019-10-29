@@ -3,7 +3,7 @@
 """
 import unittest
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.asv_benchmark.verify_code import verify_code, ImperfectPythonCode
+from mlprodict.testing.verify_code import verify_code, ImperfectPythonCode
 
 source = '''
 import numpy  # pylint: disable=W0611

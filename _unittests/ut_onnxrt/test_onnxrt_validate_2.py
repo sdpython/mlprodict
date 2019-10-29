@@ -40,8 +40,12 @@ class TestOnnxrtValidate(ExtTestCase):
         self.assertEqualArray(X, X2)
         X2 = _modify_dimension(X, 6)
         self.assertEqualArray(X[:, 2:4], X2[:, 2:4])
-        self.assertNotEqualArray(X[:, :2], X2[:, :2])
         self.assertNotEqualArray(X[:, :2], X2[:, 4:6])
+        try:
+            self.assertNotEqualArray(X[:, :2], X2[:, :2])
+        except AssertionError as e:
+            raise AssertionError("Should be different\n{}\n{}".format(
+                X, X2)) from e
 
 
 if __name__ == "__main__":
