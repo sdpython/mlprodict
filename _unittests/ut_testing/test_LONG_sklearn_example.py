@@ -104,7 +104,7 @@ class TestLONGSklearnExample(ExtTestCase):
                         issues[nfile] = e
                         fLOG('    missing variable', str(e).split('\n')[0])
                         continue
-                    except (KeyError, NameError, RuntimeError) as e:
+                    except (KeyError, NameError, RuntimeError, TypeError) as e:
                         issues[nfile] = e
                         fLOG('    local function', str(e).split('\n')[0])
                         continue
