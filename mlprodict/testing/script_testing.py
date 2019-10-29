@@ -24,7 +24,7 @@ def _clean_script(content):
     """
     new_lines = []
     for line in content.split('\n'):
-        if '.show()' in line:
+        if '.show()' in line or 'sys.exit' in line:
             new_lines.append("# " + line)
         else:
             new_lines.append(line)
