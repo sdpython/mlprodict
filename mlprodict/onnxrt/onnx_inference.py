@@ -771,6 +771,7 @@ class OnnxInference:
                 values[n]['fr'].append(node)
 
         # checks the number of outputs
+        outputs = set(self.output_names)
         modif = 1
         while modif > 0:
             modif = 0
@@ -787,6 +788,8 @@ class OnnxInference:
             if v['inplace']:
                 inplaces[n] = v
                 for node in v['to']:
+                    if n in outputs:
+                        continue
                     node.enable_inplace_compute(n)
 
         return inplaces

@@ -41,7 +41,7 @@ class TestOnnxrtValidate(ExtTestCase):
         X2 = _modify_dimension(X, 6)
         self.assertEqualArray(X[:, 2:4], X2[:, 2:4])
         self.assertNotEqualArray(X[:, :2], X2[:, 4:6])
-        diff = numpy.sum(numpy.abs(numpy.sign(X[:, :2] - X2[:, :2]).ravel()))
+        diff = numpy.sum(numpy.abs(numpy.sign(X[:, :2] - X2[:, :2]).ravel()))  # pylint: disable=E1101
         self.assertLess(diff, 6)
 
 

@@ -7,13 +7,17 @@ import platform
 import numpy
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.svm import SVR, SVC, LinearSVC
+from sklearn.svm import SVR, SVC, LinearSVC, OneClassSVM
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt.ops_cpu._op import RuntimeTypeError
 
 
 class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
@@ -121,6 +125,37 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqual(lprob.shape, got.shape)
         self.assertEqualArray(lexp, y['output_label'], decimal=5)
         self.assertEqualArray(lprob, got, decimal=5)
+
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_onnxrt_python_one_class_svm(self):
+        X = numpy.array([[0, 1, 2], [44, 36, 18],
+                         [-45, -78, -46]], dtype=numpy.float32)
+
+        for kernel in ['sigmoid', 'rbf', 'linear', 'poly']:
+            model = OneClassSVM(kernel=kernel).fit(X)
+            X32 = X.astype(numpy.float32)
+            model_onnx = to_onnx(model, X32)
+            oinf = OnnxInference(model_onnx, runtime='python')
+            res = oinf.run({'X': X32})
+            scores = res['scores']
+            dec = model.decision_function(X32)
+            self.assertEqualArray(scores, dec, decimal=4)
+
+        for kernel in ['sigmoid', 'rbf', 'linear', 'poly']:
+            model = OneClassSVM(kernel=kernel).fit(X)
+            X64 = X.astype(numpy.float64)
+            model_onnx = to_onnx(model, X64, dtype=numpy.float64)
+            oinf = OnnxInference(model_onnx, runtime='python')
+            try:
+                res = oinf.run({'X': X64})
+            except RuntimeTypeError as e:
+                if "Output type mismatch: input 'float64' != output 'float32'" in str(e):
+                    continue
+                raise e
+            scores = res['scores']
+            dec = model.decision_function(X64)
+            self.assertEqualArray(scores, dec)
 
 
 if __name__ == "__main__":
