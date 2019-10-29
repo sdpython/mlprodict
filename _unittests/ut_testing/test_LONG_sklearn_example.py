@@ -136,7 +136,8 @@ class TestLONGSklearnExample(ExtTestCase):
                      ('issues', issues),
                      ]:
             for k, v in d.items():
-                rows.append(dict(name=k, result=str(v), kind=n))
+                sv = str(v).replace("\r", "").replace("\n", " ")
+                rows.append(dict(name=k, result=sv, kind=n))
         for k, v in has_onnx.items():
             rows.append(dict(name=k, result='OK', kind='ONNX'))
 
