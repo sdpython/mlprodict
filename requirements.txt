@@ -5,7 +5,7 @@ jyquickhelper
 lightgbm
 memory_profiler
 onnx
-onnxruntime>=0.5
+onnxruntime>=1.0.0
 openpyxl
 pybind11
 pyinstrument

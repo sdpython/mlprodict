@@ -14,7 +14,7 @@ from mlprodict.onnx_conv import register_converters, to_onnx
 from mlprodict.onnxrt import OnnxInference
 
 
-class TestOnnxConvKNN(ExtTestCase):
+class TestOnnxConvSVM(ExtTestCase):
 
     def setUp(self):
         logger = getLogger('skl2onnx')
@@ -79,7 +79,7 @@ class TestOnnxConvKNN(ExtTestCase):
                 self.assertEqualArray(
                     lexp.ravel(), y['variable'].ravel(), decimal=5)
             else:
-                self.assertEqualArray(lexp, y['variable'])
+                self.assertEqualArray(lexp, y['variable'], decimal=5)
         else:
             self.assertEqual(list(sorted(y)),
                              ['output_label', 'output_probability'])
@@ -89,27 +89,27 @@ class TestOnnxConvKNN(ExtTestCase):
                 lprob, DataFrame(y['output_probability']).values,
                 decimal=5)
 
-    def test_onnx_test_knn_single_reg32(self):
+    def test_onnx_test_svm_single_reg32(self):
         self.onnx_test_svm_single_classreg(numpy.float32)
 
-    def test_onnx_test_knn_single_reg32_op10(self):
+    def test_onnx_test_svm_single_reg32_op10(self):
         self.onnx_test_svm_single_classreg(
             numpy.float32, target_opset=10, debug=False)
 
-    def test_onnx_test_knn_single_reg32_onnxruntime1(self):
+    def test_onnx_test_svm_single_reg32_onnxruntime1(self):
         self.onnx_test_svm_single_classreg(
             numpy.float32, runtime="onnxruntime1", target_opset=10)
 
-    def test_onnx_test_knn_single_reg64(self):
+    def test_onnx_test_svm_single_reg64(self):
         self.onnx_test_svm_single_classreg(numpy.float64)
 
     # classification
 
-    def test_onnx_test_knn_single_bin32(self):
+    def test_onnx_test_svm_single_bin32(self):
         self.onnx_test_svm_single_classreg(
             numpy.float32, kind='bin', probability=True)
 
-    def test_onnx_test_knn_single_bin64(self):
+    def test_onnx_test_svm_single_bin64(self):
         self.onnx_test_svm_single_classreg(
             numpy.float64, kind='bin', probability=True)
 
