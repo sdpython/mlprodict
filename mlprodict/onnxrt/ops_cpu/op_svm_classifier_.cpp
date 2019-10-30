@@ -351,14 +351,24 @@ void multiclass_probability(int64_t classcount, const std::vector<NTYPE>& r,
 }
 
 
+py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float>& Z) {
+    return Z.mutable_unchecked<1>();
+}
+
+
+py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double>& Z) {
+    return Z.mutable_unchecked<1>();
+}
+
+
 template<typename NTYPE>
 void RuntimeSVMClassifier<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                 const py::array_t<NTYPE>& X,
                 py::array_t<int64_t>& Y, py::array_t<NTYPE>& Z,
                 int64_t nb_columns) const {
-  auto Y_ = Y.mutable_unchecked<1>();          
-  auto Z_ = Z.mutable_unchecked<1>();          
+  auto Y_ = Y.mutable_unchecked<1>();
+  auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
   const NTYPE* x_data = X.data(0);
   int64_t* y_data = (int64_t*)Y_.data(0);
   NTYPE* z_data = (NTYPE*)Z_.data(0);
