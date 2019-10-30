@@ -15,6 +15,7 @@ from .sklconv.knn import (
     convert_nearest_neighbors_regressor,
     convert_nearest_neighbors_transform,
 )
+from .sklconv.svm_converters import convert_sklearn_svm
 
 
 _overwritten_operators = {
@@ -25,7 +26,10 @@ _overwritten_operators = {
     'SklearnKNeighborsRegressor': convert_nearest_neighbors_regressor,
     'SklearnKNeighborsClassifier': convert_nearest_neighbors_classifier,
     'SklearnNearestNeighbors': convert_nearest_neighbors_transform,
+    'SklearnOneClassSVM': convert_sklearn_svm,
     'SklearnRandomForestRegressor': convert_sklearn_random_forest_regressor_converter,
+    'SklearnSVC': convert_sklearn_svm,
+    'SklearnSVR': convert_sklearn_svm,
 }
 
 

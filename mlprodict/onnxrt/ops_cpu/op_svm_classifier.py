@@ -7,11 +7,63 @@
 from collections import OrderedDict
 import numpy
 from ._op_helper import _get_typed_class_attribute
-from ._op import OpRunClassifierProb
-from .op_svm_classifier_ import RuntimeSVMClassifier  # pylint: disable=E0611
+from ._op import OpRunClassifierProb, RuntimeTypeError
+from ._new_ops import OperatorSchema
+from .op_svm_classifier_ import (  # pylint: disable=E0611
+    RuntimeSVMClassifierFloat,
+    RuntimeSVMClassifierDouble,
+)
 
 
-class SVMClassifier(OpRunClassifierProb):
+class SVMClassifierCommon(OpRunClassifierProb):
+
+    def __init__(self, dtype, onnx_node, desc=None,
+                 expected_attributes=None, **options):
+        OpRunClassifierProb.__init__(self, onnx_node, desc=desc,
+                                     expected_attributes=expected_attributes,
+                                     **options)
+        self._init(dtype=dtype)
+
+    def _get_typed_attributes(self, k):
+        return _get_typed_class_attribute(self, k, SVMClassifier.atts)
+
+    def _find_custom_operator_schema(self, op_name):
+        """
+        Finds a custom operator defined by this runtime.
+        """
+        if op_name == "SVMClassifierDouble":
+            return SVMClassifierDoubleSchema()
+        raise RuntimeError(
+            "Unable to find a schema for operator '{}'.".format(op_name))
+
+    def _init(self, dtype):
+        if dtype == numpy.float32:
+            self.rt_ = RuntimeSVMClassifierFloat()
+        elif dtype == numpy.float64:
+            self.rt_ = RuntimeSVMClassifierDouble()
+        else:
+            raise RuntimeTypeError("Unsupported dtype={}.".format(dtype))
+        atts = [self._get_typed_attributes(k)
+                for k in SVMClassifier.atts]
+        self.rt_.init(*atts)
+
+    def _run(self, x):  # pylint: disable=W0221
+        """
+        This is a C++ implementation coming from
+        :epkg:`onnxruntime`.
+        `svm_classifier.cc
+        <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_classifier.cc>`_.
+        See class :class:`RuntimeSVMClassifier
+        <mlprodict.onnxrt.ops_cpu.op_svm_classifier_.RuntimeSVMClassifier>`.
+        """
+        label, scores = self.rt_.compute(x)
+        if scores.shape[0] != label.shape[0]:
+            scores = scores.reshape(label.shape[0],
+                                    scores.shape[0] // label.shape[0])
+        return (label, scores)
+
+
+class SVMClassifier(SVMClassifierCommon):
 
     atts = OrderedDict([
         ('classlabels_ints', numpy.empty(0, dtype=numpy.int64)),
@@ -28,31 +80,41 @@ class SVMClassifier(OpRunClassifierProb):
     ])
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRunClassifierProb.__init__(self, onnx_node, desc=desc,
-                                     expected_attributes=SVMClassifier.atts,
-                                     **options)
-        self._init()
+        SVMClassifierCommon.__init__(
+            self, numpy.float32, onnx_node, desc=desc,
+            expected_attributes=SVMClassifier.atts,
+            **options)
 
-    def _get_typed_attributes(self, k):
-        return _get_typed_class_attribute(self, k, SVMClassifier.atts)
 
-    def _init(self):
-        self.rt_ = RuntimeSVMClassifier()
-        atts = [self._get_typed_attributes(k)
-                for k in SVMClassifier.atts]
-        self.rt_.init(*atts)
+class SVMClassifierDouble(SVMClassifierCommon):
 
-    def _run(self, x):  # pylint: disable=W0221
-        """
-        This is a C++ implementation coming from
-        :epkg:`onnxruntime`.
-        `svm_regressor.cc
-        <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_regressor.cc>`_.
-        See class :class:`RuntimeSVMClassifier
-        <mlprodict.onnxrt.ops_cpu.op_svm_classifier_.RuntimeSVMClassifier>`.
-        """
-        label, scores = self.rt_.compute(x)
-        if scores.shape[0] != label.shape[0]:
-            scores = scores.reshape(label.shape[0],
-                                    scores.shape[0] // label.shape[0])
-        return (label, scores)
+    atts = OrderedDict([
+        ('classlabels_ints', numpy.empty(0, dtype=numpy.int64)),
+        ('classlabels_strings', []),
+        ('coefficients', numpy.empty(0, dtype=numpy.float64)),
+        ('kernel_params', numpy.empty(0, dtype=numpy.float64)),
+        ('kernel_type', b'NONE'),
+        ('post_transform', b'NONE'),
+        ('prob_a', numpy.empty(0, dtype=numpy.float64)),
+        ('prob_b', numpy.empty(0, dtype=numpy.float64)),
+        ('rho', numpy.empty(0, dtype=numpy.float64)),
+        ('support_vectors', numpy.empty(0, dtype=numpy.float64)),
+        ('vectors_per_class', numpy.empty(0, dtype=numpy.float64)),
+    ])
+
+    def __init__(self, onnx_node, desc=None, **options):
+        SVMClassifierCommon.__init__(
+            self, numpy.float64, onnx_node, desc=desc,
+            expected_attributes=SVMClassifierDouble.atts,
+            **options)
+
+
+class SVMClassifierDoubleSchema(OperatorSchema):
+    """
+    Defines a schema for operators added in this package
+    such as @see cl SVMClassifierDouble.
+    """
+
+    def __init__(self):
+        OperatorSchema.__init__(self, 'SVMClassifierDouble')
+        self.attributes = SVMClassifierDouble.atts

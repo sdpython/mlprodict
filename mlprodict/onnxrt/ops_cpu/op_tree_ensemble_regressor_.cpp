@@ -289,7 +289,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::Initialize() {
     if (parent.second == 0) {
       int64_t id = parent.first;
       it = indices.find(id);
-      tid = tree_ids.find(id)->second;
+      tid = (int)tree_ids.find(id)->second;
       roots_[tid] = it->second;
     }
   }

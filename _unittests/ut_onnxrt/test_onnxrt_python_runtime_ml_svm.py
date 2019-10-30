@@ -4,6 +4,7 @@
 import unittest
 from logging import getLogger
 import platform
+import warnings
 import numpy
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
@@ -15,9 +16,8 @@ except ImportError:
     from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
-from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.ops_cpu._op import RuntimeTypeError
+from mlprodict.onnx_conv import register_rewritten_operators, to_onnx
 
 
 class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
@@ -25,10 +25,25 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
     def setUp(self):
         logger = getLogger('skl2onnx')
         logger.disabled = True
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ResourceWarning)
+            register_rewritten_operators()
 
-    def test_openmp_compilation(self):
-        from mlprodict.onnxrt.ops_cpu.op_svm_regressor_ import RuntimeSVMRegressor  # pylint: disable=E0611
-        ru = RuntimeSVMRegressor()
+    def test_openmp_compilation_float(self):
+        from mlprodict.onnxrt.ops_cpu.op_svm_regressor_ import RuntimeSVMRegressorFloat  # pylint: disable=E0611
+        ru = RuntimeSVMRegressorFloat()
+        r = ru.runtime_options()
+        if platform.system().lower() == 'darwin':
+            # openmp disabled
+            self.assertEqual('', r)
+        else:
+            self.assertEqual('OPENMP', r)
+            nb = ru.omp_get_max_threads()
+            self.assertGreater(nb, 0)
+
+    def test_openmp_compilation_double(self):
+        from mlprodict.onnxrt.ops_cpu.op_svm_regressor_ import RuntimeSVMRegressorDouble  # pylint: disable=E0611
+        ru = RuntimeSVMRegressorDouble()
         r = ru.runtime_options()
         if platform.system().lower() == 'darwin':
             # openmp disabled
@@ -132,7 +147,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         X = numpy.array([[0, 1, 2], [44, 36, 18],
                          [-45, -78, -46]], dtype=numpy.float32)
 
-        for kernel in ['sigmoid', 'rbf', 'linear', 'poly']:
+        for kernel in ['linear', 'sigmoid', 'rbf', 'poly']:
             model = OneClassSVM(kernel=kernel).fit(X)
             X32 = X.astype(numpy.float32)
             model_onnx = to_onnx(model, X32)
@@ -141,21 +156,19 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
             scores = res['scores']
             dec = model.decision_function(X32)
             self.assertEqualArray(scores, dec, decimal=4)
+            # print("32", kernel + ("-" * (7 - len(kernel))), scores - dec, "skl", dec)
 
-        for kernel in ['sigmoid', 'rbf', 'linear', 'poly']:
+        for kernel in ['linear', 'sigmoid', 'rbf', 'poly']:
             model = OneClassSVM(kernel=kernel).fit(X)
             X64 = X.astype(numpy.float64)
             model_onnx = to_onnx(model, X64, dtype=numpy.float64)
+            self.assertIn("SVMRegressorDouble", str(model_onnx))
             oinf = OnnxInference(model_onnx, runtime='python')
-            try:
-                res = oinf.run({'X': X64})
-            except RuntimeTypeError as e:
-                if "Output type mismatch: input 'float64' != output 'float32'" in str(e):
-                    continue
-                raise e
+            res = oinf.run({'X': X64})
             scores = res['scores']
             dec = model.decision_function(X64)
-            self.assertEqualArray(scores, dec)
+            self.assertEqualArray(scores, dec, decimal=4)
+            # print("64", kernel + ("-" * (7 - len(kernel))), scores - dec, "skl", dec)
 
 
 if __name__ == "__main__":
