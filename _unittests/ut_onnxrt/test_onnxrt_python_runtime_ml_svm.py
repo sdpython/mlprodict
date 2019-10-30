@@ -6,6 +6,7 @@ from logging import getLogger
 import platform
 import warnings
 import numpy
+import sklearn
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVR, SVC, LinearSVC, OneClassSVM
@@ -142,6 +143,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqualArray(lprob, got, decimal=5)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(sklearn, '0.22')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_one_class_svm(self):
         X = numpy.array([[0, 1, 2], [44, 36, 18],
@@ -169,6 +171,13 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
             dec = model.decision_function(X32)
             self.assertEqualArray(scores, dec, decimal=4)
             # print("32", kernel + ("-" * (7 - len(kernel))), scores - dec, "skl", dec)
+
+            oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
+            res = oinf.run({'X': X32})
+            scores = res['scores']
+            dec = model.decision_function(X32)
+            self.assertEqualArray(scores.ravel(), dec.ravel(), decimal=4)
+            # print("32", kernel + ("-" * (7 - len(kernel))), scores.ravel() - dec.ravel(), "skl", dec)
 
 
 if __name__ == "__main__":
