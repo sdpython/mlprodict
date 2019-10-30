@@ -149,17 +149,6 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
 
         for kernel in ['linear', 'sigmoid', 'rbf', 'poly']:
             model = OneClassSVM(kernel=kernel).fit(X)
-            X32 = X.astype(numpy.float32)
-            model_onnx = to_onnx(model, X32)
-            oinf = OnnxInference(model_onnx, runtime='python')
-            res = oinf.run({'X': X32})
-            scores = res['scores']
-            dec = model.decision_function(X32)
-            self.assertEqualArray(scores, dec, decimal=4)
-            # print("32", kernel + ("-" * (7 - len(kernel))), scores - dec, "skl", dec)
-
-        for kernel in ['linear', 'sigmoid', 'rbf', 'poly']:
-            model = OneClassSVM(kernel=kernel).fit(X)
             X64 = X.astype(numpy.float64)
             model_onnx = to_onnx(model, X64, dtype=numpy.float64)
             self.assertIn("SVMRegressorDouble", str(model_onnx))
@@ -169,6 +158,17 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
             dec = model.decision_function(X64)
             self.assertEqualArray(scores, dec, decimal=4)
             # print("64", kernel + ("-" * (7 - len(kernel))), scores - dec, "skl", dec)
+
+        for kernel in ['linear', 'sigmoid', 'rbf', 'poly']:
+            model = OneClassSVM(kernel=kernel).fit(X)
+            X32 = X.astype(numpy.float32)
+            model_onnx = to_onnx(model, X32)
+            oinf = OnnxInference(model_onnx, runtime='python')
+            res = oinf.run({'X': X32})
+            scores = res['scores']
+            dec = model.decision_function(X32)
+            self.assertEqualArray(scores, dec, decimal=4)
+            # print("32", kernel + ("-" * (7 - len(kernel))), scores - dec, "skl", dec)
 
 
 if __name__ == "__main__":
