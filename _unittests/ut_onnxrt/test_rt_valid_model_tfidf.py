@@ -1,107 +1,97 @@
 """
-@brief      test log(time=9s)
+@brief      test log(time=3s)
 """
 import unittest
 from logging import getLogger
+from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
-import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
-from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
+from mlprodict.onnxrt.validate import (
+    enumerate_validated_operator_opsets, summary_report
+)
 
 
-class TestRtValidateLabels(ExtTestCase):
+class TestRtValidateTfIdf(ExtTestCase):
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def test_rt_LabelBinarizer(self):
+    def test_rt_tfidfvectorizer_onnxruntime1(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
         verbose = 1 if __name__ == "__main__" else 0
-
-        buffer = []
-
-        def myprint(*args, **kwargs):
-            buffer.append(" ".join(map(str, args)))
 
         debug = True
-        rows = list(enumerate_validated_operator_opsets(
-            verbose, opset_min=11, fLOG=myprint,
-            models={"LabelBinarizer"},
-            runtime='python', debug=debug,
-            filter_exp=lambda m, p: "64" not in p))
-        self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1 if debug else 0)
-
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def test_rt_LabelEncoder(self):
-        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
-        logger = getLogger('skl2onnx')
-        logger.disabled = True
-        verbose = 1 if __name__ == "__main__" else 0
-
         buffer = []
 
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        debug = False
         rows = list(enumerate_validated_operator_opsets(
-            verbose, opset_min=11, fLOG=myprint,
-            models={"LabelEncoder"},  # ,
-            runtime='python', debug=debug,
-            filter_exp=lambda m, p: "64" not in p))
+            verbose, models={"TfidfVectorizer"}, opset_min=11,
+            opset_max=11, fLOG=myprint,
+            runtime='onnxruntime1', debug=debug,
+            filter_exp=lambda m, p: True))
         self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1 if debug else 0)
+        self.assertIn('skl_nop', rows[0])
+        self.assertIn('onx_size', rows[-1])
+        piv = summary_report(DataFrame(rows))
+        self.assertGreater(piv.shape[0], 1)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def test_rt_FeatureHasher(self):
+    def test_rt_tfidfvectorizer_python(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
         verbose = 1 if __name__ == "__main__" else 0
 
+        debug = False
         buffer = []
 
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        debug = False
         rows = list(enumerate_validated_operator_opsets(
-            verbose, opset_min=11, fLOG=myprint,
-            models={"FeatureHasher"},
+            verbose, models={"TfidfVectorizer"}, opset_min=11,
+            opset_max=11, fLOG=myprint,
             runtime='python', debug=debug,
-            filter_exp=lambda m, p: "64" not in p))
+            filter_exp=lambda m, p: True))
         self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1 if debug else 0)
+        self.assertIn('skl_nop', rows[0])
+        self.assertIn('onx_size', rows[-1])
+        piv = summary_report(DataFrame(rows))
+        self.assertGreater(piv.shape[0], 1)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def test_rt_OneHotEncoder(self):
+    def test_rt_tfidftransformer_onnxruntime1(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
         verbose = 1 if __name__ == "__main__" else 0
 
+        debug = False
         buffer = []
 
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        debug = False
         rows = list(enumerate_validated_operator_opsets(
-            verbose, opset_min=11, fLOG=myprint,
-            models={"OneHotEncoder"},
-            runtime='python', debug=debug,
-            filter_exp=lambda m, p: "64" not in p))
+            verbose, models={"TfidfTransformer"}, opset_min=11,
+            opset_max=11, fLOG=myprint,
+            runtime='onnxruntime1', debug=debug,
+            filter_exp=lambda m, p: True))
         self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1 if debug else 0)
+        self.assertIn('skl_nop', rows[0])
+        self.assertIn('onx_size', rows[-1])
+        piv = summary_report(DataFrame(rows))
+        self.assertGreater(piv.shape[0], 1)
 
 
 if __name__ == "__main__":
+    # TestRtValidateTfIdf().test_rt_tfidfvectorizer_onnxruntime1()
     unittest.main()

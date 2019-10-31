@@ -591,6 +591,7 @@ class OnnxInference:
             if verbose != 0:
                 warnings.warn(
                     "verbose option not implemented if runtime is 'onnxruntime1'")
+            print('***', inputs)
             res = self._whole.run(inputs)
             return {k: v for k, v in zip(self.outputs_, res)}
 

@@ -34,7 +34,7 @@ html_context = {
     'css_files': get_default_stylesheet() + ['_static/my-styles.css', '_static/gallery.css'],
 }
 
-html_logo = "project_ico.png"
+html_logo = "phdoc_static/project_ico.png"
 
 html_sidebars = {}
 

@@ -8,7 +8,10 @@ from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 from sklearn.model_selection import train_test_split
 import skl2onnx
 from mlprodict.onnx_conv import to_onnx

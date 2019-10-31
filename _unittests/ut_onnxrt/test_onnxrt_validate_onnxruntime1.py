@@ -8,7 +8,10 @@ from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import get_temp_folder, ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import (
     sklearn_operators, enumerate_validated_operator_opsets, summary_report
 )

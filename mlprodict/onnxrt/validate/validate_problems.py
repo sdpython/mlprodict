@@ -21,7 +21,9 @@ except ImportError:
     # new in 0.22
     StackingClassifier, StackingRegressor = None, None
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import (
+    CountVectorizer, TfidfVectorizer, TfidfTransformer
+)
 from sklearn.feature_selection import (
     RFE, RFECV, GenericUnivariateSelect,
     SelectPercentile, SelectFwe, SelectKBest,
@@ -375,6 +377,65 @@ def _problem_for_dict_vectorizer(dtype=numpy.float32, n_features=None):
     return (y2, y, itt, 'transform', 0, y2)
 
 
+text_alpha_num = [
+    ('zero', 0),
+    ('one', 1),
+    ('two', 2),
+    ('three', 3),
+    ('four', 4),
+    ('five', 5),
+    ('six', 6),
+    ('seven', 7),
+    ('eight', 8),
+    ('nine', 9),
+    ('dix', 10),
+    ('eleven', 11),
+    ('twelve', 12),
+    ('thirteen', 13),
+    ('fourteen', 14),
+    ('fifteen', 15),
+    ('sixteen', 16),
+    ('seventeen', 17),
+    ('eighteen', 18),
+    ('nineteen', 19),
+    ('twenty', 20),
+    ('twenty one', 21),
+    ('twenty two', 22),
+    ('twenty three', 23),
+    ('twenty four', 24),
+    ('twenty five', 25),
+    ('twenty six', 26),
+    ('twenty seven', 27),
+    ('twenty eight', 28),
+    ('twenty nine', 29),
+]
+
+
+def _problem_for_tfidf_vectorizer(dtype=numpy.float32, n_features=None):
+    """
+    Returns a problem for the :epkg:`sklearn:feature_extraction:text:TfidfVectorizer`.
+    """
+    X = numpy.array([_[0] for _ in text_alpha_num])
+    y = numpy.array([_[1] for _ in text_alpha_num], dtype=dtype)
+    itt = [("X", StringTensorType([None]))]
+    return (X, y, itt, 'transform', 0, X)
+
+
+def _problem_for_tfidf_transformer(dtype=numpy.float32, n_features=None):
+    """
+    Returns a problem for the :epkg:`sklearn:feature_extraction:text:TfidfTransformer`.
+    """
+    X = numpy.array([_[0] for _ in text_alpha_num])
+    y = numpy.array([_[1] for _ in text_alpha_num], dtype=dtype)
+    X2 = CountVectorizer().fit_transform(X).astype(dtype)
+    if dtype == numpy.float32:
+        cl = FloatTensorType
+    else:
+        cl = DoubleTensorType
+    itt = [("X", cl([None, X2.shape[1]]))]
+    return (X2, y, itt, 'transform', 0, X2)
+
+
 def _problem_for_feature_hasher(dtype=numpy.float32, n_features=None):
     """
     Returns a problem for the :epkg:`sklearn:feature_extraction:DictVectorizer`.
@@ -423,6 +484,7 @@ def find_suitable_problem(model):
     * `num-tr-clu`: similar to cluster, but returns
         scores or distances instead of cluster
     * `key-col`: list of dictionaries
+    * `text-col`: one column of text
 
     Suffix `nofit` indicates the predictions happens
     without the model being fitted. This is the case
@@ -476,7 +538,7 @@ def find_suitable_problem(model):
     """
     from ...onnx_conv.validate_scenarios import find_suitable_problem as ext_find_suitable_problem
 
-    def _internal(model):
+    def _internal(model):  # pylint: disable=R0911
 
         # checks that this model is not overwritten by this module
         ext = ext_find_suitable_problem(model)
@@ -498,7 +560,13 @@ def find_suitable_problem(model):
         if model in {DictVectorizer}:
             return ['key-int-col']
 
-        if model in {FeatureHasher, CountVectorizer}:
+        if model in {TfidfVectorizer, CountVectorizer}:
+            return ['text-col']
+
+        if model in {TfidfTransformer}:
+            return ['bow']
+
+        if model in {FeatureHasher}:
             return ['key-str-col']
 
         if model in {OneHotEncoder}:
@@ -782,4 +850,6 @@ _problems = {
     "key-str-col": _problem_for_feature_hasher,
     "int-col": _problem_for_label_encoder,
     "one-hot": _problem_for_one_hot_encoder,
+    'text-col': _problem_for_tfidf_vectorizer,
+    'bow': _problem_for_tfidf_transformer,
 }

@@ -9,7 +9,10 @@ import onnx
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 from sklearn.gaussian_process.kernels import RBF, ExpSineSquared
 from sklearn.datasets import load_boston
 from sklearn.model_selection import train_test_split

@@ -83,7 +83,8 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
                  debug, verbose, fLOG):
     if dofit:
         if verbose >= 2 and fLOG is not None:
-            fLOG("[enumerate_compatible_opset] fit, type: '{}'".format(type(X_train)))
+            fLOG("[enumerate_compatible_opset] fit, type: '{}' dtype: {}".format(
+                type(X_train), getattr(X_train, 'dtype', '-')))
         try:
             if y_train is None:
                 t4 = _measure_time(lambda: inst.fit(X_train))[1]
@@ -499,6 +500,10 @@ def _call_conv_runtime_opset(
                     obs_op["_4convert_exc"] = e
                     yield obs_op.copy()
                     continue
+
+                if verbose >= 6 and fLOG is not None:
+                    fLOG(
+                        "[enumerate_compatible_opset] ONNX:\n{}".format(conv))
 
                 if all_conv_options.get('optim', '') == 'cdist':
                     check_cdist = [_ for _ in str(conv).split('\n')

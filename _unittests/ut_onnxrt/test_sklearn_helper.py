@@ -11,7 +11,10 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, MinMaxScaler
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor
 import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611

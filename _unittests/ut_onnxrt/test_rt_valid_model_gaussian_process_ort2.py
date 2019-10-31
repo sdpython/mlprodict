@@ -8,7 +8,10 @@ from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, unittest_require_at_least
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from onnxruntime import __version__ as ort_version

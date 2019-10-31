@@ -5,7 +5,10 @@
 import os
 import unittest
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from pyquickhelper.ipythonhelper import test_notebook_execution_coverage

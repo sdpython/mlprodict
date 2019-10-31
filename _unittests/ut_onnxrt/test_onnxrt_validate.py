@@ -10,7 +10,10 @@ from pyquickhelper.pycode import (
     get_temp_folder, ExtTestCase, skipif_circleci, unittest_require_at_least
 )
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
 

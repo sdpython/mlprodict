@@ -7,7 +7,10 @@ import numpy
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor

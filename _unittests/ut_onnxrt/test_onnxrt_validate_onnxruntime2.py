@@ -10,7 +10,10 @@ from pyquickhelper.pycode import get_temp_folder, ExtTestCase, unittest_require_
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report

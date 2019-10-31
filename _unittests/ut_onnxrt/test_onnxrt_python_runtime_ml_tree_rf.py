@@ -6,7 +6,10 @@ from logging import getLogger
 import numpy
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 from sklearn.ensemble import RandomForestRegressor
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import (

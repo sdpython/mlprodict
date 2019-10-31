@@ -3,7 +3,10 @@
 """
 import os
 import unittest
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 from skl2onnx.common.exceptions import MissingShapeCalculator
 from pyquickhelper.pycode import ExtTestCase
 
