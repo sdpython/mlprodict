@@ -25,7 +25,7 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb):
         self._init(dtype=dtype)
 
     def _get_typed_attributes(self, k):
-        return _get_typed_class_attribute(self, k, TreeEnsembleClassifier.atts)
+        return _get_typed_class_attribute(self, k, self.__class__.atts)
 
     def _find_custom_operator_schema(self, op_name):
         """

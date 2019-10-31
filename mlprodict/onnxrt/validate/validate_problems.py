@@ -507,12 +507,15 @@ def find_suitable_problem(model):
         if model in {LabelBinarizer, LabelEncoder}:
             return ['int-col']
 
+        if model in {NuSVC, SVC, SGDClassifier}:
+            return ['b-cl', 'm-cl', '~b-cl-64']
+
         if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
                      ComplementNB, GaussianNB, GaussianProcessClassifier,
                      GradientBoostingClassifier, LabelPropagation, LabelSpreading,
                      LinearDiscriminantAnalysis, LogisticRegressionCV,
-                     MultinomialNB, NuSVC, QuadraticDiscriminantAnalysis,
-                     RandomizedSearchCV, SGDClassifier, SVC}:
+                     MultinomialNB, QuadraticDiscriminantAnalysis,
+                     RandomizedSearchCV}:
             return ['b-cl', 'm-cl']
 
         if model in {Perceptron}:

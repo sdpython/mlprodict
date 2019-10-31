@@ -29,6 +29,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", ResourceWarning)
             register_rewritten_operators()
+        return self
 
     def test_openmp_compilation_float(self):
         from mlprodict.onnxrt.ops_cpu.op_svm_regressor_ import RuntimeSVMRegressorFloat  # pylint: disable=E0611
@@ -153,12 +154,13 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
             model = OneClassSVM(kernel=kernel).fit(X)
             X64 = X.astype(numpy.float64)
             model_onnx = to_onnx(model, X64, dtype=numpy.float64)
+            model.decision_function(X64)
             self.assertIn("SVMRegressorDouble", str(model_onnx))
             oinf = OnnxInference(model_onnx, runtime='python')
             res = oinf.run({'X': X64})
             scores = res['scores']
             dec = model.decision_function(X64)
-            self.assertEqualArray(scores, dec, decimal=4)
+            self.assertEqualArray(scores, dec)
             # print("64", kernel + ("-" * (7 - len(kernel))), scores - dec, "skl", dec)
 
         for kernel in ['linear', 'sigmoid', 'rbf', 'poly']:
@@ -181,4 +183,5 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestOnnxrtPythonRuntimeMlSVM().setUp().test_onnxrt_python_one_class_svm()
     unittest.main()

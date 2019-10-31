@@ -139,9 +139,9 @@ void RuntimeSVMRegressor<NTYPE>::init(
       degree_ = kernel_params_local[2];
     }
     else {
-      gamma_ = 0.f;
-      coef0_ = 0.f;
-      degree_ = 0.f;
+      gamma_ = (NTYPE)0;
+      coef0_ = (NTYPE)0;
+      degree_ = (NTYPE)0;
     }
     
     Initialize();
@@ -238,12 +238,12 @@ void RuntimeSVMRegressor<NTYPE>::compute_gil_free(
   for (int64_t n = 0; n < N; ++n) {  //for each example
     int64_t current_weight_0 = n * stride;
 
-    NTYPE sum = 0.f;
+    NTYPE sum = (NTYPE)0;
     if (mode_ == SVM_TYPE::SVM_SVC) {
       for (int64_t j = 0; j < vector_count_; ++j) {
         NTYPE val1 = kernel_dot_gil_free(x_data, current_weight_0, support_vectors_,
                                          feature_count_ * j, feature_count_, kernel_type_);
-        sum += val1 * coefficients_[j];
+        sum += coefficients_[j] * val1;
       }
       sum += rho_[0];
     } else if (mode_ == SVM_TYPE::SVM_LINEAR) {  //liblinear
@@ -251,9 +251,7 @@ void RuntimeSVMRegressor<NTYPE>::compute_gil_free(
                                 feature_count_, kernel_type_);
       sum += rho_[0];
     }
-    z_data[n] = (one_class_ && sum > 0) 
-                    ? 1.f
-                    : (one_class_ ? -1.f : sum);
+    z_data[n] = one_class_ ? (sum > 0 ? 1 : -1) : sum;
   }
 }
 
