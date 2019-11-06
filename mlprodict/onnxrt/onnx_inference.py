@@ -8,6 +8,7 @@ from io import BytesIO
 from time import perf_counter
 import warnings
 import numpy
+from scipy.sparse import coo_matrix
 import pandas
 from onnx import load, load_model, checker, shape_inference
 from onnx import onnx_pb as onnx_proto
@@ -266,8 +267,9 @@ class OnnxInference:
                 atts = dobj['atts']
                 for k, v in atts.items():
                     if not isinstance(v, dict) or 'value' not in v:
-                        raise RuntimeError("A parameter has no value '{}' for node '{}'\nv={}\ndobj=[{}]".format(
-                            k, node.name, v, node))
+                        raise RuntimeError(
+                            "A parameter has no (sparse) value '{}' for node '{}'\nv={}\ndobj=[{}]".format(
+                                k, node.name, v, node))
             nodes[node.name] = OnnxInferenceNode(node, dobj, self.global_index)
 
         # names
@@ -477,8 +479,10 @@ class OnnxInference:
                     obj = values[self._global_index[k]]
                     if k not in printed:
                         printed.add(k)
-                        fLOG("-kv='{}' shape={} dtype={} min={} max={}".format(
-                            k, obj.shape, obj.dtype, numpy.min(obj), numpy.max(obj)))
+                        fLOG("-kv='{}' shape={} dtype={} min={} max={}{}".format(
+                            k, obj.shape, obj.dtype, numpy.min(
+                                obj), numpy.max(obj),
+                            ' (sparse)' if isinstance(obj, coo_matrix) else ''))
 
             keys = set(k for k in range(len(values)) if values[k] is not None)
             if verbose >= 1:
@@ -504,9 +508,10 @@ class OnnxInference:
                             name for name in self._global_index if self._global_index[name] == k)
                         if isinstance(values[k], numpy.ndarray):
                             name = name[0]
-                            fLOG("+kr='{}': {} (dtype={} min={} max={})".format(
+                            fLOG("+kr='{}': {} (dtype={} min={} max={}{})".format(
                                 name, values[k].shape, values[k].dtype,
-                                numpy.min(values[k]), numpy.max(values[k])))
+                                numpy.min(values[k]), numpy.max(values[k]),
+                                ' sparse' if isinstance(values[k], coo_matrix) else ''))
                             if verbose >= 3:
                                 dispsimple(values[k])
                         else:
@@ -757,6 +762,7 @@ class OnnxInference:
         and node `D` only needs the shape of `B`. Then `B` could
         be overwritten as well.
         """
+        forbid = {}
         values = OrderedDict()
         for k in self.inputs_:
             values[k] = dict(inplace=input_inplace, to=[], fr=[])
@@ -766,6 +772,9 @@ class OnnxInference:
             for n in node.inputs:
                 values[n]['to'].append(node)
             for n in node.outputs:
+                if node.op_type == 'Constant':
+                    # We cannot modify constant.
+                    forbid[n] = node
                 if n not in values:
                     values[n] = dict(inplace=None, to=[], fr=[])
                 values[n]['fr'].append(node)
@@ -777,6 +786,8 @@ class OnnxInference:
             modif = 0
             for n, v in values.items():
                 if v['inplace'] is not None:
+                    continue
+                if n in forbid:
                     continue
                 if len(v['to']) == 1:
                     v['inplace'] = True

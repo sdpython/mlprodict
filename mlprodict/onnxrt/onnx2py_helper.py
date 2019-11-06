@@ -5,6 +5,7 @@ readable :epgk:`python` objects.
 """
 import warnings
 import numpy
+from scipy.sparse import coo_matrix
 from onnx import onnx_pb as onnx_proto
 
 
@@ -15,11 +16,37 @@ def _numpy_array(data, dtype=None, copy=True):
     @param      data        data
     @param      dtype       dtype
     @param      copy        copy
+    @return                 numpy array
     """
     if isinstance(data, numpy.ndarray):
         res = data
     else:
         res = numpy.array(data, dtype=dtype, copy=copy)
+    return res
+
+
+def _sparse_array(shape, data, indices, dtype=None, copy=True):
+    """
+    Single function to create an sparse array
+    (:epkg:`coo_matrix`).
+
+    @param      shape       shape
+    @param      data        data
+    @param      indices     indices
+    @param      dtype       dtype
+    @param      copy        copy
+    @return                 :epkg:`coo_matrix`
+    """
+    if len(shape) != 2:
+        raise ValueError("Only matrices are allowed or sparse matrices "
+                         "but shape is {}.".format(shape))
+    rows = numpy.array([i // shape[1] for i in indices])
+    cols = numpy.array([i % shape[1] for i in indices])
+    if isinstance(data, numpy.ndarray):
+        res = coo_matrix((data, (rows, cols)), dtype=dtype)
+    else:
+        res = coo_matrix((numpy.array(data, dtype=dtype, copy=copy),
+                          (rows, cols)), dtype=dtype)
     return res
 
 
@@ -70,7 +97,13 @@ def _var_as_dict(var):
     if hasattr(var, 'type') and str(var.type) != '':
         # variable
         if var.type is not None:
-            if hasattr(var.type, 'tensor_type') and var.type.tensor_type.elem_type > 0:
+            if hasattr(var, 'sparse_tensor') and var.type == 11:
+                # sparse tensor
+                t = var.sparse_tensor
+                values = _var_as_dict(t.values)
+                dims = list(t.dims)
+                dtype = dict(kind='sparse_tensor', shape=tuple(dims), elem=1)
+            elif hasattr(var.type, 'tensor_type') and var.type.tensor_type.elem_type > 0:
                 t = var.type.tensor_type
                 elem_type = _elem_type_as_str(t.elem_type)
                 shape = t.shape
@@ -109,7 +142,19 @@ def _var_as_dict(var):
 
         res = dict(name=var.name, type=dtype)
 
-        if hasattr(var, 'floats') and dtype.get('elem', None) == 6:
+        if (hasattr(var, 'sparse_tensor') and dtype.get('elem', None) == 1 and
+                dtype['kind'] == 'sparse_tensor'):
+            # sparse matrix
+            t = var.sparse_tensor
+            try:
+                values = _var_as_dict(t.values)
+            except NotImplementedError as e:
+                raise NotImplementedError(
+                    "Issue with\n{}\n---".format(var)) from e
+            indices = _var_as_dict(t.indices)
+            res['value'] = _sparse_array(
+                dtype['shape'], values['value'], indices['value'], dtype=numpy.float32)
+        elif hasattr(var, 'floats') and dtype.get('elem', None) == 6:
             res['value'] = _numpy_array(var.floats, dtype=numpy.float32)
         elif hasattr(var, 'strings') and dtype.get('elem', None) == 8:
             res['value'] = _numpy_array(var.strings)
@@ -125,6 +170,9 @@ def _var_as_dict(var):
             res['value'] = var.g
         elif hasattr(var, 't') and dtype.get('elem', None) == 4:
             ts = _var_as_dict(var.t)
+            res['value'] = ts['value']
+        elif hasattr(var, 'sparse_tensor') and dtype.get('elem', None) == 11:
+            ts = _var_as_dict(var.sparse_tensor)
             res['value'] = ts['value']
         elif "'value'" in str(var):
             warnings.warn("No value: {} -- {}".format(
@@ -187,7 +235,7 @@ def _var_as_dict(var):
 
     else:
         raise NotImplementedError(
-            "Unable to guess which object it is.\n{}".format(var))
+            "Unable to guess which object it is.\n{}\n---".format(var))
 
 
 def _type_to_string(dtype):

@@ -9,7 +9,7 @@ def numpy_dot_inplace(inplaces, a, b):
     """
     Implements a dot product, deals with inplace information.
     """
-    if inplaces.get(0, False):
+    if inplaces.get(0, False) and hasattr(a, 'flags'):
         if a.flags['F_CONTIGUOUS']:
             if len(b.shape) == len(a.shape) == 2 and b.shape[1] <= a.shape[1]:
                 numpy.dot(a, b, out=a[:, :b.shape[1]])
@@ -17,7 +17,7 @@ def numpy_dot_inplace(inplaces, a, b):
             if len(b.shape) == 1:
                 numpy.dot(a, b.reshape(b.shape[0], 1), out=a[:, :1])
                 return a[:, :1].reshape(a.shape[0])
-    if inplaces.get(1, False):
+    if inplaces.get(1, False) and hasattr(b, 'flags'):
         if b.flags['C_CONTIGUOUS']:
             if len(b.shape) == len(a.shape) == 2 and a.shape[0] <= b.shape[0]:
                 numpy.dot(a, b, out=b[:a.shape[0], :])

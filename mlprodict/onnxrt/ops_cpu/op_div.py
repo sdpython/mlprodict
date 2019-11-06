@@ -13,3 +13,7 @@ class Div(OpRunBinaryNumpy):
     def __init__(self, onnx_node, desc=None, **options):
         OpRunBinaryNumpy.__init__(self, numpy.divide, onnx_node,
                                   desc=desc, **options)
+
+    def _run(self, a, b):  # pylint: disable=W0221
+        res = OpRunBinaryNumpy._run(self, a, b)
+        return (res[0].astype(a.dtype), )

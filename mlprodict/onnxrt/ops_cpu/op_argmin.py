@@ -20,13 +20,17 @@ class ArgMin(OpRunArg):
     def _run(self, data):  # pylint: disable=W0221
         r = numpy.argmin(data, axis=self.axis)
         if self.keepdims == 0:
-            return (r, )
+            r = r.astype(numpy.int64)
         else:
             if len(data.shape) == 2:
-                if self.axis == 0:
-                    return (r[numpy.newaxis, :], )
+                if len(r.shape) == 2:
+                    r = r.astype(numpy.int64)
                 else:
-                    return (r[:, numpy.newaxis], )
+                    if self.axis == 0:
+                        r = r.astype(numpy.int64)[numpy.newaxis, :]
+                    else:
+                        r = r.astype(numpy.int64)[:, numpy.newaxis]
             else:
                 raise NotImplementedError(
                     "keepdims not implemented for dimension > 2.")
+        return (r, )

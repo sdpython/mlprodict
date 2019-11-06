@@ -6,12 +6,16 @@ from logging import getLogger
 from contextlib import redirect_stdout
 from io import StringIO
 import numpy
+from scipy.sparse import coo_matrix, csr_matrix, SparseEfficiencyWarning
 from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
 import onnx
 from onnx.defs import onnx_opset_version
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.utils.extmath import softmax
-from sklearn.utils.testing import ignore_warnings
+try:
+    from sklearn.utils._testing import ignore_warnings
+except ImportError:
+    from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
@@ -37,13 +41,39 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.validate_helper import get_opset_number_from_onnx
 
 
+sparse_support = []
+sparse_no_numpy = []
+
+
+def make_coo_matrix(*args, **kwargs):
+    coo = coo_matrix(*args, **kwargs)
+    coo.row = coo.row.astype(numpy.int64)
+    coo.col = coo.col.astype(numpy.int64)
+    return coo
+
+
 class TestOnnxrtPythonRuntime(ExtTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        if __name__ == "__main__":
+            import pprint
+            print('-----------')
+            pprint.pprint(sparse_support)
+            print('-----------')
+            pprint.pprint(sparse_no_numpy)
+            print('-----------')
 
     def setUp(self):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
-    @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
+    @ignore_warnings(category=(RuntimeWarning, DeprecationWarning,
+                               SparseEfficiencyWarning, PendingDeprecationWarning))
     def common_test_onnxt_runtime_unary(self, onnx_cl, np_fct,
                                         op_version=None, debug=False):
         try:
@@ -95,18 +125,74 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(expe, got['Y'], decimal=6)
 
-    @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
+        # sparse
+        row = numpy.array([0, 0, 1, 3, 1])
+        col = numpy.array([0, 2, 1, 3, 1])
+        data = numpy.array([1, 1, 1, 1, 1])
+        X = make_coo_matrix((data, (row.astype(numpy.int64), col.astype(numpy.int64))),
+                            shape=(4, 4), dtype=numpy.float32)
+        try:
+            exp = np_fct(X)
+        except (TypeError, NotImplementedError, ValueError) as e:
+            # Function np_fct does not work on sparse data.
+            sparse_no_numpy.append((onnx_cl.__name__, op_version, e))
+            return
+
+        model_def_sparse = onx.to_onnx(
+            {'X': X.astype(numpy.float32)}, target_opset=op_version)
+        oinf = OnnxInference(
+            model_def_sparse, input_inplace=False, inplace=True)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualSparseArray(exp, got['Y'], decimal=6)
+        sparse_support.append(('UnOp', op_version, onnx_cl.__name__))
+
+    @ignore_warnings(category=(RuntimeWarning, DeprecationWarning,
+                               SparseEfficiencyWarning, PendingDeprecationWarning))
     def common_test_onnxt_runtime_binary(self, onnx_cl, np_fct,
-                                         dtype=numpy.float32):
+                                         dtype=numpy.float32,
+                                         op_version=None, debug=False):
         idi = numpy.identity(2)
         onx = onnx_cl('X', idi, output_names=['Y'])
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=op_version)
         oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X.astype(dtype)})
+        if debug:
+            got = oinf.run({'X': X.astype(dtype)}, verbose=1, fLOG=print)
+        else:
+            got = oinf.run({'X': X.astype(dtype)})
         self.assertEqual(list(sorted(got)), ['Y'])
         exp = np_fct(X, idi)
         self.assertEqualArray(exp, got['Y'], decimal=6)
+
+        # sparse
+        idi = make_coo_matrix(numpy.identity(2)).astype(numpy.float32)
+        X = make_coo_matrix(numpy.array(
+            [[0, 2], [3, -4]], dtype=numpy.float32))
+        try:
+            exp = np_fct(X, idi)
+        except (TypeError, NotImplementedError, ValueError) as e:
+            # Function np_fct does not work on sparse data.
+            sparse_no_numpy.append((onnx_cl.__name__, op_version, e))
+            return
+
+        onx = onnx_cl('X', idi, output_names=['Y'])
+        model_def_sparse = onx.to_onnx({'X': X}, target_opset=op_version)
+        oinf = OnnxInference(
+            model_def_sparse, input_inplace=False, inplace=True)
+        if debug:
+            got = oinf.run({'X': X}, verbose=1, fLOG=print)
+        else:
+            got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        if isinstance(exp, (coo_matrix, csr_matrix)):
+            self.assertEqualSparseArray(exp, got['Y'], decimal=6)
+        elif isinstance(exp, numpy.ndarray):
+            self.assertEqualArray(exp, got['Y'], decimal=6)
+        else:
+            self.assertEqual(exp, got['Y'])
+        sparse_support.append(('BinOp', op_version, onnx_cl.__name__))
 
     def test_onnxt_runtime_abs(self):
         self.common_test_onnxt_runtime_unary(OnnxAbs, numpy.abs)
@@ -147,6 +233,22 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(numpy.argmax(X, axis=1).ravel(),
                               got['Y'].ravel())
 
+        # sparse
+        X = make_coo_matrix(X, dtype=numpy.float32)
+        try:
+            exp = numpy.argmax(X, axis=1)
+        except (TypeError, NotImplementedError, ValueError) as e:
+            # Function np_fct does not work on sparse data.
+            sparse_no_numpy.append((OnnxArgMax.__name__, None, e))
+            return
+
+        model_def_sparse = onx.to_onnx({'X': X})
+        oinf = OnnxInference(model_def_sparse, input_inplace=False)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(exp, got['Y'], decimal=6)
+        sparse_support.append(('UnOp', None, OnnxArgMax.__name__))
+
     def test_onnxt_runtime_argmin(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
@@ -172,6 +274,22 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.argmin(X, axis=1).ravel(),
                               got['Y'].ravel())
+
+        # sparse
+        X = make_coo_matrix(X, dtype=numpy.float32)
+        try:
+            exp = numpy.argmin(X, axis=1)
+        except (TypeError, NotImplementedError, ValueError) as e:
+            # Function np_fct does not work on sparse data.
+            sparse_no_numpy.append((OnnxArgMin.__name__, None, e))
+            return
+
+        model_def_sparse = onx.to_onnx({'X': X})
+        oinf = OnnxInference(model_def_sparse, input_inplace=False)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(exp, got['Y'], decimal=6)
+        sparse_support.append(('UnOp', None, OnnxArgMin.__name__))
 
     def test_onnxt_runtime_ceil(self):
         self.common_test_onnxt_runtime_unary(OnnxCeil, numpy.ceil)

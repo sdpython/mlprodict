@@ -25,7 +25,7 @@ def type_mapping(name):
     """
     di = dict(FLOAT=1, FLOATS=6, GRAPH=5, GRAPHS=10, INT=2,
               INTS=7, STRING=3, STRINGS=8, TENSOR=4,
-              TENSORS=9, UNDEFINED=0)
+              TENSORS=9, UNDEFINED=0, SPARSE_TENSOR=11)
     if name is None:
         return di
     elif isinstance(name, str):
