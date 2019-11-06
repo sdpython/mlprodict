@@ -24,6 +24,7 @@ namespace py = pybind11;
 #endif
 
 #include "op_common_.hpp"
+#include "op_common_num_.hpp"
 
 
 template<typename NTYPE>
@@ -271,13 +272,11 @@ NTYPE RuntimeSVMClassifier<NTYPE>::kernel_dot_gil_free(
     const NTYPE* pA = A + a;
     const NTYPE* pB = B.data() + b;
     if (k == KERNEL::POLY) {
-      for (int64_t i = len; i > 0; --i, ++pA, ++pB)
-        sum += *pA * *pB;
+      sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
       sum = gamma_ * sum + coef0_;
       sum = std::pow(sum, degree_);
     } else if (k == KERNEL::SIGMOID) {
-      for (int64_t i = len; i > 0; --i, ++pA, ++pB)
-        sum += *pA * *pB;
+      sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
       sum = gamma_ * sum + coef0_;
       sum = std::tanh(sum);
     } else if (k == KERNEL::RBF) {
@@ -287,8 +286,7 @@ NTYPE RuntimeSVMClassifier<NTYPE>::kernel_dot_gil_free(
       }
       sum = std::exp(-gamma_ * sum);
     } else if (k == KERNEL::LINEAR) {
-      for (int64_t i = len; i > 0; --i, ++pA, ++pB)
-        sum += *pA * *pB;
+      sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
     }
     return (NTYPE)sum;
 }

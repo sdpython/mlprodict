@@ -215,7 +215,8 @@ if not r:
     ext_tree_ensemble_classifier = Extension(
         'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_classifier_.cpp'),
-         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
         include_dirs=[
@@ -230,7 +231,8 @@ if not r:
     ext_tree_ensemble_regressor = Extension(
         'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_regressor_.cpp'),
-         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
         include_dirs=[
@@ -245,7 +247,8 @@ if not r:
     ext_svm_regressor = Extension(
         'mlprodict.onnxrt.ops_cpu.op_svm_regressor_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_svm_regressor_.cpp'),
-         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
         include_dirs=[
@@ -260,7 +263,8 @@ if not r:
     ext_svm_classifier = Extension(
         'mlprodict.onnxrt.ops_cpu.op_svm_classifier_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_svm_classifier_.cpp'),
-         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
         include_dirs=[

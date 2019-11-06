@@ -19,6 +19,7 @@ import skl2onnx
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_rewritten_operators, to_onnx
+from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 
 
 class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
@@ -73,6 +74,64 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqual(lexp.shape, y['variable'].shape)
         self.assertEqualArray(lexp, y['variable'], decimal=5)
 
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_onnxrt_python_SVR_double(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = SVR()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float64),
+                            dtype=numpy.float64)
+        oinf = OnnxInference(model_def)
+        text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
+        self.assertIn("SVMRegressor", text)
+        y = oinf.run({'X': X_test.astype(numpy.float64)})
+        self.assertEqual(list(sorted(y)), ['variable'])
+        lexp = clr.predict(X_test)
+        self.assertEqual(lexp.shape, y['variable'].shape)
+        self.assertEqualArray(lexp, y['variable'], decimal=5)
+
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_onnxrt_python_SVR_20(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X = _modify_dimension(X, 20)
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = SVR()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
+        self.assertIn("SVMRegressor", text)
+        y = oinf.run({'X': X_test.astype(numpy.float32)})
+        self.assertEqual(list(sorted(y)), ['variable'])
+        lexp = clr.predict(X_test)
+        self.assertEqual(lexp.shape, y['variable'].shape)
+        self.assertEqualArray(lexp, y['variable'], decimal=5)
+
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_onnxrt_python_SVR_double_20(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X = _modify_dimension(X, 20)
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = SVR()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float64),
+                            dtype=numpy.float64)
+        oinf = OnnxInference(model_def)
+        text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
+        self.assertIn("SVMRegressor", text)
+        y = oinf.run({'X': X_test.astype(numpy.float64)})
+        self.assertEqual(list(sorted(y)), ['variable'])
+        lexp = clr.predict(X_test)
+        self.assertEqual(lexp.shape, y['variable'].shape)
+        self.assertEqualArray(lexp, y['variable'], decimal=5)
+
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVC_proba(self):
@@ -87,6 +146,57 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
         self.assertIn("SVMClassifier", text)
         y = oinf.run({'X': X_test.astype(numpy.float32)})
+        self.assertEqual(list(sorted(y)), [
+                         'output_label', 'output_probability'])
+        lexp = clr.predict(X_test)
+        lprob = clr.predict_proba(X_test)
+        got = y['output_probability'].values
+        self.assertEqual(lexp.shape, y['output_label'].shape)
+        self.assertEqual(lprob.shape, got.shape)
+        self.assertEqualArray(lexp, y['output_label'], decimal=5)
+        self.assertEqualArray(lprob, got, decimal=5)
+
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_onnxrt_python_SVC_proba_20(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X = _modify_dimension(X, 20)
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = SVC(probability=True)
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
+        self.assertIn("SVMClassifier", text)
+        y = oinf.run({'X': X_test.astype(numpy.float32)})
+        self.assertEqual(list(sorted(y)), [
+                         'output_label', 'output_probability'])
+        lexp = clr.predict(X_test)
+        lprob = clr.predict_proba(X_test)
+        got = y['output_probability'].values
+        self.assertEqual(lexp.shape, y['output_label'].shape)
+        self.assertEqual(lprob.shape, got.shape)
+        self.assertEqualArray(lexp, y['output_label'], decimal=5)
+        self.assertEqualArray(lprob, got, decimal=5)
+
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_onnxrt_python_SVC_proba_double_20(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X = _modify_dimension(X, 20)
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = SVC(probability=True)
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float64),
+                            dtype=numpy.float64)
+        oinf = OnnxInference(model_def)
+        text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
+        self.assertIn("SVMClassifier", text)
+        y = oinf.run({'X': X_test.astype(numpy.float64)})
         self.assertEqual(list(sorted(y)), [
                          'output_label', 'output_probability'])
         lexp = clr.predict(X_test)

@@ -50,6 +50,7 @@ epkg_dictionary.update({
     'bench2': 'http://www.xavierdupre.fr/app/benches/mlprodict_bench2/index.html',
     'C': "https://en.wikipedia.org/wiki/C_(programming_language)",
     'cffi': "https://cffi.readthedocs.io/en/latest/",
+    'coo_matrix': 'https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.coo_matrix.html',
     "DataFrame": "https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html",
     'cdist': 'https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html',
     'dot': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
