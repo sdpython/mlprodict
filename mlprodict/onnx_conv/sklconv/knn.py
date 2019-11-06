@@ -73,7 +73,7 @@ def _onnx_cdist_sqeuclidean(X, Y, dtype=None, op_version=None, **kwargs):
         other_outputs=[flat],
         dtype=dtype, target_opset=op_version)
 
-    node = OnnxScan(X, Y, output_names=['scan0_{idself}', 'scan1_{idself}'],
+    node = OnnxScan(X, Y, output_names=['u(scan0)', 'u(scan1)'],
                     num_scan_inputs=1, body=scan_body.graph, op_version=op_version)
     return OnnxTranspose(node[1], perm=[1, 0], op_version=op_version,
                          **kwargs)
@@ -103,7 +103,7 @@ def _onnx_cdist_minkowski(X, Y, dtype=None, op_version=None, p=2, **kwargs):
         other_outputs=[flat],
         dtype=dtype, target_opset=op_version)
 
-    node = OnnxScan(X, Y, output_names=['scan0_{idself}', 'scan1_{idself}'],
+    node = OnnxScan(X, Y, output_names=['u(scan0)', 'u(scan1)'],
                     num_scan_inputs=1, body=scan_body.graph, op_version=op_version)
     return OnnxTranspose(node[1], perm=[1, 0], op_version=op_version,
                          **kwargs)
@@ -132,7 +132,7 @@ def _onnx_cdist_manhattan(X, Y, dtype=None, op_version=None, **kwargs):
         other_outputs=[flat],
         dtype=dtype, target_opset=op_version)
 
-    node = OnnxScan(X, Y, output_names=['scan0_{idself}', 'scan1_{idself}'],
+    node = OnnxScan(X, Y, output_names=['u(scan0)', 'u(scan1)'],
                     num_scan_inputs=1, body=scan_body.graph, op_version=op_version)
     return OnnxTranspose(node[1], perm=[1, 0], op_version=op_version,
                          **kwargs)
