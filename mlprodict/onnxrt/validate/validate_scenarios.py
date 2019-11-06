@@ -21,7 +21,7 @@ from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, Cla
 from sklearn.neighbors import LocalOutlierFactor, KNeighborsRegressor
 from sklearn.preprocessing import Normalizer
 from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
-from sklearn.svm import SVC, NuSVC
+from sklearn.svm import SVC, NuSVC, SVR
 from sklearn.tree import DecisionTreeRegressor
 try:
     from sklearn.ensemble import StackingClassifier, StackingRegressor
@@ -214,9 +214,16 @@ def build_custom_scenarios():
             ('eps95', {'eps': 0.95}),
         ],
         SVC: [
-            ('prob', {
-                'probability': True,
-            }),
+            ('linear', {'probability': True, 'kernel': 'linear'}),
+            ('poly', {'probability': True, 'kernel': 'poly'}),
+            ('rbf', {'probability': True, 'kernel': 'rbf'}),
+            ('sigmoid', {'probability': True, 'kernel': 'sigmoid'}),
+        ],
+        SVR: [
+            ('linear', {'kernel': 'linear'}),
+            ('poly', {'kernel': 'poly'}),
+            ('rbf', {'kernel': 'rbf'}),
+            ('sigmoid', {'kernel': 'sigmoid'}),
         ],
         VotingClassifier: [
             ('logreg-noflatten', {

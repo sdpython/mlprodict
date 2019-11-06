@@ -53,7 +53,7 @@ class RuntimeTreeEnsembleClassifier
         std::unordered_map<int64_t, int64_t> leafdata_map_;
         std::vector<int64_t> roots_;
         const int64_t kOffset_ = 4000000000L;
-        const int64_t kMaxTreeDepth_ = 1000;
+        const int64_t max_tree_depth_ = 1000;
         POST_EVAL_TRANSFORM post_transform_;
         bool weights_are_all_positive_;
     
@@ -474,65 +474,64 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
 }
 
 
+#define TREE_FIND_VALUE(CMP) \
+  while (mode != NODE_MODE::LEAF) { \
+    val = x_data[feature_base + nodes_featureids_[treeindex]]; \
+    tracktrue = missing_tracks_true_.size() != nodes_truenodeids_.size() \
+                     ? false \
+                     : (missing_tracks_true_[treeindex] != 0) && std::isnan(static_cast<NTYPE>(val)); \
+    treeindex = val CMP nodes_values_[treeindex] || tracktrue \
+                ? nodes_truenodeids_[treeindex] \
+                : nodes_falsenodeids_[treeindex]; \
+    if (treeindex < 0) \
+      throw std::runtime_error("treeindex evaluated to a negative value, which should not happen."); \
+    treeindex = treeindex + root; \
+    mode = nodes_modes_[treeindex]; \
+    loopcount++; \
+    if (loopcount > max_tree_depth_) \
+      break; \
+  }
+
+
 template<typename NTYPE>
-void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(std::map<int64_t, NTYPE>& classes,
-                                                    int64_t treeindex,
-                                                    const NTYPE* x_data,
-                                                    int64_t feature_base) const {
-  // walk down tree to the leaf
-  bool tracktrue;
+void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
+        std::map<int64_t, NTYPE>& classes, int64_t treeindex,
+        const NTYPE* x_data, int64_t feature_base) const {
   auto mode = nodes_modes_[treeindex];
   int64_t loopcount = 0;
   int64_t root = treeindex;
-  while (mode != NODE_MODE::LEAF) {
-    NTYPE val = x_data[feature_base + nodes_featureids_[treeindex]];
-    tracktrue = missing_tracks_true_.size() != nodes_truenodeids_.size()
-                ? false
-                : missing_tracks_true_[treeindex] && std::isnan(static_cast<NTYPE>(val));
-    NTYPE threshold = nodes_values_[treeindex];
-    switch (mode) {
-      case NODE_MODE::BRANCH_LEQ:
-        treeindex = val <= threshold || tracktrue
-                    ? nodes_truenodeids_[treeindex]
-                    : nodes_falsenodeids_[treeindex];
-        break;
-      case NODE_MODE::BRANCH_LT:
-        treeindex = val < threshold || tracktrue
-                    ? nodes_truenodeids_[treeindex]
-                    : nodes_falsenodeids_[treeindex];
-        break;
-      case NODE_MODE::BRANCH_GTE:
-        treeindex = val >= threshold || tracktrue
-                    ? nodes_truenodeids_[treeindex]
-                    : nodes_falsenodeids_[treeindex];
-        break;
-      case NODE_MODE::BRANCH_GT:
-        treeindex = val > threshold || tracktrue
-                    ? nodes_truenodeids_[treeindex]
-                    : nodes_falsenodeids_[treeindex];
-        break;
-      case NODE_MODE::BRANCH_EQ:
-        treeindex = val == threshold || tracktrue
-                    ? nodes_truenodeids_[treeindex]
-                    : nodes_falsenodeids_[treeindex];
-        break;
-      case NODE_MODE::BRANCH_NEQ:
-        treeindex = val != threshold || tracktrue
-                    ? nodes_truenodeids_[treeindex]
-                    : nodes_falsenodeids_[treeindex];
-        break;
-      default: {
-        std::ostringstream err_msg;
-        err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(mode);
-        throw std::runtime_error(err_msg.str());
-      }
+  bool tracktrue;
+  NTYPE val;
+            
+  switch(mode) {
+    case NODE_MODE::BRANCH_LEQ:
+      TREE_FIND_VALUE(<=)
+      break;
+    case NODE_MODE::BRANCH_LT:
+      TREE_FIND_VALUE(<)
+      break;
+    case NODE_MODE::BRANCH_GTE:
+      TREE_FIND_VALUE(>=)
+      break;
+    case NODE_MODE::BRANCH_GT:
+      TREE_FIND_VALUE(>)
+      break;
+    case NODE_MODE::BRANCH_EQ:
+      TREE_FIND_VALUE(==)
+      break;
+    case NODE_MODE::BRANCH_NEQ:
+      TREE_FIND_VALUE(!=)
+      break;
+    case NODE_MODE::LEAF:
+      break;
+    default: 
+    {
+      std::ostringstream err_msg;
+      err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(mode);
+      throw std::runtime_error(err_msg.str());
     }
-    treeindex = treeindex + root;
-    mode = nodes_modes_[treeindex];
-    loopcount++;
-    if (loopcount > kMaxTreeDepth_) 
-        break;
   }
+
   // should be at leaf
   int64_t id = nodes_treeids_[treeindex] * kOffset_ + nodes_nodeids_[treeindex];
   auto it_lp = leafdata_map_.find(id);
