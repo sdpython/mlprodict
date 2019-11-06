@@ -29,6 +29,7 @@ class TestLONGSklearnExample(ExtTestCase):
         'plot_face_recognition.py',  # too long
         "plot_affinity_propagation.py",  # no converter
         'plot_coin_segmentation.py',  # spectral clustering
+        "plot_partial_dependence.py",  # issue with int conversion
     }
 
     begin = 1000 if __name__ == "__main__" else 0
