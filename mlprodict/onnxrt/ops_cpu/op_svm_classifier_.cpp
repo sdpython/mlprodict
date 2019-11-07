@@ -274,7 +274,16 @@ NTYPE RuntimeSVMClassifier<NTYPE>::kernel_dot_gil_free(
     if (k == KERNEL::POLY) {
       sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
       sum = gamma_ * sum + coef0_;
-      sum = std::pow(sum, degree_);
+      if (degree_ == 2)
+        sum = sum * sum;
+      else if (degree_ == 3)
+        sum = sum * sum * sum;
+      else if (degree_ == 4) {
+        double s2 = sum * sum;
+        sum = s2 * s2;
+      }
+      else
+        sum = std::pow(sum, degree_);
     } else if (k == KERNEL::SIGMOID) {
       sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
       sum = gamma_ * sum + coef0_;
