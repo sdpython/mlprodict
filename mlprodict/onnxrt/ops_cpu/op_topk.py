@@ -72,7 +72,7 @@ class _CommonTopK(OpRun):
         """
         k = ink[0]
         axis = self.axis if self.axis >= 0 else (self.axis + len(data.shape))
-        sort, sorti = topk_sorted_implementation(data, k, axis, 1)
+        sort, sorti = topk_sorted_implementation(data, k, axis, largest)
         return (sort, sorti.astype(numpy.int64))
 
     def _infer_shapes(self, data, ink):  # pylint: disable=W0221
@@ -115,7 +115,7 @@ class TopK_11(_CommonTopK):
 
     def __init__(self, onnx_node, desc=None, **options):
         _CommonTopK.__init__(self, onnx_node, desc=desc,
-                             expected_attributes=TopK.atts,
+                             expected_attributes=TopK_11.atts,
                              **options)
         if self.sorted not in (True, 1):
             raise RuntimeError(
