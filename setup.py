@@ -305,6 +305,7 @@ if not r:
         extras_require={
             'onnx_conv': ['scikit-learn>=0.21', 'skl2onnx>=1.5.0'],
             'sklapi': ['scikit-learn>=0.21'],
-            'onnx_val': ['scikit-learn>=0.21', 'skl2onnx>=1.5.0'],
+            'onnx_val': ['scikit-learn>=0.21', 'skl2onnx>=1.5.0',
+                        'onnxruntime>=1.0.0'],
         },
     )

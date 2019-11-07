@@ -25,9 +25,6 @@ install:
   - "%PYTHON%\\Scripts\\pymy_install3 scikit-learn scipy cffi"
   - "set PATH=%PATH%;C:\\projects\\jyquickhelper\\build\\update_modules\\Graphviz\\bin"
   - "%PYTHON%\\Scripts\\pip install -r requirements.txt"
-  # Let's use an official version of sklearn-onnx
-  - "%PYTHON%\\Scripts\\pip uninstall -y skl2onnx"
-  - "%PYTHON%\\Scripts\\pip install skl2onnx>=1.5.0"
 build: off
 
 before_test:

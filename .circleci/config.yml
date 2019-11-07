@@ -34,6 +34,11 @@ jobs:
                     sudo apt-get install -y dvipng
           
       - run:
+          name: install language package for onnxruntime
+          command: |
+                    sudo locale-gen
+
+      - run:
           name: Install 7z, unrar
           command: |
                     sudo apt-get install -y p7zip-full
@@ -72,7 +77,7 @@ jobs:
           command: |
             . venv/bin/activate
             pip install git+https://github.com/xadupre/sklearn-onnx.git@jenkins --upgrade
-        
+
       - run:
           name: compile and build
           command: |
