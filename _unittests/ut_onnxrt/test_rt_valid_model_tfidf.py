@@ -32,11 +32,16 @@ class TestRtValidateTfIdf(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"TfidfVectorizer"}, opset_min=11,
-            opset_max=11, fLOG=myprint,
-            runtime='onnxruntime1', debug=debug,
-            filter_exp=lambda m, p: True))
+        try:
+            rows = list(enumerate_validated_operator_opsets(
+                verbose, models={"TfidfVectorizer"}, opset_min=11,
+                opset_max=11, fLOG=myprint,
+                runtime='onnxruntime1', debug=debug,
+                filter_exp=lambda m, p: True))
+        except Exception as e:
+            if "Failed to construct locale" in str(e):
+                return
+            raise e
         self.assertGreater(len(rows), 1)
         self.assertIn('skl_nop', rows[0])
         self.assertIn('onx_size', rows[-1])
