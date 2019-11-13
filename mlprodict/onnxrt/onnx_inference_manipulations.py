@@ -99,7 +99,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None):
     onnx_model.doc_string = model.doc_string
     if len(model.metadata_props) > 0:
         values = {p.key: p.value for p in model.metadata_props}
-        onnx.helper.set_model_props(onnx_model, values)
+        helper.set_model_props(onnx_model, values)
 
     if len(onnx_model.graph.input) != len(model.graph.input):  # pylint: disable=E1101
         raise RuntimeError("Input mismatch {} != {}".format(

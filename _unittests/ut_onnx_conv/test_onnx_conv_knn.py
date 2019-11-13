@@ -26,6 +26,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import Int64TensorType
 import skl2onnx
+from skl2onnx.algebra.complex_functions import onnx_cdist
 try:
     from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument as OrtInvalidArgument
 except ImportError:
@@ -33,7 +34,6 @@ except ImportError:
 from mlprodict.onnx_conv import (
     register_converters, to_onnx, get_onnx_opset
 )
-from mlprodict.onnx_conv.sklconv.knn import onnx_cdist
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 
@@ -216,9 +216,9 @@ class TestOnnxConvKNN(ExtTestCase):
             if options is None:
                 options = {}
             if clr.__class__ not in options:
-                options[clr.__class__] = {}            
+                options[clr.__class__] = {}
             options[clr.__class__].update({'largest0': False})
-                
+
         model_def = to_onnx(clr, X_train.astype(dtype),
                             dtype=dtype, rewrite_ops=True,
                             target_opset=target_opset,
@@ -442,7 +442,7 @@ class TestOnnxConvKNN(ExtTestCase):
         X, y = make_regression(
             n_samples=1000, n_features=100, random_state=42)
         X = X.astype(numpy.int64)
-        X_train, X_test, y_train, y_test = train_test_split(
+        X_train, X_test, y_train, _ = train_test_split(
             X, y, test_size=0.5, random_state=42)
         model = KNeighborsRegressor(
             algorithm='brute', metric='manhattan').fit(X_train, y_train)

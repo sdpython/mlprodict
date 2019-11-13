@@ -12,7 +12,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxIdentity, OnnxAdd
 )
 from skl2onnx.common.data_types import FloatTensorType
-from mlprodict.onnx_conv.sklconv.knn import onnx_cdist
+from skl2onnx.algebra.complex_functions import onnx_cdist
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
 from mlprodict.onnxrt import OnnxInference

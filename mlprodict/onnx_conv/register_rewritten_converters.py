@@ -10,11 +10,6 @@ from .sklconv.tree_converters import (
     convert_sklearn_gradient_boosting_regressor,
     convert_sklearn_random_forest_regressor_converter,
 )
-from .sklconv.knn import (
-    convert_nearest_neighbors_classifier,
-    convert_nearest_neighbors_regressor,
-    convert_nearest_neighbors_transform,
-)
 from .sklconv.svm_converters import convert_sklearn_svm
 
 
@@ -23,9 +18,6 @@ _overwritten_operators = {
     'SklearnDecisionTreeRegressor': convert_sklearn_decision_tree_regressor,
     'SklearnExtraTreesRegressor': convert_sklearn_random_forest_regressor_converter,
     'SklearnGradientBoostingRegressor': convert_sklearn_gradient_boosting_regressor,
-    #'SklearnKNeighborsRegressor': convert_nearest_neighbors_regressor,
-    #'SklearnKNeighborsClassifier': convert_nearest_neighbors_classifier,
-    #'SklearnNearestNeighbors': convert_nearest_neighbors_transform,
     'SklearnOneClassSVM': convert_sklearn_svm,
     'SklearnRandomForestRegressor': convert_sklearn_random_forest_regressor_converter,
     'SklearnSVC': convert_sklearn_svm,
