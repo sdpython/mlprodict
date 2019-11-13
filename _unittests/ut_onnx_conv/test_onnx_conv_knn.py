@@ -9,7 +9,7 @@ from pandas import DataFrame
 from scipy.spatial.distance import cdist as scipy_cdist
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.calibration import CalibratedClassifierCV
-from sklearn.datasets import load_iris
+from sklearn.datasets import load_iris, make_regression
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import (
     KNeighborsRegressor, KNeighborsClassifier, NearestNeighbors
@@ -23,6 +23,8 @@ from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxIdentity
 )
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import Int64TensorType
 import skl2onnx
 try:
     from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument as OrtInvalidArgument
@@ -178,7 +180,8 @@ class TestOnnxConvKNN(ExtTestCase):
     def onnx_test_knn_single_classreg(self, dtype, n_targets=1, debug=False,
                                       add_noise=False, runtime='python',
                                       target_opset=None, optim=None,
-                                      kind='reg', level=1, **kwargs):
+                                      kind='reg', level=1, largest0=True,
+                                      **kwargs):
         iris = load_iris()
         X, y = iris.data, iris.target
         if add_noise:
@@ -209,6 +212,13 @@ class TestOnnxConvKNN(ExtTestCase):
             options = None
         else:
             options = {clr.__class__: {'optim': 'cdist'}}
+        if not largest0:
+            if options is None:
+                options = {}
+            if clr.__class__ not in options:
+                options[clr.__class__] = {}            
+            options[clr.__class__].update({'largest0': False})
+                
         model_def = to_onnx(clr, X_train.astype(dtype),
                             dtype=dtype, rewrite_ops=True,
                             target_opset=target_opset,
@@ -311,7 +321,8 @@ class TestOnnxConvKNN(ExtTestCase):
                                            algorithm='brute', metric_params={'p': 2.1})
 
     def test_onnx_test_knn_single_reg32_distance(self):
-        self.onnx_test_knn_single_classreg(numpy.float32, weights='distance')
+        self.onnx_test_knn_single_classreg(numpy.float32, weights='distance',
+                                           largest0=False)
 
     def test_onnx_test_knn_single_reg_equal(self):
         # We need to make scikit-learn and the runtime handles the
@@ -353,15 +364,16 @@ class TestOnnxConvKNN(ExtTestCase):
 
     def test_onnx_test_knn_single_weights_bin32(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='bin',
-                                           weights='distance')
+                                           weights='distance', largest0=False)
 
     def test_onnx_test_knn_single_weights_bin32_cdist(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='bin',
-                                           weights='distance', optim='cdist')
+                                           weights='distance', optim='cdist',
+                                           largest0=False)
 
     def test_onnx_test_knn_single_weights_mcl32(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='mcl',
-                                           weights='distance')
+                                           weights='distance', largest0=False)
 
     def test_onnx_test_knn_single_bin64(self):
         self.onnx_test_knn_single_classreg(numpy.float64, kind='bin')
@@ -371,11 +383,11 @@ class TestOnnxConvKNN(ExtTestCase):
 
     def test_onnx_test_knn_single_weights_bin64(self):
         self.onnx_test_knn_single_classreg(numpy.float64, kind='bin',
-                                           weights='distance')
+                                           weights='distance', largest0=False)
 
     def test_onnx_test_knn_single_weights_mcl64(self):
         self.onnx_test_knn_single_classreg(numpy.float64, kind='mcl',
-                                           weights='distance')
+                                           weights='distance', largest0=False)
 
     # transform
 
@@ -387,8 +399,9 @@ class TestOnnxConvKNN(ExtTestCase):
         clr = NearestNeighbors(n_neighbors=3)
         clr.fit(X_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            rewrite_ops=True)
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float32),
+            rewrite_ops=True, options={NearestNeighbors: {'largest0': False}})
         oinf = OnnxInference(model_def, runtime='python')
 
         X_test = X_test[:3]
@@ -422,6 +435,39 @@ class TestOnnxConvKNN(ExtTestCase):
         probs = clf.predict_proba(X)
         self.assertEqual(pred, y['output_label'])
         self.assertEqual(probs, DataFrame(y['output_probability']).values)
+
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @unittest_require_at_least(onnxruntime, '0.5.99')
+    def test_model_knn_regressor_equal____(self):
+        X, y = make_regression(
+            n_samples=1000, n_features=100, random_state=42)
+        X = X.astype(numpy.int64)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.5, random_state=42)
+        model = KNeighborsRegressor(
+            algorithm='brute', metric='manhattan').fit(X_train, y_train)
+        model_onnx = convert_sklearn(
+            model, 'knn',
+            [('input', Int64TensorType([None, X_test.shape[1]]))])
+        exp = model.predict(X_test)
+
+        sess = OnnxInference(model_onnx)
+        res = sess.run({'input': numpy.array(X_test)})['variable']
+
+        # The conversion has discrepencies when
+        # neighbours are at the exact same distance.
+        maxd = 1000
+        accb = numpy.abs(exp - res) > maxd
+        ind = [i for i, a in enumerate(accb) if a == 1]
+        self.assertEqual(len(ind), 0)
+
+        accp = numpy.abs(exp - res) < maxd
+        acc = numpy.sum(accp)
+        ratio = acc * 1.0 / res.shape[0]
+        self.assertGreater(ratio, 0.7)
+        # Explainable discrepencies.
+        # self.assertEqualArray(exp, res)
+        self.assertEqual(exp.shape, res.shape)
 
 
 if __name__ == "__main__":

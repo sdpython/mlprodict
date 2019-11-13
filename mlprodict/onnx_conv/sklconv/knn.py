@@ -7,16 +7,38 @@ from collections import OrderedDict
 import numpy
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxTopK, OnnxMul, OnnxArrayFeatureExtractor, OnnxReduceMean,
-    OnnxFlatten, OnnxShape, OnnxReshape,
-    OnnxConcat, OnnxTranspose, OnnxSub,
-    OnnxIdentity, OnnxReduceSumSquare,
-    OnnxScan, OnnxSqrt, OnnxReciprocal,
-    OnnxPow, OnnxReduceSum, OnnxAbs,
-    OnnxMax, OnnxDiv, OnnxArgMax,
-    OnnxEqual, OnnxCast
+    OnnxAbs,
+    OnnxArgMax,
+    OnnxArrayFeatureExtractor,
+    OnnxCast,
+    OnnxConcat,
+    OnnxDiv,
+    OnnxEqual,
+    OnnxFlatten,
+    OnnxIdentity,
+    OnnxMax,
+    OnnxMul,
+    OnnxPow,
+    OnnxReciprocal,
+    OnnxReduceMean,
+    OnnxReduceSum,
+    OnnxReduceSumSquare,
+    OnnxReshape,
+    OnnxScan,
+    OnnxShape,
+    OnnxSqrt,
+    OnnxTopK_1,
+    OnnxTranspose,
+    OnnxSub,
 )
-
+try:
+    from skl2onnx.algebra.onnx_ops import OnnxTopK_10
+except ImportError:
+    OnnxTopK_10 = None
+try:
+    from skl2onnx.algebra.onnx_ops import OnnxTopK_11
+except ImportError:
+    OnnxTopK_11 = None
 
 def onnx_cdist(X, Y, metric='sqeuclidean', dtype=None, op_version=None, **kwargs):
     """
@@ -164,10 +186,23 @@ def onnx_nearest_neighbors_indices(X, Y, k, metric='euclidean', dtype=None,
                           op_version=op_version, **kwargs)
     else:
         raise ValueError("Unknown optimisation '{}'.".format(optim))
-    neg_dist = OnnxMul(dist, numpy.array(
-        [-1], dtype=dtype), op_version=op_version)
-    node = OnnxTopK(neg_dist, numpy.array([k], dtype=numpy.int64),
-                    op_version=op_version, **kwargs)
+    stop
+    if op_version < 10:
+        neg_dist = OnnxMul(dist, numpy.array(
+            [-1], dtype=dtype), op_version=op_version)
+        node = OnnxTopK_1(neg_dist, k=k, op_version=1, **kwargs)
+    elif op_version < 11:
+        neg_dist = OnnxMul(dist, numpy.array(
+            [-1], dtype=dtype), op_version=op_version)
+        node = OnnxTopK_10(neg_dist, numpy.array([k], dtype=numpy.int64),
+                           op_version=10, **kwargs)
+    else:
+        neg_dist = OnnxMul(dist, numpy.array(
+            [-1], dtype=dtype), op_version=op_version)
+        node = OnnxTopK_11(neg_dist, numpy.array([k], dtype=numpy.int64),
+                           largest=1, sorted=1,
+                           op_version=11, **kwargs)
+
     if keep_distances:
         return (node[1], OnnxMul(node[0], numpy.array(
                     [-1], dtype=dtype), op_version=op_version))
