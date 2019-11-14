@@ -508,9 +508,19 @@ class OnnxInference:
                             name for name in self._global_index if self._global_index[name] == k)
                         if isinstance(values[k], numpy.ndarray):
                             name = name[0]
+                            try:
+                                mini = numpy.min(values[k])
+                                maxi = numpy.max(values[k])
+                            except TypeError:
+                                try:
+                                    mini = numpy.min(values[k].astype(str))
+                                    maxi = numpy.max(values[k].astype(str))
+                                except TypeError:
+                                    mini = "?"
+                                    maxi = "?"
                             fLOG("+kr='{}': {} (dtype={} min={} max={}{})".format(
                                 name, values[k].shape, values[k].dtype,
-                                numpy.min(values[k]), numpy.max(values[k]),
+                                mini, maxi,
                                 ' sparse' if isinstance(values[k], coo_matrix) else ''))
                             if verbose >= 3:
                                 dispsimple(values[k])
