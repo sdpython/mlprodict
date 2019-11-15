@@ -177,12 +177,18 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::init(
     // additional members
     nodes_modes_.resize(nodes_modes.size());
     same_mode_ = true;
+    size_t fpos = -1;
     for(size_t i = 0; i < nodes_modes.size(); ++i) {
         nodes_modes_[i] = to_NODE_MODE(nodes_modes[i]);
-        if (nodes_modes_[i] != nodes_modes_[0])
+        if (nodes_modes_[i] == NODE_MODE::LEAF)
+            continue;
+        if (fpos == -1) {
+            fpos = i;
+            continue;
+        }
+        if (nodes_modes_[i] != nodes_modes_[fpos])
             same_mode_ = false;
     }
-
     
     Initialize();
 }
@@ -671,7 +677,20 @@ in :epkg:`onnxruntime`. Supports float only.)pbdoc");
     clf.def_readonly("nodes_featureids_", &RuntimeTreeEnsembleClassifierFloat::nodes_featureids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     clf.def_readonly("nodes_values_", &RuntimeTreeEnsembleClassifierFloat::nodes_values_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     clf.def_readonly("nodes_hitrates_", &RuntimeTreeEnsembleClassifierFloat::nodes_hitrates_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
-    clf.def_readonly("nodes_modes_", &RuntimeTreeEnsembleClassifierFloat::nodes_modes_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_property_readonly("nodes_modes_", [](RuntimeTreeEnsembleClassifierFloat* op) -> const py::array_t<int> {
+        std::vector<int> i_nodes_modes(op->nodes_modes_.size());
+        for(int i = 0; i < i_nodes_modes.size(); ++i)
+            i_nodes_modes[i] = (int)op->nodes_modes_[i];
+        return py::array_t<int>(
+            py::buffer_info(
+                &i_nodes_modes[0],
+                sizeof(int),
+                py::format_descriptor<int>::format(),
+                1,
+                { (ssize_t)i_nodes_modes.size() },  /* shape of the matrix       */
+                { (ssize_t)sizeof(int) }            /* strides for each axis     */
+            ));
+    });    
     clf.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleClassifierFloat::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     clf.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleClassifierFloat::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     clf.def_readonly("nodes_falsenodeids_", &RuntimeTreeEnsembleClassifierFloat::nodes_falsenodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
@@ -684,6 +703,7 @@ in :epkg:`onnxruntime`. Supports float only.)pbdoc");
     clf.def_readonly("class_count_", &RuntimeTreeEnsembleClassifierFloat::class_count_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     clf.def_readonly("classlabels_int64s_", &RuntimeTreeEnsembleClassifierFloat::classlabels_int64s_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     clf.def_readonly("post_transform_", &RuntimeTreeEnsembleClassifierFloat::post_transform_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    clf.def_readonly("same_mode_", &RuntimeTreeEnsembleClassifierFloat::same_mode_, "Tells if all nodes applies the same rule for thresholds.");
 
     py::class_<RuntimeTreeEnsembleClassifierDouble> cld (m, "RuntimeTreeEnsembleClassifierDouble",
         R"pbdoc(Implements runtime for operator TreeEnsembleClassifier. The code is inspired from
@@ -707,7 +727,20 @@ in :epkg:`onnxruntime`. Supports double only.)pbdoc");
     cld.def_readonly("nodes_featureids_", &RuntimeTreeEnsembleClassifierDouble::nodes_featureids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     cld.def_readonly("nodes_values_", &RuntimeTreeEnsembleClassifierDouble::nodes_values_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     cld.def_readonly("nodes_hitrates_", &RuntimeTreeEnsembleClassifierDouble::nodes_hitrates_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
-    cld.def_readonly("nodes_modes_", &RuntimeTreeEnsembleClassifierDouble::nodes_modes_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_property_readonly("nodes_modes_", [](RuntimeTreeEnsembleClassifierDouble* op) -> const py::array_t<int> {
+        std::vector<int> i_nodes_modes(op->nodes_modes_.size());
+        for(int i = 0; i < i_nodes_modes.size(); ++i)
+            i_nodes_modes[i] = (int)op->nodes_modes_[i];
+        return py::array_t<int>(
+            py::buffer_info(
+                &i_nodes_modes[0],
+                sizeof(int),
+                py::format_descriptor<int>::format(),
+                1,
+                { (ssize_t)i_nodes_modes.size() },  /* shape of the matrix       */
+                { (ssize_t)sizeof(int) }            /* strides for each axis     */
+            ));
+    });    
     cld.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleClassifierDouble::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     cld.def_readonly("nodes_truenodeids_", &RuntimeTreeEnsembleClassifierDouble::nodes_truenodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     cld.def_readonly("nodes_falsenodeids_", &RuntimeTreeEnsembleClassifierDouble::nodes_falsenodeids_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
@@ -720,6 +753,7 @@ in :epkg:`onnxruntime`. Supports double only.)pbdoc");
     cld.def_readonly("class_count_", &RuntimeTreeEnsembleClassifierDouble::class_count_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     cld.def_readonly("classlabels_int64s_", &RuntimeTreeEnsembleClassifierDouble::classlabels_int64s_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     cld.def_readonly("post_transform_", &RuntimeTreeEnsembleClassifierDouble::post_transform_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
+    cld.def_readonly("same_mode_", &RuntimeTreeEnsembleClassifierDouble::same_mode_, "Tells if all nodes applies the same rule for thresholds.");
 }
 
 #endif

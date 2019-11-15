@@ -60,6 +60,8 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             self.assertEqualArray(lexp, y['variable'], decimal=5)
         else:
             self.assertEqualArray(lexp, y['variable'])
+        self.assertNotEmpty(oinf.sequence_[0].ops_.rt_.nodes_modes_)
+        self.assertEqual(oinf.sequence_[0].ops_.rt_.same_mode_, True)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_onnxrt_python_RandomForestRegressor32(self):
