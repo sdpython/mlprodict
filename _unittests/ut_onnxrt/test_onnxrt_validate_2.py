@@ -52,7 +52,7 @@ class TestOnnxrtValidate(ExtTestCase):
         self.assertEqualArray(X2, X3)
         X4 = _modify_dimension(X, 6, seed=20)
         self.assertNotEqualArray(X2, X4)
-        
+
 
 if __name__ == "__main__":
     unittest.main()
