@@ -5,10 +5,10 @@ import unittest
 from logging import getLogger
 import numpy
 from pandas import DataFrame
-from xgboost import XGBRegressor, XGBClassifier
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_regression, make_classification
+from xgboost import XGBRegressor, XGBClassifier
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least, skipif_circleci
 import skl2onnx
 from mlprodict.onnxrt import OnnxInference
