@@ -45,7 +45,14 @@ class TestOnnxrtValidate(ExtTestCase):
             X[:, :2] - X2[:, :2]).ravel()))  # pylint: disable=E1101
         self.assertLess(diff, 6)
 
+    def test_n_features_float_repeatability(self):
+        X = numpy.arange(20).reshape((5, 4)).astype(numpy.float64)
+        X2 = _modify_dimension(X, 6)
+        X3 = _modify_dimension(X, 6)
+        self.assertEqualArray(X2, X3)
+        X4 = _modify_dimension(X, 6, seed=20)
+        self.assertNotEqualArray(X2, X4)
+        
 
 if __name__ == "__main__":
-    # TestOnnxrtValidate().test_n_features_int()
     unittest.main()

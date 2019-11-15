@@ -61,15 +61,22 @@ from skl2onnx.common.data_types import (
 )
 
 
-def _modify_dimension(X, n_features):
+def _modify_dimension(X, n_features, seed=19):
     """
     Modifies the number of features to increase
     or reduce the number of features.
+
+    @param      X           features matrix
+    @param      n_features  number of features
+    @param      seed        random seed (to get the same
+                            dataset at each call)
+    @return                 new featurs matrix
     """
     if n_features is None or n_features == X.shape[1]:
         return X
     if n_features < X.shape[1]:
         return X[:, :n_features]
+    rstate = numpy.random.RandomState(seed)
     res = numpy.empty((X.shape[0], n_features), dtype=X.dtype)
     res[:, :X.shape[1]] = X[:, :]
     div = max((n_features // X.shape[1]) + 1, 2)
@@ -78,13 +85,13 @@ def _modify_dimension(X, n_features):
         col = X[:, j]
         if X.dtype in (numpy.float32, numpy.float64):
             sigma = numpy.var(col) ** 0.5
-            rnd = numpy.random.randn(len(col)) * sigma / div
+            rnd = rstate.randn(len(col)) * sigma / div
             col2 = col + rnd
             res[:, j] -= col2 / div
             res[:, i] = col2
         elif X.dtype in (numpy.int32, numpy.int64):
-            perm = numpy.random.permutation(col)
-            h = numpy.random.randint(0, div) % X.shape[0]
+            perm = rstate.permutation(col)
+            h = rstate.randint(0, div) % X.shape[0]
             col2 = col.copy()
             col2[h::div] = perm[h::div]  # pylint: disable=E1136
             res[:, i] = col2
