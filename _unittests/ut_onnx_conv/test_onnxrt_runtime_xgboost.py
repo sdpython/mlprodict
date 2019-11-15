@@ -8,9 +8,9 @@ from pandas import DataFrame
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_regression, make_classification
+import skl2onnx
 from xgboost import XGBRegressor, XGBClassifier
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least, skipif_circleci
-import skl2onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
 
