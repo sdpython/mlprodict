@@ -510,9 +510,8 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
   //auto it_lp = leafdata_map.find(id);
   auto it_lp = leafdata_map_.find(id);
   if (it_lp != leafdata_map_.end()) {
-    size_t index = it_lp->second;
     std::tuple<int64_t, int64_t, int64_t, NTYPE>* leaf = 
-        (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
+        (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[it_lp->second]);
     int64_t dim_id;
     NTYPE weight;
     int64_t treeid = std::get<0>(*leaf);
