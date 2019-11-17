@@ -9,7 +9,7 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_regression, make_classification
 import skl2onnx
-from xgboost import XGBRegressor, XGBClassifier
+from xgboost import XGBRegressor, XGBClassifier  # pylint: disable=C0411
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least, skipif_circleci
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx

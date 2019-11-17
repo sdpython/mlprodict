@@ -22,7 +22,9 @@ class TestCreateAsvBenchmarkAllTiny(ExtTestCase):
             skip_models={
                 'DictVectorizer', 'FeatureHasher',  # 'CountVectorizer'
             }, runtime=('scikit-learn', 'python', 'onnxruntime1'),
-            exc=False, execute=True, models={'SelectFromModel'})
+            exc=False, execute=True, models={
+                'SelectFromModel', 'NMF', 'LatentDirichletAllocation'
+            })
         self.assertNotEmpty(created)
 
         reg = re.compile("class ([a-zA-Z0-9_]+)[(]")

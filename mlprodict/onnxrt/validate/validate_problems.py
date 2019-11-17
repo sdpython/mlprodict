@@ -10,6 +10,7 @@ from sklearn.base import RegressorMixin, ClassifierMixin
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.cross_decomposition import PLSSVD
 from sklearn.datasets import load_iris
+from sklearn.decomposition import LatentDirichletAllocation, NMF
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.ensemble import (
     AdaBoostRegressor, GradientBoostingRegressor, AdaBoostClassifier,
@@ -216,6 +217,19 @@ def _problem_for_numerical_transform(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
+    X = _modify_dimension(X, n_features)
+    return (X, None, [('X', X[:1].astype(dtype))],
+            'transform', 0, X.astype(dtype=numpy.float32))
+
+
+def _problem_for_numerical_transform_positive(dtype=numpy.float32, n_features=None):
+    """
+    Returns *X, intial_types, method, name, X runtime* for a
+    transformation problem.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = numpy.abs(data.data)
     X = _modify_dimension(X, n_features)
     return (X, None, [('X', X[:1].astype(dtype))],
             'transform', 0, X.astype(dtype=numpy.float32))
@@ -482,6 +496,7 @@ def find_suitable_problem(model):
     * `reg`: regression
     * `m-reg`: regression multi-output
     * `num-tr`: transform numerical features
+    * `num-tr-pos`: transform numerical positive features
     * `scoring`: transform numerical features, target is usually needed
     * `outlier`: outlier prediction
     * `linearsvc`: classifier without *predict_proba*
@@ -659,6 +674,9 @@ def find_suitable_problem(model):
         if model in {AdaBoostClassifier, LogisticRegression}:
             return ['b-cl', '~b-cl-64', 'm-cl']
 
+        if model in {LatentDirichletAllocation, NMF}:
+            return ['num-tr-pos']
+
         # predict, predict_proba
         if hasattr(model, 'predict_proba'):
             if model is OneVsRestClassifier:
@@ -765,6 +783,7 @@ _problems = {
     "b-reg": _problem_for_predictor_regression,
     "m-reg": _problem_for_predictor_multi_regression,
     "num-tr": _problem_for_numerical_transform,
+    "num-tr-pos": _problem_for_numerical_transform_positive,
     'outlier': _problem_for_outlier,
     'cluster': _problem_for_clustering,
     'num+y-tr': _problem_for_numerical_trainable_transform,

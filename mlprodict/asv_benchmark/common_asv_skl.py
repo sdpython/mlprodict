@@ -379,3 +379,21 @@ class _CommonAsvSklBenchmarkTransform(_CommonAsvSklBenchmark):
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['variable']
         return onx, rt_, rt_fct_, rt_fct_track_
+
+
+class _CommonAsvSklBenchmarkTransformPositive(_CommonAsvSklBenchmarkTransform):
+    """
+    Common class for a transformer for positive features.
+    """
+
+    def _get_dataset(self, nf, dtype):
+        xdtype = self._get_xdtype(dtype)
+        data = load_iris()
+        X, y = data.data, data.target
+        X = _modify_dimension(X, nf)
+        X = numpy.abs(X)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, random_state=42)
+        X = X_test.astype(xdtype)
+        y = y_test.astype(self.par_ydtype)
+        return (X_train, y_train), (X, y)

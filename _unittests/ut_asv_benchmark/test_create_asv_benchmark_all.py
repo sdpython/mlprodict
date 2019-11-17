@@ -35,18 +35,33 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
             "class LogisticRegression_liblinear_b_cl_solverliblinear_onnx_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
-        self.assertIn(
-            "from sklearn.linear_model.logistic import LogisticRegression", content)
+        try:
+            self.assertIn(
+                "from sklearn.linear_model._logistic import LogisticRegression", content)
+        except AssertionError:
+            self.assertIn(
+                "from sklearn.linear_model.logistic import LogisticRegression", content)
 
         if __name__ == "__main__":
             fLOG("[] checks setup_cache")
             reg = re.compile("class ([a-zA-Z0-9_]+)[(]")
-            for path, _, files in os.walk(os.path.join(temp, 'benches')):
+            checked = []
+            folder = os.path.join(temp, 'benches')
+            subsets_test = [
+                'Stacking',
+                'ovariance',
+                'bench_LogisticRegression_liblinear',
+                'Latent'
+            ]
+            for path, _, files in os.walk(folder):
                 for zoo in files:
-                    if 'Stacking' not in zoo:
-                        continue
                     if '__init__' in zoo:
                         continue
+                    if 'chain' in zoo.lower():
+                        continue
+                    if not any(map(lambda x,z=zoo: x in z, subsets_test)):
+                        continue
+                    checked.append(zoo)
                     fLOG("process '{}'".format(zoo))
                     fullname = os.path.join(path, zoo)
                     with open(fullname, 'r', encoding='utf-8') as f:
@@ -63,6 +78,8 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
                     if len(err) > 0:
                         raise RuntimeError(
                             "Issue with '{}'\n{}".format(fullname, err))
+            if len(checked) == 0:
+                raise AssertionError("Nothing found in '{}'.".format(folder))
 
 
 if __name__ == "__main__":

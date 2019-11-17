@@ -537,7 +537,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
     patterns = {}
     for suffix in ['classifier', 'regressor', 'clustering',
                    'outlier', 'trainable_transform', 'transform',
-                   'multi_classifier']:
+                   'multi_classifier', 'transform_positive']:
         template_name = os.path.join(os.path.dirname(
             __file__), "template", "skl_model_%s.py" % suffix)
         if not os.path.exists(template_name):
@@ -559,6 +559,8 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             return patterns['outlier']
         if 'num+y-tr' in prob:
             return patterns['trainable_transform']
+        if 'num-tr-pos' in prob:
+            return patterns['transform_positive']
         if 'num-tr' in prob:
             return patterns['transform']
         if 'm-label' in prob:

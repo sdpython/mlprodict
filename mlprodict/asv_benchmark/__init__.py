@@ -12,5 +12,6 @@ from .common_asv_skl import (
     _CommonAsvSklBenchmarkRegressor,
     _CommonAsvSklBenchmarkTrainableTransform,
     _CommonAsvSklBenchmarkTransform,
+    _CommonAsvSklBenchmarkTransformPositive,
 )
 from .create_asv import create_asv_benchmark
