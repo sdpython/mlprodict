@@ -59,7 +59,7 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
                         continue
                     if 'chain' in zoo.lower():
                         continue
-                    if not any(map(lambda x,z=zoo: x in z, subsets_test)):
+                    if not any(map(lambda x, z=zoo: x in z, subsets_test)):
                         continue
                     checked.append(zoo)
                     fLOG("process '{}'".format(zoo))
