@@ -8,6 +8,7 @@ import re
 from jinja2 import Template
 from jinja2.runtime import Undefined
 from onnx.defs import OpSchema
+from ...tools import change_style
 
 
 def type_mapping(name):
@@ -33,18 +34,6 @@ def type_mapping(name):
     else:
         rev = {v: k for k, v in di.items()}
         return rev[name]
-
-
-def change_style(name):
-    """
-    Switches from *AaBb* into *aa_bb*.
-
-    @param      name    name to convert
-    @return             converted name
-    """
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-    return s2 if not keyword.iskeyword(s2) else s2 + "_"
 
 
 def _get_doc_template():

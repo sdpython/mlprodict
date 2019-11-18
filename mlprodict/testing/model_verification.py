@@ -58,8 +58,8 @@ def check_model_representation(model, X, y=None, convs=None,
                                verbose=False, suffix="", fLOG=None):
     """
     Checks that a trained model can be exported in a specific list
-    of formats and produces the same outputs if the representation can be used to
-    predict.
+    of formats and produces the same outputs if the
+    representation can be used to predict.
 
     @param  model           model (a class or an instance of a model but not trained)
     @param  X               features

@@ -3,6 +3,7 @@
 @file
 @brief Helpers to identify an interpreter.
 """
+from ..tools import change_style
 from .g_sklearn_linear_model import sklearn_logistic_regression, sklearn_linear_regression
 from .g_sklearn_preprocessing import sklearn_standard_scaler
 from .g_sklearn_tree import sklearn_decision_tree_regressor
@@ -13,27 +14,6 @@ def __pep8():
     assert sklearn_linear_regression
     assert sklearn_logistic_regression
     assert sklearn_standard_scaler
-
-
-def change_style(name):
-    """
-    Switches from *AaBb* into *aa_bb*.
-
-    @param      name    name to convert
-    @return             converted name
-
-    Example:
-
-    .. runpython::
-        :showcode:
-
-        from pyquickhelper.texthelper import change_style
-
-        print("changeStyle --> {0}".format(change_style('change_style')))
-    """
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-    return s2 if not keyword.iskeyword(s2) else s2 + "_"
 
 
 def identify_interpreter(model):
