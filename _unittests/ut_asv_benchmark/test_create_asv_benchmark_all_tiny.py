@@ -7,6 +7,8 @@ import re
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.loghelper.run_cmd import run_script
+from pyquickhelper.texthelper.version_helper import compare_module_version
+import sklearn
 from mlprodict.asv_benchmark import create_asv_benchmark
 import mlprodict
 
@@ -51,9 +53,12 @@ class TestCreateAsvBenchmarkAllTiny(ExtTestCase):
                 if len(err) > 0:
                     raise RuntimeError(
                         "Issue with '{}'\n{}".format(fullname, err))
-                if zoo.endswith("bench_NMF_default_num_tr_pos.py"):
-                    self.assertIn(
-                        "from sklearn.decomposition import NMF", content)
+                if (zoo.endswith("bench_NMF_default_num_tr_pos.py") and
+                        compare_module_version(sklearn.__version__, "0.22") >= 0):
+                    if ("from sklearn.decomposition.nmf import NMF" not in content and
+                            "from sklearn.decomposition import NMF" not in content):
+                        raise AssertionError(
+                            "Unable to find 'import NMF' in\n{}".format(content))
 
 
 if __name__ == "__main__":
