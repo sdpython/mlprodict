@@ -51,6 +51,9 @@ class TestCreateAsvBenchmarkAllTiny(ExtTestCase):
                 if len(err) > 0:
                     raise RuntimeError(
                         "Issue with '{}'\n{}".format(fullname, err))
+                if zoo.endswith("bench_NMF_default_num_tr_pos.py"):
+                    self.assertIn(
+                        "from sklearn.decomposition import NMF", content)
 
 
 if __name__ == "__main__":

@@ -692,7 +692,12 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
 
         # Verifies missing imports.
         to_import, _ = verify_code(class_content, exc=False)
-        miss = find_missing_sklearn_imports(to_import)
+        try:
+            miss = find_missing_sklearn_imports(to_import)
+        except ValueError as e:
+            raise ValueError(
+                "Unable to check import in script\n{}".format(
+                    class_content)) from e
         class_content = class_content.replace(
             "#  __IMPORTS__", "\n".join(miss))
         verify_code(class_content, exc=True)
@@ -803,7 +808,10 @@ def add_model_import_init(
     else:
         skl = sub.index('sklearn')
         if skl == 0:
-            mod = '.'.join(sub[skl:])
+            if sub[-1].startswith("_"):
+                mod = '.'.join(sub[skl:-1])
+            else:
+                mod = '.'.join(sub[skl:])
         else:
             mod = '.'.join(sub[:-1])
 
