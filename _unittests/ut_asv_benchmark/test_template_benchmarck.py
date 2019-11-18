@@ -58,7 +58,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
                         cl, runtime, N, nf, opset, dtype, optim)
-        self.assertEqual(len(res), 18)
+        self.assertEqual(len(res), 15)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
@@ -66,8 +66,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('time_predict', 'ort'), ('peakmem_predict', 'ort'),
                ('track_score', 'ort'), ('track_onnxsize', 'ort'),
                ('track_nbnodes', 'skl'), ('track_nbnodes', 'ort'),
-               ('track_opset', 'skl'), ('track_opset', 'pyrt'),
-               ('track_nbnodes', 'pyrt'), ('track_opset', 'ort')]
+               ('track_nbnodes', 'pyrt')]
         self.assertEqual(set(exp), set(res))
 
     @ignore_warnings(category=(UserWarning, ))
@@ -90,13 +89,12 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
                         cl, runtime, N, nf, opset, dtype, optim)
-        self.assertEqual(len(res), 12)
+        self.assertEqual(len(res), 10)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
                ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
-               ('track_nbnodes', 'skl'), ('track_opset', 'skl'),
-               ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
+               ('track_nbnodes', 'skl'), ('track_nbnodes', 'pyrt')]
         self.assertEqual(set(exp), set(res))
 
     @ignore_warnings(category=(UserWarning, ))
@@ -119,7 +117,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
                         cl, runtime, N, nf, opset, dtype, optim)
-        self.assertEqual(len(res), 18)
+        self.assertEqual(len(res), 15)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
@@ -127,8 +125,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('time_predict', 'ort'), ('peakmem_predict', 'ort'),
                ('track_score', 'ort'), ('track_onnxsize', 'ort'),
                ('track_nbnodes', 'skl'), ('track_nbnodes', 'ort'),
-               ('track_opset', 'skl'), ('track_opset', 'pyrt'),
-               ('track_nbnodes', 'pyrt'), ('track_opset', 'ort')]
+               ('track_nbnodes', 'pyrt')]
         self.assertEqual(set(exp), set(res))
 
     @ignore_warnings(category=(UserWarning, ))
@@ -173,7 +170,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        expect = 12
+        expect = 10
         opset = 10
         dtype = 'float'
         optim = None
@@ -197,8 +194,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
                ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
-               ('track_nbnodes', 'skl'), ('track_opset', 'skl'),
-               ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
+               ('track_nbnodes', 'skl'), ('track_nbnodes', 'pyrt')]
         self.assertEqual(set(exp), set(res))
 
     @ignore_warnings(category=(UserWarning, ))
@@ -249,7 +245,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         nf = cl.params[2][1]
         opset = 10
         dtype = 'float'
-        expect = 12
+        expect = 10
         optim = None
         for runtime in ['skl', 'pyrt']:
             try:
@@ -271,8 +267,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
                ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
-               ('track_nbnodes', 'skl'), ('track_opset', 'skl'),
-               ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
+               ('track_nbnodes', 'skl'), ('track_nbnodes', 'pyrt')]
         self.assertEqual(set(exp), set(res))
 
     @ignore_warnings(category=(UserWarning, ))

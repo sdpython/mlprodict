@@ -131,10 +131,11 @@ if __name__ == '__main__':  # pragma: no cover
 
 
 def create_asv_benchmark(
-        location, opset_min=10, opset_max=None,
+        location, opset_min=11, opset_max=None,
         runtime=('scikit-learn', 'python'), models=None,
         skip_models=None, extended_list=True,
-        dims=(1, 100, 10000), n_features=(4, 20), dtype=None,
+        dims=(1, 10, 100, 10000, 100000),
+        n_features=(4, 20), dtype=None,
         verbose=0, fLOG=print, clean=True,
         conf_params=None, filter_exp=None,
         filter_scenario=None, flat=False,

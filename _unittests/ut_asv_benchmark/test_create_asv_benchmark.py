@@ -41,8 +41,10 @@ class TestCreateAsvBenchmark(ExtTestCase):
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         if 'LogisticRegression' in content:
-            self.assertIn(
-                "from sklearn.linear_model.logistic import LogisticRegression", content)
+            if ("from sklearn.linear_model.logistic import LogisticRegression" not in content and
+                    "from sklearn.linear_model import LogisticRegression" not in content):
+                raise AssertionError(
+                    "Unable to find 'import LogisticRegression in \n{}".format(content))
         self.assertIn("par_optimonnx = True", content)
         self.assertIn("par_scenario = ", content)
         self.assertIn("par_problem = ", content)
@@ -66,8 +68,10 @@ class TestCreateAsvBenchmark(ExtTestCase):
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         if 'LogisticRegression' in content:
-            self.assertIn(
-                "from sklearn.linear_model.logistic import LogisticRegression", content)
+            if ("from sklearn.linear_model.logistic import LogisticRegression" not in content and
+                    "from sklearn.linear_model import LogisticRegression" not in content):
+                raise AssertionError(
+                    "Unable to find 'import LogisticRegression in \n{}".format(content))
         self.assertIn("par_optimonnx = True", content)
 
     def test_create_asv_benchmark_noflat_ext(self):
@@ -124,12 +128,15 @@ class TestCreateAsvBenchmark(ExtTestCase):
             content = f.read()
         self.assertIn("class VotingClassifier_", content)
         if 'LogisticRegression' in content:
-            self.assertIn("LogisticRegression(", content)
-        self.assertIn(
-            "from sklearn.ensemble.voting import VotingClassifier", content)
-        if "LogisticRegression" in content:
-            self.assertIn(
-                "from sklearn.linear_model import LogisticRegression", content)
+            if ("from sklearn.linear_model.logistic import LogisticRegression" not in content and
+                    "from sklearn.linear_model import LogisticRegression" not in content):
+                raise AssertionError(
+                    "Unable to find 'import LogisticRegression in \n{}".format(content))
+        if 'VotingClassifier' in content:
+            if ("from sklearn.ensemble.voting import VotingClassifier" not in content and
+                    "from sklearn.ensemble import VotingClassifier" not in content):
+                raise AssertionError(
+                    "Unable to find 'import LogisticRegression in \n{}".format(content))
 
     def test_create_asv_benchmark_text(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

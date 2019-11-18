@@ -44,9 +44,9 @@ class _CommonAsvSklBenchmark:
 
     params = [
         ['skl', 'pyrt', 'ort'],  # values for runtime
-        [1, 100, 10000],  # values for N
+        [1, 10, 100, 10000, 100000],  # values for N
         [4, 20],  # values for nf
-        [9, 10, 11],  # values for opset
+        [11],  # values for opset
         ["float", "double"],  # values for dtype
         [None],  # values for optim
     ]
@@ -193,11 +193,6 @@ class _CommonAsvSklBenchmark:
         "asv API"
         stats = onnx_statistics(self.onx)
         return stats.get('nnodes', 0)
-
-    def track_opset(self, runtime, N, nf, opset, dtype, optim):
-        "asv API"
-        stats = onnx_statistics(self.onx)
-        return stats.get('', 0)
 
 
 class _CommonAsvSklBenchmarkClassifier(_CommonAsvSklBenchmark):
