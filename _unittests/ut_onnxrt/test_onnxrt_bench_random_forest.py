@@ -35,18 +35,14 @@ class TestOnnxrtBenchRandomForest(ExtTestCase):
         clr = RandomForestClassifier(n_estimators=10, random_state=42)
         clr.fit(X_train, y_train)
         X_test = X_test.astype(numpy.float32)
-        X_test2 = make_n_rows(X_test, 100000)
+        X_test2 = make_n_rows(X_test, 10000)
         model_def = to_onnx(clr, X_train.astype(numpy.float32),
                             dtype=numpy.float32)
 
         oinf = OnnxInference(model_def, runtime='python')
-        ti = timeit.repeat("oinf.run({'X': X_test})", number=100,
-                           globals={'oinf': oinf, 'X_test': X_test},
+        ti = timeit.repeat("oinf.run({'X': X_test2})", number=100,
+                           globals={'oinf': oinf, 'X_test2': X_test2},
                            repeat=10)
-        # [0.010246500000000047, 0.00986480000000034, 0.00960950000000027, 0.00972459999999975,
-        #  0.009588799999999953, 0.009693899999999811, 0.009643100000000349, 0.009687800000000024,
-        #  0.00961539999999994, 0.010643099999999794]
-        print(ti)
         self.assertEqual(len(ti), 10)
 
 

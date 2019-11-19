@@ -85,7 +85,8 @@ class RuntimeTreeEnsembleClassifier
         
         py::tuple compute(py::array_t<NTYPE> X) const;
 
-        void ProcessTreeNode(std::map<int64_t, NTYPE>& classes,
+        void ProcessTreeNode(std::vector<NTYPE>& classes,
+                             std::vector<bool>& filled,
                              int64_t treeindex,
                              const NTYPE* x_data,
                              int64_t feature_base) const;
@@ -306,24 +307,31 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::Initialize() {
 
 
 template<typename NTYPE>
-void get_max_weight(const std::map<int64_t, NTYPE>& classes, int64_t& maxclass, NTYPE& maxweight) {
+void get_max_weight(const std::vector<NTYPE>& classes, 
+                    const std::vector<bool>& filled, 
+                    int64_t& maxclass, NTYPE& maxweight) {
   maxclass = -1;
   maxweight = (NTYPE)0;
-  for (auto& classe : classes) {
-    if (maxclass == -1 || classe.second > maxweight) {
-      maxclass = classe.first;
-      maxweight = classe.second;
+  int64_t i;
+  std::vector<NTYPE>::const_iterator it;
+  std::vector<bool>::const_iterator itb;
+  for (i = 0, it = classes.begin(), itb = filled.begin();
+       it != classes.end(); ++it, ++i, ++itb) {
+    if (*itb && (maxclass == -1 || *it > maxweight)) {
+      maxclass = i;
+      maxweight = *it;
     }
   }
 }
 
 
 template<typename NTYPE>
-void get_weight_class_positive(std::map<int64_t, NTYPE>& classes, NTYPE& pos_weight) {
-  auto it_classes = classes.find(1);
-  pos_weight = it_classes == classes.end()
-                   ? (classes.size() > 0 ? classes[0] : (NTYPE)0)  // only 1 class
-                   : it_classes->second;
+void get_weight_class_positive(const std::vector<NTYPE>& classes, 
+                               const std::vector<bool>& filled,
+                               NTYPE& pos_weight) {
+  pos_weight = !filled[1]
+                   ? (filled[0] ? classes[0] : (NTYPE)0)  // only 1 class
+                   : classes[1];
 }
 
 
@@ -331,12 +339,13 @@ template<typename NTYPE>
 int64_t _set_score_binary(int64_t i,
                           int& write_additional_scores,
                           bool weights_are_all_positive_,
-                          std::map<int64_t, NTYPE>& classes,
+                          std::vector<NTYPE>& classes,
+                          std::vector<bool>& filled,
                           const std::vector<int64_t>& classes_labels_,
                           const std::set<int64_t>& weights_classes_,
                           int64_t positive_label, int64_t negative_label) {
   NTYPE pos_weight;
-  get_weight_class_positive(classes, pos_weight);
+  get_weight_class_positive(classes, filled, pos_weight);
   if (classes_labels_.size() == 2 && weights_classes_.size() == 1) {
     if (weights_are_all_positive_) {
       if (pos_weight > 0.5) {
@@ -412,13 +421,13 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
 #pragma omp parallel for
 #endif
     for (int64_t i = 0; i < N; ++i) {
-        std::vector<NTYPE> scores;
         int64_t current_weight_0 = i * stride;
-        std::map<int64_t, NTYPE> classes;
+        std::vector<NTYPE> scores(class_count_);
+        std::vector<bool> filled(class_count_, false);
 
         // walk each tree from its root
         for (size_t j = 0, end = roots_.size(); j < end; ++j) {
-            ProcessTreeNode(classes, roots_[j], x_data, current_weight_0);
+            ProcessTreeNode(scores, filled, roots_[j], x_data, current_weight_0);
         }
 
         NTYPE maxweight = (NTYPE)0;
@@ -429,57 +438,46 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
         if (class_count_ > 2) {
             // add base values
             for (int64_t k = 0, end = static_cast<int64_t>(base_values_.size()); k < end; ++k) {
-                auto it_classes = classes.find(k);
-                if (it_classes == classes.end()) {
-                    auto p1 = std::make_pair<int64_t&, const NTYPE&>(k, base_values_[k]);
-                    classes.insert(p1);
-                } 
+                if (!filled[k]) {
+                  filled[k] = true;
+                  scores[k] = base_values_[k];
+                }
                 else {
-                    it_classes->second += base_values_[k];
+                    scores[k] += base_values_[k];
                 }
             }
-            get_max_weight(classes, maxclass, maxweight);
+            get_max_weight(scores, filled, maxclass, maxweight);
             Y_(i) = classlabels_int64s_[maxclass];
         }
         else { // binary case
             if (base_values_.size() == 2) {
                 // add base values
-                auto it_classes = classes.find(1);
-                if (it_classes == classes.end()) {
+                if (filled[1]) {
                     // base_value_[0] is not used. It assumes base_value[0] == base_value[1] in this case.
                     // The specification does not forbid it but does not say what the output should be in that case.
-                    auto it_classes0 = classes.find(0);
-                    classes[1] = base_values_[1] + it_classes0->second;
-                    it_classes0->second = -classes[1];
+                    scores[1] = base_values_[1] + scores[0];
+                    scores[0] = -scores[1];
+                    filled[1] = true;
                 }
                 else {
                     // binary as multiclass
-                    it_classes->second += base_values_[1];
-                    classes[0] += base_values_[0];
+                    scores[1] += base_values_[1];
+                    scores[0] += base_values_[0];
                 }
             }
-            else if (base_values_.size() == 1)
+            else if (base_values_.size() == 1) {
                 // ONNX is vague about two classes and only one base_values.
-                classes[0] += base_values_[0];
+                scores[0] += base_values_[0];
+                if (!filled[1])
+                  scores.pop_back();
+            }
 
             Y_(i) = _set_score_binary(i, write_additional_scores,
                               weights_are_all_positive_,
-                              classes, classlabels_int64s_,
-                              weights_classes_, (int64_t)1, (int64_t)0);            
+                              scores, filled, classlabels_int64s_,
+                              weights_classes_, (int64_t)1, (int64_t)0);
         }
-        // write float values, might not have all the classes in the output yet
-        // for example a 10 class case where we only found 2 classes in the leaves
-        if (weights_classes_.size() == static_cast<size_t>(class_count_)) {
-            for (int64_t k = 0; k < class_count_; ++k) {
-                auto it_classes = classes.find(k);
-                scores.push_back(it_classes != classes.end() ? it_classes->second : 0.f);
-            }
-        } 
-        else {
-            for (auto& classe : classes)
-                scores.push_back(classe.second);
-        }
-        
+
         write_scores(scores, post_transform_, (NTYPE*)Z_.data(i * class_count_),
                      write_additional_scores);
     }
@@ -507,8 +505,8 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
 
 template<typename NTYPE>
 void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
-        std::map<int64_t, NTYPE>& classes, int64_t treeindex,
-        const NTYPE* x_data, int64_t feature_base) const {
+        std::vector<NTYPE>& classes, std::vector<bool>& filled,
+        int64_t treeindex, const NTYPE* x_data, int64_t feature_base) const {
   auto mode = nodes_modes_[treeindex];
   int64_t loopcount = 0;
   int64_t root = treeindex;
@@ -611,12 +609,11 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
   while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) {
     int64_t classid = std::get<2>(*leaf);
     NTYPE weight = std::get<3>(*leaf);
-    auto it_classes = classes.find(classid);
-    if (it_classes != classes.end()) {
-      it_classes->second += weight;
-    } else {
-      auto p1 = std::make_pair(classid, weight);
-      classes.insert(p1);
+    if (filled[classid])
+      classes[classid] += weight;
+    else {
+      classes[classid] = weight;
+      filled[classid] = true;
     }
     ++index;
     // some tree node will be last
