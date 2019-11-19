@@ -313,8 +313,8 @@ void get_max_weight(const std::vector<NTYPE>& classes,
   maxclass = -1;
   maxweight = (NTYPE)0;
   int64_t i;
-  std::vector<NTYPE>::const_iterator it;
-  std::vector<bool>::const_iterator itb;
+  typename std::vector<NTYPE>::const_iterator it;
+  typename std::vector<bool>::const_iterator itb;
   for (i = 0, it = classes.begin(), itb = filled.begin();
        it != classes.end(); ++it, ++i, ++itb) {
     if (*itb && (maxclass == -1 || *it > maxweight)) {

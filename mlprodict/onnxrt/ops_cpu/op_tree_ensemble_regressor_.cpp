@@ -355,18 +355,18 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
-  for (int64_t i = 0; i < N; i++)  //for each class
+  for (int64_t i = 0; i < N; ++i)  //for each class
   {
     int64_t current_weight_0 = i * stride;
     std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
     std::vector<bool> has_scores(n_targets_, false);
     //for each tree
-    for (size_t j = 0; j < roots_.size(); j++) {
+    for (size_t j = 0; j < roots_.size(); ++j) {
       ProcessTreeNode(scores, roots_[j], x_data, current_weight_0, has_scores);
     }
     //find aggregate, could use a heap here if there are many classes
     std::vector<NTYPE> outputs;
-    for (int64_t j = 0; j < n_targets_; j++) {
+    for (int64_t j = 0; j < n_targets_; ++j) {
       //reweight scores based on number of voters
       NTYPE val = base_values_.size() == (size_t)n_targets_ ? base_values_[j] : 0.f;
       if (has_scores[j]) {
