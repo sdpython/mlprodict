@@ -47,7 +47,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = 10
+        opset = 11
         dtype = 'float'
         optim = None
         for runtime in ['skl', 'pyrt', 'ort']:
@@ -78,7 +78,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = 10
+        opset = 11
         dtype = 'float'
         optim = None
         for runtime in ['skl', 'pyrt']:
@@ -106,7 +106,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = 10
+        opset = 11
         dtype = 'float'
         optim = None
         for runtime in ['skl', 'pyrt', 'ort']:
@@ -137,7 +137,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = 10
+        opset = 11
         dtype = 'float'
         optim = None
         for runtime in ['skl', 'pyrt']:
@@ -171,7 +171,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         N = 60
         nf = cl.params[2][1]
         expect = 10
-        opset = 10
+        opset = 11
         dtype = 'float'
         optim = None
         for runtime in ['skl', 'pyrt']:
@@ -206,7 +206,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = 10
+        opset = 11
         dtype = 'float'
         expect = 12
         optim = None
@@ -243,7 +243,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = 10
+        opset = 11
         dtype = 'float'
         expect = 10
         optim = None
@@ -279,7 +279,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = 10
+        opset = 11
         dtype = 'float'
         expect = 12
         optim = None

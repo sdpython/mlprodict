@@ -28,9 +28,9 @@ class TemplateBenchmarkTransform(_CommonAsvSklBenchmarkTransform):
     """
     params = [
         ['skl', 'pyrt', 'ort'],  # values for runtime
-        [1, 100, 10000],  # values for N
+        [1, 10, 100, 1000, 10000, 100000],  # values for N
         [4, 20],  # values for nf
-        [9, 10, 11],  # values for opset
+        [11],  # values for opset
         ['float', 'double'],  # values for dtype
         [None],  # values for optim
     ]

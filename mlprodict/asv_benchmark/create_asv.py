@@ -637,9 +637,9 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         # n_features, N, runtimes
         rep = {
             "['skl', 'pyrt', 'ort'],  # values for runtime": str(runtime),
-            "[1, 100, 10000],  # values for N": str(dims),
+            "[1, 10, 100, 1000, 10000, 100000],  # values for N": str(dims),
             "[4, 20],  # values for nf": str(n_features),
-            "[9, 10, 11],  # values for opset": str(opsets),
+            "[11],  # values for opset": str(opsets),
             "['float', 'double'],  # values for dtype":
                 "['float']" if '-64' not in problem else "['float', 'double']",
             "[None],  # values for optim": "%r" % nck_opts,
