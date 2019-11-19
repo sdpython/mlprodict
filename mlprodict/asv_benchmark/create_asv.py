@@ -26,7 +26,10 @@ except (ValueError, ImportError):
     from mlprodict.onnxrt.validate.validate import (
         _retrieve_problems_extra, _get_problem_data, _merge_options
     )
-from ..testing.verify_code import verify_code
+try:
+    from ..testing.verify_code import verify_code
+except (ValueError, ImportError):
+    from mlprodict.testing.verify_code import verify_code
 
 # exec function does not import models but potentially
 # requires all specific models used to defines scenarios
