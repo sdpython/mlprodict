@@ -471,6 +471,10 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
                 if (!filled[1])
                   scores.pop_back();
             }
+            else if (base_values_.size() == 0) {
+                if (!filled[1])
+                  scores.pop_back();
+            }
 
             Y_(i) = _set_score_binary(i, write_additional_scores,
                               weights_are_all_positive_,
