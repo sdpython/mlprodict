@@ -49,8 +49,8 @@ class RuntimeTreeEnsembleClassifier
         //std::vector<std::string> classlabels_strings_;
         std::vector<int64_t> classlabels_int64s_;
 
-        std::vector<std::tuple<int64_t, int64_t, int64_t, NTYPE>> leafnodedata_;
-        std::unordered_map<int64_t, int64_t> leafdata_map_;
+        std::vector<std::tuple<int64_t, int64_t, int64_t, NTYPE>> leafnode_data_;
+        std::map<int64_t, int64_t> leafdata_map_;
         std::vector<int64_t> roots_;
         const int64_t kOffset_ = 4000000000L;
         const int64_t max_tree_depth_ = 1000;
@@ -227,11 +227,11 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::Initialize() {
 
   // leafnode data, these are the votes that leaves do
   for (size_t i = 0, end = class_nodeids_.size(); i < end; ++i) {
-    leafnodedata_.push_back(std::make_tuple(class_treeids_[i], class_nodeids_[i], class_ids_[i], class_weights_[i]));
+    leafnode_data_.push_back(std::make_tuple(class_treeids_[i], class_nodeids_[i], class_ids_[i], class_weights_[i]));
     weights_classes_.insert(class_ids_[i]);
   }
 
-  std::sort(std::begin(leafnodedata_), std::end(leafnodedata_), 
+  std::sort(std::begin(leafnode_data_), std::end(leafnode_data_), 
     [](const std::tuple<int64_t, int64_t, int64_t, NTYPE>& t1,
        const std::tuple<int64_t, int64_t, int64_t, NTYPE>& t2) {
         if (std::get<0>(t1) != std::get<0>(t2))
@@ -243,9 +243,9 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::Initialize() {
   // make an index so we can find the leafnode data quickly when evaluating
   int64_t field0 = -1;
   int64_t field1 = -1;
-  for (size_t i = 0, end = leafnodedata_.size(); i < end; ++i) {
-    int64_t id0 = std::get<0>(leafnodedata_[i]);
-    int64_t id1 = std::get<1>(leafnodedata_[i]);
+  for (size_t i = 0, end = leafnode_data_.size(); i < end; ++i) {
+    int64_t id0 = std::get<0>(leafnode_data_[i]);
+    int64_t id1 = std::get<1>(leafnode_data_[i]);
     if (id0 != field0 || id1 != field1) {
       int64_t id = id0 * kOffset_ + id1;
       auto position = static_cast<int64_t>(i);
@@ -257,10 +257,10 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::Initialize() {
   }
 
   // treenode ids, some are roots_, and roots_ have no parents
-  std::unordered_map<int64_t, int64_t> parents;  // holds count of all who point to you
-  std::unordered_map<int64_t, int64_t> indices;
+  std::map<int64_t, int64_t> parents;  // holds count of all who point to you
+  std::map<int64_t, int64_t> indices;
   // add all the nodes to a map, and the ones that have parents are not roots_
-  std::unordered_map<int64_t, int64_t>::iterator it;
+  std::map<int64_t, int64_t>::iterator it;
   for (size_t i = 0, end = nodes_treeids_.size(); i < end; ++i) {
     // make an index to look up later
     int64_t id = nodes_treeids_[i] * kOffset_ + nodes_nodeids_[i];
@@ -604,11 +604,13 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
     return;
 
   int64_t index = it_lp->second;
-  int64_t treeid = std::get<0>(leafnodedata_[index]);
-  int64_t nodeid = std::get<1>(leafnodedata_[index]);
+  std::tuple<int64_t, int64_t, int64_t, NTYPE>* leaf = 
+        (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
+  int64_t treeid = std::get<0>(*leaf);
+  int64_t nodeid = std::get<1>(*leaf);
   while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) {
-    int64_t classid = std::get<2>(leafnodedata_[index]);
-    NTYPE weight = std::get<3>(leafnodedata_[index]);
+    int64_t classid = std::get<2>(*leaf);
+    NTYPE weight = std::get<3>(*leaf);
     auto it_classes = classes.find(classid);
     if (it_classes != classes.end()) {
       it_classes->second += weight;
@@ -618,11 +620,12 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
     }
     ++index;
     // some tree node will be last
-    if (index >= static_cast<int64_t>(leafnodedata_.size())) {
+    if (index >= static_cast<int64_t>(leafnode_data_.size())) {
       break;
     }
-    treeid = std::get<0>(leafnodedata_[index]);
-    nodeid = std::get<1>(leafnodedata_[index]);
+    leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
+    treeid = std::get<0>(*leaf);
+    nodeid = std::get<1>(*leaf);
   }
 }
 
