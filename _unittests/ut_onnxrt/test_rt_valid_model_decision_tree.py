@@ -89,12 +89,6 @@ class TestRtValidateDecisionTree(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        def myprint2(*args, **kwargs):
-            res = " ".join(map(str, args))
-            if "  ints:" in res or "  double:" in res:
-                return
-            print(res)
-
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"DecisionTreeRegressor"}, opset_min=11, fLOG=myprint,
             runtime='python', debug=debug, store_models=True,

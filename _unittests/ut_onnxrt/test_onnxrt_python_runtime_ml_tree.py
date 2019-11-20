@@ -320,5 +320,4 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_GradientBoostingClassifier2()
     unittest.main()
