@@ -350,7 +350,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
                     
     const NTYPE* x_data = X.data(0);
 
-    if (n_targets_ == -1) {
+    if (n_targets_ == 1) {
       #ifdef USE_OPENMP
       #pragma omp parallel for
       #endif
@@ -366,20 +366,9 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
         //reweight scores based on number of voters
         NTYPE val = base_values_.size() == 1 ? base_values_[0] : 0.f;
         if (has_scores) {
-          switch(aggregate_function_) {
-            case AGGREGATE_FUNCTION::AVERAGE:
-              val += scores / roots_.size();
-              break;
-            case AGGREGATE_FUNCTION::SUM:
-              val += scores;
-              break;
-            case AGGREGATE_FUNCTION::MIN:
-              val += scores;
-              break;
-            case AGGREGATE_FUNCTION::MAX:
-              val += scores;
-              break;
-          }
+          val += aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
+                    ? scores / roots_.size()
+                    : scores;
         }
         write_scores1_reg(val, post_transform_, (NTYPE*)Z_.data(i), -1);
       }
@@ -403,20 +392,9 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
           //reweight scores based on number of voters
           NTYPE val = base_values_.size() == (size_t)n_targets_ ? base_values_[j] : 0.f;
           if (has_scores[j]) {
-            switch(aggregate_function_) {
-              case AGGREGATE_FUNCTION::AVERAGE:
-                val += scores[j] / roots_.size();
-                break;
-              case AGGREGATE_FUNCTION::SUM:
-                val += scores[j];
-                break;
-              case AGGREGATE_FUNCTION::MIN:
-                val += scores[j];
-                break;
-              case AGGREGATE_FUNCTION::MAX:
-                val += scores[j];
-                break;
-            }
+            val += aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
+                      ? scores[j] / roots_.size()
+                      : scores[j];
           }
           outputs.push_back(val);
         }
@@ -546,16 +524,27 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
     NTYPE weight;
     int64_t treeid = std::get<0>(*leaf);
     int64_t nodeid = std::get<1>(*leaf);
-    while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) {
-      dim_id = std::get<2>(*leaf);
-      weight = std::get<3>(*leaf);
-      switch(aggregate_function_) {
-        case AGGREGATE_FUNCTION::AVERAGE:
-        case AGGREGATE_FUNCTION::SUM:
+      
+    switch(aggregate_function_) {
+      case AGGREGATE_FUNCTION::AVERAGE:
+      case AGGREGATE_FUNCTION::SUM:
+        while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) {
+          dim_id = std::get<2>(*leaf);
+          weight = std::get<3>(*leaf);
           has_predictions[dim_id] = 1;
           predictions[dim_id] += weight;
-          break;
-        case AGGREGATE_FUNCTION::MIN:
+          index++;
+          if (index >= leafnode_data_.size())
+            break;
+          leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
+          treeid = std::get<0>(*leaf);
+          nodeid = std::get<1>(*leaf);
+        }
+        break;
+      case AGGREGATE_FUNCTION::MIN:
+        while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) {
+          dim_id = std::get<2>(*leaf);
+          weight = std::get<3>(*leaf);
           if (has_predictions[dim_id]) {
             if (weight < predictions[dim_id])
               predictions[dim_id] = weight;
@@ -564,8 +553,18 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
             has_predictions[dim_id] = 1;
             predictions[dim_id] = weight;
           }
-          break;
-        case AGGREGATE_FUNCTION::MAX:
+          index++;
+          if (index >= leafnode_data_.size())
+            break;
+          leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
+          treeid = std::get<0>(*leaf);
+          nodeid = std::get<1>(*leaf);
+        }
+        break;
+      case AGGREGATE_FUNCTION::MAX:
+        while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) {
+          dim_id = std::get<2>(*leaf);
+          weight = std::get<3>(*leaf);
           if (has_predictions[dim_id]) {
             if (weight > predictions[dim_id])
               predictions[dim_id] = weight;
@@ -574,15 +573,14 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
             has_predictions[dim_id] = 1;
             predictions[dim_id] = weight;
           }
-          break;
-      }
-        
-      index++;
-      if (index >= leafnode_data_.size())
+          index++;
+          if (index >= leafnode_data_.size())
+            break;
+          leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
+          treeid = std::get<0>(*leaf);
+          nodeid = std::get<1>(*leaf);
+        }
         break;
-      leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
-      treeid = std::get<0>(*leaf);
-      nodeid = std::get<1>(*leaf);
     }
   }
 }
