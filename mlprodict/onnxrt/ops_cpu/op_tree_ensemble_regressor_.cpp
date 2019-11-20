@@ -86,7 +86,7 @@ class RuntimeTreeEnsembleRegressor
 
         void ProcessTreeNode(NTYPE* predictions, int64_t treeindex,
                              const NTYPE* x_data, int64_t feature_base,
-                             bool* has_predictions) const;
+                             unsigned char* has_predictions) const;
     
         std::string runtime_options();
 
@@ -350,15 +350,15 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
                     
     const NTYPE* x_data = X.data(0);
 
-  if (n_targets_ == 1) {
-    #ifdef USE_OPENMP
-    #pragma omp parallel for
-    #endif
+    if (n_targets_ == -1) {
+      #ifdef USE_OPENMP
+      #pragma omp parallel for
+      #endif
       for (int64_t i = 0; i < N; ++i)  //for each class
       {
         int64_t current_weight_0 = i * stride;
         NTYPE scores = 0;
-        bool has_scores = false;
+        unsigned char has_scores = 0;
         //for each tree
         for (size_t j = 0; j < roots_.size(); ++j) {
           ProcessTreeNode(&scores, roots_[j], x_data, current_weight_0, &has_scores);
@@ -383,19 +383,19 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
         }
         write_scores1_reg(val, post_transform_, (NTYPE*)Z_.data(i), -1);
       }
-  }
-  else {
-    #ifdef USE_OPENMP
-    #pragma omp parallel for
-    #endif
+    }
+    else {
+      #ifdef USE_OPENMP
+      #pragma omp parallel for
+      #endif
       for (int64_t i = 0; i < N; ++i)  //for each class
       {
         int64_t current_weight_0 = i * stride;
         std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
-        std::vector<bool> has_scores(n_targets_, false);
+        std::vector<unsigned char> has_scores(n_targets_, 0);
         //for each tree
         for (size_t j = 0; j < roots_.size(); ++j) {
-          ProcessTreeNode(scores.data(), roots_[j], x_data, current_weight_0, (bool*) &has_scores[0]);
+          ProcessTreeNode(scores.data(), roots_[j], x_data, current_weight_0, has_scores.data());
         }
         //find aggregate, could use a heap here if there are many classes
         std::vector<NTYPE> outputs;
@@ -418,12 +418,11 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
                 break;
             }
           }
-          // printf("-i=%d val=%f\n", i, val);
           outputs.push_back(val);
         }
         write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_), -1);
       }
-  }
+    }
 }
 
 
@@ -446,7 +445,7 @@ template<typename NTYPE>
 void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
         NTYPE* predictions,
         int64_t treeindex, const NTYPE* x_data, int64_t feature_base,
-        bool* has_predictions) const {
+        unsigned char* has_predictions) const {
   auto mode = nodes_modes_[treeindex];
   int64_t loopcount = 0;
   int64_t root = treeindex;
@@ -553,7 +552,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
       switch(aggregate_function_) {
         case AGGREGATE_FUNCTION::AVERAGE:
         case AGGREGATE_FUNCTION::SUM:
-          has_predictions[dim_id] = true;
+          has_predictions[dim_id] = 1;
           predictions[dim_id] += weight;
           break;
         case AGGREGATE_FUNCTION::MIN:
@@ -562,7 +561,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
               predictions[dim_id] = weight;
           }
           else {
-            has_predictions[dim_id] = true;
+            has_predictions[dim_id] = 1;
             predictions[dim_id] = weight;
           }
           break;
@@ -572,7 +571,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
               predictions[dim_id] = weight;
           }
           else {
-            has_predictions[dim_id] = true;
+            has_predictions[dim_id] = 1;
             predictions[dim_id] = weight;
           }
           break;
@@ -599,7 +598,6 @@ py::array_t<int> RuntimeTreeEnsembleRegressor<NTYPE>::debug_threshold(py::array_
     for(auto it = nodes_values_.begin(); it != nodes_values_.end(); ++it)
         for(pv=x_data; pv != end; ++pv, ++itb)
             *itb = *pv <= *it ? 1 : 0;
-            // { *itb = *pv <= *it; printf("++ %f <= %f = %d\n", *pv, *it, *itb ? 1 : 0); }
     std::vector<ssize_t> shape = { (ssize_t)nodes_values_.size(), values.size() };
     std::vector<ssize_t> strides = { (ssize_t)(values.size()*sizeof(int)),
                                      (ssize_t)sizeof(int) };
@@ -635,8 +633,9 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute_tree_outputs(py:
         int64_t current_weight_0 = i * stride;
         for (size_t j = 0; j < roots_.size(); ++j, ++itb) {
             std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
-            std::vector<bool> has_scores(n_targets_, false);
-            ProcessTreeNode((NTYPE*)scores.data(), roots_[j], x_data, current_weight_0, (bool*)&has_scores[0]);
+            std::vector<unsigned char> has_scores(n_targets_, 0);
+            ProcessTreeNode(scores.data(), roots_[j], x_data,
+                            current_weight_0, has_scores.data());
             *itb = scores[0];
         }
     }

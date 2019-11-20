@@ -81,13 +81,19 @@ class TestRtValidateDecisionTree(ExtTestCase):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        verbose = 1 if __name__ == "__main__" else 0
+        verbose = 2 if __name__ == "__main__" else 0
 
         debug = True
         buffer = []
 
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
+
+        def myprint2(*args, **kwargs):
+            res = " ".join(map(str, args))
+            if "  ints:" in res or "  double:" in res:
+                return
+            print(res)
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"DecisionTreeRegressor"}, opset_min=11, fLOG=myprint,
