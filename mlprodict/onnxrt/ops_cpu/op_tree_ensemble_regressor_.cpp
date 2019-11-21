@@ -55,6 +55,7 @@ class RuntimeTreeEnsembleRegressor
         std::vector<int64_t> roots_;
         int64_t max_tree_depth_;
         bool same_mode_;
+        bool consecutive_leaf_data_;
         const int64_t kOffset_ = 4000000000L;
     
     public:
@@ -219,8 +220,11 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::Initialize() {
 
   max_tree_depth_ = 1000;
   //leafnode data, these are the votes that leaves do
+  consecutive_leaf_data_ = false;
   for (size_t i = 0; i < target_nodeids_.size(); i++) {
     leafnode_data_.push_back(std::make_tuple(target_treeids_[i], target_nodeids_[i], target_ids_[i], target_weights_[i]));
+    if (i > 0 && target_treeids_[i] == target_treeids_[i-1] && target_nodeids_[i] == target_nodeids_[i-1])
+        consecutive_leaf_data_ = true;
   }
   
   std::sort(std::begin(leafnode_data_), std::end(leafnode_data_), 
@@ -363,13 +367,12 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
         for (size_t j = 0; j < roots_.size(); ++j) {
           ProcessTreeNode(&scores, roots_[j], x_data, current_weight_0, &has_scores);
         }
-        //reweight scores based on number of voters
         NTYPE val = base_values_.size() == 1 ? base_values_[0] : 0.f;
-        if (has_scores) {
-          val += aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
+        val += has_scores
+                ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
                     ? scores / roots_.size()
-                    : scores;
-        }
+                    : scores)
+                : 0;
         write_scores1_reg(val, post_transform_, (NTYPE*)Z_.data(i), -1);
       }
     }
@@ -415,8 +418,26 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
                 : nodes_falsenodeids_[treeindex]; \
     treeindex = treeindex + root; \
     mode = nodes_modes_[treeindex]; \
-    loopcount++; \
+    ++loopcount; \
   }
+
+
+#define TARGET_ASSIGN_LOOP(AFF) \
+            int64_t dim_id; \
+            NTYPE weight; \
+            int64_t treeid = std::get<0>(*leaf); \
+            int64_t nodeid = std::get<1>(*leaf); \
+            while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) { \
+              dim_id = std::get<2>(*leaf); \
+              weight = std::get<3>(*leaf); \
+              AFF \
+              ++index; \
+              if (index >= leafnode_data_.size()) \
+                break; \
+              leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]); \
+              treeid = std::get<0>(*leaf); \
+              nodeid = std::get<1>(*leaf); \
+            }
 
 
 template<typename NTYPE>
@@ -461,7 +482,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
       }
   }
   else {  // Different rules to compare to node thresholds.
-    while (mode != NODE_MODE::LEAF) {
+    while ((mode != NODE_MODE::LEAF && loopcount <= max_tree_depth_)) {
       NTYPE val = x_data[feature_base + nodes_featureids_[treeindex]];
       tracktrue = missing_tracks_true_.size() == nodes_truenodeids_.size() &&
                   missing_tracks_true_[treeindex] &&
@@ -506,9 +527,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
       }
       treeindex = treeindex + root;
       mode = nodes_modes_[treeindex];
-      loopcount++;
-      if (loopcount > max_tree_depth_) 
-          break;
+      ++loopcount;
     }      
   }
 
@@ -520,31 +539,26 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
     size_t index = it_lp->second;
     std::tuple<int64_t, int64_t, int64_t, NTYPE>* leaf = 
         (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
-    int64_t dim_id;
-    NTYPE weight;
-    int64_t treeid = std::get<0>(*leaf);
-    int64_t nodeid = std::get<1>(*leaf);
       
     switch(aggregate_function_) {
       case AGGREGATE_FUNCTION::AVERAGE:
       case AGGREGATE_FUNCTION::SUM:
-        while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) {
-          dim_id = std::get<2>(*leaf);
-          weight = std::get<3>(*leaf);
-          has_predictions[dim_id] = 1;
-          predictions[dim_id] += weight;
-          index++;
-          if (index >= leafnode_data_.size())
-            break;
-          leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
-          treeid = std::get<0>(*leaf);
-          nodeid = std::get<1>(*leaf);
+        if (consecutive_leaf_data_) {
+            TARGET_ASSIGN_LOOP(has_predictions[dim_id] = 1; predictions[dim_id] += weight;)
+        }
+        else {
+            int64_t dim_id = std::get<2>(*leaf);
+            has_predictions[dim_id] = 1;
+            predictions[dim_id] += std::get<3>(*leaf);
         }
         break;
       case AGGREGATE_FUNCTION::MIN:
-        while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) {
-          dim_id = std::get<2>(*leaf);
-          weight = std::get<3>(*leaf);
+        if (consecutive_leaf_data_) {
+            TARGET_ASSIGN_LOOP(if (has_predictions[dim_id]) { if (weight < predictions[dim_id]) predictions[dim_id] = weight; } else { has_predictions[dim_id] = 1; predictions[dim_id] = weight; })
+        }
+        else {
+          int64_t dim_id = std::get<2>(*leaf);
+          NTYPE weight = std::get<3>(*leaf);
           if (has_predictions[dim_id]) {
             if (weight < predictions[dim_id])
               predictions[dim_id] = weight;
@@ -553,18 +567,15 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
             has_predictions[dim_id] = 1;
             predictions[dim_id] = weight;
           }
-          index++;
-          if (index >= leafnode_data_.size())
-            break;
-          leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
-          treeid = std::get<0>(*leaf);
-          nodeid = std::get<1>(*leaf);
         }
         break;
       case AGGREGATE_FUNCTION::MAX:
-        while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) {
-          dim_id = std::get<2>(*leaf);
-          weight = std::get<3>(*leaf);
+        if (consecutive_leaf_data_) {
+            TARGET_ASSIGN_LOOP(if (has_predictions[dim_id]) { if (weight > predictions[dim_id]) predictions[dim_id] = weight; } else { has_predictions[dim_id] = 1; predictions[dim_id] = weight; })
+        }
+        else {
+          int64_t dim_id = std::get<2>(*leaf);
+          NTYPE weight = std::get<3>(*leaf);
           if (has_predictions[dim_id]) {
             if (weight > predictions[dim_id])
               predictions[dim_id] = weight;
@@ -573,12 +584,6 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
             has_predictions[dim_id] = 1;
             predictions[dim_id] = weight;
           }
-          index++;
-          if (index >= leafnode_data_.size())
-            break;
-          leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
-          treeid = std::get<0>(*leaf);
-          nodeid = std::get<1>(*leaf);
         }
         break;
     }
@@ -732,6 +737,8 @@ in :epkg:`onnxruntime`. Supports float only.)pbdoc");
     clf.def("compute_tree_outputs", &RuntimeTreeEnsembleRegressorFloat::compute_tree_outputs,
         "Computes every tree output.");
     clf.def_readonly("same_mode_", &RuntimeTreeEnsembleRegressorFloat::same_mode_, "Tells if all nodes applies the same rule for thresholds.");
+    clf.def_readonly("consecutive_leaf_data_", &RuntimeTreeEnsembleRegressorFloat::consecutive_leaf_data_,
+        "Tells if there are two consecutive targets sharing the same node and the same tree (it should not happen in 1D target).");
         
 
     py::class_<RuntimeTreeEnsembleRegressorDouble> cld (m, "RuntimeTreeEnsembleRegressorDouble",
@@ -787,6 +794,8 @@ in :epkg:`onnxruntime`. Supports double only.)pbdoc");
     cld.def("compute_tree_outputs", &RuntimeTreeEnsembleRegressorDouble::compute_tree_outputs,
         "Computes every tree output.");
     cld.def_readonly("same_mode_", &RuntimeTreeEnsembleRegressorDouble::same_mode_, "Tells if all nodes applies the same rule for thresholds.");
+    cld.def_readonly("consecutive_leaf_data_", &RuntimeTreeEnsembleRegressorDouble::consecutive_leaf_data_,
+        "Tells if there are two consecutive targets sharing the same node and the same tree (it should not happen in 1D target).");
 }
 
 #endif

@@ -212,12 +212,12 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
 }
 
 template<class NTYPE>
-void write_scores1_reg(NTYPE& scores, POST_EVAL_TRANSFORM post_transform,
+inline void write_scores1_reg(NTYPE& scores, POST_EVAL_TRANSFORM post_transform,
                        NTYPE* Z, int add_second_class) {
     if (post_transform == POST_EVAL_TRANSFORM::PROBIT) {
       scores = ComputeProbit(scores);
     }
-  memcpy(Z, &scores, sizeof(NTYPE));
+  *Z = scores;
 }
 
 #define array2vector(vec, arr, dtype) { \

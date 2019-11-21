@@ -44,6 +44,8 @@ class TestOnnxrtBenchRandomForest(ExtTestCase):
                            globals={'oinf': oinf, 'X_test2': X_test2},
                            repeat=10)
         self.assertEqual(len(ti), 10)
+        op = oinf.sequence_[0]
+        self.assertTrue(op.ops_.rt_.same_mode_)
         # print("C",sum(ti), ti)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
@@ -67,6 +69,9 @@ class TestOnnxrtBenchRandomForest(ExtTestCase):
                            repeat=10)
         self.assertEqual(len(ti), 10)
         # print("R",sum(ti), ti)
+        op = oinf.sequence_[0]
+        self.assertTrue(op.ops_.rt_.same_mode_)
+        self.assertFalse(op.ops_.rt_.consecutive_leaf_data_)
 
 
 if __name__ == "__main__":
