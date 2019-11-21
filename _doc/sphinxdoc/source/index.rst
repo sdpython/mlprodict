@@ -85,9 +85,9 @@ mostly :epkg:`scikit-learn` which is optimized for training,
 which is equivalent to batch predictions.
 One way is to use :epkg:`ONNX`.
 :epkg:`onnxruntime` provides an efficient way
-to compute predictions. The current code explores ways to be faster
-at implementing something working and provides a :epkg:`python`
-runtime for :epkg:`ONNX`.
+to compute predictions. *mlprodict* implements
+a *python/numpy* runtime for :epkg:`ONNX` which
+does not have any dependency on :epkg:`scikit-learn`.
 
 .. runpython::
     :showcode:
@@ -142,10 +142,11 @@ following :epkg:`ONNX` graph.
     oinf = OnnxInference(model_onnx)
     print("DOT-SECTION", oinf.to_dot())
 
-Notebook :ref:`onnxvisualizationrst`
-shows how to visualize an :epkg:`ONNX` pipeline.
-Another way is to convert the prediction function
-into :epkg:`C`.
+That concludes the example with :epkg:`ONNX`.
+A similar way was introduced before switching
+to epkg:`ONNX`. It is far less advanced but
+aims at producing a :epkg:`C` file replicating the
+predictions.
 
 .. runpython::
     :showcode:
@@ -168,6 +169,9 @@ into :epkg:`C`.
     ccode = gr.export(lang='c')
     # We print after a little bit of cleaning (remove all comments)
     print("\n".join(_ for _ in ccode['code'].split("\n") if "//" not in _))
+
+Notebook :ref:`onnxvisualizationrst`
+shows how to visualize an :epkg:`ONNX` pipeline.
 
 +----------------------+---------------------+---------------------+--------------------+------------------------+------------------------------------------------+
 | :ref:`l-modules`     |  :ref:`l-functions` | :ref:`l-classes`    | :ref:`l-methods`   | :ref:`l-staticmethods` | :ref:`l-properties`                            |
