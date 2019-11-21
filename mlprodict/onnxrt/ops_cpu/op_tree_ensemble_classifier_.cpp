@@ -57,6 +57,7 @@ class RuntimeTreeEnsembleClassifier
         POST_EVAL_TRANSFORM post_transform_;
         bool weights_are_all_positive_;
         bool same_mode_;
+        bool consecutive_leaf_data_;
     
     public:
         
@@ -227,9 +228,12 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::Initialize() {
   }
 
   // leafnode data, these are the votes that leaves do
+  consecutive_leaf_data_ = false;
   for (size_t i = 0, end = class_nodeids_.size(); i < end; ++i) {
     leafnode_data_.push_back(std::make_tuple(class_treeids_[i], class_nodeids_[i], class_ids_[i], class_weights_[i]));
     weights_classes_.insert(class_ids_[i]);
+    if (i > 0 && class_treeids_[i] == class_treeids_[i-1] && class_nodeids_[i] == class_nodeids_[i-1])
+        consecutive_leaf_data_ = true;
   }
 
   std::sort(std::begin(leafnode_data_), std::end(leafnode_data_), 
@@ -497,11 +501,9 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
     treeindex = val CMP nodes_values_[treeindex] || tracktrue \
                 ? nodes_truenodeids_[treeindex] \
                 : nodes_falsenodeids_[treeindex]; \
-    if (treeindex < 0) \
-      throw std::runtime_error("treeindex evaluated to a negative value, which should not happen."); \
     treeindex = treeindex + root; \
     mode = nodes_modes_[treeindex]; \
-    loopcount++; \
+    ++loopcount; \
     if (loopcount > max_tree_depth_) \
       break; \
   }
@@ -608,9 +610,29 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
   int64_t index = it_lp->second;
   std::tuple<int64_t, int64_t, int64_t, NTYPE>* leaf = 
         (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
-  int64_t treeid = std::get<0>(*leaf);
-  int64_t nodeid = std::get<1>(*leaf);
-  while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) {
+  if (consecutive_leaf_data_) {
+      int64_t treeid = std::get<0>(*leaf);
+      int64_t nodeid = std::get<1>(*leaf);
+      while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) {
+        int64_t classid = std::get<2>(*leaf);
+        NTYPE weight = std::get<3>(*leaf);
+        if (filled[classid])
+          classes[classid] += weight;
+        else {
+          classes[classid] = weight;
+          filled[classid] = true;
+        }
+        ++index;
+        // some tree node will be last
+        if (index >= static_cast<int64_t>(leafnode_data_.size())) {
+          break;
+        }
+        leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
+        treeid = std::get<0>(*leaf);
+        nodeid = std::get<1>(*leaf);
+      }
+  }
+  else {
     int64_t classid = std::get<2>(*leaf);
     NTYPE weight = std::get<3>(*leaf);
     if (filled[classid])
@@ -619,14 +641,6 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
       classes[classid] = weight;
       filled[classid] = true;
     }
-    ++index;
-    // some tree node will be last
-    if (index >= static_cast<int64_t>(leafnode_data_.size())) {
-      break;
-    }
-    leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]);
-    treeid = std::get<0>(*leaf);
-    nodeid = std::get<1>(*leaf);
   }
 }
 
@@ -708,6 +722,8 @@ in :epkg:`onnxruntime`. Supports float only.)pbdoc");
     clf.def_readonly("classlabels_int64s_", &RuntimeTreeEnsembleClassifierFloat::classlabels_int64s_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     clf.def_readonly("post_transform_", &RuntimeTreeEnsembleClassifierFloat::post_transform_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     clf.def_readonly("same_mode_", &RuntimeTreeEnsembleClassifierFloat::same_mode_, "Tells if all nodes applies the same rule for thresholds.");
+    clf.def_readonly("consecutive_leaf_data_", &RuntimeTreeEnsembleClassifierFloat::consecutive_leaf_data_,
+        "Tells if there are two consecutive targets sharing the same node and the same tree (it should not happen in 1D target).");
 
     py::class_<RuntimeTreeEnsembleClassifierDouble> cld (m, "RuntimeTreeEnsembleClassifierDouble",
         R"pbdoc(Implements runtime for operator TreeEnsembleClassifier. The code is inspired from
@@ -758,6 +774,8 @@ in :epkg:`onnxruntime`. Supports double only.)pbdoc");
     cld.def_readonly("classlabels_int64s_", &RuntimeTreeEnsembleClassifierDouble::classlabels_int64s_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     cld.def_readonly("post_transform_", &RuntimeTreeEnsembleClassifierDouble::post_transform_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     cld.def_readonly("same_mode_", &RuntimeTreeEnsembleClassifierDouble::same_mode_, "Tells if all nodes applies the same rule for thresholds.");
+    cld.def_readonly("consecutive_leaf_data_", &RuntimeTreeEnsembleClassifierDouble::consecutive_leaf_data_,
+        "Tells if there are two consecutive targets sharing the same node and the same tree (it should not happen in 1D target).");
 }
 
 #endif
