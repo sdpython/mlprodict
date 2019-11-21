@@ -142,7 +142,8 @@ def create_asv_benchmark(
         verbose=0, fLOG=print, clean=True,
         conf_params=None, filter_exp=None,
         filter_scenario=None, flat=False,
-        exc=False, build=None, execute=False):
+        exc=False, build=None, execute=False,
+        env=None):
     """
     Creates an :epkg:`asv` benchmark in a folder
     but does not run it.
@@ -180,6 +181,8 @@ def create_asv_benchmark(
     :param build: where to put the outputs
     :param execute: execute each script to make sure
         imports are correct
+    :param env: None to use the default configuration or ``same`` to use
+        the current one
     :return: created files
 
     The default configuration is the following:
@@ -220,6 +223,11 @@ def create_asv_benchmark(
     if build is not None:
         for fi in ['env_dir', 'results_dir', 'html_dir']:
             conf[fi] = os.path.join(build, conf[fi])
+    if env == 'same':
+        conf['pythons'] = ['same']
+        conf['matrix'] = {}
+    elif env is not None:
+        raise ValueError("Unable to handle env='{}'.".format(env))
     dest = os.path.join(location, "asv.conf.json")
     created.append(dest)
     with open(dest, "w", encoding='utf-8') as f:

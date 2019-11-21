@@ -12,7 +12,7 @@ def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
               dims='1,10,100,1000,10000,100000',
               n_features='4,20', dtype=None,
               verbose=1, fLOG=print, clean=True, flat=False,
-              conf_params=None, build=None):
+              conf_params=None, build=None, env=None):
     """
     Creates an :epkg:`asv` benchmark in a folder
     but does not run it.
@@ -41,6 +41,7 @@ def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
         format ``name,value;name2,value2``
     :param flat: one folder for all files or subfolders
     :param build: location of the outputs (env, html, results)
+    :param env: default environment or ``same`` to use the current one
     :return: created files
 
     .. cmdref::
@@ -122,4 +123,4 @@ def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
         n_features=n_features, dtype=dtype, verbose=verbose,
         fLOG=fLOG, clean=clean, conf_params=conf_params,
         filter_exp=fct_filter, filter_scenario=None,
-        flat=flat, build=build)
+        flat=flat, build=build, env=env)

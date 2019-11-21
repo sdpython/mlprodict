@@ -5,7 +5,28 @@
 History
 =======
 
-current - 2019-09-15 - 0.00Mb
+current - 2019-11-21 - 0.00Mb
+=============================
+
+* `59`: ONNX: Investigate kmeans and opset availability. (2019-11-21)
+* `66`: ONNX: improves speed of python runtime for decision trees (2019-11-19)
+* `74`: Function _modify_dimension should return the same dataset if called the same parameter (even if it uses random functions) (2019-11-15)
+* `73`: ONNX: fix links on benchmark page (opset is missing) (2019-11-07)
+* `72`: ONNX: support of sparse tensor for a unary and binary python operators (2019-11-06)
+* `71`: ONNX: add operator Constant (2019-11-06)
+* `67`: ONNX: improves speed of svm regressor (2019-11-06)
+* `70`: ONNX: write tools to test convervsion for models in scikit-learn examples (2019-10-29)
+* `65`: ONNX: investigate discrepencies for k-NN (2019-10-28)
+* `69`: ONNX: side by side should work by name and not by positions (2019-10-23)
+* `68`: ONNX: improves speed of SGDClassifier (2019-10-23)
+* `61`: Implements a function to create a benchmark based on asv (ONNX) (2019-10-17)
+* `63`: Export asv results to csv (ONNX) + command line (2019-10-11)
+* `64`: Add an example with lightgbm and categorical variables (ONNX) (2019-10-07)
+* `62`: Implements command line for the asv benchmark (ONNX) (2019-10-04)
+* `60`: Improve lightgbm converter (ONNX) (2019-09-30)
+* `58`: Fix table checking model, merge is wrong in documentation (2019-09-20)
+
+0.2.542 - 2019-09-15 - 0.59Mb
 =============================
 
 * `57`: ONNX: handles dataframe when converting a model (2019-09-15)
