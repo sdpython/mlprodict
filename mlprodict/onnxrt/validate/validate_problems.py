@@ -56,6 +56,7 @@ from sklearn.neighbors import (
 from sklearn.preprocessing import LabelBinarizer, LabelEncoder, OneHotEncoder
 from sklearn.semi_supervised import LabelPropagation, LabelSpreading
 from sklearn.svm import LinearSVC, LinearSVR, NuSVR, SVR, SVC, NuSVC
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.utils import shuffle
 from skl2onnx.common.data_types import (
     FloatTensorType, DoubleTensorType, StringTensorType, DictionaryType
@@ -674,6 +675,12 @@ def find_suitable_problem(model):
         if model in {AdaBoostClassifier, LogisticRegression}:
             return ['b-cl', '~b-cl-64', 'm-cl']
 
+        if model in {DecisionTreeClassifier}:
+            return ['b-cl', '~b-cl-64', 'm-cl', '~b-cl-f100']
+
+        if model in {DecisionTreeRegressor}:
+            return ['b-reg', 'm-reg', '~b-reg-64', '~m-reg-64', '~b-reg-f100']
+
         if model in {LatentDirichletAllocation, NMF}:
             return ['num-tr-pos']
 
@@ -796,6 +803,11 @@ _problems = {
     '~m-cl-nop': _problem_for_clnoproba,
     '~b-cl-dec': _problem_for_cl_decision_function_binary,
     '~m-cl-dec': _problem_for_cl_decision_function,
+    # 100 features
+    "~b-reg-f100": lambda n_features=100: _problem_for_predictor_regression(
+        n_features=n_features),
+    "~b-cl-f100": lambda n_features=100: _problem_for_predictor_binary_classification(
+        n_features=n_features),
     # 64
     "~b-cl-64": lambda n_features=None: _problem_for_predictor_binary_classification(
         dtype=numpy.float64, n_features=n_features),
