@@ -45,7 +45,7 @@ def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
     :return: created files
 
     .. cmdref::
-        :title: Validate a runtime against scikit-learn
+        :title: Automatically creates an asv benchmark
         :cmd: -m mlprodict asv_bench --help
         :lid: l-cmd-asv-bench
 
