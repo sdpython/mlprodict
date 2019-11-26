@@ -101,6 +101,29 @@ class TestRtValidateDecisionTree(ExtTestCase):
                 "The runtime did have an issue with double\n{}".format(pprint.pformat(rows)))
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    @unittest_require_at_least(skl2onnx, '1.5.9999')
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_rt_DecisionTreeRegressor_python_100(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        verbose = 2 if __name__ == "__main__" else 0
+
+        debug = True
+        buffer = []
+
+        def myprint(*args, **kwargs):
+            buffer.append(" ".join(map(str, args)))
+
+        rows = list(enumerate_validated_operator_opsets(
+            verbose, models={"DecisionTreeRegressor"}, opset_min=11, fLOG=myprint,
+            runtime='python', debug=debug, store_models=True,
+            filter_exp=lambda m, p: '-f100' in p))
+        self.assertGreater(len(buffer), 1 if debug else 0)
+        row = rows[0]
+        init = row['init_types'][0][1]
+        self.assertEqual(init.shape, (1, 100))
+
 
 if __name__ == "__main__":
     unittest.main()

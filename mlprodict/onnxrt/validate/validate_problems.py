@@ -805,9 +805,9 @@ _problems = {
     '~m-cl-dec': _problem_for_cl_decision_function,
     # 100 features
     "~b-reg-f100": lambda n_features=100: _problem_for_predictor_regression(
-        n_features=n_features),
+        n_features=n_features or 100),
     "~b-cl-f100": lambda n_features=100: _problem_for_predictor_binary_classification(
-        n_features=n_features),
+        n_features=n_features or 100),
     # 64
     "~b-cl-64": lambda n_features=None: _problem_for_predictor_binary_classification(
         dtype=numpy.float64, n_features=n_features),
