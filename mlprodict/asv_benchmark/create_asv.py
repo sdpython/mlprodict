@@ -518,7 +518,13 @@ def _asv_class_name(model, scenario, optimisation,
     if not dofit:
         els.append('nofit')
     if extra:
-        els.append(clean_str(extra))
+        if 'random_state' in extra and extra['random_state'] == 42:
+            extra2 = extra.copy()
+            del extra2['random_state']
+            if extra2:
+                els.append(clean_str(extra2))
+        else:
+            els.append(clean_str(extra))
     if optimisation:
         els.append(clean_str_list(optimisation))
     if conv_options:

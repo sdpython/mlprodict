@@ -6,6 +6,7 @@ The submodule relies on :epkg:`onnxconverter_common`,
 """
 import copy
 import pprint
+from inspect import signature
 import numpy
 import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
@@ -192,6 +193,22 @@ def _retrieve_problems_extra(model, verbose, fLOG, extended_list):
             return {'name': model.__name__, 'skl_version': sklearn_version,
                     '_0problem_exc': e}, extras
     extras = extra_parameters.get(model, [('default', {})])
+
+    # checks existence of random_state
+    sig = signature(model.__init__)
+    if 'random_state' in sig.parameters:
+        new_extras = []
+        for extra in extras:
+            if 'random_state' not in extra[1]:
+                ps = extra[1].copy()
+                ps['random_state'] = 42
+                if len(extra) == 2:
+                    extra = (extra[0], ps)
+                else:
+                    extra = (extra[0], ps) + extra[2:]
+            new_extras.append(extra)
+        extras = new_extras
+
     return problems, extras
 
 
