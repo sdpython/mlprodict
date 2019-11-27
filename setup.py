@@ -307,5 +307,7 @@ if not r:
             'sklapi': ['scikit-learn>=0.21'],
             'onnx_val': ['scikit-learn>=0.21', 'skl2onnx>=1.6.0',
                          'onnxruntime>=1.0.0'],
+            'all': ['scikit-learn>=0.21', 'skl2onnx>=1.6.0',
+                    'onnxruntime>=1.0.0', 'pybind11', 'scipy'],
         },
     )
