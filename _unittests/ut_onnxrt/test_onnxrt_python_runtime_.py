@@ -248,6 +248,21 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(exp, got['Y'], decimal=6)
         sparse_support.append(('UnOp', None, OnnxArgMax.__name__))
+        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+
+    @unittest_require_at_least(onnx, '1.6.1')
+    def test_onnxt_runtime_argmax_12(self):
+        self.assertGreater(onnx_opset_version(), 12)
+        from skl2onnx.algebra.onnx_ops import OnnxArgMax_12  # pylint: disable=E0611
+        X = numpy.array([[2, 2, 1], [0, 1, 1]], dtype=float)
+        onx = OnnxArgMax_12('X', output_names=['Y'], keepdims=0, axis=1,
+                            select_last_index=1, op_version=12)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.array([1, 2], dtype=numpy.int64),
+                              got['Y'], decimal=6)
 
     def test_onnxt_runtime_argmin(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
@@ -290,6 +305,20 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(exp, got['Y'], decimal=6)
         sparse_support.append(('UnOp', None, OnnxArgMin.__name__))
+
+    @unittest_require_at_least(onnx, '1.6.1')
+    def test_onnxt_runtime_argmin_12(self):
+        self.assertGreater(onnx_opset_version(), 12)
+        from skl2onnx.algebra.onnx_ops import OnnxArgMin_12  # pylint: disable=E0611
+        X = numpy.array([[2, 1, 1], [0, 0, 1]], dtype=float)
+        onx = OnnxArgMin_12('X', output_names=['Y'], keepdims=0, axis=1,
+                            select_last_index=1, op_version=12)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.array([2, 1], dtype=numpy.int64),
+                              got['Y'], decimal=6)
 
     def test_onnxt_runtime_ceil(self):
         self.common_test_onnxt_runtime_unary(OnnxCeil, numpy.ceil)
