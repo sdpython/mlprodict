@@ -27,6 +27,7 @@ class TestCreateAsvBenchmarkRF(ExtTestCase):
 
         reg = re.compile("class ([a-zA-Z0-9_]+)[(]")
         verif = False
+        allnames = []
         for path, _, files in os.walk(os.path.join(temp, 'benches')):
             for zoo in files:
                 if '__init__' in zoo:
@@ -38,6 +39,7 @@ class TestCreateAsvBenchmarkRF(ExtTestCase):
                 names = reg.findall(content)
                 name = names[0]
                 content += "\n\ncl = %s()\ncl.setup_cache()\n" % name
+                allnames.append(fullname)
                 with open(fullname, 'w', encoding='utf-8') as f:
                     f.write(content)
                 __, err = run_script(fullname, wait=True)
@@ -56,7 +58,9 @@ class TestCreateAsvBenchmarkRF(ExtTestCase):
                         raise AssertionError(content)
                     else:
                         verif = True
-        self.assertTrue(verif)
+        if not verif:
+            raise AssertionError("Visited files\n{}".format(
+                "\n".join(allnames))
 
 
 if __name__ == "__main__":
