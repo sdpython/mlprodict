@@ -57,13 +57,14 @@ class TestOnnxrtValidateType(ExtTestCase):
         temp = get_temp_folder(
             __file__, "temp_validate_sklearn_operators_" + subname)
         nb = 60
+        ops = onnx.defs.onnx_opset_version()
         rows = []
         for _, row in zip(
                 range(nb),
                 enumerate_validated_operator_opsets(
                     verbose, debug=True, fLOG=myfLOG, dump_folder=temp,
                     models=models, filter_exp=filter_exp,
-                    opset_min=11, store_models=True,
+                    opset_min=ops, store_models=True,
                     filter_scenario=filter_scenario)):
 
             up = {}
