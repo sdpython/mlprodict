@@ -60,7 +60,7 @@ class TestCreateAsvBenchmarkRF(ExtTestCase):
                         verif = True
         if not verif:
             raise AssertionError("Visited files\n{}".format(
-                "\n".join(allnames))
+                "\n".join(allnames)))
 
 
 if __name__ == "__main__":
