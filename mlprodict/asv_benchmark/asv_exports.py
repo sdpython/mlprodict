@@ -8,6 +8,19 @@ import json
 from json.decoder import JSONDecodeError
 
 
+def fix_missing_imports():
+    """
+    The execution of a file through function :epkg:`exec`
+    does not import new modules. They must be there when
+    it is done. This function fills the gap for some of
+    them.
+
+    @return         added names
+    """
+    from sklearn.linear_model import LogisticRegression
+    return {'LogisticRegression': LogisticRegression}
+
+
 def _dict2str(d):
     vals = []
     for k, v in d.items():
@@ -266,12 +279,16 @@ def _enumerate_classes(filename):
     """
     with open(filename, "r", encoding="utf-8") as f:
         content = f.read()
-
-    gl = {}
+    gl = fix_missing_imports()
     loc = {}
     cp = compile(content, filename, mode='exec')
 
-    exec(cp, gl, loc)  # pylint: disable=W0122
+    try:
+        exec(cp, gl, loc)  # pylint: disable=W0122
+    except NameError as e:
+        raise NameError(
+            "An import is probably missing from function 'fix_missing_imports'"
+            ".") from e
 
     for k, v in loc.items():
         if k[0] < 'A' or k[0] > 'Z':
