@@ -214,11 +214,13 @@ def dump_into_folder(dump_folder, obs_op=None, is_error=True,
     @param      dump_folder     dump_folder
     @param      obs_op          obs_op (information)
     @param      is_error        is it an error or not?
-    @kwargs                     kwargs
+    @param      kwargs          additional parameters
+    @return                     name
     """
     optim = obs_op.get('optim', '')
     optim = str(optim)
     optim = optim.replace("<class 'sklearn.", "")
+    optim = optim.replace("<class '", "")
     optim = optim.replace(" ", "")
     optim = optim.replace(">", "")
     optim = optim.replace("=", "")
@@ -226,6 +228,8 @@ def dump_into_folder(dump_folder, obs_op=None, is_error=True,
     optim = optim.replace("}", "")
     optim = optim.replace(":", "")
     optim = optim.replace("'", "")
+    optim = optim.replace("/", "")
+    optim = optim.replace("\\", "")
     parts = (obs_op['runtime'], obs_op['name'], obs_op['scenario'],
              obs_op['problem'], optim,
              "op" + str(obs_op.get('opset', '-')),
@@ -241,6 +245,7 @@ def dump_into_folder(dump_folder, obs_op=None, is_error=True,
     kwargs.update({'obs_op': obs_op})
     with open(name, "wb") as f:
         pickle.dump(kwargs, f)
+    return name
 
 
 def default_time_kwargs():

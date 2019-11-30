@@ -713,11 +713,12 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if verbose >= 2 and fLOG is not None:
         fLOG("[enumerate_compatible_opset-R] next...")
     if dump_all:
-        dump_into_folder(dump_folder, kind='batch', obs_op=obs_op,
-                         X_test=X_test, y_test=y_test, Xort_test=Xort_test,
-                         is_error=len(debug_exc) > 1,
-                         onnx_bytes=conv.SerializeToString(),
-                         skl_model=inst, ypred=ypred)
+        dump = dump_into_folder(dump_folder, kind='batch', obs_op=obs_op,
+                                X_test=X_test, y_test=y_test, Xort_test=Xort_test,
+                                is_error=len(debug_exc) > 1,
+                                onnx_bytes=conv.SerializeToString(),
+                                skl_model=inst, ypred=ypred)
+        obs_op['dumped'] = dump
     return obs_op
 
 
