@@ -113,7 +113,6 @@ void ComputeSoftmax(std::vector<NTYPE>& values) {
       v_max = value;
   }
   NTYPE this_sum = (NTYPE)0.;
-  std::vector<NTYPE>::iterator it;
   for (NTYPE& value : values) {
     value = std::exp(value - v_max)
     this_sum += value;
