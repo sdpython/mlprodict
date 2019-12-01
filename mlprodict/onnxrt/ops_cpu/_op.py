@@ -184,6 +184,21 @@ class OpRun:
         """
         self.inplaces[index] = True
 
+    @property
+    def args_default(self):
+        """
+        Returns the list of arguments as well as
+        the list of parameters with the default values
+        (close to the signature).
+        """
+        inps = []
+        if hasattr(self, 'atts'):
+            for k, v in sorted(self.atts.items()):  # pylint: disable=E1101
+                if isinstance(v, (list, tuple, dict)) and len(v) == 0:
+                    v = None
+                inps.append('%s=%r' % (k, v))
+        return inps
+
     def to_python(self, inputs):
         """
         Returns a python code equivalent to this operator.

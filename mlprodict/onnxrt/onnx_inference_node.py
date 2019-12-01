@@ -215,6 +215,17 @@ class OnnxInferenceNode:
         self.inplaces.append(name)
         self.ops_.enable_inplace_compute(self.inputs.index(name))
 
+    @property
+    def inputs_args(self):
+        """
+        Returns the list of arguments as well as
+        the list of parameters with the default values
+        (close to the signature).
+        """
+        if not hasattr(self, 'ops_'):
+            raise AttributeError("Attribute 'ops_' is missing.")
+        return self.inputs + self.ops_.args_default
+
     def to_python(self, inputs):
         """
         Returns a python code for this operator.
