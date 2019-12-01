@@ -124,6 +124,7 @@ class OnnxInference:
         self.exporters_ = OnnxInferenceExport(self)
         self.to_json = self.exporters_.to_json
         self.to_dot = self.exporters_.to_dot
+        self.to_python = self.exporters_.to_python
 
     def _guess_input_dtype(self):
         for _, v in self.graph_['inputs'].items():

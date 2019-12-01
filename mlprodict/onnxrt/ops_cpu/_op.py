@@ -184,6 +184,16 @@ class OpRun:
         """
         self.inplaces[index] = True
 
+    def to_python(self, inputs):
+        """
+        Returns a python code equivalent to this operator.
+
+        @param      inputs      inputs name
+        @return                 imports, python code, both as strings
+        """
+        raise NotImplementedError(
+            "Operator '{}' has no equivalent python code.".format(self.__class__.__name__))
+
 
 class OpRunUnary(OpRun):
     """
@@ -469,3 +479,18 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
             except ValueError:
                 return (self.numpy_fct(a, b), )
         return (self.numpy_fct(a, b), )
+
+    def to_python(self, inputs):
+        """
+        Returns a python code equivalent to this operator.
+
+        @param      inputs      inputs name
+        @return                 imports, python code, both as strings
+        """
+        lines = [
+            "# inplaces {}-{}".format(
+                self.inplaces.get(0, False), self.inplaces.get(1, False)),
+            "return numpy.{0}({1})".format(
+                self.numpy_fct.__name__, ', '.join(inputs))
+        ]
+        return "import numpy", "\n".join(lines)

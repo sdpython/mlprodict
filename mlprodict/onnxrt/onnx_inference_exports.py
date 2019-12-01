@@ -3,6 +3,9 @@
 @brief Extensions to class @see cl OnnxInference.
 """
 import json
+from io import BytesIO
+import pickle
+import textwrap
 from onnx import numpy_helper
 from .onnx2py_helper import _var_as_dict, _type_to_string
 
@@ -344,3 +347,127 @@ class OnnxInferenceExport:
         final_obj['nodes'] = nodes
 
         return json.dumps(final_obj, indent=indent)
+
+    def to_python(self, prefix="onnx_pyrt_", dest=None):
+        """
+        Converts the ONNX runtime into independant python code.
+        The function creates multiple files starting with
+        *prefix* and saved to folder *dest*.
+
+        @param  prefix      file prefix
+        @param  dest        destination folder
+        @return             file dictionary
+
+        The function does not work if the chosen runtime
+        is not *python*.
+
+        .. runpython::
+            :showcode:
+
+            import numpy
+            from skl2onnx.algebra.onnx_ops import OnnxAdd
+            from mlprodict.onnxrt import OnnxInference
+
+            idi = numpy.identity(2)
+            onx = OnnxAdd('X', idi, output_names=['Y'])
+            model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+            X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float32)
+            oinf = OnnxInference(model_def, runtime='python')
+            res = oinf.to_python()
+            print(res['onnx_pyrt_main.py'])
+        """
+        if self.oinf.runtime != 'python':
+            raise ValueError(
+                "The runtime must be python not '{}'.".format(self.oinf.runtime))
+
+        # metadata
+        obj = {}
+        for k in {'ir_version', 'producer_name', 'producer_version',
+                  'domain', 'model_version', 'doc_string'}:
+            if hasattr(self.oinf.obj, k):
+                obj[k] = getattr(self.oinf.obj, k)
+        code_imports = ["import pickle"]
+        code_lines = ["class OnnxPythonInference:", "",
+                      "    def __init__(self):",
+                      "        self._load_inits()", "",
+                      "    @property",
+                      "    def metadata(self):",
+                      "        return %r" % obj, ""]
+
+        # inputs
+        inputs = [obj.name for obj in self.oinf.obj.graph.input]
+        code_lines.extend([
+            "    @property", "    def inputs(self):",
+            "        return %r" % inputs,
+            ""
+        ])
+
+        # outputs
+        outputs = [obj.name for obj in self.oinf.obj.graph.output]
+        code_lines.extend([
+            "    @property", "    def outputs(self):",
+            "        return %r" % outputs,
+            ""
+        ])
+
+        # init
+        code_lines.extend(["    def _load_inits()",
+                           "        self._inits = {}"])
+        file_data = {}
+        for obj in self.oinf.obj.graph.initializer:
+            value = numpy_helper.to_array(obj)
+            bt = BytesIO()
+            pickle.dump(value, bt)
+            name = '{1}{0}.pkl'.format(obj.name, prefix)
+            file_data[name] = bt.getvalue()
+            code_lines.append(
+                "        self._inits['{0}'] = pickle.loads('{1}')".format(
+                    obj.name, name))
+        code_lines.append('')
+
+        # inputs, outputs
+        inputs = self.oinf.input_names
+        # outputs = self.oinf.output_names
+
+        # nodes
+        code_lines.extend(['    def run(self, %s):' % ', '.join(inputs)])
+        ops = {}
+        code_lines.append('        # constant')
+        for obj in self.oinf.obj.graph.initializer:
+            code_lines.append(
+                "        {0} = self._inits['{0}']".format(obj.name))
+        code_lines.append('')
+        code_lines.append('        # graph code')
+        for node in self.oinf.sequence_:
+            fct = 'pyrt_' + node.name
+            if fct not in ops:
+                ops[fct] = node
+            args = []
+            args.extend(node.inputs)
+            code_lines.append("        {0} = {1}({2})".format(
+                ', '.join(node.outputs), fct, ', '.join(args)))
+        code_lines.append('')
+        code_lines.append('        # return')
+        code_lines.append('        return %s' % ', '.join(outputs))
+        code_lines.append('')
+
+        # operator code
+        code_nodes = []
+        for name, op in ops.items():
+            code_nodes.append('def {0}({1}):'.format(
+                name, ', '.join(op.inputs)))
+            imps, code = op.to_python(op.inputs)
+            if not isinstance(imps, list):
+                imps = [imps]
+            code_imports.extend(imps)
+            code_nodes.append(textwrap.indent(code, '    '))
+            code_nodes.append(
+                '    # outputs: {0}'.format(', '.join(op.outputs)))
+            code_nodes.extend(['', ''])
+
+        # end
+        code_imports = list(sorted(set(code_imports)))
+        code_imports.extend(['', ''])
+        file_data[prefix +
+                  'main.py'] = "\n".join(code_imports + code_nodes + code_lines)
+        return file_data

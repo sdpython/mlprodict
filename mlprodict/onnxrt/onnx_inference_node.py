@@ -26,6 +26,13 @@ class OnnxInferenceNode:
         self.onnx_node = onnx_node
         self._init(global_index)
 
+    @property
+    def name(self):
+        "Returns the ONNX name."
+        return "_".join(
+            [self.desc['domain'], self.onnx_node.op_type]).replace(
+                ".", "_").replace('__', '_').strip('_')
+
     def _init(self, global_index):
         """
         Prepares the node.
@@ -207,3 +214,14 @@ class OnnxInferenceNode:
         """
         self.inplaces.append(name)
         self.ops_.enable_inplace_compute(self.inputs.index(name))
+
+    def to_python(self, inputs):
+        """
+        Returns a python code for this operator.
+
+        @param      inputs      inputs name
+        @return                 imports, python code, both as strings
+        """
+        if not hasattr(self, 'ops_'):
+            raise AttributeError("Attribute 'ops_' is missing.")
+        return self.ops_.to_python(inputs)
