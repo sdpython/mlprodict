@@ -107,29 +107,24 @@ static inline NTYPE sigmoid_probability(NTYPE score, NTYPE proba, NTYPE probb) {
 
 template<class NTYPE>
 void ComputeSoftmax(std::vector<NTYPE>& values) {
-  std::vector<NTYPE> newscores;
-  // compute exp with negative number to be numerically stable
   NTYPE v_max = -std::numeric_limits<NTYPE>::max();
   for (NTYPE value : values) {
     if (value > v_max)
       v_max = value;
   }
   NTYPE this_sum = (NTYPE)0.;
-  for (NTYPE value : values) {
-    NTYPE val2 = std::exp(value - v_max);
-    this_sum += val2;
-    newscores.push_back(val2);
+  std::vector<NTYPE>::iterator it;
+  for (NTYPE& value : values) {
+    value = std::exp(value - v_max)
+    this_sum += value;
   }
-  for (int64_t k = 0; k < static_cast<int64_t>(values.size()); k++)
-    values[k] = newscores[k] / this_sum;
+  for (NTYPE& value : values) 
+    value /= this_sum;
 }
 
 
 template<class NTYPE>
 void ComputeSoftmaxZero(std::vector<NTYPE>& values) {
-  //this function skips zero values (since exp(0) is non zero)
-  std::vector<NTYPE> newscores;
-  // compute exp with negative number to be numerically stable
   NTYPE v_max = -std::numeric_limits<NTYPE>::max();
   for (NTYPE value : values) {
     if (value > v_max)
@@ -137,18 +132,17 @@ void ComputeSoftmaxZero(std::vector<NTYPE>& values) {
   }
   NTYPE exp_neg_v_max = std::exp(-v_max);
   NTYPE this_sum = (NTYPE)0;
-  for (NTYPE value : values) {
+  std::vector<NTYPE>::iterator it;
+  for (NTYPE& value : values)
     if (value > 0.0000001f || value < -0.0000001f) {
-      NTYPE val2 = std::exp(value - v_max);
-      this_sum += val2;
-      newscores.push_back(val2);
+      value = std::exp(*it - v_max);
+      this_sum += value;
     } else {
-      newscores.push_back(value * exp_neg_v_max);
+      value *= exp_neg_v_max;
     }
   }
-  for (int64_t k = 0; k < static_cast<int64_t>(values.size()); k++) {
-    values[k] = newscores[k] / this_sum;
-  }
+  for (NTYPE& value : values)
+    value /= this_sum;
 }
 
 
@@ -175,9 +169,11 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
       case POST_EVAL_TRANSFORM::NONE:
         break;
     }
+    memcpy(Z, scores.data(), scores.size() * sizeof(NTYPE));
   } else if (scores.size() == 1) {  //binary case
     if (post_transform == POST_EVAL_TRANSFORM::PROBIT) {
       scores[0] = ComputeProbit(scores[0]);
+      *Z = scores[0];
     } else {
       switch (add_second_class) {
         case 0:  //0=all positive weights, winning class is positive
@@ -206,9 +202,10 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
           }
           break;
       }
+      *Z = scores[0];
+      *(Z+1) = scores[1];
     }
   }
-  memcpy(Z, scores.data(), scores.size() * sizeof(NTYPE));
 }
 
 template<class NTYPE>

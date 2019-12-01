@@ -58,6 +58,7 @@ class RuntimeTreeEnsembleClassifier
         bool weights_are_all_positive_;
         bool same_mode_;
         bool consecutive_leaf_data_;
+        bool binary_case_;
     
     public:
         
@@ -103,6 +104,12 @@ class RuntimeTreeEnsembleClassifier
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                               const py::array_t<NTYPE>& X, py::array_t<int64_t>& Y,
                               py::array_t<NTYPE>& Z) const;
+    
+        int64_t _set_score_binary(int64_t i,
+                          int& write_additional_scores,
+                          std::vector<NTYPE>& classes,
+                          std::vector<bool>& filled,
+                          int64_t positive_label, int64_t negative_label) const;    
 };
 
 
@@ -307,6 +314,7 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::Initialize() {
     }
   }
   class_count_ = classlabels_int64s_.size();
+  binary_case_ = classlabels_int64s_.size() == 2 && weights_classes_.size() == 1;
 }
 
 
@@ -316,13 +324,12 @@ void get_max_weight(const std::vector<NTYPE>& classes,
                     int64_t& maxclass, NTYPE& maxweight) {
   maxclass = -1;
   maxweight = (NTYPE)0;
-  int64_t i;
   typename std::vector<NTYPE>::const_iterator it;
   typename std::vector<bool>::const_iterator itb;
-  for (i = 0, it = classes.begin(), itb = filled.begin();
-       it != classes.end(); ++it, ++i, ++itb) {
+  for (it = classes.begin(), itb = filled.begin();
+       it != classes.end(); ++it, ++itb) {
     if (*itb && (maxclass == -1 || *it > maxweight)) {
-      maxclass = i;
+      maxclass = (int64_t)(it - classes.begin());
       maxweight = *it;
     }
   }
@@ -330,42 +337,29 @@ void get_max_weight(const std::vector<NTYPE>& classes,
 
 
 template<typename NTYPE>
-void get_weight_class_positive(const std::vector<NTYPE>& classes, 
-                               const std::vector<bool>& filled,
-                               NTYPE& pos_weight) {
-  pos_weight = !filled[1]
-                   ? (filled[0] ? classes[0] : (NTYPE)0)  // only 1 class
-                   : classes[1];
-}
-
-
-template<typename NTYPE>
-int64_t _set_score_binary(int64_t i,
-                          int& write_additional_scores,
-                          bool weights_are_all_positive_,
-                          std::vector<NTYPE>& classes,
-                          std::vector<bool>& filled,
-                          const std::vector<int64_t>& classes_labels_,
-                          const std::set<int64_t>& weights_classes_,
-                          int64_t positive_label, int64_t negative_label) {
-  NTYPE pos_weight;
-  get_weight_class_positive(classes, filled, pos_weight);
-  if (classes_labels_.size() == 2 && weights_classes_.size() == 1) {
+int64_t RuntimeTreeEnsembleClassifier<NTYPE>::_set_score_binary(
+        int64_t i, int& write_additional_scores,
+        std::vector<NTYPE>& classes, std::vector<bool>& filled,
+        int64_t positive_label, int64_t negative_label) const {
+  NTYPE pos_weight = !filled[1]
+                        ? (filled[0] ? classes[0] : (NTYPE)0)  // only 1 class
+                        : classes[1];
+  if (binary_case_) {
     if (weights_are_all_positive_) {
       if (pos_weight > 0.5) {
         write_additional_scores = 0;
-        return classes_labels_[1];  // positive label
+        return classlabels_int64s_[1];  // positive label
       } else {
         write_additional_scores = 1;
-        return classes_labels_[0];  // negative label
+        return classlabels_int64s_[0];  // negative label
       }
     } else {
       if (pos_weight > 0) {
         write_additional_scores = 2;
-        return classes_labels_[1];  // positive label
+        return classlabels_int64s_[1];  // positive label
       } else {
         write_additional_scores = 3;
-        return classes_labels_[0];  // negative label
+        return classlabels_int64s_[0];  // negative label
       }
     }
   } else if (pos_weight > 0) {
@@ -480,10 +474,8 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
                   scores.pop_back();
             }
 
-            Y_(i) = _set_score_binary(i, write_additional_scores,
-                              weights_are_all_positive_,
-                              scores, filled, classlabels_int64s_,
-                              weights_classes_, (int64_t)1, (int64_t)0);
+            Y_(i) = _set_score_binary(i, write_additional_scores,                              
+                              scores, filled, (int64_t)1, (int64_t)0);
         }
 
         write_scores(scores, post_transform_, (NTYPE*)Z_.data(i * class_count_),
@@ -493,19 +485,17 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
 
 
 #define TREE_FIND_VALUE(CMP) \
-  while (mode != NODE_MODE::LEAF) { \
+  while (mode != NODE_MODE::LEAF && loopcount <= max_tree_depth_) { \
     val = x_data[feature_base + nodes_featureids_[treeindex]]; \
     tracktrue = missing_tracks_true_.size() != nodes_truenodeids_.size() \
                      ? false \
-                     : (missing_tracks_true_[treeindex] != 0) && std::isnan(static_cast<NTYPE>(val)); \
+                     : (std::isnan(static_cast<NTYPE>(val)) && (missing_tracks_true_[treeindex] != 0)); \
     treeindex = val CMP nodes_values_[treeindex] || tracktrue \
                 ? nodes_truenodeids_[treeindex] \
                 : nodes_falsenodeids_[treeindex]; \
     treeindex = treeindex + root; \
     mode = nodes_modes_[treeindex]; \
     ++loopcount; \
-    if (loopcount > max_tree_depth_) \
-      break; \
   }
 
 
@@ -550,7 +540,7 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
       }
   }
   else {
-    while (mode != NODE_MODE::LEAF) {
+    while (mode != NODE_MODE::LEAF && loopcount <= max_tree_depth_) {
       NTYPE val = x_data[feature_base + nodes_featureids_[treeindex]];
       tracktrue = missing_tracks_true_.size() != nodes_truenodeids_.size()
                   ? false
@@ -595,9 +585,7 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
       }
       treeindex = treeindex + root;
       mode = nodes_modes_[treeindex];
-      loopcount++;
-      if (loopcount > max_tree_depth_) 
-          break;
+      ++loopcount;
     }
   }
 
