@@ -133,7 +133,7 @@ void ComputeSoftmaxZero(std::vector<NTYPE>& values) {
   NTYPE this_sum = (NTYPE)0;
   for (NTYPE& value : values)
     if (value > 0.0000001f || value < -0.0000001f) {
-      value = std::exp(*it - v_max);
+      value = std::exp(value - v_max);
       this_sum += value;
     } else {
       value *= exp_neg_v_max;
