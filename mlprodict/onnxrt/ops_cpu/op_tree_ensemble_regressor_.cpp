@@ -97,7 +97,7 @@ class RuntimeTreeEnsembleRegressor
 
         py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> values) const;
 
-private:
+    private:
 
         void Initialize();
     
@@ -373,7 +373,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
                     ? scores / roots_.size()
                     : scores)
                 : 0;
-        write_scores1_reg(val, post_transform_, (NTYPE*)Z_.data(i), -1);
+        *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) ? ComputeProbit(val) : val;
       }
     }
     else {
@@ -408,36 +408,48 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
 
 
 #define TREE_FIND_VALUE(CMP) \
-  while ((mode != NODE_MODE::LEAF && loopcount <= max_tree_depth_)) { \
-    val = x_data[feature_base + nodes_featureids_[treeindex]]; \
-    tracktrue = missing_tracks_true_.size() == nodes_truenodeids_.size() && \
-                missing_tracks_true_[treeindex] && \
-                std::isnan(static_cast<NTYPE>(val)); \
-    treeindex = val CMP nodes_values_[treeindex] || tracktrue \
-                ? nodes_truenodeids_[treeindex] \
-                : nodes_falsenodeids_[treeindex]; \
-    treeindex = treeindex + root; \
-    mode = nodes_modes_[treeindex]; \
-    ++loopcount; \
-  }
+    if (missing_tracks_true_.size() == nodes_truenodeids_.size()) { \
+      while (mode != NODE_MODE::LEAF && loopcount >= 0) { \
+        val = x_data[feature_base + nodes_featureids_[treeindex]]; \
+        treeindex = root + \
+            ((val CMP nodes_values_[treeindex] || \
+                (missing_tracks_true_[treeindex] && std::isnan(static_cast<NTYPE>(val)))) \
+              ? nodes_truenodeids_[treeindex] \
+              : nodes_falsenodeids_[treeindex]); \
+        mode = nodes_modes_[treeindex]; \
+        --loopcount; \
+      } \
+    } \
+    else { \
+      while (mode != NODE_MODE::LEAF && loopcount >= 0) { \
+        val = x_data[feature_base + nodes_featureids_[treeindex]]; \
+        treeindex = root + (val CMP nodes_values_[treeindex] \
+                              ? nodes_truenodeids_[treeindex] \
+                              : nodes_falsenodeids_[treeindex]); \
+        mode = nodes_modes_[treeindex]; \
+        --loopcount; \
+      } \
+    }
 
 
 #define TARGET_ASSIGN_LOOP(AFF) \
-            int64_t dim_id; \
-            NTYPE weight; \
-            int64_t treeid = std::get<0>(*leaf); \
-            int64_t nodeid = std::get<1>(*leaf); \
-            while (treeid == nodes_treeids_[treeindex] && nodeid == nodes_nodeids_[treeindex]) { \
-              dim_id = std::get<2>(*leaf); \
-              weight = std::get<3>(*leaf); \
-              AFF \
-              ++index; \
-              if (index >= leafnode_data_.size()) \
-                break; \
-              leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]); \
-              treeid = std::get<0>(*leaf); \
-              nodeid = std::get<1>(*leaf); \
-            }
+    int64_t dim_id; \
+    NTYPE weight; \
+    int64_t nodes_treeid = nodes_treeids_[treeindex]; \
+    int64_t nodes_nodeid = nodes_nodeids_[treeindex]; \
+    int64_t treeid = std::get<0>(*leaf); \
+    int64_t nodeid = std::get<1>(*leaf); \
+    while (treeid == nodes_treeid && nodeid == nodes_nodeid) { \
+      dim_id = std::get<2>(*leaf); \
+      weight = std::get<3>(*leaf); \
+      AFF \
+      ++index; \
+      if (index >= leafnode_data_.size()) \
+        break; \
+      leaf = (std::tuple<int64_t, int64_t, int64_t, NTYPE>*) &(leafnode_data_[index]); \
+      treeid = std::get<0>(*leaf); \
+      nodeid = std::get<1>(*leaf); \
+    }
 
 
 template<typename NTYPE>
@@ -446,12 +458,12 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
         int64_t treeindex, const NTYPE* x_data, int64_t feature_base,
         unsigned char* has_predictions) const {
   auto mode = nodes_modes_[treeindex];
-  int64_t loopcount = 0;
   int64_t root = treeindex;
   bool tracktrue;
   NTYPE val;
 
   if (same_mode_) {
+      int64_t loopcount = max_tree_depth_;
       switch(mode) {
         case NODE_MODE::BRANCH_LEQ:
           TREE_FIND_VALUE(<=)
@@ -482,6 +494,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
       }
   }
   else {  // Different rules to compare to node thresholds.
+    int64_t loopcount = 0;
     while ((mode != NODE_MODE::LEAF && loopcount <= max_tree_depth_)) {
       NTYPE val = x_data[feature_base + nodes_featureids_[treeindex]];
       tracktrue = missing_tracks_true_.size() == nodes_truenodeids_.size() &&
@@ -525,7 +538,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
           throw std::runtime_error(err_msg.str());
         }
       }
-      treeindex = treeindex + root;
+      treeindex += root;
       mode = nodes_modes_[treeindex];
       ++loopcount;
     }      

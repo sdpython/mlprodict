@@ -341,9 +341,9 @@ int64_t RuntimeTreeEnsembleClassifier<NTYPE>::_set_score_binary(
         int64_t i, int& write_additional_scores,
         std::vector<NTYPE>& classes, std::vector<bool>& filled,
         int64_t positive_label, int64_t negative_label) const {
-  NTYPE pos_weight = !filled[1]
-                        ? (filled[0] ? classes[0] : (NTYPE)0)  // only 1 class
-                        : classes[1];
+  NTYPE pos_weight = filled[1]
+                        ? classes[1]
+                        : (filled[0] ? classes[0] : (NTYPE)0);  // only 1 class
   if (binary_case_) {
     if (weights_are_all_positive_) {
       if (pos_weight > 0.5) {
@@ -362,10 +362,10 @@ int64_t RuntimeTreeEnsembleClassifier<NTYPE>::_set_score_binary(
         return classlabels_int64s_[0];  // negative label
       }
     }
-  } else if (pos_weight > 0) {
-    return positive_label;  // positive label
   } else {
-    return negative_label;  // negative label
+    return (pos_weight > 0) 
+                ? positive_label   // positive label
+                : negative_label;  // negative label
   }
 }
 
@@ -415,9 +415,9 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
     const NTYPE* x_data = X.data(0);
 
     // for each class
-#ifdef USE_OPENMP
-#pragma omp parallel for
-#endif
+    #ifdef USE_OPENMP
+    #pragma omp parallel for
+    #endif
     for (int64_t i = 0; i < N; ++i) {
         int64_t current_weight_0 = i * stride;
         std::vector<NTYPE> scores(class_count_);
@@ -485,18 +485,28 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
 
 
 #define TREE_FIND_VALUE(CMP) \
-  while (mode != NODE_MODE::LEAF && loopcount <= max_tree_depth_) { \
-    val = x_data[feature_base + nodes_featureids_[treeindex]]; \
-    tracktrue = missing_tracks_true_.size() != nodes_truenodeids_.size() \
-                     ? false \
-                     : (std::isnan(static_cast<NTYPE>(val)) && (missing_tracks_true_[treeindex] != 0)); \
-    treeindex = val CMP nodes_values_[treeindex] || tracktrue \
-                ? nodes_truenodeids_[treeindex] \
-                : nodes_falsenodeids_[treeindex]; \
-    treeindex = treeindex + root; \
-    mode = nodes_modes_[treeindex]; \
-    ++loopcount; \
-  }
+    if (missing_tracks_true_.size() == nodes_truenodeids_.size()) { \
+      while (mode != NODE_MODE::LEAF && loopcount >= 0) { \
+        val = x_data[feature_base + nodes_featureids_[treeindex]]; \
+        treeindex = root + \
+            ((val CMP nodes_values_[treeindex] || \
+                (missing_tracks_true_[treeindex] && std::isnan(static_cast<NTYPE>(val)))) \
+              ? nodes_truenodeids_[treeindex] \
+              : nodes_falsenodeids_[treeindex]); \
+        mode = nodes_modes_[treeindex]; \
+        --loopcount; \
+      } \
+    } \
+    else { \
+      while (mode != NODE_MODE::LEAF && loopcount >= 0) { \
+        val = x_data[feature_base + nodes_featureids_[treeindex]]; \
+        treeindex = root + ((val CMP nodes_values_[treeindex]) \
+                    ? nodes_truenodeids_[treeindex] \
+                    : nodes_falsenodeids_[treeindex]); \
+        mode = nodes_modes_[treeindex]; \
+        --loopcount; \
+      } \
+    }
 
 
 template<typename NTYPE>
@@ -504,12 +514,12 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
         std::vector<NTYPE>& classes, std::vector<bool>& filled,
         int64_t treeindex, const NTYPE* x_data, int64_t feature_base) const {
   auto mode = nodes_modes_[treeindex];
-  int64_t loopcount = 0;
   int64_t root = treeindex;
   bool tracktrue;
   NTYPE val;
 
   if (same_mode_) {            
+      int64_t loopcount = max_tree_depth_;
       switch(mode) {
         case NODE_MODE::BRANCH_LEQ:
           TREE_FIND_VALUE(<=)
@@ -540,6 +550,7 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
       }
   }
   else {
+    int64_t loopcount = 0;
     while (mode != NODE_MODE::LEAF && loopcount <= max_tree_depth_) {
       NTYPE val = x_data[feature_base + nodes_featureids_[treeindex]];
       tracktrue = missing_tracks_true_.size() != nodes_truenodeids_.size()

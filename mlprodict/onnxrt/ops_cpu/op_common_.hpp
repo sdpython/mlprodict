@@ -205,15 +205,6 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
   }
 }
 
-template<class NTYPE>
-inline void write_scores1_reg(NTYPE& scores, POST_EVAL_TRANSFORM post_transform,
-                       NTYPE* Z, int add_second_class) {
-    if (post_transform == POST_EVAL_TRANSFORM::PROBIT) {
-      scores = ComputeProbit(scores);
-    }
-  *Z = scores;
-}
-
 #define array2vector(vec, arr, dtype) { \
     if (arr.size() > 0) { \
         auto n = arr.size(); \
