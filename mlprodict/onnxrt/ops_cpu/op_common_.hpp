@@ -69,23 +69,22 @@ static inline double ErfInv(double x) {
   double sgn = x < 0 ? -1.0 : 1.0;
   x = (1 - x) * (1 + x);
   double log = std::log(x);
-  double v = 2 / (3.14159f * 0.147f) + 0.5f * log;
-  double v2 = 1 / (0.147f) * log;
-  double v3 = -v + std::sqrt(v * v - v2);
-  x = sgn * std::sqrt(v3);
-  return x;
+  double v = 2. / (3.14159f * 0.147f) + 0.5f * log;
+  double v2 = 1. / (0.147f) * log;
+  double v3 = std::sqrt(v * v - v2) - v;
+  return sgn * std::sqrt(v3);
 }
 
 
 static inline float ComputeLogistic(float val) {
-  float v = 1 / (1 + std::exp(-std::abs(val)));
+  float v = 1f / (1f + std::exp(-std::abs(val)));
   return (val < 0) ? (1 - v) : v;
 }
 
 
 static inline double ComputeLogistic(double val) {
-  double v = 1 / (1 + std::exp(-std::abs(val)));
-  return (val < 0) ? (1 - v) : v;
+  double v = 1. / (1. + std::exp(-std::abs(val)));
+  return (val < 0) ? (1. - v) : v;
 }
 
 
@@ -94,7 +93,7 @@ static const float ml_sqrt2 = 1.41421356f;
 
 template<class NTYPE>
 static inline NTYPE ComputeProbit(NTYPE val) {
-  return ml_sqrt2 * ErfInv(2 * val - 1);
+  return ml_sqrt2 * ErfInv(val * 2 - 1);
 }
 
 
