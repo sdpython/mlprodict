@@ -17,5 +17,7 @@ class Ceil(OpRunUnaryNum):
     def _run(self, x):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
             return (numpy.ceil(x, out=x), )
-        else:
-            return (numpy.ceil(x), )
+        return (numpy.ceil(x), )
+
+    def to_python(self, inputs):
+        return self._to_python_numpy(inputs, self.__class__.__name__.lower())

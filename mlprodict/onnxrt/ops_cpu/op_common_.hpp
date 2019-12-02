@@ -77,7 +77,7 @@ static inline double ErfInv(double x) {
 
 
 static inline float ComputeLogistic(float val) {
-  float v = 1f / (1f + std::exp(-std::abs(val)));
+  float v = 1 / (1 + std::exp(-std::abs(val)));
   return (val < 0) ? (1 - v) : v;
 }
 

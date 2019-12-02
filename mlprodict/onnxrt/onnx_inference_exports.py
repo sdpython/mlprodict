@@ -473,9 +473,10 @@ class OnnxInferenceExport:
             code_nodes.append('def {0}({1}):'.format(
                 name, ', '.join(op.inputs_args)))
             imps, code = op.to_python(op.inputs)
-            if not isinstance(imps, list):
-                imps = [imps]
-            code_imports.extend(imps)
+            if imps is not None:
+                if not isinstance(imps, list):
+                    imps = [imps]
+                code_imports.extend(imps)
             code_nodes.append(textwrap.indent(code, '    '))
             code_nodes.append(
                 '    # outputs: {0}'.format(', '.join(op.outputs)))

@@ -17,3 +17,6 @@ class Sum(OpRun):
 
     def _infer_shapes(self, *args):  # pylint: disable=W0221
         return (args[0], )
+
+    def to_python(self, inputs):
+        return None, "return sum([%s])" % ", ".join(inputs)

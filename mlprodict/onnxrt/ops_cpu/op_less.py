@@ -15,3 +15,6 @@ class Less(OpRunBinary):
 
     def _run(self, a, b):  # pylint: disable=W0221
         return (numpy.less(a, b), )
+
+    def to_python(self, inputs):
+        return self._to_python_numpy(inputs, self.__class__.__name__.lower())

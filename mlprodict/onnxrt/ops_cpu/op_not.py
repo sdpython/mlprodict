@@ -19,3 +19,6 @@ class Not(OpRunUnary):
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
         return (x.copy(dtype=numpy.bool), )
+
+    def to_python(self, inputs):
+        return self._to_python_numpy(inputs, 'logical_not')

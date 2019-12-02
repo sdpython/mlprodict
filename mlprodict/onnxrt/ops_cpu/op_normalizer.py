@@ -33,8 +33,7 @@ class Normalizer(OpRunUnaryNum):
             numpy.divide(x, numpy.abs(x).max(axis=1).reshape((x.shape[0], -1)),
                          out=x)
             return x
-        else:
-            return x / numpy.abs(x).max(axis=1).reshape((x.shape[0], -1))
+        return x / numpy.abs(x).max(axis=1).reshape((x.shape[0], -1))
 
     @staticmethod
     def norm_l1(x, inplace):
@@ -43,8 +42,7 @@ class Normalizer(OpRunUnaryNum):
             numpy.divide(x, numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1)),
                          out=x)
             return x
-        else:
-            return x / numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1))
+        return x / numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1))
 
     @staticmethod
     def norm_l2(x, inplace):
@@ -55,8 +53,7 @@ class Normalizer(OpRunUnaryNum):
         if inplace:
             numpy.divide(x, norm, out=x)
             return x
-        else:
-            return x / norm
+        return x / norm
 
     def _run(self, x):  # pylint: disable=W0221
         return (self._norm(x, inplace=self.inplaces.get(0, False)), )

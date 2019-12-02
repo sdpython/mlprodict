@@ -21,3 +21,6 @@ class Pow(OpRun):
         Returns the same shape by default.
         """
         return (x, )
+
+    def to_python(self, inputs):
+        return self._to_python_numpy(inputs, 'power')

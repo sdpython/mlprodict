@@ -19,3 +19,6 @@ class Sign(OpRunUnaryNum):
             return (numpy.sign(x, out=x), )
         else:
             return (numpy.sign(x), )
+
+    def to_python(self, inputs):
+        return self._to_python_numpy(inputs, self.__class__.__name__.lower())

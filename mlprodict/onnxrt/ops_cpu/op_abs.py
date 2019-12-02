@@ -17,5 +17,7 @@ class Abs(OpRunUnaryNum):
     def _run(self, x):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
             return (numpy.absolute(x, out=x), )
-        else:
-            return (numpy.absolute(x), )
+        return (numpy.absolute(x), )
+
+    def to_python(self, inputs):
+        return self._to_python_numpy(inputs, 'absolute')

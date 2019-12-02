@@ -19,3 +19,6 @@ class Sqrt(OpRunUnaryNum):
             return (numpy.sqrt(x, out=x), )
         else:
             return (numpy.sqrt(x), )
+
+    def to_python(self, inputs):
+        return self._to_python_numpy(inputs, self.__class__.__name__.lower())

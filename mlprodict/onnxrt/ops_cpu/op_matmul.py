@@ -15,3 +15,6 @@ class MatMul(OpRunBinaryNum):
 
     def _run(self, a, b):  # pylint: disable=W0221
         return (numpy_dot_inplace(self.inplaces, a, b), )
+
+    def to_python(self, inputs):
+        return "import numpy", "return %s @ %s" % tuple(inputs)

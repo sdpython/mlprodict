@@ -209,6 +209,10 @@ class OpRun:
         raise NotImplementedError(
             "Operator '{}' has no equivalent python code.".format(self.__class__.__name__))
 
+    def _to_python_numpy(self, inputs, numpy_name):
+        return ("import numpy",
+                "return numpy.%s(%s)" % (numpy_name, ", ".join(inputs)))
+
 
 class OpRunUnary(OpRun):
     """
@@ -503,7 +507,7 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
         @return                 imports, python code, both as strings
         """
         lines = [
-            "# inplaces {}-{}".format(
+            "# inplaces not take into account {}-{}".format(
                 self.inplaces.get(0, False), self.inplaces.get(1, False)),
             "return numpy.{0}({1})".format(
                 self.numpy_fct.__name__, ', '.join(inputs))

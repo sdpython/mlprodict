@@ -18,5 +18,7 @@ class Reciprocal(OpRunUnaryNum):
         with numpy.errstate(divide='ignore'):
             if self.inplaces.get(0, False):
                 return (numpy.reciprocal(x, out=x), )
-            else:
-                return (numpy.reciprocal(x), )
+            return (numpy.reciprocal(x), )
+
+    def to_python(self, inputs):
+        return self._to_python_numpy(inputs, self.__class__.__name__.lower())

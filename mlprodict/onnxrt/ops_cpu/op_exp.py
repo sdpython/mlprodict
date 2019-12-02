@@ -18,3 +18,6 @@ class Exp(OpRunUnaryNum):
         if self.inplaces.get(0, False):
             return (numpy.exp(x, out=x), )
         return (numpy.exp(x), )
+
+    def to_python(self, inputs):
+        return self._to_python_numpy(inputs, self.__class__.__name__.lower())

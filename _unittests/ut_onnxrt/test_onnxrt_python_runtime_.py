@@ -39,6 +39,7 @@ from skl2onnx.common.data_types import FloatTensorType, Int64TensorType, DoubleT
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.validate_helper import get_opset_number_from_onnx
+from mlprodict.onnxrt.validate.validate_python import validate_python_inference
 
 
 sparse_support = []
@@ -165,6 +166,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         exp = np_fct(X, idi)
         self.assertEqualArray(exp, got['Y'], decimal=6)
+
+        # python code
+        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+        validate_python_inference(oinfpy, {'X': X.astype(dtype)})
 
         # sparse
         idi = make_coo_matrix(numpy.identity(2)).astype(numpy.float32)
@@ -1074,4 +1079,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestOnnxrtPythonRuntime().test_onnxt_runtime_add()
     unittest.main()
