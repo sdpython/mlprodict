@@ -56,6 +56,9 @@ def validate_python_inference(oinf, inputs):
 
     The function fails if the expected output are not the same.
     """
+    from ..ops_cpu.op_argmax import _argmax
+    from ..ops_cpu.op_argmin import _argmin
+
     cd = oinf.to_python()
     code = cd['onnx_pyrt_main.py']
 
@@ -71,7 +74,11 @@ def validate_python_inference(oinf, inputs):
     cp = compile(code, "<string>", mode='exec')
     pyrt_fcts = [_ for _ in cp.co_names if _.startswith("pyrt_")]
     fcts_local = {}
-    gl = {'numpy': numpy, 'pickle': pickle, 'expit': expit}
+
+    gl = {'numpy': numpy, 'pickle': pickle,
+          'expit': expit, '_argmax': _argmax,
+          '_argmin': _argmin}
+
     for fct in pyrt_fcts:
         for obj in cp.co_consts:
             if isinstance(obj, str):

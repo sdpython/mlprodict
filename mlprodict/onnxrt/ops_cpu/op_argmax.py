@@ -9,12 +9,19 @@ from onnx.defs import onnx_opset_version
 from ._op import OpRunArg
 
 
+def _argmax(data, axis=0, keepdims=True):
+    result = numpy.argmax(data, axis=axis)
+    if keepdims and len(result.shape) < len(data.shape):
+        result = numpy.expand_dims(result, axis)
+    return result.astype(numpy.int64)
+
+
 def _argmax_use_numpy_select_last_index(
         data, axis=0, keepdims=True):
     data = numpy.flip(data, axis)
     result = numpy.argmax(data, axis=axis)
     result = data.shape[axis] - result - 1
-    if keepdims:
+    if keepdims and len(result.shape) < len(data.shape):
         result = numpy.expand_dims(result, axis)
     return result.astype(numpy.int64)
 
@@ -28,22 +35,11 @@ class _ArgMax(OpRunArg):
                           **options)
 
     def _run(self, data):  # pylint: disable=W0221
-        r = numpy.argmax(data, axis=self.axis)
-        if self.keepdims == 0:
-            r = r.astype(numpy.int64)
-        else:
-            if len(data.shape) == 2:
-                if len(r.shape) == 2:
-                    r = r.astype(numpy.int64)
-                else:
-                    if self.axis == 0:
-                        r = r.astype(numpy.int64)[numpy.newaxis, :]
-                    else:
-                        r = r.astype(numpy.int64)[:, numpy.newaxis]
-            else:
-                raise NotImplementedError(
-                    "keepdims not implemented for dimension > 2.")
-        return (r, )
+        return (_argmax(data, axis=self.axis, keepdims=self.keepdims), )
+
+    def to_python(self, inputs):
+        return ('import numpy\nfrom mlprodict.onnxrt.ops_cpu.op_argmax import _argmax',
+                'return _argmax(%s, axis=axis, keepdims=keepdims)' % inputs[0])
 
 
 class ArgMax_11(_ArgMax):
@@ -70,6 +66,15 @@ class ArgMax_12(_ArgMax):
             return _ArgMax._run(self, data)
         return (_argmax_use_numpy_select_last_index(
             data, axis=self.axis, keepdims=self.keepdims), )
+
+    def to_python(self, inputs):
+        lines = [
+            "if select_last_index == 0:",
+            "    return _argmax({0}, axis=axis, keepdims=keepdims)",
+            "return _argmax_use_numpy_select_last_index(",
+            "    {0}, axis=axis, keepdims=keepdims)"]
+        return ('import numpy\nfrom mlprodict.onnxrt.ops_cpu.op_argmax import _argmax, _argmax_use_numpy_select_last_index',
+                "\n".join(lines).format(inputs[0]))
 
 
 if onnx_opset_version() >= 12:

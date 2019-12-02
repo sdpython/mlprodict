@@ -234,6 +234,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.argmax(X, axis=0), got['Y'], decimal=6)
 
+        python_tested.append(OnnxArgMax)
+        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+        validate_python_inference(oinfpy, {'X': X.astype(numpy.float32)})
+
         onx = OnnxArgMax('X', output_names=['Y'], axis=1, keepdims=0)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
@@ -290,6 +294,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.argmin(X, axis=0), got['Y'], decimal=6)
+
+        python_tested.append(OnnxArgMin)
+        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+        validate_python_inference(oinfpy, {'X': X.astype(numpy.float32)})
 
         onx = OnnxArgMin('X', output_names=['Y'], axis=1, keepdims=0)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
@@ -1091,4 +1099,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestOnnxrtPythonRuntime().test_onnxt_runtime_argmin()
     unittest.main()

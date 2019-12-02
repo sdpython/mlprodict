@@ -9,6 +9,13 @@ from onnx.defs import onnx_opset_version
 from ._op import OpRunArg
 
 
+def _argmin(data, axis=0, keepdims=True):
+    result = numpy.argmin(data, axis=axis)
+    if keepdims and len(result.shape) < len(data.shape):
+        result = numpy.expand_dims(result, axis)
+    return result.astype(numpy.int64)
+
+
 def _argmin_use_numpy_select_last_index(
         data, axis=0, keepdims=True):
     data = numpy.flip(data, axis)
@@ -28,22 +35,7 @@ class _ArgMin(OpRunArg):
                           **options)
 
     def _run(self, data):  # pylint: disable=W0221
-        r = numpy.argmin(data, axis=self.axis)
-        if self.keepdims == 0:
-            r = r.astype(numpy.int64)
-        else:
-            if len(data.shape) == 2:
-                if len(r.shape) == 2:
-                    r = r.astype(numpy.int64)
-                else:
-                    if self.axis == 0:
-                        r = r.astype(numpy.int64)[numpy.newaxis, :]
-                    else:
-                        r = r.astype(numpy.int64)[:, numpy.newaxis]
-            else:
-                raise NotImplementedError(
-                    "keepdims not implemented for dimension > 2.")
-        return (r, )
+        return (_argmin(data, axis=self.axis, keepdims=self.keepdims), )
 
 
 class ArgMin_11(_ArgMin):
@@ -54,6 +46,10 @@ class ArgMin_11(_ArgMin):
         _ArgMin.__init__(self, onnx_node, desc=desc,
                          expected_attributes=ArgMin_11.atts,
                          **options)
+
+    def to_python(self, inputs):
+        return ('import numpy\nfrom mlprodict.onnxrt.ops_cpu.op_argmin import _argmin',
+                'return _argmin(%s, axis=axis, keepdims=keepdims)' % inputs[0])
 
 
 class ArgMin_12(_ArgMin):
@@ -70,6 +66,15 @@ class ArgMin_12(_ArgMin):
             return _ArgMin._run(self, data)
         return (_argmin_use_numpy_select_last_index(
             data, axis=self.axis, keepdims=self.keepdims), )
+
+    def to_python(self, inputs):
+        lines = [
+            "if select_last_index == 0:",
+            "    return _argmin({0}, axis=axis, keepdims=keepdims)",
+            "return _argmin_use_numpy_select_last_index(",
+            "    {0}, axis=axis, keepdims=keepdims)"]
+        return ('import numpy\nfrom mlprodict.onnxrt.ops_cpu.op_argmin import _argmin, _argmin_use_numpy_select_last_index',
+                "\n".join(lines).format(inputs[0]))
 
 
 if onnx_opset_version() >= 12:
