@@ -4,6 +4,7 @@
 @file
 @brief Runtime operator.
 """
+from collections import OrderedDict
 import numpy
 from onnx.defs import onnx_opset_version
 from ._op import OpRunUnaryNum
@@ -26,10 +27,19 @@ class Clip_6(OpRunUnaryNum):
             res = numpy.clip(data, self.min, self.max)
         return (res, ) if res.dtype == data.dtype else (res.astype(data.dtype), )
 
+    def to_python(self, inputs):
+        return ("import numpy",
+                "return numpy.clip(%s, min_, max_)" % inputs[0])
+
 
 class Clip_11(OpRunUnaryNum):
 
     version_higher_than = 11
+    mandatory_inputs = ['X']
+    optional_inputs = OrderedDict([
+        ('min', -3.4028234663852886e+38),
+        ('max', 3.4028234663852886e+38)
+    ])
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
@@ -62,6 +72,10 @@ class Clip_11(OpRunUnaryNum):
         except TypeError as e:
             raise TypeError("Issues with types {} (operator {}).".format(
                 x.dtype, self.__class__.__name__)) from e
+
+    def to_python(self, inputs):
+        return ("import numpy",
+                "return numpy.clip(%s, min_, max_)" % inputs[0])
 
 
 if onnx_opset_version() >= 11:

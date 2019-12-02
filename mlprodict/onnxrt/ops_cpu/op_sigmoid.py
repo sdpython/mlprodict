@@ -17,3 +17,7 @@ class Sigmoid(OpRunUnaryNum):
     def _run(self, x):  # pylint: disable=W0221
         y = logistic_sigmoid(x)
         return (y, )
+
+    def to_python(self, inputs):
+        return ("from scipy.special import expit",
+                "return expit(%s)" % inputs[0])

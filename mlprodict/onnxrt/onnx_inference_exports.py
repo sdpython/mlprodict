@@ -379,6 +379,20 @@ class OnnxInferenceExport:
             res = oinf.to_python()
             print(res['onnx_pyrt_main.py'])
         """
+
+        def clean_args(args):
+            new_args = []
+            for v in args:
+                # remove python keywords
+                if v.startswith('min='):
+                    av = 'min_=' + v[4:]
+                elif v.startswith('max='):
+                    av = 'max_=' + v[4:]
+                else:
+                    av = v
+                new_args.append(av)
+            return new_args
+
         if self.oinf.runtime != 'python':
             raise ValueError(
                 "The runtime must be python not '{}'.".format(self.oinf.runtime))
@@ -460,6 +474,9 @@ class OnnxInferenceExport:
                 ops[fct] = node
             args = []
             args.extend(node.inputs)
+            margs = node.modified_args
+            if margs is not None:
+                args.extend(clean_args(margs))
             code_lines.append("        {0} = {1}({2})".format(
                 ', '.join(node.outputs), fct, ', '.join(args)))
         code_lines.append('')
@@ -470,16 +487,18 @@ class OnnxInferenceExport:
         # operator code
         code_nodes = []
         for name, op in ops.items():
+            inputs_args = clean_args(op.inputs_args)
+
             code_nodes.append('def {0}({1}):'.format(
-                name, ', '.join(op.inputs_args)))
+                name, ', '.join(inputs_args)))
             imps, code = op.to_python(op.inputs)
             if imps is not None:
                 if not isinstance(imps, list):
                     imps = [imps]
                 code_imports.extend(imps)
             code_nodes.append(textwrap.indent(code, '    '))
-            code_nodes.append(
-                '    # outputs: {0}'.format(', '.join(op.outputs)))
+            # code_nodes.append(
+            #     '    # outputs: {0}'.format(', '.join(op.outputs)))
             code_nodes.extend(['', ''])
 
         # end

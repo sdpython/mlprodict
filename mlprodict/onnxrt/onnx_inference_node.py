@@ -2,6 +2,7 @@
 @file
 @brief OnnxInferenceNode definition.
 """
+import sys
 import pprint
 import numpy
 from onnx import onnx_pb as onnx_proto
@@ -224,7 +225,26 @@ class OnnxInferenceNode:
         """
         if not hasattr(self, 'ops_'):
             raise AttributeError("Attribute 'ops_' is missing.")
-        return self.inputs + self.ops_.args_default
+        sigs = []
+        mand = self.ops_.args_mandatory
+        if mand is None:
+            mand = self.inputs
+        sigs.extend(mand)
+        if len(self.ops_.args_optional) > 0:
+            sigs.extend(self.ops_.args_optional)
+            if sys.version_info[:2] >= (3, 8):
+                sigs.append('/')
+        sigs.extend(self.ops_.args_default)
+        return sigs
+
+    @property
+    def modified_args(self):
+        """
+        Returns the list of modified parameters.
+        """
+        if not hasattr(self, 'ops_'):
+            raise AttributeError("Attribute 'ops_' is missing.")
+        return self.ops_.args_default_modified
 
     def to_python(self, inputs):
         """

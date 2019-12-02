@@ -17,5 +17,7 @@ class Relu(OpRunUnaryNum):
     def _run(self, x):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
             return (numpy.maximum(x, 0, out=x), )
-        else:
-            return (numpy.maximum(x, 0), )
+        return (numpy.maximum(x, 0), )
+
+    def to_python(self, inputs):
+        return ("import numpy", "return numpy.maximum(%s, 0)" % inputs[0])

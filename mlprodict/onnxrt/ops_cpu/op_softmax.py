@@ -28,3 +28,11 @@ class Softmax(OpRunUnaryNum):
             Y = numpy.exp(tmp)
             Y /= Y.sum(axis=self.axis)[:, numpy.newaxis]
             return (Y, )
+
+    def to_python(self, inputs):
+        lines = ["tmp = {0} - {0}.max(axis=axis)[:, numpy.newaxis]".format(
+            inputs[0]),
+            "Y = numpy.exp(tmp)",
+            "Y /= Y.sum(axis=axis)[:, numpy.newaxis]",
+            "return Y"]
+        return ("import numpy", "\n".join(lines))

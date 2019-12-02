@@ -44,6 +44,7 @@ from mlprodict.onnxrt.validate.validate_python import validate_python_inference
 
 sparse_support = []
 sparse_no_numpy = []
+python_tested = []
 
 
 def make_coo_matrix(*args, **kwargs):
@@ -68,6 +69,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
             print('-----------')
             pprint.pprint(sparse_no_numpy)
             print('-----------')
+            pprint.pprint(
+                list(sorted({_.__name__ for _ in python_tested})))
+            print('-----------')
 
     def setUp(self):
         logger = getLogger('skl2onnx')
@@ -87,6 +91,12 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
             {'X': X.astype(numpy.float32)}, target_opset=op_version)
         if debug:
             print(model_def)
+
+        # python code
+        python_tested.append(onnx_cl)
+        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+        validate_python_inference(oinfpy, {'X': X.astype(numpy.float32)})
+
         # no inplace
         oinf = OnnxInference(model_def, inplace=False)
         all_names = "\n".join(
@@ -105,6 +115,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                 'onnx.opset={} op_version={}\n--ONNX--\n{}\n--NAMES--\n{}'.format(
                     get_opset_number_from_onnx(), op_version, model_def,
                     all_names)) from e
+
         # inplace
         oinf = OnnxInference(model_def, input_inplace=False, inplace=True)
         got = oinf.run({'X': X})
@@ -168,6 +179,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(exp, got['Y'], decimal=6)
 
         # python code
+        python_tested.append(onnx_cl)
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
         validate_python_inference(oinfpy, {'X': X.astype(dtype)})
 
@@ -1079,5 +1091,4 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxrtPythonRuntime().test_onnxt_runtime_add()
     unittest.main()

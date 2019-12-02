@@ -193,11 +193,46 @@ class OpRun:
         """
         inps = []
         if hasattr(self, 'atts'):
-            for k, v in sorted(self.atts.items()):  # pylint: disable=E1101
+            for k, v in self.atts.items():  # pylint: disable=E1101
                 if isinstance(v, (list, tuple, dict)) and len(v) == 0:
                     v = None
                 inps.append('%s=%r' % (k, v))
         return inps
+
+    @property
+    def args_default_modified(self):
+        """
+        Returns the list of modified parameters.
+        """
+        if not hasattr(self, 'atts'):
+            return None
+
+        inps = []
+        for k, v in self.atts.items():  # pylint: disable=E1101
+            val = getattr(self, k, None)
+            if val != v:
+                inps.append('%s=%r' % (k, val))
+        return inps
+
+    @property
+    def args_optional(self):
+        """
+        Returns the list of optional arguments.
+        """
+        inps = []
+        if hasattr(self, 'optional_inputs'):
+            for k, v in self.optional_inputs.items():  # pylint: disable=E1101
+                inps.append('%s=%r' % (k, v))
+        return inps
+
+    @property
+    def args_mandatory(self):
+        """
+        Returns the list of optional arguments.
+        """
+        if hasattr(self, 'mandatory_inputs'):
+            return self.mandatory_inputs  # pylint:  disable=E1101
+        return None
 
     def to_python(self, inputs):
         """

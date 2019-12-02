@@ -4,7 +4,43 @@
 """
 import pickle
 import types
+import re
 import numpy
+from scipy.special import expit  # pylint: disable=E0611
+
+
+def _make_callable(fct, obj, code, gl):
+    """
+    Creates a callable function able to
+    cope with default values as the combination
+    of functions *compile* and *exec* does not seem
+    able to take them into account.
+
+    @param      fct     function name
+    @param      obj     output of function *compile*
+    @param      code    code including the signature
+    @param      gl      global context
+    @return             callable functions
+    """
+    cst = "def " + fct + "("
+    sig = None
+    for line in code.split('\n'):
+        if line.startswith(cst):
+            sig = line
+            break
+    if sig is None:
+        raise ValueError(
+            "Unable to find function '{}' in\n{}".format(fct, code))
+    reg = re.compile("([a-z][A-Za-z_0-9]*)=([0-9.e+-]+)")
+    fall = reg.findall(sig)
+    defs = []
+    for name, value in fall:
+        f = float(value)
+        if int(f) == f:
+            f = int(f)
+        defs.append((name, f))
+    res = types.FunctionType(obj, gl, fct, tuple(_[1] for _ in defs))
+    return res
 
 
 def validate_python_inference(oinf, inputs):
@@ -34,24 +70,23 @@ def validate_python_inference(oinf, inputs):
 
     cp = compile(code, "<string>", mode='exec')
     pyrt_fcts = [_ for _ in cp.co_names if _.startswith("pyrt_")]
-    fcts = {}
+    fcts_local = {}
+    gl = {'numpy': numpy, 'pickle': pickle, 'expit': expit}
     for fct in pyrt_fcts:
         for obj in cp.co_consts:
             if isinstance(obj, str):
                 continue
             sobj = str(obj)
             if '<string>' in sobj and fct in sobj:
-                fcts[fct] = obj
-                break
-
-    fcts_local = {}
-    gl = {'numpy': numpy, 'pickle': pickle}
-    for k, v in fcts.items():
-        fcts_local[k] = types.FunctionType(v, gl, k)
+                fcts_local[fct] = _make_callable(fct, obj, code, gl)
 
     gl.update(fcts_local)
     loc = inputs
-    exec(cp, gl, loc)  # pylint: disable=W0122
+    try:
+        exec(cp, gl, loc)  # pylint: disable=W0122
+    except (NameError, TypeError, SyntaxError) as e:
+        raise RuntimeError(
+            "Unable to compile code\n-----\n{}".format(code)) from e
 
     got = loc['res']
     keys = list(sorted(exp))
@@ -77,8 +112,18 @@ def validate_python_inference(oinf, inputs):
             if e.shape != g.shape:
                 raise ValueError(
                     "Shapes are different {} != {}.".format(e.shape, g.shape))
-            if e.ravel().tolist() != g.ravel().tolist():
-                raise ValueError("Values are different")
+            diff = 0
+            for a, b in zip(e.ravel(), g.ravel()):
+                if a == b:
+                    continue
+                if (isinstance(a, float) and isinstance(b, float) and
+                        numpy.isnan(a) and numpy.isnan(b)):
+                    continue
+                diff = max(diff, abs(a - b))
+            if diff > 0:
+                raise ValueError(
+                    "Values are different (max diff={})\n--EXP--\n{}\n--GOT--"
+                    "\n{}\n--\n{}".format(diff, e, g, code))
         else:
             raise NotImplementedError(
                 "Unable to compare values of type '{}'.".format(type(e)))
