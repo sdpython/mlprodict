@@ -414,6 +414,12 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         exp = numpy.vstack([X, Y, cst])
         self.assertEqualArray(exp, got['Z'])
 
+        python_tested.append(OnnxConstantOfShape)
+        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+        validate_python_inference(
+            oinfpy, {'X': X.astype(numpy.float32),
+                     'Y': Y.astype(numpy.float32)})
+
     def test_onnxt_runtime_constant_of_shape(self):
         x = numpy.array([2, 2], dtype=numpy.int64)
         y = numpy.zeros((2, 2))
@@ -422,6 +428,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                 outputs=[('Y', FloatTensorType())])
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(y, got['Y'])
+
+        python_tested.append(OnnxConstantOfShape)
+        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+        validate_python_inference(oinfpy, {'X': x})
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @unittest_require_at_least(onnx, '1.5.29')
@@ -1099,5 +1109,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxrtPythonRuntime().test_onnxt_runtime_argmin()
+    TestOnnxrtPythonRuntime().test_onnxt_runtime_concat()
     unittest.main()

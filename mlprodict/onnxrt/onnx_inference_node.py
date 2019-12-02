@@ -228,7 +228,7 @@ class OnnxInferenceNode:
         sigs = []
         mand = self.ops_.args_mandatory
         if mand is None:
-            mand = self.inputs
+            mand = self.python_inputs
         sigs.extend(mand)
         if len(self.ops_.args_optional) > 0:
             sigs.extend(self.ops_.args_optional)
@@ -236,6 +236,17 @@ class OnnxInferenceNode:
                 sigs.append('/')
         sigs.extend(self.ops_.args_default)
         return sigs
+
+    @property
+    def python_inputs(self):
+        """
+        Returns the python arguments.
+        """
+        if not hasattr(self, 'ops_'):
+            raise AttributeError("Attribute 'ops_' is missing.")
+        if hasattr(self.ops_, 'python_inputs'):
+            return self.ops_.python_inputs
+        return self.inputs
 
     @property
     def modified_args(self):

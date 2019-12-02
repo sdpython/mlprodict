@@ -31,3 +31,8 @@ class ConstantOfShape(OpRun):
     def _infer_shapes(self, data):  # pylint: disable=W0221
         # pref = str(hex(id(self))[2:])
         return (ShapeObject(None, self.cst.dtype), )
+
+    def to_python(self, inputs):
+        lines = ['cst = value[0] if isinstance(value, numpy.ndarray) else value',
+                 'return numpy.full(tuple(%s), cst)' % inputs[0]]
+        return ("import numpy", "\n".join(lines))

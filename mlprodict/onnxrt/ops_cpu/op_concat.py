@@ -12,6 +12,7 @@ from ..shape_object import ShapeObject
 class Concat(OpRun):
 
     atts = {'axis': 0}
+    python_inputs = ['*inputs']
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,
@@ -33,3 +34,6 @@ class Concat(OpRun):
 
     def _infer_type(self, *args):
         return ShapeObject._infer_merged_type(*args)
+
+    def to_python(self, inputs):
+        return "import numpy", "return numpy.concatenate(inputs, axis=axis)"
