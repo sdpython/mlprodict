@@ -126,7 +126,7 @@ def sklearn_operators(subfolder=None, extended=False):
                     continue
                 if cl.__name__ in {'Pipeline', 'ColumnTransformer',
                                    'FeatureUnion', 'BaseEstimator',
-                                   'BaseEnsemble'}:
+                                   'BaseEnsemble', 'BaseDecisionTree'}:
                     continue
                 if cl.__name__ in {'CustomScorerTransform'}:
                     continue
