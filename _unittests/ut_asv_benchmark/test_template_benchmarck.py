@@ -13,6 +13,9 @@ from pyquickhelper.pycode import ExtTestCase
 from mlprodict.asv_benchmark.template.skl_model_classifier import (
     TemplateBenchmarkClassifier
 )
+from mlprodict.asv_benchmark.template.skl_model_classifier_raw_score import (
+    TemplateBenchmarkClassifierRawScore
+)
 from mlprodict.asv_benchmark.template.skl_model_clustering import (
     TemplateBenchmarkClustering
 )
@@ -43,6 +46,37 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         if not os.path.exists('_cache'):
             os.mkdir('_cache')
         cl = TemplateBenchmarkClassifier()
+        res = {}
+        cl.setup_cache()
+        N = 60
+        nf = cl.params[2][1]
+        opset = 11
+        dtype = 'float'
+        optim = None
+        for runtime in ['skl', 'pyrt', 'ort']:
+            cl.setup(runtime, N, nf, opset, dtype, optim)
+            self.assertEqual(cl.X.shape, (N, nf))
+            for method in dir(cl):
+                if method.split('_')[0] in ('time', 'peakmem', 'track'):
+                    meth = getattr(cl.__class__, method)
+                    res[method, runtime] = meth(
+                        cl, runtime, N, nf, opset, dtype, optim)
+        self.assertEqual(len(res), 15)
+        exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
+               ('track_score', 'skl'), ('track_onnxsize', 'skl'),
+               ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
+               ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
+               ('time_predict', 'ort'), ('peakmem_predict', 'ort'),
+               ('track_score', 'ort'), ('track_onnxsize', 'ort'),
+               ('track_nbnodes', 'skl'), ('track_nbnodes', 'ort'),
+               ('track_nbnodes', 'pyrt')]
+        self.assertEqual(set(exp), set(res))
+
+    @ignore_warnings(category=(UserWarning, ))
+    def test_template_benchmark_classifier_raw_score(self):
+        if not os.path.exists('_cache'):
+            os.mkdir('_cache')
+        cl = TemplateBenchmarkClassifierRawScore()
         res = {}
         cl.setup_cache()
         N = 60

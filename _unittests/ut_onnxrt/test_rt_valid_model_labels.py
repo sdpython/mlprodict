@@ -3,6 +3,7 @@
 """
 import unittest
 from logging import getLogger
+from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
@@ -31,7 +32,7 @@ class TestRtValidateLabels(ExtTestCase):
 
         debug = True
         rows = list(enumerate_validated_operator_opsets(
-            verbose, opset_min=11, fLOG=myprint,
+            verbose, opset_min=onnx_opset_version(), fLOG=myprint,
             models={"LabelBinarizer"},
             runtime='python', debug=debug,
             filter_exp=lambda m, p: "64" not in p))
@@ -52,7 +53,8 @@ class TestRtValidateLabels(ExtTestCase):
 
         debug = False
         rows = list(enumerate_validated_operator_opsets(
-            verbose, opset_min=11, fLOG=myprint,
+            verbose, opset_min=onnx_opset_version(),
+            fLOG=myprint,
             models={"LabelEncoder"},  # ,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: "64" not in p))
@@ -73,7 +75,8 @@ class TestRtValidateLabels(ExtTestCase):
 
         debug = False
         rows = list(enumerate_validated_operator_opsets(
-            verbose, opset_min=11, fLOG=myprint,
+            verbose, opset_min=onnx_opset_version(),
+            fLOG=myprint,
             models={"FeatureHasher"},
             runtime='python', debug=debug,
             filter_exp=lambda m, p: "64" not in p))
@@ -95,7 +98,8 @@ class TestRtValidateLabels(ExtTestCase):
 
         debug = False
         rows = list(enumerate_validated_operator_opsets(
-            verbose, opset_min=11, fLOG=myprint,
+            verbose, opset_min=onnx_opset_version(),
+            fLOG=myprint,
             models={"OneHotEncoder"},
             runtime='python', debug=debug,
             filter_exp=lambda m, p: "64" not in p))

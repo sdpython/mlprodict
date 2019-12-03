@@ -3,6 +3,7 @@
 """
 import unittest
 from logging import getLogger
+from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
@@ -49,7 +50,8 @@ class TestRtValidateAdaBoost(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"AdaBoostClassifier"}, opset_min=11, fLOG=myprint,
+            verbose, models={"AdaBoostClassifier"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=True,
             filter_exp=lambda m, p: "-64" not in p))
         self.assertGreater(len(rows), 1)
@@ -68,7 +70,8 @@ class TestRtValidateAdaBoost(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"AdaBoostRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"AdaBoostRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=False,
             filter_exp=lambda m, p: "-64" in p))
         self.assertGreater(len(rows), 1)
@@ -88,7 +91,8 @@ class TestRtValidateAdaBoost(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"AdaBoostRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"AdaBoostRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=debug))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)

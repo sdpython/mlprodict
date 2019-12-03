@@ -3,6 +3,7 @@
 """
 import unittest
 from logging import getLogger
+from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
@@ -31,7 +32,8 @@ class TestRtValidateDecisionTree(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"DecisionTreeRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"DecisionTreeRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='onnxruntime2', debug=debug,
             filter_exp=lambda m, p: "-64" not in p))
         self.assertGreater(len(rows), 1)
@@ -51,7 +53,8 @@ class TestRtValidateDecisionTree(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"DecisionTreeRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"DecisionTreeRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=debug))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
@@ -70,7 +73,8 @@ class TestRtValidateDecisionTree(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"DecisionTreeClassifier"}, opset_min=11, fLOG=myprint,
+            verbose, models={"DecisionTreeClassifier"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=debug))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
@@ -90,7 +94,8 @@ class TestRtValidateDecisionTree(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"DecisionTreeRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"DecisionTreeRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=debug, store_models=True,
             filter_exp=lambda m, p: '-64' in p))
         rows = [row for row in rows if 'OK' not in row['available']]
@@ -116,7 +121,8 @@ class TestRtValidateDecisionTree(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"DecisionTreeRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"DecisionTreeRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=debug, store_models=True,
             filter_exp=lambda m, p: '-f100' in p))
         self.assertGreater(len(buffer), 1 if debug else 0)

@@ -3,6 +3,7 @@
 """
 import unittest
 from logging import getLogger
+from onnx.defs import onnx_opset_version
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
@@ -24,7 +25,8 @@ class TestOnnxrtValidateRtGraph(ExtTestCase):
         logger.disabled = True
         verbose = 1 if __name__ == "__main__" else 0
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"LinearRegression"}, opset_min=11, fLOG=fLOG,
+            verbose, models={"LinearRegression"},
+            opset_min=onnx_opset_version(), fLOG=fLOG,
             runtime=['python'], debug=False,
             benchmark=True, n_features=[None, 10]))
 
@@ -44,7 +46,8 @@ class TestOnnxrtValidateRtGraph(ExtTestCase):
         logger.disabled = True
         verbose = 0 if __name__ == "__main__" else 0
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"LinearRegression"}, opset_min=11, fLOG=fLOG,
+            verbose, models={"LinearRegression"},
+            opset_min=onnx_opset_version(), fLOG=fLOG,
             runtime=['python', 'onnxruntime1'], debug=False,
             filter_exp=lambda m, p: '-64' not in p,
             benchmark=True, n_features=[None, 10]))

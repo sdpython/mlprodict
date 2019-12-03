@@ -196,6 +196,9 @@ def create_asv_benchmark(
         from mlprodict.asv_benchmark.create_asv import default_asv_conf
 
         pprint.pprint(default_asv_conf)
+
+    The benchmark does not seem to work well with setting
+    ``-environment existing:same``. The publishing fails.
     """
     # creates the folder if it does not exist.
     if not os.path.exists(location):
@@ -445,6 +448,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                 subset_problems = None
                 optimisations = None
                 new_conv_options = None
+
                 if len(scenario_extra) > 2:
                     options = scenario_extra[2]
                     if isinstance(options, dict):
@@ -453,11 +457,16 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                         new_conv_options = options.get('conv_options', None)
                     else:
                         subset_problems = options
-                if subset_problems:
-                    subset_problems = scenario_extra[2]
+
+                if subset_problems and isinstance(subset_problems, (list, set)):
                     if prob not in subset_problems:
                         # Skips unrelated problem for a specific configuration.
                         continue
+                elif subset_problems is not None:
+                    raise RuntimeError(
+                        "subset_problems must be a set or a list not {}.".format(
+                            subset_problems))
+
                 scenario, extra = scenario_extra[:2]
                 if optimisations is None:
                     optimisations = [None]
@@ -470,8 +479,8 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                     continue
 
                 if verbose >= 3 and fLOG is not None:
-                    fLOG("[create_asv_benchmark] model={} scenario={} optim={} extra={} dofit={} (problem={})".format(
-                        model.__name__, scenario, optimisations, extra, dofit, prob))
+                    fLOG("[create_asv_benchmark] model={} scenario={} optim={} extra={} dofit={} (problem={} method_name='{}')".format(
+                        model.__name__, scenario, optimisations, extra, dofit, prob, method_name))
                 created = _create_asv_benchmark_file(
                     location_model, opsets=opsets,
                     model=model, scenario=scenario, optimisations=optimisations,
@@ -555,7 +564,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
     """
     # Reads the template
     patterns = {}
-    for suffix in ['classifier', 'regressor', 'clustering',
+    for suffix in ['classifier', 'classifier_raw_score', 'regressor', 'clustering',
                    'outlier', 'trainable_transform', 'transform',
                    'multi_classifier', 'transform_positive']:
         template_name = os.path.join(os.path.dirname(
@@ -571,6 +580,8 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
     def pattern_problem(prob):
         if '-reg' in prob:
             return patterns['regressor']
+        if '-cl' in prob and '-dec' in prob:
+            return patterns['classifier_raw_score']
         if '-cl' in prob:
             return patterns['classifier']
         if 'cluster' in prob:
@@ -688,6 +699,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             "class {}".format(class_name))
 
         # dtype, dofit
+        atts.append("chk_method_name = %r" % method_name)
         atts.append("par_scenario = %r" % scenario)
         atts.append("par_problem = %r" % problem)
         atts.append("par_optimisation = %r" % optimisation)

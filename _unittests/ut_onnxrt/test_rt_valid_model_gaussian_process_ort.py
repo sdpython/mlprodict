@@ -4,6 +4,7 @@
 import unittest
 from logging import getLogger
 import numpy
+from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, unittest_require_at_least
 from pyquickhelper.texthelper.version_helper import compare_module_version
@@ -77,7 +78,8 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
 
         debug = False
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"GaussianProcessRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
             filter_exp=lambda m, s: "NF-std" in s))
         self.assertGreater(len(rows), 1)
@@ -97,7 +99,8 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
 
         debug = False
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"GaussianProcessRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
             filter_exp=lambda m, s: "NF" in s))
         self.assertGreater(len(rows), 6)
@@ -117,7 +120,8 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
 
         debug = False
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"GaussianProcessRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
             filter_exp=lambda m, s: "nofit" not in s and "multi" not in s))
         self.assertGreater(len(rows), 6)
@@ -147,7 +151,8 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
 
         debug = True
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"GaussianProcessRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
             filter_exp=lambda m, s: "reg-NSV" in s,
             filter_scenario=filter_scenario))
@@ -179,7 +184,8 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
 
         debug = True
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"GaussianProcessRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
             filter_exp=lambda m, s: "b-reg-std-NSV" in s,
             filter_scenario=filter_scenario))
@@ -203,7 +209,8 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
 
         debug = True
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"GaussianProcessRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
             filter_exp=lambda m, s: 'm-reg-std-NSV' in s))
         self.assertGreater(len(rows), 0)
@@ -225,7 +232,8 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
 
         debug = False
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"GaussianProcessRegressor"}, opset_min=11,
+            verbose, models={"GaussianProcessRegressor"},
+            opset_min=onnx_opset_version(),
             fLOG=myprint, runtime='onnxruntime1', debug=debug))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)

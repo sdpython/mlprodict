@@ -3,6 +3,7 @@
 """
 import unittest
 from logging import getLogger
+from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
@@ -30,7 +31,8 @@ class TestRtValidateGridSearchCV(ExtTestCase):
 
         debug = False
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"GridSearchCV"}, opset_min=11, fLOG=myprint,
+            verbose, models={"GridSearchCV"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: "64" not in p))
         self.assertGreater(len(rows), 1)

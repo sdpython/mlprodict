@@ -4,6 +4,7 @@
 import unittest
 from logging import getLogger
 import onnx
+from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, unittest_require_at_least
 from pyquickhelper.texthelper.version_helper import compare_module_version
@@ -42,7 +43,8 @@ class TestRtValidateGaussianProcessOrt2(ExtTestCase):
 
         debug = False
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"GaussianProcessRegressor"}, opset_min=11, fLOG=myprint,
+            verbose, models={"GaussianProcessRegressor"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='onnxruntime2', debug=debug,
             filter_exp=lambda m, s: "b-reg-std-NSV" in s))
         self.assertGreater(len(rows), 1)

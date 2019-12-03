@@ -4,6 +4,7 @@
 import unittest
 from logging import getLogger
 import onnx
+from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
@@ -36,7 +37,7 @@ class TestRtValidateBatchMode(ExtTestCase):
                 "SelectFwe", "SelectFdr", "SelectFpr",
                 "SelectFromModel",
             },
-            opset_min=11, fLOG=myprint,
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: '-64' not in p))
         self.assertGreater(len(rows), 1)
@@ -57,7 +58,7 @@ class TestRtValidateBatchMode(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"Perceptron"},
-            opset_min=11, fLOG=myprint,
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: '-dec' not in p))
         self.assertGreater(len(rows), 1)
@@ -80,7 +81,7 @@ class TestRtValidateBatchMode(ExtTestCase):
             verbose, models={
                 "Perceptron",
             },
-            opset_min=11, fLOG=myprint,
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: '-dec' in p))
         self.assertGreater(len(rows), 1)
@@ -102,7 +103,7 @@ class TestRtValidateBatchMode(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"PolynomialFeatures"},
-            opset_min=11, fLOG=myprint,
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: '-64' not in p))
         self.assertGreater(len(rows), 1)
@@ -123,7 +124,7 @@ class TestRtValidateBatchMode(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"RFE"},
-            opset_min=11, fLOG=myprint,
+            opset_min=onnx_opset_version(), fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: '-64' not in p))
         self.assertGreater(len(rows), 1)

@@ -52,6 +52,7 @@ class _CommonAsvSklBenchmark:
         [None],  # values for optim
     ]
     param_names = ['rt', 'N', 'nf', 'opset', 'dtype', 'optim']
+    chk_method_name = None
 
     par_ydtype = numpy.int64
     par_dofit = True
@@ -193,16 +194,27 @@ class _CommonAsvSklBenchmark:
         stats = onnx_statistics(self.onx)
         return stats.get('nnodes', 0)
 
+    def check_method_name(self, method_name):
+        "Does some verifications. Fails if inconsistencies."
+        if getattr(self, 'chk_method_name', None) not in (None, method_name):
+            raise RuntimeError("Method name must be '{}'.".format(method_name))
+        if getattr(self, 'chk_method_name', None) is None:
+            raise RuntimeError(
+                "Unable to check that the method name is correct (expected is '{}')".format(
+                    method_name))
+
 
 class _CommonAsvSklBenchmarkClassifier(_CommonAsvSklBenchmark):
     """
     Common class for a classifier.
     """
+    chk_method_name = 'predict_proba'
 
     def _score_metric(self, X, y_exp, y_pred):
         return accuracy_score(y_exp, y_pred)
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        self.check_method_name('predict_proba')
         onx_ = self._to_onnx(model, X, opset, dtype, optim)
         onx = self._optimize_onnx(onx_)
         name = self.runtime_name(runtime)
@@ -217,10 +229,36 @@ class _CommonAsvSklBenchmarkClassifier(_CommonAsvSklBenchmark):
         return onx, rt_, rt_fct_, rt_fct_track_
 
 
+class _CommonAsvSklBenchmarkClassifierRawScore(_CommonAsvSklBenchmark):
+    """
+    Common class for a classifier.
+    """
+    chk_method_name = 'decision_function'
+
+    def _score_metric(self, X, y_exp, y_pred):
+        return accuracy_score(y_exp, y_pred)
+
+    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        self.check_method_name('decision_function')
+        onx_ = self._to_onnx(model, X, opset, dtype, optim)
+        onx = self._optimize_onnx(onx_)
+        name = self.runtime_name(runtime)
+        if name == 'skl':
+            rt_ = None
+            rt_fct_ = lambda X: model.decision_function(X)
+            rt_fct_track_ = lambda X: model.predict(X)
+        else:
+            rt_ = self._create_onnx_inference(onx, name)
+            rt_fct_ = lambda X: rt_.run({'X': X})
+            rt_fct_track_ = lambda X: rt_fct_(X)['output_label']
+        return onx, rt_, rt_fct_, rt_fct_track_
+
+
 class _CommonAsvSklBenchmarkClustering(_CommonAsvSklBenchmark):
     """
     Common class for a clustering algorithm.
     """
+    chk_method_name = 'predict'
 
     def _score_metric(self, X, y_exp, y_pred):
         if X.shape[0] == 1:
@@ -231,6 +269,7 @@ class _CommonAsvSklBenchmarkClustering(_CommonAsvSklBenchmark):
             return silhouette_score(X, y_pred)
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        self.check_method_name('predict')
         onx_ = self._to_onnx(model, X, opset, dtype, optim)
         onx = self._optimize_onnx(onx_)
         name = self.runtime_name(runtime)
@@ -249,6 +288,7 @@ class _CommonAsvSklBenchmarkMultiClassifier(_CommonAsvSklBenchmark):
     """
     Common class for a multi-classifier.
     """
+    chk_method_name = 'predict_proba'
 
     def _get_dataset(self, nf, dtype):
         xdtype = self._get_xdtype(dtype)
@@ -270,6 +310,7 @@ class _CommonAsvSklBenchmarkMultiClassifier(_CommonAsvSklBenchmark):
         return coverage_error(y_exp, y_pred)
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        self.check_method_name('predict_proba')
         onx_ = self._to_onnx(model, X, opset, dtype, optim)
         onx = self._optimize_onnx(onx_)
         name = self.runtime_name(runtime)
@@ -288,11 +329,13 @@ class _CommonAsvSklBenchmarkOutlier(_CommonAsvSklBenchmark):
     """
     Common class for outlier detection.
     """
+    chk_method_name = 'predict'
 
     def _score_metric(self, X, y_exp, y_pred):
         return numpy.sum(y_pred) / y_pred.shape[0]
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        self.check_method_name('predict')
         onx_ = self._to_onnx(model, X, opset, dtype, optim)
         onx = self._optimize_onnx(onx_)
         name = self.runtime_name(runtime)
@@ -311,11 +354,13 @@ class _CommonAsvSklBenchmarkRegressor(_CommonAsvSklBenchmark):
     """
     Common class for a regressor.
     """
+    chk_method_name = 'predict'
 
     def _score_metric(self, X, y_exp, y_pred):
         return mean_absolute_error(y_exp, y_pred)
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        self.check_method_name('predict')
         onx = self._to_onnx(model, X, opset, dtype, optim)
         name = self.runtime_name(runtime)
         if name == 'skl':
@@ -333,11 +378,13 @@ class _CommonAsvSklBenchmarkTrainableTransform(_CommonAsvSklBenchmark):
     """
     Common class for a trainable transformer.
     """
+    chk_method_name = 'transform'
 
     def _score_metric(self, X, y_exp, y_pred):
         return numpy.sum(y_pred) / y_pred.shape[0]
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        self.check_method_name('transform')
         onx_ = self._to_onnx(model, X, opset, dtype, optim)
         onx = self._optimize_onnx(onx_)
         name = self.runtime_name(runtime)
@@ -356,11 +403,13 @@ class _CommonAsvSklBenchmarkTransform(_CommonAsvSklBenchmark):
     """
     Common class for a transformer.
     """
+    chk_method_name = 'transform'
 
     def _score_metric(self, X, y_exp, y_pred):
         return numpy.sum(y_pred) / y_pred.shape[0]
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+        self.check_method_name('transform')
         onx_ = self._to_onnx(model, X, opset, dtype, optim)
         onx = self._optimize_onnx(onx_)
         name = self.runtime_name(runtime)
@@ -379,6 +428,7 @@ class _CommonAsvSklBenchmarkTransformPositive(_CommonAsvSklBenchmarkTransform):
     """
     Common class for a transformer for positive features.
     """
+    chk_method_name = 'transform'
 
     def _get_dataset(self, nf, dtype):
         xdtype = self._get_xdtype(dtype)

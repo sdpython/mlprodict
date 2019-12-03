@@ -4,6 +4,7 @@
 import unittest
 from logging import getLogger
 import numpy
+from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, unittest_require_at_least
 import skl2onnx
@@ -37,7 +38,8 @@ class TestRtValidateKNN(ExtTestCase):
 
         try:
             rows = list(enumerate_validated_operator_opsets(
-                verbose, models={"KNeighborsRegressor"}, opset_min=11,
+                verbose, models={"KNeighborsRegressor"},
+                opset_min=onnx_opset_version(),
                 opset_max=11, fLOG=myprint, fail_bad_results=True,
                 runtime='python', debug=debug, extended_list=True,
                 store_models=True,

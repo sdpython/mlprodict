@@ -672,8 +672,11 @@ def find_suitable_problem(model):
             return ["num+y-tr-cl"]
 
         # no m-label
-        if model in {AdaBoostClassifier, LogisticRegression}:
+        if model in {AdaBoostClassifier}:
             return ['b-cl', '~b-cl-64', 'm-cl']
+
+        if model in {LogisticRegression}:
+            return ['b-cl', '~b-cl-64', 'm-cl', '~b-cl-dec', '~m-cl-dec']
 
         if model in {DecisionTreeClassifier}:
             return ['b-cl', '~b-cl-64', 'm-cl', '~b-cl-f100']

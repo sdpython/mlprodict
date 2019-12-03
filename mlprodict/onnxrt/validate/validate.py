@@ -358,11 +358,16 @@ def enumerate_compatible_opset(model, opset_min=10, opset_max=None,  # pylint: d
                         new_conv_options = options.get('conv_options', None)
                     else:
                         subset_problems = options
-                if subset_problems:
-                    subset_problems = scenario_extra[2]
+
+                if subset_problems and isinstance(subset_problems, (list, set)):
                     if prob not in subset_problems:
                         # Skips unrelated problem for a specific configuration.
                         continue
+                elif subset_problems is not None:
+                    raise RuntimeError(
+                        "subset_problems must be a set or a list not {}.".format(
+                            subset_problems))
+
                 scenario, extra = scenario_extra[:2]
                 if optimisations is None:
                     optimisations = [None]

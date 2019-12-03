@@ -1,5 +1,5 @@
 """
-@brief      test log(time=27s)
+@brief      test log(time=40s)
 """
 import os
 import unittest
@@ -20,13 +20,15 @@ class TestCreateAsvBenchmarkLogReg(ExtTestCase):
         self.assertNotEmpty(mlprodict)
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_logreg")
         created = create_asv_benchmark(
-            location=temp, verbose=1, fLOG=fLOG,
+            location=temp, verbose=3, fLOG=fLOG,
             runtime=('scikit-learn', 'python', 'onnxruntime1'),
             exc=False, execute=True, models={'LogisticRegression'})
-        self.assertNotEmpty(created)
+        if len(created) < 6:
+            raise AssertionError("Number of created files is too small.\n{}".format(
+                "\n".join(sorted(created))))
 
         reg = re.compile("class ([a-zA-Z0-9_]+)[(]")
-        verif = False
+        verif = 0
         allnames = []
         for path, _, files in os.walk(os.path.join(temp, 'benches')):
             for zoo in files:
@@ -52,14 +54,26 @@ class TestCreateAsvBenchmarkLogReg(ExtTestCase):
                 if len(err) > 0:
                     raise RuntimeError(
                         "Issue with '{}'\n{}".format(fullname, err))
+
                 if (zoo.endswith("bench_LogisticRegression_liblinear_m_cl_solverliblinear.py") and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "{LogisticRegression: {'zipmap': False}}" in content:
                         raise AssertionError(content)
                     elif "'nozipmap'" not in content:
                         raise AssertionError(content)
-                    else:
-                        verif = True
+                    if 'predict_proba' not in content:
+                        raise AssertionError(content)
+                    verif += 1
+                if (zoo.endswith("bench_LogisticRegression_liblinear_dec_b_cl_dec_solverliblinear.py") and
+                        compare_module_version(sklearn.__version__, "0.21") >= 0):
+                    if "{LogisticRegression: {'raw_score': True}}" in content:
+                        raise AssertionError(content)
+                    elif "'raw_score'" not in content:
+                        raise AssertionError(content)
+                    if 'decision_function' not in content:
+                        raise AssertionError(content)
+                    verif += 1
+
         if not verif:
             raise AssertionError("Visited files\n{}".format(
                 "\n".join(allnames)))

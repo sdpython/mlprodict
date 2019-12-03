@@ -4,6 +4,7 @@
 import unittest
 from logging import getLogger
 from pandas import DataFrame
+from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
@@ -34,7 +35,8 @@ class TestRtValidateTfIdf(ExtTestCase):
 
         try:
             rows = list(enumerate_validated_operator_opsets(
-                verbose, models={"TfidfVectorizer"}, opset_min=11,
+                verbose, models={"TfidfVectorizer"},
+                opset_min=onnx_opset_version(),
                 opset_max=11, fLOG=myprint,
                 runtime='onnxruntime1', debug=debug,
                 filter_exp=lambda m, p: True))
@@ -62,7 +64,8 @@ class TestRtValidateTfIdf(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"TfidfVectorizer"}, opset_min=11,
+            verbose, models={"TfidfVectorizer"},
+            opset_min=onnx_opset_version(),
             opset_max=11, fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: True))
@@ -86,7 +89,8 @@ class TestRtValidateTfIdf(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"TfidfTransformer"}, opset_min=11,
+            verbose, models={"TfidfTransformer"},
+            opset_min=onnx_opset_version(),
             opset_max=11, fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
             filter_exp=lambda m, p: True))

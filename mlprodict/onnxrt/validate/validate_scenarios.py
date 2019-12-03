@@ -121,10 +121,14 @@ def build_custom_scenarios():
             }),
         ],
         LogisticRegression: [
-            ('liblinear', {
-                'solver': 'liblinear',
-            }, {'optim': [None, 'onnx'],
-                'conv_options': [{}, {LogisticRegression: {'zipmap': False}}]}),
+            ('liblinear', {'solver': 'liblinear', },
+             {'optim': [None, 'onnx'],
+              'conv_options': [{}, {LogisticRegression: {'zipmap': False}}],
+              'subset_problems': ['b-cl', '~b-cl-64', 'm-cl']}),
+            ('liblinear-dec',
+             {'solver': 'liblinear', },
+             {'conv_options': [{LogisticRegression: {'raw_score': True}}],
+              'subset_problems': ['~b-cl-dec', '~m-cl-dec']}),
         ],
         MultiOutputClassifier: [
             ('logreg', {
