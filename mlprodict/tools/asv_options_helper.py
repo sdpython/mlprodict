@@ -31,7 +31,7 @@ def expand_onnx_options(model, optim):
     elif optim == 'nozipmap':
         options = {model.__class__: {'zipmap': False}}
     elif optim == 'raw_score':
-        options = {model.__class__: {'raw_score': True}}
+        options = {model.__class__: {'raw_scores': True, 'zipmap': False}}
     else:
         options = optim
     return options
@@ -55,6 +55,6 @@ def shorten_onnx_options(model, opts):
         return 'cdist'
     if opts == {model: {'zipmap': False}}:
         return 'nozipmap'
-    if opts == {model: {'raw_score': True}}:
+    if opts == {model: {'raw_scores': True, 'zipmap': False}}:
         return 'raw_score'
     return None

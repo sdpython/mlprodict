@@ -20,9 +20,11 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 class TestOnnxrtValidateType(ExtTestCase):
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def dtype_test_validate_sklearn_operators(self, dtype, models=None):
+    def dtype_test_validate_sklearn_operators(
+            self, dtype, models=None, filter_exp=None, verbose=1):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
-        verbose = 1 if __name__ == "__main__" else 0
+        if __name__ != "__main__":
+            verbose = 0
 
         def myfLOG(*args, **kwargs):
             sargs = str(args)
@@ -31,7 +33,9 @@ class TestOnnxrtValidateType(ExtTestCase):
                     return
             fLOG(*args, **kwargs)
 
-        def filter_exp(cl, prob):
+        def filter_exp_(cl, prob):
+            if filter_exp is not None and not filter_exp(cl, prob):
+                return False
             if dtype == numpy.float32:
                 return '-64' not in prob and '-cov' not in prob
             if dtype == numpy.float64:
@@ -63,7 +67,7 @@ class TestOnnxrtValidateType(ExtTestCase):
                 range(nb),
                 enumerate_validated_operator_opsets(
                     verbose, debug=True, fLOG=myfLOG, dump_folder=temp,
-                    models=models, filter_exp=filter_exp,
+                    models=models, filter_exp=filter_exp_,
                     opset_min=ops, store_models=True,
                     filter_scenario=filter_scenario)):
 
@@ -98,6 +102,11 @@ class TestOnnxrtValidateType(ExtTestCase):
     def test_validate_sklearn_operators_float32(self):
         self.dtype_test_validate_sklearn_operators(numpy.float32)
 
+    def test_validate_sklearn_operators_float32_dec(self):
+        self.dtype_test_validate_sklearn_operators(
+            numpy.float32, filter_exp=lambda m, p: '-dec' in p,
+            verbose=0)
+
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_validate_sklearn_operators_float64(self):
         self.dtype_test_validate_sklearn_operators(numpy.float64)
@@ -110,4 +119,5 @@ class TestOnnxrtValidateType(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestOnnxrtValidateType().test_validate_sklearn_operators_float32_dec()
     unittest.main()

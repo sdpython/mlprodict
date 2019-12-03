@@ -127,7 +127,7 @@ def build_custom_scenarios():
               'subset_problems': ['b-cl', '~b-cl-64', 'm-cl']}),
             ('liblinear-dec',
              {'solver': 'liblinear', },
-             {'conv_options': [{LogisticRegression: {'raw_score': True}}],
+             {'conv_options': [{LogisticRegression: {'raw_scores': True, 'zipmap': False}}],
               'subset_problems': ['~b-cl-dec', '~m-cl-dec']}),
         ],
         MultiOutputClassifier: [

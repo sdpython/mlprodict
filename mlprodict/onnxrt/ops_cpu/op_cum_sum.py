@@ -11,6 +11,7 @@ from ._op import OpRun
 class CumSum(OpRun):
 
     atts = {'exclusive': 0, 'reverse': 0}
+    python_inputs = ['x', 'axis=None']
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,
@@ -41,3 +42,11 @@ class CumSum(OpRun):
 
     def _infer_shapes(self, x, *axis):  # pylint: disable=W0221
         return (x, )
+
+    def to_python(self, inputs):
+        lines = ['if exclusive or reverse:',
+                 '    raise NotImplementedError("reverse=1 or exclusive=1 not implemente")',
+                 'if axis is None:',
+                 '    return numpy.cumsum(x)',
+                 'return numpy.cumsum(x, axis=axis[0])']
+        return 'import numpy', "\n".join(lines)

@@ -26,3 +26,10 @@ class GatherElements(OpRun):
 
     def _infer_shapes(self, data, indices):  # pylint: disable=W0221
         return (indices, )
+
+    def to_python(self, inputs):
+        lines = ['data_swaped = numpy.swapaxes(%s, 0, axis)' % inputs[0],
+                 'index_swaped = numpy.swapaxes(%s, 0, axis)' % inputs[1],
+                 "gathered = numpy.choose(index_swaped, data_swaped, mode='wrap')",
+                 'return numpy.swapaxes(gathered, 0, axis)']
+        return "import numpy", "\n".join(lines)

@@ -683,15 +683,27 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             if verbose >= 3 and fLOG is not None:
                 fLOG("[_call_runtime] runtime prediction")
                 _dispsimple(opred, fLOG)
-            max_rel_diff = measure_relative_difference(
-                ypred, opred)
+
+            if (method_name == "decision_function" and len(opred.shape) == 2 and
+                    opred.shape[1] == 2 and len(ypred.shape) == 1):
+                # decision_function, for binary classification,
+                # raw score is a distance
+                max_rel_diff = measure_relative_difference(
+                    ypred, opred[:, 1])
+            else:
+                max_rel_diff = measure_relative_difference(
+                    ypred, opred)
+
             if max_rel_diff >= 1e9 and debug:
+                _shape = lambda o: o.shape if hasattr(
+                    o, 'shape') else 'no shape'
                 raise RuntimeError(
                     "Big difference (opset={}, runtime='{}' p='{}' s='{}')"
                     ":\n-------\n{}-{}\n{}\n--------\n{}-{}\n{}".format(
                         opset, runtime, obs_op['problem'], obs_op['scenario'],
-                        type(ypred), ypred.shape, ypred,
-                        type(opred), opred.shape, opred))
+                        type(ypred), _shape(ypred), ypred,
+                        type(opred), _shape(opred), opred))
+
             if numpy.isnan(max_rel_diff):
                 obs_op['_8max_rel_diff_batch_exc'] = (
                     "Unable to compute differences between"

@@ -447,6 +447,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         got = OnnxInference(model_def).run({'X': x, 'axis': axis})
         self.assertEqualArray(exp, got['Y'])
 
+        python_tested.append(OnnxCumSum)
+        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+        validate_python_inference(oinfpy, {'X': x, 'axis': axis})
+
         # reverse = 1
         x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
         axis = numpy.array([0]).astype(numpy.int32)
@@ -558,10 +562,14 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                 {'X': x}, outputs=[('Y', FloatTensorType())])
             oinf = OnnxInference(model_def)
             got = oinf.run({'X': x})['Y']
-            new_shape = (
-                1, -1) if i == 0 else (numpy.prod(shape[0:i]).astype(int), -1)
+            new_shape = ((1, -1) if i == 0
+                         else (numpy.prod(shape[0:i]).astype(int), -1))
             exp = numpy.reshape(x, new_shape)
             self.assertEqualArray(exp, got)
+
+            python_tested.append(OnnxFlatten)
+            oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+            validate_python_inference(oinfpy, {'X': x})
 
     def test_onnxt_runtime_floor(self):
         self.common_test_onnxt_runtime_unary(OnnxFloor, numpy.floor)
@@ -584,6 +592,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         exp = numpy.array([[1, 1],
                            [4, 3]], dtype=numpy.float32)
         self.assertEqual(exp, got['Z'])
+
+        python_tested.append(OnnxGatherElements)
+        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+        validate_python_inference(oinfpy, {'X': data, 'Y': indices})
 
         # ex 2
         data = numpy.array([[1, 2, 3],

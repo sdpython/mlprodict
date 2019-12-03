@@ -21,5 +21,12 @@ class Flatten(OpRunUnary):
         i = self.axis
         shape = x.shape
         new_shape = ((1, -1) if i == 0 else
-                     (numpy.prod(shape[0:i]).astype(int), -1))
+                     (numpy.prod(shape[:i]).astype(int), -1))
         return (x.reshape(new_shape), )
+
+    def to_python(self, inputs):
+        lines = ['new_shape = ((1, -1) if axis == 0 else',
+                 '    (numpy.prod({0}.shape[:axis]).astype(int), -1))'.format(
+                     inputs[0]),
+                 'return %s.reshape(new_shape)' % inputs[0]]
+        return 'import numpy', '\n'.join(lines)
