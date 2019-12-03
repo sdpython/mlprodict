@@ -31,7 +31,7 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
     Additional parameters:
     - *with_loop*: False by default, *True* not implemented.
     """
-    if kwargs.get('with_loop', False):
+    if kwargs.get('with_loop', False):  # pragma: no cover
         raise NotImplementedError("Loop version is not implemented.")
     if output_names is None:
         output_names = ['Prediction', 'Score']
@@ -40,7 +40,7 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
 
     from sklearn.linear_model import LogisticRegression
     check_type(model, LogisticRegression)
-    if len(model.coef_.shape) > 1 and min(model.coef_.shape) != 1:
+    if len(model.coef_.shape) > 1 and min(model.coef_.shape) != 1:  # pragma: no cover
         raise NotImplementedError(
             "Multiclass is not implemented yet: coef_.shape={0}.".format(model.coef_.shape))
     coef_ = model.coef_.ravel()
@@ -86,7 +86,7 @@ def sklearn_linear_regression(model, input_names=None, output_names=None, **kwar
     Additional parameters:
     - *with_loop*: False by default, *True* not implemented.
     """
-    if kwargs.get('with_loop', False):
+    if kwargs.get('with_loop', False):  # pragma: no cover
         raise NotImplementedError("Loop version is not implemented.")
     if output_names is None:
         output_names = ['Prediction', 'Score']

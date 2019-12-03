@@ -78,7 +78,7 @@ def convert_sklearn_gradient_boosting_regressor(scope, operator, container):
             cst = [op.init_.mean]
         else:
             cst = [op.init_.quantile]
-    else:
+    else:  # pragma: no cover
         raise NotImplementedError(
             'Setting init to an estimator is not supported, you may raise an '
             'issue at https://github.com/onnx/sklearn-onnx/issues.')

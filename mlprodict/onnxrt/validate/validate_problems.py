@@ -99,7 +99,7 @@ def _modify_dimension(X, n_features, seed=19):
             res[:, i] = col2
             h = (h + 1) % X.shape[0]
             res[h, j] = perm[h]  # pylint: disable=E1136
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError(
                 "Unable to add noise to a feature for this type {}".format(X.dtype))
     return res

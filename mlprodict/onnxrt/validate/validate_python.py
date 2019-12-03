@@ -32,7 +32,7 @@ def _make_callable(fct, obj, code, gl):
         if line.startswith(cst):
             sig = line
             break
-    if sig is None:
+    if sig is None:  # pragma: no cover
         raise ValueError(
             "Unable to find function '{}' in\n{}".format(fct, code))
     reg = re.compile("([a-z][A-Za-z_0-9]*)=([0-9.e+-]+)")
@@ -52,7 +52,7 @@ def _make_callable(fct, obj, code, gl):
         if fct == "pyrt_Concat":
             # Shortcuts (other ways relies on undocumented python).
             return pyrt_Concat_
-        else:
+        else:  # pragma: no cover
             # See https://docs.python.org/3/library/inspect.html
             # See https://stackoverflow.com/questions/11291242/python-dynamically-create-function-at-runtime
             lines = [str(sig)]

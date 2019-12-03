@@ -19,6 +19,7 @@ try:
     from ..onnxrt.validate.validate import (
         _retrieve_problems_extra, _get_problem_data, _merge_options
     )
+    from ..tools.asv_options_helper import shorten_onnx_options
 except (ValueError, ImportError):
     from mlprodict.onnxrt.validate.validate_helper import (
         get_opset_number_from_onnx, sklearn_operators
@@ -26,6 +27,7 @@ except (ValueError, ImportError):
     from mlprodict.onnxrt.validate.validate import (
         _retrieve_problems_extra, _get_problem_data, _merge_options
     )
+    from mlprodict.tools.asv_options_helper import shorten_onnx_options
 try:
     from ..testing.verify_code import verify_code
 except (ValueError, ImportError):
@@ -602,11 +604,12 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         return res
 
     def _nick_name_options(model, opts):
+        # Shorten common onnx options, see _CommonAsvSklBenchmark._to_onnx.
         if opts is None:
             return opts
-        cdist = {model: {'optim': 'cdist'}}
-        if opts == cdist:
-            return 'cdist'
+        short_opts = shorten_onnx_options(model, opts)
+        if short_opts is not None:
+            return short_opts
         res = {}
         for k, v in opts.items():
             if hasattr(k, '__name__'):

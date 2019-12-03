@@ -31,6 +31,7 @@ from mlprodict.onnx_conv import (
 from mlprodict.onnxrt.validate.validate_benchmark import make_n_rows
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 from mlprodict.onnxrt.optim import onnx_statistics
+from mlprodict.tools.asv_options_helper import expand_onnx_options
 
 
 class _CommonAsvSklBenchmark:
@@ -56,13 +57,13 @@ class _CommonAsvSklBenchmark:
     par_dofit = True
     par_convopts = None
 
-    def _create_model(self):
+    def _create_model(self):  # pragma: no cover
         raise NotImplementedError("This method must be overwritten.")
 
-    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
+    def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):  # pragma: no cover
         raise NotImplementedError("This method must be overwritten.")
 
-    def _score_metric(self, X, y_exp, y_pred):
+    def _score_metric(self, X, y_exp, y_pred):  # pragma: no cover
         raise NotImplementedError("This method must be overwritten.")
 
     def _optimize_onnx(self, onx):
@@ -94,10 +95,8 @@ class _CommonAsvSklBenchmark:
                 "Conflict between par_convopts={} and optim={}".format(
                     self.par_convopts, optim))
         else:
-            if optim == 'cdist':
-                options = {model.__class__: {'optim': 'cdist'}}
-            else:
-                options = optim
+            # Expand common onnx options, see _nick_name_options.
+            options = expand_onnx_options(model, optim)
 
         if dtype in (numpy.float64, 'double'):
             return to_onnx(model, X, dtype=numpy.float64,

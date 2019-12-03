@@ -33,7 +33,7 @@ def identify_interpreter(model):
             "\n".join(sorted(loc.keys()))))
     if skconv in convs:
         return convs[skconv]
-    else:
+    else:  # pragma: no cover
         raise NotImplementedError(
             "Model class '{0}' is not yet implemented. Available interpreters:\n{1}".format(
                 class_name, "\n".join(

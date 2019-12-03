@@ -23,7 +23,7 @@ class WrappedLightGbmBooster:
             self.operator_name = 'LgbmClassifier'
         elif self._model_dict['objective'].startswith('regression'):
             self.operator_name = 'LgbmRegressor'
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError('Unsupported LightGbm objective: {}'.format(
                 self._model_dict['objective']))
         if self._model_dict.get('average_output', False):

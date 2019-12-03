@@ -119,6 +119,7 @@ it is *1/r* faster than *scikit-learn*.
     import pandas
     import matplotlib.pyplot as plt
     import numpy
+    from onnx.defs import onnx_opset_version
 
     df1 = pandas.read_excel("bench_sum_python.xlsx")
     df2 = pandas.read_excel("bench_sum_onnxruntime1.xlsx")
@@ -131,8 +132,14 @@ it is *1/r* faster than *scikit-learn*.
     df2['optim'] = df2['optim'].fillna('')
     df1['opset'] = df1['opset11'].fillna('')
     df2['opset'] = df2['opset11'].fillna('')
+
     df1['opset'] = df1['opset'].apply(lambda x: "11" if "OK 11" in x else "")
     df2['opset'] = df2['opset'].apply(lambda x: "11" if "OK 11" in x else "")
+    sops = str(onnx_opset_version())
+    oksops = "OK " + str(onnx_opset_version())
+    df1['opset'] = df1['opset'].apply(lambda x: sops if oksops in x else "")
+    df2['opset'] = df2['opset'].apply(lambda x: sops if oksops in x else "")
+
     fmt = "{} [{}-{}|{}] D{}-o{}"
     df1["label"] = df1.apply(
         lambda row: fmt.format(

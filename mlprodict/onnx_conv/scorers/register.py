@@ -56,7 +56,7 @@ def custom_scorer_transform_parser(scope, model, inputs, custom_parsers=None):
     :return: A list of output variables which will be passed to next
         stage
     """
-    if custom_parsers is not None:
+    if custom_parsers is not None:  # pragma: no cover
         raise NotImplementedError(
             "Case custom_parsers not empty is not implemented yet.")
     if isinstance(model, str):
