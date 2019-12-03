@@ -39,8 +39,12 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
             self.assertIn(
                 "from sklearn.linear_model._logistic import LogisticRegression", content)
         except AssertionError:
-            self.assertIn(
-                "from sklearn.linear_model.logistic import LogisticRegression", content)
+            try:
+                self.assertIn(
+                    "from sklearn.linear_model.logistic import LogisticRegression", content)
+            except AssertionError:
+                self.assertIn(
+                    "from sklearn.linear_model import LogisticRegression", content)
 
         if __name__ == "__main__":
             fLOG("[] checks setup_cache")
