@@ -5,7 +5,8 @@ Converters with options
 =======================
 
 Some converters have options to change the way
-a specific operator is converted.
+a specific operator is converted. The whole list
+is described at :epkg:`Converters with options`.
 
 .. contents::
     :local:

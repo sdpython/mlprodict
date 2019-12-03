@@ -21,6 +21,11 @@ Python to ONNX
 
 .. autosignature:: mlprodict.onnx_grammar.onnx_translation.translate_fct2onnx
 
+ONNX Export
++++++++++++
+
+.. autosignature:: mlprodict.onnxrt.onnx_inference_exports.OnnxInferenceExport
+
 ONNX Structure
 ++++++++++++++
 
@@ -48,9 +53,9 @@ C++ classes
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_svm_regressor_.RuntimeSVMRegressor
 
-.. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_.RuntimeTreeEnsembleClassifierFloat
-
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_.RuntimeTreeEnsembleClassifierDouble
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_.RuntimeTreeEnsembleClassifierFloat
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeTreeEnsembleRegressorDouble
 

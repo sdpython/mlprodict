@@ -51,6 +51,7 @@ epkg_dictionary.update({
     'C': "https://en.wikipedia.org/wiki/C_(programming_language)",
     'cdist': 'https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html',
     'cffi': "https://cffi.readthedocs.io/en/latest/",
+    'Converters with options': 'http://www.xavierdupre.fr/app/sklearn-onnx/helpsphinx/parameterized.html',
     'coo_matrix': 'https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.coo_matrix.html',
     'csv': 'https://en.wikipedia.org/wiki/Comma-separated_values',
     "DataFrame": "https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html",

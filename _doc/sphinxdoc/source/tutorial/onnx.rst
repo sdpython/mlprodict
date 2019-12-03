@@ -1,11 +1,31 @@
 
 .. _l-onnx-tutorial:
 
-Tutorial on ONNX
-================
+ONNX and python
+===============
+
+This package implements a python runtime for ONNX
+in class :class:`OnnxInference <mlprodict.onnxrt.OnnxInference>`.
+It does not depend on :epkg:`scikit-learn`, only :epkg:`numpy`
+and this module. However, this module was not really developped to
+get the fastest python runtime but mostly to easily develop converters.
+That's why the module can also convert an ONNX graph
+into a python code which relies on :epkg:`numpy` in most
+case, :epkg:`scipy` and this module in all cases.
 
 .. contents::
     :local:
+
+From ONNX to Python
++++++++++++++++++++
+
+:class:`OnnxInference <mlprodict.onnxrt.OnnxInference>`
+was compute predictions based on an ONNX graph with a
+python runtime or :epkg:`onnxruntime`.
+Method :meth:`to_python
+<mlprodict.onnxrt.onnx_inference_export.to_python>`
+goes further by converting the ONNX graph into a standalone
+python code.
 
 .. _l-numpy2onnx-tutorial:
 
