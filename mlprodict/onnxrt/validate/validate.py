@@ -684,7 +684,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                 fLOG("[_call_runtime] runtime prediction")
                 _dispsimple(opred, fLOG)
 
-            if (method_name == "decision_function" and len(opred.shape) == 2 and
+            if (method_name == "decision_function" and hasattr(opred, 'shape') and
+                    hasattr(ypred, 'shape') and len(opred.shape) == 2 and
                     opred.shape[1] == 2 and len(ypred.shape) == 1):
                 # decision_function, for binary classification,
                 # raw score is a distance
