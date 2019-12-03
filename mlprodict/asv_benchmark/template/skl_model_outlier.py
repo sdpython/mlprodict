@@ -11,6 +11,7 @@ on Windows.
     the system is told otherwise.
 """
 import numpy  # pylint: disable=W0611
+from onnx.defs import onnx_opset_version
 # Import specific to this model.
 from sklearn.svm import OneClassSVM
 
@@ -30,7 +31,7 @@ class TemplateBenchmarkOutlier(_CommonAsvSklBenchmarkOutlier):
         ['skl', 'pyrt', 'ort'],  # values for runtime
         [1, 10, 100, 1000, 10000, 100000],  # values for N
         [4, 20],  # values for nf
-        [11],  # values for opset
+        [onnx_opset_version()],  # values for opset
         ['float', 'double'],  # values for dtype
         [None],  # values for optim
     ]

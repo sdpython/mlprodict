@@ -37,7 +37,8 @@ class TestRtValidateTfIdf(ExtTestCase):
             rows = list(enumerate_validated_operator_opsets(
                 verbose, models={"TfidfVectorizer"},
                 opset_min=onnx_opset_version(),
-                opset_max=11, fLOG=myprint,
+                opset_max=onnx_opset_version(),
+                fLOG=myprint,
                 runtime='onnxruntime1', debug=debug,
                 filter_exp=lambda m, p: True))
         except Exception as e:
@@ -66,7 +67,8 @@ class TestRtValidateTfIdf(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"TfidfVectorizer"},
             opset_min=onnx_opset_version(),
-            opset_max=11, fLOG=myprint,
+            opset_max=onnx_opset_version(),
+            fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: True))
         self.assertGreater(len(rows), 1)
@@ -91,7 +93,7 @@ class TestRtValidateTfIdf(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"TfidfTransformer"},
             opset_min=onnx_opset_version(),
-            opset_max=11, fLOG=myprint,
+            opset_max=onnx_opset_version(), fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
             filter_exp=lambda m, p: True))
         self.assertGreater(len(rows), 1)

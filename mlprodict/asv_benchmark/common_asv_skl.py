@@ -15,6 +15,7 @@ import os
 import pickle
 from logging import getLogger
 import numpy
+from onnx.defs import onnx_opset_version
 from sklearn import set_config
 from sklearn.datasets import load_iris
 from sklearn.metrics import (
@@ -47,7 +48,7 @@ class _CommonAsvSklBenchmark:
         ['skl', 'pyrt', 'ort'],  # values for runtime
         [1, 10, 100, 10000, 100000],  # values for N
         [4, 20],  # values for nf
-        [11],  # values for opset
+        [onnx_opset_version()],  # values for opset
         ["float", "double"],  # values for dtype
         [None],  # values for optim
     ]

@@ -7,6 +7,7 @@ import json
 import textwrap
 import hashlib
 import warnings
+from onnx.defs import onnx_opset_version  # pylint: disable=W0611
 try:
     from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8
 except ImportError:
@@ -670,7 +671,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             "['skl', 'pyrt', 'ort'],  # values for runtime": str(runtime),
             "[1, 10, 100, 1000, 10000, 100000],  # values for N": str(dims),
             "[4, 20],  # values for nf": str(n_features),
-            "[11],  # values for opset": str(opsets),
+            "[onnx_opset_version()],  # values for opset": str(opsets),
             "['float', 'double'],  # values for dtype":
                 "['float']" if '-64' not in problem else "['float', 'double']",
             "[None],  # values for optim": "%r" % nck_opts,

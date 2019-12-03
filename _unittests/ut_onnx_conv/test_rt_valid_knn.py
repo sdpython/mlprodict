@@ -40,7 +40,7 @@ class TestRtValidateKNN(ExtTestCase):
             rows = list(enumerate_validated_operator_opsets(
                 verbose, models={"KNeighborsRegressor"},
                 opset_min=onnx_opset_version(),
-                opset_max=11, fLOG=myprint, fail_bad_results=True,
+                opset_max=onnx_opset_version(), fLOG=myprint, fail_bad_results=True,
                 runtime='python', debug=debug, extended_list=True,
                 store_models=True,
                 filter_scenario=lambda m, p, s, e, o: fil(m, p, s, e, o)))
