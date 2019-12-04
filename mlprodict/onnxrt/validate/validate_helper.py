@@ -76,17 +76,27 @@ def get_opset_number_from_onnx():
     return onnx.defs.onnx_opset_version()
 
 
-def sklearn_operators(subfolder=None, extended=False):
+def sklearn_operators(subfolder=None, extended=False,
+                      experimental=True):
     """
     Builds the list of operators from :epkg:`scikit-learn`.
     The function goes through the list of submodule
     and get the list of class which inherit from
     :epkg:`scikit-learn:base:BaseEstimator`.
 
-    @param      subfolder   look into only one subfolder
-    @param      extended    extends the list to the list of operators
-                            this package implements a converter for
+    @param      subfolder       look into only one subfolder
+    @param      extended        extends the list to the list of operators
+                                this package implements a converter for
+    @param      experimental    includes experimental module from
+                                :epkg:`scikit-learn` (see `sklearn.experimental
+                                <https://github.com/scikit-learn/scikit-learn/
+                                tree/master/sklearn/experimental>`_)
     """
+    if experimental:
+        from sklearn.experimental import (  # pylint: disable=W0611
+            enable_hist_gradient_boosting,
+            enable_iterative_imputer)
+
     subfolders = sklearn__all__ + ['mlprodict.onnx_conv']
     found = []
     for subm in sorted(subfolders):
