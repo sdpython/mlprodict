@@ -10,13 +10,14 @@ from scipy.spatial.distance import squareform, pdist
 from .node_visitor_translator import CodeNodeVisitor
 
 
-def py_make_float_array(cst):
+def py_make_float_array(cst, op_version=None):
     """
     Creates an array with a single element
     from a constant.
 
-    @param      cst     constant
-    @return             array
+    @param      cst         constant
+    @param      op_version  unused
+    @return                 array
 
     .. runpython::
         :showcode:
@@ -27,23 +28,25 @@ def py_make_float_array(cst):
     return numpy.array([cst], dtype=numpy.float32)
 
 
-def py_pow(x, p):
+def py_pow(x, p, op_version=None):
     """
     Function for python operator ``**``.
 
-    @param      x       float
-    @param      p       power
-    @return             :math:`x^p`
+    @param      x           float
+    @param      p           power
+    @param      op_version  unused
+    @return                 :math:`x^p`
     """
     return x ** p
 
 
-def py_mul(*x):
+def py_mul(*x, op_version=None):
     """
     Function for python operator ``*``.
 
-    @param      x       floats
-    @return             `x*y`
+    @param      x           floats
+    @param      op_version  unused
+    @return                 `x*y`
     """
     if len(x) == 2:
         return x[0] * x[1]
@@ -54,17 +57,18 @@ def py_mul(*x):
         return p
 
 
-def py_opp(x):
+def py_opp(x, op_version=None):
     """
     Function for python unary operator ``-``.
 
-    @param      x       floats
-    @return             `-x`
+    @param      x           floats
+    @param      op_version  unused
+    @return                 `-x`
     """
     return -x
 
 
-def squareform_pdist(X, metric='sqeuclidean'):
+def squareform_pdist(X, metric='sqeuclidean', op_version=None):
     """
     Replacements for `squareform
     <http://scipy.github.io/devdocs/generated/scipy.spatial.distance.squareform.html>`_
