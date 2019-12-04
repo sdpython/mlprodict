@@ -33,6 +33,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
             for zoo in files:
                 if '__init__' in zoo:
                     continue
+                allnames.append(zoo)
                 fullname = os.path.join(path, zoo)
                 with open(fullname, 'r', encoding='utf-8') as f:
                     content = f.read()

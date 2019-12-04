@@ -10,7 +10,7 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least, skipif_circleci
 import skl2onnx
 from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets, sklearn_operators
 from mlprodict.onnxrt.validate.validate import sklearn__all__
@@ -20,6 +20,7 @@ from mlprodict.onnxrt.doc.doc_write_helper import enumerate_visual_onnx_represen
 
 class TestOnnxrtValidateDocumentation(ExtTestCase):
 
+    @skipif_circleci('too long')
     def test_validate_sklearn_store_models(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -36,6 +37,7 @@ class TestOnnxrtValidateDocumentation(ExtTestCase):
         dot = oinf.to_dot()
         self.assertIn('LinearRegressor', dot)
 
+    @skipif_circleci('too long')
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_write_documentation_converters(self):
