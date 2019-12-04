@@ -27,6 +27,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
         self.assertNotEmpty(created)
 
         reg = re.compile("class ([a-zA-Z0-9_]+)[(]")
+        ops = onnx_opset_version()
         verif = False
         allnames = []
         for path, _, files in os.walk(os.path.join(temp, 'pyspy')):
@@ -37,7 +38,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
                 fullname = os.path.join(path, zoo)
                 with open(fullname, 'r', encoding='utf-8') as f:
                     content = f.read()
-                if (zoo.endswith("bench_DecisionTreeClassifier_default_b_cl_1_4_12_float_.py") and
+                if (zoo.endswith("bench_DecisionTreeClassifier_default_b_cl_1_4_%d_float_.py" % ops) and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "setup_profile" not in content:
                         raise AssertionError(content)
