@@ -222,8 +222,12 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::Initialize() {
   //leafnode data, these are the votes that leaves do
   consecutive_leaf_data_ = false;
   for (size_t i = 0; i < target_nodeids_.size(); i++) {
-    leafnode_data_.push_back(std::make_tuple(target_treeids_[i], target_nodeids_[i], target_ids_[i], target_weights_[i]));
-    if (i > 0 && target_treeids_[i] == target_treeids_[i-1] && target_nodeids_[i] == target_nodeids_[i-1])
+    leafnode_data_.push_back(std::make_tuple(target_treeids_[i],
+                                             target_nodeids_[i],
+                                             target_ids_[i],
+                                             target_weights_[i]));
+    if (i > 0 && target_treeids_[i] == target_treeids_[i-1] && 
+            target_nodeids_[i] == target_nodeids_[i-1])
         consecutive_leaf_data_ = true;
   }
   
