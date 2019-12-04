@@ -10,9 +10,9 @@
     to compute the prediction of a random forest for
     one observation compare to what :epkg:`onnxruntime` does.
     We used :epkg:`py-spy` and wrote the following script:
-    
+
     ::
-    
+
         import numpy as np
         from joblib import Memory
         import sklearn
@@ -30,9 +30,9 @@
                 random_state=1, n_clusters_per_class=1, n_samples=1000)
             rf = RandomForestClassifier(
                 max_depth=5, n_estimators=100, max_features=1)
-            rf.fit(X, y)    
+            rf.fit(X, y)
             onx = to_onnx(rf, X.astype(np.float32))
-            onxb = onx.SerializeToString()    
+            onxb = onx.SerializeToString()
             return rf, X, onxb
 
         rf, X, onxb = make_model()
@@ -55,24 +55,24 @@
         f2()  # scikit-learn
 
     The script is run with the following command line:
-    
+
     ::
-    
+
         py-spy record --native --function --rate=10 -o demo.svg -- python demo.py
 
     The following image is a snapshot of the final result:
 
     .. image:: rf1.png
-    
+
     It shows that on my machine, :epkg:`scikit-learn: is delayed
     by :epkg:`joblib` which is not really useful for this small
     dataset. ``check_is_fitted`` takes some time despite the fact
     ``sklearn.config_context(assume_finite=True)`` was used.
     I then modified the script to compare this outcome to what
     we would get for the prediction of 1000 observations in a row.
-    
+
     ::
-    
+
         import numpy as np
         from joblib import Memory
         import sklearn
@@ -88,9 +88,9 @@
             X, y = make_classification(n_features=2, n_redundant=0, n_informative=2,
                                        random_state=1, n_clusters_per_class=1, n_samples=1000)
             rf = RandomForestClassifier(max_depth=5, n_estimators=100, max_features=1)
-            rf.fit(X, y)    
+            rf.fit(X, y)
             onx = to_onnx(rf, X.astype(np.float32))
-            onxb = onx.SerializeToString()    
+            onxb = onx.SerializeToString()
             return rf, X, onxb
 
         rf, X, onxb = make_model()
@@ -106,14 +106,13 @@
                 for _ in range(0, 5000):
                     rf.predict(X)
 
-
         f1_1000()  # C++
         f2_1000()  # scikit-learn
 
     Both version spend similar time into the functions
     which computes the predictions but :epkg:`joblib` is
     still adding some extra time.
-    
+
     .. image:: rf123.png
 
     Figures about other classifiers can be found
