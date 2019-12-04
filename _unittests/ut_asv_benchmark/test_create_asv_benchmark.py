@@ -6,7 +6,7 @@ import unittest
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.asv_benchmark import create_asv_benchmark
-from mlprodict.asv_benchmark.create_asv import _format_dict
+from mlprodict.asv_benchmark._create_asv_helper import _format_dict
 import mlprodict
 
 

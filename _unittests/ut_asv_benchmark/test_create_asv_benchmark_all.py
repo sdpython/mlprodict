@@ -4,6 +4,7 @@
 import os
 import unittest
 import re
+from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.loghelper.run_cmd import run_script
@@ -19,6 +20,7 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_all")
         created = create_asv_benchmark(
             location=temp, verbose=1, fLOG=fLOG,
+            opset_min=onnx_opset_version(),
             skip_models={
                 'DictVectorizer', 'FeatureHasher',  # 'CountVectorizer'
             }, runtime=('scikit-learn', 'python', 'onnxruntime1'),

@@ -241,7 +241,7 @@ class OnnxTranslator(CodeTranslator):
                     onnx_name = OnnxTranslator._binary_operators[opname]
                     rows.append(
                         '{}Onnx{}('.format(" " * indent * 4, onnx_name))
-                    for _, expr2 in enumerate(opon):
+                    for expr2 in opon:
                         rows.extend(write_expression(
                             stack_fct_used, expr2, indent + 1))
                         rows[-1] += ","
@@ -254,7 +254,7 @@ class OnnxTranslator(CodeTranslator):
                     onnx_name = OnnxTranslator._unary_operators[opname]
                     rows.append(
                         '{}Onnx{}('.format(" " * indent * 4, onnx_name))
-                    for i, expr2 in enumerate(opon):
+                    for expr2 in opon:
                         rows.extend(write_expression(
                             stack_fct_used, expr2, indent + 1))
                         rows[-1] += ","
@@ -292,7 +292,7 @@ class OnnxTranslator(CodeTranslator):
 
                     opon = args["args"]
                     opon = opon[1:]
-                    for i, expr2 in enumerate(opon):
+                    for expr2 in opon:
                         rows.extend(
                             write_expression(
                                 stack_fct_used,

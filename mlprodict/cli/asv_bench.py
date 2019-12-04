@@ -41,6 +41,8 @@ def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
         format ``name,value;name2,value2``
     :param flat: one folder for all files or subfolders
     :param build: location of the outputs (env, html, results)
+    :param add_pyspy: add an extra folder with code to profile
+        each configuration
     :param env: default environment or ``same`` to use the current one
     :return: created files
 
@@ -72,6 +74,8 @@ def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
         verbose = int(verbose)
     if isinstance(extended_list, str):
         extended_list = extended_list in ('1', 'True', 'true')
+    if isinstance(add_pyspy, str):
+        add_pyspy = add_pyspy in ('1', 'True', 'true')
     if not isinstance(runtime, list):
         runtime = runtime.split(',')
     if not isinstance(dims, list):
@@ -123,4 +127,4 @@ def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
         n_features=n_features, dtype=dtype, verbose=verbose,
         fLOG=fLOG, clean=clean, conf_params=conf_params,
         filter_exp=fct_filter, filter_scenario=None,
-        flat=flat, build=build, env=env)
+        flat=flat, build=build, add_pyspy=add_pyspy, env=env)

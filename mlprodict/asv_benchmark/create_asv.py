@@ -3,31 +3,52 @@
 for many regressors and classifiers.
 """
 import os
+import sys
 import json
 import textwrap
-import hashlib
 import warnings
+import re
 from onnx.defs import onnx_opset_version  # pylint: disable=W0611
 try:
     from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8
 except ImportError:
     remove_extra_spaces_and_pep8 = lambda code, *args, **kwargs: code
+try:
+    from ._create_asv_helper import (
+        default_asv_conf,
+        flask_helper,
+        pyspy_template,
+        _handle_init_files,
+        _asv_class_name,
+        _read_patterns,
+        _select_pattern_problem,
+        _display_code_lines,
+        add_model_import_init,
+        find_missing_sklearn_imports)
+except ImportError:
+    from mlprodict.asv_benchmark._create_asv_helper import (
+        default_asv_conf,
+        flask_helper,
+        pyspy_template,
+        _handle_init_files,
+        _asv_class_name,
+        _read_patterns,
+        _select_pattern_problem,
+        _display_code_lines,
+        add_model_import_init,
+        find_missing_sklearn_imports)
 
 try:
     from ..onnxrt.validate.validate_helper import (
-        get_opset_number_from_onnx, sklearn_operators
-    )
+        get_opset_number_from_onnx, sklearn_operators)
     from ..onnxrt.validate.validate import (
-        _retrieve_problems_extra, _get_problem_data, _merge_options
-    )
+        _retrieve_problems_extra, _get_problem_data, _merge_options)
     from ..tools.asv_options_helper import shorten_onnx_options
 except (ValueError, ImportError):
     from mlprodict.onnxrt.validate.validate_helper import (
-        get_opset_number_from_onnx, sklearn_operators
-    )
+        get_opset_number_from_onnx, sklearn_operators)
     from mlprodict.onnxrt.validate.validate import (
-        _retrieve_problems_extra, _get_problem_data, _merge_options
-    )
+        _retrieve_problems_extra, _get_problem_data, _merge_options)
     from mlprodict.tools.asv_options_helper import shorten_onnx_options
 try:
     from ..testing.verify_code import verify_code
@@ -43,99 +64,6 @@ except ValueError:
     pass
 
 
-default_asv_conf = {
-    "version": 1,
-    "project": "mlprodict",
-    "project_url": "http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html",
-    "repo": "https://github.com/sdpython/mlprodict.git",
-    "repo_subdir": "",
-    "install_command": ["python -mpip install {wheel_file}"],
-    "uninstall_command": ["return-code=any python -mpip uninstall -y {project}"],
-    "build_command": [
-        "python setup.py build",
-        "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"
-    ],
-    "branches": ["master"],
-    "environment_type": "virtualenv",
-    "install_timeout": 600,
-    "show_commit_url": "https://github.com/sdpython/mlprodict/commit/",
-    "pythons": ["3.7"],
-    "matrix": {
-        "cython": [],
-        "jinja2": [],
-        "joblib": [],
-        "lightgbm": [],
-        "numpy": [],
-        "onnx": [],
-        "onnxruntime": [],
-        "pandas": [],
-        "Pillow": [],
-        "pybind11": [],
-        "scipy": [],
-        "skl2onnx": ["git+https://github.com/xadupre/sklearn-onnx.git@jenkins"],
-        "scikit-learn": ["git+https://github.com/scikit-learn/scikit-learn.git"],
-        "xgboost": [],
-    },
-    "benchmark_dir": "benches",
-    "env_dir": "env",
-    "results_dir": "results",
-    "html_dir": "html",
-}
-
-flask_helper = """
-'''
-Local ASV files do no properly render in a browser,
-it needs to be served through a server.
-'''
-import os.path
-from flask import Flask, Response
-
-app = Flask(__name__)
-app.config.from_object(__name__)
-
-
-def root_dir():
-    return os.path.join(os.path.abspath(os.path.dirname(__file__)), "..", "html")
-
-
-def get_file(filename):  # pragma: no cover
-    try:
-        src = os.path.join(root_dir(), filename)
-        with open(src, "r", encoding="utf-8", errors="ignore") as f:
-            return f.read()
-    except IOError as exc:
-        return str(exc)
-
-
-@app.route('/', methods=['GET'])
-def mainpage():
-    content = get_file('index.html')
-    return Response(content, mimetype="text/html")
-
-
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def get_resource(path):  # pragma: no cover
-    mimetypes = {
-        ".css": "text/css",
-        ".html": "text/html",
-        ".js": "application/javascript",
-    }
-    complete_path = os.path.join(root_dir(), path)
-    ext = os.path.splitext(path)[1]
-    mimetype = mimetypes.get(ext, "text/html")
-    content = get_file(complete_path)
-    return Response(content, mimetype=mimetype)
-
-
-if __name__ == '__main__':  # pragma: no cover
-    app.run(  # ssl_context=('cert.pem', 'key.pem'),
-        port=8877,
-        # host="",
-    )
-"""
-
-
 def create_asv_benchmark(
         location, opset_min=11, opset_max=None,
         runtime=('scikit-learn', 'python'), models=None,
@@ -146,7 +74,7 @@ def create_asv_benchmark(
         conf_params=None, filter_exp=None,
         filter_scenario=None, flat=False,
         exc=False, build=None, execute=False,
-        env=None):
+        add_pyspy=False, env=None):
     """
     Creates an :epkg:`asv` benchmark in a folder
     but does not run it.
@@ -184,6 +112,8 @@ def create_asv_benchmark(
     :param build: where to put the outputs
     :param execute: execute each script to make sure
         imports are correct
+    :param add_pyspy: add an extra folder with code to profile
+        each configuration
     :param env: None to use the default configuration or ``same`` to use
         the current one
     :return: created files
@@ -265,6 +195,11 @@ def create_asv_benchmark(
     if verbose > 0 and fLOG is not None:
         fLOG("[create_asv_benchmark] create 'flask_serve.py'.")
 
+    # pyspy
+    dest_pyspy = os.path.join(location, 'pyspy')
+    if not os.path.exists(dest_pyspy):
+        os.mkdir(dest_pyspy)
+
     if verbose > 0 and fLOG is not None:
         fLOG("[create_asv_benchmark] create all tests.")
 
@@ -276,54 +211,12 @@ def create_asv_benchmark(
         verbose=verbose, filter_exp=filter_exp,
         filter_scenario=filter_scenario,
         dims=dims, exc=exc, flat=flat,
-        fLOG=fLOG, execute=execute)))
+        fLOG=fLOG, execute=execute,
+        dest_pyspy=dest_pyspy)))
 
     if verbose > 0 and fLOG is not None:
         fLOG("[create_asv_benchmark] done.")
     return created
-
-
-def _sklearn_subfolder(model):
-    """
-    Returns the list of subfolders for a model.
-    """
-    mod = model.__module__
-    spl = mod.split('.')
-    pos = spl.index('sklearn')
-    res = spl[pos + 1: -1]
-    if len(res) == 0:
-        if spl[-1] == 'sklearn':
-            res = ['_externals']
-        elif spl[0] == 'sklearn':
-            res = spl[pos + 1:]
-        else:
-            raise ValueError(
-                "Unable to guess subfolder for '{}'.".format(model.__class__))
-    res.append(model.__name__)
-    return res
-
-
-def _handle_init_files(model, flat, location, verbose, fLOG):
-    "Returns created, location_model, prefix_import."
-    if flat:
-        return [], location, "."
-    else:
-        created = []
-        subf = _sklearn_subfolder(model)
-        location_model = os.path.join(location, *subf)
-        prefix_import = "." * (len(subf) + 1)
-        if not os.path.exists(location_model):
-            os.makedirs(location_model)
-            for fold in [location_model, os.path.dirname(location_model),
-                         os.path.dirname(os.path.dirname(location_model))]:
-                init = os.path.join(fold, '__init__.py')
-                if not os.path.exists(init):
-                    with open(init, 'w') as _:
-                        pass
-                    created.append(init)
-                    if verbose > 1 and fLOG is not None:
-                        fLOG("[create_asv_benchmark] create '{}'.".format(init))
-        return created, location_model, prefix_import
 
 
 def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
@@ -334,7 +227,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
         verbose=0, filter_exp=None,
         dims=None, filter_scenario=None,
         exc=True, flat=False, execute=False,
-        fLOG=print):
+        dest_pyspy=None, fLOG=print):
     """
     Loops over all possible models and fills a folder
     with benchmarks following :epkg:`asv` concepts.
@@ -369,9 +262,12 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
     :param flat: one folder for all files or subfolders
     :param execute: execute each script to make sure
         imports are correct
+    :param dest_pyspy: add a file to profile the prediction
+        function with :epkg:`pyspy`
     """
 
     ops = [_ for _ in sklearn_operators(extended=extended_list)]
+    patterns = _read_patterns()
 
     if models is not None:
         if not all(map(lambda m: isinstance(m, str), models)):
@@ -430,8 +326,8 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
             continue
 
         # flat or not flat
-        created, location_model, prefix_import = _handle_init_files(
-            model, flat, location, verbose, fLOG)
+        created, location_model, prefix_import, dest_pyspy_model = _handle_init_files(
+            model, flat, location, verbose, dest_pyspy, fLOG)
         for init in created:
             yield init
 
@@ -493,7 +389,8 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                     method_name=method_name, dims=dims, n_features=n_features,
                     output_index=output_index, predict_kwargs=predict_kwargs,
                     exc=exc, prefix_import=prefix_import,
-                    execute=execute)
+                    execute=execute, location_pyspy=dest_pyspy_model,
+                    patterns=patterns)
                 for cr in created:
                     if cr in all_created:
                         raise RuntimeError(
@@ -504,101 +401,19 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                     yield cr
 
 
-def _asv_class_name(model, scenario, optimisation,
-                    extra, dofit, conv_options, problem):
-
-    def clean_str(val):
-        s = str(val)
-        r = ""
-        for c in s:
-            if c in ",-\n":
-                r += "_"
-                continue
-            if c in ": =.+()[]{}\"'<>~":
-                continue
-            r += c
-        return r
-
-    def clean_str_list(val):
-        if val is None:
-            return ""
-        if isinstance(val, list):
-            return ".".join(clean_str_list(v) for v in val if v)
-        return clean_str(val)
-
-    els = ['bench', model.__name__, scenario, clean_str(problem)]
-    if not dofit:
-        els.append('nofit')
-    if extra:
-        if 'random_state' in extra and extra['random_state'] == 42:
-            extra2 = extra.copy()
-            del extra2['random_state']
-            if extra2:
-                els.append(clean_str(extra2))
-        else:
-            els.append(clean_str(extra))
-    if optimisation:
-        els.append(clean_str_list(optimisation))
-    if conv_options:
-        els.append(clean_str_list(conv_options))
-    res = ".".join(els).replace("-", "_")
-    if len(res) > 70:
-        m = hashlib.sha256()
-        m.update(res.encode('utf-8'))
-        sh = m.hexdigest()
-        if len(sh) > 6:
-            sh = sh[:6]
-        res = res[:70] + sh
-    return res
-
-
 def _create_asv_benchmark_file(  # pylint: disable=R0914
         location, model, scenario, optimisations, new_conv_options,
         extra, dofit, problem, runtime, X_train, X_test, y_train,
         y_test, Xort_test, init_types, conv_options,
         method_name, n_features, dims, opsets,
         output_index, predict_kwargs, prefix_import,
-        exc, execute=False):
+        exc, execute=False, location_pyspy=None, patterns=None):
     """
     Creates a benchmark file based in the information received
     through the argument. It uses template @see cl TemplateBenchmark.
     """
-    # Reads the template
-    patterns = {}
-    for suffix in ['classifier', 'classifier_raw_score', 'regressor', 'clustering',
-                   'outlier', 'trainable_transform', 'transform',
-                   'multi_classifier', 'transform_positive']:
-        template_name = os.path.join(os.path.dirname(
-            __file__), "template", "skl_model_%s.py" % suffix)
-        if not os.path.exists(template_name):
-            raise FileNotFoundError(
-                "Template '{}' was not found.".format(template_name))
-        with open(template_name, "r", encoding="utf-8") as f:
-            content = f.read()
-        initial_content = '"""'.join(content.split('"""')[2:])
-        patterns[suffix] = initial_content
-
-    def pattern_problem(prob):
-        if '-reg' in prob:
-            return patterns['regressor']
-        if '-cl' in prob and '-dec' in prob:
-            return patterns['classifier_raw_score']
-        if '-cl' in prob:
-            return patterns['classifier']
-        if 'cluster' in prob:
-            return patterns['clustering']
-        if 'outlier' in prob:
-            return patterns['outlier']
-        if 'num+y-tr' in prob:
-            return patterns['trainable_transform']
-        if 'num-tr-pos' in prob:
-            return patterns['transform_positive']
-        if 'num-tr' in prob:
-            return patterns['transform']
-        if 'm-label' in prob:
-            return patterns['multi_classifier']
-        raise ValueError(
-            "Unable to guess the right pattern for '{}'.".format(prob))
+    if patterns is None:
+        raise ValueError("Patterns list is empty.")
 
     def format_conv_options(d_options, class_name):
         if d_options is None:
@@ -657,7 +472,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             continue
         filename = name.replace(".", "_") + ".py"
         try:
-            class_content = pattern_problem(problem)
+            class_content = _select_pattern_problem(problem, patterns)
         except ValueError as e:
             if exc:
                 raise e
@@ -677,9 +492,9 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             "[None],  # values for optim": "%r" % nck_opts,
         }
         for k, v in rep.items():
-            if k not in content:
-                raise ValueError("Unable to find '{}' in '{}'\n{}.".format(
-                    k, template_name, content))
+            if k not in class_content:
+                raise ValueError("Unable to find '{}'\n{}.".format(
+                    k, class_content))
             class_content = class_content.replace(k, v + ',')
         class_content = class_content.split(
             "def _create_model(self):")[0].strip("\n ")
@@ -764,168 +579,51 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         with open(fullname, "w", encoding='utf-8') as f:
             f.write(class_content)
 
+        if location_pyspy is not None:
+            # adding configuration for pyspy
+            class_name = re.compile(
+                'class ([A-Za-z_0-9]+)[(]').findall(class_content)[0]
+            fullname_pyspy = os.path.splitext(
+                os.path.join(location_pyspy, filename))[0]
+            pyfold = os.path.splitext(os.path.split(fullname)[-1])[0]
+
+            dtypes = ['float', 'double'] if '-64' in problem else ['float']
+            for dim in dims:
+                for nf in n_features:
+                    for opset in opsets:
+                        for dtype in dtypes:
+                            for opt in nck_opts:
+                                tmpl = pyspy_template.replace(
+                                    '__PATH__', location)
+                                tmpl = tmpl.replace(
+                                    '__CLASSNAME__', class_name)
+                                tmpl = tmpl.replace('__PYFOLD__', pyfold)
+                                opt = "" if opt == {} else opt
+
+                                for rt in runtime:
+                                    tmpl += textwrap.dedent("""
+
+                                    def profile_{rt}(cl, N, nf, opset, dtype, optim):
+                                        setup_profile(cl, '{rt}', N, nf, opset, dtype, optim)
+                                    profile_{rt}(cl, {dim}, {nf}, {opset}, '{dtype}', {opt})
+
+                                    """).format(rt=rt, dim=dim, nf=nf, opset=opset,
+                                                dtype=dtype, opt="%r" % opt)
+
+                                thename = "{n}_{dim}_{nf}_{opset}_{dtype}_{opt}.py".format(
+                                    n=fullname_pyspy, dim=dim, nf=nf,
+                                    opset=opset, dtype=dtype, opt=opt)
+                                with open(thename, 'w', encoding='utf-8') as f:
+                                    f.write(tmpl)
+                                names.append(thename)
+
+                                ext = '.bat' if sys.platform.startswith(
+                                    'win') else '.sh'
+                                script = os.path.splitext(thename)[0] + ext
+                                short = os.path.splitext(
+                                    os.path.split(thename)[-1])[0]
+                                with open(script, 'w', encoding='utf-8') as f:
+                                    f.write('py-spy record --native --function --rate=10 -o {n}.svg -- {py} {n}.py'.format(
+                                        py=sys.executable, n=short))
+
     return names
-
-
-def _display_code_lines(code):
-    rows = ["%03d %s" % (i + 1, line)
-            for i, line in enumerate(code.split("\n"))]
-    return "\n".join(rows)
-
-
-def _format_dict(opts, indent):
-    """
-    Formats a dictionary as code.
-    """
-    rows = []
-    for k, v in sorted(opts.items()):
-        rows.append('%s=%r' % (k, v))
-    content = ', '.join(rows)
-    st1 = "\n".join(textwrap.wrap(content))
-    return textwrap.indent(st1, prefix=' ' * indent)
-
-
-def add_model_import_init(
-        class_content, model, optimisation=None,
-        extra=None, conv_options=None):
-    """
-    Modifies a template such as @see cl TemplateBenchmarkClassifier
-    with code associated to the model *model*.
-
-    @param  class_content       template (as a string)
-    @param  model               model class
-    @param  optimisation        model optimisation
-    @param  extra               addition parameter to the constructor
-    @param  conv_options        options for the conversion to ONNX
-    @returm                     modified template
-    """
-    add_imports = []
-    add_methods = []
-    add_params = ["par_modelname = '%s'" % model.__name__,
-                  "par_extra = %r" % extra]
-
-    # additional methods and imports
-    if optimisation is not None:
-        add_imports.append(
-            'from mlprodict.onnxrt.optim import onnx_optimisations')
-        if optimisation == 'onnx':
-            add_methods.append(textwrap.dedent('''
-                def _optimize_onnx(self, onx):
-                    return onnx_optimisations(onx)'''))
-            add_params.append('par_optimonnx = True')
-        elif isinstance(optimisation, dict):
-            add_methods.append(textwrap.dedent('''
-                def _optimize_onnx(self, onx):
-                    return onnx_optimisations(onx, self.par_optims)'''))
-            add_params.append('par_optims = {}'.format(
-                _format_dict(optimisation, indent=4)))
-        else:
-            raise ValueError(
-                "Unable to interpret optimisation {}.".format(optimisation))
-
-    # look for import place
-    lines = class_content.split('\n')
-    keep = None
-    for pos, line in enumerate(lines):
-        if "# Import specific to this model." in line:
-            keep = pos
-            break
-    if keep is None:
-        raise RuntimeError(
-            "Unable to locate where to insert import in\n{}\n".format(class_content))
-
-    # imports
-    loc_class = model.__module__
-    sub = loc_class.split('.')
-    if 'sklearn' not in sub:
-        mod = loc_class
-    else:
-        skl = sub.index('sklearn')
-        if skl == 0:
-            if sub[-1].startswith("_"):
-                mod = '.'.join(sub[skl:-1])
-            else:
-                mod = '.'.join(sub[skl:])
-        else:
-            mod = '.'.join(sub[:-1])
-
-    imp_inst = "from {} import {}".format(mod, model.__name__)
-    add_imports.append(imp_inst)
-    add_imports.append("#  __IMPORTS__")
-    lines[keep + 1] = "\n".join(add_imports)
-    content = "\n".join(lines)
-
-    # _create_model
-    content = content.split('def _create_model(self):')[0].strip(' \n')
-    lines = [content, "", "    def _create_model(self):"]
-    if extra is not None and len(extra) > 0:
-        lines.append("        return {}(".format(model.__name__))
-        lines.append(_format_dict(extra, 12))
-        lines.append("        )")
-    else:
-        lines.append("        return {}()".format(model.__name__))
-    lines.append("")
-
-    # methods
-    for meth in add_methods:
-        lines.append(textwrap.indent(meth, '    '))
-        lines.append('')
-
-    # end
-    return "\n".join(lines), add_params
-
-
-def find_missing_sklearn_imports(pieces):
-    """
-    Finds in :epkg:`scikit-learn` the missing pieces.
-
-    @param      pieces      list of names in scikit-learn
-    @return                 list of corresponding imports
-    """
-    res = {}
-    for piece in pieces:
-        mod = find_sklearn_module(piece)
-        if mod not in res:
-            res[mod] = []
-        res[mod].append(piece)
-
-    lines = []
-    for k, v in res.items():
-        lines.append("from {} import {}".format(
-            k, ", ".join(sorted(v))))
-    return lines
-
-
-def find_sklearn_module(piece):
-    """
-    Finds the corresponding modulee for an element of :epkg:`scikit-learn`.
-
-    @param      piece       name to import
-    @return                 module name
-
-    The implementation is not intelligence and should
-    be improved. It is a kind of white list.
-    """
-    glo = globals()
-    if piece in {'LinearRegression', 'LogisticRegression',
-                 'SGDClassifier'}:
-        import sklearn.linear_model
-        glo[piece] = getattr(sklearn.linear_model, piece)
-        return "sklearn.linear_model"
-    if piece in {'DecisionTreeRegressor', 'DecisionTreeClassifier'}:
-        import sklearn.tree
-        glo[piece] = getattr(sklearn.tree, piece)
-        return "sklearn.tree"
-    if piece in {'ExpSineSquared', 'DotProduct', 'RationalQuadratic', 'RBF'}:
-        import sklearn.gaussian_process.kernels
-        glo[piece] = getattr(sklearn.gaussian_process.kernels, piece)
-        return "sklearn.gaussian_process.kernels"
-    if piece in {'LinearSVC', 'LinearSVR', 'NuSVR', 'SVR', 'SVC', 'NuSVC'}:
-        import sklearn.svm
-        glo[piece] = getattr(sklearn.svm, piece)
-        return "sklearn.svm"
-    if piece in {'KMeans'}:
-        import sklearn.cluster
-        glo[piece] = getattr(sklearn.cluster, piece)
-        return "sklearn.cluster"
-    raise ValueError("Unable to find module to import for '{}'.".format(piece))
