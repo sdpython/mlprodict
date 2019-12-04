@@ -4,6 +4,7 @@
 import os
 import unittest
 import re
+from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.loghelper.run_cmd import run_script
@@ -20,7 +21,7 @@ class TestCreateAsvBenchmarkLogReg(ExtTestCase):
         self.assertNotEmpty(mlprodict)
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_logreg")
         created = create_asv_benchmark(
-            location=temp, verbose=3, fLOG=fLOG,
+            location=temp, verbose=3, fLOG=fLOG, opset_min=onnx_opset_version(),
             runtime=('scikit-learn', 'python', 'onnxruntime1'),
             exc=False, execute=True, models={'LogisticRegression'})
         if len(created) < 6:

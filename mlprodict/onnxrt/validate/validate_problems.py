@@ -113,6 +113,9 @@ def _problem_for_predictor_binary_classification(dtype=numpy.float32, n_features
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
     y[y == 2] = 1
@@ -128,6 +131,9 @@ def _problem_for_predictor_multi_classification(dtype=numpy.float32, n_features=
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
     return (X, y, [('X', X[:1].astype(dtype))],
@@ -142,6 +148,9 @@ def _problem_for_predictor_multi_classification_label(dtype=numpy.float32, n_fea
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
     y2 = numpy.zeros((y.shape[0], 3), dtype=numpy.int64)
@@ -163,6 +172,9 @@ def _problem_for_predictor_regression(many_output=False, options=None,
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target + numpy.arange(len(data.target)) / 100
     meth = 'predict' if kwargs is None else ('predict', kwargs)
@@ -190,6 +202,9 @@ def _problem_for_predictor_multi_regression(many_output=False, options=None,
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target.astype(float) + numpy.arange(len(data.target)) / 100
     meth = 'predict' if kwargs is None else ('predict', kwargs)
@@ -218,6 +233,9 @@ def _problem_for_numerical_transform(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     return (X, None, [('X', X[:1].astype(dtype))],
             'transform', 0, X.astype(dtype=numpy.float32))
@@ -230,7 +248,9 @@ def _problem_for_numerical_transform_positive(dtype=numpy.float32, n_features=No
     It is based on Iris dataset.
     """
     data = load_iris()
-    X = numpy.abs(data.data)
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*data.data.shape) / 3
+    X = numpy.abs(data.data + rnd)
     X = _modify_dimension(X, n_features)
     return (X, None, [('X', X[:1].astype(dtype))],
             'transform', 0, X.astype(dtype=numpy.float32))
@@ -244,6 +264,9 @@ def _problem_for_numerical_trainable_transform(dtype=numpy.float32, n_features=N
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target + numpy.arange(len(data.target)) / 100
     return (X, y, [('X', X[:1].astype(dtype))],
@@ -258,6 +281,9 @@ def _problem_for_numerical_trainable_transform_cl(dtype=numpy.float32, n_feature
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
     return (X, y, [('X', X[:1].astype(dtype))],
@@ -272,6 +298,9 @@ def _problem_for_clustering(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     return (X, None, [('X', X[:1].astype(dtype))],
             'predict', 0, X.astype(dtype))
@@ -285,6 +314,9 @@ def _problem_for_clustering_scores(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     return (X, None, [('X', X[:1].astype(dtype))],
             'transform', 1, X.astype(dtype))
 
@@ -297,6 +329,9 @@ def _problem_for_outlier(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     return (X, None, [('X', X[:1].astype(dtype))],
             'predict', 0, X.astype(dtype))
@@ -310,6 +345,9 @@ def _problem_for_numerical_scoring(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     y = data.target.astype(dtype) + numpy.arange(len(data.target)) / 100
     y /= numpy.max(y)
     return (X, y, [('X', X[:1].astype(dtype))],
@@ -324,6 +362,9 @@ def _problem_for_clnoproba(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
     return (X, y, [('X', X[:1].astype(dtype))],
@@ -338,6 +379,9 @@ def _problem_for_clnoproba_binary(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
     y[y == 2] = 1
@@ -353,6 +397,9 @@ def _problem_for_cl_decision_function(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
     return (X, y, [('X', X[:1].astype(dtype))],
@@ -367,6 +414,9 @@ def _problem_for_cl_decision_function_binary(dtype=numpy.float32, n_features=Non
     """
     data = load_iris()
     X = data.data
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
     y[y == 2] = 1
@@ -477,7 +527,9 @@ def _problem_for_one_hot_encoder(dtype=numpy.float32, n_features=None):
     Returns a problem for the :epkg:`sklearn:preprocessing:OneHotEncoder`.
     """
     data = load_iris()
-    X = _modify_dimension(data.data, n_features)
+    state = numpy.random.RandomState(seed=34)
+    rnd = state.randn(*data.data.shape) / 3
+    X = _modify_dimension(data.data + rnd, n_features)
     X = X.astype(numpy.int32).astype(dtype)
     y = data.target
     X, y = shuffle(X, y, random_state=1)

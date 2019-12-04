@@ -62,6 +62,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
                         cl, runtime, N, nf, opset, dtype, optim)
+                    if method == 'track_score' and res[method, runtime] in (0, 1):
+                        raise AssertionError(
+                            "Predictions are too perfect: {},{}: {}".format(
+                                method, runtime, res[method, runtime]))
         self.assertEqual(len(res), 15)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -93,6 +97,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
                         cl, runtime, N, nf, opset, dtype, optim)
+                    if method == 'track_score' and res[method, runtime] in (0, 1):
+                        raise AssertionError(
+                            "Predictions are too perfect: {},{}: {}".format(
+                                method, runtime, res[method, runtime]))
         self.assertEqual(len(res), 15)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -124,6 +132,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
                         cl, runtime, N, nf, opset, dtype, optim)
+                    if method == 'track_score' and res[method, runtime] in (0, 1):
+                        raise AssertionError(
+                            "Predictions are too perfect: {},{}: {}".format(
+                                method, runtime, res[method, runtime]))
         self.assertEqual(len(res), 10)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -152,6 +164,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
                         cl, runtime, N, nf, opset, dtype, optim)
+                    if method == 'track_score' and res[method, runtime] in (0, 1):
+                        raise AssertionError(
+                            "Predictions are too perfect: {},{}: {}".format(
+                                method, runtime, res[method, runtime]))
         self.assertEqual(len(res), 15)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -187,6 +203,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
                         cl, runtime, N, nf, opset, dtype, optim)
+                    if method == 'track_score' and res[method, runtime] in (0, 1):
+                        raise AssertionError(
+                            "Predictions are too perfect: {},{}: {}".format(
+                                method, runtime, res[method, runtime]))
         self.assertEqual(len(res), 18)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
@@ -222,6 +242,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
                         cl, runtime, N, nf, opset, dtype, optim)
+                    if method == 'track_score' and res[method, runtime] in (0, 1):
+                        raise AssertionError(
+                            "Predictions are too perfect: {},{}: {}".format(
+                                method, runtime, res[method, runtime]))
         if expect == 0:
             return
         self.assertEqual(len(res), expect)
@@ -258,6 +282,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
                         cl, runtime, N, nf, opset, dtype, optim)
+                    if method == 'track_score' and res[method, runtime] in (0, 1):
+                        raise AssertionError(
+                            "Predictions are too perfect: {},{}: {}".format(
+                                method, runtime, res[method, runtime]))
         if expect == 0:
             return
         self.assertEqual(len(res), expect)
@@ -295,6 +323,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
                         cl, runtime, N, nf, opset, dtype, optim)
+                    if method == 'track_score' and res[method, runtime] in (0, 1):
+                        raise AssertionError(
+                            "Predictions are too perfect: {},{}: {}".format(
+                                method, runtime, res[method, runtime]))
         if expect == 0:
             return
         self.assertEqual(len(res), expect)
@@ -331,6 +363,10 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                     meth = getattr(cl.__class__, method)
                     res[method, runtime] = meth(
                         cl, runtime, N, nf, opset, dtype, optim)
+                    if method == 'track_score' and res[method, runtime] in (0, 1):
+                        raise AssertionError(
+                            "Predictions are too perfect: {},{}: {}".format(
+                                method, runtime, res[method, runtime]))
         if expect == 0:
             return
         self.assertEqual(len(res), expect)

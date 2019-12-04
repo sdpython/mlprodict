@@ -82,12 +82,15 @@ class _CommonAsvSklBenchmark:
         xdtype = self._get_xdtype(dtype)
         data = load_iris()
         X, y = data.data, data.target
+        state = numpy.random.RandomState(seed=34)
+        rnd = state.randn(*X.shape) / 3
+        X += rnd
         X = _modify_dimension(X, nf)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, random_state=42)
-        X = X_test.astype(xdtype)
-        y = y_test.astype(self.par_ydtype)
-        return (X_train, y_train), (X, y)
+        Xt = X_test.astype(xdtype)
+        yt = y_test.astype(self.par_ydtype)
+        return (X_train, y_train), (Xt, yt)
 
     def _to_onnx(self, model, X, opset, dtype, optim):
         if optim is None or len(optim) == 0:
@@ -225,8 +228,8 @@ class _CommonAsvSklBenchmarkClassifier(_CommonAsvSklBenchmark):
             rt_fct_track_ = lambda X: model.predict(X)
         else:
             rt_ = self._create_onnx_inference(onx, name)
-            rt_fct_ = lambda X: rt_.run({'X': X})
-            rt_fct_track_ = lambda X: rt_fct_(X)['output_label']
+            rt_fct_ = lambda pX: rt_.run({'X': pX})
+            rt_fct_track_ = lambda pX: rt_fct_(pX)['output_label']
         return onx, rt_, rt_fct_, rt_fct_track_
 
 
@@ -266,8 +269,7 @@ class _CommonAsvSklBenchmarkClustering(_CommonAsvSklBenchmark):
             return 0.
         elif set(y_pred) == 1:
             return 0.
-        else:
-            return silhouette_score(X, y_pred)
+        return silhouette_score(X, y_pred)
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
         self.check_method_name('predict')
@@ -295,6 +297,9 @@ class _CommonAsvSklBenchmarkMultiClassifier(_CommonAsvSklBenchmark):
         xdtype = self._get_xdtype(dtype)
         data = load_iris()
         X, y = data.data, data.target
+        state = numpy.random.RandomState(seed=34)
+        rnd = state.randn(*X.shape) / 3
+        X += rnd
         nbclass = len(set(y))
         y_ = numpy.zeros((y.shape[0], nbclass), dtype=y.dtype)
         for i, vy in enumerate(y):
@@ -435,6 +440,9 @@ class _CommonAsvSklBenchmarkTransformPositive(_CommonAsvSklBenchmarkTransform):
         xdtype = self._get_xdtype(dtype)
         data = load_iris()
         X, y = data.data, data.target
+        state = numpy.random.RandomState(seed=34)
+        rnd = state.randn(*X.shape) / 3
+        X += rnd
         X = _modify_dimension(X, nf)
         X = numpy.abs(X)
         X_train, X_test, y_train, y_test = train_test_split(
