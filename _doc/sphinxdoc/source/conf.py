@@ -60,6 +60,7 @@ epkg_dictionary.update({
     'Iris': 'https://en.wikipedia.org/wiki/Iris_flower_data_set',
     'json': 'https://docs.python.org/3/library/json.html',
     'JSON': 'https://en.wikipedia.org/wiki/JSON',
+    'joblib': 'https://joblib.readthedocs.io/en/latest/',
     'lightgbm': 'https://lightgbm.readthedocs.io/en/latest/',
     'Minkowski distance': 'https://en.wikipedia.org/wiki/Minkowski_distance',
     'mlprodict': 'http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html',

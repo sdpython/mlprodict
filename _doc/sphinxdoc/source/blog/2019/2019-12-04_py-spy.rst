@@ -8,7 +8,9 @@
     I was meeting with Olivier Grisel this morning and
     we were wondering why :epkg:`scikit-learn` was slow
     to compute the prediction of a random forest for
-    one observation compare to what :epkg:`onnxruntime` does.
+    one observation compare to what :epkg:`onnxruntime` does,
+    and more specically some optimized C++ code inspired
+    from :epkg:`onnxruntime`.
     We used :epkg:`py-spy` and wrote the following script:
 
     ::
@@ -64,11 +66,11 @@
 
     .. image:: rf1.png
 
-    It shows that on my machine, :epkg:`scikit-learn: is delayed
+    It shows that on my machine, :epkg:`scikit-learn` is delayed
     by :epkg:`joblib` which is not really useful for this small
     dataset. ``check_is_fitted`` takes some time despite the fact
     ``sklearn.config_context(assume_finite=True)`` was used.
-    I then modified the script to compare this outcome to what
+    We then modified the script to compare this outcome to what
     we would get for the prediction of 1000 observations in a row.
 
     ::
@@ -109,8 +111,8 @@
         f1_1000()  # C++
         f2_1000()  # scikit-learn
 
-    Both version spend similar time into the functions
-    which computes the predictions but :epkg:`joblib` is
+    Both versions spend similar time into the functions
+    which compute the predictions but :epkg:`joblib` is
     still adding some extra time.
 
     .. image:: rf123.png
