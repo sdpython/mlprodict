@@ -70,6 +70,7 @@ epkg_dictionary.update({
     'onnxconverter_common': 'https://github.com/onnx/onnxmltools/tree/master/onnxutils/onnxconverter_common',
     'OnnxOperatorMixin': 'https://github.com/onnx/sklearn-onnx/blob/master/skl2onnx/algebra/onnx_operator_mixin.py#L16',
     'onnxruntime': 'https://github.com/microsoft/onnxruntime',
+    'py-spy': 'https://github.com/benfred/py-spy',
     'Python': 'https://www.python.org/',
     'run_asv.bat': 'https://github.com/sdpython/mlprodict/blob/master/bin/run_asv.bat',
     'run_asv.sh': 'https://github.com/sdpython/mlprodict/blob/master/bin/run_asv.sh',

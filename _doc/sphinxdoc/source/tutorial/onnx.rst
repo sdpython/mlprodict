@@ -23,7 +23,7 @@ From ONNX to Python
 was compute predictions based on an ONNX graph with a
 python runtime or :epkg:`onnxruntime`.
 Method :meth:`to_python
-<mlprodict.onnxrt.onnx_inference_export.to_python>`
+<mlprodict.onnxrt.onnx_inference_exports.OnnxInferenceExport.to_python>`
 goes further by converting the ONNX graph into a standalone
 python code.
 
