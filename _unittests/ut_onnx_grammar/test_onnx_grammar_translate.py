@@ -112,19 +112,22 @@ class TestOnnxGrammarTranslate(ExtTestCase):
         v.visit(node)
         onnx_code = v.export(context={'numpy_abs': numpy.abs})
         exp = dedent("""
-            def addition(x, y, dtype=numpy.float32):
+            def addition(x, y, dtype=numpy.float32, op_version=None):
                 z = (
                     OnnxAdd(
                         x,
                         OnnxAbs(
-                            y
-                        )
+                            y,
+                            op_version=op_version
+                        ),
+                        op_version=op_version
                     )
                 )
                 return (
                     OnnxMul(
                         x,
-                        z
+                        z,
+                        op_version=op_version
                     )
                 )
         """)
@@ -157,19 +160,22 @@ class TestOnnxGrammarTranslate(ExtTestCase):
         v.visit(node)
         onnx_code = v.export(context={'numpy.abs': numpy.abs})
         exp = dedent("""
-            def addition(x, y, dtype=numpy.float32):
+            def addition(x, y, dtype=numpy.float32, op_version=None):
                 z = (
                     OnnxAdd(
                         x,
                         OnnxAbs(
-                            y
-                        )
+                            y,
+                            op_version=op_version
+                        ),
+                        op_version=op_version
                     )
                 )
                 return (
                     OnnxMul(
                         x,
-                        z
+                        z,
+                        op_version=op_version
                     )
                 )
         """)
@@ -187,20 +193,23 @@ class TestOnnxGrammarTranslate(ExtTestCase):
         v.visit(node)
         onnx_code = v.export(context={'numpy.transpose': numpy.transpose})
         exp = dedent("""
-            def trs(x, y, dtype=numpy.float32):
+            def trs(x, y, dtype=numpy.float32, op_version=None):
                 z = (
                     OnnxAdd(
                         x,
                         OnnxTranspose(
                             y,
-                            perm=[1, 0]
-                        )
+                            perm=[1, 0],
+                            op_version=op_version
+                        ),
+                        op_version=op_version
                     )
                 )
                 return (
                     OnnxMul(
                         x,
-                        z
+                        z,
+                        op_version=op_version
                     )
                 )
         """)
@@ -216,20 +225,23 @@ class TestOnnxGrammarTranslate(ExtTestCase):
             trs, context={'numpy.transpose': numpy.transpose},
             output_names=['Z'])
         exp = dedent("""
-            def trs(x, y, dtype=numpy.float32):
+            def trs(x, y, dtype=numpy.float32, op_version=None):
                 z = (
                     OnnxAdd(
                         x,
                         OnnxTranspose(
                             y,
-                            perm=[1, 0]
-                        )
+                            perm=[1, 0],
+                            op_version=op_version
+                        ),
+                        op_version=op_version
                     )
                 )
                 return OnnxIdentity(
                     OnnxMul(
                         x,
-                        z
+                        z,
+                        op_version=op_version
                     ),
                     output_names=['Z']
                 )

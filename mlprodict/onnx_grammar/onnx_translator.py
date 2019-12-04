@@ -241,11 +241,12 @@ class OnnxTranslator(CodeTranslator):
                     onnx_name = OnnxTranslator._binary_operators[opname]
                     rows.append(
                         '{}Onnx{}('.format(" " * indent * 4, onnx_name))
-                    for i, expr2 in enumerate(opon):
+                    for _, expr2 in enumerate(opon):
                         rows.extend(write_expression(
                             stack_fct_used, expr2, indent + 1))
-                        if i < len(opon) - 1:
-                            rows[-1] += ","
+                        rows[-1] += ","
+                    rows.append('{}op_version=op_version'.format(
+                        " " * (indent + 1) * 4))
                     rows.append('{})'.format(" " * indent * 4))
                 elif op == 'UnaryOp':
                     opname = args["op"]
@@ -256,8 +257,9 @@ class OnnxTranslator(CodeTranslator):
                     for i, expr2 in enumerate(opon):
                         rows.extend(write_expression(
                             stack_fct_used, expr2, indent + 1))
-                        if i < len(opon) - 1:
-                            rows[-1] += ","
+                        rows[-1] += ","
+                    rows.append('{}op_version=op_version'.format(
+                        " " * (indent + 1) * 4))
                     rows.append('{})'.format(" " * indent * 4))
                 elif op == 'Call':
                     name = args['name']
@@ -296,8 +298,9 @@ class OnnxTranslator(CodeTranslator):
                                 stack_fct_used,
                                 expr2, indent + 1,
                                 OnnxTranslator._parameter_mapping.get(op_conv, None)))
-                        if i < len(opon) - 1:
-                            rows[-1] += ","
+                        rows[-1] += ","
+                    rows.append('{}op_version=op_version'.format(
+                        " " * (indent + 1) * 4))
                     rows.append('{})'.format(" " * indent * 4))
                 else:
                     raise RuntimeError("Unable to interpret '{}'.".format(
@@ -315,7 +318,7 @@ class OnnxTranslator(CodeTranslator):
             if all(map(lambda s: 'dtype=' not in s, list_args)):
                 list_args.append("dtype=numpy.float32")
             fct_name = args['name']
-            rows.append("def {}({}):".format(
+            rows.append("def {}({}, op_version=None):".format(
                 fct_name, ', '.join(list_args)))
             indent = 1
 
