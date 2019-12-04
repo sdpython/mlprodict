@@ -12,7 +12,8 @@ def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
               dims='1,10,100,1000,10000,100000',
               n_features='4,20', dtype=None,
               verbose=1, fLOG=print, clean=True, flat=False,
-              conf_params=None, build=None, env=None):
+              conf_params=None, build=None, add_pyspy=False,
+              env=None):
     """
     Creates an :epkg:`asv` benchmark in a folder
     but does not run it.

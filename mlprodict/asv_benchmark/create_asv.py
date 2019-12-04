@@ -196,9 +196,12 @@ def create_asv_benchmark(
         fLOG("[create_asv_benchmark] create 'flask_serve.py'.")
 
     # pyspy
-    dest_pyspy = os.path.join(location, 'pyspy')
-    if not os.path.exists(dest_pyspy):
-        os.mkdir(dest_pyspy)
+    if add_pyspy:
+        dest_pyspy = os.path.join(location, 'pyspy')
+        if not os.path.exists(dest_pyspy):
+            os.mkdir(dest_pyspy)
+    else:
+        dest_pyspy = None
 
     if verbose > 0 and fLOG is not None:
         fLOG("[create_asv_benchmark] create all tests.")

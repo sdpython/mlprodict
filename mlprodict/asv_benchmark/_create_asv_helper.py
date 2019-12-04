@@ -157,7 +157,8 @@ def _sklearn_subfolder(model):
 def _handle_init_files(model, flat, location, verbose, location_pyspy, fLOG):
     "Returns created, location_model, prefix_import."
     if flat:
-        return [], location, "."
+        return ([], location, ".",
+                (None if location_pyspy is None else location_pyspy))
     else:
         created = []
         subf = _sklearn_subfolder(model)
