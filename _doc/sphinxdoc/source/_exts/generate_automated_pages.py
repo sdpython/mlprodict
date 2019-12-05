@@ -195,6 +195,11 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
         The list of problems can be found in the documentation of
         function :func:`find_suitable_problem
         <mlprodict.onnxrt.validate.validate_problems.find_suitable_problem>`.
+        Default values are usually used to create models but other
+        scenarios are defined by :func:`build_custom_scenarios
+        <mlprodict.onnxrt.validate.validate_scenarios.build_custom_scenarios>`
+        and :func:`build_custom_scenarios (2)
+        <from mlprodict.onnxrt.validate.validate_scenarios.build_custom_scenarios>`.
         The benchmark can be generated with a command line:
 
         ::
