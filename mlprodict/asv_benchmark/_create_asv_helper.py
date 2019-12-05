@@ -112,6 +112,8 @@ pyspy_template = """
 import sys
 sys.path.append(r"__PATH__")
 from __PYFOLD__ import __CLASSNAME__
+import time
+from datetime import datetime
 
 
 def start():
@@ -120,17 +122,25 @@ def start():
     return cl
 
 
-def profile(cl, runtime, N, nf, opset, dtype, optim):
-    for i in range(max(10, 1000000 // N)):
+def profile(iter, cl, runtime, N, nf, opset, dtype, optim):
+    begin = time.perf_counter()
+    for i in range(0, 1000):
         cl.time_predict(runtime, N, nf, opset, dtype, optim)
+    duration = time.perf_counter() - begin
+    if iter is None:
+        iter = max(100, int(20 / duration * 1000)) # 20 seconds
+    for i in range(iter):
+        cl.time_predict(runtime, N, nf, opset, dtype, optim)
+    return iter
 
 
-def setup_profile(cl, runtime, N, nf, opset, dtype, optim):
+def setup_profile(iter, cl, runtime, N, nf, opset, dtype, optim):
     cl.setup(runtime, N, nf, opset, dtype, optim)
-    profile(cl, runtime, N, nf, opset, dtype, optim)
-
+    return profile(iter, cl, runtime, N, nf, opset, dtype, optim)
 
 cl = start()
+iter = None
+print(datetime.now(), "begin")
 """
 
 

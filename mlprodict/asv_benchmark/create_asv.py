@@ -613,9 +613,10 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                                 for rt in runtime:
                                     tmpl += textwrap.dedent("""
 
-                                    def profile_{rt}(cl, N, nf, opset, dtype, optim):
-                                        setup_profile(cl, '{rt}', N, nf, opset, dtype, optim)
-                                    profile_{rt}(cl, {dim}, {nf}, {opset}, '{dtype}', {opt})
+                                    def profile_{rt}(iter, cl, N, nf, opset, dtype, optim):
+                                        return setup_profile(iter, cl, '{rt}', N, nf, opset, dtype, optim)
+                                    iter = profile_{rt}(iter, cl, {dim}, {nf}, {opset}, '{dtype}', {opt})
+                                    print(datetime.now(), "iter", iter)
 
                                     """).format(rt=rt, dim=dim, nf=nf, opset=opset,
                                                 dtype=dtype, opt="%r" % opt)
@@ -633,7 +634,9 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                                 short = os.path.splitext(
                                     os.path.split(thename)[-1])[0]
                                 with open(script, 'w', encoding='utf-8') as f:
-                                    f.write('py-spy record --native --function --rate=10 -o {n}.svg -- {py} {n}.py'.format(
+                                    f.write('py-spy record --native --function --rate=10 -o {n}_fct.svg -- {py} {n}.py'.format(
+                                        py=sys.executable, n=short))
+                                    f.write('py-spy record --native --rate=10 -o {n}_line.svg -- {py} {n}.py'.format(
                                         py=sys.executable, n=short))
 
     return names

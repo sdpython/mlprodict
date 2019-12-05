@@ -131,9 +131,9 @@ class OnnxInferenceNode:
         # This code takes times if the graph contains many nodes.
         # Maybe a C++ container would help in that case (to skip GIL).
         if self.inputs_indices is None:
-            args = [values[k] for k in self.inputs]
+            args = list(values[k] for k in self.inputs)
         else:
-            args = [values[k] for k in self.inputs_indices]
+            args = list(values[k] for k in self.inputs_indices)
 
         res = self.ops_.run(*args)
 

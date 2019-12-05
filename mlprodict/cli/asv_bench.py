@@ -86,10 +86,8 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
     if not isinstance(n_features, list):
         if n_features in (None, ""):
             n_features = None
-        elif ',' in n_features:
-            n_features = list(map(int, n_features.split(',')))
         else:
-            n_features = int(n_features)
+            n_features = list(map(int, n_features.split(',')))
     flat = flat in (True, 'True', 1, '1')
 
     def fct_filter_exp(m, s):
