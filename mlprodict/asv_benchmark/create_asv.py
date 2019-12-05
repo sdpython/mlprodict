@@ -634,9 +634,9 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                                 short = os.path.splitext(
                                     os.path.split(thename)[-1])[0]
                                 with open(script, 'w', encoding='utf-8') as f:
-                                    f.write('py-spy record --native --function --rate=10 -o {n}_fct.svg -- {py} {n}.py'.format(
+                                    f.write('py-spy record --native --function --rate=10 -o {n}_fct.svg -- {py} {n}.py\n'.format(
                                         py=sys.executable, n=short))
-                                    f.write('py-spy record --native --rate=10 -o {n}_line.svg -- {py} {n}.py'.format(
+                                    f.write('py-spy record --native --rate=10 -o {n}_line.svg -- {py} {n}.py\n'.format(
                                         py=sys.executable, n=short))
 
     return names
