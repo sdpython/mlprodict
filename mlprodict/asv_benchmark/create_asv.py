@@ -65,7 +65,7 @@ except ValueError:
 
 
 def create_asv_benchmark(
-        location, opset_min=11, opset_max=None,
+        location, opset_min='last', opset_max=None,
         runtime=('scikit-learn', 'python'), models=None,
         skip_models=None, extended_list=True,
         dims=(1, 10, 100, 10000, 100000),
@@ -82,8 +82,10 @@ def create_asv_benchmark(
     :param n_features: number of features to try
     :param dims: number of observations to try
     :param verbose: integer from 0 (None) to 2 (full verbose)
-    :param opset_min: tries every conversion from this minimum opset
-    :param opset_max: tries every conversion up to maximum opset
+    :param opset_min: tries every conversion from this minimum opset,
+        'last' the current opset defined by module :epkg:`onnx`
+    :param opset_max: tries every conversion up to maximum opset,
+        'last' the current opset defined by module :epkg:`onnx`
     :param runtime: runtime to check, *scikit-learn*, *python*,
         *onnxruntime1* to check :epkg:`onnxruntime`,
         *onnxruntime2* to check every ONNX node independently
@@ -131,6 +133,11 @@ def create_asv_benchmark(
     The benchmark does not seem to work well with setting
     ``-environment existing:same``. The publishing fails.
     """
+    if opset_min == 'last':
+        opset_min = onnx_opset_version()
+    if opset_max == 'last':
+        opset_max = onnx_opset_version()
+
     # creates the folder if it does not exist.
     if not os.path.exists(location):
         if verbose > 0 and fLOG is not None:

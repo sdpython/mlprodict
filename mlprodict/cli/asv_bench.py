@@ -22,8 +22,10 @@ def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
     :param n_features: number of features to try
     :param dims: number of observations to try
     :param verbose: integer from 0 (None) to 2 (full verbose)
-    :param opset_min: tries every conversion from this minimum opset
-    :param opset_max: tries every conversion up to maximum opset
+    :param opset_min: tries every conversion from this minimum opset,
+        'last' the current opset defined by module onnx
+    :param opset_max: tries every conversion up to maximum opset,
+        'last' the current opset defined by module onnx
     :param runtime: runtime to check, *scikit-learn*, *python*,
         *onnxruntime1* to check :epkg:`onnxruntime`,
         *onnxruntime2* to check every ONNX node independently
@@ -67,9 +69,9 @@ def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
                        else skip_models.strip().split(','))
     if opset_max == "":
         opset_max = None
-    if isinstance(opset_min, str):
+    if opset_min != 'last' and isinstance(opset_min, str):
         opset_min = int(opset_min)
-    if isinstance(opset_max, str):
+    if opset_max != 'last' and isinstance(opset_max, str):
         opset_max = int(opset_max)
     if isinstance(verbose, str):
         verbose = int(verbose)
