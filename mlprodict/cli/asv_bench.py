@@ -6,7 +6,7 @@ from logging import getLogger
 from ..asv_benchmark import create_asv_benchmark
 
 
-def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
+def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
               runtime='scikit-learn,python', models=None,
               skip_models=None, extended_list=True,
               dims='1,10,100,1000,10000,100000',
@@ -23,9 +23,9 @@ def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
     :param dims: number of observations to try
     :param verbose: integer from 0 (None) to 2 (full verbose)
     :param opset_min: tries every conversion from this minimum opset,
-        'last' the current opset defined by module onnx
+        `-1` to get the current opset defined by module onnx
     :param opset_max: tries every conversion up to maximum opset,
-        'last' the current opset defined by module onnx
+        `-1` to get the current opset defined by module onnx
     :param runtime: runtime to check, *scikit-learn*, *python*,
         *onnxruntime1* to check :epkg:`onnxruntime`,
         *onnxruntime2* to check every ONNX node independently
@@ -69,9 +69,9 @@ def asv_bench(location='asvsklonnx', opset_min=11, opset_max=None,
                        else skip_models.strip().split(','))
     if opset_max == "":
         opset_max = None
-    if opset_min != 'last' and isinstance(opset_min, str):
+    if isinstance(opset_min, str):
         opset_min = int(opset_min)
-    if opset_max != 'last' and isinstance(opset_max, str):
+    if isinstance(opset_max, str):
         opset_max = int(opset_max)
     if isinstance(verbose, str):
         verbose = int(verbose)
