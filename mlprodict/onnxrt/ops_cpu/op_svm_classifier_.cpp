@@ -304,7 +304,7 @@ template<typename NTYPE>
 void multiclass_probability(int64_t classcount, const std::vector<NTYPE>& r,
                             std::vector<NTYPE>& p) {
   int64_t sized2 = classcount * classcount;
-  std::vector<NTYPE> Q(size2, 0);
+  std::vector<NTYPE> Q(sized2, 0);
   std::vector<NTYPE> Qp(classcount, 0);
   NTYPE eps = 0.005f / static_cast<NTYPE>(classcount);
   for (int64_t i = 0; i < classcount; i++) {
