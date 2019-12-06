@@ -610,12 +610,25 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                                 tmpl = tmpl.replace('__PYFOLD__', pyfold)
                                 opt = "" if opt == {} else opt
 
+                                first = True
                                 for rt in runtime:
+                                    if first:
+                                        tmpl += textwrap.dedent("""
+
+                                        def profile0_{rt}(iter, cl, N, nf, opset, dtype, optim):
+                                            return setup_profile0(iter, cl, '{rt}', N, nf, opset, dtype, optim)
+                                        iter = profile0_{rt}(iter, cl, {dim}, {nf}, {opset}, '{dtype}', {opt})
+                                        print(datetime.now(), "iter", iter)
+
+                                        """).format(rt=rt, dim=dim, nf=nf, opset=opset,
+                                                    dtype=dtype, opt="%r" % opt)
+                                        first = False
+
                                     tmpl += textwrap.dedent("""
 
                                     def profile_{rt}(iter, cl, N, nf, opset, dtype, optim):
                                         return setup_profile(iter, cl, '{rt}', N, nf, opset, dtype, optim)
-                                    iter = profile_{rt}(iter, cl, {dim}, {nf}, {opset}, '{dtype}', {opt})
+                                    profile_{rt}(iter, cl, {dim}, {nf}, {opset}, '{dtype}', {opt})
                                     print(datetime.now(), "iter", iter)
 
                                     """).format(rt=rt, dim=dim, nf=nf, opset=opset,

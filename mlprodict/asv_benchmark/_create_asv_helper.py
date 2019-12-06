@@ -122,13 +122,21 @@ def start():
     return cl
 
 
-def profile(iter, cl, runtime, N, nf, opset, dtype, optim):
+def profile0(iter, cl, runtime, N, nf, opset, dtype, optim):
     begin = time.perf_counter()
-    for i in range(0, 1000):
+    for i in range(0, 100):
         cl.time_predict(runtime, N, nf, opset, dtype, optim)
     duration = time.perf_counter() - begin
-    if iter is None:
-        iter = max(100, int(20 / duration * 1000)) # 20 seconds
+    iter = max(100, int(20 / duration * 100)) # 20 seconds
+    return iter
+
+
+def setup_profile0(iter, cl, runtime, N, nf, opset, dtype, optim):
+    cl.setup(runtime, N, nf, opset, dtype, optim)
+    return profile0(iter, cl, runtime, N, nf, opset, dtype, optim)
+
+
+def profile(iter, cl, runtime, N, nf, opset, dtype, optim):
     for i in range(iter):
         cl.time_predict(runtime, N, nf, opset, dtype, optim)
     return iter
@@ -137,6 +145,7 @@ def profile(iter, cl, runtime, N, nf, opset, dtype, optim):
 def setup_profile(iter, cl, runtime, N, nf, opset, dtype, optim):
     cl.setup(runtime, N, nf, opset, dtype, optim)
     return profile(iter, cl, runtime, N, nf, opset, dtype, optim)
+
 
 cl = start()
 iter = None
