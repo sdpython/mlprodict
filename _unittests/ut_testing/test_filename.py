@@ -38,10 +38,9 @@ class TestFilename(ExtTestCase):
             'DecisionTreeClassifier [b_cl] [default] N=1 nf=4 ops=12 [float]',
             'DecisionTreeClassifier [b_cl] [default] N=10 nf=20 ops=12 x64 [double]',
             'DecisionTreeClassifier [b_cl] [default] N=100 nf=4 ops=12 x64 [float]',
-            'AdaBoostClassifier [b_cl] [default] N=1000 nf=50 ops=12 [float]',
-            'AdaBoostClassifier [m_cl] [default] N=1 nf=4 ops=12 [float]',
-            'LogisticRegression [b_cl] [liblinear] N=1 nf=4 ops=12 [solverliblinear_float_nozipmap]',
-            'LogisticRegression [b_cl] [liblinear] N=1 nf=4 ops=12 [solverliblinear_float_nozipmap]',
+            'AdaBoostClassifier [b_cl] [default] N=1000 nf=50 ops=12 [float] by fct',
+            'AdaBoostClassifier [m_cl] [default] N=1 nf=4 ops=12 [float] by line',
+            'LogisticRegression [b_cl] [liblinear] N=1 nf=4 ops=12 [solverliblinear_float_nozipmap] by fct',
         ]
         for exp, name, title in zip(exps, candidates, titles):
             d = extract_information_from_filename(name)

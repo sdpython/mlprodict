@@ -99,4 +99,6 @@ def make_readable_title(infos):
             sp.append('x64')
     if 'opt' in infos:
         sp.append('[{}]'.format(infos['opt']))
+    if 'profile' in infos:
+        sp.append('by {}'.format(infos['profile']))
     return " ".join(sp)
