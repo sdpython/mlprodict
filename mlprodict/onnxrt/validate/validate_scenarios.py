@@ -18,7 +18,7 @@ from sklearn.linear_model import LogisticRegression, SGDClassifier, LinearRegres
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, ClassifierChain, RegressorChain
-from sklearn.neighbors import LocalOutlierFactor, KNeighborsRegressor
+from sklearn.neighbors import LocalOutlierFactor, KNeighborsRegressor, KNeighborsClassifier
 from sklearn.preprocessing import Normalizer
 from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
 from sklearn.svm import SVC, NuSVC, SVR
@@ -103,6 +103,17 @@ def build_custom_scenarios():
                 'estimator': KMeans(),
                 'param_grid': {'n_clusters': [2, 3]},
             }, ['cluster']),
+        ],
+        KNeighborsClassifier: [
+            ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},
+             {'conv_options': [{}, {KNeighborsClassifier: {'optim': 'cdist'}}]}),
+            ('weights_k3', {'algorithm': 'brute',
+                            'weights': 'distance', 'n_neighbors': 3}),
+            ('kd_tree_k3', {'algorithm': 'kd_tree', 'n_neighbors': 3}),
+            ('mink_k3', {'algorithm': 'kd_tree',
+                         'metric': "minkowski",
+                         'metric_params': {'p': 2.1},
+                         'n_neighbors': 3}),
         ],
         KNeighborsRegressor: [
             ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},
