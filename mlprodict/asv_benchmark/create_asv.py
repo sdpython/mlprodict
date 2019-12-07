@@ -66,7 +66,7 @@ except ValueError:
 
 def create_asv_benchmark(
         location, opset_min=-1, opset_max=None,
-        runtime=('scikit-learn', 'python'), models=None,
+        runtime=('scikit-learn', 'python_compiled'), models=None,
         skip_models=None, extended_list=True,
         dims=(1, 10, 100, 10000, 100000),
         n_features=(4, 20), dtype=None,
@@ -87,7 +87,9 @@ def create_asv_benchmark(
     :param opset_max: tries every conversion up to maximum opset,
         -1 to get the current opset defined by module :epkg:`onnx`
     :param runtime: runtime to check, *scikit-learn*, *python*,
-        *onnxruntime1* to check :epkg:`onnxruntime`,
+        *python_compiled* compiles the graph structure
+        and is more efficient when the number of observations is
+        small, *onnxruntime1* to check :epkg:`onnxruntime`,
         *onnxruntime2* to check every ONNX node independently
         with onnxruntime, many runtime can be checked at the same time
         if the value is a comma separated list
@@ -460,6 +462,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         'onnxruntime1': 'ort',
         'onnxruntime2': 'ort2',
         'python': 'pyrt',
+        'python_compiled': 'pyrtc',
     }
     runtime = [runtimes_abb[k] for k in runtime]
 

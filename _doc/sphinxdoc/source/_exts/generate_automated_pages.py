@@ -79,7 +79,7 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir if app is not None else ".."
 
-    if runtime in ('python'):
+    if runtime in ('python', 'python_compiled'):
         whe = os.path.join(os.path.abspath(srcdir),
                            "skl_converters", "bench_python.rst")
     elif runtime == 'onnxruntime2':
@@ -233,7 +233,7 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
 
 def write_page_onnxrt_benches_python(app, white_list=None):
-    write_page_onnxrt_benches(app, 'python', white_list=white_list)
+    write_page_onnxrt_benches(app, 'python_compiled', white_list=white_list)
 
 
 def write_page_onnxrt_benches_onnxruntime2(app, white_list=None):

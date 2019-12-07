@@ -37,7 +37,8 @@ def convert_validate(pkl, data=None, schema=None,
     :param name: output name
     :param outonnx: produced ONNX model
     :param runtime: runtime to use to compute predictions,
-        'python', 'onnxruntime1' or 'onnxruntime2'
+        'python', 'python_compiled',
+        'onnxruntime1' or 'onnxruntime2'
     :param metric: the metric 'l1med' is given by function
         :func:`measure_relative_difference
         <mlprodict.onnxrt.validate.validate_difference.measure_relative_difference>`

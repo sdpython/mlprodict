@@ -7,7 +7,7 @@ from ..asv_benchmark import create_asv_benchmark
 
 
 def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
-              runtime='scikit-learn,python', models=None,
+              runtime='scikit-learn,python_compiled', models=None,
               skip_models=None, extended_list=True,
               dims='1,10,100,1000,10000,100000',
               n_features='4,20', dtype=None,
@@ -27,7 +27,9 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
     :param opset_max: tries every conversion up to maximum opset,
         `-1` to get the current opset defined by module onnx
     :param runtime: runtime to check, *scikit-learn*, *python*,
-        *onnxruntime1* to check :epkg:`onnxruntime`,
+        *python_compiled* compiles the graph structure
+        and is more efficient when the number of observations is
+        small, *onnxruntime1* to check :epkg:`onnxruntime`,
         *onnxruntime2* to check every ONNX node independently
         with onnxruntime, many runtime can be checked at the same time
         if the value is a comma separated list

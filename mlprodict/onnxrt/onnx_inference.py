@@ -7,6 +7,7 @@ from collections import OrderedDict
 from io import BytesIO
 from time import perf_counter
 import warnings
+import textwrap
 import numpy
 from scipy.sparse import coo_matrix
 import pandas
@@ -25,6 +26,19 @@ class OnnxInference:
     """
     Loads an :epkg:`ONNX` file or object or stream.
     Computes the output of the :epkg:`ONNX` graph.
+    Several runtimes are available.
+
+    * ``'python'``: the runtime implements every onnx operator
+      needed to run a :epkg:`scikit-learn` model by using :epkg:`numpy`
+      or C++ code.
+    * ``'python_compiled'``: it is the same runtime than the previous
+      one except every operator is called from a compiled function
+      (@see me _build_compile_run) instead for a method going through
+      the list of operator
+    * ``'onnxruntime1'``: uses :epkg:`onnxruntime`
+    * ``'onnxruntime2'``: this mode is mostly used to debug as
+      python handles calling every operator but :epkg:`onnxruntime`
+      is called for every of them
     """
 
     def __init__(self, onnx_or_bytes_or_stream, runtime=None,
@@ -143,7 +157,7 @@ class OnnxInference:
         Every parameter with a default value is ignored.
         Switch to ``runtime='python'`` to enable those.
         """
-        return self._run_compiled(self, inputs)  # pylint: disable=E1101
+        return self._run_compiled(inputs)  # pylint: disable=E1101
 
     def _guess_input_dtype(self):
         for _, v in self.graph_['inputs'].items():
@@ -160,7 +174,14 @@ class OnnxInference:
         """
         usual
         """
-        return str(self.obj)
+        rows = ['OnnxInference(...)']
+        if hasattr(self, '_run_compiled_code'):
+            rows.append(
+                textwrap.indent(
+                    self._run_compiled_code, '    '))  # pylint: disable=E1101
+        else:
+            rows.append(textwrap.indent(self.obj, '    '))
+        return "\n".join(rows)
 
     def __repr__(self):
         """
@@ -841,25 +862,63 @@ class OnnxInference:
         compiles it, and adds it as a method.
 
         @return     method name, callable object
+
+        .. exref::
+            :title: Run a model with runtime python_compile
+
+            The following code trains a model and compute
+            the predictions with runtime ``'python_compiled'``.
+            It converts the onnx graph into a python function
+            which calls every operator. Its code is printed
+            below.
+
+            .. runpython::
+                :showcode:
+
+                from sklearn.datasets import load_iris
+                from sklearn.model_selection import train_test_split
+                from sklearn.ensemble import AdaBoostRegressor
+                from skl2onnx import to_onnx
+                from mlprodict.onnxrt import OnnxInference
+
+                iris = load_iris()
+                X, y = iris.data, iris.target
+                X_train, X_test, y_train, __ = train_test_split(X, y, random_state=11)
+                y_train = y_train.astype(numpy.float32)
+                clr = AdaBoostClassifier(
+                    base_estimator=DecisionTreeRegressor(max_depth=3),
+                    n_estimators=3)
+                clr.fit(X_train, y_train)
+
+                model_def = to_onnx(clr, X_train.astype(numpy.float32),
+                                    dtype=numpy.float32)
+
+                oinf2 = OnnxInference(model_def, runtime='python_compiled')
+                print(oinf2.run({'X': X_test[:5]}))
+
+                # prints out the python function equivalent
+                # to the onnx graph
+                print(oinf2)
         """
+        # inits
+        code = ['def compiled_run(dict_inputs):']
+        context = {}
+        for k, v in self.inits_.items():
+            context[k] = v['value']
+            code.append("    # init: {0}".format(k))
+
         # method signature
         inputs = self.input_names
-        code = ['def compiled_run(self, dict_inputs):']
+        code.append("    # inputs")
         for inp in inputs:
             code.append("    {0} = dict_inputs['{0}']".format(inp))
 
-        # inits
-        for k in self.inits_:
-            code.append("    {0} = self.inits_['{0}']['value']".format(k))
-
         # code
-        code.append('    i = 0')
-        for node in self.sequence_:
-            name = node.ops_.__class__.__name__.lower()
-            code.append('    node_{0} = self.sequence_[i]'.format(name))
-            code.append('    ({1}, ) = node_{2}.ops_._run({0})'.format(
+        for i, node in enumerate(self.sequence_):
+            name = "n{}_{}".format(i, node.ops_.__class__.__name__.lower())
+            context[name] = node.ops_._run
+            code.append('    ({1}, ) = {2}({0})'.format(
                 ', '.join(node.inputs), ', '.join(node.outputs), name))
-            code.append('    i += 1')
 
         # return
         code.append('    return {')
@@ -869,7 +928,7 @@ class OnnxInference:
         final_code = '\n'.join(code)
 
         # compile the outcome
-        context = {'self': self}
+        context['self'] = self
         obj = compile(final_code, "<string>", 'exec')
         fcts_obj = [_ for _ in obj.co_consts
                     if _ is not None and not isinstance(_, (bool, str, int))]

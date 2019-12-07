@@ -131,6 +131,8 @@ class _CommonAsvSklBenchmark:
             name = 'onnxruntime2'
         elif runtime == 'pyrt':
             name = 'python'
+        elif runtime == 'pyrtc':
+            name = 'python_compiled'
         else:
             raise ValueError("Unknown runtime '{}'.".format(runtime))
         return name
