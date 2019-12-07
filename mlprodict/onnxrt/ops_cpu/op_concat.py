@@ -26,8 +26,8 @@ class Concat(OpRun):
         return a
 
     def _run(self, *args):  # pylint: disable=W0221
-        args = [self._preprocess(a) for a in args]
-        return (numpy.concatenate(args, self.axis), )
+        targs = tuple(self._preprocess(a) for a in args)
+        return (numpy.concatenate(targs, self.axis), )
 
     def _infer_shapes(self, *args):  # pylint: disable=W0221
         return (args[0].concat_columns(self.axis, *(args[1:])), )

@@ -180,7 +180,7 @@ class OnnxInference:
                 textwrap.indent(
                     self._run_compiled_code, '    '))  # pylint: disable=E1101
         else:
-            rows.append(textwrap.indent(self.obj, '    '))
+            rows.append(textwrap.indent(str(self.obj), '    '))
         return "\n".join(rows)
 
     def __repr__(self):
