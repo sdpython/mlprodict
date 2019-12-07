@@ -2,71 +2,10 @@
 @file
 @brief Helpers to validate python code.
 """
-import inspect
 import pickle
-import types
-import re
 import numpy
 from scipy.special import expit  # pylint: disable=E0611
-
-
-def _make_callable(fct, obj, code, gl):
-    """
-    Creates a callable function able to
-    cope with default values as the combination
-    of functions *compile* and *exec* does not seem
-    able to take them into account.
-
-    @param      fct     function name
-    @param      obj     output of function *compile*
-    @param      code    code including the signature
-    @param      gl      global context
-    @return             callable functions
-    """
-    def pyrt_Concat_(*inputs, axis=0):
-        return numpy.concatenate(inputs, axis=axis)
-
-    cst = "def " + fct + "("
-    sig = None
-    for line in code.split('\n'):
-        if line.startswith(cst):
-            sig = line
-            break
-    if sig is None:  # pragma: no cover
-        raise ValueError(
-            "Unable to find function '{}' in\n{}".format(fct, code))
-    reg = re.compile("([a-z][A-Za-z_0-9]*)=([0-9.e+-]+)")
-    fall = reg.findall(sig)
-    defs = []
-    for name, value in fall:
-        f = float(value)
-        if int(f) == f:
-            f = int(f)
-        defs.append((name, f))
-    # specific
-    if "value=array([0.], dtype=float32)" in sig:
-        defs.append(('value', numpy.array([0.], dtype=numpy.float32)))
-    res = types.FunctionType(obj, gl, fct, tuple(_[1] for _ in defs))
-    offsig = inspect.signature(res)
-    if "=" not in str(offsig) and len(defs) > 0:
-        if fct == "pyrt_Concat":
-            # Shortcuts (other ways relies on undocumented python).
-            return pyrt_Concat_
-        else:  # pragma: no cover
-            # See https://docs.python.org/3/library/inspect.html
-            # See https://stackoverflow.com/questions/11291242/python-dynamically-create-function-at-runtime
-            lines = [str(sig)]
-            for name in ['co_argcount', 'co_cellvars', 'co_code', 'co_consts', 'co_filename',
-                         'co_firstlineno', 'co_flags', 'co_freevars', 'co_kwonlyargcount',
-                         'co_lnotab', 'co_name', 'co_names', 'co_nlocals', 'co_stacksize',
-                         'co_varnames']:
-                v = getattr(res.__code__, name, None)  # pylint: disable=E1101
-                if v is not None:
-                    lines.append('%s=%r' % (name, v))
-            raise RuntimeError(
-                "Defaults values of function '{}' are missing.\nDefault: {}\n{}\n----\n{}".format(
-                    fct, defs, "\n".join(lines), code))
-    return res
+from ...tools.code_helper import make_callable as _make_callable
 
 
 def validate_python_inference(oinf, inputs):

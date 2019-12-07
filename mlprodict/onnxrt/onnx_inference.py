@@ -13,6 +13,7 @@ import pandas
 from onnx import load, load_model, checker, shape_inference
 from onnx import onnx_pb as onnx_proto
 from onnx.helper import make_model
+from ..tools.code_helper import make_callable
 from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_manipulations import select_model_inputs_outputs, enumerate_model_node_outputs
 from .onnx2py_helper import _var_as_dict
@@ -125,6 +126,24 @@ class OnnxInference:
         self.to_json = self.exporters_.to_json
         self.to_dot = self.exporters_.to_dot
         self.to_python = self.exporters_.to_python
+
+        if self.runtime == 'python_compiled':
+            # switch the inference method to the compiled one
+            _, fct, code = self._build_compile_run()
+            setattr(self, '_run_compiled', fct)
+            setattr(self, '_run_compiled_code', code)
+            self._run = self._run_sequence_runtime_compiled
+
+    def _run_sequence_runtime_compiled(
+            self, inputs, clean_right_away=False, intermediate=False,
+            verbose=0, node_time=False, fLOG=None):
+        """
+        Executes a compiled version of @see me _run_sequence_runtime,
+        compiled with method @see me _build_compile_run.
+        Every parameter with a default value is ignored.
+        Switch to ``runtime='python'`` to enable those.
+        """
+        return self._run_compiled(self, inputs)  # pylint: disable=E1101
 
     def _guess_input_dtype(self):
         for _, v in self.graph_['inputs'].items():
@@ -815,3 +834,46 @@ class OnnxInference:
                     node.enable_inplace_compute(n)
 
         return inplaces
+
+    def _build_compile_run(self):
+        """
+        Rewrite the run function in python,
+        compiles it, and adds it as a method.
+
+        @return     method name, callable object
+        """
+        # method signature
+        inputs = self.input_names
+        code = ['def compiled_run(self, dict_inputs):']
+        for inp in inputs:
+            code.append("    {0} = dict_inputs['{0}']".format(inp))
+
+        # inits
+        for k in self.inits_:
+            code.append("    {0} = self.inits_['{0}']['value']".format(k))
+
+        # code
+        code.append('    i = 0')
+        for node in self.sequence_:
+            name = node.ops_.__class__.__name__.lower()
+            code.append('    node_{0} = self.sequence_[i]'.format(name))
+            code.append('    ({1}, ) = node_{2}.ops_._run({0})'.format(
+                ', '.join(node.inputs), ', '.join(node.outputs), name))
+            code.append('    i += 1')
+
+        # return
+        code.append('    return {')
+        for out in self.output_names:
+            code.append("        '{0}': {0},".format(out))
+        code.append('    }')
+        final_code = '\n'.join(code)
+
+        # compile the outcome
+        context = {'self': self}
+        obj = compile(final_code, "<string>", 'exec')
+        fcts_obj = [_ for _ in obj.co_consts
+                    if _ is not None and not isinstance(_, (bool, str, int))]
+        fct = make_callable("compiled_run", fcts_obj[0], final_code, context)
+
+        # end
+        return "compiled_run", fct, final_code
