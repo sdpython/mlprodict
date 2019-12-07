@@ -248,9 +248,8 @@ void RuntimeSVMRegressor<NTYPE>::compute_gil_free(
     NTYPE sum = (NTYPE)0;
     if (mode_ == SVM_TYPE::SVM_SVC) {
       for (int64_t j = 0; j < vector_count_; ++j) {
-        NTYPE val1 = kernel_dot_gil_free(x_data, current_weight_0, support_vectors_,
-                                         feature_count_ * j, feature_count_, kernel_type_);
-        sum += coefficients_[j] * val1;
+        sum += coefficients_[j] * kernel_dot_gil_free(x_data, current_weight_0, support_vectors_,
+                                                      feature_count_ * j, feature_count_, kernel_type_);
       }
       sum += rho_[0];
     } else if (mode_ == SVM_TYPE::SVM_LINEAR) {  //liblinear

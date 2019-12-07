@@ -877,7 +877,8 @@ class OnnxInference:
 
                 from sklearn.datasets import load_iris
                 from sklearn.model_selection import train_test_split
-                from sklearn.ensemble import AdaBoostRegressor
+                from sklearn.ensemble import AdaBoostClassifier
+                from sklearn.tree import DecisionTreeClassifier
                 from skl2onnx import to_onnx
                 from mlprodict.onnxrt import OnnxInference
 
@@ -886,7 +887,7 @@ class OnnxInference:
                 X_train, X_test, y_train, __ = train_test_split(X, y, random_state=11)
                 y_train = y_train.astype(numpy.float32)
                 clr = AdaBoostClassifier(
-                    base_estimator=DecisionTreeRegressor(max_depth=3),
+                    base_estimator=DecisionTreeClassifier(max_depth=3),
                     n_estimators=3)
                 clr.fit(X_train, y_train)
 

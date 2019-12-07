@@ -307,15 +307,25 @@ void multiclass_probability(int64_t classcount, const std::vector<NTYPE>& r,
   std::vector<NTYPE> Q(sized2, 0);
   std::vector<NTYPE> Qp(classcount, 0);
   NTYPE eps = 0.005f / static_cast<NTYPE>(classcount);
+  int64_t ii, ij, ji, j;
+  NTYPE t;
   for (int64_t i = 0; i < classcount; i++) {
     p[i] = 1.0f / static_cast<NTYPE>(classcount);  // Valid if k = 1
-    for (int64_t j = 0; j < i; j++) {
-      Q[i * classcount + i] += r[j * classcount + i] * r[j * classcount + i];
-      Q[i * classcount + j] = Q[j * classcount + i];
+    ii = i * classcount + i; 
+    ji = i;
+    ij = i * classcount; 
+    for (j = 0; j < i; ++j, ++ij, ji += classcount) {
+      t = r[ji];
+      Q[ii] += t * t;
+      Q[ij] = Q[ji];
     }
-    for (int64_t j = i + 1; j < classcount; j++) {
-      Q[i * classcount + i] += r[j * classcount + i] * r[j * classcount + i];
-      Q[i * classcount + j] = -r[j * classcount + i] * r[i * classcount + j];
+    ++j;
+    ++ij;
+    ji += classcount;
+    for (; j < classcount; ++j, ++ij, ji += classcount) {
+      t = r[ji];
+      Q[ii] += t * t;
+      Q[ij] = -t * r[ij];
     }
   }
   NTYPE pQp, max_error, error, diff;
@@ -323,11 +333,13 @@ void multiclass_probability(int64_t classcount, const std::vector<NTYPE>& r,
     // stopping condition, recalculate QP,pQP for numerical accuracy
     pQp = 0;
     for (int64_t i = 0; i < classcount; i++) {
-      Qp[i] = 0;
-      for (int64_t j = 0; j < classcount; j++) {
-        Qp[i] += Q[i * classcount + j] * p[j];
+      t = 0;
+      ij = i * classcount;
+      for (int64_t j = 0; j < classcount; ++j, ++ij) {
+        t += Q[ij] * p[j];
       }
-      pQp += p[i] * Qp[i];
+      Qp[i] = t;
+      pQp += p[i] * t;
     }
     max_error = 0;
     for (int64_t i = 0; i < classcount; i++) {
@@ -339,12 +351,14 @@ void multiclass_probability(int64_t classcount, const std::vector<NTYPE>& r,
     if (max_error < eps)
       break;
 
-    for (int64_t i = 0; i < classcount; i++) {
-      diff = (-Qp[i] + pQp) / Q[i * classcount + i];
+    for (int64_t i = 0; i < classcount; ++i) {
+      ii = i * classcount + i;
+      diff = (-Qp[i] + pQp) / Q[ii];
       p[i] += diff;
-      pQp = (pQp + diff * (diff * Q[i * classcount + i] + 2 * Qp[i])) / (1 + diff) / (1 + diff);
-      for (int64_t j = 0; j < classcount; j++) {
-        Qp[j] = (Qp[j] + diff * Q[i * classcount + j]) / (1 + diff);
+      pQp = (pQp + diff * (diff * Q[ii] + 2 * Qp[i])) / (1 + diff) / (1 + diff);
+      ij = i * classcount;
+      for (int64_t j = 0; j < classcount; ++j, ++ij) {
+        Qp[j] = (Qp[j] + diff * Q[ij]) / (1 + diff);
         p[j] /= (1 + diff);
       }
     }
@@ -385,36 +399,34 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free(
     std::vector<int64_t> votes;
 
     if (vector_count_ == 0 && mode_ == SVM_TYPE::SVM_LINEAR) {
+      scores.resize(class_count_);
       for (int64_t j = 0; j < class_count_; j++) {  //for each class
-        auto val = kernel_dot_gil_free(x_data, current_weight_0, coefficients_,
+        scores[j] = rho_[0] + kernel_dot_gil_free(x_data, current_weight_0, coefficients_,
                                        feature_count_ * j,
                                        feature_count_, kernel_type_);
-        val += rho_[0];
-        scores.push_back(val);
       }
     } else {
       if (vector_count_ == 0)
         throw std::runtime_error("No support vectors.");
       int evals = 0;
-
+     
+      kernels.resize(vector_count_);
       for (int64_t j = 0; j < vector_count_; j++) {
-        auto val = kernel_dot_gil_free(x_data, current_weight_0, support_vectors_,
-                                       feature_count_ * j,
-                                       feature_count_, kernel_type_);
-        kernels.push_back(val);
+        kernels[j] = kernel_dot_gil_free(x_data, current_weight_0, support_vectors_,
+                                         feature_count_ * j,
+                                         feature_count_, kernel_type_);
       }
       votes.resize(class_count_, 0);
       for (int64_t i = 0; i < class_count_; i++) {        // for each class
+        int64_t start_index_i = starting_vector_[i];  // *feature_count_;
+        int64_t class_i_support_count = vectors_per_class_[i];
+        int64_t pos2 = (vector_count_) * (i);
         for (int64_t j = i + 1; j < class_count_; j++) {  // for each class
           NTYPE sum = 0;
-          int64_t start_index_i = starting_vector_[i];  // *feature_count_;
           int64_t start_index_j = starting_vector_[j];  // *feature_count_;
-
-          int64_t class_i_support_count = vectors_per_class_[i];
           int64_t class_j_support_count = vectors_per_class_[j];
 
           int64_t pos1 = (vector_count_) * (j - 1);
-          int64_t pos2 = (vector_count_) * (i);
           const NTYPE* val1 = &(coefficients_[pos1 + start_index_i]);
           const NTYPE* val2 = &(kernels[start_index_i]);
           for (int64_t m = 0; m < class_i_support_count; ++m, ++val1, ++val2)
@@ -443,14 +455,12 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free(
       for (int64_t i = 0; i < class_count_; ++i) {
         int64_t p1 = i * class_count_ + i + 1;
         int64_t p2 = (i + 1) * class_count_ + i;
-        for (int64_t j = i + 1; j < class_count_; ++j, ++index) {
+        for (int64_t j = i + 1; j < class_count_; ++j, ++index, ++p1, p2 += class_count_) {
           val1 = sigmoid_probability(scores[index], proba_[index], probb_[index]);
           val2 = std::max(val1, (NTYPE)1.0e-7);
           val2 = std::min(val2, (NTYPE)(1 - 1.0e-7));
           probsp2[p1] = val2;
           probsp2[p2] = 1 - val2;
-          ++p1;
-          p2 += class_count_;
         }
       }
       multiclass_probability(class_count_, probsp2, estimates);
