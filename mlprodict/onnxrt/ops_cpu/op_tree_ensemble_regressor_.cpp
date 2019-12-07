@@ -323,8 +323,9 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute(py::array_t<NTYP
         throw std::runtime_error("X must have 2 dimensions.");
 
     // Does not handle 3D tensors
-    int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];  
-    int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];
+    bool xdims1 = x_dims.size() == 1;
+    int64_t stride = xdims1 ? x_dims[0] : x_dims[1];  
+    int64_t N = xdims1 ? 1 : x_dims[0];
 
     // Tensor* Y = context->Output(0, TensorShape({N}));
     // auto* Z = context->Output(1, TensorShape({N, class_count_}));
@@ -359,16 +360,16 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
     const NTYPE* x_data = X.data(0);
 
     if (n_targets_ == 1) {
-      #ifdef USE_OPENMP
-      #pragma omp parallel for
-      #endif
-      for (int64_t i = 0; i < N; ++i)  //for each class
-      {
-        int64_t current_weight_0 = i * stride;
+      if (N == 1) {
+        int64_t current_weight_0 = 0;
         NTYPE scores = 0;
         unsigned char has_scores = 0;
+        int64_t nbtrees = roots_.size();
         //for each tree
-        for (size_t j = 0; j < roots_.size(); ++j) {
+        #ifdef USE_OPENMP
+        #pragma omp parallel for
+        #endif
+        for (int64_t j = 0; j < nbtrees; ++j) {
           ProcessTreeNode(&scores, roots_[j], x_data, current_weight_0, &has_scores);
         }
         NTYPE val = base_values_.size() == 1 ? base_values_[0] : 0.f;
@@ -377,20 +378,44 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
                     ? scores / roots_.size()
                     : scores)
                 : 0;
-        *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) ? ComputeProbit(val) : val;
+        *((NTYPE*)Z_.data(0)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
+                                    ? ComputeProbit(val) : val;
+      }
+      else {
+          #ifdef USE_OPENMP
+          #pragma omp parallel for
+          #endif
+          for (int64_t i = 0; i < N; ++i)  //for each class
+          {
+            int64_t current_weight_0 = i * stride;
+            NTYPE scores = 0;
+            unsigned char has_scores = 0;
+            //for each tree
+            for (size_t j = 0; j < roots_.size(); ++j) {
+              ProcessTreeNode(&scores, roots_[j], x_data, current_weight_0, &has_scores);
+            }
+            NTYPE val = base_values_.size() == 1 ? base_values_[0] : 0.f;
+            val += has_scores
+                    ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
+                        ? scores / roots_.size()
+                        : scores)
+                    : 0;
+            *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
+                                        ? ComputeProbit(val) : val;
+          }
       }
     }
     else {
-      #ifdef USE_OPENMP
-      #pragma omp parallel for
-      #endif
-      for (int64_t i = 0; i < N; ++i)  //for each class
-      {
-        int64_t current_weight_0 = i * stride;
+      if (N == 1) {
+        int64_t current_weight_0 = 0;
         std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
         std::vector<unsigned char> has_scores(n_targets_, 0);
+        int64_t nbtrees = roots_.size();
         //for each tree
-        for (size_t j = 0; j < roots_.size(); ++j) {
+        #ifdef USE_OPENMP
+        #pragma omp parallel for
+        #endif
+        for (int64_t j = 0; j < nbtrees; ++j) {
           ProcessTreeNode(scores.data(), roots_[j], x_data, current_weight_0, has_scores.data());
         }
         //find aggregate, could use a heap here if there are many classes
@@ -405,7 +430,35 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
           }
           outputs.push_back(val);
         }
-        write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_), -1);
+        write_scores(outputs, post_transform_, (NTYPE*)Z_.data(0), -1);
+      }
+      else {
+          #ifdef USE_OPENMP
+          #pragma omp parallel for
+          #endif
+          for (int64_t i = 0; i < N; ++i)  //for each class
+          {
+            int64_t current_weight_0 = i * stride;
+            std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
+            std::vector<unsigned char> has_scores(n_targets_, 0);
+            //for each tree
+            for (size_t j = 0; j < roots_.size(); ++j) {
+              ProcessTreeNode(scores.data(), roots_[j], x_data, current_weight_0, has_scores.data());
+            }
+            //find aggregate, could use a heap here if there are many classes
+            std::vector<NTYPE> outputs;
+            for (int64_t j = 0; j < n_targets_; ++j) {
+              //reweight scores based on number of voters
+              NTYPE val = base_values_.size() == (size_t)n_targets_ ? base_values_[j] : 0.f;
+              if (has_scores[j]) {
+                val += aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
+                          ? scores[j] / roots_.size()
+                          : scores[j];
+              }
+              outputs.push_back(val);
+            }
+            write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_), -1);
+          }
       }
     }
 }

@@ -5,7 +5,20 @@
 History
 =======
 
-current - 2019-11-21 - 0.00Mb
+current - 2019-12-08 - 0.00Mb
+=============================
+
+* `85`: Implements a precompiled run method in OnnxInference (runtime='python_compiled') (2019-12-07)
+* `84`: Automatically creates files to profile time_predict function in the benchmark with py-spy (2019-12-04)
+* `82`: Function translate_fct2onnx: use of opset_version (2019-12-04)
+* `83`: ONNX: includes experimental operators in the benchmark (2019-12-04)
+* `81`: ONNX benchmark: track_score returns scores equal to 0 or 1 (unexpected) (2019-12-04)
+* `77`: Improves ONNX benchmark to measure zipmap impact. (2019-12-03)
+* `80`: ONNX: extend benchmark to decision_function for some models (2019-12-03)
+* `75`: ONNX: fix random_state whevever it is available when running benchmark (2019-11-27)
+* `76`: Implements ArgMax 12, ArgMax 12 (python onnx runtime) (2019-11-27)
+
+0.3.765 - 2019-11-21 - 0.22Mb
 =============================
 
 * `59`: ONNX: Investigate kmeans and opset availability. (2019-11-21)
@@ -83,6 +96,3 @@ current - 2019-11-21 - 0.00Mb
 * `9`: implements a onnxruntime runtime (2019-06-16)
 * `6`: first draft of a python runtime for onnx (2019-06-15)
 * `5`: change style highlight-ipython3 (2018-01-05)
-
-0.1.11 - 2017-12-04 - 0.03Mb
-============================

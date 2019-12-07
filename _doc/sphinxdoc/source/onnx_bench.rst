@@ -121,7 +121,7 @@ it is *1/r* faster than *scikit-learn*.
     import numpy
     from onnx.defs import onnx_opset_version
 
-    df1 = pandas.read_excel("bench_sum_python.xlsx")
+    df1 = pandas.read_excel("bench_sum_python_compiled.xlsx")
     df2 = pandas.read_excel("bench_sum_onnxruntime1.xlsx")
 
     if 'n_features' not in df1.columns:
