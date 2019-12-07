@@ -33,9 +33,6 @@ def make_callable(fct, obj, code, gl):
     @param      gl      context (local and global)
     @return             callable functions
     """
-    def pyrt_Concat_(*inputs, axis=0):
-        return numpy.concatenate(inputs, axis=axis)
-
     cst = "def " + fct + "("
     sig = None
     for line in code.split('\n'):
@@ -70,22 +67,18 @@ def make_callable(fct, obj, code, gl):
         defs.append(('value', numpy.array([0.], dtype=numpy.float32)))
     res = types.FunctionType(obj, gl, fct, tuple(_[1] for _ in defs))
     if res.__defaults__ != tuple(_[1] for _ in defs):  # pylint: disable=E1101
-        if fct == "pyrt_Concat":
-            # Shortcuts (other ways relies on undocumented python).
-            return pyrt_Concat_
-        else:  # pragma: no cover
-            # See https://docs.python.org/3/library/inspect.html
-            # See https://stackoverflow.com/questions/11291242/python-dynamically-create-function-at-runtime
-            lines = [str(sig)]
-            for name in ['co_argcount', 'co_cellvars', 'co_code', 'co_consts', 'co_filename',
-                         'co_firstlineno', 'co_flags', 'co_freevars', 'co_kwonlyargcount',
-                         'co_lnotab', 'co_name', 'co_names', 'co_nlocals', 'co_stacksize',
-                         'co_varnames']:
-                v = getattr(res.__code__, name, None)  # pylint: disable=E1101
-                if v is not None:
-                    lines.append('%s=%r' % (name, v))
-            raise RuntimeError(
-                "Defaults values of function '{}' (defaults={}) are missing.\nDefault: "
-                "{}\n{}\n----\n{}".format(
-                    fct, res.__defaults__, defs, "\n".join(lines), code))  # pylint: disable=E1101
+        # See https://docs.python.org/3/library/inspect.html
+        # See https://stackoverflow.com/questions/11291242/python-dynamically-create-function-at-runtime
+        lines = [str(sig)]
+        for name in ['co_argcount', 'co_cellvars', 'co_code', 'co_consts', 'co_filename',
+                     'co_firstlineno', 'co_flags', 'co_freevars', 'co_kwonlyargcount',
+                     'co_lnotab', 'co_name', 'co_names', 'co_nlocals', 'co_stacksize',
+                     'co_varnames']:
+            v = getattr(res.__code__, name, None)  # pylint: disable=E1101
+            if v is not None:
+                lines.append('%s=%r' % (name, v))
+        raise RuntimeError(
+            "Defaults values of function '{}' (defaults={}) are missing.\nDefault: "
+            "{}\n{}\n----\n{}".format(
+                fct, res.__defaults__, defs, "\n".join(lines), code))  # pylint: disable=E1101
     return res

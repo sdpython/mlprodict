@@ -5,7 +5,20 @@
 import pickle
 import numpy
 from scipy.special import expit  # pylint: disable=E0611
-from ...tools.code_helper import make_callable as _make_callable
+from ...tools.code_helper import make_callable
+
+
+def _make_callable(fct, obj, code, gl):
+    """
+    Same function as @see fn make_callable but deals with
+    function which an undefined number of arguments.
+    """
+    def pyrt_Concat_(*inputs, axis=0):
+        return numpy.concatenate(inputs, axis=axis)
+
+    if fct == "pyrt_Concat":
+        return pyrt_Concat_
+    return make_callable(fct, obj, code, gl)
 
 
 def validate_python_inference(oinf, inputs):
