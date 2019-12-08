@@ -45,7 +45,7 @@ class _CommonAsvSklBenchmark:
     # params and param_names may be changed too.
 
     params = [
-        ['skl', 'pyrt', 'ort'],  # values for runtime
+        ['skl', 'pyrtc', 'ort'],  # values for runtime
         [1, 10, 100, 10000, 100000],  # values for N
         [4, 20],  # values for nf
         [onnx_opset_version()],  # values for opset

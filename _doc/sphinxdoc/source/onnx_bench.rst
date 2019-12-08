@@ -153,9 +153,9 @@ it is *1/r* faster than *scikit-learn*.
     values = ['RT/SKL-N=1', 'N=10', 'N=100', 'N=1000', 'N=10000', 'N=100000']
     df1 = df1[indices + values]
     df2 = df2[indices + values]
-    df = df1.merge(df2, on="label", suffixes=("__pyrt", "__ort"))
+    df = df1.merge(df2, on="label", suffixes=("__pyrtc", "__ort"))
 
-    na = df["RT/SKL-N=1__pyrt"].isnull() & df["RT/SKL-N=1__ort"].isnull()
+    na = df["RT/SKL-N=1__pyrtc"].isnull() & df["RT/SKL-N=1__ort"].isnull()
     dfp = df[~na].sort_values("label", ascending=False).reset_index(drop=True)
 
     # dfp = dfp[-10:]
@@ -206,7 +206,7 @@ it is *1/r* faster than *scikit-learn*.
     height = total / dfp.shape[0] * 0.65
     for c in df.columns[1:-1]:
         place, runtime = c.split('__')
-        dec = {'pyrt': 1, 'ort': -1}
+        dec = {'pyrtc': 1, 'ort': -1}
         index = values.index(place)
         yl = dfp.loc[:, c].fillna(0)
         xl = xl = x + dec[runtime] * height / 2

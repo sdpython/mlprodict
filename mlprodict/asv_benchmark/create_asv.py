@@ -496,7 +496,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
 
         # n_features, N, runtimes
         rep = {
-            "['skl', 'pyrt', 'ort'],  # values for runtime": str(runtime),
+            "['skl', 'pyrtc', 'ort'],  # values for runtime": str(runtime),
             "[1, 10, 100, 1000, 10000, 100000],  # values for N": str(dims),
             "[4, 20],  # values for nf": str(n_features),
             "[onnx_opset_version()],  # values for opset": str(opsets),
