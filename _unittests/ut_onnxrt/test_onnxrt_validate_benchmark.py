@@ -6,7 +6,7 @@ import unittest
 from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase
+from pyquickhelper.pycode import get_temp_folder, ExtTestCase, skipif_circleci
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -47,6 +47,7 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
         piv.to_excel(os.path.join(
             temp, "sklearn_opsets_summary.xlsx"), index=False)
 
+    @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_benchmark_all(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
