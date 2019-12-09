@@ -25,6 +25,8 @@ from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_extraction.text import (
     CountVectorizer, TfidfVectorizer, TfidfTransformer
 )
+from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
+from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.feature_selection import (
     RFE, RFECV, GenericUnivariateSelect,
     SelectPercentile, SelectFwe, SelectKBest,
@@ -164,7 +166,8 @@ def _problem_for_predictor_multi_classification_label(dtype=numpy.float32, n_fea
 
 def _problem_for_predictor_regression(many_output=False, options=None,
                                       n_features=None, nbrows=None,
-                                      dtype=numpy.float32, **kwargs):
+                                      dtype=numpy.float32, add_nan=False,
+                                      **kwargs):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     regression problem.
@@ -188,6 +191,10 @@ def _problem_for_predictor_regression(many_output=False, options=None,
         itt = [('X', X[:1].astype(dtype))]
     if options is not None:
         itt = itt, options
+    if add_nan:
+        rows = numpy.random.randint(0, X.shape[0] - 1, X.shape[0] // 3)
+        cols = numpy.random.randint(0, X.shape[1] - 1, X.shape[0] // 3)
+        X[rows, cols] = numpy.nan
     return (X, y.astype(float), itt,
             meth, 'all' if many_output else 0, X.astype(dtype))
 
@@ -667,6 +674,9 @@ def find_suitable_problem(model):
         if model in {AdaBoostRegressor}:
             return ['b-reg', '~b-reg-64']
 
+        if model in {HistGradientBoostingRegressor}:
+            return ['b-reg', '~b-reg-64', '~b-reg-nan', '~b-reg-nan-64']
+
         if model in {LinearSVC, NearestCentroid}:
             return ['~b-cl-nop', '~b-cl-nop-64']
 
@@ -858,6 +868,11 @@ _problems = {
     '~m-cl-nop': _problem_for_clnoproba,
     '~b-cl-dec': _problem_for_cl_decision_function_binary,
     '~m-cl-dec': _problem_for_cl_decision_function,
+    # nan
+    "~b-reg-nan": lambda n_features=None: _problem_for_predictor_regression(
+        n_features=n_features, add_nan=True),
+    "~b-reg-nan-64": lambda n_features=None: _problem_for_predictor_regression(
+        dtype=numpy.float64, n_features=n_features, add_nan=True),
     # 100 features
     "~b-reg-f100": lambda n_features=100: _problem_for_predictor_regression(
         n_features=n_features or 100),

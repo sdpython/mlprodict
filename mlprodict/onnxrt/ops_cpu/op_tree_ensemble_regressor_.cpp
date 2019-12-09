@@ -360,6 +360,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
     const NTYPE* x_data = X.data(0);
 
     if (n_targets_ == 1) {
+      NTYPE origin = base_values_.size() == 1 ? base_values_[0] : 0.f;
       if (N == 1) {
         int64_t current_weight_0 = 0;
         NTYPE scores = 0;
@@ -372,12 +373,11 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
         for (int64_t j = 0; j < nbtrees; ++j) {
           ProcessTreeNode(&scores, roots_[j], x_data, current_weight_0, &has_scores);
         }
-        NTYPE val = base_values_.size() == 1 ? base_values_[0] : 0.f;
-        val += has_scores
+        val = has_scores
                 ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
                     ? scores / roots_.size()
-                    : scores)
-                : 0;
+                    : scores) + origin
+                : origin;
         *((NTYPE*)Z_.data(0)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
                                     ? ComputeProbit(val) : val;
       }
@@ -394,12 +394,11 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
             for (size_t j = 0; j < roots_.size(); ++j) {
               ProcessTreeNode(&scores, roots_[j], x_data, current_weight_0, &has_scores);
             }
-            NTYPE val = base_values_.size() == 1 ? base_values_[0] : 0.f;
             val += has_scores
                     ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
                         ? scores / roots_.size()
-                        : scores)
-                    : 0;
+                        : scores) + origin
+                    : origin;
             *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
                                         ? ComputeProbit(val) : val;
           }

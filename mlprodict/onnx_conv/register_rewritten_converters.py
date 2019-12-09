@@ -18,6 +18,7 @@ _overwritten_operators = {
     'SklearnDecisionTreeRegressor': convert_sklearn_decision_tree_regressor,
     'SklearnExtraTreesRegressor': convert_sklearn_random_forest_regressor_converter,
     'SklearnGradientBoostingRegressor': convert_sklearn_gradient_boosting_regressor,
+    'SklearnHistGradientBoostingRegressor': convert_sklearn_random_forest_regressor_converter,
     'SklearnOneClassSVM': convert_sklearn_svm,
     'SklearnRandomForestRegressor': convert_sklearn_random_forest_regressor_converter,
     'SklearnSVC': convert_sklearn_svm,

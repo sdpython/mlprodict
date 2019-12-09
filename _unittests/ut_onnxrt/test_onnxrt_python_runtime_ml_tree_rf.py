@@ -1,5 +1,5 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=6s)
 """
 import unittest
 from logging import getLogger
@@ -10,7 +10,8 @@ try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
+from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import (
     ExtTestCase, unittest_require_at_least, skipif_appveyor
@@ -27,16 +28,26 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
-    def onnxrt_python_RandomForestRegressor_dtype(self, dtype, n=37, full=False):
+    def onnxrt_python_RandomForestRegressor_dtype(
+            self, dtype, n=37, full=False, use_hist=False, ntrees=10):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y,
                                                        random_state=11 if not full else 13)
         X_test = X_test.astype(dtype)
-        if full:
-            clr = RandomForestRegressor(n_jobs=1)
+        if use_hist:
+            if full:
+                clr = HistGradientBoostingRegressor()
+            else:
+                clr = HistGradientBoostingRegressor(
+                    max_iter=ntrees, max_depth=4)
         else:
-            clr = RandomForestRegressor(n_estimators=10, n_jobs=1, max_depth=4)
+            if full:
+                clr = RandomForestRegressor(n_jobs=1)
+            else:
+                clr = RandomForestRegressor(
+                    n_estimators=ntrees, n_jobs=1, max_depth=4)
+
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(dtype),
@@ -73,6 +84,17 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         self.onnxrt_python_RandomForestRegressor_dtype(numpy.float64)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
+    def test_onnxrt_python_RandomForestRegressor32_hist(self):
+        self.onnxrt_python_RandomForestRegressor_dtype(
+            numpy.float32, use_hist=True)
+
+    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
+    @skipif_appveyor("issue with opset 11")
+    def test_onnxrt_python_RandomForestRegressor64_hist(self):
+        self.onnxrt_python_RandomForestRegressor_dtype(
+            numpy.float64, use_hist=True)
+
+    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_onnxrt_python_RandomForestRegressor_full32(self):
         self.onnxrt_python_RandomForestRegressor_dtype(
             numpy.float32, full=True)
@@ -99,6 +121,25 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"RandomForestRegressor"}, opset_min=10, fLOG=myprint,
             runtime='python', debug=debug, filter_exp=lambda m, p: p == "~b-reg-64"))
+        self.assertGreater(len(rows), 1)
+        self.assertGreater(len(buffer), 1 if debug else 0)
+
+    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
+    def test_rt_HistGradientBoostingRegressor_python64(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        verbose = 1 if __name__ == "__main__" else 0
+
+        debug = True
+        buffer = []
+
+        def myprint(*args, **kwargs):
+            buffer.append(" ".join(map(str, args)))
+
+        rows = list(enumerate_validated_operator_opsets(
+            verbose, models={"HistGradientBoostingRegressor"}, opset_min=10, fLOG=myprint,
+            runtime='python', debug=debug, filter_exp=lambda m, p: '64' in p))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
