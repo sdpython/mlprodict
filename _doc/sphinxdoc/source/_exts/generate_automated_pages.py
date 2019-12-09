@@ -7,7 +7,8 @@ from logging import getLogger
 from pandas import DataFrame, read_excel, read_csv, concat, Series
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils.testing import ignore_warnings
-from sklearn.ensemble import AdaBoostRegressor
+from sklearn.experimental import enable_hist_gradient_boosting
+from sklearn.ensemble import AdaBoostRegressor, HistGradientBoostingRegressor
 from sklearn.gaussian_process import GaussianProcessClassifier
 import sphinx
 from tqdm import tqdm
@@ -21,6 +22,9 @@ from mlprodict.onnxrt.doc.doc_write_helper import (
     split_columns_subsets, build_key_split, filter_rows, _make_opset
 )
 from mlprodict.onnxrt.validate.validate_summary import _clean_values_optim
+from mlprodict.onnx_conv import register_converters, register_rewritten_operators
+register_converters()
+register_rewritten_operators()
 
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning,
@@ -266,11 +270,12 @@ if __name__ == '__main__':
         None, white_list={
             # 'LGBMClassifier',
             # 'ARDRegression',
-            'LogisticRegression'
+            # 'LogisticRegression'
+            'HistGradientBoostingRegressor'
         })
     write_page_onnxrt_benches_onnxruntime1(
         None, white_list={
             # 'LGBMClassifier',
             # 'ARDRegression',
-            'LogisticRegression'
+            'HistGradientBoostingRegressor'
         })

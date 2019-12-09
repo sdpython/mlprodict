@@ -3,6 +3,11 @@ import sys
 import os
 import sphinx_readable_theme
 from pyquickhelper.helpgen.default_conf import set_sphinx_variables, get_default_stylesheet
+from sklearn.experimental import enable_hist_gradient_boosting
+from mlprodict.onnx_conv import register_converters, register_rewritten_operators
+register_converters()
+register_rewritten_operators()
+
 try:
     import generate_visual_graphs
     import generate_automated_pages
