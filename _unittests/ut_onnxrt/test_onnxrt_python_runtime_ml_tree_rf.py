@@ -140,7 +140,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        verbose = 1 if __name__ == "__main__" else 0
+        verbose = 2 if __name__ == "__main__" else 0
 
         debug = True
         buffer = []
@@ -188,7 +188,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        verbose = 1 if __name__ == "__main__" else 0
+        verbose = 2 if __name__ == "__main__" else 0
 
         debug = True
         buffer = []
