@@ -31,7 +31,8 @@ class TestRtValidateAdaBoost(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"AdaBoostRegressor"}, opset_max=10, fLOG=myprint,
+            verbose, models={"AdaBoostRegressor"},
+            opset_min=10, opset_max=10, fLOG=myprint,
             runtime='onnxruntime2', debug=debug,
             filter_exp=lambda m, p: "-64" not in p))
         self.assertGreater(len(rows), 1)

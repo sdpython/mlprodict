@@ -211,5 +211,5 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestCreateAsvBenchmark().test_create_asv_benchmark_flat()
+    # TestCreateAsvBenchmark().test_create_asv_benchmark_noflat_ext()
     unittest.main()

@@ -180,7 +180,7 @@ def _handle_init_files(model, flat, location, verbose, location_pyspy, fLOG):
     else:
         created = []
         subf = _sklearn_subfolder(model)
-        subf = [_ for _ in subf if _[0] != '_' and _ != '_externals']
+        subf = [_ for _ in subf if _[0] != '_' or _ == '_externals']
         location_model = os.path.join(location, *subf)
         prefix_import = "." * (len(subf) + 1)
         if not os.path.exists(location_model):

@@ -74,37 +74,49 @@ def convert_sklearn_ada_boost_regressor(scope, operator, container):
     median_estimators_name = scope.get_unique_variable_name(
         'median_estimators')
 
-    container.add_initializer(negate_name, container.proto_dtype, [], [-1])
-    container.add_initializer(estimators_weights_name, container.proto_dtype,
-                              [len(op.estimator_weights_)], op.estimator_weights_)
-    container.add_initializer(
-        half_scalar_name, container.proto_dtype, [], [0.5])
+    container.add_initializer(negate_name, container.proto_dtype,
+                              [], [-1])
+    container.add_initializer(estimators_weights_name,
+                              container.proto_dtype,
+                              [len(op.estimator_weights_)],
+                              op.estimator_weights_)
+    container.add_initializer(half_scalar_name, container.proto_dtype,
+                              [], [0.5])
     container.add_initializer(last_index_name, onnx_proto.TensorProto.INT64,  # pylint: disable=E1101
                               [], [len(op.estimators_) - 1])
 
-    concatenated_labels = _get_estimators_label(scope, operator, container, op)
+    concatenated_labels = _get_estimators_label(scope, operator,
+                                                container, op)
     apply_mul(scope, [concatenated_labels, negate_name],
               negated_labels_name, container, broadcast=1)
     apply_topk(scope, negated_labels_name,
                [sorted_values_name, sorted_indices_name],
                container, k=len(op.estimators_))
-    container.add_node('ArrayFeatureExtractor', [estimators_weights_name, sorted_indices_name],
-                       array_feat_extractor_output_name, op_domain='ai.onnx.ml',
-                       name=scope.get_unique_operator_name('ArrayFeatureExtractor'))
-    apply_reshape(scope, array_feat_extractor_output_name, reshaped_weights_name,
-                  container, desired_shape=(-1, len(op.estimators_)))
+    container.add_node(
+        'ArrayFeatureExtractor',
+        [estimators_weights_name, sorted_indices_name],
+        array_feat_extractor_output_name, op_domain='ai.onnx.ml',
+        name=scope.get_unique_operator_name('ArrayFeatureExtractor'))
+    apply_reshape(
+        scope, array_feat_extractor_output_name, reshaped_weights_name,
+        container, desired_shape=(-1, len(op.estimators_)))
     weights_cdf_name = cum_sum(
-        scope, container, reshaped_weights_name, len(op.estimators_))
-    container.add_node('ArrayFeatureExtractor', [weights_cdf_name, last_index_name],
-                       median_value_name, op_domain='ai.onnx.ml',
-                       name=scope.get_unique_operator_name('ArrayFeatureExtractor'))
+        scope, container, reshaped_weights_name,
+        len(op.estimators_))
+    container.add_node(
+        'ArrayFeatureExtractor', [weights_cdf_name, last_index_name],
+        median_value_name, op_domain='ai.onnx.ml',
+        name=scope.get_unique_operator_name('ArrayFeatureExtractor'))
     apply_mul(scope, [median_value_name, half_scalar_name],
               comp_value_name, container, broadcast=1)
-    container.add_node('Less', [weights_cdf_name, comp_value_name], median_or_above_name,
-                       name=scope.get_unique_operator_name('Less'))
+    container.add_node(
+        'Less', [weights_cdf_name, comp_value_name],
+        median_or_above_name,
+        name=scope.get_unique_operator_name('Less'))
     apply_cast(scope, median_or_above_name, cast_result_name,
                container, to=container.proto_dtype)
-    container.add_node('ArgMin', cast_result_name, median_idx_name,
+    container.add_node('ArgMin', cast_result_name,
+                       median_idx_name,
                        name=scope.get_unique_operator_name('ArgMin'), axis=1)
     _apply_gather_elements(
         scope, container, [sorted_indices_name, median_idx_name],
