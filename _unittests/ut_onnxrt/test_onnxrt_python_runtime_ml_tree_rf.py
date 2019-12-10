@@ -160,9 +160,6 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             filter_exp=lambda m, p: pp(p) == "~b-reg-64"))
         if len(rows) == 0:
             raise AssertionError("Empty rows: {}".format(pps))
-        if debug and len(buffer) == 0:
-            raise AssertionError("Empty rows: {}\n----\n{}".format(
-                pps, pprint.pformat(rows)))
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_rt_HistGradientBoostingRegressor_python64(self):
@@ -207,9 +204,6 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             filter_exp=lambda m, p: pp(p) == '~b-reg-64'))
         if len(rows) == 0:
             raise AssertionError("Empty rows: {}".format(pps))
-        if debug and len(buffer) == 0:
-            raise AssertionError("Empty rows: {}\n----\n{}".format(
-                pps, pprint.pformat(rows)))
 
 
 if __name__ == "__main__":
