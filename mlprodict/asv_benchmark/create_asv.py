@@ -139,6 +139,8 @@ def create_asv_benchmark(
         opset_min = onnx_opset_version()
     if opset_max == -1:
         opset_max = onnx_opset_version()
+    if verbose > 0 and fLOG is not None:
+        fLOG("[create_asv_benchmark] opset in [{}, {}].".format(opset_min, opset_max))
 
     # creates the folder if it does not exist.
     if not os.path.exists(location):

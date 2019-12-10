@@ -11,7 +11,7 @@ from pandas import DataFrame
 from sklearn.exceptions import ConvergenceWarning
 
 
-def validate_runtime(verbose=1, opset_min=10, opset_max="",
+def validate_runtime(verbose=1, opset_min=-1, opset_max="",
                      check_runtime=True, runtime='python', debug=False,
                      models=None, out_raw="model_onnx_raw.xlsx",
                      out_summary="model_onnx_summary.xlsx",
@@ -29,8 +29,10 @@ def validate_runtime(verbose=1, opset_min=10, opset_max="",
     with a specific runtime.
 
     :param verbose: integer from 0 (None) to 2 (full verbose)
-    :param opset_min: tries every conversion from this minimum opset
-    :param opset_max: tries every conversion up to maximum opset
+    :param opset_min: tries every conversion from this minimum opset,
+        -1 to get the current opset
+    :param opset_max: tries every conversion up to maximum opset,
+        -1 to get the current opset
     :param check_runtime: to check the runtime
         and not only the conversion
     :param runtime: runtime to check, python,

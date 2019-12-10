@@ -133,8 +133,9 @@ def convert_validate(pkl, data=None, schema=None,
             fLOG("[convert_validate] options={}".format(repr(options)))
 
     if register:
-        from ..onnx_conv import register_converters
+        from ..onnx_conv import register_converters, register_rewritten_operators
         register_converters()
+        register_rewritten_operators()
 
     # data and schema
     if data is None or not os.path.exists(data):

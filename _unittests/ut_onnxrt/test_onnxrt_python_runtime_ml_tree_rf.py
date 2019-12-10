@@ -1,5 +1,5 @@
 """
-@brief      test log(time=6s)
+@brief      test log(time=10s)
 """
 import unittest
 from logging import getLogger
@@ -17,7 +17,7 @@ from pyquickhelper.pycode import (
     ExtTestCase, unittest_require_at_least, skipif_appveyor
 )
 import skl2onnx
-from mlprodict.onnx_conv import to_onnx
+from mlprodict.onnx_conv import to_onnx, register_rewritten_operators
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 
@@ -27,13 +27,15 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
     def setUp(self):
         logger = getLogger('skl2onnx')
         logger.disabled = True
+        register_rewritten_operators()
 
     def onnxrt_python_RandomForestRegressor_dtype(
-            self, dtype, n=37, full=False, use_hist=False, ntrees=10):
+            self, dtype, n=37, full=False, use_hist=False, ntrees=10,
+            runtime='python'):
         iris = load_iris()
         X, y = iris.data, iris.target
-        X_train, X_test, y_train, _ = train_test_split(X, y,
-                                                       random_state=11 if not full else 13)
+        X_train, X_test, y_train, _ = train_test_split(
+            X, y, random_state=11 if not full else 13)
         X_test = X_test.astype(dtype)
         if use_hist:
             if full:
@@ -84,15 +86,21 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         self.onnxrt_python_RandomForestRegressor_dtype(numpy.float64)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
-    def test_onnxrt_python_RandomForestRegressor32_hist(self):
+    def test_onnxrt_python_HistGradientBoostingRegressor32_hist(self):
         self.onnxrt_python_RandomForestRegressor_dtype(
             numpy.float32, use_hist=True)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     @skipif_appveyor("issue with opset 11")
-    def test_onnxrt_python_RandomForestRegressor64_hist(self):
+    def test_onnxrt_python_HistGradientBoostingRegressor64_hist(self):
         self.onnxrt_python_RandomForestRegressor_dtype(
             numpy.float64, use_hist=True)
+
+    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
+    @skipif_appveyor("issue with opset 11")
+    def test_onnxrt_python_HistGradientBoostingRegressor64_hist_compiled(self):
+        self.onnxrt_python_RandomForestRegressor_dtype(
+            numpy.float64, use_hist=True, runtime="python_compiled")
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_onnxrt_python_RandomForestRegressor_full32(self):
@@ -119,8 +127,28 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"RandomForestRegressor"}, opset_min=10, fLOG=myprint,
+            verbose, models={"RandomForestRegressor"}, opset_min=-1, fLOG=myprint,
             runtime='python', debug=debug, filter_exp=lambda m, p: p == "~b-reg-64"))
+        self.assertGreater(len(rows), 1)
+        self.assertGreater(len(buffer), 1 if debug else 0)
+
+    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
+    def test_rt_RandomForestRegressor_python64_compiled(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        verbose = 1 if __name__ == "__main__" else 0
+
+        debug = True
+        buffer = []
+
+        def myprint(*args, **kwargs):
+            buffer.append(" ".join(map(str, args)))
+
+        rows = list(enumerate_validated_operator_opsets(
+            verbose, models={"RandomForestRegressor"}, opset_min=-1, fLOG=myprint,
+            runtime='python_compiled', debug=debug,
+            filter_exp=lambda m, p: p == "~b-reg-64"))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
@@ -138,8 +166,28 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             buffer.append(" ".join(map(str, args)))
 
         rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"HistGradientBoostingRegressor"}, opset_min=10, fLOG=myprint,
+            verbose, models={"HistGradientBoostingRegressor"}, opset_min=-1, fLOG=myprint,
             runtime='python', debug=debug, filter_exp=lambda m, p: '64' in p))
+        self.assertGreater(len(rows), 1)
+        self.assertGreater(len(buffer), 1 if debug else 0)
+
+    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
+    def test_rt_HistGradientBoostingRegressor_python64_compiled(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        verbose = 1 if __name__ == "__main__" else 0
+
+        debug = True
+        buffer = []
+
+        def myprint(*args, **kwargs):
+            buffer.append(" ".join(map(str, args)))
+
+        rows = list(enumerate_validated_operator_opsets(
+            verbose, models={"HistGradientBoostingRegressor"}, opset_min=-1, fLOG=myprint,
+            runtime='python_compiled', debug=debug,
+            filter_exp=lambda m, p: p == '~b-reg-64'))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 

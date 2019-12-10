@@ -5,7 +5,6 @@ for many regressors and classifiers.
 import os
 import textwrap
 import hashlib
-from onnx.defs import onnx_opset_version  # pylint: disable=W0611
 
 # exec function does not import models but potentially
 # requires all specific models used to defines scenarios
@@ -181,6 +180,7 @@ def _handle_init_files(model, flat, location, verbose, location_pyspy, fLOG):
     else:
         created = []
         subf = _sklearn_subfolder(model)
+        subf = [_ for _ in subf if _[0] != '_']
         location_model = os.path.join(location, *subf)
         prefix_import = "." * (len(subf) + 1)
         if not os.path.exists(location_model):

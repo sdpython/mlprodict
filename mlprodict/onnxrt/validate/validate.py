@@ -12,7 +12,7 @@ import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.model_selection import train_test_split
 from ... import __version__ as ort_version
-from ...onnx_conv import to_onnx
+from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
 from ..onnx_inference import OnnxInference
 from ..optim.sklearn_helper import inspect_sklearn_model
 from ..optim.onnx_helper import onnx_statistics
@@ -237,7 +237,7 @@ def _merge_options(all_conv_options, aoptions):
     return merged
 
 
-def enumerate_compatible_opset(model, opset_min=10, opset_max=None,  # pylint: disable=R0914
+def enumerate_compatible_opset(model, opset_min=-1, opset_max=None,  # pylint: disable=R0914
                                check_runtime=True, debug=False,
                                runtime='python', dump_folder=None,
                                store_models=False, benchmark=False,
@@ -304,6 +304,12 @@ def enumerate_compatible_opset(model, opset_min=10, opset_max=None,  # pylint: d
         import pprint
         pprint.pprint(default_time_kwargs())
     """
+    if opset_min == -1:
+        opset_min = get_opset_number_from_onnx()
+    if opset_max == -1:
+        opset_max = get_opset_number_from_onnx()
+    if verbose > 0 and fLOG is not None:
+        fLOG("[enumerate_compatible_opset] opset in [{}, {}].".format(opset_min, opset_max))
     if verbose > 1 and fLOG:
         fLOG("[enumerate_compatible_opset] validate class '{}'.".format(
             model.__name__))
@@ -740,7 +746,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     return obs_op
 
 
-def enumerate_validated_operator_opsets(verbose=0, opset_min=10, opset_max=None,
+def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=None,
                                         check_runtime=True, debug=False, runtime='python',
                                         models=None, dump_folder=None, store_models=False,
                                         benchmark=False, skip_models=None,
@@ -756,7 +762,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=10, opset_max=None,
     operators and returns the results.
 
     @param      verbose         integer 0, 1, 2
-    @param      opset_min       checks conversion starting from the opset
+    @param      opset_min       checks conversion starting from the opset, -1
+                                to get the last one
     @param      opset_max       checks conversion up to this opset,
                                 None means @see fn get_opset_number_from_onnx.
     @param      check_runtime   checks the python runtime
@@ -808,6 +815,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=10, opset_max=None,
         import pprint
         pprint.pprint(default_time_kwargs())
     """
+    register_converters()
+    register_rewritten_operators()
     ops = [_ for _ in sklearn_operators(extended=extended_list)]
 
     if models is not None:
@@ -865,6 +874,12 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=10, opset_max=None,
         add_versions = {}
 
     current_opset = get_opset_number_from_onnx()
+    if opset_min == -1:
+        opset_min = get_opset_number_from_onnx()
+    if opset_max == -1:
+        opset_max = get_opset_number_from_onnx()
+    if verbose > 0 and fLOG is not None:
+        fLOG("[enumerate_validated_operator_opsets] opset in [{}, {}].".format(opset_min, opset_max))
     for row in loop:
 
         model = row['cl']

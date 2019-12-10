@@ -33,6 +33,8 @@ class TestCreateAsvBenchmarkHistGBC(ExtTestCase):
                 if '__init__' in zoo:
                     continue
                 fullname = os.path.join(path, zoo)
+                if "_hist_gradient_boosting" in fullname:
+                    raise AssertionError(fullname)
                 with open(fullname, 'r', encoding='utf-8') as f:
                     content = f.read()
                 if (zoo.endswith("bench_HistGradientBoostingClassifier_default_b_cl.py") and
