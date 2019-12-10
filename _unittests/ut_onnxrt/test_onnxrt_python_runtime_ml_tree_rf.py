@@ -2,7 +2,6 @@
 @brief      test log(time=10s)
 """
 import unittest
-import pprint
 from logging import getLogger
 import numpy
 from sklearn.datasets import load_iris
@@ -15,7 +14,8 @@ from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disabl
 from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import (
-    ExtTestCase, unittest_require_at_least, skipif_appveyor
+    ExtTestCase, unittest_require_at_least, skipif_appveyor,
+    skipif_circleci
 )
 import skl2onnx
 from mlprodict.onnx_conv import to_onnx, register_rewritten_operators
@@ -135,6 +135,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_rt_RandomForestRegressor_python64_compiled(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -180,6 +181,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_rt_HistGradientBoostingRegressor_python64_compiled(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
