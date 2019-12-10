@@ -247,7 +247,7 @@ py::tuple RuntimeSVMClassifier<NTYPE>::compute(py::array_t<NTYPE> X) const {
     int64_t nb_columns = class_count_;
     if (proba_.size() == 0 && vector_count_ > 0) {
         nb_columns = class_count_ > 2
-                        ? nb_columns = class_count_ * (class_count_ - 1) / 2
+                        ? class_count_ * (class_count_ - 1) / 2
                         : 2;
     }
 

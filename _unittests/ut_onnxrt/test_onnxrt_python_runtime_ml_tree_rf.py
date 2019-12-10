@@ -2,6 +2,7 @@
 @brief      test log(time=10s)
 """
 import unittest
+import pprint
 from logging import getLogger
 import numpy
 from sklearn.datasets import load_iris
@@ -143,6 +144,11 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
 
         debug = True
         buffer = []
+        pps = []
+
+        def pp(p):
+            pps.append(p)
+            return p
 
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
@@ -151,9 +157,12 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             verbose, models={"RandomForestRegressor"},
             opset_min=-1, fLOG=myprint,
             runtime='python_compiled', debug=debug,
-            filter_exp=lambda m, p: p == "~b-reg-64"))
-        self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1 if debug else 0)
+            filter_exp=lambda m, p: pp(p) == "~b-reg-64"))
+        if len(rows) == 0:
+            raise AssertionError("Empty rows: {}".format(pps))
+        if debug and len(buffer) == 0:
+            raise AssertionError("Empty rows: {}\n----\n{}".format(
+                pps, pprint.pformat(rows)))
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_rt_HistGradientBoostingRegressor_python64(self):
@@ -183,6 +192,11 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
 
         debug = True
         buffer = []
+        pps = []
+
+        def pp(p):
+            pps.append(p)
+            return p
 
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
@@ -190,9 +204,12 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"HistGradientBoostingRegressor"}, opset_min=-1, fLOG=myprint,
             runtime='python_compiled', debug=debug,
-            filter_exp=lambda m, p: p == '~b-reg-64'))
-        self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1 if debug else 0)
+            filter_exp=lambda m, p: pp(p) == '~b-reg-64'))
+        if len(rows) == 0:
+            raise AssertionError("Empty rows: {}".format(pps))
+        if debug and len(buffer) == 0:
+            raise AssertionError("Empty rows: {}\n----\n{}".format(
+                pps, pprint.pformat(rows)))
 
 
 if __name__ == "__main__":
