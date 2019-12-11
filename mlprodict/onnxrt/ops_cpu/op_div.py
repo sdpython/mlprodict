@@ -16,4 +16,6 @@ class Div(OpRunBinaryNumpy):
 
     def _run(self, a, b):  # pylint: disable=W0221
         res = OpRunBinaryNumpy._run(self, a, b)
-        return (res[0].astype(a.dtype), )
+        if res[0].dtype != a.dtype:
+            return (res[0].astype(a.dtype), )
+        return res

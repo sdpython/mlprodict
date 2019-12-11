@@ -16,8 +16,11 @@ class Log(OpRunUnaryNum):
 
     def _run(self, x):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
-            return (numpy.log(x, out=x), )
+            return self._run_inplace(x)
         return (numpy.log(x), )
+
+    def _run_inplace(self, x):
+        return (numpy.log(x, out=x), )
 
     def to_python(self, inputs):
         return self._to_python_numpy(inputs, self.__class__.__name__.lower())

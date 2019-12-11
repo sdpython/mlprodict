@@ -34,6 +34,13 @@ class Cast(OpRun):
         self._cast = lambda x: x.astype(self._dtype)
 
     def _run(self, x):  # pylint: disable=W0221
+        if self.inplaces.get(0, False):
+            return self._run_inplace(x)
+        return (self._cast(x), )
+
+    def _run_inplace(self, x):
+        if x.dtype == self._dtype:
+            return (x, )
         return (self._cast(x), )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221

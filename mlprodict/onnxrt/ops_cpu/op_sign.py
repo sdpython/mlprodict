@@ -16,9 +16,11 @@ class Sign(OpRunUnaryNum):
 
     def _run(self, x):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
-            return (numpy.sign(x, out=x), )
-        else:
-            return (numpy.sign(x), )
+            return self._run_inplace(x)
+        return (numpy.sign(x), )
+
+    def _run_inplace(self, x):
+        return (numpy.sign(x, out=x), )
 
     def to_python(self, inputs):
         return self._to_python_numpy(inputs, self.__class__.__name__.lower())

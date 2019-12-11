@@ -30,19 +30,27 @@ class Normalizer(OpRunUnaryNum):
     def norm_max(x, inplace):
         "max normalization"
         if inplace:
-            numpy.divide(x, numpy.abs(x).max(axis=1).reshape((x.shape[0], -1)),
-                         out=x)
-            return x
+            return Normalizer._norm_max_inplace(x)
         return x / numpy.abs(x).max(axis=1).reshape((x.shape[0], -1))
+
+    @staticmethod
+    def _norm_max_inplace(x):
+        numpy.divide(x, numpy.abs(x).max(axis=1).reshape((x.shape[0], -1)),
+                     out=x)
+        return x
 
     @staticmethod
     def norm_l1(x, inplace):
         "L1 normalization"
         if inplace:
-            numpy.divide(x, numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1)),
-                         out=x)
-            return x
+            return Normalizer._norm_L1_inplace(x)
         return x / numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1))
+
+    @staticmethod
+    def _norm_L1_inplace(x):
+        numpy.divide(x, numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1)),
+                     out=x)
+        return x
 
     @staticmethod
     def norm_l2(x, inplace):

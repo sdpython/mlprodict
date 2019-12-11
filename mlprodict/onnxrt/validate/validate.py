@@ -309,7 +309,8 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=None,  # pylint: d
     if opset_max == -1:
         opset_max = get_opset_number_from_onnx()
     if verbose > 0 and fLOG is not None:
-        fLOG("[enumerate_compatible_opset] opset in [{}, {}].".format(opset_min, opset_max))
+        fLOG("[enumerate_compatible_opset] opset in [{}, {}].".format(
+            opset_min, opset_max))
     if verbose > 1 and fLOG:
         fLOG("[enumerate_compatible_opset] validate class '{}'.".format(
             model.__name__))
@@ -879,7 +880,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=None,
     if opset_max == -1:
         opset_max = get_opset_number_from_onnx()
     if verbose > 0 and fLOG is not None:
-        fLOG("[enumerate_validated_operator_opsets] opset in [{}, {}].".format(opset_min, opset_max))
+        fLOG("[enumerate_validated_operator_opsets] opset in [{}, {}].".format(
+            opset_min, opset_max))
     for row in loop:
 
         model = row['cl']

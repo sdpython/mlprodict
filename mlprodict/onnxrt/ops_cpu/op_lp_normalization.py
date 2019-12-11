@@ -21,4 +21,10 @@ class LpNormalization(OpRunUnaryNum):
         norm = numpy.power(numpy.power(x, self.p).sum(
             axis=self.axis), 1. / self.p)
         norm = numpy.expand_dims(norm, self.axis)
+        if self.inplaces.get(0, False):
+            return self._run_inplace(x, norm)
         return (x / norm, )
+
+    def _run_inplace(self, x, norm):
+        x /= norm
+        return (x, )

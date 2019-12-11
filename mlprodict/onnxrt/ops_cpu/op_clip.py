@@ -22,10 +22,12 @@ class Clip_6(OpRunUnaryNum):
 
     def _run(self, data):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
-            res = numpy.clip(data, self.min, self.max, out=data)
-        else:
-            res = numpy.clip(data, self.min, self.max)
+            return self._run_inplace(data)
+        res = numpy.clip(data, self.min, self.max)
         return (res, ) if res.dtype == data.dtype else (res.astype(data.dtype), )
+
+    def _run_inplace(self, data):
+        return (numpy.clip(data, self.min, self.max, out=data), )
 
     def to_python(self, inputs):
         return ("import numpy",

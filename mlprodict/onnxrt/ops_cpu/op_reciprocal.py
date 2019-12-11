@@ -17,8 +17,11 @@ class Reciprocal(OpRunUnaryNum):
     def _run(self, x):  # pylint: disable=W0221
         with numpy.errstate(divide='ignore'):
             if self.inplaces.get(0, False):
-                return (numpy.reciprocal(x, out=x), )
+                return self._run_inplace(x)
             return (numpy.reciprocal(x), )
+
+    def _run_inplace(self, x):
+        return (numpy.reciprocal(x, out=x), )
 
     def to_python(self, inputs):
         return self._to_python_numpy(inputs, self.__class__.__name__.lower())

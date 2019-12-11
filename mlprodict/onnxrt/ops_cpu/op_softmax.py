@@ -19,15 +19,17 @@ class Softmax(OpRunUnaryNum):
 
     def _run(self, X):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
-            X -= X.max(axis=self.axis)[:, numpy.newaxis]
-            numpy.exp(X, out=X)
-            X /= X.sum(axis=self.axis)[:, numpy.newaxis]
-            return (X, )
-        else:
-            tmp = X - X.max(axis=self.axis)[:, numpy.newaxis]
-            Y = numpy.exp(tmp)
-            Y /= Y.sum(axis=self.axis)[:, numpy.newaxis]
-            return (Y, )
+            return self._run_inplace(X)
+        tmp = X - X.max(axis=self.axis)[:, numpy.newaxis]
+        Y = numpy.exp(tmp)
+        Y /= Y.sum(axis=self.axis)[:, numpy.newaxis]
+        return (Y, )
+
+    def _run_inplace(self, X):
+        X -= X.max(axis=self.axis)[:, numpy.newaxis]
+        numpy.exp(X, out=X)
+        X /= X.sum(axis=self.axis)[:, numpy.newaxis]
+        return (X, )
 
     def to_python(self, inputs):
         lines = ["tmp = {0} - {0}.max(axis=axis)[:, numpy.newaxis]".format(

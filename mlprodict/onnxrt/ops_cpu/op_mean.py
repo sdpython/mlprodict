@@ -14,7 +14,15 @@ class Mean(OpRun):
                        **options)
 
     def _run(self, *args):  # pylint: disable=W0221
+        if self.inplaces.get(0, False):
+            return self._run_inplace(*args)
         res = args[0].copy()
+        for m in args[1:]:
+            res += m
+        return (res / len(args), )
+
+    def _run_inplace(self, *args):
+        res = args[0]
         for m in args[1:]:
             res += m
         return (res / len(args), )
