@@ -99,6 +99,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     @skipif_appveyor("issue with opset 11")
+    @skipif_circleci('too long')
     def test_onnxrt_python_HistGradientBoostingRegressor64_hist_compiled(self):
         self.onnxrt_python_RandomForestRegressor_dtype(
             numpy.float64, use_hist=True, runtime="python_compiled")

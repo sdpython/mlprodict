@@ -6,7 +6,7 @@ import numpy
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.model_checker import onnx_shaker, astype_range
 from mlprodict.onnxrt import OnnxInference
@@ -30,6 +30,7 @@ class TestOnnxrtModelChecker(ExtTestCase):
         mx = numpy.max(delta)
         self.assertGreater(float(mx), 1e-10)
 
+    @skipif_circleci('too long')
     def test_onnx_shaker(self):
         iris = load_iris()
         X, y = iris.data, iris.target

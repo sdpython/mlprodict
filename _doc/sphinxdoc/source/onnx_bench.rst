@@ -130,11 +130,15 @@ it is *1/r* faster than *scikit-learn*.
         df2["n_features"] = 4
     df1['optim'] = df1['optim'].fillna('')
     df2['optim'] = df2['optim'].fillna('')
-    df1['opset'] = df1['opset11'].fillna('')
-    df2['opset'] = df2['opset11'].fillna('')
 
-    df1['opset'] = df1['opset'].apply(lambda x: "11" if "OK 11" in x else "")
-    df2['opset'] = df2['opset'].apply(lambda x: "11" if "OK 11" in x else "")
+    last_opset = max(int(_[5:]) for _ in list(df1.columns) if _.startswith("opset"))
+    opset_col = 'opset%d' % last_opset
+
+    df1['opset'] = df1[opset_col].fillna('')
+    df2['opset'] = df2[opset_col].fillna('')
+
+    df1['opset'] = df1['opset'].apply(lambda x: str(last_opset) if "OK %d" % last_opset in x else "")
+    df2['opset'] = df2['opset'].apply(lambda x: str(last_opset) if "OK %d" % last_opset in x else "")
     sops = str(onnx_opset_version())
     oksops = "OK " + str(onnx_opset_version())
     df1['opset'] = df1['opset'].apply(lambda x: sops if oksops in x else "")

@@ -5,7 +5,7 @@ import unittest
 from logging import getLogger
 from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -17,6 +17,7 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 
 class TestRtValidateLightGbm(ExtTestCase):
 
+    @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_LGBMClassifier_onnxruntime1(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
