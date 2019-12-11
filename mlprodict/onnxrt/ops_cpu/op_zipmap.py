@@ -45,7 +45,8 @@ class ZipMapDictionary(dict):
             return self._mat[self._values, self._rev_keys[key]]
 
     def __setitem__(self, pos, value):
-        raise RuntimeError("Changing an element is not supported.")
+        raise RuntimeError(
+            "Changing an element is not supported ({}, {})".format(pos, value))
 
     def __len__(self):
         """
