@@ -60,13 +60,20 @@ class Clip_11(OpRunUnaryNum):
         return res
 
     def _run(self, data, *minmax):  # pylint: disable=W0221
-        amin = minmax[0] if len(minmax) > 0 else -3.4028234663852886e+38
-        amax = minmax[1] if len(minmax) > 1 else 3.4028234663852886e+38
         if self.inplaces.get(0, False):
-            res = numpy.clip(data, amin, amax, out=data)
-        else:
-            res = numpy.clip(data, amin, amax)
+            return self._run_inplace(data, *minmax)
+        le = len(minmax)
+        amin = minmax[0] if le > 0 else None  # -3.4028234663852886e+38
+        amax = minmax[1] if le > 1 else None  # 3.4028234663852886e+38
+        res = numpy.clip(data, amin, amax)
         return (res, ) if res.dtype == data.dtype else (res.astype(data.dtype), )
+
+    def _run_inplace(self, data, *minmax):  # pylint: disable=W0221
+        le = len(minmax)
+        amin = minmax[0] if le > 0 else None  # -3.4028234663852886e+38
+        amax = minmax[1] if le > 1 else None  # 3.4028234663852886e+38
+        res = numpy.clip(data, amin, amax, out=data)
+        return (res, )
 
     def infer_shapes(self, x, *minmax):  # pylint: disable=E0202,W0221
         try:

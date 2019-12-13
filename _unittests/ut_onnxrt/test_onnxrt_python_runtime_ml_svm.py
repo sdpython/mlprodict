@@ -3,7 +3,6 @@
 """
 import unittest
 from logging import getLogger
-import platform
 import warnings
 import numpy
 import sklearn
@@ -36,25 +35,17 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         from mlprodict.onnxrt.ops_cpu.op_svm_regressor_ import RuntimeSVMRegressorFloat  # pylint: disable=E0611
         ru = RuntimeSVMRegressorFloat()
         r = ru.runtime_options()
-        if platform.system().lower() == 'darwin':
-            # openmp disabled
-            self.assertEqual('', r)
-        else:
-            self.assertEqual('OPENMP', r)
-            nb = ru.omp_get_max_threads()
-            self.assertGreater(nb, 0)
+        self.assertEqual('OPENMP', r)
+        nb = ru.omp_get_max_threads()
+        self.assertGreater(nb, 0)
 
     def test_openmp_compilation_double(self):
         from mlprodict.onnxrt.ops_cpu.op_svm_regressor_ import RuntimeSVMRegressorDouble  # pylint: disable=E0611
         ru = RuntimeSVMRegressorDouble()
         r = ru.runtime_options()
-        if platform.system().lower() == 'darwin':
-            # openmp disabled
-            self.assertEqual('', r)
-        else:
-            self.assertEqual('OPENMP', r)
-            nb = ru.omp_get_max_threads()
-            self.assertGreater(nb, 0)
+        self.assertEqual('OPENMP', r)
+        nb = ru.omp_get_max_threads()
+        self.assertGreater(nb, 0)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVR(self):

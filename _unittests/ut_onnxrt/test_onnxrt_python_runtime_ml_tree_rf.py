@@ -81,8 +81,9 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
     def test_onnxrt_python_RandomForestRegressor32(self):
         self.onnxrt_python_RandomForestRegressor_dtype(numpy.float32)
 
-    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
+    @skipif_circleci('too long')
     @skipif_appveyor("issue with opset 11")
+    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_onnxrt_python_RandomForestRegressor64(self):
         self.onnxrt_python_RandomForestRegressor_dtype(numpy.float64)
 
@@ -91,15 +92,16 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         self.onnxrt_python_RandomForestRegressor_dtype(
             numpy.float32, use_hist=True)
 
-    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
+    @skipif_circleci('too long')
     @skipif_appveyor("issue with opset 11")
+    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_onnxrt_python_HistGradientBoostingRegressor64_hist(self):
         self.onnxrt_python_RandomForestRegressor_dtype(
             numpy.float64, use_hist=True)
 
-    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     @skipif_appveyor("issue with opset 11")
     @skipif_circleci('too long')
+    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_onnxrt_python_HistGradientBoostingRegressor64_hist_compiled(self):
         self.onnxrt_python_RandomForestRegressor_dtype(
             numpy.float64, use_hist=True, runtime="python_compiled")
