@@ -242,13 +242,13 @@ def _asv_class_name(model, scenario, optimisation,
     if conv_options:
         els.append(clean_str_list(conv_options))
     res = ".".join(els).replace("-", "_")
-    if len(res) > 70:
+    if len(res) > 90:  # shorten filename
         m = hashlib.sha256()
         m.update(res.encode('utf-8'))
         sh = m.hexdigest()
         if len(sh) > 6:
             sh = sh[:6]
-        res = res[:70] + sh
+        res = res[:90] + sh
     return res
 
 
