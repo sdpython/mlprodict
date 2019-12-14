@@ -673,11 +673,11 @@ py::array_t<int> RuntimeTreeEnsembleRegressor<NTYPE>::debug_threshold(py::array_
     std::vector<ssize_t> shape = { (ssize_t)nodes_values_.size(), values.size() };
     std::vector<ssize_t> strides = { (ssize_t)(values.size()*sizeof(int)),
                                      (ssize_t)sizeof(int) };
-    return py::array_t<bool>(
+    return py::array_t<NTYPE>(
         py::buffer_info(
             &result[0],
-            sizeof(int),
-            py::format_descriptor<int>::format(),
+            sizeof(NTYPE),
+            py::format_descriptor<NTYPE>::format(),
             2,
             shape,                                   /* shape of the matrix       */
             strides                                  /* strides for each axis     */
@@ -715,7 +715,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute_tree_outputs(py:
     std::vector<ssize_t> shape = { (ssize_t)N, (ssize_t)roots_.size() };
     std::vector<ssize_t> strides = { (ssize_t)(roots_.size()*sizeof(NTYPE)),
                                      (ssize_t)sizeof(NTYPE) };
-    return py::array_t<bool>(
+    return py::array_t<NTYPE>(
         py::buffer_info(
             &result[0],
             sizeof(NTYPE),

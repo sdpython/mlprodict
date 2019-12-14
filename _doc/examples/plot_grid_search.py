@@ -1,5 +1,3 @@
-# Licensed under the MIT License.
-
 """
 .. _l-example-grid-search:
 

@@ -12,6 +12,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt.ops_cpu.op_array_feature_extractor import _array_feature_extrator
+from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import array_feature_extractor_double  # pylint: disable=E0611
 
 
 class TestOnnxrtPythonRuntime(ExtTestCase):
@@ -100,6 +102,27 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         oinf2 = OnnxInference(model_def, runtime="onnxruntime2")
         got2 = oinf2.run({'X': X})['Y']
         self.assertEqualArray(got, got2)
+
+    def test_cpp_runtime(self):
+        X = numpy.array([3.3626876, 2.204158, 2.267245, 1.297554, 0.97023404],
+                        dtype=numpy.float32)
+        indices = numpy.array([4, 2, 0, 1, 3],
+                              dtype=numpy.int64)
+        res1 = _array_feature_extrator(X, indices)
+        res2 = array_feature_extractor_double(X, indices)
+        self.assertEqualArray(res1, res2)
+
+        X = numpy.array([3.3626876, 2.204158, 2.267245, 1.297554, 0.97023404],
+                        dtype=numpy.float32)
+        indices = numpy.array([[4, 2, 0, 1, 3, ],
+                               [0, 1, 2, 3, 4],
+                               [0, 1, 2, 3, 4],
+                               [3, 4, 2, 0, 1],
+                               [0, 2, 3, 4, 1]],
+                              dtype=numpy.int64)
+        res1 = _array_feature_extrator(X, indices)
+        res2 = array_feature_extractor_double(X, indices)
+        self.assertEqualArray(res1, res2)
 
 
 if __name__ == "__main__":

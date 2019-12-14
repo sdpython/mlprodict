@@ -205,6 +205,7 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
   }
 }
 
+
 #define array2vector(vec, arr, dtype) { \
     if (arr.size() > 0) { \
         auto n = arr.size(); \
@@ -212,6 +213,7 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
         vec = std::vector<dtype>(p, p + n); \
     } \
 }
+
 
 #define arrayshape2vector(vec, arr) { \
     if (arr.size() > 0) { \
@@ -222,3 +224,33 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
 }
 
 
+template<class NTYPE>
+NTYPE flattened_dimension(const std::vector<NTYPE>& values)
+{
+    NTYPE r = 1;
+    for(auto it = values.begin(); it != values.end(); ++it)
+        r *= *it;
+    return r;
+}
+
+
+template<class NTYPE>
+NTYPE flattened_dimension(const std::vector<NTYPE>& values, int64_t first)
+{
+    NTYPE r = 1;
+    auto end = values.begin() + first;
+    for(auto it = values.begin(); it != end; ++it)
+        r *= *it;
+    return r;
+}
+
+
+template<class DIMTYPE, class NTYPE>
+void shape2strides(const std::vector<DIMTYPE>& shape, 
+                   std::vector<DIMTYPE>& strides, NTYPE cst)
+{
+    strides.resize(shape.size());
+    strides[strides.size()-1] = sizeof(NTYPE);
+    for(ssize_t i = strides.size()-2; i >= 0; --i)
+        strides[i] = strides[i+1] * shape[i+1];
+}

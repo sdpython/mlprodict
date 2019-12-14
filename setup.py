@@ -277,11 +277,28 @@ if not r:
         define_macros=define_macros,
         language='c++')
 
+    op_onnx_numpy = Extension(
+        'mlprodict.onnxrt.ops_cpu._op_onnx_numpy',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/_op_onnx_numpy.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
     ext_modules = [
         ext_svm_classifier,
         ext_svm_regressor,
         ext_tree_ensemble_classifier,
         ext_tree_ensemble_regressor,
+        op_onnx_numpy,
     ]
 
     setup(
@@ -300,9 +317,10 @@ if not r:
         packages=packages,
         package_dir=package_dir,
         package_data=package_data,
-        setup_requires=["pybind11", "numpy", "onnx", "scikit-learn",
-                        "jinja2"],
-        install_requires=["pybind11", "numpy", "onnx>=1.6", 'scipy>=1.0.0'],
+        setup_requires=["pybind11", "numpy", "onnx>=1.6", "scikit-learn",
+                        "jinja2", 'cython'],
+        install_requires=["pybind11", "numpy", "onnx>=1.6", 'scipy>=1.0.0',
+                          'cython'],
         extras_require={
             'onnx_conv': ['scikit-learn>=0.21', 'skl2onnx>=1.6.0'],
             'sklapi': ['scikit-learn>=0.21'],

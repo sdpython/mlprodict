@@ -8,6 +8,16 @@ import numpy
 from ._op import OpRun
 
 
+def gather_numpy_2(self, dim, index):
+    res = []
+    for a, b in zip(self, index):
+        res.append(a[b[0]])
+    res = numpy.array(
+        res, dtype=self.dtype).reshape(
+            index.shape)
+    return res
+
+
 def gather_numpy(self, dim, index):
     """
     Gathers values along an axis specified by dim.
@@ -37,15 +47,8 @@ def gather_numpy(self, dim, index):
         gathered = numpy.choose(index_swaped, data_swaped)
     except ValueError as e:
         if len(index_swaped.shape) == 2 and len(data_swaped.shape) == 2:
-            res = []
-            for a, b in zip(self, index):
-                res.append(a[b[0]])
-            res = numpy.array(
-                res, dtype=self.dtype).reshape(
-                    index.shape)
-            return res
-        else:
-            raise e
+            return gather_numpy_2(self, dim, index)
+        raise e
 
     return numpy.swapaxes(gathered, 0, dim)
 
