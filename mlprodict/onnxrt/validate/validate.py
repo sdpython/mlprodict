@@ -420,8 +420,8 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=None,  # pylint: d
                     continue
 
                 # statistics about the trained model
-                skl_infos = analyze_model(model)
-                for k, v in skl_infos:
+                skl_infos = analyze_model(inst)
+                for k, v in skl_infos.items():
                     obs['fit_' + k] = v
 
                 # runtime
