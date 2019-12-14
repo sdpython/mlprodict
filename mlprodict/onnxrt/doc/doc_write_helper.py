@@ -15,6 +15,7 @@ from ..validate.validate import enumerate_validated_operator_opsets, sklearn_ope
 from ..validate.validate import get_opset_number_from_onnx, sklearn__all__
 from ..optim.sklearn_helper import inspect_sklearn_model
 from ..optim.onnx_helper import onnx_statistics
+from ...tools.model_info import analyze_model
 from ..onnx_inference import OnnxInference
 from ..validate.validate_summary import _clean_values_optim
 from .doc_helper import visual_rst_template
@@ -70,8 +71,10 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         opset = _make_opset(row)
         stats_skl = inspect_sklearn_model(model)
         stats_onx = onnx_statistics(row['ONNX'])
+        stats_model = analyze_model(model)
         stats = {'skl_' + k: v for k, v in stats_skl.items()}
         stats.update({'onx_' + k: v for k, v in stats_onx.items()})
+        stats.update({'fit_' + k: v for k, v in stats_model.items()})
 
         df = DataFrame([stats])
         table = df2rst(df.T.reset_index(drop=False))

@@ -2,7 +2,6 @@
 @brief      test log(time=2s)
 """
 import unittest
-import platform
 from logging import getLogger
 import numpy
 import pandas
@@ -299,24 +298,16 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_ import RuntimeTreeEnsembleRegressorFloat  # pylint: disable=E0611
         ru = RuntimeTreeEnsembleRegressorFloat()
         r = ru.runtime_options()
-        if platform.system().lower() == 'darwin':
-            # openmp disabled
-            self.assertEqual('', r)
-        else:
-            self.assertEqual('OPENMP', r)
-            nb = ru.omp_get_max_threads()
-            self.assertGreater(nb, 0)
+        self.assertEqual('OPENMP', r)
+        nb = ru.omp_get_max_threads()
+        self.assertGreater(nb, 0)
 
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_ import RuntimeTreeEnsembleClassifierFloat  # pylint: disable=E0611
         ru = RuntimeTreeEnsembleClassifierFloat()
         r = ru.runtime_options()
-        if platform.system().lower() == 'darwin':
-            # openmp disabled
-            self.assertEqual('', r)
-        else:
-            self.assertEqual('OPENMP', r)
-            nb2 = ru.omp_get_max_threads()
-            self.assertEqual(nb2, nb)
+        self.assertEqual('OPENMP', r)
+        nb2 = ru.omp_get_max_threads()
+        self.assertEqual(nb2, nb)
 
 
 if __name__ == "__main__":

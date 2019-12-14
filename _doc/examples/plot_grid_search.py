@@ -7,7 +7,7 @@ Grid search ONNX models
 =======================
 
 This example uses *OnnxTransformer* to freeze a model.
-Many preprocessing are fitted, converted into *ONNX*
+Many preprocessing are fitted, converted into :epkg:`ONNX`
 and inserted into a pipeline with *OnnxTransformer*
 si that they do not have to be fitted again.
 The grid search will pick the best one for the task.

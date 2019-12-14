@@ -13,6 +13,7 @@ from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.model_selection import train_test_split
 from ... import __version__ as ort_version
 from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
+from ...tools.model_info import analyze_model
 from ..onnx_inference import OnnxInference
 from ..optim.sklearn_helper import inspect_sklearn_model
 from ..optim.onnx_helper import onnx_statistics
@@ -417,6 +418,11 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=None,  # pylint: d
                                     debug, verbose, fLOG):
                     yield obs.copy()
                     continue
+
+                # statistics about the trained model
+                skl_infos = analyze_model(model)
+                for k, v in skl_infos:
+                    obs['fit_' + k] = v
 
                 # runtime
                 ypred = _run_skl_prediction(

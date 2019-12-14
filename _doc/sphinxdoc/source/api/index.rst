@@ -13,3 +13,4 @@ API
     onnx_conv
     sklapi
     asv
+    tools

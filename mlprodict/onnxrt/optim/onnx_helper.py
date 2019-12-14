@@ -8,7 +8,9 @@ from .onnx_optimisation import onnx_remove_node
 
 def onnx_statistics(onnx_model, recursive=True, optim=True):
     """
-    Computes statistics on :epkg:`ONNX` models.
+    Computes statistics on :epkg:`ONNX` models,
+    extracts informations about the model such as
+    the number of nodes.
 
     @param      onnx_model      onnx model
     @param      recursive       looks into subgraphs
