@@ -5,7 +5,13 @@
 History
 =======
 
-current - 2019-12-13 - 0.00Mb
+current - 2019-12-14 - 0.00Mb
+=============================
+
+* `89`: Implements a function which extracts some informations on the models (2019-12-14)
+* `88`: Fix bug in runtime of GatherElements (2019-12-14)
+
+0.3.853 - 2019-12-13 - 0.24Mb
 =============================
 
 * `87`: Add converter for HistGradientBoostRegressor (2019-12-09)

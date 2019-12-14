@@ -1,5 +1,5 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=8s)
 """
 import unittest
 from lightgbm import LGBMClassifier, LGBMRegressor
@@ -16,7 +16,7 @@ from sklearn.ensemble import (
     RandomForestClassifier,
     RandomForestRegressor,
 )
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from mlprodict.tools.model_info import analyze_model
 
 
@@ -95,6 +95,7 @@ class TestModelInfo(ExtTestCase):
         self.assertGreater(info['_predictors.sum|tree_.leave_count'], 100)
         self.assertGreater(info['_predictors.max|tree_.max_depth'], 3)
 
+    @skipif_circleci('issue, too long')
     def test_lgbmc(self):
         model = self.fit(LGBMClassifier())
         info = analyze_model(model)
@@ -106,6 +107,7 @@ class TestModelInfo(ExtTestCase):
         self.assertGreater(info['mode_count'], 2)
         self.assertGreater(info['node_count'], 100)
 
+    @skipif_circleci('issue, too long')
     def test_lgbmr(self):
         model = self.fit(LGBMRegressor())
         info = analyze_model(model)
@@ -116,6 +118,7 @@ class TestModelInfo(ExtTestCase):
         self.assertGreater(info['mode_count'], 2)
         self.assertGreater(info['node_count'], 100)
 
+    @skipif_circleci('issue, too long')
     def test_xgbc(self):
         model = self.fit(XGBClassifier())
         info = analyze_model(model)
@@ -127,6 +130,7 @@ class TestModelInfo(ExtTestCase):
         self.assertGreater(info['mode_count'], 2)
         self.assertGreater(info['node_count'], 100)
 
+    @skipif_circleci('issue, too long')
     def test_xgbr(self):
         model = self.fit(XGBRegressor())
         info = analyze_model(model)
