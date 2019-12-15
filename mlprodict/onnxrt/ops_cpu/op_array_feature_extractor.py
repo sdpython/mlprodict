@@ -64,19 +64,28 @@ class ArrayFeatureExtractor(OpRun):
             `array_feature_extractor.cc
             <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/array_feature_extractor.cc#L84>`_.
         """
-        if data.strides[-1] != sizeof(data.dtype):
-            # The C++ implementation only accept
-            # data coming from raw arrays with no strides.
-            data = data.copy()
         if indices.strides[-1] != sizeof(indices.dtype):
             indices = indices.copy()
         if data.dtype == numpy.float64:
+            if data.strides[-1] != sizeof(data.dtype):
+                # The C++ implementation only accept
+                # data coming from raw arrays with no strides.
+                data = data.copy()
             res = array_feature_extractor_double(data, indices)
         elif data.dtype == numpy.float32:
+            if data.strides[-1] != sizeof(data.dtype):
+                # The C++ implementation only accept
+                # data coming from raw arrays with no strides.
+                data = data.copy()
             res = array_feature_extractor_float(data, indices)
         elif data.dtype == numpy.int64:
+            if data.strides[-1] != sizeof(data.dtype):
+                # The C++ implementation only accept
+                # data coming from raw arrays with no strides.
+                data = data.copy()
             res = array_feature_extractor_int64(data, indices)
         else:
+            # for strings
             res = _array_feature_extrator(data, indices)
         return (res, )
 
