@@ -35,6 +35,17 @@ def _array_feature_extrator(data, indices):
     return res
 
 
+def sizeof(dty):
+    if dty == numpy.float64:
+        return 8
+    if dty == numpy.float32:
+        return 4
+    if dty == numpy.int64:
+        return 8
+    raise ValueError(
+        "Unable to get bytes size for type {}.".format(numpy.dtype))
+
+
 class ArrayFeatureExtractor(OpRun):
 
     def __init__(self, onnx_node, desc=None, **options):
@@ -53,13 +64,21 @@ class ArrayFeatureExtractor(OpRun):
             `array_feature_extractor.cc
             <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/array_feature_extractor.cc#L84>`_.
         """
+        if data.strides[-1] != sizeof(data.dtype):
+            # The C++ implementation only accept
+            # data coming from raw arrays with no strides.
+            data = data.copy()
+        if indices.strides[-1] != sizeof(indices.dtype):
+            indices = indices.copy()
         if data.dtype == numpy.float64:
-            return (array_feature_extractor_double(data, indices), )
-        if data.dtype == numpy.float32:
-            return (array_feature_extractor_float(data, indices), )
-        if data.dtype == numpy.int64:
-            return (array_feature_extractor_int64(data, indices), )
-        return (_array_feature_extrator(data, indices), )
+            res = array_feature_extractor_double(data, indices)
+        elif data.dtype == numpy.float32:
+            res = array_feature_extractor_float(data, indices)
+        elif data.dtype == numpy.int64:
+            res = array_feature_extractor_int64(data, indices)
+        else:
+            res = _array_feature_extrator(data, indices)
+        return (res, )
 
     def _infer_shapes(self, data, indices):  # pylint: disable=W0221
         """

@@ -5,9 +5,10 @@
 History
 =======
 
-current - 2019-12-14 - 0.00Mb
+current - 2019-12-15 - 0.00Mb
 =============================
 
+* `92`: Implements a C++ version of  ArrayFeatureExtractor (2019-12-14)
 * `89`: Implements a function which extracts some informations on the models (2019-12-14)
 * `88`: Fix bug in runtime of GatherElements (2019-12-14)
 

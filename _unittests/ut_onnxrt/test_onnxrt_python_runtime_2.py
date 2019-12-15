@@ -124,6 +124,33 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         res2 = array_feature_extractor_double(X, indices)
         self.assertEqualArray(res1, res2)
 
+        X = numpy.array([[2.9319777, 5.4039497, 6.4039497],
+                         [2.9319777, 5.4039497, 6.4039497],
+                         [2.471972, 3.471972, 6.4039497],
+                         [2.9319777, 5.4039497, 6.4039497],
+                         [2.9319777, 5.4039497, 6.4039497],
+                         [2.9319777, 5.4039497, 6.4039497]],
+                        dtype=numpy.float32)
+        indices = numpy.array([2], dtype=numpy.int64)
+        res1 = _array_feature_extrator(X, indices)
+        res2 = array_feature_extractor_double(X, indices)
+        self.assertEqualArray(res1, res2)
+
+        X = numpy.array(
+            [[1.1480222, 2.1108956, 3.226049, 4.179276, 5.6356807],
+             [0.95322716, 2.1012492, 3.2164025, 4.672807, 5.6356807],
+             [0.95322716, 2.0683806, 3.524785, 4.487658, 5.6356807]],
+            dtype=numpy.float32)
+        indices = numpy.array([4], dtype=numpy.int64)
+        res1 = _array_feature_extrator(X, indices)
+        res2 = array_feature_extractor_double(X, indices)
+        self.assertEqualArray(res1, res2)
+
+        indices = numpy.array([3], dtype=numpy.int64)
+        res1 = _array_feature_extrator(X, indices)
+        res2 = array_feature_extractor_double(X, indices)
+        self.assertEqualArray(res1, res2)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -63,7 +63,7 @@ py::array_t<NTYPE> array_feature_extractor(py::array_t<NTYPE> data,
         z_shape[x_num_dims - 1] = num_indices;
     }
 
-    std::vector<NTYPE> z_vector(flattened_dimension(z_shape));
+    std::vector<NTYPE> z_vector(flattened_dimension(z_shape), -1);
     NTYPE* z_data = z_vector.data();
 
     int64_t x_size_until_last_dim = flattened_dimension(x_shape, x_num_dims - 1);
