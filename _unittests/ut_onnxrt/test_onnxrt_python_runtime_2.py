@@ -146,6 +146,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         res2 = array_feature_extractor_double(X, indices)
         self.assertEqualArray(res1, res2)
 
+        X = X[:, :-1]
         indices = numpy.array([3], dtype=numpy.int64)
         res1 = _array_feature_extrator(X, indices)
         res2 = array_feature_extractor_double(X, indices)

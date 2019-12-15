@@ -15,6 +15,10 @@ from ._op_onnx_numpy import (  # pylint: disable=E0611
 
 
 def _array_feature_extrator(data, indices):
+    """
+    Implementation of operator *ArrayFeatureExtractor*
+    with :epkg:`numpy`.
+    """
     if len(indices.shape) == 2 and indices.shape[0] == 1:
         index = indices.ravel().tolist()
         add = len(index)
@@ -64,25 +68,26 @@ class ArrayFeatureExtractor(OpRun):
             `array_feature_extractor.cc
             <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/array_feature_extractor.cc#L84>`_.
         """
-        if indices.strides[-1] != sizeof(indices.dtype):
-            indices = indices.copy()
+        def ascont(mat):
+            if mat.flags['C_CONTIGUOUS']:
+                return mat
+            return numpy.ascontiguousarray(mat)
+
+        indices = ascont(indices)
         if data.dtype == numpy.float64:
-            if data.strides[-1] != sizeof(data.dtype):
-                # The C++ implementation only accept
-                # data coming from raw arrays with no strides.
-                data = data.copy()
+            # The C++ implementation only accept
+            # data coming from raw arrays with no strides.
+            data = ascont(data)
             res = array_feature_extractor_double(data, indices)
         elif data.dtype == numpy.float32:
-            if data.strides[-1] != sizeof(data.dtype):
-                # The C++ implementation only accept
-                # data coming from raw arrays with no strides.
-                data = data.copy()
+            # The C++ implementation only accept
+            # data coming from raw arrays with no strides.
+            data = ascont(data)
             res = array_feature_extractor_float(data, indices)
         elif data.dtype == numpy.int64:
-            if data.strides[-1] != sizeof(data.dtype):
-                # The C++ implementation only accept
-                # data coming from raw arrays with no strides.
-                data = data.copy()
+            # The C++ implementation only accept
+            # data coming from raw arrays with no strides.
+            data = ascont(data)
             res = array_feature_extractor_int64(data, indices)
         else:
             # for strings

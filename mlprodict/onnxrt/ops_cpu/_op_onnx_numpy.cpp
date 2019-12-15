@@ -63,7 +63,7 @@ py::array_t<NTYPE> array_feature_extractor(py::array_t<NTYPE> data,
         z_shape[x_num_dims - 1] = num_indices;
     }
 
-    std::vector<NTYPE> z_vector(flattened_dimension(z_shape), -1);
+    std::vector<NTYPE> z_vector(flattened_dimension(z_shape));
     NTYPE* z_data = z_vector.data();
 
     int64_t x_size_until_last_dim = flattened_dimension(x_shape, x_num_dims - 1);
@@ -105,7 +105,7 @@ py::array_t<double> array_feature_extractor_double(
 py::array_t<int64_t> array_feature_extractor_int64(
     py::array_t<int64_t> data, py::array_t<int64_t> indices) {
     return array_feature_extractor(data, indices);
-}        
+}
 
 
 #ifndef SKIP_PYTHON
@@ -120,11 +120,14 @@ PYBIND11_MODULE(_op_onnx_numpy, m) {
     ;
 
     m.def("array_feature_extractor_float", &array_feature_extractor_float,
-            "C++ implementation of operator ArrayFeatureExtractor for float32.");
+            R"pbdoc(C++ implementation of operator ArrayFeatureExtractor for float32.
+                    The function only works with contiguous arrays.)pbdoc");
     m.def("array_feature_extractor_double", &array_feature_extractor_double,
-            "C++ implementation of operator ArrayFeatureExtractor for float64.");
+            R"pbdoc(C++ implementation of operator ArrayFeatureExtractor for float64.
+                    The function only works with contiguous arrays.)pbdoc");
     m.def("array_feature_extractor_int64", &array_feature_extractor_int64,
-            "C++ implementation of operator ArrayFeatureExtractor for int64.");
+            R"pbdoc(C++ implementation of operator ArrayFeatureExtractor for int64.
+                    The function only works with contiguous arrays.)pbdoc");
 }
 
 #endif
