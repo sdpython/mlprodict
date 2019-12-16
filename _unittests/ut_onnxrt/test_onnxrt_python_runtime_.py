@@ -40,6 +40,10 @@ from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.validate_helper import get_opset_number_from_onnx
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
+from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
+from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611
+    topk_element_min_double, topk_element_max_double
+)
 
 
 sparse_support = []
@@ -1119,7 +1123,104 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(X.T, got['Y'])
 
+    def test_cpp_topk_min_1(self):
+        X = numpy.array([1, -1], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 1, 0, 0)
+        to2 = topk_element_min_double(X, 1, False)
+        self.assertEqualArray(to1[1], to2)
+
+        X = numpy.array([1, -1], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 0, 0)
+        to2 = topk_element_min_double(X, 2, False)
+        self.assertEqual(set(to1[1]), set(to2))
+
+        X = numpy.array([1, -1], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 0, 0)
+        to2 = topk_element_min_double(X, 2, True)
+        self.assertEqualArray(to1[1], to2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 0, 0)
+        to2 = topk_element_min_double(X, 2, True)
+        self.assertEqualArray(to1[1], to2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 3, 0, 0)
+        to2 = topk_element_min_double(X, 3, True)
+        self.assertEqualArray(to1[1], to2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 4, 0, 0)
+        to2 = topk_element_min_double(X, 4, True)
+        self.assertEqualArray(to1[1], to2)
+
+    def test_cpp_topk_min_2(self):
+        X = numpy.array([[0, 1, 2, 3, 4],
+                         [1, -1, -2, 4, 5],
+                         [2, -2, -3, 5, -4]],
+                        dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 1, 0)
+        to2 = topk_element_min_double(X, 2, True)
+        self.assertEqualArray(to1[1], to2)
+
+        to1 = topk_sorted_implementation(X, 3, 1, 0)
+        to2 = topk_element_min_double(X, 3, True)
+        self.assertEqualArray(to1[1], to2)
+
+        to1 = topk_sorted_implementation(X, 4, 1, 0)
+        to2 = topk_element_min_double(X, 4, True)
+        self.assertEqualArray(to1[1], to2)
+
+    def test_cpp_topk_max_1(self):
+        X = numpy.array([1, -1], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 1, 0, 1)
+        to2 = topk_element_max_double(X, 1, False)
+        self.assertEqualArray(to1[1], to2)
+
+        X = numpy.array([1, -1], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 0, 1)
+        to2 = topk_element_max_double(X, 2, False)
+        self.assertEqual(set(to1[1]), set(to2))
+
+        X = numpy.array([1, -1], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 0, 1)
+        to2 = topk_element_max_double(X, 2, True)
+        self.assertEqualArray(to1[1], to2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 0, 1)
+        to2 = topk_element_max_double(X, 2, True)
+        self.assertEqualArray(to1[1], to2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 3, 0, 1)
+        to2 = topk_element_max_double(X, 3, True)
+        self.assertEqualArray(to1[1], to2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 4, 0, 1)
+        to2 = topk_element_max_double(X, 4, True)
+        self.assertEqualArray(to1[1], to2)
+
+    def test_cpp_topk_max_2(self):
+        X = numpy.array([[0, 1, 2, 3, 4],
+                         [1, -1, -2, 4, 5],
+                         [2, -2, -3, 5, -4]],
+                        dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 1, 1)
+        to2 = topk_element_max_double(X, 2, True)
+        self.assertEqualArray(to1[1], to2)
+
+        to1 = topk_sorted_implementation(X, 3, 1, 1)
+        to2 = topk_element_max_double(X, 3, True)
+        self.assertEqualArray(to1[1], to2)
+
+        to1 = topk_sorted_implementation(X, 4, 1, 1)
+        to2 = topk_element_max_double(X, 4, True)
+        self.assertEqualArray(to1[1], to2)
+
 
 if __name__ == "__main__":
-    TestOnnxrtPythonRuntime().test_onnxt_runtime_concat()
+    TestOnnxrtPythonRuntime().test_cpp_topk_max_1()
+    TestOnnxrtPythonRuntime().test_cpp_topk_max_2()
     unittest.main()
