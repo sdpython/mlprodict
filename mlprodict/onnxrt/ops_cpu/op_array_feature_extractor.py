@@ -39,7 +39,7 @@ def _array_feature_extrator(data, indices):
     return res
 
 
-def sizeof(dty):
+def sizeof_dtype(dty):
     if dty == numpy.float64:
         return 8
     if dty == numpy.float32:
@@ -66,31 +66,17 @@ class ArrayFeatureExtractor(OpRun):
             the output has still two like a matrix with one row.
             The implementation follows what :epkg:`onnxruntime` does in
             `array_feature_extractor.cc
-            <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/array_feature_extractor.cc#L84>`_.
+            <https://github.com/microsoft/onnxruntime/blob/master/
+            onnxruntime/core/providers/cpu/ml/array_feature_extractor.cc#L84>`_.
         """
-        def ascont(mat):
-            if mat.flags['C_CONTIGUOUS']:
-                return mat
-            return numpy.ascontiguousarray(mat)
-
-        indices = ascont(indices)
         if data.dtype == numpy.float64:
-            # The C++ implementation only accept
-            # data coming from raw arrays with no strides.
-            data = ascont(data)
             res = array_feature_extractor_double(data, indices)
         elif data.dtype == numpy.float32:
-            # The C++ implementation only accept
-            # data coming from raw arrays with no strides.
-            data = ascont(data)
             res = array_feature_extractor_float(data, indices)
         elif data.dtype == numpy.int64:
-            # The C++ implementation only accept
-            # data coming from raw arrays with no strides.
-            data = ascont(data)
             res = array_feature_extractor_int64(data, indices)
         else:
-            # for strings
+            # for strings, still not C++
             res = _array_feature_extrator(data, indices)
         return (res, )
 

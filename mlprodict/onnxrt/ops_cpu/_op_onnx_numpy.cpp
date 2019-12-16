@@ -8,6 +8,9 @@
 #include <vector>
 #include <thread>
 #include <iterator>
+#include <queue>
+#include <iostream>
+#include <algorithm>
 
 #ifndef SKIP_PYTHON
 //#include <pybind11/iostream.h>
@@ -26,9 +29,14 @@ namespace py = pybind11;
 #include "op_common_.hpp"
 
 
+/////////////////////////////////////////////
+// begin: array_feature_extractor
+/////////////////////////////////////////////
+
+
 template<typename NTYPE>
-py::array_t<NTYPE> array_feature_extractor(py::array_t<NTYPE> data,
-                                           py::array_t<int64_t> indices_) {
+py::array_t<NTYPE> array_feature_extractor(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> data,
+                                           py::array_t<int64_t, py::array::c_style | py::array::forcecast> indices_) {
                                                
     std::vector<int64_t> x_shape, y_shape;
 
@@ -91,21 +99,141 @@ py::array_t<NTYPE> array_feature_extractor(py::array_t<NTYPE> data,
 
 
 py::array_t<float> array_feature_extractor_float(
-    py::array_t<float> data, py::array_t<int64_t> indices) {
+        py::array_t<float, py::array::c_style | py::array::forcecast> data,
+        py::array_t<int64_t, py::array::c_style | py::array::forcecast> indices) {
     return array_feature_extractor(data, indices);
 }        
 
 
 py::array_t<double> array_feature_extractor_double(
-    py::array_t<double> data, py::array_t<int64_t> indices) {
+        py::array_t<double, py::array::c_style | py::array::forcecast> data, 
+        py::array_t<int64_t, py::array::c_style | py::array::forcecast> indices) {
     return array_feature_extractor(data, indices);
 }        
 
 
 py::array_t<int64_t> array_feature_extractor_int64(
-    py::array_t<int64_t> data, py::array_t<int64_t> indices) {
+        py::array_t<int64_t, py::array::c_style | py::array::forcecast> data,
+        py::array_t<int64_t, py::array::c_style | py::array::forcecast> indices) {
     return array_feature_extractor(data, indices);
 }
+
+/////////////////////////////////////////////
+// end: array_feature_extractor
+/////////////////////////////////////////////
+
+
+/////////////////////////////////////////////
+// begin: topk
+/////////////////////////////////////////////
+
+template<typename NTYPE>
+void _heapify_max_up_position(const NTYPE* ens, ssize_t n,
+                              int64_t* pos, ssize_t i) {
+    ssize_t left, right;
+    int64_t ch;
+    while(true) {
+        left = 2 * i + 1;
+        right = left + 1;
+        if (right < n) {
+            if ((ens[pos[left]] > ens[pos[i]]) && (ens[pos[i]] >= ens[pos[right]])) {
+                ch = pos[i];
+                pos[i] = pos[left];
+                pos[left] = ch;
+                i = left;
+            }
+            else if (ens[pos[right]] > ens[pos[i]]) {
+                ch = pos[i];
+                pos[i] = pos[right];
+                pos[right] = ch;
+                i = right;
+            }
+            else
+                break;
+        }
+        else if ((left < n) && (ens[pos[left]] > ens[pos[i]])) {
+            ch = pos[i];
+            pos[i] = pos[left];
+            pos[left] = ch;
+            i = left;
+        }
+        else
+            break;
+    }
+}
+
+
+template<typename NTYPE>
+void topk_element_min(const NTYPE* values, ssize_t k, ssize_t n,
+                      int64_t * indices) {
+    if (n <= k) {
+        for(ssize_t i = 0; i < n; ++i, ++indices)
+            *indices = i;
+    }
+    else if (k == 1) {
+        auto begin = values;
+        auto end = values + n;
+        *indices = 0;
+        for(++values; values != end; ++values)
+            *indices = *values < begin[*indices] ? ((int64_t)(values - begin)) : *indices;
+    }
+    else {
+        indices[k-1] = 0;
+    
+        ssize_t i = 0;
+        for(; i < k; ++i) {
+            indices[k-i-1] = i;
+            _heapify_max_up_position(values, n, indices, k-i-1);
+        }
+            
+        for(; i < n; ++i) {
+            if (values[i] < values[indices[0]]) {
+                indices[0] = k + i;
+                _heapify_max_up_position(values, n, indices, 0);
+            }
+        }
+    }
+}
+
+template<typename NTYPE>
+py::array_t<int64_t> topk_element_min(
+        py::array_t<NTYPE, py::array::c_style | py::array::forcecast> values, ssize_t k)
+{
+    std::vector<int64_t> pos(k);
+    topk_element_min(values.data(), k, values.size(), pos.data());
+    
+    return py::array_t<int64_t>(
+        py::buffer_info(
+            &pos[0],
+            sizeof(NTYPE),
+            py::format_descriptor<int64_t>::format(),
+            pos.size(),
+            {k, },
+            {sizeof(int64_t), }
+        )); 
+}
+
+py::array_t<int64_t> topk_element_min_int64(
+        py::array_t<int64_t, py::array::c_style | py::array::forcecast> values, ssize_t k) {
+    return topk_element_min(values, k);
+}
+
+py::array_t<int64_t> topk_element_min_float(
+        py::array_t<float, py::array::c_style | py::array::forcecast> values, ssize_t k) {
+    return topk_element_min(values, k);
+}
+
+py::array_t<int64_t> topk_element_min_double(
+        py::array_t<double, py::array::c_style | py::array::forcecast> values, ssize_t k) {
+    return topk_element_min(values, k);
+}
+
+
+/////////////////////////////////////////////
+// end: topk
+/////////////////////////////////////////////
+
+
 
 
 #ifndef SKIP_PYTHON
@@ -127,6 +255,16 @@ PYBIND11_MODULE(_op_onnx_numpy, m) {
                     The function only works with contiguous arrays.)pbdoc");
     m.def("array_feature_extractor_int64", &array_feature_extractor_int64,
             R"pbdoc(C++ implementation of operator ArrayFeatureExtractor for int64.
+                    The function only works with contiguous arrays.)pbdoc");
+
+    m.def("topk_element_min_float", &topk_element_min_float,
+            R"pbdoc(C++ implementation of operator TopK for float32.
+                    The function only works with contiguous arrays.)pbdoc");
+    m.def("topk_element_min_double", &topk_element_min_double,
+            R"pbdoc(C++ implementation of operator TopK for float32.
+                    The function only works with contiguous arrays.)pbdoc");
+    m.def("topk_element_min_int64", &topk_element_min_int64,
+            R"pbdoc(C++ implementation of operator TopK for float32.
                     The function only works with contiguous arrays.)pbdoc");
 }
 

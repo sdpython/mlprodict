@@ -12,7 +12,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.ops_cpu.op_array_feature_extractor import _array_feature_extrator
+from mlprodict.onnxrt.ops_cpu.op_array_feature_extractor import _array_feature_extrator, sizeof_dtype
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import array_feature_extractor_double  # pylint: disable=E0611
 
 
@@ -151,6 +151,12 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         res1 = _array_feature_extrator(X, indices)
         res2 = array_feature_extractor_double(X, indices)
         self.assertEqualArray(res1, res2)
+
+    def test_sizeof(self):
+        self.assertEqual(sizeof_dtype(numpy.float32), 4)
+        self.assertEqual(sizeof_dtype(numpy.float64), 8)
+        self.assertEqual(sizeof_dtype(numpy.int64), 8)
+        self.assertRaise(lambda: sizeof_dtype(numpy.int8), ValueError)
 
 
 if __name__ == "__main__":

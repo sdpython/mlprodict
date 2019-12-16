@@ -2,8 +2,8 @@
 @brief      test log(time=8s)
 """
 import unittest
-from lightgbm import LGBMClassifier, LGBMRegressor
-from xgboost import XGBClassifier, XGBRegressor
+from lightgbm import LGBMClassifier, LGBMRegressor  # pylint: disable=C0411
+from xgboost import XGBClassifier, XGBRegressor  # pylint: disable=C0411
 from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression, LinearRegression
@@ -16,7 +16,7 @@ from sklearn.ensemble import (
     RandomForestClassifier,
     RandomForestRegressor,
 )
-from pyquickhelper.pycode import ExtTestCase, skipif_circleci
+from pyquickhelper.pycode import ExtTestCase, skipif_circleci  # pylint: disable=C0411
 from mlprodict.tools.model_info import analyze_model
 
 
