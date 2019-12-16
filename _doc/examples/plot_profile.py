@@ -39,25 +39,29 @@ X32 = X.astype(numpy.float32)
 
 
 def runlocal():
-    for i in range(0, 1000):
+    for i in range(0, 500):
         oinf.run({'X': X32})
 
 
+print("profiling...")
 txt = profile(runlocal, pyinst_format='text')
 print(txt[1])
 
 ###########################################
 # With a different runtime
 # ++++++++++++++++++++++++
+#
+# Let's compare to :epkg:`onnxruntime`.
 
 oinf = OnnxInference(onx, runtime='onnxruntime1')
 
 
 def runlocalort():
-    for i in range(0, 1000):
+    for i in range(0, 500):
         oinf.run({'X': X32})
 
 
+print("profiling with onnxruntime...")
 txt = profile(runlocalort, pyinst_format='text')
 print(txt[1])
 

@@ -291,8 +291,7 @@ void topk_element_max(const NTYPE* values, ssize_t k, ssize_t n,
 template<typename NTYPE, typename FCTYPE>
 py::array_t<int64_t> topk_element(
         py::array_t<NTYPE, py::array::c_style | py::array::forcecast> values,
-        ssize_t k, bool sorted, FCTYPE *fct)
-{
+        ssize_t k, bool sorted, FCTYPE *fct) {
     if (values.ndim() == 1) {
         std::vector<int64_t> pos(k);
         (*fct)(values.data(), k, values.size(), pos.data(), sorted);
@@ -312,21 +311,67 @@ py::array_t<int64_t> topk_element(
         arrayshape2vector(shape, values);
         auto tdim = flattened_dimension(shape);
         auto vdim = shape[shape.size()-1];
-        const NTYPE* data = values.data(0);
+        const NTYPE* data = values.data();
         const NTYPE* end = data + tdim;
         
         shape[shape.size()-1] = k;
         auto fdim = flattened_dimension(shape);
         std::vector<int64_t> strides;
-        shape2strides(shape, strides, (NTYPE)0);
+        shape2strides(shape, strides, (int64_t)0);
         auto result = py::array_t<int64_t>(shape, strides);
         py::buffer_info buf = result.request();
         int64_t * ptr = (int64_t*) buf.ptr;
-        for(; data != end; data += vdim, ptr += k)
-            (*fct)(data, k, vdim, ptr, sorted);
+        int64_t nrows = tdim / vdim;
+        if (nrows < 50) {
+            for(; data != end; data += vdim, ptr += k)
+                (*fct)(data, k, vdim, ptr, sorted);
+        }
+        else {
+            // parallelisation
+            #ifdef USE_OPENMP
+            #pragma omp parallel for
+            #endif
+            for(int64_t nr = 0; nr < nrows; ++nr) {
+                (*fct)(data + nr * vdim, k, vdim, ptr + nr * k, sorted);
+            }
+        }
         return result;
     }
 }
+
+
+template<typename NTYPE>
+py::array_t<NTYPE> topk_element_fetch(
+        py::array_t<NTYPE, py::array::c_style | py::array::forcecast> values,
+        py::array_t<int64_t, py::array::c_style | py::array::forcecast> indices) {
+    std::vector<int64_t> shape_val;
+    arrayshape2vector(shape_val, values);
+    
+    std::vector<int64_t> shape_ind;
+    arrayshape2vector(shape_ind, indices);
+    
+    auto tdim = flattened_dimension(shape_ind);    
+    auto dim_val = shape_val[shape_val.size()-1];
+    auto dim_ind = shape_ind[shape_ind.size()-1];
+    const NTYPE* data_val = values.data();
+    const int64_t* data_ind = indices.data();
+    const int64_t* end_ind = data_ind + tdim;
+    
+    std::vector<int64_t> strides;
+    shape2strides(shape_ind, strides, (NTYPE)0);
+
+    auto result = py::array_t<NTYPE>(shape_ind, strides);
+    py::buffer_info buf = result.request();
+    NTYPE * ptr = (NTYPE*) buf.ptr;
+    const int64_t * next_end_ind;
+    for(; data_ind != end_ind; data_val += dim_val) {
+        next_end_ind = data_ind + dim_ind;
+        for( ; data_ind != next_end_ind; ++data_ind, ++ptr)
+            *ptr = data_val[*data_ind];
+    }
+    return result;
+}
+
 
 
 py::array_t<int64_t> topk_element_min_int64(
@@ -371,6 +416,28 @@ py::array_t<int64_t> topk_element_max_double(
 }
 
 
+py::array_t<double> topk_element_fetch_double(
+        py::array_t<double, py::array::c_style | py::array::forcecast> values,
+        py::array_t<int64_t, py::array::c_style | py::array::forcecast> indices) {
+    return topk_element_fetch(values, indices);
+}
+
+
+py::array_t<float> topk_element_fetch_float(
+        py::array_t<float, py::array::c_style | py::array::forcecast> values,
+        py::array_t<int64_t, py::array::c_style | py::array::forcecast> indices) {
+    return topk_element_fetch(values, indices);
+}
+
+
+py::array_t<int64_t> topk_element_fetch_int64(
+        py::array_t<int64_t, py::array::c_style | py::array::forcecast> values,
+        py::array_t<int64_t, py::array::c_style | py::array::forcecast> indices) {
+    return topk_element_fetch(values, indices);
+}
+
+
+
 /////////////////////////////////////////////
 // end: topk
 /////////////////////////////////////////////
@@ -402,28 +469,44 @@ The function only works with contiguous arrays.)pbdoc");
     m.def("topk_element_min_float", &topk_element_min_float,
             R"pbdoc(C++ implementation of operator TopK for float32.
 The function only works with contiguous arrays.
+The function is parallelized for more than 50 rows.
 It only does it on the last axis.)pbdoc");
     m.def("topk_element_min_double", &topk_element_min_double,
             R"pbdoc(C++ implementation of operator TopK for float32.
 The function only works with contiguous arrays.
+The function is parallelized for more than 50 rows.
 It only does it on the last axis.)pbdoc");
     m.def("topk_element_min_int64", &topk_element_min_int64,
             R"pbdoc(C++ implementation of operator TopK for float32.
 The function only works with contiguous arrays.
+The function is parallelized for more than 50 rows.
 It only does it on the last axis.)pbdoc");
 
     m.def("topk_element_max_float", &topk_element_max_float,
             R"pbdoc(C++ implementation of operator TopK for float32.
 The function only works with contiguous arrays.
+The function is parallelized for more than 50 rows.
 It only does it on the last axis.)pbdoc");
     m.def("topk_element_max_double", &topk_element_max_double,
             R"pbdoc(C++ implementation of operator TopK for float32.
 The function only works with contiguous arrays.
+The function is parallelized for more than 50 rows.
 It only does it on the last axis.)pbdoc");
     m.def("topk_element_max_int64", &topk_element_max_int64,
             R"pbdoc(C++ implementation of operator TopK for float32.
 The function only works with contiguous arrays.
+The function is parallelized for more than 50 rows.
 It only does it on the last axis.)pbdoc");
+
+    m.def("topk_element_fetch_float", &topk_element_fetch_float,
+            R"pbdoc(Fetches the top k element knowing their indices
+on each row (= last dimension for a multi dimension array).)pbdoc");
+    m.def("topk_element_fetch_double", &topk_element_fetch_double,
+            R"pbdoc(Fetches the top k element knowing their indices
+on each row (= last dimension for a multi dimension array).)pbdoc");
+    m.def("topk_element_fetch_int64", &topk_element_fetch_int64,
+            R"pbdoc(Fetches the top k element knowing their indices
+on each row (= last dimension for a multi dimension array).)pbdoc");
 }
 
 #endif
