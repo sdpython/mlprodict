@@ -1,6 +1,6 @@
 git+https://github.com/sdpython/asv.git@jenkins
 chardet
-coverage
+coverage>=5.0
 jyquickhelper
 lightgbm
 memory_profiler
@@ -10,7 +10,7 @@ openpyxl
 pybind11
 pyinstrument
 pylint>=2.4.2
-pyquickhelper>=1.9.3248
+pyquickhelper>=1.9.3289
 git+https://github.com/xadupre/sklearn-onnx.git@jenkins
 sphinx
 sphinx_readable_theme

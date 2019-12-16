@@ -317,6 +317,17 @@ def _format_dict(opts, indent):
     return textwrap.indent(st1, prefix=' ' * indent)
 
 
+def _additional_imports(model_name):
+    """
+    Adds additional imports for experimental models.
+    """
+    if model_name == 'IterativeImputer':
+        return ["from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611"]
+    if model_name in ('HistGradientBoostingClassifier', 'HistGradientBoostingClassifier'):
+        return ["from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611"]
+    return None
+
+
 def add_model_import_init(
         class_content, model, optimisation=None,
         extra=None, conv_options=None):
@@ -381,6 +392,9 @@ def add_model_import_init(
         else:
             mod = '.'.join(sub[:-1])
 
+    exp_imports = _additional_imports(model.__name__)
+    if exp_imports:
+        add_imports.extend(exp_imports)
     imp_inst = "from {} import {}".format(mod, model.__name__)
     add_imports.append(imp_inst)
     add_imports.append("#  __IMPORTS__")
