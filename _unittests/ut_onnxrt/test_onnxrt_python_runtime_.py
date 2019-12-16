@@ -8,6 +8,7 @@ from io import StringIO
 import numpy
 from scipy.sparse import coo_matrix, csr_matrix, SparseEfficiencyWarning
 from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
+from scipy.spatial.distance import cdist
 import onnx
 from onnx.defs import onnx_opset_version
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
@@ -1308,12 +1309,23 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(to1[0], v2)
 
     def test_cpp_topk_max_openmp(self):
-        X = numpy.random.randn(100, 10).astype(numpy.float64)  # pylint: disable=E1101
+        X = numpy.random.randn(100, 10).astype(  # pylint: disable=E1101
+            numpy.float64)  # pylint: disable=E1101
         to1 = topk_sorted_implementation(X, 2, 1, 1)
         to2 = topk_element_max_double(X, 2, True)
         self.assertEqualArray(to1[1], to2)
         v2 = topk_element_fetch_double(X, to2)
         self.assertEqualArray(to1[0], v2)
+
+    def test_cpp_pairwise(self):
+        X = numpy.full((20, 4), 1, dtype=numpy.float32)
+        X[::2, 3] = 20
+        X[1::5, 1] = 30
+        X[::5, 2] = 40
+        cd = cdist(X[:10], X[10:])
+        to1 = topk_sorted_implementation(cd, 3, 1, 1)
+        to2 = topk_element_max_double(cd, 3, True)
+        self.assertEqualArray(to1[1], to2)
 
 
 if __name__ == "__main__":

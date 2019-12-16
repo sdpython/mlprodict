@@ -1,0 +1,36 @@
+
+.. blogpost::
+    :title: Custom C++ TopK
+    :keywords: scikit-learn, topk, argpartition
+    :date: 2019-12-16
+    :categories: benchmark
+
+    It started with the fact the python runtime for
+    the AdaBoostRegressor was quite slow. I noticed three
+    operators were quite slow even though their implementation
+    was based on :epkg:`numpy`: *TopK*, *ArrayFeatureExtractor*
+    and *GatherElement*. I made a custom implementation
+    of the first two.
+
+    Unexpectedly, the query "topk c++ implementation" did not
+    returned very interesting results. Maybe this paper
+    `Efficient Top-K Query Processing on Massively Parallel Hardware
+    <https://anilshanbhag.in/static/papers/gputopk_sigmod18.pdf>`_
+    but that was not what I was looking for. I ended up writing
+    my own implementation of this operator in C++ which you
+    can find here: `topk_element_min
+    <https://github.com/sdpython/mlprodict/blob/master/mlprodict/
+    onnxrt/ops_cpu/_op_onnx_numpy.cpp#L201>`_. It was faster than
+    the previous python implementation totally inspired from
+    *scikit-learn* but I was wondering how much faster.
+    The answer is in the notebook :ref:`topkcpprst`.
+    Worst case, it is twice faster than numpy best case, ten times,
+    for small values of nearest neighbors.
+
+    I started to look into :epkg:`scikit-learn` issues to see
+    of that kind of issues was already raised. I found a link
+    to this `Nearest-neighbor chain algorithm
+    <https://en.wikipedia.org/wiki/Nearest-neighbor_chain_algorithm>`_.
+    However, the gain of making such change would only help
+    the brute force algorithm which is not really used to search
+    for neighbors.

@@ -325,15 +325,16 @@ class TestOnnxConvKNN(ExtTestCase):
                                            largest0=False)
 
     def test_onnx_test_knn_single_reg_equal(self):
-        # We need to make scikit-learn and the runtime handles the
-        # ex aequo the same way.
-        X = numpy.full((100, 4), 1, dtype=numpy.float32)
-        X[:0:5] = 2
-        X[1:1:5] = 3
-        X[2:2:5] = 4
+        # We would like to make scikit-learn and the runtime handles the
+        # ex aequo the same way but that's difficult.
+        X = numpy.full((20, 4), 1, dtype=numpy.float32)
+        X[::2, 3] = 20
+        X[1::5, 1] = 30
+        X[::5, 2] = 40
         y = X.sum(axis=1) + numpy.arange(X.shape[0]) / 10
-        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = KNeighborsRegressor(algorithm='brute')
+        X_train, X_test, y_train, _ = train_test_split(
+            X, y, random_state=11, test_size=0.5)
+        clr = KNeighborsRegressor(algorithm='brute', n_neighbors=3)
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train,
