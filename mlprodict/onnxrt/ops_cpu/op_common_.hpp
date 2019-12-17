@@ -28,6 +28,8 @@ enum class NODE_MODE {
 
 NODE_MODE to_NODE_MODE(const std::string &value);
 
+const char * to_str(NODE_MODE mode);
+
 enum class AGGREGATE_FUNCTION {
   AVERAGE,
   SUM,

@@ -1,5 +1,5 @@
 """
-@brief      test log(time=10s)
+@brief      test log(time=8s)
 """
 import unittest
 from logging import getLogger
@@ -74,8 +74,8 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             self.assertEqualArray(lexp, y['variable'], decimal=5)
         else:
             self.assertEqualArray(lexp, y['variable'])
-        self.assertNotEmpty(oinf.sequence_[0].ops_.rt_.nodes_modes_)
         self.assertEqual(oinf.sequence_[0].ops_.rt_.same_mode_, True)
+        self.assertNotEmpty(oinf.sequence_[0].ops_.rt_.nodes_modes_)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_onnxrt_python_RandomForestRegressor32(self):
@@ -212,4 +212,6 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestOnnxrtPythonRuntimeMlTreeRF().setUp()
+    # TestOnnxrtPythonRuntimeMlTreeRF().test_onnxrt_python_RandomForestRegressor_full32()
     unittest.main()

@@ -394,6 +394,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
             for (size_t j = 0; j < roots_.size(); ++j) {
               ProcessTreeNode(&scores, roots_[j], x_data, current_weight_0, &has_scores);
             }
+
             NTYPE val = has_scores
                     ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
                         ? scores / roots_.size()

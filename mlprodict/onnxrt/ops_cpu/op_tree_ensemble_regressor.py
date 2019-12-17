@@ -13,16 +13,21 @@ from .op_tree_ensemble_regressor_ import (  # pylint: disable=E0611
     RuntimeTreeEnsembleRegressorFloat,
     RuntimeTreeEnsembleRegressorDouble,
 )
+from .op_tree_ensemble_regressor_p_ import (  # pylint: disable=E0611
+    RuntimeTreeEnsembleRegressorPFloat,
+    RuntimeTreeEnsembleRegressorPDouble,
+)
 
 
 class TreeEnsembleRegressorCommon(OpRunUnaryNum):
 
     def __init__(self, dtype, onnx_node, desc=None,
-                 expected_attributes=None, **options):
+                 expected_attributes=None,
+                 runtime_version=1, **options):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
                                expected_attributes=expected_attributes,
                                **options)
-        self._init(dtype=dtype)
+        self._init(dtype=dtype, version=runtime_version)
 
     def _get_typed_attributes(self, k):
         return _get_typed_class_attribute(self, k, self.__class__.atts)
@@ -36,11 +41,21 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
         raise RuntimeError(
             "Unable to find a schema for operator '{}'.".format(op_name))
 
-    def _init(self, dtype):
+    def _init(self, dtype, version):
         if dtype == numpy.float32:
-            self.rt_ = RuntimeTreeEnsembleRegressorFloat()
+            if version == 0:
+                self.rt_ = RuntimeTreeEnsembleRegressorFloat()
+            elif version == 1:
+                self.rt_ = RuntimeTreeEnsembleRegressorPFloat()
+            else:
+                raise ValueError("Unknown version '{}'.".format(version))
         elif dtype == numpy.float64:
-            self.rt_ = RuntimeTreeEnsembleRegressorDouble()
+            if version == 0:
+                self.rt_ = RuntimeTreeEnsembleRegressorDouble()
+            elif version == 1:
+                self.rt_ = RuntimeTreeEnsembleRegressorPDouble()
+            else:
+                raise ValueError("Unknown version '{}'.".format(version))
         else:
             raise RuntimeTypeError("Unsupported dtype={}.".format(dtype))
         atts = [self._get_typed_attributes(k)
@@ -86,10 +101,11 @@ class TreeEnsembleRegressor(TreeEnsembleRegressorCommon):
         ('target_weights', numpy.empty(0, dtype=numpy.float32)),
     ])
 
-    def __init__(self, onnx_node, desc=None, **options):
+    def __init__(self, onnx_node, desc=None, runtime_version=1, **options):
         TreeEnsembleRegressorCommon.__init__(
             self, numpy.float32, onnx_node, desc=desc,
             expected_attributes=TreeEnsembleRegressor.atts,
+            runtime_version=runtime_version,
             **options)
 
 
@@ -115,10 +131,11 @@ class TreeEnsembleRegressorDouble(TreeEnsembleRegressorCommon):
         ('target_weights', numpy.empty(0, dtype=numpy.float64)),
     ])
 
-    def __init__(self, onnx_node, desc=None, **options):
+    def __init__(self, onnx_node, desc=None, runtime_version=1, **options):
         TreeEnsembleRegressorCommon.__init__(
             self, numpy.float64, onnx_node, desc=desc,
             expected_attributes=TreeEnsembleRegressorDouble.atts,
+            runtime_version=runtime_version,
             **options)
 
 

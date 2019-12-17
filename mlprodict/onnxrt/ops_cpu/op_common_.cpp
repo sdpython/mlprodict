@@ -35,6 +35,21 @@ NODE_MODE to_NODE_MODE(const std::string &value)
 }
 
 
+const char * to_str(NODE_MODE mode)
+{
+    switch(mode) {
+        case NODE_MODE::BRANCH_LEQ: return "BRANCH_LEQ";
+        case NODE_MODE::BRANCH_LT: return "BRANCH_LT";
+        case NODE_MODE::BRANCH_GTE: return "BRANCH_GTE";
+        case NODE_MODE::BRANCH_GT: return "BRANCH_GT";
+        case NODE_MODE::BRANCH_EQ: return "BRANCH_EQ";
+        case NODE_MODE::BRANCH_NEQ: return "BRANCH_NEQ";
+        case NODE_MODE::LEAF: return "LEAF";
+        default: return "?";
+    }
+}
+
+
 SVM_TYPE to_SVM_TYPE(const std::string &value)
 {
     if (value.compare("SVM_LINEAR") == 0) return SVM_TYPE::SVM_LINEAR;
