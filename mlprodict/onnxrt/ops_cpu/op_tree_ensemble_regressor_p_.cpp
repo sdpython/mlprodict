@@ -250,7 +250,7 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::init(
         node->id.node_id = (int)nodes_nodeids_[i];
         node->feature_id = (int)nodes_featureids_[i];
         node->value = nodes_values_[i];
-        node->hitrates = nodes_hitrates_[i];
+        node->hitrates = i < nodes_hitrates_.size() ? nodes_hitrates_[i] : -1;
         node->mode = nodes_modes_[i];
         node->truenode = NULL; // nodes_truenodeids_[i];
         node->falsenode = NULL; // nodes_falsenodeids_[i];
