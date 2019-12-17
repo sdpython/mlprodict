@@ -148,6 +148,7 @@ class TestModelInfo(ExtTestCase):
         self.assertEqual(info['classes_.shape'], 3)
         self.assertEqual(info['_fit_X.shape'], (150, 4))
 
+    @skipif_circleci('issue, too long')
     def test_gbc(self):
         model = self.fit(GradientBoostingClassifier())
         info = analyze_model(model)

@@ -19,7 +19,7 @@ mlprodict
     :target: https://circleci.com/gh/sdpython/mlprodict/tree/master
 
 .. image:: https://dev.azure.com/xavierdupre3/mlprodict3/_apis/build/status/sdpython.mlprodict
-    :target: https://dev.azure.com/xavierdupre3/mlprodict/
+    :target: https://dev.azure.com/xavierdupre3/mlprodict3/
 
 .. image:: https://badge.fury.io/py/mlprodict.svg
     :target: https://pypi.org/project/mlprodict/
