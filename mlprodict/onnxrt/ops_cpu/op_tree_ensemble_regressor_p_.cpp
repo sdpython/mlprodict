@@ -399,123 +399,127 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
     const NTYPE* x_data = X.data(0);
 
     if (n_targets_ == 1) {
-      NTYPE origin = base_values_.size() == 1 ? base_values_[0] : 0.f;
-      if (N == 1) {
-        NTYPE scores = 0;
-        unsigned char has_scores = 0;
-        //for each tree
-        #ifdef USE_OPENMP
-        #pragma omp parallel for
-        #endif
-        for (int64_t j = 0; j < nbtrees_; ++j) {
-          ProcessTreeNode(&scores, roots_[j], x_data, &has_scores);
-        }
-        NTYPE val = has_scores
-                ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
-                    ? scores / roots_.size()
-                    : scores) + origin
-                : origin;
-        *((NTYPE*)Z_.data(0)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
-                                    ? ComputeProbit(val) : val;
-      }
-      else {
-          #ifdef USE_OPENMP
-          #pragma omp parallel for
-          #endif
-          for (int64_t i = 0; i < N; ++i)  //for each class
-          {
+        NTYPE origin = base_values_.size() == 1 ? base_values_[0] : 0.f;
+        if (N == 1) {
             NTYPE scores = 0;
             unsigned char has_scores = 0;
-            //for each tree
-            for (size_t j = 0; j < (size_t)nbtrees_; ++j) {
-              ProcessTreeNode(&scores, roots_[j], x_data + i * stride, &has_scores);
-            }
+
+            #ifdef USE_OPENMP
+            #pragma omp parallel for
+            #endif
+            for (int64_t j = 0; j < nbtrees_; ++j)
+                ProcessTreeNode(&scores, roots_[j], x_data, &has_scores);
+
             NTYPE val = has_scores
                     ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
                         ? scores / roots_.size()
                         : scores) + origin
                     : origin;
-            val = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
-                        ? ComputeProbit(val) : val;
-            *((NTYPE*)Z_.data(i)) = val;
-          }
-      }
+            *((NTYPE*)Z_.data(0)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
+                                        ? ComputeProbit(val) : val;
+        }
+        else {
+            NTYPE scores;
+            unsigned char has_scores;
+            NTYPE val;
+            #ifdef USE_OPENMP
+            #pragma omp parallel for private(scores, has_scores, val)
+            #endif
+            for (int64_t i = 0; i < N; ++i) {
+                scores = 0;
+                has_scores = 0;
+  
+                for (size_t j = 0; j < (size_t)nbtrees_; ++j)
+                    ProcessTreeNode(&scores, roots_[j], x_data + i * stride, &has_scores);
+  
+                val = has_scores
+                      ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
+                          ? scores / roots_.size()
+                          : scores) + origin
+                      : origin;
+                *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
+                            ? ComputeProbit(val) : val;
+            }
+        }
     }
     else {
-      if (N == 1) {
-        int64_t current_weight_0 = 0;
-        std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
-        std::vector<unsigned char> has_scores(n_targets_, 0);
-        //for each tree
-        #ifdef USE_OPENMP
-        #pragma omp parallel for
-        #endif
-        for (int64_t j = 0; j < nbtrees_; ++j) {
-          ProcessTreeNode(scores.data(), roots_[j], x_data + current_weight_0, has_scores.data());
-        }
-        //find aggregate, could use a heap here if there are many classes
-        std::vector<NTYPE> outputs;
-        for (int64_t j = 0; j < n_targets_; ++j) {
-          //reweight scores based on number of voters
-          NTYPE val = base_values_.size() == (size_t)n_targets_ ? base_values_[j] : 0.f;
-          if (has_scores[j]) {
-            val += aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
-                      ? scores[j] / roots_.size()
-                      : scores[j];
-          }
-          outputs.push_back(val);
-        }
-        write_scores(outputs, post_transform_, (NTYPE*)Z_.data(0), -1);
-      }
-      else {
-          #ifdef USE_OPENMP
-          #pragma omp parallel for
-          #endif
-          for (int64_t i = 0; i < N; ++i)  //for each class
-          {
-            int64_t current_weight_0 = i * stride;
+        if (N == 1) {
             std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
             std::vector<unsigned char> has_scores(n_targets_, 0);
-            //for each tree
-            for (size_t j = 0; j < roots_.size(); ++j) {
-              ProcessTreeNode(scores.data(), roots_[j], x_data + current_weight_0, has_scores.data());
-            }
-            //find aggregate, could use a heap here if there are many classes
-            std::vector<NTYPE> outputs;
+
+            #ifdef USE_OPENMP
+            #pragma omp parallel for
+            #endif
+            for (int64_t j = 0; j < nbtrees_; ++j)
+                ProcessTreeNode(scores.data(), roots_[j], x_data, has_scores.data());
+
+            std::vector<NTYPE> outputs(n_targets_);
+            NTYPE val;
             for (int64_t j = 0; j < n_targets_; ++j) {
-              //reweight scores based on number of voters
-              NTYPE val = base_values_.size() == (size_t)n_targets_ ? base_values_[j] : 0.f;
-              if (has_scores[j]) {
-                val += aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
-                          ? scores[j] / roots_.size()
-                          : scores[j];
-              }
-              outputs.push_back(val);
+                //reweight scores based on number of voters
+                val = base_values_.size() == (size_t)n_targets_ ? base_values_[j] : 0.f;
+                val = (has_scores[j]) 
+                        ?  val + (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
+                                    ? scores[j] / roots_.size()
+                                    : scores[j])
+                        : val;
+                outputs[j] = val;
             }
-            write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_), -1);
-          }
-      }
+            write_scores(outputs, post_transform_, (NTYPE*)Z_.data(0), -1);
+        }
+        else {
+            std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
+            std::vector<NTYPE> outputs(n_targets_);
+            std::vector<unsigned char> has_scores(n_targets_, 0);
+            int64_t current_weight_0;
+            NTYPE val;
+
+            #ifdef USE_OPENMP
+            #pragma omp parallel for firstprivate(scores, has_scores, outputs) private(val, current_weight_0)
+            #endif
+            for (int64_t i = 0; i < N; ++i) {
+                current_weight_0 = i * stride;
+                std::fill(scores.begin(), scores.end(), (NTYPE)0);
+                std::fill(outputs.begin(), outputs.end(), (NTYPE)0);
+                std::fill(has_scores.begin(), has_scores.end(), 0);
+
+                for (size_t j = 0; j < roots_.size(); ++j)
+                    ProcessTreeNode(scores.data(), roots_[j], x_data + current_weight_0,
+                                    has_scores.data());
+
+                for (int64_t j = 0; j < n_targets_; ++j) {
+                    val = base_values_.size() == (size_t)n_targets_ ? base_values_[j] : 0.f;
+                    val = (has_scores[j]) 
+                            ?  val + (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
+                                        ? scores[j] / roots_.size()
+                                        : scores[j])
+                            : val;
+                    outputs[j] = val;
+                }
+                write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_), -1);
+            }
+        }
     }
 }
 
 
 #define TREE_FIND_VALUE(CMP) \
     if (has_missing_tracks_) { \
-      while (root->mode != NODE_MODE::LEAF && loopcount >= 0) { \
-        val = x_data[root->feature_id]; \
-        root = (val CMP root->value || \
-                (root->missing_tracks == MissingTrack::TRUE && \
-                  std::isnan(static_cast<NTYPE>(val)) )) \
-                    ? root->truenode : root->falsenode; \
-        --loopcount; \
-      } \
+        while (root->mode != NODE_MODE::LEAF && loopcount >= 0) { \
+            val = x_data[root->feature_id]; \
+            root = (val CMP root->value || \
+                    (root->missing_tracks == MissingTrack::TRUE && \
+                        std::isnan(static_cast<NTYPE>(val)) )) \
+                        ? root->truenode : root->falsenode; \
+            --loopcount; \
+        } \
     } \
     else { \
-      while (root->mode != NODE_MODE::LEAF && loopcount >= 0) { \
-        val = x_data[root->feature_id]; \
-        root = val CMP root->value ? root->truenode : root->falsenode; \
-        --loopcount; \
-      } \
+        while (root->mode != NODE_MODE::LEAF && loopcount >= 0) { \
+            val = x_data[root->feature_id]; \
+            root = val CMP root->value ? root->truenode : root->falsenode; \
+            --loopcount; \
+        } \
     }
 
 
@@ -530,29 +534,29 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::ProcessTreeNode(
         int64_t loopcount = max_tree_depth_;
         switch(root->mode) {
             case NODE_MODE::BRANCH_LEQ:
-              TREE_FIND_VALUE(<=)
-              break;
+                TREE_FIND_VALUE(<=)
+                break;
             case NODE_MODE::BRANCH_LT:
-              TREE_FIND_VALUE(<)
-              break;
+                TREE_FIND_VALUE(<)
+                break;
             case NODE_MODE::BRANCH_GTE:
-              TREE_FIND_VALUE(>=)
-              break;
+                TREE_FIND_VALUE(>=)
+                break;
             case NODE_MODE::BRANCH_GT:
-              TREE_FIND_VALUE(>)
-              break;
+                TREE_FIND_VALUE(>)
+                break;
             case NODE_MODE::BRANCH_EQ:
-              TREE_FIND_VALUE(==)
-              break;
+                TREE_FIND_VALUE(==)
+                break;
             case NODE_MODE::BRANCH_NEQ:
-              TREE_FIND_VALUE(!=)
-              break;
+                TREE_FIND_VALUE(!=)
+                break;
             case NODE_MODE::LEAF:
-              break;
+                break;
             default: {
-              std::ostringstream err_msg;
-              err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(root->mode);
-              throw std::runtime_error(err_msg.str());
+                std::ostringstream err_msg;
+                err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(root->mode);
+                throw std::runtime_error(err_msg.str());
             }
         }
     }
@@ -596,9 +600,9 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::ProcessTreeNode(
                               : root->falsenode;
                     break;
                 default: {
-                  std::ostringstream err_msg;
-                  err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(root->mode);
-                  throw std::runtime_error(err_msg.str());
+                    std::ostringstream err_msg;
+                    err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(root->mode);
+                    throw std::runtime_error(err_msg.str());
                 }
             }
             ++loopcount;
