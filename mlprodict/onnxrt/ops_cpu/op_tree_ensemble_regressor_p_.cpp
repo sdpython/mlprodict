@@ -435,23 +435,43 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
             unsigned char has_scores;
             NTYPE val;
             size_t j;
-            #ifdef USE_OPENMP
-            #pragma omp parallel for private(scores, has_scores, val, j)
-            #endif
-            for (int64_t i = 0; i < N; ++i) {
-                scores = 0;
-                has_scores = 0;
-  
-                for (j = 0; j < (size_t)nbtrees_; ++j)
-                    ProcessTreeNode(&scores, roots_[j], x_data + i * stride, &has_scores);
-  
-                val = has_scores
-                      ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
-                          ? scores / roots_.size()
-                          : scores) + origin
-                      : origin;
-                *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
-                            ? ComputeProbit(val) : val;
+            
+            if (N <= 10) {
+                for (int64_t i = 0; i < N; ++i) {
+                    scores = 0;
+                    has_scores = 0;
+      
+                    for (j = 0; j < (size_t)nbtrees_; ++j)
+                        ProcessTreeNode(&scores, roots_[j], x_data + i * stride, &has_scores);
+      
+                    val = has_scores
+                          ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
+                              ? scores / roots_.size()
+                              : scores) + origin
+                          : origin;
+                    *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
+                                ? ComputeProbit(val) : val;
+                }
+            }
+            else {
+                #ifdef USE_OPENMP
+                #pragma omp parallel for private(scores, has_scores, val, j)
+                #endif
+                for (int64_t i = 0; i < N; ++i) {
+                    scores = 0;
+                    has_scores = 0;
+      
+                    for (j = 0; j < (size_t)nbtrees_; ++j)
+                        ProcessTreeNode(&scores, roots_[j], x_data + i * stride, &has_scores);
+      
+                    val = has_scores
+                          ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
+                              ? scores / roots_.size()
+                              : scores) + origin
+                          : origin;
+                    *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
+                                ? ComputeProbit(val) : val;
+                }
             }
         }
     }
