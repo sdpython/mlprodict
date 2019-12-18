@@ -410,14 +410,14 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
             NTYPE scores = 0;
             unsigned char has_scores = 0;
 
-            if (nbtrees_ >= 10) {
-                #ifdef USE_OPENMP
-                #pragma omp parallel for reduction(|: has_scores) reduction(+: scores) 
-                #endif
+            if (nbtrees_ <= 10) {
                 for (int64_t j = 0; j < nbtrees_; ++j)
                     ProcessTreeNode(&scores, roots_[j], x_data, &has_scores);
             }
             else {
+                #ifdef USE_OPENMP
+                #pragma omp parallel for reduction(|: has_scores) reduction(+: scores) 
+                #endif
                 for (int64_t j = 0; j < nbtrees_; ++j)
                     ProcessTreeNode(&scores, roots_[j], x_data, &has_scores);
             }
@@ -489,30 +489,56 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
             int64_t current_weight_0;
             NTYPE val;
             size_t j;
+            int64_t jt;
 
-            #ifdef USE_OPENMP
-            #pragma omp parallel for firstprivate(scores, has_scores, outputs) private(val, current_weight_0, j)
-            #endif
-            for (int64_t i = 0; i < N; ++i) {
-                current_weight_0 = i * stride;
-                std::fill(scores.begin(), scores.end(), (NTYPE)0);
-                std::fill(outputs.begin(), outputs.end(), (NTYPE)0);
-                std::fill(has_scores.begin(), has_scores.end(), 0);
+            if (N <= 10) {
+                for (int64_t i = 0; i < N; ++i) {
+                    current_weight_0 = i * stride;
+                    std::fill(scores.begin(), scores.end(), (NTYPE)0);
+                    std::fill(outputs.begin(), outputs.end(), (NTYPE)0);
+                    std::fill(has_scores.begin(), has_scores.end(), 0);
 
-                for (j = 0; j < roots_.size(); ++j)
-                    ProcessTreeNode(scores.data(), roots_[j], x_data + current_weight_0,
-                                    has_scores.data());
+                    for (j = 0; j < roots_.size(); ++j)
+                        ProcessTreeNode(scores.data(), roots_[j], x_data + current_weight_0,
+                                        has_scores.data());
 
-                for (j = 0; j < n_targets_; ++j) {
-                    val = base_values_.size() == (size_t)n_targets_ ? base_values_[j] : 0.f;
-                    val = (has_scores[j]) 
-                            ?  val + (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
-                                        ? scores[j] / roots_.size()
-                                        : scores[j])
-                            : val;
-                    outputs[j] = val;
+                    for (jt = 0; jt < n_targets_; ++jt) {
+                        val = base_values_.size() == (size_t)n_targets_ ? base_values_[jt] : 0.f;
+                        val = (has_scores[jt]) 
+                                ?  val + (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
+                                            ? scores[jt] / roots_.size()
+                                            : scores[jt])
+                                : val;
+                        outputs[jt] = val;
+                    }
+                    write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_), -1);
                 }
-                write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_), -1);
+            }
+            else {
+                #ifdef USE_OPENMP
+                #pragma omp parallel for firstprivate(scores, has_scores, outputs) private(val, current_weight_0, j)
+                #endif
+                for (int64_t i = 0; i < N; ++i) {
+                    current_weight_0 = i * stride;
+                    std::fill(scores.begin(), scores.end(), (NTYPE)0);
+                    std::fill(outputs.begin(), outputs.end(), (NTYPE)0);
+                    std::fill(has_scores.begin(), has_scores.end(), 0);
+
+                    for (j = 0; j < roots_.size(); ++j)
+                        ProcessTreeNode(scores.data(), roots_[j], x_data + current_weight_0,
+                                        has_scores.data());
+
+                    for (jt = 0; jt < n_targets_; ++jt) {
+                        val = base_values_.size() == (size_t)n_targets_ ? base_values_[jt] : 0.f;
+                        val = (has_scores[jt]) 
+                                ?  val + (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
+                                            ? scores[jt] / roots_.size()
+                                            : scores[jt])
+                                : val;
+                        outputs[jt] = val;
+                    }
+                    write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_), -1);
+                }
             }
         }
     }
