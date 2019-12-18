@@ -8,6 +8,7 @@
 #include <vector>
 #include <thread>
 #include <iterator>
+#include <algorithm>
 
 #ifndef SKIP_PYTHON
 //#include <pybind11/iostream.h>
@@ -386,6 +387,12 @@ py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array
     return Z.mutable_unchecked<1>();
 }
 
+/*
+#ifdef USE_OPENMP
+#pragma omp declare reduction(vecdplus : std::vector<double> : std::transform(omp_out.begin(), omp_out.end(), omp_in.begin(), omp_out.begin(), std::plus<double>())) initializer(omp_priv = decltype(omp_orig)(omp_orig.size()))
+#pragma omp declare reduction(vecfplus : std::vector<float> : std::transform(omp_out.begin(), omp_out.end(), omp_in.begin(), omp_out.begin(), std::plus<float>())) initializer(omp_priv = decltype(omp_orig)(omp_orig.size()))
+#endif
+*/
 
 template<typename NTYPE>
 void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
@@ -403,11 +410,17 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
             NTYPE scores = 0;
             unsigned char has_scores = 0;
 
-            #ifdef USE_OPENMP
-            #pragma omp parallel for
-            #endif
-            for (int64_t j = 0; j < nbtrees_; ++j)
-                ProcessTreeNode(&scores, roots_[j], x_data, &has_scores);
+            if (nbtrees_ >= 10) {
+                #ifdef USE_OPENMP
+                #pragma omp parallel for reduction(|: has_scores) reduction(+: scores) 
+                #endif
+                for (int64_t j = 0; j < nbtrees_; ++j)
+                    ProcessTreeNode(&scores, roots_[j], x_data, &has_scores);
+            }
+            else {
+                for (int64_t j = 0; j < nbtrees_; ++j)
+                    ProcessTreeNode(&scores, roots_[j], x_data, &has_scores);
+            }
 
             NTYPE val = has_scores
                     ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
@@ -421,14 +434,15 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
             NTYPE scores;
             unsigned char has_scores;
             NTYPE val;
+            size_t j;
             #ifdef USE_OPENMP
-            #pragma omp parallel for private(scores, has_scores, val)
+            #pragma omp parallel for private(scores, has_scores, val, j)
             #endif
             for (int64_t i = 0; i < N; ++i) {
                 scores = 0;
                 has_scores = 0;
   
-                for (size_t j = 0; j < (size_t)nbtrees_; ++j)
+                for (j = 0; j < (size_t)nbtrees_; ++j)
                     ProcessTreeNode(&scores, roots_[j], x_data + i * stride, &has_scores);
   
                 val = has_scores
@@ -445,16 +459,18 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
         if (N == 1) {
             std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
             std::vector<unsigned char> has_scores(n_targets_, 0);
+            int64_t j;
 
-            #ifdef USE_OPENMP
-            #pragma omp parallel for
-            #endif
-            for (int64_t j = 0; j < nbtrees_; ++j)
+            // requires more work
+            // #ifdef USE_OPENMP
+            // #pragma omp parallel for reduction(vecdplus: scores) reduction(maxdplus: has_scores)
+            // #endif
+            for (j = 0; j < nbtrees_; ++j)
                 ProcessTreeNode(scores.data(), roots_[j], x_data, has_scores.data());
 
             std::vector<NTYPE> outputs(n_targets_);
             NTYPE val;
-            for (int64_t j = 0; j < n_targets_; ++j) {
+            for (j = 0; j < n_targets_; ++j) {
                 //reweight scores based on number of voters
                 val = base_values_.size() == (size_t)n_targets_ ? base_values_[j] : 0.f;
                 val = (has_scores[j]) 
@@ -472,9 +488,10 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
             std::vector<unsigned char> has_scores(n_targets_, 0);
             int64_t current_weight_0;
             NTYPE val;
+            size_t j;
 
             #ifdef USE_OPENMP
-            #pragma omp parallel for firstprivate(scores, has_scores, outputs) private(val, current_weight_0)
+            #pragma omp parallel for firstprivate(scores, has_scores, outputs) private(val, current_weight_0, j)
             #endif
             for (int64_t i = 0; i < N; ++i) {
                 current_weight_0 = i * stride;
@@ -482,11 +499,11 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
                 std::fill(outputs.begin(), outputs.end(), (NTYPE)0);
                 std::fill(has_scores.begin(), has_scores.end(), 0);
 
-                for (size_t j = 0; j < roots_.size(); ++j)
+                for (j = 0; j < roots_.size(); ++j)
                     ProcessTreeNode(scores.data(), roots_[j], x_data + current_weight_0,
                                     has_scores.data());
 
-                for (int64_t j = 0; j < n_targets_; ++j) {
+                for (j = 0; j < n_targets_; ++j) {
                     val = base_values_.size() == (size_t)n_targets_ ? base_values_[j] : 0.f;
                     val = (has_scores[j]) 
                             ?  val + (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE

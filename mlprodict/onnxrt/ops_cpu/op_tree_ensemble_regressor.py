@@ -73,6 +73,8 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
         class :class:`RuntimeTreeEnsembleRegressorDouble
         <mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeTreeEnsembleRegressorDouble>`.
         """
+        if hasattr(x, 'todense'):
+            x = x.todense()
         pred = self.rt_.compute(x)
         if pred.shape[0] != x.shape[0]:
             pred = pred.reshape(x.shape[0], pred.shape[0] // x.shape[0])

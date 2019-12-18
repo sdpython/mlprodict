@@ -547,7 +547,7 @@ class OnnxInference:
                         printed.add(k)
                         name = list(
                             name for name in self._global_index if self._global_index[name] == k)
-                        if isinstance(values[k], numpy.ndarray):
+                        if isinstance(values[k], (numpy.ndarray, coo_matrix)):
                             name = name[0]
                             try:
                                 mini = numpy.min(values[k])

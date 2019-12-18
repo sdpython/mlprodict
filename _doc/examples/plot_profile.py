@@ -18,11 +18,45 @@ import numpy
 import matplotlib.pyplot as plt
 from sklearn.datasets import load_boston
 from sklearn.ensemble import AdaBoostRegressor
+from sklearn.tree import DecisionTreeRegressor
+from pyquickhelper.pycode.profiling import profile
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
 data = load_boston()
 X, y = data.data, data.target
+
+dt = DecisionTreeRegressor()
+dt.fit(X, y)
+onx = to_onnx(dt, X[:1].astype(numpy.float32))
+oinf = OnnxInference(onx, runtime='python_compiled')
+print(oinf)
+
+
+###################################
+# Profiling and comparison with scikit-learn
+# ++++++++++++++++++++++++++++++++++++++++++
+
+X32 = X.astype(numpy.float32)
+
+
+def runlocaldt():
+    for i in range(0, 5000):
+        oinf.run({'X': X32[:10]})
+        dt.predict(X[:10])
+
+
+print("profiling...")
+txt = profile(runlocaldt, pyinst_format='text')
+print(txt[1])
+
+
+###########################################
+# Profiling for AdaBoostRegressor
+# +++++++++++++++++++++++++++++++
+#
+# The next example shows how long the python runtime
+# spends in each operator.
 
 ada = AdaBoostRegressor()
 ada.fit(X, y)
@@ -30,12 +64,8 @@ onx = to_onnx(ada, X[:1].astype(numpy.float32))
 oinf = OnnxInference(onx, runtime='python_compiled')
 print(oinf)
 
-###########################################
-# Profiling
-# +++++++++
-
-from pyquickhelper.pycode.profiling import profile
-X32 = X.astype(numpy.float32)
+########################################
+# The profiling.
 
 
 def runlocal():

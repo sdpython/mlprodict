@@ -1,18 +1,21 @@
 """
 @brief      test log(time=40s)
 """
+import os
 import unittest
 import numpy
+import onnx
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 import skl2onnx
 from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxMatMul  # pylint: disable=E0611
+from onnxruntime import InferenceSession
 from mlprodict.onnxrt import OnnxInference
 
 
 class TestOnnxrtValidateBug(ExtTestCase):
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
-    def test_validate_sklearn_operators_all(self):
+    def test_bug_add(self):
         coef = numpy.array([-8.43436238e-02, 5.47765517e-02, 6.77578341e-02, 1.56675273e+00,
                             -1.45737317e+01, 3.78662574e+00 - 6.52943746e-03 - 1.39463522e+00,
                             2.89157796e-01 - 1.53753213e-02 - 9.88045749e-01, 1.00224585e-02,
@@ -29,6 +32,37 @@ class TestOnnxrtValidateBug(ExtTestCase):
         oinf = OnnxInference(onnx_model64)
         ort_pred = oinf.run({'X': X_test.astype(numpy.float64)})['Y']
         self.assertEqualArray(ort_pred, numpy.array([245.19907295849504]))
+
+    def test_dict_vectorizer_rfr(self):
+        this = os.path.abspath(os.path.dirname(__file__))
+        data = os.path.join(this, "data", "pipeline_vectorize.onnx")
+        sess = InferenceSession(data)
+        input_name = sess.get_inputs()[0].name
+        self.assertEqual(input_name, "float_input")
+        input_type = str(sess.get_inputs()[0].type)
+        self.assertEqual(input_type, "map(int64,tensor(float))")
+        input_shape = sess.get_inputs()[0].shape
+        self.assertEqual(input_shape, [])
+        output_name = sess.get_outputs()[0].name
+        self.assertEqual(output_name, "variable1")
+        output_type = sess.get_outputs()[0].type
+        self.assertEqual(output_type, "tensor(float)")
+        output_shape = sess.get_outputs()[0].shape
+        self.assertEqual(output_shape, [1, 1])
+
+        x = {0: 25.0, 1: 5.13, 2: 0.0, 3: 0.453, 4: 5.966}
+        res = sess.run([output_name], {input_name: x})
+
+        model_onnx = onnx.load(data)
+        oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
+        res2 = oinf.run({input_name: x})
+
+        x = {k: numpy.float32(v) for k, v in x.items()}
+        oinf = OnnxInference(model_onnx, runtime='python')
+        res3 = oinf.run({input_name: [x]})  # , verbose=1, fLOG=print)
+
+        self.assertEqualFloat(res[0][0, 0], res2["variable1"][0, 0])
+        self.assertEqualFloat(res[0][0, 0], res3["variable1"][0])
 
 
 if __name__ == "__main__":
