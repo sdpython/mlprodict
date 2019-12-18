@@ -26,7 +26,9 @@ try:
 except ImportError:
     # older version of skl2onnx
     alg2 = alg
-from ..optim.graph_schema_helper import get_defined_inputs, get_defined_outputs, proto2vars
+from ..optim.graph_schema_helper import (
+    get_defined_inputs, get_defined_outputs, proto2vars
+)
 
 
 _schemas = {
@@ -126,9 +128,17 @@ class OpRunOnnxRuntime:
             try:
                 self.onnx_ = self.inst_.to_onnx(inputs, target_opset=target_opset,
                                                 dtype=self.dtype, domain=domain)
+                if "dim_value: 0" in str(self.onnx_):
+                    raise RuntimeError(
+                        "Probable issue as one dimension is null.\n--\n{}".format(
+                            self.onnx_))
             except AttributeError:
                 # older version of skl2onnx
                 self.onnx_ = self.inst_.to_onnx(inputs)
+                if "dim_value: 0" in str(self.onnx_):
+                    raise RuntimeError(
+                        "Probable issue as one dimension is null.\n--\n{}".format(
+                            self.onnx_))
             except TypeError as e:
                 import skl2onnx
                 raise TypeError(
@@ -150,6 +160,10 @@ class OpRunOnnxRuntime:
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                             target_opset=target_opset,
                                             dtype=self.dtype, domain=domain)
+            if "dim_value: 0" in str(self.onnx_):
+                raise RuntimeError(
+                    "Probable issue as one dimension is null.\n--\n{}".format(
+                        self.onnx_))
             forced = True
         else:
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
@@ -162,6 +176,10 @@ class OpRunOnnxRuntime:
                 self.onnx_ = self.inst_.to_onnx(
                     inputs, target_opset=target_opset,
                     dtype=self.dtype, domain=domain)
+                if "dim_value: 0" in str(self.onnx_):
+                    raise RuntimeError(
+                        "Probable issue as one dimension is null.\n--\n{}\n---\n{}".format(
+                            self.onnx_, inputs))
                 forced = False
             except (RuntimeError, ValueError):
                 # Let's try again by forcing output types.
@@ -172,6 +190,10 @@ class OpRunOnnxRuntime:
                 self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                                 target_opset=target_opset,
                                                 dtype=self.dtype, domain=domain)
+                if "dim_value: 0" in str(self.onnx_):
+                    raise RuntimeError(
+                        "Probable issue as one dimension is null.\n--\n{}".format(
+                            self.onnx_))
 
         if len(self.onnx_.graph.output) != len(self.outputs):
             # Something is wrong, falls back to default plan.
@@ -182,6 +204,10 @@ class OpRunOnnxRuntime:
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                             target_opset=target_opset,
                                             dtype=self.dtype, domain=domain)
+            if "dim_value: 0" in str(self.onnx_):
+                raise RuntimeError(
+                    "Probable issue as one dimension is null.\n--\n{}".format(
+                        self.onnx_))
         else:
             lo = list(self.onnx_.graph.output)
             outputs = proto2vars(lo)
@@ -226,7 +252,7 @@ class OpRunOnnxRuntime:
             raise RuntimeError(
                 "Predictions failed. List of inputs: {}, class={}"
                 "\ndtypes={}\nshapes={}\nexpected={}\nexpected={}\n"
-                "exception={}".format(
+                "exception={}\n--ONNX--\n{}".format(
                     list(sorted(inputs)), self.alg_class, dtypes,
-                    shapes, exp, exp_types, e)) from e
+                    shapes, exp, exp_types, e, self.onnx_)) from e
         return tuple(res)

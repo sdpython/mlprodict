@@ -78,9 +78,8 @@ py::array_t<NTYPE> array_feature_extractor(py::array_t<NTYPE, py::array::c_style
     const int64_t * indices_end = indices + num_indices;
     const int64_t * iti;
     for (ssize_t i = 0; i < x_size_until_last_dim; ++i) {
-        for (iti = indices; iti != indices_end; ++iti) {
+        for (iti = indices; iti != indices_end; ++iti)
             *z_data++ = x_data[*iti];
-        }
         x_data += stride;
     }
     std::vector<ssize_t> strides;
@@ -331,9 +330,8 @@ py::array_t<int64_t> topk_element(
             #ifdef USE_OPENMP
             #pragma omp parallel for
             #endif
-            for(int64_t nr = 0; nr < nrows; ++nr) {
+            for(int64_t nr = 0; nr < nrows; ++nr)
                 (*fct)(data + nr * vdim, k, vdim, ptr + nr * k, sorted);
-            }
         }
         return result;
     }

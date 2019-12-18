@@ -7,7 +7,7 @@ from skl2onnx.common.data_types import (
     DataType,
     FloatTensorType, SequenceType, DictionaryType,
     Int64Type, Int64TensorType, BooleanTensorType,
-    DoubleTensorType, FloatType
+    Int32TensorType, DoubleTensorType, FloatType
 )
 from skl2onnx.common.data_types import _guess_type_proto
 from skl2onnx.algebra.type_helper import _guess_type as skl2onnx__guess_type
@@ -39,8 +39,13 @@ def get_defined_inputs(input_names, variables=None, dtype=None):
         elif name in variables:
             ty = variables[name]
             if isinstance(ty, DataType):
+                shape = ty.shape
+                if 0 in shape:
+                    raise RuntimeError(
+                        "Shape cannot be empty: name='{}', var={}".format(
+                            name, ty))
                 return variables[name]
-            elif isinstance(ty, dict) and 'value' in ty:
+            if isinstance(ty, dict) and 'value' in ty:
                 # constant
                 arr = ty['value']
                 return _guess_type(arr)
@@ -140,6 +145,8 @@ def proto2vars(values):
             return DoubleTensorType(shape)
         if it == TensorProto.INT64:  # pylint: disable=E1101
             return Int64TensorType(shape)
+        if it == TensorProto.INT32:  # pylint: disable=E1101
+            return Int32TensorType(shape)
         if it == TensorProto.BOOL:  # pylint: disable=E1101
             return BooleanTensorType(shape)
         raise NotImplementedError(
@@ -154,7 +161,8 @@ def proto2vars(values):
             "Unrecognized proto type {}".format(it))
 
     res = []
-    for v in values:
+    for v_ in values:
+        v = v_
         name = v.name if hasattr(v, 'name') else None
         if hasattr(v, 'type') and str(v.type) != '':
             t = v.type
@@ -179,5 +187,15 @@ def proto2vars(values):
             v = DictionaryType(keyt, valt)
         else:
             raise RuntimeError("Unable to build a variable from {}.".format(v))
+        if v.shape is not None and 0 in v.shape:
+            # Replaces 0 by None
+            new_shape = tuple(None if d == 0 else d for d in v.shape)
+            if new_shape in ((None, ), None):
+                v = v.__class__()
+            else:
+                v = v.__class__(new_shape)
+        if v.shape is not None and 0 in v.shape:
+            raise RuntimeError("Shape cannot be empty: '{}': {}.".format(
+                name, v_))
         res.append((name, v))
     return res

@@ -6,7 +6,7 @@ import unittest
 from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase
+from pyquickhelper.pycode import get_temp_folder, ExtTestCase, skipif_circleci
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -20,8 +20,9 @@ from mlprodict.onnxrt.validate import (
 
 class TestOnnxrtValidateBenchmarkSummary(ExtTestCase):
 
+    @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def test_validate_sklearn_operators_benchmark_errros(self):
+    def test_validate_sklearn_operators_benchmark_errors(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
