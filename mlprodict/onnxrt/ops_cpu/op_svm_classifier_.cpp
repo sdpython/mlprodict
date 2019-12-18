@@ -55,10 +55,11 @@ class RuntimeSVMClassifier
         int64_t class_count_;
         std::vector<int64_t> vectors_per_class_;
         std::vector<int64_t> starting_vector_;
+        int omp_N_;
         
     public:
         
-        RuntimeSVMClassifier();
+        RuntimeSVMClassifier(int omp_N);
         ~RuntimeSVMClassifier();
 
         void init(
@@ -91,12 +92,17 @@ private:
     
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                               const py::array_t<NTYPE>& X, py::array_t<int64_t>& Y,
-                              py::array_t<NTYPE>& Z, int64_t nb_columns) const;
+                              py::array_t<NTYPE>& Z) const;
+
+        void compute_gil_free_loop(int64_t n, const NTYPE * x_data, 
+                                   int64_t* y_data, NTYPE * z_data,
+                                   int64_t stride) const;
 };
 
 
 template<typename NTYPE>
-RuntimeSVMClassifier<NTYPE>::RuntimeSVMClassifier() {
+RuntimeSVMClassifier<NTYPE>::RuntimeSVMClassifier(int omp_N) {
+    omp_N_ = omp_N;
 }
 
 
@@ -210,25 +216,28 @@ int _set_score_svm(int64_t* output_data, NTYPE max_weight, const int64_t maxclas
                    const std::vector<NTYPE>& proba_, bool weights_are_all_positive_,
                    const std::vector<int64_t>& classlabels, int64_t posclass,
                    int64_t negclass) {
-  int write_additional_scores = -1;
-  if (classlabels.size() == 2) {
-    write_additional_scores = post_transform_ == POST_EVAL_TRANSFORM::NONE ? 2 : 0;
-    if (proba_.size() == 0) {
-      if (weights_are_all_positive_ && max_weight >= 0.5)
-        output_data[n] = classlabels[1];
-      else if (max_weight > 0 && !weights_are_all_positive_)
-        output_data[n] = classlabels[1];
-      else
-        output_data[n] = classlabels[maxclass];
-    } else {
-      output_data[n] = classlabels[maxclass];
+    int write_additional_scores = -1;
+    if (classlabels.size() == 2) {
+        write_additional_scores = post_transform_ == POST_EVAL_TRANSFORM::NONE ? 2 : 0;
+        if (proba_.size() == 0) {
+            if (weights_are_all_positive_ && max_weight >= 0.5)
+                output_data[n] = classlabels[1];
+            else if (max_weight > 0 && !weights_are_all_positive_)
+                output_data[n] = classlabels[1];
+            else
+                output_data[n] = classlabels[maxclass];
+        } 
+        else {
+            output_data[n] = classlabels[maxclass];
+        }
     }
-  } else if (max_weight > 0) {
-    output_data[n] = posclass;
-  } else {
-    output_data[n] = negclass;
-  }
-  return write_additional_scores;
+    else if (max_weight > 0) {
+        output_data[n] = posclass;
+    }
+    else {
+        output_data[n] = negclass;
+    }
+    return write_additional_scores;
 }
 
 
@@ -257,7 +266,7 @@ py::tuple RuntimeSVMClassifier<NTYPE>::compute(py::array_t<NTYPE> X) const {
     py::array_t<NTYPE> Z(N * nb_columns); // one target only
     {
         py::gil_scoped_release release;
-        compute_gil_free(x_dims, N, stride, X, Y, Z, nb_columns);
+        compute_gil_free(x_dims, N, stride, X, Y, Z);
     }
     return py::make_tuple(Y, Z);
 }
@@ -271,30 +280,33 @@ NTYPE RuntimeSVMClassifier<NTYPE>::kernel_dot_gil_free(
     const NTYPE* pA = A + a;
     const NTYPE* pB = B.data() + b;
     if (k == KERNEL::POLY) {
-      sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
-      sum = gamma_ * sum + coef0_;
-      if (degree_ == 2)
-        sum = sum * sum;
-      else if (degree_ == 3)
-        sum = sum * sum * sum;
-      else if (degree_ == 4) {
-        double s2 = sum * sum;
-        sum = s2 * s2;
-      }
-      else
-        sum = std::pow(sum, degree_);
-    } else if (k == KERNEL::SIGMOID) {
-      sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
-      sum = gamma_ * sum + coef0_;
-      sum = std::tanh(sum);
-    } else if (k == KERNEL::RBF) {
-      for (int64_t i = len; i > 0; --i, ++pA, ++pB) {
-        double val = *pA - *pB;
-        sum += val * val;
-      }
-      sum = std::exp(-gamma_ * sum);
-    } else if (k == KERNEL::LINEAR) {
-      sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
+        sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
+        sum = gamma_ * sum + coef0_;
+        if (degree_ == 2)
+            sum = sum * sum;
+        else if (degree_ == 3)
+            sum = sum * sum * sum;
+        else if (degree_ == 4) {
+            double s2 = sum * sum;
+            sum = s2 * s2;
+        }
+        else
+            sum = std::pow(sum, degree_);
+    }
+    else if (k == KERNEL::SIGMOID) {
+        sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
+        sum = gamma_ * sum + coef0_;
+        sum = std::tanh(sum);
+    } 
+    else if (k == KERNEL::RBF) {
+        for (int64_t i = len; i > 0; --i, ++pA, ++pB) {
+            double val = *pA - *pB;
+            sum += val * val;
+        }
+        sum = std::exp(-gamma_ * sum);
+    } 
+    else if (k == KERNEL::LINEAR) {
+        sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
     }
     return (NTYPE)sum;
 }
@@ -303,66 +315,66 @@ NTYPE RuntimeSVMClassifier<NTYPE>::kernel_dot_gil_free(
 template<typename NTYPE>
 void multiclass_probability(int64_t classcount, const std::vector<NTYPE>& r,
                             std::vector<NTYPE>& p) {
-  int64_t sized2 = classcount * classcount;
-  std::vector<NTYPE> Q(sized2, 0);
-  std::vector<NTYPE> Qp(classcount, 0);
-  NTYPE eps = 0.005f / static_cast<NTYPE>(classcount);
-  int64_t ii, ij, ji, j;
-  NTYPE t;
-  for (int64_t i = 0; i < classcount; i++) {
-    p[i] = 1.0f / static_cast<NTYPE>(classcount);  // Valid if k = 1
-    ii = i * classcount + i; 
-    ji = i;
-    ij = i * classcount; 
-    for (j = 0; j < i; ++j, ++ij, ji += classcount) {
-      t = r[ji];
-      Q[ii] += t * t;
-      Q[ij] = Q[ji];
-    }
-    ++j;
-    ++ij;
-    ji += classcount;
-    for (; j < classcount; ++j, ++ij, ji += classcount) {
-      t = r[ji];
-      Q[ii] += t * t;
-      Q[ij] = -t * r[ij];
-    }
-  }
-  NTYPE pQp, max_error, error, diff;
-  for (int64_t loop = 0; loop < 100; loop++) {
-    // stopping condition, recalculate QP,pQP for numerical accuracy
-    pQp = 0;
+    int64_t sized2 = classcount * classcount;
+    std::vector<NTYPE> Q(sized2, 0);
+    std::vector<NTYPE> Qp(classcount, 0);
+    NTYPE eps = 0.005f / static_cast<NTYPE>(classcount);
+    int64_t ii, ij, ji, j;
+    NTYPE t;
     for (int64_t i = 0; i < classcount; i++) {
-      t = 0;
-      ij = i * classcount;
-      for (int64_t j = 0; j < classcount; ++j, ++ij) {
-        t += Q[ij] * p[j];
-      }
-      Qp[i] = t;
-      pQp += p[i] * t;
+        p[i] = 1.0f / static_cast<NTYPE>(classcount);  // Valid if k = 1
+        ii = i * classcount + i; 
+        ji = i;
+        ij = i * classcount; 
+        for (j = 0; j < i; ++j, ++ij, ji += classcount) {
+            t = r[ji];
+            Q[ii] += t * t;
+            Q[ij] = Q[ji];
+        }
+        ++j;
+        ++ij;
+        ji += classcount;
+        for (; j < classcount; ++j, ++ij, ji += classcount) {
+            t = r[ji];
+            Q[ii] += t * t;
+            Q[ij] = -t * r[ij];
+        }
     }
-    max_error = 0;
-    for (int64_t i = 0; i < classcount; i++) {
-      error = std::fabs(Qp[i] - pQp);
-      if (error > max_error) {
-        max_error = error;
-      }
+    NTYPE pQp, max_error, error, diff;
+    for (int64_t loop = 0; loop < 100; loop++) {
+        // stopping condition, recalculate QP,pQP for numerical accuracy
+        pQp = 0;
+        for (int64_t i = 0; i < classcount; i++) {
+            t = 0;
+            ij = i * classcount;
+            for (int64_t j = 0; j < classcount; ++j, ++ij) {
+              t += Q[ij] * p[j];
+            }
+            Qp[i] = t;
+            pQp += p[i] * t;
+        }
+        max_error = 0;
+        for (int64_t i = 0; i < classcount; i++) {
+            error = std::fabs(Qp[i] - pQp);
+            if (error > max_error) {
+                max_error = error;
+            }
+        }
+        if (max_error < eps)
+            break;
+    
+        for (int64_t i = 0; i < classcount; ++i) {
+            ii = i * classcount + i;
+            diff = (-Qp[i] + pQp) / Q[ii];
+            p[i] += diff;
+            pQp = (pQp + diff * (diff * Q[ii] + 2 * Qp[i])) / (1 + diff) / (1 + diff);
+            ij = i * classcount;
+            for (int64_t j = 0; j < classcount; ++j, ++ij) {
+                Qp[j] = (Qp[j] + diff * Q[ij]) / (1 + diff);
+                p[j] /= (1 + diff);
+            }
+        }
     }
-    if (max_error < eps)
-      break;
-
-    for (int64_t i = 0; i < classcount; ++i) {
-      ii = i * classcount + i;
-      diff = (-Qp[i] + pQp) / Q[ii];
-      p[i] += diff;
-      pQp = (pQp + diff * (diff * Q[ii] + 2 * Qp[i])) / (1 + diff) / (1 + diff);
-      ij = i * classcount;
-      for (int64_t j = 0; j < classcount; ++j, ++ij) {
-        Qp[j] = (Qp[j] + diff * Q[ij]) / (1 + diff);
-        p[j] /= (1 + diff);
-      }
-    }
-  }
 }
 
 
@@ -375,22 +387,11 @@ py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array
     return Z.mutable_unchecked<1>();
 }
 
-
 template<typename NTYPE>
-void RuntimeSVMClassifier<NTYPE>::compute_gil_free(
-                const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                const py::array_t<NTYPE>& X,
-                py::array_t<int64_t>& Y, py::array_t<NTYPE>& Z,
-                int64_t nb_columns) const {
-  auto Y_ = Y.mutable_unchecked<1>();
-  auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
-  const NTYPE* x_data = X.data(0);
-  int64_t* y_data = (int64_t*)Y_.data(0);
-  NTYPE* z_data = (NTYPE*)Z_.data(0);
-
-  int64_t zindex = 0; 
-  for (int64_t n = 0; n < N; ++n)  //for each example
-  {
+void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
+        int64_t n, const NTYPE * x_data, int64_t* y_data, NTYPE * z_data,
+        int64_t stride) const {
+    int64_t zindex = n * class_count_;
     int64_t current_weight_0 = n * stride;
     int64_t maxclass = -1;
     std::vector<NTYPE> decisions;
@@ -399,115 +400,144 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free(
     std::vector<int64_t> votes;
 
     if (vector_count_ == 0 && mode_ == SVM_TYPE::SVM_LINEAR) {
-      scores.resize(class_count_);
-      for (int64_t j = 0; j < class_count_; j++) {  //for each class
-        scores[j] = rho_[0] + kernel_dot_gil_free(x_data, current_weight_0, coefficients_,
-                                       feature_count_ * j,
-                                       feature_count_, kernel_type_);
-      }
-    } else {
-      if (vector_count_ == 0)
-        throw std::runtime_error("No support vectors.");
-      int evals = 0;
-     
-      kernels.resize(vector_count_);
-      for (int64_t j = 0; j < vector_count_; j++) {
-        kernels[j] = kernel_dot_gil_free(x_data, current_weight_0, support_vectors_,
+        scores.resize(class_count_);
+        for (int64_t j = 0; j < class_count_; j++) {  //for each class
+            scores[j] = rho_[0] + kernel_dot_gil_free(x_data, current_weight_0, coefficients_,
                                          feature_count_ * j,
                                          feature_count_, kernel_type_);
-      }
-      votes.resize(class_count_, 0);
-      for (int64_t i = 0; i < class_count_; i++) {        // for each class
-        int64_t start_index_i = starting_vector_[i];  // *feature_count_;
-        int64_t class_i_support_count = vectors_per_class_[i];
-        int64_t pos2 = (vector_count_) * (i);
-        for (int64_t j = i + 1; j < class_count_; j++) {  // for each class
-          NTYPE sum = 0;
-          int64_t start_index_j = starting_vector_[j];  // *feature_count_;
-          int64_t class_j_support_count = vectors_per_class_[j];
-
-          int64_t pos1 = (vector_count_) * (j - 1);
-          const NTYPE* val1 = &(coefficients_[pos1 + start_index_i]);
-          const NTYPE* val2 = &(kernels[start_index_i]);
-          for (int64_t m = 0; m < class_i_support_count; ++m, ++val1, ++val2)
-            sum += *val1 * *val2;
-
-          val1 = &(coefficients_[pos2 + start_index_j]);
-          val2 = &(kernels[start_index_j]);
-          for (int64_t m = 0; m < class_j_support_count; ++m, ++val1, ++val2)
-            sum += *val1 * *val2;
-
-          sum += rho_[evals];
-          scores.push_back((NTYPE)sum);
-          ++(votes[sum > 0 ? i : j]);
-          ++evals;  //index into rho
         }
-      }
+    } 
+    else {
+        if (vector_count_ == 0)
+            throw std::runtime_error("No support vectors.");
+        int evals = 0;
+       
+        kernels.resize(vector_count_);
+        for (int64_t j = 0; j < vector_count_; j++) {
+            kernels[j] = kernel_dot_gil_free(x_data, current_weight_0, support_vectors_,
+                                           feature_count_ * j,
+                                           feature_count_, kernel_type_);
+        }
+        votes.resize(class_count_, 0);
+        for (int64_t i = 0; i < class_count_; i++) {        // for each class
+            int64_t start_index_i = starting_vector_[i];  // *feature_count_;
+            int64_t class_i_support_count = vectors_per_class_[i];
+            int64_t pos2 = (vector_count_) * (i);
+            for (int64_t j = i + 1; j < class_count_; j++) {  // for each class
+                NTYPE sum = 0;
+                int64_t start_index_j = starting_vector_[j];  // *feature_count_;
+                int64_t class_j_support_count = vectors_per_class_[j];
+      
+                int64_t pos1 = (vector_count_) * (j - 1);
+                const NTYPE* val1 = &(coefficients_[pos1 + start_index_i]);
+                const NTYPE* val2 = &(kernels[start_index_i]);
+                for (int64_t m = 0; m < class_i_support_count; ++m, ++val1, ++val2)
+                    sum += *val1 * *val2;
+      
+                val1 = &(coefficients_[pos2 + start_index_j]);
+                val2 = &(kernels[start_index_j]);
+                for (int64_t m = 0; m < class_j_support_count; ++m, ++val1, ++val2)
+                    sum += *val1 * *val2;
+      
+                sum += rho_[evals];
+                scores.push_back((NTYPE)sum);
+                ++(votes[sum > 0 ? i : j]);
+                ++evals;  //index into rho
+            }
+        }
     }
 
     if (proba_.size() > 0 && mode_ == SVM_TYPE::SVM_SVC) {
-      //compute probabilities from the scores
-      int64_t num = class_count_ * class_count_;
-      std::vector<NTYPE> probsp2(num, 0.f);
-      std::vector<NTYPE> estimates(class_count_, 0.f);
-      int64_t index = 0;
-      NTYPE val1, val2;
-      for (int64_t i = 0; i < class_count_; ++i) {
-        int64_t p1 = i * class_count_ + i + 1;
-        int64_t p2 = (i + 1) * class_count_ + i;
-        for (int64_t j = i + 1; j < class_count_; ++j, ++index, ++p1, p2 += class_count_) {
-          val1 = sigmoid_probability(scores[index], proba_[index], probb_[index]);
-          val2 = std::max(val1, (NTYPE)1.0e-7);
-          val2 = std::min(val2, (NTYPE)(1 - 1.0e-7));
-          probsp2[p1] = val2;
-          probsp2[p2] = 1 - val2;
+        //compute probabilities from the scores
+        int64_t num = class_count_ * class_count_;
+        std::vector<NTYPE> probsp2(num, 0.f);
+        std::vector<NTYPE> estimates(class_count_, 0.f);
+        int64_t index = 0;
+        NTYPE val1, val2;
+        for (int64_t i = 0; i < class_count_; ++i) {
+            int64_t p1 = i * class_count_ + i + 1;
+            int64_t p2 = (i + 1) * class_count_ + i;
+            for (int64_t j = i + 1; j < class_count_; ++j, ++index, ++p1, p2 += class_count_) {
+                val1 = sigmoid_probability(scores[index], proba_[index], probb_[index]);
+                val2 = std::max(val1, (NTYPE)1.0e-7);
+                val2 = std::min(val2, (NTYPE)(1 - 1.0e-7));
+                probsp2[p1] = val2;
+                probsp2[p2] = 1 - val2;
+            }
         }
-      }
-      multiclass_probability(class_count_, probsp2, estimates);
-      // copy probabilities back into scores
-      scores.resize(estimates.size());
-      std::copy(estimates.begin(), estimates.end(), scores.begin());
+        multiclass_probability(class_count_, probsp2, estimates);
+        // copy probabilities back into scores
+        scores.resize(estimates.size());
+        std::copy(estimates.begin(), estimates.end(), scores.begin());
     }
 
     NTYPE max_weight = 0;
     if (votes.size() > 0) {
-      auto it_maxvotes = std::max_element(votes.begin(), votes.end());
-      maxclass = std::distance(votes.begin(), it_maxvotes);
-    } else {
-      auto it_max_weight = std::max_element(scores.begin(), scores.end());
-      maxclass = std::distance(scores.begin(), it_max_weight);
-      max_weight = *it_max_weight;
+        auto it_maxvotes = std::max_element(votes.begin(), votes.end());
+        maxclass = std::distance(votes.begin(), it_maxvotes);
+    } 
+    else {
+        auto it_max_weight = std::max_element(scores.begin(), scores.end());
+        maxclass = std::distance(scores.begin(), it_max_weight);
+        max_weight = *it_max_weight;
     }
 
     // write top class
     // onnx specs expects one column per class.
     int write_additional_scores = -1;
     if (rho_.size() == 1) {
-      write_additional_scores = _set_score_svm(
-          y_data, max_weight, maxclass, n, post_transform_, proba_,
-          weights_are_all_positive_, classlabels_ints_, 1, 0);
-    } else if (classlabels_ints_.size() > 0) {  //multiclass
+        write_additional_scores = _set_score_svm(
+            y_data, max_weight, maxclass, n, post_transform_, proba_,
+            weights_are_all_positive_, classlabels_ints_, 1, 0);
+    } 
+    else if (classlabels_ints_.size() > 0) {  //multiclass
         y_data[n] = classlabels_ints_[maxclass];
-    } else {
+    } 
+    else {
         y_data[n] = maxclass;
     }
 
     write_scores(scores, post_transform_, z_data + zindex, write_additional_scores);
-    zindex += scores.size();
-  }
+}
+
+
+template<typename NTYPE>
+void RuntimeSVMClassifier<NTYPE>::compute_gil_free(
+                const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
+                const py::array_t<NTYPE>& X,
+                py::array_t<int64_t>& Y, py::array_t<NTYPE>& Z) const {
+    auto Y_ = Y.mutable_unchecked<1>();
+    auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
+    const NTYPE* x_data = X.data(0);
+    int64_t* y_data = (int64_t*)Y_.data(0);
+    NTYPE* z_data = (NTYPE*)Z_.data(0);  
+
+    if (N <= omp_N_) {
+        for (int64_t n = 0; n < N; ++n) {
+            compute_gil_free_loop(n, x_data, y_data, z_data, stride);
+        }
+    }
+    else {
+        #ifdef USE_OPENMP
+        #pragma omp parallel for
+        #endif
+        for (int64_t n = 0; n < N; ++n) {
+            compute_gil_free_loop(n, x_data, y_data, z_data, stride);
+        }
+    }
 }
 
 class RuntimeSVMClassifierFloat : public RuntimeSVMClassifier<float>
 {
     public:
-        RuntimeSVMClassifierFloat() : RuntimeSVMClassifier<float>() {}
+        RuntimeSVMClassifierFloat(int omp_N) : RuntimeSVMClassifier<float>(omp_N) {}
 };
 
 
 class RuntimeSVMClassifierDouble : public RuntimeSVMClassifier<double>
 {
     public:
-        RuntimeSVMClassifierDouble() : RuntimeSVMClassifier<double>() {}
+        RuntimeSVMClassifierDouble(int omp_N) : RuntimeSVMClassifier<double>(omp_N) {}
 };
 
 
@@ -527,9 +557,12 @@ in :epkg:`onnxruntime`.)pbdoc"
     py::class_<RuntimeSVMClassifierFloat> clf (m, "RuntimeSVMClassifierFloat",
         R"pbdoc(Implements runtime for operator SVMClassifier. The code is inspired from
 `svm_classifier.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_classifier.cc>`_
-in :epkg:`onnxruntime`.)pbdoc");
+in :epkg:`onnxruntime`.
 
-    clf.def(py::init<>());
+:param omp_N: number of observations above which it gets parallelized.
+)pbdoc");
+
+    clf.def(py::init<int>());
     clf.def("init", &RuntimeSVMClassifierFloat::init,
             "Initializes the runtime with the ONNX attributes in alphabetical order.");
     clf.def("compute", &RuntimeSVMClassifierFloat::compute,
@@ -542,9 +575,12 @@ in :epkg:`onnxruntime`.)pbdoc");
     py::class_<RuntimeSVMClassifierDouble> cld (m, "RuntimeSVMClassifierDouble",
         R"pbdoc(Implements runtime for operator SVMClassifierDouble. The code is inspired from
 `svm_classifier.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_classifier.cc>`_
-in :epkg:`onnxruntime`.)pbdoc");
+in :epkg:`onnxruntime`.
 
-    cld.def(py::init<>());
+:param omp_N: number of observations above which it gets parallelized.
+)pbdoc");
+
+    cld.def(py::init<int>());
     cld.def("init", &RuntimeSVMClassifierDouble::init,
             "Initializes the runtime with the ONNX attributes in alphabetical order.");
     cld.def("compute", &RuntimeSVMClassifierDouble::compute,

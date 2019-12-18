@@ -38,9 +38,9 @@ class SVMClassifierCommon(OpRunClassifierProb):
 
     def _init(self, dtype):
         if dtype == numpy.float32:
-            self.rt_ = RuntimeSVMClassifierFloat()
+            self.rt_ = RuntimeSVMClassifierFloat(20)
         elif dtype == numpy.float64:
-            self.rt_ = RuntimeSVMClassifierDouble()
+            self.rt_ = RuntimeSVMClassifierDouble(20)
         else:
             raise RuntimeTypeError("Unsupported dtype={}.".format(dtype))
         atts = [self._get_typed_attributes(k)

@@ -33,7 +33,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
 
     def test_openmp_compilation_float(self):
         from mlprodict.onnxrt.ops_cpu.op_svm_regressor_ import RuntimeSVMRegressorFloat  # pylint: disable=E0611
-        ru = RuntimeSVMRegressorFloat()
+        ru = RuntimeSVMRegressorFloat(10)
         r = ru.runtime_options()
         self.assertEqual('OPENMP', r)
         nb = ru.omp_get_max_threads()
@@ -41,7 +41,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
 
     def test_openmp_compilation_double(self):
         from mlprodict.onnxrt.ops_cpu.op_svm_regressor_ import RuntimeSVMRegressorDouble  # pylint: disable=E0611
-        ru = RuntimeSVMRegressorDouble()
+        ru = RuntimeSVMRegressorDouble(10)
         r = ru.runtime_options()
         self.assertEqual('OPENMP', r)
         nb = ru.omp_get_max_threads()

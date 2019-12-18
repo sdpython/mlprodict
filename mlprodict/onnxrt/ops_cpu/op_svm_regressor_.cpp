@@ -46,10 +46,11 @@ class RuntimeSVMRegressor
         std::vector<NTYPE> support_vectors_;
         POST_EVAL_TRANSFORM post_transform_;
         SVM_TYPE mode_;  //how are we computing SVM? 0=LibSVC, 1=LibLinear
+        int omp_N_;
     
     public:
         
-        RuntimeSVMRegressor();
+        RuntimeSVMRegressor(int omp_N);
         ~RuntimeSVMRegressor();
 
         void init(
@@ -83,7 +84,8 @@ private:
 
 
 template<typename NTYPE>
-RuntimeSVMRegressor<NTYPE>::RuntimeSVMRegressor() {
+RuntimeSVMRegressor<NTYPE>::RuntimeSVMRegressor(int omp_N) {
+    omp_N_ = omp_N;
 }
 
 
@@ -191,30 +193,30 @@ NTYPE RuntimeSVMRegressor<NTYPE>::kernel_dot_gil_free(
     const NTYPE* pA = A + a;
     const NTYPE* pB = B.data() + b;
     if (k == KERNEL::POLY) {
-      sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
-      sum = gamma_ * sum + coef0_;
-      if (degree_ == 2)
-        sum = sum * sum;
-      else if (degree_ == 3)
-        sum = sum * sum * sum;
-      else if (degree_ == 4) {
-        double s2 = sum * sum;
-        sum = s2 * s2;
-      }
-      else
-        sum = std::pow(sum, degree_);
+        sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
+        sum = gamma_ * sum + coef0_;
+        if (degree_ == 2)
+            sum = sum * sum;
+        else if (degree_ == 3)
+            sum = sum * sum * sum;
+        else if (degree_ == 4) {
+            double s2 = sum * sum;
+            sum = s2 * s2;
+        }
+        else
+            sum = std::pow(sum, degree_);
     } else if (k == KERNEL::SIGMOID) {
-      sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
-      sum = gamma_ * sum + coef0_;
-      sum = std::tanh(sum);
+        sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
+        sum = gamma_ * sum + coef0_;
+        sum = std::tanh(sum);
     } else if (k == KERNEL::RBF) {
-      for (int64_t i = len; i > 0; --i, ++pA, ++pB) {
-        double val = *pA - *pB;
-        sum += val * val;
-      }
-      sum = std::exp(-gamma_ * sum);
+        for (int64_t i = len; i > 0; --i, ++pA, ++pB) {
+            double val = *pA - *pB;
+            sum += val * val;
+        }
+        sum = std::exp(-gamma_ * sum);
     } else if (k == KERNEL::LINEAR) {
-      sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
+        sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
     }
     return (NTYPE)sum;
 }
@@ -229,49 +231,61 @@ py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array
     return Z.mutable_unchecked<1>();
 }
 
+#define COMPUTE_LOOP() \
+    current_weight_0 = n * stride; \
+    sum = (NTYPE)0; \
+    if (mode_ == SVM_TYPE::SVM_SVC) { \
+        for (j = 0; j < vector_count_; ++j) { \
+            sum += coefficients_[j] * kernel_dot_gil_free( \
+                x_data, current_weight_0, support_vectors_, \
+                feature_count_ * j, feature_count_, kernel_type_); \
+        } \
+        sum += rho_[0]; \
+    } else if (mode_ == SVM_TYPE::SVM_LINEAR) { \
+        sum = kernel_dot_gil_free(x_data, current_weight_0, coefficients_, 0, \
+                                  feature_count_, kernel_type_); \
+        sum += rho_[0]; \
+    } \
+    z_data[n] = one_class_ ? (sum > 0 ? 1 : -1) : sum;
+
 
 template<typename NTYPE>
 void RuntimeSVMRegressor<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                 const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z) const {
 
-  auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
-  const NTYPE* x_data = X.data(0);
-  NTYPE* z_data = (NTYPE*)Z_.data(0);
+    auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
+    const NTYPE* x_data = X.data(0);
+    NTYPE* z_data = (NTYPE*)Z_.data(0);
+    int64_t current_weight_0, j;
+    NTYPE sum;
 
-#ifdef USE_OPENMP
-#pragma omp parallel for
-#endif
-  for (int64_t n = 0; n < N; ++n) {  //for each example
-    int64_t current_weight_0 = n * stride;
-
-    NTYPE sum = (NTYPE)0;
-    if (mode_ == SVM_TYPE::SVM_SVC) {
-      for (int64_t j = 0; j < vector_count_; ++j) {
-        sum += coefficients_[j] * kernel_dot_gil_free(x_data, current_weight_0, support_vectors_,
-                                                      feature_count_ * j, feature_count_, kernel_type_);
-      }
-      sum += rho_[0];
-    } else if (mode_ == SVM_TYPE::SVM_LINEAR) {  //liblinear
-      sum = kernel_dot_gil_free(x_data, current_weight_0, coefficients_, 0,
-                                feature_count_, kernel_type_);
-      sum += rho_[0];
+    if (N <= omp_N_) {
+        for (int64_t n = 0; n < N; ++n) {
+            COMPUTE_LOOP()
+        }
     }
-    z_data[n] = one_class_ ? (sum > 0 ? 1 : -1) : sum;
-  }
+    else {
+#ifdef USE_OPENMP
+#pragma omp parallel for private(current_weight_0, j, sum)
+#endif
+        for (int64_t n = 0; n < N; ++n) {
+            COMPUTE_LOOP()
+        }
+    }
 }
 
 class RuntimeSVMRegressorFloat : public RuntimeSVMRegressor<float>
 {
     public:
-        RuntimeSVMRegressorFloat() : RuntimeSVMRegressor<float>() {}
+        RuntimeSVMRegressorFloat(int omp_N) : RuntimeSVMRegressor<float>(omp_N) {}
 };
 
 
 class RuntimeSVMRegressorDouble : public RuntimeSVMRegressor<double>
 {
     public:
-        RuntimeSVMRegressorDouble() : RuntimeSVMRegressor<double>() {}
+        RuntimeSVMRegressorDouble(int omp_N) : RuntimeSVMRegressor<double>(omp_N) {}
 };
 
 
@@ -293,9 +307,12 @@ in :epkg:`onnxruntime`.)pbdoc"
     py::class_<RuntimeSVMRegressorFloat> clf (m, "RuntimeSVMRegressorFloat",
         R"pbdoc(Implements float runtime for operator SVMRegressor. The code is inspired from
 `svm_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_regressor.cc>`_
-in :epkg:`onnxruntime`.)pbdoc");
+in :epkg:`onnxruntime`.
 
-    clf.def(py::init<>());
+:param omp_N: number of observations above which it gets parallelized.
+)pbdoc");
+
+    clf.def(py::init<int>());
     clf.def("init", &RuntimeSVMRegressorFloat::init,
             "Initializes the runtime with the ONNX attributes in alphabetical order.");
     clf.def("compute", &RuntimeSVMRegressorFloat::compute,
@@ -308,9 +325,12 @@ in :epkg:`onnxruntime`.)pbdoc");
     py::class_<RuntimeSVMRegressorDouble> cld (m, "RuntimeSVMRegressorDouble",
         R"pbdoc(Implements Double runtime for operator SVMRegressor. The code is inspired from
 `svm_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_regressor.cc>`_
-in :epkg:`onnxruntime`.)pbdoc");
+in :epkg:`onnxruntime`.
 
-    cld.def(py::init<>());
+:param omp_N: number of observations above which it gets parallelized.
+)pbdoc");
+
+    cld.def(py::init<int>());
     cld.def("init", &RuntimeSVMRegressorDouble::init,
             "Initializes the runtime with the ONNX attributes in alphabetical order.");
     cld.def("compute", &RuntimeSVMRegressorDouble::compute,

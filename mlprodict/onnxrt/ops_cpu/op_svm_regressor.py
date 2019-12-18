@@ -38,9 +38,9 @@ class SVMRegressorCommon(OpRunUnaryNum):
 
     def _init(self, dtype):
         if dtype == numpy.float32:
-            self.rt_ = RuntimeSVMRegressorFloat()
+            self.rt_ = RuntimeSVMRegressorFloat(10)
         elif dtype == numpy.float64:
-            self.rt_ = RuntimeSVMRegressorDouble()
+            self.rt_ = RuntimeSVMRegressorDouble(10)
         else:
             raise RuntimeTypeError("Unsupported dtype={}.".format(dtype))
         atts = [self._get_typed_attributes(k)

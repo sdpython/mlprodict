@@ -80,10 +80,12 @@ class RuntimeTreeEnsembleRegressorP
         int64_t nbtrees_;
         bool same_mode_;
         bool has_missing_tracks_;
+        int omp_tree_;
+        int omp_N_;
     
     public:
         
-        RuntimeTreeEnsembleRegressorP();
+        RuntimeTreeEnsembleRegressorP(int omp_tree, int omp_N);
         ~RuntimeTreeEnsembleRegressorP();
 
         void init(
@@ -128,7 +130,9 @@ class RuntimeTreeEnsembleRegressorP
 
 
 template<typename NTYPE>
-RuntimeTreeEnsembleRegressorP<NTYPE>::RuntimeTreeEnsembleRegressorP() {
+RuntimeTreeEnsembleRegressorP<NTYPE>::RuntimeTreeEnsembleRegressorP(int omp_tree, int omp_N) {
+    omp_tree_ = omp_tree;
+    omp_N_ = omp_N;
 }
 
 
@@ -394,6 +398,39 @@ py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array
 #endif
 */
 
+#define LOOP_D1_N10() \
+    scores = 0; \
+    has_scores = 0; \
+    for (j = 0; j < (size_t)nbtrees_; ++j) \
+        ProcessTreeNode(&scores, roots_[j], x_data + i * stride, &has_scores); \
+    val = has_scores \
+          ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE \
+              ? scores / roots_.size() \
+              : scores) + origin \
+          : origin; \
+    *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) \
+                ? ComputeProbit(val) : val;
+
+#define LOOP_D10_N10() \
+    current_weight_0 = i * stride; \
+    std::fill(scores.begin(), scores.end(), (NTYPE)0); \
+    std::fill(outputs.begin(), outputs.end(), (NTYPE)0); \
+    std::fill(has_scores.begin(), has_scores.end(), 0); \
+    for (j = 0; j < roots_.size(); ++j) \
+        ProcessTreeNode(scores.data(), roots_[j], x_data + current_weight_0, \
+                        has_scores.data()); \
+    for (jt = 0; jt < n_targets_; ++jt) { \
+        val = base_values_.size() == (size_t)n_targets_ ? base_values_[jt] : 0.f; \
+        val = (has_scores[jt])  \
+                ?  val + (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE \
+                            ? scores[jt] / roots_.size() \
+                            : scores[jt]) \
+                : val; \
+        outputs[jt] = val; \
+    } \
+    write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_), -1);
+
+
 template<typename NTYPE>
 void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
@@ -410,7 +447,7 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
             NTYPE scores = 0;
             unsigned char has_scores = 0;
 
-            if (nbtrees_ <= 10) {
+            if (nbtrees_ <= omp_tree_) {
                 for (int64_t j = 0; j < nbtrees_; ++j)
                     ProcessTreeNode(&scores, roots_[j], x_data, &has_scores);
             }
@@ -436,21 +473,9 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
             NTYPE val;
             size_t j;
             
-            if (N <= 10) {
+            if (N <= omp_N_) {
                 for (int64_t i = 0; i < N; ++i) {
-                    scores = 0;
-                    has_scores = 0;
-      
-                    for (j = 0; j < (size_t)nbtrees_; ++j)
-                        ProcessTreeNode(&scores, roots_[j], x_data + i * stride, &has_scores);
-      
-                    val = has_scores
-                          ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
-                              ? scores / roots_.size()
-                              : scores) + origin
-                          : origin;
-                    *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
-                                ? ComputeProbit(val) : val;
+                    LOOP_D1_N10()
                 }
             }
             else {
@@ -458,19 +483,7 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
                 #pragma omp parallel for private(scores, has_scores, val, j)
                 #endif
                 for (int64_t i = 0; i < N; ++i) {
-                    scores = 0;
-                    has_scores = 0;
-      
-                    for (j = 0; j < (size_t)nbtrees_; ++j)
-                        ProcessTreeNode(&scores, roots_[j], x_data + i * stride, &has_scores);
-      
-                    val = has_scores
-                          ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
-                              ? scores / roots_.size()
-                              : scores) + origin
-                          : origin;
-                    *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
-                                ? ComputeProbit(val) : val;
+                    LOOP_D1_N10()
                 }
             }
         }
@@ -511,27 +524,9 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
             size_t j;
             int64_t jt;
 
-            if (N <= 10) {
+            if (N <= omp_N_) {
                 for (int64_t i = 0; i < N; ++i) {
-                    current_weight_0 = i * stride;
-                    std::fill(scores.begin(), scores.end(), (NTYPE)0);
-                    std::fill(outputs.begin(), outputs.end(), (NTYPE)0);
-                    std::fill(has_scores.begin(), has_scores.end(), 0);
-
-                    for (j = 0; j < roots_.size(); ++j)
-                        ProcessTreeNode(scores.data(), roots_[j], x_data + current_weight_0,
-                                        has_scores.data());
-
-                    for (jt = 0; jt < n_targets_; ++jt) {
-                        val = base_values_.size() == (size_t)n_targets_ ? base_values_[jt] : 0.f;
-                        val = (has_scores[jt]) 
-                                ?  val + (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
-                                            ? scores[jt] / roots_.size()
-                                            : scores[jt])
-                                : val;
-                        outputs[jt] = val;
-                    }
-                    write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_), -1);
+                    LOOP_D10_N10()
                 }
             }
             else {
@@ -539,25 +534,7 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
                 #pragma omp parallel for firstprivate(scores, has_scores, outputs) private(val, current_weight_0, j)
                 #endif
                 for (int64_t i = 0; i < N; ++i) {
-                    current_weight_0 = i * stride;
-                    std::fill(scores.begin(), scores.end(), (NTYPE)0);
-                    std::fill(outputs.begin(), outputs.end(), (NTYPE)0);
-                    std::fill(has_scores.begin(), has_scores.end(), 0);
-
-                    for (j = 0; j < roots_.size(); ++j)
-                        ProcessTreeNode(scores.data(), roots_[j], x_data + current_weight_0,
-                                        has_scores.data());
-
-                    for (jt = 0; jt < n_targets_; ++jt) {
-                        val = base_values_.size() == (size_t)n_targets_ ? base_values_[jt] : 0.f;
-                        val = (has_scores[jt]) 
-                                ?  val + (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
-                                            ? scores[jt] / roots_.size()
-                                            : scores[jt])
-                                : val;
-                        outputs[jt] = val;
-                    }
-                    write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_), -1);
+                    LOOP_D10_N10()
                 }
             }
         }
@@ -769,13 +746,15 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute_tree_outputs(py
 
 class RuntimeTreeEnsembleRegressorPFloat : public RuntimeTreeEnsembleRegressorP<float> {
     public:
-        RuntimeTreeEnsembleRegressorPFloat() : RuntimeTreeEnsembleRegressorP<float>() {}
+        RuntimeTreeEnsembleRegressorPFloat(int omp_tree, int omp_N) :
+            RuntimeTreeEnsembleRegressorP<float>(omp_tree, omp_N) {}
 };
 
 
 class RuntimeTreeEnsembleRegressorPDouble : public RuntimeTreeEnsembleRegressorP<double> {
     public:
-        RuntimeTreeEnsembleRegressorPDouble() : RuntimeTreeEnsembleRegressorP<double>() {}
+        RuntimeTreeEnsembleRegressorPDouble(int omp_tree, int omp_N) :
+            RuntimeTreeEnsembleRegressorP<double>(omp_tree, omp_N) {}
 };
 
 
@@ -795,9 +774,15 @@ in :epkg:`onnxruntime`.)pbdoc"
     py::class_<RuntimeTreeEnsembleRegressorPFloat> clf (m, "RuntimeTreeEnsembleRegressorPFloat",
         R"pbdoc(Implements float runtime for operator TreeEnsembleRegressor. The code is inspired from
 `tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
-in :epkg:`onnxruntime`. Supports float only.)pbdoc");
+in :epkg:`onnxruntime`. Supports float only.
 
-    clf.def(py::init<>());
+:param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
+    to parallelize tree computation when the number of observations it 1
+:param omp_N: number of observvations above which the runtime uses
+:epkg:`openmp` to parallize the predictions
+)pbdoc");
+
+    clf.def(py::init<int, int>());
     clf.def_readonly("roots_", &RuntimeTreeEnsembleRegressorPFloat::roots_,
                      "Returns the roots indices.");
     clf.def("init", &RuntimeTreeEnsembleRegressorPFloat::init,
@@ -825,9 +810,15 @@ in :epkg:`onnxruntime`. Supports float only.)pbdoc");
     py::class_<RuntimeTreeEnsembleRegressorPDouble> cld (m, "RuntimeTreeEnsembleRegressorPDouble",
         R"pbdoc(Implements double runtime for operator TreeEnsembleRegressor. The code is inspired from
 `tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
-in :epkg:`onnxruntime`. Supports double only.)pbdoc");
+in :epkg:`onnxruntime`. Supports double only.
 
-    cld.def(py::init<>());
+:param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
+    to parallelize tree computation when the number of observations it 1
+:param omp_N: number of observvations above which the runtime uses
+:epkg:`openmp` to parallize the predictions
+)pbdoc");
+
+    cld.def(py::init<int, int>());
     cld.def_readonly("roots_", &RuntimeTreeEnsembleRegressorPDouble::roots_,
                      "Returns the roots indices.");
     cld.def("init", &RuntimeTreeEnsembleRegressorPDouble::init,
