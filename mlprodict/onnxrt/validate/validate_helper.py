@@ -317,7 +317,7 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False):
         res /= number
     mean = numpy.mean(res)
     dev = numpy.mean(res ** 2)
-    dev = (dev - mean**2) ** 0.5
+    dev = max(0, (dev - mean**2)) ** 0.5
     mes = dict(average=mean, deviation=dev, min_exec=numpy.min(res),
                max_exec=numpy.max(res), repeat=repeat, number=number,
                total=total)
