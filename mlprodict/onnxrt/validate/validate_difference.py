@@ -47,10 +47,6 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
             if len(skl_pred) != len(ort_pred):
                 return 1e10
             for i in range(len(skl_pred)):  # pylint: disable=C0200
-                print('------------')
-                print(skl_pred[i])
-                print('------------')
-                print(ort_pred[i])
                 diff = measure_relative_difference(skl_pred[i], ort_pred[i])
                 diffs.append(diff)
         else:
