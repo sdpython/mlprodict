@@ -33,10 +33,10 @@ class RuntimeTreeEnsembleRegressorP
         struct TreeNodeElementId {
             int tree_id;
             int node_id;
-            bool operator == (const TreeNodeElementId& xyz) const {
+            inline bool operator == (const TreeNodeElementId& xyz) const {
                 return (tree_id == xyz.tree_id) && (node_id == xyz.node_id);
             }
-            bool operator < (const TreeNodeElementId& xyz) const {
+            inline bool operator < (const TreeNodeElementId& xyz) const {
                 return ((tree_id < xyz.tree_id) || (
                         tree_id == xyz.tree_id && node_id < xyz.node_id));
             }
@@ -79,7 +79,6 @@ class RuntimeTreeEnsembleRegressorP
         int64_t nbtrees_;
         bool same_mode_;
         bool has_missing_tracks_;
-        const int64_t kOffset_ = 4000000000L;
     
     public:
         

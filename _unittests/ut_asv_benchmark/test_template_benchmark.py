@@ -207,13 +207,12 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                         raise AssertionError(
                             "Predictions are too perfect: {},{}: {}".format(
                                 method, runtime, res[method, runtime]))
-        self.assertEqual(len(res), 18)
-        exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
-               ('track_score', 'skl'), ('track_onnxsize', 'skl'),
-               ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
-               ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
-               ('track_nbnodes', 'skl'), ('track_opset', 'skl'),
-               ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
+        self.assertEqual(len(res), 10)
+        exp = [('peakmem_predict', 'skl'), ('time_predict', 'skl'),
+               ('track_nbnodes', 'skl'), ('track_onnxsize', 'skl'),
+               ('track_score', 'skl'), ('peakmem_predict', 'pyrt'),
+               ('time_predict', 'pyrt'), ('track_nbnodes', 'pyrt'),
+               ('track_onnxsize', 'pyrt'), ('track_score', 'pyrt')]
         self.assertEqual(set(exp), set(res))
 
     @ignore_warnings(category=(UserWarning, ))

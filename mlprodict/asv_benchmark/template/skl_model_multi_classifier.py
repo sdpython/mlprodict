@@ -13,7 +13,7 @@ Windows.
 import numpy  # pylint: disable=W0611
 from onnx.defs import onnx_opset_version
 # Import specific to this model.
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 from mlprodict.asv_benchmark import _CommonAsvSklBenchmarkMultiClassifier
 from mlprodict.onnx_conv import to_onnx  # pylint: disable=W0611
@@ -42,4 +42,4 @@ class TemplateBenchmarkMultiClassifier(_CommonAsvSklBenchmarkMultiClassifier):
         super().setup_cache()
 
     def _create_model(self):
-        return RandomForestClassifier()
+        return DecisionTreeClassifier()

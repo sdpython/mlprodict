@@ -130,6 +130,28 @@ class TestRtValidateDecisionTree(ExtTestCase):
         init = row['init_types'][0][1]
         self.assertEqual(init.shape, (1, 100))
 
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_rt_DecisionTreeClassifier_python_mlabel(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+        verbose = 1 if __name__ == "__main__" else 0
+
+        debug = True
+        buffer = []
+
+        def myprint(*args, **kwargs):
+            buffer.append(" ".join(map(str, args)))
+
+        rows = list(enumerate_validated_operator_opsets(
+            verbose, models={"DecisionTreeClassifier"},
+            opset_min=onnx_opset_version(), fLOG=myprint,
+            runtime='python', debug=debug,
+            filter_exp=lambda m, p: 'm-cl' in p))
+        self.assertGreater(len(rows), 1)
+        self.assertGreater(len(buffer), 1 if debug else 0)
+
 
 if __name__ == "__main__":
+    TestRtValidateDecisionTree().test_rt_DecisionTreeClassifier_python_mlabel()
     unittest.main()

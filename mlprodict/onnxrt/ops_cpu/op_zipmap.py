@@ -126,6 +126,8 @@ class ArrayZipMapDictionary(list):
         """
         Equivalent to ``DataFrame(self).values``.
         """
+        if len(self._mat.shape) == 3:
+            return self._mat.reshape((self._mat.shape[1], -1))
         return self._mat
 
     @property
@@ -134,8 +136,23 @@ class ArrayZipMapDictionary(list):
         Equivalent to ``DataFrame(self).columns``.
         """
         res = [(v, k) for k, v in self._rev_keys.items()]
-        res.sort()
+        if len(res) == 0:
+            if len(self._mat.shape) == 2:
+                res = [(i, 'c%d' % i) for i in range(self._mat.shape[1])]
+            elif len(self._mat.shape) == 3:
+                # multiclass
+                res = [(i, 'c%d' % i)
+                       for i in range(self._mat.shape[0] * self._mat.shape[2])]
+            else:
+                raise RuntimeError(
+                    "Unable to guess the right number of columns for shapes: {}".format(self._mat.shape))
+        else:
+            res.sort()
         return [_[1] for _ in res]
+
+    @property
+    def is_zip_map(self):
+        return True
 
 
 class ZipMap(OpRun):

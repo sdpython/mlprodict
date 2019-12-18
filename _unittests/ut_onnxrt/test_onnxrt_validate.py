@@ -5,6 +5,7 @@ import os
 import unittest
 from logging import getLogger
 from pandas import DataFrame, read_csv
+from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import (
     get_temp_folder, ExtTestCase, skipif_circleci, unittest_require_at_least
@@ -31,12 +32,14 @@ class TestOnnxrtValidate(ExtTestCase):
         temp = get_temp_folder(__file__, "temp_validate_sklearn_operators_all")
         if False:  # pylint: disable=W0125
             rows = list(enumerate_validated_operator_opsets(
-                verbose, models={"AdaBoostRegressor"}, opset_min=10,
+                verbose, models={"ExtraTreeClassifier"},
+                opset_min=onnx_opset_version(),
                 debug=True, fLOG=fLOG))
         else:
             rows = list(enumerate_validated_operator_opsets(
                 verbose, debug=None, fLOG=fLOG, dump_folder=temp,
-                opset_min=10, time_kwargs={10: dict(number=2, repeat=2)},
+                opset_min=onnx_opset_version(),
+                time_kwargs={onnx_opset_version(): dict(number=2, repeat=2)},
                 n_features=[None]))
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
@@ -63,5 +66,4 @@ class TestOnnxrtValidate(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtValidate().test_n_features_int()
     unittest.main()

@@ -130,8 +130,10 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         y = oinf.run({'X': X_test.astype(numpy.float32)})
         self.assertEqual(list(sorted(y)), [
                          'output_label', 'output_probability'])
-        exp = clr.predict_proba(X_test)
-        got = pandas.DataFrame(list(y['output_probability'])).values
+        exp = numpy.array(clr.predict_proba(X_test))
+        exp = exp.reshape(max(exp.shape), -1)
+        p = y['output_probability']
+        got = pandas.DataFrame(p.values, columns=p.columns)
         self.assertEqualArray(exp, got, decimal=5)
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y['output_label'])
@@ -311,4 +313,5 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_DecisionTreeClassifier_mlabel()
     unittest.main()

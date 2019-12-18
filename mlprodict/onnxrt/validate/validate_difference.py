@@ -33,12 +33,24 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
     The function takes the fourth highest difference, not the three first
     which may happen after a conversion into float32.
     """
+    if hasattr(ort_pred, "is_zip_map") and ort_pred.is_zip_map:
+        ort_pred = ort_pred.values
+    if (isinstance(skl_pred, list) and
+            all(map(lambda t: isinstance(t, numpy.ndarray), skl_pred))):
+        # multi label classification
+        skl_pred = numpy.array(skl_pred)
+        skl_pred = skl_pred.reshape((skl_pred.shape[1], -1))
+
     if isinstance(skl_pred, tuple) or (batch and isinstance(skl_pred, list)):
         diffs = []
         if batch:
             if len(skl_pred) != len(ort_pred):
                 return 1e10
             for i in range(len(skl_pred)):  # pylint: disable=C0200
+                print('------------')
+                print(skl_pred[i])
+                print('------------')
+                print(ort_pred[i])
                 diff = measure_relative_difference(skl_pred[i], ort_pred[i])
                 diffs.append(diff)
         else:

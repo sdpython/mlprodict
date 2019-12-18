@@ -22,7 +22,6 @@ from sklearn.metrics import (
     accuracy_score,
     mean_absolute_error,
     silhouette_score,
-    coverage_error,
 )
 from sklearn.model_selection import train_test_split
 from mlprodict.onnxrt import OnnxInference
@@ -315,7 +314,7 @@ class _CommonAsvSklBenchmarkMultiClassifier(_CommonAsvSklBenchmark):
         return (X_train, y_train), (X, y)
 
     def _score_metric(self, X, y_exp, y_pred):
-        return coverage_error(y_exp, y_pred)
+        return accuracy_score(y_exp.ravel(), y_pred.ravel())
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
         self.check_method_name('predict_proba')
