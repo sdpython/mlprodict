@@ -30,7 +30,7 @@ class TestRtValidateNaive(ExtTestCase):
         model.fit(X_train, y_train)
         return model, X_test
 
-    def test_model_bernoulli_nb_binary_classification(self):
+    def test_model_bernoulli_nb_bc_python(self):
         model, X = self.fit_classification_model(BernoulliNB(), 2)
         model_onnx = convert_sklearn(
             model, "?", [("input", FloatTensorType([None, X.shape[1]]))],
@@ -44,11 +44,27 @@ class TestRtValidateNaive(ExtTestCase):
         got2 = DataFrame(got['output_probability']).values
         self.assertEqualArray(exp, got2, decimal=4)
 
+    def test_model_bernoulli_nb_bc_onnxruntime1(self):
+        model, X = self.fit_classification_model(BernoulliNB(), 2)
+        model_onnx = convert_sklearn(
+            model, "?", [("input", FloatTensorType([None, X.shape[1]]))],
+            dtype=numpy.float32)
+        exp1 = model.predict(X)
+        exp = model.predict_proba(X)
+
         oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
         got = oinf.run({'input': X})
         self.assertEqualArray(exp1, got['output_label'])
         got2 = DataFrame(got['output_probability']).values
         self.assertEqualArray(exp, got2, decimal=4)
+
+    def test_model_bernoulli_nb_bc_onnxruntime2(self):
+        model, X = self.fit_classification_model(BernoulliNB(), 2)
+        model_onnx = convert_sklearn(
+            model, "?", [("input", FloatTensorType([None, X.shape[1]]))],
+            dtype=numpy.float32)
+        exp1 = model.predict(X)
+        exp = model.predict_proba(X)
 
         oinf = OnnxInference(model_onnx, runtime='onnxruntime2')
         got = oinf.run({'input': X})
