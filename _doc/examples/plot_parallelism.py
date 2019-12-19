@@ -1,8 +1,8 @@
 """
 .. _l-example-parallelism:
 
-When to parallize?
-==================
+When to parallelize?
+====================
 
 That is the question. Parallize computation
 takes some time to set up, it is not the right
@@ -73,6 +73,11 @@ print(oinf.sequence_[0].ops_.rt_.omp_N_)
 ######################################
 # Profiling
 # +++++++++
+#
+# This step involves :epkg:`pyinstrument` to measure
+# where the time is spent. Both :epkg:`scikit-learn`
+# and :epkg:`mlprodict` runtime are called so that
+# the prediction times can be compared.
 
 X32 = X_test.astype(numpy.float32)
 
@@ -123,7 +128,7 @@ df[df.RT == 'ONNX'].set_index('N')[num].plot(ax=ax[0])
 ax[0].set_title("Average ONNX prediction time per observation in a batch.")
 df[df.RT == 'SKL'].set_index('N')[num].plot(ax=ax[1])
 ax[1].set_title(
-    "Average scikit-learn perdiction time per observation in a batch.")
+    "Average scikit-learn prediction time\nper observation in a batch.")
 
 
 ######################################
@@ -148,8 +153,14 @@ def parallized_gain(df):
 print('gain', parallized_gain(df))
 
 #################################
-# Measure based on the number of trees
-# ++++++++++++++++++++++++++++++++++++
+# Measures based on the number of trees
+# +++++++++++++++++++++++++++++++++++++
+#
+# We trained many models with different number
+# of trees to see how the parallelization gain
+# is moving. One models is trained for every
+# distinct number of trees and then the prediction
+# time is measured for different number of observations.
 
 tries = [(nb, N)
          for N in range(2, 21, 2)
@@ -203,7 +214,8 @@ dfg = dfg.sort_values('nb').reset_index(drop=True).copy()
 print(dfg)
 
 ax = dfg.set_index('nb').plot()
-ax.set_title("Parallelization gain depending\non the number of trees\n(max_depth=6).")
+ax.set_title(
+    "Parallelization gain depending\non the number of trees\n(max_depth=6).")
 
 ##############################
 # That does not answer the question we are looking for
@@ -211,13 +223,14 @@ ax.set_title("Parallelization gain depending\non the number of trees\n(max_depth
 # which defines the number of observations for which
 # we should parallelized. This number depends on the number
 # of trees. A gain > 1 means the parallization should happen
-# sooner. Here, even two observations is ok.
-# Let's check with lighter trees (``max_depth=3``).
+# Here, even two observations is ok.
+# Let's check with lighter trees (``max_depth=2``),
+# maybe in that case, the conclusion is different.
 
 models = {100: (hgb, oinf)}
 for nb in tqdm(set(_[0] for _ in tries)):
     if nb not in models:
-        hgb = HistGradientBoostingRegressor(max_iter=nb, max_depth=3)
+        hgb = HistGradientBoostingRegressor(max_iter=nb, max_depth=2)
         hgb.fit(X_train, y_train)
         onx = to_onnx(hgb, X_train[:1].astype(numpy.float32))
         oinf = OnnxInference(onx, runtime='python_compiled')
@@ -251,7 +264,62 @@ dfg = dfg.sort_values('nb').reset_index(drop=True).copy()
 print(dfg)
 
 ax = dfg.set_index('nb').plot()
-ax.set_title("Parallelization gain depending\non the number of trees\n(max_depth=3).")
+ax.set_title(
+    "Parallelization gain depending\non the number of trees\n(max_depth=3).")
+
+#########################################
+# The conclusion is somewhat the same but
+# it shows that the bigger the number of trees is
+# the bigger the gain is and under the number of
+# cores of the processor.
+#
+# Moving the theshold
+# +++++++++++++++++++
+#
+# The last experiment consists in comparing the prediction
+# time with or without parallelization for different
+# number of observation.
+
+hgb = HistGradientBoostingRegressor(max_iter=40, max_depth=6)
+hgb.fit(X_train, y_train)
+onx = to_onnx(hgb, X_train[:1].astype(numpy.float32))
+oinf = OnnxInference(onx, runtime='python_compiled')
+
+
+obs = []
+for N in tqdm(list(range(2, 51))):
+    oinf.sequence_[0].ops_.rt_.omp_N_ = 100
+    m = measure_time("oinf.run({'X': x})",
+                     {'oinf': oinf, 'x': X32[:N]},
+                     div_by_number=True,
+                     number=20)
+    m['N'] = N
+    m['RT'] = 'ONNX'
+    m['PARALLEL'] = False
+    obs.append(m)
+
+    oinf.sequence_[0].ops_.rt_.omp_N_ = 1
+    m = measure_time("oinf.run({'X': x})",
+                     {'oinf': oinf, 'x': X32[:N]},
+                     div_by_number=True,
+                     number=50)
+    m['N'] = N
+    m['RT'] = 'ONNX'
+    m['PARALLEL'] = True
+    obs.append(m)
+
+df = DataFrame(obs)
+num = ['min_exec', 'average', 'max_exec']
+for c in num:
+    df[c] /= df['N']
+print(df.head())
+
+piv = df[['N', 'PARALLEL', 'average']].pivot('N', 'PARALLEL', 'average')
+ax = piv.plot(logy=True)
+ax.set_title("Prediction time with and without parallelization.")
+
+###############################
+# Parallelization is working.
 
 
 plt.show()
