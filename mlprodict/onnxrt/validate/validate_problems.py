@@ -14,7 +14,8 @@ from sklearn.decomposition import LatentDirichletAllocation, NMF
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.ensemble import (
     AdaBoostRegressor, GradientBoostingRegressor, AdaBoostClassifier,
-    BaggingClassifier, VotingClassifier, GradientBoostingClassifier
+    BaggingClassifier, VotingClassifier, GradientBoostingClassifier,
+    RandomForestClassifier
 )
 try:
     from sklearn.ensemble import StackingClassifier, StackingRegressor
@@ -58,7 +59,7 @@ from sklearn.neighbors import (
 from sklearn.preprocessing import LabelBinarizer, LabelEncoder, OneHotEncoder
 from sklearn.semi_supervised import LabelPropagation, LabelSpreading
 from sklearn.svm import LinearSVC, LinearSVR, NuSVR, SVR, SVC, NuSVC
-from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, ExtraTreeClassifier
 from sklearn.utils import shuffle
 from skl2onnx.common.data_types import (
     FloatTensorType, DoubleTensorType, StringTensorType, DictionaryType
@@ -719,9 +720,11 @@ def find_suitable_problem(model):
             return ['m-reg']
 
         if model in {OneVsOneClassifier, OutputCodeClassifier,
-                     PassiveAggressiveClassifier, RadiusNeighborsClassifier,
-                     RidgeClassifier, RidgeClassifierCV}:
+                     PassiveAggressiveClassifier, RadiusNeighborsClassifier}:
             return ['~b-cl-nop', '~m-cl-nop']
+
+        if model in {RidgeClassifier, RidgeClassifierCV}:
+            return ['~b-cl-nop', '~m-cl-nop', '~m-label']
 
         # trainable transform
         if model in {GenericUnivariateSelect,
@@ -740,8 +743,11 @@ def find_suitable_problem(model):
         if model in {LogisticRegression}:
             return ['b-cl', '~b-cl-64', 'm-cl', '~b-cl-dec', '~m-cl-dec']
 
-        if model in {DecisionTreeClassifier}:
-            return ['b-cl', '~b-cl-64', 'm-cl', '~b-cl-f100']
+        if model in {RandomForestClassifier}:
+            return ['b-cl', '~b-cl-64', 'm-cl', '~m-label']
+
+        if model in {DecisionTreeClassifier, ExtraTreeClassifier}:
+            return ['b-cl', '~b-cl-64', 'm-cl', '~b-cl-f100', '~m-label']
 
         if model in {DecisionTreeRegressor}:
             return ['b-reg', 'm-reg', '~b-reg-64', '~m-reg-64', '~b-reg-f100']
