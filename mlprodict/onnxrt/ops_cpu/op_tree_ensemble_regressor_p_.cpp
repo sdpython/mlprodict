@@ -783,6 +783,10 @@ in :epkg:`onnxruntime`. Supports float only.
 )pbdoc");
 
     clf.def(py::init<int, int>());
+    clf.def_readwrite("omp_tree_", &RuntimeTreeEnsembleRegressorPFloat::omp_tree_,
+        "Number of trees above which the computation is parallized for one observation.");
+    clf.def_readwrite("omp_N_", &RuntimeTreeEnsembleRegressorPFloat::omp_N_,
+        "Number of observations above which the computation is parallized.");
     clf.def_readonly("roots_", &RuntimeTreeEnsembleRegressorPFloat::roots_,
                      "Returns the roots indices.");
     clf.def("init", &RuntimeTreeEnsembleRegressorPFloat::init,
@@ -819,6 +823,10 @@ in :epkg:`onnxruntime`. Supports double only.
 )pbdoc");
 
     cld.def(py::init<int, int>());
+    cld.def_readwrite("omp_tree_", &RuntimeTreeEnsembleRegressorPDouble::omp_tree_,
+        "Number of trees above which the computation is parallized for one observation.");
+    cld.def_readwrite("omp_N_", &RuntimeTreeEnsembleRegressorPDouble::omp_N_,
+        "Number of observations above which the computation is parallized.");
     cld.def_readonly("roots_", &RuntimeTreeEnsembleRegressorPDouble::roots_,
                      "Returns the roots indices.");
     cld.def("init", &RuntimeTreeEnsembleRegressorPDouble::init,

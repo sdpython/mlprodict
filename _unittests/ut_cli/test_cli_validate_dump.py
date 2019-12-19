@@ -24,7 +24,7 @@ class TestCliValidateDump(ExtTestCase):
             "LinearRegression",
             "LogisticRegression",
             "DecisionTreeRegressor",
-            "DecisionTreeClassifier",
+            # "DecisionTreeClassifier",
         ])
         """
         models = ','.join([
