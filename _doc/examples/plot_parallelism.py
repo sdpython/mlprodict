@@ -61,6 +61,13 @@ print(oinf)
 # The runtime of the forest is in the following object.
 
 print(oinf.sequence_[0].ops_)
+print(oinf.sequence_[0].ops_.rt_)
+
+########################################
+# And the threshold used to start parallelizing
+# based on the number of observations.
+
+print(oinf.sequence_[0].ops_.rt_.omp_N_)
 
 
 ######################################
@@ -196,7 +203,7 @@ dfg = dfg.sort_values('nb').reset_index(drop=True).copy()
 print(dfg)
 
 ax = dfg.set_index('nb').plot()
-ax.set_title("Parallelization gain depending on the number of trees.")
+ax.set_title("Parallelization gain depending\non the number of trees\n(max_depth=6).")
 
 ##############################
 # That does not answer the question we are looking for
@@ -205,5 +212,46 @@ ax.set_title("Parallelization gain depending on the number of trees.")
 # we should parallelized. This number depends on the number
 # of trees. A gain > 1 means the parallization should happen
 # sooner. Here, even two observations is ok.
+# Let's check with lighter trees (``max_depth=3``).
+
+models = {100: (hgb, oinf)}
+for nb in tqdm(set(_[0] for _ in tries)):
+    if nb not in models:
+        hgb = HistGradientBoostingRegressor(max_iter=nb, max_depth=3)
+        hgb.fit(X_train, y_train)
+        onx = to_onnx(hgb, X_train[:1].astype(numpy.float32))
+        oinf = OnnxInference(onx, runtime='python_compiled')
+        models[nb] = (hgb, oinf)
+
+obs = []
+for nb, N in tqdm(tries):
+    hgb, oinf = models[nb]
+    m = measure_time("oinf.run({'X': x})",
+                     {'oinf': oinf, 'x': X32[:N]},
+                     div_by_number=True,
+                     number=50)
+    m['N'] = N
+    m['nb'] = nb
+    m['RT'] = 'ONNX'
+    obs.append(m)
+
+df = DataFrame(obs)
+num = ['min_exec', 'average', 'max_exec']
+for c in num:
+    df[c] /= df['N']
+print(df.head())
+
+gains = []
+for nb in set(df['nb']):
+    gain = parallized_gain(df[df.nb == nb])
+    gains.append(dict(nb=nb, gain=gain))
+
+dfg = DataFrame(gains)
+dfg = dfg.sort_values('nb').reset_index(drop=True).copy()
+print(dfg)
+
+ax = dfg.set_index('nb').plot()
+ax.set_title("Parallelization gain depending\non the number of trees\n(max_depth=3).")
+
 
 plt.show()
