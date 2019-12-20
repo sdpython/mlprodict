@@ -209,12 +209,6 @@ class RuntimeTreeEnsembleRegressorP
 
         TreeNodeElement<NTYPE> * ProcessTreeNodeLeave(
             TreeNodeElement<NTYPE> * root, const NTYPE* x_data) const;
-        void ProcessTreeNodePrediction1(
-            NTYPE* predictions, TreeNodeElement<NTYPE> * leave,
-            unsigned char* has_predictions) const;
-        void ProcessTreeNodePrediction(
-            NTYPE* predictions, TreeNodeElement<NTYPE> * leave,
-            unsigned char* has_predictions) const;
     
         std::string runtime_options();
         std::vector<std::string> get_nodes_modes() const;
@@ -798,62 +792,6 @@ TreeNodeElement<NTYPE> *
     }
     return root;
 }
-  
-template<typename NTYPE>
-void RuntimeTreeEnsembleRegressorP<NTYPE>::ProcessTreeNodePrediction(
-        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
-        unsigned char* has_predictions) const {
-    //should be at leaf
-    switch(aggregate_function_) {
-        case AGGREGATE_FUNCTION::AVERAGE:
-        case AGGREGATE_FUNCTION::SUM:
-            for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
-                predictions[it->i] += it->value;
-                has_predictions[it->i] = 1;
-            }
-            break;
-        case AGGREGATE_FUNCTION::MIN:
-            for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
-                predictions[it->i] = (!has_predictions[it->i] || it->value < predictions[it->i]) 
-                                        ? it->value : predictions[it->i];
-                has_predictions[it->i] = 1;
-            }
-            break;
-        case AGGREGATE_FUNCTION::MAX:
-            for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
-                predictions[it->i] = (!has_predictions[it->i] || it->value > predictions[it->i]) 
-                                        ? it->value : predictions[it->i];
-                has_predictions[it->i] = 1;
-            }
-            break;
-    }
-}
-
-
-template<typename NTYPE>
-inline void RuntimeTreeEnsembleRegressorP<NTYPE>::ProcessTreeNodePrediction1(
-        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
-        unsigned char* has_predictions) const {
-    switch(aggregate_function_) {
-        case AGGREGATE_FUNCTION::AVERAGE:
-        case AGGREGATE_FUNCTION::SUM:
-            *predictions = *has_predictions 
-                                ? *predictions + root->weights[0].value
-                                : root->weights[0].value;
-            *has_predictions = 1;
-            break;
-        case AGGREGATE_FUNCTION::MIN:
-            *predictions = (!(*has_predictions) || root->weights[0].value < *predictions) 
-                                    ? root->weights[0].value : *predictions;
-            *has_predictions = 1;
-            break;
-        case AGGREGATE_FUNCTION::MAX:
-            *predictions = (!(*has_predictions) || root->weights[0].value > *predictions) 
-                                    ? root->weights[0].value : *predictions;
-            *has_predictions = 1;
-            break;
-    }
-}
 
 
 template<typename NTYPE>
@@ -897,17 +835,40 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute_tree_outputs(py
     std::vector<NTYPE> result(N * roots_.size());
     const NTYPE* x_data = X.data(0);
     auto itb = result.begin();
-
+    
     for (int64_t i=0; i < N; ++i)  //for each class
     {
         int64_t current_weight_0 = i * stride;
         for (size_t j = 0; j < roots_.size(); ++j, ++itb) {
             std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
             std::vector<unsigned char> has_scores(n_targets_, 0);
-            ProcessTreeNodePrediction(
-                scores.data(),
-                ProcessTreeNodeLeave(roots_[j], x_data + current_weight_0),
-                has_scores.data());
+            switch(aggregate_function_) {
+                case AGGREGATE_FUNCTION::AVERAGE:
+                    _AggregatorAverage<NTYPE>().ProcessTreeNodePrediction(
+                            scores.data(),
+                            ProcessTreeNodeLeave(roots_[j], x_data + current_weight_0),
+                            has_scores.data());
+                    break;
+                case AGGREGATE_FUNCTION::SUM:
+                    _AggregatorSum<NTYPE>().ProcessTreeNodePrediction(
+                            scores.data(),
+                            ProcessTreeNodeLeave(roots_[j], x_data + current_weight_0),
+                            has_scores.data());
+                    break;
+                case AGGREGATE_FUNCTION::MIN:
+                    _AggregatorMin<NTYPE>().ProcessTreeNodePrediction(
+                            scores.data(),
+                            ProcessTreeNodeLeave(roots_[j], x_data + current_weight_0),
+                            has_scores.data());
+                    break;
+                case AGGREGATE_FUNCTION::MAX:
+                    _AggregatorMax<NTYPE>().ProcessTreeNodePrediction(
+                            scores.data(),
+                            ProcessTreeNodeLeave(roots_[j], x_data + current_weight_0),
+                            has_scores.data());
+                    break;
+            }        
+            
             *itb = scores[0];
         }
     }
