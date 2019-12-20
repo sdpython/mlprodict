@@ -9,6 +9,7 @@ before_install:
   - sudo apt-get install libomp-dev
 install:
   - sudo apt-get install -qq gcc-6 g++-6
+  - gcc --version
   - pip install -r requirements_conda.txt
   - pip install -r requirements.txt
 before_script:

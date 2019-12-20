@@ -87,6 +87,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
     def test_onnxrt_python_RandomForestRegressor64(self):
         self.onnxrt_python_RandomForestRegressor_dtype(numpy.float64)
 
+    @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_onnxrt_python_HistGradientBoostingRegressor32_hist(self):
         self.onnxrt_python_RandomForestRegressor_dtype(
@@ -106,11 +107,13 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         self.onnxrt_python_RandomForestRegressor_dtype(
             numpy.float64, use_hist=True, runtime="python_compiled")
 
+    @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_onnxrt_python_RandomForestRegressor_full32(self):
         self.onnxrt_python_RandomForestRegressor_dtype(
             numpy.float32, full=True)
 
+    @skipif_circleci('too long')
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_onnxrt_python_RandomForestRegressor_full64(self):
