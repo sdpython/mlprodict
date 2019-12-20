@@ -5,6 +5,8 @@
 #include <thread>
 #include <iterator>
 
+inline bool _isnan_(float x) { return _isnanf(x); }
+inline bool _isnan_(double x) { return _isnan(x); }
 
 enum class POST_EVAL_TRANSFORM {
   NONE,

@@ -9,8 +9,8 @@ Runtimes for ONNX
 
 .. _l-onnx-pyrun-tbl:
 
-Python Runtime
-++++++++++++++
+Python Runtime = 'python'
++++++++++++++++++++++++++
 
 This module implements a python runtime for :epkg:`ONNX`.
 It is a work constantly in progress. It was started to
@@ -129,6 +129,34 @@ the cause of the error if it does not work.
     build_table()
 
 Full results are available at :ref:`l-onnx-bench-python`.
+
+python_compiled
++++++++++++++++
+
+This runtime is almost the same as the previous
+one but it creates and compiles a dedicated function to
+call every node of the graph. Graph operations are faster
+but it is not possible to look into every
+intermediate node anymore.
+
+.. runpython::
+    :showcode:
+
+    import numpy
+    from sklearn.ensemble import AdaBoostRegressor
+    from sklearn.datasets import load_iris
+    from sklearn.model_selection import train_test_split
+    from mlprodict.onnxrt import OnnxInference
+    from mlprodict.onnx_conv import to_onnx
+
+    iris = load_iris()
+    X, y = iris.data, iris.target
+    X_train, X_test, y_train, _ = train_test_split(X, y)
+    clr = AdaBoostRegressor(n_estimators=5)
+    clr.fit(X_train, y_train)
+    model_def = to_onnx(clr, X_train.astype(numpy.float32))
+    oinf = OnnxInference(model_def, runtime="python_compiled")
+    print(oinf)
 
 onnxruntime1
 ++++++++++++

@@ -26,6 +26,7 @@ namespace py = pybind11;
 
 #include "op_common_.hpp"
 
+
 template<typename NTYPE>
 class RuntimeTreeEnsembleRegressorP
 {
@@ -63,8 +64,10 @@ class RuntimeTreeEnsembleRegressorP
             TreeNodeElement *truenode;
             TreeNodeElement *falsenode;
             MissingTrack missing_tracks;
-
             std::vector<SparseValue> weights;
+            
+            bool is_not_leave;
+            bool is_missing_track_true;
         };
         
         // tree_ensemble_regressor.h
@@ -256,12 +259,14 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::init(
         node->value = nodes_values_[i];
         node->hitrates = i < nodes_hitrates_.size() ? nodes_hitrates_[i] : -1;
         node->mode = nodes_modes_[i];
+        node->is_not_leave = node->mode != NODE_MODE::LEAF;
         node->truenode = NULL; // nodes_truenodeids_[i];
         node->falsenode = NULL; // nodes_falsenodeids_[i];
         node->missing_tracks = i < (size_t)missing_tracks_true_.size()
                                     ? (missing_tracks_true_[i] == 1 
                                             ? MissingTrack::TRUE : MissingTrack::FALSE)
                                     : MissingTrack::NONE;
+        node->is_missing_track_true = node->missing_tracks == MissingTrack::TRUE;
         if (idi.find(node->id) != idi.end()) {
             char buffer[1000];
             sprintf(buffer, "Node %d in tree %d is already there.", (int)node->id.node_id, (int)node->id.tree_id);
@@ -274,7 +279,7 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::init(
     TreeNodeElement * it;
     for(i = 0; i < (size_t)nbnodes_; ++i) {
         it = nodes_ + i;
-        if (it->mode == NODE_MODE::LEAF)
+        if (!it->is_not_leave)
             continue;
         coor.tree_id = it->id.tree_id;
         coor.node_id = (int)nodes_truenodeids_[i];
@@ -544,17 +549,16 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
 
 #define TREE_FIND_VALUE(CMP) \
     if (has_missing_tracks_) { \
-        while (root->mode != NODE_MODE::LEAF && loopcount >= 0) { \
+        while (root->is_not_leave && loopcount >= 0) { \
             val = x_data[root->feature_id]; \
             root = (val CMP root->value || \
-                    (root->missing_tracks == MissingTrack::TRUE && \
-                        std::isnan(static_cast<NTYPE>(val)) )) \
+                    (root->is_missing_track_true && _isnan_(val) )) \
                         ? root->truenode : root->falsenode; \
             --loopcount; \
         } \
     } \
     else { \
-        while (root->mode != NODE_MODE::LEAF && loopcount >= 0) { \
+        while (root->is_not_leave && loopcount >= 0) { \
             val = x_data[root->feature_id]; \
             root = val CMP root->value ? root->truenode : root->falsenode; \
             --loopcount; \
@@ -567,7 +571,6 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::ProcessTreeNode(
         NTYPE* predictions, TreeNodeElement * root,
         const NTYPE* x_data,
         unsigned char* has_predictions) const {
-    bool tracktrue;
     NTYPE val;
     if (same_mode_) {
         int64_t loopcount = max_tree_depth_;
@@ -602,39 +605,37 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::ProcessTreeNode(
     else {  // Different rules to compare to node thresholds.
         int64_t loopcount = 0;
         NTYPE threshold;
-        while ((root->mode != NODE_MODE::LEAF) && (loopcount <= max_tree_depth_)) {
+        while ((root->is_not_leave) && (loopcount <= max_tree_depth_)) {
             val = x_data[root->feature_id];
-            tracktrue = root->missing_tracks == MissingTrack::TRUE &&
-                        std::isnan(static_cast<NTYPE>(val));
             threshold = root->value;
             switch (root->mode) {
                 case NODE_MODE::BRANCH_LEQ:
-                    root = val <= threshold || tracktrue
+                    root = val <= threshold || (root->is_missing_track_true && _isnan_(val))
                               ? root->truenode
                               : root->falsenode;
                     break;
                 case NODE_MODE::BRANCH_LT:
-                    root = val < threshold || tracktrue
+                    root = val < threshold || (root->is_missing_track_true && _isnan_(val))
                               ? root->truenode
                               : root->falsenode;
                     break;
                 case NODE_MODE::BRANCH_GTE:
-                    root = val >= threshold || tracktrue
+                    root = val >= threshold || (root->is_missing_track_true && _isnan_(val))
                               ? root->truenode
                               : root->falsenode;
                     break;
                 case NODE_MODE::BRANCH_GT:
-                    root = val > threshold || tracktrue
+                    root = val > threshold || (root->is_missing_track_true && _isnan_(val))
                               ? root->truenode
                               : root->falsenode;
                     break;
                 case NODE_MODE::BRANCH_EQ:
-                    root = val == threshold || tracktrue
+                    root = val == threshold || (root->is_missing_track_true && _isnan_(val))
                               ? root->truenode
                               : root->falsenode;
                     break;
                 case NODE_MODE::BRANCH_NEQ:
-                    root = val != threshold || tracktrue
+                    root = val != threshold || (root->is_missing_track_true && _isnan_(val))
                               ? root->truenode
                               : root->falsenode;
                     break;

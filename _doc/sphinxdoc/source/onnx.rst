@@ -1,8 +1,8 @@
 
 .. _l-onnx-pyrun:
 
-ONNX
-====
+ONNX Converters and Runtime
+===========================
 
 *mlprodict* implements two runtimes.
 The first uses :epkg:`numpy` and implements
