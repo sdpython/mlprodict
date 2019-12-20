@@ -88,7 +88,7 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            python setup.py unittests -d 7
+            python setup.py unittests -d 7 -g "\"((LONG)|SKIP))\""
           # Some tests take for ever, cutting the list.
 
       - run:
