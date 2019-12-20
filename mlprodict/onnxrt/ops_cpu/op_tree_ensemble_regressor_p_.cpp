@@ -450,7 +450,13 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::init(
     }
     
     nbtrees_ = roots_.size();
-    has_missing_tracks_ = missing_tracks_true_.size() == nodes_truenodeids_.size();
+    has_missing_tracks_ = false;
+    for (auto it = missing_tracks_true_.begin(); it != missing_tracks_true_.end(); ++it) {
+        if (*it) {
+            has_missing_tracks_ = true;
+            break;
+        }
+    }
 }
 
 
