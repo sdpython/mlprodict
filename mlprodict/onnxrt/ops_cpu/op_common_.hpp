@@ -14,8 +14,8 @@ inline bool _isnan_(double x) { return _isnan(x); }
 #else
 
 #include <math.h>
-inline bool _isnan_(float x) { return isnanf(x); }
-inline bool _isnan_(double x) { return isnan(x); }
+inline bool _isnan_(float x) { return ::isnanf(x); }
+inline bool _isnan_(double x) { return ::isnan(x); }
 
 #endif
 

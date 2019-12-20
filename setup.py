@@ -208,8 +208,8 @@ if not r:
     else:
         libraries_thread = None
         # , '-o2', '-mavx512f']
-        extra_compile_args = ['-fpermissive', '-std=c++11', '-fopenmp']
-        extra_link_args = ['-lgomp', '-O3']
+        extra_compile_args = ['-fopenmp']
+        extra_link_args = ['-lgomp']
         define_macros = [('USE_OPENMP', None)]
 
     # extensions

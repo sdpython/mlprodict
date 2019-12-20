@@ -68,6 +68,99 @@ struct TreeNodeElement {
 
 
 template<typename NTYPE>
+class _Aggregator
+{
+    public:
+    inline bool divide() const { return false; }
+    inline unsigned char first_has_score1(int64_t nbtree) const { return 0; }
+    inline void ProcessTreeNodePrediction1(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {}
+    void ProcessTreeNodePrediction(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {}
+};
+
+
+template<typename NTYPE>
+class _AggregatorSum : public _Aggregator<NTYPE>
+{
+    public:
+    inline unsigned char first_has_score1(int64_t nbtree) const { return nbtree > 0 ? 1 : 0; }
+    inline void ProcessTreeNodePrediction1(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {
+        *predictions += root->weights[0].value;
+    }
+
+    void ProcessTreeNodePrediction(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {
+        for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
+            predictions[it->i] += it->value;
+            has_predictions[it->i] = 1;
+        }
+    }
+};
+
+
+template<typename NTYPE>
+class _AggregatorAverage : public _AggregatorSum<NTYPE>
+{
+    public:
+    inline bool divide() const { return true; }
+};
+
+
+template<typename NTYPE>
+class _AggregatorMin : public _Aggregator<NTYPE>
+{
+    public:
+    inline void ProcessTreeNodePrediction1(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {
+        *predictions = (!(*has_predictions) || root->weights[0].value < *predictions) 
+                                ? root->weights[0].value : *predictions;
+        *has_predictions = 1;
+    }
+
+    void ProcessTreeNodePrediction(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {
+        for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
+            predictions[it->i] = (!has_predictions[it->i] || it->value < predictions[it->i]) 
+                                    ? it->value : predictions[it->i];
+            has_predictions[it->i] = 1;
+        }
+    }
+};
+
+
+template<typename NTYPE>
+class _AggregatorMax : public _Aggregator<NTYPE>
+{
+    public:
+    inline void ProcessTreeNodePrediction1(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {
+        *predictions = (!(*has_predictions) || root->weights[0].value > *predictions) 
+                                ? root->weights[0].value : *predictions;
+        *has_predictions = 1;
+    }
+
+    void ProcessTreeNodePrediction(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {
+        for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
+            predictions[it->i] = (!has_predictions[it->i] || it->value > predictions[it->i]) 
+                                    ? it->value : predictions[it->i];
+            has_predictions[it->i] = 1;
+        }
+    }
+};
+
+
+template<typename NTYPE>
 class RuntimeTreeEnsembleRegressorP
 {
     public:
@@ -133,9 +226,11 @@ class RuntimeTreeEnsembleRegressorP
         py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> values) const;
 
     private:
-
+    
+        template<typename AGG>
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                              const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z) const;
+                              const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
+                              const AGG &agg) const;
 };
 
 
@@ -388,7 +483,20 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute(py::array_t<NTY
 
     {
         py::gil_scoped_release release;
-        compute_gil_free(x_dims, N, stride, X, Z);
+        switch(aggregate_function_) {
+            case AGGREGATE_FUNCTION::AVERAGE:
+                compute_gil_free(x_dims, N, stride, X, Z, _AggregatorAverage<NTYPE>());
+                break;
+            case AGGREGATE_FUNCTION::SUM:
+                compute_gil_free(x_dims, N, stride, X, Z, _AggregatorSum<NTYPE>());
+                break;
+            case AGGREGATE_FUNCTION::MIN:
+                compute_gil_free(x_dims, N, stride, X, Z, _AggregatorMin<NTYPE>());
+                break;
+            case AGGREGATE_FUNCTION::MAX:
+                compute_gil_free(x_dims, N, stride, X, Z, _AggregatorMax<NTYPE>());
+                break;
+        }        
     }
     return Z;
 }
@@ -412,16 +520,14 @@ py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array
 
 #define LOOP_D1_N10() \
     scores = 0; \
-    has_scores = 0; \
+    has_scores = agg.first_has_score1(nbtrees_); \
     for (j = 0; j < (size_t)nbtrees_; ++j) \
-        ProcessTreeNodePrediction1( \
+        agg.ProcessTreeNodePrediction1( \
             &scores, \
             ProcessTreeNodeLeave(roots_[j], x_data + i * stride), \
             &has_scores); \
     val = has_scores \
-          ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE \
-              ? scores / roots_.size() \
-              : scores) + origin \
+          ? (agg.divide() ? scores / roots_.size() : scores) + origin \
           : origin; \
     *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) \
                 ? ComputeProbit(val) : val;
@@ -432,16 +538,14 @@ py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array
     std::fill(outputs.begin(), outputs.end(), (NTYPE)0); \
     std::fill(has_scores.begin(), has_scores.end(), 0); \
     for (j = 0; j < roots_.size(); ++j) \
-        ProcessTreeNodePrediction( \
+        agg.ProcessTreeNodePrediction( \
             scores.data(), \
             ProcessTreeNodeLeave(roots_[j], x_data + current_weight_0), \
             has_scores.data()); \
     for (jt = 0; jt < n_targets_; ++jt) { \
         val = base_values_.size() == (size_t)n_targets_ ? base_values_[jt] : 0.f; \
         val = (has_scores[jt])  \
-                ?  val + (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE \
-                            ? scores[jt] / roots_.size() \
-                            : scores[jt]) \
+                ?  val + (agg.divide() ? scores[jt] / roots_.size() : scores[jt]) \
                 : val; \
         outputs[jt] = val; \
     } \
@@ -449,9 +553,11 @@ py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array
 
 
 template<typename NTYPE>
+template<typename AGG>
 void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z) const {
+                const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
+                const AGG &agg) const {
 
     // expected primary-expression before ')' token
     auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
@@ -462,11 +568,11 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
         NTYPE origin = base_values_.size() == 1 ? base_values_[0] : 0.f;
         if (N == 1) {
             NTYPE scores = 0;
-            unsigned char has_scores = 0;
+            unsigned char has_scores = agg.first_has_score1(nbtrees_);
 
             if (nbtrees_ <= omp_tree_) {
                 for (int64_t j = 0; j < nbtrees_; ++j)
-                    ProcessTreeNodePrediction1(
+                    agg.ProcessTreeNodePrediction1(
                         &scores,
                         ProcessTreeNodeLeave(roots_[j], x_data),
                         &has_scores);
@@ -476,16 +582,14 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
                 #pragma omp parallel for reduction(|: has_scores) reduction(+: scores) 
                 #endif
                 for (int64_t j = 0; j < nbtrees_; ++j)
-                    ProcessTreeNodePrediction1(
+                    agg.ProcessTreeNodePrediction1(
                         &scores,
                         ProcessTreeNodeLeave(roots_[j], x_data),
                         &has_scores);
             }
 
             NTYPE val = has_scores
-                    ? (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
-                        ? scores / roots_.size()
-                        : scores) + origin
+                    ? (agg.divide() ? scores / roots_.size() : scores) + origin
                     : origin;
             *((NTYPE*)Z_.data(0)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
                                         ? ComputeProbit(val) : val;
@@ -522,7 +626,7 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
             // #pragma omp parallel for reduction(vecdplus: scores) reduction(maxdplus: has_scores)
             // #endif
             for (j = 0; j < nbtrees_; ++j)
-                ProcessTreeNodePrediction(
+                agg.ProcessTreeNodePrediction(
                     scores.data(),
                     ProcessTreeNodeLeave(roots_[j], x_data),
                     has_scores.data());
@@ -533,9 +637,7 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
                 //reweight scores based on number of voters
                 val = base_values_.size() == (size_t)n_targets_ ? base_values_[j] : 0.f;
                 val = (has_scores[j]) 
-                        ?  val + (aggregate_function_ == AGGREGATE_FUNCTION::AVERAGE
-                                    ? scores[j] / roots_.size()
-                                    : scores[j])
+                        ?  val + (agg.divide() ? scores[j] / roots_.size() : scores[j])
                         : val;
                 outputs[j] = val;
             }
