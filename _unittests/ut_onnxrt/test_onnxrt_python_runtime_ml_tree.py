@@ -149,6 +149,39 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         oinf = OnnxInference(model_def)
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
         self.assertIn("TreeEnsembleRegressor", text)
+
+        for i in range(0, 20):
+            y = oinf.run({'X': X_test.astype(numpy.float32)[i: i + 1]})
+            self.assertEqual(list(sorted(y)), ['variable'])
+            lexp = clr.predict(X_test[i: i + 1])
+            self.assertEqual(lexp.shape, y['variable'].shape)
+            self.assertEqualArray(lexp, y['variable'])
+
+        for i in range(0, 20):
+            y = oinf.run({'X': X_test.astype(numpy.float32)[i: i + 2]})
+            self.assertEqual(list(sorted(y)), ['variable'])
+            lexp = clr.predict(X_test[i: i + 2])
+            self.assertEqual(lexp.shape, y['variable'].shape)
+            self.assertEqualArray(lexp, y['variable'])
+
+        y = oinf.run({'X': X_test.astype(numpy.float32)})
+        self.assertEqual(list(sorted(y)), ['variable'])
+        lexp = clr.predict(X_test)
+        self.assertEqual(lexp.shape, y['variable'].shape)
+        self.assertEqualArray(lexp, y['variable'])
+
+    def test_onnxrt_python_DecisionTreeRegressor2(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        y = numpy.vstack([y, y]).T
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = DecisionTreeRegressor()
+        clr.fit(X_train, y_train)
+
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        oinf = OnnxInference(model_def)
+        text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
+        self.assertIn("TreeEnsembleRegressor", text)
         y = oinf.run({'X': X_test.astype(numpy.float32)})
         self.assertEqual(list(sorted(y)), ['variable'])
         lexp = clr.predict(X_test)
@@ -313,5 +346,5 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_DecisionTreeClassifier_mlabel()
+    # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_DecisionTreeRegressor()
     unittest.main()
