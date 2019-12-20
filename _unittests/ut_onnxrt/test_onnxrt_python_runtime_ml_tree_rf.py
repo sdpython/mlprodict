@@ -168,6 +168,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         if len(rows) == 0:
             raise AssertionError("Empty rows: {}".format(pps))
 
+    @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_rt_HistGradientBoostingRegressor_python64(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
