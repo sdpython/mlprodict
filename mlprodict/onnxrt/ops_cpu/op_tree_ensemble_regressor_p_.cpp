@@ -224,8 +224,8 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::init(
     // additional members
     nodes_modes_.resize(nodes_modes.size());
     same_mode_ = true;
-    size_t fpos = -1;
-    for(size_t i = 0; i < nodes_modes.size(); ++i) {
+    int fpos = -1;
+    for(int i = 0; i < (int)nodes_modes.size(); ++i) {
         nodes_modes_[i] = to_NODE_MODE(nodes_modes[i]);
         if (nodes_modes_[i] == NODE_MODE::LEAF)
             continue;
@@ -576,7 +576,22 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::ProcessTreeNode(
         int64_t loopcount = max_tree_depth_;
         switch(root->mode) {
             case NODE_MODE::BRANCH_LEQ:
-                TREE_FIND_VALUE(<=)
+                if (has_missing_tracks_) {
+                    while (root->is_not_leave && loopcount >= 0) {
+                        val = x_data[root->feature_id];
+                        root = (val <= root->value ||
+                                (root->is_missing_track_true && _isnan_(val) ))
+                                    ? root->truenode : root->falsenode;
+                        --loopcount;
+                    }
+                }
+                else {
+                    while (root->is_not_leave && loopcount >= 0) {
+                        val = x_data[root->feature_id];
+                        root = val <= root->value ? root->truenode : root->falsenode;
+                        --loopcount;
+                    }
+                }
                 break;
             case NODE_MODE::BRANCH_LT:
                 TREE_FIND_VALUE(<)
@@ -809,6 +824,8 @@ in :epkg:`onnxruntime`. Supports float only.
         "Computes every tree output.");
     clf.def_readonly("same_mode_", &RuntimeTreeEnsembleRegressorPFloat::same_mode_,
         "Tells if all nodes applies the same rule for thresholds.");
+    clf.def_readonly("has_missing_tracks_", &RuntimeTreeEnsembleRegressorPFloat::has_missing_tracks_,
+        "Tells if the model handles missing values.");
     clf.def_property_readonly("nodes_modes_", &RuntimeTreeEnsembleRegressorPFloat::get_nodes_modes,
         "Returns the mode for every node.");
 
@@ -850,6 +867,8 @@ in :epkg:`onnxruntime`. Supports double only.
         "Computes every tree output.");
     cld.def_readonly("same_mode_", &RuntimeTreeEnsembleRegressorPDouble::same_mode_,
         "Tells if all nodes applies the same rule for thresholds.");
+    cld.def_readonly("has_missing_tracks_", &RuntimeTreeEnsembleRegressorPDouble::has_missing_tracks_,
+        "Tells if the model handles missing values.");
     cld.def_property_readonly("nodes_modes_", &RuntimeTreeEnsembleRegressorPDouble::get_nodes_modes,
         "Returns the mode for every node.");
 }

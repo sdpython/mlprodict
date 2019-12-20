@@ -4,9 +4,20 @@
 #include <vector>
 #include <thread>
 #include <iterator>
+#include <math.h>
+
+#if defined(_WIN32) || defined(WIN32)
 
 inline bool _isnan_(float x) { return _isnanf(x); }
 inline bool _isnan_(double x) { return _isnan(x); }
+
+#else
+
+#include <math.h>
+inline bool _isnan_(float x) { return isnanf(x); }
+inline bool _isnan_(double x) { return isnan(x); }
+
+#endif
 
 enum class POST_EVAL_TRANSFORM {
   NONE,
