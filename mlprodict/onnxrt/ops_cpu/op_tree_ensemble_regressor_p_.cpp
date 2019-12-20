@@ -610,7 +610,19 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
                 #pragma omp parallel for private(scores, has_scores, val, j)
                 #endif
                 for (int64_t i = 0; i < N; ++i) {
-                    LOOP_D1_N10()
+                    //LOOP_D1_N10()
+                    scores = 0;
+                    has_scores = agg.first_has_score1(nbtrees_);
+                    for (j = 0; j < (size_t)nbtrees_; ++j)
+                        agg.ProcessTreeNodePrediction1(
+                            &scores,
+                            ProcessTreeNodeLeave(roots_[j], x_data + i * stride),
+                            &has_scores);
+                    val = has_scores
+                          ? (agg.divide() ? scores / roots_.size() : scores) + origin
+                          : origin;
+                    *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT)
+                                ? ComputeProbit(val) : val;
                 }
             }
         }
