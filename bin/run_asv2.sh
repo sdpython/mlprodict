@@ -9,7 +9,6 @@ then
     rm build/html -r -f
 fi
 echo --BENCHRUN--
-# python -m asv run --show-stderr --config _benches/asv.conf.json --environment same --python same
-python -m asv run --show-stderr --config _benches/asv.conf.json
+python -m asv run --show-stderr --config _benches/asv.conf.json -v
 echo --PUBLISH--
-python -m asv publish --config _benches/asv.conf.json -o ../build/html || exit 1
+python -m asv publish --config _benches/asv.conf.json -o build/html || exit 1
