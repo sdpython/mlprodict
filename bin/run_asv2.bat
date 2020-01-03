@@ -1,14 +1,15 @@
 @echo off
 set current=%~dp0
-cd %~dp0..\_benches
+cd %~dp0..
 rem goto publish:
-@echo --CREATE-BENCH--
-python -m mlprodict asv_bench --env same --location . --models "LinearRegression" --build "../build"
-@echo --RUN-BENCH--
-python -m asv run --show-stderr --config=asv.conf.json --environment same --python same
+@echo --CREATECLEAN--
+if exist build\html rmdir build\html -r -f
+@echo --CREATEBENCH--
+python -m mlprodict asv_bench --env same --location _benches --models "StandardScaler" --build "build"
+@echo --RUNBENCH--
+python -m asv run --show-stderr --config=_benches\\asv.conf.json
 :publish:
 @echo --PUBLISH--
-if exist ..\build\html rmdir ..\build\html -r -f
-python -m asv publish -o ..\build\html
+python -m asv publish -o build\html
 @echo --END--
-set %current%
+cd %current%
