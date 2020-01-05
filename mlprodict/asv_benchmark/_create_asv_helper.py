@@ -126,7 +126,7 @@ def profile0(iter, cl, runtime, N, nf, opset, dtype, optim):
     for i in range(0, 100):
         cl.time_predict(runtime, N, nf, opset, dtype, optim)
     duration = time.perf_counter() - begin
-    iter = max(100, int(20 / duration * 100)) # 20 seconds
+    iter = max(100, int(25 / duration * 100)) # 25 seconds
     return iter
 
 
