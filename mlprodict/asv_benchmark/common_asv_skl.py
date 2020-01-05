@@ -164,7 +164,6 @@ class _CommonAsvSklBenchmark:
         logger.disabled = True
         register_converters()
         register_rewritten_operators()
-        set_config(assume_finite=True)
         with open(self._name(nf, opset, dtype), "rb") as f:
             stored = pickle.load(f)
         self.stored = stored
@@ -176,6 +175,7 @@ class _CommonAsvSklBenchmark:
         setattr(self, "rt_" + runtime, rt_)
         setattr(self, "rt_fct_" + runtime, rt_fct_)
         setattr(self, "rt_fct_track_" + runtime, rt_fct_track_)
+        set_config(assume_finite=True)
 
     def time_predict(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
