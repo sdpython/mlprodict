@@ -6,7 +6,7 @@ from logging import getLogger
 from textwrap import dedent
 import sphinx
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
+from sklearn.utils._testing import ignore_warnings
 import skl2onnx
 
 

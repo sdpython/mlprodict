@@ -6,7 +6,12 @@ from pyquickhelper.helpgen.default_conf import set_sphinx_variables, get_default
 from sklearn.experimental import enable_hist_gradient_boosting
 from mlprodict.onnx_conv import register_converters, register_rewritten_operators
 register_converters()
-register_rewritten_operators()
+try:
+    register_rewritten_operators()
+except KeyError:
+    import warnings
+    warnings.warn("converter for HistGradientBoosting* not not exist. "
+                  "Upgrade sklearn-onnx")
 
 try:
     import generate_visual_graphs

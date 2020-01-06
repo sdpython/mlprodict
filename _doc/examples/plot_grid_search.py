@@ -26,7 +26,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
+from sklearn.utils._testing import ignore_warnings
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import convert_sklearn
 from mlprodict.sklapi import OnnxTransformer

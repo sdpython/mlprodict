@@ -6,7 +6,7 @@ from textwrap import dedent
 from logging import getLogger
 from pandas import DataFrame, read_excel, read_csv, concat, Series
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.utils.testing import ignore_warnings
+from sklearn.utils._testing import ignore_warnings
 from sklearn.experimental import enable_hist_gradient_boosting
 from sklearn.ensemble import AdaBoostRegressor, HistGradientBoostingRegressor
 from sklearn.gaussian_process import GaussianProcessClassifier
@@ -24,7 +24,12 @@ from mlprodict.onnxrt.doc.doc_write_helper import (
 from mlprodict.onnxrt.validate.validate_summary import _clean_values_optim
 from mlprodict.onnx_conv import register_converters, register_rewritten_operators
 register_converters()
-register_rewritten_operators()
+try:
+    register_rewritten_operators()
+except KeyError:
+    import warnings
+    warnings.warn("converter for HistGradientBoosting* not not exist. "
+                  "Upgrade sklearn-onnx")
 
 
 @ignore_warnings(category=(UserWarning, ConvergenceWarning,

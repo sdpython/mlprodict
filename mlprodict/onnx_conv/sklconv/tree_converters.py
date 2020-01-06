@@ -6,11 +6,15 @@
 import numpy
 from skl2onnx.common.data_types import Int64TensorType
 from skl2onnx.common._apply_operation import apply_cast
-from skl2onnx.common.tree_ensemble import (
-    add_tree_to_attribute_pairs,
-    add_tree_to_attribute_pairs_hist_gradient_boosting,
-    get_default_tree_regressor_attribute_pairs,
-)
+try:
+    from skl2onnx.common.tree_ensemble import (
+        add_tree_to_attribute_pairs,
+        add_tree_to_attribute_pairs_hist_gradient_boosting,
+        get_default_tree_regressor_attribute_pairs,
+    )
+except ImportError:
+    import warnings
+    warnings.warn("Unable to import converters for HistGradientBoosting*.")
 
 
 def convert_sklearn_decision_tree_regressor(scope, operator, container):
