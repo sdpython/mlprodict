@@ -670,9 +670,10 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
                 }
             }
             else {
-                #ifdef USE_OPENMP
-                #pragma omp parallel for firstprivate(scores, has_scores, outputs) private(val, current_weight_0, j)
-                #endif
+                // Requires more work.
+                // #ifdef USE_OPENMP
+                // #pragma omp parallel for firstprivate(scores, has_scores, outputs) private(val, current_weight_0, j)
+                // #endif
                 for (int64_t i = 0; i < N; ++i) {
                     LOOP_D10_N10()
                 }
