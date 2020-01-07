@@ -79,6 +79,9 @@ class _Aggregator
     void ProcessTreeNodePrediction(
         NTYPE* predictions, TreeNodeElement<NTYPE> * root,
         unsigned char* has_predictions) const {}
+    void MergePrediction(int64_t n,
+        NTYPE* predictions, unsigned char* has_predictions,
+        NTYPE* predictions2, unsigned char* has_predictions2) const {}
 };
 
 
@@ -99,6 +102,17 @@ class _AggregatorSum : public _Aggregator<NTYPE>
         for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
             predictions[it->i] += it->value;
             has_predictions[it->i] = 1;
+        }
+    }
+
+    void MergePrediction(
+        int64_t n, NTYPE* predictions, unsigned char* has_predictions,
+        NTYPE* predictions2, unsigned char* has_predictions2) const {
+        for(int64_t i = 0; i < n; ++i) {
+            if (has_predictions2[i]) {
+                has_predictions[i] = 1;
+                predictions[i] += predictions2[i];
+            }
         }
     }
 };
@@ -133,6 +147,19 @@ class _AggregatorMin : public _Aggregator<NTYPE>
             has_predictions[it->i] = 1;
         }
     }
+
+    void MergePrediction(
+        int64_t n, NTYPE* predictions, unsigned char* has_predictions,
+        NTYPE* predictions2, unsigned char* has_predictions2) const {
+        for(int64_t i = 0; i < n; ++i) {
+            if (has_predictions2[i]) {
+                has_predictions[i] = 1;
+                predictions[i] = has_predictions[i] && (predictions[i] < predictions2[i])
+                                    ? predictions[i]
+                                    : predictions2[i];
+            }
+        }
+    }
 };
 
 
@@ -155,6 +182,19 @@ class _AggregatorMax : public _Aggregator<NTYPE>
             predictions[it->i] = (!has_predictions[it->i] || it->value > predictions[it->i]) 
                                     ? it->value : predictions[it->i];
             has_predictions[it->i] = 1;
+        }
+    }
+
+    void MergePrediction(
+        int64_t n, NTYPE* predictions, unsigned char* has_predictions,
+        NTYPE* predictions2, unsigned char* has_predictions2) const {
+        for(int64_t i = 0; i < n; ++i) {
+            if (has_predictions2[i]) {
+                has_predictions[i] = 1;
+                predictions[i] = has_predictions[i] && (predictions[i] > predictions2[i])
+                                    ? predictions[i]
+                                    : predictions2[i];
+            }
         }
     }
 };
@@ -511,13 +551,6 @@ py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array
     return Z.mutable_unchecked<1>();
 }
 
-/*
-#ifdef USE_OPENMP
-#pragma omp declare reduction(vecdplus : std::vector<double> : std::transform(omp_out.begin(), omp_out.end(), omp_in.begin(), omp_out.begin(), std::plus<double>())) initializer(omp_priv = decltype(omp_orig)(omp_orig.size()))
-#pragma omp declare reduction(vecfplus : std::vector<float> : std::transform(omp_out.begin(), omp_out.end(), omp_in.begin(), omp_out.begin(), std::plus<float>())) initializer(omp_priv = decltype(omp_orig)(omp_orig.size()))
-#endif
-*/
-
 #define LOOP_D1_N10() \
     scores = 0; \
     has_scores = agg.first_has_score1(nbtrees_); \
@@ -631,21 +664,33 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
         if (N == 1) {
             std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
             std::vector<unsigned char> has_scores(n_targets_, 0);
-            int64_t j;
 
-            // requires more work
-            // #ifdef USE_OPENMP
-            // #pragma omp parallel for reduction(vecdplus: scores) reduction(maxdplus: has_scores)
-            // #endif
-            for (j = 0; j < nbtrees_; ++j)
-                agg.ProcessTreeNodePrediction(
-                    scores.data(),
-                    ProcessTreeNodeLeave(roots_[j], x_data),
-                    has_scores.data());
+            #ifdef USE_OPENMP
+            #pragma omp parallel
+            #endif
+            {
+                std::vector<NTYPE> private_scores(scores);
+                std::vector<unsigned char> private_has_scores(has_scores);
+                #ifdef USE_OPENMP
+                #pragma omp for
+                #endif
+                for (int64_t j = 0; j < nbtrees_; ++j)
+                    agg.ProcessTreeNodePrediction(
+                        private_scores.data(),
+                        ProcessTreeNodeLeave(roots_[j], x_data),
+                        private_has_scores.data());
 
+                #ifdef USE_OPENMP
+                #pragma omp critical
+                #endif
+                agg.MergePrediction(n_targets_,
+                    &scores[0], &has_scores[0],
+                    private_scores.data(), private_has_scores.data());
+            }
+            
             std::vector<NTYPE> outputs(n_targets_);
             NTYPE val;
-            for (j = 0; j < n_targets_; ++j) {
+            for (int64_t j = 0; j < n_targets_; ++j) {
                 //reweight scores based on number of voters
                 val = base_values_.size() == (size_t)n_targets_ ? base_values_[j] : 0.f;
                 val = (has_scores[j]) 
@@ -656,26 +701,38 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::compute_gil_free(
             write_scores(outputs, post_transform_, (NTYPE*)Z_.data(0), -1);
         }
         else {
-            std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
-            std::vector<NTYPE> outputs(n_targets_);
-            std::vector<unsigned char> has_scores(n_targets_, 0);
-            int64_t current_weight_0;
-            NTYPE val;
-            size_t j;
-            int64_t jt;
-
             if (N <= omp_N_) {
+                std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
+                std::vector<NTYPE> outputs(n_targets_);
+                std::vector<unsigned char> has_scores(n_targets_, 0);
+                int64_t current_weight_0;
+                NTYPE val;
+                size_t j;
+                int64_t jt;
+
                 for (int64_t i = 0; i < N; ++i) {
                     LOOP_D10_N10()
                 }
             }
             else {
-                // Requires more work.
-                // #ifdef USE_OPENMP
-                // #pragma omp parallel for firstprivate(scores, has_scores, outputs) private(val, current_weight_0, j)
-                // #endif
-                for (int64_t i = 0; i < N; ++i) {
-                    LOOP_D10_N10()
+                #ifdef USE_OPENMP
+                #pragma omp parallel
+                #endif
+                {
+                    std::vector<NTYPE> scores(n_targets_, (NTYPE)0);
+                    std::vector<NTYPE> outputs(n_targets_);
+                    std::vector<unsigned char> has_scores(n_targets_, 0);
+                    int64_t current_weight_0;
+                    NTYPE val;
+                    size_t j;
+                    int64_t jt;
+
+                    #ifdef USE_OPENMP
+                    #pragma omp for
+                    #endif
+                    for (int64_t i = 0; i < N; ++i) {
+                        LOOP_D10_N10()
+                    }
                 }
             }
         }
