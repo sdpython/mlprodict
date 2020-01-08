@@ -81,7 +81,7 @@ class _CommonAsvSklBenchmark:
         xdtype = self._get_xdtype(dtype)
         data = load_iris()
         X, y = data.data, data.target
-        state = numpy.random.RandomState(seed=34)
+        state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
         rnd = state.randn(*X.shape) / 3
         X += rnd
         X = _modify_dimension(X, nf)
@@ -298,7 +298,7 @@ class _CommonAsvSklBenchmarkMultiClassifier(_CommonAsvSklBenchmark):
         xdtype = self._get_xdtype(dtype)
         data = load_iris()
         X, y = data.data, data.target
-        state = numpy.random.RandomState(seed=34)
+        state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
         rnd = state.randn(*X.shape) / 3
         X += rnd
         nbclass = len(set(y))
@@ -441,7 +441,7 @@ class _CommonAsvSklBenchmarkTransformPositive(_CommonAsvSklBenchmarkTransform):
         xdtype = self._get_xdtype(dtype)
         data = load_iris()
         X, y = data.data, data.target
-        state = numpy.random.RandomState(seed=34)
+        state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
         rnd = state.randn(*X.shape) / 3
         X += rnd
         X = _modify_dimension(X, nf)

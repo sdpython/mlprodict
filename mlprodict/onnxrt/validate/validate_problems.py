@@ -27,7 +27,10 @@ from sklearn.feature_extraction.text import (
     CountVectorizer, TfidfVectorizer, TfidfTransformer
 )
 from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
-from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.ensemble import (
+    HistGradientBoostingRegressor,
+    HistGradientBoostingClassifier
+)
 from sklearn.feature_selection import (
     RFE, RFECV, GenericUnivariateSelect,
     SelectPercentile, SelectFwe, SelectKBest,
@@ -81,7 +84,7 @@ def _modify_dimension(X, n_features, seed=19):
         return X
     if n_features < X.shape[1]:
         return X[:, :n_features]
-    rstate = numpy.random.RandomState(seed)
+    rstate = numpy.random.RandomState(seed)  # pylint: disable=E1101
     res = numpy.empty((X.shape[0], n_features), dtype=X.dtype)
     res[:, :X.shape[1]] = X[:, :]
     div = max((n_features // X.shape[1]) + 1, 2)
@@ -108,7 +111,8 @@ def _modify_dimension(X, n_features, seed=19):
     return res
 
 
-def _problem_for_predictor_binary_classification(dtype=numpy.float32, n_features=None):
+def _problem_for_predictor_binary_classification(
+        dtype=numpy.float32, n_features=None, add_nan=False):
     """
     Returns *X, y, intial_types, method, node name, X runtime* for a
     binary classification problem.
@@ -116,12 +120,16 @@ def _problem_for_predictor_binary_classification(dtype=numpy.float32, n_features
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
     y[y == 2] = 1
+    if add_nan:
+        rows = numpy.random.randint(0, X.shape[0] - 1, X.shape[0] // 3)
+        cols = numpy.random.randint(0, X.shape[1] - 1, X.shape[0] // 3)
+        X[rows, cols] = numpy.nan
     return (X, y, [('X', X[:1].astype(dtype))],
             'predict_proba', 1, X.astype(dtype))
 
@@ -134,7 +142,7 @@ def _problem_for_predictor_multi_classification(dtype=numpy.float32, n_features=
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
@@ -151,7 +159,7 @@ def _problem_for_predictor_multi_classification_label(dtype=numpy.float32, n_fea
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
@@ -176,7 +184,7 @@ def _problem_for_predictor_regression(many_output=False, options=None,
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
@@ -210,7 +218,7 @@ def _problem_for_predictor_multi_regression(many_output=False, options=None,
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
@@ -241,7 +249,7 @@ def _problem_for_numerical_transform(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
@@ -256,7 +264,7 @@ def _problem_for_numerical_transform_positive(dtype=numpy.float32, n_features=No
     It is based on Iris dataset.
     """
     data = load_iris()
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*data.data.shape) / 3
     X = numpy.abs(data.data + rnd)
     X = _modify_dimension(X, n_features)
@@ -272,7 +280,7 @@ def _problem_for_numerical_trainable_transform(dtype=numpy.float32, n_features=N
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
@@ -289,7 +297,7 @@ def _problem_for_numerical_trainable_transform_cl(dtype=numpy.float32, n_feature
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
@@ -306,7 +314,7 @@ def _problem_for_clustering(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
@@ -322,7 +330,7 @@ def _problem_for_clustering_scores(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     return (X, None, [('X', X[:1].astype(dtype))],
@@ -337,7 +345,7 @@ def _problem_for_outlier(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
@@ -353,7 +361,7 @@ def _problem_for_numerical_scoring(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     y = data.target.astype(dtype) + numpy.arange(len(data.target)) / 100
@@ -370,7 +378,7 @@ def _problem_for_clnoproba(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
@@ -379,7 +387,7 @@ def _problem_for_clnoproba(dtype=numpy.float32, n_features=None):
             'predict', 0, X.astype(dtype))
 
 
-def _problem_for_clnoproba_binary(dtype=numpy.float32, n_features=None):
+def _problem_for_clnoproba_binary(dtype=numpy.float32, n_features=None, add_nan=False):
     """
     Returns *X, y, intial_types, method, name, X runtime* for a
     scoring problem. Binary classification.
@@ -387,12 +395,16 @@ def _problem_for_clnoproba_binary(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
     y[y == 2] = 1
+    if add_nan:
+        rows = numpy.random.randint(0, X.shape[0] - 1, X.shape[0] // 3)
+        cols = numpy.random.randint(0, X.shape[1] - 1, X.shape[0] // 3)
+        X[rows, cols] = numpy.nan
     return (X, y, [('X', X[:1].astype(dtype))],
             'predict', 0, X.astype(dtype))
 
@@ -405,7 +417,7 @@ def _problem_for_cl_decision_function(dtype=numpy.float32, n_features=None):
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
@@ -422,7 +434,7 @@ def _problem_for_cl_decision_function_binary(dtype=numpy.float32, n_features=Non
     """
     data = load_iris()
     X = data.data
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
@@ -535,7 +547,7 @@ def _problem_for_one_hot_encoder(dtype=numpy.float32, n_features=None):
     Returns a problem for the :epkg:`sklearn:preprocessing:OneHotEncoder`.
     """
     data = load_iris()
-    state = numpy.random.RandomState(seed=34)
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*data.data.shape) / 3
     X = _modify_dimension(data.data + rnd, n_features)
     X = X.astype(numpy.int32).astype(dtype)
@@ -658,8 +670,9 @@ def find_suitable_problem(model):
         if model in {LabelBinarizer, LabelEncoder}:
             return ['int-col']
 
-        if model in {NuSVC, SVC, SGDClassifier}:
-            return ['b-cl', 'm-cl', '~b-cl-64']
+        if model in {NuSVC, SVC, SGDClassifier,
+                     HistGradientBoostingClassifier}:
+            return ['b-cl', 'm-cl', '~b-cl-64', '~b-cl-nan']
 
         if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
                      ComplementNB, GaussianNB, GaussianProcessClassifier,
@@ -879,6 +892,8 @@ _problems = {
         n_features=n_features, add_nan=True),
     "~b-reg-nan-64": lambda n_features=None: _problem_for_predictor_regression(
         dtype=numpy.float64, n_features=n_features, add_nan=True),
+    "~b-cl-nan": lambda dtype=numpy.float32, n_features=None: _problem_for_predictor_binary_classification(
+        dtype=dtype, n_features=n_features, add_nan=True),
     # 100 features
     "~b-reg-f100": lambda n_features=100: _problem_for_predictor_regression(
         n_features=n_features or 100),

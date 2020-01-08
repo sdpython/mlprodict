@@ -8,6 +8,7 @@ from .sklconv.ada_boost import convert_sklearn_ada_boost_regressor
 from .sklconv.tree_converters import (
     convert_sklearn_decision_tree_regressor,
     convert_sklearn_gradient_boosting_regressor,
+    convert_sklearn_random_forest_classifier,
     convert_sklearn_random_forest_regressor_converter,
 )
 from .sklconv.svm_converters import convert_sklearn_svm
@@ -18,6 +19,7 @@ _overwritten_operators = {
     'SklearnDecisionTreeRegressor': convert_sklearn_decision_tree_regressor,
     'SklearnExtraTreesRegressor': convert_sklearn_random_forest_regressor_converter,
     'SklearnGradientBoostingRegressor': convert_sklearn_gradient_boosting_regressor,
+    'SklearnHistGradientBoostingClassifier': convert_sklearn_random_forest_classifier,
     'SklearnHistGradientBoostingRegressor': convert_sklearn_random_forest_regressor_converter,
     'SklearnOneClassSVM': convert_sklearn_svm,
     'SklearnRandomForestRegressor': convert_sklearn_random_forest_regressor_converter,

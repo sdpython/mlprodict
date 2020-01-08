@@ -39,7 +39,7 @@ datasets = [
                **blobs_params)[0],
     4. * (make_moons(n_samples=n_samples, noise=.05, random_state=0)[0] -
           np.array([0.5, 0.25])),
-    14. * (np.random.RandomState(42).rand(n_samples, 2) - 0.5)]
+    14. * (np.random.RandomState(42).rand(n_samples, 2) - 0.5)]  # pylint: disable=E1101
 
 # Compare given classifiers under given settings
 xx, yy = np.meshgrid(np.linspace(-7, 7, 150),
@@ -50,7 +50,7 @@ plt.subplots_adjust(left=.02, right=.98, bottom=.001, top=.96, wspace=.05,
                     hspace=.01)
 
 plot_num = 1
-rng = np.random.RandomState(42)
+rng = np.random.RandomState(42)  # pylint: disable=E1101
 
 for i_dataset, X in enumerate(datasets):
     # Add outliers

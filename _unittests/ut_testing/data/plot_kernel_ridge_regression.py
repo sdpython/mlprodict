@@ -7,7 +7,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import learning_curve
 from sklearn.kernel_ridge import KernelRidge
 
-rng = np.random.RandomState(0)
+rng = np.random.RandomState(0)  # pylint: disable=E1101
 
 # #############################################################################
 # Generate sample data
