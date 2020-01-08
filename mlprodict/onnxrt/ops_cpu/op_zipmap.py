@@ -31,11 +31,12 @@ class ZipMapDictionary(dict):
         @param      mat             matrix if values is a row index,
                                     one or two dimensions
         """
-        if not isinstance(mat, numpy.ndarray):
-            raise TypeError('matrix is expected, got {}.'.format(type(mat)))
-        if len(mat.shape) not in (2, 3):
-            raise ValueError("matrix must have two or three dimensions but got {}"
-                             ".".format(mat.shape))
+        if mat is not None:
+            if not isinstance(mat, numpy.ndarray):
+                raise TypeError('matrix is expected, got {}.'.format(type(mat)))
+            if len(mat.shape) not in (2, 3):
+                raise ValueError("matrix must have two or three dimensions but got {}"
+                                 ".".format(mat.shape))
         dict.__init__(self)
         self._rev_keys = rev_keys
         self._values = values
@@ -112,11 +113,12 @@ class ArrayZipMapDictionary(list):
         @param      mat             matrix if values is a row index,
                                     one or two dimensions
         """
-        if not isinstance(mat, numpy.ndarray):
-            raise TypeError('matrix is expected, got {}.'.format(type(mat)))
-        if len(mat.shape) not in (2, 3):
-            raise ValueError("matrix must have two or three dimensions but got {}"
-                             ".".format(mat.shape))
+        if mat is not None:
+            if not isinstance(mat, numpy.ndarray):
+                raise TypeError('matrix is expected, got {}.'.format(type(mat)))
+            if len(mat.shape) not in (2, 3):
+                raise ValueError("matrix must have two or three dimensions but got {}"
+                                 ".".format(mat.shape))
         list.__init__(self)
         self._rev_keys = rev_keys
         self._mat = mat

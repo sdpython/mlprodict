@@ -1,6 +1,7 @@
 git+https://github.com/sdpython/asv.git@jenkins
 chardet
 coverage>=5.0
+cpuinfo
 cpyquickhelper
 jyquickhelper
 lightgbm
