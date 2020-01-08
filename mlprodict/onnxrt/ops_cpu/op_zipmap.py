@@ -4,6 +4,7 @@
 @file
 @brief Runtime operator.
 """
+import numpy
 from ._op import OpRun
 from ..shape_object import ShapeObject
 
@@ -30,6 +31,11 @@ class ZipMapDictionary(dict):
         @param      mat             matrix if values is a row index,
                                     one or two dimensions
         """
+        if not isinstance(mat, numpy.ndarray):
+            raise TypeError('matrix is expected, got {}.'.format(type(mat)))
+        if len(mat.shape) not in (2, 3):
+            raise ValueError("matrix must have two or three dimensions but got {}"
+                             ".".format(mat.shape))
         dict.__init__(self)
         self._rev_keys = rev_keys
         self._values = values
@@ -41,8 +47,7 @@ class ZipMapDictionary(dict):
         """
         if self._mat is None:
             return self._values[self._rev_keys[key]]
-        else:
-            return self._mat[self._values, self._rev_keys[key]]
+        return self._mat[self._values, self._rev_keys[key]]
 
     def __setitem__(self, pos, value):
         raise RuntimeError(
@@ -87,6 +92,9 @@ class ZipMapDictionary(dict):
             res[k] = v
         return res
 
+    def __str__(self):
+        return "ZipMap(%r)" % str(self.asdict())
+
 
 class ArrayZipMapDictionary(list):
     """
@@ -104,6 +112,11 @@ class ArrayZipMapDictionary(list):
         @param      mat             matrix if values is a row index,
                                     one or two dimensions
         """
+        if not isinstance(mat, numpy.ndarray):
+            raise TypeError('matrix is expected, got {}.'.format(type(mat)))
+        if len(mat.shape) not in (2, 3):
+            raise ValueError("matrix must have two or three dimensions but got {}"
+                             ".".format(mat.shape))
         list.__init__(self)
         self._rev_keys = rev_keys
         self._mat = mat
@@ -153,6 +166,9 @@ class ArrayZipMapDictionary(list):
     @property
     def is_zip_map(self):
         return True
+
+    def __str__(self):
+        return 'ZipMaps[%s]' % ', '.join(map(str, self))
 
 
 class ZipMap(OpRun):

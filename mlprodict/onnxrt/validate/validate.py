@@ -96,7 +96,7 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
         except (AttributeError, TypeError, ValueError,
                 IndexError, NotImplementedError, MemoryError) as e:
             if debug:
-                raise
+                raise  # pragma: no cover
             obs["_1training_time_exc"] = str(e)
             return False
 
@@ -137,7 +137,7 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
             meth = getattr(inst, method_name)
         except AttributeError as e:
             if debug:
-                raise
+                raise  # pragma: no cover
             obs['_2skl_meth_exc'] = str(e)
             return e
         try:
@@ -146,7 +146,7 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
             obs['lambda-skl'] = (lambda xo: meth(xo, **predict_kwargs), X_test)
         except (ValueError, AttributeError, TypeError, MemoryError, IndexError) as e:
             if debug:
-                raise
+                raise  # pragma: no cover
             obs['_3prediction_exc'] = str(e)
             return e
         obs['prediction_time'] = t4
@@ -403,7 +403,7 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=None,  # pylint: d
                 inst = None
                 try:
                     inst = model(**extra)
-                except TypeError as e:
+                except TypeError as e:  # pragma: no cover
                     if debug:
                         raise
                     if "__init__() missing" not in str(e):
@@ -530,8 +530,8 @@ def _call_conv_runtime_opset(
                 except (RuntimeError, IndexError, AttributeError, TypeError,
                         ValueError) as e:
                     if debug:
-                        fLOG(pprint.pformat(obs_op))
-                        raise
+                        fLOG(pprint.pformat(obs_op))  # pragma: no cover
+                        raise  # pragma: no cover
                     obs_op["_4convert_exc"] = e
                     yield obs_op.copy()
                     continue
@@ -630,7 +630,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         obs_op['tostring_time'] = t5
     except (RuntimeError, ValueError, KeyError, IndexError, TypeError) as e:
         if debug:
-            raise
+            raise  # pragma: no cover
         obs_op['_5ort_load_exc'] = e
         return obs_op
 
@@ -652,7 +652,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             {init_types[0][0]: xo}, node_time=node_time), Xort_test)
     except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
         if debug:
-            raise RuntimeError("Issue with {}.".format(obs_op)) from e
+            raise RuntimeError("Issue with {}.".format(
+                obs_op)) from e  # pragma: no cover
         obs_op['_6ort_run_batch_exc'] = e
     if (benchmark or node_time) and 'lambda-batch' in obs_op:
         try:
@@ -662,7 +663,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             obs_op['bench-batch'] = benres
         except (RuntimeError, TypeError, ValueError) as e:
             if debug:
-                raise e
+                raise e  # pragma: no cover
             obs_op['_6ort_run_batch_exc'] = e
             obs_op['_6ort_run_batch_bench_exc'] = e
 
@@ -680,7 +681,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                 opred = opred[output_index]
             except IndexError as e:
                 if debug:
-                    raise IndexError(
+                    raise IndexError(  # pragma: no cover
                         "Issue with output_index={}/{}".format(
                             output_index, len(opred))) from e
                 obs_op['_8max_rel_diff_batch_exc'] = (
@@ -738,7 +739,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                         max_rel_diff, inst, conv, pprint.pformat(obs_op)))
 
     if debug and len(debug_exc) == 2:
-        raise debug_exc[0]
+        raise debug_exc[0]  # pragma: no cover
     if debug and verbose >= 2:
         fLOG(pprint.pformat(obs_op))
     if verbose >= 2 and fLOG is not None:

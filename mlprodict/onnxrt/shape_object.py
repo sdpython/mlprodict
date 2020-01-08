@@ -22,7 +22,7 @@ class BaseDimensionShape:
         Evaluates the object, reduces the expression
         to a number or a string.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
 
 class ShapeOperator(BaseDimensionShape):
@@ -61,7 +61,7 @@ class ShapeOperator(BaseDimensionShape):
 
         @return     a string
         """
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Operator '{}' does not implement 'to_string': {}.".format(
                 self.__class__.__name__, repr(self)))
 
@@ -98,7 +98,8 @@ class ShapeOperator(BaseDimensionShape):
         @param  kwargs      value for the variables.
         @return             string or integer
         """
-        raise NotImplementedError("This function must be overwritten.")
+        raise NotImplementedError(
+            "This function must be overwritten.")  # pragma: no cover
 
 
 class ShapeBinaryOperator(ShapeOperator):
@@ -117,9 +118,9 @@ class ShapeBinaryOperator(ShapeOperator):
         """
         ShapeOperator.__init__(self, name, fct, fct_string, x, y)
         if isinstance(x, tuple):
-            raise TypeError('x cannot be a tuple')
+            raise TypeError('x cannot be a tuple')  # pragma: no cover
         if isinstance(y, tuple):
-            raise TypeError('y cannot be a tuple')
+            raise TypeError('y cannot be a tuple')  # pragma: no cover
 
     def to_string(self, use_x=True):
         """

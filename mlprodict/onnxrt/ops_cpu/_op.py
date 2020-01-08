@@ -80,14 +80,14 @@ class OpRun:
 
         for k, v in self._schema.attributes.items():
             if not hasattr(self, k):
-                import pprint
-                raise RuntimeError(
+                import pprint  # pragma: no cover
+                raise RuntimeError(  # pragma: no cover
                     "Attribute '{}' is expected based on ONNX specifications "
                     "for node '{}' and options {}.".format(
                         k, onnx_node.op_type, pprint.pformat(options)))
 
     def _find_custom_operator_schema(self, op_name):
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "This method should be overwritten for operator '{}'.".format(op_name))
 
     def __str__(self):
@@ -108,7 +108,8 @@ class OpRun:
         """
         Should be overwritten.
         """
-        raise NotImplementedError("This method should be overwritten.")
+        raise NotImplementedError(
+            "This method should be overwritten.")  # pragma: no cover
 
     def run(self, *args, **kwargs):  # pylint: disable=E0202
         """

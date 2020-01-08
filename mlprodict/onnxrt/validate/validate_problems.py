@@ -19,7 +19,7 @@ from sklearn.ensemble import (
 )
 try:
     from sklearn.ensemble import StackingClassifier, StackingRegressor
-except ImportError:
+except ImportError:  # pragma: no cover
     # new in 0.22
     StackingClassifier, StackingRegressor = None, None
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
@@ -106,7 +106,7 @@ def _modify_dimension(X, n_features, seed=19):
             h = (h + 1) % X.shape[0]
             res[h, j] = perm[h]  # pylint: disable=E1136
         else:  # pragma: no cover
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Unable to add noise to a feature for this type {}".format(X.dtype))
     return res
 
@@ -825,10 +825,10 @@ def _guess_noshape(obj, shape):
         elif obj.dtype == numpy.float64:
             return DoubleTensorType(shape)
         else:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Unable to process object(1) [{}].".format(obj))
     else:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Unable to process object(2) [{}].".format(obj))
 
 

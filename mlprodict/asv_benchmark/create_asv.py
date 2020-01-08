@@ -10,7 +10,7 @@ import warnings
 import re
 from onnx.defs import onnx_opset_version  # pylint: disable=W0611
 try:
-    from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8
+    from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8  # pragma: no cover
 except ImportError:
     remove_extra_spaces_and_pep8 = lambda code, *args, **kwargs: code
 try:
@@ -26,7 +26,7 @@ try:
         add_model_import_init,
         find_missing_sklearn_imports)
 except ImportError:
-    from mlprodict.asv_benchmark._create_asv_helper import (
+    from mlprodict.asv_benchmark._create_asv_helper import (  # pragma: no cover
         default_asv_conf,
         flask_helper,
         pyspy_template,
@@ -44,7 +44,7 @@ try:
     from ..onnxrt.validate.validate import (
         _retrieve_problems_extra, _get_problem_data, _merge_options)
     from ..tools.asv_options_helper import shorten_onnx_options
-except (ValueError, ImportError):
+except (ValueError, ImportError):  # pragma: no cover
     from mlprodict.onnxrt.validate.validate_helper import (
         get_opset_number_from_onnx, sklearn_operators)
     from mlprodict.onnxrt.validate.validate import (
@@ -52,14 +52,14 @@ except (ValueError, ImportError):
     from mlprodict.tools.asv_options_helper import shorten_onnx_options
 try:
     from ..testing.verify_code import verify_code
-except (ValueError, ImportError):
+except (ValueError, ImportError):  # pragma: no cover
     from mlprodict.testing.verify_code import verify_code
 
 # exec function does not import models but potentially
 # requires all specific models used to defines scenarios
 try:
     from ..onnxrt.validate.validate_scenarios import *  # pylint: disable=W0614,W0401
-except ValueError:
+except ValueError:  # pragma: no cover
     # Skips this step if used in a benchmark.
     pass
 

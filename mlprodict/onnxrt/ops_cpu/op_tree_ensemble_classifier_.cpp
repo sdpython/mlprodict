@@ -178,7 +178,7 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::init(
     array2vector(class_weights_, class_weights, NTYPE);
     array2vector(base_values_, base_values, NTYPE);
     if (classlabels_strings.size() > 0)
-        throw std::runtime_error("This runtime only handles integers.");
+        throw std::runtime_error("This runtime only handles integers for class labels.");
     // classlabels_strings_ = classlabels_strings;
     array2vector(classlabels_int64s_, classlabels_int64s, int64_t);
     post_transform_ = to_POST_EVAL_TRANSFORM(post_transform);
