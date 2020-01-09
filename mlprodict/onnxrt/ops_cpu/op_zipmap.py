@@ -33,7 +33,8 @@ class ZipMapDictionary(dict):
         """
         if mat is not None:
             if not isinstance(mat, numpy.ndarray):
-                raise TypeError('matrix is expected, got {}.'.format(type(mat)))
+                raise TypeError(
+                    'matrix is expected, got {}.'.format(type(mat)))
             if len(mat.shape) not in (2, 3):
                 raise ValueError("matrix must have two or three dimensions but got {}"
                                  ".".format(mat.shape))
@@ -115,7 +116,8 @@ class ArrayZipMapDictionary(list):
         """
         if mat is not None:
             if not isinstance(mat, numpy.ndarray):
-                raise TypeError('matrix is expected, got {}.'.format(type(mat)))
+                raise TypeError(
+                    'matrix is expected, got {}.'.format(type(mat)))
             if len(mat.shape) not in (2, 3):
                 raise ValueError("matrix must have two or three dimensions but got {}"
                                  ".".format(mat.shape))

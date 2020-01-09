@@ -35,7 +35,7 @@ from mlprodict.onnx_conv import register_rewritten_operators
 
 class TestSklearnTreeEnsembleModels(ExtTestCase):
 
-    folder = get_temp_folder(__file__, "temp_dump")
+    folder = get_temp_folder(__file__, "temp_dump", clean=False)
 
     def setUp(self):
         logger = getLogger('skl2onnx')

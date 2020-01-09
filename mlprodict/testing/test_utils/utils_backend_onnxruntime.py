@@ -3,12 +3,13 @@
 @brief Inspired from skl2onnx, handles two backends.
 """
 import numpy
+import onnx
 import pandas
 try:
     from onnxruntime.capi.onnxruntime_pybind11_state import (
         InvalidArgument as OrtInvalidArgument
     )
-except ImportError:
+except ImportError:  # pragma no cover
     OrtInvalidArgument = RuntimeError
 from .utils_backend_common import (
     load_data_and_model,
@@ -51,7 +52,7 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
     if context is None:
         context = {}
     load = load_data_and_model(test, **context)
-    if verbose:
+    if verbose:  # pragma no cover
         print("[compare_runtime] test '{}' loaded".format(test['onnx']))
 
     onx = test['onnx']
@@ -67,23 +68,22 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
 
     import onnxruntime
 
-    if verbose:
+    if verbose:  # pragma no cover
         print("[compare_runtime] InferenceSession('{}')".format(onx))
 
     try:
         sess = onnxruntime.InferenceSession(onx)
-    except ExpectedAssertionError as expe:
+    except ExpectedAssertionError as expe:  # pragma no cover
         raise expe
     except Exception as e:  # pylint: disable=W0703
-        if "CannotLoad" in options:
+        if "CannotLoad" in options:  # pragma no cover
             raise ExpectedAssertionError(
                 "Unable to load onnx '{0}' due to\n{1}".format(onx, e))
-        else:
+        else:  # pragma no cover
             if intermediate_steps:
                 raise NotImplementedError(
                     "intermediate steps are not implemented for this backend.")
-            if verbose:
-                import onnx
+            if verbose:  # pragma no cover
                 model = onnx.load(onx)
                 smodel = "\nJSON ONNX\n" + str(model)
             else:
@@ -129,7 +129,7 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
             elif isinstance(input, list):
                 try:
                     array_input = numpy.array(input)
-                except Exception:
+                except Exception:  # pragma no cover
                     raise OnnxRuntimeAssertionError(
                         "Wrong number of inputs onnx {0} != "
                         "original {1}, onnx='{2}'"
@@ -151,7 +151,7 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
             elif isinstance(input, pandas.DataFrame):
                 try:
                     array_input = numpy.array(input)
-                except Exception:
+                except Exception:  # pragma no cover
                     raise OnnxRuntimeAssertionError(
                         "Wrong number of inputs onnx {0} != "
                         "original {1}, onnx='{2}'"
@@ -183,10 +183,10 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
                 inputs[k] = numpy.array(inputs[k])
 
     options.pop('SklCol', False)  # unused here but in dump_data_and_model
-    if verbose:
+    if verbose:  # pragma no cover
         print("[compare_runtime] type(inputs)={} len={} names={}".format(
             type(input), len(inputs), list(sorted(inputs))))
-    if verbose:
+    if verbose:  # pragma no cover
         run_options = onnxruntime.RunOptions()
         if hasattr(run_options, 'run_log_verbosity_level'):
             run_options.run_log_verbosity_level = 5
@@ -197,12 +197,12 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
     try:
         output = sess.run(None, inputs, run_options)
         lambda_onnx = lambda: sess.run(None, inputs)  # noqa
-        if verbose:
+        if verbose:  # pragma no cover
             import pprint
             pprint.pprint(output)
-    except ExpectedAssertionError as expe:
+    except ExpectedAssertionError as expe:  # pragma no cover
         raise expe
-    except (RuntimeError, OrtInvalidArgument) as e:
+    except (RuntimeError, OrtInvalidArgument) as e:  # pragma no cover
         if intermediate_steps:
             raise NotImplementedError("Cannot see intermediate steps.")
         if "-Fail" in onx:
@@ -210,8 +210,7 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
                 "onnxruntime cannot compute the prediction for '{0}'".
                 format(onx))
         else:
-            if verbose:
-                import onnx
+            if verbose:  # pragma no cover
                 model = onnx.load(onx)
                 smodel = "\nJSON ONNX\n" + str(model)
             else:
@@ -221,10 +220,10 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
                 "onnxruntime cannot compute the prediction"
                 " for '{0}' due to {1}{2}\n{3}"
                 .format(onx, e, smodel, pprint.pformat(inputs)))
-    except Exception as e:
+    except Exception as e:  # pragma no cover
         raise OnnxRuntimeAssertionError(
             "Unable to run onnx '{0}' due to {1}".format(onx, e))
-    if verbose:
+    if verbose:  # pragma no cover
         print("[compare_runtime] done type={}".format(type(output)))
 
     output0 = output.copy()
@@ -240,11 +239,10 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
         _compare_expected(cmp_exp, cmp_out, sess, onx,
                           decimal=decimal, verbose=verbose,
                           classes=classes, **options)
-    except ExpectedAssertionError as expe:
+    except ExpectedAssertionError as expe:  # pragma no cover
         raise expe
-    except Exception as e:
-        if verbose:
-            import onnx
+    except Exception as e:  # pragma no cover
+        if verbose:  # pragma no cover
             model = onnx.load(onx)
             smodel = "\nJSON ONNX\n" + str(model)
         else:

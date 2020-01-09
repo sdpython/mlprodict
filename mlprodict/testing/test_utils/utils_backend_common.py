@@ -64,7 +64,7 @@ def is_backend_enabled(backend):
         try:
             import onnxruntime  # pylint: disable=W0611
             return True
-        except ImportError:
+        except ImportError:  # pragma no cover
             return False
     if backend == "python":
         return True
@@ -86,7 +86,7 @@ def load_data_and_model(items_as_dict, **context):
                 with open(v, "rb") as f:
                     try:
                         bin = pickle.load(f)
-                    except ImportError as e:
+                    except ImportError as e:  # pragma no cover
                         if '.model.' in v:
                             continue
                         raise ImportError(
@@ -182,10 +182,10 @@ def compare_outputs(expected, output, verbose=False, **kwargs):
             try:
                 assert_array_equal(expected, output, verbose=verbose)
             except Exception as e:  # pylint: disable=W0703
-                if Disc:
+                if Disc:  # pragma no cover
                     # Bug to be fixed later.
                     return ExpectedAssertionError(str(e))
-                else:
+                else:  # pragma no cover
                     return OnnxBackendAssertionError(str(e))
         else:
             try:
@@ -193,7 +193,7 @@ def compare_outputs(expected, output, verbose=False, **kwargs):
                                           output,
                                           verbose=verbose,
                                           **kwargs)
-            except Exception as e:  # pylint: disable=W0703
+            except (RuntimeError, AssertionError) as e:  # pragma no cover
                 longer = "\n--EXPECTED--\n{0}\n--OUTPUT--\n{1}".format(
                     expected, output) if verbose else ""
                 expected_ = numpy.asarray(expected).ravel()
@@ -363,7 +363,7 @@ def _compare_expected(expected, output, sess, onnx_model,
                 expected.dtype == numpy.str or expected.dtype.char == 'U')):
             try:
                 output = numpy.array([classes[cl] for cl in output])
-            except IndexError as e:
+            except IndexError as e:  # pragma no cover
                 raise RuntimeError('Unable to handle\n{}\n{}\n{}'.format(
                     expected, output, classes)) from e
         msg = compare_outputs(

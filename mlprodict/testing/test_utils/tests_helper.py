@@ -234,7 +234,7 @@ def dump_data_and_model(
             else:
                 try:
                     call = getattr(model, method)
-                except AttributeError as e:
+                except AttributeError as e:  # pragma no cover
                     if method == 'decision_function_binary':
                         call = (
                             lambda X, model=model:
@@ -306,7 +306,7 @@ def dump_data_and_model(
         with open(dest, "wb") as f:
             try:
                 pickle.dump(model, f)
-            except AttributeError as e:
+            except AttributeError as e:  # pragma no cover
                 print("[dump_data_and_model] cannot pickle model '{}'"
                       " due to {}.".format(dest, e))
 
@@ -356,12 +356,12 @@ def dump_data_and_model(
                         comparable_outputs=comparable_outputs,
                         intermediate_steps=intermediate_steps,
                         classes=classes)
-                except OnnxBackendMissingNewOnnxOperatorException as e:
+                except OnnxBackendMissingNewOnnxOperatorException as e:  # pragma no cover
                     if fail_evenif_notimplemented:
                         raise e
                     warnings.warn(str(e))
                     continue
-                except AssertionError as e:
+                except AssertionError as e:  # pragma no cover
                     if dump_error_log:
                         with open(error_dump, "w", encoding="utf-8") as f:
                             f.write(str(e) + "\n--------------\n")
@@ -413,7 +413,7 @@ def convert_model(model, name, input_types):
 
 def dump_one_class_classification(
         model, suffix="", folder=None, allow_failure=None,
-        comparable_outputs=None, verbose=False):
+        comparable_outputs=None, verbose=False, benchmark=False):
     """
     Trains and dumps a model for a One Class outlier problem.
     The function trains a model and calls
@@ -432,12 +432,14 @@ def dump_one_class_classification(
         X, model, model_onnx, folder=folder,
         allow_failure=allow_failure,
         basename=prefix + "One" + model.__class__.__name__ + suffix,
-        verbose=verbose, comparable_outputs=comparable_outputs)
+        verbose=verbose, comparable_outputs=comparable_outputs,
+        benchmark=benchmark)
 
 
 def dump_binary_classification(
         model, suffix="", folder=None, allow_failure=None,
-        comparable_outputs=None, verbose=False, label_string=False):
+        comparable_outputs=None, verbose=False, label_string=False,
+        benchmark=False):
     """
     Trains and dumps a model for a binary classification problem.
     The function trains a model and calls
@@ -469,12 +471,14 @@ def dump_binary_classification(
         X.astype(numpy.float32), model, model_onnx,
         allow_failure=allow_failure, folder=folder,
         basename=prefix + "RndBin" + model.__class__.__name__ + suffix,
-        verbose=verbose, comparable_outputs=comparable_outputs)
+        verbose=verbose, comparable_outputs=comparable_outputs,
+        benchmark=benchmark)
 
 
 def dump_multiple_classification(
         model, suffix="", folder=None, allow_failure=None, verbose=False,
-        label_string=False, first_class=0, comparable_outputs=None):
+        label_string=False, first_class=0, comparable_outputs=None,
+        benchmark=False):
     """
     Trains and dumps a model for a binary classification problem.
     The function trains a model and calls
@@ -518,12 +522,14 @@ def dump_multiple_classification(
         X[:10].astype(numpy.float32), model, model_onnx, folder=folder,
         allow_failure=allow_failure,
         basename=prefix + "RndMcl" + model.__class__.__name__ + suffix,
-        verbose=verbose, comparable_outputs=comparable_outputs)
+        verbose=verbose, comparable_outputs=comparable_outputs,
+        benchmark=benchmark)
 
 
 def dump_multilabel_classification(
         model, suffix="", folder=None, allow_failure=None, verbose=False,
-        label_string=False, first_class=0, comparable_outputs=None):
+        label_string=False, first_class=0, comparable_outputs=None,
+        benchmark=False):
     """
     Trains and dumps a model for a binary classification problem.
     The function trains a model and calls
@@ -570,12 +576,13 @@ def dump_multilabel_classification(
         X[:10].astype(numpy.float32), model, model_onnx, folder=folder,
         allow_failure=allow_failure,
         basename=prefix + "RndMla" + model.__class__.__name__ + suffix,
-        verbose=verbose, comparable_outputs=comparable_outputs)
+        verbose=verbose, comparable_outputs=comparable_outputs,
+        benchmark=benchmark)
 
 
 def dump_multiple_regression(
         model, suffix="", folder=None, allow_failure=None,
-        comparable_outputs=None, verbose=False):
+        comparable_outputs=None, verbose=False, benchmark=False):
     """
     Trains and dumps a model for a multi regression problem.
     The function trains a model and calls
@@ -593,11 +600,12 @@ def dump_multiple_regression(
     dump_data_and_model(
         X, model, model_onnx, folder=folder, allow_failure=allow_failure,
         basename=prefix + "MRg" + model.__class__.__name__ + suffix,
-        verbose=verbose, comparable_outputs=comparable_outputs)
+        verbose=verbose, comparable_outputs=comparable_outputs,
+        benchmark=benchmark)
 
 
 def dump_single_regression(model, suffix="", folder=None, allow_failure=None,
-                           comparable_outputs=None):
+                           comparable_outputs=None, benchmark=False):
     """
     Trains and dumps a model for a regression problem.
     The function trains a model and calls
@@ -703,7 +711,7 @@ def stat_model_skl(model):
     try:
         with open(model, "rb") as f:
             obj = pickle.load(f)
-    except EOFError:
+    except EOFError:  # pragma no cover
         return {"nb_estimators": 0}
     return {"nb_estimators": get_nb_skl_objects(obj)}
 
@@ -816,13 +824,13 @@ def make_report_backend(folder, as_df=False):
         for row in aslist:
             try:
                 row["ratio"] = row["onnxrt_time"] / row["original_time"]
-            except KeyError:
+            except KeyError:  # pragma no cover
                 # execution failed
                 pass
             try:
                 row["ratio_nodes"] = (row["nb_onnx_nodes"] /
                                       row["nb_estimators"])
-            except KeyError:
+            except KeyError:  # pragma no cover
                 # execution failed
                 pass
             row["CPU"] = proc
