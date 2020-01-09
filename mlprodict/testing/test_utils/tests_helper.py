@@ -8,9 +8,7 @@ import warnings
 import traceback
 import time
 import sys
-import platform
 import numpy
-import onnx
 import pandas
 from sklearn.datasets import (
     make_classification,
@@ -18,7 +16,6 @@ from sklearn.datasets import (
     make_regression,
 )
 from sklearn.model_selection import train_test_split
-from sklearn.base import BaseEstimator
 from sklearn.preprocessing import MultiLabelBinarizer
 from skl2onnx.common.data_types import FloatTensorType
 from .utils_backend import compare_backend
@@ -529,7 +526,7 @@ def dump_multiple_classification(
 def dump_multilabel_classification(
         model, suffix="", folder=None, allow_failure=None, verbose=False,
         label_string=False, first_class=0, comparable_outputs=None,
-        benchmark=False):
+        benchmark=False, backend=('python', 'onnxruntime')):
     """
     Trains and dumps a model for a binary classification problem.
     The function trains a model and calls
@@ -551,7 +548,7 @@ def dump_multilabel_classification(
     if verbose:
         print("[make_multilabel_classification] model '{}'".format(
             model.__class__.__name__))
-    model_onnx, prefix = convert_model(model, "multi-class classifier",
+    model_onnx, prefix = convert_model(model, "multi-label-classifier",
                                        [("input", FloatTensorType([None, 2]))])
     if verbose:
         print("[make_multilabel_classification] model was converted")
@@ -559,7 +556,8 @@ def dump_multilabel_classification(
         X.astype(numpy.float32), model, model_onnx, folder=folder,
         allow_failure=allow_failure,
         basename=prefix + "Mcl" + model.__class__.__name__ + suffix,
-        verbose=verbose, comparable_outputs=comparable_outputs)
+        verbose=verbose, comparable_outputs=comparable_outputs,
+        backend=backend)
 
     X, y = make_multilabel_classification(40, n_features=4, random_state=42,
                                           n_classes=3)
@@ -577,7 +575,7 @@ def dump_multilabel_classification(
         allow_failure=allow_failure,
         basename=prefix + "RndMla" + model.__class__.__name__ + suffix,
         verbose=verbose, comparable_outputs=comparable_outputs,
-        benchmark=benchmark)
+        benchmark=benchmark, backend=backend)
 
 
 def dump_multiple_regression(
@@ -683,159 +681,3 @@ def compute_benchmark(fcts, number=10, repeat=100):
         res["name"] = name
         obs.append(res)
     return obs
-
-
-def get_nb_skl_objects(obj):
-    """
-    Returns the number of *sklearn* objects.
-    """
-    ct = 0
-    if isinstance(obj, BaseEstimator):
-        ct += 1
-    if isinstance(obj, (list, tuple)):
-        for o in obj:
-            ct += get_nb_skl_objects(o)
-    elif isinstance(obj, dict):
-        for o in obj.values():
-            ct += get_nb_skl_objects(o)
-    elif isinstance(obj, BaseEstimator):
-        for o in obj.__dict__.values():
-            ct += get_nb_skl_objects(o)
-    return ct
-
-
-def stat_model_skl(model):
-    """
-    Computes statistics on the sklearn model.
-    """
-    try:
-        with open(model, "rb") as f:
-            obj = pickle.load(f)
-    except EOFError:  # pragma no cover
-        return {"nb_estimators": 0}
-    return {"nb_estimators": get_nb_skl_objects(obj)}
-
-
-def stat_model_onnx(model):
-    """
-    Computes statistics on the ONNX model.
-    """
-    gr = onnx.load(model)
-    return {"nb_onnx_nodes": len(gr.graph.node)}  # pylint: disable=E1101
-
-
-def make_report_backend(folder, as_df=False):
-    """
-    Looks into a folder for dumped files after
-    the unit tests.
-
-    :param folder: dump folder, it should contain files *.bench*
-    :param as_df: returns a dataframe instread of a list of dictionary
-    :return: time execution
-    """
-    import onnxruntime
-    import cpuinfo
-
-    res = {}
-    benched = 0
-    files = os.listdir(folder)
-    for name in files:
-        if name.endswith(".expected.pkl"):
-            model = name.split(".")[0]
-            if model not in res:
-                res[model] = {}
-            res[model]["_tested"] = True
-        elif ".backend." in name:
-            bk = name.split(".backend.")[-1].split(".")[0]
-            model = name.split(".")[0]
-            if model not in res:
-                res[model] = {}
-            res[model][bk] = True
-        elif name.endswith(".err"):
-            model = name.split(".")[0]
-            fullname = os.path.join(folder, name)
-            with open(fullname, "r", encoding="utf-8") as f:
-                content = f.read()
-            error = content.split("\n")[0].strip("\n\r ")
-            if model not in res:
-                res[model] = {}
-            res[model]["stderr"] = error
-        elif name.endswith(".model.pkl"):
-            model = name.split(".")[0]
-            if model not in res:
-                res[model] = {}
-            res[model].update(stat_model_skl(os.path.join(folder, name)))
-        elif name.endswith(".model.onnx"):
-            model = name.split(".")[0]
-            if model not in res:
-                res[model] = {}
-            res[model].update(stat_model_onnx(os.path.join(folder, name)))
-        elif name.endswith(".bench"):
-            model = name.split(".")[0]
-            fullname = os.path.join(folder, name)
-            df = pandas.read_csv(fullname, sep=",")
-            if model not in res:
-                res[model] = {}
-            for _, row in df.iterrows():
-                name = row["name"]
-                ave = row["average"]
-                std = row["deviation"]
-                size = row["input_size"]
-                res[model]["{0}_time".format(name)] = ave
-                res[model]["{0}_std".format(name)] = std
-                res[model]["input_size"] = size
-                benched += 1
-
-    if benched == 0:
-        raise RuntimeError("No benchmark files in '{0}', found:\n{1}".format(
-            folder, "\n".join(files)))
-
-    def dict_update(d, u):
-        d.update(u)
-        return d
-
-    aslist = [dict_update(dict(_model=k), v) for k, v in res.items()]
-
-    if as_df:
-        from pandas import DataFrame
-
-        df = DataFrame(aslist).sort_values(["_model"])
-        df["numpy-version"] = numpy.__version__
-        df["onnx-version"] = onnx.__version__
-        df["onnxruntime-version"] = onnxruntime.__version__
-        cols = list(df.columns)
-        if "stderr" in cols:
-            ind = cols.index("stderr")
-            del cols[ind]
-            cols += ["stderr"]
-            df = df[cols]
-        for col in ["onnxrt_time", "original_time"]:
-            if col not in df.columns:
-                raise RuntimeError("Column '{0}' is missing from {1}".format(
-                    col, ", ".join(df.columns)))
-        df["ratio"] = df["onnxrt_time"] / df["original_time"]
-        df["ratio_nodes"] = df["nb_onnx_nodes"] / df["nb_estimators"]
-        df["CPU"] = platform.processor()
-        df["CPUI"] = cpuinfo.get_cpu_info()["brand"]
-        return df
-    else:
-        cpu = cpuinfo.get_cpu_info()["brand"]
-        proc = platform.processor()
-        for row in aslist:
-            try:
-                row["ratio"] = row["onnxrt_time"] / row["original_time"]
-            except KeyError:  # pragma no cover
-                # execution failed
-                pass
-            try:
-                row["ratio_nodes"] = (row["nb_onnx_nodes"] /
-                                      row["nb_estimators"])
-            except KeyError:  # pragma no cover
-                # execution failed
-                pass
-            row["CPU"] = proc
-            row["CPUI"] = cpu
-            row["numpy-version"] = numpy.__version__
-            row["onnx-version"] = onnx.__version__
-            row["onnxruntime-version"] = onnxruntime.__version__
-        return aslist

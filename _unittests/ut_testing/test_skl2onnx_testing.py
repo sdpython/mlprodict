@@ -10,12 +10,14 @@ from sklearn.ensemble import (
     RandomForestClassifier
 )
 from sklearn.svm import OneClassSVM
+from sklearn.tree import DecisionTreeClassifier
 from mlprodict.testing.test_utils import (
     dump_binary_classification,
     dump_multiple_classification,
     fit_multilabel_classification_model,
     fit_classification_model,
-    dump_one_class_classification
+    dump_one_class_classification,
+    dump_multilabel_classification
 )
 from mlprodict.onnx_conv import register_rewritten_operators
 
@@ -44,6 +46,12 @@ class TestSklearnTesting(ExtTestCase):
     def test_random_forest_classifier_fit_simple_multi(self):
         res = fit_multilabel_classification_model(ExtraTreesClassifier())
         self.assertEqual(len(res), 2)
+
+    def test_multilabel(self):
+        model = DecisionTreeClassifier()
+        dump_multilabel_classification(
+            model, folder=self.folder, benchmark=True, suffix="-Out0",
+            backend='python')
 
     def test_random_forest_classifier(self):
         model = RandomForestClassifier(n_estimators=3)

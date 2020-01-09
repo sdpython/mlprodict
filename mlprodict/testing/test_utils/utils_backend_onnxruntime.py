@@ -122,7 +122,7 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
                 if shape == input.shape[1]:
                     inputs = {n.name: input[:, i] for i, n in enumerate(inp)}
                 else:
-                    raise OnnxRuntimeAssertionError(
+                    raise OnnxRuntimeAssertionError(  # pragma no cover
                         "Wrong number of inputs onnx {0} != "
                         "original shape {1}, onnx='{2}'"
                         .format(len(inp), input.shape, onx))
@@ -144,7 +144,7 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
                             [row[c:d] for row in input], n.type)
                         c = d
                 else:
-                    raise OnnxRuntimeAssertionError(
+                    raise OnnxRuntimeAssertionError(  # pragma no cover
                         "Wrong number of inputs onnx {0} != "
                         "original shape {1}, onnx='{2}'*"
                         .format(len(inp), array_input.shape, onx))
@@ -166,16 +166,16 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
                             input.iloc[:, c:d], n.type)
                         c = d
                 else:
-                    raise OnnxRuntimeAssertionError(
+                    raise OnnxRuntimeAssertionError(  # pragma no cover
                         "Wrong number of inputs onnx {0}={1} columns != "
                         "original shape {2}, onnx='{3}'*"
                         .format(len(inp), shape, array_input.shape, onx))
             else:
-                raise OnnxRuntimeAssertionError(
+                raise OnnxRuntimeAssertionError(  # pragma no cover
                     "Wrong type of inputs onnx {0}, onnx='{1}'".format(
                         type(input), onx))
         else:
-            raise OnnxRuntimeAssertionError(
+            raise OnnxRuntimeAssertionError(  # pragma no cover
                 "Dict or list is expected, not {0}".format(type(input)))
 
         for k in inputs:

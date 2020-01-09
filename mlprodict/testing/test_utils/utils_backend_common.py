@@ -49,7 +49,7 @@ def evaluate_condition(backend, condition):
         import onnxruntime  # pylint: disable=W0611
         return eval(condition)  # pylint: disable=W0123
     else:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma no cover
             "Not implemented for backend '{0}' and "
             "condition '{1}'.".format(backend, condition))
 
@@ -68,7 +68,7 @@ def is_backend_enabled(backend):
             return False
     if backend == "python":
         return True
-    raise NotImplementedError(
+    raise NotImplementedError(  # pragma no cover
         "Not implemented for backend '{0}'".format(backend))
 
 
@@ -89,7 +89,7 @@ def load_data_and_model(items_as_dict, **context):
                     except ImportError as e:  # pragma no cover
                         if '.model.' in v:
                             continue
-                        raise ImportError(
+                        raise ImportError(  # pragma no cover
                             "Unable to load '{0}' due to {1}".format(v, e))
                     res[k] = bin
             else:
@@ -118,7 +118,8 @@ def extract_options(name):
                        'Out0', 'Reshape', 'SklCol', 'DF', 'OneOffArray'):
                 res[opt] = True
             else:
-                raise NameError("Unable to parse option '{}'".format(opts[1:]))
+                raise NameError("Unable to parse option '{}'".format(
+                    opts[1:]))  # pragma no cover
         return res
 
 
@@ -169,7 +170,7 @@ def compare_outputs(expected, output, verbose=False, **kwargs):
                 if NoProbOpp:
                     output = -output
             elif expected.shape != output.shape:
-                raise NotImplementedError("Shape mismatch: {0} != {1}".format(
+                raise NotImplementedError("Shape mismatch: {0} != {1}".format(  # pragma no cover
                     expected.shape, output.shape))
         if len(expected.shape) == 1 and len(
                 output.shape) == 2 and output.shape[1] == 1:
@@ -247,7 +248,7 @@ def _post_process_output(res):
             ls = [len(r) for r in res]
             mi = min(ls)
             if mi != max(ls):
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma no cover
                     "Unable to postprocess various number of "
                     "outputs in [{0}, {1}]"
                     .format(min(ls), max(ls)))
@@ -266,7 +267,7 @@ def _post_process_output(res):
                     return res
                 else:
                     if len(res[0]) != 1:
-                        raise NotImplementedError(
+                        raise NotImplementedError(  # pragma no cover
                             "Not conversion implemented for {0}".format(res))
                     st = [r[0] for r in res]
                     return numpy.vstack(st)
@@ -284,9 +285,8 @@ def _create_column(values, dtype):
         return numpy.array(values, dtype=numpy.float32)
     elif str(dtype) == "tensor(string)":
         return numpy.array(values, dtype=numpy.str)
-    else:
-        raise OnnxBackendAssertionError(
-            "Unable to create one column from dtype '{0}'".format(dtype))
+    raise OnnxBackendAssertionError(  # pragma no cover
+        "Unable to create one column from dtype '{0}'".format(dtype))
 
 
 def _compare_expected(expected, output, sess, onnx_model,
@@ -310,7 +310,7 @@ def _compare_expected(expected, output, sess, onnx_model,
                 output = output.reshape(
                     (len(expected), len(output.ravel()) // len(expected)))
             if len(expected) != len(output):
-                raise OnnxBackendAssertionError(
+                raise OnnxBackendAssertionError(  # pragma no cover
                     "Unexpected number of outputs '{0}', expected={1}, got={2}"
                     .format(onnx_model, len(expected), len(output)))
             for exp, out in zip(expected, output):
@@ -318,12 +318,12 @@ def _compare_expected(expected, output, sess, onnx_model,
                                   classes=classes, **kwargs)
                 tested += 1
         else:
-            raise OnnxBackendAssertionError(
+            raise OnnxBackendAssertionError(  # pragma no cover
                 "Type mismatch for '{0}', output type is {1}".format(
                     onnx_model, type(output)))
     elif isinstance(expected, dict):
         if not isinstance(output, dict):
-            raise OnnxBackendAssertionError(
+            raise OnnxBackendAssertionError(  # pragma no cover
                 "Type mismatch for '{0}'".format(onnx_model))
         for k, v in output.items():
             if k not in expected:
@@ -331,7 +331,7 @@ def _compare_expected(expected, output, sess, onnx_model,
             msg = compare_outputs(
                 expected[k], v, decimal=decimal, verbose=verbose, **kwargs)
             if msg:
-                raise OnnxBackendAssertionError(
+                raise OnnxBackendAssertionError(  # pragma no cover
                     "Unexpected output '{0}' in model '{1}'\n{2}".format(
                         k, onnx_model, msg))
             tested += 1
@@ -350,13 +350,13 @@ def _compare_expected(expected, output, sess, onnx_model,
                 ex = str(output)
                 if len(ex) > 170:
                     ex = ex[:170] + "..."
-                raise OnnxBackendAssertionError(
+                raise OnnxBackendAssertionError(  # pragma no cover
                     "More than one output when 1 is expected "
                     "for onnx '{0}'\n{1}"
                     .format(onnx_model, ex))
             output = output[-1]
         if not isinstance(output, numpy.ndarray):
-            raise OnnxBackendAssertionError(
+            raise OnnxBackendAssertionError(  # pragma no cover
                 "output must be an array for onnx '{0}' not {1}".format(
                     onnx_model, type(output)))
         if (classes is not None and (
@@ -371,7 +371,7 @@ def _compare_expected(expected, output, sess, onnx_model,
         if isinstance(msg, ExpectedAssertionError):
             raise msg  # pylint: disable=E0702
         if msg:
-            raise OnnxBackendAssertionError(
+            raise OnnxBackendAssertionError(  # pragma no cover
                 "Unexpected output in model '{0}'\n{1}".format(onnx_model, msg))
         tested += 1
     else:
@@ -382,13 +382,13 @@ def _compare_expected(expected, output, sess, onnx_model,
             msg = compare_outputs(dense, one_array, decimal=decimal,
                                   verbose=verbose, **kwargs)
             if msg:
-                raise OnnxBackendAssertionError(
+                raise OnnxBackendAssertionError(  # pragma no cover
                     "Unexpected output in model '{0}'\n{1}".format(onnx_model, msg))
             tested += 1
         else:
-            raise OnnxBackendAssertionError(
+            raise OnnxBackendAssertionError(  # pragma no cover
                 "Unexpected type for expected output ({1}) and onnx '{0}'".
                 format(onnx_model, type(expected)))
     if tested == 0:
-        raise OnnxBackendAssertionError(
+        raise OnnxBackendAssertionError(  # pragma no cover
             "No test for onnx '{0}'".format(onnx_model))

@@ -9,7 +9,7 @@ try:
     from onnxruntime.capi.onnxruntime_pybind11_state import (
         InvalidArgument as OrtInvalidArgument
     )
-except ImportError:
+except ImportError:  # pragma no cover
     OrtInvalidArgument = RuntimeError
 from ...onnxrt import OnnxInference
 from .utils_backend_common import (
@@ -118,11 +118,11 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
             if ("NOT_IMPLEMENTED : Could not find an implementation "
                     "for the node" in str(e)):
                 # onnxruntime does not implement a specific node yet.
-                raise OnnxRuntimeMissingNewOnnxOperatorException(
+                raise OnnxRuntimeMissingNewOnnxOperatorException(  # pragma no cover
                     "onnxruntime does not implement a new operator "
                     "'{0}'\n{1}\nONNX\n{2}".format(
                         onx, e, smodel))
-            raise OnnxBackendAssertionError(
+            raise OnnxBackendAssertionError(  # pragma no cover
                 "Unable to load onnx '{0}'\nONNX\n{1}\n{2}".format(
                     onx, smodel, e))
 
@@ -171,7 +171,7 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
                             [row[c:d] for row in input], n.type)
                         c = d
                 else:
-                    raise OnnxBackendAssertionError(
+                    raise OnnxBackendAssertionError(  # pragma no cover
                         "Wrong number of inputs onnx {0} != "
                         "original shape {1}, onnx='{2}'*"
                         .format(len(inp), array_input.shape, onx))
@@ -193,16 +193,16 @@ def compare_runtime(test, decimal=5, options=None,  # pylint: disable=R0912
                             input.iloc[:, c:d], n.type)
                         c = d
                 else:
-                    raise OnnxBackendAssertionError(
+                    raise OnnxBackendAssertionError(  # pragma no cover
                         "Wrong number of inputs onnx {0}={1} columns != "
                         "original shape {2}, onnx='{3}'*"
                         .format(len(inp), shape, array_input.shape, onx))
             else:
-                raise OnnxBackendAssertionError(
+                raise OnnxBackendAssertionError(  # pragma no cover
                     "Wrong type of inputs onnx {0}, onnx='{1}'".format(
                         type(input), onx))
         else:
-            raise OnnxBackendAssertionError(
+            raise OnnxBackendAssertionError(  # pragma no cover
                 "Dict or list is expected, not {0}".format(type(input)))
 
         for k in inputs:
