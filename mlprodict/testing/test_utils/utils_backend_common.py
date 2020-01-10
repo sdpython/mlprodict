@@ -285,7 +285,7 @@ def _create_column(values, dtype):
         return numpy.array(values, dtype=numpy.float32)
     elif str(dtype) == "tensor(string)":
         return numpy.array(values, dtype=numpy.str)
-    raise OnnxBackendAssertionError(  # pragma no cover
+    raise OnnxBackendAssertionError(
         "Unable to create one column from dtype '{0}'".format(dtype))
 
 

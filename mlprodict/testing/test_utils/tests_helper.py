@@ -410,7 +410,8 @@ def convert_model(model, name, input_types):
 
 def dump_one_class_classification(
         model, suffix="", folder=None, allow_failure=None,
-        comparable_outputs=None, verbose=False, benchmark=False):
+        comparable_outputs=None, verbose=False, benchmark=False,
+        methods=None):
     """
     Trains and dumps a model for a One Class outlier problem.
     The function trains a model and calls
@@ -430,13 +431,13 @@ def dump_one_class_classification(
         allow_failure=allow_failure,
         basename=prefix + "One" + model.__class__.__name__ + suffix,
         verbose=verbose, comparable_outputs=comparable_outputs,
-        benchmark=benchmark)
+        benchmark=benchmark, methods=methods)
 
 
 def dump_binary_classification(
         model, suffix="", folder=None, allow_failure=None,
         comparable_outputs=None, verbose=False, label_string=False,
-        benchmark=False):
+        benchmark=False, methods=None):
     """
     Trains and dumps a model for a binary classification problem.
     The function trains a model and calls
@@ -457,7 +458,7 @@ def dump_binary_classification(
     dump_data_and_model(
         X, model, model_onnx, folder=folder, allow_failure=allow_failure,
         basename=prefix + "Bin" + model.__class__.__name__ + suffix,
-        verbose=verbose, comparable_outputs=comparable_outputs)
+        verbose=verbose, comparable_outputs=comparable_outputs, methods=methods)
 
     X, y = make_classification(10, n_features=4, random_state=42)
     X = X[:, :2]
@@ -469,13 +470,13 @@ def dump_binary_classification(
         allow_failure=allow_failure, folder=folder,
         basename=prefix + "RndBin" + model.__class__.__name__ + suffix,
         verbose=verbose, comparable_outputs=comparable_outputs,
-        benchmark=benchmark)
+        benchmark=benchmark, methods=methods)
 
 
 def dump_multiple_classification(
         model, suffix="", folder=None, allow_failure=None, verbose=False,
         label_string=False, first_class=0, comparable_outputs=None,
-        benchmark=False):
+        benchmark=False, methods=None):
     """
     Trains and dumps a model for a binary classification problem.
     The function trains a model and calls
@@ -502,7 +503,8 @@ def dump_multiple_classification(
         X.astype(numpy.float32), model, model_onnx, folder=folder,
         allow_failure=allow_failure,
         basename=prefix + "Mcl" + model.__class__.__name__ + suffix,
-        verbose=verbose, comparable_outputs=comparable_outputs)
+        verbose=verbose, comparable_outputs=comparable_outputs,
+        methods=methods)
 
     X, y = make_classification(40, n_features=4, random_state=42,
                                n_classes=3, n_clusters_per_class=1)
@@ -520,7 +522,7 @@ def dump_multiple_classification(
         allow_failure=allow_failure,
         basename=prefix + "RndMcl" + model.__class__.__name__ + suffix,
         verbose=verbose, comparable_outputs=comparable_outputs,
-        benchmark=benchmark)
+        benchmark=benchmark, methods=methods)
 
 
 def dump_multilabel_classification(
