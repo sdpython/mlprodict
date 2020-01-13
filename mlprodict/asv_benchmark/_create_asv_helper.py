@@ -242,6 +242,37 @@ def _asv_class_name(model, scenario, optimisation,
     if conv_options:
         els.append(clean_str_list(conv_options))
     res = ".".join(els).replace("-", "_")
+
+    rep = {
+        'ConstantKernel': 'Cst',
+        'DotProduct': 'Dot',
+        'Exponentiation': 'Exp',
+        'ExpSineSquared': 'ExpS2',
+        'GaussianProcess': 'GaussProc',
+        'GaussianMixture': 'GaussMixt',
+        'HistGradientBoosting': 'HGB',
+        'LinearRegression': 'LinReg',
+        'LogisticRegression': 'LogReg',
+        'MultiOutput': 'MultOut',
+        'OrthogonalMatchingPursuit': 'OrthMatchPurs',
+        'PairWiseKernel': 'PW',
+        'Product': 'Prod',
+        'RationalQuadratic': 'RQ',
+        'WhiteKernel': 'WK',
+    }
+    for k, v in rep.items():
+        res = res.replace(k, v)
+
+    rep = {
+        'Classifier': 'Clas',
+        'Regressor': 'Reg',
+        'KNeighbors': 'KNN',
+        'NearestNeighbors': 'kNN',
+        'RadiusNeighbors': 'RadNN',
+    }
+    for k, v in rep.items():
+        res = res.replace(k, v)
+
     if len(res) > 90:  # shorten filename
         m = hashlib.sha256()
         m.update(res.encode('utf-8'))
