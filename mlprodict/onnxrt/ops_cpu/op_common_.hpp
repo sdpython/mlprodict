@@ -196,7 +196,8 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
           scores.push_back(scores[0]);
           scores[0] = 1.f - scores[0];  //put opposite score in positive slot
           break;
-        case 2:  //2 = mixed weights, winning class is positive
+        case 2:
+        case 3:  //2 = mixed weights, winning class is positive
           if (post_transform == POST_EVAL_TRANSFORM::LOGISTIC) {
             scores.push_back(ComputeLogistic(scores[0]));  //ml_logit(scores[k]);
             scores[0] = ComputeLogistic(-scores[0]);
@@ -205,6 +206,7 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
             scores[0] = -scores[0];
           }
           break;
+        /*
         case 3:  //3 = mixed weights, winning class is negative
           if (post_transform == POST_EVAL_TRANSFORM::LOGISTIC) {
             scores.push_back(ComputeLogistic(scores[0]));  //ml_logit(scores[k]);
@@ -213,6 +215,7 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
             scores.push_back(-scores[0]);
           }
           break;
+        */
       }
       *Z = scores[0];
       *(Z+1) = scores[1];

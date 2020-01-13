@@ -36,7 +36,7 @@ def compare_backend(backend, test, decimal=5, options=None, verbose=False,
         return compare_runtime_ort(
             test, decimal, options=options, verbose=verbose,
             comparable_outputs=comparable_outputs,
-            intermediate_steps=intermediate_steps, classes=classes)
+            intermediate_steps=False, classes=classes)
     if backend == "python":
         return compare_runtime_pyrt(
             test, decimal, options=options, verbose=verbose,

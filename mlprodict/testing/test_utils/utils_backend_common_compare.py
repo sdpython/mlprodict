@@ -79,9 +79,6 @@ def compare_runtime_session(  # pylint: disable=R0912
             raise ExpectedAssertionError(
                 "Unable to load onnx '{0}' due to\n{1}".format(onx, e))
         else:  # pragma no cover
-            if intermediate_steps:
-                raise NotImplementedError(
-                    "intermediate steps are not implemented for this backend.")
             if verbose:  # pragma no cover
                 model = onnx.load(onx)
                 smodel = "\nJSON ONNX\n" + str(model)
@@ -187,11 +184,17 @@ def compare_runtime_session(  # pylint: disable=R0912
         print("[compare_runtime] type(inputs)={} len={} names={}".format(
             type(input), len(inputs), list(sorted(inputs))))
     if verbose:  # pragma no cover
-        run_options = {'verbose': 2, 'fLOG': print}
+        if intermediate_steps:
+            run_options = {'verbose': 3, 'fLOG': print}
+        else:
+            run_options = {'verbose': 2, 'fLOG': print}
     else:
         run_options = {}
     try:
-        output = sess.run(None, inputs, **run_options)
+        try:
+            output = sess.run(None, inputs, **run_options)
+        except TypeError:
+            output = sess.run(None, inputs)
         lambda_onnx = lambda: sess.run(None, inputs)  # noqa
         if verbose:  # pragma no cover
             import pprint
