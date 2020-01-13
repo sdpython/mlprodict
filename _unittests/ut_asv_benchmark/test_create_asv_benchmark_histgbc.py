@@ -37,7 +37,7 @@ class TestCreateAsvBenchmarkHistGBC(ExtTestCase):
                     raise AssertionError(fullname)
                 with open(fullname, 'r', encoding='utf-8') as f:
                     content = f.read()
-                if (zoo.endswith("bench_HistGradientBoostingClassifier_default_b_cl.py") and
+                if (zoo.endswith("bench_HGBClas_default_b_cl.py") and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "random_state=42" not in content:
                         raise AssertionError(content)

@@ -56,7 +56,7 @@ class TestCreateAsvBenchmarkLogReg(ExtTestCase):
                     raise RuntimeError(
                         "Issue with '{}'\n{}".format(fullname, err))
 
-                if (zoo.endswith("bench_LogisticRegression_liblinear_m_cl_solverliblinear.py") and
+                if (zoo.endswith("bench_LogReg_liblinear_m_cl_solverliblinear.py") and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "{LogisticRegression: {'zipmap': False}}" in content:
                         raise AssertionError(content)
@@ -65,7 +65,7 @@ class TestCreateAsvBenchmarkLogReg(ExtTestCase):
                     if 'predict_proba' not in content:
                         raise AssertionError(content)
                     verif += 1
-                if (zoo.endswith("bench_LogisticRegression_liblinear_dec_b_cl_dec_solverliblinear.py") and
+                if (zoo.endswith("bench_LogReg_liblinear_dec_b_cl_dec_solverliblinear.py") and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "{LogisticRegression: {'raw_score': True}}" in content:
                         raise AssertionError(content)

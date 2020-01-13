@@ -29,12 +29,12 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
 
         name = os.path.join(
             temp, 'benches', 'linear_model', 'LogisticRegression',
-            'bench_LogisticRegression_liblinear_b_cl_solverliblinear_onnx.py')
+            'bench_LogReg_liblinear_b_cl_solverliblinear_onnx.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn(
-            "class LogisticRegression_liblinear_b_cl_solverliblinear_onnx_benchClassifier(", content)
+            "class LogReg_liblinear_b_cl_solverliblinear_onnx_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         try:
@@ -56,7 +56,7 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
             subsets_test = [
                 'Stacking',
                 'ovariance',
-                'bench_LogisticRegression_liblinear',
+                'bench_LogReg_liblinear',
                 'Latent'
             ]
             for path, _, files in os.walk(folder):

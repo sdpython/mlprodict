@@ -25,8 +25,8 @@ class TestCliAsvBench(ExtTestCase):
                    '-v', '2', '--flat', '1'],
              fLOG=st.fprint)
         res = str(st)
-        self.assertIn('Linear', res)
-        name = "bench_LogisticRegression_liblinear_b_cl_solverliblinear_onnx.py"
+        self.assertIn('Lin', res)
+        name = "bench_LogReg_liblinear_b_cl_solverliblinear_onnx.py"
         self.assertExists(os.path.join(temp, 'benches', name))
         self.assertExists(os.path.join(temp, 'asv.conf.json'))
         self.assertExists(os.path.join(temp, 'tools', 'flask_serve.py'))

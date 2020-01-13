@@ -38,7 +38,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
                 fullname = os.path.join(path, zoo)
                 with open(fullname, 'r', encoding='utf-8') as f:
                     content = f.read()
-                if (zoo.endswith("bench_DecisionTreeClassifier_default_b_cl_1_4_%d_float_.py" % ops) and
+                if (zoo.endswith("bench_DecisionTreeClas_default_b_cl_1_4_%d_float_.py" % ops) and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "setup_profile" not in content:
                         raise AssertionError(content)
@@ -72,7 +72,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
                 fullname = os.path.join(path, zoo)
                 with open(fullname, 'r', encoding='utf-8') as f:
                     content = f.read()
-                if (zoo.endswith("bench_AdaBoostRegressor_default_b_reg_n_estimators5_1_4_%d_float_.py" % ops) and
+                if (zoo.endswith("bench_AdaBoostReg_default_b_reg_n_estimators5_1_4_%d_float_.py" % ops) and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "setup_profile" not in content:
                         raise AssertionError(content)

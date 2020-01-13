@@ -32,12 +32,12 @@ class TestCreateAsvBenchmark(ExtTestCase):
         self.assertGreater(len(created), 2)
 
         name = os.path.join(
-            temp, 'benches', 'bench_LogisticRegression_liblinear_b_cl_solverliblinear_onnx.py')
+            temp, 'benches', 'bench_LogReg_liblinear_b_cl_solverliblinear_onnx.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn(
-            "class LogisticRegression_liblinear_b_cl_solverliblinear_onnx_benchClassifier(", content)
+            "class LogReg_liblinear_b_cl_solverliblinear_onnx_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         if 'LogisticRegression' in content:
@@ -59,12 +59,12 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         name = os.path.join(
             temp, 'benches', 'linear_model', 'LogisticRegression',
-            'bench_LogisticRegression_liblinear_b_cl_solverliblinear_onnx.py')
+            'bench_LogReg_liblinear_b_cl_solverliblinear_onnx.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn(
-            "class LogisticRegression_liblinear_b_cl_solverliblinear_onnx_benchClassifier(", content)
+            "class LogReg_liblinear_b_cl_solverliblinear_onnx_benchClassifier(", content)
         self.assertIn("solver='liblinear'", content)
         self.assertIn("return onnx_optimisations(onx)", content)
         if 'LogisticRegression' in content:
@@ -86,7 +86,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         name = os.path.join(
             temp, 'benches', 'linear_model', 'LogisticRegression',
-            'bench_LogisticRegression_liblinear_b_cl_solverliblinear.py')
+            'bench_LogReg_liblinear_b_cl_solverliblinear.py')
         self.assertExists(name)
 
         name = os.path.join(
@@ -96,7 +96,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         name = os.path.join(
             temp, 'benches', '_externals', 'XGBRegressor',
-            'bench_XGBRegressor_default_b_reg.py')
+            'bench_XGBReg_default_b_reg.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
@@ -104,7 +104,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         name = os.path.join(
             temp, 'benches', '_externals', 'LGBMRegressor',
-            'bench_LGBMRegressor_default_b_reg_n_estimators5.py')
+            'bench_LGBMReg_default_b_reg_n_estimators5.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
@@ -126,7 +126,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
         self.assertExists(full_name)
         with open(full_name, "r", encoding="utf-8") as f:
             content = f.read()
-        self.assertIn("class VotingClassifier_", content)
+        self.assertIn("class VotingClas_", content)
         if 'LogisticRegression' in content:
             if ("from sklearn.linear_model.logistic import LogisticRegression" not in content and
                     "from sklearn.linear_model import LogisticRegression" not in content):
@@ -175,7 +175,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
         self.assertExists(full_name)
         with open(full_name, "r", encoding="utf-8") as f:
             content = f.read()
-        self.assertIn("class CalibratedClassifierCV_", content)
+        self.assertIn("class CalibratedClasCV_", content)
         self.assertIn(
             "from sklearn.calibration import CalibratedClassifierCV", content)
         if 'SGDclassifier' in content:
@@ -193,11 +193,11 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         full_name = os.path.join(
             temp, "benches", "neighbors", "KNeighborsRegressor",
-            "bench_KNeighborsRegressor_default_k3_b_reg_algorithmbrute_n_neighbors3.py")
+            "bench_KNNReg_default_k3_b_reg_algorithmbrute_n_neighbors3.py")
         self.assertExists(full_name)
         with open(full_name, "r", encoding="utf-8") as f:
             content = f.read()
-        self.assertIn("class KNeighborsRegressor_", content)
+        self.assertIn("class KNNReg_", content)
         self.assertIn("[{}, 'cdist'],", content)
 
     def test_create_asv_benchmark_gpr(self):
