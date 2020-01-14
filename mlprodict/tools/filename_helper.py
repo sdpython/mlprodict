@@ -76,6 +76,18 @@ def extract_information_from_filename(name):
     for k in res:
         if isinstance(res[k], str):
             res[k] = res[k].strip('_')
+
+    rep = {
+        'LinReg': 'LinearRegression',
+        'LogReg': 'LogisticRegression',
+    }
+
+    if 'model' in res:
+        if res['model'].endswith('Clas'):
+            res['model'] += "sifier"
+        elif res['model'].endswith('Reg'):
+            res['model'] += "ressor"
+        res['model'] = rep.get(res['model'], res['model'])
     return res
 
 
