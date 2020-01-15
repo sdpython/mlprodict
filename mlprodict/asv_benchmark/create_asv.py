@@ -480,7 +480,8 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         try:
             name = _asv_class_name(
                 model, scenario, optimisation, extra,
-                dofit, conv_options, problem)
+                dofit, conv_options, problem,
+                shorten=True)
         except ValueError as e:
             if exc:
                 raise e
@@ -494,6 +495,10 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                 raise e
             warnings.warn(str(e))
             continue
+        full_class_name = _asv_class_name(
+            model, scenario, optimisation, extra,
+            dofit, conv_options, problem,
+            shorten=False)
         class_name = name.replace(
             "bench.", "").replace(".", "_") + "_bench"
 
@@ -540,6 +545,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         if merged_options is not None and len(merged_options) > 0:
             atts.append("par_convopts = %r" % format_conv_options(
                 conv_options, model.__name__))
+        atts.append("par_full_test_name = %r" % full_class_name)
         if atts:
             class_content = class_content.replace(
                 "# additional parameters",

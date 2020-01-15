@@ -205,7 +205,8 @@ def _handle_init_files(model, flat, location, verbose, location_pyspy, fLOG):
 
 
 def _asv_class_name(model, scenario, optimisation,
-                    extra, dofit, conv_options, problem):
+                    extra, dofit, conv_options, problem,
+                    shorten=True):
 
     def clean_str(val):
         s = str(val)
@@ -243,45 +244,46 @@ def _asv_class_name(model, scenario, optimisation,
         els.append(clean_str_list(conv_options))
     res = ".".join(els).replace("-", "_")
 
-    rep = {
-        'ConstantKernel': 'Cst',
-        'DotProduct': 'Dot',
-        'Exponentiation': 'Exp',
-        'ExpSineSquared': 'ExpS2',
-        'GaussianProcess': 'GaussProc',
-        'GaussianMixture': 'GaussMixt',
-        'HistGradientBoosting': 'HGB',
-        'LinearRegression': 'LinReg',
-        'LogisticRegression': 'LogReg',
-        'MultiOutput': 'MultOut',
-        'OrthogonalMatchingPursuit': 'OrthMatchPurs',
-        'PairWiseKernel': 'PW',
-        'Product': 'Prod',
-        'RationalQuadratic': 'RQ',
-        'WhiteKernel': 'WK',
-        'length_scale': 'ls',
-        'periodicity': 'pcy',
-    }
-    for k, v in rep.items():
-        res = res.replace(k, v)
+    if shorten:
+        rep = {
+            'ConstantKernel': 'Cst',
+            'DotProduct': 'Dot',
+            'Exponentiation': 'Exp',
+            'ExpSineSquared': 'ExpS2',
+            'GaussianProcess': 'GaussProc',
+            'GaussianMixture': 'GaussMixt',
+            'HistGradientBoosting': 'HGB',
+            'LinearRegression': 'LinReg',
+            'LogisticRegression': 'LogReg',
+            'MultiOutput': 'MultOut',
+            'OrthogonalMatchingPursuit': 'OrthMatchPurs',
+            'PairWiseKernel': 'PW',
+            'Product': 'Prod',
+            'RationalQuadratic': 'RQ',
+            'WhiteKernel': 'WK',
+            'length_scale': 'ls',
+            'periodicity': 'pcy',
+        }
+        for k, v in rep.items():
+            res = res.replace(k, v)
 
-    rep = {
-        'Classifier': 'Clas',
-        'Regressor': 'Reg',
-        'KNeighbors': 'KNN',
-        'NearestNeighbors': 'kNN',
-        'RadiusNeighbors': 'RadNN',
-    }
-    for k, v in rep.items():
-        res = res.replace(k, v)
+        rep = {
+            'Classifier': 'Clas',
+            'Regressor': 'Reg',
+            'KNeighbors': 'KNN',
+            'NearestNeighbors': 'kNN',
+            'RadiusNeighbors': 'RadNN',
+        }
+        for k, v in rep.items():
+            res = res.replace(k, v)
 
-    if len(res) > 70:  # shorten filename
-        m = hashlib.sha256()
-        m.update(res.encode('utf-8'))
-        sh = m.hexdigest()
-        if len(sh) > 6:
-            sh = sh[:6]
-        res = res[:90] + sh
+        if len(res) > 70:  # shorten filename
+            m = hashlib.sha256()
+            m.update(res.encode('utf-8'))
+            sh = m.hexdigest()
+            if len(sh) > 6:
+                sh = sh[:6]
+            res = res[:70] + sh
     return res
 
 

@@ -43,6 +43,8 @@ class TestCreateAsvBenchmarkHistGBC(ExtTestCase):
                         raise AssertionError(content)
                     if "from sklearn.ensemble._hist_gradient_boosting.gradient_boosting import" not in content:
                         raise AssertionError(content)
+                    if "par_full_test_name = 'bench" not in content:
+                        raise AssertionError(content)
                     verif = True
         if not verif:
             raise AssertionError("Visited files\n{}".format(
