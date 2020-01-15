@@ -19,7 +19,7 @@ class TestFilename(ExtTestCase):
             'bench_AdaBoostClassifier_default_b_cl_1000_50_12_float__fct.svg',
             'bench_AdaBoostClassifier_default_m_cl_1_4_12_float__line.svg',
             'bench_LogisticRegression_liblinear_b_cl_solverliblinear_1_4_12_float_nozipmap_fct.svg',
-            'c:\\temp\\bench_AdaBoostClassifier_default_b_cl_1000_4_12_float__fct.svg',
+            'c:/temp/bench_AdaBoostClassifier_default_b_cl_1000_4_12_float__fct.svg',
             'bench_RandomForestClassifier_default_m_cl_1_4_12_float__fct.svg',
             'bench_RandomForestClas_default_m_cl_1_4_12_float__fct.svg',
             'bench_RandomForestReg_default_m_cl_1_4_12_float__fct.svg',
