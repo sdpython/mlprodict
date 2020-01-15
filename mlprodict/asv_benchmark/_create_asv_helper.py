@@ -259,6 +259,8 @@ def _asv_class_name(model, scenario, optimisation,
         'Product': 'Prod',
         'RationalQuadratic': 'RQ',
         'WhiteKernel': 'WK',
+        'length_scale': 'ls',
+        'periodicity': 'pcy',
     }
     for k, v in rep.items():
         res = res.replace(k, v)
@@ -273,7 +275,7 @@ def _asv_class_name(model, scenario, optimisation,
     for k, v in rep.items():
         res = res.replace(k, v)
 
-    if len(res) > 90:  # shorten filename
+    if len(res) > 70:  # shorten filename
         m = hashlib.sha256()
         m.update(res.encode('utf-8'))
         sh = m.hexdigest()
