@@ -20,6 +20,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
     """
     Calls :epkg:`onnxruntime` inference following :epkg:`scikit-learn` API
     so that it can be included in a :epkg:`scikit-learn` pipeline.
+    See notebook :ref:`transferlearningrst` for an example.
 
     Parameters
     ----------

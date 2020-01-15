@@ -10,7 +10,7 @@ from pyquickhelper.pycode import add_missing_development_version, ExtTestCase
 import mlprodict
 
 
-class TestLONGFunctionTestNotebookOnnxPDist(ExtTestCase):
+class TestNotebookOnnxPDist(ExtTestCase):
 
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)

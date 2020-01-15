@@ -13,7 +13,7 @@ import skl2onnx
 import mlprodict
 
 
-class TestFunctionTestNotebookOnnxDoubleFloat(ExtTestCase):
+class TestNotebookOnnxDoubleFloat(ExtTestCase):
 
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)

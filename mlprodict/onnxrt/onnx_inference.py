@@ -316,13 +316,32 @@ class OnnxInference:
         # names
         names = {}
         for k, v in inits.items():
-            names[k] = ('C', v)
+            if (k, 0) in names:
+                raise RuntimeError(
+                    "Initializer '{}' already exists (tag='{}').".format(
+                        k, names[k, 0][0]))
+            names[k, 0] = ('C', v)
         for k, v in variables.items():
-            names[k] = ('I', v)
+            if (k, 0) in names:
+                if k in inits:
+                    # Kind of default value for an input
+                    continue
+                raise RuntimeError(
+                    "Variable '{}' already exists (tag='{}').".format(
+                        k, names[k, 0][0]))
+            names[k, 0] = ('I', v)
         for k, v in outputs.items():
-            names[k] = ('O', v)
+            if (k, 0) in names:
+                raise RuntimeError(
+                    "Output '{}' already exists (tag='{}').".format(
+                        k, names[k, 0][0]))
+            names[k, 0] = ('O', v)
         for k, v in nodes.items():
-            names[k] = ('N', v)
+            if (k, 1) in names:
+                raise RuntimeError(
+                    "Node '{}' already exists (tag='{}').".format(
+                        k, names[k, 0][0]))
+            names[k, 1] = ('N', v)
 
         # ordering
         order = {}
@@ -330,32 +349,43 @@ class OnnxInference:
         intermediate = {}
         while modif > 0:
             modif = 0
-            for k, v in names.items():
-                if k in order:
+            for (k, _), v in names.items():
+                if (k, 1) in order:
+                    # The operator node is already processed.
                     continue
                 if v[0] in {'I', 'C'}:
-                    order[k] = len(order)
-                    modif += 1
-                elif v[0] == 'O':
-                    continue
-                else:
-                    if all(inp in order for inp in v[1].inputs):
-                        order[k] = len(order)
+                    if (k, 0) not in order:
+                        order[k, 0] = len(order)  # A data node.
                         modif += 1
-                        for o in v[1].outputs:
-                            if o in order:
-                                raise RuntimeError(
-                                    "Two nodes share the same output '{}'.".format(o))
-                            order[o] = len(order)
-                            intermediate[o] = None
-                            modif += 1
+                    continue
+                if v[0] == 'O':
+                    continue
+                if all((inp, 0) in order for inp in v[1].inputs):
+                    # If all inputs are available,
+                    # We tell the operator node is processed.
+                    order[k, 1] = len(order)
+                    modif += 1
+                    for o in v[1].outputs:
+                        if (o, 0) in order:
+                            raise RuntimeError(
+                                "Two nodes share the same output '{}' or an operator and an output "
+                                "share the same name. "
+                                "(node: {}).".format(o, v[1]))
+                        # We add a data node.
+                        order[o, 0] = len(order)
+                        intermediate[o] = None
+                        modif += 1
 
         # compute
-        rev = [(v, k) for k, v in order.items()]
+        rev = [(v, k[0], k[1]) for k, v in order.items()]
         rev.sort()
         sequence = []
-        for _, name in rev:
+        for _, name, node_kind in rev:
             if name not in nodes:
+                continue
+            if node_kind == 0:
+                # It is an output which shares the same name
+                # as a node.
                 continue
             node = nodes[name]
             node.set_order(len(sequence))

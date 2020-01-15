@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@brief      test log(time=12s)
+@brief      test log(time=15s)
 """
 import os
 import unittest
@@ -13,13 +13,13 @@ import skl2onnx
 import mlprodict
 
 
-class TestNotebookOnnx3264(ExtTestCase):
+class TestNotebookTransferLearning(ExtTestCase):
 
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
-    def test_notebook_onnx_3264(self):
+    def test_notebook_topk(self):
         fLOG(
             __file__,
             self._testMethodName,
@@ -28,8 +28,10 @@ class TestNotebookOnnx3264(ExtTestCase):
         self.assertNotEmpty(mlprodict is not None)
         folder = os.path.join(os.path.dirname(__file__),
                               "..", "..", "_doc", "notebooks")
-        test_notebook_execution_coverage(__file__, "onnx_float32_and_64", folder,
-                                         this_module_name="mlprodict", fLOG=fLOG)
+        to_copy = ["800px-Tour_Eiffel_Wikimedia_Commons_(cropped).jpg"]
+        test_notebook_execution_coverage(__file__, "transfer_learning", folder,
+                                         this_module_name="mlprodict", fLOG=fLOG,
+                                         copy_files=to_copy)
 
 
 if __name__ == "__main__":

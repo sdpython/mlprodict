@@ -14,7 +14,7 @@ import skl2onnx
 import mlprodict
 
 
-class TestFunctionTestNotebookOnnxNodeTime(ExtTestCase):
+class TestNotebookOnnxNodeTime(ExtTestCase):
 
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)

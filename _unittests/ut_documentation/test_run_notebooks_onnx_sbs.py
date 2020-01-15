@@ -21,7 +21,7 @@ from onnxruntime import __version__ as ort_version
 import mlprodict
 
 
-class TestFunctionTestNotebookOnnxSbs(ExtTestCase):
+class TestNotebookOnnxSbs(ExtTestCase):
 
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)

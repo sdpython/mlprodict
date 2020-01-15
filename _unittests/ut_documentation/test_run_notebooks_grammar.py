@@ -11,7 +11,7 @@ from pyquickhelper.pycode import add_missing_development_version, ExtTestCase
 import mlprodict
 
 
-class TestFunctionTestNotebookGrammar(ExtTestCase):
+class TestNotebookGrammar(ExtTestCase):
 
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)
