@@ -142,10 +142,15 @@ void Im2col_NCHW(
         (width + pad_l + pad_r - (dilation_w * (kernel_w - 1) + 1)) / stride_w +
         1;
   
+    printf("output_h=%d output_w=%d\n", output_h, output_w);
+    printf("dilation_h=%d dilation_w=%d pad_l=%d pad_r=%d pad_t=%d pad_b=%d\n",
+        output_h, output_w, pad_l, pad_r, pad_t, pad_b);
+
     // Fast path for zero padding and no dilation
     // From Torch, THNN_(unfolded_copy)
     if (dilation_h == 1 && dilation_w == 1 && pad_l == 0 && pad_r == 0 &&
             pad_t == 0 && pad_b == 0) {
+        printf("AAA\n");
         for (auto k = 0; k < channels * kernel_h * kernel_w; k++) {
             const auto nip = k / (kernel_h * kernel_w);
             const auto rest = k % (kernel_h * kernel_w);
@@ -153,10 +158,13 @@ void Im2col_NCHW(
             const auto kw = rest % kernel_w;
             auto* dst = data_col + nip * (kernel_h * kernel_w * output_h * output_w) +
                         kh * (kernel_w * output_h * output_w) + kw * (output_h * output_w);
+            printf("++ dst %d\n", (int)(dst - data_col));
             const auto* src = data_im + nip * (height * width);
             for (auto y = 0; y < output_h; y++) {
                 const auto iy = y * stride_h + kh;
                 const auto ix = kw;
+                printf("+++ p_dst=%d (<output_w=%d) p_src=%d\n",
+                    y * output_w, output_w, iy * width + ix);
                 if (stride_w == 1) {
                     memcpy(
                         dst + (y * output_w),
@@ -178,9 +186,11 @@ void Im2col_NCHW(
   
     // Fast path for equal padding
     if (pad_l == pad_r && pad_t == pad_b) {
+        printf("BBB\n");
         Im2colWithEqualPadding(output_h, output_w, data_im, channels, height, width, kernel_h, kernel_w, dilation_h, dilation_w, pad_t, pad_l, stride_h, stride_w, data_col, padding_value);
         return;
     }
+    printf("CCC\n");
   
     // Baseline
     const int64_t dkernel_h = dilation_h * (kernel_h - 1) + 1;
@@ -198,6 +208,9 @@ void Im2col_NCHW(
             for (int64_t w = 0; w < width_col; ++w) {
                 int64_t h_pad = h * stride_h - pad_t + h_offset * dilation_h;
                 int64_t w_pad = w * stride_w - pad_l + w_offset * dilation_w;
+                printf("data_col[%d] = data_img[%d]\n",
+                    (c * height_col + h) * width_col + w,
+                    (c_im * height + h_pad) * width + w_pad);
                 if (h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width)
                     data_col[(c * height_col + h) * width_col + w] =
                         data_im[(c_im * height + h_pad) * width + w_pad];
