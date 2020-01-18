@@ -79,6 +79,7 @@ def extract_information_from_filename(name):
 
     rep = {
         'LinReg': 'LinearRegression',
+        'LinRegressor': 'LinearRegression',
         'LogReg': 'LogisticRegression',
     }
 
@@ -87,6 +88,8 @@ def extract_information_from_filename(name):
             res['model'] += "sifier"
         elif res['model'].endswith('Reg'):
             res['model'] += "ressor"
+        if res['model'].startswith('HGB'):
+            res['model'] = "HistGradientBoosting" + res['model'][3:]
         res['model'] = rep.get(res['model'], res['model'])
     return res
 
