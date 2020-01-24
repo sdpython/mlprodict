@@ -7,8 +7,7 @@
 #include <stdlib.h> //realloc
 
 
-POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value)
-{
+POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value) {
     if (value.compare("NONE") == 0) return POST_EVAL_TRANSFORM::NONE;
     if (value.compare("LOGISTIC") == 0) return POST_EVAL_TRANSFORM::LOGISTIC;
     if (value.compare("SOFTMAX") == 0) return POST_EVAL_TRANSFORM::SOFTMAX;
@@ -20,8 +19,7 @@ POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value)
 }
 
 
-NODE_MODE to_NODE_MODE(const std::string &value)
-{
+NODE_MODE to_NODE_MODE(const std::string &value) {
     if (value.compare("BRANCH_LEQ") == 0) return NODE_MODE::BRANCH_LEQ;
     if (value.compare("BRANCH_LT") == 0) return NODE_MODE::BRANCH_LT;
     if (value.compare("BRANCH_GTE") == 0) return NODE_MODE::BRANCH_GTE;
@@ -35,8 +33,7 @@ NODE_MODE to_NODE_MODE(const std::string &value)
 }
 
 
-const char * to_str(NODE_MODE mode)
-{
+const char * to_str(NODE_MODE mode) {
     switch(mode) {
         case NODE_MODE::BRANCH_LEQ: return "BRANCH_LEQ";
         case NODE_MODE::BRANCH_LT: return "BRANCH_LT";
@@ -50,8 +47,7 @@ const char * to_str(NODE_MODE mode)
 }
 
 
-SVM_TYPE to_SVM_TYPE(const std::string &value)
-{
+SVM_TYPE to_SVM_TYPE(const std::string &value) {
     if (value.compare("SVM_LINEAR") == 0) return SVM_TYPE::SVM_LINEAR;
     if (value.compare("SVM_SVC") == 0) return SVM_TYPE::SVM_SVC;
     throw std::runtime_error(std::string("SVM_TYPE '") + 
@@ -59,8 +55,7 @@ SVM_TYPE to_SVM_TYPE(const std::string &value)
                              std::string("' is not defined."));
 }
 
-KERNEL to_KERNEL(const std::string &value)
-{
+KERNEL to_KERNEL(const std::string &value) {
     if (value.compare("LINEAR") == 0) return KERNEL::LINEAR;
     if (value.compare("POLY") == 0) return KERNEL::POLY;
     if (value.compare("RBF") == 0) return KERNEL::RBF;
@@ -81,3 +76,23 @@ AGGREGATE_FUNCTION to_AGGREGATE_FUNCTION(const std::string& input) {
                              std::string("' is not defined."));
 }
 
+
+StorageOrder to_StorageOrder(const std::string& input) {
+    if (input == "UNKNOWN") return StorageOrder::UNKNOWN;
+    if (input == "NHWC") return StorageOrder::NHWC;
+    if (input == "NCHW") return StorageOrder::NCHW;
+    throw std::runtime_error(std::string("StorageOrder '") + 
+                             input + 
+                             std::string("' is not defined."));
+}
+
+
+AutoPadType to_AutoPadType(const std::string &input) {
+    if (input == "NOTSET") return AutoPadType::NOTSET;
+    if (input == "VALID") return AutoPadType::VALID;
+    if (input == "SAME_UPPER") return AutoPadType::SAME_UPPER;
+    if (input == "SAME_LOWER") return AutoPadType::SAME_LOWER;
+    throw std::runtime_error(std::string("AutoPadType '") + 
+                             input + 
+                             std::string("' is not defined."));
+}

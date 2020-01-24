@@ -19,6 +19,7 @@ inline bool _isnan_(double x) { return ::isnan(x); }
 
 #endif
 
+
 enum class POST_EVAL_TRANSFORM {
   NONE,
   LOGISTIC,
@@ -28,6 +29,7 @@ enum class POST_EVAL_TRANSFORM {
 };
 
 POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value);
+
 
 enum class NODE_MODE {
   BRANCH_LEQ,
@@ -43,6 +45,7 @@ NODE_MODE to_NODE_MODE(const std::string &value);
 
 const char * to_str(NODE_MODE mode);
 
+
 enum class AGGREGATE_FUNCTION {
   AVERAGE,
   SUM,
@@ -52,12 +55,14 @@ enum class AGGREGATE_FUNCTION {
 
 AGGREGATE_FUNCTION to_AGGREGATE_FUNCTION(const std::string& input);
 
+
 enum class SVM_TYPE {
   SVM_LINEAR,
   SVM_SVC
 };
 
 SVM_TYPE to_SVM_TYPE(const std::string &value);
+
 
 enum KERNEL {
   LINEAR,
@@ -67,6 +72,27 @@ enum KERNEL {
 };
 
 KERNEL to_KERNEL(const std::string &value);
+
+
+enum StorageOrder {
+  UNKNOWN = 0,
+  NHWC = 1,
+  NCHW = 2,
+};
+
+StorageOrder to_StorageOrder(const std::string &value);
+
+
+enum class AutoPadType {
+  NOTSET = 0,
+  VALID = 1,
+  SAME_UPPER = 2,
+  SAME_LOWER = 3,
+};
+
+AutoPadType to_AutoPadType(const std::string &value);
+
+
 
 static inline float ErfInv(float x) {
   float sgn = x < 0 ? -1.0f : 1.0f;
@@ -271,4 +297,10 @@ void shape2strides(const std::vector<DIMTYPE>& shape,
     strides[strides.size()-1] = sizeof(NTYPE);
     for(ssize_t i = strides.size()-2; i >= 0; --i)
         strides[i] = strides[i+1] * shape[i+1];
+}
+
+
+template <typename T, T b>
+constexpr T roundUpPow2(T a) {
+  return (a + (b - 1)) & (~(b - 1));
 }
