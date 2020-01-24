@@ -31,6 +31,7 @@ static void Im2colWithEqualPadding(
     int64_t pad_h = pad_t;
     int64_t pad_w = pad_l;
     int64_t channel_size = height * width;
+    T * data_col_0 = data_col;
     for (int64_t channel = channels; channel--; data_im += channel_size) {
         for (int64_t kernel_row = 0; kernel_row < kernel_h; kernel_row++) {
             for (int64_t kernel_col = 0; kernel_col < kernel_w; kernel_col++) {
@@ -44,13 +45,11 @@ static void Im2colWithEqualPadding(
                         int64_t input_col = -pad_w + kernel_col * dilation_w;
                         const T* rdptr = data_im + input_row * width + input_col;
                         for (int64_t i = 0; i != output_w; ++i) {
-                            if (is_a_ge_zero_and_a_lt_b(input_col, width)) {
-                                *(data_col++) = rdptr[i * stride_w];
-                            }
-                            else {
-                                *(data_col++) = padding_value;
-                            }
+                            *data_col = is_a_ge_zero_and_a_lt_b(input_col, width)
+                                    ? rdptr[i * stride_w]
+                                    : padding_value;
                             input_col += stride_w;
+                            ++data_col;
                         }
                     }
                     input_row += stride_h;
@@ -130,11 +129,13 @@ void Im2colNd_NCHW (
 
 template<typename T>
 void Im2col_NCHW(
-        const T* data_im, int64_t channels, int64_t height,
-        int64_t width, int64_t kernel_h, int64_t kernel_w,
-        int64_t dilation_h, int64_t dilation_w, int64_t pad_t,
-        int64_t pad_l, int64_t pad_b, int64_t pad_r, int64_t stride_h,
-        int64_t stride_w, T* data_col, T padding_value = 0) {
+        const T* data_im, int64_t channels,
+        int64_t height, int64_t width,
+        int64_t kernel_h, int64_t kernel_w,
+        int64_t dilation_h, int64_t dilation_w,
+        int64_t pad_t, int64_t pad_l, int64_t pad_b, int64_t pad_r,
+        int64_t stride_h, int64_t stride_w, T* data_col,
+        T padding_value = 0) {
     const int64_t output_h =
         (height + pad_b + pad_t - (dilation_h * (kernel_h - 1) + 1)) / stride_h +
         1;
@@ -142,15 +143,10 @@ void Im2col_NCHW(
         (width + pad_l + pad_r - (dilation_w * (kernel_w - 1) + 1)) / stride_w +
         1;
   
-    printf("output_h=%d output_w=%d\n", output_h, output_w);
-    printf("dilation_h=%d dilation_w=%d pad_l=%d pad_r=%d pad_t=%d pad_b=%d\n",
-        output_h, output_w, pad_l, pad_r, pad_t, pad_b);
-
     // Fast path for zero padding and no dilation
     // From Torch, THNN_(unfolded_copy)
     if (dilation_h == 1 && dilation_w == 1 && pad_l == 0 && pad_r == 0 &&
             pad_t == 0 && pad_b == 0) {
-        printf("AAA\n");
         for (auto k = 0; k < channels * kernel_h * kernel_w; k++) {
             const auto nip = k / (kernel_h * kernel_w);
             const auto rest = k % (kernel_h * kernel_w);
@@ -158,13 +154,10 @@ void Im2col_NCHW(
             const auto kw = rest % kernel_w;
             auto* dst = data_col + nip * (kernel_h * kernel_w * output_h * output_w) +
                         kh * (kernel_w * output_h * output_w) + kw * (output_h * output_w);
-            printf("++ dst %d\n", (int)(dst - data_col));
             const auto* src = data_im + nip * (height * width);
             for (auto y = 0; y < output_h; y++) {
                 const auto iy = y * stride_h + kh;
                 const auto ix = kw;
-                printf("+++ p_dst=%d (<output_w=%d) p_src=%d\n",
-                    y * output_w, output_w, iy * width + ix);
                 if (stride_w == 1) {
                     memcpy(
                         dst + (y * output_w),
@@ -183,14 +176,15 @@ void Im2col_NCHW(
         }
         return;
     }
-  
+
     // Fast path for equal padding
     if (pad_l == pad_r && pad_t == pad_b) {
-        printf("BBB\n");
-        Im2colWithEqualPadding(output_h, output_w, data_im, channels, height, width, kernel_h, kernel_w, dilation_h, dilation_w, pad_t, pad_l, stride_h, stride_w, data_col, padding_value);
+        Im2colWithEqualPadding(
+            output_h, output_w, data_im, channels, height, width,
+            kernel_h, kernel_w, dilation_h, dilation_w, pad_t, pad_l,
+            stride_h, stride_w, data_col, padding_value);
         return;
     }
-    printf("CCC\n");
   
     // Baseline
     const int64_t dkernel_h = dilation_h * (kernel_h - 1) + 1;
@@ -208,9 +202,6 @@ void Im2col_NCHW(
             for (int64_t w = 0; w < width_col; ++w) {
                 int64_t h_pad = h * stride_h - pad_t + h_offset * dilation_h;
                 int64_t w_pad = w * stride_w - pad_l + w_offset * dilation_w;
-                printf("data_col[%d] = data_img[%d]\n",
-                    (c * height_col + h) * width_col + w,
-                    (c_im * height + h_pad) * width + w_pad);
                 if (h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width)
                     data_col[(c * height_col + h) * width_col + w] =
                         data_im[(c_im * height + h_pad) * width + w_pad];
@@ -255,10 +246,9 @@ void ComputePadAndOutputShape(
                 if (ForceSymmetricAutoPadding)
                     pad_needed = roundUpPow2<int64_t, 2>(pad_needed);
 
-                if (pad_type == AutoPadType::SAME_LOWER)
-                    *pad_head = (pad_needed + 1) / 2;
-                else
-                    *pad_head = pad_needed / 2;
+                *pad_head = (pad_type == AutoPadType::SAME_LOWER)
+                                ? *pad_head = (pad_needed + 1) / 2
+                                : *pad_head = pad_needed / 2;
                 *pad_tail = pad_needed - *pad_head;
                 } break;
             default:

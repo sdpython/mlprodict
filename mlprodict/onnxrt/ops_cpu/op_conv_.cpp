@@ -93,7 +93,7 @@ void Conv<T>::init(
     array2vector(pads_, pads, int64_t);
     array2vector(strides_, strides, int64_t);
 }
-
+ 
 
 template<typename T>
 void Conv<T>::compute_kernel_shape(const std::vector<int64_t>& weight_shape,
@@ -117,7 +117,6 @@ void Conv<T>::compute_kernel_shape(const std::vector<int64_t>& weight_shape,
 template<typename T>
 py::array_t<T> Conv<T>::compute(py::array_t<T> X, py::array_t<T> W, py::array_t<T> B) const {
     
-    printf("A0\n");
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     std::vector<int64_t> w_dims;
@@ -127,7 +126,6 @@ py::array_t<T> Conv<T>::compute(py::array_t<T> X, py::array_t<T> W, py::array_t<
     const int64_t C = x_dims[1];
     const int64_t M = w_dims[0];
 
-    printf("A1\n");
     std::vector<int64_t> kernel_shape;
     compute_kernel_shape(w_dims, kernel_shape);
     
@@ -143,23 +141,15 @@ py::array_t<T> Conv<T>::compute(py::array_t<T> X, py::array_t<T> W, py::array_t<
     if (strides.empty())
         strides.resize(kernel_shape.size(), 1);
 
-    printf("A2 N=%d M=%d\n", N, M);
     std::vector<int64_t> y_dims;
     y_dims.insert(y_dims.begin(), {N, M});
     std::vector<int64_t> input_shape(x_dims.begin() + 2, x_dims.end());
     infer_output_shape(input_shape, kernel_shape, strides, dilations, pads, y_dims);
     std::vector<int64_t> output_shape(y_dims.begin() + 2, y_dims.end());
     
-    printf("A3 - y_dims - ");
-    for(auto yi: y_dims)
-        printf(" %d", yi);
-    printf("\n");
-    printf("A3 - output_shape - ");
-    for(auto yi: output_shape)
-        printf(" %d", yi);
-    printf("\n");
-    
-    py::array_t<T> Y(flattened_dimension(y_dims));
+    // py::array::ShapeContainer shape(y_dims);
+    // auto total_size = flattened_dimension(y_dims);
+    py::array_t<T> Y(y_dims);
     {
         py::gil_scoped_release release;
         compute_gil_free(X, W, B, Y,
@@ -167,19 +157,19 @@ py::array_t<T> Conv<T>::compute(py::array_t<T> X, py::array_t<T> W, py::array_t<
                          kernel_shape, pads, dilations, strides,
                          x_dims, y_dims, w_dims);
     }
-    printf("A4\n");
     return Y;
 }
 
 
 template<typename T>
-void Conv<T>::infer_output_shape(const std::vector<int64_t>& input_shape,
-              const std::vector<int64_t>& kernel_shape,
-              const std::vector<int64_t>& strides_p,
-              const std::vector<int64_t>& dilations_p,
-              std::vector<int64_t>& pads_p,
-              std::vector<int64_t>& output_shape,
-              bool ForceSymmetricAutoPadding) const {
+void Conv<T>::infer_output_shape(
+                    const std::vector<int64_t>& input_shape,
+                    const std::vector<int64_t>& kernel_shape,
+                    const std::vector<int64_t>& strides_p,
+                    const std::vector<int64_t>& dilations_p,
+                    std::vector<int64_t>& pads_p,
+                    std::vector<int64_t>& output_shape,
+                    bool ForceSymmetricAutoPadding) const {
 
     size_t rank = input_shape.size();
     int64_t dim_size;
@@ -217,7 +207,6 @@ void Conv<T>::compute_gil_free(
         const std::vector<int64_t>& w_dims
         ) const {
 
-    printf("B0\n");
     std::vector<int64_t> b_dims;
     arrayshape2vector(b_dims, B);
             
@@ -225,16 +214,15 @@ void Conv<T>::compute_gil_free(
     const int64_t C = x_dims[1];
     const int64_t M = w_dims[0];
             
-    const int64_t input_image_size = input_shape.size();
-    const int64_t output_image_size = output_shape.size();
-    const int64_t kernel_size = kernel_shape.size();
+    const int64_t input_image_size = flattened_dimension(input_shape);
+    const int64_t output_image_size = flattened_dimension(output_shape);
+    const int64_t kernel_size = flattened_dimension(kernel_shape);
     const int64_t X_offset = C / group_ * input_image_size;
-    const int64_t Y_offset = y_dims.size() / y_dims[0] / group_;
-    const int64_t W_offset = w_dims.size() / group_;
+    const int64_t Y_offset = flattened_dimension(y_dims) / y_dims[0] / group_;
+    const int64_t W_offset = flattened_dimension(w_dims) / group_;
     const int64_t kernel_dim = C / group_ * kernel_size;
     const int64_t col_buffer_size = kernel_dim * output_image_size;
 
-    printf("B1 - col_buffer_size=%d\n", col_buffer_size);
     std::vector<T> _col_data(col_buffer_size);
     auto col_buffer_data = &_col_data[0];
  
@@ -246,35 +234,19 @@ void Conv<T>::compute_gil_free(
     col_buffer_shape.insert(col_buffer_shape.end(), output_shape.begin(),
                             output_shape.end());
 
-    printf("col_buffer_shape %d b_dims=%d: ",
-        col_buffer_shape.size(), b_dims.size());
-    for(auto i: col_buffer_shape)
-        printf(" %d", i);
-    printf("\n");
-    
     const size_t kernel_rank = kernel_shape.size();
 
-    printf("B2\n");
     for (int image_id = 0; image_id < N; ++image_id) {
-        for (int group_id = 0; group_id < group_; ++group_id) {
-            printf("image_id=%d group_id=%d kernel_rank=%d C=%d group_=%d\n",
-                image_id, group_id, kernel_rank, C, group_);
+            for (int group_id = 0; group_id < group_; ++group_id) {
             if (kernel_rank == 2) {
                 Im2col_NCHW<T>(
                     Xdata + group_id * X_offset,
                     C / group_,
-                    input_shape[0],
-                    input_shape[1],
-                    kernel_shape[0],
-                    kernel_shape[1],
-                    dilations[0],
-                    dilations[1],
-                    pads[0],
-                    pads[1],
-                    pads[2],
-                    pads[3],
-                    strides[0],
-                    strides[1],
+                    input_shape[0], input_shape[1],
+                    kernel_shape[0], kernel_shape[1],
+                    dilations[0], dilations[1],
+                    pads[0], pads[1], pads[2], pads[3],
+                    strides[0], strides[1],
                     col_buffer_data);
             }
             else {
@@ -291,8 +263,7 @@ void Conv<T>::compute_gil_free(
                     static_cast<int>(kernel_shape.size()),
                     col_buffer_data);
             }
-
-            printf("DDD group_id=%d Y_offset=%d\n", group_id, Y_offset);
+           
             // C := alpha*op(A)*op(B) + beta*C
             // void cblas_sgemm (const CBLAS_LAYOUT Layout,
             //              const CBLAS_TRANSPOSE transa, const CBLAS_TRANSPOSE transb,
@@ -318,7 +289,6 @@ void Conv<T>::compute_gil_free(
             T* yptr;
             size_t k2;
             const T* ptrb = B.data(0);
-            printf("EEE %d\n", (int)ptrb);
             for(size_t k = 0; k < (size_t)M; ++k, ++ptrb) {
                 yptr = Ydata + k;
                 for(k2 = 0; k2 < (size_t)output_image_size; ++k2, yptr += M)
@@ -329,7 +299,6 @@ void Conv<T>::compute_gil_free(
         Xdata += X_offset * group_;
         Ydata += Y_offset * group_;
     }
-    printf("B3\n");
 }
 
 

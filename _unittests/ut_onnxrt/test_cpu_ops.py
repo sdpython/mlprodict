@@ -7,6 +7,7 @@ import numpy
 import onnx
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt.ops_cpu.op_conv import Conv
+from mlprodict.onnxrt.onnx2py_helper import _var_as_dict
 
 
 class TestCpuOps(ExtTestCase):
@@ -35,8 +36,8 @@ class TestCpuOps(ExtTestCase):
             # dilations=[1, 1], groups=1
             pads=[1, 1, 1, 1],
         )
-
-        cv = Conv(node_with_padding)
+        atts = _var_as_dict(node_with_padding)
+        cv = Conv(node_with_padding, desc=atts)
         got = cv.run(x, W)[0]
         exp = numpy.array([[[[12., 21., 27., 33., 24.],  # (1, 1, 5, 5) output tensor
                              [33., 54., 63., 72., 51.],
