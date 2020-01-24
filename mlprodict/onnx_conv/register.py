@@ -49,14 +49,17 @@ def _register_converters_lightgbm(exc=True):
         from .shape_calculators.shape_lightgbm import calculate_linear_classifier_output_shapes
         from .operator_converters.conv_lightgbm import convert_lightgbm
         try:
-            update_registered_converter(LGBMClassifier, 'LgbmClassifier',
-                                        calculate_linear_classifier_output_shapes,
-                                        convert_lightgbm, parser=_parse_sklearn_classifier)
+            update_registered_converter(
+                LGBMClassifier, 'LgbmClassifier',
+                calculate_linear_classifier_output_shapes,
+                convert_lightgbm, parser=_parse_sklearn_classifier,
+                options={'zipmap': [True, False], 'nocl': [True, False]})
         except TypeError:
             # skl2onnx <= 1.5
-            update_registered_converter(LGBMClassifier, 'LgbmClassifier',
-                                        calculate_linear_classifier_output_shapes,
-                                        convert_lightgbm)
+            update_registered_converter(
+                LGBMClassifier, 'LgbmClassifier',
+                calculate_linear_classifier_output_shapes,
+                convert_lightgbm)
         registered.append(LGBMClassifier)
 
     try:
@@ -98,7 +101,8 @@ def _register_converters_lightgbm(exc=True):
         )
         update_registered_converter(
             Booster, 'LightGbmBooster', calculate_lightgbm_output_shapes,
-            convert_lightgbm, parser=lightgbm_parser)
+            convert_lightgbm, parser=lightgbm_parser,
+            options={'cast': [True, False]})
         update_registered_converter(
             WrappedLightGbmBooster, 'WrapperLightGbmBooster',
             calculate_lightgbm_output_shapes,
@@ -106,7 +110,8 @@ def _register_converters_lightgbm(exc=True):
         update_registered_converter(
             WrappedLightGbmBoosterClassifier, 'WrappedLightGbmBoosterClassifier',
             calculate_lightgbm_output_shapes,
-            convert_lightgbm, parser=lightgbm_parser)
+            convert_lightgbm, parser=lightgbm_parser,
+            options={'zipmap': [True, False], 'nocl': [True, False]})
         update_registered_converter(
             MockWrappedLightGbmBoosterClassifier, 'MockWrappedLightGbmBoosterClassifier',
             calculate_lightgbm_output_shapes,
@@ -147,9 +152,12 @@ def _register_converters_xgboost(exc=True):
         from skl2onnx.common.shape_calculator import calculate_linear_classifier_output_shapes
         from .operator_converters.conv_xgboost import convert_xgboost
         try:
-            update_registered_converter(XGBClassifier, 'XGBoostXGBClassifier',
-                                        calculate_linear_classifier_output_shapes,
-                                        convert_xgboost, parser=_custom_parser_xgboost)
+            update_registered_converter(
+                XGBClassifier, 'XGBoostXGBClassifier',
+                calculate_linear_classifier_output_shapes,
+                convert_xgboost, parser=_custom_parser_xgboost,
+                options={'zipmap': [True, False], 'raw_scores': [True, False],
+                         'nocl': [True, False]})
         except TypeError:
             # skl2onnx <= 1.5
             update_registered_converter(XGBClassifier, 'XGBoostXGBClassifier',

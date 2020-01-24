@@ -3,7 +3,7 @@
 @brief Rewrites some of the converters implemented in
 :epkg:`sklearn-onnx`.
 """
-from skl2onnx.common._registration import _converter_pool
+from skl2onnx.common._registration import _converter_pool, RegisteredConverter
 from .sklconv.ada_boost import convert_sklearn_ada_boost_regressor
 from .sklconv.tree_converters import (
     convert_sklearn_decision_tree_regressor,
@@ -15,16 +15,35 @@ from .sklconv.svm_converters import convert_sklearn_svm
 
 
 _overwritten_operators = {
-    'SklearnAdaBoostRegressor': convert_sklearn_ada_boost_regressor,
-    'SklearnDecisionTreeRegressor': convert_sklearn_decision_tree_regressor,
-    'SklearnExtraTreesRegressor': convert_sklearn_random_forest_regressor_converter,
-    'SklearnGradientBoostingRegressor': convert_sklearn_gradient_boosting_regressor,
-    'SklearnHistGradientBoostingClassifier': convert_sklearn_random_forest_classifier,
-    'SklearnHistGradientBoostingRegressor': convert_sklearn_random_forest_regressor_converter,
-    'SklearnOneClassSVM': convert_sklearn_svm,
-    'SklearnRandomForestRegressor': convert_sklearn_random_forest_regressor_converter,
-    'SklearnSVC': convert_sklearn_svm,
-    'SklearnSVR': convert_sklearn_svm,
+    'SklearnAdaBoostRegressor': RegisteredConverter(
+        convert_sklearn_ada_boost_regressor,
+        _converter_pool['SklearnAdaBoostRegressor'].get_allowed_options()),
+    'SklearnDecisionTreeRegressor': RegisteredConverter(
+        convert_sklearn_decision_tree_regressor,
+        _converter_pool['SklearnDecisionTreeRegressor'].get_allowed_options()),
+    'SklearnExtraTreesRegressor': RegisteredConverter(
+        convert_sklearn_random_forest_regressor_converter,
+        _converter_pool['SklearnExtraTreesRegressor'].get_allowed_options()),
+    'SklearnGradientBoostingRegressor': RegisteredConverter(
+        convert_sklearn_gradient_boosting_regressor,
+        _converter_pool['SklearnGradientBoostingRegressor'].get_allowed_options()),
+    'SklearnHistGradientBoostingClassifier': RegisteredConverter(
+        convert_sklearn_random_forest_classifier,
+        _converter_pool['SklearnHistGradientBoostingClassifier'].get_allowed_options()),
+    'SklearnHistGradientBoostingRegressor': RegisteredConverter(
+        convert_sklearn_random_forest_regressor_converter,
+        _converter_pool['SklearnHistGradientBoostingRegressor'].get_allowed_options()),
+    'SklearnOneClassSVM': RegisteredConverter(convert_sklearn_svm,
+                                              _converter_pool['SklearnOneClassSVM'].get_allowed_options()),
+    'SklearnRandomForestRegressor': RegisteredConverter(
+        convert_sklearn_random_forest_regressor_converter,
+        _converter_pool['SklearnRandomForestRegressor'].get_allowed_options()),
+    'SklearnSVC': RegisteredConverter(
+        convert_sklearn_svm,
+        _converter_pool['SklearnSVC'].get_allowed_options()),
+    'SklearnSVR': RegisteredConverter(
+        convert_sklearn_svm,
+        _converter_pool['SklearnSVR'].get_allowed_options()),
 }
 
 

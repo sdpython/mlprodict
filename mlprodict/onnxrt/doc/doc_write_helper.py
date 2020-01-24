@@ -57,7 +57,8 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
     subsets = [_['name'] for _ in sklearn_operators(sub)]
     subsets.sort()
     for row in enumerate_validated_operator_opsets(
-            verbose=0, debug=None, fLOG=fLOG, opset_min=get_opset_number_from_onnx(),
+            verbose=0, debug=None, fLOG=fLOG,
+            opset_min=get_opset_number_from_onnx(),
             store_models=True, models=subsets):
 
         if 'ONNX' not in row:
