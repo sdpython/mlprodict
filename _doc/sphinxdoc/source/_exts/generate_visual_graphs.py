@@ -35,14 +35,16 @@ def generate_dot_converters(app):
         print("[mlprodict] graph for subfolder '{}'.".format(sub))
         models = sklearn_operators(sub)
         if len(models) > 0:
-            rows = []
-            for row in enumerate_visual_onnx_representation_into_rst(sub):
-                rows.append(row)
+            rows = [".. _l-skl2onnx-%s:" % sub, "", "=" * len(sub),
+                    sub, "=" * len(sub), "", ".. toctree::", ""]
+            for irow, text in enumerate(enumerate_visual_onnx_representation_into_rst(sub)):
+                subname = "visual-%s-%03d.rst" % (sub, irow)
+                pagename = os.path.join(whe, subname)
+                with open(pagename, 'w', encoding='utf-8') as f:
+                    f.write(text)
+                rows.append("    " + subname)
             if len(rows) == 0:
                 continue
-            rows = [".. _l-skl2onnx-%s:" % sub, "", "=" * len(sub),
-                    sub, "=" * len(sub), "", ".. contents::",
-                    "    :local:", ""] + rows
             rows.append('')
             dest = os.path.join(whe, "skl2onnx_%s.rst" % sub)
             with open(dest, "w", encoding="utf-8") as f:
