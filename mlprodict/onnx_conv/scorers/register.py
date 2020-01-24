@@ -122,9 +122,8 @@ def register_scorers():
     done.append(CustomScorerTransform)
 
     update_registered_converter(
-        score_cdist_sum,
-        'fct_score_cdist_sum',
-        None,
-        convert_score_cdist_sum)
+        score_cdist_sum, 'fct_score_cdist_sum',
+        None, convert_score_cdist_sum,
+        options={'cdist': [None, 'single-node']})
 
     return done
