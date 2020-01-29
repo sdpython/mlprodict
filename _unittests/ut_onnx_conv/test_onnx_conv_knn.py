@@ -5,6 +5,7 @@ import unittest
 from logging import getLogger
 import warnings
 import numpy
+from onnx.defs import onnx_opset_version
 from pandas import DataFrame
 from scipy.spatial.distance import cdist as scipy_cdist
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
@@ -401,6 +402,8 @@ class TestOnnxConvKNN(ExtTestCase):
         clr.fit(X_train)
 
         for to in (10, 11, 12):
+            if to > onnx_opset_version():
+                break
             model_def = to_onnx(
                 clr, X_train.astype(numpy.float32),
                 rewrite_ops=True, options={NearestNeighbors: {'largest0': False}},
