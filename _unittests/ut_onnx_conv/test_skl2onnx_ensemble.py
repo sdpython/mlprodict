@@ -1,5 +1,5 @@
 """
-@brief      test tree node (time=12s)
+@brief      test tree node (time=4s)
 """
 import unittest
 from logging import getLogger
@@ -122,7 +122,7 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
 
     def test_model_random_forest_classifier_multilabel(self):
         model, X_test = fit_multilabel_classification_model(
-            RandomForestClassifier(random_state=42))
+            RandomForestClassifier(random_state=42, n_estimators=10))
         options = {id(model): {'zipmap': False}}
         model_onnx = convert_sklearn(
             model, "scikit-learn RandomForestClassifier",
@@ -136,7 +136,8 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
 
     def test_model_random_forest_classifier_multilabel_low_samples(self):
         model, X_test = fit_multilabel_classification_model(
-            RandomForestClassifier(random_state=42), n_samples=4)
+            RandomForestClassifier(random_state=42, n_estimators=10),
+            n_samples=4)
         options = {id(model): {'zipmap': False}}
         model_onnx = convert_sklearn(
             model, "scikit-learn RandomForestClassifier",
@@ -150,7 +151,7 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
 
     def test_model_extra_trees_classifier_multilabel(self):
         model, X_test = fit_multilabel_classification_model(
-            ExtraTreesClassifier(random_state=42))
+            ExtraTreesClassifier(random_state=42, n_estimators=10))
         options = {id(model): {'zipmap': False}}
         model_onnx = convert_sklearn(
             model, "scikit-learn ExtraTreesClassifier",
@@ -164,7 +165,7 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
 
     def test_model_extra_trees_classifier_multilabel_low_samples(self):
         model, X_test = fit_multilabel_classification_model(
-            ExtraTreesClassifier(random_state=42), n_samples=10)
+            ExtraTreesClassifier(random_state=42, n_estimators=10), n_samples=10)
         options = {id(model): {'zipmap': False}}
         model_onnx = convert_sklearn(
             model, "scikit-learn ExtraTreesClassifier",
@@ -178,6 +179,4 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestSklearnTreeEnsembleModels().setUp()
-    TestSklearnTreeEnsembleModels().test_random_forest_classifier()
     unittest.main()

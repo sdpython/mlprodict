@@ -400,20 +400,21 @@ class TestOnnxConvKNN(ExtTestCase):
         clr = NearestNeighbors(n_neighbors=3)
         clr.fit(X_train)
 
-        model_def = to_onnx(
-            clr, X_train.astype(numpy.float32),
-            rewrite_ops=True, options={NearestNeighbors: {'largest0': False}})
-        oinf = OnnxInference(model_def, runtime='python')
+        for to in (9, 10, 11, 12):
+            model_def = to_onnx(
+                clr, X_train.astype(numpy.float32),
+                rewrite_ops=True, options={NearestNeighbors: {'largest0': False}},
+                target_opset=to)
+            oinf = OnnxInference(model_def, runtime='python')
 
-        X_test = X_test[:3]
-        y = oinf.run({'X': X_test.astype(numpy.float32)})
-        dist, ind = clr.kneighbors(X_test)
+            X_test = X_test[:3]
+            y = oinf.run({'X': X_test.astype(numpy.float32)})
+            dist, ind = clr.kneighbors(X_test)
 
-        self.assertEqual(list(sorted(y)), ['distance', 'index'])
-        self.assertEqualArray(
-            dist, DataFrame(y['distance']).values,
-            decimal=5)
-        self.assertEqualArray(ind, y['index'])
+            self.assertEqual(list(sorted(y)), ['distance', 'index'])
+            self.assertEqualArray(ind, y['index'])
+            self.assertEqualArray(dist, DataFrame(
+                y['distance']).values, decimal=5)
 
     # calibrated
 
@@ -472,4 +473,5 @@ class TestOnnxConvKNN(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestOnnxConvKNN().test_onnx_test_knn_single_reg32_distance()
     unittest.main()
