@@ -1,5 +1,5 @@
 echo --INSTALL--
-python -m pip install --no-cache-dir --no-deps --index http://localhost:8067/simple/ mlprodict --extra-index-url=https://pypi.python.org/simple/
+python -m pip install --no-cache-dir --no-deps --upgrade --index http://localhost:8067/simple/ mlprodict --extra-index-url=https://pypi.python.org/simple/
 echo --BENCHCREATE--
 python -m mlprodict asv_bench --location _benches --models "LinearRegression,LogisticRegression" --build "../build" || exit 1
 echo --CLEAN--

@@ -8,9 +8,9 @@ virtualenv:
   - path: {{ospathjoin(root_path, pickname("$NAME_JENKINS", project_name + "_$VERSION_$DIST_$NAME"), "_venv")}}
   
 install:
-  - $PYINT -m pip install --no-cache-dir --no-deps --index http://localhost:8067/simple/ jyquickhelper pyquickhelper cpyquickhelper pyensae --extra-index-url=https://pypi.python.org/simple/
-  - $PYINT -m pip install --no-cache-dir --no-deps --index http://localhost:8067/simple/ asv onnx onnxruntime skl2onnx onnxmltools onnxconverter_common scikit-onnxruntime --extra-index-url=https://pypi.python.org/simple/
-  - $PYINT -m pip install -r requirements.txt
+  - $PYINT -m pip install --no-cache-dir --no-deps --upgrade --index http://localhost:8067/simple/ jyquickhelper pyquickhelper cpyquickhelper pyensae --extra-index-url=https://pypi.python.org/simple/
+  - $PYINT -m pip install --no-cache-dir --no-deps --upgrade --index http://localhost:8067/simple/ asv onnx onnxruntime skl2onnx onnxmltools onnxconverter_common scikit-onnxruntime --extra-index-url=https://pypi.python.org/simple/
+  - $PYINT -m pip install -r requirements.txt --upgrade
   - $PYINT --version
   - $PYINT -m pip freeze
 
