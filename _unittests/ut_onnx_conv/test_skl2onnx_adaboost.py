@@ -46,7 +46,7 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
 
     def test_ada_boost_classifier_samme_r_decision_function(self):
         model, X_test = fit_classification_model(AdaBoostClassifier(
-            n_estimators=10, algorithm="SAMME.R", random_state=42,
+            n_estimators=2, algorithm="SAMME.R", random_state=42,
             base_estimator=DecisionTreeClassifier(
                 max_depth=2, random_state=42)), 4)
         options = {id(model): {'raw_scores': True}}
@@ -57,7 +57,8 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X_test[:5], model, model_onnx,
-            basename="SklearnAdaBoostClassifierSAMMERDecisionFunction")
+            basename="SklearnAdaBoostClassifierSAMMERDecisionFunction",
+            methods=['predict', 'decision_function'])
 
     def test_ada_boost_classifier_samme_r_logreg(self):
         model, X_test = fit_classification_model(AdaBoostClassifier(

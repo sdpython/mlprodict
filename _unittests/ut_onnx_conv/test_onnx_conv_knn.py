@@ -400,7 +400,7 @@ class TestOnnxConvKNN(ExtTestCase):
         clr = NearestNeighbors(n_neighbors=3)
         clr.fit(X_train)
 
-        for to in (9, 10, 11, 12):
+        for to in (10, 11, 12):
             model_def = to_onnx(
                 clr, X_train.astype(numpy.float32),
                 rewrite_ops=True, options={NearestNeighbors: {'largest0': False}},
@@ -473,5 +473,4 @@ class TestOnnxConvKNN(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxConvKNN().test_onnx_test_knn_single_reg32_distance()
     unittest.main()
