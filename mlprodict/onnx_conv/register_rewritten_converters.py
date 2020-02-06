@@ -3,7 +3,14 @@
 @brief Rewrites some of the converters implemented in
 :epkg:`sklearn-onnx`.
 """
-from skl2onnx.common._registration import _converter_pool, RegisteredConverter
+from skl2onnx.common._registration import _converter_pool
+
+try:
+    from skl2onnx.common._registration import RegisteredConverter
+except ImportError:
+    # sklearn-onnx <= 1.6.0
+    RegisteredConverter = lambda fct, opts: fct
+
 from .sklconv.ada_boost import convert_sklearn_ada_boost_regressor
 from .sklconv.tree_converters import (
     convert_sklearn_decision_tree_regressor,
@@ -53,7 +60,7 @@ def register_rewritten_operators(new_values=None):
 
     @param      new_values      operators to rewrite or None
                                 to rewrite default ones
-    @return                      old values
+    @return                     old values
     """
     if new_values is None:
         for rew in _overwritten_operators:

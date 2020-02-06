@@ -170,7 +170,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
                 trs, context={'numpy.transpose': numpy.transpose})
             print(onnx_code)
 
-    Next example is goes further and compile the outcome.
+    Next example goes further and compile the outcome.
 
     .. exref::
         :title: Convert a function into ONNX code and run

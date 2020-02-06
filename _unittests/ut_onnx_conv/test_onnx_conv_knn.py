@@ -5,6 +5,7 @@ import unittest
 from logging import getLogger
 import warnings
 import numpy
+from onnx.defs import onnx_opset_version
 from pandas import DataFrame
 from scipy.spatial.distance import cdist as scipy_cdist
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
@@ -400,20 +401,23 @@ class TestOnnxConvKNN(ExtTestCase):
         clr = NearestNeighbors(n_neighbors=3)
         clr.fit(X_train)
 
-        model_def = to_onnx(
-            clr, X_train.astype(numpy.float32),
-            rewrite_ops=True, options={NearestNeighbors: {'largest0': False}})
-        oinf = OnnxInference(model_def, runtime='python')
+        for to in (10, 11, 12):
+            if to > onnx_opset_version():
+                break
+            model_def = to_onnx(
+                clr, X_train.astype(numpy.float32),
+                rewrite_ops=True, options={NearestNeighbors: {'largest0': False}},
+                target_opset=to)
+            oinf = OnnxInference(model_def, runtime='python')
 
-        X_test = X_test[:3]
-        y = oinf.run({'X': X_test.astype(numpy.float32)})
-        dist, ind = clr.kneighbors(X_test)
+            X_test = X_test[:3]
+            y = oinf.run({'X': X_test.astype(numpy.float32)})
+            dist, ind = clr.kneighbors(X_test)
 
-        self.assertEqual(list(sorted(y)), ['distance', 'index'])
-        self.assertEqualArray(
-            dist, DataFrame(y['distance']).values,
-            decimal=5)
-        self.assertEqualArray(ind, y['index'])
+            self.assertEqual(list(sorted(y)), ['distance', 'index'])
+            self.assertEqualArray(ind, y['index'])
+            self.assertEqualArray(dist, DataFrame(
+                y['distance']).values, decimal=5)
 
     # calibrated
 

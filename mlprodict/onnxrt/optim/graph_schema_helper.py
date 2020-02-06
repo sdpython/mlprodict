@@ -7,7 +7,8 @@ from skl2onnx.common.data_types import (
     DataType,
     FloatTensorType, SequenceType, DictionaryType,
     Int64Type, Int64TensorType, BooleanTensorType,
-    Int32TensorType, DoubleTensorType, FloatType
+    Int32TensorType, DoubleTensorType, FloatType,
+    StringTensorType
 )
 from skl2onnx.common.data_types import _guess_type_proto
 from skl2onnx.algebra.type_helper import _guess_type as skl2onnx__guess_type
@@ -149,6 +150,8 @@ def proto2vars(values):
             return Int32TensorType(shape)
         if it == TensorProto.BOOL:  # pylint: disable=E1101
             return BooleanTensorType(shape)
+        if it == TensorProto.STRING:  # pylint: disable=E1101
+            return StringTensorType(shape)
         raise NotImplementedError(
             "Unrecognized proto type {} with shape {}".format(it, shape))
 
