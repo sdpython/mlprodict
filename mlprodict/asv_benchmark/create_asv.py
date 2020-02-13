@@ -39,14 +39,14 @@ except ImportError:
         find_missing_sklearn_imports)
 
 try:
-    from ..onnxrt.validate.validate_helper import (
-        get_opset_number_from_onnx, sklearn_operators)
+    from ...tools.asv_options_helper import get_opset_number_from_onnx
+    from ..onnxrt.validate.validate_helper import sklearn_operators
     from ..onnxrt.validate.validate import (
         _retrieve_problems_extra, _get_problem_data, _merge_options)
     from ..tools.asv_options_helper import shorten_onnx_options
 except (ValueError, ImportError):  # pragma: no cover
-    from mlprodict.onnxrt.validate.validate_helper import (
-        get_opset_number_from_onnx, sklearn_operators)
+    from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+    from mlprodict.onnxrt.validate.validate_helper import sklearn_operators
     from mlprodict.onnxrt.validate.validate import (
         _retrieve_problems_extra, _get_problem_data, _merge_options)
     from mlprodict.tools.asv_options_helper import shorten_onnx_options
@@ -507,7 +507,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             "['skl', 'pyrtc', 'ort'],  # values for runtime": str(runtime),
             "[1, 10, 100, 1000, 10000, 100000],  # values for N": str(dims),
             "[4, 20],  # values for nf": str(n_features),
-            "get_opset_number_from_onnx(),  # values for opset": str(opsets),
+            "[get_opset_number_from_onnx()],  # values for opset": str(opsets),
             "['float', 'double'],  # values for dtype":
                 "['float']" if '-64' not in problem else "['float', 'double']",
             "[None],  # values for optim": "%r" % nck_opts,

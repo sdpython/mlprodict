@@ -11,11 +11,11 @@ from pandas import DataFrame, notnull
 from sklearn.linear_model import LinearRegression
 from pyquickhelper.loghelper import noLOG
 from pyquickhelper.pandashelper.tblformat import df2rst
+from ...tools.asv_options_helper import get_opset_number_from_onnx, sklearn__all__
+from ...tools.model_info import analyze_model
 from ..validate.validate import enumerate_validated_operator_opsets, sklearn_operators
-from ..validate.validate import get_opset_number_from_onnx, sklearn__all__
 from ..optim.sklearn_helper import inspect_sklearn_model
 from ..optim.onnx_helper import onnx_statistics
-from ...tools.model_info import analyze_model
 from ..onnx_inference import OnnxInference
 from ..validate.validate_summary import _clean_values_optim
 from .doc_helper import visual_rst_template
