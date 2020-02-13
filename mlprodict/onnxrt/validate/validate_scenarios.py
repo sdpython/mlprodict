@@ -2,11 +2,17 @@
 @file
 @brief Scenarios for validation.
 """
+from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.cluster import KMeans
 from sklearn.calibration import CalibratedClassifierCV
-from sklearn.decomposition import SparseCoder
-from sklearn.ensemble import VotingClassifier, AdaBoostRegressor, VotingRegressor
+from sklearn.decomposition import SparseCoder, LatentDirichletAllocation
+from sklearn.ensemble import (
+    VotingClassifier, AdaBoostRegressor, VotingRegressor,
+    ExtraTreesRegressor, ExtraTreesClassifier,
+    RandomForestRegressor, RandomForestClassifier,
+    HistGradientBoostingRegressor, HistGradientBoostingClassifier
+)
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_selection import (
     SelectFromModel, SelectPercentile, RFE, RFECV,
@@ -64,6 +70,12 @@ def build_custom_scenarios():
         DictVectorizer: [
             ('default', {}),
         ],
+        ExtraTreesClassifier: [
+            ('default', {'n_estimators': 10}),
+        ],
+        ExtraTreesRegressor: [
+            ('default', {'n_estimators': 10}),
+        ],
         FeatureHasher: [
             ('default', {}),
         ],
@@ -104,6 +116,12 @@ def build_custom_scenarios():
                 'param_grid': {'n_clusters': [2, 3]},
             }, ['cluster']),
         ],
+        HistGradientBoostingClassifier: [
+            ('default', {'n_estimators': 10}),
+        ],
+        HistGradientBoostingRegressor: [
+            ('default', {'n_estimators': 10}),
+        ],
         KNeighborsClassifier: [
             ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},
              {'conv_options': [{}, {KNeighborsClassifier: {'optim': 'cdist'}}]}),
@@ -125,6 +143,9 @@ def build_custom_scenarios():
                          'metric': "minkowski",
                          'metric_params': {'p': 2.1},
                          'n_neighbors': 3}),
+        ],
+        LatentDirichletAllocation: [
+            ('default', {'n_components': 2}),
         ],
         LocalOutlierFactor: [
             ('novelty', {
@@ -175,6 +196,12 @@ def build_custom_scenarios():
             ('logreg', {
                 'estimator': LogisticRegression(solver='liblinear'),
             })
+        ],
+        RandomForestClassifier: [
+            ('default', {'n_estimators': 10}),
+        ],
+        RandomForestRegressor: [
+            ('default', {'n_estimators': 10}),
         ],
         RandomizedSearchCV: [
             ('cl', {

@@ -11,7 +11,7 @@ Windows.
     the system is told otherwise.
 """
 import numpy  # pylint: disable=W0611
-from mlprodict.tools.asv_options_helper import benchmark_version
+from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 # Import specific to this model.
 from sklearn.cross_decomposition import PLSCanonical  # pylint: disable=C0411
 
@@ -31,7 +31,7 @@ class TemplateBenchmarkTrainableTransform(_CommonAsvSklBenchmarkTrainableTransfo
         ['skl', 'pyrtc', 'ort'],  # values for runtime
         [1, 10, 100, 1000, 10000, 100000],  # values for N
         [4, 20],  # values for nf
-        benchmark_version(),  # values for opset
+        [get_opset_number_from_onnx()],  # values for opset
         ['float', 'double'],  # values for dtype
         [None],  # values for optim
     ]

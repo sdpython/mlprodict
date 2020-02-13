@@ -11,7 +11,6 @@ from importlib import import_module
 import pickle
 from time import perf_counter
 import numpy
-import onnx
 from sklearn.base import BaseEstimator
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 
@@ -66,14 +65,6 @@ def _dispsimple(arr, fLOG):
         if len(s) > 50:
             s = s[:50] + "..."
         fLOG(s)
-
-
-def get_opset_number_from_onnx():
-    """
-    Retuns the current :epkg:`onnx` opset
-    based on the installed version of :epkg:`onnx`.
-    """
-    return onnx.defs.onnx_opset_version()
 
 
 def sklearn_operators(subfolder=None, extended=False,

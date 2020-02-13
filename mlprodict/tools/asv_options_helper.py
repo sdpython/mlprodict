@@ -2,6 +2,7 @@
 @file
 @brief Functions to show shortened options in :epkg:`asv` benchmarks.
 """
+from onnx.defs import onnx_opset_version  # pylint: disable=W0611
 
 
 def expand_onnx_options(model, optim):
@@ -73,3 +74,17 @@ def benchmark_version():
         print(benchmark_version())
     """
     return [11]
+
+
+def get_opset_number_from_onnx(benchmark=True):
+    """
+    Retuns the current :epkg:`onnx` opset
+    based on the installed version of :epkg:`onnx`.
+
+    @param      benchmark       returns the latest
+                                version usable for benchmark
+    @eturn                      opset number
+    """
+    if benchmark:
+        return benchmark_version()[-1]
+    return onnx_opset_version()

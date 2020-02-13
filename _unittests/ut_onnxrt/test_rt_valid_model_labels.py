@@ -51,12 +51,12 @@ class TestRtValidateLabels(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        debug = False
+        debug = True
         rows = list(enumerate_validated_operator_opsets(
             verbose, opset_min=onnx_opset_version(),
             fLOG=myprint,
             models={"LabelEncoder"},  # ,
-            runtime='python', debug=debug,
+            runtime='python_compiled', debug=debug,
             filter_exp=lambda m, p: "64" not in p))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)

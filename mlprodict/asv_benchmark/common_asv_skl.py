@@ -31,7 +31,7 @@ from mlprodict.onnxrt.validate.validate_benchmark import make_n_rows
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 from mlprodict.onnxrt.optim import onnx_statistics
 from mlprodict.tools.asv_options_helper import (
-    expand_onnx_options, benchmark_version
+    expand_onnx_options, get_opset_number_from_onnx
 )
 
 
@@ -48,7 +48,7 @@ class _CommonAsvSklBenchmark:
         ['skl', 'pyrtc', 'ort'],  # values for runtime
         [1, 10, 100, 10000, 100000],  # values for N
         [4, 20],  # values for nf
-        benchmark_version(),  # values for opset
+        [get_opset_number_from_onnx()],  # values for opset
         ["float", "double"],  # values for dtype
         [None],  # values for optim
     ]

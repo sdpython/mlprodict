@@ -4,14 +4,21 @@
 @brief Shortcut to *ops_cpu*.
 """
 from onnx.defs import onnx_opset_version
+from ...tools.asv_options_helper import benchmark_version
 from ._op_list import __dict__ as d_op_list
 
 
-def get_opset_number_from_onnx():
+def get_opset_number_from_onnx(benchmark=False):
     """
     Retuns the current :epkg:`onnx` opset
     based on the installed version of :epkg:`onnx`.
+
+    @param      benchmark       returns the latest
+                                version usable for benchmark
+    @eturn                      opset number
     """
+    if benchmark:
+        return benchmark_version()[-1]
     return onnx_opset_version()
 
 
