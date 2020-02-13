@@ -13,7 +13,7 @@ on Windows.
 import numpy  # pylint: disable=W0611
 from mlprodict.tools.asv_options_helper import benchmark_version
 # Import specific to this model.
-from sklearn.svm import OneClassSVM
+from sklearn.svm import OneClassSVM  # pylint: disable=C0411
 
 from mlprodict.asv_benchmark import _CommonAsvSklBenchmarkOutlier  # pylint: disable=C0412
 from mlprodict.onnx_conv import to_onnx  # pylint: disable=W0611, C0412
