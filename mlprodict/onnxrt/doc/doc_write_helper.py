@@ -11,7 +11,8 @@ from pandas import DataFrame, notnull
 from sklearn.linear_model import LinearRegression
 from pyquickhelper.loghelper import noLOG
 from pyquickhelper.pandashelper.tblformat import df2rst
-from ...tools.asv_options_helper import get_opset_number_from_onnx, sklearn__all__
+from sklearn import __all__ as sklearn__all__
+from ...tools.asv_options_helper import get_opset_number_from_onnx
 from ...tools.model_info import analyze_model
 from ..validate.validate import enumerate_validated_operator_opsets, sklearn_operators
 from ..optim.sklearn_helper import inspect_sklearn_model
