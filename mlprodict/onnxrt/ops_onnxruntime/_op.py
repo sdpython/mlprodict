@@ -113,6 +113,11 @@ class OpRunOnnxRuntime:
         target_opset = options.pop('target_opset', None)
         domain = options.pop('domain', None)
 
+        if domain == '' and target_opset < 9:
+            # target_opset should be >= 9 not {} for main domain.
+            # We assume it was the case when the graph was created.
+            pass
+
         if self.onnx_node.op_type == 'ConstantOfShape':
             for k in options:
                 v = options[k]

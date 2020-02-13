@@ -58,3 +58,18 @@ def shorten_onnx_options(model, opts):
     if opts == {model: {'raw_scores': True, 'zipmap': False}}:
         return 'raw_score'
     return None
+
+
+def benchmark_version():
+    """
+    Returns the list of ONNX version to benchmarks.
+    Following snippet of code shows which version is
+    current done.
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.tools.asv_options_helper import benchmark_version
+        print(benchmark_version())
+    """
+    return [11]

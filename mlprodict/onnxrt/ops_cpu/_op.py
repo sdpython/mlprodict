@@ -3,6 +3,7 @@
 @file
 @brief Shortcut to *ops_cpu*.
 """
+import pprint
 import numpy
 import onnx.defs
 from ..shape_object import ShapeObject
@@ -80,7 +81,6 @@ class OpRun:
 
         for k, v in self._schema.attributes.items():
             if not hasattr(self, k):
-                import pprint  # pragma: no cover
                 raise RuntimeError(  # pragma: no cover
                     "Attribute '{}' is expected based on ONNX specifications "
                     "for node '{}' and options {}.".format(
@@ -156,9 +156,13 @@ class OpRun:
         try:
             res = self._infer_shapes(*args, **kwargs)
         except TypeError as e:
-            raise TypeError("Issues with (operator {}) and shapes\n{}".format(
-                self.__class__.__name__,
-                "\n".join(str(_) for _ in args))) from e
+            raise TypeError(
+                "Issues with (operator {}) and shapes\n{}"
+                "\n----args\n{}\n------kwargs\n{}".format(
+                    self.__class__.__name__,
+                    "\n".join(str(_) for _ in args),
+                    pprint.pformat(args),
+                    pprint.pformat(kwargs))) from e
         if not isinstance(res, tuple):
             raise TypeError("res must be tuple not {} (operator '{}')".format(
                 type(res), self.__class__.__name__))

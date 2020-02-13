@@ -22,6 +22,12 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         onx = OnnxAdd('X', idi, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float32)
+
+        oinf = OnnxInference(model_def, runtime='onnxruntime1')
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(idi + X, got['Y'], decimal=6)
+
         oinf = OnnxInference(model_def, runtime='onnxruntime2')
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -46,4 +52,5 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestOnnxrtOnnxRuntimeRuntime().test_onnxt_runtime_add()
     unittest.main()

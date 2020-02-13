@@ -15,7 +15,6 @@ import os
 import pickle
 from logging import getLogger
 import numpy
-from onnx.defs import onnx_opset_version
 from sklearn import set_config
 from sklearn.datasets import load_iris
 from sklearn.metrics import (
@@ -31,7 +30,9 @@ from mlprodict.onnx_conv import (
 from mlprodict.onnxrt.validate.validate_benchmark import make_n_rows
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 from mlprodict.onnxrt.optim import onnx_statistics
-from mlprodict.tools.asv_options_helper import expand_onnx_options
+from mlprodict.tools.asv_options_helper import (
+    expand_onnx_options, benchmark_version
+)
 
 
 class _CommonAsvSklBenchmark:
@@ -47,7 +48,7 @@ class _CommonAsvSklBenchmark:
         ['skl', 'pyrtc', 'ort'],  # values for runtime
         [1, 10, 100, 10000, 100000],  # values for N
         [4, 20],  # values for nf
-        [onnx_opset_version()],  # values for opset
+        benchmark_version(),  # values for opset
         ["float", "double"],  # values for dtype
         [None],  # values for optim
     ]

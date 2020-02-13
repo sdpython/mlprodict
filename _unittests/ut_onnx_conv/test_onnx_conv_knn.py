@@ -37,6 +37,7 @@ from mlprodict.onnx_conv import (
 )
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
+from mlprodict.tools.asv_options_helper import benchmark_version
 
 
 def old_topk_sorted_implementation(X, k, axis, largest):
@@ -220,38 +221,56 @@ class TestOnnxConvKNN(ExtTestCase):
                 options[clr.__class__] = {}
             options[clr.__class__].update({'largest0': False})
 
-        model_def = to_onnx(clr, X_train.astype(dtype),
-                            dtype=dtype, rewrite_ops=True,
-                            target_opset=target_opset,
-                            options=options)
-        try:
-            oinf = OnnxInference(model_def, runtime=runtime)
-        except RuntimeError as e:
-            if debug:
-                raise RuntimeError(
-                    "Unable to create a model\n{}".format(model_def)) from e
-            raise e
-
-        if debug:
-            y = oinf.run({'X': X_test}, verbose=level, fLOG=print)
+        if target_opset is None:
+            opsets = benchmark_version().copy()
+            for op in [9, 10, 11, onnx_opset_version()]:
+                if onnx_opset_version() not in opsets:
+                    opsets.append(op)
         else:
-            y = oinf.run({'X': X_test})
+            opsets = [target_opset]
+        for ops in opsets:
+            if ops is None:
+                raise AssertionError("Cannot happen: {}.".format(opsets))
+            with self.subTest(target_opset=ops):
+                try:
+                    model_def = to_onnx(
+                        clr, X_train.astype(dtype), dtype=dtype, rewrite_ops=True,
+                        target_opset=ops, options=options)
+                except NameError as e:
+                    if "Option 'largest0' not in" in str(e):
+                        continue
+                try:
+                    oinf = OnnxInference(model_def, runtime=runtime)
+                except (RuntimeError, TypeError, OrtInvalidArgument) as e:
+                    if "No Op registered for Identity with domain_version of 12" in str(e):
+                        continue
+                    if debug:
+                        raise AssertionError(
+                            "Unable to create a model for target_opset={}\n----\n{}\n----".format(
+                                ops, model_def)) from e
+                    raise AssertionError(
+                        "Unable to create model for opset={}.".format(ops)) from e
 
-        lexp = clr.predict(X_test)
-        if kind == 'reg':
-            self.assertEqual(list(sorted(y)), ['variable'])
-            if dtype == numpy.float32:
-                self.assertEqualArray(lexp, y['variable'], decimal=5)
-            else:
-                self.assertEqualArray(lexp, y['variable'])
-        else:
-            self.assertEqual(list(sorted(y)),
-                             ['output_label', 'output_probability'])
-            self.assertEqualArray(lexp, y['output_label'])
-            lprob = clr.predict_proba(X_test)
-            self.assertEqualArray(
-                lprob, DataFrame(y['output_probability']).values,
-                decimal=5)
+                if debug:
+                    y = oinf.run({'X': X_test}, verbose=level, fLOG=print)
+                else:
+                    y = oinf.run({'X': X_test})
+
+                lexp = clr.predict(X_test)
+                if kind == 'reg':
+                    self.assertEqual(list(sorted(y)), ['variable'])
+                    if dtype == numpy.float32:
+                        self.assertEqualArray(lexp, y['variable'], decimal=5)
+                    else:
+                        self.assertEqualArray(lexp, y['variable'])
+                else:
+                    self.assertEqual(list(sorted(y)),
+                                     ['output_label', 'output_probability'])
+                    self.assertEqualArray(lexp, y['output_label'])
+                    lprob = clr.predict_proba(X_test)
+                    self.assertEqualArray(
+                        lprob, DataFrame(y['output_probability']).values,
+                        decimal=5)
 
     def test_onnx_test_knn_single_reg32(self):
         self.onnx_test_knn_single_classreg(numpy.float32)
@@ -404,10 +423,14 @@ class TestOnnxConvKNN(ExtTestCase):
         for to in (10, 11, 12):
             if to > onnx_opset_version():
                 break
-            model_def = to_onnx(
-                clr, X_train.astype(numpy.float32),
-                rewrite_ops=True, options={NearestNeighbors: {'largest0': False}},
-                target_opset=to)
+            try:
+                model_def = to_onnx(
+                    clr, X_train.astype(numpy.float32),
+                    rewrite_ops=True, options={NearestNeighbors: {'largest0': False}},
+                    target_opset=to)
+            except NameError as e:
+                if "Option 'largest0' not in" in str(e):
+                    continue
             oinf = OnnxInference(model_def, runtime='python')
 
             X_test = X_test[:3]
@@ -476,4 +499,5 @@ class TestOnnxConvKNN(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestOnnxConvKNN().test_onnx_test_knn_single_reg32()
     unittest.main()

@@ -128,6 +128,34 @@ class _CommonTopK(OpRun):
         return (sh, shi)
 
 
+class TopK_1(_CommonTopK):
+
+    atts = {'axis': -1, 'k': None}
+
+    def __init__(self, onnx_node, desc=None, **options):
+        _CommonTopK.__init__(self, onnx_node, desc=desc,
+                             expected_attributes=TopK_10.atts,
+                             **options)
+
+    def _run(self, data):  # pylint: disable=W0221
+        """
+        Runtime for operator *TopK*.
+        The implementation is not the most efficient
+        as it sorts everything then extracts the top *k*
+        values.
+
+        .. warning::
+            ONNX specifications may be imprecise in case of negative value
+            for axis. The implementation follows what :epkg:`onnxruntime`
+            does in `top_k.cc
+            <https://github.com/Microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/math/top_k.cc#L63>`_.
+        """
+        return _CommonTopK._common_run(self, data, [self.k])
+
+    def _infer_shapes(self, data):  # pylint: disable=W0221
+        return _CommonTopK._infer_shapes(self, data, [self.k])
+
+
 class TopK_10(_CommonTopK):
 
     atts = {'axis': -1}
@@ -183,5 +211,7 @@ class TopK_11(_CommonTopK):
 
 if onnx_opset_version() >= 11:
     TopK = TopK_11
-else:
+elif onnx_opset_version() >= 10:
     TopK = TopK_10
+else:
+    TopK = TopK_1
