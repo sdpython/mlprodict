@@ -273,7 +273,7 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
         }
     } 
     else {
-        if (vector_count_ == 0)
+        if (this->vector_count_ == 0)
             throw std::runtime_error("No support vectors.");
         int evals = 0;
        
@@ -294,12 +294,12 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
                 int64_t class_j_support_count = vectors_per_class_[j];
       
                 int64_t pos1 = (vector_count_) * (j - 1);
-                const NTYPE* val1 = &(coefficients_[pos1 + start_index_i]);
+                const NTYPE* val1 = &(this->coefficients_[pos1 + start_index_i]);
                 const NTYPE* val2 = &(kernels[start_index_i]);
                 for (int64_t m = 0; m < class_i_support_count; ++m, ++val1, ++val2)
                     sum += *val1 * *val2;
       
-                val1 = &(coefficients_[pos2 + start_index_j]);
+                val1 = &(this->coefficients_[pos2 + start_index_j]);
                 val2 = &(kernels[start_index_j]);
                 for (int64_t m = 0; m < class_j_support_count; ++m, ++val1, ++val2)
                     sum += *val1 * *val2;
@@ -352,7 +352,7 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
     int write_additional_scores = -1;
     if (this->rho_.size() == 1) {
         write_additional_scores = _set_score_svm(
-            y_data, max_weight, maxclass, n, post_transform_, proba_,
+            y_data, max_weight, maxclass, n, this->post_transform_, proba_,
             weights_are_all_positive_, classlabels_ints_, 1, 0);
     } 
     else if (classlabels_ints_.size() > 0) {  //multiclass
