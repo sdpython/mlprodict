@@ -278,7 +278,7 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
             throw std::runtime_error("No support vectors.");
         int evals = 0;
        
-        kernels.resize(vector_count_);
+        kernels.resize(this->vector_count_);
         for (int64_t j = 0; j < this->vector_count_; j++) {
             kernels[j] = this->kernel_dot_gil_free(x_data, current_weight_0, this->support_vectors_,
                                            this->feature_count_ * j,
@@ -288,13 +288,13 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
         for (int64_t i = 0; i < class_count_; i++) {        // for each class
             int64_t start_index_i = starting_vector_[i];  // *feature_count_;
             int64_t class_i_support_count = vectors_per_class_[i];
-            int64_t pos2 = (vector_count_) * (i);
+            int64_t pos2 = (this->vector_count_) * (i);
             for (int64_t j = i + 1; j < class_count_; j++) {  // for each class
                 NTYPE sum = 0;
                 int64_t start_index_j = starting_vector_[j];  // *feature_count_;
                 int64_t class_j_support_count = vectors_per_class_[j];
       
-                int64_t pos1 = (vector_count_) * (j - 1);
+                int64_t pos1 = (this->vector_count_) * (j - 1);
                 const NTYPE* val1 = &(this->coefficients_[pos1 + start_index_i]);
                 const NTYPE* val2 = &(kernels[start_index_i]);
                 for (int64_t m = 0; m < class_i_support_count; ++m, ++val1, ++val2)
