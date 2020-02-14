@@ -97,22 +97,22 @@ void RuntimeSVMClassifier<NTYPE>::init(
 
 template<typename NTYPE>
 void RuntimeSVMClassifier<NTYPE>::Initialize() {
-    vector_count_ = 0;
-    feature_count_ = 0;
+    this->vector_count_ = 0;
+    this->feature_count_ = 0;
     class_count_ = 0;
     for (int64_t i = 0; i < static_cast<int64_t>(vectors_per_class_.size()); ++i) {
         starting_vector_.push_back(vector_count_);
-        vector_count_ += vectors_per_class_[i];
+        this->vector_count_ += vectors_per_class_[i];
     }
 
     class_count_ = classlabels_ints_.size() > 0 ? classlabels_ints_.size() : class_count_ = 1;
-    if (vector_count_ > 0) {
-        feature_count_ = support_vectors_.size() / vector_count_;  //length of each support vector
+    if (this->vector_count_ > 0) {
+        this->feature_count_ = support_vectors_.size() / vector_count_;  //length of each support vector
         mode_ = SVM_TYPE::SVM_SVC;
     } else {
-        feature_count_ = coefficients_.size() / class_count_;  //liblinear mode
-        mode_ = SVM_TYPE::SVM_LINEAR;
-        kernel_type_ = KERNEL::LINEAR;
+        this->feature_count_ = coefficients_.size() / class_count_;  //liblinear mode
+        this->mode_ = SVM_TYPE::SVM_LINEAR;
+        this->kernel_type_ = KERNEL::LINEAR;
     }
     weights_are_all_positive_ = true;
     for (int64_t i = 0; i < static_cast<int64_t>(coefficients_.size()); i++) {
@@ -267,9 +267,9 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
     if (vector_count_ == 0 && mode_ == SVM_TYPE::SVM_LINEAR) {
         scores.resize(class_count_);
         for (int64_t j = 0; j < class_count_; j++) {  //for each class
-            scores[j] = rho_[0] + kernel_dot_gil_free(x_data, current_weight_0, coefficients_,
-                                         feature_count_ * j,
-                                         feature_count_, kernel_type_);
+            scores[j] = rho_[0] + this->kernel_dot_gil_free(x_data, current_weight_0, coefficients_,
+                                         this->feature_count_ * j,
+                                         this->feature_count_, kernel_type_);
         }
     } 
     else {
@@ -279,9 +279,9 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
        
         kernels.resize(vector_count_);
         for (int64_t j = 0; j < vector_count_; j++) {
-            kernels[j] = kernel_dot_gil_free(x_data, current_weight_0, support_vectors_,
-                                           feature_count_ * j,
-                                           feature_count_, kernel_type_);
+            kernels[j] = this->kernel_dot_gil_free(x_data, current_weight_0, this->support_vectors_,
+                                           this->feature_count_ * j,
+                                           this->feature_count_, this->kernel_type_);
         }
         votes.resize(class_count_, 0);
         for (int64_t i = 0; i < class_count_; i++) {        // for each class

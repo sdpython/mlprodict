@@ -64,21 +64,21 @@ void RuntimeSVMRegressor<NTYPE>::init(
         post_transform, rho, support_vectors);
         
     one_class_ = one_class != 0;    
-    vector_count_ = n_supports;
+    this->vector_count_ = n_supports;
     Initialize();
 }
 
 
 template<typename NTYPE>
 void RuntimeSVMRegressor<NTYPE>::Initialize() {
-    if (vector_count_ > 0) {
-        feature_count_ = support_vectors_.size() / vector_count_;  //length of each support vector
-        mode_ = SVM_TYPE::SVM_SVC;
+    if (this->vector_count_ > 0) {
+        this->feature_count_ = this->support_vectors_.size() / this->vector_count_;  //length of each support vector
+        this->mode_ = SVM_TYPE::SVM_SVC;
     }
     else {
-        feature_count_ = coefficients_.size();
-        mode_ = SVM_TYPE::SVM_LINEAR;
-        kernel_type_ = KERNEL::LINEAR;
+        this->feature_count_ = coefficients_.size();
+        this->mode_ = SVM_TYPE::SVM_LINEAR;
+        this->kernel_type_ = KERNEL::LINEAR;
     }
 }
 
@@ -108,15 +108,15 @@ py::array_t<NTYPE> RuntimeSVMRegressor<NTYPE>::compute(py::array_t<NTYPE> X) con
     current_weight_0 = n * stride; \
     sum = (NTYPE)0; \
     if (mode_ == SVM_TYPE::SVM_SVC) { \
-        for (j = 0; j < vector_count_; ++j) { \
-            sum += coefficients_[j] * kernel_dot_gil_free( \
-                x_data, current_weight_0, support_vectors_, \
-                feature_count_ * j, feature_count_, kernel_type_); \
+        for (j = 0; j < this->vector_count_; ++j) { \
+            sum += this->coefficients_[j] * this->kernel_dot_gil_free( \
+                x_data, current_weight_0, this->support_vectors_, \
+                this->feature_count_ * j, this->feature_count_, this->kernel_type_); \
         } \
         sum += rho_[0]; \
     } else if (mode_ == SVM_TYPE::SVM_LINEAR) { \
-        sum = kernel_dot_gil_free(x_data, current_weight_0, coefficients_, 0, \
-                                  feature_count_, kernel_type_); \
+        sum = this->kernel_dot_gil_free(x_data, current_weight_0, this->coefficients_, 0, \
+                                        this->feature_count_, this->kernel_type_); \
         sum += rho_[0]; \
     } \
     z_data[n] = one_class_ ? (sum > 0 ? 1 : -1) : sum;
