@@ -135,7 +135,7 @@ class TestModelInfo(ExtTestCase):
         model = self.fit(XGBRegressor())
         info = analyze_model(model)
         self.assertGreater(info['ntrees'], 10)
-        self.assertEqual(info['objective'], 'reg:linear')
+        self.assertIn(info['objective'], ('reg:linear', 'reg:squarederror'))
         self.assertGreater(info['estimators_.size'], 10)
         self.assertGreater(info['leave_count'], 100)
         self.assertGreater(info['mode_count'], 2)

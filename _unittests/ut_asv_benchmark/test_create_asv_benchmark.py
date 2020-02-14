@@ -104,7 +104,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         name = os.path.join(
             temp, 'benches', '_externals', 'LGBMRegressor',
-            'bench_LGBMReg_default_b_reg_n_estimators5.py')
+            'bench_LGBMReg_default_b_reg_nest5.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
