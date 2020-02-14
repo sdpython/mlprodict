@@ -105,7 +105,7 @@ void RuntimeSVMClassifier<NTYPE>::Initialize() {
         this->vector_count_ += vectors_per_class_[i];
     }
 
-    class_count_ = classlabels_ints_.size() > 0 ? classlabels_ints_.size() : class_count_ = 1;
+    class_count_ = classlabels_ints_.size() > 0 ? classlabels_ints_.size() : 1;
     if (this->vector_count_ > 0) {
         this->feature_count_ = this->support_vectors_.size() / this->vector_count_;  //length of each support vector
         this->mode_ = SVM_TYPE::SVM_SVC;
@@ -264,10 +264,11 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
     std::vector<NTYPE> kernels;
     std::vector<int64_t> votes;
 
-    if (vector_count_ == 0 && this->mode_ == SVM_TYPE::SVM_LINEAR) {
+    if (this->vector_count_ == 0 && this->mode_ == SVM_TYPE::SVM_LINEAR) {
         scores.resize(class_count_);
         for (int64_t j = 0; j < class_count_; j++) {  //for each class
-            scores[j] = this->rho_[0] + this->kernel_dot_gil_free(x_data, current_weight_0, this->coefficients_,
+            scores[j] = this->rho_[0] + this->kernel_dot_gil_free(x_data, current_weight_0,
+                                         this->coefficients_,
                                          this->feature_count_ * j,
                                          this->feature_count_, this->kernel_type_);
         }
