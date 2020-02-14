@@ -5,7 +5,6 @@ import unittest
 from logging import getLogger
 import warnings
 import numpy
-from onnx.defs import onnx_opset_version
 from pandas import DataFrame
 from scipy.spatial.distance import cdist as scipy_cdist
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
@@ -37,7 +36,7 @@ from mlprodict.onnx_conv import (
 )
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
-from mlprodict.tools.asv_options_helper import benchmark_version
+from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 
 
 def old_topk_sorted_implementation(X, k, axis, largest):
@@ -222,9 +221,9 @@ class TestOnnxConvKNN(ExtTestCase):
             options[clr.__class__].update({'largest0': False})
 
         if target_opset is None:
-            opsets = benchmark_version().copy()
-            for op in [9, 10, 11, onnx_opset_version()]:
-                if onnx_opset_version() not in opsets:
+            opsets = []
+            for op in [9, 10, 11, get_opset_number_from_onnx()]:
+                if get_opset_number_from_onnx() not in opsets:
                     opsets.append(op)
         else:
             opsets = [target_opset]
@@ -421,7 +420,7 @@ class TestOnnxConvKNN(ExtTestCase):
         clr.fit(X_train)
 
         for to in (10, 11, 12):
-            if to > onnx_opset_version():
+            if to > get_opset_number_from_onnx():
                 break
             try:
                 model_def = to_onnx(

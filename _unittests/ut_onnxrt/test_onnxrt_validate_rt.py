@@ -5,7 +5,6 @@ import os
 import unittest
 from logging import getLogger
 from pandas import DataFrame
-from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import get_temp_folder, ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
@@ -35,7 +34,7 @@ class TestOnnxrtValidateRt(ExtTestCase):
             __file__, "temp_validate_pyrt_ort")
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LinearRegression"},
-            opset_min=onnx_opset_version(), fLOG=fLOG,
+            fLOG=fLOG,
             runtime=['python', 'onnxruntime1'], debug=False,
             filter_exp=lambda m, p: '-64' not in p,
             benchmark=True, n_features=[None, 10]))

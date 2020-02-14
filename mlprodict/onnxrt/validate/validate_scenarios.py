@@ -117,10 +117,10 @@ def build_custom_scenarios():
             }, ['cluster']),
         ],
         HistGradientBoostingClassifier: [
-            ('default', {'n_estimators': 10}),
+            ('default', {'max_iter': 10}),
         ],
         HistGradientBoostingRegressor: [
-            ('default', {'n_estimators': 10}),
+            ('default', {'max_iter': 10}),
         ],
         KNeighborsClassifier: [
             ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},

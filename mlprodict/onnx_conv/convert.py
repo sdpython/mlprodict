@@ -344,7 +344,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             res = convert_sklearn(model, initial_types=initial_types, name=name,
                                   target_opset=target_opset, options=options,
                                   dtype=new_dtype)
-        except TypeError:
+        except (TypeError, NameError):
             # older version of sklearn-onnx
             res = convert_sklearn(model, initial_types=initial_types, name=name,
                                   target_opset=target_opset, options=options)

@@ -3,7 +3,6 @@
 """
 import unittest
 from logging import getLogger
-from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
@@ -32,7 +31,7 @@ class TestRtValidateLinear(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LinearRegression"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: '-64' not in p))
         self.assertGreater(len(rows), 1)
@@ -53,7 +52,7 @@ class TestRtValidateLinear(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LogisticRegression"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: '-64' not in p))
         self.assertGreater(len(rows), 1)
@@ -74,7 +73,7 @@ class TestRtValidateLinear(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LogisticRegression"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug, n_features=20,
             filter_exp=lambda m, p: '-64' not in p))
         self.assertGreater(len(rows), 1)
@@ -99,7 +98,6 @@ class TestRtValidateLinear(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LogisticRegression"},
-            opset_min=onnx_opset_version(),
             fLOG=myprint, runtime='python', debug=debug,
             filter_exp=lambda m, p: 'dec' in p))
         self.assertGreater(len(rows), 1)

@@ -119,7 +119,7 @@ it is *1/r* faster than *scikit-learn*.
     import pandas
     import matplotlib.pyplot as plt
     import numpy
-    from onnx.defs import onnx_opset_version
+    from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 
     df1 = pandas.read_excel("bench_sum_python_compiled.xlsx")
     df2 = pandas.read_excel("bench_sum_onnxruntime1.xlsx")
@@ -139,8 +139,8 @@ it is *1/r* faster than *scikit-learn*.
 
     df1['opset'] = df1['opset'].apply(lambda x: str(last_opset) if "OK %d" % last_opset in x else "")
     df2['opset'] = df2['opset'].apply(lambda x: str(last_opset) if "OK %d" % last_opset in x else "")
-    sops = str(onnx_opset_version())
-    oksops = "OK " + str(onnx_opset_version())
+    sops = str(get_opset_number_from_onnx())
+    oksops = "OK " + str(get_opset_number_from_onnx())
     df1['opset'] = df1['opset'].apply(lambda x: sops if oksops in x else "")
     df2['opset'] = df2['opset'].apply(lambda x: sops if oksops in x else "")
 

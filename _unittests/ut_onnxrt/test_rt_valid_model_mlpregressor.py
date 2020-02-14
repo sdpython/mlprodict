@@ -4,7 +4,6 @@
 import unittest
 from logging import getLogger
 import numpy
-from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
@@ -58,7 +57,7 @@ class TestRtValidateMLPRegressor(ExtTestCase):
         debug = True
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"MLPRegressor"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: "64" not in p))
         self.assertGreater(len(rows), 1)
@@ -80,7 +79,7 @@ class TestRtValidateMLPRegressor(ExtTestCase):
         debug = True
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"MLPRegressor"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: "64" in p))
         self.assertGreater(len(rows), 1)

@@ -3,7 +3,6 @@
 """
 import unittest
 from logging import getLogger
-from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
@@ -33,7 +32,7 @@ class TestRtValidateDecisionTree(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"DecisionTreeRegressor"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='onnxruntime2', debug=debug,
             filter_exp=lambda m, p: "-64" not in p))
         self.assertGreater(len(rows), 1)
@@ -54,7 +53,7 @@ class TestRtValidateDecisionTree(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"DecisionTreeRegressor"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
@@ -66,7 +65,7 @@ class TestRtValidateDecisionTree(ExtTestCase):
         logger.disabled = True
         verbose = 1 if __name__ == "__main__" else 0
 
-        debug = False
+        debug = True
         buffer = []
 
         def myprint(*args, **kwargs):
@@ -74,8 +73,8 @@ class TestRtValidateDecisionTree(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"DecisionTreeClassifier"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
-            runtime='python', debug=debug))
+            fLOG=myprint, runtime='python', debug=debug,
+            filter_exp=lambda m, p: '-64' not in p))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
@@ -95,7 +94,7 @@ class TestRtValidateDecisionTree(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"DecisionTreeRegressor"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug, store_models=True,
             filter_exp=lambda m, p: '-64' in p))
         rows = [row for row in rows if 'OK' not in row['available']]
@@ -122,7 +121,7 @@ class TestRtValidateDecisionTree(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"DecisionTreeRegressor"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug, store_models=True,
             filter_exp=lambda m, p: '-f100' in p))
         self.assertGreater(len(buffer), 1 if debug else 0)
@@ -145,7 +144,7 @@ class TestRtValidateDecisionTree(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"DecisionTreeClassifier"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: 'm-cl' in p))
         self.assertGreater(len(rows), 1)
@@ -153,5 +152,4 @@ class TestRtValidateDecisionTree(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestRtValidateDecisionTree().test_rt_DecisionTreeClassifier_python_mlabel()
     unittest.main()

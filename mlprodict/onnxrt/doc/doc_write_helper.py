@@ -5,7 +5,6 @@
 from logging import getLogger
 from textwrap import indent, dedent
 import numpy
-from onnx.defs import onnx_opset_version
 from jinja2 import Template
 from pandas import DataFrame, notnull
 from sklearn.linear_model import LinearRegression
@@ -40,7 +39,7 @@ def _make_opset(row):
                 if len(vv) > 0:
                     opsets.append(int(k.replace("opset", "")))
     if len(opsets) == 0:
-        return "o%d" % onnx_opset_version()
+        return "o%d" % get_opset_number_from_onnx()
     val = max(opsets)
     return "o%d" % val
 

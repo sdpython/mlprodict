@@ -13,7 +13,7 @@ from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.asv_benchmark.template.skl_model_classifier import (
     TemplateBenchmarkClassifier
 )
-from mlprodict.asv_benchmark.template.skl_model_classifier_raw_score import (
+from mlprodict.asv_benchmark.template.skl_model_classifier_raw_scores import (
     TemplateBenchmarkClassifierRawScore
 )
 from mlprodict.asv_benchmark.template.skl_model_clustering import (
@@ -77,7 +77,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         self.assertEqual(set(exp), set(res))
 
     @ignore_warnings(category=(UserWarning, ))
-    def test_template_benchmark_classifier_raw_score(self):
+    def test_template_benchmark_classifier_raw_scores(self):
         if not os.path.exists('_cache'):
             os.mkdir('_cache')
         cl = TemplateBenchmarkClassifierRawScore()

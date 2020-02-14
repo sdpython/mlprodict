@@ -218,6 +218,9 @@ def _asv_class_name(model, scenario, optimisation,
             if c in ": =.+()[]{}\"'<>~":
                 continue
             r += c
+        for k, v in {'n_estimators': 'nest',
+                     'max_iter': 'mxit'}.items():
+            r = r.replace(k, v)
         return r
 
     def clean_str_list(val):
@@ -293,7 +296,7 @@ def _read_patterns():
     """
     # Reads the template
     patterns = {}
-    for suffix in ['classifier', 'classifier_raw_score', 'regressor', 'clustering',
+    for suffix in ['classifier', 'classifier_raw_scores', 'regressor', 'clustering',
                    'outlier', 'trainable_transform', 'transform',
                    'multi_classifier', 'transform_positive']:
         template_name = os.path.join(os.path.dirname(
@@ -315,7 +318,7 @@ def _select_pattern_problem(prob, patterns):
     if '-reg' in prob:
         return patterns['regressor']
     if '-cl' in prob and '-dec' in prob:
-        return patterns['classifier_raw_score']
+        return patterns['classifier_raw_scores']
     if '-cl' in prob:
         return patterns['classifier']
     if 'cluster' in prob:

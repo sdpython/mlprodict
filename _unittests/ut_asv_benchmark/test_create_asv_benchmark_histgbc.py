@@ -4,7 +4,6 @@
 import os
 import unittest
 import re
-from onnx.defs import onnx_opset_version
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.texthelper.version_helper import compare_module_version
 import sklearn
@@ -19,7 +18,6 @@ class TestCreateAsvBenchmarkHistGBC(ExtTestCase):
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_hist_gbc")
         created = create_asv_benchmark(
             location=temp, verbose=0,
-            opset_min=onnx_opset_version(),
             runtime=('scikit-learn', 'python', 'onnxruntime1'),
             exc=False, execute=True,
             models={'HistGradientBoostingClassifier'})
@@ -37,7 +35,7 @@ class TestCreateAsvBenchmarkHistGBC(ExtTestCase):
                     raise AssertionError(fullname)
                 with open(fullname, 'r', encoding='utf-8') as f:
                     content = f.read()
-                if (zoo.endswith("bench_HGBClas_default_b_cl.py") and
+                if (zoo.endswith("bench_HGBClas_default_b_cl_mxit10.py") and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "random_state=42" not in content:
                         raise AssertionError(content)

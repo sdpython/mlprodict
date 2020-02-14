@@ -24,14 +24,14 @@ def expand_onnx_options(model, optim):
         from sklearn.linear_model import LogisticRegression
         from mlprodict.tools.asv_options_helper import expand_onnx_options
 
-        for name in ['cdist', 'nozipmap', 'raw_score']:
+        for name in ['cdist', 'nozipmap', 'raw_scores']:
             print(name, ':', expand_onnx_options(LogisticRegression, name))
     """
     if optim == 'cdist':
         options = {model.__class__: {'optim': 'cdist'}}
     elif optim == 'nozipmap':
         options = {model.__class__: {'zipmap': False}}
-    elif optim == 'raw_score':
+    elif optim == 'raw_scores':
         options = {model.__class__: {'raw_scores': True, 'zipmap': False}}
     else:
         options = optim
@@ -57,7 +57,7 @@ def shorten_onnx_options(model, opts):
     if opts == {model: {'zipmap': False}}:
         return 'nozipmap'
     if opts == {model: {'raw_scores': True, 'zipmap': False}}:
-        return 'raw_score'
+        return 'raw_scores'
     return None
 
 

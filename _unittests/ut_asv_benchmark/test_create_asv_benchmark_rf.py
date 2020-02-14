@@ -4,7 +4,6 @@
 import os
 import unittest
 import re
-from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.loghelper.run_cmd import run_script
@@ -22,7 +21,6 @@ class TestCreateAsvBenchmarkRF(ExtTestCase):
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_rf")
         created = create_asv_benchmark(
             location=temp, verbose=1, fLOG=fLOG,
-            opset_min=onnx_opset_version(),
             runtime=('scikit-learn', 'python', 'onnxruntime1'),
             exc=False, execute=True, models={'RandomForestRegressor'})
         self.assertNotEmpty(created)
@@ -54,7 +52,7 @@ class TestCreateAsvBenchmarkRF(ExtTestCase):
                 if len(err) > 0:
                     raise RuntimeError(
                         "Issue with '{}'\n{}".format(fullname, err))
-                if (zoo.endswith("bench_RandomForestReg_default_b_reg.py") and
+                if (zoo.endswith("bench_RandomForestReg_default_b_reg_nest10.py") and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "random_state=42" not in content:
                         raise AssertionError(content)

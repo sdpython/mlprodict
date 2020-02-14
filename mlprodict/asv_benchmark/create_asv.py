@@ -8,7 +8,6 @@ import json
 import textwrap
 import warnings
 import re
-from onnx.defs import onnx_opset_version  # pylint: disable=W0611
 try:
     from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8  # pragma: no cover
 except ImportError:
@@ -136,9 +135,9 @@ def create_asv_benchmark(
     ``-environment existing:same``. The publishing fails.
     """
     if opset_min == -1:
-        opset_min = onnx_opset_version()
+        opset_min = get_opset_number_from_onnx()
     if opset_max == -1:
-        opset_max = onnx_opset_version()
+        opset_max = get_opset_number_from_onnx()
     if verbose > 0 and fLOG is not None:
         fLOG("[create_asv_benchmark] opset in [{}, {}].".format(
             opset_min, opset_max))

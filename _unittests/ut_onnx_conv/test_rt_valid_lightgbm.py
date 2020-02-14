@@ -3,7 +3,6 @@
 """
 import unittest
 from logging import getLogger
-from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, unittest_require_at_least
 import skl2onnx
@@ -29,7 +28,7 @@ class TestRtValidateLightGbm(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LGBMRegressor"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug, extended_list=True,
             filter_exp=lambda m, p: "-64" not in p))
         self.assertGreater(len(rows), 1)
@@ -51,7 +50,7 @@ class TestRtValidateLightGbm(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LGBMRegressor"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug, extended_list=True,
             filter_exp=lambda m, p: "-64" in p))
         self.assertGreater(len(rows), 1)
@@ -73,7 +72,7 @@ class TestRtValidateLightGbm(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LGBMClassifier"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug, extended_list=True,
             filter_exp=lambda m, p: "-64" in p))
         self.assertGreater(len(rows), 1)
@@ -94,7 +93,7 @@ class TestRtValidateLightGbm(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LGBMClassifier"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=debug, extended_list=True,
             filter_exp=lambda m, p: "-64" not in p))
         self.assertGreater(len(rows), 1)

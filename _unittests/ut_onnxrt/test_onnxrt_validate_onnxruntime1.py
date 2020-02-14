@@ -5,7 +5,6 @@ import os
 import unittest
 from logging import getLogger
 from pandas import DataFrame
-from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import get_temp_folder, ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
@@ -36,7 +35,7 @@ class TestOnnxrtValidateOnnxRuntime1(ExtTestCase):
         if False:  # pylint: disable=W0125
             rows = list(enumerate_validated_operator_opsets(
                 verbose, models={"GradientBoostingRegressor"},
-                opset_min=onnx_opset_version(), fLOG=fLOG,
+                fLOG=fLOG,
                 runtime='onnxruntime1', debug=True))
         else:
             rows = []

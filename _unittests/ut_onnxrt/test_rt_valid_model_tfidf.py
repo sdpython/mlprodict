@@ -4,7 +4,6 @@
 import unittest
 from logging import getLogger
 from pandas import DataFrame
-from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
@@ -36,8 +35,6 @@ class TestRtValidateTfIdf(ExtTestCase):
         try:
             rows = list(enumerate_validated_operator_opsets(
                 verbose, models={"TfidfVectorizer"},
-                opset_min=onnx_opset_version(),
-                opset_max=onnx_opset_version(),
                 fLOG=myprint,
                 runtime='onnxruntime1', debug=debug,
                 filter_exp=lambda m, p: True))
@@ -66,8 +63,6 @@ class TestRtValidateTfIdf(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"TfidfVectorizer"},
-            opset_min=onnx_opset_version(),
-            opset_max=onnx_opset_version(),
             fLOG=myprint,
             runtime='python', debug=debug,
             filter_exp=lambda m, p: True))
@@ -92,8 +87,7 @@ class TestRtValidateTfIdf(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"TfidfTransformer"},
-            opset_min=onnx_opset_version(),
-            opset_max=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='onnxruntime1', debug=debug,
             filter_exp=lambda m, p: True))
         self.assertGreater(len(rows), 1)

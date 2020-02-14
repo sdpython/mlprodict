@@ -519,7 +519,8 @@ def _call_conv_runtime_opset(
                              options=all_conv_options):
                     return to_onnx(itt, it, target_opset=ops, options=options,
                                    dtype=init_types[0][1],
-                                   rewrite_ops=rt in ('', None, 'python'))
+                                   rewrite_ops=rt in ('', None, 'python',
+                                                      'python_compiled'))
 
                 if verbose >= 2 and fLOG is not None:
                     fLOG(
@@ -528,7 +529,7 @@ def _call_conv_runtime_opset(
                     conv, t4 = _measure_time(fct_conv)[:2]
                     obs_op["convert_time"] = t4
                 except (RuntimeError, IndexError, AttributeError, TypeError,
-                        ValueError) as e:
+                        ValueError, NameError) as e:
                     if debug:
                         fLOG(pprint.pformat(obs_op))  # pragma: no cover
                         raise  # pragma: no cover

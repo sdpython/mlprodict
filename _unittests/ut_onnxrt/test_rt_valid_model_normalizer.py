@@ -3,7 +3,6 @@
 """
 import unittest
 from logging import getLogger
-from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.exceptions import ConvergenceWarning
@@ -33,7 +32,7 @@ class TestRtValidateNormalizer(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"Normalizer"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='onnxruntime2', debug=True))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1)
@@ -52,7 +51,7 @@ class TestRtValidateNormalizer(ExtTestCase):
 
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"Normalizer"},
-            opset_min=onnx_opset_version(), fLOG=myprint,
+            fLOG=myprint,
             runtime='python', debug=True))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1)

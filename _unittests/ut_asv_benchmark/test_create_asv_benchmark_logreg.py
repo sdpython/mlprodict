@@ -4,7 +4,6 @@
 import os
 import unittest
 import re
-from onnx.defs import onnx_opset_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.loghelper.run_cmd import run_script
@@ -21,7 +20,7 @@ class TestCreateAsvBenchmarkLogReg(ExtTestCase):
         self.assertNotEmpty(mlprodict)
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_logreg")
         created = create_asv_benchmark(
-            location=temp, verbose=3, fLOG=fLOG, opset_min=onnx_opset_version(),
+            location=temp, verbose=3, fLOG=fLOG,
             runtime=('scikit-learn', 'python', 'onnxruntime1'),
             exc=False, execute=True, models={'LogisticRegression'})
         if len(created) < 6:
@@ -67,9 +66,9 @@ class TestCreateAsvBenchmarkLogReg(ExtTestCase):
                     verif += 1
                 if (zoo.endswith("bench_LogReg_liblinear_dec_b_cl_dec_solverliblinear.py") and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
-                    if "{LogisticRegression: {'raw_score': True}}" in content:
+                    if "{LogisticRegression: {'raw_scores': True}}" in content:
                         raise AssertionError(content)
-                    elif "'raw_score'" not in content:
+                    elif "'raw_scores'" not in content:
                         raise AssertionError(content)
                     if 'decision_function' not in content:
                         raise AssertionError(content)

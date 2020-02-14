@@ -4,11 +4,11 @@
 import os
 import unittest
 import re
-from onnx.defs import onnx_opset_version
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.texthelper.version_helper import compare_module_version
 import sklearn
 from mlprodict.asv_benchmark import create_asv_benchmark
+from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 import mlprodict
 
 
@@ -19,7 +19,6 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_pyspy")
         created = create_asv_benchmark(
             location=temp, verbose=0,
-            opset_min=onnx_opset_version(),
             runtime=('scikit-learn', 'python', 'onnxruntime1'),
             exc=False, execute=True,
             models={'DecisionTreeClassifier'},
@@ -27,7 +26,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
         self.assertNotEmpty(created)
 
         reg = re.compile("class ([a-zA-Z0-9_]+)[(]")
-        ops = onnx_opset_version()
+        ops = get_opset_number_from_onnx()
         verif = False
         allnames = []
         for path, _, files in os.walk(os.path.join(temp, 'pyspy')):
@@ -53,7 +52,6 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
             __file__, "temp_create_asv_benchmark_pyspy_compiled")
         created = create_asv_benchmark(
             location=temp, verbose=0,
-            opset_min=onnx_opset_version(),
             runtime=('python', 'python_compiled'),
             exc=False, execute=True,
             models={'AdaBoostRegressor'},
@@ -61,7 +59,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
         self.assertNotEmpty(created)
 
         reg = re.compile("class ([a-zA-Z0-9_]+)[(]")
-        ops = onnx_opset_version()
+        ops = get_opset_number_from_onnx()
         verif = False
         allnames = []
         for path, _, files in os.walk(os.path.join(temp, 'pyspy')):
@@ -72,7 +70,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
                 fullname = os.path.join(path, zoo)
                 with open(fullname, 'r', encoding='utf-8') as f:
                     content = f.read()
-                if (zoo.endswith("bench_AdaBoostReg_default_b_reg_n_estimators5_1_4_%d_float_.py" % ops) and
+                if (zoo.endswith("bench_AdaBoostReg_default_b_reg_nest5_1_4_%d_float_.py" % ops) and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "setup_profile" not in content:
                         raise AssertionError(content)

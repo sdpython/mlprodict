@@ -49,7 +49,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         X[cat_cols_actual] = X[cat_cols_actual].astype('category')
         X_test[cat_cols_actual] = X_test[cat_cols_actual].astype('category')
         gbm0 = LGBMClassifier().fit(X, y)
-        exp = gbm0.predict(X_test, raw_score=False)
+        exp = gbm0.predict(X_test, raw_scores=False)
         self.assertNotEmpty(exp)
 
         init_types = [('A', StringTensorType()),
@@ -63,7 +63,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         X = X[['C']].values.astype(numpy.float32)
         X_test = X_test[['C']].values.astype(numpy.float32)
         gbm0 = LGBMClassifier().fit(X, y, categorical_feature=[0])
-        exp = gbm0.predict_proba(X_test, raw_score=False)
+        exp = gbm0.predict_proba(X_test, raw_scores=False)
         model_def = to_onnx(gbm0, X)
         self.assertIn('ZipMap', str(model_def))
 
