@@ -1,51 +1,14 @@
 // Inspired from 
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_classifier.cc.
 
-#if !defined(_CRT_SECURE_NO_WARNINGS)
-#define _CRT_SECURE_NO_WARNINGS
-#endif
-
-#include <vector>
-#include <thread>
-#include <iterator>
-
-#ifndef SKIP_PYTHON
-//#include <pybind11/iostream.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/numpy.h>
-//#include <numpy/arrayobject.h>
-
-#if USE_OPENMP
-#include <omp.h>
-#endif
-
-namespace py = pybind11;
-#endif
-
-#include "op_common_.hpp"
-#include "op_common_num_.hpp"
+#include "op_svm_classifier_common_.hpp"
 
 
 template<typename NTYPE>
-class RuntimeSVMClassifier
+class RuntimeSVMClassifier : public RuntimeSVMCommon<NTYPE>
 {
     public:
-        
-        KERNEL kernel_type_;
-        NTYPE gamma_;
-        NTYPE coef0_;
-        NTYPE degree_;
 
-        // svm_classifier.h
-        int64_t feature_count_;
-        int64_t vector_count_;
-        std::vector<NTYPE> rho_;
-        std::vector<NTYPE> coefficients_;
-        std::vector<NTYPE> support_vectors_;
-        POST_EVAL_TRANSFORM post_transform_;
-        SVM_TYPE mode_;  //how are we computing SVM? 0=LibSVC, 1=LibLinear
-    
         std::vector<NTYPE> proba_;
         std::vector<NTYPE> probb_;
         bool weights_are_all_positive_;
@@ -55,7 +18,6 @@ class RuntimeSVMClassifier
         int64_t class_count_;
         std::vector<int64_t> vectors_per_class_;
         std::vector<int64_t> starting_vector_;
-        int omp_N_;
         
     public:
         
@@ -77,19 +39,11 @@ class RuntimeSVMClassifier
         );
         
         py::tuple compute(py::array_t<NTYPE> X) const;
-    
-        std::string runtime_options();
-
-        int omp_get_max_threads();
 
 private:
 
         void Initialize();
 
-        NTYPE kernel_dot_gil_free(
-                const NTYPE* A, int64_t a, const std::vector<NTYPE>& B,
-                int64_t b, int64_t len, KERNEL k) const;
-    
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                               const py::array_t<NTYPE>& X, py::array_t<int64_t>& Y,
                               py::array_t<NTYPE>& Z) const;
@@ -101,8 +55,7 @@ private:
 
 
 template<typename NTYPE>
-RuntimeSVMClassifier<NTYPE>::RuntimeSVMClassifier(int omp_N) {
-    omp_N_ = omp_N;
+RuntimeSVMClassifier<NTYPE>::RuntimeSVMClassifier(int omp_N) : RuntimeSVMCommon(omp_N) {
 }
 
 
@@ -110,25 +63,6 @@ template<typename NTYPE>
 RuntimeSVMClassifier<NTYPE>::~RuntimeSVMClassifier() {
 }
 
-
-template<typename NTYPE>
-std::string RuntimeSVMClassifier<NTYPE>::runtime_options() {
-    std::string res;
-#ifdef USE_OPENMP
-    res += "OPENMP";
-#endif
-    return res;
-}
-
-
-template<typename NTYPE>
-int RuntimeSVMClassifier<NTYPE>::omp_get_max_threads() {
-#if USE_OPENMP
-    return ::omp_get_max_threads();
-#else
-    return 1;
-#endif
-}
 
 
 template<typename NTYPE>
@@ -145,26 +79,10 @@ void RuntimeSVMClassifier<NTYPE>::init(
             py::array_t<NTYPE> support_vectors,
             py::array_t<int64_t> vectors_per_class
     ) {
-    kernel_type_ = to_KERNEL(kernel_type);
-    array2vector(support_vectors_, support_vectors, NTYPE);
-    post_transform_ = to_POST_EVAL_TRANSFORM(post_transform);
-    array2vector(rho_, rho, NTYPE);
-    array2vector(coefficients_, coefficients, NTYPE);
+    RuntimeSVMCommon<NTYPE>::init(
+        coefficients, kernel_params, kernel_type,
+        post_transform, rho, support_vectors);
         
-    std::vector<NTYPE> kernel_params_local;
-    array2vector(kernel_params_local, kernel_params, NTYPE);
-
-    if (!kernel_params_local.empty()) {
-      gamma_ = kernel_params_local[0];
-      coef0_ = kernel_params_local[1];
-      degree_ = kernel_params_local[2];
-    }
-    else {
-      gamma_ = 0.f;
-      coef0_ = 0.f;
-      degree_ = 0.f;
-    }
-
     array2vector(proba_, prob_a, NTYPE);
     array2vector(probb_, prob_b, NTYPE);
     array2vector(vectors_per_class_, vectors_per_class, int64_t);
@@ -179,34 +97,30 @@ void RuntimeSVMClassifier<NTYPE>::init(
 
 template<typename NTYPE>
 void RuntimeSVMClassifier<NTYPE>::Initialize() {
-  vector_count_ = 0;
-  feature_count_ = 0;
-  class_count_ = 0;
-  for (int64_t i = 0; i < static_cast<int64_t>(vectors_per_class_.size()); i++) {
-    starting_vector_.push_back(vector_count_);
-    vector_count_ += vectors_per_class_[i];
-  }
-
-  if (classlabels_ints_.size() > 0) {
-    class_count_ = classlabels_ints_.size();
-  } else {
-    class_count_ = 1;
-  }
-  if (vector_count_ > 0) {
-    feature_count_ = support_vectors_.size() / vector_count_;  //length of each support vector
-    mode_ = SVM_TYPE::SVM_SVC;
-  } else {
-    feature_count_ = coefficients_.size() / class_count_;  //liblinear mode
-    mode_ = SVM_TYPE::SVM_LINEAR;
-    kernel_type_ = KERNEL::LINEAR;
-  }
-  weights_are_all_positive_ = true;
-  for (int64_t i = 0; i < static_cast<int64_t>(coefficients_.size()); i++) {
-    if (coefficients_[i] < 0) {
-      weights_are_all_positive_ = false;
-      break;
+    vector_count_ = 0;
+    feature_count_ = 0;
+    class_count_ = 0;
+    for (int64_t i = 0; i < static_cast<int64_t>(vectors_per_class_.size()); ++i) {
+        starting_vector_.push_back(vector_count_);
+        vector_count_ += vectors_per_class_[i];
     }
-  }  
+
+    class_count_ = classlabels_ints_.size() > 0 ? classlabels_ints_.size() : class_count_ = 1;
+    if (vector_count_ > 0) {
+        feature_count_ = support_vectors_.size() / vector_count_;  //length of each support vector
+        mode_ = SVM_TYPE::SVM_SVC;
+    } else {
+        feature_count_ = coefficients_.size() / class_count_;  //liblinear mode
+        mode_ = SVM_TYPE::SVM_LINEAR;
+        kernel_type_ = KERNEL::LINEAR;
+    }
+    weights_are_all_positive_ = true;
+    for (int64_t i = 0; i < static_cast<int64_t>(coefficients_.size()); i++) {
+        if (coefficients_[i] >= 0)
+            continue;
+        weights_are_all_positive_ = false;
+        break;
+    }  
 }
 
 
@@ -269,46 +183,6 @@ py::tuple RuntimeSVMClassifier<NTYPE>::compute(py::array_t<NTYPE> X) const {
         compute_gil_free(x_dims, N, stride, X, Y, Z);
     }
     return py::make_tuple(Y, Z);
-}
-
-template<typename NTYPE>
-NTYPE RuntimeSVMClassifier<NTYPE>::kernel_dot_gil_free(
-        const NTYPE* A, int64_t a,
-        const std::vector<NTYPE>& B, int64_t b,
-        int64_t len, KERNEL k) const {
-    double sum = 0;
-    const NTYPE* pA = A + a;
-    const NTYPE* pB = B.data() + b;
-    if (k == KERNEL::POLY) {
-        sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
-        sum = gamma_ * sum + coef0_;
-        if (degree_ == 2)
-            sum = sum * sum;
-        else if (degree_ == 3)
-            sum = sum * sum * sum;
-        else if (degree_ == 4) {
-            double s2 = sum * sum;
-            sum = s2 * s2;
-        }
-        else
-            sum = std::pow(sum, degree_);
-    }
-    else if (k == KERNEL::SIGMOID) {
-        sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
-        sum = gamma_ * sum + coef0_;
-        sum = std::tanh(sum);
-    } 
-    else if (k == KERNEL::RBF) {
-        for (int64_t i = len; i > 0; --i, ++pA, ++pB) {
-            double val = *pA - *pB;
-            sum += val * val;
-        }
-        sum = std::exp(-gamma_ * sum);
-    } 
-    else if (k == KERNEL::LINEAR) {
-        sum = vector_dot_product_pointer_sse(pA, pB, (size_t)len);
-    }
-    return (NTYPE)sum;
 }
 
 
@@ -377,15 +251,6 @@ void multiclass_probability(int64_t classcount, const std::vector<NTYPE>& r,
     }
 }
 
-
-py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float>& Z) {
-    return Z.mutable_unchecked<1>();
-}
-
-
-py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double>& Z) {
-    return Z.mutable_unchecked<1>();
-}
 
 template<typename NTYPE>
 void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
