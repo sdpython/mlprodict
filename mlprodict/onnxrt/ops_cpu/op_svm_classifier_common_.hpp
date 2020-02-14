@@ -52,13 +52,12 @@ class RuntimeSVMCommon
         RuntimeSVMCommon(int omp_N) { omp_N_ = omp_N; }
         ~RuntimeSVMCommon() { }
         
-        void RuntimeSVMCommon<NTYPE>::init(
-                    py::array_t<NTYPE> coefficients,
-                    py::array_t<NTYPE> kernel_params,
-                    const std::string& kernel_type,
-                    const std::string& post_transform,
-                    py::array_t<NTYPE> rho,
-                    py::array_t<NTYPE> support_vectors);
+        void init(py::array_t<NTYPE> coefficients,
+                  py::array_t<NTYPE> kernel_params,
+                  const std::string& kernel_type,
+                  const std::string& post_transform,
+                  py::array_t<NTYPE> rho,
+                  py::array_t<NTYPE> support_vectors);
                     
 
         NTYPE kernel_dot_gil_free(

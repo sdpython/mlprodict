@@ -31,7 +31,6 @@ static void Im2colWithEqualPadding(
     int64_t pad_h = pad_t;
     int64_t pad_w = pad_l;
     int64_t channel_size = height * width;
-    T * data_col_0 = data_col;
     for (int64_t channel = channels; channel--; data_im += channel_size) {
         for (int64_t kernel_row = 0; kernel_row < kernel_h; kernel_row++) {
             for (int64_t kernel_col = 0; kernel_col < kernel_w; kernel_col++) {
@@ -266,7 +265,6 @@ void gemm(bool transA, bool transB,
           NTYPE* C) {
     if (!transA && !transB) {
         // a A B + b C, dimension = M * N
-        size_t total = M * N;
         NTYPE* begin;
         register NTYPE val;
         size_t i, j, k;
