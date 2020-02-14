@@ -40,7 +40,7 @@ class RuntimeSVMClassifier : public RuntimeSVMCommon<NTYPE>
         
         py::tuple compute(py::array_t<NTYPE> X) const;
 
-private:
+    private:
 
         void Initialize();
 
@@ -55,7 +55,7 @@ private:
 
 
 template<typename NTYPE>
-RuntimeSVMClassifier<NTYPE>::RuntimeSVMClassifier(int omp_N) : RuntimeSVMCommon(omp_N) {
+RuntimeSVMClassifier<NTYPE>::RuntimeSVMClassifier(int omp_N) : RuntimeSVMCommon<NTYPE>(omp_N) {
 }
 
 

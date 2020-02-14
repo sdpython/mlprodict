@@ -30,7 +30,7 @@ namespace py = pybind11;
 template<typename NTYPE>
 class RuntimeSVMCommon
 {
-    protected:
+    public:
 
         KERNEL kernel_type_;
         NTYPE gamma_;
@@ -47,7 +47,7 @@ class RuntimeSVMCommon
         SVM_TYPE mode_;  //how are we computing SVM? 0=LibSVC, 1=LibLinear
         int omp_N_;
     
-    protected:
+    public:
 
         RuntimeSVMCommon(int omp_N) { omp_N_ = omp_N; }
         ~RuntimeSVMCommon() { }

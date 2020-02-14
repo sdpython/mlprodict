@@ -29,7 +29,7 @@ class RuntimeSVMRegressor : public RuntimeSVMCommon<NTYPE>
         
         py::array_t<NTYPE> compute(py::array_t<NTYPE> X) const;
 
-private:
+    private:
 
         void Initialize();
 
@@ -39,7 +39,7 @@ private:
 
 
 template<typename NTYPE>
-RuntimeSVMRegressor<NTYPE>::RuntimeSVMRegressor(int omp_N) : RuntimeSVMCommon(omp_N) {
+RuntimeSVMRegressor<NTYPE>::RuntimeSVMRegressor(int omp_N) : RuntimeSVMCommon<NTYPE>(omp_N) {
 }
 
 
