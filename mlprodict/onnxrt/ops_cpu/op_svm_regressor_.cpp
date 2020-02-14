@@ -76,7 +76,7 @@ void RuntimeSVMRegressor<NTYPE>::Initialize() {
         this->mode_ = SVM_TYPE::SVM_SVC;
     }
     else {
-        this->feature_count_ = coefficients_.size();
+        this->feature_count_ = this->coefficients_.size();
         this->mode_ = SVM_TYPE::SVM_LINEAR;
         this->kernel_type_ = KERNEL::LINEAR;
     }
@@ -107,17 +107,17 @@ py::array_t<NTYPE> RuntimeSVMRegressor<NTYPE>::compute(py::array_t<NTYPE> X) con
 #define COMPUTE_LOOP() \
     current_weight_0 = n * stride; \
     sum = (NTYPE)0; \
-    if (mode_ == SVM_TYPE::SVM_SVC) { \
+    if (this->mode_ == SVM_TYPE::SVM_SVC) { \
         for (j = 0; j < this->vector_count_; ++j) { \
             sum += this->coefficients_[j] * this->kernel_dot_gil_free( \
                 x_data, current_weight_0, this->support_vectors_, \
                 this->feature_count_ * j, this->feature_count_, this->kernel_type_); \
         } \
-        sum += rho_[0]; \
-    } else if (mode_ == SVM_TYPE::SVM_LINEAR) { \
+        sum += this->rho_[0]; \
+    } else if (this->mode_ == SVM_TYPE::SVM_LINEAR) { \
         sum = this->kernel_dot_gil_free(x_data, current_weight_0, this->coefficients_, 0, \
                                         this->feature_count_, this->kernel_type_); \
-        sum += rho_[0]; \
+        sum += this->rho_[0]; \
     } \
     z_data[n] = one_class_ ? (sum > 0 ? 1 : -1) : sum;
 
@@ -133,7 +133,7 @@ void RuntimeSVMRegressor<NTYPE>::compute_gil_free(
     int64_t current_weight_0, j;
     NTYPE sum;
 
-    if (N <= omp_N_) {
+    if (N <= this->omp_N_) {
         for (int64_t n = 0; n < N; ++n) {
             COMPUTE_LOOP()
         }

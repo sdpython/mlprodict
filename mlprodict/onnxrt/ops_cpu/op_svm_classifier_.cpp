@@ -101,22 +101,22 @@ void RuntimeSVMClassifier<NTYPE>::Initialize() {
     this->feature_count_ = 0;
     class_count_ = 0;
     for (int64_t i = 0; i < static_cast<int64_t>(vectors_per_class_.size()); ++i) {
-        starting_vector_.push_back(vector_count_);
+        starting_vector_.push_back(this->vector_count_);
         this->vector_count_ += vectors_per_class_[i];
     }
 
     class_count_ = classlabels_ints_.size() > 0 ? classlabels_ints_.size() : class_count_ = 1;
     if (this->vector_count_ > 0) {
-        this->feature_count_ = support_vectors_.size() / vector_count_;  //length of each support vector
-        mode_ = SVM_TYPE::SVM_SVC;
+        this->feature_count_ = this->support_vectors_.size() / this->vector_count_;  //length of each support vector
+        this->mode_ = SVM_TYPE::SVM_SVC;
     } else {
-        this->feature_count_ = coefficients_.size() / class_count_;  //liblinear mode
+        this->feature_count_ = this->coefficients_.size() / class_count_;  //liblinear mode
         this->mode_ = SVM_TYPE::SVM_LINEAR;
         this->kernel_type_ = KERNEL::LINEAR;
     }
     weights_are_all_positive_ = true;
-    for (int64_t i = 0; i < static_cast<int64_t>(coefficients_.size()); i++) {
-        if (coefficients_[i] >= 0)
+    for (int64_t i = 0; i < static_cast<int64_t>(this->coefficients_.size()); i++) {
+        if (this->coefficients_[i] >= 0)
             continue;
         weights_are_all_positive_ = false;
         break;
@@ -126,13 +126,13 @@ void RuntimeSVMClassifier<NTYPE>::Initialize() {
 
 template<typename NTYPE>
 int _set_score_svm(int64_t* output_data, NTYPE max_weight, const int64_t maxclass,
-                   const int64_t n, POST_EVAL_TRANSFORM post_transform_,
+                   const int64_t n, POST_EVAL_TRANSFORM post_transform,
                    const std::vector<NTYPE>& proba_, bool weights_are_all_positive_,
                    const std::vector<int64_t>& classlabels, int64_t posclass,
                    int64_t negclass) {
     int write_additional_scores = -1;
     if (classlabels.size() == 2) {
-        write_additional_scores = post_transform_ == POST_EVAL_TRANSFORM::NONE ? 2 : 0;
+        write_additional_scores = post_transform == POST_EVAL_TRANSFORM::NONE ? 2 : 0;
         if (proba_.size() == 0) {
             if (weights_are_all_positive_ && max_weight >= 0.5)
                 output_data[n] = classlabels[1];
@@ -168,7 +168,7 @@ py::tuple RuntimeSVMClassifier<NTYPE>::compute(py::array_t<NTYPE> X) const {
     int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];
     
     int64_t nb_columns = class_count_;
-    if (proba_.size() == 0 && vector_count_ > 0) {
+    if (proba_.size() == 0 && this->vector_count_ > 0) {
         nb_columns = class_count_ > 2
                         ? class_count_ * (class_count_ - 1) / 2
                         : 2;
@@ -264,12 +264,12 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
     std::vector<NTYPE> kernels;
     std::vector<int64_t> votes;
 
-    if (vector_count_ == 0 && mode_ == SVM_TYPE::SVM_LINEAR) {
+    if (vector_count_ == 0 && this->mode_ == SVM_TYPE::SVM_LINEAR) {
         scores.resize(class_count_);
         for (int64_t j = 0; j < class_count_; j++) {  //for each class
-            scores[j] = rho_[0] + this->kernel_dot_gil_free(x_data, current_weight_0, coefficients_,
+            scores[j] = this->rho_[0] + this->kernel_dot_gil_free(x_data, current_weight_0, this->coefficients_,
                                          this->feature_count_ * j,
-                                         this->feature_count_, kernel_type_);
+                                         this->feature_count_, this->kernel_type_);
         }
     } 
     else {
@@ -278,7 +278,7 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
         int evals = 0;
        
         kernels.resize(vector_count_);
-        for (int64_t j = 0; j < vector_count_; j++) {
+        for (int64_t j = 0; j < this->vector_count_; j++) {
             kernels[j] = this->kernel_dot_gil_free(x_data, current_weight_0, this->support_vectors_,
                                            this->feature_count_ * j,
                                            this->feature_count_, this->kernel_type_);
@@ -304,7 +304,7 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
                 for (int64_t m = 0; m < class_j_support_count; ++m, ++val1, ++val2)
                     sum += *val1 * *val2;
       
-                sum += rho_[evals];
+                sum += this->rho_[evals];
                 scores.push_back((NTYPE)sum);
                 ++(votes[sum > 0 ? i : j]);
                 ++evals;  //index into rho
@@ -312,7 +312,7 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
         }
     }
 
-    if (proba_.size() > 0 && mode_ == SVM_TYPE::SVM_SVC) {
+    if (proba_.size() > 0 && this->mode_ == SVM_TYPE::SVM_SVC) {
         //compute probabilities from the scores
         int64_t num = class_count_ * class_count_;
         std::vector<NTYPE> probsp2(num, 0.f);
@@ -350,7 +350,7 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
     // write top class
     // onnx specs expects one column per class.
     int write_additional_scores = -1;
-    if (rho_.size() == 1) {
+    if (this->rho_.size() == 1) {
         write_additional_scores = _set_score_svm(
             y_data, max_weight, maxclass, n, post_transform_, proba_,
             weights_are_all_positive_, classlabels_ints_, 1, 0);
@@ -362,7 +362,7 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
         y_data[n] = maxclass;
     }
 
-    write_scores(scores, post_transform_, z_data + zindex, write_additional_scores);
+    write_scores(scores, this->post_transform_, z_data + zindex, write_additional_scores);
 }
 
 
@@ -377,7 +377,7 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free(
     int64_t* y_data = (int64_t*)Y_.data(0);
     NTYPE* z_data = (NTYPE*)Z_.data(0);  
 
-    if (N <= omp_N_) {
+    if (N <= this->omp_N_) {
         for (int64_t n = 0; n < N; ++n) {
             compute_gil_free_loop(n, x_data, y_data, z_data, stride);
         }
