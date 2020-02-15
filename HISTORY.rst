@@ -5,9 +5,16 @@
 History
 =======
 
-current - 2019-12-15 - 0.00Mb
+current - 2020-02-15 - 0.00Mb
 =============================
 
+* `98`: mlprodict i broken after onnxruntime, skl2onnx update (2020-02-15)
+* `97`: Add runtime for operator Conv (2020-01-24)
+* `96`: Fixes #97, add runtime for operator Conv (2020-01-24)
+* `95`: Fix OnnxInference where an output and an operator share the same name (2020-01-15)
+* `94`: Raw scores are always positive for TreeEnsembleClassifier (binary) (2020-01-13)
+* `86`: Use pointers to replace treeindex in tree ensemble cpp runtime (2019-12-17)
+* `90`: Implements a C++ runtime for topk (2019-12-17)
 * `92`: Implements a C++ version of  ArrayFeatureExtractor (2019-12-14)
 * `89`: Implements a function which extracts some informations on the models (2019-12-14)
 * `88`: Fix bug in runtime of GatherElements (2019-12-14)
