@@ -78,8 +78,7 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::init(
 
 template<typename NTYPE>
 py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute(py::array_t<NTYPE> X) const {
-
-    switch(aggregate_function_) {
+    switch(this->aggregate_function_) {
         case AGGREGATE_FUNCTION::AVERAGE:
             return this->compute_agg(X, _AggregatorAverage<NTYPE>());
         case AGGREGATE_FUNCTION::SUM:
@@ -88,16 +87,14 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute(py::array_t<NTY
             return this->compute_agg(X, _AggregatorMin<NTYPE>());
         case AGGREGATE_FUNCTION::MAX:
             return this->compute_agg(X, _AggregatorMax<NTYPE>());
-        default:
-            throw std::runtime_error("Unknown aggregation function in TreeEnsemble.");
     }        
+    throw std::runtime_error("Unknown aggregation function in TreeEnsemble.");
 }
 
 
 template<typename NTYPE>
 py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute_tree_outputs(py::array_t<NTYPE> X) const {
-
-    switch(aggregate_function_) {
+    switch(this->aggregate_function_) {
         case AGGREGATE_FUNCTION::AVERAGE:
             return this->compute_tree_outputs_agg(X, _AggregatorAverage<NTYPE>());
         case AGGREGATE_FUNCTION::SUM:
@@ -106,9 +103,8 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute_tree_outputs(py
             return this->compute_tree_outputs_agg(X, _AggregatorMin<NTYPE>());
         case AGGREGATE_FUNCTION::MAX:
             return this->compute_tree_outputs_agg(X, _AggregatorMax<NTYPE>());
-        default:
-            throw std::runtime_error("Unknown aggregation function in TreeEnsemble.");
     }        
+    throw std::runtime_error("Unknown aggregation function in TreeEnsemble.");
 }
 
 
