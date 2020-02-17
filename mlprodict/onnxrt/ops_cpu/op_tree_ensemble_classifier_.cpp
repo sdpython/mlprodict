@@ -109,7 +109,7 @@ class RuntimeTreeEnsembleClassifier
                           int& write_additional_scores,
                           std::vector<NTYPE>& classes,
                           std::vector<bool>& filled,
-                          int64_t positive_label, int64_t negative_label) const;    
+                          int64_t positive_label, int64_t negative_label) const;
 };
 
 
