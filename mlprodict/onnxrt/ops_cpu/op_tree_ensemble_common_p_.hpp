@@ -1,0 +1,908 @@
+// Inspired from 
+// https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_regressor.cc.
+
+#if !defined(_CRT_SECURE_NO_WARNINGS)
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
+#include <vector>
+#include <thread>
+#include <iterator>
+#include <algorithm>
+
+#ifndef SKIP_PYTHON
+//#include <pybind11/iostream.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+//#include <numpy/arrayobject.h>
+
+#if USE_OPENMP
+#include <omp.h>
+#endif
+
+namespace py = pybind11;
+#endif
+
+#include "op_common_.hpp"
+
+
+struct TreeNodeElementId {
+    int tree_id;
+    int node_id;
+    inline bool operator == (const TreeNodeElementId& xyz) const {
+        return (tree_id == xyz.tree_id) && (node_id == xyz.node_id);
+    }
+    inline bool operator < (const TreeNodeElementId& xyz) const {
+        return ((tree_id < xyz.tree_id) || (
+                tree_id == xyz.tree_id && node_id < xyz.node_id));
+    }
+};
+
+
+template<typename NTYPE>
+struct SparseValue {
+    int64_t i;
+    NTYPE value;
+};
+
+
+enum MissingTrack {
+    NONE,
+    TRUE,
+    FALSE
+};
+
+
+template<typename NTYPE>
+struct TreeNodeElement {
+    TreeNodeElementId id;
+    int feature_id;
+    NTYPE value;
+    NTYPE hitrates;
+    NODE_MODE mode;
+    TreeNodeElement *truenode;
+    TreeNodeElement *falsenode;
+    MissingTrack missing_tracks;
+    std::vector<SparseValue<NTYPE>> weights;
+    
+    bool is_not_leave;
+    bool is_missing_track_true;
+};
+
+
+template<typename NTYPE>
+class _Aggregator
+{
+    public:
+    inline bool divide() const { return false; }
+    inline unsigned char first_has_score1(int64_t nbtree) const { return 0; }
+    inline void ProcessTreeNodePrediction1(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {}
+    void ProcessTreeNodePrediction(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {}
+    void MergePrediction(int64_t n,
+        NTYPE* predictions, unsigned char* has_predictions,
+        NTYPE* predictions2, unsigned char* has_predictions2) const {}
+};
+
+
+template<typename NTYPE>
+class _AggregatorSum : public _Aggregator<NTYPE>
+{
+    public:
+    inline unsigned char first_has_score1(int64_t nbtree) const { return nbtree > 0 ? 1 : 0; }
+    inline void ProcessTreeNodePrediction1(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {
+        *predictions += root->weights[0].value;
+    }
+
+    void ProcessTreeNodePrediction(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {
+        for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
+            predictions[it->i] += it->value;
+            has_predictions[it->i] = 1;
+        }
+    }
+
+    void MergePrediction(
+        int64_t n, NTYPE* predictions, unsigned char* has_predictions,
+        NTYPE* predictions2, unsigned char* has_predictions2) const {
+        for(int64_t i = 0; i < n; ++i) {
+            if (has_predictions2[i]) {
+                has_predictions[i] = 1;
+                predictions[i] += predictions2[i];
+            }
+        }
+    }
+};
+
+
+template<typename NTYPE>
+class _AggregatorAverage : public _AggregatorSum<NTYPE>
+{
+    public:
+    inline bool divide() const { return true; }
+};
+
+
+template<typename NTYPE>
+class _AggregatorMin : public _Aggregator<NTYPE>
+{
+    public:
+    inline void ProcessTreeNodePrediction1(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {
+        *predictions = (!(*has_predictions) || root->weights[0].value < *predictions) 
+                                ? root->weights[0].value : *predictions;
+        *has_predictions = 1;
+    }
+
+    void ProcessTreeNodePrediction(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {
+        for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
+            predictions[it->i] = (!has_predictions[it->i] || it->value < predictions[it->i]) 
+                                    ? it->value : predictions[it->i];
+            has_predictions[it->i] = 1;
+        }
+    }
+
+    void MergePrediction(
+        int64_t n, NTYPE* predictions, unsigned char* has_predictions,
+        NTYPE* predictions2, unsigned char* has_predictions2) const {
+        for(int64_t i = 0; i < n; ++i) {
+            if (has_predictions2[i]) {
+                has_predictions[i] = 1;
+                predictions[i] = has_predictions[i] && (predictions[i] < predictions2[i])
+                                    ? predictions[i]
+                                    : predictions2[i];
+            }
+        }
+    }
+};
+
+
+template<typename NTYPE>
+class _AggregatorMax : public _Aggregator<NTYPE>
+{
+    public:
+    inline void ProcessTreeNodePrediction1(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {
+        *predictions = (!(*has_predictions) || root->weights[0].value > *predictions) 
+                                ? root->weights[0].value : *predictions;
+        *has_predictions = 1;
+    }
+
+    void ProcessTreeNodePrediction(
+        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        unsigned char* has_predictions) const {
+        for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
+            predictions[it->i] = (!has_predictions[it->i] || it->value > predictions[it->i]) 
+                                    ? it->value : predictions[it->i];
+            has_predictions[it->i] = 1;
+        }
+    }
+
+    void MergePrediction(
+        int64_t n, NTYPE* predictions, unsigned char* has_predictions,
+        NTYPE* predictions2, unsigned char* has_predictions2) const {
+        for(int64_t i = 0; i < n; ++i) {
+            if (has_predictions2[i]) {
+                has_predictions[i] = 1;
+                predictions[i] = has_predictions[i] && (predictions[i] > predictions2[i])
+                                    ? predictions[i]
+                                    : predictions2[i];
+            }
+        }
+    }
+};
+
+
+template<typename NTYPE>
+class RuntimeTreeEnsembleCommonP
+{
+    public:
+                
+        // tree_ensemble_regressor.h
+        std::vector<NTYPE> base_values_;
+        int64_t n_targets_or_classes_;
+        POST_EVAL_TRANSFORM post_transform_;
+        AGGREGATE_FUNCTION aggregate_function_;
+        int64_t nbnodes_;
+        TreeNodeElement<NTYPE>* nodes_;
+        std::vector<TreeNodeElement<NTYPE>*> roots_;
+
+        int64_t max_tree_depth_;
+        int64_t nbtrees_;
+        bool same_mode_;
+        bool has_missing_tracks_;
+        int omp_tree_;
+        int omp_N_;
+    
+    public:
+        
+        RuntimeTreeEnsembleCommonP(int omp_tree, int omp_N);
+        ~RuntimeTreeEnsembleCommonP();
+
+        void init(
+            const std::string &aggregate_function,
+            py::array_t<NTYPE> base_values,
+            int64_t n_targets_or_classes,
+            py::array_t<int64_t> nodes_falsenodeids,
+            py::array_t<int64_t> nodes_featureids,
+            py::array_t<NTYPE> nodes_hitrates,
+            py::array_t<int64_t> nodes_missing_value_tracks_true,
+            const std::vector<std::string>& nodes_modes,
+            py::array_t<int64_t> nodes_nodeids,
+            py::array_t<int64_t> nodes_treeids,
+            py::array_t<int64_t> nodes_truenodeids,
+            py::array_t<NTYPE> nodes_values,
+            const std::string& post_transform,
+            py::array_t<int64_t> target_class_ids,
+            py::array_t<int64_t> target_class_nodeids,
+            py::array_t<int64_t> target_class_treeids,
+            py::array_t<NTYPE> target_class_weights);
+        
+        TreeNodeElement<NTYPE> * ProcessTreeNodeLeave(
+            TreeNodeElement<NTYPE> * root, const NTYPE* x_data) const;
+    
+        std::string runtime_options();
+        std::vector<std::string> get_nodes_modes() const;
+        
+        int omp_get_max_threads();
+        
+        template<typename AGG>
+        py::array_t<NTYPE> compute_tree_outputs_agg(py::array_t<NTYPE> X, const AGG &agg) const;    
+
+        py::array_t<int> debug_threshold(py::array_t<NTYPE> values) const;
+        
+        template<typename AGG>
+        py::array_t<NTYPE> compute_agg(py::array_t<NTYPE> X, const AGG &agg) const;
+        
+        template<typename AGG>
+        void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
+                              const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
+                              const AGG &agg) const;        
+};
+
+
+template<typename NTYPE>
+RuntimeTreeEnsembleCommonP<NTYPE>::RuntimeTreeEnsembleCommonP(int omp_tree, int omp_N) {
+    omp_tree_ = omp_tree;
+    omp_N_ = omp_N;
+}
+
+
+template<typename NTYPE>
+RuntimeTreeEnsembleCommonP<NTYPE>::~RuntimeTreeEnsembleCommonP() {
+    delete [] nodes_;
+}
+
+
+template<typename NTYPE>
+std::string RuntimeTreeEnsembleCommonP<NTYPE>::runtime_options() {
+    std::string res;
+#ifdef USE_OPENMP
+    res += "OPENMP";
+#endif
+    return res;
+}
+
+
+template<typename NTYPE>
+int RuntimeTreeEnsembleCommonP<NTYPE>::omp_get_max_threads() {
+#if USE_OPENMP
+    return ::omp_get_max_threads();
+#else
+    return 1;
+#endif
+}
+
+
+template<typename NTYPE>
+void RuntimeTreeEnsembleCommonP<NTYPE>::init(
+            const std::string &aggregate_function,
+            py::array_t<NTYPE> base_values,
+            int64_t n_targets_or_classes,
+            py::array_t<int64_t> nodes_falsenodeids,
+            py::array_t<int64_t> nodes_featureids,
+            py::array_t<NTYPE> nodes_hitrates,
+            py::array_t<int64_t> nodes_missing_value_tracks_true,
+            const std::vector<std::string>& nodes_modes,
+            py::array_t<int64_t> nodes_nodeids,
+            py::array_t<int64_t> nodes_treeids,
+            py::array_t<int64_t> nodes_truenodeids,
+            py::array_t<NTYPE> nodes_values,
+            const std::string& post_transform,
+            py::array_t<int64_t> target_class_ids,
+            py::array_t<int64_t> target_class_nodeids,
+            py::array_t<int64_t> target_class_treeids,
+            py::array_t<NTYPE> target_class_weights) {
+
+    aggregate_function_ = to_AGGREGATE_FUNCTION(aggregate_function);        
+    array2vector(base_values_, base_values, NTYPE);
+    n_targets_or_classes_ = n_targets_or_classes;
+
+    std::vector<int64_t> nodes_treeids_;
+    std::vector<int64_t> nodes_nodeids_;
+    std::vector<int64_t> nodes_featureids_;
+    std::vector<NTYPE> nodes_values_;
+    std::vector<NTYPE> nodes_hitrates_;
+    std::vector<NODE_MODE> nodes_modes_;
+    std::vector<int64_t> nodes_truenodeids_;
+    std::vector<int64_t> nodes_falsenodeids_;
+    std::vector<int64_t> missing_tracks_true_;
+
+    array2vector(nodes_falsenodeids_, nodes_falsenodeids, int64_t);
+    array2vector(nodes_featureids_, nodes_featureids, int64_t);
+    array2vector(nodes_hitrates_, nodes_hitrates, NTYPE);
+    array2vector(missing_tracks_true_, nodes_missing_value_tracks_true, int64_t);
+    array2vector(nodes_truenodeids_, nodes_truenodeids, int64_t);
+    //nodes_modes_names_ = nodes_modes;
+    array2vector(nodes_nodeids_, nodes_nodeids, int64_t);
+    array2vector(nodes_treeids_, nodes_treeids, int64_t);
+    array2vector(nodes_truenodeids_, nodes_truenodeids, int64_t);
+    array2vector(nodes_values_, nodes_values, NTYPE);
+    array2vector(nodes_truenodeids_, nodes_truenodeids, int64_t);
+    post_transform_ = to_POST_EVAL_TRANSFORM(post_transform);
+
+    std::vector<int64_t> target_class_nodeids_;
+    std::vector<int64_t> target_class_treeids_;
+    std::vector<int64_t> target_class_ids_;
+    std::vector<NTYPE> target_class_weights_;    
+    
+    array2vector(target_class_ids_, target_class_ids, int64_t);
+    array2vector(target_class_nodeids_, target_class_nodeids, int64_t);
+    array2vector(target_class_treeids_, target_class_treeids, int64_t);
+    array2vector(target_class_weights_, target_class_weights, NTYPE);
+    
+    // additional members
+    nodes_modes_.resize(nodes_modes.size());
+    same_mode_ = true;
+    int fpos = -1;
+    for(int i = 0; i < (int)nodes_modes.size(); ++i) {
+        nodes_modes_[i] = to_NODE_MODE(nodes_modes[i]);
+        if (nodes_modes_[i] == NODE_MODE::LEAF)
+            continue;
+        if (fpos == -1) {
+            fpos = i;
+            continue;
+        }
+        if (nodes_modes_[i] != nodes_modes_[fpos])
+            same_mode_ = false;
+    }
+
+    max_tree_depth_ = 1000;
+    
+    // filling nodes
+
+    /*
+    std::vector<TreeNodeElement<NTYPE>> nodes_;
+    std::vector<TreeNodeElement<NTYPE>*> roots_;
+    */
+    nbnodes_ = nodes_treeids_.size();
+    nodes_ = new TreeNodeElement<NTYPE>[(int)nbnodes_];
+    roots_.clear();
+    std::map<TreeNodeElementId, TreeNodeElement<NTYPE>*> idi;
+    size_t i;
+    
+    for (i = 0; i < nodes_treeids_.size(); ++i) {
+        TreeNodeElement<NTYPE> * node = nodes_ + i;
+        node->id.tree_id = (int)nodes_treeids_[i];
+        node->id.node_id = (int)nodes_nodeids_[i];
+        node->feature_id = (int)nodes_featureids_[i];
+        node->value = nodes_values_[i];
+        node->hitrates = i < nodes_hitrates_.size() ? nodes_hitrates_[i] : -1;
+        node->mode = nodes_modes_[i];
+        node->is_not_leave = node->mode != NODE_MODE::LEAF;
+        node->truenode = NULL; // nodes_truenodeids_[i];
+        node->falsenode = NULL; // nodes_falsenodeids_[i];
+        node->missing_tracks = i < (size_t)missing_tracks_true_.size()
+                                    ? (missing_tracks_true_[i] == 1 
+                                            ? MissingTrack::TRUE : MissingTrack::FALSE)
+                                    : MissingTrack::NONE;
+        node->is_missing_track_true = node->missing_tracks == MissingTrack::TRUE;
+        if (idi.find(node->id) != idi.end()) {
+            char buffer[1000];
+            sprintf(buffer, "Node %d in tree %d is already there.",
+                    (int)node->id.node_id, (int)node->id.tree_id);
+            throw std::runtime_error(buffer);
+        }
+        idi.insert(std::pair<TreeNodeElementId, TreeNodeElement<NTYPE>*>(node->id, node));
+    }
+
+    TreeNodeElementId coor;
+    TreeNodeElement<NTYPE> * it;
+    for(i = 0; i < (size_t)nbnodes_; ++i) {
+        it = nodes_ + i;
+        if (!it->is_not_leave)
+            continue;
+        coor.tree_id = it->id.tree_id;
+        coor.node_id = (int)nodes_truenodeids_[i];
+
+        auto found = idi.find(coor);
+        if (found == idi.end()) {
+            char buffer[1000];
+            sprintf(buffer, "Unable to find node %d-%d (truenode).",
+                    (int)coor.tree_id, (int)coor.node_id);
+            throw std::runtime_error(buffer);
+        }
+        if (coor.node_id >= 0 && coor.node_id < nbnodes_) {
+            it->truenode = found->second;
+            if ((it->truenode->id.tree_id != it->id.tree_id) ||
+                (it->truenode->id.node_id == it->id.node_id)) {
+                char buffer[1000];
+                sprintf(
+                    buffer,
+                    "truenode [%d] is pointing either to itself [node id=%d], either to another tree [%d!=%d-%d].",
+                    (int)i, (int)it->id.node_id, (int)it->id.tree_id,
+                    (int)it->truenode->id.tree_id, (int)it->truenode->id.tree_id);
+                throw std::runtime_error(buffer);
+            }
+        }
+        else it->truenode = NULL;
+
+        coor.node_id = (int)nodes_falsenodeids_[i];
+        found = idi.find(coor);
+        if (found == idi.end()) {
+            char buffer[1000];
+            sprintf(buffer, "Unable to find node %d-%d (falsenode).", (int)coor.tree_id, (int)coor.node_id);
+            throw std::runtime_error(buffer);
+        }
+        if (coor.node_id >= 0 && coor.node_id < nbnodes_) {
+            it->falsenode = found->second;
+            if ((it->falsenode->id.tree_id != it->id.tree_id) ||
+                (it->falsenode->id.node_id == it->id.node_id )) {
+                throw std::runtime_error("One falsenode is pointing either to itself, either to another tree.");
+                char buffer[1000];
+                sprintf(buffer, "falsenode [%d] is pointing either to itself [node id=%d], either to another tree [%d!=%d-%d].",
+                    (int)i, (int)it->id.node_id, (int)it->id.tree_id,
+                    (int)it->falsenode->id.tree_id, (int)it->falsenode->id.tree_id);
+                throw std::runtime_error(buffer);
+            }
+        }
+        else it->falsenode = NULL;
+    }
+    
+    int64_t previous = -1;
+    for(i = 0; i < (size_t)nbnodes_; ++i) {
+        if ((previous == -1) || (previous != nodes_[i].id.tree_id))
+            roots_.push_back(nodes_ + i);
+        previous = nodes_[i].id.tree_id;
+    }
+        
+    TreeNodeElementId ind;
+    SparseValue<NTYPE> w;
+    for (i = 0; i < target_class_nodeids_.size(); i++) {
+        ind.tree_id = (int)target_class_treeids_[i];
+        ind.node_id = (int)target_class_nodeids_[i];
+        if (idi.find(ind) == idi.end()) {
+            char buffer[1000];
+            sprintf(buffer, "Unable to find node %d-%d (weights).", (int)coor.tree_id, (int)coor.node_id);
+            throw std::runtime_error(buffer);
+        }
+        w.i = target_class_ids_[i];
+        w.value = target_class_weights_[i];
+        idi[ind]->weights.push_back(w);
+    }
+    
+    nbtrees_ = roots_.size();
+    has_missing_tracks_ = false;
+    for (auto it = missing_tracks_true_.begin(); it != missing_tracks_true_.end(); ++it) {
+        if (*it) {
+            has_missing_tracks_ = true;
+            break;
+        }
+    }
+}
+
+
+template<typename NTYPE>
+std::vector<std::string> RuntimeTreeEnsembleCommonP<NTYPE>::get_nodes_modes() const {
+    std::vector<std::string> res;
+    for(int i = 0; i < (int)nbnodes_; ++i)
+        res.push_back(to_str(nodes_[i].mode));
+    return res;
+}
+
+
+template<typename NTYPE>
+template<typename AGG>
+py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_agg(py::array_t<NTYPE> X, const AGG &agg) const {
+    // const Tensor& X = *context->Input<Tensor>(0);
+    // const TensorShape& x_shape = X.Shape();    
+    std::vector<int64_t> x_dims;
+    arrayshape2vector(x_dims, X);
+    if (x_dims.size() != 2)
+        throw std::runtime_error("X must have 2 dimensions.");
+
+    // Does not handle 3D tensors
+    bool xdims1 = x_dims.size() == 1;
+    int64_t stride = xdims1 ? x_dims[0] : x_dims[1];  
+    int64_t N = xdims1 ? 1 : x_dims[0];
+
+    // Tensor* Y = context->Output(0, TensorShape({N}));
+    // auto* Z = context->Output(1, TensorShape({N, class_count_}));
+    py::array_t<NTYPE> Z(x_dims[0] * n_targets_or_classes_);
+
+    {
+        py::gil_scoped_release release;
+        compute_gil_free(x_dims, N, stride, X, Z, agg);
+    }
+    return Z;
+}
+
+
+py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float>& Z) {
+    return Z.mutable_unchecked<1>();
+}
+
+
+py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double>& Z) {
+    return Z.mutable_unchecked<1>();
+}
+
+#define LOOP_D1_N10() \
+    scores = 0; \
+    has_scores = agg.first_has_score1(nbtrees_); \
+    for (j = 0; j < (size_t)nbtrees_; ++j) \
+        agg.ProcessTreeNodePrediction1( \
+            &scores, \
+            ProcessTreeNodeLeave(roots_[j], x_data + i * stride), \
+            &has_scores); \
+    val = has_scores \
+          ? (agg.divide() ? scores / roots_.size() : scores) + origin \
+          : origin; \
+    *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) \
+                ? ComputeProbit(val) : val;
+
+#define LOOP_D10_N10() \
+    current_weight_0 = i * stride; \
+    std::fill(scores.begin(), scores.end(), (NTYPE)0); \
+    std::fill(outputs.begin(), outputs.end(), (NTYPE)0); \
+    std::fill(has_scores.begin(), has_scores.end(), 0); \
+    for (j = 0; j < roots_.size(); ++j) \
+        agg.ProcessTreeNodePrediction( \
+            scores.data(), \
+            ProcessTreeNodeLeave(roots_[j], x_data + current_weight_0), \
+            has_scores.data()); \
+    for (jt = 0; jt < n_targets_or_classes_; ++jt) { \
+        val = base_values_.size() == (size_t)n_targets_or_classes_ ? base_values_[jt] : 0.f; \
+        val = (has_scores[jt])  \
+                ?  val + (agg.divide() ? scores[jt] / roots_.size() : scores[jt]) \
+                : val; \
+        outputs[jt] = val; \
+    } \
+    write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_or_classes_), -1);
+
+
+template<typename NTYPE>
+template<typename AGG>
+void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
+                const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
+                const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
+                const AGG &agg) const {
+
+    // expected primary-expression before ')' token
+    auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
+                    
+    const NTYPE* x_data = X.data(0);
+
+    if (n_targets_or_classes_ == 1) {
+        NTYPE origin = base_values_.size() == 1 ? base_values_[0] : 0.f;
+        if (N == 1) {
+            NTYPE scores = 0;
+            unsigned char has_scores = agg.first_has_score1(nbtrees_);
+
+            if (nbtrees_ <= omp_tree_) {
+                for (int64_t j = 0; j < nbtrees_; ++j)
+                    agg.ProcessTreeNodePrediction1(
+                        &scores,
+                        ProcessTreeNodeLeave(roots_[j], x_data),
+                        &has_scores);
+            }
+            else {
+                #ifdef USE_OPENMP
+                #pragma omp parallel for reduction(|: has_scores) reduction(+: scores) 
+                #endif
+                for (int64_t j = 0; j < nbtrees_; ++j)
+                    agg.ProcessTreeNodePrediction1(
+                        &scores,
+                        ProcessTreeNodeLeave(roots_[j], x_data),
+                        &has_scores);
+            }
+
+            NTYPE val = has_scores
+                    ? (agg.divide() ? scores / roots_.size() : scores) + origin
+                    : origin;
+            *((NTYPE*)Z_.data(0)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
+                                        ? ComputeProbit(val) : val;
+        }
+        else {
+            NTYPE scores;
+            unsigned char has_scores;
+            NTYPE val;
+            size_t j;
+            
+            if (N <= omp_N_) {
+                for (int64_t i = 0; i < N; ++i) {
+                    LOOP_D1_N10()
+                }
+            }
+            else {
+                #ifdef USE_OPENMP
+                #pragma omp parallel for private(scores, has_scores, val, j)
+                #endif
+                for (int64_t i = 0; i < N; ++i) {
+                    LOOP_D1_N10()
+                }
+            }
+        }
+    }
+    else {
+        if (N == 1) {
+            std::vector<NTYPE> scores(n_targets_or_classes_, (NTYPE)0);
+            std::vector<unsigned char> has_scores(n_targets_or_classes_, 0);
+
+            #ifdef USE_OPENMP
+            #pragma omp parallel
+            #endif
+            {
+                std::vector<NTYPE> private_scores(scores);
+                std::vector<unsigned char> private_has_scores(has_scores);
+                #ifdef USE_OPENMP
+                #pragma omp for
+                #endif
+                for (int64_t j = 0; j < nbtrees_; ++j)
+                    agg.ProcessTreeNodePrediction(
+                        private_scores.data(),
+                        ProcessTreeNodeLeave(roots_[j], x_data),
+                        private_has_scores.data());
+
+                #ifdef USE_OPENMP
+                #pragma omp critical
+                #endif
+                agg.MergePrediction(n_targets_or_classes_,
+                    &scores[0], &has_scores[0],
+                    private_scores.data(), private_has_scores.data());
+            }
+            
+            std::vector<NTYPE> outputs(n_targets_or_classes_);
+            NTYPE val;
+            for (int64_t j = 0; j < n_targets_or_classes_; ++j) {
+                //reweight scores based on number of voters
+                val = base_values_.size() == (size_t)n_targets_or_classes_ ? base_values_[j] : 0.f;
+                val = (has_scores[j]) 
+                        ?  val + (agg.divide() ? scores[j] / roots_.size() : scores[j])
+                        : val;
+                outputs[j] = val;
+            }
+            write_scores(outputs, post_transform_, (NTYPE*)Z_.data(0), -1);
+        }
+        else {
+            if (N <= omp_N_) {
+                std::vector<NTYPE> scores(n_targets_or_classes_, (NTYPE)0);
+                std::vector<NTYPE> outputs(n_targets_or_classes_);
+                std::vector<unsigned char> has_scores(n_targets_or_classes_, 0);
+                int64_t current_weight_0;
+                NTYPE val;
+                size_t j;
+                int64_t jt;
+
+                for (int64_t i = 0; i < N; ++i) {
+                    LOOP_D10_N10()
+                }
+            }
+            else {
+                #ifdef USE_OPENMP
+                #pragma omp parallel
+                #endif
+                {
+                    std::vector<NTYPE> scores(n_targets_or_classes_, (NTYPE)0);
+                    std::vector<NTYPE> outputs(n_targets_or_classes_);
+                    std::vector<unsigned char> has_scores(n_targets_or_classes_, 0);
+                    int64_t current_weight_0;
+                    NTYPE val;
+                    size_t j;
+                    int64_t jt;
+
+                    #ifdef USE_OPENMP
+                    #pragma omp for
+                    #endif
+                    for (int64_t i = 0; i < N; ++i) {
+                        LOOP_D10_N10()
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+#define TREE_FIND_VALUE(CMP) \
+    if (has_missing_tracks_) { \
+        while (root->is_not_leave) { \
+            val = x_data[root->feature_id]; \
+            root = (val CMP root->value || \
+                    (root->is_missing_track_true && _isnan_(val) )) \
+                        ? root->truenode : root->falsenode; \
+        } \
+    } \
+    else { \
+        while (root->is_not_leave) { \
+            val = x_data[root->feature_id]; \
+            root = val CMP root->value ? root->truenode : root->falsenode; \
+        } \
+    }
+
+
+template<typename NTYPE>
+TreeNodeElement<NTYPE> * 
+        RuntimeTreeEnsembleCommonP<NTYPE>::ProcessTreeNodeLeave(
+            TreeNodeElement<NTYPE> * root, const NTYPE* x_data) const {
+    NTYPE val;
+    if (same_mode_) {
+        switch(root->mode) {
+            case NODE_MODE::BRANCH_LEQ:
+                if (has_missing_tracks_) {
+                    while (root->is_not_leave) {
+                        val = x_data[root->feature_id];
+                        root = (val <= root->value ||
+                                (root->is_missing_track_true && _isnan_(val) ))
+                                    ? root->truenode : root->falsenode;
+                    }
+                }
+                else {
+                    while (root->is_not_leave) {
+                        val = x_data[root->feature_id];
+                        root = val <= root->value ? root->truenode : root->falsenode;
+                    }
+                }
+                break;
+            case NODE_MODE::BRANCH_LT:
+                TREE_FIND_VALUE(<)
+                break;
+            case NODE_MODE::BRANCH_GTE:
+                TREE_FIND_VALUE(>=)
+                break;
+            case NODE_MODE::BRANCH_GT:
+                TREE_FIND_VALUE(>)
+                break;
+            case NODE_MODE::BRANCH_EQ:
+                TREE_FIND_VALUE(==)
+                break;
+            case NODE_MODE::BRANCH_NEQ:
+                TREE_FIND_VALUE(!=)
+                break;
+            case NODE_MODE::LEAF:
+                break;
+            default: {
+                std::ostringstream err_msg;
+                err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(root->mode);
+                throw std::runtime_error(err_msg.str());
+            }
+        }
+    }
+    else {  // Different rules to compare to node thresholds.
+        NTYPE threshold;
+        while (root->is_not_leave) {
+            val = x_data[root->feature_id];
+            threshold = root->value;
+            switch (root->mode) {
+                case NODE_MODE::BRANCH_LEQ:
+                    root = val <= threshold || (root->is_missing_track_true && _isnan_(val))
+                              ? root->truenode
+                              : root->falsenode;
+                    break;
+                case NODE_MODE::BRANCH_LT:
+                    root = val < threshold || (root->is_missing_track_true && _isnan_(val))
+                              ? root->truenode
+                              : root->falsenode;
+                    break;
+                case NODE_MODE::BRANCH_GTE:
+                    root = val >= threshold || (root->is_missing_track_true && _isnan_(val))
+                              ? root->truenode
+                              : root->falsenode;
+                    break;
+                case NODE_MODE::BRANCH_GT:
+                    root = val > threshold || (root->is_missing_track_true && _isnan_(val))
+                              ? root->truenode
+                              : root->falsenode;
+                    break;
+                case NODE_MODE::BRANCH_EQ:
+                    root = val == threshold || (root->is_missing_track_true && _isnan_(val))
+                              ? root->truenode
+                              : root->falsenode;
+                    break;
+                case NODE_MODE::BRANCH_NEQ:
+                    root = val != threshold || (root->is_missing_track_true && _isnan_(val))
+                              ? root->truenode
+                              : root->falsenode;
+                    break;
+                default: {
+                    std::ostringstream err_msg;
+                    err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(root->mode);
+                    throw std::runtime_error(err_msg.str());
+                }
+            }
+        }      
+    }
+    return root;
+}
+
+
+template<typename NTYPE>
+py::array_t<int> RuntimeTreeEnsembleCommonP<NTYPE>::debug_threshold(
+        py::array_t<NTYPE> values) const {
+    std::vector<int> result(values.size() * nbnodes_);
+    const NTYPE* x_data = values.data(0);
+    const NTYPE* end = x_data + values.size();
+    const NTYPE* pv;
+    auto itb = result.begin();
+    auto nodes_end = nodes_ + nbnodes_;
+    for(auto it = nodes_; it != nodes_end; ++it)
+        for(pv=x_data; pv != end; ++pv, ++itb)
+            *itb = *pv <= it->value ? 1 : 0;
+    std::vector<ssize_t> shape = { nbnodes_, values.size() };
+    std::vector<ssize_t> strides = { (ssize_t)(values.size()*sizeof(int)),
+                                     (ssize_t)sizeof(int) };
+    return py::array_t<NTYPE>(
+        py::buffer_info(
+            &result[0],
+            sizeof(NTYPE),
+            py::format_descriptor<NTYPE>::format(),
+            2,
+            shape,                                   /* shape of the matrix       */
+            strides                                  /* strides for each axis     */
+        ));
+}
+
+
+template<typename NTYPE>
+template<typename AGG>
+py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_tree_outputs_agg(py::array_t<NTYPE> X, const AGG &agg) const {
+    
+    std::vector<int64_t> x_dims;
+    arrayshape2vector(x_dims, X);
+    if (x_dims.size() != 2)
+        throw std::runtime_error("X must have 2 dimensions.");
+
+    int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];  
+    int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];
+    
+    std::vector<NTYPE> result(N * roots_.size());
+    const NTYPE* x_data = X.data(0);
+    auto itb = result.begin();
+    
+    for (int64_t i=0; i < N; ++i) {  //for each class or target
+        int64_t current_weight_0 = i * stride;
+        for (size_t j = 0; j < roots_.size(); ++j, ++itb) {
+            std::vector<NTYPE> scores(n_targets_or_classes_, (NTYPE)0);
+            std::vector<unsigned char> has_scores(n_targets_or_classes_, 0);
+            agg.ProcessTreeNodePrediction(
+                    scores.data(),
+                    ProcessTreeNodeLeave(roots_[j], x_data + current_weight_0),
+                    has_scores.data());
+            *itb = scores[0];
+        }
+    }
+    
+    std::vector<ssize_t> shape = { (ssize_t)N, (ssize_t)roots_.size() };
+    std::vector<ssize_t> strides = { (ssize_t)(roots_.size()*sizeof(NTYPE)),
+                                     (ssize_t)sizeof(NTYPE) };
+    return py::array_t<NTYPE>(
+        py::buffer_info(
+            &result[0],
+            sizeof(NTYPE),
+            py::format_descriptor<NTYPE>::format(),
+            2,
+            shape,                                   /* shape of the matrix       */
+            strides                                  /* strides for each axis     */
+        ));
+}
