@@ -255,34 +255,32 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE>
         inline void FinalizeScores1(NTYPE* Z, NTYPE& val,
                                     unsigned char& has_score,
                                     int64_t * Y = 0) const {
-            NTYPE maxweight = (NTYPE)0;
-            int64_t maxclass = -1;
             std::vector<NTYPE> scores(2);
             unsigned char has_scores[2] = {1, 0};
 
             int write_additional_scores = -1;
-            if (base_values_->size() == 2) {
+            if (this->base_values_->size() == 2) {
                 // add base values
-                scores[1] = (*base_values_)[1] + val;
+                scores[1] = (*(this->base_values_))[1] + val;
                 scores[0] = -scores[1];
                 //has_score = true;
                 has_scores[1] = 1;
             }
-            else if (base_values_->size() == 1) {
+            else if (this->base_values_->size() == 1) {
                 // ONNX is vague about two classes and only one base_values.
-                scores[0] = val + (*base_values_)[0];
+                scores[0] = val + (*(this->base_values_))[0];
                 //if (!has_scores[1])
                 //scores.pop_back();
                 scores[0] = val;
             }
-            else if (base_values_->size() == 0) {
+            else if (this->base_values_->size() == 0) {
                 //if (!has_score)
                 //  scores.pop_back();
                 scores[0] = val;
             }
 
             *Y = _set_score_binary(write_additional_scores, &(scores[0]), has_scores);
-            write_scores(scores, post_transform_, Z, write_additional_scores);            
+            write_scores(scores, this->post_transform_, Z, write_additional_scores);            
         }
 
         void FinalizeScores(std::vector<NTYPE>& scores,
@@ -293,45 +291,45 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE>
             int64_t maxclass = -1;
 
             int write_additional_scores = -1;
-            if (n_targets_or_classes_ > 2) {
+            if (this->n_targets_or_classes_ > 2) {
                 // add base values
-                for (int64_t k = 0, end = static_cast<int64_t>(base_values_->size()); k < end; ++k) {
+                for (int64_t k = 0, end = static_cast<int64_t>(this->base_values_->size()); k < end; ++k) {
                     if (!has_scores[k]) {
                       has_scores[k] = true;
-                      scores[k] = (*base_values_)[k];
+                      scores[k] = (*(this->base_values_))[k];
                     }
                     else {
-                        scores[k] += (*base_values_)[k];
+                        scores[k] += (*(this->base_values_))[k];
                     }
                 }
                 get_max_weight(scores, has_scores, maxclass, maxweight);
                 *Y = (*class_labels_)[maxclass];
             }
             else { // binary case
-                if (base_values_->size() == 2) {
+                if (this->base_values_->size() == 2) {
                     // add base values
                     if (has_scores[1]) {
                         // base_value_[0] is not used.
                         // It assumes base_value[0] == base_value[1] in this case.
                         // The specification does not forbid it but does not
                         // say what the output should be in that case.
-                        scores[1] = (*base_values_)[1] + scores[0];
+                        scores[1] = (*(this->base_values_))[1] + scores[0];
                         scores[0] = -scores[1];
                         has_scores[1] = true;
                     }
                     else {
                         // binary as multiclass
-                        scores[1] += (*base_values_)[1];
-                        scores[0] += (*base_values_)[0];
+                        scores[1] += (*(this->base_values_))[1];
+                        scores[0] += (*(this->base_values_))[0];
                     }
                 }
-                else if (base_values_->size() == 1) {
+                else if (this->base_values_->size() == 1) {
                     // ONNX is vague about two classes and only one base_values.
-                    scores[0] += (*base_values_)[0];
+                    scores[0] += (*(this->base_values_))[0];
                     if (!has_scores[1])
                       scores.pop_back();
                 }
-                else if (base_values_->size() == 0) {
+                else if (this->base_values_->size() == 0) {
                     if (!has_scores[1])
                       scores.pop_back();
                 }
@@ -339,7 +337,7 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE>
                 *Y = _set_score_binary(write_additional_scores, &(scores[0]), &(has_scores[0]));
             }
 
-            write_scores(scores, post_transform_, Z, write_additional_scores);
+            write_scores(scores, this->post_transform_, Z, write_additional_scores);
         }
 };
 
@@ -359,9 +357,9 @@ class _AggregatorAverage : public _AggregatorSum<NTYPE>
                                     unsigned char& has_scores,
                                     int64_t * Y = 0) const {
             val = has_scores
-                  ? val / n_trees_ + origin_
-                  : origin_;
-            *Z = post_transform_ == POST_EVAL_TRANSFORM::PROBIT ? ComputeProbit(val) : val;
+                  ? val / this->n_trees_ + this->origin_
+                  : this->origin_;
+            *Z = this->post_transform_ == POST_EVAL_TRANSFORM::PROBIT ? ComputeProbit(val) : val;
         }
 
         inline void FinalizeScores(std::vector<NTYPE>& scores,
@@ -370,12 +368,12 @@ class _AggregatorAverage : public _AggregatorSum<NTYPE>
                                    int add_second_class,
                                    int64_t * Y = 0) const {
             NTYPE val;
-            for (int64_t jt = 0; jt < n_targets_or_classes_; ++jt) {
-                val = this->use_base_values_ ? (*base_values_)[jt] : 0.f;
-                val += (has_scores[jt]) ? (scores[jt] / n_trees_) : 0;
+            for (int64_t jt = 0; jt < this->n_targets_or_classes_; ++jt) {
+                val = this->use_base_values_ ? (*(this->base_values_))[jt] : 0.f;
+                val += (has_scores[jt]) ? (scores[jt] / this->n_trees_) : 0;
                 scores[jt] = val;
             }
-            write_scores(scores, post_transform_, Z, add_second_class);
+            write_scores(scores, this->post_transform_, Z, add_second_class);
         }
 };
 
