@@ -153,7 +153,7 @@ in :epkg:`onnxruntime`. Supports float only.
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
 :param omp_N: number of observvations above which the runtime uses
-:epkg:`openmp` to parallelize the predictions
+    :epkg:`openmp` to parallelize the predictions
 )pbdoc");
 
     clf.def(py::init<int, int>());
@@ -195,7 +195,7 @@ in :epkg:`onnxruntime`. Supports double only.
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
 :param omp_N: number of observvations above which the runtime uses
-:epkg:`openmp` to parallelize the predictions
+    :epkg:`openmp` to parallelize the predictions
 )pbdoc");
 
     cld.def(py::init<int, int>());
@@ -217,7 +217,6 @@ in :epkg:`onnxruntime`. Supports double only.
     cld.def_readonly("base_values_", &RuntimeTreeEnsembleClassifierPDouble::base_values_, "See :ref:`lpyort-TreeEnsembleClassifierDouble`.");
     cld.def_readonly("n_classes_", &RuntimeTreeEnsembleClassifierPDouble::n_targets_or_classes_, "See :ref:`lpyort-TreeEnsembleClassifierDouble`.");
     cld.def_readonly("post_transform_", &RuntimeTreeEnsembleClassifierPDouble::post_transform_, "See :ref:`lpyort-TreeEnsembleClassifierDouble`.");
-    // cld.def_readonly("leafnode_data_", &RuntimeTreeEnsembleClassifierPDouble::leafnode_data_, "See :ref:`lpyort-TreeEnsembleClassifierDouble`.");
 
     cld.def("debug_threshold", &RuntimeTreeEnsembleClassifierPDouble::debug_threshold,
         "Checks every features against every features against every threshold. Returns a matrix of boolean.");
