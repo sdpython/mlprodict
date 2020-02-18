@@ -372,7 +372,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqual(nb2, nb)
 
     def test_cpp_average(self):
-        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_average
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_average  # pylint: disable=E0611
         confs = [[100, 100, True],
                  [100, 100, False],
                  [10, 10, True],
@@ -389,14 +389,14 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                         *(conf + [b, True]))
 
     def test_cpp_min(self):
-        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_min
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_min  # pylint: disable=E0611
         confs = [[100, 100, True],
                  [100, 100, False],
                  [10, 10, True],
                  [10, 10, False],
                  [2, 2, True],
                  [2, 2, False]]
-        for conf in confs:
+        for conf in reversed(confs):
             with self.subTest(conf=tuple(conf)):
                 for b in [False, True]:
                     test_tree_regressor_multitarget_min(*(conf + [b, False]))
@@ -404,7 +404,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                     test_tree_regressor_multitarget_min(*(conf + [b, True]))
 
     def test_cpp_max(self):
-        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_max
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_max  # pylint: disable=E0611
         confs = [[100, 100, True],
                  [100, 100, False],
                  [10, 10, True],
@@ -420,7 +420,5 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_DecisionTreeRegressor64()
-    # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_GradientBoostingClassifier2()
     # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_GradientBoostingRegressor64()
     unittest.main()

@@ -167,16 +167,16 @@ class _AggregatorSum : public _Aggregator<NTYPE>
                              const NTYPE* predictions2, const unsigned char* has_predictions2) const {
             for(int64_t i = 0; i < n; ++i) {
                 if (has_predictions2[i]) {
-                    has_predictions[i] = 1;
                     predictions[i] += predictions2[i];
+                    has_predictions[i] = 1;
                 }
             }
         }
 
         inline void MergeOnePrediction(NTYPE* predictions, unsigned char* has_predictions,
                                        const NTYPE* predictions2, const unsigned char* has_predictions2) const {
-            *has_predictions = *has_predictions2 ? 1 : *has_predictions;
             *predictions += *has_predictions2 ? *predictions2 : 0;
+            *has_predictions = *has_predictions2 ? 1 : *has_predictions;
         }
 };
 
@@ -415,10 +415,10 @@ class _AggregatorMin : public _Aggregator<NTYPE>
                              const NTYPE* predictions2, const unsigned char* has_predictions2) const {
             for(int64_t i = 0; i < n; ++i) {
                 if (has_predictions2[i]) {
-                    has_predictions[i] = 1;
                     predictions[i] = has_predictions[i] && (predictions[i] < predictions2[i])
                                         ? predictions[i]
                                         : predictions2[i];
+                    has_predictions[i] = 1;
                 }
             }
         }
@@ -426,10 +426,10 @@ class _AggregatorMin : public _Aggregator<NTYPE>
         inline void MergeOnePrediction(NTYPE* predictions, unsigned char* has_predictions,
                                        const NTYPE* predictions2, const unsigned char* has_predictions2) const {
             if (*has_predictions2) {
-                *has_predictions = 1;
                 *predictions = *has_predictions && (*predictions < *predictions2)
                                     ? *predictions
                                     : *predictions2;
+                *has_predictions = 1;
             }
         }
 };
@@ -467,10 +467,10 @@ class _AggregatorMax : public _Aggregator<NTYPE>
                              NTYPE* predictions2, unsigned char* has_predictions2) const {
             for(int64_t i = 0; i < n; ++i) {
                 if (has_predictions2[i]) {
-                    has_predictions[i] = 1;
                     predictions[i] = has_predictions[i] && (predictions[i] > predictions2[i])
                                         ? predictions[i]
                                         : predictions2[i];
+                    has_predictions[i] = 1;
                 }
             }
         }
@@ -478,10 +478,10 @@ class _AggregatorMax : public _Aggregator<NTYPE>
         inline void MergeOnePrediction(NTYPE* predictions, unsigned char* has_predictions,
                                        const NTYPE* predictions2, const unsigned char* has_predictions2) const {
             if (*has_predictions2) {
-                *has_predictions = 1;
                 *predictions = *has_predictions && (*predictions > *predictions2)
                                     ? *predictions
                                     : *predictions2;
+                *has_predictions = 1;
             }
         }
 };
@@ -959,11 +959,11 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                                 Y == NULL ? NULL : (int64_t*)_mutable_unchecked1(*Y).data(0));
         }
         else {
-            NTYPE scores;
-            unsigned char has_scores;
-            size_t j;
-            
             if (N <= omp_N_) {
+                NTYPE scores;
+                unsigned char has_scores;
+                size_t j;
+
                 for (int64_t i = 0; i < N; ++i) {
                     agg.init_score(scores, has_scores);
                     for (j = 0; j < (size_t)n_trees_; ++j)
@@ -976,8 +976,12 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                 }
             }
             else {
+                NTYPE scores;
+                unsigned char has_scores;
+                size_t j;
+
                 #ifdef USE_OPENMP
-                #pragma omp parallel for private(scores, has_scores)
+                #pragma omp parallel for private(j, scores, has_scores)
                 #endif
                 for (int64_t i = 0; i < N; ++i) {
                     agg.init_score(scores, has_scores);
@@ -1011,8 +1015,8 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                 #pragma omp parallel
                 #endif
                 {
-                    std::vector<NTYPE> private_scores(scores);
-                    std::vector<unsigned char> private_has_scores(has_scores);
+                    std::vector<NTYPE> private_scores(n_targets_or_classes_, (NTYPE)0);
+                    std::vector<unsigned char> private_has_scores(n_targets_or_classes_, 0);
                     #ifdef USE_OPENMP
                     #pragma omp for
                     #endif
@@ -1027,7 +1031,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                     #pragma omp critical
                     #endif
                     agg.MergePrediction(n_targets_or_classes_,
-                        &scores[0], &has_scores[0],
+                        &(scores[0]), &(has_scores[0]),
                         private_scores.data(), private_has_scores.data());
                 }
                 
