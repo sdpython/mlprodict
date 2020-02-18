@@ -8,7 +8,7 @@ template<typename NTYPE>
 class RuntimeTreeEnsembleRegressorP : public RuntimeTreeEnsembleCommonP<NTYPE>
 {
     public:
-        
+
         RuntimeTreeEnsembleRegressorP(int omp_tree, int omp_N);
         ~RuntimeTreeEnsembleRegressorP();
 
@@ -80,13 +80,21 @@ template<typename NTYPE>
 py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute(py::array_t<NTYPE> X) const {
     switch(this->aggregate_function_) {
         case AGGREGATE_FUNCTION::AVERAGE:
-            return this->compute_agg(X, _AggregatorAverage<NTYPE>());
+            return this->compute_agg(X, _AggregatorAverage<NTYPE>(
+                        this->roots_.size(), this->n_targets_or_classes_,
+                        this->post_transform_, &(this->base_values_)));
         case AGGREGATE_FUNCTION::SUM:
-            return this->compute_agg(X, _AggregatorSum<NTYPE>());
+            return this->compute_agg(X, _AggregatorSum<NTYPE>(
+                        this->roots_.size(), this->n_targets_or_classes_,
+                        this->post_transform_, &(this->base_values_)));
         case AGGREGATE_FUNCTION::MIN:
-            return this->compute_agg(X, _AggregatorMin<NTYPE>());
+            return this->compute_agg(X, _AggregatorMin<NTYPE>(
+                        this->roots_.size(), this->n_targets_or_classes_,
+                        this->post_transform_, &(this->base_values_)));
         case AGGREGATE_FUNCTION::MAX:
-            return this->compute_agg(X, _AggregatorMax<NTYPE>());
+            return this->compute_agg(X, _AggregatorMax<NTYPE>(
+                        this->roots_.size(), this->n_targets_or_classes_,
+                        this->post_transform_, &(this->base_values_)));
     }        
     throw std::runtime_error("Unknown aggregation function in TreeEnsemble.");
 }
@@ -96,13 +104,21 @@ template<typename NTYPE>
 py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute_tree_outputs(py::array_t<NTYPE> X) const {
     switch(this->aggregate_function_) {
         case AGGREGATE_FUNCTION::AVERAGE:
-            return this->compute_tree_outputs_agg(X, _AggregatorAverage<NTYPE>());
+            return this->compute_tree_outputs_agg(X, _AggregatorAverage<NTYPE>(
+                        this->roots_.size(), this->n_targets_or_classes_,
+                        this->post_transform_, &(this->base_values_)));
         case AGGREGATE_FUNCTION::SUM:
-            return this->compute_tree_outputs_agg(X, _AggregatorSum<NTYPE>());
+            return this->compute_tree_outputs_agg(X, _AggregatorSum<NTYPE>(
+                        this->roots_.size(), this->n_targets_or_classes_,
+                        this->post_transform_, &(this->base_values_)));
         case AGGREGATE_FUNCTION::MIN:
-            return this->compute_tree_outputs_agg(X, _AggregatorMin<NTYPE>());
+            return this->compute_tree_outputs_agg(X, _AggregatorMin<NTYPE>(
+                        this->roots_.size(), this->n_targets_or_classes_,
+                        this->post_transform_, &(this->base_values_)));
         case AGGREGATE_FUNCTION::MAX:
-            return this->compute_tree_outputs_agg(X, _AggregatorMax<NTYPE>());
+            return this->compute_tree_outputs_agg(X, _AggregatorMax<NTYPE>(
+                        this->roots_.size(), this->n_targets_or_classes_,
+                        this->post_transform_, &(this->base_values_)));
     }        
     throw std::runtime_error("Unknown aggregation function in TreeEnsemble.");
 }
@@ -143,14 +159,14 @@ in :epkg:`onnxruntime`. Supports float only.
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
 :param omp_N: number of observvations above which the runtime uses
-:epkg:`openmp` to parallize the predictions
+:epkg:`openmp` to parallelize the predictions
 )pbdoc");
 
     clf.def(py::init<int, int>());
     clf.def_readwrite("omp_tree_", &RuntimeTreeEnsembleRegressorPFloat::omp_tree_,
-        "Number of trees above which the computation is parallized for one observation.");
+        "Number of trees above which the computation is parallelized for one observation.");
     clf.def_readwrite("omp_N_", &RuntimeTreeEnsembleRegressorPFloat::omp_N_,
-        "Number of observations above which the computation is parallized.");
+        "Number of observations above which the computation is parallelized.");
     clf.def_readonly("roots_", &RuntimeTreeEnsembleRegressorPFloat::roots_,
                      "Returns the roots indices.");
     clf.def("init", &RuntimeTreeEnsembleRegressorPFloat::init,
@@ -185,14 +201,14 @@ in :epkg:`onnxruntime`. Supports double only.
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
 :param omp_N: number of observvations above which the runtime uses
-:epkg:`openmp` to parallize the predictions
+:epkg:`openmp` to parallelize the predictions
 )pbdoc");
 
     cld.def(py::init<int, int>());
     cld.def_readwrite("omp_tree_", &RuntimeTreeEnsembleRegressorPDouble::omp_tree_,
-        "Number of trees above which the computation is parallized for one observation.");
+        "Number of trees above which the computation is parallelized for one observation.");
     cld.def_readwrite("omp_N_", &RuntimeTreeEnsembleRegressorPDouble::omp_N_,
-        "Number of observations above which the computation is parallized.");
+        "Number of observations above which the computation is parallelized.");
     cld.def_readonly("roots_", &RuntimeTreeEnsembleRegressorPDouble::roots_,
                      "Returns the roots indices.");
     cld.def("init", &RuntimeTreeEnsembleRegressorPDouble::init,
@@ -207,8 +223,7 @@ in :epkg:`onnxruntime`. Supports double only.
     cld.def_readonly("base_values_", &RuntimeTreeEnsembleRegressorPDouble::base_values_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
     cld.def_readonly("n_targets_", &RuntimeTreeEnsembleRegressorPDouble::n_targets_or_classes_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
     cld.def_readonly("post_transform_", &RuntimeTreeEnsembleRegressorPDouble::post_transform_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
-    // cld.def_readonly("leafnode_data_", &RuntimeTreeEnsembleRegressorPDouble::leafnode_data_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
-    
+
     cld.def("debug_threshold", &RuntimeTreeEnsembleRegressorPDouble::debug_threshold,
         "Checks every features against every features against every threshold. Returns a matrix of boolean.");
     cld.def("compute_tree_outputs", &RuntimeTreeEnsembleRegressorPDouble::compute_tree_outputs,
@@ -222,4 +237,3 @@ in :epkg:`onnxruntime`. Supports double only.
 }
 
 #endif
-

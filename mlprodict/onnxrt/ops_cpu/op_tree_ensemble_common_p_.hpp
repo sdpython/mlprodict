@@ -74,18 +74,61 @@ struct TreeNodeElement {
 template<typename NTYPE>
 class _Aggregator
 {
+    protected:
+
+        size_t n_trees_;
+        int64_t n_targets_or_classes_;
+        POST_EVAL_TRANSFORM post_transform_;
+        const std::vector<NTYPE> * base_values_;
+        NTYPE origin_;
+        bool use_base_values_;
+
     public:
-    inline bool divide() const { return false; }
-    inline unsigned char first_has_score1(int64_t nbtree) const { return 0; }
-    inline void ProcessTreeNodePrediction1(
-        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
-        unsigned char* has_predictions) const {}
-    void ProcessTreeNodePrediction(
-        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
-        unsigned char* has_predictions) const {}
-    void MergePrediction(int64_t n,
-        NTYPE* predictions, unsigned char* has_predictions,
-        NTYPE* predictions2, unsigned char* has_predictions2) const {}
+
+        inline _Aggregator(size_t n_trees,
+                           const int64_t& n_targets_or_classes,
+                           POST_EVAL_TRANSFORM post_transform,
+                           const std::vector<NTYPE> * base_values) : 
+                n_trees_(n_trees), n_targets_or_classes_(n_targets_or_classes),
+                post_transform_(post_transform), base_values_(base_values) {
+            origin_ = base_values_->size() == 1 ? (*base_values_)[0] : 0.f;
+            use_base_values_ = base_values_->size() == (size_t)n_targets_or_classes_;
+        }
+
+        inline void init_score(NTYPE &score, unsigned char& has_score) const { 
+            score = (NTYPE)0;
+            has_score = 0;
+        }
+
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+                                               unsigned char* has_predictions) const {}
+
+        void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+                                       unsigned char* has_predictions) const {}
+
+        void MergePrediction(int64_t n,
+                             NTYPE* predictions, unsigned char* has_predictions,
+                             NTYPE* predictions2, unsigned char* has_predictions2) const {}
+
+        inline void FinalizeScores1(NTYPE* Z, NTYPE& val,
+                                    unsigned char& has_scores,
+                                    int64_t * Y = 0) const {
+            val = has_scores ? val + origin_ : origin_;
+            *Z = post_transform_ == POST_EVAL_TRANSFORM::PROBIT ? ComputeProbit(val) : val;
+        }
+
+        void FinalizeScores(std::vector<NTYPE>& scores,
+                            std::vector<unsigned char>& has_scores,
+                            NTYPE* Z, int add_second_class,
+                            int64_t * Y = 0) const {
+            NTYPE val;
+            for (int64_t jt = 0; jt < n_targets_or_classes_; ++jt) {
+                val = use_base_values_ ? (*base_values_)[jt] : 0.f;
+                val += has_scores[jt] ? scores[jt] : 0;
+                scores[jt] = val;
+            }
+            write_scores(scores, post_transform_, Z, add_second_class);
+        }
 };
 
 
@@ -93,32 +136,211 @@ template<typename NTYPE>
 class _AggregatorSum : public _Aggregator<NTYPE>
 {
     public:
-    inline unsigned char first_has_score1(int64_t nbtree) const { return nbtree > 0 ? 1 : 0; }
-    inline void ProcessTreeNodePrediction1(
-        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
-        unsigned char* has_predictions) const {
-        *predictions += root->weights[0].value;
-    }
 
-    void ProcessTreeNodePrediction(
-        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
-        unsigned char* has_predictions) const {
-        for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
-            predictions[it->i] += it->value;
-            has_predictions[it->i] = 1;
+        inline _AggregatorSum<NTYPE>(size_t n_trees,
+                                     const int64_t& n_targets_or_classes,
+                                     POST_EVAL_TRANSFORM post_transform,
+                                     const std::vector<NTYPE> * base_values) :
+            _Aggregator<NTYPE>(n_trees, n_targets_or_classes,
+                               post_transform, base_values) { }
+
+        inline void init_score(NTYPE &score, unsigned char& has_score) const { 
+            score = (NTYPE)0;
+            has_score = this->n_trees_ > 0 ? 1 : 0;
         }
-    }
 
-    void MergePrediction(
-        int64_t n, NTYPE* predictions, unsigned char* has_predictions,
-        NTYPE* predictions2, unsigned char* has_predictions2) const {
-        for(int64_t i = 0; i < n; ++i) {
-            if (has_predictions2[i]) {
-                has_predictions[i] = 1;
-                predictions[i] += predictions2[i];
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions,
+                                               TreeNodeElement<NTYPE> * root,
+                                               unsigned char* has_predictions) const {
+            *predictions += root->weights[0].value;
+        }
+
+        void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+                                       unsigned char* has_predictions) const {
+            for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
+                predictions[it->i] += it->value;
+                has_predictions[it->i] = 1;
             }
         }
-    }
+
+        void MergePrediction(int64_t n, NTYPE* predictions, unsigned char* has_predictions,
+                             NTYPE* predictions2, unsigned char* has_predictions2) const {
+            for(int64_t i = 0; i < n; ++i) {
+                if (has_predictions2[i]) {
+                    has_predictions[i] = 1;
+                    predictions[i] += predictions2[i];
+                }
+            }
+        }
+};
+
+
+template<typename NTYPE>
+class _AggregatorClassifier : public _AggregatorSum<NTYPE>
+{
+    private:
+
+        const std::vector<int64_t> * class_labels_;
+        bool binary_case_;
+        bool weights_are_all_positive_;
+        int64_t positive_label_;
+        int64_t negative_label_;
+
+    public:
+
+        inline _AggregatorClassifier(size_t n_trees,
+                                     const int64_t& n_targets_or_classes,
+                                     POST_EVAL_TRANSFORM post_transform,
+                                     const std::vector<NTYPE> * base_values,
+                                     const std::vector<int64_t> * class_labels,
+                                     bool binary_case,
+                                     bool weights_are_all_positive,
+                                     int64_t positive_label = 1,
+                                     int64_t negative_label = 0) :
+            _AggregatorSum<NTYPE>(n_trees, n_targets_or_classes,
+                                  post_transform, base_values),
+            class_labels_(class_labels), binary_case_(binary_case),
+            weights_are_all_positive_(weights_are_all_positive),
+            positive_label_(positive_label), negative_label_(negative_label) { }
+            
+        void get_max_weight(const std::vector<NTYPE>& classes, 
+                            const std::vector<unsigned char>& has_scores, 
+                            int64_t& maxclass, NTYPE& maxweight) const {
+            maxclass = -1;
+            maxweight = (NTYPE)0;
+            typename std::vector<NTYPE>::const_iterator it;
+            typename std::vector<unsigned char>::const_iterator itb;
+            for (it = classes.begin(), itb = has_scores.begin();
+               it != classes.end(); ++it, ++itb) {
+                if (*itb && (maxclass == -1 || *it > maxweight)) {
+                    maxclass = (int64_t)(it - classes.begin());
+                    maxweight = *it;
+                }
+            }
+        }
+
+        int64_t _set_score_binary(int& write_additional_scores,
+                                  const NTYPE* classes,
+                                  const unsigned char* has_scores) const {
+            NTYPE pos_weight = has_scores[1]
+                                ? classes[1]
+                                : (has_scores[0] ? classes[0] : (NTYPE)0);  // only 1 class
+            if (binary_case_) {
+                if (weights_are_all_positive_) {
+                    if (pos_weight > 0.5) {
+                        write_additional_scores = 0;
+                        return (*class_labels_)[1];  // positive label
+                    } 
+                    else {
+                        write_additional_scores = 1;
+                        return (*class_labels_)[0];  // negative label
+                    }
+                }
+                else {
+                    if (pos_weight > 0) {
+                        write_additional_scores = 2;
+                        return (*class_labels_)[1];  // positive label
+                    }
+                    else {
+                        write_additional_scores = 3;
+                        return (*class_labels_)[0];  // negative label
+                    }
+                }
+            }
+            return (pos_weight > 0) 
+                        ? positive_label_   // positive label
+                        : negative_label_;  // negative label
+        }
+
+        inline void FinalizeScores1(NTYPE* Z, NTYPE& val,
+                                    unsigned char& has_score,
+                                    int64_t * Y = 0) const {
+            NTYPE maxweight = (NTYPE)0;
+            int64_t maxclass = -1;
+            std::vector<NTYPE> scores(2);
+            unsigned char has_scores[2] = {1, 0};
+
+            int write_additional_scores = -1;
+            if (base_values_->size() == 2) {
+                // add base values
+                scores[1] = (*base_values_)[1] + val;
+                scores[0] = -scores[1];
+                //has_score = true;
+                has_scores[1] = 1;
+            }
+            else if (base_values_->size() == 1) {
+                // ONNX is vague about two classes and only one base_values.
+                scores[0] = val + (*base_values_)[0];
+                //if (!has_scores[1])
+                //scores.pop_back();
+                scores[0] = val;
+            }
+            else if (base_values_->size() == 0) {
+                //if (!has_score)
+                //  scores.pop_back();
+                scores[0] = val;
+            }
+
+            *Y = _set_score_binary(write_additional_scores, &(scores[0]), has_scores);
+            write_scores(scores, post_transform_, Z, write_additional_scores);            
+        }
+
+        void FinalizeScores(std::vector<NTYPE>& scores,
+                            std::vector<unsigned char>& has_scores,
+                            NTYPE* Z, int add_second_class,
+                            int64_t * Y = 0) const {
+            NTYPE maxweight = (NTYPE)0;
+            int64_t maxclass = -1;
+
+            int write_additional_scores = -1;
+            if (n_targets_or_classes_ > 2) {
+                // add base values
+                for (int64_t k = 0, end = static_cast<int64_t>(base_values_->size()); k < end; ++k) {
+                    if (!has_scores[k]) {
+                      has_scores[k] = true;
+                      scores[k] = (*base_values_)[k];
+                    }
+                    else {
+                        scores[k] += (*base_values_)[k];
+                    }
+                }
+                get_max_weight(scores, has_scores, maxclass, maxweight);
+                *Y = (*class_labels_)[maxclass];
+            }
+            else { // binary case
+                if (base_values_->size() == 2) {
+                    // add base values
+                    if (has_scores[1]) {
+                        // base_value_[0] is not used.
+                        // It assumes base_value[0] == base_value[1] in this case.
+                        // The specification does not forbid it but does not
+                        // say what the output should be in that case.
+                        scores[1] = (*base_values_)[1] + scores[0];
+                        scores[0] = -scores[1];
+                        has_scores[1] = true;
+                    }
+                    else {
+                        // binary as multiclass
+                        scores[1] += (*base_values_)[1];
+                        scores[0] += (*base_values_)[0];
+                    }
+                }
+                else if (base_values_->size() == 1) {
+                    // ONNX is vague about two classes and only one base_values.
+                    scores[0] += (*base_values_)[0];
+                    if (!has_scores[1])
+                      scores.pop_back();
+                }
+                else if (base_values_->size() == 0) {
+                    if (!has_scores[1])
+                      scores.pop_back();
+                }
+
+                *Y = _set_score_binary(write_additional_scores, &(scores[0]), &(has_scores[0]));
+            }
+
+            write_scores(scores, post_transform_, Z, write_additional_scores);
+        }
 };
 
 
@@ -126,7 +348,35 @@ template<typename NTYPE>
 class _AggregatorAverage : public _AggregatorSum<NTYPE>
 {
     public:
-    inline bool divide() const { return true; }
+        inline _AggregatorAverage<NTYPE>(size_t n_trees,
+                                     const int64_t& n_targets_or_classes,
+                                     POST_EVAL_TRANSFORM post_transform,
+                                     const std::vector<NTYPE> * base_values) :
+            _AggregatorSum<NTYPE>(n_trees, n_targets_or_classes,
+                                  post_transform, base_values) { }
+
+        inline void FinalizeScores1(NTYPE* Z, NTYPE& val,
+                                    unsigned char& has_scores,
+                                    int64_t * Y = 0) const {
+            val = has_scores
+                  ? val / n_trees_ + origin_
+                  : origin_;
+            *Z = post_transform_ == POST_EVAL_TRANSFORM::PROBIT ? ComputeProbit(val) : val;
+        }
+
+        inline void FinalizeScores(std::vector<NTYPE>& scores,
+                                   std::vector<unsigned char>& has_scores,
+                                   NTYPE* Z,
+                                   int add_second_class,
+                                   int64_t * Y = 0) const {
+            NTYPE val;
+            for (int64_t jt = 0; jt < n_targets_or_classes_; ++jt) {
+                val = this->use_base_values_ ? (*base_values_)[jt] : 0.f;
+                val += (has_scores[jt]) ? (scores[jt] / n_trees_) : 0;
+                scores[jt] = val;
+            }
+            write_scores(scores, post_transform_, Z, add_second_class);
+        }
 };
 
 
@@ -134,36 +384,40 @@ template<typename NTYPE>
 class _AggregatorMin : public _Aggregator<NTYPE>
 {
     public:
-    inline void ProcessTreeNodePrediction1(
-        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
-        unsigned char* has_predictions) const {
-        *predictions = (!(*has_predictions) || root->weights[0].value < *predictions) 
-                                ? root->weights[0].value : *predictions;
-        *has_predictions = 1;
-    }
+        inline _AggregatorMin<NTYPE>(size_t n_trees,
+                                     const int64_t& n_targets_or_classes,
+                                     POST_EVAL_TRANSFORM post_transform,
+                                     const std::vector<NTYPE> * base_values) :
+            _Aggregator<NTYPE>(n_trees, n_targets_or_classes,
+                               post_transform, base_values) { }
 
-    void ProcessTreeNodePrediction(
-        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
-        unsigned char* has_predictions) const {
-        for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
-            predictions[it->i] = (!has_predictions[it->i] || it->value < predictions[it->i]) 
-                                    ? it->value : predictions[it->i];
-            has_predictions[it->i] = 1;
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+                                               unsigned char* has_predictions) const {
+            *predictions = (!(*has_predictions) || root->weights[0].value < *predictions) 
+                                    ? root->weights[0].value : *predictions;
+            *has_predictions = 1;
         }
-    }
 
-    void MergePrediction(
-        int64_t n, NTYPE* predictions, unsigned char* has_predictions,
-        NTYPE* predictions2, unsigned char* has_predictions2) const {
-        for(int64_t i = 0; i < n; ++i) {
-            if (has_predictions2[i]) {
-                has_predictions[i] = 1;
-                predictions[i] = has_predictions[i] && (predictions[i] < predictions2[i])
-                                    ? predictions[i]
-                                    : predictions2[i];
+        void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+                                       unsigned char* has_predictions) const {
+            for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
+                predictions[it->i] = (!has_predictions[it->i] || it->value < predictions[it->i]) 
+                                        ? it->value : predictions[it->i];
+                has_predictions[it->i] = 1;
             }
         }
-    }
+
+        void MergePrediction(int64_t n, NTYPE* predictions, unsigned char* has_predictions,
+                             NTYPE* predictions2, unsigned char* has_predictions2) const {
+            for(int64_t i = 0; i < n; ++i) {
+                if (has_predictions2[i]) {
+                    has_predictions[i] = 1;
+                    predictions[i] = has_predictions[i] && (predictions[i] < predictions2[i])
+                                        ? predictions[i]
+                                        : predictions2[i];
+                }
+            }
+        }
 };
 
 
@@ -171,36 +425,41 @@ template<typename NTYPE>
 class _AggregatorMax : public _Aggregator<NTYPE>
 {
     public:
-    inline void ProcessTreeNodePrediction1(
-        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
-        unsigned char* has_predictions) const {
-        *predictions = (!(*has_predictions) || root->weights[0].value > *predictions) 
-                                ? root->weights[0].value : *predictions;
-        *has_predictions = 1;
-    }
 
-    void ProcessTreeNodePrediction(
-        NTYPE* predictions, TreeNodeElement<NTYPE> * root,
-        unsigned char* has_predictions) const {
-        for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
-            predictions[it->i] = (!has_predictions[it->i] || it->value > predictions[it->i]) 
-                                    ? it->value : predictions[it->i];
-            has_predictions[it->i] = 1;
+        inline _AggregatorMax<NTYPE>(size_t n_trees,
+                                     const int64_t& n_targets_or_classes,
+                                     POST_EVAL_TRANSFORM post_transform,
+                                     const std::vector<NTYPE> * base_values) :
+            _Aggregator<NTYPE>(n_trees, n_targets_or_classes,
+                               post_transform, base_values) { }
+
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+                                               unsigned char* has_predictions) const {
+            *predictions = (!(*has_predictions) || root->weights[0].value > *predictions) 
+                                    ? root->weights[0].value : *predictions;
+            *has_predictions = 1;
         }
-    }
 
-    void MergePrediction(
-        int64_t n, NTYPE* predictions, unsigned char* has_predictions,
-        NTYPE* predictions2, unsigned char* has_predictions2) const {
-        for(int64_t i = 0; i < n; ++i) {
-            if (has_predictions2[i]) {
-                has_predictions[i] = 1;
-                predictions[i] = has_predictions[i] && (predictions[i] > predictions2[i])
-                                    ? predictions[i]
-                                    : predictions2[i];
+        void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+                                       unsigned char* has_predictions) const {
+            for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
+                predictions[it->i] = (!has_predictions[it->i] || it->value > predictions[it->i]) 
+                                        ? it->value : predictions[it->i];
+                has_predictions[it->i] = 1;
             }
         }
-    }
+
+        void MergePrediction(int64_t n, NTYPE* predictions, unsigned char* has_predictions,
+                             NTYPE* predictions2, unsigned char* has_predictions2) const {
+            for(int64_t i = 0; i < n; ++i) {
+                if (has_predictions2[i]) {
+                    has_predictions[i] = 1;
+                    predictions[i] = has_predictions[i] && (predictions[i] > predictions2[i])
+                                        ? predictions[i]
+                                        : predictions2[i];
+                }
+            }
+        }
 };
 
 
@@ -208,7 +467,7 @@ template<typename NTYPE>
 class RuntimeTreeEnsembleCommonP
 {
     public:
-                
+
         // tree_ensemble_regressor.h
         std::vector<NTYPE> base_values_;
         int64_t n_targets_or_classes_;
@@ -219,14 +478,14 @@ class RuntimeTreeEnsembleCommonP
         std::vector<TreeNodeElement<NTYPE>*> roots_;
 
         int64_t max_tree_depth_;
-        int64_t nbtrees_;
+        int64_t n_trees_;
         bool same_mode_;
         bool has_missing_tracks_;
         int omp_tree_;
         int omp_N_;
-    
+
     public:
-        
+
         RuntimeTreeEnsembleCommonP(int omp_tree, int omp_N);
         ~RuntimeTreeEnsembleCommonP();
 
@@ -248,27 +507,32 @@ class RuntimeTreeEnsembleCommonP
             py::array_t<int64_t> target_class_nodeids,
             py::array_t<int64_t> target_class_treeids,
             py::array_t<NTYPE> target_class_weights);
-        
+
         TreeNodeElement<NTYPE> * ProcessTreeNodeLeave(
             TreeNodeElement<NTYPE> * root, const NTYPE* x_data) const;
-    
+
         std::string runtime_options();
         std::vector<std::string> get_nodes_modes() const;
-        
-        int omp_get_max_threads();
-        
-        template<typename AGG>
-        py::array_t<NTYPE> compute_tree_outputs_agg(py::array_t<NTYPE> X, const AGG &agg) const;    
 
-        py::array_t<int> debug_threshold(py::array_t<NTYPE> values) const;
+        int omp_get_max_threads();
+
+        template<typename AGG>
+        py::array_t<NTYPE> compute_tree_outputs_agg(py::array_t<NTYPE> X, const AGG &agg) const;
         
+        py::array_t<int> debug_threshold(py::array_t<NTYPE> values) const;
+
         template<typename AGG>
         py::array_t<NTYPE> compute_agg(py::array_t<NTYPE> X, const AGG &agg) const;
-        
+
+        template<typename AGG>
+        py::tuple compute_cl_agg(py::array_t<NTYPE> X, const AGG &agg) const;
+
+    private :
+
         template<typename AGG>
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                               const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
-                              const AGG &agg) const;        
+                              py::array_t<int64_t>* Y, const AGG &agg) const;        
 };
 
 
@@ -325,7 +589,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init(
             py::array_t<int64_t> target_class_treeids,
             py::array_t<NTYPE> target_class_weights) {
 
-    aggregate_function_ = to_AGGREGATE_FUNCTION(aggregate_function);        
+    aggregate_function_ = to_AGGREGATE_FUNCTION(aggregate_function);
     array2vector(base_values_, base_values, NTYPE);
     n_targets_or_classes_ = n_targets_or_classes;
 
@@ -382,16 +646,12 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init(
     
     // filling nodes
 
-    /*
-    std::vector<TreeNodeElement<NTYPE>> nodes_;
-    std::vector<TreeNodeElement<NTYPE>*> roots_;
-    */
     nbnodes_ = nodes_treeids_.size();
     nodes_ = new TreeNodeElement<NTYPE>[(int)nbnodes_];
     roots_.clear();
     std::map<TreeNodeElementId, TreeNodeElement<NTYPE>*> idi;
     size_t i;
-    
+
     for (i = 0; i < nodes_treeids_.size(); ++i) {
         TreeNodeElement<NTYPE> * node = nodes_ + i;
         node->id.tree_id = (int)nodes_treeids_[i];
@@ -476,7 +736,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init(
             roots_.push_back(nodes_ + i);
         previous = nodes_[i].id.tree_id;
     }
-        
+
     TreeNodeElementId ind;
     SparseValue<NTYPE> w;
     for (i = 0; i < target_class_nodeids_.size(); i++) {
@@ -491,8 +751,8 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init(
         w.value = target_class_weights_[i];
         idi[ind]->weights.push_back(w);
     }
-    
-    nbtrees_ = roots_.size();
+
+    n_trees_ = roots_.size();
     has_missing_tracks_ = false;
     for (auto it = missing_tracks_true_.begin(); it != missing_tracks_true_.end(); ++it) {
         if (*it) {
@@ -527,15 +787,40 @@ py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_agg(py::array_t<NT
     int64_t stride = xdims1 ? x_dims[0] : x_dims[1];  
     int64_t N = xdims1 ? 1 : x_dims[0];
 
-    // Tensor* Y = context->Output(0, TensorShape({N}));
-    // auto* Z = context->Output(1, TensorShape({N, class_count_}));
     py::array_t<NTYPE> Z(x_dims[0] * n_targets_or_classes_);
 
     {
         py::gil_scoped_release release;
-        compute_gil_free(x_dims, N, stride, X, Z, agg);
+        compute_gil_free(x_dims, N, stride, X, Z, NULL, agg);
     }
     return Z;
+}
+
+
+template<typename NTYPE>
+template<typename AGG>
+py::tuple RuntimeTreeEnsembleCommonP<NTYPE>::compute_cl_agg(
+        py::array_t<NTYPE> X, const AGG &agg) const {
+    std::vector<int64_t> x_dims;
+    arrayshape2vector(x_dims, X);
+    if (x_dims.size() != 2)
+        throw std::runtime_error("X must have 2 dimensions.");
+
+    // Does not handle 3D tensors
+    bool xdims1 = x_dims.size() == 1;
+    int64_t stride = xdims1 ? x_dims[0] : x_dims[1];  
+    int64_t N = xdims1 ? 1 : x_dims[0];
+
+    // Tensor* Y = context->Output(0, TensorShape({N}));
+    // auto* Z = context->Output(1, TensorShape({N, class_count_}));
+    py::array_t<NTYPE> Z(x_dims[0] * n_targets_or_classes_);
+    py::array_t<int64_t> Y(x_dims[0]);
+
+    {
+        py::gil_scoped_release release;
+        compute_gil_free(x_dims, N, stride, X, Z, &Y, agg);
+    }
+    return py::make_tuple(Y, Z);
 }
 
 
@@ -544,42 +829,32 @@ py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_
 }
 
 
+py::detail::unchecked_mutable_reference<int64_t, 1> _mutable_unchecked1(py::array_t<int64_t>& Z) {
+    return Z.mutable_unchecked<1>();
+}
+
+
+py::detail::unchecked_mutable_reference<int64_t, 1> _mutable_unchecked1(py::array_t<int64_t>* Z) {
+    static py::array_t<int64_t> st;
+    return Z == NULL 
+            ? st.mutable_unchecked<1>()
+            : Z->mutable_unchecked<1>();
+}
+
+
 py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double>& Z) {
     return Z.mutable_unchecked<1>();
 }
 
 #define LOOP_D1_N10() \
-    scores = 0; \
-    has_scores = agg.first_has_score1(nbtrees_); \
-    for (j = 0; j < (size_t)nbtrees_; ++j) \
+    agg.init_score(scores, has_scores); \
+    for (j = 0; j < (size_t)n_trees_; ++j) \
         agg.ProcessTreeNodePrediction1( \
             &scores, \
             ProcessTreeNodeLeave(roots_[j], x_data + i * stride), \
             &has_scores); \
-    val = has_scores \
-          ? (agg.divide() ? scores / roots_.size() : scores) + origin \
-          : origin; \
-    *((NTYPE*)Z_.data(i)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) \
-                ? ComputeProbit(val) : val;
-
-#define LOOP_D10_N10() \
-    current_weight_0 = i * stride; \
-    std::fill(scores.begin(), scores.end(), (NTYPE)0); \
-    std::fill(outputs.begin(), outputs.end(), (NTYPE)0); \
-    std::fill(has_scores.begin(), has_scores.end(), 0); \
-    for (j = 0; j < roots_.size(); ++j) \
-        agg.ProcessTreeNodePrediction( \
-            scores.data(), \
-            ProcessTreeNodeLeave(roots_[j], x_data + current_weight_0), \
-            has_scores.data()); \
-    for (jt = 0; jt < n_targets_or_classes_; ++jt) { \
-        val = base_values_.size() == (size_t)n_targets_or_classes_ ? base_values_[jt] : 0.f; \
-        val = (has_scores[jt])  \
-                ?  val + (agg.divide() ? scores[jt] / roots_.size() : scores[jt]) \
-                : val; \
-        outputs[jt] = val; \
-    } \
-    write_scores(outputs, post_transform_, (NTYPE*)Z_.data(i * n_targets_or_classes_), -1);
+    agg.FinalizeScores1((NTYPE*)Z_.data(i), scores, has_scores, \
+                        Y == NULL ? NULL : (int64_t*)Y_.data(i));
 
 
 template<typename NTYPE>
@@ -587,21 +862,22 @@ template<typename AGG>
 void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                 const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
-                const AGG &agg) const {
+                py::array_t<int64_t>* Y, const AGG &agg) const {
 
     // expected primary-expression before ')' token
     auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
+    auto Y_ = _mutable_unchecked1(Y);
                     
     const NTYPE* x_data = X.data(0);
 
     if (n_targets_or_classes_ == 1) {
-        NTYPE origin = base_values_.size() == 1 ? base_values_[0] : 0.f;
         if (N == 1) {
-            NTYPE scores = 0;
-            unsigned char has_scores = agg.first_has_score1(nbtrees_);
+            NTYPE scores;
+            unsigned char has_scores;
+            agg.init_score(scores, has_scores);
 
-            if (nbtrees_ <= omp_tree_) {
-                for (int64_t j = 0; j < nbtrees_; ++j)
+            if (n_trees_ <= omp_tree_) {
+                for (int64_t j = 0; j < n_trees_; ++j)
                     agg.ProcessTreeNodePrediction1(
                         &scores,
                         ProcessTreeNodeLeave(roots_[j], x_data),
@@ -611,23 +887,19 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                 #ifdef USE_OPENMP
                 #pragma omp parallel for reduction(|: has_scores) reduction(+: scores) 
                 #endif
-                for (int64_t j = 0; j < nbtrees_; ++j)
+                for (int64_t j = 0; j < n_trees_; ++j)
                     agg.ProcessTreeNodePrediction1(
                         &scores,
                         ProcessTreeNodeLeave(roots_[j], x_data),
                         &has_scores);
             }
 
-            NTYPE val = has_scores
-                    ? (agg.divide() ? scores / roots_.size() : scores) + origin
-                    : origin;
-            *((NTYPE*)Z_.data(0)) = (post_transform_ == POST_EVAL_TRANSFORM::PROBIT) 
-                                        ? ComputeProbit(val) : val;
+            agg.FinalizeScores1((NTYPE*)Z_.data(0), scores, has_scores,
+                                Y == NULL ? NULL : (int64_t*)Y_.data(0));
         }
         else {
             NTYPE scores;
             unsigned char has_scores;
-            NTYPE val;
             size_t j;
             
             if (N <= omp_N_) {
@@ -637,7 +909,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
             }
             else {
                 #ifdef USE_OPENMP
-                #pragma omp parallel for private(scores, has_scores, val, j)
+                #pragma omp parallel for private(scores, has_scores)
                 #endif
                 for (int64_t i = 0; i < N; ++i) {
                     LOOP_D1_N10()
@@ -659,7 +931,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                 #ifdef USE_OPENMP
                 #pragma omp for
                 #endif
-                for (int64_t j = 0; j < nbtrees_; ++j)
+                for (int64_t j = 0; j < n_trees_; ++j)
                     agg.ProcessTreeNodePrediction(
                         private_scores.data(),
                         ProcessTreeNodeLeave(roots_[j], x_data),
@@ -673,30 +945,28 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                     private_scores.data(), private_has_scores.data());
             }
             
-            std::vector<NTYPE> outputs(n_targets_or_classes_);
-            NTYPE val;
-            for (int64_t j = 0; j < n_targets_or_classes_; ++j) {
-                //reweight scores based on number of voters
-                val = base_values_.size() == (size_t)n_targets_or_classes_ ? base_values_[j] : 0.f;
-                val = (has_scores[j]) 
-                        ?  val + (agg.divide() ? scores[j] / roots_.size() : scores[j])
-                        : val;
-                outputs[j] = val;
-            }
-            write_scores(outputs, post_transform_, (NTYPE*)Z_.data(0), -1);
+            agg.FinalizeScores(scores, has_scores, (NTYPE*)Z_.data(0), -1,
+                               Y == NULL ? NULL : (int64_t*)Y_.data(0));
         }
         else {
             if (N <= omp_N_) {
-                std::vector<NTYPE> scores(n_targets_or_classes_, (NTYPE)0);
-                std::vector<NTYPE> outputs(n_targets_or_classes_);
-                std::vector<unsigned char> has_scores(n_targets_or_classes_, 0);
+                std::vector<NTYPE> scores(n_targets_or_classes_);
+                std::vector<unsigned char> has_scores(n_targets_or_classes_);
                 int64_t current_weight_0;
-                NTYPE val;
                 size_t j;
-                int64_t jt;
 
                 for (int64_t i = 0; i < N; ++i) {
-                    LOOP_D10_N10()
+                    current_weight_0 = i * stride;
+                    std::fill(scores.begin(), scores.end(), (NTYPE)0);
+                    std::fill(has_scores.begin(), has_scores.end(), 0);
+                    for (j = 0; j < roots_.size(); ++j)
+                        agg.ProcessTreeNodePrediction(
+                            scores.data(),
+                            ProcessTreeNodeLeave(roots_[j], x_data + current_weight_0),
+                            has_scores.data());
+                    agg.FinalizeScores(scores, has_scores,
+                                       (NTYPE*)Z_.data(i * n_targets_or_classes_), -1,
+                                       Y == NULL ? NULL : (int64_t*)Y_.data(i));
                 }
             }
             else {
@@ -704,25 +974,33 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                 #pragma omp parallel
                 #endif
                 {
-                    std::vector<NTYPE> scores(n_targets_or_classes_, (NTYPE)0);
-                    std::vector<NTYPE> outputs(n_targets_or_classes_);
-                    std::vector<unsigned char> has_scores(n_targets_or_classes_, 0);
+                    std::vector<NTYPE> scores(n_targets_or_classes_);
+                    std::vector<unsigned char> has_scores(n_targets_or_classes_);
                     int64_t current_weight_0;
-                    NTYPE val;
                     size_t j;
-                    int64_t jt;
 
                     #ifdef USE_OPENMP
                     #pragma omp for
                     #endif
                     for (int64_t i = 0; i < N; ++i) {
-                        LOOP_D10_N10()
+                        current_weight_0 = i * stride;
+                        std::fill(scores.begin(), scores.end(), (NTYPE)0);
+                        std::fill(has_scores.begin(), has_scores.end(), 0);
+                        for (j = 0; j < roots_.size(); ++j)
+                            agg.ProcessTreeNodePrediction(
+                                scores.data(),
+                                ProcessTreeNodeLeave(roots_[j], x_data + current_weight_0),
+                                has_scores.data());
+                        agg.FinalizeScores(scores, has_scores,
+                                           (NTYPE*)Z_.data(i * n_targets_or_classes_), -1,
+                                           Y == NULL ? NULL : (int64_t*)Y_.data(i));
                     }
                 }
             }
         }
     }
 }
+              
 
 
 #define TREE_FIND_VALUE(CMP) \
@@ -827,7 +1105,8 @@ TreeNodeElement<NTYPE> *
                     break;
                 default: {
                     std::ostringstream err_msg;
-                    err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(root->mode);
+                    err_msg << "Invalid mode of value: "
+                            << static_cast<std::underlying_type<NODE_MODE>::type>(root->mode);
                     throw std::runtime_error(err_msg.str());
                 }
             }
@@ -875,11 +1154,11 @@ py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_tree_outputs_agg(p
 
     int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];  
     int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];
-    
+
     std::vector<NTYPE> result(N * roots_.size());
     const NTYPE* x_data = X.data(0);
     auto itb = result.begin();
-    
+
     for (int64_t i=0; i < N; ++i) {  //for each class or target
         int64_t current_weight_0 = i * stride;
         for (size_t j = 0; j < roots_.size(); ++j, ++itb) {
@@ -892,7 +1171,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_tree_outputs_agg(p
             *itb = scores[0];
         }
     }
-    
+
     std::vector<ssize_t> shape = { (ssize_t)N, (ssize_t)roots_.size() };
     std::vector<ssize_t> strides = { (ssize_t)(roots_.size()*sizeof(NTYPE)),
                                      (ssize_t)sizeof(NTYPE) };

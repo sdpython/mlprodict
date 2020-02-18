@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier,
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 import skl2onnx
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
-from mlprodict.onnx_conv import to_onnx, register_rewritten_operators
+from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
 
@@ -20,7 +20,6 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     def setUp(self):
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        register_rewritten_operators()
 
     def test_onnxrt_python_DecisionTreeClassifier(self):
         iris = load_iris()
@@ -201,12 +200,13 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
         model_def64 = to_onnx(clr, X_train.astype(
             numpy.float64), dtype=numpy.float64, rewrite_ops=True)
+        smodel_def64 = str(model_def64)
+        self.assertIn('TreeEnsembleRegressorDouble', smodel_def64)
+        self.assertIn('double_data', smodel_def64)
         oinf64 = OnnxInference(model_def64)
         text = "\n".join(map(lambda x: str(x.ops_), oinf64.sequence_))
         self.assertIn("TreeEnsembleRegressor", text)
         self.assertIn("TreeEnsembleRegressorDouble", text)
-        smodel_def64 = str(model_def64)
-        self.assertIn('double_data', smodel_def64)
         self.assertNotIn('floats', smodel_def64)
         y64 = oinf64.run({'X': X_test.astype(numpy.float64)})
         self.assertEqual(list(sorted(y64)), ['variable'])
@@ -347,5 +347,5 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_DecisionTreeRegressor()
+    TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_GradientBoostingRegressor64()
     unittest.main()
