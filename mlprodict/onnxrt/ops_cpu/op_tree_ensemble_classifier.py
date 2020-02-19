@@ -13,16 +13,21 @@ from .op_tree_ensemble_classifier_ import (  # pylint: disable=E0611
     RuntimeTreeEnsembleClassifierDouble,
     RuntimeTreeEnsembleClassifierFloat,
 )
+from .op_tree_ensemble_classifier_p_ import (  # pylint: disable=E0611
+    RuntimeTreeEnsembleClassifierPFloat,
+    RuntimeTreeEnsembleClassifierPDouble,
+)
 
 
 class TreeEnsembleClassifierCommon(OpRunClassifierProb):
 
     def __init__(self, dtype, onnx_node, desc=None,
-                 expected_attributes=None, **options):
+                 expected_attributes=None,
+                 runtime_version=1, **options):
         OpRunClassifierProb.__init__(self, onnx_node, desc=desc,
                                      expected_attributes=expected_attributes,
                                      **options)
-        self._init(dtype=dtype)
+        self._init(dtype=dtype, version=runtime_version)
 
     def _get_typed_attributes(self, k):
         return _get_typed_class_attribute(self, k, self.__class__.atts)
@@ -36,11 +41,21 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb):
         raise RuntimeError(
             "Unable to find a schema for operator '{}'.".format(op_name))
 
-    def _init(self, dtype):
+    def _init(self, dtype, version):
         if dtype == numpy.float32:
-            self.rt_ = RuntimeTreeEnsembleClassifierFloat()
+            if version == 0:
+                self.rt_ = RuntimeTreeEnsembleClassifierFloat()
+            elif version == 1:
+                self.rt_ = RuntimeTreeEnsembleClassifierPFloat(10, 10)
+            else:
+                raise ValueError("Unknown version '{}'.".format(version))
         elif dtype == numpy.float64:
-            self.rt_ = RuntimeTreeEnsembleClassifierDouble()
+            if version == 0:
+                self.rt_ = RuntimeTreeEnsembleClassifierDouble()
+            elif version == 1:
+                self.rt_ = RuntimeTreeEnsembleClassifierPDouble(10, 10)
+            else:
+                raise ValueError("Unknown version '{}'.".format(version))
         else:
             raise RuntimeTypeError("Unsupported dtype={}.".format(dtype))
         atts = [self._get_typed_attributes(k)

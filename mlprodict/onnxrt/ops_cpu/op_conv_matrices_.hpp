@@ -246,8 +246,8 @@ void ComputePadAndOutputShape(
                     pad_needed = roundUpPow2<int64_t, 2>(pad_needed);
 
                 *pad_head = (pad_type == AutoPadType::SAME_LOWER)
-                                ? *pad_head = (pad_needed + 1) / 2
-                                : *pad_head = pad_needed / 2;
+                                ? (pad_needed + 1) / 2
+                                : pad_needed / 2;
                 *pad_tail = pad_needed - *pad_head;
                 } break;
             default:

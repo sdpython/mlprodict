@@ -200,12 +200,13 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
         model_def64 = to_onnx(clr, X_train.astype(
             numpy.float64), dtype=numpy.float64, rewrite_ops=True)
+        smodel_def64 = str(model_def64)
+        self.assertIn('TreeEnsembleRegressorDouble', smodel_def64)
+        self.assertIn('double_data', smodel_def64)
         oinf64 = OnnxInference(model_def64)
         text = "\n".join(map(lambda x: str(x.ops_), oinf64.sequence_))
         self.assertIn("TreeEnsembleRegressor", text)
         self.assertIn("TreeEnsembleRegressorDouble", text)
-        smodel_def64 = str(model_def64)
-        self.assertIn('double_data', smodel_def64)
         self.assertNotIn('floats', smodel_def64)
         y64 = oinf64.run({'X': X_test.astype(numpy.float64)})
         self.assertEqual(list(sorted(y64)), ['variable'])
@@ -243,7 +244,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(
             X, y, random_state=11)  # pylint: disable=W0612
-        clr = GradientBoostingRegressor(n_estimators=20)
+        clr = GradientBoostingRegressor(n_estimators=20, random_state=11)
         clr.fit(X_train, y_train)
         lexp = clr.predict(X_test)
 
@@ -271,10 +272,41 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertNotIn('doubles', smodel_def32)
         self.assertNotIn('double_data', smodel_def32)
         self.assertIn('floats', smodel_def32)
-        y32 = oinf32.run({'X': X_test.astype(numpy.float32)})
-        self.assertEqual(list(sorted(y32)), ['variable'])
-        self.assertEqual(lexp.shape, y32['variable'].shape)
-        self.assertEqualArray(lexp, y32['variable'])
+
+        with self.subTest(rows=1):
+            for irow in range(0, X_test.shape[0]):
+                oinf32.sequence_[0].ops_.rt_.omp_tree_ = 10000
+                y32 = oinf32.run(
+                    {'X': X_test[irow:irow + 1].astype(numpy.float32)})
+                y32 = oinf32.run(
+                    {'X': X_test[irow:irow + 1].astype(numpy.float32)})
+                self.assertEqual(list(sorted(y32)), ['variable'])
+                self.assertEqual(lexp[irow:irow + 1].shape,
+                                 y32['variable'].shape)
+                self.assertEqualArray(lexp[irow:irow + 1], y32['variable'])
+
+                oinf32.sequence_[0].ops_.rt_.omp_tree_ = 10
+                y32 = oinf32.run(
+                    {'X': X_test[irow:irow + 1].astype(numpy.float32)})
+                y32 = oinf32.run(
+                    {'X': X_test[irow:irow + 1].astype(numpy.float32)})
+                self.assertEqual(list(sorted(y32)), ['variable'])
+                self.assertEqual(lexp[irow:irow + 1].shape,
+                                 y32['variable'].shape)
+                self.assertEqualArray(lexp[irow:irow + 1], y32['variable'])
+
+        with self.subTest(rows=X_test.shape[0]):
+            oinf32.sequence_[0].ops_.rt_.omp_tree_ = 10000
+            y32 = oinf32.run({'X': X_test.astype(numpy.float32)})
+            self.assertEqual(list(sorted(y32)), ['variable'])
+            self.assertEqual(lexp.shape, y32['variable'].shape)
+            self.assertEqualArray(lexp, y32['variable'])
+
+            oinf32.sequence_[0].ops_.rt_.omp_tree_ = 10
+            y32 = oinf32.run({'X': X_test.astype(numpy.float32)})
+            self.assertEqual(list(sorted(y32)), ['variable'])
+            self.assertEqual(lexp.shape, y32['variable'].shape)
+            self.assertEqualArray(lexp, y32['variable'])
 
         onx32 = model_def32.SerializeToString()
         onx64 = model_def64.SerializeToString()
@@ -344,7 +376,69 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         nb2 = ru.omp_get_max_threads()
         self.assertEqual(nb2, nb)
 
+    def test_openmp_compilation_p(self):
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import RuntimeTreeEnsembleRegressorPFloat  # pylint: disable=E0611
+        ru = RuntimeTreeEnsembleRegressorPFloat(1, 1)
+        r = ru.runtime_options()
+        self.assertEqual('OPENMP', r)
+        nb = ru.omp_get_max_threads()
+        self.assertGreater(nb, 0)
+
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_p_ import RuntimeTreeEnsembleClassifierPFloat  # pylint: disable=E0611
+        ru = RuntimeTreeEnsembleClassifierPFloat(1, 1)
+        r = ru.runtime_options()
+        self.assertEqual('OPENMP', r)
+        nb2 = ru.omp_get_max_threads()
+        self.assertEqual(nb2, nb)
+
+    def test_cpp_average(self):
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_average  # pylint: disable=E0611
+        confs = [[100, 100, True],
+                 [100, 100, False],
+                 [10, 10, True],
+                 [10, 10, False],
+                 [2, 2, True],
+                 [2, 2, False]]
+        for conf in confs:
+            with self.subTest(conf=tuple(conf)):
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_average(
+                        *(conf + [b, False]))
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_average(
+                        *(conf + [b, True]))
+
+    def test_cpp_min(self):
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_min  # pylint: disable=E0611
+        confs = [[100, 100, True],
+                 [100, 100, False],
+                 [10, 10, True],
+                 [10, 10, False],
+                 [2, 2, True],
+                 [2, 2, False]]
+        for conf in reversed(confs):
+            with self.subTest(conf=tuple(conf)):
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_min(*(conf + [b, False]))
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_min(*(conf + [b, True]))
+
+    def test_cpp_max(self):
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_max  # pylint: disable=E0611
+        confs = [[100, 100, True],
+                 [100, 100, False],
+                 [10, 10, True],
+                 [10, 10, False],
+                 [2, 2, True],
+                 [2, 2, False]]
+        for conf in confs:
+            with self.subTest(conf=tuple(conf)):
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_max(*(conf + [b, False]))
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_max(*(conf + [b, True]))
+
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_DecisionTreeRegressor()
+    # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_GradientBoostingRegressor64()
     unittest.main()

@@ -437,7 +437,7 @@ def dump_one_class_classification(
 def dump_binary_classification(
         model, suffix="", folder=None, allow_failure=None,
         comparable_outputs=None, verbose=False, label_string=False,
-        benchmark=False, methods=None):
+        benchmark=False, methods=None, nrows=None):
     """
     Trains and dumps a model for a binary classification problem.
     The function trains a model and calls
@@ -455,18 +455,28 @@ def dump_binary_classification(
     model.fit(X, y)
     model_onnx, prefix = convert_model(model, "binary classifier",
                                        [("input", FloatTensorType([None, 2]))])
-    dump_data_and_model(
-        X, model, model_onnx, folder=folder, allow_failure=allow_failure,
-        basename=prefix + "Bin" + model.__class__.__name__ + suffix,
-        verbose=verbose, comparable_outputs=comparable_outputs, methods=methods)
+    if nrows == 2:
+        for nr in range(X.shape[0] - 1):
+            dump_data_and_model(
+                X[nr: nr + 2], model, model_onnx, folder=folder, allow_failure=allow_failure,
+                basename=prefix + "Bin" + model.__class__.__name__ + suffix,
+                verbose=verbose, comparable_outputs=comparable_outputs, methods=methods)
+    else:
+        dump_data_and_model(
+            X, model, model_onnx, folder=folder, allow_failure=allow_failure,
+            basename=prefix + "Bin" + model.__class__.__name__ + suffix,
+            verbose=verbose, comparable_outputs=comparable_outputs, methods=methods)
 
     X, y = make_classification(10, n_features=4, random_state=42)
     X = X[:, :2]
     model.fit(X, y)
     model_onnx, prefix = convert_model(model, "binary classifier",
                                        [("input", FloatTensorType([None, 2]))])
+    xt = X.astype(numpy.float32)
+    if nrows is not None:
+        xt = xt[:nrows]
     dump_data_and_model(
-        X.astype(numpy.float32), model, model_onnx,
+        xt, model, model_onnx,
         allow_failure=allow_failure, folder=folder,
         basename=prefix + "RndBin" + model.__class__.__name__ + suffix,
         verbose=verbose, comparable_outputs=comparable_outputs,

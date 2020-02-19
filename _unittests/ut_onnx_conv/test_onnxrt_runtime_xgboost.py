@@ -47,6 +47,8 @@ obj_classes = {
                                            n_clusters_per_class=1)),
     'reg:squarederror': (XGBRegressor, fct_id,
                          make_regression(n_features=7, n_targets=1)),
+    'reg:squarederror2': (XGBRegressor, fct_id,
+                          make_regression(n_features=7, n_targets=2)),
 }
 
 
@@ -63,46 +65,47 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
         nb_tests = 0
         for objective in obj_classes:
             for n_estimators in [1, 2]:
-                probs = []
-                cl, fct, prob = obj_classes[objective]
+                with self.subTest(objective=objective, n_estimators=n_estimators):
+                    probs = []
+                    cl, fct, prob = obj_classes[objective]
 
-                iris = load_iris()
-                X, y = iris.data, iris.target
-                y = fct(y)
-                X_train, X_test, y_train, _ = train_test_split(
-                    X, y, random_state=11)
-                probs.append((X_train, X_test, y_train))
+                    iris = load_iris()
+                    X, y = iris.data, iris.target
+                    y = fct(y)
+                    X_train, X_test, y_train, _ = train_test_split(
+                        X, y, random_state=11)
+                    probs.append((X_train, X_test, y_train))
 
-                X_train, X_test, y_train, _ = train_test_split(
-                    *prob, random_state=11)
-                probs.append((X_train, X_test, y_train))
+                    X_train, X_test, y_train, _ = train_test_split(
+                        *prob, random_state=11)
+                    probs.append((X_train, X_test, y_train))
 
-                for X_train, X_test, y_train in probs:
+                    for X_train, X_test, y_train in probs:
+                        obj = objective.replace(
+                            'reg:squarederror2', 'reg:squarederror')
+                        clr = cl(objective=obj, n_estimators=n_estimators)
+                        clr.fit(X_train, y_train)
 
-                    clr = cl(objective=objective,
-                             n_estimators=n_estimators)
-                    clr.fit(X_train, y_train)
+                        model_def = to_onnx(clr, X_train.astype(numpy.float32))
 
-                    model_def = to_onnx(clr, X_train.astype(numpy.float32))
+                        oinf = OnnxInference(model_def)
+                        y = oinf.run({'X': X_test.astype(numpy.float32)})
+                        if cl == XGBRegressor:
+                            exp = clr.predict(X_test)
+                            self.assertEqual(list(sorted(y)), ['variable'])
+                            self.assertEqualArray(
+                                exp, y['variable'].ravel(), decimal=6)
+                        else:
+                            exp = clr.predict_proba(X_test)
+                            self.assertEqual(list(sorted(y)), [
+                                             'output_label', 'output_probability'])
+                            got = DataFrame(y['output_probability']).values
+                            self.assertEqualArray(exp, got, decimal=6)
 
-                    oinf = OnnxInference(model_def)
-                    y = oinf.run({'X': X_test.astype(numpy.float32)})
-                    if cl == XGBRegressor:
-                        exp = clr.predict(X_test)
-                        self.assertEqual(list(sorted(y)), ['variable'])
-                        self.assertEqualArray(
-                            exp, y['variable'].ravel(), decimal=6)
-                    else:
-                        exp = clr.predict_proba(X_test)
-                        self.assertEqual(list(sorted(y)), [
-                                         'output_label', 'output_probability'])
-                        got = DataFrame(y['output_probability']).values
-                        self.assertEqualArray(exp, got, decimal=6)
+                            exp = clr.predict(X_test)
+                            self.assertEqualArray(exp, y['output_label'])
 
-                        exp = clr.predict(X_test)
-                        self.assertEqualArray(exp, y['output_label'])
-
-                    nb_tests += 1
+                        nb_tests += 1
 
         self.assertGreater(nb_tests, 20)
 

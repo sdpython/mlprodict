@@ -31,6 +31,7 @@ from mlprodict.testing.test_utils import (
     fit_multilabel_classification_model,
 )
 from mlprodict.onnx_conv import register_rewritten_operators
+from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 
 
 class TestSklearnTreeEnsembleModels(ExtTestCase):
@@ -44,6 +45,7 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
 
     def test_random_forest_classifier(self):
         model = RandomForestClassifier(n_estimators=3)
+        dump_binary_classification(model, folder=self.folder, nrows=2)
         dump_binary_classification(model, folder=self.folder)
         dump_multiple_classification(model, folder=self.folder)
 
@@ -127,7 +129,7 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
         model_onnx = convert_sklearn(
             model, "scikit-learn RandomForestClassifier",
             [("input", FloatTensorType([None, X_test.shape[1]]))],
-            options=options)
+            options=options, target_opset=get_opset_number_from_onnx())
         self.assertTrue(model_onnx is not None)
         self.assertNotIn('zipmap', str(model_onnx).lower())
         dump_data_and_model(X_test, model, model_onnx,
@@ -142,7 +144,7 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
         model_onnx = convert_sklearn(
             model, "scikit-learn RandomForestClassifier",
             [("input", FloatTensorType([None, X_test.shape[1]]))],
-            options=options)
+            options=options, target_opset=get_opset_number_from_onnx())
         self.assertTrue(model_onnx is not None)
         self.assertNotIn('zipmap', str(model_onnx).lower())
         dump_data_and_model(X_test, model, model_onnx,
@@ -156,7 +158,7 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
         model_onnx = convert_sklearn(
             model, "scikit-learn ExtraTreesClassifier",
             [("input", FloatTensorType([None, X_test.shape[1]]))],
-            options=options)
+            options=options, target_opset=get_opset_number_from_onnx())
         self.assertTrue(model_onnx is not None)
         self.assertNotIn('zipmap', str(model_onnx).lower())
         dump_data_and_model(X_test, model, model_onnx,
@@ -170,7 +172,7 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
         model_onnx = convert_sklearn(
             model, "scikit-learn ExtraTreesClassifier",
             [("input", FloatTensorType([None, X_test.shape[1]]))],
-            options=options)
+            options=options, target_opset=get_opset_number_from_onnx())
         self.assertTrue(model_onnx is not None)
         self.assertNotIn('zipmap', str(model_onnx).lower())
         dump_data_and_model(X_test, model, model_onnx,

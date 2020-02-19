@@ -109,7 +109,7 @@ class RuntimeTreeEnsembleClassifier
                           int& write_additional_scores,
                           std::vector<NTYPE>& classes,
                           std::vector<bool>& filled,
-                          int64_t positive_label, int64_t negative_label) const;    
+                          int64_t positive_label, int64_t negative_label) const;
 };
 
 
@@ -186,12 +186,12 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::init(
     // additional members
     nodes_modes_.resize(nodes_modes.size());
     same_mode_ = true;
-    size_t fpos = -1;
+    size_t fpos = (size_t)-1;
     for(size_t i = 0; i < nodes_modes.size(); ++i) {
         nodes_modes_[i] = to_NODE_MODE(nodes_modes[i]);
         if (nodes_modes_[i] == NODE_MODE::LEAF)
             continue;
-        if (fpos == -1) {
+        if (fpos == (size_t)-1) {
             fpos = i;
             continue;
         }
@@ -696,7 +696,7 @@ in :epkg:`onnxruntime`. Supports float only.)pbdoc");
     clf.def_readonly("nodes_hitrates_", &RuntimeTreeEnsembleClassifierFloat::nodes_hitrates_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     clf.def_property_readonly("nodes_modes_", [](RuntimeTreeEnsembleClassifierFloat* op) -> const py::array_t<int> {
         std::vector<int> i_nodes_modes(op->nodes_modes_.size());
-        for(int i = 0; i < i_nodes_modes.size(); ++i)
+        for(size_t i = 0; i < i_nodes_modes.size(); ++i)
             i_nodes_modes[i] = (int)op->nodes_modes_[i];
         return py::array_t<int>(
             py::buffer_info(
@@ -748,7 +748,7 @@ in :epkg:`onnxruntime`. Supports double only.)pbdoc");
     cld.def_readonly("nodes_hitrates_", &RuntimeTreeEnsembleClassifierDouble::nodes_hitrates_, "See :ref:`lpyort-TreeEnsembleClassifier`.");
     cld.def_property_readonly("nodes_modes_", [](RuntimeTreeEnsembleClassifierDouble* op) -> const py::array_t<int> {
         std::vector<int> i_nodes_modes(op->nodes_modes_.size());
-        for(int i = 0; i < i_nodes_modes.size(); ++i)
+        for(size_t i = 0; i < i_nodes_modes.size(); ++i)
             i_nodes_modes[i] = (int)op->nodes_modes_[i];
         return py::array_t<int>(
             py::buffer_info(

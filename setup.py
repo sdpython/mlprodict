@@ -277,6 +277,22 @@ if not r:
         define_macros=define_macros,
         language='c++')
 
+    ext_tree_ensemble_classifier_p = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_p_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_classifier_p_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
     ext_svm_classifier = Extension(
         'mlprodict.onnxrt.ops_cpu.op_svm_classifier_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_svm_classifier_.cpp'),
@@ -329,6 +345,7 @@ if not r:
         ext_svm_classifier,
         ext_svm_regressor,
         ext_tree_ensemble_classifier,
+        ext_tree_ensemble_classifier_p,
         ext_tree_ensemble_regressor,
         ext_tree_ensemble_regressor_p,
         op_onnx_numpy,

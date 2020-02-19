@@ -123,7 +123,7 @@ py::array_t<T> Conv<T>::compute(py::array_t<T> X, py::array_t<T> W, py::array_t<
     arrayshape2vector(w_dims, W);
     
     const int64_t N = x_dims[0];
-    const int64_t C = x_dims[1];
+    // const int64_t C = x_dims[1];
     const int64_t M = w_dims[0];
 
     std::vector<int64_t> kernel_shape;

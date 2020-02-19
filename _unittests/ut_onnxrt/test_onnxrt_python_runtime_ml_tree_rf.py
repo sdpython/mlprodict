@@ -216,6 +216,4 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntimeMlTreeRF().setUp()
-    # TestOnnxrtPythonRuntimeMlTreeRF().test_onnxrt_python_RandomForestRegressor_full32()
     unittest.main()

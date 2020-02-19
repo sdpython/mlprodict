@@ -87,10 +87,10 @@ double vector_dot_product_pointer16_sse(const double *p1, const double *p2)
     c2 = _mm_load_pd(p2);
     r1 = _mm_add_pd(r1, _mm_mul_pd(c1, c2));
 
-    double r[4];
+    double r[2];
     _mm_store_pd(r, r1);
 
-    return r[0] + r[1] + r[2] + r[3];
+    return r[0] + r[1]; // + r[2] + r[3];
 }
 
 #define BYND 8

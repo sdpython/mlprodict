@@ -59,7 +59,7 @@ class RuntimeTreeEnsembleRegressor
         const int64_t kOffset_ = 4000000000L;
     
     public:
-        
+
         RuntimeTreeEnsembleRegressor();
         ~RuntimeTreeEnsembleRegressor();
 
@@ -82,17 +82,17 @@ class RuntimeTreeEnsembleRegressor
             py::array_t<int64_t> target_treeids,
             py::array_t<NTYPE> target_weights
         );
-        
+
         py::array_t<NTYPE> compute(py::array_t<NTYPE> X) const;
 
         void ProcessTreeNode(NTYPE* predictions, int64_t treeindex,
                              const NTYPE* x_data, int64_t feature_base,
                              unsigned char* has_predictions) const;
-    
+
         std::string runtime_options();
 
         int omp_get_max_threads();
-        
+
         py::array_t<int> debug_threshold(py::array_t<NTYPE> values) const;
 
         py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> values) const;
@@ -100,7 +100,7 @@ class RuntimeTreeEnsembleRegressor
     private:
 
         void Initialize();
-    
+
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                               const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z) const;
 };
