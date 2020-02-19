@@ -8,7 +8,7 @@ template<typename NTYPE>
 class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE>
 {
     public :
-        
+
         //std::vector<std::string> classlabels_strings_;
         std::vector<int64_t> classlabels_int64s_;
         bool binary_case_;

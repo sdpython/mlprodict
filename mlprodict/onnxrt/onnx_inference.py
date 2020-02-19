@@ -534,9 +534,14 @@ class OnnxInference:
                     else:
                         threshold = min(
                             50, min(50 // arr.shape[1], 8) * arr.shape[1])
-                    fLOG(numpy.array2string(arr, max_line_width=120,
-                                            suppress_small=True,
-                                            threshold=threshold))
+                    if hasattr(arr, 'todense'):
+                        fLOG(numpy.array2string(arr.todense(), max_line_width=120,
+                                                suppress_small=True,
+                                                threshold=threshold))
+                    else:
+                        fLOG(numpy.array2string(arr, max_line_width=120,
+                                                suppress_small=True,
+                                                threshold=threshold))
                 else:
                     s = str(arr)
                     if len(s) > 50:
@@ -550,10 +555,16 @@ class OnnxInference:
                     obj = values[self._global_index[k]]
                     if k not in printed:
                         printed.add(k)
-                        fLOG("-kv='{}' shape={} dtype={} min={} max={}{}".format(
-                            k, obj.shape, obj.dtype, numpy.min(
-                                obj), numpy.max(obj),
-                            ' (sparse)' if isinstance(obj, coo_matrix) else ''))
+                        if hasattr(obj, 'shape'):
+                            fLOG("-kv='{}' shape={} dtype={} min={} max={}{}".format(
+                                k, obj.shape, obj.dtype, numpy.min(
+                                    obj), numpy.max(obj),
+                                ' (sparse)' if isinstance(obj, coo_matrix) else ''))
+                        elif isinstance(obj, list):
+                            fLOG("-kv='{}' list len={} min={} max={}".format(
+                                k, len(obj), min(obj), max(obj)))
+                        else:
+                            fLOG("-kv='{}' type={}".format(k, type(obj)))
 
             keys = set(k for k in range(len(values)) if values[k] is not None)
             if verbose >= 1:

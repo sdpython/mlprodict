@@ -244,7 +244,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(
             X, y, random_state=11)  # pylint: disable=W0612
-        clr = GradientBoostingRegressor(n_estimators=20)
+        clr = GradientBoostingRegressor(n_estimators=20, random_state=11)
         clr.fit(X_train, y_train)
         lexp = clr.predict(X_test)
 
@@ -275,6 +275,19 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
         with self.subTest(rows=1):
             for irow in range(0, X_test.shape[0]):
+                oinf32.sequence_[0].ops_.rt_.omp_tree_ = 10000
+                y32 = oinf32.run(
+                    {'X': X_test[irow:irow + 1].astype(numpy.float32)})
+                y32 = oinf32.run(
+                    {'X': X_test[irow:irow + 1].astype(numpy.float32)})
+                self.assertEqual(list(sorted(y32)), ['variable'])
+                self.assertEqual(lexp[irow:irow + 1].shape,
+                                 y32['variable'].shape)
+                self.assertEqualArray(lexp[irow:irow + 1], y32['variable'])
+
+                oinf32.sequence_[0].ops_.rt_.omp_tree_ = 10
+                y32 = oinf32.run(
+                    {'X': X_test[irow:irow + 1].astype(numpy.float32)})
                 y32 = oinf32.run(
                     {'X': X_test[irow:irow + 1].astype(numpy.float32)})
                 self.assertEqual(list(sorted(y32)), ['variable'])
@@ -283,6 +296,13 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                 self.assertEqualArray(lexp[irow:irow + 1], y32['variable'])
 
         with self.subTest(rows=X_test.shape[0]):
+            oinf32.sequence_[0].ops_.rt_.omp_tree_ = 10000
+            y32 = oinf32.run({'X': X_test.astype(numpy.float32)})
+            self.assertEqual(list(sorted(y32)), ['variable'])
+            self.assertEqual(lexp.shape, y32['variable'].shape)
+            self.assertEqualArray(lexp, y32['variable'])
+
+            oinf32.sequence_[0].ops_.rt_.omp_tree_ = 10
             y32 = oinf32.run({'X': X_test.astype(numpy.float32)})
             self.assertEqual(list(sorted(y32)), ['variable'])
             self.assertEqual(lexp.shape, y32['variable'].shape)
