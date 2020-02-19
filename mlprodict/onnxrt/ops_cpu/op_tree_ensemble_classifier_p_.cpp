@@ -88,7 +88,7 @@ void RuntimeTreeEnsembleClassifierP<NTYPE>::init(
     std::vector<int64_t> cids;
     array2vector(cids, class_ids, int64_t);
     std::set<int64_t> weights_classes;
-    weights_are_all_positive_ = false;
+    weights_are_all_positive_ = true;
     for (size_t i = 0, end = cids.size(); i < end; ++i) {
         weights_classes.insert(cids[i]);
         if (cweights[i] < 0)
