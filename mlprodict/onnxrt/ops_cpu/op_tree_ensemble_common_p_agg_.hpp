@@ -172,8 +172,8 @@ class _AggregatorSum : public _Aggregator<NTYPE>
         inline void FinalizeScores1(NTYPE* Z, NTYPE& val,
                                     unsigned char& has_scores,
                                     int64_t * Y = 0) const {
-            val += origin_;
-            *Z = post_transform_ == POST_EVAL_TRANSFORM::PROBIT ? ComputeProbit(val) : val;
+            val += this->origin_;
+            *Z = this->post_transform_ == POST_EVAL_TRANSFORM::PROBIT ? ComputeProbit(val) : val;
         }
 
         // N outputs
@@ -200,13 +200,13 @@ class _AggregatorSum : public _Aggregator<NTYPE>
                             std::vector<unsigned char>& has_scores,
                             NTYPE* Z, int add_second_class,
                             int64_t * Y = 0) const {
-            if (use_base_values_) {
+            if (this->use_base_values_) {
                 auto it = scores.begin();
-                auto it2 = base_values_->cbegin();
+                auto it2 = this->base_values_->cbegin();
                 for (; it != scores.end(); ++it, ++it2)
                     *it += *it2;
             }
-            write_scores(scores, post_transform_, Z, add_second_class);
+            write_scores(scores, this->post_transform_, Z, add_second_class);
         }
 };
 
@@ -229,17 +229,17 @@ class _AggregatorAverage : public _AggregatorSum<NTYPE>
                                     unsigned char& has_scores,
                                     int64_t * Y = 0) const {
             val /= this->n_trees_;
-            val += origin_;
-            *Z = post_transform_ == POST_EVAL_TRANSFORM::PROBIT ? ComputeProbit(val) : val;
+            val += this->origin_;
+            *Z = this->post_transform_ == POST_EVAL_TRANSFORM::PROBIT ? ComputeProbit(val) : val;
         }
 
         void FinalizeScores(std::vector<NTYPE>& scores,
                             std::vector<unsigned char>& has_scores,
                             NTYPE* Z, int add_second_class,
                             int64_t * Y = 0) const {
-            if (use_base_values_) {
+            if (this->use_base_values_) {
                 auto it = scores.begin();
-                auto it2 = base_values_->cbegin();
+                auto it2 = this->base_values_->cbegin();
                 for (; it != scores.end(); ++it, ++it2)
                     *it = *it / this->n_trees_ + *it2;
             }
@@ -248,7 +248,7 @@ class _AggregatorAverage : public _AggregatorSum<NTYPE>
                 for (; it != scores.end(); ++it)
                     *it /= this->n_trees_;
             }
-            write_scores(scores, post_transform_, Z, add_second_class);
+            write_scores(scores, this->post_transform_, Z, add_second_class);
         }        
 };
 
