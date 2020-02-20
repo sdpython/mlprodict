@@ -250,9 +250,13 @@ def inspect_sklearn_model(model, recursive=True):
             st['nnodes'] = m.tree_.node_count
             st['ntrees'] = 1
             st['max_depth'] = max_depth(m)
-        if hasattr(m, 'coef_'):
-            st['ncoef'] = len(m.coef_)
-            st['nlin'] = 1
+        try:
+            if hasattr(m, 'coef_'):
+                st['ncoef'] = len(m.coef_)
+                st['nlin'] = 1
+        except KeyError:
+            # added to deal with xgboost 1.0 (KeyError: 'weight')
+            pass
         if hasattr(m, 'estimators_'):
             for est in m.estimators_:
                 st_ = inspect_sklearn_model(est, recursive=recursive)
