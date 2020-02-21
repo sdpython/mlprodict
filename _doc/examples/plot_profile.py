@@ -28,7 +28,7 @@ X, y = data.data, data.target
 
 dt = DecisionTreeRegressor()
 dt.fit(X, y)
-onx = to_onnx(dt, X[:1].astype(numpy.float32))
+onx = to_onnx(dt, X[:1].astype(numpy.float32), target_opset=11)
 oinf = OnnxInference(onx, runtime='python_compiled')
 print(oinf)
 
@@ -60,7 +60,7 @@ print(txt[1])
 
 ada = AdaBoostRegressor()
 ada.fit(X, y)
-onx = to_onnx(ada, X[:1].astype(numpy.float32))
+onx = to_onnx(ada, X[:1].astype(numpy.float32), target_opset=11)
 oinf = OnnxInference(onx, runtime='python_compiled')
 print(oinf)
 
