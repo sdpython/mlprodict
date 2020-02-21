@@ -91,6 +91,10 @@ def plot_validate_benchmark(df):
     dfp_legend.iloc[0, 0] = "------"
     rleg.iloc[-1, 0] = "------"
 
+    # sort
+    final = final.sort_values('label').copy()
+
+    # add global statistics
     final = pandas.concat([rleg, final, dfp_legend]).reset_index(drop=True)
 
     # graph beginning
@@ -103,6 +107,31 @@ def plot_validate_benchmark(df):
     decrt = {rt: height * i for i, rt in enumerate(runtimes)}
     colors = {rt: c for rt, c in zip(
         runtimes, ['blue', 'orange', 'cyan', 'yellow'])}
+
+    # draw lines between models
+    vals = final.iloc[:, 1:].values.ravel()
+    xlim = [min(0.5, min(vals)), max(2, max(vals))]
+    while i < final.shape[0] - 1:
+        i += 1
+        label = final.iloc[i, 0]
+        if '[' not in label:
+            continue
+        prev = final.iloc[i - 1, 0]
+        if '[' not in label:
+            continue
+        label = label.split()[0]
+        prev = prev.split()[0]
+        if label == prev:
+            continue
+
+        blank = final.iloc[:1, :].copy()
+        blank.iloc[0, 0] = '------'
+        blank.iloc[0, 1:] = xlim[0]
+        final = pandas.concat([final[:i], blank, final[i:]])
+        i += 1
+
+    final = final.reset_index(drop=True).copy()
+    x = numpy.arange(final.shape[0])
 
     done = set()
     for c in final.columns[1:]:
@@ -133,8 +162,8 @@ def plot_validate_benchmark(df):
         for i in range(len(ax)):  # pylint: disable=C0200
             ax[i].plot([1, 1], [0, max(x)], 'g-')
             ax[i].plot([2, 2], [0, max(x)], 'r--')
+            ax[i].set_xlim(xlim)
             ax[i].set_xscale('log')
-            ax[i].set_xlim([0, 10])
             ax[i].set_ylim([min(x) - 2, max(x) + 1])
 
         ax[min(ax.shape[0] - 1, 2)].legend()
@@ -147,7 +176,7 @@ def plot_validate_benchmark(df):
         ax.legend()
         ax.set_yticks(x)
         ax.set_yticklabels(final['label'])
-        ax.set_xlim([0, 10])
+        ax.set_xlim(xlim)
         ax.set_ylim([min(x) - 2, max(x) + 1])
 
     fig.subplots_adjust(left=0.25)

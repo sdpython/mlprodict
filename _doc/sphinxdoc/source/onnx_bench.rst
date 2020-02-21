@@ -180,6 +180,31 @@ it is *1/r* faster than *scikit-learn*.
     rleg.iloc[1, 0] = "med_" + dfp_legend.columns[1].split('__')[-1]
     rleg.iloc[0, 0] = "med_" + dfp_legend.columns[1+ncol].split('__')[-1]
 
+    # draw lines between models
+    dfp = dfp.sort_values('label').copy()
+    vals = dfp.iloc[:, 1:].values.ravel()
+    xlim = [min(0.5, min(vals)), max(2, max(vals))]
+    while i < dfp.shape[0] - 1:
+        i += 1
+        label = dfp.iloc[i, 0]
+        if '[' not in label:
+            continue
+        prev = dfp.iloc[i-1, 0]
+        if '[' not in label:
+            continue
+        label = label.split()[0]
+        prev = prev.split()[0]
+        if label == prev:
+            continue
+
+        blank = dfp.iloc[:1,:].copy()
+        blank.iloc[0, 0] = '------'
+        blank.iloc[0, 1:] = xlim[0]
+        dfp = pandas.concat([dfp[:i], blank, dfp[i:]])
+        i += 1
+    dfp = dfp.reset_index(drop=True).copy()
+
+    # add exhaustive statistics
     dfp = pandas.concat([rleg, dfp, dfp_legend]).reset_index(drop=True)
     dfp["x"] = numpy.arange(0, dfp.shape[0])
 
@@ -204,6 +229,7 @@ it is *1/r* faster than *scikit-learn*.
             # Does not work because all graph shows the same
             # labels.
             ax[i] = fig.add_axes(bo, sharey=ax[i-1])
+
     # fig, ax = plt.subplots(1, (dfp.shape[1]-1) // 2, figsize=(14, total),
     #                        sharex=False, sharey=True)
     x = dfp['x']

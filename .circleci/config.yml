@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/python:3.7.3
+      - image: circleci/python:3.7.5
     
     working_directory: ~/repo
     
@@ -66,6 +66,7 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
+            pip install onnxruntime
 
       - save_cache:
           paths:
