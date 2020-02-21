@@ -17,6 +17,7 @@ except ImportError:
 import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
+from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 
 
 class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
@@ -34,11 +35,13 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
+        op = get_opset_number_from_onnx()
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"KMeans"},
             fLOG=myprint,
             runtime='onnxruntime2', debug=True,
-            filter_exp=lambda m, p: '-64' not in p))
+            filter_exp=lambda m, p: '-64' not in p,
+            opset_min=op, opset_max=op))
         self.assertGreater(len(rows), 1)
         # self.assertGreater(len(buffer), 1)
 

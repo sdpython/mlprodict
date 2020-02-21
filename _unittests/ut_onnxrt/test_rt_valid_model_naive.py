@@ -11,6 +11,7 @@ from sklearn.naive_bayes import BernoulliNB
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 
 
 class TestRtValidateNaive(ExtTestCase):
@@ -48,7 +49,7 @@ class TestRtValidateNaive(ExtTestCase):
         model, X = self.fit_classification_model(BernoulliNB(), 2)
         model_onnx = convert_sklearn(
             model, "?", [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32)
+            dtype=numpy.float32, target_opset=get_opset_number_from_onnx())
         exp1 = model.predict(X)
         exp = model.predict_proba(X)
 
@@ -62,7 +63,7 @@ class TestRtValidateNaive(ExtTestCase):
         model, X = self.fit_classification_model(BernoulliNB(), 2)
         model_onnx = convert_sklearn(
             model, "?", [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32)
+            dtype=numpy.float32, target_opset=get_opset_number_from_onnx())
         exp1 = model.predict(X)
         exp = model.predict_proba(X)
 
