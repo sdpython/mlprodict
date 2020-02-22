@@ -183,7 +183,8 @@ it is *1/r* faster than *scikit-learn*.
     # draw lines between models
     dfp = dfp.sort_values('label').copy()
     vals = dfp.iloc[:, 1:].values.ravel()
-    xlim = [min(0.5, min(vals)), max(2, max(vals))]
+    xlim = [max(1e-3, min(0.5, min(vals))), min(1000, max(2, max(vals)))]
+    i = 0
     while i < dfp.shape[0] - 1:
         i += 1
         label = dfp.iloc[i, 0]
@@ -246,7 +247,7 @@ it is *1/r* faster than *scikit-learn*.
         ax[i].plot([1, 1], [min(x), max(x)], 'g-')
         ax[i].plot([2, 2], [min(x), max(x)], 'r--')
         ax[i].set_xscale('log')
-        ax[i].set_xlim([0, 10])
+        ax[i].set_xlim(xlim)
         ax[i].set_ylim([min(x) - 2, max(x) + 1])
 
     for i in range(1, len(ax)):

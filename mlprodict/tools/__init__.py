@@ -1,6 +1,7 @@
 """
 @file
-@brief Shorcut to tools.
+@brief Shortcuts to tools.
 """
 
+from .asv_options_helper import get_opset_number_from_onnx
 from .code_helper import change_style
