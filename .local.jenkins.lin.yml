@@ -11,8 +11,7 @@ virtualenv:
 install:
   - $PYINT -m pip install --upgrade pip
   - $PYINT -m pip install --no-cache-dir --no-deps --upgrade --index http://localhost:8067/simple/ jyquickhelper pyquickhelper cpyquickhelper pyensae --extra-index-url=https://pypi.python.org/simple/
-  - if [ ${VERSION} == "3.7" ] then $PYINT -m pip install --no-cache-dir --no-deps --upgrade --index http://localhost:8067/simple/ onnxruntime_dnnl --extra-index-url=https://pypi.python.org/simple/ fi
-  - if [ ${VERSION} == "3.8" ] then $PYINT -m pip install --no-cache-dir --no-deps --upgrade --index http://localhost:8067/simple/ ort_nightly --extra-index-url=https://pypi.python.org/simple/ fi
+  - $PYINT -m pip install --no-cache-dir --no-deps --upgrade --index http://localhost:8067/simple/ onnxruntime_dnnl --upgrade --extra-index-url=https://pypi.python.org/simple/
   - $PYINT -m pip install --no-cache-dir --no-deps --upgrade --index http://localhost:8067/simple/ asv onnx skl2onnx onnxmltools onnxconverter_common --extra-index-url=https://pypi.python.org/simple/
   - $PYINT -m pip install -r requirements.txt --upgrade
   - $PYINT --version
