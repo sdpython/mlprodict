@@ -26,23 +26,21 @@ class TestCliValidateDump(ExtTestCase):
             "DecisionTreeRegressor",
             # "DecisionTreeClassifier",
         ])
-        """
-        models = ','.join([
-            'KMeans',
-            'LGBMClassifier',
-            'LGBMRegressor',
-            'LinearSVC',
-            'LogisticRegression',
-            'MLPClassifier',
-            'MLPRegressor',
-            'RandomForestClassifier',
-            'Perceptron',
-            'RandomForestClassifier',
-            'Ridge',
-            'SGDRegressor',
-            'RandomForestRegressor',
-        ])
-        """  # pylint: disable=W0105
+        # ~ models = ','.join([
+        #~ 'KMeans',
+        #~ 'LGBMClassifier',
+        #~ 'LGBMRegressor',
+        #~ 'LinearSVC',
+        #~ 'LogisticRegression',
+        #~ 'MLPClassifier',
+        #~ 'MLPRegressor',
+        #~ 'RandomForestClassifier',
+        #~ 'Perceptron',
+        #~ 'RandomForestClassifier',
+        #~ 'Ridge',
+        #~ 'SGDRegressor',
+        #~ 'RandomForestRegressor',
+        # ~ ])
         args = ["validate_runtime", "--out_raw", out1,
                 "--out_summary", out2, "--models",
                 models, '-r', "python,onnxruntime1",
