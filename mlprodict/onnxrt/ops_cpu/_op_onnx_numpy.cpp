@@ -290,7 +290,7 @@ void topk_element_max(const NTYPE* values, ssize_t k, ssize_t n,
 template<typename NTYPE, typename FCTYPE>
 py::array_t<int64_t> topk_element(
         py::array_t<NTYPE, py::array::c_style | py::array::forcecast> values,
-        ssize_t k, bool sorted, FCTYPE *fct) {
+        ssize_t k, bool sorted, FCTYPE *fct, ssize_t th_parallel) {
     if (values.ndim() == 1) {
         std::vector<int64_t> pos(k);
         (*fct)(values.data(), k, values.size(), pos.data(), sorted);
@@ -321,7 +321,7 @@ py::array_t<int64_t> topk_element(
         py::buffer_info buf = result.request();
         int64_t * ptr = (int64_t*) buf.ptr;
         int64_t nrows = tdim / vdim;
-        if (nrows < 50) {
+        if (nrows <= th_parallel) {
             for(; data != end; data += vdim, ptr += k)
                 (*fct)(data, k, vdim, ptr, sorted);
         }
@@ -374,43 +374,43 @@ py::array_t<NTYPE> topk_element_fetch(
 
 py::array_t<int64_t> topk_element_min_int64(
         py::array_t<int64_t, py::array::c_style | py::array::forcecast> values,
-        ssize_t k, bool sorted) {
-    return topk_element(values, k, sorted, &topk_element_min<int64_t>);
+        ssize_t k, bool sorted, ssize_t th_para) {
+    return topk_element(values, k, sorted, &topk_element_min<int64_t>, th_para);
 }
 
 
 py::array_t<int64_t> topk_element_min_float(
         py::array_t<float, py::array::c_style | py::array::forcecast> values,
-        ssize_t k, bool sorted) {
-    return topk_element(values, k, sorted, &topk_element_min<float>);
+        ssize_t k, bool sorted, ssize_t th_para) {
+    return topk_element(values, k, sorted, &topk_element_min<float>, th_para);
 }
 
 
 py::array_t<int64_t> topk_element_min_double(
         py::array_t<double, py::array::c_style | py::array::forcecast> values,
-        ssize_t k, bool sorted) {
-    return topk_element(values, k, sorted, &topk_element_min<double>);
+        ssize_t k, bool sorted, ssize_t th_para) {
+    return topk_element(values, k, sorted, &topk_element_min<double>, th_para);
 }
 
 
 py::array_t<int64_t> topk_element_max_int64(
         py::array_t<int64_t, py::array::c_style | py::array::forcecast> values,
-        ssize_t k, bool sorted) {
-    return topk_element(values, k, sorted, &topk_element_max<int64_t>);
+        ssize_t k, bool sorted, ssize_t th_para) {
+    return topk_element(values, k, sorted, &topk_element_max<int64_t>, th_para);
 }
 
 
 py::array_t<int64_t> topk_element_max_float(
         py::array_t<float, py::array::c_style | py::array::forcecast> values,
-        ssize_t k, bool sorted) {
-    return topk_element(values, k, sorted, &topk_element_max<float>);
+        ssize_t k, bool sorted, ssize_t th_para) {
+    return topk_element(values, k, sorted, &topk_element_max<float>, th_para);
 }
 
 
 py::array_t<int64_t> topk_element_max_double(
         py::array_t<double, py::array::c_style | py::array::forcecast> values,
-        ssize_t k, bool sorted) {
-    return topk_element(values, k, sorted, &topk_element_max<double>);
+        ssize_t k, bool sorted, ssize_t th_para) {
+    return topk_element(values, k, sorted, &topk_element_max<double>, th_para);
 }
 
 
@@ -467,33 +467,33 @@ The function only works with contiguous arrays.)pbdoc");
     m.def("topk_element_min_float", &topk_element_min_float,
             R"pbdoc(C++ implementation of operator TopK for float32.
 The function only works with contiguous arrays.
-The function is parallelized for more than 50 rows.
+The function is parallelized for more than *th_para* rows.
 It only does it on the last axis.)pbdoc");
     m.def("topk_element_min_double", &topk_element_min_double,
             R"pbdoc(C++ implementation of operator TopK for float32.
 The function only works with contiguous arrays.
-The function is parallelized for more than 50 rows.
+The function is parallelized for more than *th_para* rows.
 It only does it on the last axis.)pbdoc");
     m.def("topk_element_min_int64", &topk_element_min_int64,
             R"pbdoc(C++ implementation of operator TopK for float32.
 The function only works with contiguous arrays.
-The function is parallelized for more than 50 rows.
+The function is parallelized for more than *th_para* rows.
 It only does it on the last axis.)pbdoc");
 
     m.def("topk_element_max_float", &topk_element_max_float,
             R"pbdoc(C++ implementation of operator TopK for float32.
 The function only works with contiguous arrays.
-The function is parallelized for more than 50 rows.
+The function is parallelized for more than *th_para* rows.
 It only does it on the last axis.)pbdoc");
     m.def("topk_element_max_double", &topk_element_max_double,
             R"pbdoc(C++ implementation of operator TopK for float32.
 The function only works with contiguous arrays.
-The function is parallelized for more than 50 rows.
+The function is parallelized for more than *th_para* rows.
 It only does it on the last axis.)pbdoc");
     m.def("topk_element_max_int64", &topk_element_max_int64,
             R"pbdoc(C++ implementation of operator TopK for float32.
 The function only works with contiguous arrays.
-The function is parallelized for more than 50 rows.
+The function is parallelized for more than *th_para* rows.
 It only does it on the last axis.)pbdoc");
 
     m.def("topk_element_fetch_float", &topk_element_fetch_float,

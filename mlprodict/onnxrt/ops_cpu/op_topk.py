@@ -56,7 +56,7 @@ def topk_sorted_implementation(X, k, axis, largest):
     return topk_sorted_values, topk_sorted_indices
 
 
-def topk_sorted_implementation_cpp(X, k, axis, largest):
+def topk_sorted_implementation_cpp(X, k, axis, largest, th_para=50):
     """
     Retrieves the top-k elements using a C++
     implementation when the axis is the last dimension,
@@ -67,27 +67,28 @@ def topk_sorted_implementation_cpp(X, k, axis, largest):
     @param      k           k in top-k
     @param      axis        axis chosen to select the top-k elements
     @param      largest     largest (1) or smallest (0)
+    @param      th_para     threshold for parallelisation
     @return                 top-k values, top-k indices
     """
     if axis != len(X.shape) - 1:
         return topk_sorted_implementation(X, k, axis, largest)
     if X.dtype == numpy.float64:
         if largest:
-            topk_sorted_indices = topk_element_max_double(X, k, True)
+            topk_sorted_indices = topk_element_max_double(X, k, True, th_para)
         else:
-            topk_sorted_indices = topk_element_min_double(X, k, True)
+            topk_sorted_indices = topk_element_min_double(X, k, True, th_para)
         topk_sorted_values = topk_element_fetch_double(X, topk_sorted_indices)
     elif X.dtype == numpy.float32:
         if largest:
-            topk_sorted_indices = topk_element_max_float(X, k, True)
+            topk_sorted_indices = topk_element_max_float(X, k, True, th_para)
         else:
-            topk_sorted_indices = topk_element_min_float(X, k, True)
+            topk_sorted_indices = topk_element_min_float(X, k, True, th_para)
         topk_sorted_values = topk_element_fetch_float(X, topk_sorted_indices)
     elif X.dtype == numpy.int64:
         if largest:
-            topk_sorted_indices = topk_element_max_int64(X, k, True)
+            topk_sorted_indices = topk_element_max_int64(X, k, True, th_para)
         else:
-            topk_sorted_indices = topk_element_min_int64(X, k, True)
+            topk_sorted_indices = topk_element_min_int64(X, k, True, th_para)
         topk_sorted_values = topk_element_fetch_int64(X, topk_sorted_indices)
     else:
         return topk_sorted_implementation(X, k, axis, largest)
@@ -95,11 +96,16 @@ def topk_sorted_implementation_cpp(X, k, axis, largest):
 
 
 class _CommonTopK(OpRun):
+    """
+    Ths class hides a parameter used as a threshold above
+    which the parallelisation is started: ``th_para``.
+    """
 
     atts = {'axis': -1}
 
     def __init__(self, *args, **options):
         OpRun.__init__(self, *args, **options)
+        self.th_para = 50
 
     def _common_run(self, data, ink, largest=1):  # pylint: disable=W0221
         """
@@ -116,7 +122,8 @@ class _CommonTopK(OpRun):
         """
         k = ink[0]
         axis = self.axis if self.axis >= 0 else (self.axis + len(data.shape))
-        sort, sorti = topk_sorted_implementation_cpp(data, k, axis, largest)
+        sort, sorti = topk_sorted_implementation_cpp(
+            data, k, axis, largest, self.th_para)
         return (sort, sorti.astype(numpy.int64))
 
     def _infer_shapes(self, data, ink):  # pylint: disable=W0221
