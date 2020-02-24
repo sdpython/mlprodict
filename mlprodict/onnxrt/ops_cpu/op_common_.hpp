@@ -13,7 +13,6 @@ inline bool _isnan_(double x) { return _isnan(x); }
 
 #else
 
-#include <math.h>
 inline bool _isnan_(float x) { return ::isnanf(x); }
 inline bool _isnan_(double x) { return ::isnan(x); }
 
@@ -190,24 +189,26 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
     if (scores.size() >= 2) {
         switch (post_transform) {
             case POST_EVAL_TRANSFORM::PROBIT:
-                for (NTYPE& score : scores)
-                    score = ComputeProbit(score);
+                for(auto it = scores.cbegin(); it != scores.cend(); ++it, ++Z)
+                    *Z = ComputeProbit(*it);
                 break;
             case POST_EVAL_TRANSFORM::LOGISTIC:
-                for (NTYPE& score : scores)
-                    score = ComputeLogistic(score);
+                for(auto it = scores.cbegin(); it != scores.cend(); ++it, ++Z)
+                    *Z = ComputeLogistic(*it);
                 break;
             case POST_EVAL_TRANSFORM::SOFTMAX:
                 ComputeSoftmax(scores);
+                memcpy(Z, scores.data(), scores.size() * sizeof(NTYPE));
                 break;
             case POST_EVAL_TRANSFORM::SOFTMAX_ZERO:
                 ComputeSoftmaxZero(scores);
+                memcpy(Z, scores.data(), scores.size() * sizeof(NTYPE));
                 break;
             default:
             case POST_EVAL_TRANSFORM::NONE:
+                memcpy(Z, scores.data(), scores.size() * sizeof(NTYPE));
                 break;
         }
-        memcpy(Z, scores.data(), scores.size() * sizeof(NTYPE));
     }
     else if (scores.size() == 1) {  //binary case
         if (post_transform == POST_EVAL_TRANSFORM::PROBIT) {
