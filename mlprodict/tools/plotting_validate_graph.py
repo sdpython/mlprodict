@@ -38,7 +38,7 @@ def plot_validate_benchmark(df):
         from pandas import DataFrame
         import matplotlib.pyplot as plt
         from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
-        from mlprodict.onnxrt.validate.validate_graph import plot_validate_benchmark
+        from mlprodict.tools.plotting import plot_validate_benchmark
 
         logger = getLogger('skl2onnx')
         logger.disabled = True
