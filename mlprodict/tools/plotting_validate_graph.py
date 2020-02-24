@@ -6,6 +6,24 @@ import numpy
 import pandas
 
 
+def _model_name(name):
+    """
+    Extracts the main component of a model, removes
+    suffixes such ``Classifier``, ``Regressor``, ``CV``.
+
+    @param      name        string
+    @return                 shorter string
+    """
+    modif = 1
+    while modif > 0:
+        modif = 0
+        for suf in ['Classifier', 'Regressor', 'CV', 'IC']:
+            if name.endswith(suf):
+                name = name[:-len(suf)]
+                modif += 1
+    return name
+
+
 def plot_validate_benchmark(df):
     """
     Plots a graph which summarizes the performances of a benchmark
@@ -121,7 +139,7 @@ def plot_validate_benchmark(df):
             continue
         label = label.split()[0]
         prev = prev.split()[0]
-        if label == prev:
+        if _model_name(label) == _model_name(prev):
             continue
 
         blank = final.iloc[:1, :].copy()
