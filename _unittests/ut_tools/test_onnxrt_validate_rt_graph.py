@@ -12,7 +12,7 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
-from mlprodict.onnxrt.validate.validate_graph import plot_validate_benchmark
+from mlprodict.tools.plotting import plot_validate_benchmark
 
 
 class TestOnnxrtValidateRtGraph(ExtTestCase):

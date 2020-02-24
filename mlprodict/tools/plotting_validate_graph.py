@@ -110,7 +110,7 @@ def plot_validate_benchmark(df):
     rleg.iloc[-1, 0] = "------"
 
     # sort
-    final = final.sort_values('label').copy()
+    final = final.sort_values('label', ascending=False).copy()
 
     # add global statistics
     final = pandas.concat([rleg, final, dfp_legend]).reset_index(drop=True)

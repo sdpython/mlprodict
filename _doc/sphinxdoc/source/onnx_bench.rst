@@ -120,6 +120,7 @@ it is *1/r* faster than *scikit-learn*.
     import matplotlib.pyplot as plt
     import numpy
     from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+    from mlprodict.tools.plotting_benchmark import _model_name
 
     df1 = pandas.read_excel("bench_sum_python_compiled.xlsx")
     df2 = pandas.read_excel("bench_sum_onnxruntime1.xlsx")
@@ -181,7 +182,7 @@ it is *1/r* faster than *scikit-learn*.
     rleg.iloc[0, 0] = "med_" + dfp_legend.columns[1+ncol].split('__')[-1]
 
     # draw lines between models
-    dfp = dfp.sort_values('label').copy()
+    dfp = dfp.sort_values('label', ascending=False).copy()
     vals = dfp.iloc[:, 1:].values.ravel()
     xlim = [max(1e-3, min(0.5, min(vals))), min(1000, max(2, max(vals)))]
     i = 0
@@ -195,7 +196,7 @@ it is *1/r* faster than *scikit-learn*.
             continue
         label = label.split()[0]
         prev = prev.split()[0]
-        if label == prev:
+        if _model_name(label) == _model_name(prev):
             continue
 
         blank = dfp.iloc[:1,:].copy()
