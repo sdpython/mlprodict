@@ -59,7 +59,10 @@ from sklearn.neighbors import (
     NearestCentroid, RadiusNeighborsClassifier,
     NeighborhoodComponentsAnalysis,
 )
-from sklearn.preprocessing import LabelBinarizer, LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import (
+    LabelBinarizer, LabelEncoder,
+    OneHotEncoder, PowerTransformer,
+)
 from sklearn.semi_supervised import LabelPropagation, LabelSpreading
 from sklearn.svm import LinearSVC, LinearSVR, NuSVR, SVR, SVC, NuSVC
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, ExtraTreeClassifier
@@ -765,7 +768,7 @@ def find_suitable_problem(model):
         if model in {DecisionTreeRegressor}:
             return ['b-reg', 'm-reg', '~b-reg-64', '~m-reg-64', '~b-reg-f100']
 
-        if model in {LatentDirichletAllocation, NMF}:
+        if model in {LatentDirichletAllocation, NMF, PowerTransformer}:
             return ['num-tr-pos']
 
         # predict, predict_proba

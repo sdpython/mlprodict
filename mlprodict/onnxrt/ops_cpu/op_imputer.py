@@ -32,16 +32,18 @@ class Imputer(OpRunUnaryNum):
         if len(x.shape) != 2:
             raise RuntimeTypeError(
                 "x must be a matrix but shape is {}".format(x.shape))
-        if self.values.shape[0] != x.shape[1]:
+        if self.values.shape[0] not in (x.shape[1], 1):
             raise RuntimeTypeError(
                 "Dimension mismatch {} != {}".format(
-                    self.to_replace.shape[0], x.shape[1]))
+                    self.values.shape[0], x.shape[1]))
         x = x.copy()
         if numpy.isnan(self.replace):
             for i in range(0, x.shape[1]):
-                x[numpy.isnan(x[:, i]), i] = self.values[i]
+                val = self.values[min(i, self.values.shape[0] - 1)]
+                x[numpy.isnan(x[:, i]), i] = val
         else:
             for i in range(0, x.shape[1]):
-                x[x[:, i] == self.replace, i] = self.values[i]
+                val = self.values[min(i, self.values.shape[0] - 1)]
+                x[x[:, i] == self.replace, i] = val
 
         return (x, )

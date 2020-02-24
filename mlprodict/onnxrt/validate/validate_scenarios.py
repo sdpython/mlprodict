@@ -25,7 +25,7 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, ClassifierChain, RegressorChain
 from sklearn.neighbors import LocalOutlierFactor, KNeighborsRegressor, KNeighborsClassifier
-from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing import Normalizer, PowerTransformer
 from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
 from sklearn.svm import SVC, NuSVC, SVR
 from sklearn.tree import DecisionTreeRegressor
@@ -196,6 +196,10 @@ def build_custom_scenarios():
             ('logreg', {
                 'estimator': LogisticRegression(solver='liblinear'),
             })
+        ],
+        PowerTransformer: [
+            ('yeo-johnson', {'method': 'yeo-johnson'}),
+            ('box-cox', {'method': 'box-cox'}),
         ],
         RandomForestClassifier: [
             ('default', {'n_estimators': 10}),

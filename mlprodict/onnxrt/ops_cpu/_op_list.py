@@ -33,6 +33,7 @@ from .op_greater import Greater
 from .op_floor import Floor
 from .op_identity import Identity
 from .op_imputer import Imputer
+from .op_isnan import IsNaN
 from .op_label_encoder import LabelEncoder
 from .op_less import Less
 from .op_linear_classifier import LinearClassifier
@@ -44,6 +45,7 @@ from .op_max import Max
 from .op_mean import Mean
 from .op_min import Min
 from .op_mul import Mul
+from .op_neg import Neg
 from .op_normalizer import Normalizer
 from .op_not import Not
 from .op_one_hot_encoder import OneHotEncoder

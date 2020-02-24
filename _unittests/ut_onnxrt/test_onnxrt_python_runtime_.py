@@ -35,6 +35,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxConstantOfShape, OnnxNot, OnnxSin,
     OnnxMin, OnnxMax, OnnxSign, OnnxLpNormalization,
     OnnxFlatten, OnnxReduceMax, OnnxReduceMin,
+    OnnxNeg, OnnxIsNaN,
 )
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType, DoubleTensorType
 from skl2onnx import __version__ as skl2onnx_version
@@ -684,6 +685,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_identity(self):
         self.common_test_onnxt_runtime_unary(OnnxIdentity, lambda x: x)
 
+    def test_onnxt_runtime_isnan(self):
+        self.common_test_onnxt_runtime_unary(OnnxIsNaN, numpy.isnan)
+
     def test_onnxt_runtime_log(self):
         self.common_test_onnxt_runtime_unary(OnnxLog, numpy.log)
 
@@ -729,6 +733,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_mul(self):
         self.common_test_onnxt_runtime_binary(OnnxMul, lambda x, y: x * y)
+
+    def test_onnxt_runtime_nrg(self):
+        self.common_test_onnxt_runtime_unary(OnnxNeg, numpy.negative)
 
     def test_onnxt_runtime_not(self):
         self.common_test_onnxt_runtime_unary(OnnxNot, numpy.logical_not)
