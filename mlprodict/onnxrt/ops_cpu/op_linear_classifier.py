@@ -7,10 +7,11 @@
 import numpy
 from scipy.special import expit  # pylint: disable=E0611
 from ._op import OpRunClassifierProb
+from ._op_classifier_string import _ClassifierCommon
 from ._op_numpy_helper import numpy_dot_inplace
 
 
-class LinearClassifier(OpRunClassifierProb):
+class LinearClassifier(OpRunClassifierProb, _ClassifierCommon):
 
     atts = {'classlabels_ints': [], 'classlabels_strings': [],
             'coefficients': None, 'intercepts': None,
@@ -20,6 +21,7 @@ class LinearClassifier(OpRunClassifierProb):
         OpRunClassifierProb.__init__(self, onnx_node, desc=desc,
                                      expected_attributes=LinearClassifier.atts,
                                      **options)
+        self._post_process_label_attributes()
         if not isinstance(self.coefficients, numpy.ndarray):
             raise TypeError("coefficient must be an array not {}.".format(
                 type(self.coefficients)))
@@ -36,26 +38,27 @@ class LinearClassifier(OpRunClassifierProb):
         self.coefficients = self.coefficients.reshape(self.nb_class, n).T
 
     def _run(self, x):  # pylint: disable=W0221
-        score = numpy_dot_inplace(self.inplaces, x, self.coefficients)
+        scores = numpy_dot_inplace(self.inplaces, x, self.coefficients)
         if self.intercepts is not None:
-            score += self.intercepts
+            scores += self.intercepts
 
         if self.post_transform == b'NONE':
             pass
         elif self.post_transform == b'LOGISTIC':
-            expit(score, out=score)
+            expit(scores, out=scores)
         elif self.post_transform == b'SOFTMAX':
-            numpy.subtract(score, score.max(axis=1)[
-                           :, numpy.newaxis], out=score)
-            numpy.exp(score, out=score)
-            numpy.divide(score, score.sum(axis=1)[:, numpy.newaxis], out=score)
+            numpy.subtract(scores, scores.max(axis=1)[
+                           :, numpy.newaxis], out=scores)
+            numpy.exp(scores, out=scores)
+            numpy.divide(scores, scores.sum(axis=1)[
+                         :, numpy.newaxis], out=scores)
         else:
             raise NotImplementedError("Unknown post_transform: '{}'.".format(
                 self.post_transform))
 
         if self.nb_class == 1:
-            label = numpy.zeros((score.shape[0],), dtype=x.dtype)
-            label[score > 0] = 1
+            label = numpy.zeros((scores.shape[0],), dtype=x.dtype)
+            label[scores > 0] = 1
         else:
-            label = numpy.argmax(score, axis=1)
-        return (label, score)
+            label = numpy.argmax(scores, axis=1)
+        return self._post_process_predicted_label(label, scores)

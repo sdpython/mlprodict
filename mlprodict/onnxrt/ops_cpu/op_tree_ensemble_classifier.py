@@ -8,6 +8,7 @@ from collections import OrderedDict
 import numpy
 from ._op_helper import _get_typed_class_attribute
 from ._op import OpRunClassifierProb, RuntimeTypeError
+from ._op_classifier_string import _ClassifierCommon
 from ._new_ops import OperatorSchema
 from .op_tree_ensemble_classifier_ import (  # pylint: disable=E0611
     RuntimeTreeEnsembleClassifierDouble,
@@ -19,7 +20,7 @@ from .op_tree_ensemble_classifier_p_ import (  # pylint: disable=E0611
 )
 
 
-class TreeEnsembleClassifierCommon(OpRunClassifierProb):
+class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
 
     def __init__(self, dtype, onnx_node, desc=None,
                  expected_attributes=None,
@@ -42,6 +43,7 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb):
             "Unable to find a schema for operator '{}'.".format(op_name))
 
     def _init(self, dtype, version):
+        self._post_process_label_attributes()
         if dtype == numpy.float32:
             if version == 0:
                 self.rt_ = RuntimeTreeEnsembleClassifierFloat()
@@ -75,7 +77,7 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb):
         if scores.shape[0] != label.shape[0]:
             scores = scores.reshape(label.shape[0],
                                     scores.shape[0] // label.shape[0])
-        return (label, scores)
+        return self._post_process_predicted_label(label, scores)
 
 
 class TreeEnsembleClassifier(TreeEnsembleClassifierCommon):

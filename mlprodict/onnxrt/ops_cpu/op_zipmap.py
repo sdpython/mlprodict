@@ -190,10 +190,10 @@ class ZipMap(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        expected_attributes=ZipMap.atts,
                        **options)
-        if hasattr(self, 'classlabels_int64s'):
+        if hasattr(self, 'classlabels_int64s') and len(self.classlabels_int64s) > 0:
             self.rev_keys_ = ZipMapDictionary.build_rev_keys(
                 self.classlabels_int64s)
-        elif hasattr(self, 'classlabels_strings'):
+        elif hasattr(self, 'classlabels_strings') and len(self.classlabels_strings) > 0:
             self.rev_keys_ = ZipMapDictionary.build_rev_keys(
                 self.classlabels_strings)
         else:
