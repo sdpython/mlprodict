@@ -119,11 +119,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         clr = DecisionTreeClassifier()
         clr.fit(X_train, y_train)
 
-        try:
-            model_def = to_onnx(clr, X_train.astype(numpy.float32))
-        except NotImplementedError:
-            # multi-label is not supported yet
-            return
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
         oinf = OnnxInference(model_def)
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
         self.assertIn("TreeEnsembleClassifier", text)
@@ -440,5 +436,4 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_GradientBoostingRegressor64()
     unittest.main()

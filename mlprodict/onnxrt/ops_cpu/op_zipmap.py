@@ -197,8 +197,7 @@ class ZipMap(OpRun):
             self.rev_keys_ = ZipMapDictionary.build_rev_keys(
                 self.classlabels_strings)
         else:
-            raise RuntimeError(
-                "classlabels_int64s or classlabels_strings must be not empty.")
+            self.rev_keys_ = {}
 
     def _run(self, x):  # pylint: disable=W0221
         res = ArrayZipMapDictionary(self.rev_keys_, x)
