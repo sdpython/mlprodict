@@ -24,6 +24,7 @@ class RuntimeTreeEnsembleCommonP
         bool has_missing_tracks_;
         int omp_tree_;
         int omp_N_;
+        int64_t sizeof_;
 
     public:
 
@@ -75,6 +76,7 @@ class RuntimeTreeEnsembleCommonP
         std::vector<std::string> get_nodes_modes() const;
 
         int omp_get_max_threads();
+        int64_t get_sizeof();
 
         template<typename AGG>
         py::array_t<NTYPE> compute_tree_outputs_agg(py::array_t<NTYPE> X, const AGG &agg) const;
@@ -128,6 +130,12 @@ int RuntimeTreeEnsembleCommonP<NTYPE>::omp_get_max_threads() {
 #else
     return 1;
 #endif
+}
+
+
+template<typename NTYPE>
+int64_t RuntimeTreeEnsembleCommonP<NTYPE>::get_sizeof() {
+    return sizeof_;
 }
 
 
@@ -214,9 +222,11 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
             const std::vector<int64_t>& target_class_treeids,
             const std::vector<NTYPE>& target_class_weights) {
 
+    sizeof_ = sizeof(RuntimeTreeEnsembleCommonP<NTYPE>);
     aggregate_function_ = to_AGGREGATE_FUNCTION(aggregate_function);
     post_transform_ = to_POST_EVAL_TRANSFORM(post_transform);
     base_values_ = base_values;
+    sizeof_ += sizeof(NTYPE) * base_values_.size();
     n_targets_or_classes_ = n_targets_or_classes;
     max_tree_depth_ = 1000;
     
@@ -267,6 +277,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
             throw std::runtime_error(buffer);
         }
         idi.insert(std::pair<TreeNodeElementId, TreeNodeElement<NTYPE>*>(node->id, node));
+        sizeof_ += node->get_sizeof();
     }
 
     TreeNodeElementId coor;
@@ -354,6 +365,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
             break;
         }
     }
+    sizeof_ += sizeof(TreeNodeElement<NTYPE>) * roots_.size();
 }
 
 

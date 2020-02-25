@@ -68,6 +68,10 @@ struct TreeNodeElement {
     
     bool is_not_leave;
     bool is_missing_track_true;
+    
+    int64_t get_sizeof() {
+        return sizeof(TreeNodeElement) + weights.size() * sizeof(SparseValue<NTYPE>);
+    }
 };
 
 

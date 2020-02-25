@@ -4,6 +4,8 @@
 import unittest
 from logging import getLogger
 import timeit
+from io import BytesIO
+import pickle
 import numpy
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from sklearn.datasets import load_iris
@@ -74,6 +76,38 @@ class TestOnnxrtCompiled(ExtTestCase):
         # print(me1, me2)
         # print(oinf2._run_compiled_code)
         self.assertIn(' def compiled_run(dict_inputs):', str(oinf2))
+
+    def test_onnxt_reduce_size(self):
+        idi = numpy.identity(2)
+        onx = OnnxAdd('X', idi, output_names=['Y'])
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+
+        oinf = OnnxInference(model_def, runtime="python_compiled")
+        res = oinf.run({'X': idi.astype(numpy.float32)})
+        self.assertEqual(idi * 2, res['Y'])
+
+        oinf.reduce_size(False)
+        res = oinf.run({'X': idi.astype(numpy.float32)})
+        self.assertEqual(idi * 2, res['Y'])
+        st = BytesIO()
+        try:
+            pickle.dump(oinf, st)
+        except AttributeError:
+            # missing obj
+            pass
+
+        oinf = OnnxInference(model_def, runtime="python_compiled")
+        res = oinf.run({'X': idi.astype(numpy.float32)})
+        self.assertEqual(idi * 2, res['Y'])
+
+        oinf.reduce_size(True)
+        res = oinf.run({'X': idi.astype(numpy.float32)})
+        self.assertEqual(idi * 2, res['Y'])
+        st = BytesIO()
+        pickle.dump(oinf, st)
+        val = st.getvalue()
+        oinf2 = pickle.load(BytesIO(val))
+        self.assertNotEmpty(oinf2)
 
 
 if __name__ == "__main__":

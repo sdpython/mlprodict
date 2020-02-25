@@ -978,3 +978,18 @@ class OnnxInference:
 
         # end
         return "compiled_run", fct, final_code
+
+    def reduce_size(self, pickable=False):
+        """
+        Reduces the memory footprint as much as possible.
+
+        @param  pickable        keeps a pickle object?
+        """
+        import gc
+        del self.graph_
+        if not pickable:
+            del self.obj
+        if self.runtime == 'python_compiled':
+            del self.sequence_
+        gc.collect()
+

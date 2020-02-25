@@ -309,6 +309,8 @@ in :epkg:`onnxruntime`. Supports float only.
         "Tells if the model handles missing values.");
     clf.def_property_readonly("nodes_modes_", &RuntimeTreeEnsembleRegressorPFloat::get_nodes_modes,
         "Returns the mode for every node.");
+    clf.def("__sizeof__", &RuntimeTreeEnsembleRegressorPFloat::get_sizeof,
+        "Returns the size of the object.");
 
     py::class_<RuntimeTreeEnsembleRegressorPDouble> cld (m, "RuntimeTreeEnsembleRegressorPDouble",
         R"pbdoc(Implements double runtime for operator TreeEnsembleRegressor. The code is inspired from
@@ -351,6 +353,8 @@ in :epkg:`onnxruntime`. Supports double only.
         "Tells if the model handles missing values.");
     cld.def_property_readonly("nodes_modes_", &RuntimeTreeEnsembleRegressorPDouble::get_nodes_modes,
         "Returns the mode for every node.");
+    cld.def("__sizeof__", &RuntimeTreeEnsembleRegressorPDouble::get_sizeof,
+        "Returns the size of the object.");
 }
 
 #endif

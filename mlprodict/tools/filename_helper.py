@@ -81,6 +81,7 @@ def extract_information_from_filename(name):
         'LinReg': 'LinearRegression',
         'LinRegressor': 'LinearRegression',
         'LogReg': 'LogisticRegression',
+        'HGB': 'HistGradientBoosting',
     }
 
     if 'model' in res:
