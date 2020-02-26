@@ -1,5 +1,5 @@
 
-grammar
+Grammar
 =======
 
 .. autosignature:: mlprodict.grammar.gmlactions.MLModel

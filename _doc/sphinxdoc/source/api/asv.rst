@@ -1,6 +1,6 @@
 
-benchmark with asv
-==================
+Benchmarking with asv
+=====================
 
 :epkg:`asv` is a popular framework to run evaluate time
 and peak memory for a script. Following functions automates

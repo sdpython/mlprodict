@@ -1,5 +1,5 @@
 
-onnx converters
+ONNX Converters
 ===============
 
 This packages implements or rewrites some of the
@@ -9,6 +9,8 @@ existing converters. They can be registered and uses by
 .. autosignature:: mlprodict.onnx_conv.register.register_converters
 
 .. autosignature:: mlprodict.onnx_conv.register_rewritten_converters.register_rewritten_operators
+
+.. autosignature:: mlprodict.onnx_conv.convert.to_onnx
 
 .. contents::
     :local:

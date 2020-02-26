@@ -21,7 +21,9 @@ Functions to help understand models.
 Plotting
 ++++++++
 
-.. autosignature:: mlprodict.tools.plotting.plot_benchmark_metrics
+.. autosignature:: mlprodict.tools.plotting_benchmark.plot_benchmark_metrics
+
+.. autosignature:: mlprodict.tools.plotting_validate_graph.plot_validate_benchmark
 
 Versions
 ++++++++

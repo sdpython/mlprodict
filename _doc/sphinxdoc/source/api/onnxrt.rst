@@ -1,6 +1,10 @@
 
-onnxrt
-======
+Python Runtime for ONNX
+=======================
+
+This runtime does not take any dependency on :epkg:`scikit-learn`,
+only on :epkg:`numpy`, :epkg:`scipy`, and has custom implementations
+in C++ (:epkg:`cython`, :epkg:`pybind11`).
 
 .. contents::
     :local:
@@ -49,9 +53,19 @@ Validation
 C++ classes
 +++++++++++
 
+.. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.array_feature_extractor_double
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.array_feature_extractor_float
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.array_feature_extractor_int64
+
+**SVM**
+
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_svm_classifier_.RuntimeSVMClassifier
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_svm_regressor_.RuntimeSVMRegressor
+
+**Tree Ensemble**
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_.RuntimeTreeEnsembleClassifierDouble
 
@@ -60,6 +74,36 @@ C++ classes
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeTreeEnsembleRegressorDouble
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeTreeEnsembleRegressorFloat
+
+Still tree ensembles but refactored.
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_p_.RuntimeTreeEnsembleClassifierPDouble
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_p_.RuntimeTreeEnsembleClassifierPFloat
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_.RuntimeTreeEnsembleRegressorPDouble
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_.RuntimeTreeEnsembleRegressorPFloat
+
+**Topk**
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_max_double
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_max_float
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_max_int64
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_min_double
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_min_float
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_min_int64
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_fetch_double
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_fetch_float
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_fetch_int64
 
 Optimisation
 ++++++++++++
