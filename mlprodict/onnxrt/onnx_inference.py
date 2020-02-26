@@ -992,4 +992,3 @@ class OnnxInference:
         if self.runtime == 'python_compiled':
             del self.sequence_
         gc.collect()
-
