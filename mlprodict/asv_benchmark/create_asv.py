@@ -211,14 +211,14 @@ def create_asv_benchmark(
         run_bash = os.path.join(tool_dir, 'run_asv.bat')
     else:
         run_bash = os.path.join(tool_dir, 'run_asv.sh')
-    with open(run_bash, 'r') as f:
+    with open(run_bash, 'w') as f:
         f.write(textwrap.dedent("""
             echo --BENCHRUN--
             python -m asv run --show-stderr --config ./asv.conf.json
             echo --PUBLISH--
-            python -m asv publish --config ./asv.conf.json -o html
+            python -m asv publish --config ./asv.conf.json -o ./html
             echo --CSV--
-            python -m mlprodict asv2csv -f results -o data_bench.csv
+            python -m mlprodict asv2csv -f ./results -o ./data_bench.csv
             """))
 
     # pyspy
