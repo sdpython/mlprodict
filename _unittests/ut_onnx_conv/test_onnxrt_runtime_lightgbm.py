@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 import skl2onnx
 from skl2onnx.common.data_types import (
     StringTensorType, FloatTensorType, Int64TensorType,
-    BooleanTensorType, Int32TensorType
+    BooleanTensorType
 )
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
@@ -98,7 +98,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         gbm.fit(X_train, y_train)
         exp = gbm.predict_proba(X_test)
         onx = to_onnx(gbm, initial_types=[
-            ('X', Int32TensorType([None, X_train.shape[1]]))])
+            ('X', Int64TensorType([None, X_train.shape[1]]))])
         self.assertIn('ZipMap', str(onx))
         oif = OnnxInference(onx)
         got = oif.run({'X': X_test})
@@ -125,7 +125,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         exp = booster.predict(X_test)
 
         onx = to_onnx(booster, initial_types=[
-            ('X', Int32TensorType([None, X_train.shape[1]]))])
+            ('X', Int64TensorType([None, X_train.shape[1]]))])
         self.assertIn('ZipMap', str(onx))
         oif = OnnxInference(onx)
         got = oif.run({'X': X_test})
