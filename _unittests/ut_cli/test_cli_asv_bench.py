@@ -22,7 +22,8 @@ class TestCliAsvBench(ExtTestCase):
         main(args=["asv_bench", "-l", temp,
                    "-o", '10', '-m',
                    "LogisticRegression,LinearRegression",
-                   '-v', '2', '--flat', '1'],
+                   '-v', '2', '--flat', '1',
+                   '--matrix', '{"onnxruntime":["1.1.1","1.1.2"]}'],
              fLOG=st.fprint)
         res = str(st)
         self.assertIn('Lin', res)
@@ -30,8 +31,11 @@ class TestCliAsvBench(ExtTestCase):
         self.assertExists(os.path.join(temp, 'benches', name))
         self.assertExists(os.path.join(temp, 'asv.conf.json'))
         self.assertExists(os.path.join(temp, 'tools', 'flask_serve.py'))
+        conf = os.path.join(temp, 'asv.conf.json')
+        with open(conf, "r") as f:
+            content = f.read()
+        self.assertIn('"1.1.1"', content)
 
 
 if __name__ == "__main__":
-    # TestCliAsvBench().test_cli_validate_model_csv_bug()
     unittest.main()

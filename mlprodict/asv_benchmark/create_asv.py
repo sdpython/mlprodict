@@ -73,7 +73,8 @@ def create_asv_benchmark(
         conf_params=None, filter_exp=None,
         filter_scenario=None, flat=False,
         exc=False, build=None, execute=False,
-        add_pyspy=False, env=None):
+        add_pyspy=False, env=None,
+        matrix=None):
     """
     Creates an :epkg:`asv` benchmark in a folder
     but does not run it.
@@ -119,6 +120,8 @@ def create_asv_benchmark(
         each configuration
     :param env: None to use the default configuration or ``same`` to use
         the current one
+    :param matrix: specifies versions for a module,
+        example: ``{'onnxruntime': ['1.1.1', '1.1.2']}``
     :return: created files
 
     The default configuration is the following:
@@ -171,8 +174,12 @@ def create_asv_benchmark(
         for fi in ['env_dir', 'results_dir', 'html_dir']:
             conf[fi] = os.path.join(build, conf[fi])
     if env == 'same':
+        if matrix is not None:
+            raise ValueError("Parameter matrix must be None if env is 'same'.")
         conf['pythons'] = ['same']
         conf['matrix'] = {}
+    elif matrix is not None:
+        conf['matrix'].update(matrix)
     elif env is not None:
         raise ValueError("Unable to handle env='{}'.".format(env))
     dest = os.path.join(location, "asv.conf.json")

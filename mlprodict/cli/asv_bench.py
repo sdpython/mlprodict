@@ -2,6 +2,7 @@
 @file
 @brief Command line about validation of prediction runtime.
 """
+import json
 from logging import getLogger
 from ..asv_benchmark import create_asv_benchmark
 
@@ -13,7 +14,7 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
               n_features='4,20', dtype=None,
               verbose=1, fLOG=print, clean=True, flat=False,
               conf_params=None, build=None, add_pyspy=False,
-              env=None):
+              env=None, matrix=None):
     """
     Creates an :epkg:`asv` benchmark in a folder
     but does not run it.
@@ -49,6 +50,8 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
     :param add_pyspy: add an extra folder with code to profile
         each configuration
     :param env: default environment or ``same`` to use the current one
+    :param matrix: specifies versions for a module as a json string,
+        example: ``{'onnxruntime':['1.1.1', '1.1.2']}``
     :return: created files
 
     .. cmdref::
@@ -85,6 +88,11 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
         runtime = runtime.split(',')
     if not isinstance(dims, list):
         dims = [int(_) for _ in dims.split(',')]
+    if matrix is not None:
+        if matrix in ('None', ''):
+            matrix = None
+        elif not isinstance(matrix, dict):
+            matrix = json.loads(matrix)
     if not isinstance(n_features, list):
         if n_features in (None, ""):
             n_features = None
@@ -130,4 +138,5 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
         n_features=n_features, dtype=dtype, verbose=verbose,
         fLOG=fLOG, clean=clean, conf_params=conf_params,
         filter_exp=fct_filter, filter_scenario=None,
-        flat=flat, build=build, add_pyspy=add_pyspy, env=env)
+        flat=flat, build=build, add_pyspy=add_pyspy,
+        env=env, matrix=matrix)
