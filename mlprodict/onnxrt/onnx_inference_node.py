@@ -71,7 +71,8 @@ class OnnxInferenceNode:
         return self.__str__()
 
     def setup_runtime(self, runtime=None, variables=None, rt_class=None,
-                      target_opset=None, dtype=None, domain=None):
+                      target_opset=None, dtype=None, domain=None,
+                      ir_version=None):
         """
         Loads runtime.
 
@@ -82,6 +83,8 @@ class OnnxInferenceNode:
         @param      target_opset    use a specific target opset
         @param      dtype           float computational type
         @param      domain          node domain
+        @param      ir_version      if not None, changes the default value
+                                    given by :epkg:`ONNX`
         """
         if self.desc is None:
             raise AttributeError("desc should not be None.")
@@ -91,6 +94,8 @@ class OnnxInferenceNode:
             options['domain'] = domain
         if target_opset is not None:
             options['target_opset'] = target_opset
+        if ir_version is not None:
+            options['ir_version'] = ir_version
         if runtime == 'onnxruntime2':
             self.ops_ = load_op(self.onnx_node, desc=self.desc,
                                 options=options if options else None,

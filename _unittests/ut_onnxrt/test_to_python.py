@@ -12,6 +12,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxTranspose
 )
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
 
 
 class TestToPython(ExtTestCase):
@@ -24,6 +25,7 @@ class TestToPython(ExtTestCase):
         idi = numpy.identity(2)
         onx = OnnxAdd('X', idi, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        model_def.ir_version = get_ir_version_from_onnx()
         oinf = OnnxInference(model_def, runtime='onnxruntime1')
         try:
             oinf.to_python()

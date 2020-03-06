@@ -31,7 +31,8 @@ from mlprodict.onnxrt.validate.validate_benchmark import make_n_rows
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 from mlprodict.onnxrt.optim import onnx_statistics
 from mlprodict.tools.asv_options_helper import (
-    expand_onnx_options, get_opset_number_from_onnx
+    expand_onnx_options, get_opset_number_from_onnx,
+    get_ir_version_from_onnx
 )
 
 
@@ -110,12 +111,21 @@ class _CommonAsvSklBenchmark:
                        target_opset=opset)
 
     def _create_onnx_inference(self, onx, runtime):
+        if 'onnxruntime' in runtime:
+            old = onx.ir_version
+            onx.ir_version = get_ir_version_from_onnx()
+        else:
+            old = None
+
         try:
-            return OnnxInference(onx, runtime=runtime)
+            res = OnnxInference(onx, runtime=runtime)
         except RuntimeError as e:
             if "[ONNXRuntimeError]" in str(e):
                 return RuntimeError("onnxruntime fails due to {}".format(str(e)))
             raise e
+        if old is not None:
+            onx.ir_version = old
+        return res
 
     # Part which does not change.
 

@@ -10,6 +10,8 @@ from scipy.sparse import coo_matrix, csr_matrix, SparseEfficiencyWarning
 from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
 from scipy.spatial.distance import cdist
 import onnx
+from onnx import TensorProto
+from onnx.helper import make_sparse_tensor, make_tensor
 from onnx.defs import onnx_opset_version
 from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 from sklearn.utils.extmath import softmax
@@ -21,7 +23,7 @@ import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
     OnnxConcat,
-    OnnxCeil, OnnxClip,
+    OnnxCeil, OnnxClip, OnnxConstant,
     OnnxDiv, OnnxEqual, OnnxExp, OnnxFloor, OnnxGreater,
     OnnxGemm, OnnxIdentity, OnnxLog, OnnxMatMul, OnnxMean, OnnxMul,
     OnnxPow, OnnxReciprocal,
@@ -40,7 +42,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType, DoubleTensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict.tools.asv_options_helper import (
+    get_opset_number_from_onnx, get_ir_version_from_onnx)
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611
@@ -204,8 +207,13 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
         onx = onnx_cl('X', idi, output_names=['Y'])
         model_def_sparse = onx.to_onnx({'X': X}, target_opset=op_version)
-        oinf = OnnxInference(
-            model_def_sparse, input_inplace=False, inplace=True)
+        try:
+            oinf = OnnxInference(
+                model_def_sparse, input_inplace=False, inplace=True)
+        except RuntimeError as e:
+            raise RuntimeError(
+                "Unable to load sparse model\n{}".format(
+                    model_def_sparse)) from e
         if debug:
             got = oinf.run({'X': X}, verbose=1, fLOG=print)
         else:
@@ -634,20 +642,35 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
         onx = OnnxGemm('X', idi, cst, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
-        oinf = OnnxInference(model_def, runtime=runtime)
+        if 'onnxruntime' in runtime:
+            model_def.ir_version = get_ir_version_from_onnx()
+        try:
+            oinf = OnnxInference(model_def, runtime=runtime)
+        except RuntimeError as e:
+            raise RuntimeError(
+                "Unable to instantiate (runtime='{}')\n{}".format(
+                    runtime, model_def)) from e
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X, idi) + cst, got['Y'], decimal=6)
 
         onx = OnnxGemm('X', idi, cst, transA=1, transB=1, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
-        oinf = OnnxInference(model_def, runtime=runtime)
+        if 'onnxruntime' in runtime:
+            model_def.ir_version = get_ir_version_from_onnx()
+        try:
+            oinf = OnnxInference(model_def, runtime=runtime)
+        except RuntimeError as e:
+            raise RuntimeError(
+                "Unable to instantiate (runtime='{}')\n{}".format(
+                    runtime, model_def)) from e
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X.T, idi.T) + cst, got['Y'], decimal=6)
 
         onx = OnnxGemm('X', idi, cst, transA=1, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        model_def.ir_version = get_ir_version_from_onnx()
         oinf = OnnxInference(model_def, runtime=runtime)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -655,6 +678,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
         onx = OnnxGemm('X', idi, cst, transB=1, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        if 'onnxruntime' in runtime:
+            model_def.ir_version = get_ir_version_from_onnx()
         oinf = OnnxInference(model_def, runtime=runtime)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -663,6 +688,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         onx = OnnxGemm('X', idi, cst, transB=1, output_names=['Y'],
                        alpha=numpy.float32(1.))
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+        if 'onnxruntime' in runtime:
+            model_def.ir_version = get_ir_version_from_onnx()
         oinf = OnnxInference(model_def, runtime=runtime)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -673,6 +700,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                            alpha=numpy.float32(1.))
             model_def = onx.to_onnx({'X': idi.astype(numpy.float64)},
                                     dtype=numpy.float64)
+            if 'onnxruntime' in runtime:
+                model_def.ir_version = get_ir_version_from_onnx()
             oinf = OnnxInference(model_def, runtime=runtime)
             got = oinf.run({'X': X.astype(numpy.float32)})
             self.assertEqual(list(sorted(got)), ['Y'])
@@ -1334,7 +1363,40 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         to2 = topk_element_max_double(cd, 3, True, 50)
         self.assertEqualArray(to1[1], to2)
 
+    def test_make_sparse_tensor(self):
+        values = [1.1, 2.2, 3.3, 4.4, 5.5]
+        values_tensor = make_tensor(
+            name='test',
+            data_type=TensorProto.FLOAT,
+            dims=(5, ),
+            vals=values
+        )
+        indices = [1, 3, 5, 7, 9]
+        indices_tensor = make_tensor(
+            name='test_indices',
+            data_type=TensorProto.INT64,
+            dims=(5, ),
+            vals=indices
+        )
+        dense_shape = [10]
+        sparse = make_sparse_tensor(values_tensor, indices_tensor, dense_shape)
+        self.assertEqual(sparse.values, values_tensor)
+        self.assertEqual(sparse.indices, indices_tensor)
+        self.assertEqual(sparse.dims, dense_shape)
+
+        X = numpy.array([0.1, 0.2], dtype=numpy.float32)
+        cst = OnnxConstant(value_floats=X)
+        onx = OnnxAdd('X', cst)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        try:
+            oinf = OnnxInference(model_def)
+        except RuntimeError as e:
+            raise RuntimeError(
+                "Unable to load the model:\n{}".format(model_def))
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Ad_C0'])
+        self.assertEqualArray(X * 2, got['Ad_C0'])
+
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_cpp_topk_max_openmp()
     unittest.main()

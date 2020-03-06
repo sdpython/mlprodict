@@ -24,6 +24,7 @@ def _build_schemas():
 
 
 _schemas = _build_schemas()
+_at_least_one = {'Constant'}
 
 
 class RuntimeTypeError(RuntimeError):
@@ -69,22 +70,37 @@ class OpRun:
                     options[a] = (b['value_rt'] if 'value_rt' in b
                                   else b['value'])
         if expected_attributes is not None:
-            for a, b in expected_attributes.items():
-                if a not in options:
-                    if b is None:
-                        raise RuntimeError("Parameter '{}' is missing from operator '{}', given {}.".format(
-                            a, onnx_node.op_type, list(sorted(options))))
-                    else:
+            if onnx_node.op_type in _at_least_one:
+                done = 0
+                for a, b in expected_attributes.items():
+                    if a in options:
                         setattr(self, a, b)
+                        done += 1
+                if done == 0:
+                    raise RuntimeError(
+                        "All parameters '{}' are missing from operator '{}', "
+                        "given {}.".format(
+                            a, onnx_node.op_type, list(sorted(options))))
+            else:
+                for a, b in expected_attributes.items():
+                    if a not in options:
+                        if b is None:
+                            raise RuntimeError(
+                                "Parameter '{}' is missing from operator '{}', "
+                                "given {}.".format(
+                                    a, onnx_node.op_type, list(sorted(options))))
+                        else:
+                            setattr(self, a, b)
         for k, v in options.items():
             setattr(self, k, v)
 
-        for k, v in self._schema.attributes.items():
-            if not hasattr(self, k):
-                raise RuntimeError(  # pragma: no cover
-                    "Attribute '{}' is expected based on ONNX specifications "
-                    "for node '{}' and options {}.".format(
-                        k, onnx_node.op_type, pprint.pformat(options)))
+        if onnx_node.op_type not in _at_least_one:
+            for k, v in self._schema.attributes.items():
+                if not hasattr(self, k):
+                    raise RuntimeError(  # pragma: no cover
+                        "Attribute '{}' is expected based on ONNX specifications "
+                        "for node '{}' and options {}.".format(
+                            k, onnx_node.op_type, pprint.pformat(options)))
 
     def _find_custom_operator_schema(self, op_name):
         raise NotImplementedError(  # pragma: no cover

@@ -36,7 +36,9 @@ from mlprodict.onnx_conv import (
 )
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict.tools.asv_options_helper import (
+    get_opset_number_from_onnx, get_ir_version_from_onnx
+)
 
 
 def old_topk_sorted_implementation(X, k, axis, largest):
@@ -238,6 +240,8 @@ class TestOnnxConvKNN(ExtTestCase):
                 except NameError as e:
                     if "Option 'largest0' not in" in str(e):
                         continue
+                if 'onnxruntime' in runtime:
+                    model_def.ir_version = get_ir_version_from_onnx()
                 try:
                     oinf = OnnxInference(model_def, runtime=runtime)
                 except (RuntimeError, TypeError, OrtInvalidArgument) as e:
@@ -247,8 +251,11 @@ class TestOnnxConvKNN(ExtTestCase):
                         raise AssertionError(
                             "Unable to create a model for target_opset={}\n----\n{}\n----".format(
                                 ops, model_def)) from e
+                    if "Unknown model file format version." in str(e):
+                        continue
                     raise AssertionError(
-                        "Unable to create model for opset={}.".format(ops)) from e
+                        "Unable to create model for opset={} and runtime='{}'\n{}"
+                        "".format(ops, runtime, model_def)) from e
 
                 if debug:
                     y = oinf.run({'X': X_test}, verbose=level, fLOG=print)

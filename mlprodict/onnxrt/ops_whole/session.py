@@ -51,7 +51,7 @@ class OnnxWholeSession:
         try:
             self.sess = InferenceSession(onnx_data, sess_options=sess_options)
         except (OrtFail, OrtNotImplemented, OrtInvalidGraph,
-                OrtInvalidArgument) as e:
+                OrtInvalidArgument, RuntimeError) as e:
             raise RuntimeError(
                 "Unable to create InferenceSession due to '{}'.".format(e)) from e
 

@@ -69,6 +69,7 @@ epkg_dictionary.update({
     'DOT': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'exec': 'https://docs.python.org/3/library/functions.html#exec',
     'Iris': 'https://en.wikipedia.org/wiki/Iris_flower_data_set',
+    'IR_VERSION': 'https://github.com/onnx/onnx/blob/master/docs/IR.md#onnx-versioning',
     'json': 'https://docs.python.org/3/library/json.html',
     'JSON': 'https://en.wikipedia.org/wiki/JSON',
     'joblib': 'https://joblib.readthedocs.io/en/latest/',

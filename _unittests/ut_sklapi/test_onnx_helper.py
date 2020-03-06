@@ -8,10 +8,12 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import Binarizer, StandardScaler, OneHotEncoder
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
-from skl2onnx.helpers.onnx_helper import load_onnx_model, save_onnx_model
-from skl2onnx.helpers.onnx_helper import select_model_inputs_outputs
-from skl2onnx.helpers.onnx_helper import enumerate_model_node_outputs
+from skl2onnx.helpers.onnx_helper import (
+    load_onnx_model, save_onnx_model, select_model_inputs_outputs,
+    enumerate_model_node_outputs
+)
 from pyquickhelper.pycode import ExtTestCase
+from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
 
 
 class TestOnnxHelper(ExtTestCase):
@@ -38,6 +40,7 @@ class TestOnnxHelper(ExtTestCase):
         model.fit(X)
         model_onnx = convert_sklearn(
             model, 'binarizer', [('input', FloatTensorType([None, 2]))])
+        model_onnx.ir_version = get_ir_version_from_onnx()
         filename = "temp_onnx_helper_load_save.onnx"
         save_onnx_model(model_onnx, filename)
         model = load_onnx_model(filename)
@@ -62,6 +65,7 @@ class TestOnnxHelper(ExtTestCase):
         model.fit(X)
         model_onnx = convert_sklearn(
             model, 'pipe3', [('input', FloatTensorType([None, 2]))])
+        model_onnx.ir_version = get_ir_version_from_onnx()
         filename = "temp_onnx_helper_load_save.onnx"
         save_onnx_model(model_onnx, filename)
         model = load_onnx_model(filename)

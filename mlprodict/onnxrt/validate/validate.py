@@ -14,7 +14,9 @@ from sklearn.model_selection import train_test_split
 from ... import __version__ as ort_version
 from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
 from ...tools.model_info import analyze_model
-from ...tools.asv_options_helper import get_opset_number_from_onnx
+from ...tools.asv_options_helper import (
+    get_opset_number_from_onnx, get_ir_version_from_onnx
+)
 from ..onnx_inference import OnnxInference
 from ..optim.sklearn_helper import inspect_sklearn_model
 from ..optim.onnx_helper import onnx_statistics
@@ -618,9 +620,18 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     """
     Private.
     """
+    if 'onnxruntime' in runtime:
+        old = conv.ir_version
+        conv.ir_version = get_ir_version_from_onnx()
+    else:
+        old = None
+
     ser, t5, ___ = _measure_time(lambda: conv.SerializeToString())
     obs_op['tostring_time'] = t5
     obs_op['runtime'] = runtime
+
+    if old is not None:
+        conv.ir_version = old
 
     # load
     if verbose >= 2 and fLOG is not None:

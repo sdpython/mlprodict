@@ -19,6 +19,7 @@ from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType, StringTensorType
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.data import load_audit
+from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
 
 
 class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
@@ -91,12 +92,15 @@ class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
         for col in numerical_cols:
             data[col] = data[col].astype(numpy.float32)
 
-        for runtime in ['onnxruntime1', 'onnxruntime2', 'python']:
+        for runtime in ['python', 'python_compiled',
+                        'onnxruntime1', 'onnxruntime2']:
             if runtime == 'onnxruntime2':
                 # Type for text column are guessed wrong
                 # (Float instead of text).
                 continue
 
+            if 'onnxruntime' in runtime:
+                model_onnx.ir_version = get_ir_version_from_onnx()
             sess = OnnxInference(model_onnx, runtime=runtime)
 
             onnx_predictions = sess.run(data)

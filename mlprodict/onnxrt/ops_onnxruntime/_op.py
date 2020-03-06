@@ -112,6 +112,7 @@ class OpRunOnnxRuntime:
         options = self.options.copy()
         target_opset = options.pop('target_opset', None)
         domain = options.pop('domain', None)
+        ir_version = options.pop('ir_version', None)
 
         if domain == '' and target_opset < 9:
             # target_opset should be >= 9 not {} for main domain.
@@ -232,6 +233,8 @@ class OpRunOnnxRuntime:
         except AttributeError:
             # onnxruntime not recent enough.
             pass
+        if ir_version is not None:
+            self.onnx_.ir_version = ir_version
         try:
             self.sess_ = InferenceSession(self.onnx_.SerializeToString(),
                                           sess_options=sess_options)

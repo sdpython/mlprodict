@@ -75,6 +75,20 @@ def benchmark_version():
     return [11]
 
 
+def ir_version():
+    """
+    Returns the preferred `IR_VERSION
+    <https://github.com/onnx/onnx/blob/master/docs/IR.md#onnx-versioning>`_.
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.tools.asv_options_helper import ir_version
+        print(ir_version())
+    """
+    return [6]
+
+
 def get_opset_number_from_onnx(benchmark=True):
     """
     Retuns the current :epkg:`onnx` opset
@@ -88,3 +102,18 @@ def get_opset_number_from_onnx(benchmark=True):
         return benchmark_version()[-1]
     from onnx.defs import onnx_opset_version  # pylint: disable=W0611
     return onnx_opset_version()
+
+
+def get_ir_version_from_onnx(benchmark=True):
+    """
+    Retuns the current :epkg:`onnx` :epkg:`IR_VERSION`
+    based on the installed version of :epkg:`onnx`.
+
+    @param      benchmark       returns the latest
+                                version usable for benchmark
+    @eturn                      opset number
+    """
+    if benchmark:
+        return ir_version()[-1]
+    from onnx import IR_VERSION  # pylint: disable=W0611
+    return IR_VERSION
