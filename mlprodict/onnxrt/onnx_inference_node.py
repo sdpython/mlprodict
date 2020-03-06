@@ -88,7 +88,7 @@ class OnnxInferenceNode:
         """
         if self.desc is None:
             raise AttributeError("desc should not be None.")
-        self.preprocess_parameters(runtime, rt_class)
+        self.preprocess_parameters(runtime, rt_class, ir_version=ir_version)
         options = {'provider': runtime} if runtime else {}
         if domain is not None:
             options['domain'] = domain
@@ -110,7 +110,7 @@ class OnnxInferenceNode:
                                 options=options if options else None,
                                 variables=variables)
 
-    def preprocess_parameters(self, runtime, rt_class):
+    def preprocess_parameters(self, runtime, rt_class, ir_version=None):
         """
         Preprocesses the parameters,
         loads *GraphProto*
@@ -120,6 +120,7 @@ class OnnxInferenceNode:
         @param      runtime     runtime options
         @param      rt_class    runtime class used to compute
                                 prediction of subgraphs
+        @param      ir_version  if not None, overwrites the default value
         """
         if 'atts' not in self.desc:
             return
@@ -128,7 +129,8 @@ class OnnxInferenceNode:
                 continue
             value = v['value']
             if isinstance(value, onnx_proto.GraphProto):
-                sess = rt_class(v['value'], runtime=runtime)
+                sess = rt_class(v['value'], runtime=runtime,
+                                ir_version=ir_version)
                 v['value_rt'] = sess
 
     def run(self, values):

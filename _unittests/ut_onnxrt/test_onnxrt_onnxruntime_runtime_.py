@@ -8,6 +8,7 @@ from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
 import skl2onnx
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
 
 
 class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
@@ -23,6 +24,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float32)
 
+        model_def.ir_version = get_ir_version_from_onnx()
         oinf = OnnxInference(model_def, runtime='onnxruntime1')
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -45,6 +47,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         onx = OnnxAdd('X', idi, output_names=['Y'])
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float32)
+        model_def.ir_version = get_ir_version_from_onnx()
         oinf = OnnxInference(model_def, runtime='onnxruntime1')
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -52,5 +55,4 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxrtOnnxRuntimeRuntime().test_onnxt_runtime_add()
     unittest.main()

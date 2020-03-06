@@ -1363,6 +1363,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         to2 = topk_element_max_double(cd, 3, True, 50)
         self.assertEqualArray(to1[1], to2)
 
+    @unittest.skipIf(onnx_opset_version() >= 12, reason="new API not available")
     def test_make_sparse_tensor(self):
         values = [1.1, 2.2, 3.3, 4.4, 5.5]
         values_tensor = make_tensor(
@@ -1381,7 +1382,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         dense_shape = [10]
         sparse = make_sparse_tensor(values_tensor, indices_tensor, dense_shape)
         self.assertEqual(sparse.values, values_tensor)  # pylint: disable=E1101
-        self.assertEqual(sparse.indices, indices_tensor)  # pylint: disable=E1101
+        self.assertEqual(
+            sparse.indices, indices_tensor)  # pylint: disable=E1101
         self.assertEqual(sparse.dims, dense_shape)  # pylint: disable=E1101
 
         X = numpy.array([0.1, 0.2], dtype=numpy.float32)

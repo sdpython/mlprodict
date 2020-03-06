@@ -20,6 +20,7 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.side_by_side import (
     side_by_side_by_values, merge_results
 )
+from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
 
 
 Xtest_ = pandas.read_csv(StringIO("""
@@ -100,6 +101,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType([None, None]))],
             outputs=[('Y', FloatTensorType([None, None]))])
+        model_onnx.ir_version = get_ir_version_from_onnx()
         sess = OnnxInference(model_onnx.SerializeToString(),
                              runtime="onnxruntime2")
         try:
@@ -129,6 +131,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType([None, None]))],
             outputs=[('Y', FloatTensorType([None, None]))])
+        model_onnx.ir_version = get_ir_version_from_onnx()
         sess = OnnxInference(model_onnx.SerializeToString(),
                              runtime="onnxruntime1")
 
@@ -217,5 +220,5 @@ class TestOnnxrtSideBySide(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtSideBySide().test_merge_results()
+    # TestOnnxrtSideBySide().test_kernel_ker2_def_ort()
     unittest.main()

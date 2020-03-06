@@ -3,6 +3,8 @@
 @file
 @brief Shortcut to *ops_whole*.
 """
+from io import BytesIO
+import onnx
 from onnxruntime import InferenceSession, SessionOptions, RunOptions
 try:
     from onnxruntime.capi.onnxruntime_pybind11_state import (
@@ -53,7 +55,8 @@ class OnnxWholeSession:
         except (OrtFail, OrtNotImplemented, OrtInvalidGraph,
                 OrtInvalidArgument, RuntimeError) as e:
             raise RuntimeError(
-                "Unable to create InferenceSession due to '{}'.".format(e)) from e
+                "Unable to create InferenceSession due to '{}'\n{}.".format(
+                    e, onnx.load(BytesIO(onnx_data)))) from e
 
     def run(self, inputs):
         """

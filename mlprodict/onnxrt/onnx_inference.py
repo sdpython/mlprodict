@@ -43,18 +43,19 @@ class OnnxInference:
 
     def __init__(self, onnx_or_bytes_or_stream, runtime=None,
                  skip_run=False, inplace=True,
-                 input_inplace=False):
+                 input_inplace=False, ir_version=None):
         """
-        @param      onnx_or_bytes_or_stream     :epkg:`onnx` object,
-                                                bytes, or filename or stream
-        @param      runtime                     runtime options
-        @param      skip_run                    do not build the runtime
-        @param      inplace                     use inplace computation
-                                                as much as possible
-        @param      input_inplace               the computation is allowed
-                                                to overwrite the input,
-                                                see :meth:`_guess_inplace
-                                                <mlprodict.onnxrt.onnx_inference.OnnxInference._guess_inplace>`
+        @param      onnx_or_bytes_or_stream :epkg:`onnx` object,
+                                            bytes, or filename or stream
+        @param      runtime                 runtime options
+        @param      skip_run                do not build the runtime
+        @param      inplace                 use inplace computation
+                                            as much as possible
+        @param      input_inplace           the computation is allowed
+                                            to overwrite the input,
+                                            see :meth:`_guess_inplace
+                                            <mlprodict.onnxrt.onnx_inference.OnnxInference._guess_inplace>`
+        @param      ir_version              if not None, overwrite the default version
         """
         if isinstance(onnx_or_bytes_or_stream, bytes):
             self.obj = load_model(BytesIO(onnx_or_bytes_or_stream))
@@ -70,6 +71,8 @@ class OnnxInference:
         else:
             raise TypeError("Unable to handle type {}.".format(
                 type(onnx_or_bytes_or_stream)))
+        if ir_version is not None:
+            self.obj.ir_version = ir_version
         self.runtime = runtime
         self.skip_run = skip_run
         self.input_inplace = input_inplace
