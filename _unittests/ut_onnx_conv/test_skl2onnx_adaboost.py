@@ -40,9 +40,8 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
             [("input", FloatTensorType((None, X_test.shape[1])))],
             target_opset=10)
         self.assertIsNotNone(model_onnx)
-        dump_data_and_model(
-            X_test, model, model_onnx,
-            basename="SklearnAdaBoostClassifierSAMMER")
+        dump_data_and_model(X_test, model, model_onnx,
+                            basename="SklearnAdaBoostClassifierSAMMER")
 
     def test_ada_boost_classifier_samme_r_decision_function(self):
         model, X_test = fit_classification_model(AdaBoostClassifier(
@@ -70,9 +69,8 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
             [("input", FloatTensorType((None, X_test.shape[1])))],
             target_opset=10)
         self.assertIsNotNone(model_onnx)
-        dump_data_and_model(
-            X_test, model, model_onnx,
-            basename="SklearnAdaBoostClassifierSAMMERLogReg")
+        dump_data_and_model(X_test, model, model_onnx,
+                            basename="SklearnAdaBoostClassifierSAMMERLogReg")
 
     def test_ada_boost_classifier_samme(self):
         model, X_test = fit_classification_model(AdaBoostClassifier(
@@ -86,9 +84,8 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
             [("input", FloatTensorType((None, X_test.shape[1])))],
             target_opset=10)
         self.assertIsNotNone(model_onnx)
-        dump_data_and_model(
-            X_test[sel], model, model_onnx,
-            basename="SklearnAdaBoostClassifierSAMMEDT")
+        dump_data_and_model(X_test[sel], model, model_onnx,
+                            basename="SklearnAdaBoostClassifierSAMMEDT")
 
     def test_samme(self):
         X, y = make_classification(n_features=100, n_samples=1000,
@@ -131,9 +128,8 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
             [("input", Int64TensorType((None, X_test.shape[1])))],
             target_opset=10)
         self.assertIsNotNone(model_onnx)
-        dump_data_and_model(
-            X_test, model, model_onnx,
-            basename="SklearnAdaBoostClassifierLR")
+        dump_data_and_model(X_test, model, model_onnx,
+                            basename="SklearnAdaBoostClassifierLR")
 
     def test_ada_boost_regressor(self):
         model, X = fit_regression_model(
@@ -156,9 +152,8 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
             [("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=10)
         self.assertIsNotNone(model_onnx)
-        dump_data_and_model(
-            X, model, model_onnx,
-            basename="SklearnAdaBoostRegressorLReg-Dec4")
+        dump_data_and_model(X, model, model_onnx,
+                            basename="SklearnAdaBoostRegressorLReg-Dec4")
 
     def test_ada_boost_regressor_int(self):
         model, X = fit_regression_model(
@@ -168,9 +163,8 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
             [("input", Int64TensorType([None, X.shape[1]]))],
             target_opset=10)
         self.assertIsNotNone(model_onnx)
-        dump_data_and_model(
-            X, model, model_onnx,
-            basename="SklearnAdaBoostRegressorInt")
+        dump_data_and_model(X, model, model_onnx,
+                            basename="SklearnAdaBoostRegressorInt")
 
     def test_ada_boost_regressor_lr10(self):
         model, X = fit_regression_model(
@@ -200,9 +194,8 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
             [("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=11)
         self.assertIsNotNone(model_onnx)
-        dump_data_and_model(
-            X, model, model_onnx,
-            basename="SklearnAdaBoostRegressorLR-Dec4")
+        dump_data_and_model(X, model, model_onnx,
+                            basename="SklearnAdaBoostRegressorLR-Dec4")
 
 
 if __name__ == "__main__":
