@@ -1363,7 +1363,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         to2 = topk_element_max_double(cd, 3, True, 50)
         self.assertEqualArray(to1[1], to2)
 
-    @unittest.skipIf(onnx_opset_version() >= 12, reason="new API not available")
+    @unittest.skipIf(onnx_opset_version() < 12, reason="new API not available")
     def test_make_sparse_tensor(self):
         values = [1.1, 2.2, 3.3, 4.4, 5.5]
         values_tensor = make_tensor(

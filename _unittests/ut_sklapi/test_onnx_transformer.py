@@ -63,8 +63,8 @@ class TestInferenceSessionSklearn(ExtTestCase):
         self.assertEqual(list(res.ravel()), list(exp.ravel()))
 
     def test_transform_dataframe(self):
-        x = pandas.DataFrame(data=[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
-        x.columns = "X1 X2".split()
+        x = pandas.DataFrame(data=[[1.0], [3.0], [5.0]])
+        x.columns = "X".split()
         content = self.get_onnx_mul()
         tr = OnnxTransformer(content)
         tr.fit()
@@ -81,7 +81,7 @@ class TestInferenceSessionSklearn(ExtTestCase):
         self.assertNotEmpty(res)
         for _, tr in res:
             tr.fit()
-            self.assertRaise(lambda tr=tr: tr.transform(x), RuntimeError)
+            self.assertRaise(lambda tr=tr: tr.transform(x), KeyError)
 
     def test_pipeline_iris(self):
         iris = load_iris()

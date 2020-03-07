@@ -37,7 +37,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
     """
 
     def __init__(self, onnx_bytes, output_name=None, enforce_float32=True,
-                 runtime='python_compiled'):
+                 runtime='python'):
         BaseEstimator.__init__(self)
         TransformerMixin.__init__(self)
         self.onnx_bytes = (onnx_bytes

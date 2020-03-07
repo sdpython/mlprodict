@@ -20,6 +20,7 @@ import skl2onnx
 from onnxruntime import __version__ as ort_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
 
 
 threshold = "0.4.0"
@@ -38,6 +39,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
                              op_version=10)
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType([None, None]))])
+        model_onnx.ir_version = get_ir_version_from_onnx()
         sess = OnnxInference(model_onnx, runtime='onnxruntime1')
         Xtest_ = numpy.arange(6).reshape((3, 2))
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
@@ -56,6 +58,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
                              op_version=10)
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType([None, None]))])
+        model_onnx.ir_version = get_ir_version_from_onnx()
         sess = OnnxInference(model_onnx, runtime='onnxruntime1')
         Xtest_ = numpy.arange(6).reshape((3, 2))
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
@@ -238,4 +241,5 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestRtValidateGaussianProcessOrt().test_rt_GaussianProcessRegressor_debug_std()
     unittest.main()
