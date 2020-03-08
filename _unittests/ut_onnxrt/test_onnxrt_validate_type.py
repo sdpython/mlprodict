@@ -15,6 +15,7 @@ except ImportError:
     from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
+from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 
 
 class TestOnnxrtValidateType(ExtTestCase):
@@ -61,16 +62,15 @@ class TestOnnxrtValidateType(ExtTestCase):
         temp = get_temp_folder(
             __file__, "temp_validate_sklearn_operators_" + subname)
         nb = 60
-        ops = onnx.defs.onnx_opset_version()
+        ops = get_opset_number_from_onnx()
         rows = []
         for _, row in zip(
                 range(nb),
                 enumerate_validated_operator_opsets(
                     verbose, debug=True, fLOG=myfLOG, dump_folder=temp,
                     models=models, filter_exp=filter_exp_,
-                    opset_min=ops, store_models=True,
+                    opset_min=ops, opset_max=ops, store_models=True,
                     filter_scenario=filter_scenario)):
-
             up = {}
             outputs = []
             output = row["ort_outputs"]
@@ -119,5 +119,5 @@ class TestOnnxrtValidateType(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtValidateType().test_validate_sklearn_operators_float32_dec()
+    # TestOnnxrtValidateType().test_validate_sklearn_operators_float32()
     unittest.main()
