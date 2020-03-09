@@ -95,6 +95,7 @@ does not have any dependency on :epkg:`scikit-learn`.
     from sklearn.linear_model import LinearRegression
     from sklearn.datasets import load_iris
     from mlprodict.onnxrt import OnnxInference, measure_relative_difference
+    from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
     import numpy
 
     iris = load_iris()
@@ -113,6 +114,7 @@ does not have any dependency on :epkg:`scikit-learn`.
     print("ONNX:", str(model_onnx)[:200] + "\n...")
 
     # Predictions with onnxruntime
+    model_onnx.ir_version = get_ir_version_from_onnx()
     oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
     ypred = oinf.run({'X': X[:5].astype(numpy.float32)})
     print("ONNX output:", ypred)
