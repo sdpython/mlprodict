@@ -28,4 +28,6 @@ Plotting
 Versions
 ++++++++
 
+.. autosignature:: mlprodict.tools.asv_options_helper.get_ir_version_from_onnx
+
 .. autosignature:: mlprodict.tools.asv_options_helper.get_opset_number_from_onnx

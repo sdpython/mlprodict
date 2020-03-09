@@ -112,8 +112,80 @@ def get_ir_version_from_onnx(benchmark=True):
     @param      benchmark       returns the latest
                                 version usable for benchmark
     @eturn                      opset number
+
+    .. faqref::
+        :title: Failed to load model with error: Unknown model file format version.
+        :lid: l-onnx-ir-version-fail
+
+        :epkg:`onnxruntime` (or ``runtime='onnxruntime1'`` with @see cl OnnxInference)
+        fails sometimes to load a model showing the following error messsage:
+
+        ::
+
+            RuntimeError: Unable to create InferenceSession due to '[ONNXRuntimeError] :
+            2 : INVALID_ARGUMENT : Failed to load model with error: Unknown model file format version.'
+
+        This case is due to metadata ``ir_version`` which defines the
+        :epkg:`IR_VERSION` or *ONNX version*. When a model is machine learned
+        model is converted, it is usually done with the default version
+        (``ir_version``) returned by the :epkg:`onnx` package.
+        :epkg:`onnxruntime` raises the above mentioned error message
+        when this version (``ir_version``) is too recent. In this case,
+        :epkg:`onnxruntime` should be updated to the latest version
+        available or the metadata ``ir_version`` can just be changed to
+        a lower number. Th function @see fn get_ir_version_from_onnx
+        returns the latest tested version with *mlprodict*.
+
+        .. runpython::
+            :showcode:
+
+            from sklearn.linear_model import LinearRegression
+            from sklearn.datasets import load_iris
+            from mlprodict.onnxrt import OnnxInference
+            import numpy
+
+            iris = load_iris()
+            X = iris.data[:, :2]
+            y = iris.target
+            lr = LinearRegression()
+            lr.fit(X, y)
+
+            # Conversion into ONNX.
+            from mlprodict.onnx_conv import to_onnx
+            model_onnx = to_onnx(lr, X.astype(numpy.float32))
+            print("ir_version", model_onnx.ir_version)
+
+            # Change ir_version
+            model_onnx.ir_version = 6
+
+            # Predictions with onnxruntime
+            oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
+            ypred = oinf.run({'X': X[:5].astype(numpy.float32)})
+            print("ONNX output:", ypred)
+
+            # To avoid keep a fixed version number, you can use
+            # the value returned by function get_ir_version_from_onnx
+            from mlprodict.tools import get_ir_version_from_onnx
+            model_onnx.ir_version = get_ir_version_from_onnx()
+            print("ir_version", model_onnx.ir_version)
     """
     if benchmark:
         return ir_version()[-1]
     from onnx import IR_VERSION  # pylint: disable=W0611
     return IR_VERSION
+
+
+def display_onnx(model_onnx, max_length=1000):
+    """
+    Returns a shortened string of the model.
+
+    @param      model_onnx      onnx model
+    @param      max_length      maximal string length
+    @return                     string
+    """
+    res = str(model_onnx)
+    if max_length is None or len(res) <= max_length:
+        return res
+    begin = res[:max_length // 2]
+    end = res[-max_length // 2:]
+    return "\n".join([begin, '[...]', end])

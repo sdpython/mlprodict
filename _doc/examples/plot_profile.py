@@ -82,7 +82,9 @@ print(txt[1])
 # ++++++++++++++++++++++++
 #
 # Let's compare to :epkg:`onnxruntime`.
+from mlprodict.tools import get_ir_version_from_onnx
 
+onx.ir_version = get_ir_version_from_onnx()
 oinf = OnnxInference(onx, runtime='onnxruntime1')
 
 

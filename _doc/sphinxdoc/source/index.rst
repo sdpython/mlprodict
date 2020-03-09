@@ -92,11 +92,11 @@ does not have any dependency on :epkg:`scikit-learn`.
 .. runpython::
     :showcode:
 
+    import numpy
     from sklearn.linear_model import LinearRegression
     from sklearn.datasets import load_iris
     from mlprodict.onnxrt import OnnxInference, measure_relative_difference
-    from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
-    import numpy
+    from mlprodict.tools import get_ir_version_from_onnx
 
     iris = load_iris()
     X = iris.data[:, :2]
