@@ -85,6 +85,7 @@ epkg_dictionary.update({
     'onnxconverter_common': 'https://github.com/onnx/onnxmltools/tree/master/onnxutils/onnxconverter_common',
     'OnnxOperatorMixin': 'https://github.com/onnx/sklearn-onnx/blob/master/skl2onnx/algebra/onnx_operator_mixin.py#L16',
     'onnxruntime': 'https://github.com/microsoft/onnxruntime',
+    'pypiserver': 'https://github.com/pypiserver/pypiserver',
     'pyspy': 'https://github.com/benfred/py-spy',
     'py-spy': 'https://github.com/benfred/py-spy',
     'Python': 'https://www.python.org/',

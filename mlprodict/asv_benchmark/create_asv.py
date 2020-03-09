@@ -121,7 +121,8 @@ def create_asv_benchmark(
     :param env: None to use the default configuration or ``same`` to use
         the current one
     :param matrix: specifies versions for a module,
-        example: ``{'onnxruntime': ['1.1.1', '1.1.2']}``
+        example: ``{'onnxruntime': ['1.1.1', '1.1.2']}``,
+        if a package name starts with `'~'`, the package is removed
     :return: created files
 
     The default configuration is the following:
@@ -179,6 +180,9 @@ def create_asv_benchmark(
         conf['pythons'] = ['same']
         conf['matrix'] = {}
     elif matrix is not None:
+        drop_keys = set([p for p in matrix if p.startswith('~')])
+        matrix = {k: v for k, v in matrix.items() if k not in drop_keys}
+        conf['matrix'] = {k: v for k, v in conf['matrix'].items() if k not in drop_keys}
         conf['matrix'].update(matrix)
     elif env is not None:
         raise ValueError("Unable to handle env='{}'.".format(env))

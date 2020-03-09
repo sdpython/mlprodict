@@ -35,7 +35,7 @@ if not os.path.exists("dump_errors"):
 #              -b 1 --dump_folder dump_errors --runtime python,onnxruntime1
 #              --models LinearRegression,DecisionTreeRegressor
 #              --n_features 4,10 --out_graph bench_png
-#              -t "{"1":{"number":10,"repeat":10},"10":{"number":5,"repeat":5}}"
+#              -t "{\"1\":{\"number\":10,\"repeat\":10},\"10\":{\"number\":5,\"repeat\":5}}"
 #
 # We use the python instruction in this example.
 #

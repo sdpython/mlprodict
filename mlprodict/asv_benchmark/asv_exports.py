@@ -131,6 +131,7 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False,
                             add additional data
     @return                 :epkg:`dataframe` or flat data
     """
+    meta_class = None
     if conf is not None:
         if not os.path.exists(conf):
             raise FileNotFoundError("Unable to find '{}'.".format(conf))
@@ -139,8 +140,6 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False,
         bdir = os.path.join(os.path.dirname(conf), meta['benchmark_dir'])
         if os.path.exists(bdir):
             meta_class = _retrieve_class_parameters(bdir)
-    else:
-        meta_class = None
 
     bench = os.path.join(folder, 'benchmarks.json')
     if not os.path.exists(bench):
@@ -250,8 +249,8 @@ def _retrieve_class_parameters(bdir):
     Imports files in bdir, compile files and extra metadata from them.
     """
     found = {}
-    for path, _, files in os.walk(bdir):
-        fulls = [os.path.join(bdir, path, f) for f in files]
+    for path, _, files in os.walk(os.path.abspath(bdir)):
+        fulls = [os.path.join(path, f) for f in files]
         for full in fulls:
             if (os.path.splitext(full)[-1] == '.py' and
                     os.path.split(full)[-1] != '__init__.py'):

@@ -10,3 +10,4 @@ one piece this module can do. More should follow.
 
     onnx
     optim
+    benchmark

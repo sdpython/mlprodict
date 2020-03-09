@@ -314,7 +314,7 @@ py::array_t<int64_t> topk_element(
         const NTYPE* end = data + tdim;
         
         shape[shape.size()-1] = k;
-        auto fdim = flattened_dimension(shape);
+        // auto fdim = flattened_dimension(shape);
         std::vector<int64_t> strides;
         shape2strides(shape, strides, (int64_t)0);
         auto result = py::array_t<int64_t>(shape, strides);

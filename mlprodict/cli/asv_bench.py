@@ -51,7 +51,8 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
         each configuration
     :param env: default environment or ``same`` to use the current one
     :param matrix: specifies versions for a module as a json string,
-        example: ``{'onnxruntime':['1.1.1', '1.1.2']}``
+        example: ``{'onnxruntime': ['1.1.1', '1.1.2']}``,
+        if a package name starts with `'~'`, the package is removed
     :return: created files
 
     .. cmdref::

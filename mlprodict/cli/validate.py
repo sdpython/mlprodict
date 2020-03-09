@@ -153,6 +153,8 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
     if not dump_folder:
         dump_folder = None
     if dump_folder and not os.path.exists(dump_folder):
+        os.mkdir(dump_folder)
+    if dump_folder and not os.path.exists(dump_folder):
         raise FileNotFoundError("Cannot find dump_folder '{0}'.".format(
             dump_folder))
 
@@ -233,6 +235,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
 
 def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
     from ..onnxrt.validate import summary_report  # pylint: disable=E0402
+    from ..tools.cleaning import clean_error_msg  # pylint: disable=E0402
 
     # Drops data which cannot be serialized.
     for row in rows:
@@ -251,7 +254,7 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
         if os.path.splitext(out_raw)[-1] == ".xlsx":
             df.to_excel(out_raw, index=False)
         else:
-            df.to_csv(out_raw, index=False)
+            clean_error_msg(df).to_csv(out_raw, index=False)
 
     if df.shape[0] == 0:
         raise RuntimeError("No result produced by the benchmark.")
@@ -266,7 +269,7 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
         if os.path.splitext(out_summary)[-1] == ".xlsx":
             piv.to_excel(out_summary, index=False)
         else:
-            piv.to_csv(out_summary, index=False)
+            clean_error_msg(piv).to_csv(out_summary, index=False)
 
     if verbose > 1 and models is not None:
         fLOG(piv.T)

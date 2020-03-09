@@ -179,13 +179,13 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::init(
     // additional members
     nodes_modes_.resize(nodes_modes.size());
     same_mode_ = true;
-    size_t fpos = -1;
+    int64_t fpos = -1;
     for(size_t i = 0; i < nodes_modes.size(); ++i) {
         nodes_modes_[i] = to_NODE_MODE(nodes_modes[i]);
         if (nodes_modes_[i] == NODE_MODE::LEAF)
             continue;
         if (fpos == -1) {
-            fpos = i;
+            fpos = (int64_t)i;
             continue;
         }
         if (nodes_modes_[i] != nodes_modes_[fpos])
@@ -835,7 +835,7 @@ in :epkg:`onnxruntime`. Supports double only.)pbdoc");
     cld.def_readonly("nodes_hitrates_", &RuntimeTreeEnsembleRegressorDouble::nodes_hitrates_, "See :ref:`lpyort-TreeEnsembleRegressorDouble`.");
     cld.def_property_readonly("nodes_modes_", [](RuntimeTreeEnsembleRegressorDouble* op) -> const py::array_t<int> {
         std::vector<int> i_nodes_modes(op->nodes_modes_.size());
-        for(int i = 0; i < i_nodes_modes.size(); ++i)
+        for(size_t i = 0; i < i_nodes_modes.size(); ++i)
             i_nodes_modes[i] = (int)op->nodes_modes_[i];
         return py::array_t<int>(
             py::buffer_info(
