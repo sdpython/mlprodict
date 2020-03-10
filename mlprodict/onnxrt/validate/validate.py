@@ -802,7 +802,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
     @param      filter_exp      function which tells if the experiment must be run,
                                 None to run all, takes *model, problem* as an input
     @param      filter_scenario second function which tells if the experiment must be run,
-                                None to run all, takes *model, problem, scenario, extra*
+                                None to run all, takes *model, problem, scenario, extra, options*
                                 as an input
     @param      skip_models     models to skip
     @param      assume_finite   See `config_context

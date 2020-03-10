@@ -194,8 +194,7 @@ if not r:
 
     if sys.platform.startswith("win"):
         libraries_thread = ['kernel32']
-        extra_compile_args = ['/EHsc', '/O2',
-                              '/Ob2', '/Gy', '/openmp']
+        extra_compile_args = ['/EHsc', '/O2', '/Gy', '/openmp']
         extra_link_args = None
         define_macros = [('USE_OPENMP', None)]
     elif sys.platform.startswith("darwin"):

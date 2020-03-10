@@ -1,7 +1,7 @@
 // Inspired from 
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/svm_classifier.cc.
 
-#include "op_svm_classifier_common_.hpp"
+#include "op_svm_common_.hpp"
 
 
 template<typename NTYPE>
