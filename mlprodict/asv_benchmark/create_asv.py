@@ -180,9 +180,10 @@ def create_asv_benchmark(
         conf['pythons'] = ['same']
         conf['matrix'] = {}
     elif matrix is not None:
-        drop_keys = set([p for p in matrix if p.startswith('~')])
+        drop_keys = set(p for p in matrix if p.startswith('~'))
         matrix = {k: v for k, v in matrix.items() if k not in drop_keys}
-        conf['matrix'] = {k: v for k, v in conf['matrix'].items() if k not in drop_keys}
+        conf['matrix'] = {k: v for k,
+                          v in conf['matrix'].items() if k not in drop_keys}
         conf['matrix'].update(matrix)
     elif env is not None:
         raise ValueError("Unable to handle env='{}'.".format(env))

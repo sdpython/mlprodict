@@ -95,14 +95,20 @@ def plot_validate_benchmark(df):
 
     # let's add average and median
     ncol = (final.shape[1] - 1) // len(runtimes)
-    dfp_legend = final.iloc[:len(runtimes) + 1, :].copy()
+    if len(runtimes) + 1 > final.shape[0]:
+        dfp_legend = final.iloc[:len(runtimes) + 1, :].copy()
+        while dfp_legend.shape[0] < len(runtimes) + 1:
+            dfp_legend = pandas.concat([dfp_legend, dfp_legend[:1]])
+    else:
+        dfp_legend = final.iloc[:len(runtimes) + 1, :].copy()
     rleg = dfp_legend.copy()
     dfp_legend.iloc[:, 1:] = numpy.nan
     rleg.iloc[:, 1:] = numpy.nan
 
     for r, runt in enumerate(runtimes):
         sli = slice(1 + ncol * r, 1 + ncol * r + ncol)
-        dfp_legend.iloc[r + 1, sli] = final.iloc[:, sli].mean()
+        cm = final.iloc[:, sli].mean().values
+        dfp_legend.iloc[r + 1, sli] = cm
         rleg.iloc[r, sli] = final.iloc[:, sli].median()
         dfp_legend.iloc[r + 1, 0] = "avg_" + runt
         rleg.iloc[r, 0] = "med_" + runt
