@@ -27,41 +27,7 @@ def _clean_values_optim(val):
     return val
 
 
-def summary_report(df, add_cols=None):
-    """
-    Finalizes the results computed by function
-    @see fn enumerate_validated_operator_opsets.
-
-    @param      df          dataframe
-    @param      add_cols    additional columns to take into account
-    @return                 pivoted dataframe
-
-    The outcome can be seen at page about :ref:`l-onnx-pyrun`.
-    """
-    num_types = (int, float, decimal.Decimal, numpy.number)
-
-    def aggfunc(values):
-        if len(values) != 1:
-            if all(map(lambda x: isinstance(x, num_types),
-                       values)):
-                mi, ma = min(values), max(values)
-                if numpy.isnan(mi) and numpy.isnan(ma):
-                    return ""
-                if mi == ma:
-                    return mi
-                return '[{},{}]'.format(mi, ma)
-            values = [str(_).replace("\n", " ").replace('\r', '').strip(" ")
-                      for _ in values]
-            values = [_ for _ in values if _]
-            vals = set(values)
-            if len(vals) != 1:
-                return " // ".join(map(str, values))
-        val = values.iloc[0] if not isinstance(values, list) else values[0]
-        if isinstance(val, float) and numpy.isnan(val):
-            return ""
-        else:
-            return str(val)
-
+def _summary_report_indices(df, add_cols=None):
     if 'opset' not in df.columns:
         raise RuntimeError("Unable to create summary (opset missing)\n{}\n--\n{}".format(
             df.columns, df.head()))
@@ -102,6 +68,46 @@ def summary_report(df, add_cols=None):
 
     columns = ['opset']
     indices = indices + indices2
+    return columns, indices, col_values
+
+
+def summary_report(df, add_cols=None):
+    """
+    Finalizes the results computed by function
+    @see fn enumerate_validated_operator_opsets.
+
+    @param      df          dataframe
+    @param      add_cols    additional columns to take into account
+    @return                 pivoted dataframe
+
+    The outcome can be seen at page about :ref:`l-onnx-pyrun`.
+    """
+    num_types = (int, float, decimal.Decimal, numpy.number)
+
+    def aggfunc(values):
+        if len(values) != 1:
+            if all(map(lambda x: isinstance(x, num_types),
+                       values)):
+                mi, ma = min(values), max(values)
+                if numpy.isnan(mi) and numpy.isnan(ma):
+                    return ""
+                if mi == ma:
+                    return mi
+                return '[{},{}]'.format(mi, ma)
+            values = [str(_).replace("\n", " ").replace('\r', '').strip(" ")
+                      for _ in values]
+            values = [_ for _ in values if _]
+            vals = set(values)
+            if len(vals) != 1:
+                return " // ".join(map(str, values))
+        val = values.iloc[0] if not isinstance(values, list) else values[0]
+        if isinstance(val, float) and numpy.isnan(val):
+            return ""
+        else:
+            return str(val)
+
+    columns, indices, col_values = _summary_report_indices(
+        df, add_cols=add_cols)
     try:
         piv = pandas.pivot_table(df, values=col_values,
                                  index=indices, columns=columns,
@@ -215,3 +221,72 @@ def summary_report(df, add_cols=None):
             piv[c] = list(vals)[0]
 
     return piv
+
+
+def merge_benchmark(dfs, column='runtime', baseline=None, suffix='-base'):
+    """
+    Merges several benchmarks run with command line
+    :ref:`validate_runtime <l-cmd-validate_runtime>`.
+
+    @param      dfs         dictionary *{'prefix': dataframe}*
+    @param      column      every value from this column is prefixed
+                            by the given key in *dfs*
+    @param      baseline    add baseline
+    @param      suffix      suffix to add when comparing to the baseline
+    @return                 merged dataframe
+    """
+    def add_prefix(prefix, v):
+        if isinstance(v, str):
+            return prefix + v
+        return v
+
+    conc = []
+    for k, df in dfs.items():
+        if column not in df.columns:
+            raise ValueError(
+                "Unable to find column '{}' in {} (key='{}')".format(
+                    column, df.columns, k))
+        df = df.copy()
+        df[column] = df[column].apply(lambda x: add_prefix(k, x))
+        conc.append(df)
+
+    merged = pandas.concat(conc).reset_index(drop=True)
+    if baseline is not None:
+        def get_key(index):
+            k = []
+            for v in index:
+                try:
+                    if numpy.isnan(v):
+                        continue
+                except (ValueError, TypeError):
+                    pass
+                k.append(v)
+            return tuple(k)
+
+        columns, indices, _ = _summary_report_indices(merged)
+        indices = list(_ for _ in (indices + columns) if _ != 'runtime')
+        bdata = merged[merged.runtime == baseline].drop(
+            'runtime', axis=1).set_index(indices, verify_integrity=True)
+        ratios = [c for c in merged.columns if c.startswith('time-ratio-')]
+        indexed = {}
+        for index in bdata.index:
+            row = bdata.loc[index, :]
+            key = get_key(index)
+            indexed[key] = row[ratios]
+
+        for i in range(merged.shape[0]):
+            key = get_key(tuple(merged.loc[i, indices]))
+            if key not in indexed:
+                continue
+            value = indexed[key]
+            for r in ratios:
+                if r.endswith('-min') or r.endswith('-max'):
+                    continue
+                value2 = merged.loc[i, r]
+                new_r = value2 / value[r]
+                new_col = r + suffix
+                if new_col not in merged.columns:
+                    merged[new_col] = numpy.nan
+                merged.loc[i, new_col] = new_r
+
+    return merged

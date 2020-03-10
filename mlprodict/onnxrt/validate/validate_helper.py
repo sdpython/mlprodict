@@ -194,8 +194,7 @@ def _measure_time(fct, repeat=1, number=1):
         values.append(end - begin)
     if repeat * number == 1:
         return res, values[0], values
-    else:
-        return res, sum(values) / (repeat * number), values
+    return res, sum(values) / (repeat * number), values
 
 
 def _shape_exc(obj):
