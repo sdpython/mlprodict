@@ -21,7 +21,8 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
                      extended_list=True, separate_process=False,
                      time_kwargs=None, n_features=None, fLOG=print,
                      out_graph=None, force_return=False,
-                     dtype=None, skip_long_test=False):
+                     dtype=None, skip_long_test=False,
+                     number=1, repeat=1):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -78,6 +79,8 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         limits the test to one specific number types
     :param skip_long_test: skips tests for high values of N if
         they seem too long
+    :param number: to multiply number values in *time_kwargs*
+    :param repeat: to multiply repeat values in *time_kwargs*
     :param fLOG: logging function
 
     .. cmdref::
@@ -203,6 +206,18 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         fct_filter = fct_filter_exp3
     else:
         raise ValueError("dtype must be empty, 32, 64 not '{}'.".format(dtype))
+
+    # time_kwargs
+
+    if benchmark:
+        if time_kwargs is None:
+            from ..onnxrt.validate.validate_helper import default_time_kwargs  # pylint: disable=E0402
+            time_kwargs = default_time_kwargs()
+        for _, v in time_kwargs.items():
+            v['number'] *= number
+            v['repeat'] *= repeat
+        if verbose > 0:
+            fLOG("time_kwargs=%r" % time_kwargs)
 
     # body
 

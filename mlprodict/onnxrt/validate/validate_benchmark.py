@@ -58,7 +58,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
     as an input and changes the number of rows.
 
     @param      fct             function to benchmark, signature
-                                is fct(xo)
+                                is `fct(xo)`
     @param      X               array
     @param      time_limit      above this time, measurement as stopped
     @param      obs             all information available in a dictionary
