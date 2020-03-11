@@ -18,13 +18,15 @@
 #if defined(_WIN32) || defined(WIN32)
 #pragma optimize( "", off )
 #else
-#pragma GCC push_options
-#pragma GCC optimize ("O0")
+//#pragma GCC push_options
+//#pragma GCC optimize ("O0")
 #endif
 float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t size)
 {
     float sum = 0;
     size_t i = 0;
+#if defined(_WIN32) || defined(WIN32)    
+    // gcc does some optimisation and this code fails.
     if (size >= BYNF) {
         float r[4];
         size_t size_ = size - size % BYNF;
@@ -35,6 +37,7 @@ float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t 
         _mm_store_ps(r, r1);
         sum += r[0] + r[1] + r[2] + r[3];
     }
+#endif
     size -= i;
     for (; size > 0; ++p1, ++p2, --size)
         sum += *p1 * *p2;
@@ -53,13 +56,15 @@ float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t 
 #if defined(_WIN32) || defined(WIN32)
 #pragma optimize( "", off )
 #else
-#pragma GCC push_options
-#pragma GCC optimize ("O0")
+//#pragma GCC push_options
+//#pragma GCC optimize ("O0")
 #endif
 double vector_dot_product_pointer16_sse(const double *p1, const double *p2, size_t size)
 {
     double sum = 0;
     size_t i = 0;
+#if defined(_WIN32) || defined(WIN32)    
+    // gcc does some optimisation and this code fails.
     if (size >= BYND) {
         double r[2];
         size_t size_ = size - size % BYND;
@@ -70,6 +75,7 @@ double vector_dot_product_pointer16_sse(const double *p1, const double *p2, size
         _mm_store_pd(r, r1);
         sum += r[0] + r[1];
     }
+#endif    
     size -= i;
     for (; size > 0; ++p1, ++p2, --size)
         sum += *p1 * *p2;
