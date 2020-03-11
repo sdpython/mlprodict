@@ -779,7 +779,7 @@ in :epkg:`onnxruntime`. Supports float only.)pbdoc");
     clf.def_readonly("nodes_hitrates_", &RuntimeTreeEnsembleRegressorFloat::nodes_hitrates_, "See :ref:`lpyort-TreeEnsembleRegressor`.");
     clf.def_property_readonly("nodes_modes_", [](RuntimeTreeEnsembleRegressorFloat* op) -> const py::array_t<int> {
         std::vector<int> i_nodes_modes(op->nodes_modes_.size());
-        for(int i = 0; i < i_nodes_modes.size(); ++i)
+        for(size_t i = 0; i < i_nodes_modes.size(); ++i)
             i_nodes_modes[i] = (int)op->nodes_modes_[i];
         return py::array_t<int>(
             py::buffer_info(

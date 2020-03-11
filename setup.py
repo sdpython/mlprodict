@@ -207,7 +207,7 @@ if not r:
     else:
         libraries_thread = None
         # , '-o2', '-mavx512f']
-        extra_compile_args = ['-fopenmp']
+        extra_compile_args = ['-fopenmp', '-march=native']
         extra_link_args = ['-lgomp']
         define_macros = [('USE_OPENMP', None)]
 
