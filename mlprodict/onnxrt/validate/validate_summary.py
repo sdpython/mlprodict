@@ -27,7 +27,7 @@ def _clean_values_optim(val):
     return val
 
 
-def _summary_report_indices(df, add_cols=None):
+def _summary_report_indices(df, add_cols=None, add_index=None):
     if 'opset' not in df.columns:
         raise RuntimeError("Unable to create summary (opset missing)\n{}\n--\n{}".format(
             df.columns, df.head()))
@@ -68,16 +68,23 @@ def _summary_report_indices(df, add_cols=None):
 
     columns = ['opset']
     indices = indices + indices2
+    if add_index is not None:
+        for i in add_index:
+            if i not in indices:
+                indices.append(i)
     return columns, indices, col_values
 
 
-def summary_report(df, add_cols=None):
+def summary_report(df, add_cols=None, add_index=None):
     """
     Finalizes the results computed by function
     @see fn enumerate_validated_operator_opsets.
 
     @param      df          dataframe
     @param      add_cols    additional columns to take into account
+                            as values
+    @param      add_index   additional columns to take into accound
+                            as index
     @return                 pivoted dataframe
 
     The outcome can be seen at page about :ref:`l-onnx-pyrun`.
@@ -107,7 +114,7 @@ def summary_report(df, add_cols=None):
             return str(val)
 
     columns, indices, col_values = _summary_report_indices(
-        df, add_cols=add_cols)
+        df, add_cols=add_cols, add_index=add_index)
     try:
         piv = pandas.pivot_table(df, values=col_values,
                                  index=indices, columns=columns,

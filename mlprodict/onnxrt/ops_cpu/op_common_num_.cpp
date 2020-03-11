@@ -20,6 +20,8 @@
 #else
 //#pragma GCC push_options
 //#pragma GCC optimize ("O0")
+//         works: gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -g -fstack-protector --param=ssp-buffer-size=4 -Wformat -Werror=format-security -fPIC -fopenmp
+// does not work: gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -fopenmp
 #endif
 float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t size)
 {

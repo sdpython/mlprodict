@@ -204,7 +204,7 @@ def build_custom_scenarios():
         RandomForestClassifier: [
             ('default', {'n_estimators': 10}),
             ('nozipmap', {'n_estimators': 10},
-             {'conv_options': [{}, {LogisticRegression: {'zipmap': False}}]}),
+             {'conv_options': [{}, {RandomForestClassifier: {'zipmap': False}}]}),
         ],
         RandomForestRegressor: [
             ('default', {'n_estimators': 10}),

@@ -4,6 +4,11 @@
 Benchmarks
 ==========
 
+.. contents::
+    :local:
+
+.. _l-benchmark-onnxruntime-skl-regular:
+
 Validate a runtime against scikit-learn
 +++++++++++++++++++++++++++++++++++++++
 
@@ -28,7 +33,12 @@ All other steps are executed within the local environment.
 
 ::
 
-    python -m mlprodict validate_runtime -nu 2 -re 2 -o 11 -op 11 -v 1 --out_raw data.csv --out_summary summary.csv -b 1 --dump_folder dump_errors --runtime python_compiled,onnxruntime1 --models RandomForestRegressor --n_features 4,10 --out_graph bench_png --dtype 32
+    export model="RandomForestRegressor"
+    python -m mlprodict validate_runtime --n_features 4,50 -nu 2 -re 2 -o 11 -op 11 -v 1 --out_raw data$model.csv --out_summary summary$model.csv -b 1 --dump_folder dump_errors --runtime python_compiled,onnxruntime1 --models $model --out_graph bench_png$model --dtype 32
+
+.. toctree::
+
+    benchmarkorts
 
 Compares two different onnxruntime
 ++++++++++++++++++++++++++++++++++

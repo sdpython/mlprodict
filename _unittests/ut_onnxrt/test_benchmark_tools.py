@@ -30,7 +30,7 @@ class TestBenchmarkTools(ExtTestCase):
                           '1.1.2-python_compiled'},
                          values)
         add_cols = list(
-            sorted(c for c in merged.columns if c.startswith('CMP-')))
+            sorted(c for c in merged.columns if c.endswith('-base')))
         suma = summary_report(merged, add_cols=add_cols)
         self.assertIn('N=10-base', suma.columns)
         suma.to_excel(f1 + ".xlsx", index=False)
