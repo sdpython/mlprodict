@@ -15,7 +15,11 @@
 // Optimisation are disabled. The debug version works
 // but the release does not.
 // It requires further investigation.
+#if defined(_WIN32) || defined(WIN32)
 #pragma optimize( "", off )
+#else
+#pragma GCC optimize( "", off )
+#endif
 float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t size)
 {
     float sum = 0;
@@ -35,7 +39,11 @@ float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t 
         sum += *p1 * *p2;
     return sum;
 }
+#if defined(_WIN32) || defined(WIN32)
 #pragma optimize( "", on )
+#else
+#pragma GCC optimize( "", on )
+#endif
 
 
 #define BYND 8
