@@ -48,7 +48,7 @@ float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t 
 #if defined(_WIN32) || defined(WIN32)
 #pragma optimize( "", on )
 #else
-#pragma GCC pop_options
+// #pragma GCC pop_options
 #endif
 
 
@@ -86,7 +86,7 @@ double vector_dot_product_pointer16_sse(const double *p1, const double *p2, size
 #if defined(_WIN32) || defined(WIN32)
 #pragma optimize( "", on )
 #else
-#pragma GCC pop_options
+// #pragma GCC pop_options
 #endif
 
 
