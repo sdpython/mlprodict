@@ -18,7 +18,8 @@
 #if defined(_WIN32) || defined(WIN32)
 #pragma optimize( "", off )
 #else
-#pragma GCC optimize( "", off )
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
 #endif
 float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t size)
 {
@@ -42,14 +43,19 @@ float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t 
 #if defined(_WIN32) || defined(WIN32)
 #pragma optimize( "", on )
 #else
-#pragma GCC optimize( "", on )
+#pragma GCC pop_options
 #endif
 
 
 #define BYND 8
 
 
+#if defined(_WIN32) || defined(WIN32)
 #pragma optimize( "", off )
+#else
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
+#endif
 double vector_dot_product_pointer16_sse(const double *p1, const double *p2, size_t size)
 {
     double sum = 0;
@@ -69,7 +75,11 @@ double vector_dot_product_pointer16_sse(const double *p1, const double *p2, size
         sum += *p1 * *p2;
     return sum;
 }
+#if defined(_WIN32) || defined(WIN32)
 #pragma optimize( "", on )
+#else
+#pragma GCC pop_options
+#endif
 
 
 template <>
