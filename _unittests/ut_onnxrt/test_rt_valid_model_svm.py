@@ -48,6 +48,30 @@ class TestRtValidateSVM(ExtTestCase):
                     res['variable'], clr.predict(x2), decimal=2)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    def test_rt_svr_simple_test_double(self):
+        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
+        logger = getLogger('skl2onnx')
+        logger.disabled = True
+
+        for nf in range(16, 50):
+            with self.subTest(nf=nf):
+                iris = load_iris()
+                X, y = iris.data, iris.target
+                X = _modify_dimension(X, nf)
+                X_train, X_test, y_train, _ = train_test_split(X, y)
+                clr = SVR(kernel='linear')
+                clr.fit(X_train, y_train)
+
+                x2 = X_test.astype(numpy.float64)
+                onx = to_onnx(clr, x2, dtype=numpy.float64)
+                pyrun = OnnxInference(onx, runtime="python")
+                res = pyrun.run({'X': x2})
+                self.assertIn('variable', res)
+                self.assertEqual(res['variable'].shape, (38, ))
+                self.assertEqualArray(
+                    res['variable'], clr.predict(x2), decimal=2)
+
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_svr_python_rbf(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
