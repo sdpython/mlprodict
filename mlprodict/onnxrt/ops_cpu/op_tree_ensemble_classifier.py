@@ -48,14 +48,14 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
             if version == 0:
                 self.rt_ = RuntimeTreeEnsembleClassifierFloat()
             elif version == 1:
-                self.rt_ = RuntimeTreeEnsembleClassifierPFloat(10, 10)
+                self.rt_ = RuntimeTreeEnsembleClassifierPFloat(60, 20)
             else:
                 raise ValueError("Unknown version '{}'.".format(version))
         elif dtype == numpy.float64:
             if version == 0:
                 self.rt_ = RuntimeTreeEnsembleClassifierDouble()
             elif version == 1:
-                self.rt_ = RuntimeTreeEnsembleClassifierPDouble(10, 10)
+                self.rt_ = RuntimeTreeEnsembleClassifierPDouble(60, 20)
             else:
                 raise ValueError("Unknown version '{}'.".format(version))
         else:

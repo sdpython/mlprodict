@@ -358,8 +358,8 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
 
     n_trees_ = roots_.size();
     has_missing_tracks_ = false;
-    for (auto it = nodes_missing_value_tracks_true.begin();
-         it != nodes_missing_value_tracks_true.end(); ++it) {
+    for (auto it = nodes_missing_value_tracks_true.cbegin();
+         it != nodes_missing_value_tracks_true.cend(); ++it) {
         if (*it) {
             has_missing_tracks_ = true;
             break;

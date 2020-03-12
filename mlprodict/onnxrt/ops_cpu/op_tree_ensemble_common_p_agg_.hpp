@@ -184,7 +184,7 @@ class _AggregatorSum : public _Aggregator<NTYPE>
         
         void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                        unsigned char* has_predictions) const {
-            for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
+            for(auto it = root->weights.cbegin(); it != root->weights.cend(); ++it) {
                 predictions[it->i] += it->value;
                 has_predictions[it->i] = 1;
             }
@@ -247,9 +247,8 @@ class _AggregatorAverage : public _AggregatorSum<NTYPE>
                 for (; it != scores.end(); ++it, ++it2)
                     *it = *it / this->n_trees_ + *it2;
             }
-            else {
-                auto it = scores.begin();
-                for (; it != scores.end(); ++it)
+            else {                
+                for (auto it = scores.begin(); it != scores.end(); ++it)
                     *it /= this->n_trees_;
             }
             write_scores(scores, this->post_transform_, Z, add_second_class);
@@ -294,7 +293,7 @@ class _AggregatorMin : public _Aggregator<NTYPE>
         
         void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                        unsigned char* has_predictions) const {
-            for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
+            for(auto it = root->weights.cbegin(); it != root->weights.cend(); ++it) {
                 predictions[it->i] = (!has_predictions[it->i] || it->value < predictions[it->i]) 
                                         ? it->value : predictions[it->i];
                 has_predictions[it->i] = 1;
@@ -353,7 +352,7 @@ class _AggregatorMax : public _Aggregator<NTYPE>
 
         void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                        unsigned char* has_predictions) const {
-            for(auto it = root->weights.begin(); it != root->weights.end(); ++it) {
+            for(auto it = root->weights.cbegin(); it != root->weights.cend(); ++it) {
                 predictions[it->i] = (!has_predictions[it->i] || it->value > predictions[it->i]) 
                                         ? it->value : predictions[it->i];
                 has_predictions[it->i] = 1;
@@ -416,10 +415,10 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE>
             maxweight = (NTYPE)0;
             typename std::vector<NTYPE>::const_iterator it;
             typename std::vector<unsigned char>::const_iterator itb;
-            for (it = classes.begin(), itb = has_scores.begin();
-               it != classes.end(); ++it, ++itb) {
+            for (it = classes.cbegin(), itb = has_scores.cbegin();
+               it != classes.cend(); ++it, ++itb) {
                 if (*itb && (maxclass == -1 || *it > maxweight)) {
-                    maxclass = (int64_t)(it - classes.begin());
+                    maxclass = (int64_t)(it - classes.cbegin());
                     maxweight = *it;
                 }
             }
