@@ -144,42 +144,56 @@ static inline NTYPE sigmoid_probability(NTYPE score, NTYPE proba, NTYPE probb) {
 }
 
 
-template<class NTYPE>
+template<typename NTYPE>
 void ComputeSoftmax(std::vector<NTYPE>& values) {
-  NTYPE v_max = -std::numeric_limits<NTYPE>::max();
-  for (NTYPE value : values) {
-    if (value > v_max)
-      v_max = value;
-  }
-  NTYPE this_sum = (NTYPE)0.;
-  for (NTYPE& value : values) {
-    value = std::exp(value - v_max);
-    this_sum += value;
-  }
-  for (NTYPE& value : values) 
-    value /= this_sum;
+    ComputeSoftmax(values.data(), values.data() + values.size());
 }
 
 
-template<class NTYPE>
-void ComputeSoftmaxZero(std::vector<NTYPE>& values) {
-  NTYPE v_max = -std::numeric_limits<NTYPE>::max();
-  for (NTYPE value : values) {
-    if (value > v_max)
-      v_max = value;
-  }
-  NTYPE exp_neg_v_max = std::exp(-v_max);
-  NTYPE this_sum = (NTYPE)0;
-  for (NTYPE& value : values) {
-    if (value > 0.0000001f || value < -0.0000001f) {
-      value = std::exp(value - v_max);
-      this_sum += value;
-    } else {
-      value *= exp_neg_v_max;
+template<typename NTYPE>
+void ComputeSoftmax(NTYPE* begin, NTYPE* end) {
+    NTYPE v_max = -std::numeric_limits<NTYPE>::max();
+    NTYPE* it;
+    for (it = begin; it != end; ++it) {
+        if (*it > v_max)
+          v_max = *it;
     }
-  }
-  for (NTYPE& value : values)
-    value /= this_sum;
+    NTYPE this_sum = (NTYPE)0.;
+    for (it = begin; it != end; ++it) {
+        *it = std::exp(*it - v_max);
+        this_sum += *it;
+    }
+    for (it = begin; it != end; ++it)
+        *it /= this_sum;
+}
+
+
+template<typename NTYPE>
+void ComputeSoftmaxZero(std::vector<NTYPE>& values) {
+    ComputeSoftmaxZero(values.data(), values.data() + values.size());
+}
+
+
+template<typename NTYPE>
+void ComputeSoftmaxZero(NTYPE* begin, NTYPE* end) {
+    NTYPE v_max = -std::numeric_limits<NTYPE>::max();
+    NTYPE* it;
+    for (it = begin; it != end; ++it) {
+        if (*it > v_max)
+          v_max = *it;
+    }
+    NTYPE exp_neg_v_max = std::exp(-v_max);
+    NTYPE this_sum = (NTYPE)0;
+    for (it = begin; it != end; ++it) {
+        if (*it > 0.0000001f || *it < -0.0000001f) {
+            *it = std::exp(*it - v_max);
+            this_sum += *it;
+        } else {
+            *it *= exp_neg_v_max;
+        }
+    }
+    for (it = begin; it != end; ++it)
+        *it /= this_sum;
 }
 
 
@@ -247,6 +261,34 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
                     break;
             }
         }
+    }
+}
+
+
+template<class NTYPE>
+void write_scores2(NTYPE* scores, POST_EVAL_TRANSFORM post_transform,
+                   NTYPE* Z, int add_second_class) {
+    switch (post_transform) {
+        case POST_EVAL_TRANSFORM::PROBIT:
+            Z[0] = ComputeProbit(scores[0]);
+            Z[1] = ComputeProbit(scores[1]);
+            break;
+        case POST_EVAL_TRANSFORM::LOGISTIC:
+            Z[0] = ComputeLogistic(scores[0]);
+            Z[1] = ComputeLogistic(scores[1]);
+            break;
+        case POST_EVAL_TRANSFORM::SOFTMAX:
+            ComputeSoftmax(scores, scores + 2);
+            memcpy(Z, scores, 2 * sizeof(NTYPE));
+            break;
+        case POST_EVAL_TRANSFORM::SOFTMAX_ZERO:
+            ComputeSoftmaxZero(scores, scores + 2);
+            memcpy(Z, scores, 2 * sizeof(NTYPE));
+            break;
+        default:
+        case POST_EVAL_TRANSFORM::NONE:
+            memcpy(Z, scores, 2 * sizeof(NTYPE));
+            break;
     }
 }
 

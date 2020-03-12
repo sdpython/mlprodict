@@ -31,8 +31,8 @@ class RuntimeTreeEnsembleRegressorP : public RuntimeTreeEnsembleCommonP<NTYPE>
             py::array_t<int64_t> target_treeids,
             py::array_t<NTYPE> target_weights);
         
-        py::array_t<NTYPE> compute(py::array_t<NTYPE> X) const;
-        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> X) const;
+        py::array_t<NTYPE> compute(py::array_t<NTYPE> X);
+        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> X);
 };
 
 
@@ -77,7 +77,7 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::init(
 
 
 template<typename NTYPE>
-py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute(py::array_t<NTYPE> X) const {
+py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute(py::array_t<NTYPE> X) {
     switch(this->aggregate_function_) {
         case AGGREGATE_FUNCTION::AVERAGE:
             return this->compute_agg(X, _AggregatorAverage<NTYPE>(
@@ -101,7 +101,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute(py::array_t<NTY
 
 
 template<typename NTYPE>
-py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute_tree_outputs(py::array_t<NTYPE> X) const {
+py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute_tree_outputs(py::array_t<NTYPE> X) {
     switch(this->aggregate_function_) {
         case AGGREGATE_FUNCTION::AVERAGE:
             return this->compute_tree_outputs_agg(X, _AggregatorAverage<NTYPE>(

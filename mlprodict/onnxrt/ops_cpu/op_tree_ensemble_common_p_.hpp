@@ -1,9 +1,26 @@
+#pragma once
+
 // Inspired from 
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_regressor.cc.
 
 #include "op_tree_ensemble_common_p_agg_.hpp"
 
+#if USE_OPENMP
+#include <omp.h>
+#else
+#define omp_get_thread_num() 0
+#endif
 
+// https://cims.nyu.edu/~stadler/hpc17/material/ompLec.pdf
+// http://amestoy.perso.enseeiht.fr/COURS/CoursMulticoreProgrammingButtari.pdf
+
+
+/**
+* This classes parallelizes itself the computation,
+* it keeps buffer for every thread it generates. Calling
+* the same compute function from different thread will
+* cause computation errors. The class is not thread safe.
+*/
 template<typename NTYPE>
 class RuntimeTreeEnsembleCommonP
 {
@@ -83,18 +100,29 @@ class RuntimeTreeEnsembleCommonP
         
         py::array_t<int> debug_threshold(py::array_t<NTYPE> values) const;
 
+        // The two following methods uses buffers to avoid
+        // spending time allocating buffers. As a consequence,
+        // These methods are not thread-safe.
         template<typename AGG>
-        py::array_t<NTYPE> compute_agg(py::array_t<NTYPE> X, const AGG &agg) const;
+        py::array_t<NTYPE> compute_agg(py::array_t<NTYPE> X, const AGG &agg);
 
         template<typename AGG>
-        py::tuple compute_cl_agg(py::array_t<NTYPE> X, const AGG &agg) const;
+        py::tuple compute_cl_agg(py::array_t<NTYPE> X, const AGG &agg);
 
     private :
 
         template<typename AGG>
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                               const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
-                              py::array_t<int64_t>* Y, const AGG &agg) const;        
+                              py::array_t<int64_t>* Y, const AGG &agg);
+    
+    private:
+        // buffers, mutable
+        std::vector<NTYPE> _scores_t_tree;
+        std::vector<unsigned char> _has_scores_t_tree;
+    
+        std::vector<std::vector<NTYPE>> _scores_classes;
+        std::vector<std::vector<unsigned char>> _has_scores_classes;
 };
 
 
@@ -366,6 +394,17 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
         }
     }
     sizeof_ += sizeof(TreeNodeElement<NTYPE>) * roots_.size();
+
+    if (n_targets_or_classes_ == 1) {
+        _scores_t_tree.resize(n_trees_);
+        _has_scores_t_tree.resize(n_trees_);
+    }
+    _scores_classes.resize(omp_get_max_threads());
+    _has_scores_classes.resize(omp_get_max_threads());
+    for(size_t i = 0; i < _scores_classes.size(); ++i) {
+        _scores_classes[i].resize(n_targets_or_classes_);
+        _has_scores_classes[i].resize(n_targets_or_classes_);
+    }
 }
 
 
@@ -380,7 +419,7 @@ std::vector<std::string> RuntimeTreeEnsembleCommonP<NTYPE>::get_nodes_modes() co
 
 template<typename NTYPE>
 template<typename AGG>
-py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_agg(py::array_t<NTYPE> X, const AGG &agg) const {
+py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_agg(py::array_t<NTYPE> X, const AGG &agg) {
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
@@ -404,7 +443,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_agg(py::array_t<NT
 template<typename NTYPE>
 template<typename AGG>
 py::tuple RuntimeTreeEnsembleCommonP<NTYPE>::compute_cl_agg(
-        py::array_t<NTYPE> X, const AGG &agg) const {
+        py::array_t<NTYPE> X, const AGG &agg) {
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
@@ -448,7 +487,7 @@ template<typename AGG>
 void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                 const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
-                py::array_t<int64_t>* Y, const AGG &agg) const {
+                py::array_t<int64_t>* Y, const AGG &agg) {
 
     // expected primary-expression before ')' token
     auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
@@ -466,20 +505,20 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                         &has_scores);
             }
             else {
-                std::vector<NTYPE> scores_t(n_trees_, (NTYPE)0);
-                std::vector<unsigned char> has_scores_t(n_trees_, 0);
+                std::fill(_scores_t_tree.begin(), _scores_t_tree.end(), (NTYPE)0);
+                std::fill(_has_scores_t_tree.begin(), _has_scores_t_tree.end(), 0);
                 #ifdef USE_OPENMP
                 #pragma omp parallel for
                 #endif
                 for (int64_t j = 0; j < n_trees_; ++j) {
                     agg.ProcessTreeNodePrediction1(
-                        &(scores_t[j]),
+                        &(_scores_t_tree[j]),
                         ProcessTreeNodeLeave(roots_[j], x_data),
-                        &(has_scores_t[j]));
+                        &(_has_scores_t_tree[j]));
                 }
-                auto it = scores_t.cbegin();
-                auto it2 = has_scores_t.cbegin();
-                for(; it != scores_t.cend(); ++it, ++it2)
+                auto it = _scores_t_tree.cbegin();
+                auto it2 = _has_scores_t_tree.cbegin();
+                for(; it != _scores_t_tree.cend(); ++it, ++it2)
                     agg.MergePrediction1(&scores, &has_scores, &(*it), &(*it2));
             }
 
@@ -528,8 +567,10 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
     }
     else {
         if (N == 1) {
-            std::vector<NTYPE> scores(n_targets_or_classes_, (NTYPE)0);
-            std::vector<unsigned char> has_scores(n_targets_or_classes_, 0);
+            std::vector<NTYPE>& scores = _scores_classes[0];
+            std::vector<unsigned char>& has_scores = _has_scores_classes[0];
+            std::fill(scores.begin(), scores.end(), (NTYPE)0);
+            std::fill(has_scores.begin(), has_scores.end(), 0);
 
             if (n_trees_ <= omp_tree_) {
                 for (int64_t j = 0; j < n_trees_; ++j)
@@ -545,8 +586,11 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                 #pragma omp parallel
                 #endif
                 {
-                    std::vector<NTYPE> private_scores(n_targets_or_classes_, (NTYPE)0);
-                    std::vector<unsigned char> private_has_scores(n_targets_or_classes_, 0);
+                    std::vector<NTYPE>& private_scores = _scores_classes[omp_get_thread_num()];
+                    std::vector<unsigned char>& private_has_scores = _has_scores_classes[omp_get_thread_num()];
+                    std::fill(private_scores.begin(), private_scores.end(), (NTYPE)0);
+                    std::fill(private_has_scores.begin(), private_has_scores.end(), 0);
+                    
                     #ifdef USE_OPENMP
                     #pragma omp for
                     #endif
@@ -571,8 +615,8 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
         }
         else {
             if (N <= omp_N_) {
-                std::vector<NTYPE> scores(n_targets_or_classes_);
-                std::vector<unsigned char> has_scores(n_targets_or_classes_);
+                std::vector<NTYPE>& scores = _scores_classes[0];
+                std::vector<unsigned char>& has_scores = _has_scores_classes[0];
                 size_t j;
 
                 for (int64_t i = 0; i < N; ++i) {
@@ -593,8 +637,8 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                 #pragma omp parallel
                 #endif
                 {
-                    std::vector<NTYPE> scores(n_targets_or_classes_);
-                    std::vector<unsigned char> has_scores(n_targets_or_classes_);
+                    std::vector<NTYPE>& scores = _scores_classes[omp_get_thread_num()];
+                    std::vector<unsigned char>& has_scores = _has_scores_classes[omp_get_thread_num()];
                     size_t j;
 
                     #ifdef USE_OPENMP

@@ -1,3 +1,5 @@
+#pragma once
+
 // Inspired from 
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_regressor.cc.
 
@@ -16,10 +18,6 @@
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 //#include <numpy/arrayobject.h>
-
-#if USE_OPENMP
-#include <omp.h>
-#endif
 
 namespace py = pybind11;
 #endif
@@ -462,7 +460,7 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE>
         inline void FinalizeScores1(NTYPE* Z, NTYPE& val,
                                     unsigned char& has_score,
                                     int64_t * Y = 0) const {
-            std::vector<NTYPE> scores(2);
+            NTYPE scores[2];
             unsigned char has_scores[2] = {1, 0};
 
             int write_additional_scores = -1;
@@ -487,7 +485,8 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE>
             }
 
             *Y = _set_score_binary(write_additional_scores, &(scores[0]), has_scores);
-            write_scores(scores, this->post_transform_, Z, write_additional_scores);            
+            write_scores2(scores, this->post_transform_, Z,
+                          write_additional_scores);            
         }
 
         // N outputs

@@ -30,7 +30,6 @@ class TestLONGSklearnExample(ExtTestCase):
         "plot_affinity_propagation.py",  # no converter
         'plot_coin_segmentation.py',  # spectral clustering
         "plot_partial_dependence.py",  # issue with int conversion
-        'plot_ica_vs_pca.py',  # Argument U has a size 2 which does not match 1, the number of arrow positions
     }
 
     begin = 1000 if __name__ == "__main__" else 0

@@ -39,8 +39,8 @@ class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE>
             const std::string& post_transform // 16
             );
         
-        py::tuple compute_cl(py::array_t<NTYPE> X) const;
-        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> X) const;
+        py::tuple compute_cl(py::array_t<NTYPE> X);
+        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> X);
 };
 
 
@@ -99,7 +99,7 @@ void RuntimeTreeEnsembleClassifierP<NTYPE>::init(
 
 
 template<typename NTYPE>
-py::tuple RuntimeTreeEnsembleClassifierP<NTYPE>::compute_cl(py::array_t<NTYPE> X) const {
+py::tuple RuntimeTreeEnsembleClassifierP<NTYPE>::compute_cl(py::array_t<NTYPE> X) {
     return this->compute_cl_agg(X, _AggregatorClassifier<NTYPE>(
                                 this->roots_.size(), this->n_targets_or_classes_,
                                 this->post_transform_, &(this->base_values_),
@@ -109,7 +109,7 @@ py::tuple RuntimeTreeEnsembleClassifierP<NTYPE>::compute_cl(py::array_t<NTYPE> X
 
 
 template<typename NTYPE>
-py::array_t<NTYPE> RuntimeTreeEnsembleClassifierP<NTYPE>::compute_tree_outputs(py::array_t<NTYPE> X) const {
+py::array_t<NTYPE> RuntimeTreeEnsembleClassifierP<NTYPE>::compute_tree_outputs(py::array_t<NTYPE> X) {
     return this->compute_tree_outputs_agg(X, _AggregatorClassifier<NTYPE>(
                                           this->roots_.size(), this->n_targets_or_classes_,
                                           this->post_transform_, &(this->base_values_),
