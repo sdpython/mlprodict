@@ -145,12 +145,6 @@ static inline NTYPE sigmoid_probability(NTYPE score, NTYPE proba, NTYPE probb) {
 
 
 template<typename NTYPE>
-void ComputeSoftmax(std::vector<NTYPE>& values) {
-    ComputeSoftmax(values.data(), values.data() + values.size());
-}
-
-
-template<typename NTYPE>
 void ComputeSoftmax(NTYPE* begin, NTYPE* end) {
     NTYPE v_max = -std::numeric_limits<NTYPE>::max();
     NTYPE* it;
@@ -169,8 +163,8 @@ void ComputeSoftmax(NTYPE* begin, NTYPE* end) {
 
 
 template<typename NTYPE>
-void ComputeSoftmaxZero(std::vector<NTYPE>& values) {
-    ComputeSoftmaxZero(values.data(), values.data() + values.size());
+void ComputeSoftmax(std::vector<NTYPE>& values) {
+    ComputeSoftmax(values.data(), values.data() + values.size());
 }
 
 
@@ -194,6 +188,12 @@ void ComputeSoftmaxZero(NTYPE* begin, NTYPE* end) {
     }
     for (it = begin; it != end; ++it)
         *it /= this_sum;
+}
+
+
+template<typename NTYPE>
+void ComputeSoftmaxZero(std::vector<NTYPE>& values) {
+    ComputeSoftmaxZero(values.data(), values.data() + values.size());
 }
 
 
