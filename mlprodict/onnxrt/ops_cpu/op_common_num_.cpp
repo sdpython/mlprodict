@@ -16,7 +16,7 @@
 // but the release does not.
 // It requires further investigation.
 #if defined(_WIN32) || defined(WIN32)
-#pragma optimize( "", off )
+//#pragma optimize( "", off )
 #else
 //#pragma GCC push_options
 //#pragma GCC optimize ("O0")
@@ -27,8 +27,8 @@ float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t 
 {
     float sum = 0;
     size_t i = 0;
-#if defined(_WIN32) || defined(WIN32)    
-    // gcc does some optimisation and this code fails.
+#if 0
+    // Compilers do some optimisation and this code fails at _mm_store_ps.
     if (size >= BYNF) {
         float r[4];
         size_t size_ = size - size % BYNF;
@@ -46,7 +46,7 @@ float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t 
     return sum;
 }
 #if defined(_WIN32) || defined(WIN32)
-#pragma optimize( "", on )
+//#pragma optimize( "", on )
 #else
 // #pragma GCC pop_options
 #endif
@@ -56,7 +56,7 @@ float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t 
 
 
 #if defined(_WIN32) || defined(WIN32)
-#pragma optimize( "", off )
+//#pragma optimize( "", off )
 #else
 //#pragma GCC push_options
 //#pragma GCC optimize ("O0")
@@ -65,8 +65,8 @@ double vector_dot_product_pointer16_sse(const double *p1, const double *p2, size
 {
     double sum = 0;
     size_t i = 0;
-#if defined(_WIN32) || defined(WIN32)    
-    // gcc does some optimisation and this code fails.
+#if 0
+    // Compilers do some optimisation and this code fails at _mm_store_ps.
     if (size >= BYND) {
         double r[2];
         size_t size_ = size - size % BYND;
@@ -84,7 +84,7 @@ double vector_dot_product_pointer16_sse(const double *p1, const double *p2, size
     return sum;
 }
 #if defined(_WIN32) || defined(WIN32)
-#pragma optimize( "", on )
+// #pragma optimize( "", on )
 #else
 // #pragma GCC pop_options
 #endif
