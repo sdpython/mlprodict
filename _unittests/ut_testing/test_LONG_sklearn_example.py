@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.loghelper.repositories.pygit_helper import clone
+from sklearn import __version__ as skl_version
 from sklearn.cross_decomposition import CCA
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
@@ -105,6 +106,11 @@ class TestLONGSklearnExample(ExtTestCase):
                         issues[nfile] = e
                         fLOG('    missing variable', str(e).split('\n')[0])
                         continue
+                    except ValueError as e:
+                        if skl_version == "0.22.2.post1":
+                            fLOG('    value error', str(e).split('\n')[0])
+                            continue
+                        raise e
                     except (KeyError, NameError, RuntimeError, TypeError,
                             ImportError, AttributeError) as e:
                         issues[nfile] = e
