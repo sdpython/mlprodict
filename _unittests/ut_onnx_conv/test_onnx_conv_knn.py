@@ -184,7 +184,7 @@ class TestOnnxConvKNN(ExtTestCase):
                                       add_noise=False, runtime='python',
                                       target_opset=None, optim=None,
                                       kind='reg', level=1, largest0=True,
-                                      **kwargs):
+                                      metric_params=None, **kwargs):
         iris = load_iris()
         X, y = iris.data, iris.target
         if add_noise:
@@ -206,9 +206,13 @@ class TestOnnxConvKNN(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         X_test = X_test.astype(dtype)
         if kind in ('bin', 'mcl'):
-            clr = KNeighborsClassifier(**kwargs)
+            clr = KNeighborsClassifier(
+                metric_params=metric_params, **kwargs)
         elif kind == 'reg':
-            clr = KNeighborsRegressor(**kwargs)
+            clr = KNeighborsRegressor(
+                metric_params=metric_params, **kwargs)
+        else:
+            raise NotImplementedError(kind)
         clr.fit(X_train, y_train)
 
         if optim is None:

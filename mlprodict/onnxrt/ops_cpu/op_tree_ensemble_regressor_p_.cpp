@@ -211,8 +211,9 @@ void test_tree_ensemble_regressor(int omp_tree, int omp_N,
             for(size_t i = 0; i < cres.size(); ++i) {
                 if (cres[i] != results[i]) {
                     char buffer[1000];
-                    sprintf(buffer, "Value mismatch position %d: (got) %f != %f (expected).",
-                        (int)i, (double)cres[i], (double)results[i]);
+                    sprintf(buffer, "Value mismatch at position %d(%d): (got) %f != %f (expected) (omp_tree=%d, omp_N=%d, one_obs=%d).",
+                        (int)i, (int)cres.size(), (double)cres[i], (double)results[i],
+                        (int)omp_tree, (int)omp_N, (int)(one_obs ? 1 : 0));
                     throw std::runtime_error(buffer);
                 }
             }
@@ -221,7 +222,8 @@ void test_tree_ensemble_regressor(int omp_tree, int omp_N,
 }
 
 
-void test_tree_regressor_multitarget_average(int omp_tree, int omp_N, bool oneobs, bool compute, bool check) {
+void test_tree_regressor_multitarget_average(
+        int omp_tree, int omp_N, bool oneobs, bool compute, bool check) {
     std::vector<float> X = {1.f, 0.0f, 0.4f, 3.0f, 44.0f, -3.f, 12.0f, 12.9f, -312.f, 23.0f, 11.3f, -222.f, 23.0f, 11.3f, -222.f, 23.0f, 3311.3f, -222.f, 23.0f, 11.3f, -222.f, 43.0f, 413.3f, -114.f};
     std::vector<float> results = {1.33333333f, 29.f, 3.f, 14.f, 2.f, 23.f, 2.f, 23.f, 2.f, 23.f, 2.66666667f, 17.f, 2.f, 23.f, 3.f, 14.f};
     std::vector<float> base_values{0.f, 0.f};

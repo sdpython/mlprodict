@@ -436,4 +436,5 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestOnnxrtPythonRuntimeMlTree().test_cpp_average()
     unittest.main()

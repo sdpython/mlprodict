@@ -573,42 +573,44 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
             std::fill(has_scores.begin(), has_scores.end(), 0);
 
             if (n_trees_ <= omp_tree_) {
-                for (int64_t j = 0; j < n_trees_; ++j)
+                for (int64_t j = 0; j < n_trees_; ++j) {
                     agg.ProcessTreeNodePrediction(
                         scores.data(),
                         ProcessTreeNodeLeave(roots_[j], x_data),
                         has_scores.data());
+                }
                 agg.FinalizeScores(scores, has_scores, (NTYPE*)Z_.data(0), -1,
                                    Y == NULL ? NULL : (int64_t*)_mutable_unchecked1(*Y).data(0));
             }
-            else {            
+            else {
+                for(size_t i = 0; i < _scores_classes.size(); ++i) {
+                    std::fill(_scores_classes[i].begin(), _scores_classes[i].end(), (NTYPE)0);
+                    std::fill(_has_scores_classes[i].begin(), _has_scores_classes[i].end(), 0);
+                }
                 #ifdef USE_OPENMP
                 #pragma omp parallel
                 #endif
                 {
-                    std::vector<NTYPE>& private_scores = _scores_classes[omp_get_thread_num()];
-                    std::vector<unsigned char>& private_has_scores = _has_scores_classes[omp_get_thread_num()];
-                    std::fill(private_scores.begin(), private_scores.end(), (NTYPE)0);
-                    std::fill(private_has_scores.begin(), private_has_scores.end(), 0);
-                    
                     #ifdef USE_OPENMP
                     #pragma omp for
                     #endif
                     for (int64_t j = 0; j < n_trees_; ++j) {
+                        auto th = omp_get_thread_num();
+                        std::vector<NTYPE>& private_scores = _scores_classes[th];
+                        std::vector<unsigned char>& private_has_scores = _has_scores_classes[th];
                         agg.ProcessTreeNodePrediction(
                             private_scores.data(),
                             ProcessTreeNodeLeave(roots_[j], x_data),
                             private_has_scores.data());
                     }
-
-                    #ifdef USE_OPENMP
-                    #pragma omp critical
-                    #endif
-                    agg.MergePrediction(n_targets_or_classes_,
-                        &(scores[0]), &(has_scores[0]),
-                        private_scores.data(), private_has_scores.data());
                 }
-                
+            
+                for (size_t i = 1; i < _scores_classes.size(); ++i) {
+                    agg.MergePrediction(n_targets_or_classes_,
+                        scores.data(), has_scores.data(),
+                        _scores_classes[i].data(), _has_scores_classes[i].data());
+                }
+
                 agg.FinalizeScores(scores, has_scores, (NTYPE*)Z_.data(0), -1,
                                    Y == NULL ? NULL : (int64_t*)_mutable_unchecked1(*Y).data(0));
             }
@@ -637,17 +639,16 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                 #pragma omp parallel
                 #endif
                 {
-                    std::vector<NTYPE>& scores = _scores_classes[omp_get_thread_num()];
-                    std::vector<unsigned char>& has_scores = _has_scores_classes[omp_get_thread_num()];
-                    size_t j;
-
                     #ifdef USE_OPENMP
                     #pragma omp for
                     #endif
                     for (int64_t i = 0; i < N; ++i) {
+                        auto th = omp_get_thread_num();
+                        std::vector<NTYPE>& scores = _scores_classes[th];
+                        std::vector<unsigned char>& has_scores = _has_scores_classes[th];
                         std::fill(scores.begin(), scores.end(), (NTYPE)0);
                         std::fill(has_scores.begin(), has_scores.end(), 0);
-                        for (j = 0; j < roots_.size(); ++j)
+                        for (size_t j = 0; j < roots_.size(); ++j)
                             agg.ProcessTreeNodePrediction(
                                 scores.data(),
                                 ProcessTreeNodeLeave(roots_[j], x_data + i * stride),

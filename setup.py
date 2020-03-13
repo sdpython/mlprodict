@@ -353,7 +353,7 @@ if not r:
     setup(
         name=project_var_name,
         ext_modules=ext_modules,
-        version='%s%s' % (sversion, subversion),
+        version=sversion,
         author='Xavier Dupré',
         author_email='xavier.dupre@gmail.com',
         license="MIT",
