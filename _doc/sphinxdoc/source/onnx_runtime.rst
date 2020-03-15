@@ -206,6 +206,26 @@ We create a table similar to :ref:`l-onnx-pyrun-tbl`.
 
 Full results are available at :ref:`l-onnx-bench-onnxruntime1`.
 
+.. _l-onnxruntime-profiling:
+
+**Profiling**
+
+.. index:: profiling
+
+:epkg:`onnxruntime` has a tool to verify and test :epkg:`ONNX`
+graphs: :epkg:`onnxruntime_perf_test`. It measures the execution time
+for a graph. It can also be used to profile the code
+of :epkg:`onnxruntime`. On Windows (but it also works on Linux):
+
+* Creates an onnx graph and its inputs as protobug. Places them in a folder
+  like explained in the page :epkg:`onnxruntime_perf_test`.
+* Clone and compile :epkg:`onnxruntime` using release with debug information,
+  ``python tools/ci_build/build.py --build_dir build_dir --config RelWithDebInfo --build_wheel --use_openmp --use_mklml --numpy_version= --skip_onnx_tests``
+* Open Visual Studio and modifies the command line of `onnxruntime_perf_test.exe`
+  as: ``-s -t 30 <model.onnx> <anything.txt>``. Select it as startup project.
+* Starts the profiling.
+
+
 onnxruntime2: independent onnxruntime for every node
 ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
