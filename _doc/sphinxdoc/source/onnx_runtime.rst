@@ -225,7 +225,6 @@ of :epkg:`onnxruntime`. On Windows (but it also works on Linux):
   as: ``-s -t 30 <model.onnx> <anything.txt>``. Select it as startup project.
 * Starts the profiling.
 
-
 onnxruntime2: independent onnxruntime for every node
 ++++++++++++++++++++++++++++++++++++++++++++++++++++
 

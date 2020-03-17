@@ -5,11 +5,27 @@
 History
 =======
 
-current - 2020-02-19 - 0.00Mb
+current - 2020-03-17 - 0.00Mb
 =============================
 
-* `93`: Use pointer for TreeClassifier (2020-02-19)
+* `111`: Reduce the number of allocation in TreeEnsemble when it is parallelized (cache) (2020-03-13)
+* `110`: Implements runtime for operator Constant-12 (2020-03-06)
+* `109`: Generate a benchmark with asv to compare different runtime. Update modules in asv. (2020-03-06)
+* `108`: Add a function to reduce the memory footprint (2020-02-25)
+* `101`: Fix DecisionTreeClassifier disappearance on the benchmark graph (2020-02-25)
+* `106`: Add operator Neg (2020-02-25)
+* `107`: Add operator IsNaN (2020-02-24)
+* `105`: Support string labels for Linear, TreeEnsemble, SVM classifiers. (2020-02-24)
+* `104`: Enable / disable parallelisation in topk (2020-02-23)
+* `103`: Implements plot benchmark ratio depending on two parameters (2020-02-22)
+* `102`: Fix conversion for xgboost 1.0 (2020-02-21)
+
+0.3.975 - 2020-02-19 - 0.28Mb
+=============================
+
+* `100`: add notebook on TreeEnsemble (2020-02-19)
 * `99`: Fixes #93, use same code for TreeEnsembleClassifier and TreeEnsembleRegression (2020-02-19)
+* `93`: Use pointer for TreeClassifier (2020-02-19)
 * `98`: mlprodict i broken after onnxruntime, skl2onnx update (2020-02-15)
 * `97`: Add runtime for operator Conv (2020-01-24)
 * `96`: Fixes #97, add runtime for operator Conv (2020-01-24)

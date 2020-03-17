@@ -26,10 +26,11 @@ available at `http://localhost:8067/`.
     export vers="112"
     python -m virtualenv ort112 || exit 1
     cd ort112
+    ./bin/python -m pip install -U pip
     ./bin/pip install numpy scikit-learn onnx pyquickhelper matplotlib threadpoolctl lightgbm xgboost || exit 1
     ./bin/pip uninstall -y onnxruntime
     ./bin/pip install onnxruntime==1.1.2 || exit 1
-    ./bin/pip install --no-cache-dir --no-deps --index http://localhost:8067/simple/ onnx onnxconverter-common scikit-learn skl2onnx || exit 1
+    ./bin/pip install --no-cache-dir --no-deps --index http://localhost:8067/simple/ onnx onnxconverter-common skl2onnx || exit 1
     ./bin/pip install --no-cache-dir --no-deps --index http://localhost:8067/simple/ mlprodict || exit 1
     ./bin/pip freeze || exit 1
     echo --ORT112-BENCH--
@@ -41,11 +42,12 @@ available at `http://localhost:8067/`.
     export vers="GIT"
     python -m virtualenv ortgit || exit 1
     cd ortgit
+    ./bin/python -m pip install -U pip
     ./bin/pip install numpy scikit-learn onnx pyquickhelper matplotlib threadpoolctl lightgbm xgboost || exit 1
     ./bin/pip uninstall -y onnxruntime
     ./bin/pip uninstall -y onnxruntime-dnnl
     ./bin/pip install --no-cache-dir --no-deps --index http://localhost:8067/simple/ onnxruntime_dnnl || exit 1
-    ./bin/pip install --no-cache-dir --no-deps --index http://localhost:8067/simple/ onnx onnxconverter-common scikit-learn skl2onnx || exit 1
+    ./bin/pip install --no-cache-dir --no-deps --index http://localhost:8067/simple/ onnx onnxconverter-common skl2onnx || exit 1
     ./bin/pip install --no-cache-dir --no-deps --index http://localhost:8067/simple/ mlprodict || exit 1
     ./bin/pip freeze || exit 1
     echo --NEW-BENCH--
