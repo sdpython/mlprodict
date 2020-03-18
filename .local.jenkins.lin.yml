@@ -28,7 +28,7 @@ script:
 
 after_script:
   - if [ ${NAME} == "UT" ] then $PYINT -u setup.py bdist_wheel fi
-  - if [ ${VERSION} == "3.7" and ${NAME} == "UT" ] then cp dist/*.whl {{root_path}}/../local_pypi/local_pypi_server fi
+  - if [ ${NAME} == "UT" ] then cp dist/*.whl {{root_path}}/../local_pypi/local_pypi_server fi
 
 documentation:
   - if [ ${NAME} == "UT" ] then $PYINT -u setup.py build_sphinx fi
