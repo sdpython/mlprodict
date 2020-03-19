@@ -36,7 +36,9 @@ def _summary_report_indices(df, add_cols=None, add_index=None):
     for col in ['problem', 'scenario', 'opset', 'optim']:
         if col not in df.columns:
             df[col] = '' if col != 'opset' else numpy.nan
-    indices = ["name", "problem", "scenario", 'optim']
+    indices = ["name", "problem", "scenario", 'optim', 'method_name',
+               'output_index', 'conv_options', 'inst']
+    indices = [i for i in indices if i in df.columns]
     df["optim"] = df["optim"].fillna('')
     for c in ['n_features', 'runtime']:
         if c in df.columns:
@@ -272,8 +274,16 @@ def merge_benchmark(dfs, column='runtime', baseline=None, suffix='-base'):
 
         columns, indices, _ = _summary_report_indices(merged)
         indices = list(_ for _ in (indices + columns) if _ != 'runtime')
-        bdata = merged[merged.runtime == baseline].drop(
-            'runtime', axis=1).set_index(indices, verify_integrity=True)
+        try:
+            bdata = merged[merged.runtime == baseline].drop(
+                'runtime', axis=1).set_index(indices, verify_integrity=True)
+        except ValueError as e:
+            bdata2 = merged[indices + ['runtime']].copy()
+            bdata2['count'] = 1
+            gr = bdata2.groupby(indices + ['runtime'], as_index=False).sum(
+                    ).sort_values('count', ascending=False).head().T
+            raise ValueError(
+                "Unable to group by {}.\n{}".format(indices, gr)) from e
         ratios = [c for c in merged.columns if c.startswith('time-ratio-')]
         indexed = {}
         for index in bdata.index:

@@ -401,7 +401,7 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
                        'method_name': method_name, 'output_index': output_index,
                        'fit': dofit, 'conv_options': conv_options,
                        'idtype': Xort_test.dtype, 'predict_kwargs': predict_kwargs,
-                       'init_types': init_types,
+                       'init_types': init_types, 'inst': extra if extra else None,
                        'n_features': X_train.shape[1] if len(X_train.shape) == 2 else 1}
                 inst = None
                 try:
