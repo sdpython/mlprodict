@@ -79,7 +79,7 @@ def _summary_report_indices(df, add_cols=None, add_index=None):
 
 
 class _MyEncoder(json.JSONEncoder):
-    def default(self, o):
+    def default(self, o):  # pylint: disable=E0202
         if hasattr(o, 'get_params'):
             obj = dict(clsname=o.__class__.__name__)
             obj.update(o.get_params())
@@ -308,7 +308,7 @@ def merge_benchmark(dfs, column='runtime', baseline=None, suffix='-base'):
             bdata2 = merged[indices + ['runtime']].copy()
             bdata2['count'] = 1
             gr = bdata2.groupby(indices + ['runtime'], as_index=False).sum(
-                    ).sort_values('count', ascending=False).head().T
+            ).sort_values('count', ascending=False).head().T
             raise ValueError(
                 "Unable to group by {}.\n{}".format(indices, gr)) from e
         ratios = [c for c in merged.columns if c.startswith('time-ratio-')]
