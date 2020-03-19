@@ -78,6 +78,15 @@ def _summary_report_indices(df, add_cols=None, add_index=None):
     return columns, indices, col_values
 
 
+class _MyEncoder(json.JSONEncoder):
+    def default(self, o):
+        if hasattr(o, 'get_params'):
+            obj = dict(clsname=o.__class__.__name__)
+            obj.update(o.get_params())
+            return json.dumps(obj, sort_keys=True)
+        return json.dumps(o, sort_keys=True)
+
+
 def summary_report(df, add_cols=None, add_index=None):
     """
     Finalizes the results computed by function
@@ -95,10 +104,10 @@ def summary_report(df, add_cols=None, add_index=None):
     df = df.copy()
     if 'inst' in df.columns:
         df['inst'] = df['inst'].apply(
-            lambda x: json.dumps(x, sort_keys=True))
+            lambda x: json.dumps(x, sort_keys=True, cls=_MyEncoder))
     if 'conv_options' in df.columns:
         df['conv_options'] = df['conv_options'].apply(
-            lambda x: json.dumps(x, sort_keys=True))
+            lambda x: json.dumps(x, sort_keys=True, cls=_MyEncoder))
     num_types = (int, float, decimal.Decimal, numpy.number)
 
     def aggfunc(values):
