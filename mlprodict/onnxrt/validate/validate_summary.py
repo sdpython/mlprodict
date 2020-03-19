@@ -3,6 +3,7 @@
 @brief Summarizes results produces by function in *validate.py*.
 """
 import decimal
+import json
 import numpy
 import pandas
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
@@ -91,6 +92,13 @@ def summary_report(df, add_cols=None, add_index=None):
 
     The outcome can be seen at page about :ref:`l-onnx-pyrun`.
     """
+    df = df.copy()
+    if 'inst' in df.columns:
+        df['inst'] = df['inst'].apply(
+            lambda x: json.dumps(x, sort_keys=True))
+    if 'conv_options' in df.columns:
+        df['conv_options'] = df['conv_options'].apply(
+            lambda x: json.dumps(x, sort_keys=True))
     num_types = (int, float, decimal.Decimal, numpy.number)
 
     def aggfunc(values):
@@ -121,7 +129,7 @@ def summary_report(df, add_cols=None, add_index=None):
         piv = pandas.pivot_table(df, values=col_values,
                                  index=indices, columns=columns,
                                  aggfunc=aggfunc).reset_index(drop=False)
-    except KeyError as e:
+    except (KeyError, TypeError) as e:
         raise RuntimeError("Issue with keys={}, values={}\namong {}.".format(
             indices, col_values, df.columns)) from e
 
