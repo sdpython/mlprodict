@@ -192,6 +192,8 @@ def build_key_split(key, index):
         return "...NB"
     if "KMeans" in new_key:
         return "KMeans"
+    if new_key.startswith('Select'):
+        return "Select"
     if ('XGB' in new_key or 'LGBM' in new_key or 'Tree' in new_key or
             'Forest' in new_key):
         return 'Trees'

@@ -87,6 +87,18 @@ class _MyEncoder(json.JSONEncoder):
         return json.dumps(o, sort_keys=True)
 
 
+def _jsonify(x):
+
+    def _l(k):
+        if isinstance(k, type):
+            return k.__name___
+        return k
+
+    if isinstance(x, dict):
+        x = {_l(k): v for k, v in x.items()}
+    return json.dumps(x, sort_keys=True, cls=_MyEncoder)
+
+
 def summary_report(df, add_cols=None, add_index=None):
     """
     Finalizes the results computed by function
@@ -103,11 +115,9 @@ def summary_report(df, add_cols=None, add_index=None):
     """
     df = df.copy()
     if 'inst' in df.columns:
-        df['inst'] = df['inst'].apply(
-            lambda x: json.dumps(x, sort_keys=True, cls=_MyEncoder))
+        df['inst'] = df['inst'].apply(_jsonify)
     if 'conv_options' in df.columns:
-        df['conv_options'] = df['conv_options'].apply(
-            lambda x: json.dumps(x, sort_keys=True, cls=_MyEncoder))
+        df['conv_options'] = df['conv_options'].apply(_jsonify)
     num_types = (int, float, decimal.Decimal, numpy.number)
 
     def aggfunc(values):
