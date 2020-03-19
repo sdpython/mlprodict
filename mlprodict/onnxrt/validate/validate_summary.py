@@ -91,7 +91,7 @@ def _jsonify(x):
 
     def _l(k):
         if isinstance(k, type):
-            return k.__name___
+            return k.__name__
         return k
 
     if isinstance(x, dict):
