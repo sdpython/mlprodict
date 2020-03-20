@@ -43,7 +43,8 @@ def _get_problem_data(prob, n_features):
     else:
         raise RuntimeError(
             "Unable to interpret problem '{}'.".format(prob))
-    if X_.shape[1] != n_features and n_features is not None:
+    if (len(X_.shape) == 2 and X_.shape[1] != n_features and
+            n_features is not None):
         raise RuntimeError("Problem '{}' with n_features={} returned {} features"
                            "(func={}).".format(prob, n_features, X_.shape[1],
                                                _problems[prob]))
@@ -888,7 +889,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
         loop = ops
 
     if versions:
-        add_version = _enumerate_validated_operator_opsets_version(runtime)
+        add_versions = _enumerate_validated_operator_opsets_version(runtime)
     else:
         add_versions = {}
 
