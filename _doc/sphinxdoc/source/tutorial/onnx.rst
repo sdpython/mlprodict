@@ -40,7 +40,7 @@ to convert many :epkg:`scikit-learn` models.
                         dtype=numpy.float32)
 
     oinf = OnnxInference(model_def, runtime='python')
-    print(oinf.run({'X': X_test[:5]})
+    print(oinf.run({'X': X_test[:5]}))
 
 It is usually useful to get information on intermediate results
 in the graph itself to understand where the discrepencies
