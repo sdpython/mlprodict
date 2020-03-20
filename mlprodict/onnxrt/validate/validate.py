@@ -921,6 +921,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
 
             for mandkey in ('inst', 'method_name', 'problem',
                             'scenario'):
+                if '_0problem_exc' in obs:
+                    continue
                 if mandkey not in obs:
                     raise ValueError("Missing key '{}' in\n{}".format(
                         mandkey, pprint.pformat(obs)))
