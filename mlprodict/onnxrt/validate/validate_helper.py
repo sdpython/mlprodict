@@ -15,6 +15,28 @@ from sklearn.base import BaseEstimator
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 
 
+class RuntimeBadResultsError(RuntimeError):
+    """
+    Raised when the results are too different from
+    :epkg:`scikit-learn`.
+    """
+
+    def __init__(self, msg, obs):
+        """
+        @param      msg     to display
+        @param      obs     observations
+        """
+        RuntimeError.__init__(self, msg)
+        self.obs = obs
+
+
+def _dictionary2str(di):
+    el = []
+    for k in sorted(di):
+        el.append('{}={}'.format(k, di[k]))
+    return '/'.join(el)
+
+
 def modules_list():
     """
     Returns modules and versions currently used.

@@ -336,6 +336,7 @@ def _problem_for_clustering_scores(dtype=numpy.float32, n_features=None):
     state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
+    X = _modify_dimension(X, n_features)
     return (X, None, [('X', X[:1].astype(dtype))],
             'transform', 1, X.astype(dtype))
 

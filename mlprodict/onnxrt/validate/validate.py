@@ -27,24 +27,10 @@ from .validate_difference import measure_relative_difference
 from .validate_helper import (
     _dispsimple, sklearn_operators,
     _measure_time, _shape_exc, dump_into_folder,
-    default_time_kwargs
+    default_time_kwargs, RuntimeBadResultsError,
+    _dictionary2str
 )
 from .validate_benchmark import benchmark_fct
-
-
-class RuntimeBadResultsError(RuntimeError):
-    """
-    Raised when the results are too different from
-    :epkg:`scikit-learn`.
-    """
-
-    def __init__(self, msg, obs):
-        """
-        @param      msg     to display
-        @param      obs     observations
-        """
-        RuntimeError.__init__(self, msg)
-        self.obs = obs
 
 
 def _get_problem_data(prob, n_features):
@@ -57,6 +43,10 @@ def _get_problem_data(prob, n_features):
     else:
         raise RuntimeError(
             "Unable to interpret problem '{}'.".format(prob))
+    if X_.shape[1] != n_features and n_features is not None:
+        raise RuntimeError("Problem '{}' with n_features={} returned {} features"
+                           "(func={}).".format(prob, n_features, X_.shape[1],
+                                               _problems[prob]))
     if y_ is None:
         (X_train, X_test, Xort_train,  # pylint: disable=W0612
             Xort_test) = train_test_split(
@@ -214,13 +204,6 @@ def _retrieve_problems_extra(model, verbose, fLOG, extended_list):
         extras = new_extras
 
     return problems, extras
-
-
-def _dictionary2str(di):
-    el = []
-    for k in sorted(di):
-        el.append('{}={}'.format(k, di[k]))
-    return '/'.join(el)
 
 
 def _merge_options(all_conv_options, aoptions):
@@ -753,7 +736,12 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if debug and len(debug_exc) == 2:
         raise debug_exc[0]  # pragma: no cover
     if debug and verbose >= 2:
-        fLOG(pprint.pformat(obs_op))
+        if verbose >= 3:
+            fLOG(pprint.pformat(obs_op))
+        else:
+            obs_op_log = {k: v for k,
+                          v in obs_op.items() if 'lambda-' not in k}
+            fLOG(pprint.pformat(obs_op_log))
     if verbose >= 2 and fLOG is not None:
         fLOG("[enumerate_compatible_opset-R] next...")
     if dump_all:
@@ -764,6 +752,36 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                                 skl_model=inst, ypred=ypred)
         obs_op['dumped'] = dump
     return obs_op
+
+
+def _enumerate_validated_operator_opsets_ops(extended_list, models, skip_models):
+    ops = [_ for _ in sklearn_operators(extended=extended_list)]
+
+    if models is not None:
+        if not all(map(lambda m: isinstance(m, str), models)):
+            raise ValueError("models must be a set of strings.")
+        ops_ = [_ for _ in ops if _['name'] in models]
+        if len(ops) == 0:
+            raise ValueError("Parameter models is wrong: {}\n{}".format(
+                models, ops[0]))
+        ops = ops_
+    if skip_models is not None:
+        ops = [m for m in ops if m['name'] not in skip_models]
+    return ops
+
+
+def _enumerate_validated_operator_opsets_version(runtime):
+    from numpy import __version__ as numpy_version
+    from onnx import __version__ as onnx_version
+    from scipy import __version__ as scipy_version
+    from skl2onnx import __version__ as skl2onnx_version
+    add_versions = {'v_numpy': numpy_version, 'v_onnx': onnx_version,
+                    'v_scipy': scipy_version, 'v_skl2onnx': skl2onnx_version,
+                    'v_sklearn': sklearn_version, 'v_onnxruntime': ort_version}
+    if "onnxruntime" in runtime:
+        from onnxruntime import __version__ as onnxrt_version
+        add_versions['v_onnxruntime'] = onnxrt_version
+    return add_versions
 
 
 def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
@@ -837,18 +855,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
     """
     register_converters()
     register_rewritten_operators()
-    ops = [_ for _ in sklearn_operators(extended=extended_list)]
-
-    if models is not None:
-        if not all(map(lambda m: isinstance(m, str), models)):
-            raise ValueError("models must be a set of strings.")
-        ops_ = [_ for _ in ops if _['name'] in models]
-        if len(ops) == 0:
-            raise ValueError("Parameter models is wrong: {}\n{}".format(
-                models, ops[0]))
-        ops = ops_
-    if skip_models is not None:
-        ops = [m for m in ops if m['name'] not in skip_models]
+    ops = _enumerate_validated_operator_opsets_ops(
+        extended_list, models, skip_models)
 
     if verbose > 0:
 
@@ -880,16 +888,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
         loop = ops
 
     if versions:
-        from numpy import __version__ as numpy_version
-        from onnx import __version__ as onnx_version
-        from scipy import __version__ as scipy_version
-        from skl2onnx import __version__ as skl2onnx_version
-        add_versions = {'v_numpy': numpy_version, 'v_onnx': onnx_version,
-                        'v_scipy': scipy_version, 'v_skl2onnx': skl2onnx_version,
-                        'v_sklearn': sklearn_version, 'v_onnxruntime': ort_version}
-        if "onnxruntime" in runtime:
-            from onnxruntime import __version__ as onnxrt_version
-            add_versions['v_onnxruntime'] = onnxrt_version
+        add_version = _enumerate_validated_operator_opsets_version(runtime)
     else:
         add_versions = {}
 
@@ -904,6 +903,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
     for row in loop:
 
         model = row['cl']
+        if verbose > 1:
+            fLOG("[enumerate_validated_operator_opsets] - model='{}'".format(model))
 
         for obs in enumerate_compatible_opset(
                 model, opset_min=opset_min, opset_max=opset_max,
@@ -917,8 +918,19 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                 n_features=n_features, skip_long_test=skip_long_test,
                 filter_scenario=filter_scenario):
 
+            for mandkey in ('inst', 'method_name', 'problem',
+                            'scenario'):
+                if mandkey not in obs:
+                    raise ValueError("Missing key '{}' in\n{}".format(
+                        mandkey, pprint.pformat(obs)))
             if verbose > 1:
-                fLOG("  ", obs)
+                fLOG('[enumerate_validated_operator_opsets] - OBS')
+                if verbose > 2:
+                    fLOG("  ", obs)
+                else:
+                    obs_log = {k: v for k,
+                               v in obs.items() if 'lambda-' not in k}
+                    fLOG("  ", obs_log)
             elif verbose > 0 and "_0problem_exc" in obs:
                 fLOG("  ???", obs)
 

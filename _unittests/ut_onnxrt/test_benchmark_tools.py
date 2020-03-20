@@ -38,6 +38,12 @@ class TestBenchmarkTools(ExtTestCase):
     def test_benchmark_merge(self):
         self.common_test_benchmark_merge("data.csv", "data2.csv")
 
+    def test_benchmark_merge_fail(self):
+        self.assertRaise(
+            lambda: self.common_test_benchmark_merge(
+                "data112LRSW-20200319.csv", "dataGITLRSW-20200319.csv"),
+            ValueError)
+
 
 if __name__ == "__main__":
     unittest.main()

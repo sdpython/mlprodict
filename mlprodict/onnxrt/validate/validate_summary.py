@@ -96,6 +96,11 @@ def _jsonify(x):
 
     if isinstance(x, dict):
         x = {_l(k): v for k, v in x.items()}
+    try:
+        if numpy.isnan(x):
+            x = ''
+    except (ValueError, TypeError):
+        pass
     return json.dumps(x, sort_keys=True, cls=_MyEncoder)
 
 
@@ -139,8 +144,7 @@ def summary_report(df, add_cols=None, add_index=None):
         val = values.iloc[0] if not isinstance(values, list) else values[0]
         if isinstance(val, float) and numpy.isnan(val):
             return ""
-        else:
-            return str(val)
+        return str(val)
 
     columns, indices, col_values = _summary_report_indices(
         df, add_cols=add_cols, add_index=add_index)
@@ -284,8 +288,11 @@ def merge_benchmark(dfs, column='runtime', baseline=None, suffix='-base'):
                     column, df.columns, k))
         df = df.copy()
         df[column] = df[column].apply(lambda x: add_prefix(k, x))
+        if 'inst' in df.columns:
+            df['inst'] = df['inst'].fillna('')
+        else:
+            df['inst'] = ''
         conc.append(df)
-
     merged = pandas.concat(conc).reset_index(drop=True)
     if baseline is not None:
         def get_key(index):
@@ -307,10 +314,21 @@ def merge_benchmark(dfs, column='runtime', baseline=None, suffix='-base'):
         except ValueError as e:
             bdata2 = merged[indices + ['runtime']].copy()
             bdata2['count'] = 1
+            n_rows = bdata2['count'].sum()
             gr = bdata2.groupby(indices + ['runtime'], as_index=False).sum(
-            ).sort_values('count', ascending=False).head().T
+            ).sort_values('count', ascending=False)
+            n_rows2 = gr['count'].sum()
+            one = gr.head()[:1]
+            rows = merged.merge(one, on=indices + ['runtime'])[:2]
+            for c in ['init-types', 'bench-skl', 'bench-batch', 'init_types', 'cl']:
+                if c in rows.columns:
+                    rows = rows.drop(c, axis=1)
+            srows = rows.T.to_string(min_rows=100)
             raise ValueError(
-                "Unable to group by {}.\n{}".format(indices, gr)) from e
+                "(n_rows={}, n_rows2={}) Unable to group by {}.\n{}\n-------\n{}".format(
+                    n_rows, n_rows2, indices, gr.T, srows)) from e
+        if bdata.shape[0] == 0:
+            raise RuntimeError("No result for baseline '{}'.".format(baseline))
         ratios = [c for c in merged.columns if c.startswith('time-ratio-')]
         indexed = {}
         for index in bdata.index:
