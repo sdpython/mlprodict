@@ -14,10 +14,15 @@ def _model_name(name):
     @param      name        string
     @return                 shorter string
     """
+    if name.startswith("Select"):
+        return "Select"
+    if name.startswith("Nu"):
+        return "Nu"
     modif = 1
     while modif > 0:
         modif = 0
-        for suf in ['Classifier', 'Regressor', 'CV', 'IC']:
+        for suf in ['Classifier', 'Regressor', 'CV', 'IC',
+                    'Transformer']:
             if name.endswith(suf):
                 name = name[:-len(suf)]
                 modif += 1
