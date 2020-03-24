@@ -38,9 +38,9 @@ class TestRtValidateKNN(ExtTestCase):
         try:
             rows = list(enumerate_validated_operator_opsets(
                 verbose, models={"KNeighborsRegressor"},
-                fLOG=myprint, fail_bad_results=True,
+                fLOG=myprint, fail_bad_results=False,
                 runtime='python', debug=debug, extended_list=True,
-                store_models=True,
+                store_models=True, opset_min=11, opset_max=11,
                 filter_scenario=lambda m, p, s, e, o: fil(m, p, s, e, o)))
         except RuntimeBadResultsError as e:
             obs = e.obs
