@@ -133,9 +133,9 @@ def build_custom_scenarios():
             ('mink_k3', {'algorithm': 'kd_tree',
                          'metric': "minkowski",
                          'metric_params': {'p': 2.1},
-                         'n_neighbors': 3}),
-            {'conv_options': [{KNeighborsClassifier: {
-                'optim': 'cdist', 'zipmap': False}}]},
+                         'n_neighbors': 3},
+             {'conv_options': [{KNeighborsClassifier: {
+                 'optim': 'cdist', 'zipmap': False}}]}),
         ],
         KNeighborsRegressor: [
             ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},

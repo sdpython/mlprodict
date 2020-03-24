@@ -4,7 +4,6 @@
 The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
-import copy
 import pprint
 from inspect import signature
 import numpy
@@ -28,7 +27,7 @@ from .validate_helper import (
     _dispsimple, sklearn_operators,
     _measure_time, _shape_exc, dump_into_folder,
     default_time_kwargs, RuntimeBadResultsError,
-    _dictionary2str
+    _dictionary2str, _merge_options
 )
 from .validate_benchmark import benchmark_fct
 
@@ -207,24 +206,6 @@ def _retrieve_problems_extra(model, verbose, fLOG, extended_list):
     return problems, extras
 
 
-def _merge_options(all_conv_options, aoptions):
-    if aoptions is None:
-        return copy.deepcopy(all_conv_options)
-    if not isinstance(aoptions, dict):
-        return copy.deepcopy(aoptions)
-    merged = {}
-    for k, v in all_conv_options.items():
-        if k in aoptions:
-            merged[k] = _merge_options(v, aoptions[k])
-        else:
-            merged[k] = copy.deepcopy(v)
-    for k, v in aoptions.items():
-        if k in all_conv_options:
-            continue
-        merged[k] = copy.deepcopy(v)
-    return merged
-
-
 def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: disable=R0914
                                check_runtime=True, debug=False,
                                runtime='python', dump_folder=None,
@@ -363,7 +344,12 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
                         "subset_problems must be a set or a list not {}.".format(
                             subset_problems))
 
-                scenario, extra = scenario_extra[:2]
+                try:
+                    scenario, extra = scenario_extra[:2]
+                except TypeError as e:
+                    raise TypeError(
+                        "Unable to interpret 'scenario_extra'\n{}".format(
+                            scenario_extra))
                 if optimisations is None:
                     optimisations = [None]
                 if new_conv_options is None:

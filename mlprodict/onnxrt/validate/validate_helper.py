@@ -4,6 +4,7 @@
 The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
+import copy
 from timeit import Timer
 import os
 import warnings
@@ -87,6 +88,24 @@ def _dispsimple(arr, fLOG):
         if len(s) > 50:
             s = s[:50] + "..."
         fLOG(s)
+
+
+def _merge_options(all_conv_options, aoptions):
+    if aoptions is None:
+        return copy.deepcopy(all_conv_options)
+    if not isinstance(aoptions, dict):
+        return copy.deepcopy(aoptions)
+    merged = {}
+    for k, v in all_conv_options.items():
+        if k in aoptions:
+            merged[k] = _merge_options(v, aoptions[k])
+        else:
+            merged[k] = copy.deepcopy(v)
+    for k, v in aoptions.items():
+        if k in all_conv_options:
+            continue
+        merged[k] = copy.deepcopy(v)
+    return merged
 
 
 def sklearn_operators(subfolder=None, extended=False,
