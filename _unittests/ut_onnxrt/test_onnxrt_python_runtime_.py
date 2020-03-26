@@ -37,7 +37,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxConstantOfShape, OnnxNot, OnnxSin,
     OnnxMin, OnnxMax, OnnxSign, OnnxLpNormalization,
     OnnxFlatten, OnnxReduceMax, OnnxReduceMin,
-    OnnxNeg, OnnxIsNaN,
+    OnnxNeg, OnnxIsNaN, OnnxCelu
 )
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType, DoubleTensorType
 from skl2onnx import __version__ as skl2onnx_version
@@ -45,12 +45,13 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
-from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611
     topk_element_min_double, topk_element_max_double, topk_element_fetch_double,
     topk_element_min_float, topk_element_max_float, topk_element_fetch_float,
     topk_element_min_int64, topk_element_max_int64, topk_element_fetch_int64
 )
+from mlprodict.onnxrt.ops_cpu.op_celu import _vcelu1, pycelu
+from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 
 
 sparse_support = []
@@ -91,15 +92,17 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning,
                                SparseEfficiencyWarning, PendingDeprecationWarning))
     def common_test_onnxt_runtime_unary(self, onnx_cl, np_fct,
-                                        op_version=None, debug=False):
+                                        op_version=None,
+                                        outputs=None, debug=False):
         try:
-            onx = onnx_cl('X', output_names=['Y'])
+            onx = onnx_cl('X', output_names=['Y'], op_version=op_version)
         except RuntimeError as e:
             raise RuntimeError('onnx.opset={} op_version={}'.format(
                 get_opset_number_from_onnx(), op_version)) from e
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
         model_def = onx.to_onnx(
-            {'X': X.astype(numpy.float32)}, target_opset=op_version)
+            {'X': X.astype(numpy.float32)}, target_opset=op_version,
+            outputs=outputs)
         if debug:
             print(model_def)
 
@@ -136,7 +139,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         onx2 = OnnxIdentity(onnx_cl('X'), output_names=[
                             'Y'], op_version=op_version)
         model_def2 = onx2.to_onnx(
-            {'X': X.astype(numpy.float32)}, target_opset=op_version)
+            {'X': X.astype(numpy.float32)}, target_opset=op_version,
+            outputs=outputs)
         oinf = OnnxInference(model_def2, input_inplace=False, inplace=True)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -364,51 +368,65 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_ceil(self):
         self.common_test_onnxt_runtime_unary(OnnxCeil, numpy.ceil)
 
+    def test_onnxt_runtime_celu1(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxCelu, _vcelu1, op_version=12,
+            outputs=[('Y', FloatTensorType([None, 2]))])
+
+    def test_onnxt_runtime_celu2(self):
+        _vcelu2 = numpy.vectorize(
+            lambda x: pycelu(x, 1.), otypes=[numpy.float])
+        self.common_test_onnxt_runtime_unary(
+            OnnxCelu, _vcelu2, op_version=12,
+            outputs=[('Y', FloatTensorType([None, 2]))])
+
     @unittest.skipIf(onnx_opset_version() < 11,
                      reason="Explicitely tests Clip >= 11")
     def test_onnxt_runtime_clip(self):
         self.common_test_onnxt_runtime_unary(
-            lambda x, output_names=None: OnnxClip(
+            lambda x, output_names=None, op_version=None: OnnxClip(
                 x, numpy.array([0], dtype=numpy.float32),
-                output_names=output_names),
+                output_names=output_names, op_version=op_version),
             lambda x: numpy.clip(x, 0, 1e5))
         self.common_test_onnxt_runtime_unary(
-            lambda x, output_names=None: OnnxClip(
+            lambda x, output_names=None, op_version=None: OnnxClip(
                 x, numpy.array([-1000], dtype=numpy.float32),
                 numpy.array([0], dtype=numpy.float32),
+                op_version=op_version,
                 output_names=output_names),
             lambda x: numpy.clip(x, -1e5, 0))
         self.common_test_onnxt_runtime_unary(
-            lambda x, output_names=None: OnnxClip(
+            lambda x, output_names=None, op_version=None: OnnxClip(
                 x,
                 numpy.array([0.1], dtype=numpy.float32),
                 numpy.array([2.1], dtype=numpy.float32),
-                output_names=output_names),
+                output_names=output_names,
+                op_version=op_version),
             lambda x: numpy.clip(x, 0.1, 2.1))
 
     @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_clip_10(self):
         from skl2onnx.algebra.onnx_ops import OnnxClip_6  # pylint: disable=E0611
         self.common_test_onnxt_runtime_unary(
-            lambda x, output_names=None: OnnxClip_6(
+            lambda x, output_names=None, op_version=10: OnnxClip_6(
                 x, min=1e-5, max=1e5, output_names=output_names,
                 op_version=10),
             lambda x: numpy.clip(x, 1e-5, 1e5),
             op_version=10)
         self.common_test_onnxt_runtime_unary(
-            lambda x, output_names=None: OnnxClip(
+            lambda x, output_names=None, op_version=10: OnnxClip(
                 x, min=1e-5, max=1e5, output_names=output_names,
                 op_version=10),
             lambda x: numpy.clip(x, 1e-5, 1e5),
             op_version=10)
         self.common_test_onnxt_runtime_unary(
-            lambda x, output_names=None: OnnxClip(
+            lambda x, output_names=None, op_version=10: OnnxClip(
                 x, max=1e-5, output_names=output_names,
                 op_version=10),
             lambda x: numpy.clip(x, -1e5, 1e-5),
             op_version=10)
         self.common_test_onnxt_runtime_unary(
-            lambda x, output_names=None: OnnxClip(
+            lambda x, output_names=None, op_version=10: OnnxClip(
                 x, min=0.1, max=2.1,
                 output_names=output_names,
                 op_version=10),
@@ -1364,7 +1382,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(to1[1], to2)
 
     @unittest.skipIf(onnx_opset_version() < 12, reason="new API not available")
-    def test_make_sparse_tensor(self):
+    def test_make_sparse_tensor_12(self):
         values = [1.1, 2.2, 3.3, 4.4, 5.5]
         values_tensor = make_tensor(
             name='test',
@@ -1387,16 +1405,17 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(sparse.dims, dense_shape)  # pylint: disable=E1101
 
         X = numpy.array([0.1, 0.2], dtype=numpy.float32)
-        cst = OnnxConstant(value_floats=X)
-        onx = OnnxAdd('X', cst)
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
+        cst = OnnxConstant(value_floats=X, op_version=12)
+        onx = OnnxAdd('X', cst, op_version=12)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=12)
         try:
             oinf = OnnxInference(model_def)
         except RuntimeError as e:
             raise RuntimeError(
                 "Unable to load the model:\n{}".format(model_def))
         got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Ad_C0'])
+        self.assertEqual(list(sorted(got)), ['Ad_C0', 'Co_output0'])
         self.assertEqualArray(X * 2, got['Ad_C0'])
 
 

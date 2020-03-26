@@ -38,6 +38,7 @@ def validate_python_inference(oinf, inputs):
     """
     from ..ops_cpu.op_argmax import _argmax
     from ..ops_cpu.op_argmin import _argmin
+    from ..ops_cpu.op_celu import _vcelu1
 
     cd = oinf.to_python()
     code = cd['onnx_pyrt_main.py']
@@ -57,7 +58,7 @@ def validate_python_inference(oinf, inputs):
 
     gl = {'numpy': numpy, 'pickle': pickle,
           'expit': expit, '_argmax': _argmax,
-          '_argmin': _argmin}
+          '_argmin': _argmin, '_vcelu1': _vcelu1}
 
     for fct in pyrt_fcts:
         for obj in cp.co_consts:

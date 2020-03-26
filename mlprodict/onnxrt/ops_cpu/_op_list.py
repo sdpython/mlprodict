@@ -15,6 +15,7 @@ from .op_binarizer import Binarizer
 from .op_cast import Cast
 from .op_cdist import CDist
 from .op_ceil import Ceil
+from .op_celu import Celu
 from .op_clip import Clip_6, Clip_11, Clip
 from .op_concat import Concat
 from .op_conv import Conv
