@@ -5,15 +5,21 @@
 History
 =======
 
-current - 2020-03-17 - 0.00Mb
+current - 2020-03-27 - 0.00Mb
 =============================
+
+* `113`: Add operators for opset 12 (2020-03-26)
+* `112`: Number of feature is wrong for problem num-tr-clus (2020-03-20)
+
+0.3.1029 - 2020-03-17 - 0.28Mb
+==============================
 
 * `111`: Reduce the number of allocation in TreeEnsemble when it is parallelized (cache) (2020-03-13)
 * `110`: Implements runtime for operator Constant-12 (2020-03-06)
 * `109`: Generate a benchmark with asv to compare different runtime. Update modules in asv. (2020-03-06)
 * `108`: Add a function to reduce the memory footprint (2020-02-25)
-* `101`: Fix DecisionTreeClassifier disappearance on the benchmark graph (2020-02-25)
 * `106`: Add operator Neg (2020-02-25)
+* `101`: Fix DecisionTreeClassifier disappearance on the benchmark graph (2020-02-25)
 * `107`: Add operator IsNaN (2020-02-24)
 * `105`: Support string labels for Linear, TreeEnsemble, SVM classifiers. (2020-02-24)
 * `104`: Enable / disable parallelisation in topk (2020-02-23)
