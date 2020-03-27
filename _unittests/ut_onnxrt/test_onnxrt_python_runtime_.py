@@ -37,8 +37,12 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxConstantOfShape, OnnxNot, OnnxSin,
     OnnxMin, OnnxMax, OnnxSign, OnnxLpNormalization,
     OnnxFlatten, OnnxReduceMax, OnnxReduceMin,
-    OnnxNeg, OnnxIsNaN, OnnxCelu
+    OnnxNeg, OnnxIsNaN
 )
+try:
+    from skl2onnx.algebra.onnx_ops import OnnxCelu
+except ImportError:
+    OnnxCelu = None
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType, DoubleTensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
@@ -368,11 +372,13 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_ceil(self):
         self.common_test_onnxt_runtime_unary(OnnxCeil, numpy.ceil)
 
+    @unittest.skipIf(OnnxCelu is None, reason="onnx too recent")
     def test_onnxt_runtime_celu1(self):
         self.common_test_onnxt_runtime_unary(
             OnnxCelu, _vcelu1, op_version=12,
             outputs=[('Y', FloatTensorType([None, 2]))])
 
+    @unittest.skipIf(OnnxCelu is None, reason="onnx too recent")
     def test_onnxt_runtime_celu2(self):
         _vcelu2 = numpy.vectorize(
             lambda x: pycelu(x, 1.), otypes=[numpy.float])
