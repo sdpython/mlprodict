@@ -37,7 +37,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
                 fullname = os.path.join(path, zoo)
                 with open(fullname, 'r', encoding='utf-8') as f:
                     content = f.read()
-                if (zoo.endswith("bench_DecisionTreeClas_default_b_cl_1_4_%d_float_.py" % ops) and
+                if (zoo.endswith("bench_DecisionTreeClas_default_b_cl_1_4_%d_float_nozipmap.py" % ops) and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "setup_profile" not in content:
                         raise AssertionError(content)
