@@ -258,6 +258,8 @@ def dump_into_folder(dump_folder, obs_op=None, is_error=True,
     @param      kwargs          additional parameters
     @return                     name
     """
+    if dump_folder is None:
+        raise ValueError("dump_folder cannot be None.")
     optim = obs_op.get('optim', '')
     optim = str(optim)
     optim = optim.replace("<class 'sklearn.", "")

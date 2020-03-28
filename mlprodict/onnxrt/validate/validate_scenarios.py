@@ -11,7 +11,8 @@ from sklearn.ensemble import (
     VotingClassifier, AdaBoostRegressor, VotingRegressor,
     ExtraTreesRegressor, ExtraTreesClassifier,
     RandomForestRegressor, RandomForestClassifier,
-    HistGradientBoostingRegressor, HistGradientBoostingClassifier
+    HistGradientBoostingRegressor, HistGradientBoostingClassifier,
+    AdaBoostClassifier
 )
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_selection import (
@@ -25,10 +26,12 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, ClassifierChain, RegressorChain
 from sklearn.neighbors import LocalOutlierFactor, KNeighborsRegressor, KNeighborsClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import Normalizer, PowerTransformer
 from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
 from sklearn.svm import SVC, NuSVC, SVR
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, ExtraTreeClassifier
+
 try:
     from sklearn.ensemble import StackingClassifier, StackingRegressor
 except ImportError:
@@ -51,10 +54,12 @@ def build_custom_scenarios():
         # skips
         SparseCoder: None,
         # scenarios
+        AdaBoostClassifier: [
+            ('default', {'n_estimators': 5},
+             {'conv_options': [{AdaBoostClassifier: {'zipmap': False}}]}),
+        ],
         AdaBoostRegressor: [
-            ('default', {
-                'n_estimators': 5,
-            }),
+            ('default', {'n_estimators': 5}),
         ],
         CalibratedClassifierCV: [
             ('sgd', {
@@ -67,11 +72,20 @@ def build_custom_scenarios():
                 'base_estimator': LogisticRegression(solver='liblinear'),
             })
         ],
+        DecisionTreeClassifier: [
+            ('default', {}, {'conv_options': [
+             {DecisionTreeClassifier: {'zipmap': False}}]})
+        ],
         DictVectorizer: [
             ('default', {}),
         ],
+        ExtraTreeClassifier: [
+            ('default', {},
+             {'conv_options': [{ExtraTreeClassifier: {'zipmap': False}}]}),
+        ],
         ExtraTreesClassifier: [
-            ('default', {'n_estimators': 10}),
+            ('default', {'n_estimators': 10},
+             {'conv_options': [{ExtraTreesClassifier: {'zipmap': False}}]}),
         ],
         ExtraTreesRegressor: [
             ('default', {'n_estimators': 10}),
@@ -117,7 +131,8 @@ def build_custom_scenarios():
             }, ['cluster']),
         ],
         HistGradientBoostingClassifier: [
-            ('default', {'max_iter': 10}),
+            ('default', {'max_iter': 10},
+             {'conv_options': [{HistGradientBoostingClassifier: {'zipmap': False}}]}),
         ],
         HistGradientBoostingRegressor: [
             ('default', {'max_iter': 10}),
@@ -154,9 +169,7 @@ def build_custom_scenarios():
             ('default', {'n_components': 2}),
         ],
         LocalOutlierFactor: [
-            ('novelty', {
-                'novelty': True,
-            }),
+            ('novelty', {'novelty': True}),
         ],
         LogisticRegression: [
             ('liblinear', {'solver': 'liblinear', },
@@ -167,6 +180,10 @@ def build_custom_scenarios():
              {'solver': 'liblinear', },
              {'conv_options': [{LogisticRegression: {'raw_scores': True, 'zipmap': False}}],
               'subset_problems': ['~b-cl-dec', '~m-cl-dec']}),
+        ],
+        MLPClassifier: [
+            ('default', {}, {'conv_options': [
+             {MLPClassifier: {'zipmap': False}}]}),
         ],
         MultiOutputClassifier: [
             ('logreg', {
@@ -260,9 +277,8 @@ def build_custom_scenarios():
             }),
         ],
         SGDClassifier: [
-            ('log', {
-                'loss': 'log',
-            }),
+            ('log', {'loss': 'log'},
+             {'conv_options': [{SGDClassifier: {'zipmap': False}}]}),
         ],
         SparseRandomProjection: [
             ('eps95', {'eps': 0.95}),
@@ -293,7 +309,7 @@ def build_custom_scenarios():
                     ('lr2', LogisticRegression(
                         solver='liblinear', fit_intercept=False)),
                 ],
-            })
+            }, {'conv_options': [{VotingClassifier: {'zipmap': False}}]})
         ],
         VotingRegressor: [
             ('linreg', {
@@ -313,7 +329,7 @@ def build_custom_scenarios():
                         ('lr2', LogisticRegression(
                             solver='liblinear', fit_intercept=False)),
                     ],
-                })
+                }, {'conv_options': [{StackingClassifier: {'zipmap': False}}]})
             ],
             StackingRegressor: [
                 ('linreg', {
