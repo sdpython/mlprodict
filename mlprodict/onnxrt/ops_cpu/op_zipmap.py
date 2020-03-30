@@ -12,7 +12,7 @@ from ..shape_object import ShapeObject
 class ZipMapDictionary(dict):
     """
     Custom dictionary class much faster for this runtime,
-    it implements a subet of the same methods.
+    it implements a subset of the same methods.
     """
     __slots__ = ['_rev_keys', '_values', '_mat']
 
@@ -43,6 +43,24 @@ class ZipMapDictionary(dict):
         self._values = values
         self._mat = mat
 
+    def __getstate__(self):
+        """
+        For pickle.
+        """
+        return dict(_rev_keys=self._rev_keys,
+                    _values=self._values,
+                    _mat=self._mat)
+
+    def __setstate__(self, state):
+        """
+        For pickle.
+        """
+        if isinstance(state, tuple):
+            state = state[1]
+        self._rev_keys = state['_rev_keys']
+        self._values = state['_values']
+        self._mat = state['_mat']
+
     def __getitem__(self, key):
         """
         Returns the item mapped to keys.
@@ -52,8 +70,8 @@ class ZipMapDictionary(dict):
         return self._mat[self._values, self._rev_keys[key]]
 
     def __setitem__(self, pos, value):
-        raise RuntimeError(
-            "Changing an element is not supported ({}, {})".format(pos, value))
+        "unused but used by pickle"
+        pass
 
     def __len__(self):
         """
@@ -136,7 +154,8 @@ class ArrayZipMapDictionary(list):
         return ZipMapDictionary(self._rev_keys, i, self._mat)
 
     def __setitem__(self, pos, value):
-        raise RuntimeError("Changing an element is not supported.")
+        raise RuntimeError(
+            "Changing an element is not supported (pos=[{}]).".format(pos))
 
     @property
     def values(self):

@@ -2,6 +2,7 @@
 @brief      test log(time=2s)
 """
 import unittest
+import pickle
 import numpy
 import pandas
 from pyquickhelper.pycode import ExtTestCase
@@ -28,6 +29,14 @@ class TestOnnxrtSimpleZipMap(ExtTestCase):
         self.assertEqual(zm['b'], 'b1')
         self.assertEqual(df.iloc[0, 0], 'a1')
         self.assertEqual(df.iloc[0, 1], 'b1')
+
+    def test_onnxt_zipmap_pickle(self):
+        keys = ['a', 'b']
+        values = ['a1', 'b1']
+        zm = ZipMapDictionary(ZipMapDictionary.build_rev_keys(keys), values)
+        by = pickle.dumps(zm)
+        zm2 = pickle.loads(by)
+        self.assertEqual(str(zm), str(zm2))
 
     def test_onnxt_zipmap_mat(self):
         keys = ['a', 'b']
@@ -56,7 +65,8 @@ class TestOnnxrtSimpleZipMap(ExtTestCase):
         def _set():
             zm[6] = 'r'
 
-        self.assertRaise(lambda: _set(), RuntimeError)
+        _set()
+        self.assertRaise(lambda: zm[6], KeyError)
 
     def test_ufunc(self):
         keys = ['a', 'b']
