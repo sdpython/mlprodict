@@ -14,9 +14,9 @@ def pycelu(x, alpha=1.):
 
     .. math::
 
-        celu(x) = \\left \\{\\begin{array}{ll} x \\, if \\, x > 0 \\\\
-        \\alpha ( \\exp{\\frac{x}{\\apha}} - 1) otherwise \\end{array}
-        \\right.
+        celu(x) = \\left \\{\\begin{array}{ll} x \\text{ if } x > 0 \\\\
+        \\alpha ( e^{\\frac{x}{\\alpha}} - 1) \\, \\text{ otherwise }
+        \\end{array} \\right.
     """
     if x > 0:
         return x

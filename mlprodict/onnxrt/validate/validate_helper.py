@@ -315,12 +315,12 @@ def default_time_kwargs():
     values defines *number* and *repeat*.
     """
     return {
-        1: dict(number=30, repeat=80),
-        10: dict(number=20, repeat=40),
+        1: dict(number=30, repeat=20),
+        10: dict(number=20, repeat=20),
         100: dict(number=8, repeat=10),
         1000: dict(number=5, repeat=5),
-        10000: dict(number=4, repeat=5),
-        100000: dict(number=1, repeat=2),
+        10000: dict(number=3, repeat=3),
+        100000: dict(number=1, repeat=1),
     }
 
 

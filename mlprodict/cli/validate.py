@@ -111,31 +111,31 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
             python -m mlprodict validate_runtime -v 1 -o 10 -op 10 -c 1 -r onnxruntime1
                    -m RandomForestRegressor,DecisionTreeRegressor -out bench_onnxruntime.xlsx -b 1
 
-    Parameter ``--time_kwargs`` may be used to reduce or increase
-    bencharmak precisions. The following value tells the function
-    to run a benchmarks with datasets of 1 or 10 number, to repeat
-    a given number of time *number* predictions in one row.
-    The total time is divided by :math:`number \\times repeat``.
-    Parameter ``--time_kwargs_fact`` may be used to increase these
-    number for some specific models. ``'lin'`` multiplies
-    by 10 number when the model is linear.
+        Parameter ``--time_kwargs`` may be used to reduce or increase
+        bencharmak precisions. The following value tells the function
+        to run a benchmarks with datasets of 1 or 10 number, to repeat
+        a given number of time *number* predictions in one row.
+        The total time is divided by :math:`number \\times repeat``.
+        Parameter ``--time_kwargs_fact`` may be used to increase these
+        number for some specific models. ``'lin'`` multiplies
+        by 10 number when the model is linear.
 
-    ::
+        ::
 
-        -t "{\\"1\\":{\\"number\\":10,\\"repeat\\":10},\\"10\\":{\\"number\\":5,\\"repeat\\":5}}"
+            -t "{\\"1\\":{\\"number\\":10,\\"repeat\\":10},\\"10\\":{\\"number\\":5,\\"repeat\\":5}}"
 
-    The following example dumps every model in the list:
+        The following example dumps every model in the list:
 
-    ::
+        ::
 
-        python -m mlprodict validate_runtime --out_raw raw.csv --out_summary sum.csv
-               --models LinearRegression,LogisticRegression,DecisionTreeRegressor,DecisionTreeClassifier
-               -r python,onnxruntime1 -o 10 -op 10 -v 1 -b 1 -dum 1
-               -du model_dump -n 20,100,500 --out_graph benchmark.png --dtype 32
+            python -m mlprodict validate_runtime --out_raw raw.csv --out_summary sum.csv
+                   --models LinearRegression,LogisticRegression,DecisionTreeRegressor,DecisionTreeClassifier
+                   -r python,onnxruntime1 -o 10 -op 10 -v 1 -b 1 -dum 1
+                   -du model_dump -n 20,100,500 --out_graph benchmark.png --dtype 32
 
-    The command line generates a graph produced by function
-    :func:`plot_validate_benchmark
-    <mlprodict.onnxrt.validate.validate_graph.plot_validate_benchmark>`.
+        The command line generates a graph produced by function
+        :func:`plot_validate_benchmark
+        <mlprodict.onnxrt.validate.validate_graph.plot_validate_benchmark>`.
     """
     if separate_process:
         return _validate_runtime_separate_process(

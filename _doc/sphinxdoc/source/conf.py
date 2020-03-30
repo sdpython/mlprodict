@@ -36,6 +36,7 @@ set_sphinx_variables(__file__, "mlprodict", "Xavier Dupré", 2019,
 
 blog_root = "http://www.xavierdupre.fr/app/mlprodict/helpsphinx/"
 extensions.extend([
+    'sphinxcontrib.blockdiag',
     'generate_automated_pages',
     'generate_visual_graphs',
 ])
@@ -64,6 +65,7 @@ epkg_dictionary.update({
     'Converters with options': 'http://www.xavierdupre.fr/app/sklearn-onnx/helpsphinx/parameterized.html',
     'coo_matrix': 'https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.coo_matrix.html',
     'csv': 'https://en.wikipedia.org/wiki/Comma-separated_values',
+    'cython': 'https://cython.org/',
     "DataFrame": "https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html",
     'dot': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'DOT': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
@@ -86,6 +88,7 @@ epkg_dictionary.update({
     'OnnxOperatorMixin': 'https://github.com/onnx/sklearn-onnx/blob/master/skl2onnx/algebra/onnx_operator_mixin.py#L16',
     'onnxruntime': 'https://github.com/microsoft/onnxruntime',
     'onnxruntime_perf_test': 'https://github.com/microsoft/onnxruntime/tree/master/onnxruntime/test/perftest',
+    'pybind11': 'https://github.com/pybind/pybind11',
     'pypiserver': 'https://github.com/pypiserver/pypiserver',
     'pyspy': 'https://github.com/benfred/py-spy',
     'py-spy': 'https://github.com/benfred/py-spy',
