@@ -60,7 +60,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
     @param      fct             function to benchmark, signature
                                 is `fct(xo)`
     @param      X               array
-    @param      time_limit      above this time, measurement as stopped
+    @param      time_limit      above this time, measurement is stopped
     @param      obs             all information available in a dictionary
     @param      node_time       measure time execution for each node in the graph
     @param      time_kwargs     to define a more precise way to measure a model

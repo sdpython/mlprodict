@@ -6,9 +6,11 @@ import numpy
 from pandas import DataFrame
 from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.pandashelper import df2rst
+from sklearn.linear_model import LinearRegression
 from mlprodict.onnxrt.validate.validate import sklearn_operators
 from mlprodict.onnxrt.validate.validate_problems import find_suitable_problem
-from mlprodict.onnxrt.validate.validate_helper import modules_list
+from mlprodict.onnxrt.validate.validate_helper import (
+    default_time_kwargs, _multiply_time_kwargs, modules_list)
 from mlprodict.onnxrt.validate.validate_benchmark import make_n_rows
 
 
@@ -73,6 +75,19 @@ class TestOnnxrtValidateHelper(ExtTestCase):
             self.assertEqual(xs.shape[0], k)
             self.assertEqual(xs.shape[1], X.shape[1])
             self.assertEqual(ys.shape[0], k)
+
+    def test__multiply_time_kwargs(self):
+        lr = LinearRegression()
+        kw = default_time_kwargs()
+        kw2 = _multiply_time_kwargs(kw, '10', lr)
+        for k, v in kw.items():
+            self.assertEqual(v['number'] * 10, kw2[k]['number'])
+        kw2 = _multiply_time_kwargs(kw, 10, lr)
+        for k, v in kw.items():
+            self.assertEqual(v['number'] * 10, kw2[k]['number'])
+        kw2 = _multiply_time_kwargs(kw, 'lin', lr)
+        for k, v in kw.items():
+            self.assertNotEqual(v['number'], kw2[k]['number'])
 
 
 if __name__ == "__main__":

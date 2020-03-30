@@ -22,7 +22,8 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
                      time_kwargs=None, n_features=None, fLOG=print,
                      out_graph=None, force_return=False,
                      dtype=None, skip_long_test=False,
-                     number=1, repeat=1):
+                     number=1, repeat=1, time_kwargs_fact='lin',
+                     time_limit=4):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -81,6 +82,10 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         they seem too long
     :param number: to multiply number values in *time_kwargs*
     :param repeat: to multiply repeat values in *time_kwargs*
+    :param time_kwargs_fact: to multiply number and repeat in
+        *time_kwargs* depending on the model
+        (see :func:`_multiply_time_kwargs <mlprodict.onnxrt.validate.validate_helper._multiply_time_kwargs>`)
+    :param time_limit: to stop benchmarking after this limit of time
     :param fLOG: logging function
 
     .. cmdref::
@@ -111,6 +116,9 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
     to run a benchmarks with datasets of 1 or 10 number, to repeat
     a given number of time *number* predictions in one row.
     The total time is divided by :math:`number \\times repeat``.
+    Parameter ``--time_kwargs_fact`` may be used to increase these
+    number for some specific models. ``'lin'`` multiplies
+    by 10 number when the model is linear.
 
     ::
 
@@ -140,7 +148,8 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
             versions=versions, skip_models=skip_models,
             extended_list=extended_list, time_kwargs=time_kwargs,
             n_features=n_features, fLOG=fLOG, force_return=True,
-            out_graph=None, dtype=dtype, skip_long_test=skip_long_test)
+            out_graph=None, dtype=dtype, skip_long_test=skip_long_test,
+            time_kwargs_fact=time_kwargs_fact, time_limit=time_limit)
 
     from ..onnxrt.validate import enumerate_validated_operator_opsets  # pylint: disable=E0402
 
@@ -228,7 +237,8 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
             benchmark=benchmark, assume_finite=assume_finite, versions=versions,
             extended_list=extended_list, time_kwargs=time_kwargs, dump_all=dump_all,
             n_features=n_features, filter_exp=fct_filter,
-            skip_long_test=skip_long_test))
+            skip_long_test=skip_long_test, time_limit=time_limit,
+            time_kwargs_fact=time_kwargs_fact))
         return rows
 
     def catch_build_rows(models_):

@@ -27,7 +27,7 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
             __file__, "temp_validate_sklearn_operators_benchmark")
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"LinearRegression"}, opset_min=10,
-            benchmark=True, fLOG=fLOG))
+            benchmark=True, fLOG=fLOG, time_kwargs_fact='lin'))
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
         for col in ['skl', 'batch']:

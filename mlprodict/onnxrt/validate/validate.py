@@ -9,7 +9,6 @@ from inspect import signature
 import numpy
 import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
-from sklearn.model_selection import train_test_split
 from ... import __version__ as ort_version
 from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
 from ...tools.model_info import analyze_model
@@ -20,57 +19,17 @@ from ..onnx_inference import OnnxInference
 from ..optim.sklearn_helper import inspect_sklearn_model
 from ..optim.onnx_helper import onnx_statistics
 from ..optim import onnx_optimisations
-from .validate_problems import _problems, find_suitable_problem
+from .validate_problems import find_suitable_problem
 from .validate_scenarios import _extra_parameters
 from .validate_difference import measure_relative_difference
 from .validate_helper import (
     _dispsimple, sklearn_operators,
     _measure_time, _shape_exc, dump_into_folder,
     default_time_kwargs, RuntimeBadResultsError,
-    _dictionary2str, _merge_options
+    _dictionary2str, _merge_options, _multiply_time_kwargs,
+    _get_problem_data
 )
 from .validate_benchmark import benchmark_fct
-
-
-def _get_problem_data(prob, n_features):
-    data_problem = _problems[prob](n_features=n_features)
-    if len(data_problem) == 6:
-        X_, y_, init_types, method, output_index, Xort_ = data_problem
-        dofit = True
-    elif len(data_problem) == 7:
-        X_, y_, init_types, method, output_index, Xort_, dofit = data_problem
-    else:
-        raise RuntimeError(
-            "Unable to interpret problem '{}'.".format(prob))
-    if (len(X_.shape) == 2 and X_.shape[1] != n_features and
-            n_features is not None):
-        raise RuntimeError("Problem '{}' with n_features={} returned {} features"
-                           "(func={}).".format(prob, n_features, X_.shape[1],
-                                               _problems[prob]))
-    if y_ is None:
-        (X_train, X_test, Xort_train,  # pylint: disable=W0612
-            Xort_test) = train_test_split(
-                X_, Xort_, random_state=42)
-        y_train, y_test = None, None
-    else:
-        (X_train, X_test, y_train, y_test,  # pylint: disable=W0612
-            Xort_train, Xort_test) = train_test_split(
-                X_, y_, Xort_, random_state=42)
-    if isinstance(init_types, tuple):
-        init_types, conv_options = init_types
-    else:
-        conv_options = None
-
-    if isinstance(method, tuple):
-        method_name, predict_kwargs = method
-    else:
-        method_name = method
-        predict_kwargs = {}
-
-    return (X_train, X_test, y_train,
-            y_test, Xort_test,
-            init_types, conv_options, method_name,
-            output_index, dofit, predict_kwargs)
 
 
 def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
@@ -117,12 +76,13 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
 def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
                         method_name, predict_kwargs, X_test,
                         benchmark, debug, verbose, time_kwargs,
-                        skip_long_test, fLOG):
+                        skip_long_test, time_kwargs_fact, fLOG):
     if not check_runtime:
         return None
     if verbose >= 2 and fLOG is not None:
-        fLOG("[enumerate_compatible_opset] check_runtime SKL {}-{}-{}-{}".format(
-            id(inst), method_name, predict_kwargs, time_kwargs))
+        fLOG("[enumerate_compatible_opset] check_runtime SKL {}-{}-{}-{}-{}".format(
+            id(inst), method_name, predict_kwargs, time_kwargs,
+            time_kwargs_fact))
     with sklearn.config_context(assume_finite=assume_finite):
         # compute sklearn prediction
         obs['ort_version'] = ort_version
@@ -146,7 +106,9 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
         obs['assume_finite'] = assume_finite
         if benchmark and 'lambda-skl' in obs:
             obs['bench-skl'] = benchmark_fct(
-                *obs['lambda-skl'], obs=obs, time_kwargs=time_kwargs,
+                *obs['lambda-skl'], obs=obs,
+                time_kwargs=_multiply_time_kwargs(
+                    time_kwargs, time_kwargs_fact, inst),
                 skip_long_test=skip_long_test)
         if verbose >= 3 and fLOG is not None:
             fLOG("[enumerate_compatible_opset] scikit-learn prediction")
@@ -215,7 +177,8 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
                                verbose=0, time_kwargs=None,
                                extended_list=False, dump_all=False,
                                n_features=None, skip_long_test=True,
-                               filter_scenario=None):
+                               filter_scenario=None, time_kwargs_fact=None,
+                               time_limit=4):
     """
     Lists all compatible opsets for a specific model.
 
@@ -254,6 +217,8 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
                                 to use exactly this number of features, it can also
                                 be a list to test multiple datasets
     @param      skip_long_test  skips tests for high values of N if they seem too long
+    @param      time_kwargs_fact see :func:`_multiply_time_kwargs <mlprodict.onnxrt.validate.validate_helper._multiply_time_kwargs>`
+    @param      time_limit      to stop benchmarking after this amount of time was spent
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
                                 problem chosen to test the conversion...
@@ -272,6 +237,10 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
         from mlprodict.onnxrt.validate.validate_helper import default_time_kwargs
         import pprint
         pprint.pprint(default_time_kwargs())
+
+    Parameter *time_kwargs_fact* multiples these values for some
+    specific models. ``'lin'`` multiplies by 10 when the model
+    is linear.
     """
     if opset_min == -1:
         opset_min = get_opset_number_from_onnx()
@@ -402,7 +371,7 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
                     obs, check_runtime, assume_finite, inst,
                     method_name, predict_kwargs, X_test,
                     benchmark, debug, verbose, time_kwargs,
-                    skip_long_test, fLOG)
+                    skip_long_test, time_kwargs_fact, fLOG)
                 if isinstance(ypred, Exception):
                     yield obs.copy()
                     continue
@@ -426,8 +395,10 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
                             node_time=node_time,
                             skip_long_test=skip_long_test,
                             store_models=store_models,
-                            time_kwargs=time_kwargs,
+                            time_kwargs=_multiply_time_kwargs(
+                                time_kwargs, time_kwargs_fact, inst)
                         ),
+                        time_limit=time_limit,
                         fLOG=fLOG):
                     yield run_obs
 
@@ -449,7 +420,7 @@ def _call_conv_runtime_opset(
         benchmark, runtime, filter_scenario,
         check_runtime, X_test, y_test, ypred, Xort_test,
         method_name, output_index,
-        kwargs, fLOG):
+        kwargs, time_limit, fLOG):
     # Calls the conversion and runtime for different opets
     if None in opsets:
         set_opsets = [None] + list(sorted((_ for _ in opsets if _ is not None),
@@ -576,7 +547,8 @@ def _call_conv_runtime_opset(
                                             fLOG=fLOG, verbose=verbose,
                                             store_models=kwargs['store_models'],
                                             dump_all=kwargs['dump_all'],
-                                            skip_long_test=kwargs['skip_long_test'])
+                                            skip_long_test=kwargs['skip_long_test'],
+                                            time_limit=time_limit)
                     else:
                         yield obs_op.copy()
 
@@ -586,7 +558,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                   ypred, Xort_test, model, dump_folder,
                   benchmark, node_time, fLOG,
                   verbose, store_models, time_kwargs,
-                  dump_all, skip_long_test):
+                  dump_all, skip_long_test, time_limit):
     """
     Private.
     """
@@ -641,7 +613,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         try:
             benres = benchmark_fct(*obs_op['lambda-batch'], obs=obs_op,
                                    node_time=node_time, time_kwargs=time_kwargs,
-                                   skip_long_test=skip_long_test)
+                                   skip_long_test=skip_long_test,
+                                   time_limit=time_limit)
             obs_op['bench-batch'] = benres
         except (RuntimeError, TypeError, ValueError) as e:
             if debug:
@@ -781,7 +754,9 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                                         time_kwargs=None, dump_all=False,
                                         n_features=None, skip_long_test=True,
                                         fail_bad_results=False,
-                                        filter_scenario=None):
+                                        filter_scenario=None,
+                                        time_kwargs_fact=None,
+                                        time_limit=4):
     """
     Tests all possible configurations for all possible
     operators and returns the results.
@@ -826,6 +801,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                                 be a list to test multiple datasets
     @param      skip_long_test  skips tests for high values of N if they seem too long
     @param      fail_bad_results fails if the results are aligned with :epkg:`scikit-learn`
+    @param      time_kwargs_fact see :func:`_multiply_time_kwargs <mlprodict.onnxrt.validate.validate_helper._multiply_time_kwargs>`
+    @param      time_limit      to skip the rest of the test after this limit (in second)
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -903,7 +880,9 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                 verbose=verbose, extended_list=extended_list,
                 time_kwargs=time_kwargs, dump_all=dump_all,
                 n_features=n_features, skip_long_test=skip_long_test,
-                filter_scenario=filter_scenario):
+                filter_scenario=filter_scenario,
+                time_kwargs_fact=time_kwargs_fact,
+                time_limit=time_limit):
 
             for mandkey in ('inst', 'method_name', 'problem',
                             'scenario'):

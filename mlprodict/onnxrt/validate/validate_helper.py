@@ -4,6 +4,7 @@
 The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
+import math
 import copy
 from timeit import Timer
 import os
@@ -13,7 +14,10 @@ import pickle
 from time import perf_counter
 import numpy
 from sklearn.base import BaseEstimator
+from sklearn.linear_model._base import LinearModel
+from sklearn.model_selection import train_test_split
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
+from .validate_problems import _problems
 
 
 class RuntimeBadResultsError(RuntimeError):
@@ -216,17 +220,21 @@ def sklearn_operators(subfolder=None, extended=False,
     return found
 
 
-def _measure_time(fct, repeat=1, number=1):
+def _measure_time(fct, repeat=1, number=1, first_run=True):
     """
     Measures the execution time for a function.
 
-    @param      fct     function to measure
-    @param      repeat  number of times to repeat
-    @param      number  number of times between two measures
-    @return             last result, average, values
+    @param      fct         function to measure
+    @param      repeat      number of times to repeat
+    @param      number      number of times between two measures
+    @param      first_run   if True, runs the function once before
+                            measuring
+    @return                 last result, average, values
     """
     res = None
     values = []
+    if first_run:
+        fct()
     for __ in range(repeat):
         begin = perf_counter()
         for _ in range(number):
@@ -307,16 +315,16 @@ def default_time_kwargs():
     values defines *number* and *repeat*.
     """
     return {
-        1: dict(number=30, repeat=20),
-        10: dict(number=20, repeat=20),
-        100: dict(number=8, repeat=5),
+        1: dict(number=30, repeat=80),
+        10: dict(number=20, repeat=40),
+        100: dict(number=8, repeat=10),
         1000: dict(number=5, repeat=5),
-        10000: dict(number=3, repeat=3),
-        100000: dict(number=1, repeat=1),
+        10000: dict(number=4, repeat=5),
+        100000: dict(number=1, repeat=2),
     }
 
 
-def measure_time(stmt, x, repeat=10, number=50, div_by_number=False):
+def measure_time(stmt, x, repeat=10, number=50, div_by_number=False, first_run=True):
     """
     Measures a statement and returns the results as a dictionary.
 
@@ -325,6 +333,8 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False):
     @param      repeat          average over *repeat* experiment
     @param      number          number of executions in one row
     @param      div_by_number   divide by the number of executions
+    @param      first_run       if True, runs the function once before
+                                measuring
     @return                     dictionary
 
     See `Timer.repeat <https://docs.python.org/3/library/timeit.html?timeit.Timer.repeat>`_
@@ -343,6 +353,8 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False):
     def fct():
         stmt(x)
 
+    if first_run:
+        fct()
     tim = Timer(fct)
     res = numpy.array(tim.repeat(repeat=repeat, number=number))
     total = numpy.sum(res)
@@ -355,3 +367,103 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False):
                max_exec=numpy.max(res), repeat=repeat, number=number,
                total=total)
     return mes
+
+
+def _multiply_time_kwargs(time_kwargs, time_kwargs_fact, inst):
+    """
+    Multiplies values in *time_kwargs* following strategy
+    *time_kwargs_fact* for a given model *inst*.
+
+    @param      time_kwargs
+    @param      time_kwargs_fact    see below
+    @param      inst                *scikit-learn* model
+    @return                         new *time_kwargs*
+
+    Possible values for *time_kwargs_fact*:
+
+    - a integer: multiplies *number* by this number
+    - `'lin'`: multiplies value *number* for linear models depending
+      on the number of rows to process (:math:`\\prop 1/\\log_{10}(n)`)
+
+    .. runpython::
+        :showcode:
+
+        from pprint import pprint
+        from sklearn.linear_model import LinearRegression
+        from mlprodict.onnxrt.validate.validate_helper import (
+            default_time_kwargs, _multiply_time_kwargs)
+
+        lr = LinearRegression()
+        kw = default_time_kwargs()
+        pprint(kw)
+
+        kw2 = _multiply_time_kwargs(kw, 'lin', lr)
+        pprint(kw2)
+    """
+    if time_kwargs is None:
+        raise ValueError("time_kwargs cannot be None.")
+    if time_kwargs_fact in ('', None):
+        return time_kwargs
+    try:
+        vi = int(time_kwargs_fact)
+        time_kwargs_fact = vi
+    except (TypeError, ValueError):
+        pass
+    if isinstance(time_kwargs_fact, int):
+        time_kwargs_modified = copy.deepcopy(time_kwargs)
+        for k in time_kwargs_modified:
+            time_kwargs_modified[k]['number'] *= time_kwargs_fact
+        return time_kwargs_modified
+    if time_kwargs_fact == 'lin':
+        if isinstance(inst, LinearModel):
+            time_kwargs_modified = copy.deepcopy(time_kwargs)
+            for k in time_kwargs_modified:
+                kl = max(int(math.log(k) / math.log(10) + 1e-5), 1)
+                f = max(int(10 / kl + 0.5), 1)
+                time_kwargs_modified[k]['number'] *= f
+                time_kwargs_modified[k]['repeat'] *= 1
+            return time_kwargs_modified
+        return time_kwargs
+    raise ValueError("Unable to interpret time_kwargs_fact='{}'.".format(
+        time_kwargs_fact))
+
+
+def _get_problem_data(prob, n_features):
+    data_problem = _problems[prob](n_features=n_features)
+    if len(data_problem) == 6:
+        X_, y_, init_types, method, output_index, Xort_ = data_problem
+        dofit = True
+    elif len(data_problem) == 7:
+        X_, y_, init_types, method, output_index, Xort_, dofit = data_problem
+    else:
+        raise RuntimeError(
+            "Unable to interpret problem '{}'.".format(prob))
+    if (len(X_.shape) == 2 and X_.shape[1] != n_features and
+            n_features is not None):
+        raise RuntimeError("Problem '{}' with n_features={} returned {} features"
+                           "(func={}).".format(prob, n_features, X_.shape[1],
+                                               _problems[prob]))
+    if y_ is None:
+        (X_train, X_test, Xort_train,  # pylint: disable=W0612
+            Xort_test) = train_test_split(
+                X_, Xort_, random_state=42)
+        y_train, y_test = None, None
+    else:
+        (X_train, X_test, y_train, y_test,  # pylint: disable=W0612
+            Xort_train, Xort_test) = train_test_split(
+                X_, y_, Xort_, random_state=42)
+    if isinstance(init_types, tuple):
+        init_types, conv_options = init_types
+    else:
+        conv_options = None
+
+    if isinstance(method, tuple):
+        method_name, predict_kwargs = method
+    else:
+        method_name = method
+        predict_kwargs = {}
+
+    return (X_train, X_test, y_train,
+            y_test, Xort_test,
+            init_types, conv_options, method_name,
+            output_index, dofit, predict_kwargs)
