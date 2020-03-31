@@ -60,5 +60,5 @@ def benchmark_replay(folder, runtime='python', time_kwargs=None,
         time_limit=time_limit, verbose=verbose, fLOG=fLOG))
     if out is not None:
         df = DataFrame(rows)
-        df.to_excel(out)
+        df.to_excel(out, index=False)
     return rows
