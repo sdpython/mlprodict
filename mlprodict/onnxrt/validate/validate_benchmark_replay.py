@@ -9,6 +9,23 @@ from .validate_helper import default_time_kwargs, measure_time, _multiply_time_k
 from .validate_benchmark import make_n_rows
 
 
+class SimplifiedOnnxInference:
+    "Simple wrapper around InferenceSession which imitates OnnxInference."
+
+    def __init__(self, ort):
+        from onnxruntime import InferenceSession
+        self.sess = InferenceSession(ort)
+
+    @property
+    def input_names(self):
+        "Returns InferenceSession input names."
+        return [_.name for _ in self.sess.get_inputs()]
+
+    def run(self, input):
+        "Calls InferenceSession.run."
+        return self.sess.run(None, input)
+
+
 def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
                                skip_long_test=True, time_kwargs_fact=None,
                                time_limit=4, verbose=1, fLOG=None):
@@ -76,7 +93,10 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
 
         oinfs = {}
         for rt in runtime:
-            oinfs[rt] = OnnxInference(onx, runtime=rt)
+            if rt == 'onnxruntime':
+                oinfs[rt] = SimplifiedOnnxInference(onx)
+            else:
+                oinfs[rt] = OnnxInference(onx, runtime=rt)
 
         for k, v in sorted(tkw.items()):
             if verbose >= 3 and fLOG is not None:
