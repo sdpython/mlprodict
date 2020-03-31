@@ -4,6 +4,10 @@
 """
 import pickle
 import os
+try:
+    from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
+except ImportError:
+    OrtFail = RuntimeError
 from .. import OnnxInference
 from .validate_helper import default_time_kwargs, measure_time, _multiply_time_kwargs
 from .validate_benchmark import make_n_rows
@@ -96,8 +100,11 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
             if rt == 'onnxruntime':
                 oinfs[rt] = SimplifiedOnnxInference(onx)
             else:
-                oinfs[rt] = OnnxInference(onx, runtime=rt)
-
+                try:                    
+                    oinfs[rt] = OnnxInference(onx, runtime=rt)
+                except OrtFail as e:
+                    row['ERROR'] = str(e)
+                    oinfs[rt] = None
         for k, v in sorted(tkw.items()):
             if verbose >= 3 and fLOG is not None:
                 fLOG("[enumerate_benchmark_replay] process n_rows={} - {}".format(k, v))
@@ -117,6 +124,8 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
             xto = make_n_rows(ort_test, k)
             for rt in runtime:
                 oinf = oinfs[rt]
+                if oinf is None:
+                    continue
                 if len(oinf.input_names) != 1:
                     raise NotImplementedError(
                         "This function only allows one input not {}".format(
