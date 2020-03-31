@@ -100,7 +100,7 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
             if rt == 'onnxruntime':
                 oinfs[rt] = SimplifiedOnnxInference(onx)
             else:
-                try:                    
+                try:
                     oinfs[rt] = OnnxInference(onx, runtime=rt)
                 except OrtFail as e:
                     row['ERROR'] = str(e)
