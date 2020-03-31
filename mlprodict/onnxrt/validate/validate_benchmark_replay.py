@@ -8,6 +8,7 @@ try:
     from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
 except ImportError:
     OrtFail = RuntimeError
+import sklearn
 from .. import OnnxInference
 from .validate_helper import default_time_kwargs, measure_time, _multiply_time_kwargs
 from .validate_benchmark import make_n_rows
@@ -105,6 +106,7 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
                 except OrtFail as e:
                     row['ERROR'] = str(e)
                     oinfs[rt] = None
+
         for k, v in sorted(tkw.items()):
             if verbose >= 3 and fLOG is not None:
                 fLOG("[enumerate_benchmark_replay] process n_rows={} - {}".format(k, v))
@@ -113,9 +115,10 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
             repeat = v['repeat']
 
             meth = getattr(model, row['method_name'])
-            skl = measure_time(lambda x: meth(x), xt,
-                               number=number, repeat=repeat,
-                               div_by_number=True)
+            with sklearn.config_context(assume_finite=True):
+                skl = measure_time(lambda x: meth(x), xt,
+                                   number=number, repeat=repeat,
+                                   div_by_number=True)
             if verbose >= 4 and fLOG is not None:
                 fLOG("[enumerate_benchmark_replay] skl={}".format(skl))
             row['%d-skl-details' % k] = skl
