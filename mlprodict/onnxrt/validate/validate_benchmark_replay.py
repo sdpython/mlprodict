@@ -75,6 +75,8 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
     for pkl in loop:
         if "ERROR" in pkl:
             # An error.
+            if verbose >= 2 and fLOG is not None:
+                fLOG("[enumerate_benchmark_replay] skip '{}'.".format(pkl))
             continue
         if verbose >= 2 and fLOG is not None:
             fLOG("[enumerate_benchmark_replay] process '{}'.".format(pkl))
@@ -102,7 +104,11 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
         oinfs = {}
         for rt in runtime:
             if rt == 'onnxruntime':
-                oinfs[rt] = SimplifiedOnnxInference(onx)
+                try:
+                    oinfs[rt] = SimplifiedOnnxInference(onx)
+                except OrtFail as e:
+                    row['ERROR'] = str(e)
+                    oinfs[rt] = None
             else:
                 try:
                     oinfs[rt] = OnnxInference(onx, runtime=rt)
