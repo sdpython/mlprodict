@@ -73,6 +73,9 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
             pass
 
     for pkl in loop:
+        if "ERROR" in pkl:
+            # An error.
+            continue
         if verbose >= 2 and fLOG is not None:
             fLOG("[enumerate_benchmark_replay] process '{}'.".format(pkl))
         row = {}
@@ -115,7 +118,7 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
             repeat = v['repeat']
 
             meth = getattr(model, row['method_name'])
-            with sklearn.config_context(assume_finite=True):
+            with sklearn.config_context(assume_finite=row['assume_finite']):
                 skl = measure_time(lambda x: meth(x), xt,
                                    number=number, repeat=repeat,
                                    div_by_number=True)
