@@ -106,13 +106,13 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
             if rt == 'onnxruntime':
                 try:
                     oinfs[rt] = SimplifiedOnnxInference(onx)
-                except OrtFail as e:
+                except (OrtFail, RuntimeError) as e:
                     row['ERROR'] = str(e)
                     oinfs[rt] = None
             else:
                 try:
                     oinfs[rt] = OnnxInference(onx, runtime=rt)
-                except OrtFail as e:
+                except (OrtFail, RuntimeError) as e:
                     row['ERROR'] = str(e)
                     oinfs[rt] = None
 
