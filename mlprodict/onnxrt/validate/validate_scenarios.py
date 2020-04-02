@@ -12,7 +12,7 @@ from sklearn.ensemble import (
     ExtraTreesRegressor, ExtraTreesClassifier,
     RandomForestRegressor, RandomForestClassifier,
     HistGradientBoostingRegressor, HistGradientBoostingClassifier,
-    AdaBoostClassifier
+    AdaBoostClassifier, GradientBoostingClassifier, GradientBoostingRegressor
 )
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_selection import (
@@ -115,6 +115,13 @@ def build_custom_scenarios():
         ],
         GaussianRandomProjection: [
             ('eps95', {'eps': 0.95}),
+        ],
+        GradientBoostingClassifier: [
+            ('default', {'n_estimators': 10},
+             {'conv_options': [{GradientBoostingClassifier: {'zipmap': False}}]}),
+        ],
+        GradientBoostingRegressor: [
+            ('default', {'n_estimators': 10}),
         ],
         GridSearchCV: [
             ('cl', {
