@@ -104,7 +104,7 @@ class OpRun:
 
     def _find_custom_operator_schema(self, op_name):
         raise NotImplementedError(  # pragma: no cover
-            "This method should be overwritten for operator '{}'.".format(op_name))
+            "This method should be overwritten for operator '{}'.".format(op_name))  # pragma: no cover
 
     def __str__(self):
         """
@@ -195,7 +195,7 @@ class OpRun:
         """
         raise NotImplementedError(
             "This method should be overwritten for operator '{}'.".format(
-                self.__class__.__name__))
+                self.__class__.__name__))  # pragma: no cover
 
     def enable_inplace_compute(self, index):
         """
@@ -263,7 +263,7 @@ class OpRun:
         @return                 imports, python code, both as strings
         """
         raise NotImplementedError(
-            "Operator '{}' has no equivalent python code.".format(self.__class__.__name__))
+            "Operator '{}' has no equivalent python code.".format(self.__class__.__name__))  # pragma: no cover
 
     def _to_python_numpy(self, inputs, numpy_name):
         return ("import numpy",

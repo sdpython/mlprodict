@@ -14,12 +14,17 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.shape_object import (
     DimensionObject, ShapeObject, ShapeOperator,
-    ShapeBinaryOperator, ShapeOperatorMax
+    ShapeBinaryOperator, ShapeOperatorMax,
+    BaseDimensionShape
 )
 from mlprodict.onnxrt import OnnxInference
 
 
 class TestShapeObject(ExtTestCase):
+
+    def test_raise_exc(self):
+        self.assertRaise(
+            lambda: BaseDimensionShape().to_string(), NotImplementedError)
 
     def test_missing_stmt(self):
         sh = ShapeOperator("+", lambda x, y: x + y,
@@ -66,6 +71,13 @@ class TestShapeObject(ExtTestCase):
             DimensionObject('1'), DimensionObject('2'))
         st = sh.to_string()
         self.assertEqual(st, '(1)+(2)')
+
+        x, y = sh._args  # pylint: disable=W0212
+        self.assertEqual(sh._to_string1(x, y), "12")  # pylint: disable=W0212
+        self.assertEqual(sh._to_string2(x, y), "1+2")  # pylint: disable=W0212
+        self.assertEqual(sh._to_string2b(  # pylint: disable=W0212
+            x, y), "(1)+(2)")  # pylint: disable=W0212
+        self.assertEqual(sh._to_string3(x), "1+x")  # pylint: disable=W0212
 
         sh = ShapeBinaryOperator(
             "+", lambda x, y: x + y, "lambda x, y: x + y",
@@ -147,6 +159,27 @@ class TestShapeObject(ExtTestCase):
         i2 = ShapeObject(None, dtype=numpy.float32, name="B")
         i3 = max(i1, i2)
         self.assertEqual(i3.name, 'B')
+
+    def test_greater(self):
+        i1 = DimensionObject(2)
+        i2 = DimensionObject(3)
+        i3 = i1 > i2
+        self.assertEqual(i3, False)
+
+        i1 = DimensionObject(2)
+        i2 = DimensionObject("x")
+        i3 = i1 > i2
+        self.assertEqual(i3.to_string(), '2>x')
+        self.assertEqual(
+            "DimensionObject(ShapeOperatorGreater(DimensionObject(2), DimensionObject('x')))", repr(i3))
+        v = i3.evaluate(x=2)
+        self.assertEqual(v, False)
+        v = i3.evaluate()
+        self.assertEqual(v, "(2)>(x)")
+
+        self.assertRaise(lambda: DimensionObject((1, )) * 1, TypeError)
+        self.assertRaise(lambda: DimensionObject(
+            1) * DimensionObject((1, )), TypeError)
 
     def test_multiplication(self):
         i1 = DimensionObject(2)

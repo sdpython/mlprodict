@@ -24,7 +24,8 @@ class CodeTranslator:
         Exports the parsed :epkg:`python` code
         into something.
         """
-        raise NotImplementedError("This function should be overwritten.")
+        raise NotImplementedError(
+            "This function should be overwritten.")  # pragma: no cover
 
     def visit(self, node, info):
         """
@@ -33,7 +34,8 @@ class CodeTranslator:
         @param      node        visited node
         @param      info        info extracted by the visitor
         """
-        raise NotImplementedError("This function should be overwritten.")
+        raise NotImplementedError(
+            "This function should be overwritten.")  # pragma: no cover
 
     def depart(self, node, info):
         """
@@ -42,7 +44,8 @@ class CodeTranslator:
         @param      node        visited node
         @param      info        info extracted by the visitor
         """
-        raise NotImplementedError("This function should be overwritten.")
+        raise NotImplementedError(
+            "This function should be overwritten.")  # pragma: no cover
 
 
 class OnnxTranslator(CodeTranslator):
@@ -622,4 +625,4 @@ class OnnxTranslator(CodeTranslator):
 
         raise NotImplementedError("Unable to interpret kind '{}' at {}\n{}\n---\n{}".format(
             info.get('type', '?'), self.make_msg(node), pprint.pformat(info),
-            pprint.pformat(self._stack)))
+            pprint.pformat(self._stack)))  # pragma: no cover

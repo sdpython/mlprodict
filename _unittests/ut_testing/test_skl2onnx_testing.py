@@ -60,6 +60,13 @@ class TestSklearnTesting(ExtTestCase):
         self.assertIsInstance(res[0], ExtraTreesClassifier)
         self.assertIsInstance(res[1], numpy.ndarray)
 
+    def test_random_forest_classifier_fit2_string(self):
+        res = fit_classification_model(
+            ExtraTreesClassifier(), n_classes=2, label_string=True)
+        self.assertEqual(len(res), 2)
+        self.assertIsInstance(res[0], ExtraTreesClassifier)
+        self.assertIsInstance(res[1], numpy.ndarray)
+
     def test_random_forest_classifier_fit3(self):
         res = fit_classification_model(ExtraTreesClassifier(), n_classes=3)
         self.assertEqual(len(res), 2)

@@ -346,7 +346,7 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
                 try:
                     inst = model(**extra)
                 except TypeError as e:  # pragma: no cover
-                    if debug:
+                    if debug:  # pragma: no cover
                         raise
                     if "__init__() missing" not in str(e):
                         raise RuntimeError(
@@ -664,7 +664,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                 max_rel_diff = measure_relative_difference(
                     ypred, opred)
 
-            if max_rel_diff >= 1e9 and debug:
+            if max_rel_diff >= 1e9 and debug:  # pragma: no cover
                 _shape = lambda o: o.shape if hasattr(
                     o, 'shape') else 'no shape'
                 raise RuntimeError(
@@ -681,7 +681,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                         _shape_exc(
                             ypred), _shape_exc(opred),
                         ypred, opred))
-                if debug:
+                if debug:  # pragma: no cover
                     debug_exc.append(RuntimeError(
                         obs_op['_8max_rel_diff_batch_exc']))
             else:
@@ -689,13 +689,13 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                 if dump_folder and max_rel_diff > 1e-5:
                     dump_into_folder(dump_folder, kind='batch', obs_op=obs_op,
                                      X_test=X_test, y_test=y_test, Xort_test=Xort_test)
-                if debug and max_rel_diff >= 0.1:
+                if debug and max_rel_diff >= 0.1:  # pragma: no cover
                     raise RuntimeError("Two big differences {}\n{}\n{}\n{}".format(
                         max_rel_diff, inst, conv, pprint.pformat(obs_op)))
 
     if debug and len(debug_exc) == 2:
         raise debug_exc[0]  # pragma: no cover
-    if debug and verbose >= 2:
+    if debug and verbose >= 2:  # pragma: no cover
         if verbose >= 3:
             fLOG(pprint.pformat(obs_op))
         else:
@@ -890,7 +890,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                     continue
                 if mandkey not in obs:
                     raise ValueError("Missing key '{}' in\n{}".format(
-                        mandkey, pprint.pformat(obs)))
+                        mandkey, pprint.pformat(obs)))  # pragma: no cover
             if verbose > 1:
                 fLOG('[enumerate_validated_operator_opsets] - OBS')
                 if verbose > 2:
@@ -900,7 +900,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                                v in obs.items() if 'lambda-' not in k}
                     fLOG("  ", obs_log)
             elif verbose > 0 and "_0problem_exc" in obs:
-                fLOG("  ???", obs)
+                fLOG("  ???", obs)  # pragma: no cover
 
             diff = obs.get('max_rel_diff_batch', None)
             batch = 'max_rel_diff_batch' in obs and diff is not None
@@ -924,10 +924,10 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                     obs['available'] = "ERROR->=%1.1f" % diff
                 obs['available'] += '-' + op
                 if not batch:
-                    obs['available'] += "-NOBATCH"
+                    obs['available'] += "-NOBATCH"  # pragma: no cover
                 if fail_bad_results and 'e<' in obs['available']:
                     raise RuntimeBadResultsError(
-                        "Wrong results '{}'.".format(obs['available']), obs)
+                        "Wrong results '{}'.".format(obs['available']), obs)  # pragma: no cover
 
             excs = []
             for k, v in sorted(obs.items()):

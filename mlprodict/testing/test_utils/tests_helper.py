@@ -296,7 +296,7 @@ def dump_data_and_model(
     with open(dest, "wb") as f:
         pickle.dump(data, f)
 
-    if hasattr(model, "save"):
+    if hasattr(model, "save"):  # pragma: no cover
         dest = os.path.join(folder, basename + ".model.keras")
         names.append(dest)
         model.save(dest)
@@ -310,10 +310,10 @@ def dump_data_and_model(
                 print("[dump_data_and_model] cannot pickle model '{}'"
                       " due to {}.".format(dest, e))
 
-    if dump_error_log:
+    if dump_error_log:  # pragma: no cover
         error_dump = os.path.join(folder, basename + ".err")
 
-    if onnx_model is None:
+    if onnx_model is None:  # pragma: no cover
         array = numpy.array(data)
         if inputs is None:
             inputs = [("input", FloatTensorType(list(array.shape)))]
@@ -323,7 +323,7 @@ def dump_data_and_model(
     names.append(dest)
     with open(dest, "wb") as f:
         f.write(onnx_model.SerializeToString())
-    if verbose:
+    if verbose:  # pragma: no cover
         print("[dump_data_and_model] created '{}'.".format(dest))
 
     runtime_test["onnx"] = dest
@@ -405,7 +405,7 @@ def convert_model(model, name, input_types):
     from skl2onnx import convert_sklearn
 
     model, prefix = convert_sklearn(model, name, input_types), "Sklearn"
-    if model is None:
+    if model is None:  # pragma: no cover
         raise RuntimeError("Unable to convert model of type '{0}'.".format(
             type(model)))
     return model, prefix
@@ -505,12 +505,12 @@ def dump_multiple_classification(
     if label_string:
         y = ["l%d" % i for i in y]
     model.fit(X, y)
-    if verbose:
+    if verbose:  # pragma: no cover
         print("[dump_multiple_classification] model '{}'".format(
             model.__class__.__name__))
     model_onnx, prefix = convert_model(model, "multi-class classifier",
                                        [("input", FloatTensorType([None, 2]))])
-    if verbose:
+    if verbose:  # pragma: no cover
         print("[dump_multiple_classification] model was converted")
     dump_data_and_model(
         X.astype(numpy.float32), model, model_onnx, folder=folder,
@@ -523,12 +523,12 @@ def dump_multiple_classification(
                                n_classes=3, n_clusters_per_class=1)
     X = X[:, :2]
     model.fit(X, y)
-    if verbose:
+    if verbose:  # pragma: no cover
         print("[dump_multiple_classification] model '{}'".format(
             model.__class__.__name__))
     model_onnx, prefix = convert_model(model, "multi-class classifier",
                                        [("input", FloatTensorType([None, 2]))])
-    if verbose:
+    if verbose:  # pragma: no cover
         print("[dump_multiple_classification] model was converted")
     dump_data_and_model(
         X[:10].astype(numpy.float32), model, model_onnx, folder=folder,
@@ -560,12 +560,12 @@ def dump_multilabel_classification(
              [1 + first_class], [2 + first_class]]
     y = MultiLabelBinarizer().fit_transform(y)
     model.fit(X, y)
-    if verbose:
+    if verbose:  # pragma: no cover
         print("[make_multilabel_classification] model '{}'".format(
             model.__class__.__name__))
     model_onnx, prefix = convert_model(model, "multi-label-classifier",
                                        [("input", FloatTensorType([None, 2]))])
-    if verbose:
+    if verbose:  # pragma: no cover
         print("[make_multilabel_classification] model was converted")
     dump_data_and_model(
         X.astype(numpy.float32), model, model_onnx, folder=folder,
@@ -578,12 +578,12 @@ def dump_multilabel_classification(
                                           n_classes=3)
     X = X[:, :2]
     model.fit(X, y)
-    if verbose:
+    if verbose:  # pragma: no cover
         print("[make_multilabel_classification] model '{}'".format(
             model.__class__.__name__))
     model_onnx, prefix = convert_model(model, "multi-class classifier",
                                        [("input", FloatTensorType([None, 2]))])
-    if verbose:
+    if verbose:  # pragma: no cover
         print("[make_multilabel_classification] model was converted")
     dump_data_and_model(
         X[:10].astype(numpy.float32), model, model_onnx, folder=folder,

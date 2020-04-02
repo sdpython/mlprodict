@@ -15,7 +15,7 @@ try:
         InvalidGraph as OrtInvalidGraph,
         Fail as OrtFail,
     )
-except ImportError:
+except ImportError:  # pragma: no cover
     OrtInvalidArgument = RuntimeError
     OrtNotImplemented = RuntimeError
     OrtInvalidGraph = RuntimeError
@@ -23,7 +23,7 @@ except ImportError:
 import skl2onnx.algebra.onnx_ops as alg
 try:
     import skl2onnx.algebra.custom_ops as alg2
-except ImportError:
+except ImportError:  # pragma: no cover
     # older version of skl2onnx
     alg2 = alg
 from ..optim.graph_schema_helper import (
@@ -90,7 +90,7 @@ class OpRunOnnxRuntime:
         if dtype == numpy.int64:
             return TensorProto.INT64  # pylint: disable=E1101
         raise RuntimeError(
-            "Unable to guess type for dtype={}.".format(dtype))
+            "Unable to guess type for dtype={}.".format(dtype))  # pragma: no cover
 
     def _init(self, variables=None):
         """
