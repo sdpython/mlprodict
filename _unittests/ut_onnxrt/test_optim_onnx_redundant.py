@@ -11,7 +11,9 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.optim import onnx_remove_node_redundant, onnx_remove_node, onnx_optimisations
+from mlprodict.onnxrt.optim import (
+    onnx_remove_node_redundant, onnx_remove_node, onnx_optimisations)
+from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestOptimOnnxRedundant(ExtTestCase):
@@ -85,13 +87,16 @@ class TestOptimOnnxRedundant(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd(OnnxIdentity('input'), 'input')
-        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
-        cdist2 = onnx_squareform_pdist(cop, dtype=numpy.float32)
+        cdist = onnx_squareform_pdist(
+            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
+        cdist2 = onnx_squareform_pdist(
+            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
         cop2 = OnnxAdd(cdist, cdist2, output_names=['cdist'])
 
         model_def = cop2.to_onnx(
             {'input': FloatTensorType()},
-            outputs=[('cdist', FloatTensorType())])
+            outputs=[('cdist', FloatTensorType())],
+            target_opset=get_opset_number_from_onnx())
         c1 = model_def.SerializeToString()
         stats = onnx_statistics(model_def, optim=False)
         c2 = model_def.SerializeToString()
@@ -125,13 +130,16 @@ class TestOptimOnnxRedundant(ExtTestCase):
     def test_onnx_remove_redundant_subgraphs_full(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         cop = OnnxAdd(OnnxIdentity('input'), 'input')
-        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
-        cdist2 = onnx_squareform_pdist(cop, dtype=numpy.float32)
+        cdist = onnx_squareform_pdist(
+            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
+        cdist2 = onnx_squareform_pdist(
+            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
         cop2 = OnnxAdd(cdist, cdist2, output_names=['cdist'])
 
         model_def = cop2.to_onnx(
             {'input': FloatTensorType()},
-            outputs=[('cdist', FloatTensorType())])
+            outputs=[('cdist', FloatTensorType())],
+            target_opset=get_opset_number_from_onnx())
         stats = onnx_statistics(model_def, optim=False)
         new_model = onnx_optimisations(model_def)
         stats2 = onnx_statistics(new_model, optim=False)

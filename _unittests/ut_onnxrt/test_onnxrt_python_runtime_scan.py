@@ -14,6 +14,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestOnnxrtPythonRuntimeScan(ExtTestCase):
@@ -28,12 +29,14 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('input', 'input')
-        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
+        cdist = onnx_squareform_pdist(
+            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
         cop2 = OnnxIdentity(cdist, output_names=['cdist'])
 
         model_def = cop2.to_onnx(
             {'input': FloatTensorType()},
-            outputs=[('cdist', FloatTensorType())])
+            outputs=[('cdist', FloatTensorType())],
+            target_opset=get_opset_number_from_onnx())
 
         sess = OnnxInference(model_def)
         res = sess.run({'input': x})
@@ -55,12 +58,14 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
         x2 = numpy.array([1.1, 2.1, 4.01, 5.01, 5.001, 4.001, 0, 0]).astype(
             numpy.float32).reshape((4, 2))
         cop = OnnxAdd('input', 'input')
-        cop2 = OnnxIdentity(onnx_cdist(cop, x2, dtype=numpy.float32),
+        cop2 = OnnxIdentity(onnx_cdist(cop, x2, dtype=numpy.float32,
+                                       op_version=get_opset_number_from_onnx()),
                             output_names=['cdist'])
 
         model_def = cop2.to_onnx(
             inputs=[('input', FloatTensorType([None, None]))],
-            outputs=[('cdist', FloatTensorType(None, None))])
+            outputs=[('cdist', FloatTensorType(None, None))],
+            target_opset=get_opset_number_from_onnx())
 
         sess = OnnxInference(model_def)
         res = sess.run({'input': x})
@@ -76,12 +81,14 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
                          [5.6, 2.9, 3.6, 1.3],
                          [6.9, 3.1, 5.1, 2.3]], dtype=numpy.float32)
         cop = OnnxAdd('input', 'input')
-        cop2 = OnnxIdentity(onnx_cdist(cop, x, dtype=numpy.float32),
+        cop2 = OnnxIdentity(onnx_cdist(cop, x, dtype=numpy.float32,
+                                       op_version=get_opset_number_from_onnx()),
                             output_names=['cdist'])
 
         model_def = cop2.to_onnx(
             inputs=[('input', FloatTensorType([None, None]))],
-            outputs=[('cdist', FloatTensorType())])
+            outputs=[('cdist', FloatTensorType())],
+            target_opset=get_opset_number_from_onnx())
 
         sess = OnnxInference(model_def)
         res = sess.run({'input': x})
@@ -100,10 +107,12 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
         X_test = X[1::2]
         # y_test = y[1::2]
         onx = OnnxIdentity(onnx_cdist(OnnxIdentity('X'), X_train.astype(numpy.float32),
-                                      metric="euclidean", dtype=numpy.float32),
+                                      metric="euclidean", dtype=numpy.float32,
+                                      op_version=get_opset_number_from_onnx()),
                            output_names=['Y'])
         final = onx.to_onnx(inputs=[('X', FloatTensorType([None, None]))],
-                            outputs=[('Y', FloatTensorType())])
+                            outputs=[('Y', FloatTensorType())],
+                            target_opset=get_opset_number_from_onnx())
 
         oinf = OnnxInference(final, runtime="python")
         res = oinf.run({'X': X_train.astype(numpy.float32)})['Y']

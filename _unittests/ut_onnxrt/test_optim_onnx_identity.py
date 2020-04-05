@@ -17,6 +17,7 @@ from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.optim import onnx_remove_node_identity
+from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestOptimOnnxIdentity(ExtTestCase):
@@ -27,12 +28,14 @@ class TestOptimOnnxIdentity(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd(OnnxIdentity('input'), 'input')
-        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
+        cdist = onnx_squareform_pdist(
+            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
         cop2 = OnnxIdentity(cdist, output_names=['cdist'])
 
         model_def = cop2.to_onnx(
             {'input': FloatTensorType()},
-            outputs=[('cdist', FloatTensorType())])
+            outputs=[('cdist', FloatTensorType())],
+            target_opset=get_opset_number_from_onnx())
         stats = onnx_statistics(model_def, optim=False)
         self.assertIn('subgraphs', stats)
         self.assertGreater(stats['subgraphs'], 1)
@@ -56,12 +59,14 @@ class TestOptimOnnxIdentity(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxIdentity('input')
-        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
+        cdist = onnx_squareform_pdist(
+            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
         cop2 = OnnxIdentity(cdist, output_names=['cdist'])
 
         model_def = cop2.to_onnx(
             {'input': FloatTensorType()},
-            outputs=[('cdist', FloatTensorType())])
+            outputs=[('cdist', FloatTensorType())],
+            target_opset=get_opset_number_from_onnx())
         stats = onnx_statistics(model_def, optim=False)
         self.assertIn('subgraphs', stats)
         self.assertGreater(stats['subgraphs'], 1)
@@ -83,12 +88,14 @@ class TestOptimOnnxIdentity(ExtTestCase):
         x2 = numpy.array([1.1, 2.1, 4.01, 5.01, 5.001, 4.001, 0, 0]).astype(
             numpy.float32).reshape((4, 2))
         cop = OnnxAdd('input', 'input')
-        cop2 = OnnxIdentity(onnx_cdist(cop, x2, dtype=numpy.float32, metric='euclidean'),
+        cop2 = OnnxIdentity(onnx_cdist(cop, x2, dtype=numpy.float32, metric='euclidean',
+                                       op_version=get_opset_number_from_onnx()),
                             output_names=['cdist'])
 
         model_def = cop2.to_onnx(
             inputs=[('input', FloatTensorType([None, None]))],
-            outputs=[('cdist', FloatTensorType())])
+            outputs=[('cdist', FloatTensorType())],
+            target_opset=get_opset_number_from_onnx())
 
         new_model = onnx_remove_node_identity(model_def)
         stats = onnx_statistics(model_def, optim=False)

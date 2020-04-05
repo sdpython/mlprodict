@@ -26,6 +26,7 @@ from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestOnnxrtSimple(ExtTestCase):
@@ -291,11 +292,13 @@ class TestOnnxrtSimple(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('input', 'input')
-        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
+        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32,
+                                      op_version=get_opset_number_from_onnx())
         cop2 = OnnxIdentity(cdist, output_names=['cdist'])
 
         model_def = cop2.to_onnx(
-            {'input': x}, outputs=[('cdist', FloatTensorType())])
+            {'input': x}, outputs=[('cdist', FloatTensorType())],
+            target_opset=get_opset_number_from_onnx())
 
         oinf = OnnxInference(model_def, skip_run=True)
         dot = oinf.to_dot(recursive=True)

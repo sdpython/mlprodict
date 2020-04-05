@@ -24,6 +24,7 @@ from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.optim.sklearn_helper import enumerate_pipeline_models, inspect_sklearn_model
 from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
 from mlprodict.onnx_conv import to_onnx
+from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestSklearnHelper(ExtTestCase):
@@ -132,12 +133,14 @@ class TestSklearnHelper(ExtTestCase):
     def test_onnx_stat_recursive(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         cop = OnnxAdd(OnnxIdentity('input'), 'input')
-        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
+        cdist = onnx_squareform_pdist(
+            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
         cop2 = OnnxIdentity(cdist, output_names=['cdist'])
 
         model_def = cop2.to_onnx(
             {'input': FloatTensorType()},
-            outputs=[('cdist', FloatTensorType())])
+            outputs=[('cdist', FloatTensorType())],
+            target_opset=get_opset_number_from_onnx())
         stats = onnx_statistics(model_def)
         self.assertIn('subgraphs', stats)
         self.assertGreater(stats['subgraphs'], 1)
