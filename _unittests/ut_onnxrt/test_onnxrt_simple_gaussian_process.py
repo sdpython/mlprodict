@@ -9,7 +9,7 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ExpSineSquared
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
@@ -38,7 +38,6 @@ class TestOnnxrtSimpleGaussianProcess(ExtTestCase):
         self.assertEqualArray(res1['GPmean'], res2['GPmean'])
         self.assertNotIn('op_type: "CDist"', str(new_model))
 
-    @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_gpr_iris_cdist(self):
         iris = load_iris()
         X, y = iris.data, iris.target

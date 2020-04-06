@@ -7,7 +7,7 @@ import warnings
 import numpy
 from pandas import DataFrame
 from scipy.spatial.distance import cdist as scipy_cdist
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.datasets import load_iris, make_regression
 from sklearn.model_selection import train_test_split
@@ -285,7 +285,6 @@ class TestOnnxConvKNN(ExtTestCase):
     def test_onnx_test_knn_single_reg32(self):
         self.onnx_test_knn_single_classreg(numpy.float32)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_test_knn_single_reg32_cdist(self):
         self.onnx_test_knn_single_classreg(numpy.float32, optim='cdist')
 
@@ -297,7 +296,6 @@ class TestOnnxConvKNN(ExtTestCase):
         self.onnx_test_knn_single_classreg(
             numpy.float32, runtime="onnxruntime1", target_opset=10)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_test_knn_single_reg32_onnxruntime2(self):
         try:
             self.onnx_test_knn_single_classreg(
@@ -380,8 +378,6 @@ class TestOnnxConvKNN(ExtTestCase):
     def test_onnx_test_knn_single_bin32(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='bin')
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
-    @unittest_require_at_least(onnxruntime, '0.5.99')
     def test_onnx_test_knn_single_bin32_onnxruntime(self):
         self.onnx_test_knn_single_classreg(
             numpy.float32, kind='bin', runtime="onnxruntime1")
@@ -454,8 +450,6 @@ class TestOnnxConvKNN(ExtTestCase):
 
     # calibrated
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
-    @unittest_require_at_least(onnxruntime, '0.5.99')
     def test_model_calibrated_classifier_cv_isotonic_binary_knn(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -474,8 +468,6 @@ class TestOnnxConvKNN(ExtTestCase):
         self.assertEqual(pred, y['output_label'])
         self.assertEqual(probs, DataFrame(y['output_probability']).values)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
-    @unittest_require_at_least(onnxruntime, '0.5.99')
     def test_model_knn_regressor_equal____(self):
         X, y = make_regression(
             n_samples=1000, n_features=100, random_state=42)

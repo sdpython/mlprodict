@@ -11,7 +11,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import VotingClassifier
 from sklearn.tree import DecisionTreeClassifier
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
@@ -24,8 +24,6 @@ class TestOnnxrtSimpleVotingClassifier(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
-    @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_iris_voting_classifier_lr_soft(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -50,8 +48,6 @@ class TestOnnxrtSimpleVotingClassifier(ExtTestCase):
         self.assertEqualArray(resp, probs)
         self.assertEqualArray(res0, res1['output_label'].ravel())
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
-    @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_iris_voting_classifier_lr_hard(self):
         iris = load_iris()
         X, y = iris.data, iris.target

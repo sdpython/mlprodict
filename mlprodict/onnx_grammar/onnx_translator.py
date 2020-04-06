@@ -418,7 +418,7 @@ class OnnxTranslator(CodeTranslator):
             return
         if kind == 'Name':
             self._get_last(
-                ('Assign', 'BinOp', 'Call', 'Return', 'FunctionDef'))
+                ('Assign', 'BinOp', 'Call', 'Return', 'FunctionDef', 'keyword'))
             return
         if kind == 'BinOp':
             self._stack.append(
@@ -538,7 +538,7 @@ class OnnxTranslator(CodeTranslator):
             return
         if kind == "Name":
             op, buf = self._get_last(
-                ('Assign', 'BinOp', 'Call', 'Return', 'FunctionDef'), info)
+                ('Assign', 'BinOp', 'Call', 'Return', 'FunctionDef', 'keyword'), info)
             if op == 'Assign':
                 buf['name'] = info['str']
                 return

@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 import skl2onnx
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
@@ -107,7 +107,6 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=3)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxrt_python_DecisionTreeClassifier_mlabel(self):
         iris = load_iris()
         X, y_ = iris.data, iris.target
@@ -184,7 +183,6 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqual(lexp.shape, y['variable'].shape)
         self.assertEqualArray(lexp, y['variable'])
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxrt_python_DecisionTreeRegressor64(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -234,7 +232,6 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                                    y64['variable'].astype(numpy.float64)))
         self.assertLesser(diff, 1e-5)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxrt_python_GradientBoostingRegressor64(self):
         iris = load_iris()
         X, y = iris.data, iris.target

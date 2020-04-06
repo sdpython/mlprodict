@@ -4,7 +4,7 @@
 import unittest
 from logging import getLogger
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -80,7 +80,6 @@ class TestRtValidateLabels(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_OneHotEncoder(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

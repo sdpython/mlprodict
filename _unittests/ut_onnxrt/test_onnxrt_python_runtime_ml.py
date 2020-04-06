@@ -13,7 +13,7 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler, Binarizer
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 import skl2onnx
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType, StringTensorType, DictionaryType
@@ -67,7 +67,6 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         self.assertEqualArray(exp, got['scores'], decimal=4)
         self.assertGreater(len(rows), 2)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxrt_python_KNeighborsClassifier(self):
         iris = load_iris()
         X, y = iris.data, iris.target

@@ -257,7 +257,10 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         """
         if context is None:
             context = {}
-        obj = compile(code, "", "exec")
+        try:
+            obj = compile(code, "", "exec")
+        except SyntaxError as e:
+            raise SyntaxError("Unable to compile\n{}".format(code)) from e
         context_g = context.copy()
         context_l = context.copy()
         exec(obj, context_g, context_l)  # pylint: disable=W0122

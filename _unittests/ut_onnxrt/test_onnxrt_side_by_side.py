@@ -7,7 +7,7 @@ from logging import getLogger
 import numpy
 import pandas
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as CK, Sum
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from onnxruntime import __version__ as ort_version
 import skl2onnx
@@ -85,7 +85,6 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertGreater(len(res), 30)
         self.assertIsInstance(res, dict)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
     @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,
                      reason="Node:Scan1 Field 'shape' of type is required but missing.")
@@ -115,7 +114,6 @@ class TestOnnxrtSideBySide(ExtTestCase):
         m2 = ker(Xtest_)
         self.assertEqualArray(m1, m2, decimal=5)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
     @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,
                      reason="Node:Scan1 Field 'shape' of type is required but missing.")

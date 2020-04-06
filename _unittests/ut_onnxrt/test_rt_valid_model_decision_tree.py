@@ -4,7 +4,7 @@
 import unittest
 from logging import getLogger
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -78,7 +78,6 @@ class TestRtValidateDecisionTree(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_DecisionTreeRegressor_python_64(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -105,7 +104,6 @@ class TestRtValidateDecisionTree(ExtTestCase):
                 "The runtime did have an issue with double\n{}".format(pprint.pformat(rows)))
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_DecisionTreeRegressor_python_100(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

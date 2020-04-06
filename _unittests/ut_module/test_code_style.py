@@ -4,14 +4,13 @@
 import os
 import unittest
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import check_pep8, ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import check_pep8, ExtTestCase
 import skl2onnx
 
 
 class TestCodeStyle(ExtTestCase):
     """Test style."""
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_style_src(self):
         thi = os.path.abspath(os.path.dirname(__file__))
         src_ = os.path.normpath(os.path.join(thi, "..", "..", "mlprodict"))
@@ -29,7 +28,6 @@ class TestCodeStyle(ExtTestCase):
                          "[E731]",
                          ])
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_style_test(self):
         thi = os.path.abspath(os.path.dirname(__file__))
         test = os.path.normpath(os.path.join(thi, "..", ))

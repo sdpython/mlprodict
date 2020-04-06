@@ -3,7 +3,7 @@
 """
 import unittest
 import numpy
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.pipeline import Pipeline, FeatureUnion
@@ -129,7 +129,6 @@ class TestSklearnHelper(ExtTestCase):
         self.assertIn('', ostats)
         self.assertIn("op_Cast", ostats)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_stat_recursive(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         cop = OnnxAdd(OnnxIdentity('input'), 'input')

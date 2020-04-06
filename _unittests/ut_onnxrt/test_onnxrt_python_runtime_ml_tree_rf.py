@@ -14,7 +14,7 @@ from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disabl
 from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import (
-    ExtTestCase, unittest_require_at_least, skipif_appveyor,
+    ExtTestCase, skipif_appveyor,
     skipif_circleci
 )
 import skl2onnx
@@ -114,7 +114,6 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             numpy.float32, full=True)
 
     @skipif_circleci('too long')
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_onnxrt_python_RandomForestRegressor_full64(self):
         self.onnxrt_python_RandomForestRegressor_dtype(

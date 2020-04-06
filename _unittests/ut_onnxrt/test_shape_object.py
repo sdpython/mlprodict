@@ -6,7 +6,7 @@ from logging import getLogger
 import numpy
 from scipy.spatial.distance import cdist as scipy_cdist
 from sklearn.datasets import load_iris
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxIdentity
@@ -253,11 +253,9 @@ class TestShapeObject(ExtTestCase):
             ev = v.evaluate(n=3)
             self.assertIn(ev, ((3, 2), (2, 2)))
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_add(self):
         self.common_test_onnxt_runtime_binary(OnnxAdd, numpy.add)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_example_cdist_bigger(self):
 
         from skl2onnx.algebra.complex_functions import onnx_cdist

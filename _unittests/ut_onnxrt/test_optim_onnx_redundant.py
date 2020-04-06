@@ -3,7 +3,7 @@
 """
 import unittest
 import numpy
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxMul, OnnxSub, OnnxIdentity
@@ -18,7 +18,6 @@ from mlprodict.tools import get_opset_number_from_onnx
 
 class TestOptimOnnxRedundant(ExtTestCase):
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_remove_redundant(self):
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
@@ -47,7 +46,6 @@ class TestOptimOnnxRedundant(ExtTestCase):
         y2 = oinf2.run({'X': x})
         self.assertEqualArray(y1['final'], y2['final'])
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_remove_two_outputs(self):
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
@@ -81,7 +79,6 @@ class TestOptimOnnxRedundant(ExtTestCase):
         self.assertEqualArray(y1['final'], y2['final'])
         self.assertEqualArray(y1['keep'], y2['keep'])
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_remove_redundant_subgraphs(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
@@ -126,7 +123,6 @@ class TestOptimOnnxRedundant(ExtTestCase):
         self.assertLess(stats3['nnodes'], stats2['nnodes'])
         self.assertLess(stats3['op_Identity'], stats2['op_Identity'])
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_remove_redundant_subgraphs_full(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         cop = OnnxAdd(OnnxIdentity('input'), 'input')

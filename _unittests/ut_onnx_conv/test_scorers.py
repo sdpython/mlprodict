@@ -6,7 +6,6 @@ import unittest
 from logging import getLogger
 from collections import OrderedDict
 import numpy
-# unittest_require_at_least
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from sklearn.metrics import make_scorer
 try:

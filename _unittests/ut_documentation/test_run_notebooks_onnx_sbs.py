@@ -13,7 +13,7 @@ from pyquickhelper.loghelper import fLOG
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from pyquickhelper.ipythonhelper import test_notebook_execution_coverage
 from pyquickhelper.pycode import (
-    add_missing_development_version, ExtTestCase, unittest_require_at_least
+    add_missing_development_version, ExtTestCase
 )
 import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
@@ -26,7 +26,6 @@ class TestNotebookOnnxSbs(ExtTestCase):
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @unittest.skipIf(compare_module_version(ort_version, "0.4.0") <= 0,
                      reason="Node:Scan1 Field 'shape' of type is required but missing.")

@@ -6,7 +6,7 @@ from logging import getLogger
 from pandas import DataFrame
 import onnx
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -18,7 +18,6 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summa
 
 class TestRtValidateGaussianProcessOptim(ExtTestCase):
 
-    @unittest_require_at_least(onnx, '1.5.29')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_GaussianProcessRegressor_python_optim(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

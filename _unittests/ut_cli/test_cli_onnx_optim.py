@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 import skl2onnx
 from pyquickhelper.loghelper import BufferedPrint
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.__main__ import main
 from mlprodict.cli import convert_validate, onnx_optim
 
@@ -23,7 +23,6 @@ class TestCliOnnxOptim(ExtTestCase):
         res = str(st)
         self.assertIn("verbose", res)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_optim(self):
         iris = load_iris()
         X, y = iris.data, iris.target

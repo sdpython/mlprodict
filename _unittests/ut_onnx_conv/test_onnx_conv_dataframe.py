@@ -7,7 +7,7 @@ from io import StringIO
 import numpy
 import pandas
 import skl2onnx
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
@@ -21,19 +21,15 @@ class TestOnnxConvDataframe(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_pipeline_dataframe_case1(self):
         self.case_test_pipeline_dataframe(1)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_pipeline_dataframe_case2(self):
         self.case_test_pipeline_dataframe(2)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_pipeline_dataframe_case3(self):
         self.case_test_pipeline_dataframe(3)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_pipeline_dataframe_case4(self):
         self.case_test_pipeline_dataframe(4)
 

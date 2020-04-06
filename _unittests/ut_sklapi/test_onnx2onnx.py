@@ -13,7 +13,7 @@ import skl2onnx
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import convert_sklearn, to_onnx
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from mlprodict.sklapi import OnnxTransformer
 from mlprodict.onnxrt import OnnxInference
 
@@ -43,7 +43,6 @@ class TestInferenceSessionOnnx2Onnx(ExtTestCase):
         skl_onx = pipe.steps[0][1].transform(X)
         self.assertEqualArray(skl_pred, skl_onx, decimal=5)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_pipeline_add(self):
         iris = load_iris()
         X, y = iris.data, iris.target

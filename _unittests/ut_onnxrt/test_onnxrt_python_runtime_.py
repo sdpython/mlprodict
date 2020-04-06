@@ -13,7 +13,7 @@ import onnx
 from onnx import TensorProto
 from onnx.helper import make_sparse_tensor, make_tensor
 from onnx.defs import onnx_opset_version
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from sklearn.utils.extmath import softmax
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -244,7 +244,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
             self.common_test_onnxt_runtime_unary(
                 OnnxAbs, numpy.abs, debug=True)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_add(self):
         self.common_test_onnxt_runtime_binary(OnnxAdd, numpy.add)
 
@@ -295,7 +294,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         sparse_support.append(('UnOp', None, OnnxArgMax.__name__))
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
-    @unittest_require_at_least(onnx, '1.6.1')
     def test_onnxt_runtime_argmax_12(self):
         self.assertGreater(onnx_opset_version(), 12)
         from skl2onnx.algebra.onnx_ops import OnnxArgMax_12  # pylint: disable=E0611
@@ -355,7 +353,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(exp, got['Y'], decimal=6)
         sparse_support.append(('UnOp', None, OnnxArgMin.__name__))
 
-    @unittest_require_at_least(onnx, '1.6.1')
     def test_onnxt_runtime_argmin_12(self):
         self.assertGreater(onnx_opset_version(), 12)
         from skl2onnx.algebra.onnx_ops import OnnxArgMin_12  # pylint: disable=E0611
@@ -410,7 +407,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                 op_version=op_version),
             lambda x: numpy.clip(x, 0.1, 2.1))
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_clip_10(self):
         from skl2onnx.algebra.onnx_ops import OnnxClip_6  # pylint: disable=E0611
         self.common_test_onnxt_runtime_unary(
@@ -473,8 +469,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
         validate_python_inference(oinfpy, {'X': x})
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
-    @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_runtime_cum_sum(self):
         from skl2onnx.algebra.onnx_ops import OnnxCumSum  # pylint: disable=E0611
 
@@ -614,8 +608,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_floor(self):
         self.common_test_onnxt_runtime_unary(OnnxFloor, numpy.floor)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
-    @unittest_require_at_least(onnx, '1.5.29')
     def test_onnxt_runtime_gather_elements(self):
         from skl2onnx.algebra.onnx_ops import OnnxGatherElements  # pylint: disable=E0611
         # ex 1
@@ -1020,7 +1012,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_sin(self):
         self.common_test_onnxt_runtime_unary(OnnxSin, numpy.sin)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_slice(self):
         x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
             numpy.float32)  # pylint: disable=E1101
@@ -1084,7 +1075,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_sum(self):
         self.common_test_onnxt_runtime_binary(OnnxSum, lambda x, y: x + y)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_topk(self):
         X = numpy.array([[0, 1, 2, 3, 4],
                          [1, -1, -2, 4, 5],
@@ -1140,7 +1130,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                           dtype=numpy.float32)
         self.assertEqualArray(exp, got['Y'])
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_topk2(self):
         X = numpy.array([[-0., -0.08000002, -2., -2.88000023]],
                         dtype=numpy.float32)

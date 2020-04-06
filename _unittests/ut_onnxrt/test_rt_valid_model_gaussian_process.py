@@ -7,7 +7,7 @@ import numpy
 from pandas import DataFrame
 import onnx
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase, skipif_circleci, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -28,7 +28,6 @@ from mlprodict.onnxrt import OnnxInference
 
 class TestRtValidateGaussianProcess(ExtTestCase):
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_kernel_rbf1(self):
         from skl2onnx.operator_converters.gaussian_process import convert_kernel
@@ -44,7 +43,6 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         m2 = ker(Xtest_)
         self.assertEqualArray(m1, m2)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_kernel_exp_sine_squared(self):
         from skl2onnx.operator_converters.gaussian_process import convert_kernel
@@ -141,8 +139,6 @@ class TestRtValidateGaussianProcess(ExtTestCase):
                {'', 'onnx'}]
         self.assertIn(set(piv['optim']), exp)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
-    @unittest_require_at_least(onnx, '1.5.29')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_GaussianProcessRegressor_debug(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -164,8 +160,6 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
-    @unittest_require_at_least(onnx, '1.5.29')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @skipif_circleci("to investigate, shape of predictions are different")
     def test_rt_GaussianProcessRegressor_debug_std(self):
@@ -209,7 +203,6 @@ class TestRtValidateGaussianProcess(ExtTestCase):
             filter_exp=lambda m, s: s == '~m-reg-std-NSV-64'))
         self.assertGreater(len(rows), 0)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_partial_float64(self):
         data = load_boston()
         X, y = data.data, data.target

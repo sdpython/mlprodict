@@ -5,7 +5,7 @@ import unittest
 from logging import getLogger
 import numpy
 from scipy.spatial.distance import squareform, pdist, cdist as scipy_cdist
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import load_iris
 import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
@@ -23,7 +23,6 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_pdist(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
@@ -50,7 +49,6 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
         res = sess.run({'input': x})
         self.assertEqual(list(res.keys()), ['cdist'])
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_example_cdist_in(self):
         from skl2onnx.algebra.complex_functions import onnx_cdist
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
@@ -95,7 +93,6 @@ class TestOnnxrtPythonRuntimeScan(ExtTestCase):
         exp = scipy_cdist(x * 2, x, metric="sqeuclidean")
         self.assertEqualArray(exp, res['cdist'], decimal=4)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_example_cdist_bigger(self):
 
         from skl2onnx.algebra.complex_functions import onnx_cdist

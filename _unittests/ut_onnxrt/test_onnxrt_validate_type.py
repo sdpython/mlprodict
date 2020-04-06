@@ -7,7 +7,7 @@ import pprint
 import numpy
 import onnx
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import get_temp_folder, ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -107,12 +107,9 @@ class TestOnnxrtValidateType(ExtTestCase):
             numpy.float32, filter_exp=lambda m, p: '-dec' in p,
             verbose=0)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_validate_sklearn_operators_float64(self):
         self.dtype_test_validate_sklearn_operators(numpy.float64)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
-    @unittest_require_at_least(onnx, '1.5.29')
     def test_validate_sklearn_operators_float64_gpr(self):
         self.dtype_test_validate_sklearn_operators(
             numpy.float64, {'GaussianProcessRegressor'})

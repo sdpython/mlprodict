@@ -5,7 +5,7 @@ import unittest
 from logging import getLogger
 import onnx
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -86,7 +86,6 @@ class TestRtValidateBatchMode(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest_require_at_least(onnx, '1.5.29')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_polynomial_python(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

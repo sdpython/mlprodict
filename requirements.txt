@@ -5,7 +5,7 @@ cpyquickhelper
 jyquickhelper
 lightgbm
 memory_profiler
-onnx>=1.6
+onnx>=1.6.0
 openpyxl
 pybind11
 py-cpuinfo

@@ -7,7 +7,7 @@ import unittest
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.ipythonhelper import test_notebook_execution_coverage
 from pyquickhelper.pycode import (
-    add_missing_development_version, ExtTestCase, unittest_require_at_least
+    add_missing_development_version, ExtTestCase
 )
 import skl2onnx
 import mlprodict
@@ -18,7 +18,6 @@ class TestNotebookTopk(ExtTestCase):
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_notebook_topk_cpp(self):
         fLOG(
             __file__,
@@ -31,7 +30,6 @@ class TestNotebookTopk(ExtTestCase):
         test_notebook_execution_coverage(__file__, "topk_cpp", folder,
                                          this_module_name="mlprodict", fLOG=fLOG)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_notebook_topk_onnx(self):
         fLOG(
             __file__,

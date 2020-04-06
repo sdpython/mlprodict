@@ -15,7 +15,7 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 import skl2onnx
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_rewritten_operators, to_onnx
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
@@ -124,7 +124,6 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqual(lexp.shape, y['variable'].shape)
         self.assertEqualArray(lexp, y['variable'], decimal=5)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVC_proba(self):
         iris = load_iris()
@@ -148,7 +147,6 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'], decimal=5)
         self.assertEqualArray(lprob, got, decimal=5)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVC_proba_20(self):
         iris = load_iris()
@@ -173,7 +171,6 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'], decimal=5)
         self.assertEqualArray(lprob, got, decimal=5)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVC_proba_double_20(self):
         iris = load_iris()
@@ -220,7 +217,6 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqualArray(lexp, y['label'], decimal=5)
         self.assertEqualArray(lprob, y['probabilities'], decimal=5)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVC_proba_bin(self):
         iris = load_iris()
@@ -245,8 +241,6 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'], decimal=5)
         self.assertEqualArray(lprob, got, decimal=5)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
-    @unittest_require_at_least(sklearn, '0.22')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_one_class_svm(self):
         X = numpy.array([[0, 1, 2], [44, 36, 18],

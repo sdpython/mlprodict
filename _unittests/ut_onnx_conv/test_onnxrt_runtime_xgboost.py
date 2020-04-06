@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_regression, make_classification
 import skl2onnx
 from xgboost import XGBRegressor, XGBClassifier  # pylint: disable=C0411
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least, skipif_circleci
+from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
 
@@ -59,7 +59,6 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
         logger.disabled = True
         register_converters()
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @skipif_circleci('stuck')
     def test_onnxrt_python_xgbregressor(self):
         nb_tests = 0

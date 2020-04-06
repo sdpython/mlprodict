@@ -16,7 +16,7 @@ except ImportError:
     from sklearn.utils.testing import ignore_warnings
 import skl2onnx
 from pyquickhelper.loghelper import BufferedPrint
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.__main__ import main
 from mlprodict.cli import convert_validate
 
@@ -29,7 +29,6 @@ class TestCliConvertValidate(ExtTestCase):
         res = str(st)
         self.assertIn("verbose", res)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ))
     def test_convert_validate(self):
         iris = load_iris()
@@ -126,7 +125,6 @@ class TestCliConvertValidate(ExtTestCase):
         self.assertIn(
             "[convert_validate] compute predictions with method 'predict_proba'", res)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ))
     def test_cli_convert_validater_float64(self):
         iris = load_iris()
@@ -155,7 +153,6 @@ class TestCliConvertValidate(ExtTestCase):
         self.assertIn(
             "[convert_validate] compute predictions with method 'predict_proba'", res)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ))
     def test_cli_convert_validater_float64_gpr(self):
         iris = load_iris()

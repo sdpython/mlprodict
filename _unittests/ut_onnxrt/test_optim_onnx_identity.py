@@ -3,7 +3,7 @@
 """
 import unittest
 import numpy
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
@@ -22,7 +22,6 @@ from mlprodict.tools import get_opset_number_from_onnx
 
 class TestOptimOnnxIdentity(ExtTestCase):
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_remove_identities(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
@@ -53,7 +52,6 @@ class TestOptimOnnxIdentity(ExtTestCase):
         self.assertEqualArray(y1, y2)
         self.assertLesser(stats2['op_Identity'], 1)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnx_remove_identities2(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(

@@ -8,7 +8,7 @@ from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import (
-    get_temp_folder, ExtTestCase, skipif_circleci, unittest_require_at_least
+    get_temp_folder, ExtTestCase, skipif_circleci
 )
 from sklearn.exceptions import ConvergenceWarning
 try:
@@ -21,7 +21,6 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 
 class TestOnnxrtValidateDumpAll(ExtTestCase):
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @skipif_circleci("too long")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_dump_all(self):

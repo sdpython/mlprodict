@@ -6,7 +6,7 @@ import unittest
 from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import get_temp_folder, ExtTestCase
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.exceptions import ConvergenceWarning
@@ -22,7 +22,6 @@ from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 
 class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_onnxruntime_KMeans(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -45,7 +44,6 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         self.assertGreater(len(rows), 1)
         # self.assertGreater(len(buffer), 1)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_onnxruntime_BernoulliNB(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -87,7 +85,6 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_onnxruntime_LogisticRegression(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
@@ -108,7 +105,6 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         self.assertGreater(len(rows), 1)
         # self.assertGreater(len(buffer), 1)
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_all_onnxruntime(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")

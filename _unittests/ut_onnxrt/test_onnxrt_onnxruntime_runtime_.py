@@ -4,7 +4,7 @@
 import unittest
 from logging import getLogger
 import numpy
-from pyquickhelper.pycode import ExtTestCase, unittest_require_at_least
+from pyquickhelper.pycode import ExtTestCase
 import skl2onnx
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnxrt import OnnxInference
@@ -17,7 +17,6 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
-    @unittest_require_at_least(skl2onnx, '1.5.9999')
     def test_onnxt_runtime_add(self):
         idi = numpy.identity(2)
         onx = OnnxAdd('X', idi, output_names=['Y'])
