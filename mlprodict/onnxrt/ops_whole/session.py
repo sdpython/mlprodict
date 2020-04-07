@@ -12,12 +12,14 @@ try:
         InvalidGraph as OrtInvalidGraph,
         InvalidArgument as OrtInvalidArgument,
         NotImplemented as OrtNotImplemented,
+        RuntimeException as OrtRuntimeException,
     )
 except ImportError:
     OrtFail = Exception
     OrtNotImplemented = RuntimeError
     OrtInvalidGraph = RuntimeError
     OrtInvalidArgument = RuntimeError
+    OrtRuntimeException = RuntimeError
 from ...tools.asv_options_helper import display_onnx
 
 
@@ -54,7 +56,7 @@ class OnnxWholeSession:
         try:
             self.sess = InferenceSession(onnx_data, sess_options=sess_options)
         except (OrtFail, OrtNotImplemented, OrtInvalidGraph,
-                OrtInvalidArgument, RuntimeError) as e:
+                OrtInvalidArgument, OrtRuntimeException, RuntimeError) as e:
             raise RuntimeError(
                 "Unable to create InferenceSession due to '{}'\n{}.".format(
                     e, display_onnx(onnx.load(BytesIO(onnx_data))))) from e
