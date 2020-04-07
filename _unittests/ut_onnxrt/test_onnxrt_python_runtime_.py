@@ -292,6 +292,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         sparse_support.append(('UnOp', None, OnnxArgMax.__name__))
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
+    @unittest.skipIf(onnx_opset_version() >= 12, reason="needs onnx 1.7.0")
     def test_onnxt_runtime_argmax_12(self):
         self.assertGreater(onnx_opset_version(), 12)
         from skl2onnx.algebra.onnx_ops import OnnxArgMax_12  # pylint: disable=E0611
@@ -351,6 +352,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(exp, got['Y'], decimal=6)
         sparse_support.append(('UnOp', None, OnnxArgMin.__name__))
 
+    @unittest.skipIf(onnx_opset_version() >= 12, reason="needs onnx 1.7.0")
     def test_onnxt_runtime_argmin_12(self):
         self.assertGreater(onnx_opset_version(), 12)
         from skl2onnx.algebra.onnx_ops import OnnxArgMin_12  # pylint: disable=E0611
