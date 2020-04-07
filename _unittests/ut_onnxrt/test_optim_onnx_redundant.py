@@ -4,7 +4,6 @@
 import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxMul, OnnxSub, OnnxIdentity
 )

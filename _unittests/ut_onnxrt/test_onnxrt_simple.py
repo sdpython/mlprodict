@@ -17,7 +17,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
-import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier,
     OnnxConstantOfShape, OnnxShape, OnnxIdentity

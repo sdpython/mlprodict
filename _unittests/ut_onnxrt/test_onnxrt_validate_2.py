@@ -4,7 +4,6 @@
 import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-import skl2onnx
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 
 

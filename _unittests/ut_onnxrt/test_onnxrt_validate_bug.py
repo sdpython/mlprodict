@@ -6,7 +6,6 @@ import unittest
 import numpy
 import onnx
 from pyquickhelper.pycode import ExtTestCase
-import skl2onnx
 from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxMatMul  # pylint: disable=E0611
 from onnxruntime import InferenceSession
 from mlprodict.onnxrt import OnnxInference

@@ -14,7 +14,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
-import skl2onnx
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType, StringTensorType
 from mlprodict.onnxrt import OnnxInference

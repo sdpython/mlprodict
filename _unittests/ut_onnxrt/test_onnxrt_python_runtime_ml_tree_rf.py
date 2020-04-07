@@ -17,7 +17,6 @@ from pyquickhelper.pycode import (
     ExtTestCase, skipif_appveyor,
     skipif_circleci
 )
-import skl2onnx
 from mlprodict.onnx_conv import to_onnx, register_rewritten_operators
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets

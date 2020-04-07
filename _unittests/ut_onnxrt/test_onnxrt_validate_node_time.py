@@ -5,7 +5,6 @@ import unittest
 from logging import getLogger
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
-import skl2onnx
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings

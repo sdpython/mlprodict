@@ -3,7 +3,6 @@
 """
 import unittest
 from logging import getLogger
-import onnx
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning

@@ -8,7 +8,6 @@ from pandas import DataFrame
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_regression, make_classification
-import skl2onnx
 from xgboost import XGBRegressor, XGBClassifier  # pylint: disable=C0411
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from mlprodict.onnxrt import OnnxInference

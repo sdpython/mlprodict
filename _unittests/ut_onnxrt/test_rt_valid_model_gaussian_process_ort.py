@@ -16,7 +16,6 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ExpSineSquared
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.common.data_types import FloatTensorType
-import skl2onnx
 from onnxruntime import __version__ as ort_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 from mlprodict.onnxrt import OnnxInference

@@ -11,7 +11,6 @@ except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
-import skl2onnx
 from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets, sklearn_operators
 from mlprodict.onnxrt.validate.validate import sklearn__all__
 from mlprodict.onnxrt import OnnxInference

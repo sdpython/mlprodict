@@ -6,7 +6,6 @@ from logging import getLogger
 from io import StringIO
 import numpy
 import pandas
-import skl2onnx
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.pipeline import Pipeline

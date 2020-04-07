@@ -5,9 +5,12 @@
 History
 =======
 
-current - 2020-03-27 - 0.00Mb
+current - 2020-04-07 - 0.00Mb
 =============================
 
+* `115`: Add a function to replay a benchmark when this one was dumped (more accurate) (2020-04-06)
+* `116`: Makes ZipMapDictionary picklable (2020-03-30)
+* `114`: Add more parameters to specify benchmark time (2020-03-30)
 * `113`: Add operators for opset 12 (2020-03-26)
 * `112`: Number of feature is wrong for problem num-tr-clus (2020-03-20)
 

@@ -9,7 +9,6 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-import skl2onnx
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference

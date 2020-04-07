@@ -5,7 +5,6 @@ import unittest
 from logging import getLogger
 import warnings
 import numpy
-import sklearn
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVR, SVC, LinearSVC, OneClassSVM
@@ -14,7 +13,6 @@ try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
-import skl2onnx
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_rewritten_operators, to_onnx

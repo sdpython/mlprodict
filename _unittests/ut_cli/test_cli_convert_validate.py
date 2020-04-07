@@ -14,7 +14,6 @@ try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
-import skl2onnx
 from pyquickhelper.loghelper import BufferedPrint
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.__main__ import main

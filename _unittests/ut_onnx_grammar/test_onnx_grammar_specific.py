@@ -5,7 +5,6 @@ import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic
-import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
 from mlprodict.onnx_grammar import translate_fct2onnx
@@ -136,7 +135,8 @@ class TestOnnxGrammarSpecific(ExtTestCase):
 
         inputs = {'X': x.astype(numpy.float32)}
         try:
-            onnx_g = r.to_onnx(inputs, target_opset=get_opset_number_from_onnx())
+            onnx_g = r.to_onnx(
+                inputs, target_opset=get_opset_number_from_onnx())
         except RuntimeError as e:
             if "Opset number 12 is higher than targeted opset 11" in str(e):
                 return
@@ -264,7 +264,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
             if "Opset number 12 is higher than targeted opset 11" in str(e):
                 return
             raise e
-            
+
         oinf = OnnxInference(onnx_g)
         res = oinf.run(inputs)
         self.assertEqualArray(exp, res['Z'])

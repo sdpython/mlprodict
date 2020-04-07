@@ -9,7 +9,6 @@ import numpy
 from scipy.sparse import coo_matrix, csr_matrix, SparseEfficiencyWarning
 from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
 from scipy.spatial.distance import cdist
-import onnx
 from onnx import TensorProto
 from onnx.helper import make_sparse_tensor, make_tensor
 from onnx.defs import onnx_opset_version
@@ -19,7 +18,6 @@ try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
-import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
     OnnxConcat,

@@ -14,7 +14,6 @@ try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
-import skl2onnx
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 

@@ -7,7 +7,6 @@ from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
-import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxIdentity, OnnxAdd
 )

@@ -10,7 +10,6 @@ try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
-import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 

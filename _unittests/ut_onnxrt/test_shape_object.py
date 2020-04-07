@@ -7,7 +7,6 @@ import numpy
 from scipy.spatial.distance import cdist as scipy_cdist
 from sklearn.datasets import load_iris
 from pyquickhelper.pycode import ExtTestCase
-import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxIdentity
 )

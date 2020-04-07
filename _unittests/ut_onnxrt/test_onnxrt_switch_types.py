@@ -12,7 +12,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from pyquickhelper.pycode import ExtTestCase
-import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnx_conv import to_onnx

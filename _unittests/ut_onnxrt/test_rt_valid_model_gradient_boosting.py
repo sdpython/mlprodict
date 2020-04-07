@@ -13,7 +13,6 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from sklearn.model_selection import train_test_split
-import skl2onnx
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.validate import sklearn_operators, enumerate_validated_operator_opsets

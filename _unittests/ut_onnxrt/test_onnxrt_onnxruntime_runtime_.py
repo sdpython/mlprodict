@@ -5,7 +5,6 @@ import unittest
 from logging import getLogger
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-import skl2onnx
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx

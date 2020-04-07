@@ -5,7 +5,6 @@ import os
 import unittest
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import check_pep8, ExtTestCase
-import skl2onnx
 
 
 class TestCodeStyle(ExtTestCase):

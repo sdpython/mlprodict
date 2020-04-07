@@ -15,7 +15,6 @@ from pyquickhelper.ipythonhelper import test_notebook_execution_coverage
 from pyquickhelper.pycode import (
     add_missing_development_version, ExtTestCase
 )
-import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from onnxruntime import __version__ as ort_version
 import mlprodict

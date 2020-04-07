@@ -10,7 +10,6 @@ from sklearn.gaussian_process.kernels import RBF, ConstantKernel as CK, Sum
 from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from onnxruntime import __version__ as ort_version
-import skl2onnx
 from skl2onnx.common.data_types import FloatTensorType
 try:
     from skl2onnx.operator_converters.gaussian_process import convert_kernel

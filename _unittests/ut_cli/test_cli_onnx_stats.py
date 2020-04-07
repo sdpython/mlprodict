@@ -8,7 +8,6 @@ import pandas
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-import skl2onnx
 from pyquickhelper.loghelper import BufferedPrint
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.__main__ import main

@@ -9,7 +9,6 @@ from sklearn.pipeline import make_pipeline
 from sklearn.decomposition import PCA
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
-import skl2onnx
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import convert_sklearn, to_onnx
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611

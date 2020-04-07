@@ -4,7 +4,6 @@
 import unittest
 from logging import getLogger
 import numpy
-import onnx
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.gaussian_process import GaussianProcessRegressor

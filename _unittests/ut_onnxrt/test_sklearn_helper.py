@@ -16,7 +16,6 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor
-import skl2onnx
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxIdentity, OnnxAdd
 )

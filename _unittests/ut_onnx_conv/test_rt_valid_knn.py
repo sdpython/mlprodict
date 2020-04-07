@@ -6,7 +6,6 @@ from logging import getLogger
 import numpy
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
-import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 from mlprodict.onnxrt.validate.validate import RuntimeBadResultsError

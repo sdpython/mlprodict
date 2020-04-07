@@ -10,7 +10,6 @@ from pyquickhelper.pycode import (
     add_missing_development_version, ExtTestCase,
     skipif_circleci
 )
-import skl2onnx
 import mlprodict
 
 

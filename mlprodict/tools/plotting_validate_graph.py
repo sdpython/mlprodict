@@ -82,6 +82,9 @@ def plot_validate_benchmark(df):
         raise RuntimeError("Unable to find the following columns {}\nin {}".format(
             indices + values, df.columns)) from e
 
+    if 'RT/SKL-N=1' not in df.columns:
+        raise RuntimeError(
+            "Column 'RT/SKL-N=1' is missing, benchmark was probably not run.")
     na = df["RT/SKL-N=1"].isnull()
     dfp = df[~na]
     runtimes = list(sorted(set(dfp['runtime'])))

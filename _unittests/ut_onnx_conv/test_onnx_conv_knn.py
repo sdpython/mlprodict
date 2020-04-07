@@ -18,7 +18,6 @@ try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
-import onnxruntime
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxIdentity

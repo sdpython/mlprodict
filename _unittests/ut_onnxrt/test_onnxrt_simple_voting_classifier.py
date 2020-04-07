@@ -5,14 +5,12 @@ import unittest
 from logging import getLogger
 import numpy
 from pandas import DataFrame
-import onnx
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import VotingClassifier
 from sklearn.tree import DecisionTreeClassifier
 from pyquickhelper.pycode import ExtTestCase
-import skl2onnx
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference

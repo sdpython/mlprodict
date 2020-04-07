@@ -9,7 +9,6 @@ from lightgbm import LGBMClassifier, Dataset, train as lgb_train
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-import skl2onnx
 from skl2onnx.common.data_types import (
     StringTensorType, FloatTensorType, Int64TensorType,
     BooleanTensorType
