@@ -61,6 +61,8 @@ class TestInferenceSessionSklearn(ExtTestCase):
         res = tr.transform(x)
         exp = np.array([[1., 4.], [9., 16.], [25., 36.]], dtype=np.float32)
         self.assertEqual(list(res.ravel()), list(exp.ravel()))
+        dom = tr.opsets
+        self.assertIsInstance(dom, dict)
 
     def test_transform_dataframe(self):
         x = pandas.DataFrame(data=[[1.0], [3.0], [5.0]])

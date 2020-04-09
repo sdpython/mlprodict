@@ -297,4 +297,23 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                 tensor.name = name_mapping[o.name]
                 container.initializers.append(tensor)
 
+            # opset
+            for oimp in op.onnxrt_.obj.opset_import:
+                container.node_domain_version_pair_sets.add(
+                    (oimp.domain, oimp.version))
+
         return converter
+
+    @property
+    def opsets(self):
+        """
+        Returns the opsets as dictionary ``{domain: opset}``.
+        """
+        if hasattr(self, 'onnxrt_'):
+            model = self.onnxrt_.obj
+        else:
+            model = load_onnx_model(self.onnx_bytes)
+        res = {}
+        for oimp in model.opset_import:
+            res[oimp.domain] = oimp.version
+        return res
