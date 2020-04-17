@@ -126,21 +126,45 @@ py::array_t<int64_t> array_feature_extractor_int64(
 // begin: topk
 /////////////////////////////////////////////
 
-template<typename NTYPE>
-void _heapify_max_up_position(const NTYPE* ens, int64_t* pos, ssize_t i, ssize_t k) {
-    ssize_t left, right;
+
+template <typename NTYPE>
+struct HeapMax {
+    using DataType = NTYPE;
+    bool cmp1(const NTYPE& v1, const NTYPE& v2) const { return v1 > v2; }
+    bool cmp(int64_t i1, int64_t i2, const NTYPE* ens, const int64_t* pos) const {
+        return (ens[pos[i1]] < ens[pos[i2]]) ||
+               ((pos[i1] > pos[i2]) && (ens[pos[i1]] == ens[pos[i2]]));
+    }
+};
+
+
+template <typename NTYPE>
+struct HeapMin {
+    using DataType = NTYPE;
+    bool cmp1(const NTYPE& v1, const NTYPE& v2) const { return v1 < v2; }
+    bool cmp(int64_t i1, int64_t i2, const NTYPE* ens, const int64_t* pos) const {
+        return (ens[pos[i1]] > ens[pos[i2]]) ||
+               ((pos[i1] > pos[i2]) && (ens[pos[i1]] == ens[pos[i2]]));
+    }
+};
+
+
+template <class HeapCmp>
+void _heapify_up_position(const typename HeapCmp::DataType* ens, int64_t* pos,
+                          size_t i, size_t k, const HeapCmp& heap_cmp) {
+    size_t left, right;
     int64_t ch;
-    while(true) {
+    while (true) {
         left = 2 * i + 1;
         right = left + 1;
         if (right < k) {
-            if ((ens[pos[left]] > ens[pos[i]]) && (ens[pos[left]] >= ens[pos[right]])) {
+            if (heap_cmp.cmp(left, i, ens, pos) && !heap_cmp.cmp1(ens[pos[left]], ens[pos[right]])) {
                 ch = pos[i];
                 pos[i] = pos[left];
                 pos[left] = ch;
                 i = left;
             }
-            else if (ens[pos[right]] > ens[pos[i]]) {
+            else if (heap_cmp.cmp(right, i, ens, pos)) {
                 ch = pos[i];
                 pos[i] = pos[right];
                 pos[right] = ch;
@@ -149,7 +173,7 @@ void _heapify_max_up_position(const NTYPE* ens, int64_t* pos, ssize_t i, ssize_t
             else
                 break;
         }
-        else if ((left < k) && (ens[pos[left]] > ens[pos[i]])) {
+        else if ((left < k) && heap_cmp.cmp(left, i, ens, pos)) {
             ch = pos[i];
             pos[i] = pos[left];
             pos[left] = ch;
@@ -161,78 +185,43 @@ void _heapify_max_up_position(const NTYPE* ens, int64_t* pos, ssize_t i, ssize_t
 }
 
 
-template<typename NTYPE>
-void _heapify_min_up_position(const NTYPE* ens, int64_t* pos, ssize_t i, ssize_t k) {
-    ssize_t left, right;
-    int64_t ch;
-    while(true) {
-        left = 2 * i + 1;
-        right = left + 1;
-        if (right < k) {
-            if ((ens[pos[left]] < ens[pos[i]]) && (ens[pos[left]] <= ens[pos[right]])) {
-                ch = pos[i];
-                pos[i] = pos[left];
-                pos[left] = ch;
-                i = left;
-            }
-            else if (ens[pos[right]] < ens[pos[i]]) {
-                ch = pos[i];
-                pos[i] = pos[right];
-                pos[right] = ch;
-                i = right;
-            }
-            else
-                break;
-        }
-        else if ((left < k) && (ens[pos[left]] < ens[pos[i]])) {
-            ch = pos[i];
-            pos[i] = pos[left];
-            pos[left] = ch;
-            i = left;
-        }
-        else
-            break;
-    }
-}
-
-
-template<typename NTYPE>
-void topk_element_min(const NTYPE* values, ssize_t k, ssize_t n,
-                      int64_t * indices, bool sorted) {
+template <class HeapCmp>
+void _topk_element(const typename HeapCmp::DataType* values, size_t k, size_t n,
+                   int64_t* indices, bool sorted, const HeapCmp& heap_cmp) {
     if (n <= k && !sorted) {
-        for(ssize_t i = 0; i < n; ++i, ++indices)
-            *indices = i;
-    }
+        for (size_t i = 0; i < n; ++i, ++indices)
+        *indices = i;
+    } 
     else if (k == 1) {
         auto begin = values;
         auto end = values + n;
         *indices = 0;
-        for(++values; values != end; ++values)
-            *indices = *values < begin[*indices] ? ((int64_t)(values - begin)) : *indices;
-    }
+        for (++values; values != end; ++values)
+            *indices = heap_cmp.cmp1(*values, begin[*indices]) ? ((int64_t)(values - begin)) : *indices;
+    } 
     else {
-        indices[k-1] = 0;
-    
-        ssize_t i = 0;
-        for(; i < k; ++i) {
-            indices[k-i-1] = i;
-            _heapify_max_up_position(values, indices, k-i-1, k);
+        indices[k - 1] = 0;
+
+        size_t i = 0;
+        for (; i < k; ++i) {
+            indices[k - i - 1] = i;
+            _heapify_up_position(values, indices, k - i - 1, k, heap_cmp);
         }
-        for(; i < n; ++i) {
-            if (values[i] < values[indices[0]]) {
+        for (; i < n; ++i) {
+            if (heap_cmp.cmp1(values[i], values[indices[0]])) {
                 indices[0] = i;
-                _heapify_max_up_position(values, indices, 0, k);
+                _heapify_up_position(values, indices, 0, k, heap_cmp);
             }
         }
         if (sorted) {
             int64_t ech;
-            i = k-1;
+            i = k - 1;
             ech = indices[0];
             indices[0] = indices[i];
             indices[i] = ech;
             --i;
-            for(; i > 0; --i) {
-                _heapify_max_up_position(values, indices, 0, i+1);
+            for (; i > 0; --i) {
+                _heapify_up_position(values, indices, 0, i + 1, heap_cmp);
                 ech = indices[0];
                 indices[0] = indices[i];
                 indices[i] = ech;
@@ -242,99 +231,63 @@ void topk_element_min(const NTYPE* values, ssize_t k, ssize_t n,
 }
 
 
-template<typename NTYPE>
-void topk_element_max(const NTYPE* values, ssize_t k, ssize_t n,
-                      int64_t * indices, bool sorted) {
-    if (n <= k && !sorted) {
-        for(ssize_t i = 0; i < n; ++i, ++indices)
-            *indices = i;
-    }
-    else if (k == 1) {
-        auto begin = values;
-        auto end = values + n;
-        *indices = 0;
-        for(++values; values != end; ++values)
-            *indices = *values > begin[*indices] ? ((int64_t)(values - begin)) : *indices;
+template <class HeapCmp>
+void _topk_element_ptr(int64_t* pos, size_t k, const typename HeapCmp::DataType* values,
+                       const std::vector<int64_t>& shape, bool sorted, ssize_t th_parallel) {
+    HeapCmp heap_cmp;
+    if (shape.size() == 1) {
+        _topk_element(values, k, shape[0], pos, sorted, heap_cmp);
     }
     else {
-        indices[k-1] = 0;
-    
-        ssize_t i = 0;
-        for(; i < k; ++i) {
-            indices[k-i-1] = i;
-            _heapify_min_up_position(values, indices, k-i-1, k);
-        }
-        for(; i < n; ++i) {
-            if (values[i] > values[indices[0]]) {
-                indices[0] = i;
-                _heapify_min_up_position(values, indices, 0, k);
-            }
-        }
-        if (sorted) {
-            int64_t ech;
-            i = k-1;
-            ech = indices[0];
-            indices[0] = indices[i];
-            indices[i] = ech;
-            --i;
-            for(; i > 0; --i) {
-                _heapify_min_up_position(values, indices, 0, i+1);
-                ech = indices[0];
-                indices[0] = indices[i];
-                indices[i] = ech;
-            }
-        }
-    }
-}
+        auto vdim = shape[shape.size() - 1];
+        auto ptr = pos;
 
-template<typename NTYPE, typename FCTYPE>
-py::array_t<int64_t> topk_element(
-        py::array_t<NTYPE, py::array::c_style | py::array::forcecast> values,
-        ssize_t k, bool sorted, FCTYPE *fct, ssize_t th_parallel) {
-    if (values.ndim() == 1) {
-        std::vector<int64_t> pos(k);
-        (*fct)(values.data(), k, values.size(), pos.data(), sorted);
-
-        return py::array_t<int64_t>(
-            py::buffer_info(
-                &pos[0],
-                sizeof(int64_t),
-                py::format_descriptor<int64_t>::format(),
-                1,
-                {k, },
-                {sizeof(int64_t), }
-            )); 
-    }
-    else {
-        std::vector<int64_t> shape;
-        arrayshape2vector(shape, values);
-        auto tdim = flattened_dimension(shape);
-        auto vdim = shape[shape.size()-1];
-        const NTYPE* data = values.data();
-        const NTYPE* end = data + tdim;
-        
-        shape[shape.size()-1] = k;
-        // auto fdim = flattened_dimension(shape);
-        std::vector<int64_t> strides;
-        shape2strides(shape, strides, (int64_t)0);
-        auto result = py::array_t<int64_t>(shape, strides);
-        py::buffer_info buf = result.request();
-        int64_t * ptr = (int64_t*) buf.ptr;
-        int64_t nrows = tdim / vdim;
-        if (nrows <= th_parallel) {
-            for(; data != end; data += vdim, ptr += k)
-                (*fct)(data, k, vdim, ptr, sorted);
-        }
+        if (shape[0] <= th_parallel) {
+            auto tdim = flattened_dimension(shape);
+            const typename HeapCmp::DataType* data = values;
+            const typename HeapCmp::DataType* end = data + tdim;
+            for (; data != end; data += vdim, ptr += k)
+                _topk_element(data, k, vdim, ptr, sorted, heap_cmp);
+        } 
         else {
             // parallelisation
+            const typename HeapCmp::DataType* data = values;
             #ifdef USE_OPENMP
             #pragma omp parallel for
             #endif
-            for(int64_t nr = 0; nr < nrows; ++nr)
-                (*fct)(data + nr * vdim, k, vdim, ptr + nr * k, sorted);
+            for (int64_t nr = 0; nr < shape[0]; ++nr)
+                _topk_element(data + nr * vdim, k, vdim, ptr + nr * k, sorted, heap_cmp);
         }
-        return result;
     }
+}
+
+
+template<class HeapCmp>
+py::array_t<int64_t> topk_element(
+        py::array_t<typename HeapCmp::DataType, py::array::c_style | py::array::forcecast> values,
+        ssize_t k, bool sorted, ssize_t th_para) {
+    std::vector<int64_t> shape_val;
+    arrayshape2vector(shape_val, values);
+
+    std::vector<int64_t> shape_ind(shape_val.size());
+    if (shape_ind.size() == 2) {
+        shape_ind[0] = shape_val[0];
+        shape_ind[1] = k;
+    }
+    else {
+        shape_ind[0] = k;
+    }
+
+    std::vector<int64_t> strides;
+    shape2strides(shape_ind, strides, (int64_t)0);
+
+    auto result = py::array_t<int64_t>(shape_ind, strides);
+    py::buffer_info buf = result.request();
+    int64_t* pos = (int64_t*) buf.ptr;
+    const typename HeapCmp::DataType* data_val = values.data();
+            
+    _topk_element_ptr<HeapCmp>(pos, k, data_val, shape_val, sorted, th_para);
+    return result;
 }
 
 
@@ -371,46 +324,45 @@ py::array_t<NTYPE> topk_element_fetch(
 }
 
 
-
 py::array_t<int64_t> topk_element_min_int64(
         py::array_t<int64_t, py::array::c_style | py::array::forcecast> values,
         ssize_t k, bool sorted, ssize_t th_para) {
-    return topk_element(values, k, sorted, &topk_element_min<int64_t>, th_para);
+    return topk_element<HeapMin<int64_t>>(values, k, sorted, th_para);
 }
 
 
 py::array_t<int64_t> topk_element_min_float(
         py::array_t<float, py::array::c_style | py::array::forcecast> values,
         ssize_t k, bool sorted, ssize_t th_para) {
-    return topk_element(values, k, sorted, &topk_element_min<float>, th_para);
+    return topk_element<HeapMin<float>>(values, k, sorted, th_para);
 }
 
 
 py::array_t<int64_t> topk_element_min_double(
         py::array_t<double, py::array::c_style | py::array::forcecast> values,
         ssize_t k, bool sorted, ssize_t th_para) {
-    return topk_element(values, k, sorted, &topk_element_min<double>, th_para);
+    return topk_element<HeapMin<double>>(values, k, sorted, th_para);
 }
 
 
 py::array_t<int64_t> topk_element_max_int64(
         py::array_t<int64_t, py::array::c_style | py::array::forcecast> values,
         ssize_t k, bool sorted, ssize_t th_para) {
-    return topk_element(values, k, sorted, &topk_element_max<int64_t>, th_para);
+    return topk_element<HeapMax<int64_t>>(values, k, sorted, th_para);
 }
 
 
 py::array_t<int64_t> topk_element_max_float(
         py::array_t<float, py::array::c_style | py::array::forcecast> values,
         ssize_t k, bool sorted, ssize_t th_para) {
-    return topk_element(values, k, sorted, &topk_element_max<float>, th_para);
+    return topk_element<HeapMax<float>>(values, k, sorted, th_para);
 }
 
 
 py::array_t<int64_t> topk_element_max_double(
         py::array_t<double, py::array::c_style | py::array::forcecast> values,
         ssize_t k, bool sorted, ssize_t th_para) {
-    return topk_element(values, k, sorted, &topk_element_max<double>, th_para);
+    return topk_element<HeapMax<double>>(values, k, sorted, th_para);
 }
 
 
