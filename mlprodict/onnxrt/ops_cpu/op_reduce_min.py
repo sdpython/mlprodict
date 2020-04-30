@@ -25,5 +25,5 @@ class ReduceMin(OpRunUnaryNum):
 
     def _run(self, data):  # pylint: disable=W0221
         axes = tuple(self.axes) if self.axes else None
-        return (numpy.minimum.reduce(data, axis=axes,
+        return (numpy.minimum.reduce(data, axis=axes,  # pylint: disable=E1123
                                      keepdims=self.keepdims == 1), )

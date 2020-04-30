@@ -3,7 +3,6 @@
 """
 import os
 import unittest
-import re
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.texthelper.version_helper import compare_module_version
 import sklearn
@@ -23,7 +22,6 @@ class TestCreateAsvBenchmarkHistGBC(ExtTestCase):
             models={'HistGradientBoostingClassifier'})
         self.assertNotEmpty(created)
 
-        reg = re.compile("class ([a-zA-Z0-9_]+)[(]")
         verif = False
         allnames = []
         for path, _, files in os.walk(os.path.join(temp, 'benches')):

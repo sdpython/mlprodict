@@ -468,7 +468,7 @@ class TestOnnxConvKNN(ExtTestCase):
         self.assertEqual(probs, DataFrame(y['output_probability']).values)
 
     def test_model_knn_regressor_equal____(self):
-        X, y = make_regression(
+        X, y = make_regression(  # pylint: disable=W0632
             n_samples=1000, n_features=100, random_state=42)
         X = X.astype(numpy.int64)
         X_train, X_test, y_train, _ = train_test_split(

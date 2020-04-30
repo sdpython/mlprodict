@@ -72,7 +72,7 @@ class TestLONGSklearnExample(ExtTestCase):
             fold = os.path.join(os.path.dirname(__file__), data)
             if not os.path.exists(fold):
                 continue
-            for ind_root, (root, dirs, files) in enumerate(os.walk(fold)):
+            for ind_root, (root, _, files) in enumerate(os.walk(fold)):
                 last = os.path.split(root)[-1]
                 if last in TestLONGSklearnExample.skipped_folder:
                     continue

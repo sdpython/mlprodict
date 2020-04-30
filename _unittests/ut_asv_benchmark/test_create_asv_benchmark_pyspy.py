@@ -3,7 +3,6 @@
 """
 import os
 import unittest
-import re
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.texthelper.version_helper import compare_module_version
 import sklearn
@@ -25,7 +24,6 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
             add_pyspy=True)
         self.assertNotEmpty(created)
 
-        reg = re.compile("class ([a-zA-Z0-9_]+)[(]")
         ops = get_opset_number_from_onnx()
         verif = False
         allnames = []
@@ -58,7 +56,6 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
             add_pyspy=True)
         self.assertNotEmpty(created)
 
-        reg = re.compile("class ([a-zA-Z0-9_]+)[(]")
         ops = get_opset_number_from_onnx()
         verif = False
         allnames = []

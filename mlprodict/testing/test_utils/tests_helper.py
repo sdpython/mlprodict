@@ -89,7 +89,7 @@ def fit_multilabel_classification_model(model, n_classes=5, n_labels=2,
     """
     Fits a classification model.
     """
-    X, y = make_multilabel_classification(
+    X, y = make_multilabel_classification(  # pylint: disable=W0632
         n_classes=n_classes, n_labels=n_labels, n_features=n_features,
         n_samples=n_samples, random_state=42)
     X = X.astype(numpy.int64) if is_int else X.astype(numpy.float32)
@@ -103,7 +103,7 @@ def fit_regression_model(model, is_int=False, n_targets=1):
     """
     Fits a regression model.
     """
-    X, y = make_regression(n_features=10, n_samples=1000,
+    X, y = make_regression(n_features=10, n_samples=1000,  # pylint: disable=W0632
                            n_targets=n_targets, random_state=42)
     X = X.astype(numpy.int64) if is_int else X.astype(numpy.float32)
     X_train, X_test, y_train, _ = train_test_split(X, y, test_size=0.5,
@@ -574,7 +574,7 @@ def dump_multilabel_classification(
         verbose=verbose, comparable_outputs=comparable_outputs,
         backend=backend)
 
-    X, y = make_multilabel_classification(40, n_features=4, random_state=42,
+    X, y = make_multilabel_classification(40, n_features=4, random_state=42,  # pylint: disable=W0632
                                           n_classes=3)
     X = X[:, :2]
     model.fit(X, y)

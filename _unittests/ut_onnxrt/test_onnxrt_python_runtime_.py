@@ -828,7 +828,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.maximum.reduce(X, keepdims=False, axis=None),  # pylint: disable=E1101
+        self.assertEqualArray(numpy.maximum.reduce(X, keepdims=False, axis=None),  # pylint: disable=E1101,E1123
                               got['Y'], decimal=6)
 
         onx = OnnxReduceMax('X', output_names=['Y'], axes=[1])
@@ -844,7 +844,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.maximum.reduce(X, axis=1, keepdims=1).ravel(),  # pylint: disable=E1101
+        self.assertEqualArray(numpy.maximum.reduce(X, axis=1, keepdims=1).ravel(),  # pylint: disable=E1101,E1123
                               got['Y'].ravel())
 
     def test_onnxt_runtime_reduce_mean(self):
@@ -881,7 +881,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.minimum.reduce(X, keepdims=False, axis=None),  # pylint: disable=E1101
+        self.assertEqualArray(numpy.minimum.reduce(X, keepdims=False, axis=None),  # pylint: disable=E1101,E1123
                               got['Y'], decimal=6)
 
         onx = OnnxReduceMin('X', output_names=['Y'], axes=[1])
@@ -897,7 +897,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.minimum.reduce(X, axis=1, keepdims=1).ravel(),  # pylint: disable=E1101
+        self.assertEqualArray(numpy.minimum.reduce(X, axis=1, keepdims=1).ravel(),  # pylint: disable=E1101,E1123
                               got['Y'].ravel())
 
     def test_onnxt_runtime_reduce_prod(self):
@@ -1408,7 +1408,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
             oinf = OnnxInference(model_def)
         except RuntimeError as e:
             raise RuntimeError(
-                "Unable to load the model:\n{}".format(model_def))
+                "Unable to load the model:\n{}".format(model_def)) from e
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Ad_C0', 'Co_output0'])
         self.assertEqualArray(X * 2, got['Ad_C0'])

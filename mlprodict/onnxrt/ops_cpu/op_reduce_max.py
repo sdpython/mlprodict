@@ -25,5 +25,5 @@ class ReduceMax(OpRunUnaryNum):
 
     def _run(self, data):  # pylint: disable=W0221
         axes = tuple(self.axes) if self.axes else None
-        return (numpy.maximum.reduce(data, axis=axes,
+        return (numpy.maximum.reduce(data, axis=axes,  # pylint: disable=E1123
                                      keepdims=self.keepdims == 1), )

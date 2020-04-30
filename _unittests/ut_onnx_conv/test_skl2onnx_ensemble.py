@@ -66,7 +66,7 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
 
     def common_test_model_hgb_regressor(self, add_nan=False):
         model = HistGradientBoostingRegressor(max_iter=5, max_depth=2)
-        X, y = make_regression(n_features=10, n_samples=1000,
+        X, y = make_regression(n_features=10, n_samples=1000,  # pylint: disable=W0632
                                n_targets=1, random_state=42)
         if add_nan:
             rows = numpy.random.randint(0, X.shape[0] - 1, X.shape[0] // 3)

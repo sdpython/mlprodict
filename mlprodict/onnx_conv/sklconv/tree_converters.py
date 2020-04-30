@@ -26,7 +26,8 @@ from skl2onnx.operator_converters.decision_tree import populate_tree_attributes
 from skl2onnx.common.utils_classifier import get_label_classes
 
 
-def predict(model, scope, operator, container, op_type, is_ensemble=False):
+def predict(model, scope, operator, container, op_type,
+            op_domain, is_ensemble=False):
     """Predict target and calculate probability scores."""
     indices_name = scope.get_unique_variable_name('indices')
     dummy_proba_name = scope.get_unique_variable_name('dummy_proba')
@@ -48,7 +49,7 @@ def predict(model, scope, operator, container, op_type, is_ensemble=False):
         container.add_node(
             op_type, operator.input_full_names,
             [indices_name, dummy_proba_name],
-            op_domain='ai.onnx.ml', **attrs)
+            op_domain=op_domain, **attrs)
     else:
         zero_name = scope.get_unique_variable_name('zero')
         zero_matrix_name = scope.get_unique_variable_name('zero_matrix')
@@ -259,7 +260,7 @@ def convert_sklearn_random_forest_regressor_converter(scope, operator, container
 
     container.add_node(
         op_type, input_name,
-        operator.output_full_names, op_domain='ai.onnx.ml', **attrs)
+        operator.output_full_names, op_domain=op_domain, **attrs)
 
 
 def convert_sklearn_random_forest_classifier(scope, operator, container):
@@ -373,7 +374,7 @@ def convert_sklearn_random_forest_classifier(scope, operator, container):
             op_type, operator.input_full_names,
             [operator.outputs[0].full_name,
              operator.outputs[1].full_name],
-            op_domain='ai.onnx.ml', **attr_pairs)
+            op_domain=op_domain, **attr_pairs)
     else:
         if use_raw_scores:
             raise RuntimeError(
@@ -385,8 +386,8 @@ def convert_sklearn_random_forest_classifier(scope, operator, container):
         for est in op.estimators_:
             reshaped_est_proba_name = scope.get_unique_variable_name(
                 'reshaped_est_proba')
-            est_proba = predict(
-                est, scope, operator, container, op_type, is_ensemble=True)
+            est_proba = predict(est, scope, operator, container,
+                                op_type, op_domain, is_ensemble=True)
             apply_reshape(
                 scope, est_proba, reshaped_est_proba_name, container,
                 desired_shape=(
