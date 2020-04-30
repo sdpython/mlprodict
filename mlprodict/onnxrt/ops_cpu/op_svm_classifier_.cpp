@@ -46,11 +46,10 @@ class RuntimeSVMClassifier : public RuntimeSVMCommon<NTYPE>
 
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                               const py::array_t<NTYPE>& X, py::array_t<int64_t>& Y,
-                              py::array_t<NTYPE>& Z) const;
+                              py::array_t<NTYPE>& Z, int64_t z_stride) const;
 
-        void compute_gil_free_loop(int64_t n, const NTYPE * x_data, 
-                                   int64_t* y_data, NTYPE * z_data,
-                                   int64_t stride) const;
+        void compute_gil_free_loop(const NTYPE * x_data, 
+                                   int64_t* y_data, NTYPE * z_data) const;
 };
 
 
@@ -180,7 +179,7 @@ py::tuple RuntimeSVMClassifier<NTYPE>::compute(py::array_t<NTYPE> X) const {
     py::array_t<NTYPE> Z(N * nb_columns); // one target only
     {
         py::gil_scoped_release release;
-        compute_gil_free(x_dims, N, stride, X, Y, Z);
+        compute_gil_free(x_dims, N, stride, X, Y, Z, nb_columns);
     }
     return py::make_tuple(Y, Z);
 }
@@ -254,10 +253,7 @@ void multiclass_probability(int64_t classcount, const std::vector<NTYPE>& r,
 
 template<typename NTYPE>
 void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
-        int64_t n, const NTYPE * x_data, int64_t* y_data, NTYPE * z_data,
-        int64_t stride) const {
-    int64_t zindex = n * class_count_;
-    int64_t current_weight_0 = n * stride;
+        const NTYPE * x_data, int64_t* y_data, NTYPE * z_data) const {
     int64_t maxclass = -1;
     std::vector<NTYPE> decisions;
     std::vector<NTYPE> scores;
@@ -267,10 +263,10 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
     if (this->vector_count_ == 0 && this->mode_ == SVM_TYPE::SVM_LINEAR) {
         scores.resize(class_count_);
         for (int64_t j = 0; j < class_count_; j++) {  //for each class
-            scores[j] = this->rho_[0] + this->kernel_dot_gil_free(x_data, current_weight_0,
-                                         this->coefficients_,
-                                         this->feature_count_ * j,
-                                         this->feature_count_, this->kernel_type_);
+            scores[j] = this->rho_[0] + this->kernel_dot_gil_free(
+                x_data, 0,
+                this->coefficients_, this->feature_count_ * j,
+                this->feature_count_, this->kernel_type_);
         }
     } 
     else {
@@ -280,11 +276,13 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
        
         kernels.resize(this->vector_count_);
         for (int64_t j = 0; j < this->vector_count_; j++) {
-            kernels[j] = this->kernel_dot_gil_free(x_data, current_weight_0, this->support_vectors_,
-                                           this->feature_count_ * j,
-                                           this->feature_count_, this->kernel_type_);
+            kernels[j] = this->kernel_dot_gil_free(
+                x_data, 0,
+                this->support_vectors_, this->feature_count_ * j,
+                this->feature_count_, this->kernel_type_);
         }
         votes.resize(class_count_, 0);
+        scores.reserve(class_count_ * (class_count_ - 1) / 2);
         for (int64_t i = 0; i < class_count_; i++) {        // for each class
             int64_t start_index_i = starting_vector_[i];  // *feature_count_;
             int64_t class_i_support_count = vectors_per_class_[i];
@@ -353,17 +351,17 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
     int write_additional_scores = -1;
     if (this->rho_.size() == 1) {
         write_additional_scores = _set_score_svm(
-            y_data, max_weight, maxclass, n, this->post_transform_, proba_,
+            y_data, max_weight, maxclass, 0, this->post_transform_, proba_,
             weights_are_all_positive_, classlabels_ints_, 1, 0);
     } 
     else if (classlabels_ints_.size() > 0) {  //multiclass
-        y_data[n] = classlabels_ints_[maxclass];
+        *y_data = classlabels_ints_[maxclass];
     } 
     else {
-        y_data[n] = maxclass;
+        *y_data = maxclass;
     }
 
-    write_scores(scores, this->post_transform_, z_data + zindex, write_additional_scores);
+    write_scores(scores, this->post_transform_, z_data, write_additional_scores);
 }
 
 
@@ -371,7 +369,8 @@ template<typename NTYPE>
 void RuntimeSVMClassifier<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                 const py::array_t<NTYPE>& X,
-                py::array_t<int64_t>& Y, py::array_t<NTYPE>& Z) const {
+                py::array_t<int64_t>& Y, py::array_t<NTYPE>& Z,
+                int64_t z_stride) const {
     auto Y_ = Y.mutable_unchecked<1>();
     auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
     const NTYPE* x_data = X.data(0);
@@ -379,17 +378,19 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free(
     NTYPE* z_data = (NTYPE*)Z_.data(0);  
 
     if (N <= this->omp_N_) {
-        for (int64_t n = 0; n < N; ++n) {
-            compute_gil_free_loop(n, x_data, y_data, z_data, stride);
-        }
+        for (int64_t n = 0; n < N; ++n)
+            compute_gil_free_loop(x_data + n * x_dims[1],
+                                  y_data + n,
+                                  z_data + z_stride * n);
     }
     else {
         #ifdef USE_OPENMP
         #pragma omp parallel for
         #endif
-        for (int64_t n = 0; n < N; ++n) {
-            compute_gil_free_loop(n, x_data, y_data, z_data, stride);
-        }
+        for (int64_t n = 0; n < N; ++n)
+            compute_gil_free_loop(x_data + n * x_dims[1],
+                                  y_data + n,
+                                  z_data + z_stride * n);
     }
 }
 
