@@ -6,7 +6,68 @@ readable :epgk:`python` objects.
 import warnings
 import numpy
 from scipy.sparse import coo_matrix
-from onnx import onnx_pb as onnx_proto
+from onnx import onnx_pb as onnx_proto, TensorProto
+from onnx.numpy_helper import to_array, from_array
+
+
+def to_bytes(val):
+    """
+    Converts an array into protobuf and then into bytes.
+
+    @param      val     array
+    @return             bytes
+
+    .. exref::
+        :title: Converts an array into bytes (serialization)
+
+        Useful to serialize.
+
+        .. runpython::
+            :showcode:
+
+            import numpy
+            from mlprodict.onnxrt.onnx2py_helper import to_bytes
+
+            data = numpy.array([[0, 1], [2, 3], [4, 5]], dtype=numpy.float32)
+            pb = to_bytes(data)
+            print(len(pb), data.size * data.itemsize, pb[:10])
+    """
+    if isinstance(val, numpy.ndarray):
+        pb = from_array(val)
+    else:
+        pb = val
+    return pb.SerializeToString()
+
+
+def from_bytes(b):
+    """
+    Retrieves an array from bytes then protobuf.
+
+    @param      b       bytes
+    @return             array
+
+    .. exref::
+        :title: Converts bytes into an array (serialization)
+
+        Useful to deserialize.
+
+        .. runpython::
+            :showcode:
+
+            import numpy
+            from mlprodict.onnxrt.onnx2py_helper import to_bytes, from_bytes
+
+            data = numpy.array([[0, 1], [2, 3], [4, 5]], dtype=numpy.float32)
+            pb = to_bytes(data)
+            data2 = from_bytes(pb)
+            print(data2)
+    """
+    if isinstance(b, bytes):
+        pb = TensorProto()
+        pb.ParseFromString(b)
+    else:
+        pb = b
+    return to_array(pb)
 
 
 def _numpy_array(data, dtype=None, copy=True):
@@ -195,14 +256,12 @@ def _var_as_dict(var):
                 data = _numpy_array(var.float_data, dtype=numpy.float32,
                                     copy=False).reshape(dims)
             except ValueError:
-                from onnx.numpy_helper import to_array
                 data = _numpy_array(to_array(var))
         elif var.data_type == 11 and var.double_data is not None:
             try:
                 data = _numpy_array(var.double_data, dtype=numpy.float64,
                                     copy=False).reshape(dims)
             except ValueError:
-                from onnx.numpy_helper import to_array
                 data = _numpy_array(to_array(var))
         elif var.data_type == 6 and var.int32_data is not None:
             data = _numpy_array(var.int32_data, dtype=numpy.int32,

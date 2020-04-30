@@ -64,5 +64,4 @@ class TestOnnxInference(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxInference().test_onnx_inference_name_confusion_input()
     unittest.main()
