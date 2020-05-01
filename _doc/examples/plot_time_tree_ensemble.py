@@ -1,5 +1,5 @@
 """
-.. _l-example-parallelism:
+.. _l-example-tree-ensemble:
 
 Benchmark Random Forests, Tree Ensemble
 =======================================
@@ -10,8 +10,7 @@ implementing random forest and boosting trees.
 .. contents::
     :local:
 
-
-Imports
+Import
 +++++++
 """
 import os
@@ -176,13 +175,18 @@ compilation.extend(list(measure_onnx_runtime(xgb, X_test)))
 ##############################################
 # Summary
 # +++++++
-
+#
+# All data
 df = pandas.DataFrame(compilation)
 print(df)
 
+#########################################
+# Time per model and runtime.
 piv = df.pivot("model", "runtime", "average")
 print(piv)
 
+###########################################
+# Graphs.
 piv.T.plot()
 import matplotlib.pyplot as plt
 plt.show()
