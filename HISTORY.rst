@@ -5,8 +5,16 @@
 History
 =======
 
-current - 2020-04-07 - 0.00Mb
+current - 2020-05-01 - 0.00Mb
 =============================
+
+* `121`: Add function to convert array to bytes and bytes to array (onnx tensor) (2020-04-30)
+* `120`: Fix discrepencies for SVM classifier (ONNX) (2020-04-30)
+* `119`: Keep order in topk implementation (2020-04-17)
+* `118`: opset is not propagated in OnnxTransformer (2020-04-09)
+
+0.3.1070 - 2020-04-07 - 0.29Mb
+==============================
 
 * `115`: Add a function to replay a benchmark when this one was dumped (more accurate) (2020-04-06)
 * `116`: Makes ZipMapDictionary picklable (2020-03-30)
