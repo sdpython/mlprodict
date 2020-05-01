@@ -1,6 +1,6 @@
 """
 @file
-@brief Validates runtime for many :scikit-learn: operators.
+@brief Validates runtime for many :epkg:`scikit-learn` operators.
 The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
@@ -28,8 +28,8 @@ class RuntimeBadResultsError(RuntimeError):
 
     def __init__(self, msg, obs):
         """
-        @param      msg     to display
-        @param      obs     observations
+        :param msg: to display
+        :param obs: observations
         """
         RuntimeError.__init__(self, msg)
         self.obs = obs
@@ -120,13 +120,14 @@ def sklearn_operators(subfolder=None, extended=False,
     and get the list of class which inherit from
     :epkg:`scikit-learn:base:BaseEstimator`.
 
-    @param      subfolder       look into only one subfolder
-    @param      extended        extends the list to the list of operators
-                                this package implements a converter for
-    @param      experimental    includes experimental module from
-                                :epkg:`scikit-learn` (see `sklearn.experimental
-                                <https://github.com/scikit-learn/scikit-learn/
-                                tree/master/sklearn/experimental>`_)
+    :param subfolder: look into only one subfolder
+    :param extended: extends the list to the list of operators
+        this package implements a converter for
+    :param experimental: includes experimental module from
+        :epkg:`scikit-learn` (see `sklearn.experimental
+        <https://github.com/scikit-learn/scikit-learn/
+        tree/master/sklearn/experimental>`_)
+    :return: the list of found operators
     """
     if experimental:
         from sklearn.experimental import (  # pylint: disable=W0611
@@ -224,12 +225,11 @@ def _measure_time(fct, repeat=1, number=1, first_run=True):
     """
     Measures the execution time for a function.
 
-    @param      fct         function to measure
-    @param      repeat      number of times to repeat
-    @param      number      number of times between two measures
-    @param      first_run   if True, runs the function once before
-                            measuring
-    @return                 last result, average, values
+    :param fct: function to measure
+    :param repeat: number of times to repeat
+    :param number: number of times between two measures
+    :param first_run: if True, runs the function once before measuring
+    :return: last result, average, values
     """
     res = None
     values = []
@@ -260,11 +260,11 @@ def dump_into_folder(dump_folder, obs_op=None, is_error=True,
     Dumps information when an error was detected
     using :epkg:`*py:pickle`.
 
-    @param      dump_folder     dump_folder
-    @param      obs_op          obs_op (information)
-    @param      is_error        is it an error or not?
-    @param      kwargs          additional parameters
-    @return                     name
+   :param dump_folder: dump_folder
+   :param obs_op: obs_op (information)
+   :param is_error: is it an error or not?
+   :param kwargs: additional parameters
+    :return: name
     """
     if dump_folder is None:
         raise ValueError("dump_folder cannot be None.")
@@ -328,14 +328,13 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False, first_run=T
     """
     Measures a statement and returns the results as a dictionary.
 
-    @param      stmt            string
-    @param      x               matrix
-    @param      repeat          average over *repeat* experiment
-    @param      number          number of executions in one row
-    @param      div_by_number   divide by the number of executions
-    @param      first_run       if True, runs the function once before
-                                measuring
-    @return                     dictionary
+    :param stmt: string
+    :param x: matrix
+    :param repeat: average over *repeat* experiment
+    :param number: number of executions in one row
+    :param div_by_number: divide by the number of executions
+    :param first_run: if True, runs the function once before measuring
+    :return: dictionary
 
     See `Timer.repeat <https://docs.python.org/3/library/timeit.html?timeit.Timer.repeat>`_
     for a better understanding of parameter *repeat* and *number*.
@@ -374,16 +373,16 @@ def _multiply_time_kwargs(time_kwargs, time_kwargs_fact, inst):
     Multiplies values in *time_kwargs* following strategy
     *time_kwargs_fact* for a given model *inst*.
 
-    @param      time_kwargs
-    @param      time_kwargs_fact    see below
-    @param      inst                *scikit-learn* model
-    @return                         new *time_kwargs*
+    :param time_kwargs: see below
+    :param time_kwargs_fact: see below
+    :param inst: :epkg:`scikit-learn` model
+    :return : new *time_kwargs*
 
     Possible values for *time_kwargs_fact*:
 
     - a integer: multiplies *number* by this number
     - `'lin'`: multiplies value *number* for linear models depending
-      on the number of rows to process (:math:`\\prop 1/\\log_{10}(n)`)
+      on the number of rows to process (:math:`\\propto 1/\\log_{10}(n)`)
 
     .. runpython::
         :showcode:

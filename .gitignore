@@ -302,3 +302,4 @@ _benches/tools
 _benches/*.json
 _unittests/ut_asv_benchmark/cache*.pickle
 build_ext.bat
+_doc/examples/*.pkl

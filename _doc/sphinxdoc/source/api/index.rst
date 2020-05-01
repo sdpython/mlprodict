@@ -13,4 +13,5 @@ API
     onnx_conv
     sklapi
     asv
+    validation
     tools

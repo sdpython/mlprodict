@@ -12,7 +12,17 @@ Functions to help understand models.
 
 .. autosignature:: mlprodict.tools.model_info.analyze_model
 
+.. autosignature:: mlprodict.onnxrt.onnx_inference_manipulations.enumerate_model_node_outputs
+
 .. autosignature:: mlprodict.tools.code_helper.make_callable
+
+.. autosignature:: mlprodict.onnxrt.model_checker.onnx_shaker
+
+.. autosignature:: mlprodict.onnxrt.optimisation._main_onnx_optim.onnx_optimisations
+
+.. autosignature:: mlprodict.onnxrt.optimisation.onnx_helper.onnx_statistics
+
+.. autosignature:: mlprodict.onnxrt.onnx_inference_manipulations.select_model_inputs_outputs
 
 .. autosignature:: mlprodict.testing.verify_code.verify_code
 
@@ -23,7 +33,16 @@ Plotting
 
 .. autosignature:: mlprodict.tools.plotting_benchmark.plot_benchmark_metrics
 
+.. autosignature:: mlprodict.onnxrt.doc.nb_helper.onnxview
+
 .. autosignature:: mlprodict.tools.plotting_validate_graph.plot_validate_benchmark
+
+Serialization
++++++++++++++
+
+.. autosignature:: mlprodict.onnxrt.onnx2py_helper.from_bytes
+
+.. autosignature:: mlprodict.onnxrt.onnx2py_helper.to_bytes
 
 Versions
 ++++++++

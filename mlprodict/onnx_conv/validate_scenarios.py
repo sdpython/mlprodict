@@ -1,6 +1,6 @@
 """
 @file
-@brief Scenario for addition converters.
+@brief Scenario for additional converters.
 """
 from lightgbm import LGBMRegressor, LGBMClassifier
 from xgboost import XGBRegressor, XGBClassifier
@@ -67,9 +67,17 @@ def build_custom_scenarios():
     return {
         # scenarios
         LGBMClassifier: [
-            ('default', {'n_estimators': 5}),
+            ('default', {'n_estimators': 5}, {'conv_options': [
+             {LGBMClassifier: {'zipmap': False}}]}),
         ],
         LGBMRegressor: [
+            ('default', {'n_estimators': 5}),
+        ],
+        XGBClassifier: [
+            ('default', {'n_estimators': 5}, {'conv_options': [
+             {XGBClassifier: {'zipmap': False}}]}),
+        ],
+        XGBRegressor: [
             ('default', {'n_estimators': 5}),
         ],
     }
