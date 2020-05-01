@@ -96,7 +96,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
 
         name = os.path.join(
             temp, 'benches', '_externals', 'XGBRegressor',
-            'bench_XGBReg_default_b_reg.py')
+            'bench_XGBReg_default_b_reg_nest5.py')
         self.assertExists(name)
         with open(name, "r", encoding="utf-8") as f:
             content = f.read()
