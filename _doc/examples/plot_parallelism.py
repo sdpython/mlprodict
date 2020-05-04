@@ -121,7 +121,10 @@ df = DataFrame(obs)
 num = ['min_exec', 'average', 'max_exec']
 for c in num:
     df[c] /= df['N']
-print(df.head())
+df.head()
+
+#######################################
+# Graph.
 
 fig, ax = plt.subplots(1, 2, figsize=(10, 4))
 df[df.RT == 'ONNX'].set_index('N')[num].plot(ax=ax[0])
@@ -198,8 +201,7 @@ df = DataFrame(obs)
 num = ['min_exec', 'average', 'max_exec']
 for c in num:
     df[c] /= df['N']
-print(df.head())
-
+df.head()
 
 ##########################
 # Let's compute the gains.
@@ -211,7 +213,10 @@ for nb in set(df['nb']):
 
 dfg = DataFrame(gains)
 dfg = dfg.sort_values('nb').reset_index(drop=True).copy()
-print(dfg)
+dfg
+
+##########################################
+# Graph.
 
 ax = dfg.set_index('nb').plot()
 ax.set_title(
@@ -252,7 +257,10 @@ df = DataFrame(obs)
 num = ['min_exec', 'average', 'max_exec']
 for c in num:
     df[c] /= df['N']
-print(df.head())
+df.head()
+
+###################################
+# Measures.
 
 gains = []
 for nb in set(df['nb']):
@@ -261,7 +269,10 @@ for nb in set(df['nb']):
 
 dfg = DataFrame(gains)
 dfg = dfg.sort_values('nb').reset_index(drop=True).copy()
-print(dfg)
+dfg
+
+#######################################
+# Graph.
 
 ax = dfg.set_index('nb').plot()
 ax.set_title(
@@ -312,7 +323,10 @@ df = DataFrame(obs)
 num = ['min_exec', 'average', 'max_exec']
 for c in num:
     df[c] /= df['N']
-print(df.head())
+df.head()
+
+##########################################
+# Graph.
 
 piv = df[['N', 'PARALLEL', 'average']].pivot('N', 'PARALLEL', 'average')
 ax = piv.plot(logy=True)

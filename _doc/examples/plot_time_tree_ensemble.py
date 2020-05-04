@@ -189,12 +189,12 @@ compilation.extend(list(measure_onnx_runtime(xgb, X_test)))
 #
 # All data
 df = pandas.DataFrame(compilation)
-print(df)
+df
 
 #########################################
 # Time per model and runtime.
 piv = df.pivot("model", "runtime", "average")
-print(piv)
+piv
 
 ###########################################
 # Graphs.
