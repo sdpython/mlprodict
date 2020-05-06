@@ -6,6 +6,7 @@ jyquickhelper
 lightgbm
 memory_profiler
 onnx>=1.6.0
+git+https://github.com/xadupre/onnxconverter-common.git@jenkins
 openpyxl
 pybind11
 py-cpuinfo
