@@ -28,8 +28,13 @@ class ReduceLogSumExp(OpRunUnaryNum):
 
     def _run(self, data):  # pylint: disable=W0221
         tax = tuple(self.axes) if self.axes else None
-        mx = data.max(axis=tax, keepdims=self.keepdims == 1)
-        res = numpy.log(numpy.sum(numpy.exp(data - mx), axis=tax,
-                                  keepdims=self.keepdims == 1,
-                                  dtype=data.dtype)) + mx
+        mx = data.max(axis=tax, keepdims=True)
+        sub = numpy.subtract(data, mx)
+        exp = numpy.exp(sub, out=sub)
+        mxs = numpy.sum(exp, axis=tax,
+                        keepdims=True,
+                        dtype=data.dtype)
+        res = numpy.log(mxs) + mx
+        if not self.keepdims:
+            res = numpy.squeeze(res, axis=tax)
         return (res, )
