@@ -32,7 +32,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
         model.fit(X, y)
         return model, X.astype(np.float32)
 
-    def _test_score(self, model, X, tg, decimal=5, black_op=None):
+    def common_test_score(self, model, X, tg, decimal=5, black_op=None):
         X = X.astype(np.float32)
         exp = model.score_samples(X)
         expp = model.predict_proba(X)
@@ -64,7 +64,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
                 dump_data_and_model(
                     X, model, model_onnx,
                     basename="SklearnBinGaussianMixture")
-                self._test_score(model, X, tg)
+                self.common_test_score(model, X, tg)
 
     @unittest.skipIf(True, reason="Not implemented yet.")
     def test_model_bayesian_mixture_binary_classification(self):
@@ -81,7 +81,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
                 dump_data_and_model(
                     X, model, model_onnx,
                     basename="SklearnBinBayesianGaussianMixture")
-                self._test_score(model, X, TARGET_OPSET)
+                self.common_test_score(model, X, TARGET_OPSET)
 
     def test_model_gaussian_mixture_multiclass(self):
         model, X = self._fit_model_multiclass_classification(
@@ -94,7 +94,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
         dump_data_and_model(
             X, model, model_onnx,
             basename="SklearnMclGaussianMixture")
-        self._test_score(model, X, TARGET_OPSET)
+        self.common_test_score(model, X, TARGET_OPSET)
 
     def test_gaussian_mixture_comp2(self):
         data = load_iris()
@@ -108,7 +108,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
         dump_data_and_model(
             X.astype(np.float32)[40:60], model, model_onnx,
             basename="GaussianMixtureC2", intermediate_steps=True)
-        self._test_score(model, X, TARGET_OPSET)
+        self.common_test_score(model, X, TARGET_OPSET)
 
     def test_gaussian_mixture_full(self):
         data = load_iris()
@@ -122,7 +122,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
         dump_data_and_model(
             X.astype(np.float32)[40:60], model, model_onnx,
             basename="GaussianMixtureC2Full", intermediate_steps=True)
-        self._test_score(model, X, TARGET_OPSET)
+        self.common_test_score(model, X, TARGET_OPSET)
 
     def test_gaussian_mixture_tied(self):
         data = load_iris()
@@ -136,7 +136,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
         dump_data_and_model(
             X.astype(np.float32)[40:60], model, model_onnx,
             basename="GaussianMixtureC2Tied", intermediate_steps=True)
-        self._test_score(model, X, TARGET_OPSET)
+        self.common_test_score(model, X, TARGET_OPSET)
 
     def test_gaussian_mixture_diag(self):
         data = load_iris()
@@ -152,7 +152,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
             X.astype(np.float32)[40:60], model, model_onnx,
             basename="GaussianMixtureC2Diag",
             intermediate_steps=True)
-        self._test_score(model, X, TARGET_OPSET, decimal=4)
+        self.common_test_score(model, X, TARGET_OPSET, decimal=4)
 
     def test_gaussian_mixture_spherical(self):
         data = load_iris()
@@ -166,7 +166,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
         dump_data_and_model(
             X.astype(np.float32)[40:60], model, model_onnx,
             basename="GaussianMixtureC2Spherical", intermediate_steps=True)
-        self._test_score(model, X, TARGET_OPSET, decimal=4)
+        self.common_test_score(model, X, TARGET_OPSET, decimal=4)
 
     def test_gaussian_mixture_full_black_op(self):
         data = load_iris()
@@ -185,7 +185,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
         dump_data_and_model(
             X.astype(np.float32)[40:60], model, model_onnx,
             basename="GaussianMixtureC2FullBL", intermediate_steps=True)
-        self._test_score(model, X, TARGET_OPSET)
+        self.common_test_score(model, X, TARGET_OPSET)
 
     def test_gaussian_mixture_full_black_op_noargmax(self):
         data = load_iris()
@@ -205,7 +205,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
         dump_data_and_model(
             X.astype(np.float32)[40:60], model, model_onnx,
             basename="GaussianMixtureC2FullBLNM", intermediate_steps=True)
-        self._test_score(model, X, TARGET_OPSET)
+        self.common_test_score(model, X, TARGET_OPSET)
 
     def test_gaussian_mixture_full_black_op_noargmax_inf(self):
         data = load_iris()
@@ -236,7 +236,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
         self.assertLess(abs(c1.max() - c2.max()) / c2.max(), 1e-5)
         self.assertLess(abs(c1.min() - c2.min()) / c2.min(), 1e-5)
 
-        self._test_score(
+        self.common_test_score(
             model, X, TARGET_OPSET, black_op={'ReduceLogSumExp', 'ArgMax'},
             decimal=2)
 
