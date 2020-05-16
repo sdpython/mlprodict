@@ -72,7 +72,7 @@ def benchmark_version():
         from mlprodict.tools.asv_options_helper import benchmark_version
         print(benchmark_version())
     """
-    return [11]
+    return [12]
 
 
 def ir_version():
@@ -86,7 +86,7 @@ def ir_version():
         from mlprodict.tools.asv_options_helper import ir_version
         print(ir_version())
     """
-    return [6]
+    return [7]
 
 
 def get_opset_number_from_onnx(benchmark=True):

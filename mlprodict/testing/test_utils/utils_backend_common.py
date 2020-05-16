@@ -1,9 +1,10 @@
 """
 @file
-@brief Inspired from skl2onnx, handles two backends.
+@brief Inspired from :epkg:`sklearn-onnx`, handles two backends.
 """
 import os
 import pickle
+from distutils.version import StrictVersion
 import numpy
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from scipy.sparse.csr import csr_matrix
@@ -27,7 +28,8 @@ class OnnxBackendAssertionError(AssertionError):
 
 class OnnxBackendMissingNewOnnxOperatorException(OnnxBackendAssertionError):
     """
-    Raised when onnxruntime does not implement a new operator
+    Raised when :epkg:`onnxruntime` or :epkg:`mlprodict`
+    does not implement a new operator
     defined in the latest onnx.
     """
     pass
@@ -45,13 +47,13 @@ def evaluate_condition(backend, condition):
     Evaluates a condition such as
     ``StrictVersion(onnxruntime.__version__) <= StrictVersion('0.1.3')``
     """
+    assert StrictVersion is not None
     if backend == "onnxruntime":
         import onnxruntime  # pylint: disable=W0611
         return eval(condition)  # pylint: disable=W0123
-    else:
-        raise NotImplementedError(  # pragma no cover
-            "Not implemented for backend '{0}' and "
-            "condition '{1}'.".format(backend, condition))
+    raise NotImplementedError(  # pragma no cover
+        "Not implemented for backend '{0}' and "
+        "condition '{1}'.".format(backend, condition))
 
 
 def is_backend_enabled(backend):
@@ -110,17 +112,16 @@ def extract_options(name):
     opts = name.replace("\\", "/").split("/")[-1].split('.')[0].split('-')
     if len(opts) == 1:
         return {}
-    else:
-        res = {}
-        for opt in opts[1:]:
-            if opt in ("SkipDim1", "OneOff", "NoProb", "NoProbOpp",
-                       "Dec4", "Dec3", "Dec2", 'Svm',
-                       'Out0', 'Reshape', 'SklCol', 'DF', 'OneOffArray'):
-                res[opt] = True
-            else:
-                raise NameError("Unable to parse option '{}'".format(
-                    opts[1:]))  # pragma no cover
-        return res
+    res = {}
+    for opt in opts[1:]:
+        if opt in ("SkipDim1", "OneOff", "NoProb", "NoProbOpp",
+                   "Dec4", "Dec3", "Dec2", 'Svm',
+                   'Out0', 'Reshape', 'SklCol', 'DF', 'OneOffArray'):
+            res[opt] = True
+        else:
+            raise NameError("Unable to parse option '{}'".format(
+                opts[1:]))  # pragma no cover
+    return res
 
 
 def compare_outputs(expected, output, verbose=False, **kwargs):
@@ -220,10 +221,9 @@ def compare_outputs(expected, output, verbose=False, **kwargs):
                     return ExpectedAssertionError(
                         "max-diff={0}\n--expected--output--\n{1}{2}".format(
                             diff, e, longer))
-                else:
-                    return OnnxBackendAssertionError(
-                        "max-diff={0}\n--expected--output--\n{1}{2}".format(
-                            diff, e, longer))
+                return OnnxBackendAssertionError(
+                    "max-diff={0}\n--expected--output--\n{1}{2}".format(
+                        diff, e, longer))
     else:
         return OnnxBackendAssertionError("Unexpected types {0} != {1}".format(
             type(expected), type(output)))
@@ -238,52 +238,50 @@ def _post_process_output(res):
     if isinstance(res, list):
         if len(res) == 0:
             return res
-        elif len(res) == 1:
+        if len(res) == 1:
             return _post_process_output(res[0])
-        elif isinstance(res[0], numpy.ndarray):
+        if isinstance(res[0], numpy.ndarray):
             return numpy.array(res)
-        elif isinstance(res[0], dict):
+        if isinstance(res[0], dict):
             return pandas.DataFrame(res).values
-        else:
-            ls = [len(r) for r in res]
-            mi = min(ls)
-            if mi != max(ls):
-                raise NotImplementedError(  # pragma no cover
-                    "Unable to postprocess various number of "
-                    "outputs in [{0}, {1}]"
-                    .format(min(ls), max(ls)))
-            if mi > 1:
-                output = []
-                for i in range(mi):
-                    output.append(_post_process_output([r[i] for r in res]))
-                return output
-            elif isinstance(res[0], list):
-                # list of lists
-                if isinstance(res[0][0], list):
-                    return numpy.array(res)
-                elif len(res[0]) == 1 and isinstance(res[0][0], dict):
-                    return _post_process_output([r[0] for r in res])
-                elif len(res) == 1:
-                    return res
-                else:
-                    if len(res[0]) != 1:
-                        raise NotImplementedError(  # pragma no cover
-                            "Not conversion implemented for {0}".format(res))
-                    st = [r[0] for r in res]
-                    return numpy.vstack(st)
-            else:
+        ls = [len(r) for r in res]
+        mi = min(ls)
+        if mi != max(ls):
+            raise NotImplementedError(  # pragma no cover
+                "Unable to postprocess various number of "
+                "outputs in [{0}, {1}]"
+                .format(min(ls), max(ls)))
+        if mi > 1:
+            output = []
+            for i in range(mi):
+                output.append(_post_process_output([r[i] for r in res]))
+            return output
+        if isinstance(res[0], list):
+            # list of lists
+            if isinstance(res[0][0], list):
+                return numpy.array(res)
+            if len(res[0]) == 1 and isinstance(res[0][0], dict):
+                return _post_process_output([r[0] for r in res])
+            if len(res) == 1:
                 return res
-    else:
+            if len(res[0]) != 1:
+                raise NotImplementedError(  # pragma no cover
+                    "Not conversion implemented for {0}".format(res))
+            st = [r[0] for r in res]
+            return numpy.vstack(st)
         return res
+    return res
 
 
 def _create_column(values, dtype):
     "Creates a column from values with dtype"
     if str(dtype) == "tensor(int64)":
         return numpy.array(values, dtype=numpy.int64)
-    elif str(dtype) == "tensor(float)":
+    if str(dtype) == "tensor(float)":
         return numpy.array(values, dtype=numpy.float32)
-    elif str(dtype) == "tensor(string)":
+    if str(dtype) in ("tensor(double)", "tensor(float64)"):
+        return numpy.array(values, dtype=numpy.float64)
+    if str(dtype) in ("tensor(string)", "tensor(str)"):
         return numpy.array(values, dtype=numpy.str)
     raise OnnxBackendAssertionError(
         "Unable to create one column from dtype '{0}'".format(dtype))
@@ -294,8 +292,7 @@ def _compare_expected(expected, output, sess, onnx_model,
                       **kwargs):
     """
     Compares the expected output against the runtime outputs.
-    This is specific to *onnxruntime* due to variable *sess*
-    of type *onnxruntime.InferenceSession*.
+    This is specific to :epkg:`onnxruntime` or :epkg:`mlprodict`.
     """
     tested = 0
     if isinstance(expected, list):

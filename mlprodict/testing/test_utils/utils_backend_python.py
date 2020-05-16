@@ -12,6 +12,42 @@ class MockVariableName:
     def __init__(self, name):
         self.name = name
 
+    @property
+    def shape(self):
+        "returns shape"
+        raise NotImplementedError("No shape for '{}'.".format(self.name))
+
+    @property
+    def type(self):
+        "returns type"
+        raise NotImplementedError("No type for '{}'.".format(self.name))
+
+
+class MockVariableNameShape(MockVariableName):
+    "A string and a shape."
+
+    def __init__(self, name, sh):
+        MockVariableName.__init__(self, name)
+        self._shape = sh
+
+    @property
+    def shape(self):
+        "returns shape"
+        return self._shape
+
+
+class MockVariableNameShapeType(MockVariableNameShape):
+    "A string and a shape and a type."
+
+    def __init__(self, name, sh, stype):
+        MockVariableNameShape.__init__(self, name, sh)
+        self._stype = stype
+
+    @property
+    def type(self):
+        "returns type"
+        return self._stype
+
 
 class OnnxInference2(OnnxInference):
     "onnxruntime API"
@@ -27,11 +63,15 @@ class OnnxInference2(OnnxInference):
 
     def get_inputs(self):
         "onnxruntime API"
-        return [MockVariableName(n) for n in self.input_names]
+        return [MockVariableNameShapeType(*n) for n in self.input_names_shapes_types]
 
     def get_outputs(self):
         "onnxruntime API"
-        return [MockVariableName(n) for n in self.output_names]
+        return [MockVariableNameShape(*n) for n in self.output_names_shapes]
+
+    def run_in_scan(self, inputs, verbose=0, fLOG=None):
+        "Instance to run in operator scan."
+        return OnnxInference.run(self, inputs, verbose=verbose, fLOG=fLOG)
 
 
 def compare_runtime(test, decimal=5, options=None,
@@ -40,7 +80,7 @@ def compare_runtime(test, decimal=5, options=None,
     """
     The function compares the expected output (computed with
     the model before being converted to ONNX) and the ONNX output
-    produced with module *onnxruntime*.
+    produced with module :epkg:`onnxruntime` or :epkg:`mlprodict`.
 
     :param test: dictionary with the following keys:
         - *onnx*: onnx model (filename or object)

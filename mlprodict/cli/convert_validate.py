@@ -124,7 +124,7 @@ def convert_validate(pkl, data=None, schema=None,
     else:
         dtype = numpy.float32
         tensor_type = FloatTensorType
-    if options in(None, ''):
+    if options in (None, ''):
         options = None
     else:
         from ..onnxrt.validate.validate_scenarios import interpret_options_from_string

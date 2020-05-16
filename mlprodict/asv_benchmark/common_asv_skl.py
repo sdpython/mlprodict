@@ -290,8 +290,8 @@ class _CommonAsvSklBenchmarkClustering(_CommonAsvSklBenchmark):
         name = self.runtime_name(runtime)
         if name == 'skl':
             rt_ = None
-            rt_fct_ = lambda X: model.predict(X)
-            rt_fct_track_ = lambda X: model.predict(X)
+            rt_fct_ = lambda X: model.predict(X.astype(numpy.float64))
+            rt_fct_track_ = lambda X: model.predict(X.astype(numpy.float64))
         else:
             rt_ = self._create_onnx_inference(onx, name)
             rt_fct_ = lambda X: rt_.run({'X': X})

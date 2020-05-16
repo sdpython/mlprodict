@@ -29,8 +29,9 @@ def compare_runtime_session(  # pylint: disable=R0912
     """
     The function compares the expected output (computed with
     the model before being converted to ONNX) and the ONNX output
-    produced with module *onnxruntime*.
+    produced with module :epkg:`onnxruntime` or :epkg:`mlprodict`.
 
+    :param cls_session: inference session instance (like @see cl OnnxInference)
     :param test: dictionary with the following keys:
         - *onnx*: onnx model (filename or object)
         - *expected*: expected output (filename pkl or object)
@@ -88,9 +89,9 @@ def compare_runtime_session(  # pylint: disable=R0912
                     "for the node" in str(e)):
                 # onnxruntime does not implement a specific node yet.
                 raise OnnxRuntimeMissingNewOnnxOperatorException(  # pragma no cover
-                    "onnxruntime does not implement a new operator "
+                    "{3} does not implement a new operator "
                     "'{0}'\n{1}\nONNX\n{2}".format(
-                        onx, e, smodel))
+                        onx, e, smodel, cls_session))
             raise OnnxBackendAssertionError(  # pragma no cover
                 "Unable to load onnx '{0}'\nONNX\n{1}\n{2}".format(
                     onx, smodel, e))
@@ -206,8 +207,8 @@ def compare_runtime_session(  # pylint: disable=R0912
             sess.run(None, inputs, verbose=3, fLOG=print)
         if "-Fail" in onx:
             raise ExpectedAssertionError(
-                "onnxruntime cannot compute the prediction for '{0}'".
-                format(onx))
+                "{1} cannot compute the prediction for '{0}'".
+                format(onx, cls_session))
         else:
             if verbose:  # pragma no cover
                 model = onnx.load(onx)
@@ -216,9 +217,10 @@ def compare_runtime_session(  # pylint: disable=R0912
                 smodel = ""
             import pprint
             raise OnnxBackendAssertionError(
-                "onnxruntime cannot compute the prediction"
+                "{4} cannot compute the predictions"
                 " for '{0}' due to {1}{2}\n{3}"
-                .format(onx, e, smodel, pprint.pformat(inputs)))
+                .format(onx, e, smodel, pprint.pformat(inputs),
+                        cls_session))
     except Exception as e:  # pragma no cover
         raise OnnxBackendAssertionError(
             "Unable to run onnx '{0}' due to {1}".format(onx, e))
