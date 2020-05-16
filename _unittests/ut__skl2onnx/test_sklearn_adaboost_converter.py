@@ -23,7 +23,7 @@ from mlprodict.testing.test_utils import (
 
 class TestSklearnAdaBoostModels(ExtTestCase):
 
-    def _test_ada_boost_classifier_samme_r(self):
+    def test_ada_boost_classifier_samme_r(self):
         model, X_test = fit_classification_model(AdaBoostClassifier(
             n_estimators=10, algorithm="SAMME.R", random_state=42,
             base_estimator=DecisionTreeClassifier(
@@ -37,7 +37,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             X_test, model, model_onnx,
             basename="SklearnAdaBoostClassifierSAMMER")
 
-    def _test_ada_boost_classifier_samme_r_decision_function(self):
+    def test_ada_boost_classifier_samme_r_decision_function(self):
         model, X_test = fit_classification_model(AdaBoostClassifier(
             n_estimators=10, algorithm="SAMME.R", random_state=42,
             base_estimator=DecisionTreeClassifier(
@@ -53,7 +53,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             basename="SklearnAdaBoostClassifierSAMMERDecisionFunction",
             methods=['predict', 'decision_function'])
 
-    def _test_ada_boost_classifier_samme_r_logreg(self):
+    def test_ada_boost_classifier_samme_r_logreg(self):
         model, X_test = fit_classification_model(AdaBoostClassifier(
             n_estimators=5, algorithm="SAMME.R",
             base_estimator=LogisticRegression(
@@ -67,7 +67,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             X_test, model, model_onnx,
             basename="SklearnAdaBoostClassifierSAMMERLogReg")
 
-    def _test_ada_boost_classifier_samme(self):
+    def test_ada_boost_classifier_samme(self):
         model, X_test = fit_classification_model(AdaBoostClassifier(
             n_estimators=5, algorithm="SAMME", random_state=42,
             base_estimator=DecisionTreeClassifier(
@@ -81,7 +81,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             X_test, model, model_onnx,
             basename="SklearnAdaBoostClassifierSAMMEDT")
 
-    def _test_ada_boost_classifier_samme_decision_function(self):
+    def test_ada_boost_classifier_samme_decision_function(self):
         model, X_test = fit_classification_model(AdaBoostClassifier(
             n_estimators=5, algorithm="SAMME", random_state=42,
             base_estimator=DecisionTreeClassifier(
@@ -97,7 +97,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             basename="SklearnAdaBoostClassifierSAMMEDTDecisionFunction",
             methods=['predict', 'decision_function_binary'])
 
-    def _test_ada_boost_classifier_lr(self):
+    def test_ada_boost_classifier_lr(self):
         model, X_test = fit_classification_model(
             AdaBoostClassifier(learning_rate=0.3, random_state=42), 3,
             is_int=True)
@@ -110,7 +110,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             X_test, model, model_onnx,
             basename="SklearnAdaBoostClassifierLR")
 
-    def _test_ada_boost_classifier_bool(self):
+    def test_ada_boost_classifier_bool(self):
         model, X_test = fit_classification_model(
             AdaBoostClassifier(random_state=42), 3,
             is_bool=True)
@@ -123,7 +123,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             X_test, model, model_onnx,
             basename="SklearnAdaBoostClassifierBool")
 
-    def _test_ada_boost_regressor(self):
+    def test_ada_boost_regressor(self):
         model, X = fit_regression_model(
             AdaBoostRegressor(n_estimators=5))
         model_onnx = convert_sklearn(
@@ -135,7 +135,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             X, model, model_onnx,
             basename="SklearnAdaBoostRegressor-Dec4")
 
-    def _test_ada_boost_regressor_lreg(self):
+    def test_ada_boost_regressor_lreg(self):
         model, X = fit_regression_model(
             AdaBoostRegressor(n_estimators=5,
                               base_estimator=LinearRegression()))
@@ -148,7 +148,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             X, model, model_onnx,
             basename="SklearnAdaBoostRegressorLReg-Dec4")
 
-    def _test_ada_boost_regressor_int(self):
+    def test_ada_boost_regressor_int(self):
         model, X = fit_regression_model(
             AdaBoostRegressor(n_estimators=5), is_int=True)
         model_onnx = convert_sklearn(
@@ -160,7 +160,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             X, model, model_onnx,
             basename="SklearnAdaBoostRegressorInt-Dec4")
 
-    def _test_ada_boost_regressor_lr10(self):
+    def test_ada_boost_regressor_lr10(self):
         model, X = fit_regression_model(
             AdaBoostRegressor(learning_rate=0.5, random_state=42))
         model_onnx = convert_sklearn(
@@ -172,7 +172,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             X, model, model_onnx,
             basename="SklearnAdaBoostRegressorLR-Dec4")
 
-    def _test_ada_boost_regressor_lr11(self):
+    def test_ada_boost_regressor_lr11(self):
         model, X = fit_regression_model(
             AdaBoostRegressor(learning_rate=0.5, random_state=42))
         if onnx_opset_version() < 11:
