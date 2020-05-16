@@ -21,9 +21,9 @@ from pyquickhelper.pycode import ExtTestCase
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import (
     FloatTensorType, Int64TensorType, StringTensorType)
+from onnxruntime import __version__ as ort_version, InferenceSession
 from mlprodict.testing.test_utils import (
     dump_data_and_model, fit_classification_model)
-from onnxruntime import __version__ as ort_version, InferenceSession
 
 
 class PipeConcatenateInput:
