@@ -16,6 +16,7 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
+from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 
 
 class TestOnnxrtValidateDumpAll(ExtTestCase):
@@ -48,7 +49,8 @@ class TestOnnxrtValidateDumpAll(ExtTestCase):
             temp, "sklearn_opsets_report.xlsx"), index=False)
 
         stored = os.path.join(
-            temp, "dump-i-python-DecisionTreeClassifier-default-b-cl-tree._classes.DecisionTreeClassifierzipmapFalse-op11-nf4.pkl")
+            temp, ("dump-i-python-DecisionTreeClassifier-default-b-cl-tree._classes."
+                   "DecisionTreeClassifierzipmapFalse-op%d-nf4.pkl" % get_opset_number_from_onnx()))
         with open(stored, "rb") as f:
             obj = pickle.load(f)
         self.assertIn('onnx_bytes', obj)

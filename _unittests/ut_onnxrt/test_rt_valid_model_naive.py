@@ -12,6 +12,7 @@ from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx, get_ir_version_from_onnx
+from mlprodict.testing.test_utils import _capture_output
 
 
 class TestRtValidateNaive(ExtTestCase):
@@ -54,7 +55,9 @@ class TestRtValidateNaive(ExtTestCase):
         exp = model.predict_proba(X)
 
         model_onnx.ir_version = get_ir_version_from_onnx()
-        oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
+        oinf = _capture_output(
+            lambda: OnnxInference(model_onnx, runtime='onnxruntime1'),
+            'c')[0]
         got = oinf.run({'input': X})
         self.assertEqualArray(exp1, got['output_label'])
         got2 = DataFrame(got['output_probability']).values
@@ -69,7 +72,9 @@ class TestRtValidateNaive(ExtTestCase):
         exp = model.predict_proba(X)
 
         model_onnx.ir_version = get_ir_version_from_onnx()
-        oinf = OnnxInference(model_onnx, runtime='onnxruntime2')
+        oinf = _capture_output(
+            lambda: OnnxInference(model_onnx, runtime='onnxruntime2'),
+            'c')[0]
         got = oinf.run({'input': X})
         self.assertEqualArray(exp1, got['output_label'])
         got2 = DataFrame(got['output_probability']).values

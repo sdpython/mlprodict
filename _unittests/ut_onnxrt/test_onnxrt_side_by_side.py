@@ -20,6 +20,7 @@ from mlprodict.onnxrt.validate.side_by_side import (
     side_by_side_by_values, merge_results
 )
 from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict.testing.test_utils import _capture_output
 
 
 Xtest_ = pandas.read_csv(StringIO("""
@@ -100,8 +101,9 @@ class TestOnnxrtSideBySide(ExtTestCase):
             inputs=[('X', FloatTensorType([None, None]))],
             outputs=[('Y', FloatTensorType([None, None]))])
         model_onnx.ir_version = get_ir_version_from_onnx()
-        sess = OnnxInference(model_onnx.SerializeToString(),
-                             runtime="onnxruntime2")
+        sess = _capture_output(
+            lambda: OnnxInference(model_onnx.SerializeToString(),
+                                  runtime="onnxruntime2"), 'c')[0]
         try:
             res = sess.run({'X': Xtest_.astype(numpy.float32)})
         except RuntimeError as e:
@@ -137,8 +139,10 @@ class TestOnnxrtSideBySide(ExtTestCase):
         def myprint(*args, **kwargs):
             rows.append(" ".join(map(str, args)))
 
-        res = sess.run({'X': Xtest_.astype(numpy.float32)},
-                       intermediate=True, verbose=1, fLOG=myprint)
+        res = _capture_output(
+            lambda: sess.run({'X': Xtest_.astype(numpy.float32)},
+                             intermediate=True, verbose=1, fLOG=myprint),
+            'c')[0]
         self.assertGreater(len(rows), 2)
         m1 = res['Y']
         self.assertNotEmpty(m1)
@@ -159,8 +163,9 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertIn('cmp', sbs[0])
         self.assertIn('cmp', sbs[1])
 
-        sess3 = OnnxInference(model_onnx.SerializeToString(),
-                              runtime="onnxruntime2")
+        sess3 = _capture_output(
+            lambda: OnnxInference(model_onnx.SerializeToString(),
+                                  runtime="onnxruntime2"), 'c')[0]
         try:
             sbs = side_by_side_by_values(
                 [cpu, sess, sess3], inputs={'X': Xtest_.astype(numpy.float32)})

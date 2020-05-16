@@ -71,7 +71,7 @@ class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
                 if drop is not None and k in drop:
                     continue
                 # also ints treated as floats otherwise onnx exception "all columns must be equal" is raised.
-                if v in('int64', 'float64'):
+                if v in ('int64', 'float64'):
                     t = FloatTensorType([None, 1])
                 else:
                     t = StringTensorType([None, 1])

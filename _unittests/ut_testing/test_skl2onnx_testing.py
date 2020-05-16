@@ -117,7 +117,7 @@ class TestSklearnTesting(ExtTestCase):
         self.assertEqual(c.dtype, numpy.float32)
         c = _create_column(values, dtype="tensor(string)")
         self.assertEqual(str(c.dtype), "<U1")
-        self.assertRaise(lambda: _create_column(values, dtype="tensor(float64)"),
+        self.assertRaise(lambda: _create_column(values, dtype="tensor(float64s)"),
                          OnnxBackendAssertionError)
 
     def test__post_process_output(self):

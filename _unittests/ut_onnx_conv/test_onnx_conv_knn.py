@@ -38,6 +38,7 @@ from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 from mlprodict.tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx
 )
+from mlprodict.testing.test_utils import _capture_output
 
 
 def old_topk_sorted_implementation(X, k, axis, largest):
@@ -246,7 +247,12 @@ class TestOnnxConvKNN(ExtTestCase):
                 if 'onnxruntime' in runtime:
                     model_def.ir_version = get_ir_version_from_onnx()
                 try:
-                    oinf = OnnxInference(model_def, runtime=runtime)
+                    if runtime == 'onnxruntime2':
+                        oinf = _capture_output(
+                            lambda: OnnxInference(model_def, runtime=runtime),
+                            'c')[0]
+                    else:
+                        oinf = OnnxInference(model_def, runtime=runtime)
                 except (RuntimeError, TypeError, OrtInvalidArgument) as e:
                     if "No Op registered for Identity with domain_version of 12" in str(e):
                         continue

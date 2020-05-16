@@ -2,7 +2,6 @@
 @file
 @brief Inspired from skl2onnx, handles two backends.
 """
-from cpyquickhelper.io import capture_output
 from onnxruntime import InferenceSession
 from pyquickhelper.pycode import is_travis_or_appveyor
 from .utils_backend_common_compare import compare_runtime_session
@@ -11,6 +10,7 @@ from .utils_backend_common_compare import compare_runtime_session
 def _capture_output(fct, kind):
     if is_travis_or_appveyor():
         return fct(), None, None
+    from cpyquickhelper.io import capture_output
     return capture_output(fct, kind)
 
 

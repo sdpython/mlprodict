@@ -4,6 +4,7 @@
 """
 import numpy
 from ...tools.asv_options_helper import get_opset_number_from_onnx
+from .utils_backend_onnxruntime import _capture_output
 
 
 from .tests_helper import dump_data_and_model  # noqa
