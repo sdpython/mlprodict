@@ -1,5 +1,5 @@
 """
-@brief      test tree node (time=26s)
+@brief      test tree node (time=31s)
 """
 import unittest
 import numpy

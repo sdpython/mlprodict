@@ -8,17 +8,11 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import (
-    BooleanTensorType,
-    FloatTensorType,
-    Int64TensorType,
-)
+    BooleanTensorType, FloatTensorType, Int64TensorType)
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing.test_utils import (
-    dump_data_and_model,
-    fit_classification_model,
-    fit_regression_model,
-    TARGET_OPSET
-)
+    dump_data_and_model, fit_classification_model,
+    fit_regression_model, TARGET_OPSET)
 
 
 class TestSklearnAdaBoostModels(ExtTestCase):

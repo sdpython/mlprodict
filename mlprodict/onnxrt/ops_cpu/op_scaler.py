@@ -4,17 +4,17 @@
 @file
 @brief Runtime operator.
 """
-from ._op import OpRunUnaryNum
+from ._op import OpRunUnary
 
 
-class Scaler(OpRunUnaryNum):
+class Scaler(OpRunUnary):
 
     atts = {'offset': None, 'scale': None}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
-                               expected_attributes=Scaler.atts,
-                               **options)
+        OpRunUnary.__init__(self, onnx_node, desc=desc,
+                            expected_attributes=Scaler.atts,
+                            **options)
 
     def _run(self, x):  # pylint: disable=W0221
 
@@ -25,4 +25,10 @@ class Scaler(OpRunUnaryNum):
     def _run_inplace(self, x):
         x -= self.offset
         x *= self.scale
+        return (x, )
+
+    def _infer_shapes(self, x):  # pylint: disable=W0221
+        """
+        Returns the same shape by default.
+        """
         return (x, )

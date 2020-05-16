@@ -1,6 +1,6 @@
 """
 @file
-@brief Inspired from skl2onnx, handles two backends.
+@brief Inspired from :epkg:`sklearn-onnx`, handles two backends.
 """
 import os
 import pickle

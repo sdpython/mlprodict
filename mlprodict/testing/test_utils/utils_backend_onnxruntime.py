@@ -4,7 +4,14 @@
 """
 from cpyquickhelper.io import capture_output
 from onnxruntime import InferenceSession
+from pyquickhelper.pycode import is_travis_or_appveyor
 from .utils_backend_common_compare import compare_runtime_session
+
+
+def _capture_output(fct, kind):
+    if is_travis_or_appveyor():
+        return fct(), None, None
+    return capture_output(fct, kind)
 
 
 class InferenceSession2:
@@ -15,12 +22,12 @@ class InferenceSession2:
 
     def __init__(self, *args, **kwargs):
         "Overwrites the constructor."
-        self.sess, self.outi, self.erri = capture_output(
+        self.sess, self.outi, self.erri = _capture_output(
             lambda: InferenceSession(*args, **kwargs), 'c')
 
     def run(self, *args, **kwargs):
         "Overwrites method *run*."
-        res, self.outr, self.errr = capture_output(
+        res, self.outr, self.errr = _capture_output(
             lambda: self.sess.run(*args, **kwargs), 'c')
         return res
 

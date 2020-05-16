@@ -11,21 +11,16 @@ import sys
 import numpy
 import pandas
 from sklearn.datasets import (
-    make_classification,
-    make_multilabel_classification,
-    make_regression,
-)
+    make_classification, make_multilabel_classification,
+    make_regression)
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from skl2onnx.common.data_types import FloatTensorType
 from ...tools.asv_options_helper import get_ir_version_from_onnx
 from .utils_backend import compare_backend
 from .utils_backend_common import (
-    extract_options,
-    evaluate_condition,
-    is_backend_enabled,
-    OnnxBackendMissingNewOnnxOperatorException,
-)
+    extract_options, evaluate_condition, is_backend_enabled,
+    OnnxBackendMissingNewOnnxOperatorException)
 
 
 def _has_predict_proba(model):

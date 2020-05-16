@@ -16,14 +16,10 @@ from sklearn.model_selection import train_test_split
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from skl2onnx import to_onnx
-from skl2onnx.proto import get_latest_tested_opset_version
 from onnxruntime import __version__ as ort_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.testing.test_utils import (
     dump_data_and_model, fit_regression_model, TARGET_OPSET)
-
-
-_TARGET_OPSET_ = min(get_latest_tested_opset_version(), TARGET_OPSET)
 
 
 Xtrain_ = pd.read_csv(StringIO("""
@@ -123,9 +119,9 @@ class TestSklearnGaussianProcess(ExtTestCase):
         kernel = (Sum(se, C(0.1, (1e-3, 1e3)) *
                       RBF(length_scale=1, length_scale_bounds=(1e-3, 1e3))))
 
-        gp = GaussianProcessRegressor(alpha=1e-7, kernel=kernel,
-                                      n_restarts_optimizer=15,
-                                      normalize_y=True)
+        gp = GaussianProcessRegressor(
+            alpha=1e-7, kernel=kernel, n_restarts_optimizer=15,
+            normalize_y=True)
 
         # return_cov=False, return_std=False
         model_onnx = to_onnx(
@@ -168,25 +164,24 @@ class TestSklearnGaussianProcess(ExtTestCase):
 
     def test_gpr_rbf_fitted_true(self):
 
-        gp = GaussianProcessRegressor(alpha=1e-7,
-                                      n_restarts_optimizer=15,
-                                      normalize_y=True)
+        gp = GaussianProcessRegressor(
+            alpha=1e-7, n_restarts_optimizer=15, normalize_y=True)
         gp, X = fit_regression_model(gp)
+        X = X.astype(np.float64)
 
         # return_cov=False, return_std=False
         model_onnx = to_onnx(
             gp, initial_types=[('X', DoubleTensorType([None, None]))],
             dtype=np.float64)
         self.assertTrue(model_onnx is not None)
-        dump_data_and_model(X, gp, model_onnx,
-                            verbose=False,
-                            basename="SklearnGaussianProcessRBFT")
+        dump_data_and_model(
+            X, gp, model_onnx, verbose=False,
+            basename="SklearnGaussianProcessRBFT")
 
     def test_gpr_rbf_fitted_false(self):
 
-        gp = GaussianProcessRegressor(alpha=1e-7,
-                                      n_restarts_optimizer=15,
-                                      normalize_y=False)
+        gp = GaussianProcessRegressor(
+            alpha=1e-7, n_restarts_optimizer=15, normalize_y=False)
         gp.fit(Xtrain_, Ytrain_)
 
         # return_cov=False, return_std=False
@@ -199,9 +194,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
                             basename="SklearnGaussianProcessRBF-Dec4")
 
     def test_gpr_rbf_fitted_return_std_true(self):
-        gp = GaussianProcessRegressor(alpha=1e-7,
-                                      n_restarts_optimizer=15,
-                                      normalize_y=True)
+        gp = GaussianProcessRegressor(
+            alpha=1e-7, n_restarts_optimizer=15, normalize_y=True)
         gp.fit(Xtrain_, Ytrain_)
 
         # return_cov=False, return_std=False
@@ -229,10 +223,9 @@ class TestSklearnGaussianProcess(ExtTestCase):
 
     def test_gpr_rbf_fitted_return_std_exp_sine_squared_true(self):
 
-        gp = GaussianProcessRegressor(kernel=ExpSineSquared(),
-                                      alpha=1e-7,
-                                      n_restarts_optimizer=15,
-                                      normalize_y=True)
+        gp = GaussianProcessRegressor(
+            kernel=ExpSineSquared(), alpha=1e-7,
+            n_restarts_optimizer=15, normalize_y=True)
         gp.fit(Xtrain_, Ytrain_)
 
         # return_cov=False, return_std=False
@@ -253,10 +246,9 @@ class TestSklearnGaussianProcess(ExtTestCase):
 
     def test_gpr_rbf_fitted_return_std_exp_sine_squared_false(self):
 
-        gp = GaussianProcessRegressor(kernel=ExpSineSquared(),
-                                      alpha=1e-7,
-                                      n_restarts_optimizer=15,
-                                      normalize_y=False)
+        gp = GaussianProcessRegressor(
+            kernel=ExpSineSquared(), alpha=1e-7,
+            n_restarts_optimizer=15, normalize_y=False)
         gp.fit(Xtrain_, Ytrain_)
 
         # return_cov=False, return_std=False
@@ -278,10 +270,9 @@ class TestSklearnGaussianProcess(ExtTestCase):
 
     def test_gpr_rbf_fitted_return_std_exp_sine_squared_double_true(self):
 
-        gp = GaussianProcessRegressor(kernel=ExpSineSquared(),
-                                      alpha=1e-7,
-                                      n_restarts_optimizer=15,
-                                      normalize_y=True)
+        gp = GaussianProcessRegressor(
+            kernel=ExpSineSquared(), alpha=1e-7,
+            n_restarts_optimizer=15, normalize_y=True)
         gp.fit(Xtrain_, Ytrain_)
 
         # return_cov=False, return_std=False
@@ -303,10 +294,9 @@ class TestSklearnGaussianProcess(ExtTestCase):
 
     def test_gpr_rbf_fitted_return_std_dot_product_true(self):
 
-        gp = GaussianProcessRegressor(kernel=DotProduct(),
-                                      alpha=1.,
-                                      n_restarts_optimizer=15,
-                                      normalize_y=True)
+        gp = GaussianProcessRegressor(
+            kernel=DotProduct(), alpha=1.,
+            n_restarts_optimizer=15, normalize_y=True)
         gp.fit(Xtrain_, Ytrain_)
         gp.predict(Xtrain_, return_std=True)
 
@@ -327,10 +317,9 @@ class TestSklearnGaussianProcess(ExtTestCase):
 
     def test_gpr_rbf_fitted_return_std_rational_quadratic_true(self):
 
-        gp = GaussianProcessRegressor(kernel=RationalQuadratic(),
-                                      alpha=1e-7,
-                                      n_restarts_optimizer=15,
-                                      normalize_y=True)
+        gp = GaussianProcessRegressor(
+            kernel=RationalQuadratic(), alpha=1e-7,
+            n_restarts_optimizer=15, normalize_y=True)
         gp.fit(Xtrain_, Ytrain_)
         gp.predict(Xtrain_, return_std=True)
 

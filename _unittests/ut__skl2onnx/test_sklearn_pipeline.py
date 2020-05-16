@@ -2,45 +2,28 @@
 @brief      test tree node (time=2s)
 """
 import unittest
-from distutils.version import StrictVersion
 from io import StringIO
 import numpy
 from numpy.testing import assert_almost_equal
 import pandas
 from sklearn import __version__ as sklearn_version
 from sklearn import datasets
-
-try:
-    from sklearn.compose import ColumnTransformer
-except ImportError:
-    # not available in 0.19
-    ColumnTransformer = None
+from sklearn.compose import ColumnTransformer
 from sklearn.decomposition import PCA, TruncatedSVD
-
-try:
-    from sklearn.impute import SimpleImputer
-except ImportError:
-    from sklearn.preprocessing import Imputer as SimpleImputer
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.preprocessing import OneHotEncoder, StandardScaler, MinMaxScaler
+from sklearn.preprocessing import (
+    OneHotEncoder, StandardScaler, MinMaxScaler)
+from sklearn.utils._testing import ignore_warnings
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import (
-    FloatTensorType,
-    Int64TensorType,
-    StringTensorType,
-)
+    FloatTensorType, Int64TensorType, StringTensorType)
 from mlprodict.testing.test_utils import (
     dump_data_and_model, fit_classification_model)
 from onnxruntime import __version__ as ort_version, InferenceSession
-
-
-def check_scikit_version():
-    # StrictVersion does not work with development versions
-    vers = '.'.join(sklearn_version.split('.')[:2])
-    return StrictVersion(vers) >= StrictVersion("0.21.0")
 
 
 class PipeConcatenateInput:
@@ -50,7 +33,7 @@ class PipeConcatenateInput:
     def transform(self, inp):
         if isinstance(inp, (numpy.ndarray, pandas.DataFrame)):
             return self.pipe.transform(inp)
-        elif isinstance(inp, dict):
+        if isinstance(inp, dict):
             keys = list(sorted(inp.keys()))
             dim = inp[keys[0]].shape[0], len(keys)
             x2 = numpy.zeros(dim)
@@ -58,12 +41,12 @@ class PipeConcatenateInput:
                 x2[:, i] = inp[keys[i]].ravel()
             res = self.pipe.transform(x2)
             return res
-        else:
-            raise TypeError("Unable to predict with type {0}".format(
-                type(inp)))
+        raise TypeError(
+            "Unable to predict with type {0}".format(type(inp)))
 
 
 class TestSklearnPipeline(ExtTestCase):
+
     def test_pipeline(self):
         data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
                            dtype=numpy.float32)
@@ -80,8 +63,7 @@ class TestSklearnPipeline(ExtTestCase):
     def test_combine_inputs(self):
         data = numpy.array(
             [[0.0, 0.0], [0.0, 0.0], [1.0, 1.0], [1.0, 1.0]],
-            dtype=numpy.float32,
-        )
+            dtype=numpy.float32)
         scaler = StandardScaler()
         scaler.fit(data)
         model = Pipeline([("scaler1", scaler), ("scaler2", scaler)])
@@ -166,6 +148,7 @@ class TestSklearnPipeline(ExtTestCase):
             data, PipeConcatenateInput(model),
             model_onnx, basename="SklearnPipelineScalerMixed")
 
+    @ignore_warnings(category=RuntimeWarning)
     def test_pipeline_column_transformer(self):
 
         iris = datasets.load_iris()

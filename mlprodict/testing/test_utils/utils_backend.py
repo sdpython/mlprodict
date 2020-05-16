@@ -1,6 +1,6 @@
 """
 @file
-@brief Inspired from skl2onnx, handles two backends.
+@brief Inspired from :epkg:`sklearn-onnx`, handles two backends.
 """
 from .utils_backend_onnxruntime import compare_runtime as compare_runtime_ort
 from .utils_backend_python import compare_runtime as compare_runtime_pyrt
