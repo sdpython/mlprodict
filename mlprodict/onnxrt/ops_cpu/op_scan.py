@@ -41,6 +41,9 @@ class Scan(OpRun):
                 "Scan is not implemented for other input axes than 0.")
         self.input_names = self.body.input_names
         self.output_names = self.body.output_names
+        self._run_meth = (self.body.run_in_scan
+                          if hasattr(self.body, 'run_in_scan')
+                          else self.body.run)
 
     def _common_run_shape(self, *args):
         num_loop_state_vars = len(args) - self.num_scan_inputs
@@ -88,7 +91,13 @@ class Scan(OpRun):
             for name, value in zip(scan_names_in, scan_values):
                 inputs[name] = value[iter]
 
-            outputs = self.body.run(inputs)
+            try:
+                outputs = self._run_meth(inputs)
+            except TypeError as e:
+                raise TypeError(
+                    "Unable to call 'run' for type '{}'.".format(
+                        type(self.body))) from e
+
             states = [outputs[name] for name in state_names_out]
             for i, name in enumerate(scan_names_out):
                 results[i].append(numpy.expand_dims(outputs[name], axis=0))

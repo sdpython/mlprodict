@@ -3,6 +3,8 @@
 @brief Inspired from skl2onnx, handles two backends.
 """
 import numpy
+from ...tools.asv_options_helper import get_opset_number_from_onnx
+
 
 from .tests_helper import dump_data_and_model  # noqa
 from .tests_helper import (  # noqa
@@ -29,3 +31,21 @@ def create_tensor(N, C, H=None, W=None):
     elif H is not None and W is not None:
         return numpy.random.rand(N, C, H, W).astype(numpy.float32, copy=False)  # pylint: disable=E1101
     raise ValueError('This function only produce 2-D or 4-D tensor.')
+
+
+def _get_ir_version(opv):
+    if opv >= 12:
+        return 7
+    if opv >= 11:
+        return 6
+    if opv >= 10:
+        return 5
+    if opv >= 9:
+        return 4
+    if opv >= 8:
+        return 4
+    return 3
+
+
+TARGET_OPSET = get_opset_number_from_onnx()
+TARGET_IR = _get_ir_version(TARGET_OPSET)

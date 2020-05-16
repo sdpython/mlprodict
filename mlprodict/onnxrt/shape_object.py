@@ -494,6 +494,8 @@ class ShapeObject(BaseDimensionShape):
             self._dtype = numpy.int64
         elif self._dtype in (str, 'str'):
             self._dtype = numpy.str
+        elif self._dtype in (bool, 'bool'):
+            self._dtype = numpy.bool
         elif self._dtype not in {
                 numpy.float32, numpy.float64, numpy.int32, numpy.int64,
                 numpy.str, numpy.bool, None,
