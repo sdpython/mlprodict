@@ -249,7 +249,8 @@ class TestOnnxConvKNN(ExtTestCase):
                 try:
                     if runtime == 'onnxruntime2':
                         oinf = _capture_output(
-                            lambda: OnnxInference(model_def, runtime=runtime),  # pylint: disable=W0640
+                            lambda: OnnxInference(
+                                model_def, runtime=runtime),  # pylint: disable=W0640
                             'c')[0]
                     else:
                         oinf = OnnxInference(model_def, runtime=runtime)

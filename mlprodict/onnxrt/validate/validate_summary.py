@@ -95,13 +95,22 @@ def _jsonify(x):
         return k
 
     if isinstance(x, dict):
-        x = {_l(k): v for k, v in x.items()}
+        x = {str(_l(k)): v for k, v in x.items()}
+        try:
+            return json.dumps(x, sort_keys=True, cls=_MyEncoder)
+        except TypeError:
+            # Cannot sort.
+            return json.dumps(x, cls=_MyEncoder)
     try:
         if numpy.isnan(x):
             x = ''
     except (ValueError, TypeError):
         pass
-    return json.dumps(x, sort_keys=True, cls=_MyEncoder)
+    try:
+        return json.dumps(x, cls=_MyEncoder)
+    except TypeError:
+        # Cannot sort.
+        return json.dumps(x, cls=_MyEncoder)
 
 
 def summary_report(df, add_cols=None, add_index=None):

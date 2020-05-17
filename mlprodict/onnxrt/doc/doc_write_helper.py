@@ -59,6 +59,7 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
     for row in enumerate_validated_operator_opsets(
             verbose=0, debug=None, fLOG=fLOG,
             opset_min=get_opset_number_from_onnx(),
+            opset_max=get_opset_number_from_onnx(),
             store_models=True, models=subsets):
 
         if 'ONNX' not in row:
@@ -92,11 +93,16 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
 
         oinf = OnnxInference(row['ONNX'], skip_run=True)
         dot = oinf.to_dot(recursive=True)
-        res = templ.render(dot=dot, model=repr(model), method=method,
-                           kind=problem, title=title,
-                           indent=indent, len=len,
-                           link=link, table=table,
-                           optim_param=optim_param)
+        try:
+            res = templ.render(dot=dot, model=repr(model), method=method,
+                               kind=problem, title=title,
+                               indent=indent, len=len,
+                               link=link, table=table,
+                               optim_param=optim_param)
+        except KeyError as e:
+            raise RuntimeError(
+                "Unable to compile template\n{}\n--MODEL--\n{}".format(
+                    visual_rst_template(), model)) from e
         yield res
 
 

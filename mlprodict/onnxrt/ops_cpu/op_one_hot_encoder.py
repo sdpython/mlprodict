@@ -62,9 +62,10 @@ class OneHotEncoder(OpRun):
                         if len(rows) > 5:
                             break
                 raise RuntimeError(
-                    "One observation did not have any category defined.\n"
-                    "classes: {}\nfirst rows:\n{}".format(
-                        self.classes_, "\n".join(str(_) for _ in rows)))
+                    "One observation did not have any defined category.\n"
+                    "classes: {}\nfirst rows:\n{}\nres:\n{}\nx:\n{}".format(
+                        self.classes_, "\n".join(str(_) for _ in rows),
+                        res[:5], x[:5]))
 
         return (res, )
 

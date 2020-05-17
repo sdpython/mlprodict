@@ -57,8 +57,9 @@ class LabelEncoder(OpRun):
                     self.onnx_node.name, onnx_node))
 
     def _run(self, x):  # pylint: disable=W0221
+        if len(x.shape) > 1:
+            x = numpy.squeeze(x)
         res = numpy.empty((x.shape[0], ), dtype=self.dtype_)
-        x = numpy.squeeze(x)
         for i in range(0, res.shape[0]):
             res[i] = self.classes_.get(x[i], self.default_)
         return (res, )
