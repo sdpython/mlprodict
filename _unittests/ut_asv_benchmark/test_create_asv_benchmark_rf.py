@@ -52,7 +52,7 @@ class TestCreateAsvBenchmarkRF(ExtTestCase):
                 if len(err) > 0:
                     raise RuntimeError(
                         "Issue with '{}'\n{}".format(fullname, err))
-                if (zoo.endswith("bench_RandomForestReg_default_b_reg_nest10.py") and
+                if (zoo.endswith("bench_RandomForestReg_default_b_reg_nest100.py") and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "random_state=42" not in content:
                         raise AssertionError(content)
