@@ -105,7 +105,8 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
                 '', str(e), '',
                 "title='{}'".format(title),
                 "method='{}'".format(method),
-                str(model), "", "---------",
+                "problem='{}'".format(problem),
+                model.__class__.__name__, "", "---------",
                 rst_templ]
             res = "::\n\n" + textwrap.indent("\n".join(rows), "    ")
         yield res
