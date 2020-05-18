@@ -19,9 +19,23 @@ from .sklconv.tree_converters import (
     new_convert_sklearn_random_forest_classifier,
     new_convert_sklearn_random_forest_regressor,
 )
+from .sklconv.svm_converters import (
+    new_convert_sklearn_svm_classifier,
+    new_convert_sklearn_svm_regressor,
+)
 
 
 _overwritten_operators = {
+    #
+    'SklearnOneClassSVM': RegisteredConverter(
+        new_convert_sklearn_svm_regressor,
+        _converter_pool['SklearnOneClassSVM'].get_allowed_options()),
+    'SklearnSVR': RegisteredConverter(
+        new_convert_sklearn_svm_regressor,
+        _converter_pool['SklearnSVR'].get_allowed_options()),
+    'SklearnSVC': RegisteredConverter(
+        new_convert_sklearn_svm_classifier,
+        _converter_pool['SklearnSVC'].get_allowed_options()),
     #
     'SklearnDecisionTreeRegressor': RegisteredConverter(
         new_convert_sklearn_decision_tree_regressor,

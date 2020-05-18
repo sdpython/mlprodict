@@ -232,11 +232,11 @@ def build_custom_scenarios():
             ('box-cox', {'method': 'box-cox'}),
         ],
         RandomForestClassifier: [
-            ('default', {'n_estimators': 10},
+            ('default', {'n_estimators': 100},
              {'conv_options': [{}, {RandomForestClassifier: {'zipmap': False}}]}),
         ],
         RandomForestRegressor: [
-            ('default', {'n_estimators': 10}),
+            ('default', {'n_estimators': 100}),
         ],
         RandomizedSearchCV: [
             ('cl', {
