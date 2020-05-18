@@ -5,6 +5,7 @@
 xgboost/operator_converters/XGBoost.py>`_.
 """
 import json
+from pprint import pformat
 import numpy
 from xgboost import XGBClassifier
 
@@ -17,7 +18,11 @@ class XGBConverter:
         """
         Retrieves parameters of a model.
         """
-        return xgb_node.get_xgb_params()
+        pars = xgb_node.get_xgb_params()
+        # xgboost >= 1.0
+        if 'n_estimators' not in pars:
+            pars['n_estimators'] = xgb_node.n_estimators
+        return pars
 
     @staticmethod
     def validate(xgb_node):
@@ -247,6 +252,10 @@ class XGBClassifierConverter(XGBConverter):
 
         if len(attr_pairs['class_treeids']) == 0:
             raise RuntimeError("XGBoost model is empty.")
+        if 'n_estimators' not in params:
+            raise RuntimeError(
+                "Parameters not found, existing:\n{}".format(
+                    pformat(params)))
         ncl = (max(attr_pairs['class_treeids']) + 1) // params['n_estimators']
         if ncl <= 1:
             ncl = 2

@@ -105,7 +105,7 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
 
                         nb_tests += 1
 
-        self.assertGreater(nb_tests, 20)
+        self.assertGreater(nb_tests, 8)
 
 
 if __name__ == "__main__":
