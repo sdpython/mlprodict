@@ -52,7 +52,8 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
     logger = getLogger('skl2onnx')
     logger.disabled = True
 
-    templ = Template(visual_rst_template())
+    rst_templ = visual_rst_template()
+    templ = Template(rst_templ)
     done = set()
     subsets = [_['name'] for _ in sklearn_operators(sub)]
     subsets.sort()
@@ -100,9 +101,13 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
                                link=link, table=table,
                                optim_param=optim_param)
         except KeyError as e:
-            raise RuntimeError(
-                "Unable to compile template\n{}\n--MODEL--\n{}".format(
-                    visual_rst_template(), model)) from e
+            rows = [
+                '', str(e), '',
+                "title='{}'".format(title),
+                "method='{}'".format(method),
+                str(model), "", "---------",
+                rst_templ]
+            res = "::\n\n" + textwrap.indent("\n".join(rows), "    ")
         yield res
 
 

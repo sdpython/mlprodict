@@ -37,7 +37,8 @@ def generate_dot_converters(app):
         if len(models) > 0:
             rows = [".. _l-skl2onnx-%s:" % sub, "", "=" * len(sub),
                     sub, "=" * len(sub), "", ".. toctree::", ""]
-            for irow, text in enumerate(enumerate_visual_onnx_representation_into_rst(sub)):
+            for irow, text in enumerate(
+                    enumerate_visual_onnx_representation_into_rst(sub)):
                 subname = "visual-%s-%03d.rst" % (sub, irow)
                 pagename = os.path.join(whe, subname)
                 with open(pagename, 'w', encoding='utf-8') as f:

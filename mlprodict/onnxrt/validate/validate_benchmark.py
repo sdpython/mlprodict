@@ -40,7 +40,12 @@ def make_n_rows(x, n, y=None):
                 ry = numpy.empty((n, y.shape[1]), dtype=y.dtype)
         for i in range(0, n, x.shape[0]):
             end = min(i + x.shape[0], n)
-            r[i: end, :] = x[0: end - i, :]
+            try:
+                r[i: end, :] = x[0: end - i, :]
+            except ValueError as e:
+                raise ValueError(
+                    "Unexpected error: r.shape={} x.shape={} end={} i={}".format(
+                        r.shape, x.shape, end, i)) from e
             if y is not None:
                 if len(y.shape) < 2:
                     ry[i: end] = y[0: end - i]
