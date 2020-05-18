@@ -117,11 +117,11 @@ def build_custom_scenarios():
             ('eps95', {'eps': 0.95}),
         ],
         GradientBoostingClassifier: [
-            ('default', {'n_estimators': 10},
+            ('default', {'n_estimators': 200},
              {'conv_options': [{GradientBoostingClassifier: {'zipmap': False}}]}),
         ],
         GradientBoostingRegressor: [
-            ('default', {'n_estimators': 10}),
+            ('default', {'n_estimators': 200}),
         ],
         GridSearchCV: [
             ('cl', {
