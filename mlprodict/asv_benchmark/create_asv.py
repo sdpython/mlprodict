@@ -10,7 +10,7 @@ import warnings
 import re
 try:
     from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8  # pragma: no cover
-except ImportError:
+except ImportError:  # pragma: no cover
     remove_extra_spaces_and_pep8 = lambda code, *args, **kwargs: code
 try:
     from ._create_asv_helper import (
@@ -38,11 +38,11 @@ except ImportError:
         find_missing_sklearn_imports)
 
 try:
-    from ...tools.asv_options_helper import get_opset_number_from_onnx
+    from ..tools.asv_options_helper import (
+        get_opset_number_from_onnx, shorten_onnx_options)
     from ..onnxrt.validate.validate_helper import sklearn_operators
     from ..onnxrt.validate.validate import (
         _retrieve_problems_extra, _get_problem_data, _merge_options)
-    from ..tools.asv_options_helper import shorten_onnx_options
 except (ValueError, ImportError):  # pragma: no cover
     from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
     from mlprodict.onnxrt.validate.validate_helper import sklearn_operators
@@ -186,7 +186,8 @@ def create_asv_benchmark(
                           v in conf['matrix'].items() if k not in drop_keys}
         conf['matrix'].update(matrix)
     elif env is not None:
-        raise ValueError("Unable to handle env='{}'.".format(env))
+        raise ValueError("Unable to handle env='{}'.".format(
+            env))  # pragma: no cover
     dest = os.path.join(location, "asv.conf.json")
     created.append(dest)
     with open(dest, "w", encoding='utf-8') as f:
@@ -312,10 +313,11 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
 
     if models is not None:
         if not all(map(lambda m: isinstance(m, str), models)):
-            raise ValueError("models must be a set of strings.")
+            raise ValueError(
+                "models must be a set of strings.")  # pragma: no cover
         ops_ = [_ for _ in ops if _['name'] in models]
         if len(ops) == 0:
-            raise ValueError("Parameter models is wrong: {}\n{}".format(
+            raise ValueError("Parameter models is wrong: {}\n{}".format(  # pragma: no cover
                 models, ops[0]))
         ops = ops_
     if skip_models is not None:
@@ -329,8 +331,8 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                 yield row
 
         if verbose >= 11:
-            verbose -= 10
-            loop = iterate()
+            verbose -= 10  # pragma: no cover
+            loop = iterate()  # pragma: no cover
         else:
             try:
                 from tqdm import trange
@@ -345,7 +347,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
 
                 loop = iterate_tqdm()
 
-            except ImportError:
+            except ImportError:  # pragma: no cover
                 loop = iterate()
     else:
         loop = ops
@@ -401,7 +403,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                         # Skips unrelated problem for a specific configuration.
                         continue
                 elif subset_problems is not None:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "subset_problems must be a set or a list not {}.".format(
                             subset_problems))
 
@@ -454,7 +456,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
     through the argument. It uses template @see cl TemplateBenchmark.
     """
     if patterns is None:
-        raise ValueError("Patterns list is empty.")
+        raise ValueError("Patterns list is empty.")  # pragma: no cover
 
     def format_conv_options(d_options, class_name):
         if d_options is None:
@@ -465,7 +467,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                 if "." + class_name + "'" in str(k):
                     res[class_name] = v
                     continue
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "Class '{}', unable to format options {}".format(
                         class_name, d_options))
             res[k] = v
@@ -508,7 +510,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                 model, scenario, optimisation, extra,
                 dofit, conv_options, problem,
                 shorten=True)
-        except ValueError as e:
+        except ValueError as e:  # pragma: no cover
             if exc:
                 raise e
             warnings.warn(str(e))
@@ -540,7 +542,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         }
         for k, v in rep.items():
             if k not in class_content:
-                raise ValueError("Unable to find '{}'\n{}.".format(
+                raise ValueError("Unable to find '{}'\n{}.".format(  # pragma: no cover
                     k, class_content))
             class_content = class_content.replace(k, v + ',')
         class_content = class_content.split(
@@ -549,7 +551,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             class_content = class_content.replace(
                 "'####", "").replace("####'", "")
         if "####" in class_content:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Substring '####' should not be part of the script for '{}'\n{}".format(
                     model.__name__, class_content))
 
@@ -583,7 +585,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         # Check compilation
         try:
             compile(class_content, filename, 'exec')
-        except SyntaxError as e:
+        except SyntaxError as e:  # pragma: no cover
             raise SyntaxError("Unable to compile model '{}'\n{}".format(
                 model.__name__, class_content)) from e
 
@@ -591,7 +593,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         to_import, _ = verify_code(class_content, exc=False)
         try:
             miss = find_missing_sklearn_imports(to_import)
-        except ValueError as e:
+        except ValueError as e:  # pragma: no cover
             raise ValueError(
                 "Unable to check import in script\n{}".format(
                     class_content)) from e
@@ -606,7 +608,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         # Check compilation again
         try:
             obj = compile(class_content, filename, 'exec')
-        except SyntaxError as e:
+        except SyntaxError as e:  # pragma: no cover
             raise SyntaxError("Unable to compile model '{}'\n{}".format(
                 model.__name__,
                 _display_code_lines(class_content))) from e
@@ -615,7 +617,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         if execute:
             try:
                 exec(obj, globals(), locals())  # pylint: disable=W0122
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 raise RuntimeError(
                     "Unable to process class '{}' ('{}') a script due to '{}'\n{}".format(
                         model.__name__, filename, str(e),

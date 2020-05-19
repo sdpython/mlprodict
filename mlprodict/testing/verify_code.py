@@ -74,7 +74,8 @@ class CodeNodeVisitor(ast.NodeVisitor):
         """
         Overrides ``generic_visit`` to check it is not used.
         """
-        raise AttributeError("generic_visit_args should be used.")
+        raise AttributeError(
+            "generic_visit_args should be used.")  # pragma: no cover
 
     def generic_visit_args(self, node, row):
         """
@@ -110,7 +111,8 @@ class CodeNodeVisitor(ast.NodeVisitor):
                     "node": node}
                 self.push(cont)
                 return self.generic_visit_args(node, cont)
-            raise TypeError("unable to find a method: " + method)
+            raise TypeError("unable to find a method: " +
+                            method)  # pragma: no cover
         res = visitor(node)
         # print(method, CodeNodeVisitor.print_node(node))
         return res
@@ -285,7 +287,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
             cont = {"indent": self._indent, "type": "Call", "str": node.func.id,
                     "node": node, "func": node.func}
         else:
-            cont = {"indent": self._indent, "type": "Call", "str": "",
+            cont = {"indent": self._indent, "type": "Call", "str": "",  # pragma: no cover
                     "node": node, "func": node.func}
         self.push(cont)
         if cont['str'] == 'fit':

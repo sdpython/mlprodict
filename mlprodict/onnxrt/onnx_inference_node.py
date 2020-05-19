@@ -22,7 +22,7 @@ class OnnxInferenceNode:
                                     for the output this operator generates
         """
         if desc is None:
-            raise ValueError("desc should not be None.")
+            raise ValueError("desc should not be None.")  # pragma: no cover
         self.desc = desc
         self.onnx_node = onnx_node
         self._init(global_index)
@@ -87,7 +87,8 @@ class OnnxInferenceNode:
                                     given by :epkg:`ONNX`
         """
         if self.desc is None:
-            raise AttributeError("desc should not be None.")
+            raise AttributeError(
+                "desc should not be None.")  # pragma: no cover
         self.preprocess_parameters(runtime, rt_class, ir_version=ir_version)
         options = {'provider': runtime} if runtime else {}
         if domain is not None:
@@ -150,11 +151,13 @@ class OnnxInferenceNode:
         res = self.ops_.run(*args)
 
         if not isinstance(res, tuple):
-            raise RuntimeError("Results of an operator should be a tuple.")
+            raise RuntimeError(  # pragma: no cover
+                "Results of an operator should be a tuple.")
         if len(self.outputs) != len(res):
-            raise RuntimeError("Mismatch number of outputs got {} for names {}.\n{}".format(
-                len(res), list(sorted(self.outputs)),
-                pprint.pformat(self.desc)))
+            raise RuntimeError(  # pragma: no cover
+                "Mismatch number of outputs got {} for names {}.\n{}".format(
+                    len(res), list(sorted(self.outputs)),
+                    pprint.pformat(self.desc)))
 
         # This code takes times if the graph contains many nodes.
         # Maybe a C++ container would help in that case (to skip GIL).
@@ -205,11 +208,11 @@ class OnnxInferenceNode:
                 "Unable to call infer_shapes with {} arguments for class"
                 " '{}'".format(len(args), self.ops_.__class__.__name__)) from e
         if not isinstance(res, tuple):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Results of an operator should be a tuple for operator '{}'"
                 ".".format(type(self.ops_)))
         if len(self.outputs) != len(res):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Mismatch number of outputs got {} for names {} (node='{}')."
                 "\n{}".format(
                     len(res), list(self.outputs),
@@ -236,7 +239,8 @@ class OnnxInferenceNode:
         (close to the signature).
         """
         if not hasattr(self, 'ops_'):
-            raise AttributeError("Attribute 'ops_' is missing.")
+            raise AttributeError(
+                "Attribute 'ops_' is missing.")  # pragma: no cover
         sigs = []
         mand = self.ops_.args_mandatory
         if mand is None:
@@ -255,7 +259,8 @@ class OnnxInferenceNode:
         Returns the python arguments.
         """
         if not hasattr(self, 'ops_'):
-            raise AttributeError("Attribute 'ops_' is missing.")
+            raise AttributeError(
+                "Attribute 'ops_' is missing.")  # pragma: no cover
         if hasattr(self.ops_, 'python_inputs'):
             return self.ops_.python_inputs
         return self.inputs
@@ -266,7 +271,8 @@ class OnnxInferenceNode:
         Returns the list of modified parameters.
         """
         if not hasattr(self, 'ops_'):
-            raise AttributeError("Attribute 'ops_' is missing.")
+            raise AttributeError(
+                "Attribute 'ops_' is missing.")  # pragma: no cover
         return self.ops_.args_default_modified
 
     def to_python(self, inputs):
@@ -277,5 +283,6 @@ class OnnxInferenceNode:
         @return                 imports, python code, both as strings
         """
         if not hasattr(self, 'ops_'):
-            raise AttributeError("Attribute 'ops_' is missing.")
+            raise AttributeError(
+                "Attribute 'ops_' is missing.")  # pragma: no cover
         return self.ops_.to_python(inputs)

@@ -48,7 +48,7 @@ def evaluate_condition(backend, condition):
     ``StrictVersion(onnxruntime.__version__) <= StrictVersion('0.1.3')``
     """
     assert StrictVersion is not None
-    if backend == "onnxruntime":
+    if backend == "onnxruntime":  # pragma: no cover
         import onnxruntime  # pylint: disable=W0611
         return eval(condition)  # pylint: disable=W0123
     raise NotImplementedError(  # pragma no cover
@@ -225,8 +225,9 @@ def compare_outputs(expected, output, verbose=False, **kwargs):
                     "max-diff={0}\n--expected--output--\n{1}{2}".format(
                         diff, e, longer))
     else:
-        return OnnxBackendAssertionError("Unexpected types {0} != {1}".format(
-            type(expected), type(output)))
+        return OnnxBackendAssertionError(  # pragma: no cover
+            "Unexpected types {0} != {1}".format(
+                type(expected), type(output)))
     return None
 
 
@@ -343,11 +344,11 @@ def _compare_expected(expected, output, sess, onnx_model,
                 output = output[list(sorted(output.columns))]
                 output = output.values
         if isinstance(output, (dict, list)):
-            if len(output) != 1:
+            if len(output) != 1:  # pragma: no cover
                 ex = str(output)
                 if len(ex) > 170:
                     ex = ex[:170] + "..."
-                raise OnnxBackendAssertionError(  # pragma no cover
+                raise OnnxBackendAssertionError(
                     "More than one output when 1 is expected "
                     "for onnx '{0}'\n{1}"
                     .format(onnx_model, ex))

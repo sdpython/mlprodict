@@ -70,7 +70,7 @@ class OnnxInference:
             self.obj = make_model(onnx_or_bytes_or_stream,
                                   producer_name='mlprodict')
         else:
-            raise TypeError("Unable to handle type {}.".format(
+            raise TypeError("Unable to handle type {}.".format(  # pragma: no cover
                 type(onnx_or_bytes_or_stream)))
         if ir_version is not None:
             self.obj.ir_version = ir_version
@@ -323,7 +323,7 @@ class OnnxInference:
         for obj in self.obj.graph.initializer:
             init_obj = _var_as_dict(obj)
             if init_obj is None:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unable to convert an initializer\n{}".format(obj))
             inits[obj.name] = init_obj
             self.global_index(obj.name)
@@ -340,7 +340,7 @@ class OnnxInference:
                 atts = dobj['atts']
                 for k, v in atts.items():
                     if not isinstance(v, dict) or 'value' not in v:
-                        raise RuntimeError(
+                        raise RuntimeError(  # pragma: no cover
                             "A parameter has no (sparse) value '{}' for node '{}'\nv={}\ndobj=[{}]".format(
                                 k, node.name, v, node))
             nodes[node.name] = OnnxInferenceNode(node, dobj, self.global_index)
@@ -349,7 +349,7 @@ class OnnxInference:
         names = {}
         for k, v in inits.items():
             if (k, 0) in names:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Initializer '{}' already exists (tag='{}').".format(
                         k, names[k, 0][0]))
             names[k, 0] = ('C', v)
@@ -358,19 +358,19 @@ class OnnxInference:
                 if k in inits:
                     # Kind of default value for an input
                     continue
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Variable '{}' already exists (tag='{}').".format(
                         k, names[k, 0][0]))
             names[k, 0] = ('I', v)
         for k, v in outputs.items():
             if (k, 0) in names:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Output '{}' already exists (tag='{}').".format(
                         k, names[k, 0][0]))
             names[k, 0] = ('O', v)
         for k, v in nodes.items():
             if (k, 1) in names:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Node '{}' already exists (tag='{}').".format(
                         k, names[k, 0][0]))
             names[k, 1] = ('N', v)
@@ -625,7 +625,7 @@ class OnnxInference:
                             try:
                                 mini = numpy.min(values[k])
                                 maxi = numpy.max(values[k])
-                            except TypeError:
+                            except TypeError:  # pragma: no cover
                                 try:
                                     mini = numpy.min(values[k].astype(str))
                                     maxi = numpy.max(values[k].astype(str))
@@ -641,7 +641,7 @@ class OnnxInference:
                         else:
                             fLOG("+kr='{}': {}".format(
                                 name, type(values[k])))
-                            if verbose >= 3:
+                            if verbose >= 3:  # pragma: no cover
                                 dispsimple(values[k])
 
         if intermediate:
@@ -678,7 +678,7 @@ class OnnxInference:
                            fLOG=None):
         # node_time is unused
         if clean_right_away:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "clean_right_away=true does not work with this runtime.")
         if intermediate:
             if hasattr(self, "intermediate_onnx_inference_"):
@@ -697,14 +697,14 @@ class OnnxInference:
             values = OrderedDict(inputs)
             for k, v in self.inits_.items():
                 values[k] = v['value']
-            if verbose >= 2:
+            if verbose >= 2:  # pragma: no cover
                 for k in sorted(values):
                     fLOG("-k='{}' shape={} dtype={}".format(
                         k, values[k].shape, values[k].dtype))
             for node, oinf in self.intermediate_onnx_inference_.items():
                 if verbose >= 1:
                     fLOG(node)
-                    if verbose >= 2:
+                    if verbose >= 2:  # pragma: no cover
                         fLOG(oinf.obj)
                 output = oinf.run(inputs)[node]
                 values[node] = output
@@ -713,15 +713,15 @@ class OnnxInference:
                         fLOG("+k='{}': {} (dtype={})".format(
                             k, output.shape, output.dtype))
                     else:
-                        fLOG("+k='{}': {}".format(
+                        fLOG("+k='{}': {}".format(  # pragma: no cover
                             k, type(output)))
             return values
-        else:
-            if verbose != 0:
-                warnings.warn(
-                    "verbose option not implemented if runtime is 'onnxruntime1'")
-            res = self._whole.run(inputs)
-            return {k: v for k, v in zip(self.outputs_, res)}
+
+        if verbose != 0:
+            warnings.warn(
+                "verbose option not implemented if runtime is 'onnxruntime1'")
+        res = self._whole.run(inputs)
+        return {k: v for k, v in zip(self.outputs_, res)}
 
     def __getitem__(self, item):
         """
@@ -740,7 +740,7 @@ class OnnxInference:
                 break
 
         if node_ is None:
-            raise IndexError(
+            raise IndexError(  # pragma: no cover
                 "Unable to get node name '{}'.\n{}".format(
                     node_name, "\n".join(node.name for node in self.obj.graph.node)))
 
@@ -751,7 +751,7 @@ class OnnxInference:
             if att.name == att_name:
                 return att
 
-        raise IndexError("Unable to find attribute '{}' from node '{}'.".format(
+        raise IndexError("Unable to find attribute '{}' from node '{}'.".format(  # pragma: no cover
             att_name, node_name))
 
     def switch_initializers_dtype(self, model=None,
@@ -770,7 +770,7 @@ class OnnxInference:
         """
         from .optim.sklearn_helper import enumerate_fitted_arrays, pairwise_array_distances
 
-        if self.runtime != 'python':
+        if self.runtime != 'python':  # pragma: no cover
             raise RuntimeError("Initializers can be casted only if the "
                                "runtime is 'python' not '{}'.".format(self.runtime))
 
@@ -831,7 +831,7 @@ class OnnxInference:
         The values are stored in every node.
         """
         if not hasattr(self, 'sequence_') or not hasattr(self, 'inputs_'):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "This method only works if the runtime is 'python' not "
                 "'{}'.".format(self.runtime))
         values = OrderedDict()
@@ -846,7 +846,7 @@ class OnnxInference:
             try:
                 s = node._set_shape_inference_runtime(values)
                 last = s
-            except IndexError as e:
+            except IndexError as e:  # pragma: no cover
                 rows = []
                 if last is not None:
                     for k, v in last.items():

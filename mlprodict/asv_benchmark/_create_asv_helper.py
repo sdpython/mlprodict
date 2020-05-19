@@ -512,4 +512,9 @@ def find_sklearn_module(piece):
         import sklearn.cluster
         glo[piece] = getattr(sklearn.cluster, piece)
         return "sklearn.cluster"
-    raise ValueError("Unable to find module to import for '{}'.".format(piece))
+    if piece in {'OneVsRestClassifier', 'OneVsOneClassifier'}:
+        import sklearn.multiclass
+        glo[piece] = getattr(sklearn.multiclass, piece)
+        return "sklearn.multiclass"
+    raise ValueError(
+        "Unable to find module to import for '{}'.".format(piece))

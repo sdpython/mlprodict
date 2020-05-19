@@ -17,19 +17,18 @@ def _translate_split_criterion(criterion):
     # If the criterion is true, LightGBM use the left child. Otherwise, right child is selected.
     if criterion == '<=':
         return 'BRANCH_LEQ'
-    elif criterion == '<':
+    if criterion == '<':  # pragma: no cover
         return 'BRANCH_LT'
-    elif criterion == '>=':
+    if criterion == '>=':  # pragma: no cover
         return 'BRANCH_GTE'
-    elif criterion == '>':
+    if criterion == '>':  # pragma: no cover
         return 'BRANCH_GT'
-    elif criterion == '==':
+    if criterion == '==':  # pragma: no cover
         return 'BRANCH_EQ'
-    elif criterion == '!=':
+    if criterion == '!=':  # pragma: no cover
         return 'BRANCH_NEQ'
-    else:
-        raise ValueError(
-            'Unsupported splitting criterion: %s. Only <=, <, >=, and > are allowed.')
+    raise ValueError(  # pragma: no cover
+        'Unsupported splitting criterion: %s. Only <=, <, >=, and > are allowed.')
 
 
 def _create_node_id(node_id_pool):
@@ -85,7 +84,7 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
     if isinstance(tree_structure['threshold'], str):
         try:
             attrs['nodes_values'].append(float(tree_structure['threshold']))
-        except ValueError:
+        except ValueError:  # pragma: no cover
             import pprint
             text = pprint.pformat(tree_structure)
             if len(text) > 100000:
@@ -146,7 +145,7 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
         if isinstance(node['threshold'], str):
             try:
                 attrs['nodes_values'].append(float(node['threshold']))
-            except ValueError:
+            except ValueError:  # pragma: no cover
                 import pprint
                 text = pprint.pformat(node)
                 if len(text) > 100000:
@@ -173,7 +172,7 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
             _parse_node(tree_id, class_id, right_id, node_id_pool, node_pyid_pool,
                         learning_rate, node['right_child'], attrs)
     elif hasattr(node, 'left_child') or hasattr(node, 'right_child'):
-        raise ValueError('Need two branches')
+        raise ValueError('Need two branches')  # pragma: no cover
     else:
         # Node attributes
         attrs['nodes_treeids'].append(tree_id)
@@ -225,7 +224,7 @@ def convert_lightgbm(scope, operator, container):
         attrs['post_transform'] = 'NONE'
         attrs['n_targets'] = n_classes
     else:
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "LightGBM objective should be cleaned already not '{}'.".format(
                 gbm_text['objective']))
 
@@ -276,7 +275,7 @@ def convert_lightgbm(scope, operator, container):
             attrs['classlabels_strings'] = class_labels
             zipmap_attrs['classlabels_strings'] = class_labels
         else:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 'Only string and integer class labels are allowed')
 
         # Create tree classifier
@@ -437,7 +436,7 @@ def modify_tree_for_rule_in_set(gbm, use_float=False):  # pylint: disable=R1710
         else:
             try:
                 return int(val)
-            except ValueError:
+            except ValueError:  # pragma: no cover
                 return float(val)
 
     dec = gbm['decision_type']

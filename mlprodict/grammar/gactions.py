@@ -20,10 +20,11 @@ class MLAction(AutoAction):
         @param      children    actions used to compute this one
         """
         if not isinstance(inputs, list):
-            raise TypeError('inputs must be a list of MLType.')
+            raise TypeError(
+                'inputs must be a list of MLType.')  # pragma: no cover
         for t in inputs:
             if not isinstance(t, MLType):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Every input must be a MLType not '{0}'.".format(type(t)))
         if not isinstance(output, MLType):
             raise TypeError('output must be of MLType.')
@@ -32,7 +33,7 @@ class MLAction(AutoAction):
         self.name = name
         self.children = children if children is not None else []
         for child in self.children:
-            if not isinstance(child, MLAction):
+            if not isinstance(child, MLAction):  # pragma: no cover
                 raise TypeError("All children must be of type MLAction")
 
     def execute(self, **kwargs):
@@ -92,7 +93,8 @@ class MLAction(AutoAction):
     @AutoAction.cache
     def _export_c(self, hook=None, result_name=None):
         if result_name is None:
-            raise ValueError("result_name must not be None")
+            raise ValueError(
+                "result_name must not be None")  # pragma: no cover
         rows = []
         rows.append("// {0}-{1} - children".format(id(self), self.name))
         names = []
@@ -134,9 +136,9 @@ class MLActionCst(MLAction):
         """
         if isinstance(value, (float, numpy.float32)):
             return MLNumTypeFloat32()
-        elif isinstance(value, (int, numpy.int32)):
+        if isinstance(value, (int, numpy.int32)):
             return MLNumTypeInt32()
-        elif isinstance(value, numpy.ndarray):
+        if isinstance(value, numpy.ndarray):
             a = numpy.zeros(1, value.dtype)
             t = MLActionCst.guess_type(a[0])
             return MLTensor(t, value.shape)
@@ -150,8 +152,7 @@ class MLActionCst(MLAction):
     def graph_execution(self):
         if self.comment:
             return "cst: {0} = {1}".format(self.comment, self.cst)
-        else:
-            return "cst: {0}".format(self.cst)
+        return "cst: {0}".format(self.cst)
 
     @AutoAction.cache
     def _export_json(self, hook=None, result_name=None):
@@ -164,7 +165,7 @@ class MLActionCst(MLAction):
     @AutoAction.cache
     def _export_c(self, hook=None, result_name=None):
         if result_name is None:
-            raise ValueError("result_name cannot be None.")
+            raise ValueError("result_name cannot be None.")  # pragma: no cover
         dc = self.output._export_c(hook='declare', result_name=result_name)
         res = "{0} = {1};".format(
             dc['code'], self.output._format_value_c(self.cst))
@@ -192,7 +193,7 @@ class MLActionVar(MLActionCst):
     def execute(self, **kwargs):
         MLAction.execute(self, **kwargs)
         if self.name_var not in kwargs:
-            raise KeyError(
+            raise KeyError(  # pragma: no cover
                 "Unable to find variable name '{0}'".format(self.name_var))
         return self.output.validate(kwargs[self.name_var])
 
@@ -212,7 +213,8 @@ class MLActionVar(MLActionCst):
     @AutoAction.cache
     def _export_c(self, hook=None, result_name=None):
         if result_name is None:
-            raise ValueError("result_name must not be None")
+            raise ValueError(
+                "result_name must not be None")  # pragma: no cover
         dc = self.output._export_c(hook='typeref', result_name=result_name)
         res = "{0} = {1};".format(dc['code'], self.name_var)
         return {'code': res, 'result_name': result_name}
@@ -231,7 +233,7 @@ class MLActionFunctionCall(MLAction):
         """
         for act in acts:
             if not isinstance(act, MLAction):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "All element of acts must be MLAction not '{0}'.".format(type(act)))
         MLAction.__init__(self, [act.output for act in acts],
                           output, name, children=acts)
@@ -246,7 +248,8 @@ class MLActionFunctionCall(MLAction):
     @AutoAction.cache
     def _export_c(self, hook=None, result_name=None):
         if result_name is None:
-            raise ValueError("result_name must not be None")
+            raise ValueError(
+                "result_name must not be None")  # pragma: no cover
         dcf = MLAction._export_c(self, hook=hook, result_name=result_name)
         rows = [dcf['code']]
         fcall = ", ".join(dcf['child_names'])
@@ -278,16 +281,17 @@ class MLActionBinary(MLAction):
         @param  name        operator name
         """
         if not isinstance(act1, MLAction):
-            raise TypeError("act1 must be MLAction.")
+            raise TypeError("act1 must be MLAction.")  # pragma: no cover
         if not isinstance(act2, MLAction):
-            raise TypeError("act2 must be MLAction.")
+            raise TypeError("act2 must be MLAction.")  # pragma: no cover
         MLAction.__init__(self, [act1.output, act2.output], act2.output, name,
                           children=[act1, act2])
 
     @AutoAction.cache
     def _export_c(self, hook=None, result_name=None):
         if result_name is None:
-            raise ValueError("result_name must not be None")
+            raise ValueError(
+                "result_name must not be None")  # pragma: no cover
         dc = MLAction._export_c(self, hook=hook, result_name=result_name)
         rows = [dc['code']]
         dc2 = self.output._export_c(hook='type')
@@ -336,9 +340,9 @@ class MLActionConcat(MLActionFunctionCall):
         @param  act2        second element
         """
         if not isinstance(act1, MLAction):
-            raise TypeError("act1 must be MLAction.")
+            raise TypeError("act1 must be MLAction.")  # pragma: no cover
         if not isinstance(act2, MLAction):
-            raise TypeError("act2 must be MLAction.")
+            raise TypeError("act2 must be MLAction.")  # pragma: no cover
         n1 = 1 if isinstance(
             act1.output, MLNumTypeFloat32) else act1.output.dim[0]
         n2 = 1 if isinstance(
@@ -392,16 +396,16 @@ class MLActionIfElse(MLAction):
         @param  comment     comment
         """
         if not isinstance(act1, MLAction):
-            raise TypeError("act1 must be MLAction.")
+            raise TypeError("act1 must be MLAction.")  # pragma: no cover
         if not isinstance(act2, MLAction):
-            raise TypeError("act2 must be MLAction.")
+            raise TypeError("act2 must be MLAction.")  # pragma: no cover
         if not isinstance(cond, MLAction):
-            raise TypeError("cond must be MLAction.")
+            raise TypeError("cond must be MLAction.")  # pragma: no cover
         if not isinstance(cond.output, MLNumTypeBool):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "No boolean condition {0}".format(type(cond.output)))
         if check_type and type(act1.output) != type(act2.output):
-            raise TypeError("Not the same input type {0} != {1}".format(
+            raise TypeError("Not the same input type {0} != {1}".format(  # pragma: no cover
                 type(act1.output), type(act2.output)))
         MLAction.__init__(self, [cond.output, act1.output, act2.output], act2.output, "if",
                           children=[cond, act1, act2])
@@ -424,7 +428,8 @@ class MLActionIfElse(MLAction):
     @AutoAction.cache
     def _export_c(self, hook=None, result_name=None):
         if result_name is None:
-            raise ValueError("result_name must not be None")
+            raise ValueError(
+                "result_name must not be None")  # pragma: no cover
         dc = MLAction._export_c(self, hook=hook, result_name=result_name)
         rows = [dc['code']]
         dc2 = self.output._export_c(hook='type')
@@ -454,9 +459,11 @@ class MLActionReturn(MLAction):
     @AutoAction.cache
     def _export_c(self, hook=None, result_name=None):
         if len(self.children) != 1:
-            raise ValueError("Only one result can be returned.")
+            raise ValueError(
+                "Only one result can be returned.")  # pragma: no cover
         if result_name is None:
-            raise ValueError("result_name must not be None")
+            raise ValueError(
+                "result_name must not be None")  # pragma: no cover
         dc = self.children[0]._export_c(hook=hook, result_name=result_name)
         if not dc['cache']:
             code = dc['code']
@@ -491,11 +498,13 @@ class MLActionFunction(MLActionUnary):
     @AutoAction.cache
     def _export_c(self, hook=None, result_name=None):
         if result_name is None:
-            raise ValueError("result_name must not be None")
-        if len(self.children) != 1:
-            raise ValueError("The function must return one result.")
-        if result_name[-1] == '0':
             raise ValueError(
+                "result_name must not be None")  # pragma: no cover
+        if len(self.children) != 1:
+            raise ValueError(
+                "The function must return one result.")  # pragma: no cover
+        if result_name[-1] == '0':
+            raise ValueError(  # pragma: no cover
                 "result_name '{0}' cannot end with 0.".format(result_name))
 
         vars = {v.name: v for v in self.enumerate_variables()}
