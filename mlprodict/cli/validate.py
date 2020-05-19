@@ -39,7 +39,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         and not only the conversion
     :param runtime: runtime to check, python,
         onnxruntime1 to check :epkg:`onnxruntime`,
-        onnxruntime2 to check every ONNX node independently
+        onnxruntime2 to check every *ONNX* node independently
         with onnxruntime, many runtime can be checked at the same time
         if the value is a comma separated list
     :param models: comma separated list of models to test or empty

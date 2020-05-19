@@ -245,15 +245,12 @@ def write_page_onnxrt_benches_python(app, white_list=None):
     write_page_onnxrt_benches(app, 'python_compiled', white_list=white_list)
 
 
-def write_page_onnxrt_benches_onnxruntime2(app, white_list=None):
-    write_page_onnxrt_benches(
-        app, 'onnxruntime2',
-        {AdaBoostRegressor, GaussianProcessClassifier},
-        white_list=white_list)
-
-
 def write_page_onnxrt_benches_onnxruntime1(app, white_list=None):
     write_page_onnxrt_benches(app, 'onnxruntime1', white_list=white_list)
+
+
+def write_page_onnxrt_benches_onnxruntime2(app, white_list=None):
+    write_page_onnxrt_benches(app, 'onnxruntime2', white_list=white_list)
 
 
 def setup(app):

@@ -236,7 +236,7 @@ it is *1/r* faster than *scikit-learn*.
     #                        sharex=False, sharey=True)
     x = dfp['x']
     height = total / dfp.shape[0] * 0.65
-    for c in df.columns[1:-1]:
+    for c in df.columns[1:]:
         place, runtime = c.split('__')
         dec = {'pyrtc': 1, 'ort': -1}
         index = values.index(place)
@@ -247,6 +247,7 @@ it is *1/r* faster than *scikit-learn*.
     for i in range(len(ax)):
         ax[i].plot([1, 1], [min(x), max(x)], 'g-')
         ax[i].plot([2, 2], [min(x), max(x)], 'r--')
+        ax[i].plot([5, 5], [min(x), max(x)], 'r--', lw=3)
         ax[i].set_xscale('log')
         ax[i].set_xlim(xlim)
         ax[i].set_ylim([min(x) - 2, max(x) + 1])

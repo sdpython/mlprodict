@@ -107,10 +107,10 @@ the cause of the error if it does not work.
     def build_table():
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        rows = list(enumerate_validated_operator_opsets(0, debug=None, fLOG=noLOG,
-                                                        models=['LinearRegression',
-                                                                'LogisticRegression'],
-                                                        benchmark=True))
+        rows = list(enumerate_validated_operator_opsets(
+            0, debug=None, fLOG=noLOG,
+            models=['LinearRegression', 'LogisticRegression'],
+            benchmark=True))
         df = DataFrame(rows)
         piv = summary_report(df)
 
@@ -182,11 +182,10 @@ We create a table similar to :ref:`l-onnx-pyrun-tbl`.
     def build_table():
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        rows = list(enumerate_validated_operator_opsets(0, debug=None, fLOG=noLOG,
-                                                        runtime='onnxruntime1',
-                                                        models=['LinearRegression',
-                                                                'LogisticRegression'],
-                                                        benchmark=True))
+        rows = list(enumerate_validated_operator_opsets(
+            0, debug=None, fLOG=noLOG, runtime='onnxruntime1',
+            models=['LinearRegression', 'LogisticRegression'],
+            benchmark=True))
         df = DataFrame(rows)
         piv = summary_report(df)
 
@@ -252,11 +251,10 @@ object to :epkg:`ONNX`. We create a table similar to
     def build_table():
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        rows = list(enumerate_validated_operator_opsets(0, debug=None, fLOG=noLOG,
-                                                        runtime='onnxruntime2',
-                                                        models=['LinearRegression',
-                                                                'LogisticRegression'],
-                                                        benchmark=True))
+        rows = list(enumerate_validated_operator_opsets(
+            0, debug=None, fLOG=noLOG, runtime='onnxruntime2',
+            models=['LinearRegression', 'LogisticRegression'],
+            benchmark=True))
         df = DataFrame(rows)
         piv = summary_report(df)
 
@@ -274,4 +272,4 @@ object to :epkg:`ONNX`. We create a table similar to
 
     build_table()
 
-Full results are available at :ref:`l-onnx-bench-onnxruntime`.
+Full results are available at :ref:`l-onnx-bench-onnxruntime1`.

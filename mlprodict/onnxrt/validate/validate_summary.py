@@ -199,10 +199,9 @@ def summary_report(df, add_cols=None, add_index=None):
                 return "NO RUNTIME 64"
             return str(text)
 
-        piv2 = pandas.pivot_table(df, values="available-ERROR",
-                                  index=indices,
-                                  columns='opset',
-                                  aggfunc=aggfunc).reset_index(drop=False)
+        piv2 = pandas.pivot_table(
+            df, values="available-ERROR", index=indices,
+            columns='opset', aggfunc=aggfunc).reset_index(drop=False)
 
         col = piv2.iloc[:, piv2.shape[1] - 1]
         piv["ERROR-msg"] = col.apply(replace_msg)

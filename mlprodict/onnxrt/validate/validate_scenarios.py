@@ -21,7 +21,10 @@ from sklearn.feature_selection import (
 )
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic, RBF
-from sklearn.linear_model import LogisticRegression, SGDClassifier, LinearRegression
+from sklearn.linear_model import (
+    LogisticRegression, LogisticRegressionCV, SGDClassifier,
+    LinearRegression, Perceptron, RidgeClassifier, RidgeClassifierCV,
+    PassiveAggressiveClassifier)
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, ClassifierChain, RegressorChain
@@ -55,11 +58,11 @@ def build_custom_scenarios():
         SparseCoder: None,
         # scenarios
         AdaBoostClassifier: [
-            ('default', {'n_estimators': 5},
+            ('default', {'n_estimators': 10},
              {'conv_options': [{AdaBoostClassifier: {'zipmap': False}}]}),
         ],
         AdaBoostRegressor: [
-            ('default', {'n_estimators': 5}),
+            ('default', {'n_estimators': 10}),
         ],
         CalibratedClassifierCV: [
             ('sgd', {
@@ -126,8 +129,9 @@ def build_custom_scenarios():
         GridSearchCV: [
             ('cl', {
                 'estimator': LogisticRegression(solver='liblinear'),
-                'param_grid': {'fit_intercept': [False, True]},
-            }, ['b-cl', 'm-cl', '~b-cl-64']),
+                'param_grid': {'fit_intercept': [False, True]}},
+             {'conv_options': [{GridSearchCV: {'zipmap': False}}]},
+             ['b-cl', 'm-cl', '~b-cl-64']),
             ('reg', {
                 'estimator': LinearRegression(),
                 'param_grid': {'fit_intercept': [False, True]},
@@ -138,11 +142,11 @@ def build_custom_scenarios():
             }, ['cluster']),
         ],
         HistGradientBoostingClassifier: [
-            ('default', {'max_iter': 10},
+            ('default', {'max_iter': 100},
              {'conv_options': [{HistGradientBoostingClassifier: {'zipmap': False}}]}),
         ],
         HistGradientBoostingRegressor: [
-            ('default', {'max_iter': 10}),
+            ('default', {'max_iter': 100}),
         ],
         KNeighborsClassifier: [
             ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},
@@ -152,10 +156,9 @@ def build_custom_scenarios():
              {'conv_options': [{KNeighborsClassifier: {'optim': 'cdist', 'zipmap': False}}]}),
             ('kdt_k3', {'algorithm': 'kd_tree', 'n_neighbors': 3},
              {'conv_options': [{KNeighborsClassifier: {'optim': 'cdist', 'zipmap': False}}]}),
-            ('kdt_mink_k3', {'algorithm': 'kd_tree',
-                             'metric': "minkowski",
-                             'metric_params': {'p': 2.1},
-                             'n_neighbors': 3},
+            ('kdt_mink_k3', {
+                'algorithm': 'kd_tree', 'metric': "minkowski",
+                'metric_params': {'p': 2.1}, 'n_neighbors': 3},
              {'conv_options': [{KNeighborsClassifier: {
                  'optim': 'cdist', 'zipmap': False}}]}),
         ],
@@ -188,14 +191,18 @@ def build_custom_scenarios():
              {'conv_options': [{LogisticRegression: {'raw_scores': True, 'zipmap': False}}],
               'subset_problems': ['~b-cl-dec', '~m-cl-dec']}),
         ],
+        LogisticRegressionCV: [
+            ('default', {},
+             {'conv_options': [{LogisticRegressionCV: {'zipmap': False}}]}),
+        ],
         MLPClassifier: [
             ('default', {}, {'conv_options': [
              {MLPClassifier: {'zipmap': False}}]}),
         ],
         MultiOutputClassifier: [
             ('logreg', {
-                'estimator': LogisticRegression(solver='liblinear'),
-            })
+                'estimator': LogisticRegression(solver='liblinear')},
+             {'conv_options': [{MultiOutputClassifier: {'zipmap': False}}]},)
         ],
         MultiOutputRegressor: [
             ('linreg', {
@@ -213,19 +220,23 @@ def build_custom_scenarios():
             }),
         ],
         OneVsOneClassifier: [
-            ('logreg', {
-                'estimator': LogisticRegression(solver='liblinear'),
-            })
+            ('logreg', {'estimator': LogisticRegression(solver='liblinear')},
+             {'conv_options': [{OneVsOneClassifier: {'zipmap': False}}]})
         ],
         OneVsRestClassifier: [
-            ('logreg', {
-                'estimator': LogisticRegression(solver='liblinear'),
-            })
+            ('logreg', {'estimator': LogisticRegression(solver='liblinear')},
+             {'conv_options': [{OneVsOneClassifier: {'zipmap': False}}]})
         ],
         OutputCodeClassifier: [
-            ('logreg', {
-                'estimator': LogisticRegression(solver='liblinear'),
-            })
+            ('logreg', {'estimator': LogisticRegression(solver='liblinear')},
+             {'conv_options': [{OneVsOneClassifier: {'zipmap': False}}]})
+        ],
+        PassiveAggressiveClassifier: [
+            ('logreg', {}, {'conv_options': [
+             {PassiveAggressiveClassifier: {'zipmap': False}}]})
+        ],
+        Perceptron: [
+            ('logreg', {}, {'conv_options': [{Perceptron: {'zipmap': False}}]})
         ],
         PowerTransformer: [
             ('yeo-johnson', {'method': 'yeo-johnson'}),
@@ -233,7 +244,7 @@ def build_custom_scenarios():
         ],
         RandomForestClassifier: [
             ('default', {'n_estimators': 100},
-             {'conv_options': [{}, {RandomForestClassifier: {'zipmap': False}}]}),
+             {'conv_options': [{RandomForestClassifier: {'zipmap': False}}]}),
         ],
         RandomForestRegressor: [
             ('default', {'n_estimators': 100}),
@@ -252,6 +263,14 @@ def build_custom_scenarios():
             ('linreg', {
                 'base_estimator': LinearRegression(),
             })
+        ],
+        RidgeClassifier: [
+            ('default', {},
+             {'conv_options': [{RidgeClassifier: {'zipmap': False}}]}),
+        ],
+        RidgeClassifierCV: [
+            ('default', {},
+             {'conv_options': [{RidgeClassifierCV: {'zipmap': False}}]}),
         ],
         RFE: [
             ('reg', {
