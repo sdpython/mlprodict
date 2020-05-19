@@ -81,6 +81,12 @@ jobs:
             pip install git+https://github.com/xadupre/sklearn-onnx.git@jenkins --upgrade
 
       - run:
+          name: pip freeze
+          command: |
+            . venv/bin/activate
+            pip freeze
+
+      - run:
           name: compile and build
           command: |
             . venv/bin/activate
