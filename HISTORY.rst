@@ -5,8 +5,16 @@
 History
 =======
 
-current - 2020-05-01 - 0.00Mb
+current - 2020-05-20 - 0.00Mb
 =============================
+
+* `126`: Fix xgboost converter for xgboost >= 1.0 (2020-05-18)
+* `125`: Refactor rewritten sklearn operators (2020-05-18)
+* `122`: Captures C output when calling dump_data_and_model (2020-05-16)
+* `124`: Fixes #122, capture standard C ouptput with dump_data_model, first step for #123 (2020-05-16)
+
+0.3.1082 - 2020-05-01 - 2.84Mb
+==============================
 
 * `121`: Add function to convert array to bytes and bytes to array (onnx tensor) (2020-04-30)
 * `120`: Fix discrepencies for SVM classifier (ONNX) (2020-04-30)
