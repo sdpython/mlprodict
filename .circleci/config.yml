@@ -66,6 +66,12 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
+
+      - run:
+          name: install onnxruntime
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
             pip install onnxruntime>=1.3.0
 
       - save_cache:
