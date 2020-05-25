@@ -15,6 +15,7 @@ from sklearn.cross_decomposition import CCA
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
 from skl2onnx.common.exceptions import MissingShapeCalculator
+from sklearn.exceptions import NotFittedError
 from mlprodict.testing.script_testing import verify_script, MissingVariableError
 
 
@@ -102,6 +103,10 @@ class TestLONGSklearnExample(ExtTestCase):
                     try:
                         res = verify_script(
                             plot, existing_loc=TestLONGSklearnExample.existing_loc)
+                    except NotFittedError as e:
+                        fLOG('    model was not trained', str(e).split('\n')[0])
+                        noconv[nfile] = e
+                        continue
                     except MissingShapeCalculator as e:
                         fLOG('    missing converter', str(e).split('\n')[0])
                         noconv[nfile] = e
