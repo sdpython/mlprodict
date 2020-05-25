@@ -21,19 +21,19 @@ from mlprodict.testing.script_testing import verify_script, MissingVariableError
 class TestLONGSklearnExample(ExtTestCase):
 
     skipped_examples = {
-        'plot_changed_only_pprint_parameter.py',  # no trained model
-        # NameError: name 'l' is not defined (comprehension)
-        'plot_isotonic_regression.py',
-        'plot_johnson_lindenstrauss_bound.py',  # no trained model
-        # 'numpy.bool_' object has no attribute 'encode'
-        'plot_roc_curve_visualization_api.py',
-        'plot_face_recognition.py',  # too long
-        "plot_affinity_propagation.py",  # no converter
+        'plot_affinity_propagation.py',  # no converter
         'plot_coin_segmentation.py',  # spectral clustering
+        'plot_changed_only_pprint_parameter.py',  # no trained model
+        'plot_face_recognition.py',  # too long
+        'plot_ica_vs_pca.py',  # ValueError: Argument U has a size 2 which does not match 1
+        'plot_isotonic_regression.py',  #
+        'plot_johnson_lindenstrauss_bound.py',  # no trained model
         "plot_partial_dependence.py",  # issue with int conversion
+        'plot_roc_curve_visualization_api.py',
     }
 
-    begin = 1000 if __name__ == "__main__" else 0
+    begin = 10003 if __name__ == "__main__" else 0
+    end = 11000 if __name__ == "__main__" else -1
 
     existing_loc = {
         'CCA': CCA,
@@ -81,6 +81,10 @@ class TestLONGSklearnExample(ExtTestCase):
                     if full_ind < TestLONGSklearnExample.begin:
                         skipped[nfile] = None
                         continue
+                    if (full_ind >= TestLONGSklearnExample.end and
+                            TestLONGSklearnExample.end >= 0):
+                        skipped[nfile] = None
+                        continue
                     nfile = nfile.replace("\\", "/")
                     if nfile in TestLONGSklearnExample.skipped_examples:
                         skipped[nfile] = None
@@ -91,8 +95,8 @@ class TestLONGSklearnExample(ExtTestCase):
                     name = os.path.split(nfile)[-1]
                     if not name.startswith('plot_'):
                         continue
-                    fLOG("verify {}/{}:{} - '{}'".format(ind +
-                                                         1, len(files), full_ind, nfile))
+                    fLOG("verify {}/{}:{} - '{}'".format(
+                        ind + 1, len(files), full_ind, nfile))
                     plot = os.path.join(root, nfile)
 
                     try:
@@ -121,17 +125,11 @@ class TestLONGSklearnExample(ExtTestCase):
                         if any(filter(lambda n: n.endswith('_onnx'), res['locals'])):
                             fLOG('   ONNX ok')
                             has_onnx[nfile] = res['onx_info']
-                            if __name__ == "__main__":
-                                break
                         else:
                             no_onnx[nfile] = res['locals']
                             fLOG('   no onnx')
                     else:
                         fLOG('   issue')
-                if len(has_onnx) > 0 and __name__ == "__main__":
-                    break
-            if len(has_onnx) > 0 and __name__ == "__main__":
-                break
 
         if len(has_onnx) == 0:
             raise RuntimeError("Unable to find any example in\n{}".format(
