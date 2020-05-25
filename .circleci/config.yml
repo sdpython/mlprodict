@@ -73,7 +73,7 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip show onnxruntime
+            pip freeze | grep onnx
             pip install onnxruntime>=1.3.0 --verbose
             pip show onnxruntime
 

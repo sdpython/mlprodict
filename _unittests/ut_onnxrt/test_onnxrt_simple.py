@@ -2,6 +2,7 @@
 @brief      test log(time=2s)
 """
 import os
+import sys
 from io import BytesIO
 import pickle
 import unittest
@@ -69,10 +70,12 @@ class TestOnnxrtSimple(ExtTestCase):
         oinf = OnnxInference(model_def)
         shape = oinf.shape_inference()
         self.assertNotEmpty(shape)
-        try:
-            oinf.check_model()
-        except ValidationError as e:
-            warnings.warn("Why? " + str(e))  # pylint: disable=E1101
+        if not sys.platform.startswith('win'):
+            # Crashes (onnx crashes).
+            try:
+                oinf.check_model()
+            except ValidationError as e:
+                warnings.warn("Why? " + str(e))  # pylint: disable=E1101
 
         pkl = pickle.dumps(oinf)
         obj = pickle.loads(pkl)
@@ -327,4 +330,5 @@ class TestOnnxrtSimple(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestOnnxrtSimple().test_onnxt_pickle_check()
     unittest.main()

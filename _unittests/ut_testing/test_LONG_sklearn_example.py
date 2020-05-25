@@ -104,7 +104,8 @@ class TestLONGSklearnExample(ExtTestCase):
                         res = verify_script(
                             plot, existing_loc=TestLONGSklearnExample.existing_loc)
                     except NotFittedError as e:
-                        fLOG('    model was not trained', str(e).split('\n')[0])
+                        fLOG('    model was not trained',
+                             str(e).split('\n')[0])
                         noconv[nfile] = e
                         continue
                     except MissingShapeCalculator as e:
