@@ -14,8 +14,8 @@ from sklearn import __version__ as skl_version
 from sklearn.cross_decomposition import CCA
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
-from skl2onnx.common.exceptions import MissingShapeCalculator
 from sklearn.exceptions import NotFittedError
+from skl2onnx.common.exceptions import MissingShapeCalculator
 from mlprodict.testing.script_testing import verify_script, MissingVariableError
 
 
