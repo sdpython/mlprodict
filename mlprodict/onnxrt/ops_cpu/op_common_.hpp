@@ -11,7 +11,7 @@
 inline bool _isnan_(float x) { return _isnanf(x); }
 inline bool _isnan_(double x) { return _isnan(x); }
 
-#elif defined(__APPLE__)
+#elif defined(__MACOSX__)
 
 inline bool _isnan_(float x) { return (float)::isnan((double)x); }
 inline bool _isnan_(double x) { return ::isnan(x); }

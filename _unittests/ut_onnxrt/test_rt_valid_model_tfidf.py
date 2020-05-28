@@ -5,7 +5,7 @@ import unittest
 from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, skipif_appveyor
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -20,6 +20,7 @@ from mlprodict.onnxrt.validate import (
 class TestRtValidateTfIdf(ExtTestCase):
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @skipif_appveyor('stuck')
     def test_rt_tfidfvectorizer_onnxruntime1(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -73,6 +74,7 @@ class TestRtValidateTfIdf(ExtTestCase):
         self.assertGreater(piv.shape[0], 1)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @skipif_appveyor('stuck')
     def test_rt_tfidftransformer_onnxruntime1(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
