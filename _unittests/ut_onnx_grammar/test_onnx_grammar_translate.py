@@ -9,6 +9,7 @@ import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnx_grammar import CodeNodeVisitor, translate_fct2onnx
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestOnnxGrammarTranslate(ExtTestCase):
@@ -243,7 +244,8 @@ class TestOnnxGrammarTranslate(ExtTestCase):
                         z,
                         op_version=op_version
                     ),
-                    output_names=['Z']
+                    output_names=['Z'],
+                    op_version=op_version
                 )
         """)
         self.assertEqual(exp.strip('\n '), onnx_code.strip('\n '))
@@ -264,7 +266,7 @@ class TestOnnxGrammarTranslate(ExtTestCase):
             trs, context={'numpy.transpose': numpy.transpose},
             cpl=True, context_cpl=ctx, output_names=['Z'])
 
-        r = fct('x', 'y')
+        r = fct('x', 'y', op_version=get_opset_number_from_onnx())
         self.assertIsInstance(r, OnnxIdentity)
 
         inputs = {'x': numpy.array([[1, 2]], dtype=numpy.float32),

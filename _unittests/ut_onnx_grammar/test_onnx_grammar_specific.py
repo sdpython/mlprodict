@@ -259,7 +259,8 @@ class TestOnnxGrammarSpecific(ExtTestCase):
             kernel_rational_quadratic_none, cpl=True, output_names=['Z'],
             dtype=numpy.float32)
 
-        r = fct('X', dtype=numpy.float32)
+        r = fct('X', dtype=numpy.float32,
+                op_version=get_opset_number_from_onnx())
         self.assertIsInstance(r, OnnxIdentity)
         inputs = {'X': x.astype(numpy.float32)}
         try:

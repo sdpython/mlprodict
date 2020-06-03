@@ -14,8 +14,9 @@ from sklearn.gaussian_process.kernels import (
     RBF, ConstantKernel as C)
 from sklearn.model_selection import train_test_split
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper import compare_module_version
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
-from skl2onnx import to_onnx
+from skl2onnx import to_onnx, __version__ as skl2_vers
 from onnxruntime import __version__ as ort_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.testing.test_utils import (
@@ -162,6 +163,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
                            predict_attributes=options[
             GaussianProcessRegressor])
 
+    @unittest.skipIf(compare_module_version(skl2_vers, '1.7.1099') <= 0,
+                     reason="shape issue")
     def test_gpr_rbf_fitted_true(self):
 
         gp = GaussianProcessRegressor(
