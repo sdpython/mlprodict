@@ -19,7 +19,8 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.side_by_side import (
     side_by_side_by_values, merge_results
 )
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict.tools import (
+    get_ir_version_from_onnx, get_opset_number_from_onnx)
 from mlprodict.testing.test_utils import _capture_output
 
 
@@ -51,10 +52,11 @@ class TestOnnxrtSideBySide(ExtTestCase):
         ker = (Sum(CK(0.1, (1e-3, 1e3)), CK(0.1, (1e-3, 1e3)) *
                    RBF(length_scale=1, length_scale_bounds=(1e-3, 1e3))))
         onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32,
-                             op_version=10)
+                             op_version=get_opset_number_from_onnx())
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType([None, None]))],
-            outputs=[('Y', FloatTensorType([None, None]))])
+            outputs=[('Y', FloatTensorType([None, None]))],
+            target_opset=get_opset_number_from_onnx())
         sess = OnnxInference(model_onnx.SerializeToString())
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
         m1 = res['Y']
@@ -70,10 +72,11 @@ class TestOnnxrtSideBySide(ExtTestCase):
                                        length_scale_bounds=(1e-3, 1e3))
         )
         onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32,
-                             op_version=10)
+                             op_version=get_opset_number_from_onnx())
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType([None, None]))],
-            outputs=[('Y', FloatTensorType([None, None]))])
+            outputs=[('Y', FloatTensorType([None, None]))],
+            target_opset=get_opset_number_from_onnx())
         sess = OnnxInference(model_onnx.SerializeToString())
 
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
@@ -93,13 +96,13 @@ class TestOnnxrtSideBySide(ExtTestCase):
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=10,
                                        length_scale_bounds=(1e-3, 1e3)),
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=1,
-                                       length_scale_bounds=(1e-3, 1e3))
-        )
+                                       length_scale_bounds=(1e-3, 1e3)))
         onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32,
-                             op_version=10)
+                             op_version=get_opset_number_from_onnx())
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType([None, None]))],
-            outputs=[('Y', FloatTensorType([None, None]))])
+            outputs=[('Y', FloatTensorType([None, None]))],
+            target_opset=get_opset_number_from_onnx())
         model_onnx.ir_version = get_ir_version_from_onnx()
         sess = _capture_output(
             lambda: OnnxInference(model_onnx.SerializeToString(),
@@ -126,10 +129,11 @@ class TestOnnxrtSideBySide(ExtTestCase):
                                        length_scale_bounds=(1e-3, 1e3))
         )
         onx = convert_kernel(ker, 'X', output_names=['Y'], dtype=numpy.float32,
-                             op_version=10)
+                             op_version=get_opset_number_from_onnx())
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType([None, None]))],
-            outputs=[('Y', FloatTensorType([None, None]))])
+            outputs=[('Y', FloatTensorType([None, None]))],
+            target_opset=get_opset_number_from_onnx())
         model_onnx.ir_version = get_ir_version_from_onnx()
         sess = OnnxInference(model_onnx.SerializeToString(),
                              runtime="onnxruntime1")

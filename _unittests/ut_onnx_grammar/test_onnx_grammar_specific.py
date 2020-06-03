@@ -129,7 +129,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
                                  cpl=True, context_cpl=ctx,
                                  output_names=['Z'], dtype=numpy.float32)
 
-        r = fct('X')
+        r = fct('X', op_version=get_opset_number_from_onnx())
         self.assertIsInstance(r, OnnxIdentity)
 
         inputs = {'X': x.astype(numpy.float32)}
@@ -174,7 +174,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
                                  cpl=True, context_cpl=ctx,
                                  output_names=['Z'])
 
-        r = fct('X')
+        r = fct('X', op_version=get_opset_number_from_onnx())
         self.assertIsInstance(r, OnnxIdentity)
         inputs = {'X': x.astype(numpy.float32)}
         onnx_g = r.to_onnx(inputs)
@@ -215,7 +215,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         fct = translate_fct2onnx(
             kernel_call_ynone, cpl=True, output_names=['Z'])
 
-        r = fct('X')
+        r = fct('X', op_version=get_opset_number_from_onnx())
         self.assertIsInstance(r, OnnxIdentity)
         inputs = {'X': x.astype(numpy.float32)}
         onnx_g = r.to_onnx(inputs)
