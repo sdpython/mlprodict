@@ -30,7 +30,8 @@ try:
     from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument as OrtInvalidArgument
 except ImportError:
     OrtInvalidArgument = RuntimeError
-from mlprodict.onnx_conv import register_converters, to_onnx
+from mlprodict.onnx_conv import (
+    register_converters, to_onnx)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 from mlprodict.tools.asv_options_helper import (

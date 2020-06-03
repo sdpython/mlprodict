@@ -44,7 +44,8 @@ class OnnxInference:
 
     def __init__(self, onnx_or_bytes_or_stream, runtime=None,
                  skip_run=False, inplace=True,
-                 input_inplace=False, ir_version=None):
+                 input_inplace=False, ir_version=None,
+                 target_opset=None):
         """
         @param      onnx_or_bytes_or_stream :epkg:`onnx` object,
                                             bytes, or filename or stream
@@ -57,6 +58,7 @@ class OnnxInference:
                                             see :meth:`_guess_inplace
                                             <mlprodict.onnxrt.onnx_inference.OnnxInference._guess_inplace>`
         @param      ir_version              if not None, overwrite the default version
+        @param      target_opset            used to overwrite *target_opset*
         """
         if isinstance(onnx_or_bytes_or_stream, bytes):
             self.obj = load_model(BytesIO(onnx_or_bytes_or_stream))
@@ -78,6 +80,7 @@ class OnnxInference:
         self.skip_run = skip_run
         self.input_inplace = input_inplace
         self.inplace = inplace
+        self.force_target_opset = target_opset
         self._init()
 
     def __getstate__(self):
@@ -88,7 +91,8 @@ class OnnxInference:
                 'runtime': self.runtime,
                 'skip_run': self.skip_run,
                 'input_inplace': self.input_inplace,
-                'inplace': self.inplace}
+                'inplace': self.inplace,
+                'force_target_opset': self.force_target_opset}
 
     def __setstate__(self, state):
         """
@@ -100,6 +104,7 @@ class OnnxInference:
         self.skip_run = state['skip_run']
         self.input_inplace = state['input_inplace']
         self.inplace = state['inplace']
+        self.force_target_opset = state['force_target_opset']
         self._init()
 
     def _init(self):
@@ -110,6 +115,11 @@ class OnnxInference:
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
         self.target_opset_ = self.graph_['targets']
+        if self.force_target_opset is not None:
+            if isinstance(self.force_target_opset, dict):
+                self.target_opset_ = self.force_target_opset
+            else:
+                self.target_opset_ = {'': self.force_target_opset}
         self.ir_version_ = self.graph_['ir_version']
         if not self.skip_run:
             if self.runtime == 'onnxruntime1':

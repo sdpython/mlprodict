@@ -113,7 +113,6 @@ class OpRunOnnxRuntime:
         target_opset = options.pop('target_opset', None)
         domain = options.pop('domain', None)
         ir_version = options.pop('ir_version', None)
-
         if domain == '' and target_opset < 9:
             # target_opset should be >= 9 not {} for main domain.
             # We assume it was the case when the graph was created.
@@ -152,8 +151,9 @@ class OpRunOnnxRuntime:
                         skl2onnx.__version__)) from e
             forced = False
         elif self.onnx_node.op_type == 'Scan':
-            self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
-                                        op_version=target_opset, **options)
+            self.inst_ = self.alg_class(
+                *self.inputs, output_names=self.outputs,
+                op_version=target_opset, **options)
             inputs = get_defined_inputs(
                 self.inputs, variables, dtype=self.dtype)
             outputs = get_defined_outputs(

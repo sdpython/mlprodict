@@ -89,7 +89,8 @@ class OnnxInferenceNode:
         if self.desc is None:
             raise AttributeError(
                 "desc should not be None.")  # pragma: no cover
-        self.preprocess_parameters(runtime, rt_class, ir_version=ir_version)
+        self.preprocess_parameters(
+            runtime, rt_class, ir_version=ir_version, target_opset=target_opset)
         options = {'provider': runtime} if runtime else {}
         if domain is not None:
             options['domain'] = domain
@@ -111,17 +112,19 @@ class OnnxInferenceNode:
                                 options=options if options else None,
                                 variables=variables)
 
-    def preprocess_parameters(self, runtime, rt_class, ir_version=None):
+    def preprocess_parameters(self, runtime, rt_class, ir_version=None,
+                              target_opset=None):
         """
         Preprocesses the parameters,
         loads *GraphProto*
         (equivalent to :epkg:`ONNX` graph with
         less metadata).
 
-        @param      runtime     runtime options
-        @param      rt_class    runtime class used to compute
+        @param  runtime         runtime options
+        @param  rt_class        runtime class used to compute
                                 prediction of subgraphs
-        @param      ir_version  if not None, overwrites the default value
+        @param  ir_version      if not None, overwrites the default value
+        @param  target_opset    use a specific target opset
         """
         if 'atts' not in self.desc:
             return
@@ -131,7 +134,8 @@ class OnnxInferenceNode:
             value = v['value']
             if isinstance(value, onnx_proto.GraphProto):
                 sess = rt_class(v['value'], runtime=runtime,
-                                ir_version=ir_version)
+                                ir_version=ir_version,
+                                target_opset=target_opset)
                 v['value_rt'] = sess
 
     def run(self, values):

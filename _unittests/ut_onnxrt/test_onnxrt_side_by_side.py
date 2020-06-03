@@ -226,5 +226,4 @@ class TestOnnxrtSideBySide(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtSideBySide().test_kernel_ker2_def_ort()
     unittest.main()

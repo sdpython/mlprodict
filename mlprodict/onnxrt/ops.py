@@ -27,9 +27,8 @@ def load_op(onnx_node, desc=None, options=None, variables=None, dtype=None):
     if provider == 'python':
         from .ops_cpu import load_op as lo
         return lo(onnx_node, desc=desc, options=options)
-    elif provider == 'onnxruntime2':
+    if provider == 'onnxruntime2':
         from .ops_onnxruntime import load_op as lo
-        return lo(onnx_node, desc=desc, options=options,
+        return lo(onnx_node, desc=desc, options=options,  # pylint: disable=E1123
                   variables=variables, dtype=dtype)
-    else:
-        raise ValueError("Unable to handle provider '{}'.".format(provider))
+    raise ValueError("Unable to handle provider '{}'.".format(provider))
