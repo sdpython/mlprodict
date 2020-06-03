@@ -172,7 +172,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
         # return_cov=False, return_std=False
         model_onnx = to_onnx(
             gp, initial_types=[('X', DoubleTensorType([None, None]))],
-            dtype=np.float64)
+            dtype=np.float64, target_opset=TARGET_OPSET)
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(
             X, gp, model_onnx, verbose=False,

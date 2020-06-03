@@ -12,7 +12,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxTranspose
 )
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict.tools.asv_options_helper import (
+    get_ir_version_from_onnx, get_opset_number_from_onnx)
 
 
 class TestToPython(ExtTestCase):
@@ -23,7 +24,8 @@ class TestToPython(ExtTestCase):
 
     def test_code_add_except(self):
         idi = numpy.identity(2)
-        onx = OnnxAdd('X', idi, output_names=['Y'])
+        onx = OnnxAdd('X', idi, output_names=[
+                      'Y'], op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         model_def.ir_version = get_ir_version_from_onnx()
         oinf = OnnxInference(model_def, runtime='onnxruntime1')
@@ -54,7 +56,9 @@ class TestToPython(ExtTestCase):
 
     def test_code_add_transpose(self):
         idi = numpy.identity(2)
-        onx = OnnxTranspose(OnnxAdd('X', idi), output_names=['Y'])
+        onx = OnnxTranspose(
+            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            output_names=['Y'], op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         oinf = OnnxInference(model_def, runtime='python')
         res = oinf.to_python(inline=False)

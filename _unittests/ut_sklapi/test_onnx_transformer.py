@@ -15,6 +15,7 @@ from skl2onnx.algebra.onnx_ops import OnnxMul  # pylint: disable=E0611
 from onnxruntime.datasets import get_example
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.sklapi import OnnxTransformer
+from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestInferenceSessionSklearn(ExtTestCase):
@@ -24,7 +25,8 @@ class TestInferenceSessionSklearn(ExtTestCase):
         logger.disabled = True
 
     def get_onnx_mul(self):
-        mul = OnnxMul('X', 'X', output_names=['Y'])
+        mul = OnnxMul('X', 'X', output_names=[
+                      'Y'], op_version=get_opset_number_from_onnx())
         onx = mul.to_onnx(inputs=[('X', FloatTensorType())])
         return onx.SerializeToString()
 

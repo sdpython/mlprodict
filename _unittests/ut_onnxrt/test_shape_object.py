@@ -265,10 +265,11 @@ class TestShapeObject(ExtTestCase):
         # y_train = y[::2]
         X_test = X[1::2]
         # y_test = y[1::2]
-        onx = OnnxIdentity(onnx_cdist(OnnxIdentity('X'), X_train.astype(numpy.float32),
+        onx = OnnxIdentity(onnx_cdist(OnnxIdentity('X', op_version=get_opset_number_from_onnx()), X_train.astype(numpy.float32),
                                       metric="euclidean", dtype=numpy.float32,
                                       op_version=get_opset_number_from_onnx()),
-                           output_names=['Y'])
+                           output_names=['Y'],
+                           op_version=get_opset_number_from_onnx())
         final = onx.to_onnx(inputs=[('X', FloatTensorType([None, None]))],
                             outputs=[('Y', FloatTensorType())],
                             target_opset=get_opset_number_from_onnx())

@@ -9,6 +9,7 @@ from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxMatMul  # pylint: disable=E0611
 from onnxruntime import InferenceSession
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestOnnxrtValidateBug(ExtTestCase):
@@ -22,8 +23,11 @@ class TestOnnxrtValidateBug(ExtTestCase):
 
         X_test = (coef + 1.).reshape((1, coef.shape[0]))
 
-        onnx_fct = OnnxAdd(OnnxMatMul('X', coef.astype(numpy.float64)),
-                           numpy.array([intercept]), output_names=['Y'])
+        onnx_fct = OnnxAdd(
+            OnnxMatMul('X', coef.astype(numpy.float64),
+                       op_version=get_opset_number_from_onnx()),
+            numpy.array([intercept]), output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
         onnx_model64 = onnx_fct.to_onnx({'X': X_test.astype(numpy.float64)},
                                         dtype=numpy.float64)
 

@@ -15,6 +15,7 @@ from sklearn.tree import DecisionTreeRegressor
 from skl2onnx import to_onnx
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestOnnxrtCompiled(ExtTestCase):
@@ -25,7 +26,8 @@ class TestOnnxrtCompiled(ExtTestCase):
 
     def test_onnxt_idi(self):
         idi = numpy.identity(2)
-        onx = OnnxAdd('X', idi, output_names=['Y'])
+        onx = OnnxAdd('X', idi, output_names=['Y'],
+                      op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
 
         oinf = OnnxInference(model_def, runtime="python_compiled")
@@ -79,7 +81,8 @@ class TestOnnxrtCompiled(ExtTestCase):
 
     def test_onnxt_reduce_size(self):
         idi = numpy.identity(2)
-        onx = OnnxAdd('X', idi, output_names=['Y'])
+        onx = OnnxAdd('X', idi, output_names=['Y'],
+                      op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
 
         oinf = OnnxInference(model_def, runtime="python_compiled")

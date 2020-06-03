@@ -1156,7 +1156,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                          [2, -2, -3, 5, -4]],
                         dtype=numpy.float32)
 
-        onx = OnnxTranspose('X', perm=[0, 1], output_names=['Y'])
+        onx = OnnxTranspose('X', perm=[0, 1], output_names=['Y'],
+                            op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
@@ -1168,7 +1169,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                          [2, -2, -3, 5, -4]],
                         dtype=numpy.float32)
 
-        onx = OnnxTranspose('X', perm=[1, 0], output_names=['Y'])
+        onx = OnnxTranspose('X', perm=[1, 0], output_names=[
+                            'Y'], op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
@@ -1401,9 +1403,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
         X = numpy.array([0.1, 0.2], dtype=numpy.float32)
         cst = OnnxConstant(value_floats=X, op_version=12)
-        onx = OnnxAdd('X', cst, op_version=12)
+        onx = OnnxAdd('X', cst, op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                target_opset=12)
+                                target_opset=get_opset_number_from_onnx())
         try:
             oinf = OnnxInference(model_def)
         except RuntimeError as e:

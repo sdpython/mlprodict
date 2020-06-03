@@ -16,7 +16,9 @@ from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.optim.sklearn_helper import enumerate_fitted_arrays, pairwise_array_distances
+from mlprodict.onnxrt.optim.sklearn_helper import (
+    enumerate_fitted_arrays, pairwise_array_distances)
+from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestOnnxrtSwitchTypes(ExtTestCase):
@@ -27,7 +29,8 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
 
     def test_onnxt_add(self):
         idi = numpy.identity(2)
-        onx = OnnxAdd('X', idi, output_names=['Y'])
+        onx = OnnxAdd('X', idi, output_names=['Y'],
+                      op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         oinf = OnnxInference(model_def, runtime="python")
         res = oinf.switch_initializers_dtype()

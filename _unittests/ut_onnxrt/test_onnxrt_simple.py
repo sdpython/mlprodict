@@ -37,7 +37,8 @@ class TestOnnxrtSimple(ExtTestCase):
 
     def test_onnxt_idi(self):
         idi = numpy.identity(2)
-        onx = OnnxAdd('X', idi, output_names=['Y'])
+        onx = OnnxAdd('X', idi, output_names=['Y'],
+                      op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
 
         oinf = OnnxInference(model_def)
@@ -65,7 +66,8 @@ class TestOnnxrtSimple(ExtTestCase):
 
     def test_onnxt_pickle_check(self):
         idi = numpy.identity(2)
-        onx = OnnxAdd('X', idi, output_names=['Y'])
+        onx = OnnxAdd('X', idi, output_names=[
+                      'Y'], op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         shape = oinf.shape_inference()
@@ -84,7 +86,8 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_dot(self):
         idi = numpy.identity(2)
         idi2 = numpy.identity(2) * 2
-        onx = OnnxAdd(OnnxAdd('X', idi), idi2, output_names=['Y'])
+        onx = OnnxAdd(OnnxAdd('X', idi, op_version=get_opset_number_from_onnx(
+        )), idi2, output_names=['Y'], op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot()
@@ -100,7 +103,8 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_dot_shape(self):
         idi = numpy.identity(2)
         idi2 = numpy.identity(2) * 2
-        onx = OnnxAdd(OnnxAdd('X', idi), idi2, output_names=['Y'])
+        onx = OnnxAdd(OnnxAdd('X', idi, op_version=get_opset_number_from_onnx(
+        )), idi2, output_names=['Y'], op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot(add_rt_shapes=True)
@@ -173,7 +177,8 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_json(self):
         idi = numpy.identity(2)
         idi2 = numpy.identity(2) * 2
-        onx = OnnxAdd(OnnxAdd('X', idi), idi2, output_names=['Y'])
+        onx = OnnxAdd(OnnxAdd('X', idi, op_version=get_opset_number_from_onnx(
+        )), idi2, output_names=['Y'], op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         js = oinf.to_json()
@@ -182,7 +187,8 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_graph(self):
         idi = numpy.identity(2)
         idi2 = numpy.identity(2) * 2
-        onx = OnnxAdd(OnnxAdd('X', idi), idi2, output_names=['Y'])
+        onx = OnnxAdd(OnnxAdd('X', idi, op_version=get_opset_number_from_onnx(
+        )), idi2, output_names=['Y'], op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         js = oinf.to_sequence()
@@ -198,7 +204,8 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_run(self):
         idi = numpy.identity(2)
         idi2 = numpy.identity(2) * 2
-        onx = OnnxAdd(OnnxAdd('X', idi), idi2, output_names=['Y'])
+        onx = OnnxAdd(OnnxAdd('X', idi, op_version=get_opset_number_from_onnx(
+        )), idi2, output_names=['Y'], op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
         X = numpy.array([[1, 1], [3, 3]])
@@ -289,10 +296,12 @@ class TestOnnxrtSimple(ExtTestCase):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist  # pylint: disable=E0401,E0611
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
-        cop = OnnxAdd('input', 'input')
+        cop = OnnxAdd('input', 'input',
+                      op_version=get_opset_number_from_onnx())
         cdist = onnx_squareform_pdist(cop, dtype=numpy.float32,
                                       op_version=get_opset_number_from_onnx())
-        cop2 = OnnxIdentity(cdist, output_names=['cdist'])
+        cop2 = OnnxIdentity(cdist, output_names=[
+                            'cdist'], op_version=get_opset_number_from_onnx())
 
         model_def = cop2.to_onnx(
             {'input': x}, outputs=[('cdist', FloatTensorType())],

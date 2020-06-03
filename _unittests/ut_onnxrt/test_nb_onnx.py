@@ -7,6 +7,7 @@ import numpy
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnxrt.doc.nb_helper import OnnxNotebook
+from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestOnnxNotebook(ExtTestCase):
@@ -18,7 +19,8 @@ class TestOnnxNotebook(ExtTestCase):
     def test_onnxview(self):
 
         idi = numpy.identity(2)
-        onx = OnnxAdd('X', idi, output_names=['Y'])
+        onx = OnnxAdd('X', idi, output_names=['Y'],
+                      op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
 
         mg = OnnxNotebook()
