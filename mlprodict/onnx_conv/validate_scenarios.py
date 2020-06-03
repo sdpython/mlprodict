@@ -71,13 +71,13 @@ def build_custom_scenarios():
              {LGBMClassifier: {'zipmap': False}}]}),
         ],
         LGBMRegressor: [
-            ('default', {'n_estimators': 5}),
+            ('default', {'n_estimators': 100}),
         ],
         XGBClassifier: [
             ('default', {'n_estimators': 5}, {'conv_options': [
              {XGBClassifier: {'zipmap': False}}]}),
         ],
         XGBRegressor: [
-            ('default', {'n_estimators': 5}),
+            ('default', {'n_estimators': 100}),
         ],
     }

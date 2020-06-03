@@ -11,8 +11,7 @@ from mlprodict.onnx_grammar import translate_fct2onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_grammar.onnx_translation import get_default_context, get_default_context_cpl
 from mlprodict.onnx_grammar.onnx_translation import (
-    py_make_float_array, py_pow, squareform_pdist, py_mul, py_opp
-)
+    py_make_float_array, py_pow, squareform_pdist, py_mul, py_opp)
 from mlprodict.tools import get_opset_number_from_onnx
 
 
@@ -233,22 +232,27 @@ class TestOnnxGrammarSpecific(ExtTestCase):
 
     def test_export_sklearn_kernel_rational_quadratic(self):
 
-        def kernel_rational_quadratic_none(X, length_scale=1.0, alpha=2.0):
-            dists = squareform_pdist(X, metric='sqeuclidean')
-            cst = py_pow(length_scale, 2)
-            cst = py_mul(cst, alpha, 2)
+        def kernel_rational_quadratic_none(
+                X, length_scale=1.0, alpha=2.0, op_version=None):
+            dists = squareform_pdist(
+                X, metric='sqeuclidean', op_version=op_version)
+            cst = py_pow(length_scale, 2, op_version=op_version)
+            cst = py_mul(cst, alpha, 2, op_version=op_version)
             t_cst = py_make_float_array(cst)
             tmp = dists / t_cst
             t_one = py_make_float_array(1)
             base = tmp + t_one
-            t_alpha = py_make_float_array(py_opp(alpha))
+            t_alpha = py_make_float_array(
+                py_opp(alpha, op_version=op_version))
             K = numpy.power(base, t_alpha)
             return K
 
         x = numpy.array([[1, 2], [3, 4], [5, 6]], dtype=float)
         kernel = RationalQuadratic(length_scale=1.0, alpha=2.0)
         exp = kernel(x, None)
-        got = kernel_rational_quadratic_none(x, length_scale=1.0, alpha=2.0)
+        got = kernel_rational_quadratic_none(
+            x, length_scale=1.0, alpha=2.0,
+            op_version=get_opset_number_from_onnx())
         self.assertEqualArray(exp, got)
 
         fct = translate_fct2onnx(

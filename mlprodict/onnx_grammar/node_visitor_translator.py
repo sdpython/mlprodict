@@ -115,9 +115,11 @@ class CodeNodeVisitor(ast.NodeVisitor):
         """
         If an element is not found...
         """
-        help(node)
-        raise NotImplementedError("Node '{}' not recognized at {}".format(
-            node, self.make_msg(node)))
+        raise NotImplementedError(
+            "Node '{}' ({}) not recognized at {}\nNode\n{}\n--"
+            "Status--\n{}".format(
+                node, type(node), self.make_msg(node),
+                self.print_node(node), self.print_tree()))
 
     @staticmethod
     def print_node(node):
@@ -125,10 +127,13 @@ class CodeNodeVisitor(ast.NodeVisitor):
         Debugging purpose.
         """
         r = []
-        for att in ["s", "name", "str", "id", "body", "n",
-                    "arg", "targets", "attr", "returns", "ctx"]:
-            if att in node.__dict__:
-                r.append("{0}={1}".format(att, str(node.__dict__[att])))
+        for att in sorted(set(["s", "name", "str", "id", "body", "n",
+                               "arg", "targets", "attr", "returns", "ctx",
+                               'col_offset', 'lineno',
+                               'value'] + list(getattr(node, '_attributes', [])))):
+            v = getattr(node, att, None)
+            if v is not None or att in getattr(node, '_fields', []):
+                r.append("{0}={1}".format(att, v))
         return " ".join(r)
 
     def print_tree(self):
@@ -357,3 +362,15 @@ class CodeNodeVisitor(ast.NodeVisitor):
                 'value': node.value}
         self.push(cont)
         return self.generic_visit_args(node, cont)
+
+    def visit_NameConstant(self, node):
+        """
+        A name.
+        """
+        if node.value is None:
+            cont = {"indent": self._indent, "type": "Cst",
+                    "node": node, "str": "None",
+                    'n': None}
+            self.push(cont)
+            return self.generic_visit_args(node, cont)
+        return self.visit_(node)

@@ -96,6 +96,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def common_test_onnxt_runtime_unary(self, onnx_cl, np_fct,
                                         op_version=None,
                                         outputs=None, debug=False):
+        if op_version is None:
+            op_version = get_opset_number_from_onnx()
         try:
             onx = onnx_cl('X', output_names=['Y'], op_version=op_version)
         except RuntimeError as e:
@@ -181,6 +183,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def common_test_onnxt_runtime_binary(self, onnx_cl, np_fct,
                                          dtype=numpy.float32,
                                          op_version=None, debug=False):
+        if op_version is None:
+            op_version = get_opset_number_from_onnx()
         idi = numpy.identity(2)
         onx = onnx_cl('X', idi, output_names=['Y'])
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)

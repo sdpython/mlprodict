@@ -40,7 +40,7 @@ class TestRtValidateKNeighborsRegressor(ExtTestCase):
         pyrun = OnnxInference(onx, runtime="python")
         res = pyrun.run({'X': x2})
         self.assertIn('variable', res)
-        self.assertEqual(res['variable'].shape, (38, ))
+        self.assertEqual(res['variable'].shape, (38, 1))
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_KNeighborsRegressor_onnxruntime(self):
@@ -60,7 +60,7 @@ class TestRtValidateKNeighborsRegressor(ExtTestCase):
         pyrun = OnnxInference(onx, runtime="onnxruntime1")
         res = pyrun.run({'X': x2}, fLOG=print, verbose=1)
         self.assertIn('variable', res)
-        self.assertEqual(res['variable'].shape, (38, ))
+        self.assertEqual(res['variable'].shape, (38, 1))
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_KNeighborsRegressor_python_validate(self):

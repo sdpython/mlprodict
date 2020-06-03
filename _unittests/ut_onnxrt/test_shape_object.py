@@ -239,7 +239,8 @@ class TestShapeObject(ExtTestCase):
     def common_test_onnxt_runtime_binary(self, onnx_cl, np_fct,
                                          dtype=numpy.float32):
         idi = numpy.identity(2)
-        onx = onnx_cl('X', idi, output_names=['Y'])
+        onx = onnx_cl('X', idi, output_names=['Y'],
+                      op_version=get_opset_number_from_onnx())
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
         oinf = OnnxInference(model_def)

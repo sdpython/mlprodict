@@ -245,8 +245,11 @@ class OnnxTranslator(CodeTranslator):
                     rows.append(
                         '{}Onnx{}('.format(" " * indent * 4, onnx_name))
                     for expr2 in opon:
-                        rows.extend(write_expression(
-                            stack_fct_used, expr2, indent + 1))
+                        sexpr2 = write_expression(
+                            stack_fct_used, expr2, indent + 1)
+                        if any(filter(lambda s: 'op_version="op_version"' in s, sexpr2)):
+                            continue
+                        rows.extend(sexpr2)
                         rows[-1] += ","
                     rows.append('{}op_version=op_version'.format(
                         " " * (indent + 1) * 4))
@@ -258,8 +261,11 @@ class OnnxTranslator(CodeTranslator):
                     rows.append(
                         '{}Onnx{}('.format(" " * indent * 4, onnx_name))
                     for expr2 in opon:
-                        rows.extend(write_expression(
-                            stack_fct_used, expr2, indent + 1))
+                        sexpr2 = write_expression(
+                            stack_fct_used, expr2, indent + 1)
+                        if any(filter(lambda s: 'op_version="op_version"' in s, sexpr2)):
+                            continue
+                        rows.extend(sexpr2)
                         rows[-1] += ","
                     rows.append('{}op_version=op_version'.format(
                         " " * (indent + 1) * 4))
@@ -296,11 +302,12 @@ class OnnxTranslator(CodeTranslator):
                     opon = args["args"]
                     opon = opon[1:]
                     for expr2 in opon:
-                        rows.extend(
-                            write_expression(
-                                stack_fct_used,
-                                expr2, indent + 1,
-                                OnnxTranslator._parameter_mapping.get(op_conv, None)))
+                        sexpr2 = write_expression(
+                            stack_fct_used, expr2, indent + 1,
+                            OnnxTranslator._parameter_mapping.get(op_conv, None))
+                        if any(filter(lambda s: 'op_version="op_version"' in s, sexpr2)):
+                            continue
+                        rows.extend(sexpr2)
                         rows[-1] += ","
                     rows.append('{}op_version=op_version'.format(
                         " " * (indent + 1) * 4))
@@ -320,8 +327,10 @@ class OnnxTranslator(CodeTranslator):
             list_args = list(map(str, args['args']))
             if all(map(lambda s: 'dtype=' not in s, list_args)):
                 list_args.append("dtype=numpy.float32")
+            if all(map(lambda s: 'op_version=' not in s, list_args)):
+                list_args.append("op_version=None")
             fct_name = args['name']
-            rows.append("def {}({}, op_version=None):".format(
+            rows.append("def {}({}):".format(
                 fct_name, ', '.join(list_args)))
             indent = 1
 
@@ -352,8 +361,10 @@ class OnnxTranslator(CodeTranslator):
                             stack_fct_used, args, indent + 1)
                         subrows[-1] += ","
                         rows.extend(subrows)
-                        rows.append("{}output_names={}".format(
+                        rows.append("{}output_names={},".format(
                             " " * ((indent + 1) * 4), str(output_names)))
+                        rows.append("{}op_version=op_version".format(
+                            " " * ((indent + 1) * 4)))
                         rows.append("{})".format(" " * (indent * 4)))
                 else:
                     raise RuntimeError("Unable to process operator '{}' at {}. "
@@ -379,7 +390,8 @@ class OnnxTranslator(CodeTranslator):
         header = []
         for fct in stack_fct_used:
             header.append(
-                "    _{0} = lambda *args, **kwargs: {0}(*args, dtype=dtype, **kwargs)".format(fct))
+                "    _{0} = lambda *args, op_version=op_version, **kwargs: {0}(*args, dtype=dtype, "
+                "op_version=op_version, **kwargs)".format(fct))
         if len(header) > 0:
             header.append('')
         rows[index:index + 1] = header
@@ -416,7 +428,7 @@ class OnnxTranslator(CodeTranslator):
             self._stack.append(
                 ('Assign', {'args': [], 'lineno': node.lineno, 'col_offset': node.col_offset}))
             return
-        if kind == 'Name':
+        if kind in ('Name', 'Cst'):
             self._get_last(
                 ('Assign', 'BinOp', 'Call', 'Return', 'FunctionDef', 'keyword'))
             return
@@ -527,7 +539,7 @@ class OnnxTranslator(CodeTranslator):
             for child in info['children']:
                 if child['type'] == 'Str':
                     buf['default'].append(child['str'])
-                elif child['type'] == 'Num':
+                elif child['type'] in ('Num', 'Cst'):
                     buf['default'].append(child['n'])
                 elif child['type'] == 'arg':
                     buf['args'].append(
@@ -547,6 +559,9 @@ class OnnxTranslator(CodeTranslator):
                 return
             elif op == 'Return':
                 buf['code'] = info['str']
+                return
+            elif op == 'keyword':
+                buf['value'] = info['str']
                 return
             elif op == 'FunctionDef':
                 raise RuntimeError("Default value must be constant, variable '{}' was "
@@ -589,7 +604,7 @@ class OnnxTranslator(CodeTranslator):
             buf['name'] = info["str"]
             buf['args'][0] = info["str"]
             return
-        if kind == 'Num':
+        if kind in ('Num', 'Cst'):
             op, buf = self._get_last(
                 ('List', 'BinOp', 'UnaryOp', 'FunctionDef', 'Call'))
             if op == 'FunctionDef':
@@ -615,6 +630,8 @@ class OnnxTranslator(CodeTranslator):
         if kind == 'keyword':
             op, buf = self._get_last('keyword')
             name = buf["name"]
+            if 'value' not in buf:
+                raise RuntimeError(str(buf))
             value = buf['value']
             self._post_process(op, buf)
             self._stack.pop()
