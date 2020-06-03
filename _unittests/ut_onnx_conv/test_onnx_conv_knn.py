@@ -227,10 +227,8 @@ class TestOnnxConvKNN(ExtTestCase):
             options[clr.__class__].update({'largest0': False})
 
         if target_opset is None:
-            opsets = []
-            for op in [9, 10, 11, get_opset_number_from_onnx()]:
-                if get_opset_number_from_onnx() not in opsets:
-                    opsets.append(op)
+            opsets = list(sorted(set([
+                9, 10, 11, 12, get_opset_number_from_onnx()])))
         else:
             opsets = [target_opset]
         for ops in opsets:
@@ -260,12 +258,12 @@ class TestOnnxConvKNN(ExtTestCase):
                     if debug:
                         raise AssertionError(
                             "Unable to create a model for target_opset={}\n----\n{}\n----".format(
-                                ops, model_def)) from e
+                                ops, str(model_def)[:100])) from e
                     if "Unknown model file format version." in str(e):
                         continue
                     raise AssertionError(
                         "Unable to create model for opset={} and runtime='{}'\n{}"
-                        "".format(ops, runtime, model_def)) from e
+                        "".format(ops, runtime, str(model_def)[:100])) from e
 
                 if debug:
                     y = oinf.run({'X': X_test}, verbose=level, fLOG=print)
@@ -276,9 +274,10 @@ class TestOnnxConvKNN(ExtTestCase):
                 if kind == 'reg':
                     self.assertEqual(list(sorted(y)), ['variable'])
                     if dtype == numpy.float32:
-                        self.assertEqualArray(lexp, y['variable'], decimal=5)
+                        self.assertEqualArray(
+                            lexp, y['variable'], decimal=5, squeeze=True)
                     else:
-                        self.assertEqualArray(lexp, y['variable'])
+                        self.assertEqualArray(lexp, y['variable'], squeeze=True)
                 else:
                     self.assertEqual(list(sorted(y)),
                                      ['output_label', 'output_probability'])
@@ -377,7 +376,7 @@ class TestOnnxConvKNN(ExtTestCase):
         y = oinf.run({'X': X_test})
         self.assertEqual(list(sorted(y)), ['variable'])
         lexp = clr.predict(X_test)
-        self.assertEqualArray(lexp, y['variable'], decimal=5)
+        self.assertEqualArray(lexp, y['variable'], decimal=5, squeeze=True)
 
     # classification
 
@@ -493,7 +492,7 @@ class TestOnnxConvKNN(ExtTestCase):
         # The conversion has discrepencies when
         # neighbours are at the exact same distance.
         maxd = 1000
-        accb = numpy.abs(exp - res) > maxd
+        accb = numpy.abs(exp.ravel() - res.ravel()) > maxd
         ind = [i for i, a in enumerate(accb) if a == 1]
         self.assertEqual(len(ind), 0)
 
@@ -503,7 +502,7 @@ class TestOnnxConvKNN(ExtTestCase):
         self.assertGreater(ratio, 0.7)
         # Explainable discrepencies.
         # self.assertEqualArray(exp, res)
-        self.assertEqual(exp.shape, res.shape)
+        self.assertEqual(numpy.squeeze(exp).shape, numpy.squeeze(res).shape)
 
 
 if __name__ == "__main__":

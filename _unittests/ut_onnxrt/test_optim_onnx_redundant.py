@@ -21,14 +21,16 @@ class TestOptimOnnxRedundant(ExtTestCase):
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
-        cop = OnnxAdd('X', numpy.array(
-            [1], dtype=dtype, op_version=get_opset_number_from_onnx()))
-        cop2 = OnnxAdd('X', numpy.array(
-            [1], dtype=dtype, op_version=get_opset_number_from_onnx()))
-        cop3 = OnnxAdd('X', numpy.array(
-            [2], dtype=dtype, op_version=get_opset_number_from_onnx()))
-        cop4 = OnnxSub(OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx(
-        )), cop2, output_names=['final'], op_version=get_opset_number_from_onnx())
+        cop = OnnxAdd('X', numpy.array([1], dtype=dtype),
+                      op_version=get_opset_number_from_onnx())
+        cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
+                       op_version=get_opset_number_from_onnx())
+        cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
+                       op_version=get_opset_number_from_onnx())
+        cop4 = OnnxSub(
+            OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
+            cop2, output_names=['final'],
+            op_version=get_opset_number_from_onnx())
         model_def = cop4.to_onnx({'X': x})
         stats = onnx_statistics(model_def, optim=True)
         c1 = model_def.SerializeToString()

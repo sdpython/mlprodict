@@ -140,8 +140,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
         # inplace2
-        onx2 = OnnxIdentity(onnx_cl('X'), output_names=[
-                            'Y'], op_version=op_version)
+        onx2 = OnnxIdentity(
+            onnx_cl('X', op_version=op_version),
+            output_names=['Y'], op_version=op_version)
         model_def2 = onx2.to_onnx(
             {'X': X.astype(numpy.float32)}, target_opset=op_version,
             outputs=outputs)
@@ -215,7 +216,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
             sparse_no_numpy.append((onnx_cl.__name__, op_version, e))
             return
 
-        onx = onnx_cl('X', idi, output_names=['Y'])
+        onx = onnx_cl('X', idi, output_names=['Y'], op_version=op_version)
         model_def_sparse = onx.to_onnx({'X': X}, target_opset=op_version)
         try:
             oinf = OnnxInference(
