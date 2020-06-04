@@ -374,7 +374,8 @@ class OnnxInferenceExport:
             from mlprodict.onnxrt import OnnxInference
 
             idi = numpy.identity(2)
-            onx = OnnxAdd('X', idi, output_names=['Y'])
+            onx = OnnxAdd('X', idi, output_names=['Y'],
+                          op_version=12)
             model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                     target_opset=12)
             X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float32)

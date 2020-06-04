@@ -25,8 +25,9 @@ class TestOptimOnnxIdentity(ExtTestCase):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
-        cop = OnnxAdd(OnnxIdentity('input', op_version=get_opset_number_from_onnx(
-        )), 'input', op_version=get_opset_number_from_onnx())
+        cop = OnnxAdd(
+                OnnxIdentity('input', op_version=get_opset_number_from_onnx()),
+                'input', op_version=get_opset_number_from_onnx())
         cdist = onnx_squareform_pdist(
             cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
         cop2 = OnnxIdentity(cdist, output_names=[

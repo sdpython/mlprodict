@@ -13,7 +13,7 @@ pybind11
 py-cpuinfo
 pyinstrument
 pylint>=2.4.2
-pyquickhelper>=1.9.3289
+pyquickhelper>=1.9.3393
 git+https://github.com/xadupre/sklearn-onnx.git@jenkins
 sphinx
 sphinx_readable_theme
