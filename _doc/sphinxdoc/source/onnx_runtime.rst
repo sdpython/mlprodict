@@ -40,7 +40,8 @@ Main class is :class:`OnnxInference
     print(exp)
 
     # predictions with onnxruntime
-    model_def = to_onnx(clr, X_train.astype(numpy.float32))
+    model_def = to_onnx(clr, X_train.astype(numpy.float32),
+                        target_opset=12)
     oinf = OnnxInference(model_def)
     y = oinf.run({'X': X_test[:5]})
     print(y)
@@ -154,7 +155,8 @@ intermediate node anymore.
     X_train, X_test, y_train, _ = train_test_split(X, y)
     clr = AdaBoostRegressor(n_estimators=5)
     clr.fit(X_train, y_train)
-    model_def = to_onnx(clr, X_train.astype(numpy.float32))
+    model_def = to_onnx(clr, X_train.astype(numpy.float32),
+                        target_opset=12)
     oinf = OnnxInference(model_def, runtime="python_compiled")
     print(oinf)
 

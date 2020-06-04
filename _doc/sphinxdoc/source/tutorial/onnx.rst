@@ -37,7 +37,8 @@ to convert many :epkg:`scikit-learn` models.
     clr.fit(X_train)
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                        dtype=numpy.float32)
+                        dtype=numpy.float32,
+                        target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='python')
     print(oinf.run({'X': X_test[:5]}))
@@ -63,7 +64,8 @@ begin.
     clr.fit(X_train)
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                        dtype=numpy.float32)
+                        dtype=numpy.float32,
+                        target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='python')
     print(oinf.run({'X': X_test[:5]}, verbose=1, fLOG=print))
@@ -89,7 +91,8 @@ The verbosity can be increased.
     clr.fit(X_train)
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                        dtype=numpy.float32)
+                        dtype=numpy.float32,
+                        target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='python')
     print(oinf.run({'X': X_test[:5]}, verbose=3, fLOG=print))
@@ -119,7 +122,7 @@ can also call :epkg:`onnxruntime` to compute the predictions by using
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
                         dtype=numpy.float32,
-                        target_opset=11)
+                        target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='onnxruntime1')
     print(oinf.run({'X': X_test[:5]}))
@@ -146,7 +149,7 @@ to look into intermediate results.
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
                         dtype=numpy.float32,
-                        target_opset=11)
+                        target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='onnxruntime2')
     print(oinf.run({'X': X_test[:5]}, verbose=1, fLOG=print))
@@ -174,7 +177,8 @@ As a consequence, interdiate results cannot be seen anymore.
     clr.fit(X_train)
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                        dtype=numpy.float32)
+                        dtype=numpy.float32,
+                        target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='python_compiled')
     print(oinf.run({'X': X_test[:5]}))
@@ -272,7 +276,7 @@ produces the :epkg:`ONNX` graph.
 
     # Calls the ONNX algebric function to produce the ONNX graph.
     inputs = {'X': x.astype(numpy.float32)}
-    onnx_g = onnx_model.to_onnx(inputs)
+    onnx_g = onnx_model.to_onnx(inputs, target_opset=12)
 
     # Creates a python runtime associated to the ONNX function.
     oinf = OnnxInference(onnx_g)

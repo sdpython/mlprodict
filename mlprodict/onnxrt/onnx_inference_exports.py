@@ -67,7 +67,8 @@ class OnnxInferenceExport:
                             post_transform='NONE')
                 onx = OnnxLinearRegressor('X', output_names=['Y'], **pars)
                 model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
-                                        outputs=[('Y', FloatTensorType([1]))])
+                                        outputs=[('Y', FloatTensorType([1]))],
+                                        target_opset=12)
                 oinf = OnnxInference(model_def)
                 print(oinf.to_dot())
 
@@ -247,7 +248,8 @@ class OnnxInferenceExport:
                             post_transform='NONE')
                 onx = OnnxLinearRegressor('X', output_names=['Y'], **pars)
                 model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
-                                        outputs=[('Y', FloatTensorType([1]))])
+                                        outputs=[('Y', FloatTensorType([1]))],
+                                        target_opset=12)
                 oinf = OnnxInference(model_def)
                 print(oinf.to_json())
         """
@@ -373,7 +375,8 @@ class OnnxInferenceExport:
 
             idi = numpy.identity(2)
             onx = OnnxAdd('X', idi, output_names=['Y'])
-            model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+            model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
+                                    target_opset=12)
             X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float32)
             oinf = OnnxInference(model_def, runtime='python')
             res = oinf.to_python()

@@ -214,10 +214,10 @@ def translate_fct2onnx(fct, context=None, cpl=False,
                 trs, context={'numpy.transpose': numpy.transpose},
                 cpl=True, context_cpl=ctx, output_names=['Z'])
 
-            onnx_code = onnx_fct('x', 'y')
+            onnx_code = onnx_fct('x', 'y', opset_version=12)
             print('ONNX code:', onnx_code)
 
-            onnx_g = onnx_code.to_onnx(inputs)
+            onnx_g = onnx_code.to_onnx(inputs, target_opset=12)
 
             oinf = OnnxInference(onnx_g)
             res = oinf.run(inputs)

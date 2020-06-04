@@ -271,7 +271,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             pred = pipe.transform(X_train)
             print(pred)
 
-            model_onnx = to_onnx(pipe, X_train)
+            model_onnx = to_onnx(pipe, X_train, target_opset=12)
             oinf = OnnxInference(model_onnx)
 
             # The dataframe is converted into a dictionary,

@@ -301,7 +301,8 @@ class OnnxInference:
                             post_transform='NONE')
                 onx = OnnxLinearRegressor('X', output_names=['Y'], **pars)
                 model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
-                                        outputs=[('Y', FloatTensorType([1]))])
+                                        outputs=[('Y', FloatTensorType([1]))],
+                                        target_opset=12)
                 oinf = OnnxInference(model_def)
                 pprint.pprint(oinf.to_sequence())
 
@@ -489,7 +490,8 @@ class OnnxInference:
                 exp = clr.predict(X_test[:5])
                 print(exp)
 
-                model_def = to_onnx(clr, X_train.astype(numpy.float32))
+                model_def = to_onnx(clr, X_train.astype(numpy.float32),
+                                    target_opset=12)
                 oinf = OnnxInference(model_def)
                 y = oinf.run({'X': X_test[:5]})
                 print(y)
@@ -976,7 +978,8 @@ class OnnxInference:
                 clr.fit(X_train, y_train)
 
                 model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                                    dtype=numpy.float32)
+                                    dtype=numpy.float32,
+                                    target_opset=12)
 
                 oinf2 = OnnxInference(model_def, runtime='python_compiled')
                 print(oinf2.run({'X': X_test[:5]}))

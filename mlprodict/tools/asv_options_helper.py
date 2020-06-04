@@ -152,7 +152,8 @@ def get_ir_version_from_onnx(benchmark=True):
 
             # Conversion into ONNX.
             from mlprodict.onnx_conv import to_onnx
-            model_onnx = to_onnx(lr, X.astype(numpy.float32))
+            model_onnx = to_onnx(lr, X.astype(numpy.float32),
+                                 target_opset=12)
             print("ir_version", model_onnx.ir_version)
 
             # Change ir_version

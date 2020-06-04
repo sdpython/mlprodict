@@ -40,7 +40,7 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
         y = iris.target
         rf = RandomForestClassifier()
         rf.fit(X, y)
-        onx = to_onnx(rf, X[:1])
+        onx = to_onnx(rf, X[:1], target_opset=12)
         pprint.pprint((rf, onnx_statistics(onx)))
     """
     atts = ['doc_string', 'ir_version', 'metadata_props', 'domain',
