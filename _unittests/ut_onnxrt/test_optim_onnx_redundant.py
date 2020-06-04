@@ -62,9 +62,9 @@ class TestOptimOnnxRedundant(ExtTestCase):
         cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
                        op_version=get_opset_number_from_onnx())
         cop4 = OnnxSub(
-                OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
-                cop2, output_names=['final'],
-                op_version=get_opset_number_from_onnx())
+            OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
+            cop2, output_names=['final'],
+            op_version=get_opset_number_from_onnx())
         model_def = cop4.to_onnx({'X': x},
                                  outputs=[('keep', FloatTensorType([None, 2])),
                                           ('final', FloatTensorType([None, 2]))])
