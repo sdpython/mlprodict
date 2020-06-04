@@ -309,9 +309,11 @@ class TestOnnxrtSimple(ExtTestCase):
             numpy.float32).reshape((3, 2))
         tensor_value = make_tensor(
             "value", TensorProto.FLOAT, (1,), [-5])  # pylint: disable=E1101
-        cop2 = OnnxConstantOfShape(OnnxShape('input'), value=tensor_value,
-                                   output_names=['mat'],
-                                   op_version=get_opset_number_from_onnx())
+        cop2 = OnnxConstantOfShape(
+            OnnxShape('input', op_version=get_opset_number_from_onnx()),
+            value=tensor_value,
+            output_names=['mat'],
+            op_version=get_opset_number_from_onnx())
         model_def = cop2.to_onnx({'input': x},
                                  outputs=[('mat', FloatTensorType())],
                                  target_opset=get_opset_number_from_onnx())
