@@ -5,13 +5,19 @@
 History
 =======
 
-current - 2020-05-20 - 0.00Mb
+current - 2020-06-04 - 0.00Mb
 =============================
+
+* `117`: Support for op_version in onnx grammar (2020-06-04)
+* `123`: Enables opset 12 (ONNX) (2020-06-04)
+
+0.3.1108 - 2020-05-20 - 0.29Mb
+==============================
 
 * `126`: Fix xgboost converter for xgboost >= 1.0 (2020-05-18)
 * `125`: Refactor rewritten sklearn operators (2020-05-18)
-* `122`: Captures C output when calling dump_data_and_model (2020-05-16)
 * `124`: Fixes #122, capture standard C ouptput with dump_data_model, first step for #123 (2020-05-16)
+* `122`: Captures C output when calling dump_data_and_model (2020-05-16)
 
 0.3.1082 - 2020-05-01 - 2.84Mb
 ==============================
