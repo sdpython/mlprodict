@@ -39,7 +39,7 @@ default_asv_conf = {
         "lightgbm": [],
         "numpy": [],
         "onnx": ["http://localhost:8067/simple/"],
-        "onnxruntime_dnnl": ["http://localhost:8067/simple/"],
+        "onnxruntime": ["http://localhost:8067/simple/"],
         "pandas": [],
         "Pillow": [],
         "pybind11": [],
