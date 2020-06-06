@@ -13,6 +13,8 @@ then
     echo --REMOVE ENV--
     rm build/env -r -f
 fi
+echo --MACHINE--
+python -m asv machine --yes --config _benches/asv.conf.json
 echo --BENCHRUN--
 python -m asv run --show-stderr --config _benches/asv.conf.json -v
 echo --PUBLISH--

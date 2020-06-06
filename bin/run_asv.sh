@@ -1,3 +1,5 @@
+echo --MACHINE--
+python -m asv machine --yes --config mlprodict/asv_benchmark/asv.conf.json
 echo --BENCH--
 python -m asv run --show-stderr --config mlprodict/asv_benchmark/asv.conf.json
 if [ -d dist/html/asv ]
