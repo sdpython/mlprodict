@@ -112,6 +112,9 @@ class OnnxInference:
         Prepares the instance to deliver predictions.
         """
         self.graph_ = self.to_sequence()
+        if len(self.graph_['sequence']) == 0:
+            raise RuntimeError(
+                "No runnable nodes was found in the ONNX graph.")
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
         self.target_opset_ = self.graph_['targets']
@@ -354,7 +357,16 @@ class OnnxInference:
                         raise RuntimeError(  # pragma: no cover
                             "A parameter has no (sparse) value '{}' for node '{}'\nv={}\ndobj=[{}]".format(
                                 k, node.name, v, node))
-            nodes[node.name] = OnnxInferenceNode(node, dobj, self.global_index)
+            if node.name in nodes:
+                i = 2
+                while True:
+                    new_name = "%s_n%i" % (node.name, i)
+                    if new_name not in nodes:
+                        break
+                    i += 1
+            else:
+                new_name = node.name
+            nodes[new_name] = OnnxInferenceNode(node, dobj, self.global_index)
 
         # names
         names = {}

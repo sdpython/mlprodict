@@ -26,7 +26,8 @@ def convert_scorer(fct, initial_types, name=None,
                    dtype=numpy.float32,
                    custom_conversion_functions=None,
                    custom_shape_calculators=None,
-                   custom_parsers=None):
+                   custom_parsers=None, white_op=None,
+                   black_op=None, final_types=None):
     """
     Converts a scorer into :epkg:`ONNX` assuming
     there exists a converter associated to it.
@@ -54,6 +55,16 @@ def convert_scorer(fct, initial_types, name=None,
                                         they can be rewritten, *custom_parsers* is a dictionary
                                         ``{ type: fct_parser(scope, model, inputs,
                                         custom_parsers=None) }``
+    @param      white_op                white list of ONNX nodes allowed
+                                        while converting a pipeline, if empty,
+                                        all are allowed
+    @param      black_op                black list of ONNX nodes allowed
+                                        while converting a pipeline, if empty,
+                                        none are blacklisted
+    @param      final_types             a python list. Works the same way as
+                                        initial_types but not mandatory, it is used
+                                        to overwrites the type (if type is not None)
+                                        and the name of every output.
     @return                             :epkg:`ONNX` graph
     """
     if hasattr(fct, '_score_func'):
@@ -64,12 +75,13 @@ def convert_scorer(fct, initial_types, name=None,
     if name is None:
         name = "mlprodict_fct_ONNX(%s)" % fct.__name__
     tr = CustomScorerTransform(fct.__name__, fct, kwargs)
-    return convert_sklearn(tr, initial_types=initial_types,
-                           target_opset=target_opset, options=options,
-                           dtype=dtype,
-                           custom_conversion_functions=custom_conversion_functions,
-                           custom_shape_calculators=custom_shape_calculators,
-                           custom_parsers=custom_parsers)
+    return convert_sklearn(
+        tr, initial_types=initial_types,
+        target_opset=target_opset, options=options, dtype=dtype,
+        custom_conversion_functions=custom_conversion_functions,
+        custom_shape_calculators=custom_shape_calculators,
+        custom_parsers=custom_parsers, white_op=white_op,
+        black_op=black_op, final_types=final_types)
 
 
 def guess_initial_types(X, initial_types):
@@ -186,7 +198,8 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
 
 def to_onnx(model, X=None, name=None, initial_types=None,
             target_opset=None, options=None,
-            dtype=numpy.float32, rewrite_ops=False):
+            dtype=numpy.float32, rewrite_ops=False,
+            white_op=None, black_op=None, final_types=None):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
 
@@ -204,6 +217,16 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     @param      dtype           type to use to convert the model
     @param      rewrite_ops     rewrites some existing converters,
                                 the changes are permanent
+    @param      white_op        white list of ONNX nodes allowed
+                                while converting a pipeline, if empty,
+                                all are allowed
+    @param      black_op        black list of ONNX nodes allowed
+                                while converting a pipeline, if empty,
+                                none are blacklisted
+    @param      final_types     a python list. Works the same way as
+                                initial_types but not mandatory, it is used
+                                to overwrites the type (if type is not None)
+                                and the name of every output.
     @return                     converted model
 
     The function rewrites function *to_onnx* from :epkg:`sklearn-onnx`
@@ -283,11 +306,13 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             print(onxp)
     """
     if isinstance(model, OnnxOperatorMixin):
-        if options is not None:
-            raise NotImplementedError(
-                "options not yet implemented for OnnxOperatorMixin.")
+        if not hasattr(model, 'op_version'):
+            raise RuntimeError(
+                "Missing attribute 'op_version' for type '{}'.".format(
+                    type(model)))
         return model.to_onnx(X=X, name=name, dtype=dtype,
-                             target_opset=target_opset)
+                             options=options, black_op=black_op,
+                             white_op=white_op, final_types=final_types)
     if rewrite_ops:
         old_values = register_rewritten_operators()
         register_converters()
@@ -334,20 +359,17 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             new_dtype = dts[0]
         res = convert_scorer(model, initial_types, name=name,
                              target_opset=target_opset, options=options,
-                             dtype=new_dtype)
+                             dtype=new_dtype, black_op=black_op,
+                             white_op=white_op, final_types=final_types)
     else:
         if name is None:
             name = "mlprodict_ONNX(%s)" % model.__class__.__name__
 
         initial_types, dtype, new_dtype = _guess_type_(X, initial_types, dtype)
-        try:
-            res = convert_sklearn(model, initial_types=initial_types, name=name,
-                                  target_opset=target_opset, options=options,
-                                  dtype=new_dtype)
-        except (TypeError, NameError):
-            # older version of sklearn-onnx
-            res = convert_sklearn(model, initial_types=initial_types, name=name,
-                                  target_opset=target_opset, options=options)
+        res = convert_sklearn(model, initial_types=initial_types, name=name,
+                              target_opset=target_opset, options=options,
+                              dtype=new_dtype, black_op=black_op,
+                              white_op=white_op, final_types=final_types)
 
     if old_values is not None:
         register_rewritten_operators(old_values)

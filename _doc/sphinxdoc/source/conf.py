@@ -78,6 +78,7 @@ epkg_dictionary.update({
     'lightgbm': 'https://lightgbm.readthedocs.io/en/latest/',
     'make_scorer': 'https://scikit-learn.org/stable/modules/generated/sklearn.metrics.make_scorer.html',
     'Minkowski distance': 'https://en.wikipedia.org/wiki/Minkowski_distance',
+    'mlinsights': '',
     'mlprodict': 'http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html',
     'openmp': 'https://www.openmp.org/',
     'ONNX': 'https://onnx.ai/',
@@ -97,5 +98,6 @@ epkg_dictionary.update({
     'run_asv.sh': 'https://github.com/sdpython/mlprodict/blob/master/bin/run_asv.sh',
     'Rust': 'https://www.rust-lang.org/',
     'sklearn-onnx': 'https://github.com/onnx/sklearn-onnx',
+    'TransferTransformer': 'http://www.xavierdupre.fr/app/mlinsights/helpsphinx/mlinsights/mlmodel/transfer_transformer.html',
     'xgboost': "https://xgboost.readthedocs.io/en/latest/",
 })

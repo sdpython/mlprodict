@@ -18,7 +18,7 @@ from mlprodict.sklapi import OnnxTransformer
 from mlprodict.tools import get_opset_number_from_onnx
 
 
-class TestInferenceSessionSklearn(ExtTestCase):
+class TestOnnxTransformer(ExtTestCase):
 
     def setUp(self):
         logger = getLogger('skl2onnx')
