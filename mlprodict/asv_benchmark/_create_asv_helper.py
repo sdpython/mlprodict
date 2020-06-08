@@ -157,8 +157,13 @@ def _sklearn_subfolder(model):
     Returns the list of subfolders for a model.
     """
     mod = model.__module__
+    if mod is not None and mod.startswith('mlinsights'):
+        return ['mlinsights', model.__name__]
     spl = mod.split('.')
-    pos = spl.index('sklearn')
+    try:
+        pos = spl.index('sklearn')
+    except ValueError:  # pragma: no cover
+        raise ValueError("Unable to find 'sklearn' in '{}'.".format(mod))
     res = spl[pos + 1: -1]
     if len(res) == 0:
         if spl[-1] == 'sklearn':
@@ -177,31 +182,31 @@ def _handle_init_files(model, flat, location, verbose, location_pyspy, fLOG):
     if flat:
         return ([], location, ".",
                 (None if location_pyspy is None else location_pyspy))
-    else:
-        created = []
-        subf = _sklearn_subfolder(model)
-        subf = [_ for _ in subf if _[0] != '_' or _ == '_externals']
-        location_model = os.path.join(location, *subf)
-        prefix_import = "." * (len(subf) + 1)
-        if not os.path.exists(location_model):
-            os.makedirs(location_model)
-            for fold in [location_model, os.path.dirname(location_model),
-                         os.path.dirname(os.path.dirname(location_model))]:
-                init = os.path.join(fold, '__init__.py')
-                if not os.path.exists(init):
-                    with open(init, 'w') as _:
-                        pass
-                    created.append(init)
-                    if verbose > 1 and fLOG is not None:
-                        fLOG("[create_asv_benchmark] create '{}'.".format(init))
-        if location_pyspy is not None:
-            location_pyspy_model = os.path.join(location_pyspy, *subf)
-            if not os.path.exists(location_pyspy_model):
-                os.makedirs(location_pyspy_model)
-        else:
-            location_pyspy_model = None
 
-        return created, location_model, prefix_import, location_pyspy_model
+    created = []
+    subf = _sklearn_subfolder(model)
+    subf = [_ for _ in subf if _[0] != '_' or _ == '_externals']
+    location_model = os.path.join(location, *subf)
+    prefix_import = "." * (len(subf) + 1)
+    if not os.path.exists(location_model):
+        os.makedirs(location_model)
+        for fold in [location_model, os.path.dirname(location_model),
+                     os.path.dirname(os.path.dirname(location_model))]:
+            init = os.path.join(fold, '__init__.py')
+            if not os.path.exists(init):
+                with open(init, 'w') as _:
+                    pass
+                created.append(init)
+                if verbose > 1 and fLOG is not None:
+                    fLOG("[create_asv_benchmark] create '{}'.".format(init))
+    if location_pyspy is not None:
+        location_pyspy_model = os.path.join(location_pyspy, *subf)
+        if not os.path.exists(location_pyspy_model):
+            os.makedirs(location_pyspy_model)
+    else:
+        location_pyspy_model = None
+
+    return created, location_model, prefix_import, location_pyspy_model
 
 
 def _asv_class_name(model, scenario, optimisation,

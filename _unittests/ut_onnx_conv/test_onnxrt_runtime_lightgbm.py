@@ -6,7 +6,7 @@ from logging import getLogger
 import numpy
 import pandas
 from lightgbm import LGBMClassifier, Dataset, train as lgb_train
-from pyquickhelper.pycode import ExtTestCase, skipif_circleci
+from pyquickhelper.pycode import ExtTestCase, skipif_circleci, ignore_warnings
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from skl2onnx.common.data_types import (
@@ -26,6 +26,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         register_converters()
 
     @skipif_circleci('stuck')
+    @ignore_warnings((RuntimeWarning, UserWarning))
     def test_onnxrt_python_lightgbm_categorical(self):
 
         X = pandas.DataFrame({"A": numpy.random.permutation(['a', 'b', 'c', 'd'] * 75),  # str
@@ -76,6 +77,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         # self.assertEqualArray(exp, df.values, decimal=6)
 
     @skipif_circleci('stuck')
+    @ignore_warnings((RuntimeWarning, UserWarning))
     def test_onnxrt_python_lightgbm_categorical_iris(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -131,6 +133,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         self.assertEqualArray(exp, values[:, 1], decimal=5)
 
     @skipif_circleci('stuck')
+    @ignore_warnings((RuntimeWarning, UserWarning))
     def test_onnxrt_python_lightgbm_categorical_iris_dataframe(self):
         iris = load_iris()
         X, y = iris.data, iris.target

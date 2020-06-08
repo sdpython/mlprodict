@@ -11,6 +11,28 @@ import numpy as np
 from skl2onnx.common._apply_operation import apply_div, apply_reshape, apply_sub  # pylint: disable=E0611
 from skl2onnx.common.tree_ensemble import get_default_tree_classifier_attribute_pairs
 from skl2onnx.proto import onnx_proto
+from skl2onnx.common.shape_calculator import (
+    calculate_linear_regressor_output_shapes,
+    calculate_linear_classifier_output_shapes
+)
+
+
+def calculate_lightgbm_output_shapes(operator):
+    """
+    Shape calculator for LightGBM Booster
+    (see :epkg:`lightgbm`).
+    """
+    op = operator.raw_operator
+    if hasattr(op, "_model_dict"):
+        objective = op._model_dict['objective']
+    else:
+        objective = op.objective_
+    if objective.startswith('binary') or objective.startswith('multiclass'):
+        return calculate_linear_classifier_output_shapes(operator)
+    if objective.startswith('regression'):
+        return calculate_linear_regressor_output_shapes(operator)
+    raise NotImplementedError(
+        "Objective '{}' is not implemented yet.".format(objective))
 
 
 def _translate_split_criterion(criterion):

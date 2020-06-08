@@ -11,29 +11,35 @@ from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from skl2onnx.proto import TensorProto
 from skl2onnx.helpers.onnx_helper import load_onnx_model, enumerate_model_node_outputs
 from skl2onnx.helpers.onnx_helper import select_model_inputs_outputs
-from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx.common.data_types import (
+    FloatTensorType, DoubleTensorType,
+    Int64TensorType)
 from ..onnxrt import OnnxInference
 from ..onnxrt.onnx2py_helper import _var_as_dict
 
 
 class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
     """
-    Calls :epkg:`onnxruntime` inference following :epkg:`scikit-learn` API
+    Calls :epkg:`onnxruntime` or the runtime implemented
+    in this package to transform input based on a ONNX graph.
+    It follows :epkg:`scikit-learn` API
     so that it can be included in a :epkg:`scikit-learn` pipeline.
     See notebook :ref:`transferlearningrst` for an example.
 
     Parameters
     ----------
 
-    onnx_bytes : bytes
+    onnx_bytes: bytes
     output_name: string
         requested output name or None to request all and
         have method *transform* to store all of them in a dataframe
-    enforce_float32 : boolean
+    enforce_float32: boolean
         :epkg:`onnxruntime` only supports *float32*,
         :epkg:`scikit-learn` usually uses double floats, this parameter
         ensures that every array of double floats is converted into
         single floats
+    runtime: string, defined the runtime to use
+        as described in @see cl OnnxInference.
     """
 
     def __init__(self, onnx_bytes, output_name=None, enforce_float32=True,
@@ -54,9 +60,10 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         ob = self.onnx_bytes
         if len(ob) > 20:
             ob = ob[:10] + b"..." + ob[-10:]
-        return "{0}(onnx_bytes={1}, output_name={2}, enforce_float32={3}, runtime='{4}')".format(
-            self.__class__.__name__, ob, self.output_name,
-            self.enforce_float32, self.runtime)
+        return ("{0}(onnx_bytes={1}, output_name={2}, enforce_float32={3}, "
+                "runtime='{4}')".format(
+                    self.__class__.__name__, ob, self.output_name,
+                    self.enforce_float32, self.runtime))
 
     def fit(self, X=None, y=None, **fit_params):
         """
@@ -141,12 +148,11 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         if self.output_name or len(outputs) == 1:
             if isinstance(outputs[0], list):
                 return pandas.DataFrame(outputs[0])
-            else:
-                return outputs[0]
-        else:
-            names = self.output_name if self.output_name else [
-                o.name for o in self.onnxrt_.output_names]
-            return pandas.DataFrame({k: v for k, v in zip(names, outputs)})
+            return outputs[0]
+
+        names = self.output_name if self.output_name else [
+            o.name for o in self.onnxrt_.output_names]
+        return pandas.DataFrame({k: v for k, v in zip(names, outputs)})
 
     def fit_transform(self, X, y=None, **inputs):
         """
@@ -193,7 +199,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                                      enforce_float32=enforce_float32)
                 yield out, tr
 
-    def onnx_parser(self, inputs=None):
+    def onnx_parser(self, scope=None, inputs=None):
         """
         Returns a parser for this model.
         """
@@ -201,6 +207,9 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
             self.parsed_inputs_ = inputs
 
         def parser():
+            if (not hasattr(self, 'onnxrt_') or  # pragma: no cover
+                    not hasattr(self.onnxrt_, 'output_names')):
+                raise RuntimeError('OnnxTransformer not fit.')
             return self.onnxrt_.output_names
         return parser
 
@@ -221,9 +230,13 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                 elem = var['type']['elem']
                 if elem == 'float':
                     out_op.type = FloatTensorType(shape=shape)
+                elif elem == 'int64':
+                    out_op.type = Int64TensorType(shape=shape)
+                elif elem == 'double':
+                    out_op.type = DoubleTensorType(shape=shape)
                 else:
                     raise NotImplementedError(
-                        "Noy yet implemented for elem_type:\n{}".format(elem))
+                        "Not yet implemented for elem_type:\n{}".format(elem))
         return shape_calculator
 
     def onnx_converter(self):
@@ -249,7 +262,6 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
             return scope.get_unique_variable_name(name)
 
         def converter(scope, operator, container):
-
             op = operator.raw_operator
 
             graph = op.onnxrt_.obj.graph
@@ -283,10 +295,12 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                 container.nodes.append(n)
 
             for node in graph.node:
-                n = helper.make_node(node.op_type,
-                                     [name_mapping[o] for o in node.input],
-                                     [name_mapping[o] for o in node.output],
-                                     name=node_mapping[node.name] if node.name else None)
+                n = helper.make_node(
+                    node.op_type,
+                    [name_mapping[o] for o in node.input],
+                    [name_mapping[o] for o in node.output],
+                    name=node_mapping[node.name] if node.name else None,
+                    domain=node.domain if node.domain else None)
                 n.attribute.extend(node.attribute)  # pylint: disable=E1101
                 container.nodes.append(n)
 

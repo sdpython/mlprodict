@@ -6,6 +6,7 @@ cpyquickhelper
 jyquickhelper
 lightgbm
 memory_profiler
+mlinsights>=0.2.450
 onnx>=1.7.0
 git+https://github.com/xadupre/onnxconverter-common.git@jenkins
 openpyxl
@@ -13,7 +14,7 @@ pybind11
 py-cpuinfo
 pyinstrument
 pylint>=2.4.2
-pyquickhelper>=1.9.3393
+pyquickhelper>=1.9.3396
 git+https://github.com/xadupre/sklearn-onnx.git@jenkins
 sphinx
 sphinx_readable_theme

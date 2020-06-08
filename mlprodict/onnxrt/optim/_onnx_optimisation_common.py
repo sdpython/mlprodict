@@ -35,6 +35,8 @@ def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=Non
         new_model.doc_string = onnx_model.doc_string
         if hasattr(onnx_model, 'value_info'):
             graph.value_info.extend(onnx_model.value_info)
+        while len(new_model.opset_import) > 0:  # pylint: disable=E1101
+            new_model.opset_import.pop()  # pylint: disable=E1101
         for oimp in onnx_model.opset_import:
             op_set = new_model.opset_import.add()  # pylint: disable=E1101
             op_set.domain = oimp.domain
@@ -145,9 +147,9 @@ def _rename_node_input(onnx_node, old_name, new_name=None):
         atts = new_atts
     else:
         atts = onnx_node.attribute
-    node = _make_node(onnx_node.op_type, inputs,
-                      outputs, name=onnx_node.name,
-                      attributes=atts)
+    node = _make_node(
+        onnx_node.op_type, inputs, outputs, name=onnx_node.name,
+        domain=onnx_node.domain, attributes=atts)
     return node
 
 
@@ -235,7 +237,7 @@ def _rename_node_output(onnx_node, old_name, new_name):
         atts = new_atts
     else:
         atts = onnx_node.attribute
-    node = _make_node(onnx_node.op_type, inputs,
-                      outputs, name=onnx_node.name,
-                      attributes=atts)
+    node = _make_node(
+        onnx_node.op_type, inputs, outputs, name=onnx_node.name,
+        domain=onnx_node.domain, attributes=atts)
     return node

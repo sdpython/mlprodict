@@ -30,8 +30,8 @@ class TestOptimOnnxIdentity(ExtTestCase):
             'input', op_version=get_opset_number_from_onnx())
         cdist = onnx_squareform_pdist(
             cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
-        cop2 = OnnxIdentity(cdist, output_names=[
-                            'cdist'], op_version=get_opset_number_from_onnx())
+        cop2 = OnnxIdentity(cdist, output_names=['cdist'],
+                            op_version=get_opset_number_from_onnx())
 
         model_def = cop2.to_onnx(
             {'input': FloatTensorType()},
@@ -143,7 +143,7 @@ class TestOptimOnnxIdentity(ExtTestCase):
         self.assertIn('subgraphs_optim', stats)
 
     def test_onnx_test_knn_single_regressor32(self):
-        self.onnx_test_knn_single_regressor(numpy.float32, expected=[2, 1])
+        self.onnx_test_knn_single_regressor(numpy.float32, expected=[1, 1])
 
 
 if __name__ == "__main__":
