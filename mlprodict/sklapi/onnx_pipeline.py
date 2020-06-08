@@ -58,6 +58,10 @@ class OnnxPipeline(Pipeline):
 
     The class stores transformers before converting them into ONNX
     in attributes ``raw_steps_``.
+
+    See notebook :ref:`onnxdiscrepenciesrst` to see it can
+    be used to reduce discrepencies after it was converted into
+    *ONNX*.
     """
 
     def __init__(self, steps, *, memory=None, verbose=False,

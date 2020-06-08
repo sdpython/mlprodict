@@ -295,10 +295,12 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                 container.nodes.append(n)
 
             for node in graph.node:
-                n = helper.make_node(node.op_type,
-                                     [name_mapping[o] for o in node.input],
-                                     [name_mapping[o] for o in node.output],
-                                     name=node_mapping[node.name] if node.name else None)
+                n = helper.make_node(
+                    node.op_type,
+                    [name_mapping[o] for o in node.input],
+                    [name_mapping[o] for o in node.output],
+                    name=node_mapping[node.name] if node.name else None,
+                    domain=node.domain if node.domain else None)
                 n.attribute.extend(node.attribute)  # pylint: disable=E1101
                 container.nodes.append(n)
 
