@@ -43,13 +43,13 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None):
 
     def retrieve_idnodes(graph, existing_nodes):
         idnodes = []
-        for i, (node, exnode) in enumerate(zip(graph.node, existing_nodes)):
+        for i, exnode in enumerate(existing_nodes):
             if exnode is None:
                 continue
-            if node.op_type == 'Identity':
-                input = node.input[0]
-                output = node.output[0]
-                idnodes.append((i, node, input, output))
+            if exnode.op_type == 'Identity':
+                input = exnode.input[0]
+                output = exnode.output[0]
+                idnodes.append((i, exnode, input, output))
         return idnodes
 
     nodes = list(graph.node)
@@ -75,20 +75,25 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None):
                     if out in nodes[j].input:
                         nodes[j] = _rename_node_input(nodes[j], out, inp)
                         rem += 1
-                        if nodes[j] == 'Identity':
+                        if nodes[j].op_type == 'Identity':
                             restart = True
                 nodes[i] = None
                 rem += 1
                 continue
-            if not restart and inp not in inputs:
-                # We cannot change an input name.
+            if not restart and inp not in inputs and inp not in outputs:
+                # We cannot change an input name or an output name.
                 for j in range(len(nodes)):  # pylint: disable=C0200
                     if nodes[j] is None:
                         continue
                     if inp in nodes[j].output:
                         nodes[j] = _rename_node_output(nodes[j], inp, out)
                         rem += 1
-                        if nodes[j] == 'Identity':
+                        if nodes[j].op_type == 'Identity':
+                            restart = True
+                    if inp in nodes[j].input:
+                        nodes[j] = _rename_node_input(nodes[j], inp, out)
+                        rem += 1
+                        if nodes[j].op_type == 'Identity':
                             restart = True
                 nodes[i] = None
                 rem += 1
