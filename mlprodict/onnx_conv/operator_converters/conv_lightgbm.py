@@ -23,16 +23,16 @@ def calculate_lightgbm_output_shapes(operator):
     (see :epkg:`lightgbm`).
     """
     op = operator.raw_operator
-    if not hasattr(op, "_model_dict"):
-        raise TypeError("This converter does not apply on type '{}'."
-                        "".format(type(op)))
-    if op._model_dict['objective'].startswith('binary'):
+    if hasattr(op, "_model_dict"):
+        objective = op._model_dict['objective']
+    else:
+        objective = op.objective_
+    if objective.startswith('binary'):
         return calculate_linear_classifier_output_shapes(operator)
-    if op._model_dict['objective'].startswith('regression'):
+    if objective.startswith('regression'):
         return calculate_linear_regressor_output_shapes(operator)
     raise NotImplementedError(
-        "Objective '{}' is not implemented yet.".format(
-            op._model_dict['objective']))
+        "Objective '{}' is not implemented yet.".format(objective))
 
 
 def _translate_split_criterion(criterion):

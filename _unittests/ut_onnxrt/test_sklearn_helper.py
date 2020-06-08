@@ -122,7 +122,7 @@ class TestSklearnHelper(ExtTestCase):
         clr.fit(X_train, y_train)
         onx = to_onnx(clr, X_train[:1].astype(numpy.float32))
         ostats = onnx_statistics(onx)
-        for k, v in {'nnodes': 9, 'doc_string': '', 'domain': 'ai.onnx', 'model_version': 0,
+        for k, v in {'nnodes': 8, 'doc_string': '', 'domain': 'ai.onnx', 'model_version': 0,
                      'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
             self.assertEqual(ostats[k], v)
         self.assertIn('', ostats)
