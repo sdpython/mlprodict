@@ -27,7 +27,7 @@ def calculate_lightgbm_output_shapes(operator):
         objective = op._model_dict['objective']
     else:
         objective = op.objective_
-    if objective.startswith('binary'):
+    if objective.startswith('binary') or objective.startswith('multiclass'):
         return calculate_linear_classifier_output_shapes(operator)
     if objective.startswith('regression'):
         return calculate_linear_regressor_output_shapes(operator)
