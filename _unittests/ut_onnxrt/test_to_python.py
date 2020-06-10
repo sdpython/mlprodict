@@ -23,9 +23,9 @@ class TestToPython(ExtTestCase):
         logger.disabled = True
 
     def test_code_add_except(self):
-        idi = numpy.identity(2)
-        onx = OnnxAdd('X', idi, output_names=[
-                      'Y'], op_version=get_opset_number_from_onnx())
+        idi = numpy.identity(2, dtype=numpy.float32)
+        onx = OnnxAdd('X', idi, output_names=['Y'],
+                      op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         model_def.ir_version = get_ir_version_from_onnx()
         oinf = OnnxInference(model_def, runtime='onnxruntime1')
@@ -55,7 +55,7 @@ class TestToPython(ExtTestCase):
         return out, err
 
     def test_code_add_transpose(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxTranspose(
             OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
             output_names=['Y'], op_version=get_opset_number_from_onnx())

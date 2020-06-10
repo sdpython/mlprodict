@@ -51,10 +51,10 @@ class TestOnnxPipeline(ExtTestCase):
         X, y = iris.data, iris.target
         pipe = TransferTransformer(StandardScaler(), trainable=True)
         pipe.fit(X, y)
-        model_def = to_onnx(pipe, X[:1])
+        model_def = to_onnx(pipe, X[:1].astype(numpy.float32))
         sess = OnnxInference(model_def)
-        res = sess.run({'X': X})
-        exp = pipe.transform(X)
+        res = sess.run({'X': X.astype(numpy.float32)})
+        exp = pipe.transform(X.astype(numpy.float32))
         self.assertEqualArray(exp, res['variable'], decimal=5)
 
     def test_transfer_logistic_regression(self):

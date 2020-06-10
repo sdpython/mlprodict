@@ -11,7 +11,7 @@ from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnx_conv import to_onnx
@@ -28,7 +28,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
         logger.disabled = True
 
     def test_onnxt_add(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
                       op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
@@ -57,6 +57,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
                     mes = "dist={}\n--\n{}\n--\n{}".format(d, l1[i], l2[j])
                     raise AssertionError(mes)
 
+    @ignore_warnings(FutureWarning)
     def test_onnxt_iris_gaussian_process_exp_sine_squared(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -97,6 +98,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
         d3 = numpy.sum(numpy.abs(std2.ravel() - std3.ravel()))
         self.assertLess(d2, min(d1, d3) / 2)
 
+    @ignore_warnings(FutureWarning)
     def test_onnxt_iris_gaussian_process_dot_product(self):
         iris = load_iris()
         X, y = iris.data, iris.target

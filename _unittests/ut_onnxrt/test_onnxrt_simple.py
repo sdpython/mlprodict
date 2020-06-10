@@ -20,8 +20,7 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier,
-    OnnxConstantOfShape, OnnxShape, OnnxIdentity
-)
+    OnnxConstantOfShape, OnnxShape, OnnxIdentity)
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
@@ -220,8 +219,8 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertEqual(len(js['intermediate']), 2)
 
     def test_onnxt_run(self):
-        idi = numpy.identity(2)
-        idi2 = numpy.identity(2) * 2
+        idi = numpy.identity(2, dtype=numpy.float32)
+        idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
             OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
             idi2, output_names=['Y'],

@@ -18,7 +18,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         logger.disabled = True
 
     def test_onnxt_runtime_add(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
                       op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
@@ -44,7 +44,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
                          ValueError)
 
     def test_onnxt_runtime_add1(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
                       op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})

@@ -421,4 +421,5 @@ class TestSklearnPipeline(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestSklearnPipeline().test_combine_inputs_floats_ints()
     unittest.main()
