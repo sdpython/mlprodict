@@ -18,11 +18,6 @@ class Scaler(OpRunUnary):
                             **options)
 
     def _run(self, x):  # pylint: disable=W0221
-        if (x.dtype in (numpy.float32, numpy.float64) and
-                x.dtype != self.scale.dtype):
-            raise RuntimeTypeError(
-                "Input type mismatch: {} != {} (operator '{}')".format(
-                    x.dtype, self.scale.dtype, self.__class__.__name__))
         return self._run_no_checks_(x)
 
     def _run_no_checks_(self, x):  # pylint: disable=W0221

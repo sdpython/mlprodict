@@ -186,7 +186,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                          op_version=None, debug=False):
         if op_version is None:
             op_version = get_opset_number_from_onnx()
-        idi = numpy.identity(2)
+        idi = numpy.identity(2, dtype=dtype)
         onx = onnx_cl('X', idi, output_names=['Y'], op_version=op_version)
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
@@ -699,9 +699,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.do_test_onnxt_runtime_gemm("onnxruntime1")
 
     def do_test_onnxt_runtime_gemm(self, runtime):
-        idi = numpy.array([[1, 0], [1, 1]], dtype=numpy.float64)
+        idi = numpy.array([[1, 0], [1, 1]], dtype=numpy.float32)
         cst = numpy.array([4, 5], dtype=numpy.float32)
-        X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
+        X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float32)
 
         onx = OnnxGemm('X', idi, cst, output_names=['Y'],
                        op_version=get_opset_number_from_onnx())
