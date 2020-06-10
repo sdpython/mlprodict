@@ -4,8 +4,7 @@
 @file
 @brief Runtime operator.
 """
-import numpy
-from ._op import OpRunUnary, RuntimeTypeError
+from ._op import OpRunUnary
 
 
 class Scaler(OpRunUnary):
