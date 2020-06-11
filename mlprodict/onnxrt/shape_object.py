@@ -818,6 +818,9 @@ class ShapeObject(BaseDimensionShape):
         Not the most efficient one as it creates variables
         of the given shapes.
         """
+        for inp in inputs:
+            if inp.shape is None:
+                return inp
         inp, out = [_.strip() for _ in equation.split(b"->")]
         inps = [_.strip() for _ in inp.split(b',')]
         if len(inputs) != len(inps):
@@ -826,12 +829,14 @@ class ShapeObject(BaseDimensionShape):
         shs = {}
         for a, b in zip(inps, inputs):
             if len(a) != len(b):
-                raise RuntimeError("Input mismatch '{}' and {}.".format(a, b))
+                raise RuntimeError(
+                    "Input mismatch '{}' (in '{}') and {}.".format(a, equation, b))
             for c, s in zip(a, b):
                 if c not in shs:
                     shs[c] = s
                 elif shs[c] != s:
                     raise RuntimeError(
-                        "Dimension mismatch '{}' != {}.".format(s, shs[c]))
+                        "Equation '{}'. Dimension mismatch '{}' != {}.".format(
+                            equation, s, shs[c]))
         new_shape = [shs[i] for i in out]
         return ShapeObject(new_shape, dtype=ShapeObject._infer_merged_type(*inputs))
