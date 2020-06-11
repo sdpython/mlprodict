@@ -21,21 +21,24 @@ except ImportError:
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
     OnnxConcat,
-    OnnxCeil, OnnxClip, OnnxConstant,
-    OnnxDiv, OnnxEqual, OnnxExp, OnnxFloor, OnnxGreater,
-    OnnxGemm, OnnxIdentity, OnnxLog, OnnxMatMul, OnnxMean, OnnxMul,
-    OnnxPow, OnnxReciprocal,
-    OnnxReduceLogSumExp,
-    OnnxReduceMean, OnnxShape,
-    OnnxReduceProd, OnnxReduceSum,
-    OnnxReduceSumSquare, OnnxReshape,
-    OnnxSlice, OnnxSqrt, OnnxSub, OnnxSum,
-    OnnxTopK, OnnxTranspose, OnnxRelu,
-    OnnxSigmoid, OnnxSoftmax, OnnxSqueeze,
-    OnnxConstantOfShape, OnnxNot, OnnxSin,
-    OnnxMin, OnnxMax, OnnxSign, OnnxLpNormalization,
-    OnnxFlatten, OnnxReduceMax, OnnxReduceMin,
-    OnnxNeg, OnnxIsNaN
+    OnnxCeil, OnnxClip, OnnxConstant, OnnxConstantOfShape,
+    OnnxDiv,
+    OnnxEinsum, OnnxEqual, OnnxExp,
+    OnnxFlatten, OnnxFloor,
+    OnnxGreater, OnnxGemm,
+    OnnxIdentity, OnnxIsNaN,
+    OnnxLog, OnnxLpNormalization,
+    OnnxMatMul, OnnxMax, OnnxMean, OnnxMin, OnnxMul,
+    OnnxNeg, OnnxNot,
+    OnnxPow,
+    OnnxReciprocal,
+    OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
+    OnnxReduceProd, OnnxReduceSum, OnnxReduceSumSquare,
+    OnnxRelu, OnnxReshape,
+    OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign, OnnxSin,
+    OnnxSoftmax, OnnxSqueeze,
+    OnnxSqrt, OnnxSub, OnnxSum,
+    OnnxTopK, OnnxTranspose,
 )
 try:
     from skl2onnx.algebra.onnx_ops import OnnxCelu
@@ -50,8 +53,7 @@ from mlprodict.onnxrt.validate.validate_python import validate_python_inference
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611
     topk_element_min_double, topk_element_max_double, topk_element_fetch_double,
     topk_element_min_float, topk_element_max_float, topk_element_fetch_float,
-    topk_element_min_int64, topk_element_max_int64, topk_element_fetch_int64
-)
+    topk_element_min_int64, topk_element_max_int64, topk_element_fetch_int64)
 from mlprodict.onnxrt.ops_cpu.op_celu import _vcelu1, pycelu
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 
@@ -619,6 +621,22 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_div(self):
         self.common_test_onnxt_runtime_binary(OnnxDiv, lambda x, y: x / y)
+
+    def test_onnxt_runtime_einsum(self):
+        X = numpy.random.randn(5, 2, 3).astype(numpy.float32)
+        Y = numpy.random.randn(5, 3, 4).astype(numpy.float32)
+        equation = 'bij, bjk -> bik'
+        onx = OnnxEinsum(
+            'X', 'Y', equation=equation, output_names=['Z'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32),
+                                 'Y': Y.astype(numpy.float32)},
+                                outputs=[('Z', FloatTensorType([2]))],
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'Y': Y})
+        exp = numpy.einsum(equation, X, Y)
+        self.assertEqualArray(exp, got['Z'])
 
     def test_onnxt_runtime_equal(self):
         self.common_test_onnxt_runtime_binary(OnnxEqual, numpy.equal)

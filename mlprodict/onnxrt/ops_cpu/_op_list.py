@@ -24,6 +24,7 @@ from .op_constant_of_shape import ConstantOfShape
 from .op_cum_sum import CumSum
 from .op_dict_vectorizer import DictVectorizer
 from .op_div import Div
+from .op_einsum import Einsum
 from .op_exp import Exp
 from .op_equal import Equal
 from .op_feature_vectorizer import FeatureVectorizer

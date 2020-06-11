@@ -596,8 +596,7 @@ class ShapeObject(BaseDimensionShape):
         if self._shape is None:
             if self.name is None:
                 return self.copy()
-            else:
-                return self.copy(name="{}-RD".format(self.name))
+            return self.copy(name="{}-RD".format(self.name))
         if 0 <= axis < len(self._shape):
             cp = self._shape.copy()
             if keepdims:
@@ -616,26 +615,25 @@ class ShapeObject(BaseDimensionShape):
         st = str(self.dtype)
         if "'" in st:
             st = st.split("'")[1]
+
         if self.shape is None:
             if self.name is None:
                 return "ShapeObject(None, dtype={})".format(st)
+            return "ShapeObject(None, dtype={}, name='{}')".format(st, self.name)
+
+        st_shape = []
+        for s in self.shape:
+            if isinstance(s._dim, (int, str)):
+                st_shape.append(str(s._dim))
             else:
-                return "ShapeObject(None, dtype={}, name='{}')".format(st, self.name)
-        else:
-            st_shape = []
-            for s in self.shape:
-                if isinstance(s._dim, (int, str)):
-                    st_shape.append(str(s._dim))
-                else:
-                    st_shape.append(repr(s))
-            if len(st_shape) == 1:
-                st_shape.append('')
-            st_shape = '({})'.format(", ".join(st_shape))
-            if self.name is None:
-                return "ShapeObject({}, dtype={})".format(st_shape, st)
-            else:
-                return "ShapeObject({}, dtype={}, name='{}')".format(
-                    st_shape, st, self.name)
+                st_shape.append(repr(s))
+        if len(st_shape) == 1:
+            st_shape.append('')
+        st_shape = '({})'.format(", ".join(st_shape))
+        if self.name is None:
+            return "ShapeObject({}, dtype={})".format(st_shape, st)
+        return "ShapeObject({}, dtype={}, name='{}')".format(
+            st_shape, st, self.name)
 
     def __iter__(self):
         """
@@ -812,3 +810,28 @@ class ShapeObject(BaseDimensionShape):
         a0 = args[0].copy(dtype=dtype)
         a0[axis] = dim_axis
         return a0
+
+    @staticmethod
+    def einsum_shape(equation, *inputs):
+        """
+        Computes :epkg:`einsum` shapes.
+        Not the most efficient one as it creates variables
+        of the given shapes.
+        """
+        inp, out = [_.strip() for _ in equation.split(b"->")]
+        inps = [_.strip() for _ in inp.split(b',')]
+        if len(inputs) != len(inps):
+            raise RuntimeError(
+                "Input mismatch between '{}' and {}.".format(equation, inps))
+        shs = {}
+        for a, b in zip(inps, inputs):
+            if len(a) != len(b):
+                raise RuntimeError("Input mismatch '{}' and {}.".format(a, b))
+            for c, s in zip(a, b):
+                if c not in shs:
+                    shs[c] = s
+                elif shs[c] != s:
+                    raise RuntimeError(
+                        "Dimension mismatch '{}' != {}.".format(s, shs[c]))
+        new_shape = [shs[i] for i in out]
+        return ShapeObject(new_shape, dtype=ShapeObject._infer_merged_type(*inputs))
