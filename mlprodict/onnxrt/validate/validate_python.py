@@ -4,7 +4,7 @@
 """
 import pickle
 import numpy
-from scipy.special import expit  # pylint: disable=E0611
+from scipy.special import expit, erf  # pylint: disable=E0611
 from ...tools.code_helper import make_callable
 
 
@@ -57,8 +57,9 @@ def validate_python_inference(oinf, inputs):
     fcts_local = {}
 
     gl = {'numpy': numpy, 'pickle': pickle,
-          'expit': expit, '_argmax': _argmax,
-          '_argmin': _argmin, '_vcelu1': _vcelu1}
+          'expit': expit, 'erf': erf,
+          '_argmax': _argmax, '_argmin': _argmin,
+          '_vcelu1': _vcelu1}
 
     for fct in pyrt_fcts:
         for obj in cp.co_consts:

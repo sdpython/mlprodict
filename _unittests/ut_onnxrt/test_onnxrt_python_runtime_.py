@@ -7,7 +7,9 @@ from contextlib import redirect_stdout
 from io import StringIO
 import numpy
 from scipy.sparse import coo_matrix, csr_matrix, SparseEfficiencyWarning
-from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
+from scipy.special import (  # pylint: disable=E0611
+    expit as logistic_sigmoid,
+    erf)
 from scipy.spatial.distance import cdist
 from onnx import TensorProto
 from onnx.helper import make_sparse_tensor, make_tensor
@@ -23,7 +25,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxConcat,
     OnnxCeil, OnnxClip, OnnxConstant, OnnxConstantOfShape,
     OnnxDiv,
-    OnnxEinsum, OnnxEqual, OnnxExp,
+    OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp,
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGemm,
     OnnxIdentity, OnnxIsNaN,
@@ -640,6 +642,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_equal(self):
         self.common_test_onnxt_runtime_binary(OnnxEqual, numpy.equal)
+
+    def test_onnxt_runtime_erf(self):
+        self.common_test_onnxt_runtime_unary(OnnxErf, erf)
 
     def test_onnxt_runtime_exp(self):
         self.common_test_onnxt_runtime_unary(OnnxExp, numpy.exp)
