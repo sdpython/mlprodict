@@ -72,6 +72,7 @@ from .op_sign import Sign
 from .op_sin import Sin
 from .op_slice import Slice
 from .op_softmax import Softmax
+from .op_solve import Solve
 from .op_sqrt import Sqrt
 from .op_squeeze import Squeeze
 from .op_sub import Sub

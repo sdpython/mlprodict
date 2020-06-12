@@ -4,7 +4,9 @@
 """
 import pickle
 import numpy
+from scipy.spatial.distance import cdist  # pylint: disable=E0611
 from scipy.special import expit, erf  # pylint: disable=E0611
+from scipy.linalg import solve  # pylint: disable=E0611
 from ...tools.code_helper import make_callable
 
 
@@ -21,7 +23,7 @@ def _make_callable(fct, obj, code, gl):
     return make_callable(fct, obj, code, gl)
 
 
-def validate_python_inference(oinf, inputs):
+def validate_python_inference(oinf, inputs, tolerance=0.):
     """
     Validates the code produced by method :meth:`to_python
     <mlprodict.onnxrt.onnx_inference_exports.OnnxInferenceExport.to_python>`.
@@ -33,6 +35,8 @@ def validate_python_inference(oinf, inputs):
 
     @param      oinf        @see cl OnnxInference
     @param      inputs      inputs as dictionary
+    @param      tolerance   discrepencies must be below or equal to
+                            this theshold
 
     The function fails if the expected output are not the same.
     """
@@ -57,9 +61,9 @@ def validate_python_inference(oinf, inputs):
     fcts_local = {}
 
     gl = {'numpy': numpy, 'pickle': pickle,
-          'expit': expit, 'erf': erf,
+          'expit': expit, 'erf': erf, 'cdist': cdist,
           '_argmax': _argmax, '_argmin': _argmin,
-          '_vcelu1': _vcelu1}
+          '_vcelu1': _vcelu1, 'solve': solve}
 
     for fct in pyrt_fcts:
         for obj in cp.co_consts:
@@ -109,10 +113,10 @@ def validate_python_inference(oinf, inputs):
                         numpy.isnan(a) and numpy.isnan(b)):
                     continue
                 diff = max(diff, abs(a - b))
-            if diff > 0:
+            if diff > tolerance:
                 raise ValueError(
-                    "Values are different (max diff={})\n--EXP--\n{}\n--GOT--"
-                    "\n{}\n--\n{}".format(diff, e, g, code))
+                    "Values are different (max diff={}>{})\n--EXP--\n{}\n--GOT--"
+                    "\n{}\n--\n{}".format(diff, tolerance, e, g, code))
         else:
             raise NotImplementedError(
                 "Unable to compare values of type '{}'.".format(type(e)))
