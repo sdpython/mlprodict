@@ -104,7 +104,8 @@ class OpRun:
 
     def _find_custom_operator_schema(self, op_name):
         raise NotImplementedError(  # pragma: no cover
-            "This method should be overwritten for operator '{}'.".format(op_name))  # pragma: no cover
+            "This method should be overwritten for operator "
+            "'{}'.".format(op_name))
 
     def __str__(self):
         """
@@ -311,7 +312,7 @@ class OpRunUnary(OpRun):
 class OpRunArg(OpRunUnary):
     """
     Ancestor to all unary operators in this subfolder
-    and which produces posution of extremas.
+    and which produces position of extremas (ArgMax, ...).
     Checks that inputs type are the same.
     The class must have attributes *axis*, *keepdim*.
     """

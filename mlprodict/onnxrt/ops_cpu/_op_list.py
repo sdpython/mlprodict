@@ -75,10 +75,13 @@ from .op_softmax import Softmax
 from .op_solve import Solve
 from .op_sqrt import Sqrt
 from .op_squeeze import Squeeze
+from .op_string_normalizer import StringNormalizer
 from .op_sub import Sub
 from .op_sum import Sum
 from .op_svm_classifier import SVMClassifier, SVMClassifierDouble
 from .op_svm_regressor import SVMRegressor, SVMRegressorDouble
+from .op_tfidfvectorizer import TfIdfVectorizer
+from .op_tokenizer import Tokenizer
 from .op_topk import TopK_10, TopK_11, TopK_1, TopK
 from .op_transpose import Transpose
 from .op_tree_ensemble_classifier import TreeEnsembleClassifier, TreeEnsembleClassifierDouble

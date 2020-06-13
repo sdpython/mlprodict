@@ -98,6 +98,7 @@ epkg_dictionary.update({
     'run_asv.sh': 'https://github.com/sdpython/mlprodict/blob/master/bin/run_asv.sh',
     'Rust': 'https://www.rust-lang.org/',
     'sklearn-onnx': 'https://github.com/onnx/sklearn-onnx',
+    'Tokenizer': 'https://github.com/microsoft/onnxruntime/blob/master/docs/ContribOperators.md#com.microsoft.Tokenizer',
     'TransferTransformer': 'http://www.xavierdupre.fr/app/mlinsights/helpsphinx/mlinsights/mlmodel/transfer_transformer.html',
     'xgboost': "https://xgboost.readthedocs.io/en/latest/",
 })

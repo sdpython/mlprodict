@@ -112,9 +112,6 @@ class OnnxInference:
         Prepares the instance to deliver predictions.
         """
         self.graph_ = self.to_sequence()
-        if len(self.graph_['sequence']) == 0:
-            raise RuntimeError(
-                "No runnable nodes was found in the ONNX graph.")
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
         self.target_opset_ = self.graph_['targets']
@@ -445,6 +442,17 @@ class OnnxInference:
             node = nodes[name]
             node.set_order(len(sequence))
             sequence.append(node)
+
+        if len(sequence) == 0:
+            raise RuntimeError(
+                "No runnable nodes was found in the ONNX graph"
+                "\n--rev--\n{}"
+                "\n--order--\n{}"
+                "\n--nodes--\n{}"
+                "\n---".format(
+                    "\n".join([str(_) for _ in names.items()]),
+                    "\n".join([str(_) for _ in order.items()]),
+                    "\n".join([str(_) for _ in nodes.items()])))
 
         # defines where an intermediare output is not needed
         last_used = {}
