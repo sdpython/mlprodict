@@ -5,11 +5,20 @@
 History
 =======
 
-current - 2020-06-04 - 0.00Mb
+current - 2020-06-12 - 0.00Mb
 =============================
 
-* `117`: Support for op_version in onnx grammar (2020-06-04)
+* `131`: Add custom operator solve (2020-06-12)
+* `130`: Add operator Erf (ONNX) (2020-06-11)
+* `129`: Add operator Einsum (ONNX) (2020-06-11)
+* `127`: Implements a pipeline which replaces early stages by onnx (2020-06-08)
+* `128`: Fixes #127, implements OnnxPipeline, train, convert at each step (2020-06-08)
+
+0.3.1129 - 2020-06-04 - 0.29Mb
+==============================
+
 * `123`: Enables opset 12 (ONNX) (2020-06-04)
+* `117`: Support for op_version in onnx grammar (2020-06-04)
 
 0.3.1108 - 2020-05-20 - 0.29Mb
 ==============================

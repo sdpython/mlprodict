@@ -19,7 +19,7 @@ from sklearn.feature_selection import (
     SelectFromModel, SelectPercentile, RFE, RFECV,
     SelectKBest, SelectFwe
 )
-from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process import GaussianProcessRegressor, GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic, RBF
 from sklearn.linear_model import (
     LogisticRegression, LogisticRegressionCV, SGDClassifier,
@@ -96,25 +96,41 @@ def build_custom_scenarios():
         FeatureHasher: [
             ('default', {}),
         ],
+        GaussianProcessClassifier: [
+            ('expsine', {
+                'kernel': ExpSineSquared(),
+                'alpha': 20.,
+            }, {'conv_options': [{}, {GaussianProcessClassifier: {'optim': 'cdist'}}]}),
+            ('dotproduct', {
+                'kernel': DotProduct(),
+                'alpha': 100.,
+            }, {'conv_options': [{GaussianProcessClassifier: {'optim': 'cdist'}}]}),
+            ('rational', {
+                'kernel': RationalQuadratic(),
+                'alpha': 100.,
+            }, {'conv_options': [{GaussianProcessClassifier: {'optim': 'cdist'}}]}),
+            ('rbf', {
+                'kernel': RBF(),
+                'alpha': 100.,
+            }, {'conv_options': [{GaussianProcessClassifier: {'optim': 'cdist'}}]}),
+        ],
         GaussianProcessRegressor: [
             ('expsine', {
                 'kernel': ExpSineSquared(),
                 'alpha': 20.,
-            }, {'optim': [None, 'onnx'],
-                'conv_options': [{}, {GaussianProcessRegressor: {'optim': 'cdist'}}]}),
+            }, {'conv_options': [{GaussianProcessRegressor: {'optim': 'cdist'}}]}),
             ('dotproduct', {
                 'kernel': DotProduct(),
                 'alpha': 100.,
-            }),
+            }, {'conv_options': [{}, {GaussianProcessRegressor: {'optim': 'cdist'}}]}),
             ('rational', {
                 'kernel': RationalQuadratic(),
                 'alpha': 100.,
-            }, {'conv_options': [{}, {GaussianProcessRegressor: {'optim': 'cdist'}}]}),
+            }, {'conv_options': [{GaussianProcessRegressor: {'optim': 'cdist'}}]}),
             ('rbf', {
                 'kernel': RBF(),
                 'alpha': 100.,
-            }, {'optim': [None, 'onnx'],
-                'conv_options': [{}, {GaussianProcessRegressor: {'optim': 'cdist'}}]}),
+            }, {'conv_options': [{GaussianProcessRegressor: {'optim': 'cdist'}}]}),
         ],
         GaussianRandomProjection: [
             ('eps95', {'eps': 0.95}),

@@ -656,6 +656,9 @@ def find_suitable_problem(model):
                     'b-reg', '~b-reg-64',  # 'm-reg'
                     ]
 
+        if model in {GaussianProcessClassifier}:
+            return ['b-cl', 'm-cl', '~b-cl-64']
+
         if model in {DictVectorizer}:
             return ['key-int-col']
 

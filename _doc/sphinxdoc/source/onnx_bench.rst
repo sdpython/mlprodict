@@ -158,7 +158,7 @@ it is *1/r* faster than *scikit-learn*.
     values = ['RT/SKL-N=1', 'N=10', 'N=100', 'N=1000', 'N=10000', 'N=100000']
     df1 = df1[indices + values]
     df2 = df2[indices + values]
-    df = df1.merge(df2, on="label", suffixes=("__pyrtc", "__ort"))
+    df = df1.merge(df2, on="label", suffixes=("__pyrtc", "__ort"), how='outer')
 
     na = df["RT/SKL-N=1__pyrtc"].isnull() & df["RT/SKL-N=1__ort"].isnull()
     dfp = df[~na].sort_values("label", ascending=False).reset_index(drop=True)
