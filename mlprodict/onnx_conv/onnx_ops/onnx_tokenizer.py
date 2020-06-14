@@ -37,7 +37,7 @@ class OnnxTokenizer_1(OnnxOperator):
         :param kwargs: additional parameter
         """
         if separators is None:
-            separators = [' ']
+            separators = []
         if stopwords is None:
             stopwords = []
         OnnxOperator.__init__(

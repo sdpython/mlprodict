@@ -4,8 +4,8 @@
 @file
 @brief Runtime operator.
 """
-from ._op import OpRunUnary
-# from ..shape_object import ShapeObject
+from ._op import OpRunUnary, RuntimeTypeError
+from ..shape_object import ShapeObject
 
 
 class TfIdfVectorizer(OpRunUnary):
@@ -32,4 +32,13 @@ class TfIdfVectorizer(OpRunUnary):
         """
         Returns the same shape by default.
         """
-        raise NotImplementedError()
+        if x.shape is None:
+            return (x, )
+        if len(x) == 1:
+            return (ShapeObject((x[0], None), dtype=x.dtype,
+                                name=self.__class__.__name__), )
+        if len(x) == 2:
+            return (ShapeObject((x[0], x[1], None), dtype=x.dtype,
+                                name=self.__class__.__name__), )
+        raise RuntimeTypeError(
+            "Only two dimension are allowed, got {}.".format(x))

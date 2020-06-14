@@ -7,9 +7,10 @@ from logging import getLogger
 import numpy
 from sklearn.feature_extraction.text import CountVectorizer
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx.common.data_types import StringTensorType
+from skl2onnx.common.data_types import (
+    StringTensorType, FloatTensorType, Int64TensorType)
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxStringNormalizer)
+    OnnxStringNormalizer, OnnxTfIdfVectorizer)
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnx_conv.onnx_ops import OnnxTokenizer
 from mlprodict.onnxrt import OnnxInference
@@ -166,6 +167,78 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         oinf = OnnxInference(onx)
         res = oinf.run({'text': corpus})
         self.assertEqual(res['out'].tolist(), exp.tolist())
+
+    def test_onnxrt_tokenizer_word_mark(self):
+        corpus = numpy.array(['abc ef zoo', 'abc,d', 'ab/e'])
+        exp = numpy.array(
+            [['#', 'abc', 'ef', 'zoo', '#'],
+             ['#', 'abc', 'd', '#', '#'],
+             ['#', 'ab', 'e', '#', '#']])
+
+        op = OnnxTokenizer(
+            'text', op_version=get_opset_number_from_onnx(),
+            output_names=['out'], separators=[' ', ',', '/'], mark=1)
+        onx = op.to_onnx(inputs=[('text', StringTensorType())],
+                         outputs=[('out', StringTensorType())])
+        oinf = OnnxInference(onx)
+        res = oinf.run({'text': corpus})
+        self.assertEqual(res['out'].tolist(), exp.tolist())
+
+    def test_onnxrt_tokenizer_word_stop(self):
+        corpus = numpy.array(['abc ef zoo', 'abc,d', 'ab/e'])
+        exp = numpy.array(
+            [['abc', 'ef', 'zoo'],
+             ['abc', '#', '#'],
+             ['ab', 'e', '#']])
+
+        op = OnnxTokenizer(
+            'text', op_version=get_opset_number_from_onnx(),
+            output_names=['out'], separators=[' ', ',', '/'], mark=0,
+            stopwords=['d'])
+        onx = op.to_onnx(inputs=[('text', StringTensorType())],
+                         outputs=[('out', StringTensorType())])
+        oinf = OnnxInference(onx)
+        res = oinf.run({'text': corpus})
+        self.assertEqual(res['out'].tolist(), exp.tolist())
+
+    def test_onnxrt_tokenizer_word_regex_mark(self):
+        corpus = numpy.array(['abc ef zoo', 'abc,d', 'ab/e'])
+        exp = numpy.array(
+            [['#', ' ef zoo', '#'],
+             ['#', ',d', '#'],
+             ['#', '/e', '#']])
+
+        op = OnnxTokenizer(
+            'text', op_version=get_opset_number_from_onnx(),
+            output_names=['out'], mark=1, tokenexp='[a-c]+')
+        onx = op.to_onnx(inputs=[('text', StringTensorType())],
+                         outputs=[('out', StringTensorType())])
+        oinf = OnnxInference(onx)
+        res = oinf.run({'text': corpus})
+        self.assertEqual(res['out'].tolist(), exp.tolist())
+
+    def test_onnxrt_tfidf_vectorizer(self):
+        inputi = numpy.array([[1, 1, 3, 3, 3, 7],
+                              [8, 6, 7, 5, 6, 8]]).astype(numpy.int64)
+        output = numpy.array([[0., 0., 0., 0., 0., 0., 0.],
+                              [0., 0., 0., 0., 1., 0., 1.]]).astype(numpy.float32)
+
+        ngram_counts = numpy.array([0, 4]).astype(numpy.int64)
+        ngram_indexes = numpy.array([0, 1, 2, 3, 4, 5, 6]).astype(numpy.int64)
+        pool_int64s = numpy.array([2, 3, 5, 4,    # unigrams
+                                   5, 6, 7, 8, 6, 7]).astype(numpy.int64)   # bigrams
+
+        op = OnnxTfIdfVectorizer(
+            'tokens', op_version=get_opset_number_from_onnx(),
+            mode='TF', min_gram_length=2, max_gram_length=2,
+            max_skip_count=0, ngram_counts=ngram_counts,
+            ngram_indexes=ngram_indexes, pool_int64s=pool_int64s,
+            output_names=['out'])
+        onx = op.to_onnx(inputs=[('tokens', Int64TensorType())],
+                         outputs=[('out', FloatTensorType())])
+        oinf = OnnxInference(onx)
+        res = oinf.run({'tokens': inputi})
+        self.assertEqual(res['out'].tolist(), output.tolist())
 
     def skip_test_onnxrt_python_count_vectorizer(self):
         corpus = numpy.array([
