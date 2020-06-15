@@ -52,7 +52,7 @@ class StringNormalizer(OpRunUnary):
             try:
                 locale.setlocale(locale.LC_ALL, self.slocale)
             except locale.Error as e:
-                raise RuntimError(
+                raise RuntimeError(
                     "Unknown local setting '{}'.".format(self.slocale)) from e
         stops = set(_.decode() for _ in self.stops)
         cout[:] = cin[:]
