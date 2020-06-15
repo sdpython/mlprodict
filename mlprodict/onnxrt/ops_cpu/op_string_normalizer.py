@@ -49,7 +49,11 @@ class StringNormalizer(OpRunUnary):
         Normalizes string in a columns.
         """
         if locale.getlocale() != self.slocale:
-            locale.setlocale(locale.LC_ALL, self.slocale)
+            try:
+                locale.setlocale(locale.LC_ALL, self.slocale)
+            except locale.Error as e:
+                raise RuntimError(
+                    "Unknown local setting '{}'.".format(self.slocale)) from e
         stops = set(_.decode() for _ in self.stops)
         cout[:] = cin[:]
 
