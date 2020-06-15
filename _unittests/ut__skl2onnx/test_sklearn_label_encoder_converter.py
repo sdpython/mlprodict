@@ -21,7 +21,8 @@ class TestSklearnLabelEncoderConverter(unittest.TestCase):
             [("input", StringTensorType([None]))],
             target_opset=TARGET_OPSET)
         self.assertTrue(model_onnx is not None)
-        self.assertTrue(model_onnx.graph.node is not None)  # pylint: disable=E1101
+        self.assertTrue(
+            model_onnx.graph.node is not None)  # pylint: disable=E1101
         if model_onnx.ir_version >= 7 and TARGET_OPSET < 12:  # pylint: disable=E1101
             raise AssertionError("Incompatbilities")
         dump_data_and_model(
@@ -37,7 +38,8 @@ class TestSklearnLabelEncoderConverter(unittest.TestCase):
             [("input", FloatTensorType([None]))],
             target_opset=TARGET_OPSET)
         self.assertTrue(model_onnx is not None)
-        self.assertTrue(model_onnx.graph.node is not None)  # pylint: disable=E1101
+        self.assertTrue(
+            model_onnx.graph.node is not None)  # pylint: disable=E1101
         if model_onnx.ir_version >= 7 and TARGET_OPSET < 12:  # pylint: disable=E1101
             raise AssertionError("Incompatbilities")
         dump_data_and_model(
@@ -57,7 +59,8 @@ class TestSklearnLabelEncoderConverter(unittest.TestCase):
                     [("input", Int64TensorType([None]))],
                     target_opset=op)
                 self.assertTrue(model_onnx is not None)
-                self.assertTrue(model_onnx.graph.node is not None)  # pylint: disable=E1101
+                self.assertTrue(
+                    model_onnx.graph.node is not None)  # pylint: disable=E1101
                 if model_onnx.ir_version >= 7 and TARGET_OPSET < 12:  # pylint: disable=E1101
                     raise AssertionError("Incompatbilities")
                 dump_data_and_model(

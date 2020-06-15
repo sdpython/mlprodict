@@ -323,7 +323,13 @@ def numpy_min(x):
     try:
         if x.dtype.kind.lower() not in 'biufc':
             return x.min()
-        keep = list(filter(lambda s: isinstance(s, str), x.ravel()))
+        if hasattr(x, 'todense'):
+            x = x.todense()
+        try:
+            x = x.ravel()
+        except AttributeError:
+            pass
+        keep = list(filter(lambda s: isinstance(s, str), x))
         if len(keep) == 0:
             return numpy.nan
         keep.sort()
@@ -343,7 +349,13 @@ def numpy_max(x):
     try:
         if x.dtype.kind.lower() not in 'biufc':
             return x.max()
-        keep = list(filter(lambda s: isinstance(s, str), x.ravel()))
+        if hasattr(x, 'todense'):
+            x = x.todense()
+        try:
+            x = x.ravel()
+        except AttributeError:
+            pass
+        keep = list(filter(lambda s: isinstance(s, str), x))
         if len(keep) == 0:
             return numpy.nan
         keep.sort()

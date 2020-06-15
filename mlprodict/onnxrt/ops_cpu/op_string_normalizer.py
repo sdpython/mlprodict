@@ -20,7 +20,7 @@ class StringNormalizer(OpRunUnary):
 
     atts = {'case_change_action': b'NONE',  # LOWER UPPER NONE
             'is_case_sensitive': 1,
-            'locale': b'en_US',
+            'locale': b'',
             'stopwords': []}
 
     def __init__(self, onnx_node, desc=None, **options):
@@ -52,8 +52,9 @@ class StringNormalizer(OpRunUnary):
             try:
                 locale.setlocale(locale.LC_ALL, self.slocale)
             except locale.Error as e:
-                raise RuntimeError(
-                    "Unknown local setting '{}'.".format(self.slocale)) from e
+                warnings.warn(
+                    "Unknown local setting '{}' (current: '{}') - {}."
+                    "".format(self.slocale, locale.getlocale(), e))
         stops = set(_.decode() for _ in self.stops)
         cout[:] = cin[:]
 
