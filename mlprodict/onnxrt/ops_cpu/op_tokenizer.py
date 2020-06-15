@@ -19,8 +19,9 @@ class Tokenizer(OpRunUnary):
     atts = {'mark': 0,
             'mincharnum': 1,
             'pad_value': b'#',
-            'separators': [b' '],
+            'separators': [],
             'tokenexp': b'[a-zA-Z0-9_]+',
+            'tokenexpsplit': 0,
             'stopwords': []}
 
     def __init__(self, onnx_node, desc=None, **options):
@@ -90,7 +91,7 @@ class Tokenizer(OpRunUnary):
             for i in range(text.shape[0]):
                 for ii in range(text.shape[1]):
                     pos = begin
-                    for j, c in enumerate(split(text[i, ii])):
+                    for c in split(text[i, ii]):
                         if c not in stops:
                             res[i, ii, pos] = c
                             pos += 1
@@ -142,8 +143,12 @@ class Tokenizer(OpRunUnary):
         Tokenizes using separators.
         The function should use a trie to find text.
         """
-        def split(t):
-            return filter(lambda x: x, exp.split(t))
+        if self.tokenexpsplit:
+            def split(t):
+                return filter(lambda x: x, exp.split(t))
+        else:
+            def split(t):
+                return filter(lambda x: x, exp.findall(t))
         return self._run_tokenization(text, stops, split)
 
     def _infer_shapes(self, x):  # pylint: disable=E0202,W0221

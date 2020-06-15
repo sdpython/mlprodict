@@ -313,3 +313,43 @@ def _type_to_string(dtype):
         return "{{{0}, {1}}}".format(dtype_['key'], dtype_['value'])
     raise NotImplementedError(
         "Unable to convert into string {} or {}.".format(dtype, dtype_))
+
+
+def numpy_min(x):
+    """
+    Returns the minimum of an array.
+    Deals with text as well.
+    """
+    try:
+        if x.dtype.kind.lower() not in 'biufc':
+            return x.min()
+        keep = list(filter(lambda s: isinstance(s, str), x.ravel()))
+        if len(keep) == 0:
+            return numpy.nan
+        keep.sort()
+        val = keep[0]
+        if len(val) > 10:
+            val = val[:10] + '...'
+        return "%r" % val
+    except ValueError:
+        return '?'
+
+
+def numpy_max(x):
+    """
+    Returns the maximum of an array.
+    Deals with text as well.
+    """
+    try:
+        if x.dtype.kind.lower() not in 'biufc':
+            return x.max()
+        keep = list(filter(lambda s: isinstance(s, str), x.ravel()))
+        if len(keep) == 0:
+            return numpy.nan
+        keep.sort()
+        val = keep[-1]
+        if len(val) > 10:
+            val = val[:10] + '...'
+        return "%r" % val
+    except ValueError:
+        return '?'

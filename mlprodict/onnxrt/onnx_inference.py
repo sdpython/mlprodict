@@ -18,7 +18,7 @@ from onnx.helper import make_model
 from ..tools.code_helper import make_callable
 from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_manipulations import select_model_inputs_outputs, enumerate_model_node_outputs
-from .onnx2py_helper import _var_as_dict
+from .onnx2py_helper import _var_as_dict, numpy_min, numpy_max
 from .shape_object import ShapeObject
 from .onnx_inference_exports import OnnxInferenceExport
 
@@ -621,8 +621,8 @@ class OnnxInference:
                         printed.add(k)
                         if hasattr(obj, 'shape'):
                             fLOG("-kv='{}' shape={} dtype={} min={} max={}{}".format(
-                                k, obj.shape, obj.dtype, numpy.min(
-                                    obj), numpy.max(obj),
+                                k, obj.shape, obj.dtype, numpy_min(obj),
+                                numpy_max(obj),
                                 ' (sparse)' if isinstance(obj, coo_matrix) else ''))
                         elif (isinstance(obj, list) and len(obj) > 0 and
                                 not isinstance(obj[0], dict)):
@@ -655,16 +655,8 @@ class OnnxInference:
                             name for name in self._global_index if self._global_index[name] == k)
                         if isinstance(values[k], (numpy.ndarray, coo_matrix)):
                             name = name[0]
-                            try:
-                                mini = numpy.min(values[k])
-                                maxi = numpy.max(values[k])
-                            except TypeError:  # pragma: no cover
-                                try:
-                                    mini = numpy.min(values[k].astype(str))
-                                    maxi = numpy.max(values[k].astype(str))
-                                except TypeError:
-                                    mini = "?"
-                                    maxi = "?"
+                            mini = numpy_min(values[k])
+                            maxi = numpy_max(values[k])
                             fLOG("+kr='{}': {} (dtype={} min={} max={}{})".format(
                                 name, values[k].shape, values[k].dtype,
                                 mini, maxi,
