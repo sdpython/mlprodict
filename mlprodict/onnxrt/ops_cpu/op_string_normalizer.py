@@ -6,6 +6,7 @@
 """
 import unicodedata
 import locale
+import warnings
 import numpy
 from ._op import OpRunUnary, RuntimeTypeError
 
