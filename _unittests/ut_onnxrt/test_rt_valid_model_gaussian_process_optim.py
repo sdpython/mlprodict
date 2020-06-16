@@ -40,7 +40,7 @@ class TestRtValidateGaussianProcessOptim(ExtTestCase):
         opt = set(_.get('optim', '') for _ in rows)
         expcl = "<class 'sklearn.gaussian_process.gpr.GaussianProcessRegressor'>={'optim': 'cdist'}"
         exp = [{'', 'onnx/' + expcl, expcl, 'onnx'},
-               {'', 'onnx/' + expcl, expcl}]
+               {'', 'onnx/' + expcl, expcl}, {expcl}]
         for i in range(len(exp)):  # pylint: disable=C0200
             exp[i] = set(e.replace("._gpr", ".gpr") for e in exp[i])
         opt = set(e.replace("._gpr", ".gpr") for e in opt)
@@ -49,7 +49,7 @@ class TestRtValidateGaussianProcessOptim(ExtTestCase):
         opt = set(piv['optim'])
         expcl = "cdist"
         exp = [{'', 'onnx/' + expcl, expcl, 'onnx'},
-               {'', 'onnx/' + expcl, expcl}]
+               {'', 'onnx/' + expcl}, {expcl}]
         self.assertIn(opt, exp)
 
 
