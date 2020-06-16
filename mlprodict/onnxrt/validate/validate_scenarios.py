@@ -99,19 +99,15 @@ def build_custom_scenarios():
         GaussianProcessClassifier: [
             ('expsine', {
                 'kernel': ExpSineSquared(),
-                'alpha': 20.,
             }, {'conv_options': [{}, {GaussianProcessClassifier: {'optim': 'cdist'}}]}),
             ('dotproduct', {
                 'kernel': DotProduct(),
-                'alpha': 100.,
             }, {'conv_options': [{GaussianProcessClassifier: {'optim': 'cdist'}}]}),
             ('rational', {
                 'kernel': RationalQuadratic(),
-                'alpha': 100.,
             }, {'conv_options': [{GaussianProcessClassifier: {'optim': 'cdist'}}]}),
             ('rbf', {
                 'kernel': RBF(),
-                'alpha': 100.,
             }, {'conv_options': [{GaussianProcessClassifier: {'optim': 'cdist'}}]}),
         ],
         GaussianProcessRegressor: [

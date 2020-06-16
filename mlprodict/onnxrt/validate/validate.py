@@ -7,6 +7,7 @@ The submodule relies on :epkg:`onnxconverter_common`,
 import pprint
 from inspect import signature
 import numpy
+from numpy.linalg import LinAlgError
 import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from ... import __version__ as ort_version
@@ -46,7 +47,8 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
                 t4 = _measure_time(
                     lambda: inst.fit(X_train, y_train))[1]
         except (AttributeError, TypeError, ValueError,
-                IndexError, NotImplementedError, MemoryError) as e:
+                IndexError, NotImplementedError, MemoryError,
+                LinAlgError) as e:
             if debug:
                 raise  # pragma: no cover
             obs["_1training_time_exc"] = str(e)

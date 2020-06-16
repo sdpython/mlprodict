@@ -37,7 +37,8 @@ class TestOnnxrtValidateDocumentation(ExtTestCase):
         self.assertIn('LinearRegressor', dot)
 
     @skipif_circleci('too long')
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning,
+                               RuntimeWarning, SyntaxWarning))
     def test_write_documentation_converters(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         subs = []
