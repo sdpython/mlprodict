@@ -494,14 +494,18 @@ class ShapeObject(BaseDimensionShape):
             self._dtype = numpy.int64
         elif self._dtype in (str, 'str'):
             self._dtype = numpy.str
+        elif (hasattr(self._dtype, 'type') and self._dtype.type is numpy.string_):
+            pass
         elif self._dtype in (bool, 'bool'):
             self._dtype = numpy.bool
+        elif self._dtype in (object, numpy.object_):
+            pass
         elif self._dtype not in {
                 numpy.float32, numpy.float64, numpy.int32, numpy.int64,
                 numpy.str, numpy.bool, None,
                 'map'}:
             raise ValueError(
-                "dtype has an unexpected value: {}.".format(self._dtype))
+                "dtype has an unexpected value: '{}'.".format(self._dtype))
         if self._shape is not None:
             for i, a in enumerate(self._shape):
                 if not isinstance(a, DimensionObject):

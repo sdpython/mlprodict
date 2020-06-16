@@ -40,21 +40,22 @@ class LabelEncoder(OpRun):
                 self.keys_int64s, self.values_int64s)}
             self.default_ = self.default_int64
             self.dtype_ = numpy.int64
-        elif len(self.keys_strings) > 0 and len(self.values_strings) > 0:
-            self.classes_ = {k.decode('utf-8'): v for k, v in zip(
-                self.keys_strings, self.values_strings)}
-            self.default_ = self.default_string
-            self.dtype_ = numpy.str
         elif len(self.keys_strings) > 0 and len(self.values_int64s) > 0:
             self.classes_ = {k.decode('utf-8'): v for k, v in zip(
                 self.keys_strings, self.values_int64s)}
             self.default_ = self.default_int64
             self.dtype_ = numpy.int64
+        elif len(self.keys_strings) > 0 and len(self.values_strings) > 0:
+            self.classes_ = {
+                k.decode('utf-8'): v.decode('utf-8') for k, v in zip(
+                    self.keys_strings, self.values_strings)}
+            self.default_ = self.default_string
+            self.dtype_ = numpy.array(self.classes_.values).dtype
         elif len(self.keys_floats) > 0 and len(self.values_strings) > 0:
             self.classes_ = {k: v.decode('utf-8') for k, v in zip(
                 self.keys_floats, self.values_strings)}
             self.default_ = self.default_string
-            self.dtype_ = numpy.str
+            self.dtype_ = numpy.array(self.classes_.values).dtype
         elif hasattr(self, 'classes_strings'):
             raise RuntimeError("This runtime does not implement version 1 of "
                                "operator LabelEncoder.")

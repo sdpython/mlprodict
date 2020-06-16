@@ -337,7 +337,7 @@ def numpy_min(x):
         if len(val) > 10:
             val = val[:10] + '...'
         return "%r" % val
-    except ValueError:
+    except (ValueError, TypeError):
         return '?'
 
 
@@ -363,5 +363,5 @@ def numpy_max(x):
         if len(val) > 10:
             val = val[:10] + '...'
         return "%r" % val
-    except ValueError:
+    except (ValueError, TypeError):
         return '?'

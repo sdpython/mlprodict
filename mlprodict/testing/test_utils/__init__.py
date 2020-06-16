@@ -7,14 +7,13 @@ from ...tools.asv_options_helper import get_opset_number_from_onnx
 from .utils_backend_onnxruntime import _capture_output
 
 
-from .tests_helper import dump_data_and_model  # noqa
 from .tests_helper import (  # noqa
+    binary_array_to_string,
+    dump_data_and_model,
     dump_one_class_classification,
     dump_binary_classification,
     dump_multilabel_classification,
     dump_multiple_classification,
-)
-from .tests_helper import (  # noqa
     dump_multiple_regression,
     dump_single_regression,
     convert_model,

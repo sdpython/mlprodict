@@ -707,3 +707,15 @@ def compute_benchmark(fcts, number=10, repeat=100):
         res["name"] = name
         obs.append(res)
     return obs
+
+
+def binary_array_to_string(mat):
+    """
+    Used to compare decision path.
+    """
+    if not isinstance(mat, numpy.ndarray):
+        raise NotImplementedError()
+    if len(mat.shape) != 2:
+        raise NotImplementedError()
+    res = [[str(i) for i in row] for row in mat.tolist()]
+    return [''.join(row) for row in res]
