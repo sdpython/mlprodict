@@ -64,7 +64,7 @@ class GatherBase {
 template<typename NTYPE>
 class Gather : public GatherBase<NTYPE> {
     public:
-        Gather(int64_t axis) : GatherBase(axis) {}
+        Gather(int64_t axis) : GatherBase<NTYPE>(axis) {}
 
         py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Compute(
                         py::array_t<NTYPE, py::array::c_style | py::array::forcecast> input,
