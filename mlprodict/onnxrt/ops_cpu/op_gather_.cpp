@@ -162,7 +162,8 @@ py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Gather<NTYPE>::Com
     bool is_string_type = IsDataTypeString(NTYPE());
 
     const size_t element_bytes = sizeof(NTYPE);
-    const int64_t block = SizeFromDimension(input_data_shape, axis_ + 1, input_data_shape.size());
+    const int64_t block = SizeFromDimension(
+                input_data_shape, this->axis_ + 1, input_data_shape.size());
     const int64_t block_size = block * element_bytes;
     const int64_t M = SizeFromDimension(input_data_shape, 0, this->axis_);
     const int64_t N = flattened_dimension(indices_shape);
