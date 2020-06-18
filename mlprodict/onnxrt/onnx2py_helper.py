@@ -321,10 +321,10 @@ def numpy_min(x):
     Deals with text as well.
     """
     try:
-        if x.dtype.kind.lower() not in 'biufc':
-            return x.min()
         if hasattr(x, 'todense'):
             x = x.todense()
+        if x.dtype.kind.lower() not in 'buc':
+            return x.min()
         try:
             x = x.ravel()
         except AttributeError:
@@ -347,10 +347,10 @@ def numpy_max(x):
     Deals with text as well.
     """
     try:
-        if x.dtype.kind.lower() not in 'biufc':
-            return x.max()
         if hasattr(x, 'todense'):
             x = x.todense()
+        if x.dtype.kind.lower() not in 'buc':
+            return x.max()
         try:
             x = x.ravel()
         except AttributeError:

@@ -674,14 +674,14 @@ class OnnxInference:
             values.sort()
             values = OrderedDict((k, v) for _, k, v in values)
             return (values, mtime) if node_time else values
-        else:
-            try:
-                res = {k: values[self._global_index[k]] for k in self.outputs_}
-            except KeyError as e:
-                raise RuntimeError("Unable to find one output [{}]\n in [{}]"
-                                   ".".format(", ".join(sorted(self.outputs_)),
-                                              ", ".join(sorted(values)))) from e
-            return (res, mtime) if node_time else res
+
+        try:
+            res = {k: values[self._global_index[k]] for k in self.outputs_}
+        except KeyError as e:
+            raise RuntimeError("Unable to find one output [{}]\n in [{}]"
+                               ".".format(", ".join(sorted(self.outputs_)),
+                                          ", ".join(sorted(values)))) from e
+        return (res, mtime) if node_time else res
 
     def build_intermediate(self):
         """
