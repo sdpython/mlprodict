@@ -844,3 +844,30 @@ class ShapeObject(BaseDimensionShape):
                             equation, s, shs[c]))
         new_shape = [shs[i] for i in out]
         return ShapeObject(new_shape, dtype=ShapeObject._infer_merged_type(*inputs))
+
+    @staticmethod
+    def gather_shape(input, indices, axis):
+        """
+        Computes Gather shapes.
+        """
+        input_rank = len(input)
+        if input_rank is None:
+            return ShapeObject(None, dtype=input._dtype)
+        index_rank = len(indices)
+        if index_rank is None:
+            return ShapeObject(None, dtype=input._dtype)
+
+        if axis < 0:
+            axis = input_rank + axis
+
+        shape = []
+        for i in range(axis):
+            shape.append(input[i])
+
+        for dim in indices:
+            shape.append(dim)
+
+        for i in range(axis + 1, input_rank):
+            shape.append(input[i])
+
+        return ShapeObject(shape, dtype=input._dtype)
