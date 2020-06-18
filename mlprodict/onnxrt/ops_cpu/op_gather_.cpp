@@ -152,7 +152,7 @@ py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Gather<NTYPE>::Com
             py::array_t<int64_t, py::array::c_style | py::array::forcecast> indices) const {
   
     py::array_t<NTYPE, py::array::c_style | py::array::forcecast> output;
-    PrepareForCompute(input, indices, output);
+    this->PrepareForCompute(input, indices, output);
 
     std::vector<int64_t> input_data_shape;
     arrayshape2vector(input_data_shape, input);
@@ -164,7 +164,7 @@ py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Gather<NTYPE>::Com
     const size_t element_bytes = sizeof(NTYPE);
     const int64_t block = SizeFromDimension(input_data_shape, axis_ + 1, input_data_shape.size());
     const int64_t block_size = block * element_bytes;
-    const int64_t M = SizeFromDimension(input_data_shape, 0, axis_);
+    const int64_t M = SizeFromDimension(input_data_shape, 0, this->axis_);
     const int64_t N = flattened_dimension(indices_shape);
     const int64_t data_batch_bytes = SizeFromDimension(
                     input_data_shape, axis_, input_data_shape.size()) * element_bytes;
