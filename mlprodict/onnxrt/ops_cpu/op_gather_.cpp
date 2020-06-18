@@ -168,15 +168,16 @@ py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Gather<NTYPE>::Com
     const int64_t M = SizeFromDimension(input_data_shape, 0, this->axis_);
     const int64_t N = flattened_dimension(indices_shape);
     const int64_t data_batch_bytes = SizeFromDimension(
-                    input_data_shape, axis_, input_data_shape.size()) * element_bytes;
+                    input_data_shape, this->axis_,
+                    input_data_shape.size()) * element_bytes;
     const int64_t gathered_batch_bytes = N * block * element_bytes;
 
     const uint8_t* src_base = (uint8_t*)input.data();
     uint8_t* dst_base = (uint8_t*)output.data();
 
     GatherCopyData(indices, src_base, dst_base, is_string_type, element_bytes,
-                   block_size, M, N, data_batch_bytes, gathered_batch_bytes, input_data_shape,
-                   axis_);
+                   block_size, M, N, data_batch_bytes, gathered_batch_bytes,
+                   input_data_shape, this->axis_);
     return output;
 }
 
