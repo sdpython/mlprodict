@@ -215,14 +215,17 @@ class _CommonAsvSklBenchmark:
         return stats.get('nnodes', 0)
 
     def track_vmlprodict(self, runtime, N, nf, opset, dtype, optim):
+        "asv API"
         from mlprodict import __version__
         return version2number(__version__)
 
     def track_vsklearn(self, runtime, N, nf, opset, dtype, optim):
+        "asv API"
         from sklearn import __version__
         return version2number(__version__)
 
     def track_vort(self, runtime, N, nf, opset, dtype, optim):
+        "asv API"
         try:
             from onnxruntime import __version__
             return version2number(__version__)
