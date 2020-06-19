@@ -2,7 +2,7 @@
 @brief      test log(time=2s)
 """
 import unittest
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import ExtTestCase
 from mlprodict.tools.asv_options_helper import version2number
 
 
