@@ -64,6 +64,10 @@ mlprodict
 .. image:: https://mybinder.org/badge_logo.svg
     :target: https://mybinder.org/v2/gh/sdpython/mlprodict/master?filepath=_doc%2Fnotebooks
 
+.. image:: https://img.shields.io/github/repo-size/sdpython/mlprodict
+    :target: https://github.com/sdpython/mlprodict/
+    :alt: size
+
 .. toctree::
     :maxdepth: 1
 

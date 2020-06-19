@@ -5,14 +5,16 @@
 History
 =======
 
-current - 2020-06-12 - 0.00Mb
+current - 2020-06-19 - 0.00Mb
 =============================
 
+* `133`: Implements runtime for operator Gather (ONNX) (2020-06-18)
+* `132`: Add operator StringNormalizer, Tokenizer, TfidfVectorizer (ONNX) (2020-06-15)
 * `131`: Add custom operator solve (2020-06-12)
 * `130`: Add operator Erf (ONNX) (2020-06-11)
 * `129`: Add operator Einsum (ONNX) (2020-06-11)
-* `127`: Implements a pipeline which replaces early stages by onnx (2020-06-08)
 * `128`: Fixes #127, implements OnnxPipeline, train, convert at each step (2020-06-08)
+* `127`: Implements a pipeline which replaces early stages by onnx (2020-06-08)
 
 0.3.1129 - 2020-06-04 - 0.29Mb
 ==============================
