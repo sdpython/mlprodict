@@ -105,5 +105,4 @@ class TestRtValidateLinear(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestRtValidateLinear().test_rt_LinearClassifier_python_dec()
     unittest.main()

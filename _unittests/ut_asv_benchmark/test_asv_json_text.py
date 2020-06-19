@@ -129,5 +129,4 @@ class TestAsvJsonText(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestAsvJsonText().test_to_str_coordinates()
     unittest.main()

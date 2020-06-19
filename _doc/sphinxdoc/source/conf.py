@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.split(__file__)[0])))
 local_template = os.path.join(os.path.abspath(
     os.path.dirname(__file__)), "phdoc_templates")
 
-set_sphinx_variables(__file__, "mlprodict", "Xavier Dupré", 2019,
+set_sphinx_variables(__file__, "mlprodict", "Xavier Dupré", 2020,
                      "readable", sphinx_readable_theme.get_html_theme_path(),
                      locals(), extlinks=dict(
                          issue=('https://github.com/sdpython/mlprodict/issues/%s', 'issue')),
@@ -78,7 +78,7 @@ epkg_dictionary.update({
     'lightgbm': 'https://lightgbm.readthedocs.io/en/latest/',
     'make_scorer': 'https://scikit-learn.org/stable/modules/generated/sklearn.metrics.make_scorer.html',
     'Minkowski distance': 'https://en.wikipedia.org/wiki/Minkowski_distance',
-    'mlinsights': '',
+    'mlinsights': 'http://www.xavierdupre.fr/app/mlinsights/helpsphinx/index.html',
     'mlprodict': 'http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html',
     'openmp': 'https://www.openmp.org/',
     'ONNX': 'https://onnx.ai/',

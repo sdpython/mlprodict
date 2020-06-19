@@ -339,14 +339,16 @@ class OnnxInference:
             inits[obj.name] = init_obj
             self.global_index(obj.name)
             if 'value' not in inits[obj.name]:
-                raise RuntimeError("One initializer has no value: '{}'\n{}\n{}".format(
-                    obj.name, inits[obj.name], obj))
+                raise RuntimeError(  # pragma: no cover
+                    "One initializer has no value: '{}'\n{}\n{}".format(
+                        obj.name, inits[obj.name], obj))
 
         # nodes
         for node in self.obj.graph.node:
             dobj = _var_as_dict(node)
             if dobj is None:
-                raise RuntimeError("Unable to convert a node\n{}".format(node))
+                raise RuntimeError(  # pragma: no cover
+                    "Unable to convert a node\n{}".format(node))
             if 'atts' in dobj:
                 atts = dobj['atts']
                 for k, v in atts.items():
@@ -419,7 +421,7 @@ class OnnxInference:
                     modif += 1
                     for o in v[1].outputs:
                         if (o, 0) in order:
-                            raise RuntimeError(
+                            raise RuntimeError(  # pragma: no cover
                                 "Two nodes share the same output '{}' or an operator and an output "
                                 "share the same name. "
                                 "(node: {}).".format(o, v[1]))
@@ -444,7 +446,7 @@ class OnnxInference:
             sequence.append(node)
 
         if len(sequence) == 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "No runnable nodes was found in the ONNX graph"
                 "\n--rev--\n{}"
                 "\n--order--\n{}"
@@ -550,7 +552,8 @@ class OnnxInference:
                               intermediate=False, verbose=0, node_time=False,
                               fLOG=None):
         if clean_right_away:
-            raise NotImplementedError("clean_right_away=true not implemented.")
+            raise NotImplementedError(  # pragma: no cover
+                "clean_right_away=true not implemented.")
 
         if node_time:
             mtime = []
@@ -677,7 +680,7 @@ class OnnxInference:
 
         try:
             res = {k: values[self._global_index[k]] for k in self.outputs_}
-        except KeyError as e:
+        except KeyError as e:  # pragma: no cover
             raise RuntimeError("Unable to find one output [{}]\n in [{}]"
                                ".".format(", ".join(sorted(self.outputs_)),
                                           ", ".join(sorted(values)))) from e

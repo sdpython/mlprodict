@@ -100,5 +100,4 @@ class TestRtValidateTfIdf(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestRtValidateTfIdf().test_rt_tfidfvectorizer_onnxruntime1()
     unittest.main()

@@ -312,5 +312,4 @@ class TestShapeObject(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestShapeObject().test_maximum()
     unittest.main()

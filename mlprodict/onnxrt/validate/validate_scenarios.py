@@ -12,7 +12,8 @@ from sklearn.ensemble import (
     ExtraTreesRegressor, ExtraTreesClassifier,
     RandomForestRegressor, RandomForestClassifier,
     HistGradientBoostingRegressor, HistGradientBoostingClassifier,
-    AdaBoostClassifier, GradientBoostingClassifier, GradientBoostingRegressor
+    AdaBoostClassifier, GradientBoostingClassifier, GradientBoostingRegressor,
+    IsolationForest
 )
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_selection import (
@@ -159,6 +160,9 @@ def build_custom_scenarios():
         ],
         HistGradientBoostingRegressor: [
             ('default', {'max_iter': 100}),
+        ],
+        IsolationForest: [
+            ('default', {'n_estimators': 10}),
         ],
         KNeighborsClassifier: [
             ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},

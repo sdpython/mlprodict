@@ -129,5 +129,4 @@ class TestRtValidateBatchMode(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestRtValidateBatchMode().test_rt_rfe()
     unittest.main()

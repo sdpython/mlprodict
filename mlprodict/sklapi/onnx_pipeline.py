@@ -50,10 +50,10 @@ class OnnxPipeline(Pipeline):
         single floats
     runtime: string, defined the runtime to use
         as described in @see cl OnnxInference.
-    options: see @fn to_onnx
-    white_op: see @fn to_onnx
-    black_op: see @fn to_onnx
-    final_types: see @fn to_onnx
+    options: see @see fn to_onnx
+    white_op: see @see fn to_onnx
+    black_op: see @see fn to_onnx
+    final_types: see @see fn to_onnx
     target_opset: ONNX targeted opset
 
     The class stores transformers before converting them into ONNX

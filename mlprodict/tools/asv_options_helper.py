@@ -190,3 +190,18 @@ def display_onnx(model_onnx, max_length=1000):
     begin = res[:max_length // 2]
     end = res[-max_length // 2:]
     return "\n".join([begin, '[...]', end])
+
+
+def version2number(vers):
+    """
+    Converts a version number into a real number.
+    """
+    spl = vers.split('.')
+    r = 0
+    for i, s in enumerate(spl):
+        try:
+            vi = int(s)
+        except ValueError:
+            vi = 0
+        r += vi * 10 ** (-i * 3)
+    return r

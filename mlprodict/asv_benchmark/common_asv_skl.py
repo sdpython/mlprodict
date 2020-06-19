@@ -12,6 +12,7 @@ Windows.
     the system is told otherwise.
 """
 import os
+from datetime import datetime
 import pickle
 from logging import getLogger
 import numpy
@@ -32,14 +33,15 @@ from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 from mlprodict.onnxrt.optim import onnx_statistics
 from mlprodict.tools.asv_options_helper import (
     expand_onnx_options, get_opset_number_from_onnx,
-    get_ir_version_from_onnx
+    get_ir_version_from_onnx, version2number
 )
 
 
 class _CommonAsvSklBenchmark:
     """
     Common tests to all benchmarks testing converted
-    :epkg:`scikit-learn` models.
+    :epkg:`scikit-learn` models. See `benchmark attributes
+    <https://asv.readthedocs.io/en/stable/benchmarks.html#general>`_.
     """
 
     # Part which changes.
@@ -55,6 +57,8 @@ class _CommonAsvSklBenchmark:
     ]
     param_names = ['rt', 'N', 'nf', 'opset', 'dtype', 'optim']
     chk_method_name = None
+    version = datetime.now().isoformat()
+    pretty_source = "disabled"
 
     par_ydtype = numpy.int64
     par_dofit = True
@@ -209,6 +213,21 @@ class _CommonAsvSklBenchmark:
         "asv API"
         stats = onnx_statistics(self.onx)
         return stats.get('nnodes', 0)
+
+    def track_vmlprodict(self, runtime, N, nf, opset, dtype, optim):
+        from mlprodict import __version__
+        return version2number(__version__)
+
+    def track_vsklearn(self, runtime, N, nf, opset, dtype, optim):
+        from sklearn import __version__
+        return version2number(__version__)
+
+    def track_vort(self, runtime, N, nf, opset, dtype, optim):
+        try:
+            from onnxruntime import __version__
+            return version2number(__version__)
+        except ImportError:
+            return 0
 
     def check_method_name(self, method_name):
         "Does some verifications. Fails if inconsistencies."

@@ -24,8 +24,8 @@ try:
         _display_code_lines,
         add_model_import_init,
         find_missing_sklearn_imports)
-except ImportError:
-    from mlprodict.asv_benchmark._create_asv_helper import (  # pragma: no cover
+except ImportError:  # pragma: no cover
+    from mlprodict.asv_benchmark._create_asv_helper import (
         default_asv_conf,
         flask_helper,
         pyspy_template,
@@ -141,8 +141,8 @@ def create_asv_benchmark(
     if opset_min == -1:
         opset_min = get_opset_number_from_onnx()
     if opset_max == -1:
-        opset_max = get_opset_number_from_onnx()
-    if verbose > 0 and fLOG is not None:
+        opset_max = get_opset_number_from_onnx()  # pragma: no cover
+    if verbose > 0 and fLOG is not None:  # pragma: no cover
         fLOG("[create_asv_benchmark] opset in [{}, {}].".format(
             opset_min, opset_max))
 
@@ -488,6 +488,15 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                 res[k] = v
         return res
 
+    def _make_simple_name(name):
+        simple_name = name.replace("bench_", "").replace("_bench", "")
+        simple_name = simple_name.replace("bench.", "").replace(".bench", "")
+        simple_name = simple_name.replace(".", "-")
+        repl = {'_': '', 'solverliblinear': 'liblinear'}
+        for k, v in repl.items():
+            simple_name = simple_name.replace(k, v)
+        return simple_name
+
     runtimes_abb = {
         'scikit-learn': 'skl',
         'onnxruntime1': 'ort',
@@ -512,7 +521,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                 shorten=True)
         except ValueError as e:  # pragma: no cover
             if exc:
-                raise e
+                raise e  # pragma: no cover
             warnings.warn(str(e))
             continue
         filename = name.replace(".", "_") + ".py"
@@ -574,6 +583,11 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             atts.append("par_convopts = %r" % format_conv_options(
                 conv_options, model.__name__))
         atts.append("par_full_test_name = %r" % full_class_name)
+
+        simple_name = _make_simple_name(name)
+        atts.append("benchmark_name = %r" % simple_name)
+        atts.append("pretty_name = %r" % simple_name)
+
         if atts:
             class_content = class_content.replace(
                 "# additional parameters",
