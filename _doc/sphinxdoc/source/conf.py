@@ -70,6 +70,7 @@ epkg_dictionary.update({
     'dot': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'DOT': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'exec': 'https://docs.python.org/3/library/functions.html#exec',
+    'GaussianProcessRegressor': 'https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html',
     'Iris': 'https://en.wikipedia.org/wiki/Iris_flower_data_set',
     'IR_VERSION': 'https://github.com/onnx/onnx/blob/master/docs/IR.md#onnx-versioning',
     'json': 'https://docs.python.org/3/library/json.html',

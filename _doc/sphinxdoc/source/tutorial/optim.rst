@@ -100,7 +100,7 @@ This is done by using option ``{'zipmap': False}``.
     import numpy
     from sklearn.datasets import load_iris
     from sklearn.model_selection import train_test_split
-    from sklearn.linear_models import LogisticRegression
+    from sklearn.linear_model import LogisticRegression
     from mlprodict.onnx_conv import to_onnx
     from mlprodict.onnxrt import OnnxInference
 
@@ -128,7 +128,7 @@ be still obtained by using option ``{'raw_scores': True}``.
     import numpy
     from sklearn.datasets import load_iris
     from sklearn.model_selection import train_test_split
-    from sklearn.linear_models import LogisticRegression
+    from sklearn.linear_model import LogisticRegression
     from mlprodict.onnx_conv import to_onnx
     from mlprodict.onnxrt import OnnxInference
 
