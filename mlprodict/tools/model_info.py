@@ -2,6 +2,7 @@
 @file
 @brief Functions to help get more information about the models.
 """
+import inspect
 from collections import Counter
 import numpy
 
@@ -31,7 +32,6 @@ def _analyse_tree(tree):
 
     info['leave_count'] = sum(is_leaves)
     info['max_depth'] = max(node_depth)
-
     return info
 
 
@@ -272,3 +272,39 @@ def analyze_model(model, simplify=True):
         info.update(up)
 
     return info
+
+
+def enumerate_models(model):
+    """
+    Enumerates models with models.
+
+    @param      model       :epkg:`scikit-learn` model
+    @return                 enumerate models
+    """
+    yield model
+    sig = inspect.signature(model.__init__)
+    for k in sig.parameters:
+        sub = getattr(model, k, None)
+        if sub is None:
+            continue
+        if not hasattr(sub, 'fit'):
+            continue
+        for m in enumerate_models(sub):
+            yield m
+
+
+def set_random_state(model, value=0):
+    """
+    Sets all possible parameter *random_state* to 0.
+
+    @param      model       :epkg:`scikit-learn` model
+    @param      value       new value
+    @return                 model (same one)
+    """
+    for m in enumerate_models(model):
+        sig = inspect.signature(m.__init__)
+        hasit = any(filter(lambda p: p == 'random_state',
+                           sig.parameters))
+        if hasit and hasattr(m, 'random_state'):
+            m.random_state = value
+    return model

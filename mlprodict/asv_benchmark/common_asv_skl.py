@@ -19,22 +19,19 @@ import numpy
 from sklearn import set_config
 from sklearn.datasets import load_iris
 from sklearn.metrics import (
-    accuracy_score,
-    mean_absolute_error,
-    silhouette_score,
-)
+    accuracy_score, mean_absolute_error,
+    silhouette_score)
 from sklearn.model_selection import train_test_split
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import (
-    to_onnx, register_rewritten_operators, register_converters
-)
+    to_onnx, register_rewritten_operators, register_converters)
 from mlprodict.onnxrt.validate.validate_benchmark import make_n_rows
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 from mlprodict.onnxrt.optim import onnx_statistics
 from mlprodict.tools.asv_options_helper import (
     expand_onnx_options, get_opset_number_from_onnx,
-    get_ir_version_from_onnx, version2number
-)
+    get_ir_version_from_onnx, version2number)
+from mlprodict.tools.model_info import set_random_state
 
 
 class _CommonAsvSklBenchmark:
@@ -164,6 +161,7 @@ class _CommonAsvSklBenchmark:
                     (X_train, y_train), (X, y) = self._get_dataset(nf, dtype)
                     model = self._create_model()
                     if self.par_dofit:
+                        set_random_state(model)
                         model.fit(X_train, y_train)
                     stored = {'model': model, 'X': X, 'y': y}
                     filename = self._name(nf, opv, dtype)

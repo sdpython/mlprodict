@@ -12,7 +12,7 @@ import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from ... import __version__ as ort_version
 from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
-from ...tools.model_info import analyze_model
+from ...tools.model_info import analyze_model, set_random_state
 from ...tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx
 )
@@ -41,6 +41,7 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
             fLOG("[enumerate_compatible_opset] fit, type: '{}' dtype: {}".format(
                 type(X_train), getattr(X_train, 'dtype', '-')))
         try:
+            set_random_state(inst)
             if y_train is None:
                 t4 = _measure_time(lambda: inst.fit(X_train))[1]
             else:

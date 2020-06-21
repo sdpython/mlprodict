@@ -15,12 +15,13 @@ try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
-from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor
+from sklearn.ensemble import (
+    RandomForestRegressor, AdaBoostRegressor)
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxIdentity, OnnxAdd
-)
+    OnnxIdentity, OnnxAdd)
 from skl2onnx.common.data_types import FloatTensorType
-from mlprodict.onnxrt.optim.sklearn_helper import enumerate_pipeline_models, inspect_sklearn_model
+from mlprodict.onnxrt.optim.sklearn_helper import (
+    enumerate_pipeline_models, inspect_sklearn_model)
 from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.tools import get_opset_number_from_onnx
@@ -122,9 +123,14 @@ class TestSklearnHelper(ExtTestCase):
         clr.fit(X_train, y_train)
         onx = to_onnx(clr, X_train[:1].astype(numpy.float32))
         ostats = onnx_statistics(onx)
-        for k, v in {'nnodes': 8, 'doc_string': '', 'domain': 'ai.onnx', 'model_version': 0,
-                     'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
-            self.assertEqual(ostats[k], v)
+        for k, v in {'nnodes': 8, 'doc_string': '', 'domain': 'ai.onnx',
+                     'model_version': 0, 'producer_name': 'skl2onnx',
+                     'ai.onnx.ml': 1}.items():
+            try:
+                self.assertEqual(ostats[k], v)
+            except AssertionError as e:
+                raise AssertionError(
+                    "Issue with '{}' -> {}.".format(k, v)) from e
         self.assertIn('', ostats)
         self.assertIn("op_Cast", ostats)
 
