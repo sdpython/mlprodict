@@ -17,8 +17,8 @@ pylint>=2.4.2
 pyquickhelper>=1.9.3396
 git+https://github.com/xadupre/sklearn-onnx.git@jenkins
 sphinx
-sphinx_readable_theme
 sphinxcontrib.blockdiag
+sphinx_gallery
 tqdm
 wheel
 xgboost

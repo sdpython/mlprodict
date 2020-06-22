@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import os
-import sphinx_readable_theme
+import alabaster
 from pyquickhelper.helpgen.default_conf import set_sphinx_variables, get_default_stylesheet
 from sklearn.experimental import enable_hist_gradient_boosting
 from mlprodict.onnx_conv import register_converters, register_rewritten_operators
@@ -29,7 +29,7 @@ local_template = os.path.join(os.path.abspath(
     os.path.dirname(__file__)), "phdoc_templates")
 
 set_sphinx_variables(__file__, "mlprodict", "Xavier Dupré", 2020,
-                     "readable", sphinx_readable_theme.get_html_theme_path(),
+                     "alabaster", alabaster.get_path(),
                      locals(), extlinks=dict(
                          issue=('https://github.com/sdpython/mlprodict/issues/%s', 'issue')),
                      title="Python Runtime for ONNX", book=True)
