@@ -293,9 +293,9 @@ class TestOnnxrtSimple(ExtTestCase):
                             target_opset=get_opset_number_from_onnx())
         oinf = OnnxInference(model_def, skip_run=True)
 
-        exp_name = 'Ar_ArrayFeatureExtractor'
+        exp_name = 'blab_ArrayFeatureExtractor'
         if exp_name not in str(model_def):
-            exp_name = "ArrayFeatureExtractor"
+            exp_name = "knny_ArrayFeatureExtractor"
         topk = oinf[exp_name]
         self.assertIn(exp_name, str(topk))
         zm = oinf['ZipMap']
