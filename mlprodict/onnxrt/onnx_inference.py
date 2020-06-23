@@ -569,7 +569,7 @@ class OnnxInference:
                     values[self._global_index[k]] = v['value']
                     fLOG("+ki='{}': {} (dtype={} min={} max={})".format(
                         k, v['value'].shape, v['value'].dtype,
-                        numpy.min(v['value']), numpy.max(v['value'])))
+                        numpy_min(v['value']), numpy_max(v['value'])))
                     printed.add(k)
             else:
                 for k, v in self.inits_.items():

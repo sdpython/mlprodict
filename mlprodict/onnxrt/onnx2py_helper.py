@@ -323,7 +323,7 @@ def numpy_min(x):
     try:
         if hasattr(x, 'todense'):
             x = x.todense()
-        if x.dtype.kind.lower() not in 'buc':
+        if x.dtype.kind.lower() not in 'uc':
             return x.min()
         try:
             x = x.ravel()
@@ -349,7 +349,7 @@ def numpy_max(x):
     try:
         if hasattr(x, 'todense'):
             x = x.todense()
-        if x.dtype.kind.lower() not in 'buc':
+        if x.dtype.kind.lower() not in 'uc':
             return x.max()
         try:
             x = x.ravel()
