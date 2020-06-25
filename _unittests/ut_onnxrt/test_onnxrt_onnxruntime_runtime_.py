@@ -5,14 +5,14 @@ import unittest
 from logging import getLogger
 import numpy
 from pyquickhelper.pycode import ExtTestCase
+from sklearn.neighbors import RadiusNeighborsRegressor
+from sklearn.datasets import make_regression
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxMul, OnnxAdd)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.tools.asv_options_helper import (
     get_ir_version_from_onnx, get_opset_number_from_onnx)
-from sklearn.neighbors import RadiusNeighborsRegressor
-from sklearn.datasets import make_regression
 
 
 class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
