@@ -35,6 +35,11 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(idi + X, got['Y'], decimal=6)
 
+        oinf = OnnxInference(model_def, runtime='onnxruntime1')
+        got = oinf.run({'X': X}, intermediate=True)
+        self.assertEqual(list(sorted(got)), ['Ad_Addcst', 'X', 'Y'])
+        self.assertEqualArray(idi + X, got['Y'], decimal=6)
+
     def test_onnxt_runtime_add_raise(self):
         idi = numpy.identity(2)
         onx = OnnxAdd('X', idi, output_names=['Y'],
