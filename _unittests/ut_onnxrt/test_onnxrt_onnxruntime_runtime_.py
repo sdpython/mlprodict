@@ -5,7 +5,8 @@ import unittest
 from logging import getLogger
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
+from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
+    OnnxMul, OnnxAdd)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import (
     get_ir_version_from_onnx, get_opset_number_from_onnx)
@@ -59,6 +60,23 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(idi + X, got['Y'], decimal=6)
+
+    def test_onnxruntime_bug(self):
+        rnd = numpy.random.randn(2, 20, 20).astype(numpy.float32)
+        bin = (numpy.random.random((20, 20)).astype(
+            numpy.float32) >= 0.7).astype(numpy.float32)
+        mul = rnd * bin
+        isn = any(numpy.isnan(mul.ravel()))
+        self.assertFalse(isn)
+
+        node = OnnxMul('X', bin, output_names=['Y'],
+                       op_version=get_opset_number_from_onnx())
+        onx = node.to_onnx({'X': rnd})
+        for rt in ['python', 'onnxruntime1']:
+            with self.subTest(runtime=rt):
+                oinf = OnnxInference(onx, runtime=rt)
+                y = oinf.run({'X': rnd})['Y']
+                self.assertEqualArray(mul, y)
 
 
 if __name__ == "__main__":
