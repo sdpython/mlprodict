@@ -26,14 +26,14 @@ class Imputer(OpRunUnaryNum):
             self.values = self.imputed_value_int64s
             self.replace = self.replaced_value_int64
         else:
-            raise ValueError("Missing are not defined.")
+            raise ValueError("Missing are not defined.")  # pragma: no cover
 
     def _run(self, x):  # pylint: disable=W0221
         if len(x.shape) != 2:
             raise RuntimeTypeError(
                 "x must be a matrix but shape is {}".format(x.shape))
         if self.values.shape[0] not in (x.shape[1], 1):
-            raise RuntimeTypeError(
+            raise RuntimeTypeError(  # pragma: no cover
                 "Dimension mismatch {} != {}".format(
                     self.values.shape[0], x.shape[1]))
         x = x.copy()

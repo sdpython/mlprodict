@@ -30,8 +30,9 @@ def _clean_values_optim(val):
 
 def _summary_report_indices(df, add_cols=None, add_index=None):
     if 'opset' not in df.columns:
-        raise RuntimeError("Unable to create summary (opset missing)\n{}\n--\n{}".format(
-            df.columns, df.head()))
+        raise RuntimeError(  # pragma: no cover
+            "Unable to create summary (opset missing)\n{}\n--\n{}".format(
+                df.columns, df.head()))
 
     col_values = ["available"]
     for col in ['problem', 'scenario', 'opset', 'optim']:
@@ -98,7 +99,7 @@ def _jsonify(x):
         x = {str(_l(k)): v for k, v in x.items()}
         try:
             return json.dumps(x, sort_keys=True, cls=_MyEncoder)
-        except TypeError:
+        except TypeError:  # pragma: no cover
             # Cannot sort.
             return json.dumps(x, cls=_MyEncoder)
     try:
@@ -108,7 +109,7 @@ def _jsonify(x):
         pass
     try:
         return json.dumps(x, cls=_MyEncoder)
-    except TypeError:
+    except TypeError:  # pragma: no cover
         # Cannot sort.
         return json.dumps(x, cls=_MyEncoder)
 
@@ -161,9 +162,10 @@ def summary_report(df, add_cols=None, add_index=None):
         piv = pandas.pivot_table(df, values=col_values,
                                  index=indices, columns=columns,
                                  aggfunc=aggfunc).reset_index(drop=False)
-    except (KeyError, TypeError) as e:
-        raise RuntimeError("Issue with keys={}, values={}\namong {}.".format(
-            indices, col_values, df.columns)) from e
+    except (KeyError, TypeError) as e:  # pragma: no cover
+        raise RuntimeError(
+            "Issue with keys={}, values={}\namong {}.".format(
+                indices, col_values, df.columns)) from e
 
     cols = list(piv.columns)
     opsets = [c[1] for c in cols if isinstance(c[1], (int, float))]
@@ -174,7 +176,7 @@ def summary_report(df, add_cols=None, add_index=None):
         versions.append('FAIL')
     nbvalid = len(indices + versions)
     if len(piv.columns) != nbvalid:
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Mismatch between {} != {}\n{}\n{}\n---\n{}\n{}\n{}".format(
                 len(piv.columns), len(indices + versions),
                 piv.columns, indices + versions,
@@ -264,7 +266,7 @@ def summary_report(df, add_cols=None, add_index=None):
         for c in col_versions:
             vals = set(filter(keep_values, df[c]))
             if len(vals) != 1:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Columns '{}' has multiple values {}.".format(c, vals))
             piv[c] = list(vals)[0]
 
@@ -336,7 +338,8 @@ def merge_benchmark(dfs, column='runtime', baseline=None, suffix='-base'):
                 "(n_rows={}, n_rows2={}) Unable to group by {}.\n{}\n-------\n{}".format(
                     n_rows, n_rows2, indices, gr.T, srows)) from e
         if bdata.shape[0] == 0:
-            raise RuntimeError("No result for baseline '{}'.".format(baseline))
+            raise RuntimeError(  # pragma: no cover
+                "No result for baseline '{}'.".format(baseline))
         ratios = [c for c in merged.columns if c.startswith('time-ratio-')]
         indexed = {}
         for index in bdata.index:

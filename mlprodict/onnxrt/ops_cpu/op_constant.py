@@ -96,7 +96,7 @@ class Constant_12(OpRun):
 
 if onnx_opset_version() >= 12:
     Constant = Constant_12
-elif onnx_opset_version() >= 11:
+elif onnx_opset_version() >= 11:  # pragma: no cover
     Constant = Constant_11
-else:
+else:  # pragma: no cover
     Constant = Constant_9

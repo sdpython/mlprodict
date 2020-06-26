@@ -8,7 +8,7 @@ import numpy
 import pandas
 try:
     from sklearn.metrics._scorer import _PredictScorer
-except ImportError:
+except ImportError:  # pragma: no cover
     # scikit-learn < 0.22
     from sklearn.metrics.scorer import _PredictScorer
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
@@ -161,7 +161,7 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
     if schema is not None:
         try:
             guessed = guess_schema_from_model(model)
-        except NotImplementedError:
+        except NotImplementedError:  # pragma: no cover
             return _replace_tensor_type(schema, tensor_type)
         if len(guessed) != len(schema):
             raise RuntimeError(
@@ -183,7 +183,7 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
     import pprint
     data = pprint.pformat(model.__dict__)
     dirs = pprint.pformat(dir(model))
-    if hasattr(model, 'dump_model'):
+    if hasattr(model, 'dump_model'):  # pragma: no cover
         dumped = model.dump_model()
         keys = list(sorted(dumped))
         last = pprint.pformat([keys, dumped])
@@ -191,7 +191,7 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
             last = last[:200000] + "\n..."
     else:
         last = ""
-    raise NotImplementedError(
+    raise NotImplementedError(  # pragma: no cover
         "Unable to guess schema for model {}\n{}\n----\n{}\n------\n{}".format(
             model.__class__, data, dirs, last))
 
@@ -307,7 +307,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     """
     if isinstance(model, OnnxOperatorMixin):
         if not hasattr(model, 'op_version'):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Missing attribute 'op_version' for type '{}'.".format(
                     type(model)))
         return model.to_onnx(X=X, name=name, dtype=dtype,
@@ -334,7 +334,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             new_dtype = numpy.float32
         if new_dtype not in (numpy.float32, numpy.float64, numpy.int64,
                              numpy.int32):
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "dtype should be real not {} ({})".format(new_dtype, dtype))
         return initial_types, dtype, new_dtype
 

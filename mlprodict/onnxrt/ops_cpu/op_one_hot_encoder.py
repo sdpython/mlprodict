@@ -31,7 +31,7 @@ class OneHotEncoder(OpRun):
             self.classes_ = {v.decode('utf-8'): i for i,
                              v in enumerate(self.cats_strings)}
         else:
-            raise RuntimeError("No encoding was defined.")
+            raise RuntimeError("No encoding was defined.")  # pragma: no cover
 
     def _run(self, x):  # pylint: disable=W0221
         shape = x.shape
@@ -49,7 +49,7 @@ class OneHotEncoder(OpRun):
                     if j >= 0:
                         res[a, i, j] = 1.
         else:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "This operator is not implemented for shape {}.".format(x.shape))
 
         if not self.zeros:

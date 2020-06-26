@@ -42,7 +42,7 @@ def get_defined_inputs(input_names, variables=None, dtype=None):
             if isinstance(ty, DataType):
                 shape = ty.shape
                 if 0 in shape:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Shape cannot be empty: name='{}', var={}".format(
                             name, ty))
                 return variables[name]
@@ -50,8 +50,9 @@ def get_defined_inputs(input_names, variables=None, dtype=None):
                 # constant
                 arr = ty['value']
                 return _guess_type(arr)
-            raise NotImplementedError("Unable to guess type for '{}' form '{}'.".format(
-                name, variables[name]))
+            raise NotImplementedError(  # pragma: no cover
+                "Unable to guess type for '{}' form '{}'.".format(
+                    name, variables[name]))
         else:
             # Inputs. Let's assume it is a vector of floats.
             return DoubleTensorType() if dtype == numpy.float64 else FloatTensorType()
@@ -103,7 +104,7 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None, d
     # ArrayFeatureExtractor
     elif onnx_node.op_type == "ArrayFeatureExtractor":
         if len(typed_inputs) != 2:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Wrong typed_inputs, got {}.".format(typed_inputs))
         outputs = [(outputs[0], typed_inputs[0][1])]
     elif 'Classifier' in onnx_node.op_type:
@@ -116,9 +117,10 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None, d
     # Scan
     elif onnx_node.op_type == 'Scan':
         if len(outputs) != len(typed_inputs):
-            raise RuntimeError("Dimension mismatch, operator Scan should have "
-                               "the same number of inputs and outputs {} != {}"
-                               ".".format(len(outputs), len(typed_inputs)))
+            raise RuntimeError(  # pragma: no cover
+                "Dimension mismatch, operator Scan should have "
+                "the same number of inputs and outputs {} != {}"
+                ".".format(len(outputs), len(typed_inputs)))
         outputs = [(o, t[1].__class__())
                    for o, t in zip(outputs, typed_inputs)]
     # ConstantOfShape
@@ -152,7 +154,7 @@ def proto2vars(values):
             return BooleanTensorType(shape)
         if it == TensorProto.STRING:  # pylint: disable=E1101
             return StringTensorType(shape)
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Unrecognized proto type {} with shape {}".format(it, shape))
 
     def ptype2vtype(it):
@@ -160,7 +162,7 @@ def proto2vars(values):
             return FloatType()
         if it == TensorProto.INT64:  # pylint: disable=E1101
             return Int64Type()
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Unrecognized proto type {}".format(it))
 
     res = []
@@ -189,7 +191,8 @@ def proto2vars(values):
             valt = proto2vars([mt.value_type])[0][1]
             v = DictionaryType(keyt, valt)
         else:
-            raise RuntimeError("Unable to build a variable from {}.".format(v))
+            raise RuntimeError(  # pragma: no cover
+                "Unable to build a variable from {}.".format(v))
         if v.shape is not None and 0 in v.shape:
             # Replaces 0 by None
             new_shape = tuple(None if d == 0 else d for d in v.shape)
@@ -198,7 +201,8 @@ def proto2vars(values):
             else:
                 v = v.__class__(new_shape)
         if v.shape is not None and 0 in v.shape:
-            raise RuntimeError("Shape cannot be empty: '{}': {}.".format(
-                name, v_))
+            raise RuntimeError(  # pragma: no cover
+                "Shape cannot be empty: '{}': {}.".format(
+                    name, v_))
         res.append((name, v))
     return res

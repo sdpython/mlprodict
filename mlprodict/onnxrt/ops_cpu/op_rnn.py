@@ -30,15 +30,17 @@ class RNN(OpRun):
         elif self.direction == "bidirectional":
             self.num_directions = 2
         else:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unknown direction '{}'.".format(self.direction))
 
         if len(self.activation_alpha) != self.num_directions:
-            raise RuntimeError("activation_alpha must have the same size as num_directions={}".format(
-                self.num_directions))
+            raise RuntimeError(  # pragma: no cover
+                "activation_alpha must have the same size as num_directions={}".format(
+                    self.num_directions))
         if len(self.activation_beta) != self.num_directions:
-            raise RuntimeError("activation_beta must have the same size as num_directions={}".format(
-                self.num_directions))
+            raise RuntimeError(  # pragma: no cover
+                "activation_beta must have the same size as num_directions={}".format(
+                    self.num_directions))
 
         self.f1 = self.choose_act(self.activations[0],
                                   self.activation_alpha[0],
@@ -52,11 +54,10 @@ class RNN(OpRun):
     def choose_act(self, name, alpha, beta):
         if name == b"Tanh":
             return self._f_tanh
-        elif name == b"Affine":
+        if name == b"Affine":
             return lambda x: x * alpha + beta
-        else:
-            raise RuntimeError(
-                "Unknown activation function '{}'.".format(name))
+        raise RuntimeError(  # pragma: no cover
+            "Unknown activation function '{}'.".format(name))
 
     def _f_tanh(self, x):
         return numpy.tanh(x)
@@ -99,7 +100,7 @@ class RNN(OpRun):
             B = b
             H_0 = h_0
         else:
-            raise NotImplementedError()
+            raise NotImplementedError()  # pragma: no cover
 
         Y, Y_h = self._step(X, R, B, W, H_0)
         return (Y, ) if self.nb_outputs == 1 else (Y, Y_h)
@@ -113,10 +114,9 @@ class RNN(OpRun):
             y_shape = ShapeObject((X[0], num_directions, batch_size, hidden_size),
                                   dtype=X.dtype)
         else:
-            raise NotImplementedError()
+            raise NotImplementedError()  # pragma: no cover
         if self.nb_outputs == 1:
             return (y_shape, )
-        else:
-            y_h_shape = ShapeObject((num_directions, batch_size, hidden_size),
-                                    dtype=X.dtype)
-            return (y_shape, y_h_shape)
+        y_h_shape = ShapeObject((num_directions, batch_size, hidden_size),
+                                dtype=X.dtype)
+        return (y_shape, y_h_shape)

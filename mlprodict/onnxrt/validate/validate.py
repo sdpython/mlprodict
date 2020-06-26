@@ -312,13 +312,13 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
                         # Skips unrelated problem for a specific configuration.
                         continue
                 elif subset_problems is not None:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "subset_problems must be a set or a list not {}.".format(
                             subset_problems))
 
                 try:
                     scenario, extra = scenario_extra[:2]
-                except TypeError as e:
+                except TypeError as e:  # pragma: no cover
                     raise TypeError(
                         "Unable to interpret 'scenario_extra'\n{}".format(
                             scenario_extra))
@@ -484,7 +484,7 @@ def _call_conv_runtime_opset(
                     continue
 
                 if verbose >= 6 and fLOG is not None:
-                    fLOG(
+                    fLOG(  # pragma: no cover
                         "[enumerate_compatible_opset] ONNX:\n{}".format(conv))
 
                 if all_conv_options.get('optim', '') == 'cdist':
@@ -493,8 +493,9 @@ def _call_conv_runtime_opset(
                     check_scan = [_ for _ in str(conv).split('\n')
                                   if 'Scan' in _]
                     if len(check_cdist) == 0 and len(check_scan) > 0:
-                        raise RuntimeError("Operator CDist was not used in\n{}"
-                                           "".format(conv))
+                        raise RuntimeError(  # pragma: no cover
+                            "Operator CDist was not used in\n{}"
+                            "".format(conv))
 
                 obs_op0 = obs_op.copy()
                 for optimisation in optimisations:
@@ -507,8 +508,9 @@ def _call_conv_runtime_opset(
                                     _dictionary2str(aoptions)
                             conv = onnx_optimisations(conv)
                         else:
-                            raise ValueError("Unknown optimisation option '{}' (extra={})"
-                                             "".format(optimisation, extras))
+                            raise ValueError(  # pragma: no cover
+                                "Unknown optimisation option '{}' (extra={})"
+                                "".format(optimisation, extras))
                     else:
                         obs_op['optim'] = _dictionary2str(aoptions)
 
@@ -518,8 +520,9 @@ def _call_conv_runtime_opset(
                     if kwargs['store_models']:
                         obs_op['ONNX'] = conv
                         if verbose >= 2 and fLOG is not None:
-                            fLOG("[enumerate_compatible_opset] onnx nodes: {}".format(
-                                len(conv.graph.node)))
+                            fLOG(  # pragma: no cover
+                                "[enumerate_compatible_opset] onnx nodes: {}".format(
+                                    len(conv.graph.node)))
                     stat_onnx = onnx_statistics(conv)
                     obs_op.update(
                         {'onx_' + k: v for k, v in stat_onnx.items()})
@@ -619,7 +622,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                                    skip_long_test=skip_long_test,
                                    time_limit=time_limit)
             obs_op['bench-batch'] = benres
-        except (RuntimeError, TypeError, ValueError) as e:
+        except (RuntimeError, TypeError, ValueError) as e:  # pragma: no cover
             if debug:
                 raise e  # pragma: no cover
             obs_op['_6ort_run_batch_exc'] = e
@@ -637,9 +640,9 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         if output_index != 'all':
             try:
                 opred = opred[output_index]
-            except IndexError as e:
+            except IndexError as e:  # pragma: no cover
                 if debug:
-                    raise IndexError(  # pragma: no cover
+                    raise IndexError(
                         "Issue with output_index={}/{}".format(
                             output_index, len(opred))) from e
                 obs_op['_8max_rel_diff_batch_exc'] = (
@@ -722,11 +725,13 @@ def _enumerate_validated_operator_opsets_ops(extended_list, models, skip_models)
 
     if models is not None:
         if not all(map(lambda m: isinstance(m, str), models)):
-            raise ValueError("models must be a set of strings.")
+            raise ValueError(  # pragma: no cover
+                "models must be a set of strings.")
         ops_ = [_ for _ in ops if _['name'] in models]
         if len(ops) == 0:
-            raise ValueError("Parameter models is wrong: {}\n{}".format(
-                models, ops[0]))
+            raise ValueError(  # pragma: no cover
+                "Parameter models is wrong: {}\n{}".format(
+                    models, ops[0]))
         ops = ops_
     if skip_models is not None:
         ops = [m for m in ops if m['name'] not in skip_models]
@@ -849,7 +854,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
 
                 loop = iterate_tqdm()
 
-            except ImportError:
+            except ImportError:  # pragma: no cover
                 loop = iterate()
     else:
         loop = ops

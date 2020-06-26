@@ -78,7 +78,8 @@ class _CommonAsvSklBenchmark:
             return numpy.float32
         elif dtype in ('double', numpy.float64):
             return numpy.float64
-        raise ValueError("Unknown dtype '{}'.".format(dtype))
+        raise ValueError(  # pragma: no cover
+            "Unknown dtype '{}'.".format(dtype))
 
     def _get_dataset(self, nf, dtype):
         xdtype = self._get_xdtype(dtype)
@@ -98,7 +99,7 @@ class _CommonAsvSklBenchmark:
         if optim is None or len(optim) == 0:
             options = self.par_convopts
         elif self.par_convopts and len(self.par_convopts) > 0:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Conflict between par_convopts={} and optim={}".format(
                     self.par_convopts, optim))
         else:
@@ -120,7 +121,7 @@ class _CommonAsvSklBenchmark:
 
         try:
             res = OnnxInference(onx, runtime=runtime)
-        except RuntimeError as e:
+        except RuntimeError as e:  # pragma: no cover
             if "[ONNXRuntimeError]" in str(e):
                 return RuntimeError("onnxruntime fails due to {}".format(str(e)))
             raise e
@@ -145,7 +146,8 @@ class _CommonAsvSklBenchmark:
         elif runtime == 'pyrtc':
             name = 'python_compiled'
         else:
-            raise ValueError("Unknown runtime '{}'.".format(runtime))
+            raise ValueError(  # pragma: no cover
+                "Unknown runtime '{}'.".format(runtime))
         return name
 
     def _name(self, nf, opset, dtype):
@@ -168,8 +170,9 @@ class _CommonAsvSklBenchmark:
                     with open(filename, "wb") as f:
                         pickle.dump(stored, f)
                     if not os.path.exists(filename):
-                        raise RuntimeError("Unable to dump model %r into %r." % (
-                            model, filename))
+                        raise RuntimeError(  # pragma: no cover
+                            "Unable to dump model %r into %r." % (
+                                model, filename))
 
     def setup(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
@@ -227,16 +230,18 @@ class _CommonAsvSklBenchmark:
         try:
             from onnxruntime import __version__
             return version2number(__version__)
-        except ImportError:
+        except ImportError:  # pragma: no cover
             return 0
 
     def check_method_name(self, method_name):
         "Does some verifications. Fails if inconsistencies."
         if getattr(self, 'chk_method_name', None) not in (None, method_name):
-            raise RuntimeError("Method name must be '{}'.".format(method_name))
+            raise RuntimeError(  # pragma: no cover
+                "Method name must be '{}'.".format(method_name))
         if getattr(self, 'chk_method_name', None) is None:
-            raise RuntimeError(
-                "Unable to check that the method name is correct (expected is '{}')".format(
+            raise RuntimeError(  # pragma: no cover
+                "Unable to check that the method name is correct "
+                "(expected is '{}')".format(
                     method_name))
 
 

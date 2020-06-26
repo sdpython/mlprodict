@@ -31,7 +31,7 @@ def calculate_lightgbm_output_shapes(operator):
         return calculate_linear_classifier_output_shapes(operator)
     if objective.startswith('regression'):
         return calculate_linear_regressor_output_shapes(operator)
-    raise NotImplementedError(
+    raise NotImplementedError(  # pragma: no cover
         "Objective '{}' is not implemented yet.".format(objective))
 
 

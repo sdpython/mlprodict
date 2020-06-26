@@ -66,7 +66,8 @@ class OpRun:
             if 'atts' in desc:
                 for a, b in desc['atts'].items():
                     if not isinstance(b, dict) or 'value' not in b:
-                        raise ValueError("Unexpected value {}.".format(b))
+                        raise ValueError(  # pragma: no cover
+                            "Unexpected value {}.".format(b))
                     options[a] = (b['value_rt'] if 'value_rt' in b
                                   else b['value'])
         if expected_attributes is not None:
@@ -77,7 +78,7 @@ class OpRun:
                         setattr(self, a, b)
                         done += 1
                 if done == 0:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "All parameters '{}' are missing from operator '{}', "
                         "given {}.".format(
                             a, onnx_node.op_type, list(sorted(options))))
@@ -85,7 +86,7 @@ class OpRun:
                 for a, b in expected_attributes.items():
                     if a not in options:
                         if b is None:
-                            raise RuntimeError(
+                            raise RuntimeError(  # pragma: no cover
                                 "Parameter '{}' is missing from operator '{}', "
                                 "given {}.".format(
                                     a, onnx_node.op_type, list(sorted(options))))
@@ -125,8 +126,8 @@ class OpRun:
         """
         Should be overwritten.
         """
-        raise NotImplementedError(
-            "This method should be overwritten.")  # pragma: no cover
+        raise NotImplementedError(  # pragma: no cover
+            "This method should be overwritten.")
 
     def run(self, *args, **kwargs):  # pylint: disable=E0202
         """
@@ -135,9 +136,10 @@ class OpRun:
         try:
             return self._run(*args, **kwargs)
         except TypeError as e:
-            raise TypeError("Issues with types {} (operator {}).".format(
-                ", ".join(str(type(_)) for _ in args),
-                self.__class__.__name__)) from e
+            raise TypeError(  # pragma: no cover
+                "Issues with types {} (operator {}).".format(
+                    ", ".join(str(type(_)) for _ in args),
+                    self.__class__.__name__)) from e
 
     def switch_initializers_dtype(self, dtype_in=numpy.float32,
                                   dtype_out=numpy.float64):
@@ -181,11 +183,12 @@ class OpRun:
                     pprint.pformat(args),
                     pprint.pformat(kwargs))) from e
         if not isinstance(res, tuple):
-            raise TypeError("res must be tuple not {} (operator '{}')".format(
-                type(res), self.__class__.__name__))
+            raise TypeError(  # pragma: no cover
+                "res must be tuple not {} (operator '{}')".format(
+                    type(res), self.__class__.__name__))
         for a in res:
             if not isinstance(a, ShapeObject):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "One shape is not a ShapeObject but {} (operator '{}')".format(
                         type(a), self.__class__.__name__))
         return res
@@ -290,17 +293,19 @@ class OpRunUnary(OpRun):
         try:
             res = self._run(x)
         except TypeError as e:
-            raise TypeError("Issues with types {} (binary operator {}).".format(
-                ", ".join(str(type(_)) for _ in [x]),
-                self.__class__.__name__)) from e
+            raise TypeError(  # pragma: no cover
+                "Issues with types {} (binary operator {}).".format(
+                    ", ".join(str(type(_)) for _ in [x]),
+                    self.__class__.__name__)) from e
         return res
 
     def infer_shapes(self, x):  # pylint: disable=E0202,W0221
         try:
             return self._infer_shapes(x)
-        except TypeError as e:
-            raise TypeError("Issues with types {} (operator {}).".format(
-                x.dtype, self.__class__.__name__)) from e
+        except TypeError as e:  # pragma: no cover
+            raise TypeError(
+                "Issues with types {} (operator {}).".format(
+                    x.dtype, self.__class__.__name__)) from e
 
     def _infer_shapes(self, x):  # pylint: disable=E0202,W0221
         """
@@ -323,9 +328,11 @@ class OpRunArg(OpRunUnary):
                             expected_attributes=expected_attributes,
                             **options)
         if not hasattr(self, 'keepdims'):
-            raise AttributeError("Attribute 'keepdims' is missing.")
+            raise AttributeError(  # pragma: no cover
+                "Attribute 'keepdims' is missing.")
         if not hasattr(self, 'axis'):
-            raise AttributeError("Attribute 'axis' is missing.")
+            raise AttributeError(  # pragma: no cover
+                "Attribute 'axis' is missing.")
 
     def run(self, x):  # pylint: disable=E0202
         """
@@ -333,8 +340,9 @@ class OpRunArg(OpRunUnary):
         """
         res = OpRunUnary.run(self, x)
         if res[0].dtype != numpy.int64:
-            raise RuntimeTypeError(
-                "Output type mismatch: should be '{}' != output '{}' (operator '{}')".format(
+            raise RuntimeTypeError(  # pragma: no cover
+                "Output type mismatch: should be '{}' != output '{}' "
+                "(operator '{}')".format(
                     numpy.int64, res[0].dtype, self.__class__.__name__))
         return res
 
@@ -369,8 +377,9 @@ class OpRunUnaryNum(OpRunUnary):
         """
         res = OpRunUnary.run(self, x)
         if res[0].dtype != x.dtype:
-            raise RuntimeTypeError(
-                "Output type mismatch: input '{}' != output '{}' (operator '{}')".format(
+            raise RuntimeTypeError(  # pragma: no cover
+                "Output type mismatch: input '{}' != output '{}' "
+                "(operator '{}')".format(
                     x.dtype, res[0].dtype, self.__class__.__name__))
         return res
 
@@ -402,7 +411,7 @@ class OpRunClassifierProb(OpRunUnary):
         """
         res = OpRunUnary.run(self, x)
         if x.dtype in (numpy.float32, numpy.float64) and res[1].dtype != x.dtype:
-            raise RuntimeTypeError(
+            raise RuntimeTypeError(  # pragma: no cover
                 "Output type mismatch: {} != {} (operator '{}')".format(
                     x.dtype, res[1].dtype, self.__class__.__name__))
         return res
@@ -452,10 +461,11 @@ class OpRunBinary(OpRun):
                     x.shape, y.shape))
         try:
             res = self._run(x, y)
-        except TypeError as e:
-            raise TypeError("Issues with types {} (binary operator {}).".format(
-                ", ".join(str(type(_)) for _ in [x, y]),
-                self.__class__.__name__)) from e
+        except TypeError as e:  # pragma: no cover
+            raise TypeError(
+                "Issues with types {} (binary operator {}).".format(
+                    ", ".join(str(type(_)) for _ in [x, y]),
+                    self.__class__.__name__)) from e
         return res
 
     def _run_no_checks_(self, x, y):  # pylint: disable=W0221
@@ -464,10 +474,11 @@ class OpRunBinary(OpRun):
         """
         try:
             res = self._run(x, y)
-        except TypeError as e:
-            raise TypeError("Issues with types {} (binary operator {}).".format(
-                ", ".join(str(type(_)) for _ in [x, y]),
-                self.__class__.__name__)) from e
+        except TypeError as e:  # pragma: no cover
+            raise TypeError(
+                "Issues with types {} (binary operator {}).".format(
+                    ", ".join(str(type(_)) for _ in [x, y]),
+                    self.__class__.__name__)) from e
         return res
 
     def _infer_shapes(self, x, y):  # pylint: disable=W0221
@@ -479,7 +490,7 @@ class OpRunBinary(OpRun):
         try:
             res = x.broadcast(y)
             add = "broadcast"
-        except RuntimeError:
+        except RuntimeError:  # pragma: no cover
             # We know x and y and the same number of dimensions.
             # We pick the first one even if it might be wrong.
             res = x
@@ -487,9 +498,8 @@ class OpRunBinary(OpRun):
         if res.name is None:
             return (res.copy(name="{}{}".format(
                 self.__class__.__name__, add)), )
-        else:
-            return (res.copy(name="{}-{}{}".format(
-                res.name, self.__class__.__name__, add)), )
+        return (res.copy(name="{}-{}{}".format(
+            res.name, self.__class__.__name__, add)), )
 
 
 class OpRunBinaryNum(OpRunBinary):
