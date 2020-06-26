@@ -27,11 +27,9 @@ class CumSum(OpRun):
             if self.inplaces.get(0, False):
                 return (numpy.cumsum(x, out=x), )
             return (numpy.cumsum(x), )
-        if isinstance(axis, (numpy.int32, numpy.int64)):
-            pass
-        else:
-            if (len(axis.shape) > 1 or (len(axis.shape) > 0 and
-                    axis.shape[0] != 1)):
+        if not isinstance(axis, (numpy.int32, numpy.int64)):
+            if (len(axis.shape) > 1 or
+                    (len(axis.shape) > 0 and axis.shape[0] != 1)):
                 raise RuntimeError(
                     "axis must be an array of one number not {} "
                     "(shape {})".format(axis, axis.shape))
