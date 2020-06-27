@@ -18,8 +18,7 @@ from skl2onnx.proto import TensorProto
 def _guess_type(var):
     if isinstance(var, dict) and 'value' in var:
         return skl2onnx__guess_type(var['value'])
-    else:
-        return skl2onnx__guess_type(var)
+    return skl2onnx__guess_type(var)
 
 
 def get_defined_inputs(input_names, variables=None, dtype=None):
@@ -49,7 +48,12 @@ def get_defined_inputs(input_names, variables=None, dtype=None):
             if isinstance(ty, dict) and 'value' in ty:
                 # constant
                 arr = ty['value']
-                return _guess_type(arr)
+                try:
+                    return _guess_type(arr)
+                except RuntimeError as e:
+                    raise RuntimeError(
+                        "Unable to guess type of variable '{}' - {}."
+                        "".format(name, arr)) from e
             raise NotImplementedError(  # pragma: no cover
                 "Unable to guess type for '{}' form '{}'.".format(
                     name, variables[name]))

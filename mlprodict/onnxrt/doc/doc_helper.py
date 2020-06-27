@@ -29,11 +29,10 @@ def type_mapping(name):
               TENSORS=9, UNDEFINED=0, SPARSE_TENSOR=11)
     if name is None:
         return di
-    elif isinstance(name, str):
+    if isinstance(name, str):
         return di[name]
-    else:
-        rev = {v: k for k, v in di.items()}
-        return rev[name]
+    rev = {v: k for k, v in di.items()}
+    return rev[name]
 
 
 def _get_doc_template():
@@ -145,8 +144,7 @@ def get_rst_doc(op_name):
     def format_name_with_domain(sch):
         if sch.domain:
             return '{} ({})'.format(sch.name, sch.domain)
-        else:
-            return sch.name
+        return sch.name
 
     def format_option(obj):
         opts = []
@@ -158,8 +156,7 @@ def get_rst_doc(op_name):
             opts.append('heterogeneous')
         if opts:
             return " (%s)" % ", ".join(opts)
-        else:
-            return ""
+        return ""
 
     def getconstraint(const, ii):
         if const.type_param_str:
@@ -174,8 +171,7 @@ def get_rst_doc(op_name):
         name = obj.name
         if len(name) == 0:
             return str(i)
-        else:
-            return name
+        return name
 
     def process_documentation(doc):
         if doc is None:
@@ -183,7 +179,8 @@ def get_rst_doc(op_name):
         if isinstance(doc, Undefined):
             doc = ''
         if not isinstance(doc, str):
-            raise TypeError("Unexpected type {} for {}".format(type(doc), doc))
+            raise TypeError(  # pragma: no cover
+                "Unexpected type {} for {}".format(type(doc), doc))
         doc = textwrap.dedent(doc)
         main_docs_url = "https://github.com/onnx/onnx/blob/master/"
         rep = {

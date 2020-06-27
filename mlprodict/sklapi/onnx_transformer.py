@@ -94,7 +94,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                     if self.enforce_float32:
                         inputs[k] = v.astype(numpy.float32)
                     else:
-                        raise TypeError(
+                        raise TypeError(  # pragma: no cover
                             "onnxunruntime only supports floats. Input '{0}' "
                             "should be converted.".format(k))
 
@@ -119,7 +119,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         :epkg:`DataFrame`
         """
         if not hasattr(self, "onnxrt_"):
-            raise AttributeError(
+            raise AttributeError(  # pragma: no cover
                 "Transform OnnxTransformer must be fit first.")
         rt_inputs = {}
         if isinstance(X, pandas.DataFrame):
@@ -207,9 +207,10 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
             self.parsed_inputs_ = inputs
 
         def parser():
-            if (not hasattr(self, 'onnxrt_') or  # pragma: no cover
+            if (not hasattr(self, 'onnxrt_') or
                     not hasattr(self.onnxrt_, 'output_names')):
-                raise RuntimeError('OnnxTransformer not fit.')
+                raise RuntimeError(
+                    'OnnxTransformer not fit.')  # pragma: no cover
             return self.onnxrt_.output_names
         return parser
 
@@ -235,7 +236,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                 elif elem == 'double':
                     out_op.type = DoubleTensorType(shape=shape)
                 else:
-                    raise NotImplementedError(
+                    raise NotImplementedError(  # pragma: no cover
                         "Not yet implemented for elem_type:\n{}".format(elem))
         return shape_calculator
 

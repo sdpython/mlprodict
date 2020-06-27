@@ -19,5 +19,6 @@ def _get_typed_class_attribute(self, k, atts):
         return [_.decode() for _ in getattr(self, k)]
     if isinstance(ty, int):
         return getattr(self, k)
-    raise NotImplementedError("Unable to convert '{}' ({}).".format(
-        k, getattr(self, k)))
+    raise NotImplementedError(  # pragma: no cover
+        "Unable to convert '{}' ({}).".format(
+            k, getattr(self, k)))

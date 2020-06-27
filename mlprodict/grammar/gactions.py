@@ -27,7 +27,7 @@ class MLAction(AutoAction):
                 raise TypeError(  # pragma: no cover
                     "Every input must be a MLType not '{0}'.".format(type(t)))
         if not isinstance(output, MLType):
-            raise TypeError('output must be of MLType.')
+            raise TypeError('output must be of MLType.')  # pragma: no cover
         self.inputs = inputs
         self.output = output
         self.name = name
@@ -142,7 +142,7 @@ class MLActionCst(MLAction):
             a = numpy.zeros(1, value.dtype)
             t = MLActionCst.guess_type(a[0])
             return MLTensor(t, value.shape)
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Not implemented for type '{0}'".format(type(value)))
 
     def execute(self, **kwargs):
@@ -213,8 +213,8 @@ class MLActionVar(MLActionCst):
     @AutoAction.cache
     def _export_c(self, hook=None, result_name=None):
         if result_name is None:
-            raise ValueError(
-                "result_name must not be None")  # pragma: no cover
+            raise ValueError(  # pragma: no cover
+                "result_name must not be None")
         dc = self.output._export_c(hook='typeref', result_name=result_name)
         res = "{0} = {1};".format(dc['code'], self.name_var)
         return {'code': res, 'result_name': result_name}
@@ -313,14 +313,15 @@ class MLActionUnary(MLAction):
         @param  name        operator name
         """
         if not isinstance(act1, MLAction):
-            raise TypeError("act1 must be MLAction.")
+            raise TypeError("act1 must be MLAction.")  # pragma: no cover
         MLAction.__init__(self, [act1.output], act1.output, name,
                           children=[act1])
 
     @AutoAction.cache
     def _export_c(self, hook=None, result_name=None):
         if result_name is None:
-            raise ValueError("result_name must not be None")
+            raise ValueError(  # pragma: no cover
+                "result_name must not be None")
         dc = MLAction._export_c(self, hook=hook, result_name=result_name)
         rows = [dc['code']]
         op = "auto {0} = {1} {0}0;".format(result_name, self.name)
@@ -379,7 +380,8 @@ class MLActionCast(MLActionUnary):
 
     @AutoAction.cache
     def _export_c(self, hook=None, result_name=None):
-        raise NotImplementedError("Not enough information to do it here.")
+        raise NotImplementedError(  # pragma: no cover
+            "Not enough information to do it here.")
 
 
 class MLActionIfElse(MLAction):

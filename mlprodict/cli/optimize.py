@@ -22,7 +22,8 @@ def onnx_stats(name, optim=False):
     """
     from ..onnxrt.optim import onnx_statistics
     if not os.path.exists(name):
-        raise FileNotFoundError("Unable to find file '{}'.".format(name))
+        raise FileNotFoundError(  # pragma: no cover
+            "Unable to find file '{}'.".format(name))
     with open(name, 'rb') as f:
         model = onnx.load(f)
     return onnx_statistics(model, optim=optim)
@@ -48,7 +49,8 @@ def onnx_optim(name, outfile=None, recursive=True, options=None, verbose=0, fLOG
     """
     from ..onnxrt.optim import onnx_statistics, onnx_optimisations
     if not os.path.exists(name):
-        raise FileNotFoundError("Unable to find file '{}'.".format(name))
+        raise FileNotFoundError(  # pragma: no cover
+            "Unable to find file '{}'.".format(name))
     if outfile == "":
         outfile = None
     if options == "":

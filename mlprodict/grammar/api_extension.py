@@ -37,10 +37,10 @@ class AutoAction:
             try:
                 return getattr(self, name)(hook=hook, result_name=result_name)
             except TypeError:
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Signature of '{0}' is wrong for type '{1}'".format(name, type(self)))
         else:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "No conversion is implemented for lang='{0}' and type='{1}'".format(
                     lang, type(self)))
 
@@ -57,8 +57,10 @@ class AutoAction:
             else:
                 ret = func(self, hook=hook, result_name=result_name)
                 if not isinstance(ret, dict):
-                    raise TypeError("A dictionary was expected not '{0}'.\nIssue with class '{1}'".format(
-                        type(ret), type(self)))
+                    raise TypeError(  # pragma: no cover
+                        "A dictionary was expected not '{0}'.\nIssue with class '{1}'"
+                        "".format(
+                            type(ret), type(self)))
                 self._cache = ret
                 ret = ret.copy()
                 ret['cache'] = False
@@ -86,10 +88,10 @@ class AutoType:
         if hasattr(self, name):
             try:
                 return getattr(self, name)(value, hook=hook)
-            except TypeError:
+            except TypeError:  # pragma: no cover
                 raise TypeError(
                     "Singature of '{0}' is wrong for type '{1}'".format(name, type(self)))
         else:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "No formatting is implemented for lang='{0}' and type='{1}'".format(
                     lang, type(self)))

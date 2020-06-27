@@ -42,7 +42,8 @@ class StringNormalizer(OpRunUnary):
         elif len(x.shape) == 1:
             self._run_column(x, res)
         else:
-            raise RuntimeTypeError("x must be a matrix or a vector.")
+            raise RuntimeTypeError(  # pragma: no cover
+                "x must be a matrix or a vector.")
         return (res, )
 
     def _run_column(self, cin, cout):

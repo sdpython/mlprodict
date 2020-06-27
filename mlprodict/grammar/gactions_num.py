@@ -18,8 +18,9 @@ class MLActionAdd(MLActionBinary):
         """
         MLActionBinary.__init__(self, act1, act2, "+")
         if type(act1.output) != type(act2.output):
-            raise TypeError("Not the same input type {0} != {1}".format(
-                type(act1.output), type(act2.output)))
+            raise TypeError(  # pragma: no cover
+                "Not the same input type {0} != {1}".format(
+                    type(act1.output), type(act2.output)))
 
     def execute(self, **kwargs):
         MLActionBinary.execute(self, **kwargs)
@@ -38,7 +39,7 @@ class MLActionSign(MLActionFunctionCall):
         """
         MLActionFunctionCall.__init__(self, "sign", act1.output, act1)
         if not isinstance(act1.output, MLNumTypeFloat32):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "The input action must produce float32 not '{0}'".format(type(act1.output)))
 
     def execute(self, **kwargs):
@@ -59,8 +60,9 @@ class MLActionTestInf(MLActionBinary):
         """
         MLActionBinary.__init__(self, act1, act2, "<=")
         if type(act1.output) != type(act2.output):
-            raise TypeError("Not the same input type {0} != {1}".format(
-                type(act1.output), type(act2.output)))
+            raise TypeError(  # pragma: no cover
+                "Not the same input type {0} != {1}".format(
+                    type(act1.output), type(act2.output)))
         self.output = MLNumTypeBool()
 
     def execute(self, **kwargs):
@@ -81,8 +83,9 @@ class MLActionTestEqual(MLActionBinary):
         """
         MLActionBinary.__init__(self, act1, act2, "==")
         if type(act1.output) != type(act2.output):
-            raise TypeError("Not the same input type {0} != {1}".format(
-                type(act1.output), type(act2.output)))
+            raise TypeError(  # pragma: no cover
+                "Not the same input type {0} != {1}".format(
+                    type(act1.output), type(act2.output)))
         self.output = MLNumTypeBool()
 
     def execute(self, **kwargs):

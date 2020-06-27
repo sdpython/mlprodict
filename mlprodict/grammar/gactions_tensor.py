@@ -55,9 +55,10 @@ class MLActionTensorTake(MLActionFunctionCall):
         MLActionFunctionCall.execute(self, **kwargs)
         res = self.ChildrenResults
         if res[1] < 0:
-            raise ValueError("Cannot take element {0}".format(res[1]))
+            raise ValueError(  # pragma: no cover
+                "Cannot take element {0}".format(res[1]))
         if res[1] >= len(res[0]):
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Cannot take element {0} >= size={1}".format(res[1], len(res[0])))
         return self.output.validate(self.output.softcast(res[0][res[1]]))
 

@@ -22,7 +22,7 @@ class Solve(OpRunBinaryNum):
     def _find_custom_operator_schema(self, op_name):
         if op_name == "Solve":
             return SolveSchema()
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
     def _run(self, a, b):  # pylint: disable=W0221

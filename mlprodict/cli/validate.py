@@ -167,8 +167,9 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
     if dump_folder and not os.path.exists(dump_folder):
         os.mkdir(dump_folder)
     if dump_folder and not os.path.exists(dump_folder):
-        raise FileNotFoundError("Cannot find dump_folder '{0}'.".format(
-            dump_folder))
+        raise FileNotFoundError(  # pragma: no cover
+            "Cannot find dump_folder '{0}'.".format(
+                dump_folder))
 
     # handling parameters
     if opset_max == "":
@@ -188,8 +189,9 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         # json only allows string as keys
         time_kwargs = {int(k): v for k, v in time_kwargs.items()}
     if time_kwargs is not None and not isinstance(time_kwargs, dict):
-        raise ValueError("time_kwargs must be a dictionary not {}\n{}".format(
-            type(time_kwargs), time_kwargs))
+        raise ValueError(  # pragma: no cover
+            "time_kwargs must be a dictionary not {}\n{}".format(
+                type(time_kwargs), time_kwargs))
     if not isinstance(n_features, list):
         if n_features in (None, ""):
             n_features = None
@@ -214,7 +216,8 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
             return fct_filter_exp(m, p) and '64' in p
         fct_filter = fct_filter_exp3
     else:
-        raise ValueError("dtype must be empty, 32, 64 not '{}'.".format(dtype))
+        raise ValueError(  # pragma: no cover
+            "dtype must be empty, 32, 64 not '{}'.".format(dtype))
 
     # time_kwargs
 
@@ -367,7 +370,7 @@ def _validate_runtime_separate_process(**kwargs):
                 lrows = result.get(timeout=150)  # timeout fixed to 150s
                 all_rows.extend(lrows)
             except Exception as e:  # pylint: disable=W0703
-                all_rows.append({
+                all_rows.append({  # pragma: no cover
                     'name': op, 'scenario': 'CRASH',
                     'ERROR-msg': str(e).replace("\n", " -- ")
                 })

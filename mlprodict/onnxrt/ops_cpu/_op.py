@@ -580,3 +580,30 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
                 self.numpy_fct.__name__, ', '.join(inputs))
         ]
         return "import numpy", "\n".join(lines)
+
+
+class OpRunReduceNumpy(OpRunUnaryNum):
+    """
+    Implements the reduce logic.
+    It must have a parameter *axes*.
+    """
+
+    def __init__(self, onnx_node, desc=None,
+                 expected_attributes=None, **options):
+        if 'axes' not in expected_attributes:
+            raise RuntimeError(  # pragma: no cover
+                "Parameter 'axes' is expected but not found in {}"
+                "".format(expected_attributes))
+        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=expected_attributes,
+                               **options)
+        if isinstance(self.axes, numpy.ndarray):  # pylint: disable=E0203
+            if (len(self.axes.shape) == 0 or  # pylint: disable=E0203
+                    self.axes.shape[0] == 0):  # pylint: disable=E0203
+                self.axes = None
+            else:
+                self.axes = tuple(self.axes)
+        elif self.axes in [[], tuple()]:  # pylint: disable=E0203
+            self.axes = None
+        elif isinstance(self.axes, list):  # pylint: disable=E0203
+            self.axes = tuple(self.axes)

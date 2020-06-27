@@ -29,8 +29,9 @@ class Cast(OpRun):
         elif self.to == TensorProto.BOOL:  # pylint: disable=E1101
             self._dtype = numpy.bool
         else:
-            raise ValueError("Unexpected value for to='{}'.".format(
-                self.to))  # pylint: disable=E1101
+            raise ValueError(  # pragma: no cover
+                "Unexpected value for to='{}'.".format(
+                    self.to))  # pylint: disable=E1101
         self._cast = lambda x: x.astype(self._dtype)
 
     def _run(self, x):  # pylint: disable=W0221
