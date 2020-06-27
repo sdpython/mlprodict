@@ -60,10 +60,12 @@ def custom_scorer_transform_parser(scope, model, inputs, custom_parsers=None):
         raise NotImplementedError(
             "Case custom_parsers not empty is not implemented yet.")
     if isinstance(model, str):
-        raise RuntimeError("Parameter model must be an object not a "
-                           "string '{0}'.".format(model))
+        raise RuntimeError(  # pragma: no cover
+            "Parameter model must be an object not a "
+            "string '{0}'.".format(model))
     if len(inputs) != 2:
-        raise RuntimeError("Two inputs expected not {}.".format(len(inputs)))
+        raise RuntimeError(  # pragma: no cover
+            "Two inputs expected not {}.".format(len(inputs)))
     alias = 'Mlprodict' + model.__class__.__name__
     this_operator = scope.declare_local_operator(alias, model)
     this_operator.inputs = inputs
@@ -78,9 +80,9 @@ def custom_scorer_transform_shape_calculator(operator):
     Computes the output shapes for a @see cl CustomScorerTransform.
     """
     if len(operator.inputs) != 2:
-        raise RuntimeError("Two inputs expected.")
+        raise RuntimeError("Two inputs expected.")  # pragma: no cover
     if len(operator.outputs) != 1:
-        raise RuntimeError("One output expected.")
+        raise RuntimeError("One output expected.")  # pragma: no cover
 
     N = operator.inputs[0].type.shape[0]
     operator.outputs[0].type = copy.deepcopy(operator.inputs[0].type)

@@ -3,6 +3,7 @@
 @file
 @brief Overloads a conversion function.
 """
+import pprint
 from collections import OrderedDict
 import numpy
 import pandas
@@ -93,7 +94,8 @@ def guess_initial_types(X, initial_types):
     @return                     data types
     """
     if X is None and initial_types is None:
-        raise NotImplementedError("Initial types must be specified.")
+        raise NotImplementedError(  # pragma: no cover
+            "Initial types must be specified.")
     elif initial_types is None:
         if isinstance(X, (numpy.ndarray, pandas.DataFrame)):
             X = X[:1]
@@ -164,7 +166,7 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
         except NotImplementedError:  # pragma: no cover
             return _replace_tensor_type(schema, tensor_type)
         if len(guessed) != len(schema):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Given schema and guessed schema are not the same:\nGOT: {}\n-----\nGOT:\n{}".format(
                     schema, guessed))
         return _replace_tensor_type(schema, tensor_type)
@@ -180,7 +182,6 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
             init = [(name, FloatTensorType([None, 1])) for name in names]
             return _replace_tensor_type(init, tensor_type)
 
-    import pprint
     data = pprint.pformat(model.__dict__)
     dirs = pprint.pformat(dir(model))
     if hasattr(model, 'dump_model'):  # pragma: no cover
@@ -322,7 +323,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     def _guess_type_(X, itype, dtype):
         initial_types = guess_initial_types(X, itype)
         if dtype is None:
-            raise RuntimeError("dtype cannot be None")
+            raise RuntimeError("dtype cannot be None")  # pragma: no cover
         if isinstance(dtype, FloatTensorType):
             dtype = numpy.float32
         elif isinstance(dtype, DoubleTensorType):
@@ -353,7 +354,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
                 dts.append(ndt)
             ndt = set(dts)
             if len(ndt) != 1:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Multiple dtype is not efficient {}.".format(ndt))
             dtype = dts[0]
             new_dtype = dts[0]

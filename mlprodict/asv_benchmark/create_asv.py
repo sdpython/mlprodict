@@ -186,8 +186,8 @@ def create_asv_benchmark(
                           v in conf['matrix'].items() if k not in drop_keys}
         conf['matrix'].update(matrix)
     elif env is not None:
-        raise ValueError("Unable to handle env='{}'.".format(
-            env))  # pragma: no cover
+        raise ValueError(  # pragma: no cover
+            "Unable to handle env='{}'.".format(env))
     dest = os.path.join(location, "asv.conf.json")
     created.append(dest)
     with open(dest, "w", encoding='utf-8') as f:
@@ -221,7 +221,7 @@ def create_asv_benchmark(
 
     # command line
     if sys.platform.startswith("win"):
-        run_bash = os.path.join(tool_dir, 'run_asv.bat')
+        run_bash = os.path.join(tool_dir, 'run_asv.bat')  # pragma: no cover
     else:
         run_bash = os.path.join(tool_dir, 'run_asv.sh')
     with open(run_bash, 'w') as f:
@@ -326,7 +326,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
     if verbose > 0:
 
         def iterate():
-            for i, row in enumerate(ops):
+            for i, row in enumerate(ops):  # pragma: no cover
                 fLOG("{}/{} - {}".format(i + 1, len(ops), row))
                 yield row
 
@@ -519,7 +519,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                 model, scenario, optimisation, extra,
                 dofit, conv_options, problem,
                 shorten=True)
-        except ValueError as e:  # pragma: no cover
+        except ValueError as e:
             if exc:
                 raise e  # pragma: no cover
             warnings.warn(str(e))

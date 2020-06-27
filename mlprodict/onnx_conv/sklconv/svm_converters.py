@@ -18,7 +18,8 @@ def _op_type_domain_regressor(container):
         return 'SVMRegressor', 'ai.onnx.ml', 1
     if container.dtype == numpy.float64:
         return 'SVMRegressorDouble', 'mlprodict', 1
-    raise RuntimeError("Unsupported dtype {}.".format(container.dtype))
+    raise RuntimeError(  # pragma: no cover
+        "Unsupported dtype {}.".format(container.dtype))
 
 
 def _op_type_domain_classifier(container):
@@ -30,7 +31,8 @@ def _op_type_domain_classifier(container):
         return 'SVMClassifier', 'ai.onnx.ml', 1
     if container.dtype == numpy.float64:
         return 'SVMClassifierDouble', 'mlprodict', 1
-    raise RuntimeError("Unsupported dtype {}.".format(container.dtype))
+    raise RuntimeError(  # pragma: no cover
+        "Unsupported dtype {}.".format(container.dtype))
 
 
 def new_convert_sklearn_svm_regressor(scope, operator, container):

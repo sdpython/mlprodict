@@ -21,7 +21,7 @@ def main(args, fLOG=print):
         from .cli.asv_bench import asv_bench
         from .cli.asv2csv import asv2csv
         from .cli.replay import benchmark_replay
-    except ImportError:
+    except ImportError:  # pragma: no cover
         from mlprodict.cli.validate import validate_runtime
         from mlprodict.cli.convert_validate import convert_validate
         from mlprodict.cli.optimize import onnx_optim, onnx_stats
@@ -38,11 +38,11 @@ def main(args, fLOG=print):
                 benchmark_replay=benchmark_replay)
     try:
         from pyquickhelper.cli import cli_main_helper
-    except ImportError:
+    except ImportError:  # pragma: no cover
         warnings.warn("The command line requires module pyquickhelper.")
         return None
     return cli_main_helper(fcts, args=args, fLOG=fLOG)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main(sys.argv[1:])  # pragma: no cover

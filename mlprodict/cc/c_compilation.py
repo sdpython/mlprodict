@@ -100,9 +100,10 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     highlight=compile#ffibuilder-compile-etc-compiling-out-of-line-modules>`_.
     """
     if sys.platform.startswith("win"):
-        if "VS140COMNTOOLS" not in os.environ:
-            raise CompilationError("Visual Studio is not installed.\n{0}".format(
-                "\n".join("{0}={1}".format(k, v) for k, v in sorted(os.environ.items()))))
+        if "VS140COMNTOOLS" not in os.environ:  # pragma: no cover
+            raise CompilationError(
+                "Visual Studio is not installed.\n{0}".format(
+                    "\n".join("{0}={1}".format(k, v) for k, v in sorted(os.environ.items()))))
 
     sig = code_c.split("\n")[0].strip() + ";"
     name = sig.split()[1]
@@ -146,7 +147,7 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
                 fLOG("[compile_c_function] PATH += '{0}'".format(p))
         os.environ["PATH"] += ";" + ";".join(additional_paths)
 
-    if lib_paths and sys.platform.startswith("win"):
+    if lib_paths and sys.platform.startswith("win"):  # pragma: no cover
         libs = ['msvcrt.lib', 'oldnames.lib', 'kernel32.lib', 'vcruntime.lib',
                 'ucrt.lib']
         libs = {k: False for k in libs}
@@ -169,7 +170,7 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
                 copied, len(libs), ','.join(sorted(libs)), '\n'.join(lib_paths)))
 
     if include_paths:
-        if fLOG:
+        if fLOG:  # pragma: no cover
             for p in include_paths:
                 fLOG("[compile_c_function] INCLUDE += '{0}'".format(p))
         if 'INCLUDE' in os.environ:
@@ -185,13 +186,13 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     ffibuilder = FFI()
     try:
         ffibuilder.cdef(sig)
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         raise CompilationError(
             "Signature is wrong\n{0}\ndue to\n{1}".format(sig, e)) from e
     ffibuilder.set_source("_" + name + suffix, code)
     try:
         ffibuilder.compile(verbose=False, tmpdir=tmpdir)
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         raise CompilationError(
             "Compilation failed \n{0}\ndue to\n{1}".format(sig, e)) from e
     mod = __import__("_{0}{1}".format(name, suffix))
@@ -200,20 +201,24 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     def wrapper(features, output, cast_type, dtype):
         "wrapper for a vector of features"
         if len(features.shape) != 1:
-            raise TypeError(
-                "Only one dimension for the features not {0}.".format(features.shape))
+            raise TypeError(  # pragma: no cover
+                "Only one dimension for the features not {0}.".format(
+                    features.shape))
         if output is None:
             output = numpy.zeros((nbout,), dtype=dtype)
         else:
             if len(output.shape) != 1:
-                raise TypeError(
-                    "Only one dimension for the output not {0}.".format(output.shape))
+                raise TypeError(  # pragma: no cover
+                    "Only one dimension for the output not {0}.".format(
+                        output.shape))
             if output.shape[0] != nbout:
-                raise TypeError(
-                    "Dimension mismatch {0} != {1} (expected).".format(output.shape, nbout))
+                raise TypeError(  # pragma: no cover
+                    "Dimension mismatch {0} != {1} (expected).".format(
+                        output.shape, nbout))
             if output.dtype != dtype:
-                raise TypeError(
-                    "Type mismatch {0} != {1} (expected).".format(output.dtype, dtype))
+                raise TypeError(  # pragma: no cover
+                    "Type mismatch {0} != {1} (expected).".format(
+                        output.dtype, dtype))
         ptr = features.__array_interface__['data'][0]
         cptr = mod.ffi.cast(cast_type, ptr)
         optr = output.__array_interface__['data'][0]

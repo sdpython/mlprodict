@@ -81,7 +81,7 @@ def lightgbm_parser(scope, model, inputs, custom_parsers=None):
         if wrapped._model_dict['objective'].startswith('regression'):
             return _parse_sklearn_simple_model(
                 scope, wrapped, inputs, custom_parsers=custom_parsers)
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Objective '{}' is not implemented yet.".format(
                 wrapped._model_dict['objective']))
 

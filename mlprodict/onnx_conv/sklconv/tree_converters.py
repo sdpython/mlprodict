@@ -24,7 +24,8 @@ def _op_type_domain_regressor(container):
         return 'TreeEnsembleRegressor', 'ai.onnx.ml', 1
     if container.dtype == numpy.float64:
         return 'TreeEnsembleRegressorDouble', 'mlprodict', 1
-    raise RuntimeError("Unsupported dtype {}.".format(container.dtype))
+    raise RuntimeError(  # pragma: no cover
+        "Unsupported dtype {}.".format(container.dtype))
 
 
 def _op_type_domain_classifier(container):
@@ -36,7 +37,8 @@ def _op_type_domain_classifier(container):
         return 'TreeEnsembleClassifier', 'ai.onnx.ml', 1
     if container.dtype == numpy.float64:
         return 'TreeEnsembleClassifierDouble', 'mlprodict', 1
-    raise RuntimeError("Unsupported dtype {}.".format(container.dtype))
+    raise RuntimeError(  # pragma: no cover
+        "Unsupported dtype {}.".format(container.dtype))
 
 
 def new_convert_sklearn_decision_tree_classifier(scope, operator, container):

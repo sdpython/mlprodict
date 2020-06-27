@@ -23,7 +23,7 @@ def _custom_parser_xgboost(scope, model, inputs, custom_parsers=None):
             scope, model, inputs, custom_parsers=custom_parsers)
     if not all(isinstance(i, (numbers.Real, bool, numpy.bool_))
                for i in model.classes_):
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Current converter does not support string labels.")
     return _parse_sklearn_classifier(scope, model, inputs)
 

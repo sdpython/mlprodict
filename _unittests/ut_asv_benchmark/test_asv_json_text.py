@@ -9,11 +9,18 @@ from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.filehelper.compression_helper import unzip_files
 from mlprodict.asv_benchmark import export_asv_json, create_asv_benchmark
 from mlprodict.asv_benchmark.asv_exports import _figures2dict, _coor_to_str
+from mlprodict.asv_benchmark._create_asv_helper import _display_code_lines
 
 
 class TestAsvJsonText(ExtTestCase):
 
     data = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data')
+
+    def test__display_code_lines(self):
+        code = "import h\nh(4)"
+        res = _display_code_lines(code)
+        self.assertIn('001', res)
+        self.assertIn('002', res)
 
     def test_update_obs(self):
         values = list(range(0, 18))
