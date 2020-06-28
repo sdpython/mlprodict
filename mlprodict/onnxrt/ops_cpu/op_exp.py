@@ -9,6 +9,11 @@ from ._op import OpRunUnaryNum
 
 
 class Exp(OpRunUnaryNum):
+    """
+    Runtime for operator `Exp
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators.md#Exp>`_.
+    """
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,

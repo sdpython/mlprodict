@@ -9,6 +9,11 @@ from ._op import OpRunUnaryNum
 
 
 class Sign(OpRunUnaryNum):
+    """
+    Runtime for operator `Sign
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators.md#Sign>`_.
+    """
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,

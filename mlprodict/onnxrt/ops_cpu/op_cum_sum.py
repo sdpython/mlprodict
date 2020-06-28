@@ -9,6 +9,11 @@ from ._op import OpRun
 
 
 class CumSum(OpRun):
+    """
+    Runtime for operator `CumSum
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators.md#CumSum>`_.
+    """
 
     atts = {'exclusive': 0, 'reverse': 0}
     python_inputs = ['x', 'axis=None']

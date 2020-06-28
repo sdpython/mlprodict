@@ -27,6 +27,11 @@ def _argmin_use_numpy_select_last_index(
 
 
 class _ArgMin(OpRunArg):
+    """
+    Base class for runtime for operator `ArgMin
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators.md#ArgMin>`_.
+    """
 
     def __init__(self, onnx_node, desc=None,
                  expected_attributes=None, **options):
@@ -39,6 +44,11 @@ class _ArgMin(OpRunArg):
 
 
 class ArgMin_11(_ArgMin):
+    """
+    Runtime for operator `ArgMax
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators.md#ArgMax>`_ for opset 11.
+    """
 
     atts = {'axis': 0, 'keepdims': 1}
 
@@ -53,6 +63,11 @@ class ArgMin_11(_ArgMin):
 
 
 class ArgMin_12(_ArgMin):
+    """
+    Runtime for operator `ArgMax
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators.md#ArgMax>`_ for opset 12.
+    """
 
     atts = {'axis': 0, 'keepdims': 1, 'select_last_index': 0}
 

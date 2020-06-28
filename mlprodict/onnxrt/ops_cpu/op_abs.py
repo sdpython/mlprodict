@@ -9,6 +9,11 @@ from ._op import OpRunUnaryNum
 
 
 class Abs(OpRunUnaryNum):
+    """
+    Runtime for operator `Abs
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators.md#Abs>`_.
+    """
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,

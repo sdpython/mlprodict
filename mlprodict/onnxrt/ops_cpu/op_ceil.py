@@ -9,6 +9,11 @@ from ._op import OpRunUnaryNum
 
 
 class Ceil(OpRunUnaryNum):
+    """
+    Runtime for operator `Ceil
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators.md#Ceil>`_.
+    """
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,

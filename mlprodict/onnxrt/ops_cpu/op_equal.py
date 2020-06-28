@@ -9,6 +9,11 @@ from ._op import OpRunBinary
 
 
 class Equal(OpRunBinary):
+    """
+    Runtime for operator `Equal
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators.md#Equal>`_.
+    """
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunBinary.__init__(self, onnx_node, desc=desc, **options)

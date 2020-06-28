@@ -11,6 +11,11 @@ from .op_conv_ import ConvFloat, ConvDouble  # pylint: disable=E0611
 
 
 class Conv(OpRun):
+    """
+    Runtime for operator `Conv
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators.md#Conv>`_.
+    """
 
     atts = {'auto_pad': 'NOTSET', 'group': 1,
             'dilations': [1, 1],
