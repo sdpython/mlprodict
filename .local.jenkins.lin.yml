@@ -11,6 +11,7 @@ virtualenv:
 install:
   - $PYINT -m pip install --upgrade pip
   - $PYINT -m pip install --upgrade --no-cache-dir --no-deps --index http://localhost:8067/simple/ jyquickhelper pyquickhelper cpyquickhelper pyensae --extra-index-url=https://pypi.python.org/simple/
+  - $PYINT -m pip install --upgrade --no-cache-dir --no-deps --index http://localhost:8067/simple/ scikit-learn>=0.23 --extra-index-url=https://pypi.python.org/simple/
   - $PYINT -m pip install --upgrade --no-cache-dir --no-deps --index http://localhost:8067/simple/ onnxruntime --upgrade --extra-index-url=https://pypi.python.org/simple/
   - $PYINT -m pip install --upgrade --no-cache-dir --no-deps --index http://localhost:8067/simple/ asv onnx skl2onnx onnxmltools onnxconverter_common --extra-index-url=https://pypi.python.org/simple/
   - $PYINT -m pip install -r requirements.txt --upgrade
