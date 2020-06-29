@@ -37,6 +37,7 @@ default_asv_conf = {
         "jinja2": [],
         "joblib": [],
         "lightgbm": [],
+        "mlinsights": [],
         "numpy": [],
         "onnx": ["http://localhost:8067/simple/"],
         "onnxruntime": ["http://localhost:8067/simple/"],
