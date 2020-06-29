@@ -2,6 +2,8 @@
 @brief      test tree node (time=2s)
 """
 import unittest
+import warnings
+from urllib.error import HTTPError
 from io import StringIO
 import numpy
 from numpy.testing import assert_almost_equal
@@ -210,7 +212,11 @@ class TestSklearnPipeline(ExtTestCase):
         titanic_url = (
             "https://raw.githubusercontent.com/amueller/"
             "scipy-2017-sklearn/091d371/notebooks/datasets/titanic3.csv")
-        data = pandas.read_csv(titanic_url)
+        try:
+            data = pandas.read_csv(titanic_url)
+        except HTTPError:
+            warnings.warn("Connectivity issue for '{}'.".format(titanic_url))
+            return
         X = data.drop("survived", axis=1)
         y = data["survived"]
 
