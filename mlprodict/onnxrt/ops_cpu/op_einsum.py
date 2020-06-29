@@ -10,11 +10,6 @@ from ..shape_object import ShapeObject
 
 
 class Einsum(OpRun):
-    """
-    Runtime for operator `Einsum
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#Einsum>`_.
-    """
 
     atts = {'equation': ''}
     python_inputs = ['*inputs']

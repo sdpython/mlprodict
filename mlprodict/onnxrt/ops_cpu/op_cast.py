@@ -10,11 +10,6 @@ from ._op import OpRun
 
 
 class Cast(OpRun):
-    """
-    Runtime for operator `Cast
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#Cast>`_.
-    """
 
     atts = {'to': None}
 

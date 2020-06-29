@@ -10,11 +10,6 @@ from ..shape_object import ShapeObject
 
 
 class Concat(OpRun):
-    """
-    Runtime for operator `Concat
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#Concat>`_.
-    """
 
     atts = {'axis': 0}
     python_inputs = ['*inputs']

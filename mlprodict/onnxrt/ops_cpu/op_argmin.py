@@ -44,11 +44,6 @@ class _ArgMin(OpRunArg):
 
 
 class ArgMin_11(_ArgMin):
-    """
-    Runtime for operator `ArgMax
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#ArgMax>`_ for opset 11.
-    """
 
     atts = {'axis': 0, 'keepdims': 1}
 
@@ -63,11 +58,6 @@ class ArgMin_11(_ArgMin):
 
 
 class ArgMin_12(_ArgMin):
-    """
-    Runtime for operator `ArgMax
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#ArgMax>`_ for opset 12.
-    """
 
     atts = {'axis': 0, 'keepdims': 1, 'select_last_index': 0}
 

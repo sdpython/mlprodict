@@ -48,11 +48,6 @@ class _ArgMax(OpRunArg):
 
 
 class ArgMax_11(_ArgMax):
-    """
-    Runtime for operator `ArgMax
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#ArgMax>`_ opset 11.
-    """
 
     atts = {'axis': 0, 'keepdims': 1}
 
@@ -63,11 +58,6 @@ class ArgMax_11(_ArgMax):
 
 
 class ArgMax_12(_ArgMax):
-    """
-    Runtime for operator `ArgMax
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#ArgMax>`_ for opset 12.
-    """
 
     atts = {'axis': 0, 'keepdims': 1, 'select_last_index': 0}
 

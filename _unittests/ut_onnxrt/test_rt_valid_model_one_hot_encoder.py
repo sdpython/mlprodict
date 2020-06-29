@@ -26,7 +26,7 @@ class TestOnnxrtValidateModelOneHotEncoder(ExtTestCase):
         temp = get_temp_folder(__file__, "temp_validate_one_hot_encoder")
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"OneHotEncoder"},
-            filter_exp=lambda m, p: '64' not in p,
+            filter_exp=lambda m, p: True,
             debug=False, fLOG=fLOG, dump_folder=temp,
             benchmark=True))
         self.assertGreater(len(rows), 1)

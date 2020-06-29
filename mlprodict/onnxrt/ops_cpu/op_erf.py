@@ -9,11 +9,6 @@ from ._op import OpRunUnaryNum
 
 
 class Erf(OpRunUnaryNum):
-    """
-    Runtime for operator `Erf
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#Erf>`_.
-    """
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,

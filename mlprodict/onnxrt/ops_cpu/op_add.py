@@ -9,11 +9,6 @@ from ._op import OpRunBinaryNumpy
 
 
 class Add(OpRunBinaryNumpy):
-    """
-    Runtime for operator `Add
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#Add>`_.
-    """
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunBinaryNumpy.__init__(self, numpy.add, onnx_node,

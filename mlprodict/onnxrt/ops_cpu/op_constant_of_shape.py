@@ -10,11 +10,6 @@ from ..shape_object import ShapeObject
 
 
 class ConstantOfShape(OpRun):
-    """
-    Runtime for operator `ConstantOfShape
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#ConstantOfShape>`_.
-    """
 
     atts = {'value': numpy.array([0], dtype=numpy.float32)}
 

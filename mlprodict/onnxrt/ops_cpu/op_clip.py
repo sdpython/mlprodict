@@ -11,11 +11,6 @@ from ._op import OpRunUnaryNum
 
 
 class Clip_6(OpRunUnaryNum):
-    """
-    Runtime for operator `Clip
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#Clip>`_ for opset 6.
-    """
 
     atts = {'min': -3.4028234663852886e+38,
             'max': 3.4028234663852886e+38}
@@ -40,11 +35,6 @@ class Clip_6(OpRunUnaryNum):
 
 
 class Clip_11(OpRunUnaryNum):
-    """
-    Runtime for operator `Clip
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#Clip>`_ for opset 11.
-    """
 
     version_higher_than = 11
     mandatory_inputs = ['X']

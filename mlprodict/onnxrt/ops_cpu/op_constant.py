@@ -11,11 +11,6 @@ from ..shape_object import ShapeObject
 
 
 class Constant_9(OpRun):
-    """
-    Runtime for operator `Constant
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#Constant>`_ for opset 9.
-    """
 
     atts = {'value': numpy.array([0], dtype=numpy.float32)}
 
@@ -34,11 +29,6 @@ class Constant_9(OpRun):
 
 
 class Constant_11(OpRun):
-    """
-    Runtime for operator `Constant
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#Constant>`_ for opset 11.
-    """
 
     atts = {'value': numpy.array([0], dtype=numpy.float32),
             'sparse_value': None, }
@@ -61,11 +51,6 @@ class Constant_11(OpRun):
 
 
 class Constant_12(OpRun):
-    """
-    Runtime for operator `Constant
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#Constant>`_ for opset 12.
-    """
 
     atts = {'value': numpy.array([0], dtype=numpy.float32),
             'sparse_value': None,

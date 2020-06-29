@@ -31,11 +31,6 @@ def _vcelu1(x, alpha=1.):
 
 
 class Celu(OpRunUnaryNum):
-    """
-    Runtime for operator `Celu
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#Celu>`_.
-    """
 
     atts = {'alpha': numpy.float32(1.0)}
 

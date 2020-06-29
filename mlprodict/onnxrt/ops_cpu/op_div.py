@@ -9,11 +9,6 @@ from ._op import OpRunBinaryNumpy
 
 
 class Div(OpRunBinaryNumpy):
-    """
-    Runtime for operator `Div
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators.md#Div>`_.
-    """
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunBinaryNumpy.__init__(self, numpy.divide, onnx_node,
