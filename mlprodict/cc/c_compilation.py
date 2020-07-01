@@ -142,7 +142,7 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     #~ lib_paths.append(lib)
 
     if additional_paths:
-        if fLOG:
+        if fLOG:  # pragma: no cover
             for p in additional_paths:
                 fLOG("[compile_c_function] PATH += '{0}'".format(p))
         os.environ["PATH"] += ";" + ";".join(additional_paths)

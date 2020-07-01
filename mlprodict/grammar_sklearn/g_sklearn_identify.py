@@ -9,7 +9,7 @@ from .g_sklearn_preprocessing import sklearn_standard_scaler
 from .g_sklearn_tree import sklearn_decision_tree_regressor
 
 
-def __pep8():
+def __pep8():  # pragma: no cover
     assert sklearn_decision_tree_regressor
     assert sklearn_linear_regression
     assert sklearn_logistic_regression
@@ -29,13 +29,13 @@ def identify_interpreter(model):
     loc = globals().copy()
     convs = {k: v for k, v in loc.items() if k.startswith("sklearn")}
     if len(convs) == 0:
-        raise ValueError("No found interpreters, possibilities=\n{0}".format(
-            "\n".join(sorted(loc.keys()))))
+        raise ValueError(  # pragma: no cover
+            "No found interpreters, possibilities=\n{0}".format(
+                "\n".join(sorted(loc.keys()))))
     if skconv in convs:
         return convs[skconv]
-    else:  # pragma: no cover
-        raise NotImplementedError(
-            "Model class '{0}' is not yet implemented. Available interpreters:\n{1}".format(
-                class_name, "\n".join(
-                    sorted(
-                        convs.keys()))))
+    raise NotImplementedError(  # pragma: no cover
+        "Model class '{0}' is not yet implemented. Available interpreters:\n{1}".format(
+            class_name, "\n".join(
+                sorted(
+                    convs.keys()))))

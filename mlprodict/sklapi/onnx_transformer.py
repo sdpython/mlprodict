@@ -209,8 +209,8 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         def parser():
             if (not hasattr(self, 'onnxrt_') or
                     not hasattr(self.onnxrt_, 'output_names')):
-                raise RuntimeError(
-                    'OnnxTransformer not fit.')  # pragma: no cover
+                raise RuntimeError(  # pragma: no cover
+                    'OnnxTransformer not fit.')
             return self.onnxrt_.output_names
         return parser
 
@@ -218,12 +218,13 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         def shape_calculator(operator):
             cout = self.onnxrt_.output_names
             if len(operator.outputs) != len(cout):
-                raise RuntimeError("Mismatched number of outputs: {} != {}."
-                                   "".format(len(operator.outputs), len(cout)))
+                raise RuntimeError(  # pragma: no cover
+                    "Mismatched number of outputs: {} != {}."
+                    "".format(len(operator.outputs), len(cout)))
             for out_op, out in zip(operator.outputs, self.onnxrt_.obj.graph.output):
                 var = _var_as_dict(out)
                 if var['type']['kind'] != 'tensor':
-                    raise NotImplementedError(
+                    raise NotImplementedError(  # pragma: no cover
                         "Noy yet implemented for output:\n{}".format(out))
                 shape = var['type']['shape']
                 if shape[0] == 0:
