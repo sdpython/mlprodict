@@ -54,7 +54,7 @@ def _reduce_infos(infos):
     def tof(obj):
         try:
             return obj[0]
-        except TypeError:
+        except TypeError:  # pragma: no cover
             return obj
 
     if not isinstance(infos, list):
@@ -62,7 +62,7 @@ def _reduce_infos(infos):
     keys = set()
     for info in infos:
         if not isinstance(info, dict):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "info must a dictionary not {}.".format(type(info)))
         keys |= set(info)
 
@@ -95,7 +95,7 @@ def _reduce_infos(infos):
             if k == 'n_classes_':
                 info['n_classes_'] = max(tof(_) for _ in values)
                 continue
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Unable to reduce key '{}', values={}.".format(k, values))
     return info
 
@@ -118,7 +118,7 @@ def _get_info_lgb(model):
     elif gbm_text['objective'].startswith('regression'):
         info['n_targets'] = 1
     else:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Unknown objective '{}'.".format(gbm_text['objective']))
     n_classes = info.get('n_classes', info.get('n_targets', -1))
 
@@ -144,9 +144,7 @@ def _get_info_xgb(model):
     Get informations from and :epkg:`lightgbm` trees.
     """
     from ..onnx_conv.operator_converters.conv_xgboost import (
-        XGBConverter,
-        XGBClassifierConverter,
-    )
+        XGBConverter, XGBClassifierConverter)
     objective, _, js_trees = XGBConverter.common_members(model, None)
     attrs = XGBClassifierConverter._get_default_tree_attribute_pairs()
     XGBConverter.fill_tree_attributes(

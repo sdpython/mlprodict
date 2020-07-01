@@ -36,8 +36,8 @@ class AutoAction:
         if hasattr(self, name):
             try:
                 return getattr(self, name)(hook=hook, result_name=result_name)
-            except TypeError:
-                raise TypeError(  # pragma: no cover
+            except TypeError:  # pragma: no cover
+                raise TypeError(
                     "Signature of '{0}' is wrong for type '{1}'".format(name, type(self)))
         else:
             raise NotImplementedError(  # pragma: no cover

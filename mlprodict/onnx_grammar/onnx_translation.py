@@ -50,11 +50,10 @@ def py_mul(*x, op_version=None):
     """
     if len(x) == 2:
         return x[0] * x[1]
-    else:
-        p = x[0]
-        for y in x[1:]:
-            p *= y
-        return p
+    p = x[0]
+    for y in x[1:]:
+        p *= y
+    return p
 
 
 def py_opp(x, op_version=None):
@@ -110,7 +109,7 @@ def get_default_context_cpl():
         from skl2onnx.algebra.complex_functions import onnx_cdist
         ctx['onnx_squareform_pdist'] = onnx_squareform_pdist
         ctx['onnx_cdist'] = onnx_cdist
-    except ImportError:
+    except ImportError:  # pragma: no cover
         # Too old version for skl2onnx.
         pass
 
@@ -259,7 +258,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
             context = {}
         try:
             obj = compile(code, "", "exec")
-        except SyntaxError as e:
+        except SyntaxError as e:  # pragma: no cover
             raise SyntaxError("Unable to compile\n{}".format(code)) from e
         context_g = context.copy()
         context_l = context.copy()
@@ -271,7 +270,8 @@ def translate_fct2onnx(fct, context=None, cpl=False,
     elif callable(fct):
         code = inspect.getsource(fct)
     else:
-        raise TypeError("Unable to guess code from type {}.".format(type(fct)))
+        raise TypeError(  # pragma: no cover
+            "Unable to guess code from type {}.".format(type(fct)))
     node = ast.parse(dedent(code))
     v = CodeNodeVisitor()
     v.visit(node)
@@ -281,7 +281,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
                          output_names=output_names)
     if not cpl:
         return onnx_code
-    if verbose > 0 and fLOG is not None:
+    if verbose > 0 and fLOG is not None:  # pragma: no cover
         fLOG('[translate_fct2onnx] python code')
         fLOG(code)
         fLOG('[translate_fct2onnx] ONNX code')

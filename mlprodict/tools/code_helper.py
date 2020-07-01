@@ -77,7 +77,7 @@ def make_callable(fct, obj, code, gl):
             v = getattr(res.__code__, name, None)  # pylint: disable=E1101
             if v is not None:
                 lines.append('%s=%r' % (name, v))
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Defaults values of function '{}' (defaults={}) are missing.\nDefault: "
             "{}\n{}\n----\n{}".format(
                 fct, res.__defaults__, defs, "\n".join(lines), code))  # pylint: disable=E1101

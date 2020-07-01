@@ -63,7 +63,8 @@ class CodeNodeVisitor(ast.NodeVisitor):
         """
         Overrides ``generic_visit`` to check it is not used.
         """
-        raise AttributeError("generic_visit_args should be used.")
+        raise AttributeError(  # pragma: no cover
+            "generic_visit_args should be used.")
 
     def generic_visit_args(self, node, row):
         """
@@ -105,8 +106,9 @@ class CodeNodeVisitor(ast.NodeVisitor):
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, None)
         if visitor is None:
-            raise TypeError("Unable to find a method '{}' at {}.".format(
-                method, self.make_msg(node)))
+            raise TypeError(  # pragma: no cover
+                "Unable to find a method '{}' at {}.".format(
+                    method, self.make_msg(node)))
         res = visitor(node)
         # print(method, CodeNodeVisitor.print_node(node))
         return res
@@ -115,7 +117,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
         """
         If an element is not found...
         """
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Node '{}' ({}) not recognized at {}\nNode\n{}\n--"
             "Status--\n{}".format(
                 node, type(node), self.make_msg(node),

@@ -489,7 +489,8 @@ class MLActionFunction(MLActionUnary):
         @param  name    name
         """
         if not isinstance(act, MLActionReturn):
-            raise NotImplementedError("Last result must be MLActionReturn.")
+            raise NotImplementedError(  # pragma: no cover
+                "Last result must be MLActionReturn.")
         MLActionUnary.__init__(self, act, name)
 
     def execute(self, **kwargs):

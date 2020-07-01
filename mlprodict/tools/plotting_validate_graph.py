@@ -78,12 +78,13 @@ def plot_validate_benchmark(df):
               if 'N=' in c and '-min' not in c and '-max' not in c]
     try:
         df = df[indices + values]
-    except KeyError as e:
-        raise RuntimeError("Unable to find the following columns {}\nin {}".format(
-            indices + values, df.columns)) from e
+    except KeyError as e:  # pragma: no cover
+        raise RuntimeError(
+            "Unable to find the following columns {}\nin {}".format(
+                indices + values, df.columns)) from e
 
     if 'RT/SKL-N=1' not in df.columns:
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Column 'RT/SKL-N=1' is missing, benchmark was probably not run.")
     na = df["RT/SKL-N=1"].isnull()
     dfp = df[~na]
@@ -171,15 +172,17 @@ def plot_validate_benchmark(df):
         if hasattr(ax, 'shape'):
             index = values.index(place)
             if (index, runtime) in done:
-                raise RuntimeError(
-                    "Issue with column '{}'\nlabels={}\nruntimes={}\ncolumns={}\nvalues={}\n{}".format(
+                raise RuntimeError(  # pragma: no cover
+                    "Issue with column '{}'\nlabels={}\nruntimes={}\ncolumns="
+                    "{}\nvalues={}\n{}".format(
                         c, list(final.label), runtimes, final.columns, values, final))
             axi = ax[index]
             done.add((index, runtime))
         else:
             if (0, runtime) in done:
-                raise RuntimeError(
-                    "Issue with column '{}'\nlabels={}\nruntimes={}\ncolumns={}\nvalues={}\n{}".format(
+                raise RuntimeError(  # pragma: no cover
+                    "Issue with column '{}'\nlabels={}\nruntimes={}\ncolumns="
+                    "{}\nvalues={}\n{}".format(
                         c, final.label, runtimes, final.columns, values, final))
             done.add((0, runtime))
             axi = ax
