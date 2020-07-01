@@ -15,6 +15,10 @@ div.body ul {
     margin-left: 0px;
 }
 
+div.body li {
+    line-height: 1em;
+}
+
 .wy-nav-top {
 	background-color: #FF0040;
 }
