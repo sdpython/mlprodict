@@ -23,6 +23,8 @@ def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=Non
     @return                     new onnx _model
     """
     if hasattr(onnx_model, 'graph'):
+        if debug_info is None:
+            debug_info = []
         graph = fct(
             onnx_model.graph, debug_info=debug_info + ['GRAPH'],
             **kwargs)

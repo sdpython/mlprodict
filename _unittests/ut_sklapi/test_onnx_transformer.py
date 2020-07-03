@@ -5,6 +5,7 @@ import unittest
 from logging import getLogger
 import numpy as np
 import pandas
+from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument  # pylint: disable=E0611
 from sklearn.pipeline import make_pipeline
 from sklearn.decomposition import PCA
 from sklearn.datasets import load_iris
@@ -12,7 +13,6 @@ from sklearn.linear_model import LogisticRegression
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import convert_sklearn
 from skl2onnx.algebra.onnx_ops import OnnxMul  # pylint: disable=E0611
-from onnxruntime.datasets import get_example
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.sklapi import OnnxTransformer
 from mlprodict.tools import get_opset_number_from_onnx
@@ -107,6 +107,21 @@ class TestOnnxTransformer(ExtTestCase):
         self.assertEqual(len(set(outputs)), len(outputs))
         shapes = set(shapes)
         self.assertEqual(shapes, {(150, 3), (150, 4), (150, 2), (150,)})
+
+    def test_pipeline_iris_change_dim(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        pipe = make_pipeline(PCA(n_components=2), LogisticRegression())
+        pipe.fit(X, y)
+        onx = convert_sklearn(pipe, initial_types=[
+                              ('input', FloatTensorType((None, X.shape[1])))])
+        tr = OnnxTransformer(onx, change_batch_size=2,
+                             runtime='onnxruntime1')
+        tr.fit(X)
+        self.assertRaise(lambda: tr.transform(X), InvalidArgument)
+        y = tr.transform(X[:2])
+        self.assertEqual(len(y.shape), 2)
+        self.assertEqual(y.shape[0], 2)
 
 
 if __name__ == '__main__':

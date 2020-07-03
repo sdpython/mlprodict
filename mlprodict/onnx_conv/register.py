@@ -198,7 +198,8 @@ def _register_converters_mlinsights(exc=True):
             TransferTransformer, 'MlInsightsTransferTransformer',
             shape_calculator_transfer_transformer,
             convert_transfer_transformer,
-            parser=parser_transfer_transformer)
+            parser=parser_transfer_transformer,
+            options='passthrough')
         registered.append(TransferTransformer)
 
     return registered

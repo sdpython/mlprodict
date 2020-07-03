@@ -3,8 +3,10 @@
 @file
 @brief Wraps runtime into a :epkg:`scikit-learn` transformer.
 """
+from io import BytesIO
 import numpy
 import pandas
+import onnx
 from onnx import helper
 from sklearn.base import BaseEstimator, TransformerMixin
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
@@ -26,24 +28,23 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
     so that it can be included in a :epkg:`scikit-learn` pipeline.
     See notebook :ref:`transferlearningrst` for an example.
 
-    Parameters
-    ----------
-
-    onnx_bytes: bytes
-    output_name: string
+    :param onnx_bytes: bytes
+    :param output_name: string
         requested output name or None to request all and
         have method *transform* to store all of them in a dataframe
-    enforce_float32: boolean
+    :param enforce_float32: boolean
         :epkg:`onnxruntime` only supports *float32*,
         :epkg:`scikit-learn` usually uses double floats, this parameter
         ensures that every array of double floats is converted into
         single floats
-    runtime: string, defined the runtime to use
+    :param runtime: string, defined the runtime to use
         as described in @see cl OnnxInference.
+    :param change_batch_size: some models are converted for
+        a specific batch size, this parameter changes it
     """
 
     def __init__(self, onnx_bytes, output_name=None, enforce_float32=True,
-                 runtime='python'):
+                 runtime='python', change_batch_size=None):
         BaseEstimator.__init__(self)
         TransformerMixin.__init__(self)
         self.onnx_bytes = (onnx_bytes
@@ -52,6 +53,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         self.output_name = output_name
         self.enforce_float32 = enforce_float32
         self.runtime = runtime
+        self.change_batch_size = change_batch_size
 
     def __repr__(self):  # pylint: disable=W0222
         """
@@ -78,7 +80,15 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         -------
         self
         """
-        self.onnxrt_ = OnnxInference(self.onnx_bytes, runtime=self.runtime)
+        if self.change_batch_size is not None:
+            from ..onnxrt.optim.onnx_helper import change_input_first_dimension
+            onx = onnx.load(BytesIO(self.onnx_bytes))
+            on2 = change_input_first_dimension(
+                onx, self.change_batch_size)
+            onnx_bytes = on2.SerializeToString()
+        else:
+            onnx_bytes = self.onnx_bytes
+        self.onnxrt_ = OnnxInference(onnx_bytes, runtime=self.runtime)
         self.inputs_ = self.onnxrt_.input_names
         return self
 
@@ -151,7 +161,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
             return outputs[0]
 
         names = self.output_name if self.output_name else [
-            o.name for o in self.onnxrt_.output_names]
+            o for o in self.onnxrt_.output_names]
         return pandas.DataFrame({k: v for k, v in zip(names, outputs)})
 
     def fit_transform(self, X, y=None, **inputs):

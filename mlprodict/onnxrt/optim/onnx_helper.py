@@ -3,6 +3,10 @@
 @brief Statistics on :epkg:`ONNX` models.
 """
 from collections import Counter
+from onnx.helper import make_graph
+from onnx import ValueInfoProto
+from skl2onnx.common._topology import Variable
+from ._onnx_optimisation_common import _apply_optimisation_on_graph
 from .onnx_optimisation import onnx_remove_node
 
 
@@ -119,3 +123,45 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
             if key in st:
                 stats[key + "_optim"] = st[key]
     return stats
+
+
+def change_input_first_dimension(onnx_model, N=None, debug_info=None):
+    """
+    Some models are converted under the assumption
+    batch prediction is not necessary. This function
+    changes the first dimension of an ONNX graph.
+
+    @param      onnx_model      model :epkg:`onnx`
+    @param      N               new first dimension
+    @param      debug_info      unused
+    @return                     modified model onnx
+    """
+    def _make_value_info(variable):
+        value_info = ValueInfoProto()
+        value_info.name = variable.full_name
+        value_info.type.CopyFrom(variable.type.to_onnx_type())
+        if variable.type.doc_string:  # pylint: disable=E0611
+            value_info.doc_string = variable.type.doc_string
+        return value_info
+
+    if hasattr(onnx_model, 'graph'):
+        return _apply_optimisation_on_graph(
+            change_input_first_dimension, onnx_model, N=N)
+
+    graph = onnx_model
+
+    nodes = graph.node
+    inputs = [Variable.from_pb(input) for input in onnx_model.input]
+    outputs = onnx_model.output
+
+    if N <= 0:
+        N = None
+    for input in inputs:
+        input.type.shape[0] = N
+    inputs = [_make_value_info(v) for v in inputs]
+
+    graph = make_graph(nodes, onnx_model.name,
+                       inputs, outputs, onnx_model.initializer)
+
+    graph.value_info.extend(onnx_model.value_info)  # pylint: disable=E1101
+    return graph
