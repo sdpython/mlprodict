@@ -30,9 +30,6 @@ class TestOnnxTransformer(ExtTestCase):
         onx = mul.to_onnx(inputs=[('X', FloatTensorType())])
         return onx.SerializeToString()
 
-    def get_name(self, name):
-        return get_example(name)
-
     def test_transform_numpy(self):
         x = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], dtype=np.float32)
         content = self.get_onnx_mul()
@@ -119,6 +116,19 @@ class TestOnnxTransformer(ExtTestCase):
                              runtime='onnxruntime1')
         tr.fit(X)
         self.assertRaise(lambda: tr.transform(X), InvalidArgument)
+        y = tr.transform(X[:2])
+        self.assertEqual(len(y.shape), 2)
+        self.assertEqual(y.shape[0], 2)
+
+    def test_pipeline_iris_intermediate(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        pipe = make_pipeline(PCA(n_components=2), LogisticRegression())
+        pipe.fit(X, y)
+        onx = convert_sklearn(pipe, initial_types=[
+                              ('input', FloatTensorType((None, X.shape[1])))])
+        tr = OnnxTransformer(onx, output_name="probabilities", reshape=True)
+        tr.fit(X)
         y = tr.transform(X[:2])
         self.assertEqual(len(y.shape), 2)
         self.assertEqual(y.shape[0], 2)

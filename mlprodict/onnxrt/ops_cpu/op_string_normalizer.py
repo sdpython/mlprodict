@@ -95,16 +95,9 @@ class StringNormalizer(OpRunUnary):
         <https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/
         feature_extraction/text.py#L115>`_.
 
-        Parameters
-        ----------
-        s : string
+        :param s: string
             The string to strip
-
-        See Also
-        --------
-        strip_accents_ascii
-            Remove accentuated char for any unicode symbol that has a direct
-            ASCII equivalent.
+        :return: the cleaned string
         """
         try:
             # If `s` is ASCII-compatible, then it does not contain any accented
