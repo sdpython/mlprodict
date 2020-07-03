@@ -304,7 +304,7 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
     if out_graph is not None:
         if verbose > 0:
             fLOG("Saving graph into '{}'.".format(out_graph))
-        from ..tools.plotting import plot_validate_benchmark
+        from ..plotting.plotting import plot_validate_benchmark
         fig = plot_validate_benchmark(piv)[0]
         fig.savefig(out_graph)
 

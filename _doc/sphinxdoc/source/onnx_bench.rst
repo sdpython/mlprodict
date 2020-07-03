@@ -120,7 +120,7 @@ it is *1/r* faster than *scikit-learn*.
     import matplotlib.pyplot as plt
     import numpy
     from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
-    from mlprodict.tools.plotting_validate_graph import _model_name
+    from mlprodict.plotting.plotting_validate_graph import _model_name
 
     df1 = pandas.read_excel("bench_sum_python_compiled.xlsx")
     df2 = pandas.read_excel("bench_sum_onnxruntime1.xlsx")

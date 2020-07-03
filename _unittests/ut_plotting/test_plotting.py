@@ -5,7 +5,7 @@
 import os
 import unittest
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
-from mlprodict.tools.plotting import plot_benchmark_metrics
+from mlprodict.plotting.plotting import plot_benchmark_metrics
 
 
 class TestPlotBenchScatter(ExtTestCase):

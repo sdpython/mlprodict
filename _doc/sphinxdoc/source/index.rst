@@ -150,7 +150,7 @@ following :epkg:`ONNX` graph.
 
 That concludes the example with :epkg:`ONNX`.
 A similar way was introduced before switching
-to epkg:`ONNX`. It is far less advanced but
+to :epkg:`ONNX`. It is far less advanced but
 aims at producing a :epkg:`C` file replicating the
 predictions.
 
