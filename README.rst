@@ -76,7 +76,8 @@ a pipeline directly into C and is not much developed.
 
     from sklearn.linear_model import LinearRegression
     from sklearn.datasets import load_iris
-    from mlprodict.onnxrt import OnnxInference, measure_relative_difference
+    from mlprodict.onnxrt import OnnxInference
+    from mlprodict.onnxrt.validate.validate_difference import measure_relative_difference
     import numpy
 
     iris = load_iris()

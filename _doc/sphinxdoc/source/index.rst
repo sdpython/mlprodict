@@ -99,7 +99,8 @@ does not have any dependency on :epkg:`scikit-learn`.
     import numpy
     from sklearn.linear_model import LinearRegression
     from sklearn.datasets import load_iris
-    from mlprodict.onnxrt import OnnxInference, measure_relative_difference
+    from mlprodict.onnxrt import OnnxInference
+    from mlprodict.onnxrt.validate.validate_difference import measure_relative_difference
     from mlprodict.tools import get_ir_version_from_onnx
 
     iris = load_iris()
