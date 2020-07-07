@@ -27,7 +27,6 @@ class OnnxTokenizer_1(OnnxOperator):
                  op_version=None, **kwargs):
         """
         :param text: array or OnnxOperatorMixin
-        :param dtype: *np.float32* or *np.float64*
         :param mark: see :epkg:`Tokenizer`
         :param pad_value: see :epkg:`Tokenizer`
         :param separators: see :epkg:`Tokenizer`
