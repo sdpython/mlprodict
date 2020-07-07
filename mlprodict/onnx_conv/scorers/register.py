@@ -8,8 +8,8 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from skl2onnx import (
     update_registered_converter,
-    update_registered_parser
-)
+    update_registered_parser)
+from skl2onnx.common.data_types import guess_tensor_type
 from skl2onnx.common._apply_operation import apply_identity
 
 
@@ -70,7 +70,8 @@ def custom_scorer_transform_parser(scope, model, inputs, custom_parsers=None):
     this_operator = scope.declare_local_operator(alias, model)
     this_operator.inputs = inputs
 
-    scores = scope.declare_local_variable('scores', scope.tensor_type())
+    scores = scope.declare_local_variable(
+        'scores', guess_tensor_type(inputs[0].type))
     this_operator.outputs.append(scores)
     return this_operator.outputs
 

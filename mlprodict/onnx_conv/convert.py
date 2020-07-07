@@ -359,7 +359,10 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             dts = []
             initial_types = []
             for k, v in X.items():
-                dtype = guess_numpy_type(v.dtype)
+                if hasattr(v, 'dtype'):
+                    dtype = guess_numpy_type(v.dtype)
+                else:
+                    dtype = v
                 if dtype != numpy.float64:
                     dtype = numpy.float32
                 it, _, ndt = _guess_type_(v, None, dtype)
