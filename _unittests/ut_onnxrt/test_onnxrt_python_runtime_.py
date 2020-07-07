@@ -796,7 +796,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                            alpha=numpy.float32(1.),
                            op_version=get_opset_number_from_onnx())
             model_def = onx.to_onnx({'X': idi.astype(numpy.float64)},
-                                    dtype=numpy.float64,
                                     target_opset=get_opset_number_from_onnx())
             if 'onnxruntime' in runtime:
                 model_def.ir_version = get_ir_version_from_onnx()

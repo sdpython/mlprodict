@@ -180,8 +180,7 @@ class OpRunOnnxRuntime:
 
             try:
                 self.onnx_ = self.inst_.to_onnx(
-                    inputs, target_opset=target_opset,
-                    dtype=self.dtype, domain=domain)
+                    inputs, target_opset=target_opset, domain=domain)
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(
                         "Probable issue as one dimension is null.\n--\n{}\n---\n{}".format(
@@ -195,7 +194,7 @@ class OpRunOnnxRuntime:
                     dtype=self.dtype)
                 self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                                 target_opset=target_opset,
-                                                dtype=self.dtype, domain=domain)
+                                                domain=domain)
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(
                         "Probable issue as one dimension is null.\n--\n{}".format(
@@ -209,7 +208,7 @@ class OpRunOnnxRuntime:
                 dtype=self.dtype)
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                             target_opset=target_opset,
-                                            dtype=self.dtype, domain=domain)
+                                            domain=domain)
             if "dim_value: 0" in str(self.onnx_):
                 raise RuntimeError(
                     "Probable issue as one dimension is null.\n--\n{}".format(

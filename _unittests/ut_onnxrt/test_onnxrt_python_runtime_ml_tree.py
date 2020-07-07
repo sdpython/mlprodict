@@ -432,5 +432,5 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntimeMlTree().test_cpp_average()
+    TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_GradientBoostingRegressor64()
     unittest.main()

@@ -76,7 +76,10 @@ def new_convert_sklearn_gradient_boosting_classifier(scope, operator, container)
     :epkg:`sklearn-onnx` to support an operator supporting
     doubles.
     """
-    op_type, op_domain, op_version = _op_type_domain_classifier(container)
+    dtype = guess_numpy_type(operator.inputs[0].type)
+    if dtype != numpy.float64:
+        dtype = numpy.float32
+    op_type, op_domain, op_version = _op_type_domain_classifier(dtype)
     convert_sklearn_gradient_boosting_classifier(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
@@ -88,7 +91,10 @@ def new_convert_sklearn_gradient_boosting_regressor(scope, operator, container):
     :epkg:`sklearn-onnx` to support an operator supporting
     doubles.
     """
-    op_type, op_domain, op_version = _op_type_domain_regressor(container)
+    dtype = guess_numpy_type(operator.inputs[0].type)
+    if dtype != numpy.float64:
+        dtype = numpy.float32
+    op_type, op_domain, op_version = _op_type_domain_regressor(dtype)
     convert_sklearn_gradient_boosting_regressor(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
@@ -100,7 +106,10 @@ def new_convert_sklearn_random_forest_classifier(scope, operator, container):
     :epkg:`sklearn-onnx` to support an operator supporting
     doubles.
     """
-    op_type, op_domain, op_version = _op_type_domain_classifier(container)
+    dtype = guess_numpy_type(operator.inputs[0].type)
+    if dtype != numpy.float64:
+        dtype = numpy.float32
+    op_type, op_domain, op_version = _op_type_domain_classifier(dtype)
     convert_sklearn_random_forest_classifier(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
@@ -112,7 +121,10 @@ def new_convert_sklearn_random_forest_regressor(scope, operator, container):
     :epkg:`sklearn-onnx` to support an operator supporting
     doubles.
     """
-    op_type, op_domain, op_version = _op_type_domain_regressor(container)
+    dtype = guess_numpy_type(operator.inputs[0].type)
+    if dtype != numpy.float64:
+        dtype = numpy.float32
+    op_type, op_domain, op_version = _op_type_domain_regressor(dtype)
     convert_sklearn_random_forest_regressor_converter(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)

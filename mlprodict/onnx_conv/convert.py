@@ -326,6 +326,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
                 dtype = X.dtype
             elif hasattr(X, 'type'):
                 dtype = guess_numpy_type(X.type)
+            elif initial_types is not None:
+                dtype = guess_numpy_type(initial_types[0][1])
             else:
                 raise RuntimeError(  # pragma: no cover
                     "dtype cannot be guessed: {}".format(
