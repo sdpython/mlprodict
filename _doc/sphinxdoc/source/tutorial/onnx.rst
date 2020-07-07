@@ -37,7 +37,6 @@ to convert many :epkg:`scikit-learn` models.
     clr.fit(X_train)
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                        dtype=numpy.float32,
                         target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='python')
@@ -64,7 +63,6 @@ begin.
     clr.fit(X_train)
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                        dtype=numpy.float32,
                         target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='python')
@@ -91,7 +89,6 @@ The verbosity can be increased.
     clr.fit(X_train)
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                        dtype=numpy.float32,
                         target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='python')
@@ -121,7 +118,6 @@ can also call :epkg:`onnxruntime` to compute the predictions by using
     clr.fit(X_train)
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                        dtype=numpy.float32,
                         target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='onnxruntime1')
@@ -148,7 +144,6 @@ to look into intermediate results.
     clr.fit(X_train)
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                        dtype=numpy.float32,
                         target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='onnxruntime2')
@@ -177,7 +172,6 @@ As a consequence, interdiate results cannot be seen anymore.
     clr.fit(X_train)
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                        dtype=numpy.float32,
                         target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='python_compiled')
@@ -211,7 +205,6 @@ It works exactly the same:
     clr.fit(X_train)
 
     model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                        dtype=numpy.float32,
                         target_opset=12)
 
     oinf = OnnxInference(model_def, runtime='python')

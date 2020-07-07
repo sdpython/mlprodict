@@ -40,7 +40,7 @@ standard :epkg:`ONNX` (see also @see cl CDist).
     clr = GaussianProcessRegressor(ExpSineSquared(), alpha=20.)
     clr.fit(X_train, y_train)
 
-    model_def = to_onnx(clr, X_train, dtype=numpy.float64)
+    model_def = to_onnx(clr, X_train)
     oinf = OnnxInference(model_def)
     print("DOT-SECTION", oinf.to_dot())
 
@@ -63,7 +63,7 @@ Now the new model with the operator `CDist`.
     clr = GaussianProcessRegressor(ExpSineSquared(), alpha=20.)
     clr.fit(X_train, y_train)
 
-    model_def = to_onnx(clr, X_train, dtype=numpy.float64,
+    model_def = to_onnx(clr, X_train,
                         options={GaussianProcessRegressor: {'optim': 'cdist'}})
     oinf = OnnxInference(model_def)
     print("DOT-SECTION", oinf.to_dot())
@@ -110,7 +110,7 @@ This is done by using option ``{'zipmap': False}``.
     clr = LogisticRegression()
     clr.fit(X_train, y_train)
 
-    model_def = to_onnx(clr, X_train, dtype=numpy.float64,
+    model_def = to_onnx(clr, X_train,
                         options={LogisticRegression: {'zipmap': False}})
     oinf = OnnxInference(model_def)
     print("DOT-SECTION", oinf.to_dot())
@@ -138,7 +138,7 @@ be still obtained by using option ``{'raw_scores': True}``.
     clr = LogisticRegression()
     clr.fit(X_train, y_train)
 
-    model_def = to_onnx(clr, X_train, dtype=numpy.float64,
+    model_def = to_onnx(clr, X_train,
                         options={LogisticRegression: {
                             'zipmap': False, 'raw_scores': True}})
     oinf = OnnxInference(model_def)
