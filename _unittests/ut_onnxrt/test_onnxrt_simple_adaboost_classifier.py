@@ -36,8 +36,7 @@ class TestOnnxrtSimpleAdaboostClassifier(ExtTestCase):
         res0 = clr.predict(X_test).astype(numpy.float32)
         resp = clr.predict_proba(X_test).astype(numpy.float32)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            dtype=numpy.float32)
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
 
         oinf = OnnxInference(model_def, runtime='python')
         res1 = oinf.run({'X': X_test})

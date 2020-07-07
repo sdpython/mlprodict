@@ -3,7 +3,6 @@
 """
 import unittest
 from logging import getLogger
-import numpy
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -28,7 +27,7 @@ class TestOnnxrtSimpleGaussianProcess(ExtTestCase):
         clr = GaussianProcessRegressor(ExpSineSquared(), alpha=20.)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train, dtype=numpy.float64)
+        model_def = to_onnx(clr, X_train)
         oinf = OnnxInference(model_def)
         res1 = oinf.run({'X': X_train})
         new_model = onnx_optimisations(model_def)
@@ -44,7 +43,7 @@ class TestOnnxrtSimpleGaussianProcess(ExtTestCase):
         clr = GaussianProcessRegressor(ExpSineSquared(), alpha=20.)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train, dtype=numpy.float64,
+        model_def = to_onnx(clr, X_train,
                             options={GaussianProcessRegressor: {'optim': 'cdist'}})
         oinf = OnnxInference(model_def)
         res1 = oinf.run({'X': X_train})

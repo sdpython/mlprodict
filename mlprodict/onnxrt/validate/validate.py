@@ -464,7 +464,6 @@ def _call_conv_runtime_opset(
                 def fct_conv(itt=inst, it=init_types[0][1], ops=opset,
                              options=all_conv_options):
                     return to_onnx(itt, it, target_opset=ops, options=options,
-                                   dtype=init_types[0][1],
                                    rewrite_ops=rt in ('', None, 'python',
                                                       'python_compiled'))
 

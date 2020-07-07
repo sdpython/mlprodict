@@ -12,16 +12,14 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.datasets import load_iris, make_regression
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import (
-    KNeighborsRegressor, KNeighborsClassifier, NearestNeighbors
-)
+    KNeighborsRegressor, KNeighborsClassifier, NearestNeighbors)
 try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAdd, OnnxIdentity
-)
+    OnnxAdd, OnnxIdentity)
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import Int64TensorType
 import skl2onnx
@@ -247,7 +245,7 @@ class TestOnnxConvKNN(ExtTestCase):
             with self.subTest(target_opset=ops):
                 try:
                     model_def = to_onnx(
-                        clr, X_train.astype(dtype), dtype=dtype, rewrite_ops=True,
+                        clr, X_train.astype(dtype), rewrite_ops=True,
                         target_opset=ops, options=options)
                 except NameError as e:
                     if "Option 'largest0' not in" in str(e):
@@ -381,8 +379,7 @@ class TestOnnxConvKNN(ExtTestCase):
         clr = KNeighborsRegressor(algorithm='brute', n_neighbors=3)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train,
-                            dtype=numpy.float32, rewrite_ops=True)
+        model_def = to_onnx(clr, X_train, rewrite_ops=True)
         oinf = OnnxInference(model_def, runtime='python')
         y = oinf.run({'X': X_test})
         self.assertEqual(list(sorted(y)), ['variable'])

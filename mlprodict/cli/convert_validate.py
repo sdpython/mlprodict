@@ -6,7 +6,6 @@ import os
 import pickle
 from logging import getLogger
 import warnings
-import numpy
 from pandas import read_csv
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from ..onnx_conv import to_onnx
@@ -124,10 +123,8 @@ def convert_validate(pkl, data=None, schema=None,
         model = pickle.load(f)
 
     if use_double == 'float64':
-        dtype = numpy.float64
         tensor_type = DoubleTensorType
     else:
-        dtype = numpy.float32
         tensor_type = FloatTensorType
     if options in (None, ''):
         options = None
@@ -170,15 +167,15 @@ def convert_validate(pkl, data=None, schema=None,
         if verbose > 0:
             fLOG("[convert_validate] convert the model with no shape information")
         schema = [(name, col.__class__([None, None])) for name, col in schema]
-        onx = to_onnx(model, initial_types=schema,
-                      dtype=dtype, rewrite_ops=rewrite_ops,
-                      target_opset=target_opset, options=options)
+        onx = to_onnx(
+            model, initial_types=schema, rewrite_ops=rewrite_ops,
+            target_opset=target_opset, options=options)
     else:
         if verbose > 0:
             fLOG("[convert_validate] convert the model with shapes")
-        onx = to_onnx(model, initial_types=schema, dtype=dtype,
-                      target_opset=target_opset,
-                      rewrite_ops=rewrite_ops, options=options)
+        onx = to_onnx(
+            model, initial_types=schema, target_opset=target_opset,
+            rewrite_ops=rewrite_ops, options=options)
 
     if optim is not None:
         if verbose > 0:

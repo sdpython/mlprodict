@@ -317,9 +317,7 @@ class TestSklearnPipeline(ExtTestCase):
         model_onnx = convert_sklearn(
             model,
             "column transformer weights",
-            [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32,
-        )
+            [("input", FloatTensorType([None, X.shape[1]]))])
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,
@@ -334,9 +332,7 @@ class TestSklearnPipeline(ExtTestCase):
         model_onnx = convert_sklearn(
             model,
             "column transformer drop",
-            [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32,
-        )
+            [("input", FloatTensorType([None, X.shape[1]]))])
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,
@@ -351,8 +347,7 @@ class TestSklearnPipeline(ExtTestCase):
                 remainder='passthrough'), 3, n_features=100)
         model_onnx = convert_sklearn(
             model, "column transformer passthrough",
-            [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32)
+            [("input", FloatTensorType([None, X.shape[1]]))])
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,
@@ -366,8 +361,7 @@ class TestSklearnPipeline(ExtTestCase):
                 remainder='passthrough'), 3, n_features=100)
         model_onnx = convert_sklearn(
             model, "column transformer passthrough",
-            [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32)
+            [("input", FloatTensorType([None, X.shape[1]]))])
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,

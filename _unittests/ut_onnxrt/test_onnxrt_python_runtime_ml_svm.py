@@ -72,8 +72,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         clr = SVR()
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float64),
-                            dtype=numpy.float64)
+        model_def = to_onnx(clr, X_train.astype(numpy.float64))
         oinf = OnnxInference(model_def)
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
         self.assertIn("SVMRegressor", text)
@@ -111,8 +110,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         clr = SVR()
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float64),
-                            dtype=numpy.float64)
+        model_def = to_onnx(clr, X_train.astype(numpy.float64))
         oinf = OnnxInference(model_def)
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
         self.assertIn("SVMRegressor", text)
@@ -178,8 +176,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         clr = SVC(probability=True)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float64),
-                            dtype=numpy.float64)
+        model_def = to_onnx(clr, X_train.astype(numpy.float64))
         oinf = OnnxInference(model_def)
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
         self.assertIn("SVMClassifier", text)
@@ -248,7 +245,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
             for kernel in ['linear', 'sigmoid', 'rbf', 'poly']:
                 model = OneClassSVM(kernel=kernel).fit(X)
                 X64 = X.astype(numpy.float64)
-                model_onnx = to_onnx(model, X64, dtype=numpy.float64)
+                model_onnx = to_onnx(model, X64)
                 model.decision_function(X64)
                 self.assertIn("SVMRegressorDouble", str(model_onnx))
                 oinf = OnnxInference(model_onnx, runtime='python')

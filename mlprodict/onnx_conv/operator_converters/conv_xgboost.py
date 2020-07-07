@@ -8,6 +8,7 @@ import json
 from pprint import pformat
 import numpy
 from xgboost import XGBClassifier
+from skl2onnx.common.data_types import guess_numpy_type
 
 
 class XGBConverter:
@@ -188,6 +189,9 @@ class XGBRegressorConverter(XGBConverter):
     @staticmethod
     def convert(scope, operator, container):
         "converter method"
+        dtype = guess_numpy_type(operator.inputs[0].type)
+        if dtype != numpy.float64:
+            dtype = numpy.float32
         xgb_node = operator.raw_operator
         inputs = operator.inputs
         objective, base_score, js_trees = XGBConverter.common_members(
@@ -207,7 +211,7 @@ class XGBRegressorConverter(XGBConverter):
             js_trees, attr_pairs, [1 for _ in js_trees], False)
 
         # add nodes
-        if container.dtype == numpy.float64:
+        if dtype == numpy.float64:
             container.add_node('TreeEnsembleRegressorDouble', operator.input_full_names,
                                operator.output_full_names,
                                name=scope.get_unique_operator_name(
@@ -237,6 +241,9 @@ class XGBClassifierConverter(XGBConverter):
     @staticmethod
     def convert(scope, operator, container):
         "convert method"
+        dtype = guess_numpy_type(operator.inputs[0].type)
+        if dtype != numpy.float64:
+            dtype = numpy.float32
         xgb_node = operator.raw_operator
         inputs = operator.inputs
 
@@ -277,7 +284,7 @@ class XGBClassifierConverter(XGBConverter):
             classes = numpy.array([s.encode('utf-8') for s in classes])
             attr_pairs['classlabels_strings'] = classes
 
-        if container.dtype == numpy.float64:
+        if dtype == numpy.float64:
             op_name = "TreeEnsembleClassifierDouble"
         else:
             op_name = "TreeEnsembleClassifier"

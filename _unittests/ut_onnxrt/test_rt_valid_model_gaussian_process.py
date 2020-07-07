@@ -213,8 +213,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y)
         gau = GaussianProcessRegressor(alpha=10, kernel=DotProduct())
         gau.fit(X_train, y_train)
-        onnxgau48 = to_onnx(gau, X_train.astype(
-            numpy.float32), dtype=numpy.float32)
+        onnxgau48 = to_onnx(gau, X_train.astype(numpy.float32))
         oinf48 = OnnxInference(onnxgau48, runtime="python")
         out = oinf48.run({'X': X_test.astype(numpy.float32)})
         y = out['GPmean']

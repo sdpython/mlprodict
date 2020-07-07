@@ -107,10 +107,8 @@ class _CommonAsvSklBenchmark:
             options = expand_onnx_options(model, optim)
 
         if dtype in (numpy.float64, 'double'):
-            return to_onnx(model, X, dtype=numpy.float64,
-                           options=options, target_opset=opset)
-        return to_onnx(model, X, options=options,
-                       target_opset=opset)
+            return to_onnx(model, X, options=options, target_opset=opset)
+        return to_onnx(model, X, options=options, target_opset=opset)
 
     def _create_onnx_inference(self, onx, runtime):
         if 'onnxruntime' in runtime:

@@ -47,8 +47,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         X_test = numpy.vstack([X_test[:3], X_test[-3:]])
         res0 = clr.predict(X_test).astype(numpy.float32)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            dtype=numpy.float32)
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
 
         oinf = OnnxInference(model_def, runtime='python')
         res1 = oinf.run({'X': X_test})
@@ -68,7 +67,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res0 = clr.predict(X_test).astype(numpy.float32)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            dtype=numpy.float32, target_opset=10)
+                            target_opset=10)
 
         oinf = OnnxInference(model_def, runtime='python')
         res1 = oinf.run({'X': X_test})
@@ -83,8 +82,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
             n_estimators=3)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            dtype=numpy.float32)
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
         X_test = X_test.astype(numpy.float32)
         oinf = OnnxInference(model_def)
         res0 = clr.predict(X_test).astype(numpy.float32)
@@ -100,8 +98,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
             n_estimators=3)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            dtype=numpy.float32)
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
         X_test = X_test.astype(numpy.float32)
         oinf = OnnxInference(model_def)
         res0 = clr.predict(X_test).astype(numpy.float32)
@@ -113,7 +110,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         model, X_test = fit_regression_model(clr)
 
         model_def = to_onnx(model, X_test.astype(numpy.float32),
-                            dtype=numpy.float32, target_opset=10)
+                            target_opset=10)
         X_test = X_test.astype(numpy.float32)
         oinf = OnnxInference(model_def)
         res0 = clr.predict(X_test).astype(numpy.float32)
@@ -140,7 +137,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         model, X_test = fit_regression_model(clr)
 
         model_def = to_onnx(model, X_test.astype(numpy.float32),
-                            dtype=numpy.float32, target_opset=11)
+                            target_opset=11)
         X_test = X_test.astype(numpy.float32)
         oinf = OnnxInference(model_def)
         res0 = clr.predict(X_test).astype(numpy.float32)

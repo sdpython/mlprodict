@@ -31,8 +31,7 @@ class TestOnnxrtBenchRandomForest(ExtTestCase):
         clr.fit(X_train, y_train)
         X_test = X_test.astype(numpy.float32)
         X_test2 = make_n_rows(X_test, 10000)
-        model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            dtype=numpy.float32)
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
 
         oinf = OnnxInference(model_def, runtime='python')
         ti = timeit.repeat("oinf.run({'X': X_test2})", number=100,
@@ -54,8 +53,7 @@ class TestOnnxrtBenchRandomForest(ExtTestCase):
         clr.fit(X_train, y_train)
         X_test = X_test.astype(numpy.float32)
         X_test2 = make_n_rows(X_test, 10000)
-        model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            dtype=numpy.float32)
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
 
         oinf = OnnxInference(model_def, runtime='python')
         ti = timeit.repeat("oinf.run({'X': X_test2})", number=100,
@@ -77,8 +75,7 @@ class TestOnnxrtBenchRandomForest(ExtTestCase):
         clr.fit(X_train, y_train)
         X_test = X_test.astype(numpy.float32)
         X_test2 = make_n_rows(X_test, 10000)
-        model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            dtype=numpy.float32)
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
 
         oinf = OnnxInference(model_def, runtime='python')
         ti = timeit.repeat("oinf.run({'X': X_test2})", number=100,

@@ -142,7 +142,8 @@ def change_input_first_dimension(onnx_model, N=None, debug_info=None):
     def _make_value_info(variable):
         value_info = ValueInfoProto()
         value_info.name = variable.full_name
-        value_info.type.CopyFrom(variable.type.to_onnx_type())  # pylint: disable=E1101
+        value_info.type.CopyFrom(  # pylint: disable=E1101
+            variable.type.to_onnx_type())  # pylint: disable=E1101
         if variable.type.doc_string:  # pylint: disable=E0611
             value_info.doc_string = variable.type.doc_string
         return value_info

@@ -7,32 +7,31 @@ import numpy
 from skl2onnx.operator_converters.support_vector_machines import (
     convert_sklearn_svm_regressor,
     convert_sklearn_svm_classifier)
+from skl2onnx.common.data_types import guess_numpy_type
 
 
-def _op_type_domain_regressor(container):
+def _op_type_domain_regressor(dtype):
     """
-    Defines *op_type* and *op_domain* based on
-    `container.dtype`.
+    Defines *op_type* and *op_domain* based on `dtype`.
     """
-    if container.dtype == numpy.float32:
+    if dtype == numpy.float32:
         return 'SVMRegressor', 'ai.onnx.ml', 1
-    if container.dtype == numpy.float64:
+    if dtype == numpy.float64:
         return 'SVMRegressorDouble', 'mlprodict', 1
     raise RuntimeError(  # pragma: no cover
-        "Unsupported dtype {}.".format(container.dtype))
+        "Unsupported dtype {}.".format(dtype))
 
 
-def _op_type_domain_classifier(container):
+def _op_type_domain_classifier(dtype):
     """
-    Defines *op_type* and *op_domain* based on
-    `container.dtype`.
+    Defines *op_type* and *op_domain* based on `dtype`.
     """
-    if container.dtype == numpy.float32:
+    if dtype == numpy.float32:
         return 'SVMClassifier', 'ai.onnx.ml', 1
-    if container.dtype == numpy.float64:
+    if dtype == numpy.float64:
         return 'SVMClassifierDouble', 'mlprodict', 1
     raise RuntimeError(  # pragma: no cover
-        "Unsupported dtype {}.".format(container.dtype))
+        "Unsupported dtype {}.".format(dtype))
 
 
 def new_convert_sklearn_svm_regressor(scope, operator, container):
@@ -41,7 +40,10 @@ def new_convert_sklearn_svm_regressor(scope, operator, container):
     :epkg:`sklearn-onnx` to support an operator supporting
     doubles.
     """
-    op_type, op_domain, op_version = _op_type_domain_regressor(container)
+    dtype = guess_numpy_type(operator.inputs[0].type)
+    if dtype != numpy.float64:
+        dtype = numpy.float32
+    op_type, op_domain, op_version = _op_type_domain_regressor(dtype)
     convert_sklearn_svm_regressor(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
@@ -53,7 +55,10 @@ def new_convert_sklearn_svm_classifier(scope, operator, container):
     :epkg:`sklearn-onnx` to support an operator supporting
     doubles.
     """
-    op_type, op_domain, op_version = _op_type_domain_classifier(container)
+    dtype = guess_numpy_type(operator.inputs[0].type)
+    if dtype != numpy.float64:
+        dtype = numpy.float32
+    op_type, op_domain, op_version = _op_type_domain_classifier(dtype)
     convert_sklearn_svm_classifier(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)

@@ -83,7 +83,8 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         from ..onnxrt.optim.onnx_helper import change_input_first_dimension
         onx = onnx.load(BytesIO(self.onnx_bytes))
 
-        output_names = set(o.name for o in onx.graph.output)  # pylint: disable=E1101
+        output_names = set(
+            o.name for o in onx.graph.output)  # pylint: disable=E1101
         updated = False
         if (self.output_name is not None and
                 self.output_name not in output_names):

@@ -63,7 +63,7 @@ class TestRtValidateSVM(ExtTestCase):
                 clr.fit(X_train, y_train)
 
                 x2 = X_test.astype(numpy.float64)
-                onx = to_onnx(clr, x2, dtype=numpy.float64)
+                onx = to_onnx(clr, x2)
                 pyrun = OnnxInference(onx, runtime="python")
                 res = pyrun.run({'X': x2})
                 self.assertIn('variable', res)

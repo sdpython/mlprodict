@@ -53,7 +53,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(dtype),
-                            dtype=dtype, rewrite_ops=True)
+                            rewrite_ops=True)
         oinf = OnnxInference(model_def)
 
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))

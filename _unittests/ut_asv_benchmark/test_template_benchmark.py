@@ -11,32 +11,23 @@ from skl2onnx.common.exceptions import MissingShapeCalculator
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.asv_benchmark.template.skl_model_classifier import (
-    TemplateBenchmarkClassifier
-)
+    TemplateBenchmarkClassifier)
 from mlprodict.asv_benchmark.template.skl_model_classifier_raw_scores import (
-    TemplateBenchmarkClassifierRawScore
-)
+    TemplateBenchmarkClassifierRawScore)
 from mlprodict.asv_benchmark.template.skl_model_clustering import (
-    TemplateBenchmarkClustering
-)
+    TemplateBenchmarkClustering)
 from mlprodict.asv_benchmark.template.skl_model_multi_classifier import (
-    TemplateBenchmarkMultiClassifier
-)
+    TemplateBenchmarkMultiClassifier)
 from mlprodict.asv_benchmark.template.skl_model_regressor import (
-    TemplateBenchmarkRegressor
-)
+    TemplateBenchmarkRegressor)
 from mlprodict.asv_benchmark.template.skl_model_outlier import (
-    TemplateBenchmarkOutlier
-)
+    TemplateBenchmarkOutlier)
 from mlprodict.asv_benchmark.template.skl_model_trainable_transform import (
-    TemplateBenchmarkTrainableTransform
-)
+    TemplateBenchmarkTrainableTransform)
 from mlprodict.asv_benchmark.template.skl_model_transform import (
-    TemplateBenchmarkTransform
-)
+    TemplateBenchmarkTransform)
 from mlprodict.asv_benchmark.template.skl_model_transform_positive import (
-    TemplateBenchmarkTransformPositive
-)
+    TemplateBenchmarkTransformPositive)
 
 
 class TestAsvTemplateBenchmark(ExtTestCase):
