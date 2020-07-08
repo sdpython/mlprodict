@@ -993,7 +993,6 @@ class OnnxInference:
                 clr.fit(X_train, y_train)
 
                 model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                                    dtype=numpy.float32,
                                     target_opset=12)
 
                 oinf2 = OnnxInference(model_def, runtime='python_compiled')
