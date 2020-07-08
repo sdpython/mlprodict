@@ -7,6 +7,7 @@ import pprint
 import numpy
 import onnx.defs
 from ..shape_object import ShapeObject
+from ._new_ops import OperatorSchema
 
 
 def _build_schemas():
@@ -607,3 +608,36 @@ class OpRunReduceNumpy(OpRunUnaryNum):
             self.axes = None
         elif isinstance(self.axes, list):  # pylint: disable=E0203
             self.axes = tuple(self.axes)
+
+
+class OpRunCustom(OpRun):
+    """
+    Automates some methods for custom operators defined
+    outside *mlprodict*.
+    """
+
+    class OpRunCustomSchema(OperatorSchema):
+        """
+        Custom schema.
+        """
+
+        def __init__(self, cls):
+            OperatorSchema.__init__(self, cls.__name__)
+            self.attributes = cls.atts
+
+    def __init__(self, onnx_node, desc=None,
+                 expected_attributes=None, **options):
+        OpRun.__init__(self, onnx_node, desc=desc,
+                       expected_attributes=expected_attributes,
+                       **options)
+
+    def _find_custom_operator_schema(self, op_name):
+        """
+        Finds a custom operator defined by this runtime.
+        """
+        if (op_name == self.__class__.__name__ or
+                (hasattr(self.__class__, 'op_name') and
+                    self.__class__.op_name == op_name)):  # pylint: disable=E1101
+            return OpRunCustom.OpRunCustomSchema(self.__class__)
+        raise RuntimeError(  # pragma: no cover
+            "Unable to find a schema for operator '{}'.".format(op_name))

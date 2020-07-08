@@ -3,6 +3,7 @@
 """
 import unittest
 import numpy
+from onnx import TensorProto
 from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import load_iris
@@ -10,6 +11,7 @@ from sklearn.cluster import KMeans
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.optim.onnx_helper import change_input_first_dimension
 from mlprodict.onnxrt.onnx2py_helper import to_bytes, from_bytes
+from mlprodict.onnxrt.ops_cpu._op_helper import proto2dtype
 from mlprodict.onnxrt import OnnxInference
 
 
@@ -67,6 +69,15 @@ class TestOnnxHelper(ExtTestCase):
         res = oinf.run({'X': X[:3].astype(numpy.float32)})
         for k, v in res.items():
             self.assertEqual(v.shape[0], 3)
+
+    def test_proto2dtype(self):
+        tt = [TensorProto.FLOAT, TensorProto.DOUBLE,  # pylint: disable=E1101
+              TensorProto.BOOL, TensorProto.STRING,  # pylint: disable=E1101
+              TensorProto.INT64, TensorProto.INT32]  # pylint: disable=E1101
+        for t in tt:
+            dt = proto2dtype(t)
+            self.assertTrue(dt is not None)
+        self.assertRaise(lambda: proto2dtype(671), ValueError)
 
 
 if __name__ == "__main__":

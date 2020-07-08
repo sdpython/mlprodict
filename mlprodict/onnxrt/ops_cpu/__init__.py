@@ -5,7 +5,30 @@
 """
 from onnx.defs import onnx_opset_version
 from ...tools.asv_options_helper import benchmark_version
+from ._op import OpRunCustom
 from ._op_list import __dict__ as d_op_list
+
+
+_additional_ops = {}
+
+
+def register_operator(cls, name=None, overwrite=True):
+    """
+    Registers a new runtime operator.
+
+    @param      cls         class
+    @param      name        by default ``cls.__name__``,
+                            or *name* if defined
+    @param      overwrite   overwrite or raise an exception
+    """
+    if name is None:
+        name = cls.__name__
+    if name not in _additional_ops:
+        _additional_ops[name] = cls
+    elif not overwrite:
+        raise RuntimeError(
+            "Unable to overwrite existing operator '{}': {} "
+            "by {}".format(name, _additional_ops[name], cls))
 
 
 def get_opset_number_from_onnx(benchmark=False):
@@ -53,13 +76,20 @@ def load_op(onnx_node, desc=None, options=None):
     else:
         name_opset = name
 
-    if name_opset in d_op_list:
+    if name_opset in _additional_ops:
+        cl = _additional_ops[name_opset]
+    elif name in _additional_ops:
+        cl = _additional_ops[name]
+    elif name_opset in d_op_list:
         cl = d_op_list[name_opset]
     elif name in d_op_list:
         cl = d_op_list[name]
     else:
-        raise NotImplementedError("Operator '{}' has no runtime yet. Available list:\n"
-                                  "{}".format(name, "\n".join(sorted(d_op_list))))
+        raise NotImplementedError(
+            "Operator '{}' has no runtime yet. Available list:\n"
+            "{}\n--- +\n{}".format(
+                name, "\n".join(sorted(_additional_ops)),
+                "\n".join(sorted(d_op_list))))
 
     if hasattr(cl, 'version_higher_than'):
         opv = min(current_opset, chosen_opset)
