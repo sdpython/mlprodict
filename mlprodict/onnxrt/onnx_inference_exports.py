@@ -269,7 +269,8 @@ class OnnxInferenceExport:
 
                     if spl[0].strip() in ('type', ):
                         st = spl[1].strip()
-                        if st in {'INT', 'INTS', 'FLOAT', 'FLOATS', 'STRING', 'STRINGS'}:
+                        if st in {'INT', 'INTS', 'FLOAT', 'FLOATS',
+                                  'STRING', 'STRINGS', 'TENSOR'}:
                             spl[1] = '"{}"'.format(st)
 
                     if spl[0] in ('floats', 'ints'):
