@@ -11,7 +11,6 @@ import warnings
 import textwrap
 import numpy
 from scipy.sparse import coo_matrix
-import pandas
 from onnx import load, load_model, checker, shape_inference
 from onnx import onnx_pb as onnx_proto
 from onnx.helper import make_model
@@ -526,11 +525,14 @@ class OnnxInference:
         *OnnxInference*.
         """
         def retype(col_array):
-            if isinstance(col_array, pandas.Categorical):
+            if (hasattr(col_array, 'categories') and
+                    hasattr(col_array, 'from_codes')):
+                # isinstance(col_array, pandas.Categorical):
                 return col_array.astype(numpy.int64)
             return col_array
 
-        if isinstance(inputs, pandas.DataFrame):
+        if hasattr(inputs, 'columns') and hasattr(inputs, 'iloc'):
+            # == isinstance(inputs, pandas.DataFrame)
             inputs = OrderedDict((
                 name, retype(numpy.expand_dims(inputs[name].values, axis=1)))
                 for name in inputs.columns)
