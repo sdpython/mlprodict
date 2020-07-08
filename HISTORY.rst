@@ -5,9 +5,14 @@
 History
 =======
 
-current - 2020-06-25 - 0.00Mb
+current - 2020-07-08 - 0.00Mb
 =============================
 
+* `137`: Remove parameter dtype (onnx conversion) (2020-07-08)
+* `138`: Add code to register custom python operator (2020-07-08)
+* `139`: Add runtime for operator EyeLike (2020-07-08)
+* `136`: Add parameter reshape to OnnxTransformer (2020-07-03)
+* `135`: Add a function to change the first dimension output (ONNX). (2020-07-03)
 * `133`: Implements runtime for operator Gather (ONNX) (2020-06-18)
 * `132`: Add operator StringNormalizer, Tokenizer, TfidfVectorizer (ONNX) (2020-06-15)
 * `131`: Add custom operator solve (2020-06-12)

@@ -217,8 +217,7 @@ class TestCustomRuntimeOps(ExtTestCase):
         oinf = OnnxInference(onx)
 
         exp = dec.transform(X.astype(numpy.float32))
-        got = oinf.run({'X': X.astype(numpy.float32)},
-                       verbose=1, fLOG=print)['variable']
+        got = oinf.run({'X': X.astype(numpy.float32)})['variable']
 
         self.assertEqualArray(exp, got)
 

@@ -1140,7 +1140,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
     def test_onnxt_runtime_reshape(self):
         sh = numpy.array([1, 4], dtype=numpy.int64)
-        onx = OnnxReshape('X', sh, output_names=['Y'])
+        onx = OnnxReshape('X', sh, output_names=['Y'],
+                          op_version=get_opset_number_from_onnx())
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
