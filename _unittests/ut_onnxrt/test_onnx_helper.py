@@ -5,7 +5,7 @@ import unittest
 import numpy
 from onnx import TensorProto
 from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument  # pylint: disable=E0611
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, skipif_appveyor
 from sklearn.datasets import load_iris
 from sklearn.cluster import KMeans
 from mlprodict.onnx_conv import to_onnx
@@ -35,6 +35,7 @@ class TestOnnxHelper(ExtTestCase):
         data = numpy.array([[0, 1], [2, 3], [4, 5]], dtype=numpy.int64)
         self.common_test(data)
 
+    @skipif_appveyor("unstable")
     def test_change_input_first_dimension(self):
         iris = load_iris()
         X, _ = iris.data, iris.target
