@@ -6,15 +6,16 @@ import unittest
 from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase
+from pyquickhelper.pycode import (
+    get_temp_folder, ExtTestCase, skipif_appveyor)
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import (
-    sklearn_operators, enumerate_validated_operator_opsets, summary_report
-)
+    sklearn_operators, enumerate_validated_operator_opsets,
+    summary_report)
 
 
 class TestOnnxrtValidateOnnxRuntime1(ExtTestCase):
@@ -24,6 +25,7 @@ class TestOnnxrtValidateOnnxRuntime1(ExtTestCase):
         self.assertGreater(len(res), 1)
         self.assertEqual(len(res[0]), 4)
 
+    @skipif_appveyor("crashes")
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_all_onnxruntime1(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
