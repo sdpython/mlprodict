@@ -2,6 +2,7 @@
 @file
 @brief Functions to help exporting json format into text.
 """
+import pprint
 import copy
 import os
 import json
@@ -42,7 +43,7 @@ def _coor_to_str(cc):
             c = c.replace("'", '"').replace("True", "1").replace("False", "0")
             try:
                 d = json.loads(c)
-            except JSONDecodeError as e:
+            except JSONDecodeError as e:  # pragma: no cover
                 raise RuntimeError(
                     "Unable to interpret '{}'.".format(c)) from e
 
@@ -81,9 +82,9 @@ def _figures2dict(metrics, coor, baseline=None):
                 base_j = i, base.index(quoted_base)
                 break
         if base_j is None:
-            import pprint
-            raise ValueError("Unable to find value baseline '{}' or [{}] in {}".format(
-                baseline, quoted_base, pprint.pformat(coor)))
+            raise ValueError(  # pragma: no cover
+                "Unable to find value baseline '{}' or [{}] in {}".format(
+                    baseline, quoted_base, pprint.pformat(coor)))
     m_bases = {}
     ind = [0 for c in coor]
     res = {}
@@ -134,7 +135,8 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False,
     meta_class = None
     if conf is not None:
         if not os.path.exists(conf):
-            raise FileNotFoundError("Unable to find '{}'.".format(conf))
+            raise FileNotFoundError(  # pragma: no cover
+                "Unable to find '{}'.".format(conf))
         with open(conf, "r", encoding='utf-8') as f:
             meta = json.load(f)
         bdir = os.path.join(os.path.dirname(conf), meta['benchmark_dir'])
@@ -143,7 +145,8 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False,
 
     bench = os.path.join(folder, 'benchmarks.json')
     if not os.path.exists(bench):
-        raise FileNotFoundError("Unable to find '{}'.".format(bench))
+        raise FileNotFoundError(  # pragma: no cover
+            "Unable to find '{}'.".format(bench))
     with open(bench, 'r', encoding='utf-8') as f:
         content = json.load(f)
 
@@ -181,10 +184,11 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False,
                 results = test_content['results']
                 for kk, vv in results.items():
                     if vv is None:
-                        raise RuntimeError('Unexpected empty value for vv')
+                        raise RuntimeError(  # pragma: no cover
+                            'Unexpected empty value for vv')
                     try:
                         metrics, coord, hash = vv[:3]
-                    except ValueError as e:
+                    except ValueError as e:  # pragma: no cover
                         raise ValueError(
                             "Test '{}', unable to interpret: {}.".format(
                                 kk, vv)) from e
@@ -284,7 +288,7 @@ def _enumerate_classes(filename):
 
     try:
         exec(cp, gl, loc)  # pylint: disable=W0122
-    except NameError as e:
+    except NameError as e:  # pragma: no cover
         raise NameError(
             "An import is probably missing from function 'fix_missing_imports'"
             ".") from e

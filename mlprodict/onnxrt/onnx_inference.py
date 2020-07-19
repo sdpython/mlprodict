@@ -11,14 +11,13 @@ import warnings
 import textwrap
 import numpy
 from scipy.sparse import coo_matrix
-import pandas
 from onnx import load, load_model, checker, shape_inference
 from onnx import onnx_pb as onnx_proto
 from onnx.helper import make_model
 from ..tools.code_helper import make_callable
 from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_manipulations import select_model_inputs_outputs, enumerate_model_node_outputs
-from .onnx2py_helper import _var_as_dict
+from .onnx2py_helper import _var_as_dict, numpy_min, numpy_max
 from .shape_object import ShapeObject
 from .onnx_inference_exports import OnnxInferenceExport
 
@@ -342,14 +341,16 @@ class OnnxInference:
             inits[obj.name] = init_obj
             self.global_index(obj.name)
             if 'value' not in inits[obj.name]:
-                raise RuntimeError("One initializer has no value: '{}'\n{}\n{}".format(
-                    obj.name, inits[obj.name], obj))
+                raise RuntimeError(  # pragma: no cover
+                    "One initializer has no value: '{}'\n{}\n{}".format(
+                        obj.name, inits[obj.name], obj))
 
         # nodes
         for node in self.obj.graph.node:
             dobj = _var_as_dict(node)
             if dobj is None:
-                raise RuntimeError("Unable to convert a node\n{}".format(node))
+                raise RuntimeError(  # pragma: no cover
+                    "Unable to convert a node\n{}".format(node))
             if 'atts' in dobj:
                 atts = dobj['atts']
                 for k, v in atts.items():
@@ -422,7 +423,7 @@ class OnnxInference:
                     modif += 1
                     for o in v[1].outputs:
                         if (o, 0) in order:
-                            raise RuntimeError(
+                            raise RuntimeError(  # pragma: no cover
                                 "Two nodes share the same output '{}' or an operator and an output "
                                 "share the same name. "
                                 "(node: {}).".format(o, v[1]))
@@ -445,6 +446,17 @@ class OnnxInference:
             node = nodes[name]
             node.set_order(len(sequence))
             sequence.append(node)
+
+        if len(sequence) == 0:
+            raise RuntimeError(  # pragma: no cover
+                "No runnable nodes was found in the ONNX graph"
+                "\n--rev--\n{}"
+                "\n--order--\n{}"
+                "\n--nodes--\n{}"
+                "\n---".format(
+                    "\n".join([str(_) for _ in names.items()]),
+                    "\n".join([str(_) for _ in order.items()]),
+                    "\n".join([str(_) for _ in nodes.items()])))
 
         # defines where an intermediare output is not needed
         last_used = {}
@@ -516,11 +528,14 @@ class OnnxInference:
         *OnnxInference*.
         """
         def retype(col_array):
-            if isinstance(col_array, pandas.Categorical):
+            if (hasattr(col_array, 'categories') and
+                    hasattr(col_array, 'from_codes')):
+                # isinstance(col_array, pandas.Categorical):
                 return col_array.astype(numpy.int64)
             return col_array
 
-        if isinstance(inputs, pandas.DataFrame):
+        if hasattr(inputs, 'columns') and hasattr(inputs, 'iloc'):
+            # == isinstance(inputs, pandas.DataFrame)
             inputs = OrderedDict((
                 name, retype(numpy.expand_dims(inputs[name].values, axis=1)))
                 for name in inputs.columns)
@@ -542,7 +557,8 @@ class OnnxInference:
                               intermediate=False, verbose=0, node_time=False,
                               fLOG=None):
         if clean_right_away:
-            raise NotImplementedError("clean_right_away=true not implemented.")
+            raise NotImplementedError(  # pragma: no cover
+                "clean_right_away=true not implemented.")
 
         if node_time:
             mtime = []
@@ -558,7 +574,7 @@ class OnnxInference:
                     values[self._global_index[k]] = v['value']
                     fLOG("+ki='{}': {} (dtype={} min={} max={})".format(
                         k, v['value'].shape, v['value'].dtype,
-                        numpy.min(v['value']), numpy.max(v['value'])))
+                        numpy_min(v['value']), numpy_max(v['value'])))
                     printed.add(k)
             else:
                 for k, v in self.inits_.items():
@@ -613,8 +629,8 @@ class OnnxInference:
                         printed.add(k)
                         if hasattr(obj, 'shape'):
                             fLOG("-kv='{}' shape={} dtype={} min={} max={}{}".format(
-                                k, obj.shape, obj.dtype, numpy.min(
-                                    obj), numpy.max(obj),
+                                k, obj.shape, obj.dtype, numpy_min(obj),
+                                numpy_max(obj),
                                 ' (sparse)' if isinstance(obj, coo_matrix) else ''))
                         elif (isinstance(obj, list) and len(obj) > 0 and
                                 not isinstance(obj[0], dict)):
@@ -647,16 +663,8 @@ class OnnxInference:
                             name for name in self._global_index if self._global_index[name] == k)
                         if isinstance(values[k], (numpy.ndarray, coo_matrix)):
                             name = name[0]
-                            try:
-                                mini = numpy.min(values[k])
-                                maxi = numpy.max(values[k])
-                            except TypeError:  # pragma: no cover
-                                try:
-                                    mini = numpy.min(values[k].astype(str))
-                                    maxi = numpy.max(values[k].astype(str))
-                                except TypeError:
-                                    mini = "?"
-                                    maxi = "?"
+                            mini = numpy_min(values[k])
+                            maxi = numpy_max(values[k])
                             fLOG("+kr='{}': {} (dtype={} min={} max={}{})".format(
                                 name, values[k].shape, values[k].dtype,
                                 mini, maxi,
@@ -674,14 +682,14 @@ class OnnxInference:
             values.sort()
             values = OrderedDict((k, v) for _, k, v in values)
             return (values, mtime) if node_time else values
-        else:
-            try:
-                res = {k: values[self._global_index[k]] for k in self.outputs_}
-            except KeyError as e:
-                raise RuntimeError("Unable to find one output [{}]\n in [{}]"
-                                   ".".format(", ".join(sorted(self.outputs_)),
-                                              ", ".join(sorted(values)))) from e
-            return (res, mtime) if node_time else res
+
+        try:
+            res = {k: values[self._global_index[k]] for k in self.outputs_}
+        except KeyError as e:  # pragma: no cover
+            raise RuntimeError("Unable to find one output [{}]\n in [{}]"
+                               ".".format(", ".join(sorted(self.outputs_)),
+                                          ", ".join(sorted(values)))) from e
+        return (res, mtime) if node_time else res
 
     def build_intermediate(self):
         """
@@ -990,7 +998,6 @@ class OnnxInference:
                 clr.fit(X_train, y_train)
 
                 model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                                    dtype=numpy.float32,
                                     target_opset=12)
 
                 oinf2 = OnnxInference(model_def, runtime='python_compiled')

@@ -31,8 +31,9 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
     Additional parameters:
     - *with_loop*: False by default, *True* not implemented.
     """
-    if kwargs.get('with_loop', False):  # pragma: no cover
-        raise NotImplementedError("Loop version is not implemented.")
+    if kwargs.get('with_loop', False):
+        raise NotImplementedError(  # pragma: no cover
+            "Loop version is not implemented.")
     if output_names is None:
         output_names = ['Prediction', 'Score']
     if input_names is None:
@@ -40,8 +41,8 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
 
     from sklearn.linear_model import LogisticRegression
     check_type(model, LogisticRegression)
-    if len(model.coef_.shape) > 1 and min(model.coef_.shape) != 1:  # pragma: no cover
-        raise NotImplementedError(
+    if len(model.coef_.shape) > 1 and min(model.coef_.shape) != 1:
+        raise NotImplementedError(  # pragma: no cover
             "Multiclass is not implemented yet: coef_.shape={0}.".format(model.coef_.shape))
     coef_ = model.coef_.ravel()
     coef = coef_.astype(numpy.float32)
@@ -49,7 +50,7 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
 
     for i, c in enumerate(coef):
         if numpy.isinf(c):
-            raise Float32InfError(
+            raise Float32InfError(  # pragma: no cover
                 'Unable to convert coefficient {0}: {1}'.format(i, coef[i]))
     if numpy.isinf(bias):
         raise Float32InfError(
@@ -96,7 +97,7 @@ def sklearn_linear_regression(model, input_names=None, output_names=None, **kwar
     from sklearn.linear_model import LinearRegression
     check_type(model, LinearRegression)
     if len(model.coef_.shape) > 1 and min(model.coef_.shape) != 1:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "MultiOutput is not implemented yet: coef_.shape={0}.".format(model.coef_.shape))
 
     coef_ = model.coef_.ravel()
@@ -105,10 +106,10 @@ def sklearn_linear_regression(model, input_names=None, output_names=None, **kwar
 
     for i, c in enumerate(coef):
         if numpy.isinf(c):
-            raise Float32InfError(
+            raise Float32InfError(  # pragma: no cover
                 'Unable to convert coefficient {0}: {1}'.format(i, coef[i]))
     if numpy.isinf(bias):
-        raise Float32InfError(
+        raise Float32InfError(  # pragma: no cover
             'Unable to convert intercept {0}'.format(model.intercept_))
 
     gr_coef = MLActionCst(coef)

@@ -20,7 +20,8 @@ from sklearn.gaussian_process.kernels import DotProduct
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnx_conv import to_onnx
-from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
+from mlprodict.onnxrt.validate import (
+    enumerate_validated_operator_opsets, summary_report)
 from mlprodict.onnxrt import OnnxInference
 
 
@@ -127,13 +128,18 @@ class TestRtValidateGaussianProcess(ExtTestCase):
                {'', 'onnx/' + expcl, expcl},
                {'', 'onnx/' + expcl2, expcl2, 'onnx'},
                {'', 'onnx/' + expcl2, expcl2},
-               {'', 'onnx'}]
+               {'', 'onnx'},
+               {'', expcl},
+               {'', expcl2},
+               ]
         self.assertIn(set(optim_values), exp)
         piv = summary_report(DataFrame(rows))
         expcl = 'cdist'
         exp = [{'', 'onnx/' + expcl, expcl, 'onnx'},
                {'', 'onnx/' + expcl, expcl},
                {'', 'cdist', 'onnx'},
+               {'', expcl},
+               {'', expcl2},
                {'', 'onnx'}]
         self.assertIn(set(piv['optim']), exp)
 
@@ -207,8 +213,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y)
         gau = GaussianProcessRegressor(alpha=10, kernel=DotProduct())
         gau.fit(X_train, y_train)
-        onnxgau48 = to_onnx(gau, X_train.astype(
-            numpy.float32), dtype=numpy.float32)
+        onnxgau48 = to_onnx(gau, X_train.astype(numpy.float32))
         oinf48 = OnnxInference(onnxgau48, runtime="python")
         out = oinf48.run({'X': X_test.astype(numpy.float32)})
         y = out['GPmean']

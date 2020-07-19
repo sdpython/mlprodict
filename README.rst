@@ -58,6 +58,10 @@ mlprodict
 .. image:: https://mybinder.org/badge_logo.svg
     :target: https://mybinder.org/v2/gh/sdpython/mlprodict/master?filepath=_doc%2Fnotebooks
 
+.. image:: https://img.shields.io/github/repo-size/sdpython/mlprodict
+    :target: https://github.com/sdpython/mlprodict/
+    :alt: size
+
 The packages explores ways to productionize machine learning predictions.
 One approach uses *ONNX* and tries to implement
 a runtime in python / numpy or wraps
@@ -72,7 +76,8 @@ a pipeline directly into C and is not much developed.
 
     from sklearn.linear_model import LinearRegression
     from sklearn.datasets import load_iris
-    from mlprodict.onnxrt import OnnxInference, measure_relative_difference
+    from mlprodict.onnxrt import OnnxInference
+    from mlprodict.onnxrt.validate.validate_difference import measure_relative_difference
     import numpy
 
     iris = load_iris()
@@ -99,17 +104,32 @@ a pipeline directly into C and is not much developed.
 
 **Installation**
 
-The project relies on *sklearn-onnx* which is in active
-development. Continuous integration relies on a specific
-branch of this project to benefit from the lastest changes:
+Installation from *pip* should work unless you need the latest
+development features.
+
+::
+
+    pip install mlprodict
+
+The package includes a runtime for *onnx*. That's why there
+is a limited number of dependencies. However, some features
+relies on *sklearn-onnx*, *onnxruntime*, *scikit-learn*.
+They can be installed with the following instructions:
+
+::
+
+    pip install mlprodict[all]
+
+Some functions used in that package may rely on features
+implemented in PR still pending. In that case, you should
+install *sklearn-onnx* from:
 
 ::
 
     pip install git+https://github.com/xadupre/sklearn-onnx.git@jenkins
 
-The project is currently in active development.
-It is safer to install the package directly from
-github:
+If needed, the development version should be directy installed
+from github:
 
 ::
 
@@ -121,8 +141,7 @@ the documentation are described in `config.yml
 <https://github.com/sdpython/mlprodict/blob/master/.circleci/config.yml>`_
 for Linux. When this project becomes more stable,
 it will changed to be using official releases.
-Experiments with float64 are not supported with
-``sklearn-onnx <= 1.5.0``.
 The code is available at
 `GitHub/mlprodict <https://github.com/sdpython/mlprodict/>`_
-and has `online documentation <http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html>`_.
+and has `online documentation <http://www.xavierdupre.fr/app/
+mlprodict/helpsphinx/index.html>`_.

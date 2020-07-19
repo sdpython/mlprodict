@@ -23,6 +23,8 @@ def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=Non
     @return                     new onnx _model
     """
     if hasattr(onnx_model, 'graph'):
+        if debug_info is None:
+            debug_info = []
         graph = fct(
             onnx_model.graph, debug_info=debug_info + ['GRAPH'],
             **kwargs)
@@ -42,8 +44,9 @@ def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=Non
             op_set.domain = oimp.domain
             op_set.version = oimp.version
         return new_model
-    raise TypeError("This function only works on 'ModelProto' anod not not on"
-                    " {}.".format(type(onnx_model)))
+    raise TypeError(  # pragma: no cover
+        "This function only works on 'ModelProto' anod not not on"
+        " {}.".format(type(onnx_model)))
 
 
 def _apply_remove_node_fct_node(fct, node, recursive, debug_info):

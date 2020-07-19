@@ -28,8 +28,7 @@ class TestOnnxrtValidateBug(ExtTestCase):
                        op_version=get_opset_number_from_onnx()),
             numpy.array([intercept]), output_names=['Y'],
             op_version=get_opset_number_from_onnx())
-        onnx_model64 = onnx_fct.to_onnx({'X': X_test.astype(numpy.float64)},
-                                        dtype=numpy.float64)
+        onnx_model64 = onnx_fct.to_onnx({'X': X_test.astype(numpy.float64)})
 
         oinf = OnnxInference(onnx_model64)
         ort_pred = oinf.run({'X': X_test.astype(numpy.float64)})['Y']

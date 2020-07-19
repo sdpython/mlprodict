@@ -25,6 +25,7 @@ class TestCodeStyle(ExtTestCase):
                          "gactions.py:238: E1128",
                          "R1720",
                          "[E731]",
+                         "onnx_helper.py:8",  # a bug with python3.8
                          ])
 
     def test_style_test(self):

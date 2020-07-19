@@ -611,7 +611,8 @@ def find_suitable_problem(model):
         :showcode:
         :rst:
 
-        from mlprodict.onnxrt.validate.validate import sklearn_operators, find_suitable_problem
+        from mlprodict.onnxrt.validate.validate import (
+            sklearn_operators, find_suitable_problem)
         from pyquickhelper.pandashelper import df2rst
         from pandas import DataFrame
         res = sklearn_operators()
@@ -655,6 +656,9 @@ def find_suitable_problem(model):
                     '~b-reg-std-NSV-64',  # '~m-reg-std-NSV-64',
                     'b-reg', '~b-reg-64',  # 'm-reg'
                     ]
+
+        if model in {GaussianProcessClassifier}:
+            return ['b-cl', 'm-cl', '~b-cl-64']
 
         if model in {DictVectorizer}:
             return ['key-int-col']

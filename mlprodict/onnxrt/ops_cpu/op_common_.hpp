@@ -348,7 +348,25 @@ void shape2strides(const std::vector<DIMTYPE>& shape,
 }
 
 
+template<class DIMTYPE>
+DIMTYPE SizeFromDimension(const std::vector<DIMTYPE>& shape, size_t start, size_t end)
+{
+    DIMTYPE size = 1;
+    for (size_t i = start; i < end; i++) {
+        if (shape[i] < 0)
+            return -1;
+        size *= shape[i];
+    }
+    return size;
+}
+
+
 template <typename T, T b>
 constexpr T roundUpPow2(T a) {
   return (a + (b - 1)) & (~(b - 1));
+}
+
+
+inline int64_t HandleNegativeAxis(int64_t axis, int64_t tensor_rank) {
+  return axis < 0 ? axis + tensor_rank : axis;
 }

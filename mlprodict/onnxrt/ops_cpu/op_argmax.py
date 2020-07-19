@@ -27,6 +27,11 @@ def _argmax_use_numpy_select_last_index(
 
 
 class _ArgMax(OpRunArg):
+    """
+    Base class for runtime for operator `ArgMax
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators.md#ArgMax>`_.
+    """
 
     def __init__(self, onnx_node, desc=None,
                  expected_attributes=None, **options):

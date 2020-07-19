@@ -12,34 +12,33 @@ Windows.
     the system is told otherwise.
 """
 import os
+from datetime import datetime
 import pickle
 from logging import getLogger
 import numpy
 from sklearn import set_config
 from sklearn.datasets import load_iris
 from sklearn.metrics import (
-    accuracy_score,
-    mean_absolute_error,
-    silhouette_score,
-)
+    accuracy_score, mean_absolute_error,
+    silhouette_score)
 from sklearn.model_selection import train_test_split
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import (
-    to_onnx, register_rewritten_operators, register_converters
-)
+    to_onnx, register_rewritten_operators, register_converters)
 from mlprodict.onnxrt.validate.validate_benchmark import make_n_rows
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 from mlprodict.onnxrt.optim import onnx_statistics
 from mlprodict.tools.asv_options_helper import (
     expand_onnx_options, get_opset_number_from_onnx,
-    get_ir_version_from_onnx
-)
+    get_ir_version_from_onnx, version2number)
+from mlprodict.tools.model_info import set_random_state
 
 
 class _CommonAsvSklBenchmark:
     """
     Common tests to all benchmarks testing converted
-    :epkg:`scikit-learn` models.
+    :epkg:`scikit-learn` models. See `benchmark attributes
+    <https://asv.readthedocs.io/en/stable/benchmarks.html#general>`_.
     """
 
     # Part which changes.
@@ -55,6 +54,8 @@ class _CommonAsvSklBenchmark:
     ]
     param_names = ['rt', 'N', 'nf', 'opset', 'dtype', 'optim']
     chk_method_name = None
+    version = datetime.now().isoformat()
+    pretty_source = "disabled"
 
     par_ydtype = numpy.int64
     par_dofit = True
@@ -77,7 +78,8 @@ class _CommonAsvSklBenchmark:
             return numpy.float32
         elif dtype in ('double', numpy.float64):
             return numpy.float64
-        raise ValueError("Unknown dtype '{}'.".format(dtype))
+        raise ValueError(  # pragma: no cover
+            "Unknown dtype '{}'.".format(dtype))
 
     def _get_dataset(self, nf, dtype):
         xdtype = self._get_xdtype(dtype)
@@ -97,7 +99,7 @@ class _CommonAsvSklBenchmark:
         if optim is None or len(optim) == 0:
             options = self.par_convopts
         elif self.par_convopts and len(self.par_convopts) > 0:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Conflict between par_convopts={} and optim={}".format(
                     self.par_convopts, optim))
         else:
@@ -105,10 +107,8 @@ class _CommonAsvSklBenchmark:
             options = expand_onnx_options(model, optim)
 
         if dtype in (numpy.float64, 'double'):
-            return to_onnx(model, X, dtype=numpy.float64,
-                           options=options, target_opset=opset)
-        return to_onnx(model, X, options=options,
-                       target_opset=opset)
+            return to_onnx(model, X, options=options, target_opset=opset)
+        return to_onnx(model, X, options=options, target_opset=opset)
 
     def _create_onnx_inference(self, onx, runtime):
         if 'onnxruntime' in runtime:
@@ -119,7 +119,7 @@ class _CommonAsvSklBenchmark:
 
         try:
             res = OnnxInference(onx, runtime=runtime)
-        except RuntimeError as e:
+        except RuntimeError as e:  # pragma: no cover
             if "[ONNXRuntimeError]" in str(e):
                 return RuntimeError("onnxruntime fails due to {}".format(str(e)))
             raise e
@@ -144,7 +144,8 @@ class _CommonAsvSklBenchmark:
         elif runtime == 'pyrtc':
             name = 'python_compiled'
         else:
-            raise ValueError("Unknown runtime '{}'.".format(runtime))
+            raise ValueError(  # pragma: no cover
+                "Unknown runtime '{}'.".format(runtime))
         return name
 
     def _name(self, nf, opset, dtype):
@@ -160,14 +161,16 @@ class _CommonAsvSklBenchmark:
                     (X_train, y_train), (X, y) = self._get_dataset(nf, dtype)
                     model = self._create_model()
                     if self.par_dofit:
+                        set_random_state(model)
                         model.fit(X_train, y_train)
                     stored = {'model': model, 'X': X, 'y': y}
                     filename = self._name(nf, opv, dtype)
                     with open(filename, "wb") as f:
                         pickle.dump(stored, f)
                     if not os.path.exists(filename):
-                        raise RuntimeError("Unable to dump model %r into %r." % (
-                            model, filename))
+                        raise RuntimeError(  # pragma: no cover
+                            "Unable to dump model %r into %r." % (
+                                model, filename))
 
     def setup(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
@@ -210,13 +213,33 @@ class _CommonAsvSklBenchmark:
         stats = onnx_statistics(self.onx)
         return stats.get('nnodes', 0)
 
+    def track_vmlprodict(self, runtime, N, nf, opset, dtype, optim):
+        "asv API"
+        from mlprodict import __version__
+        return version2number(__version__)
+
+    def track_vsklearn(self, runtime, N, nf, opset, dtype, optim):
+        "asv API"
+        from sklearn import __version__
+        return version2number(__version__)
+
+    def track_vort(self, runtime, N, nf, opset, dtype, optim):
+        "asv API"
+        try:
+            from onnxruntime import __version__
+            return version2number(__version__)
+        except ImportError:  # pragma: no cover
+            return 0
+
     def check_method_name(self, method_name):
         "Does some verifications. Fails if inconsistencies."
         if getattr(self, 'chk_method_name', None) not in (None, method_name):
-            raise RuntimeError("Method name must be '{}'.".format(method_name))
+            raise RuntimeError(  # pragma: no cover
+                "Method name must be '{}'.".format(method_name))
         if getattr(self, 'chk_method_name', None) is None:
-            raise RuntimeError(
-                "Unable to check that the method name is correct (expected is '{}')".format(
+            raise RuntimeError(  # pragma: no cover
+                "Unable to check that the method name is correct "
+                "(expected is '{}')".format(
                     method_name))
 
 

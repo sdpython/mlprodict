@@ -31,17 +31,21 @@ def convert_score_cdist_sum(scope, operator, container):
     """
     op = operator.raw_operator
     if op._fct != score_cdist_sum:  # pylint: disable=W0143
-        raise RuntimeError("The wrong converter was called {} != {}.".format(
-            op._fct, score_cdist_sum))
+        raise RuntimeError(  # pragma: no cover
+            "The wrong converter was called {} != {}.".format(
+                op._fct, score_cdist_sum))
 
     from skl2onnx.algebra.complex_functions import onnx_cdist
     from skl2onnx.algebra.onnx_ops import OnnxReduceSum  # pylint: disable=E0611
+    from skl2onnx.common.data_types import guess_numpy_type
 
     X = operator.inputs[0]
     Y = operator.inputs[1]
     out = operator.outputs
     opv = container.target_opset
-    dtype = container.dtype
+    dtype = guess_numpy_type(operator.inputs[0].type)
+    if dtype != numpy.float64:
+        dtype = numpy.float32
     out = operator.outputs
 
     options = container.get_options(score_cdist_sum, dict(cdist=None))

@@ -94,7 +94,7 @@ the cause of the error if it does not work.
 .. runpython::
     :showcode:
     :rst:
-    :warningout: PendingDeprecationWarning UserWarning RuntimeWarning
+    :warningout: PendingDeprecationWarning UserWarning RuntimeWarning FutureWarning
 
     from logging import getLogger
     from pyquickhelper.loghelper import noLOG
@@ -142,6 +142,7 @@ intermediate node anymore.
 
 .. runpython::
     :showcode:
+    :warningout: FutureWarning
 
     import numpy
     from sklearn.ensemble import AdaBoostRegressor

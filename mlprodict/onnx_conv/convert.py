@@ -3,16 +3,18 @@
 @file
 @brief Overloads a conversion function.
 """
+import pprint
 from collections import OrderedDict
 import numpy
 import pandas
 try:
     from sklearn.metrics._scorer import _PredictScorer
-except ImportError:
+except ImportError:  # pragma: no cover
     # scikit-learn < 0.22
     from sklearn.metrics.scorer import _PredictScorer
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
-from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType, DataType
+from skl2onnx.common.data_types import (
+    FloatTensorType, DoubleTensorType, DataType, guess_numpy_type)
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from skl2onnx import convert_sklearn
 from skl2onnx.algebra.type_helper import _guess_type
@@ -23,7 +25,6 @@ from .scorers import CustomScorerTransform
 
 def convert_scorer(fct, initial_types, name=None,
                    target_opset=None, options=None,
-                   dtype=numpy.float32,
                    custom_conversion_functions=None,
                    custom_shape_calculators=None,
                    custom_parsers=None, white_op=None,
@@ -41,7 +42,6 @@ def convert_scorer(fct, initial_types, name=None,
     @param  name                        name of the produced model
     @param  target_opset                to do it with a different target opset
     @param  options                     additional parameters for the conversion
-    @param  dtype                       type to use to convert the model
     @param  custom_conversion_functions a dictionary for specifying the user customized
                                         conversion function, it takes precedence over
                                         registered converters
@@ -77,7 +77,7 @@ def convert_scorer(fct, initial_types, name=None,
     tr = CustomScorerTransform(fct.__name__, fct, kwargs)
     return convert_sklearn(
         tr, initial_types=initial_types,
-        target_opset=target_opset, options=options, dtype=dtype,
+        target_opset=target_opset, options=options,
         custom_conversion_functions=custom_conversion_functions,
         custom_shape_calculators=custom_shape_calculators,
         custom_parsers=custom_parsers, white_op=white_op,
@@ -93,7 +93,8 @@ def guess_initial_types(X, initial_types):
     @return                     data types
     """
     if X is None and initial_types is None:
-        raise NotImplementedError("Initial types must be specified.")
+        raise NotImplementedError(  # pragma: no cover
+            "Initial types must be specified.")
     elif initial_types is None:
         if isinstance(X, (numpy.ndarray, pandas.DataFrame)):
             X = X[:1]
@@ -161,10 +162,10 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
     if schema is not None:
         try:
             guessed = guess_schema_from_model(model)
-        except NotImplementedError:
+        except NotImplementedError:  # pragma: no cover
             return _replace_tensor_type(schema, tensor_type)
         if len(guessed) != len(schema):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Given schema and guessed schema are not the same:\nGOT: {}\n-----\nGOT:\n{}".format(
                     schema, guessed))
         return _replace_tensor_type(schema, tensor_type)
@@ -180,10 +181,9 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
             init = [(name, FloatTensorType([None, 1])) for name in names]
             return _replace_tensor_type(init, tensor_type)
 
-    import pprint
     data = pprint.pformat(model.__dict__)
     dirs = pprint.pformat(dir(model))
-    if hasattr(model, 'dump_model'):
+    if hasattr(model, 'dump_model'):  # pragma: no cover
         dumped = model.dump_model()
         keys = list(sorted(dumped))
         last = pprint.pformat([keys, dumped])
@@ -191,14 +191,13 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
             last = last[:200000] + "\n..."
     else:
         last = ""
-    raise NotImplementedError(
+    raise NotImplementedError(  # pragma: no cover
         "Unable to guess schema for model {}\n{}\n----\n{}\n------\n{}".format(
             model.__class__, data, dirs, last))
 
 
 def to_onnx(model, X=None, name=None, initial_types=None,
-            target_opset=None, options=None,
-            dtype=numpy.float32, rewrite_ops=False,
+            target_opset=None, options=None, rewrite_ops=False,
             white_op=None, black_op=None, final_types=None):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
@@ -214,7 +213,6 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     @param      name            name of the produced model
     @param      target_opset    to do it with a different target opset
     @param      options         additional parameters for the conversion
-    @param      dtype           type to use to convert the model
     @param      rewrite_ops     rewrites some existing converters,
                                 the changes are permanent
     @param      white_op        white list of ONNX nodes allowed
@@ -233,7 +231,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     but may changes a few converters if *rewrite_ops* is True.
     For example, :epkg:`ONNX` only supports *TreeEnsembleRegressor*
     for float but not for double. It becomes available
-    if ``dtype=numpy.float64`` and ``rewrite_ops=True``.
+    if ``rewrite_ops=True``.
 
     .. faqref::
         :title: How to deal with a dataframe as input?
@@ -307,12 +305,12 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     """
     if isinstance(model, OnnxOperatorMixin):
         if not hasattr(model, 'op_version'):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Missing attribute 'op_version' for type '{}'.".format(
                     type(model)))
-        return model.to_onnx(X=X, name=name, dtype=dtype,
-                             options=options, black_op=black_op,
-                             white_op=white_op, final_types=final_types)
+        return model.to_onnx(
+            X=X, name=name, options=options, black_op=black_op,
+            white_op=white_op, final_types=final_types)
     if rewrite_ops:
         old_values = register_rewritten_operators()
         register_converters()
@@ -322,7 +320,22 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     def _guess_type_(X, itype, dtype):
         initial_types = guess_initial_types(X, itype)
         if dtype is None:
-            raise RuntimeError("dtype cannot be None")
+            if hasattr(X, 'dtypes'):  # DataFrame
+                dtype = numpy.float32
+            elif hasattr(X, 'dtype'):
+                dtype = X.dtype
+            elif hasattr(X, 'type'):
+                dtype = guess_numpy_type(X.type)
+            elif initial_types is not None:
+                dtype = guess_numpy_type(initial_types[0][1])
+            else:
+                raise RuntimeError(  # pragma: no cover
+                    "dtype cannot be guessed: {}".format(
+                        type(X)))
+            if dtype != numpy.float64:
+                dtype = numpy.float32
+        if dtype is None:
+            raise RuntimeError("dtype cannot be None")  # pragma: no cover
         if isinstance(dtype, FloatTensorType):
             dtype = numpy.float32
         elif isinstance(dtype, DoubleTensorType):
@@ -334,7 +347,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             new_dtype = numpy.float32
         if new_dtype not in (numpy.float32, numpy.float64, numpy.int64,
                              numpy.int32):
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "dtype should be real not {} ({})".format(new_dtype, dtype))
         return initial_types, dtype, new_dtype
 
@@ -346,6 +359,12 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             dts = []
             initial_types = []
             for k, v in X.items():
+                if hasattr(v, 'dtype'):
+                    dtype = guess_numpy_type(v.dtype)
+                else:
+                    dtype = v
+                if dtype != numpy.float64:
+                    dtype = numpy.float32
                 it, _, ndt = _guess_type_(v, None, dtype)
                 for i in range(len(it)):  # pylint: disable=C0200
                     it[i] = (k, it[i][1])  # pylint: disable=C0200
@@ -353,23 +372,21 @@ def to_onnx(model, X=None, name=None, initial_types=None,
                 dts.append(ndt)
             ndt = set(dts)
             if len(ndt) != 1:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Multiple dtype is not efficient {}.".format(ndt))
-            dtype = dts[0]
-            new_dtype = dts[0]
         res = convert_scorer(model, initial_types, name=name,
                              target_opset=target_opset, options=options,
-                             dtype=new_dtype, black_op=black_op,
-                             white_op=white_op, final_types=final_types)
+                             black_op=black_op, white_op=white_op,
+                             final_types=final_types)
     else:
         if name is None:
             name = "mlprodict_ONNX(%s)" % model.__class__.__name__
 
-        initial_types, dtype, new_dtype = _guess_type_(X, initial_types, dtype)
+        initial_types, dtype, _ = _guess_type_(X, initial_types, None)
         res = convert_sklearn(model, initial_types=initial_types, name=name,
                               target_opset=target_opset, options=options,
-                              dtype=new_dtype, black_op=black_op,
-                              white_op=white_op, final_types=final_types)
+                              black_op=black_op, white_op=white_op,
+                              final_types=final_types)
 
     if old_values is not None:
         register_rewritten_operators(old_values)

@@ -2,17 +2,32 @@
 Installation
 ============
 
-The project relies on *sklearn-onnx* which is in active
-development. Continuous integration relies on a specific
-branch of this project to benefit from the lastest changes:
+Installation from *pip* should work unless you need the latest
+development features.
+
+::
+
+    pip install mlprodict
+
+The package includes a runtime for *onnx*. That's why there
+is a limited number of dependencies. However, some features
+relies on *sklearn-onnx*, *onnxruntime*, *scikit-learn*.
+They can be installed with the following instructions:
+
+::
+
+    pip install mlprodict[all]
+
+Some functions used in that package may rely on features
+implemented in PR still pending. In that case, you should
+install *sklearn-onnx* from:
 
 ::
 
     pip install git+https://github.com/xadupre/sklearn-onnx.git@jenkins
 
-The project is currently in active development.
-It is safer to install the package directly from
-github:
+If needed, the development version should be directy installed
+from github:
 
 ::
 
@@ -24,8 +39,6 @@ the documentation are described in `config.yml
 <https://github.com/sdpython/mlprodict/blob/master/.circleci/config.yml>`_
 for Linux. When this project becomes more stable,
 it will changed to be using official releases.
-Experiments with float64 are not supported with
-``sklearn-onnx <= 1.5.0``.
 
 .. toctree::
 

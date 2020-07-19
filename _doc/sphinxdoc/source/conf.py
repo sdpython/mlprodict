@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import os
-import sphinx_readable_theme
+import alabaster
 from pyquickhelper.helpgen.default_conf import set_sphinx_variables, get_default_stylesheet
 from sklearn.experimental import enable_hist_gradient_boosting
 from mlprodict.onnx_conv import register_converters, register_rewritten_operators
@@ -28,8 +28,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.split(__file__)[0])))
 local_template = os.path.join(os.path.abspath(
     os.path.dirname(__file__)), "phdoc_templates")
 
-set_sphinx_variables(__file__, "mlprodict", "Xavier Dupré", 2019,
-                     "readable", sphinx_readable_theme.get_html_theme_path(),
+set_sphinx_variables(__file__, "mlprodict", "Xavier Dupré", 2020,
+                     "alabaster", alabaster.get_path(),
                      locals(), extlinks=dict(
                          issue=('https://github.com/sdpython/mlprodict/issues/%s', 'issue')),
                      title="Python Runtime for ONNX", book=True)
@@ -70,6 +70,7 @@ epkg_dictionary.update({
     'dot': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'DOT': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'exec': 'https://docs.python.org/3/library/functions.html#exec',
+    'GaussianProcessRegressor': 'https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html',
     'Iris': 'https://en.wikipedia.org/wiki/Iris_flower_data_set',
     'IR_VERSION': 'https://github.com/onnx/onnx/blob/master/docs/IR.md#onnx-versioning',
     'json': 'https://docs.python.org/3/library/json.html',
@@ -78,7 +79,7 @@ epkg_dictionary.update({
     'lightgbm': 'https://lightgbm.readthedocs.io/en/latest/',
     'make_scorer': 'https://scikit-learn.org/stable/modules/generated/sklearn.metrics.make_scorer.html',
     'Minkowski distance': 'https://en.wikipedia.org/wiki/Minkowski_distance',
-    'mlinsights': '',
+    'mlinsights': 'http://www.xavierdupre.fr/app/mlinsights/helpsphinx/index.html',
     'mlprodict': 'http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html',
     'openmp': 'https://www.openmp.org/',
     'ONNX': 'https://onnx.ai/',
@@ -98,6 +99,7 @@ epkg_dictionary.update({
     'run_asv.sh': 'https://github.com/sdpython/mlprodict/blob/master/bin/run_asv.sh',
     'Rust': 'https://www.rust-lang.org/',
     'sklearn-onnx': 'https://github.com/onnx/sklearn-onnx',
+    'Tokenizer': 'https://github.com/microsoft/onnxruntime/blob/master/docs/ContribOperators.md#com.microsoft.Tokenizer',
     'TransferTransformer': 'http://www.xavierdupre.fr/app/mlinsights/helpsphinx/mlinsights/mlmodel/transfer_transformer.html',
     'xgboost': "https://xgboost.readthedocs.io/en/latest/",
 })

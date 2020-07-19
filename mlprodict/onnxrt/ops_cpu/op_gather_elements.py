@@ -34,13 +34,15 @@ def gather_numpy(self, dim, index):
     :return: tensor of gathered values
 
     See `How to do scatter and gather operations in numpy?
-    <https://stackoverflow.com/questions/46065873/how-to-do-scatter-and-gather-operations-in-numpy/46204790#46204790>`_
+    <https://stackoverflow.com/questions/46065873/
+    how-to-do-scatter-and-gather-operations-in-numpy/46204790#46204790>`_
     """
     idx_xsection_shape = index.shape[:dim] + index.shape[dim + 1:]
     self_xsection_shape = self.shape[:dim] + self.shape[dim + 1:]
     if idx_xsection_shape != self_xsection_shape:
-        raise ValueError("Except for dimension " + str(dim) +
-                         ", all dimensions of index and self should be the same size")
+        raise ValueError(
+            "Except for dimension {}, all dimensions of "
+            "index and self should be the same size".format(dim))
     data_swaped = numpy.swapaxes(self, 0, dim)
     index_swaped = numpy.swapaxes(index, 0, dim)
     try:

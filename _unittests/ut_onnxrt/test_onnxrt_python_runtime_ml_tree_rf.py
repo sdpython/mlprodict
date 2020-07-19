@@ -53,7 +53,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(dtype),
-                            dtype=dtype, rewrite_ops=True)
+                            rewrite_ops=True)
         oinf = OnnxInference(model_def)
 
         text = "\n".join(map(lambda x: str(x.ops_), oinf.sequence_))
@@ -72,7 +72,11 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         if dtype == numpy.float32:
             self.assertEqualArray(lexp, y['variable'], decimal=5)
         else:
-            self.assertEqualArray(lexp, y['variable'])
+            try:
+                self.assertEqualArray(lexp, y['variable'])
+            except AssertionError as e:
+                raise AssertionError(
+                    "---------\n{}\n-----".format(model_def)) from e
         self.assertEqual(oinf.sequence_[0].ops_.rt_.same_mode_, True)
         self.assertNotEmpty(oinf.sequence_[0].ops_.rt_.nodes_modes_)
 

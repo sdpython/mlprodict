@@ -17,7 +17,9 @@ class Scaler(OpRunUnary):
                             **options)
 
     def _run(self, x):  # pylint: disable=W0221
+        return self._run_no_checks_(x)
 
+    def _run_no_checks_(self, x):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
             return self._run_inplace(x)
         return ((x - self.offset) * self.scale, )

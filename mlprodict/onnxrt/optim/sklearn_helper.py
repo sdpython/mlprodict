@@ -46,14 +46,17 @@ def enumerate_pipeline_models(pipe, coor=None, vs=None):
     yield coor, pipe, vs
     if hasattr(pipe, 'transformer_and_mapper_list') and len(pipe.transformer_and_mapper_list):
         # azureml DataTransformer
-        raise NotImplementedError("Unable to handle this specific case.")
+        raise NotImplementedError(  # pragma: no cover
+            "Unable to handle this specific case.")
     elif hasattr(pipe, 'mapper') and pipe.mapper:
         # azureml DataTransformer
-        for couple in enumerate_pipeline_models(pipe.mapper, coor + (0,)):
+        for couple in enumerate_pipeline_models(  # pragma: no cover
+                pipe.mapper, coor + (0,)):
             yield couple
     elif hasattr(pipe, 'built_features'):
         # sklearn_pandas.dataframe_mapper.DataFrameMapper
-        for i, (columns, transformers, _) in enumerate(pipe.built_features):
+        for i, (columns, transformers, _) in enumerate(  # pragma: no cover
+                pipe.built_features):
             if isinstance(columns, str):
                 columns = (columns,)
             if transformers is None:
@@ -86,7 +89,7 @@ def enumerate_pipeline_models(pipe, coor=None, vs=None):
             for couple in enumerate_pipeline_models(m, coor + (i,)):
                 yield couple
     else:
-        raise TypeError(
+        raise TypeError(  # pragma: no cover
             "pipe is not a scikit-learn object: {}\n{}".format(type(pipe), pipe))
 
 
@@ -254,7 +257,7 @@ def inspect_sklearn_model(model, recursive=True):
             if hasattr(m, 'coef_'):
                 st['ncoef'] = len(m.coef_)
                 st['nlin'] = 1
-        except KeyError:
+        except KeyError:  # pragma: no cover
             # added to deal with xgboost 1.0 (KeyError: 'weight')
             pass
         if hasattr(m, 'estimators_'):

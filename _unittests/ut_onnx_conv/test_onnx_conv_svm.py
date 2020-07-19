@@ -58,7 +58,7 @@ class TestOnnxConvSVM(ExtTestCase):
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(dtype),
-                            dtype=dtype, rewrite_ops=True,
+                            rewrite_ops=True,
                             target_opset=target_opset)
         if 'onnxruntime' in runtime:
             model_def.ir_version = get_ir_version_from_onnx()

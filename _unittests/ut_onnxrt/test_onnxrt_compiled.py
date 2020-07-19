@@ -54,8 +54,7 @@ class TestOnnxrtCompiled(ExtTestCase):
         X_test = X_test.astype(numpy.float32)
         X_test = numpy.vstack([X_test[:3], X_test[-3:]])
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            dtype=numpy.float32)
+        model_def = to_onnx(clr, X_train.astype(numpy.float32))
 
         oinf1 = OnnxInference(model_def, runtime='python')
         res1 = oinf1.run({'X': X_test})['variable']

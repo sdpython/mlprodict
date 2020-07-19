@@ -21,14 +21,11 @@ class OnnxPipeline(Pipeline):
     when a non-continuous model (mathematical definition) such
     as tree ensemble and part of the pipeline.
 
-    Parameters
-    ----------
-
-    steps : list
+    :param steps:
         List of (name, transform) tuples (implementing fit/transform) that are
         chained, in the order in which they are chained, with the last object
         an estimator.
-    memory : str or object with the joblib.Memory interface, default=None
+    :param memory: str or object with the joblib.Memory interface, default=None
         Used to cache the fitted transformers of the pipeline. By default,
         no caching is performed. If a string is given, it is the path to
         the caching directory. Enabling caching triggers a clone of
@@ -37,24 +34,24 @@ class OnnxPipeline(Pipeline):
         directly. Use the attribute ``named_steps`` or ``steps`` to
         inspect estimators within the pipeline. Caching the
         transformers is advantageous when fitting is time consuming.
-    verbose : bool, default=False
+    :param verbose: bool, default=False
         If True, the time elapsed while fitting each step will be printed as it
         is completed.
-    output_name: string
+    :param output_name: string
         requested output name or None to request all and
         have method *transform* to store all of them in a dataframe
-    enforce_float32 : boolean
+    :param enforce_float32: boolean
         :epkg:`onnxruntime` only supports *float32*,
         :epkg:`scikit-learn` usually uses double floats, this parameter
         ensures that every array of double floats is converted into
         single floats
-    runtime: string, defined the runtime to use
+    :param runtime: string, defined the runtime to use
         as described in @see cl OnnxInference.
-    options: see @fn to_onnx
-    white_op: see @fn to_onnx
-    black_op: see @fn to_onnx
-    final_types: see @fn to_onnx
-    target_opset: ONNX targeted opset
+    :param options: see @see fn to_onnx
+    :param white_op: see @see fn to_onnx
+    :param black_op: see @see fn to_onnx
+    :param final_types: see @see fn to_onnx
+    :param target_opset: ONNX targeted opset
 
     The class stores transformers before converting them into ONNX
     in attributes ``raw_steps_``.
@@ -86,22 +83,17 @@ class OnnxPipeline(Pipeline):
         other and transform the data, then fit the transformed
         data using the final estimator.
 
-        Parameters
-        ----------
-        X : iterable
+        :param X: iterable
             Training data. Must fulfill input requirements of first step of the
             pipeline.
-        y : iterable, default=None
+        :param y: iterable, default=None
             Training targets. Must fulfill label requirements for all steps of
             the pipeline.
-        **fit_params : dict of string -> object
+        :param fit_params: dict of string -> object
             Parameters passed to the ``fit`` method of each step, where
             each parameter name is prefixed such that parameter ``p`` for step
             ``s`` has key ``s__p``.
-        Returns
-        -------
-        self : Pipeline
-            This estimator
+        :return: self, Pipeline, this estimator
         """
         fit_params_steps = self._check_fit_params(**fit_params)
         Xt = self._fit(X, y, **fit_params_steps)

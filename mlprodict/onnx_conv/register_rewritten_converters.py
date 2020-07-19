@@ -7,7 +7,7 @@ from skl2onnx.common._registration import _converter_pool
 
 try:
     from skl2onnx.common._registration import RegisteredConverter
-except ImportError:
+except ImportError:  # pragma: no cover
     # sklearn-onnx <= 1.6.0
     RegisteredConverter = lambda fct, opts: fct
 
@@ -92,16 +92,18 @@ def register_rewritten_operators(new_values=None):
     if new_values is None:
         for rew in _overwritten_operators:
             if rew not in _converter_pool:
-                raise KeyError(
-                    "skl2onnx was not imported and '{}' was not registered.".format(rew))
+                raise KeyError(  # pragma: no cover
+                    "skl2onnx was not imported and '{}' was not registered."
+                    "".format(rew))
         old_values = {k: _converter_pool[k] for k in _overwritten_operators}
         _converter_pool.update(_overwritten_operators)
         return old_values
 
     for rew in new_values:
         if rew not in _converter_pool:
-            raise KeyError(
-                "skl2onnx was not imported and '{}' was not registered.".format(rew))
+            raise KeyError(  # pragma: no cover
+                "skl2onnx was not imported and '{}' was not registered."
+                "".format(rew))
     old_values = {k: _converter_pool[k] for k in new_values}
     _converter_pool.update(new_values)
     return old_values

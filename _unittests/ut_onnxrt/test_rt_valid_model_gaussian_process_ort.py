@@ -236,5 +236,4 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestRtValidateGaussianProcessOrt().test_rt_GaussianProcessRegressor_debug_std()
     unittest.main()

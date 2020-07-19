@@ -22,7 +22,8 @@ class ConstantOfShape(OpRun):
                     else self.value)
         if not isinstance(self.cst, (float, numpy.float32, numpy.float64,
                                      numpy.int64, numpy.int32, numpy.bool)):
-            raise TypeError("cst must be a real not {}".format(type(self.cst)))
+            raise TypeError(  # pragma: no cover
+                "cst must be a real not {}".format(type(self.cst)))
 
     def _run(self, data):  # pylint: disable=W0221
         res = numpy.full(tuple(data), self.cst)

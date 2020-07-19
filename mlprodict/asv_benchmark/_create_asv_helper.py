@@ -10,7 +10,7 @@ import hashlib
 # requires all specific models used to defines scenarios
 try:
     from ..onnxrt.validate.validate_scenarios import *  # pylint: disable=W0614,W0401
-except ValueError:
+except ValueError:  # pragma: no cover
     # Skips this step if used in a benchmark.
     pass
 
@@ -37,6 +37,7 @@ default_asv_conf = {
         "jinja2": [],
         "joblib": [],
         "lightgbm": [],
+        "mlinsights": [],
         "numpy": [],
         "onnx": ["http://localhost:8067/simple/"],
         "onnxruntime": ["http://localhost:8067/simple/"],
@@ -171,7 +172,7 @@ def _sklearn_subfolder(model):
         elif spl[0] == 'sklearn':
             res = spl[pos + 1:]
         else:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Unable to guess subfolder for '{}'.".format(model.__class__))
     res.append(model.__name__)
     return res
@@ -307,7 +308,7 @@ def _read_patterns():
         template_name = os.path.join(os.path.dirname(
             __file__), "template", "skl_model_%s.py" % suffix)
         if not os.path.exists(template_name):
-            raise FileNotFoundError(
+            raise FileNotFoundError(  # pragma: no cover
                 "Template '{}' was not found.".format(template_name))
         with open(template_name, "r", encoding="utf-8") as f:
             content = f.read()
@@ -417,8 +418,9 @@ def add_model_import_init(
             keep = pos
             break
     if keep is None:
-        raise RuntimeError(
-            "Unable to locate where to insert import in\n{}\n".format(class_content))
+        raise RuntimeError(  # pragma: no cover
+            "Unable to locate where to insert import in\n{}\n".format(
+                class_content))
 
     # imports
     loc_class = model.__module__
@@ -521,5 +523,5 @@ def find_sklearn_module(piece):
         import sklearn.multiclass
         glo[piece] = getattr(sklearn.multiclass, piece)
         return "sklearn.multiclass"
-    raise ValueError(
+    raise ValueError(  # pragma: no cover
         "Unable to find module to import for '{}'.".format(piece))

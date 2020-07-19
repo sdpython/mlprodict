@@ -35,8 +35,7 @@ class TestRtValidateNaive(ExtTestCase):
     def test_model_bernoulli_nb_bc_python(self):
         model, X = self.fit_classification_model(BernoulliNB(), 2)
         model_onnx = convert_sklearn(
-            model, "?", [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32)
+            model, "?", [("input", FloatTensorType([None, X.shape[1]]))])
         exp1 = model.predict(X)
         exp = model.predict_proba(X)
 
@@ -50,7 +49,7 @@ class TestRtValidateNaive(ExtTestCase):
         model, X = self.fit_classification_model(BernoulliNB(), 2)
         model_onnx = convert_sklearn(
             model, "?", [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32, target_opset=get_opset_number_from_onnx())
+            target_opset=get_opset_number_from_onnx())
         exp1 = model.predict(X)
         exp = model.predict_proba(X)
 
@@ -67,7 +66,7 @@ class TestRtValidateNaive(ExtTestCase):
         model, X = self.fit_classification_model(BernoulliNB(), 2)
         model_onnx = convert_sklearn(
             model, "?", [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32, target_opset=get_opset_number_from_onnx())
+            target_opset=get_opset_number_from_onnx())
         exp1 = model.predict(X)
         exp = model.predict_proba(X)
 

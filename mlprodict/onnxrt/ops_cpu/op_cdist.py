@@ -42,6 +42,16 @@ class CDist(OpRunBinaryNum):
         return (ShapeObject((a[0], b[0]), dtype=a.dtype,
                             name=self.__class__.__name__), )
 
+    def to_python(self, inputs):
+        metric = self.metric.decode('ascii')
+        if metric == 'minkowski':
+            return ('from scipy.spatial.distance import cdist',
+                    "return cdist({}, {}, metric='{}', p={})".format(
+                        inputs[0], inputs[1], metric, self.p))
+        return ('from scipy.spatial.distance import cdist',
+                "return cdist({}, {}, metric='{}')".format(
+                    inputs[0], inputs[1], metric))
+
 
 class CDistSchema(OperatorSchema):
     """

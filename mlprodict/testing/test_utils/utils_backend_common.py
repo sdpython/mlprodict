@@ -4,7 +4,6 @@
 """
 import os
 import pickle
-from distutils.version import StrictVersion
 import numpy
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from scipy.sparse.csr import csr_matrix
@@ -47,7 +46,6 @@ def evaluate_condition(backend, condition):
     Evaluates a condition such as
     ``StrictVersion(onnxruntime.__version__) <= StrictVersion('0.1.3')``
     """
-    assert StrictVersion is not None
     if backend == "onnxruntime":  # pragma: no cover
         import onnxruntime  # pylint: disable=W0611
         return eval(condition)  # pylint: disable=W0123

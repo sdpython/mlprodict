@@ -6,7 +6,6 @@ import os
 import pickle
 from logging import getLogger
 import warnings
-import numpy
 from pandas import read_csv
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from ..onnx_conv import to_onnx
@@ -18,6 +17,7 @@ from ..onnx_conv import guess_schema_from_data, guess_schema_from_model
 
 def convert_validate(pkl, data=None, schema=None,
                      method="predict", name='Y',
+                     target_opset=None,
                      outonnx="model.onnx",
                      runtime='python', metric="l1med",
                      use_double=None, noshape=False,
@@ -35,6 +35,7 @@ def convert_validate(pkl, data=None, schema=None,
     :param schema: initial type of the model
     :param method: method to call
     :param name: output name
+    :param target_opset: target opset
     :param outonnx: produced ONNX model
     :param runtime: runtime to use to compute predictions,
         'python', 'python_compiled',
@@ -102,15 +103,18 @@ def convert_validate(pkl, data=None, schema=None,
     if fLOG is None:
         verbose = 0
     if use_double not in (None, 'float64', 'switch'):
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             "use_double must be either None, 'float64' or 'switch'")
     if optim == '':
         optim = None
+    if target_opset == '':
+        target_opset = None
     if verbose == 0:
         logger = getLogger('skl2onnx')
         logger.disabled = True
     if not os.path.exists(pkl):
-        raise FileNotFoundError("Unable to find model '{}'.".format(pkl))
+        raise FileNotFoundError(  # pragma: no cover
+            "Unable to find model '{}'.".format(pkl))
     if os.path.exists(outonnx):
         warnings.warn("File '{}' will be overwritten.".format(outonnx))
     if verbose > 0:
@@ -119,21 +123,21 @@ def convert_validate(pkl, data=None, schema=None,
         model = pickle.load(f)
 
     if use_double == 'float64':
-        dtype = numpy.float64
         tensor_type = DoubleTensorType
     else:
-        dtype = numpy.float32
         tensor_type = FloatTensorType
     if options in (None, ''):
         options = None
     else:
-        from ..onnxrt.validate.validate_scenarios import interpret_options_from_string
+        from ..onnxrt.validate.validate_scenarios import (
+            interpret_options_from_string)
         options = interpret_options_from_string(options)
         if verbose > 0:
             fLOG("[convert_validate] options={}".format(repr(options)))
 
     if register:
-        from ..onnx_conv import register_converters, register_rewritten_operators
+        from ..onnx_conv import (
+            register_converters, register_rewritten_operators)
         register_converters()
         register_rewritten_operators()
 
@@ -163,14 +167,15 @@ def convert_validate(pkl, data=None, schema=None,
         if verbose > 0:
             fLOG("[convert_validate] convert the model with no shape information")
         schema = [(name, col.__class__([None, None])) for name, col in schema]
-        onx = to_onnx(model, initial_types=schema,
-                      dtype=dtype, rewrite_ops=rewrite_ops,
-                      options=options)
+        onx = to_onnx(
+            model, initial_types=schema, rewrite_ops=rewrite_ops,
+            target_opset=target_opset, options=options)
     else:
         if verbose > 0:
             fLOG("[convert_validate] convert the model with shapes")
-        onx = to_onnx(model, initial_types=schema, dtype=dtype,
-                      rewrite_ops=rewrite_ops, options=options)
+        onx = to_onnx(
+            model, initial_types=schema, target_opset=target_opset,
+            rewrite_ops=rewrite_ops, options=options)
 
     if optim is not None:
         if verbose > 0:
@@ -203,11 +208,13 @@ def convert_validate(pkl, data=None, schema=None,
         names = [name]
 
     if len(names) != len(methods):
-        raise ValueError("Number of methods and outputs do not match: {}, {}".format(
-            names, methods))
+        raise ValueError(
+            "Number of methods and outputs do not match: {}, {}".format(
+                names, methods))
 
     if metric != 'l1med':
-        raise ValueError("Unknown metric '{}'".format(metric))
+        raise ValueError(  # pragma: no cover
+            "Unknown metric '{}'".format(metric))
 
     if df is None:
         # no test on data
@@ -232,8 +239,9 @@ def convert_validate(pkl, data=None, schema=None,
         out_skl_preds.append(df)
 
         if name_ not in ort_preds:
-            raise KeyError("Unable to find output name '{}' in {}".format(
-                name_, list(sorted(ort_preds))))
+            raise KeyError(
+                "Unable to find output name '{}' in {}".format(
+                    name_, list(sorted(ort_preds))))
 
         ort_pred = ort_preds[name_]
         out_ort_preds.append(ort_pred)

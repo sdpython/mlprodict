@@ -126,8 +126,7 @@ class TestOptimOnnxIdentity(ExtTestCase):
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(dtype),
-                            dtype=dtype, rewrite_ops=True,
-                            target_opset=target_opset)
+                            rewrite_ops=True, target_opset=target_opset)
         c1 = model_def.SerializeToString()
         new_model = onnx_remove_node_identity(model_def)
         c2 = model_def.SerializeToString()

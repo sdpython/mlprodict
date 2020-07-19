@@ -4,7 +4,7 @@
 @brief Ways to speed up predictions for a machine learned model.
 """
 
-__version__ = "0.3.1128"
+__version__ = "0.4.1203"
 __author__ = "Xavier Dupré"
 
 
@@ -30,7 +30,7 @@ def _setup_hook(use_print=False):
         print("Success: _setup_hook")
 
 
-def load_ipython_extension(ip):
+def load_ipython_extension(ip):  # pragma: no cover
     """
     To allow the call ``%load_ext mlprodict``
 

@@ -1,5 +1,5 @@
 """
-@brief      test tree node (time=2s)
+@brief      test tree node (time=4s)
 """
 import unittest
 from onnx.defs import onnx_opset_version

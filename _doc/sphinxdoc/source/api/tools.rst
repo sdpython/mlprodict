@@ -31,11 +31,11 @@ Functions to help understand models.
 Plotting
 ++++++++
 
-.. autosignature:: mlprodict.tools.plotting_benchmark.plot_benchmark_metrics
+.. autosignature:: mlprodict.plotting.plotting_benchmark.plot_benchmark_metrics
 
 .. autosignature:: mlprodict.onnxrt.doc.nb_helper.onnxview
 
-.. autosignature:: mlprodict.tools.plotting_validate_graph.plot_validate_benchmark
+.. autosignature:: mlprodict.plotting.plotting_validate_graph.plot_validate_benchmark
 
 Serialization
 +++++++++++++

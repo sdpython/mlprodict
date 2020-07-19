@@ -2,6 +2,7 @@
 @file
 @brief Functions to help get more information about the models.
 """
+import inspect
 from collections import Counter
 import numpy
 
@@ -31,7 +32,6 @@ def _analyse_tree(tree):
 
     info['leave_count'] = sum(is_leaves)
     info['max_depth'] = max(node_depth)
-
     return info
 
 
@@ -54,7 +54,7 @@ def _reduce_infos(infos):
     def tof(obj):
         try:
             return obj[0]
-        except TypeError:
+        except TypeError:  # pragma: no cover
             return obj
 
     if not isinstance(infos, list):
@@ -62,7 +62,7 @@ def _reduce_infos(infos):
     keys = set()
     for info in infos:
         if not isinstance(info, dict):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "info must a dictionary not {}.".format(type(info)))
         keys |= set(info)
 
@@ -95,7 +95,7 @@ def _reduce_infos(infos):
             if k == 'n_classes_':
                 info['n_classes_'] = max(tof(_) for _ in values)
                 continue
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Unable to reduce key '{}', values={}.".format(k, values))
     return info
 
@@ -118,7 +118,7 @@ def _get_info_lgb(model):
     elif gbm_text['objective'].startswith('regression'):
         info['n_targets'] = 1
     else:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Unknown objective '{}'.".format(gbm_text['objective']))
     n_classes = info.get('n_classes', info.get('n_targets', -1))
 
@@ -144,9 +144,7 @@ def _get_info_xgb(model):
     Get informations from and :epkg:`lightgbm` trees.
     """
     from ..onnx_conv.operator_converters.conv_xgboost import (
-        XGBConverter,
-        XGBClassifierConverter,
-    )
+        XGBConverter, XGBClassifierConverter)
     objective, _, js_trees = XGBConverter.common_members(model, None)
     attrs = XGBClassifierConverter._get_default_tree_attribute_pairs()
     XGBConverter.fill_tree_attributes(
@@ -272,3 +270,39 @@ def analyze_model(model, simplify=True):
         info.update(up)
 
     return info
+
+
+def enumerate_models(model):
+    """
+    Enumerates models with models.
+
+    @param      model       :epkg:`scikit-learn` model
+    @return                 enumerate models
+    """
+    yield model
+    sig = inspect.signature(model.__init__)
+    for k in sig.parameters:
+        sub = getattr(model, k, None)
+        if sub is None:
+            continue
+        if not hasattr(sub, 'fit'):
+            continue
+        for m in enumerate_models(sub):
+            yield m
+
+
+def set_random_state(model, value=0):
+    """
+    Sets all possible parameter *random_state* to 0.
+
+    @param      model       :epkg:`scikit-learn` model
+    @param      value       new value
+    @return                 model (same one)
+    """
+    for m in enumerate_models(model):
+        sig = inspect.signature(m.__init__)
+        hasit = any(filter(lambda p: p == 'random_state',
+                           sig.parameters))
+        if hasit and hasattr(m, 'random_state'):
+            m.random_state = value
+    return model

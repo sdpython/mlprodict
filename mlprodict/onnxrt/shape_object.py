@@ -153,16 +153,18 @@ class ShapeBinaryOperator(ShapeOperator):
                         return self._to_string3(x)
                     return DimensionObject("{}{}DimensionObject()".format(
                         x._dim, self._name)).to_string()
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unable to handle type '{}'.".format(type(y._dim)))
-            raise TypeError("Unable to handle type '{}'.".format(type(y)))
+            raise TypeError(  # pragma: no cover
+                "Unable to handle type '{}'.".format(type(y)))
         elif isinstance(x._dim, str):
             if isinstance(y._dim, int):
                 return self._to_string2(x, y)
-            elif isinstance(y._dim, str):
+            if isinstance(y._dim, str):
                 return self._to_string2b(x, y)
-            raise TypeError("Unable to handle type '{}'.".format(type(y._dim)))
-        raise TypeError(
+            raise TypeError(  # pragma: no cover
+                "Unable to handle type '{}'.".format(type(y._dim)))
+        raise TypeError(  # pragma: no cover
             "Unable to handle type '{}'.".format(type(x._dim)))
 
     def _evaluate_string_(self, args, **kwargs):
@@ -336,7 +338,7 @@ class DimensionObject(BaseDimensionShape):
             return self._dim
         if self._dim is None:
             return 'x' if use_x else '?'
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Not implemented for '{}'.".format(repr(self)))
 
     def evaluate(self, **kwargs):
@@ -359,7 +361,7 @@ class DimensionObject(BaseDimensionShape):
         elif isinstance(self._dim, ):
             res = self._dim.evaluate(**kwargs)
         else:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Not implemented for '{}'.".format(repr(self)))
         if isinstance(res, (ShapeOperator, DimensionObject)):
             return res.evaluate(**kwargs)
@@ -378,7 +380,7 @@ class DimensionObject(BaseDimensionShape):
             return ve == self._dim
         if v is None:
             return self._dim is None
-        raise TypeError(
+        raise TypeError(  # pragma: no cover
             "Unable to compare a DimensionObject to {}".format(type(v)))
 
     def __add__(self, obj):
@@ -466,7 +468,8 @@ class ShapeObject(BaseDimensionShape):
                 self._shape = []
                 self._dtype = 'map'
             else:
-                raise ValueError("Wrong shape value {}".format(shape))
+                raise ValueError(  # pragma: no cover
+                    "Wrong shape value {}".format(shape))
         elif isinstance(shape, (tuple, list)):
             self._shape = []
             for s in shape:
@@ -477,7 +480,7 @@ class ShapeObject(BaseDimensionShape):
             self._shape = None
             self._dtype = dtype
         else:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected type for shape: {}".format(type(shape)))
 
         if self._dtype is None:
@@ -494,19 +497,24 @@ class ShapeObject(BaseDimensionShape):
             self._dtype = numpy.int64
         elif self._dtype in (str, 'str'):
             self._dtype = numpy.str
+        elif (hasattr(self._dtype, 'type') and self._dtype.type is numpy.string_):
+            pass
         elif self._dtype in (bool, 'bool'):
             self._dtype = numpy.bool
+        elif self._dtype in (object, numpy.object_):
+            pass
         elif self._dtype not in {
                 numpy.float32, numpy.float64, numpy.int32, numpy.int64,
                 numpy.str, numpy.bool, None,
                 'map'}:
-            raise ValueError(
-                "dtype has an unexpected value: {}.".format(self._dtype))
+            raise ValueError(  # pragma: no cover
+                "dtype has an unexpected value: '{}'.".format(self._dtype))
         if self._shape is not None:
             for i, a in enumerate(self._shape):
                 if not isinstance(a, DimensionObject):
-                    raise TypeError('Dimension {} has a wrong type {}'.format(
-                        i, type(a)))
+                    raise TypeError(  # pragma: no cover
+                        'Dimension {} has a wrong type {}'.format(
+                            i, type(a)))
             if use_n1:
                 sh = self._shape[0] if self._shape else None
                 if isinstance(sh, DimensionObject) and sh._dim is None:
@@ -596,8 +604,7 @@ class ShapeObject(BaseDimensionShape):
         if self._shape is None:
             if self.name is None:
                 return self.copy()
-            else:
-                return self.copy(name="{}-RD".format(self.name))
+            return self.copy(name="{}-RD".format(self.name))
         if 0 <= axis < len(self._shape):
             cp = self._shape.copy()
             if keepdims:
@@ -616,26 +623,25 @@ class ShapeObject(BaseDimensionShape):
         st = str(self.dtype)
         if "'" in st:
             st = st.split("'")[1]
+
         if self.shape is None:
             if self.name is None:
                 return "ShapeObject(None, dtype={})".format(st)
+            return "ShapeObject(None, dtype={}, name='{}')".format(st, self.name)
+
+        st_shape = []
+        for s in self.shape:
+            if isinstance(s._dim, (int, str)):
+                st_shape.append(str(s._dim))
             else:
-                return "ShapeObject(None, dtype={}, name='{}')".format(st, self.name)
-        else:
-            st_shape = []
-            for s in self.shape:
-                if isinstance(s._dim, (int, str)):
-                    st_shape.append(str(s._dim))
-                else:
-                    st_shape.append(repr(s))
-            if len(st_shape) == 1:
-                st_shape.append('')
-            st_shape = '({})'.format(", ".join(st_shape))
-            if self.name is None:
-                return "ShapeObject({}, dtype={})".format(st_shape, st)
-            else:
-                return "ShapeObject({}, dtype={}, name='{}')".format(
-                    st_shape, st, self.name)
+                st_shape.append(repr(s))
+        if len(st_shape) == 1:
+            st_shape.append('')
+        st_shape = '({})'.format(", ".join(st_shape))
+        if self.name is None:
+            return "ShapeObject({}, dtype={})".format(st_shape, st)
+        return "ShapeObject({}, dtype={}, name='{}')".format(
+            st_shape, st, self.name)
 
     def __iter__(self):
         """
@@ -767,7 +773,7 @@ class ShapeObject(BaseDimensionShape):
         Computes the shape after a broadcast.
         """
         if a is None:
-            raise ValueError("a should not be None")
+            raise ValueError("a should not be None")  # pragma: no cover
         if a._shape is None:
             return a.copy()
         if self._shape is None:
@@ -793,7 +799,8 @@ class ShapeObject(BaseDimensionShape):
         if any(tys & {numpy.float64, numpy.int64,
                       numpy.float32, numpy.int32}):
             return numpy.float64
-        raise RuntimeError("Unable to infer types based on {}.".format(tys))
+        raise RuntimeError(  # pragma: no cover
+            "Unable to infer types based on {}.".format(tys))
 
     def concat_columns(self, axis, *shapes):
         """
@@ -812,3 +819,60 @@ class ShapeObject(BaseDimensionShape):
         a0 = args[0].copy(dtype=dtype)
         a0[axis] = dim_axis
         return a0
+
+    @staticmethod
+    def einsum_shape(equation, *inputs):
+        """
+        Computes :epkg:`einsum` shapes.
+        Not the most efficient one as it creates variables
+        of the given shapes.
+        """
+        for inp in inputs:
+            if inp.shape is None:
+                return inp
+        inp, out = [_.strip() for _ in equation.split(b"->")]
+        inps = [_.strip() for _ in inp.split(b',')]
+        if len(inputs) != len(inps):
+            raise RuntimeError(  # pragma: no cover
+                "Input mismatch between '{}' and {}.".format(equation, inps))
+        shs = {}
+        for a, b in zip(inps, inputs):
+            if len(a) != len(b):
+                raise RuntimeError(  # pragma: no cover
+                    "Input mismatch '{}' (in '{}') and {}.".format(a, equation, b))
+            for c, s in zip(a, b):
+                if c not in shs:
+                    shs[c] = s
+                elif shs[c] != s:
+                    raise RuntimeError(  # pragma: no cover
+                        "Equation '{}'. Dimension mismatch '{}' != {}.".format(
+                            equation, s, shs[c]))
+        new_shape = [shs[i] for i in out]
+        return ShapeObject(new_shape, dtype=ShapeObject._infer_merged_type(*inputs))
+
+    @staticmethod
+    def gather_shape(input, indices, axis):
+        """
+        Computes Gather shapes.
+        """
+        input_rank = len(input)
+        if input_rank is None:
+            return ShapeObject(None, dtype=input._dtype)
+        index_rank = len(indices)
+        if index_rank is None:
+            return ShapeObject(None, dtype=input._dtype)
+
+        if axis < 0:
+            axis = input_rank + axis
+
+        shape = []
+        for i in range(axis):
+            shape.append(input[i])
+
+        for dim in indices:
+            shape.append(dim)
+
+        for i in range(axis + 1, input_rank):
+            shape.append(input[i])
+
+        return ShapeObject(shape, dtype=input._dtype)

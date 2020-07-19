@@ -132,7 +132,7 @@ class OpRunOnnxRuntime:
                 self.inputs, variables, dtype=self.dtype)
             try:
                 self.onnx_ = self.inst_.to_onnx(inputs, target_opset=target_opset,
-                                                dtype=self.dtype, domain=domain)
+                                                domain=domain)
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(
                         "Probable issue as one dimension is null.\n--\n{}".format(
@@ -144,11 +144,6 @@ class OpRunOnnxRuntime:
                     raise RuntimeError(
                         "Probable issue as one dimension is null.\n--\n{}".format(
                             self.onnx_))
-            except TypeError as e:
-                import skl2onnx
-                raise TypeError(
-                    "skl2onnx 1.6.0 is required and you have '{}'.".format(
-                        skl2onnx.__version__)) from e
             forced = False
         elif self.onnx_node.op_type == 'Scan':
             self.inst_ = self.alg_class(
@@ -165,7 +160,7 @@ class OpRunOnnxRuntime:
                        for (name, cl) in outputs]
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                             target_opset=target_opset,
-                                            dtype=self.dtype, domain=domain)
+                                            domain=domain)
             if "dim_value: 0" in str(self.onnx_):
                 raise RuntimeError(
                     "Probable issue as one dimension is null.\n--\n{}".format(
@@ -180,8 +175,7 @@ class OpRunOnnxRuntime:
 
             try:
                 self.onnx_ = self.inst_.to_onnx(
-                    inputs, target_opset=target_opset,
-                    dtype=self.dtype, domain=domain)
+                    inputs, target_opset=target_opset, domain=domain)
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(
                         "Probable issue as one dimension is null.\n--\n{}\n---\n{}".format(
@@ -195,7 +189,7 @@ class OpRunOnnxRuntime:
                     dtype=self.dtype)
                 self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                                 target_opset=target_opset,
-                                                dtype=self.dtype, domain=domain)
+                                                domain=domain)
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(
                         "Probable issue as one dimension is null.\n--\n{}".format(
@@ -209,7 +203,7 @@ class OpRunOnnxRuntime:
                 dtype=self.dtype)
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                             target_opset=target_opset,
-                                            dtype=self.dtype, domain=domain)
+                                            domain=domain)
             if "dim_value: 0" in str(self.onnx_):
                 raise RuntimeError(
                     "Probable issue as one dimension is null.\n--\n{}".format(

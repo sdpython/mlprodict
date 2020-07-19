@@ -24,8 +24,8 @@ class CodeTranslator:
         Exports the parsed :epkg:`python` code
         into something.
         """
-        raise NotImplementedError(
-            "This function should be overwritten.")  # pragma: no cover
+        raise NotImplementedError(  # pragma: no cover
+            "This function should be overwritten.")
 
     def visit(self, node, info):
         """
@@ -34,8 +34,8 @@ class CodeTranslator:
         @param      node        visited node
         @param      info        info extracted by the visitor
         """
-        raise NotImplementedError(
-            "This function should be overwritten.")  # pragma: no cover
+        raise NotImplementedError(  # pragma: no cover
+            "This function should be overwritten.")
 
     def depart(self, node, info):
         """
@@ -44,8 +44,8 @@ class CodeTranslator:
         @param      node        visited node
         @param      info        info extracted by the visitor
         """
-        raise NotImplementedError(
-            "This function should be overwritten.")  # pragma: no cover
+        raise NotImplementedError(  # pragma: no cover
+            "This function should be overwritten.")
 
 
 class OnnxTranslator(CodeTranslator):
@@ -191,7 +191,8 @@ class OnnxTranslator(CodeTranslator):
         An example of code can be found there.
         """
         if self._code_fct is None:
-            raise RuntimeError("No python code was parsed.")
+            raise RuntimeError(  # pragma: no cover
+                "No python code was parsed.")
         if context is None:
             context = {}
 
@@ -206,7 +207,7 @@ class OnnxTranslator(CodeTranslator):
             else:
                 name = None
             if name is not None and name not in OnnxTranslator._numpy2onnx_op:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unable to find a correspondance to '{}' at {} in \n{}".format(
                         name, self.make_msg(info),
                         "\n".join(sorted(OnnxTranslator._numpy2onnx_op))))
@@ -214,7 +215,7 @@ class OnnxTranslator(CodeTranslator):
                 return OnnxTranslator._numpy2onnx_op[name]
             if isinstance(fct, str):
                 return fct
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to find a correspondance for function name '{}' in module '{}', "
                 "'{}' (type {}) at {}.".format(
                     name, getattr(fct, '__module__', ''),
@@ -313,17 +314,17 @@ class OnnxTranslator(CodeTranslator):
                         " " * (indent + 1) * 4))
                     rows.append('{})'.format(" " * indent * 4))
                 else:
-                    raise RuntimeError("Unable to interpret '{}'.".format(
-                        expr))
+                    raise RuntimeError(  # pragma: no cover
+                        "Unable to interpret '{}'.".format(expr))
             return rows
 
         def write_function(stack_fct_used, to_replaces, node):
             rows = []
             name, args = node
             if name != 'FunctionDef':
-                raise RuntimeError(
-                    "The code being translated should be a single function not '{}' at {}.".format(
-                        name, self.make_msg(args)))
+                raise RuntimeError(  # pragma: no cover
+                    "The code being translated should be a single function not "
+                    "'{}' at {}.".format(name, self.make_msg(args)))
             list_args = list(map(str, args['args']))
             if all(map(lambda s: 'dtype=' not in s, list_args)):
                 list_args.append("dtype=numpy.float32")
@@ -367,9 +368,10 @@ class OnnxTranslator(CodeTranslator):
                             " " * ((indent + 1) * 4)))
                         rows.append("{})".format(" " * (indent * 4)))
                 else:
-                    raise RuntimeError("Unable to process operator '{}' at {}. "
-                                       "Make sure it is either an affectation, "
-                                       "either a return.".format(op, self.make_msg(args)))
+                    raise RuntimeError(  # pragma: no cover
+                        "Unable to process operator '{}' at {}. "
+                        "Make sure it is either an affectation, "
+                        "either a return.".format(op, self.make_msg(args)))
             return rows
 
         stack_fct_used = []
@@ -378,7 +380,7 @@ class OnnxTranslator(CodeTranslator):
 
         # handling dtype parameter
         if len(to_replaces) != 1:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "The following code misses a placeholder:\n{}".format(
                     "\n".join(rows)))
         index = -1
@@ -456,11 +458,11 @@ class OnnxTranslator(CodeTranslator):
             return
         if kind == "Attribute":
             if info.get('str', '') == 'T':
-                raise NotImplementedError(
-                    "Transpose should be done with numpy.transpose not with .T'{}' at {}\n{}\n---\n{}".format(
-                        info.get('type', '?'), self.make_msg(
-                            node), pprint.pformat(info),
-                        pprint.pformat(self._stack)))
+                raise NotImplementedError(  # pragma: no cover
+                    "Transpose should be done with numpy.transpose not with .T'{}' "
+                    "at {}\n{}\n---\n{}".format(
+                        info.get('type', '?'), self.make_msg(node),
+                        pprint.pformat(info), pprint.pformat(self._stack)))
             self._get_last('Call')
             return
         if kind == 'keyword':
@@ -483,9 +485,11 @@ class OnnxTranslator(CodeTranslator):
             self._get_last('keyword')
             return
 
-        raise NotImplementedError("Unable to interpret kind '{}' at {}\n{}\n---\n{}".format(
-            info.get('type', '?'), self.make_msg(node), pprint.pformat(info),
-            pprint.pformat(self._stack)))
+        raise NotImplementedError(  # pragma: no cover
+            "Unable to interpret kind '{}' at {}\n{}\n---\n{}".format(
+                info.get('type', '?'), self.make_msg(
+                    node), pprint.pformat(info),
+                pprint.pformat(self._stack)))
 
     def _fix_default_values(self, code_fct):
         """
@@ -545,8 +549,9 @@ class OnnxTranslator(CodeTranslator):
                     buf['args'].append(
                         (child['str'], child.get('annotation', None)))
                 else:
-                    raise RuntimeError("Unable to interpret type '{}' in function definition.\n{}".format(
-                        child['type'], pprint.pformat(info)))
+                    raise RuntimeError(  # pragma: no cover
+                        "Unable to interpret type '{}' in function definition.\n{}".format(
+                            child['type'], pprint.pformat(info)))
             return
         if kind == "Name":
             op, buf = self._get_last(
@@ -631,7 +636,7 @@ class OnnxTranslator(CodeTranslator):
             op, buf = self._get_last('keyword')
             name = buf["name"]
             if 'value' not in buf:
-                raise RuntimeError(str(buf))
+                raise RuntimeError(str(buf))  # pragma: no cover
             value = buf['value']
             self._post_process(op, buf)
             self._stack.pop()
@@ -640,6 +645,8 @@ class OnnxTranslator(CodeTranslator):
             self._post_process(None, parent)
             return
 
-        raise NotImplementedError("Unable to interpret kind '{}' at {}\n{}\n---\n{}".format(
-            info.get('type', '?'), self.make_msg(node), pprint.pformat(info),
-            pprint.pformat(self._stack)))  # pragma: no cover
+        raise NotImplementedError(  # pragma: no cover
+            "Unable to interpret kind '{}' at {}\n{}\n---\n{}".format(
+                info.get('type', '?'), self.make_msg(
+                    node), pprint.pformat(info),
+                pprint.pformat(self._stack)))

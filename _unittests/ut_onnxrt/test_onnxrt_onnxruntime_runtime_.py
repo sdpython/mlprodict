@@ -2,11 +2,16 @@
 @brief      test log(time=2s)
 """
 import unittest
+import warnings
 from logging import getLogger
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
+from sklearn.neighbors import RadiusNeighborsRegressor
+from sklearn.datasets import make_regression
+from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
+    OnnxMul, OnnxAdd)
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnx_conv import to_onnx
 from mlprodict.tools.asv_options_helper import (
     get_ir_version_from_onnx, get_opset_number_from_onnx)
 
@@ -18,7 +23,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         logger.disabled = True
 
     def test_onnxt_runtime_add(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
                       op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
@@ -35,6 +40,11 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(idi + X, got['Y'], decimal=6)
 
+        oinf = OnnxInference(model_def, runtime='onnxruntime1')
+        got = oinf.run({'X': X}, intermediate=True)
+        self.assertEqual(list(sorted(got)), ['Ad_Addcst', 'X', 'Y'])
+        self.assertEqualArray(idi + X, got['Y'], decimal=6)
+
     def test_onnxt_runtime_add_raise(self):
         idi = numpy.identity(2)
         onx = OnnxAdd('X', idi, output_names=['Y'],
@@ -44,7 +54,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
                          ValueError)
 
     def test_onnxt_runtime_add1(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
                       op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
@@ -54,6 +64,63 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(idi + X, got['Y'], decimal=6)
+
+    def test_onnxruntime_bug(self):
+        rnd = numpy.random.randn(2, 20, 20).astype(numpy.float32)
+        bni = (numpy.random.random((20, 20)).astype(  # pylint: disable=E1101
+            numpy.float32) >= 0.7).astype(numpy.float32)
+        mul = rnd * bni
+        isn = any(numpy.isnan(mul.ravel()))
+        self.assertFalse(isn)
+
+        node = OnnxMul('X', bni, output_names=['Y'],
+                       op_version=get_opset_number_from_onnx())
+        onx = node.to_onnx({'X': rnd})
+        for rt in ['python', 'onnxruntime1']:
+            with self.subTest(runtime=rt):
+                oinf = OnnxInference(onx, runtime=rt)
+                y = oinf.run({'X': rnd})['Y']
+                self.assertEqualArray(mul, y)
+
+    def test_onnxruntime_knn_radius(self):
+        def _get_reg_data(self, n, n_features, n_targets, n_informative=10):
+            X, y = make_regression(  # pylint: disable=W0632
+                n, n_features=n_features, random_state=0,
+                n_targets=n_targets, n_informative=n_informative)
+            return X, y
+
+        def _fit_model(model, n_targets=1, label_int=False,
+                       n_informative=10):
+            X, y = _get_reg_data(20, 4, n_targets, n_informative)
+            if label_int:
+                y = y.astype(numpy.int64)
+            model.fit(X, y)
+            return model, X
+
+        model, X = _fit_model(RadiusNeighborsRegressor())
+        model_onnx = to_onnx(
+            model, X[:1].astype(numpy.float32),
+            target_opset=get_opset_number_from_onnx(),
+            options={id(model): {'optim': 'cdist'}})
+        oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
+        got = oinf.run({'X': X.astype(numpy.float32)})['variable']
+        exp = model.predict(X.astype(numpy.float32))
+        if any(numpy.isnan(got.ravel())):
+            # The model is unexpectedly producing nan values
+            # sometimes.
+            res = oinf.run({'X': X.astype(numpy.float32)}, intermediate=True)
+            rows = ['--EXP--', str(exp), '--GOT--', str(got),
+                    '--EVERY-OUTPUT--']
+            for k, v in res.items():
+                rows.append('-%s-' % k)
+                rows.append(str(v))
+            if any(map(numpy.isnan, res["variable"].ravel())):
+                raise AssertionError('\n'.join(rows))
+            # onnxruntime and mlprodict do not return the same
+            # output
+            warnings.warn('\n'.join(rows))
+            return
+        self.assertEqualArray(exp, got, decimal=4)
 
 
 if __name__ == "__main__":

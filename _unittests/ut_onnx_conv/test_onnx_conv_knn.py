@@ -12,16 +12,14 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.datasets import load_iris, make_regression
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import (
-    KNeighborsRegressor, KNeighborsClassifier, NearestNeighbors
-)
+    KNeighborsRegressor, KNeighborsClassifier, NearestNeighbors)
 try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAdd, OnnxIdentity
-)
+    OnnxAdd, OnnxIdentity)
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import Int64TensorType
 import skl2onnx
@@ -135,47 +133,54 @@ class TestOnnxConvKNN(ExtTestCase):
             numpy.float32).reshape((4, 2))
         x2 = numpy.array([[1, 2], [2, 2], [2.1, 2.1], [2, 2]]).astype(
             numpy.float32).reshape((4, 2))
-        cop = OnnxIdentity('input', op_version=get_opset_number_from_onnx())
-        pp = 1.
-        cop2 = OnnxIdentity(
-            onnx_cdist(cop, x2, dtype=numpy.float32,
-                       metric="minkowski", p=pp,
-                       op_version=get_opset_number_from_onnx()),
-            output_names=['cdist'], op_version=get_opset_number_from_onnx())
+        for pp in [1, 2]:
+            with self.subTest(pp=pp):
+                cop = OnnxIdentity(
+                    'input', op_version=get_opset_number_from_onnx())
+                cop2 = OnnxIdentity(
+                    onnx_cdist(cop, x2, dtype=numpy.float32,
+                               metric="minkowski", p=pp,
+                               op_version=get_opset_number_from_onnx()),
+                    output_names=['cdist'],
+                    op_version=get_opset_number_from_onnx())
 
-        model_def = cop2.to_onnx(
-            inputs=[('input', FloatTensorType([None, None]))],
-            outputs=[('cdist', FloatTensorType())])
+                model_def = cop2.to_onnx(
+                    inputs=[('input', FloatTensorType([None, None]))],
+                    outputs=[('cdist', FloatTensorType())])
 
-        sess = OnnxInference(model_def)
-        res = sess.run({'input': x})['cdist']
-        exp = scipy_cdist(x, x2, metric="minkowski", p=pp)
-        self.assertEqualArray(exp, res, decimal=5)
+                try:
+                    sess = OnnxInference(model_def)
+                except RuntimeError as e:
+                    raise AssertionError("Issue\n{}".format(model_def)) from e
+                res = sess.run({'input': x})['cdist']
+                exp = scipy_cdist(x, x2, metric="minkowski", p=pp)
+                self.assertEqualArray(exp, res, decimal=5)
 
-        x = numpy.array(
-            [[6.1, 2.8, 4.7, 1.2],
-             [5.7, 3.8, 1.7, 0.3],
-             [7.7, 2.6, 6.9, 2.3],
-             [6.0, 2.9, 4.5, 1.5],
-             [6.8, 2.8, 4.8, 1.4],
-             [5.4, 3.4, 1.5, 0.4],
-             [5.6, 2.9, 3.6, 1.3],
-             [6.9, 3.1, 5.1, 2.3]], dtype=numpy.float32)
-        cop = OnnxAdd('input', 'input',
-                      op_version=get_opset_number_from_onnx())
-        cop2 = OnnxIdentity(
-            onnx_cdist(cop, x, dtype=numpy.float32, metric="minkowski",
-                       p=3, op_version=get_opset_number_from_onnx()),
-            output_names=['cdist'], op_version=get_opset_number_from_onnx())
+        with self.subTest(pp=3):
+            x = numpy.array(
+                [[6.1, 2.8, 4.7, 1.2],
+                 [5.7, 3.8, 1.7, 0.3],
+                 [7.7, 2.6, 6.9, 2.3],
+                 [6.0, 2.9, 4.5, 1.5],
+                 [6.8, 2.8, 4.8, 1.4],
+                 [5.4, 3.4, 1.5, 0.4],
+                 [5.6, 2.9, 3.6, 1.3],
+                 [6.9, 3.1, 5.1, 2.3]], dtype=numpy.float32)
+            cop = OnnxAdd('input', 'input',
+                          op_version=get_opset_number_from_onnx())
+            cop2 = OnnxIdentity(
+                onnx_cdist(cop, x, dtype=numpy.float32, metric="minkowski",
+                           p=3, op_version=get_opset_number_from_onnx()),
+                output_names=['cdist'], op_version=get_opset_number_from_onnx())
 
-        model_def = cop2.to_onnx(
-            inputs=[('input', FloatTensorType([None, None]))],
-            outputs=[('cdist', FloatTensorType())])
+            model_def = cop2.to_onnx(
+                inputs=[('input', FloatTensorType([None, None]))],
+                outputs=[('cdist', FloatTensorType())])
 
-        sess = OnnxInference(model_def)
-        res = sess.run({'input': x})['cdist']
-        exp = scipy_cdist(x * 2, x, metric="minkowski", p=3)
-        self.assertEqualArray(exp, res, decimal=4)
+            sess = OnnxInference(model_def)
+            res = sess.run({'input': x})['cdist']
+            exp = scipy_cdist(x * 2, x, metric="minkowski", p=3)
+            self.assertEqualArray(exp, res, decimal=4)
 
     def test_register_converters(self):
         with warnings.catch_warnings():
@@ -240,7 +245,7 @@ class TestOnnxConvKNN(ExtTestCase):
             with self.subTest(target_opset=ops):
                 try:
                     model_def = to_onnx(
-                        clr, X_train.astype(dtype), dtype=dtype, rewrite_ops=True,
+                        clr, X_train.astype(dtype), rewrite_ops=True,
                         target_opset=ops, options=options)
                 except NameError as e:
                     if "Option 'largest0' not in" in str(e):
@@ -374,8 +379,7 @@ class TestOnnxConvKNN(ExtTestCase):
         clr = KNeighborsRegressor(algorithm='brute', n_neighbors=3)
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train,
-                            dtype=numpy.float32, rewrite_ops=True)
+        model_def = to_onnx(clr, X_train, rewrite_ops=True)
         oinf = OnnxInference(model_def, runtime='python')
         y = oinf.run({'X': X_test})
         self.assertEqual(list(sorted(y)), ['variable'])
@@ -510,5 +514,4 @@ class TestOnnxConvKNN(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxConvKNN().test_onnx_test_knn_single_reg32()
     unittest.main()

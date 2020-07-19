@@ -7,7 +7,9 @@ from contextlib import redirect_stdout
 from io import StringIO
 import numpy
 from scipy.sparse import coo_matrix, csr_matrix, SparseEfficiencyWarning
-from scipy.special import expit as logistic_sigmoid  # pylint: disable=E0611
+from scipy.special import (  # pylint: disable=E0611
+    expit as logistic_sigmoid,
+    erf)
 from scipy.spatial.distance import cdist
 from onnx import TensorProto
 from onnx.helper import make_sparse_tensor, make_tensor
@@ -21,21 +23,24 @@ except ImportError:
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
     OnnxConcat,
-    OnnxCeil, OnnxClip, OnnxConstant,
-    OnnxDiv, OnnxEqual, OnnxExp, OnnxFloor, OnnxGreater,
-    OnnxGemm, OnnxIdentity, OnnxLog, OnnxMatMul, OnnxMean, OnnxMul,
-    OnnxPow, OnnxReciprocal,
-    OnnxReduceLogSumExp,
-    OnnxReduceMean, OnnxShape,
-    OnnxReduceProd, OnnxReduceSum,
-    OnnxReduceSumSquare, OnnxReshape,
-    OnnxSlice, OnnxSqrt, OnnxSub, OnnxSum,
-    OnnxTopK, OnnxTranspose, OnnxRelu,
-    OnnxSigmoid, OnnxSoftmax, OnnxSqueeze,
-    OnnxConstantOfShape, OnnxNot, OnnxSin,
-    OnnxMin, OnnxMax, OnnxSign, OnnxLpNormalization,
-    OnnxFlatten, OnnxReduceMax, OnnxReduceMin,
-    OnnxNeg, OnnxIsNaN
+    OnnxCeil, OnnxClip, OnnxConstant, OnnxConstantOfShape,
+    OnnxDiv,
+    OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxEyeLike,
+    OnnxFlatten, OnnxFloor,
+    OnnxGreater, OnnxGemm,
+    OnnxIdentity, OnnxIsNaN,
+    OnnxLog, OnnxLpNormalization,
+    OnnxMatMul, OnnxMax, OnnxMean, OnnxMin, OnnxMul,
+    OnnxNeg, OnnxNot,
+    OnnxPow,
+    OnnxReciprocal,
+    OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
+    OnnxReduceProd, OnnxReduceSum, OnnxReduceSumSquare,
+    OnnxRelu, OnnxReshape,
+    OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign, OnnxSin,
+    OnnxSoftmax, OnnxSqueeze,
+    OnnxSqrt, OnnxSub, OnnxSum,
+    OnnxTopK, OnnxTranspose,
 )
 try:
     from skl2onnx.algebra.onnx_ops import OnnxCelu
@@ -50,8 +55,7 @@ from mlprodict.onnxrt.validate.validate_python import validate_python_inference
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611
     topk_element_min_double, topk_element_max_double, topk_element_fetch_double,
     topk_element_min_float, topk_element_max_float, topk_element_fetch_float,
-    topk_element_min_int64, topk_element_max_int64, topk_element_fetch_int64
-)
+    topk_element_min_int64, topk_element_max_int64, topk_element_fetch_int64)
 from mlprodict.onnxrt.ops_cpu.op_celu import _vcelu1, pycelu
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 
@@ -186,7 +190,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                          op_version=None, debug=False):
         if op_version is None:
             op_version = get_opset_number_from_onnx()
-        idi = numpy.identity(2)
+        idi = numpy.identity(2, dtype=dtype)
         onx = onnx_cl('X', idi, output_names=['Y'], op_version=op_version)
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
@@ -427,6 +431,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                 output_names=output_names,
                 op_version=op_version),
             lambda x: numpy.clip(x, 0.1, 2.1))
+        python_tested.append(OnnxClip)
 
     def test_onnxt_runtime_clip_10(self):
         from skl2onnx.algebra.onnx_ops import OnnxClip_6  # pylint: disable=E0611
@@ -478,6 +483,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         validate_python_inference(
             oinfpy, {'X': X.astype(numpy.float32),
                      'Y': Y.astype(numpy.float32)})
+        python_tested.append(OnnxConcat)
 
     def test_onnxt_runtime_constant_of_shape(self):
         x = numpy.array([2, 2], dtype=numpy.int64)
@@ -620,8 +626,41 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_div(self):
         self.common_test_onnxt_runtime_binary(OnnxDiv, lambda x, y: x / y)
 
+    def test_onnxt_runtime_einsum(self):
+        X = numpy.random.randn(5, 2, 3).astype(numpy.float32)
+        Y = numpy.random.randn(5, 3, 4).astype(numpy.float32)
+        equation = 'bij, bjk -> bik'
+        onx = OnnxEinsum(
+            'X', 'Y', equation=equation, output_names=['Z'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32),
+                                 'Y': Y.astype(numpy.float32)},
+                                outputs=[('Z', FloatTensorType([2]))],
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'Y': Y})
+        exp = numpy.einsum(equation, X, Y)
+        self.assertEqualArray(exp, got['Z'])
+        python_tested.append(OnnxEinsum)
+
+    def test_onnxt_runtime_eyelike(self):
+        onx = OnnxEyeLike('X', k=0, output_names=['Y'])
+        X = numpy.array([2, 2], dtype=numpy.int64)
+        model_def = onx.to_onnx({'X': X.astype(numpy.int64)},
+                                target_opset=get_opset_number_from_onnx(),
+                                outputs=[('Y', FloatTensorType())])
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        exp = numpy.eye(*X, k=0)
+        self.assertEqualArray(exp, got['Y'])
+        python_tested.append(OnnxEyeLike)
+
     def test_onnxt_runtime_equal(self):
         self.common_test_onnxt_runtime_binary(OnnxEqual, numpy.equal)
+
+    def test_onnxt_runtime_erf(self):
+        self.common_test_onnxt_runtime_unary(OnnxErf, erf)
 
     def test_onnxt_runtime_exp(self):
         self.common_test_onnxt_runtime_unary(OnnxExp, numpy.exp)
@@ -694,14 +733,15 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_gemm_python(self):
         self.do_test_onnxt_runtime_gemm("python")
+        python_tested.append(OnnxGemm)
 
     def test_onnxt_runtime_gemm_onnxruntime(self):
         self.do_test_onnxt_runtime_gemm("onnxruntime1")
 
     def do_test_onnxt_runtime_gemm(self, runtime):
-        idi = numpy.array([[1, 0], [1, 1]], dtype=numpy.float64)
+        idi = numpy.array([[1, 0], [1, 1]], dtype=numpy.float32)
         cst = numpy.array([4, 5], dtype=numpy.float32)
-        X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
+        X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float32)
 
         onx = OnnxGemm('X', idi, cst, output_names=['Y'],
                        op_version=get_opset_number_from_onnx())
@@ -773,7 +813,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                            alpha=numpy.float32(1.),
                            op_version=get_opset_number_from_onnx())
             model_def = onx.to_onnx({'X': idi.astype(numpy.float64)},
-                                    dtype=numpy.float64,
                                     target_opset=get_opset_number_from_onnx())
             if 'onnxruntime' in runtime:
                 model_def.ir_version = get_ir_version_from_onnx()
@@ -817,6 +856,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         exp = numpy.array([[0.3162278, 0.4472136],
                            [0.9486833, -0.8944272]], dtype=numpy.float32)
         self.assertEqualArray(got['Y'], exp)
+        python_tested.append(OnnxLpNormalization)
 
     def test_onnxt_runtime_matmul(self):
         self.common_test_onnxt_runtime_binary(OnnxMatMul, lambda x, y: x @ y)
@@ -836,6 +876,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray((idi + X) / 2, got['Y'], decimal=6)
+        python_tested.append(OnnxMean)
 
     def test_onnxt_runtime_min(self):
         self.common_test_onnxt_runtime_binary(
@@ -890,6 +931,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         res = numpy.log(numpy.sum(numpy.exp(X), axis=1, keepdims=1))
         self.assertEqualArray(
             res.ravel(), got['Y'].ravel())  # pylint: disable=E1101
+        python_tested.append(OnnxReduceLogSumExp)
 
     def test_onnxt_runtime_reduce_max(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
@@ -923,6 +965,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.maximum.reduce(X, axis=1, keepdims=1).ravel(),  # pylint: disable=E1101,E1123
                               got['Y'].ravel())
+        python_tested.append(OnnxReduceMax)
 
     def test_onnxt_runtime_reduce_mean(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
@@ -955,6 +998,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.mean(X, axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
+        python_tested.append(OnnxReduceMean)
 
     def test_onnxt_runtime_reduce_min(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
@@ -988,6 +1032,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.minimum.reduce(X, axis=1, keepdims=1).ravel(),  # pylint: disable=E1101,E1123
                               got['Y'].ravel())
+        python_tested.append(OnnxReduceMin)
 
     def test_onnxt_runtime_reduce_prod(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
@@ -1020,6 +1065,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.prod(X, axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
+        python_tested.append(OnnxReduceProd)
 
     def test_onnxt_runtime_reduce_sum(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
@@ -1052,6 +1098,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.sum(X, axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
+        python_tested.append(OnnxReduceSum)
 
     def test_onnxt_runtime_reduce_sum_square(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
@@ -1084,15 +1131,17 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.sum(numpy.square(X), axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
+        python_tested.append(OnnxReduceSumSquare)
 
     def test_onnxt_runtime_relu(self):
         self.common_test_onnxt_runtime_unary(
             OnnxRelu, lambda x: numpy.maximum(x, 0))
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
-    def common_test_onnxt_runtime_reshape(self):
+    def test_onnxt_runtime_reshape(self):
         sh = numpy.array([1, 4], dtype=numpy.int64)
-        onx = OnnxReshape('X', sh, output_names=['Y'])
+        onx = OnnxReshape('X', sh, output_names=['Y'],
+                          op_version=get_opset_number_from_onnx())
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
@@ -1101,6 +1150,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         exp = X.reshape(sh.tolist())
         self.assertEqualArray(exp, got['Y'])
+        python_tested.append(OnnxReshape)
 
     def test_onnxt_runtime_shape(self):
         x = numpy.random.randn(20, 2).astype(  # pylint: disable=E1101
@@ -1112,6 +1162,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                 target_opset=get_opset_number_from_onnx())
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(y, got['Y'])
+        python_tested.append(OnnxShape)
 
     def test_onnxt_runtime_sigmoid(self):
         self.common_test_onnxt_runtime_unary(OnnxSigmoid, logistic_sigmoid)
@@ -1161,6 +1212,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                 target_opset=get_opset_number_from_onnx())
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(y, got['Y'])
+        python_tested.append(OnnxSlice)
 
     def test_onnxt_runtime_sqrt(self):
         self.common_test_onnxt_runtime_unary(OnnxSqrt, numpy.sqrt)
@@ -1185,6 +1237,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                 target_opset=get_opset_number_from_onnx())
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(y, got['Y'])
+        python_tested.append(OnnxSqueeze)
 
     def test_onnxt_runtime_softmax(self):
         self.common_test_onnxt_runtime_unary(OnnxSoftmax, softmax)
@@ -1255,6 +1308,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                            [5., 2.]],
                           dtype=numpy.float32)
         self.assertEqualArray(exp, got['Y'])
+        python_tested.append(OnnxTopK)
 
     def test_onnxt_runtime_topk2(self):
         X = numpy.array([[-0., -0.08000002, -2., -2.88000023]],
@@ -1306,6 +1360,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(X.T, got['Y'])
+        python_tested.append(OnnxTranspose)
 
     def test_cpp_topk_min_1(self):
         X = numpy.array([1, -1], dtype=numpy.float64)

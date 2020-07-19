@@ -27,6 +27,11 @@ def _argmin_use_numpy_select_last_index(
 
 
 class _ArgMin(OpRunArg):
+    """
+    Base class for runtime for operator `ArgMin
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators.md#ArgMin>`_.
+    """
 
     def __init__(self, onnx_node, desc=None,
                  expected_attributes=None, **options):

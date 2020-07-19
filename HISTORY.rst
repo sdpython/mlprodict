@@ -5,11 +5,27 @@
 History
 =======
 
-current - 2020-06-04 - 0.00Mb
+current - 2020-07-08 - 0.00Mb
 =============================
 
-* `117`: Support for op_version in onnx grammar (2020-06-04)
+* `137`: Remove parameter dtype (onnx conversion) (2020-07-08)
+* `138`: Add code to register custom python operator (2020-07-08)
+* `139`: Add runtime for operator EyeLike (2020-07-08)
+* `136`: Add parameter reshape to OnnxTransformer (2020-07-03)
+* `135`: Add a function to change the first dimension output (ONNX). (2020-07-03)
+* `133`: Implements runtime for operator Gather (ONNX) (2020-06-18)
+* `132`: Add operator StringNormalizer, Tokenizer, TfidfVectorizer (ONNX) (2020-06-15)
+* `131`: Add custom operator solve (2020-06-12)
+* `130`: Add operator Erf (ONNX) (2020-06-11)
+* `129`: Add operator Einsum (ONNX) (2020-06-11)
+* `128`: Fixes #127, implements OnnxPipeline, train, convert at each step (2020-06-08)
+* `127`: Implements a pipeline which replaces early stages by onnx (2020-06-08)
+
+0.3.1129 - 2020-06-04 - 0.29Mb
+==============================
+
 * `123`: Enables opset 12 (ONNX) (2020-06-04)
+* `117`: Support for op_version in onnx grammar (2020-06-04)
 
 0.3.1108 - 2020-05-20 - 0.29Mb
 ==============================

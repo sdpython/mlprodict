@@ -3,8 +3,10 @@
 @file
 @brief Wraps runtime into a :epkg:`scikit-learn` transformer.
 """
+from io import BytesIO
 import numpy
 import pandas
+import onnx
 from onnx import helper
 from sklearn.base import BaseEstimator, TransformerMixin
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
@@ -26,24 +28,27 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
     so that it can be included in a :epkg:`scikit-learn` pipeline.
     See notebook :ref:`transferlearningrst` for an example.
 
-    Parameters
-    ----------
-
-    onnx_bytes: bytes
-    output_name: string
+    :param onnx_bytes: bytes
+    :param output_name: string
         requested output name or None to request all and
         have method *transform* to store all of them in a dataframe
-    enforce_float32: boolean
+    :param enforce_float32: boolean
         :epkg:`onnxruntime` only supports *float32*,
         :epkg:`scikit-learn` usually uses double floats, this parameter
         ensures that every array of double floats is converted into
         single floats
-    runtime: string, defined the runtime to use
+    :param runtime: string, defined the runtime to use
         as described in @see cl OnnxInference.
+    :param change_batch_size: some models are converted for
+        a specific batch size, this parameter changes it,
+        None to avoid changing it, 0 to fix an undefined
+        first dimension
+    :param reshape: reshape the output to get
+        a matrix and not a multidimensional array
     """
 
     def __init__(self, onnx_bytes, output_name=None, enforce_float32=True,
-                 runtime='python'):
+                 runtime='python', change_batch_size=None, reshape=False):
         BaseEstimator.__init__(self)
         TransformerMixin.__init__(self)
         self.onnx_bytes = (onnx_bytes
@@ -52,6 +57,8 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         self.output_name = output_name
         self.enforce_float32 = enforce_float32
         self.runtime = runtime
+        self.change_batch_size = change_batch_size
+        self.reshape = reshape
 
     def __repr__(self):  # pylint: disable=W0222
         """
@@ -69,16 +76,31 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         """
         Loads the :epkg:`ONNX` model.
 
-        Parameters
-        ----------
-        X : unused
-        y : unused
-
-        Returns
-        -------
-        self
+        :param X: unused
+        :param y: unused
+        :return: self
         """
-        self.onnxrt_ = OnnxInference(self.onnx_bytes, runtime=self.runtime)
+        from ..onnxrt.optim.onnx_helper import change_input_first_dimension
+        onx = onnx.load(BytesIO(self.onnx_bytes))
+
+        output_names = set(
+            o.name for o in onx.graph.output)  # pylint: disable=E1101
+        updated = False
+        if (self.output_name is not None and
+                self.output_name not in output_names):
+            # The model refers to intermediate outputs.
+            onx = select_model_inputs_outputs(
+                onx, outputs=[self.output_name])
+            updated = True
+
+        if self.change_batch_size is not None:
+            onx = change_input_first_dimension(
+                onx, self.change_batch_size)
+            updated = True
+
+        onnx_bytes = (
+            onx.SerializeToString() if updated else self.onnx_bytes)
+        self.onnxrt_ = OnnxInference(onnx_bytes, runtime=self.runtime)
         self.inputs_ = self.onnxrt_.input_names
         return self
 
@@ -94,7 +116,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                     if self.enforce_float32:
                         inputs[k] = v.astype(numpy.float32)
                     else:
-                        raise TypeError(
+                        raise TypeError(  # pragma: no cover
                             "onnxunruntime only supports floats. Input '{0}' "
                             "should be converted.".format(k))
 
@@ -105,21 +127,17 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         otherwise, *X* is considered as a first input and *inputs*
         can be used to specify extra inputs.
 
-        Parameters
-        ----------
-        X : iterable, data to process (or first input if several expected)
-        y : unused
-        inputs: :epkg:`ONNX` graph support multiple inputs,
+        :param X: iterable, data to process
+            (or first input if several expected)
+        :param y: unused
+        :param inputs: :epkg:`ONNX` graph support multiple inputs,
             each column of a dataframe is converted into as many inputs if
             *X* is a dataframe, otherwise, *X* is considered as the first input
             and *inputs* can be used to specify the other ones
-
-        Returns
-        -------
-        :epkg:`DataFrame`
+        :return: :epkg:`DataFrame`
         """
         if not hasattr(self, "onnxrt_"):
-            raise AttributeError(
+            raise AttributeError(  # pragma: no cover
                 "Transform OnnxTransformer must be fit first.")
         rt_inputs = {}
         if isinstance(X, pandas.DataFrame):
@@ -140,10 +158,15 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         for k, v in inputs.items():
             rt_inputs[k] = v
 
-        names = [self.output_name] if self.output_name else self.onnxrt_.output_names
+        names = ([self.output_name]
+                 if self.output_name else self.onnxrt_.output_names)
         self._check_arrays(rt_inputs)
         doutputs = self.onnxrt_.run(rt_inputs)
         outputs = [doutputs[n] for n in names]
+
+        if self.reshape:
+            n = outputs[0].shape[0]
+            outputs = [o.reshape((n, -1)) for o in outputs]
 
         if self.output_name or len(outputs) == 1:
             if isinstance(outputs[0], list):
@@ -151,25 +174,21 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
             return outputs[0]
 
         names = self.output_name if self.output_name else [
-            o.name for o in self.onnxrt_.output_names]
+            o for o in self.onnxrt_.output_names]
         return pandas.DataFrame({k: v for k, v in zip(names, outputs)})
 
     def fit_transform(self, X, y=None, **inputs):
         """
         Loads the *ONNX* model and runs the predictions.
 
-        Parameters
-        ----------
-        X : iterable, data to process (or first input if several expected)
-        y : unused
-        inputs: :epkg:`ONNX` graph support multiple inputs,
+        :param X: iterable, data to process
+            (or first input if several expected)
+        :param y: unused
+        :param inputs: :epkg:`ONNX` graph support multiple inputs,
             each column of a dataframe is converted into as many inputs if
             *X* is a dataframe, otherwise, *X* is considered as the first input
             and *inputs* can be used to specify the other ones
-
-        Returns
-        -------
-        :epkg:`DataFrame`
+        :return: :epkg:`DataFrame`
         """
         return self.fit(X, y=y, **inputs).transform(X, y)
 
@@ -207,9 +226,10 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
             self.parsed_inputs_ = inputs
 
         def parser():
-            if (not hasattr(self, 'onnxrt_') or  # pragma: no cover
+            if (not hasattr(self, 'onnxrt_') or
                     not hasattr(self.onnxrt_, 'output_names')):
-                raise RuntimeError('OnnxTransformer not fit.')
+                raise RuntimeError(  # pragma: no cover
+                    'OnnxTransformer not fit.')
             return self.onnxrt_.output_names
         return parser
 
@@ -217,12 +237,13 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         def shape_calculator(operator):
             cout = self.onnxrt_.output_names
             if len(operator.outputs) != len(cout):
-                raise RuntimeError("Mismatched number of outputs: {} != {}."
-                                   "".format(len(operator.outputs), len(cout)))
+                raise RuntimeError(  # pragma: no cover
+                    "Mismatched number of outputs: {} != {}."
+                    "".format(len(operator.outputs), len(cout)))
             for out_op, out in zip(operator.outputs, self.onnxrt_.obj.graph.output):
                 var = _var_as_dict(out)
                 if var['type']['kind'] != 'tensor':
-                    raise NotImplementedError(
+                    raise NotImplementedError(  # pragma: no cover
                         "Noy yet implemented for output:\n{}".format(out))
                 shape = var['type']['shape']
                 if shape[0] == 0:
@@ -235,7 +256,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                 elif elem == 'double':
                     out_op.type = DoubleTensorType(shape=shape)
                 else:
-                    raise NotImplementedError(
+                    raise NotImplementedError(  # pragma: no cover
                         "Not yet implemented for elem_type:\n{}".format(elem))
         return shape_calculator
 

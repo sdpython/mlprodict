@@ -2,6 +2,8 @@
 @brief      test tree node (time=2s)
 """
 import unittest
+import warnings
+from urllib.error import HTTPError
 from io import StringIO
 import numpy
 from numpy.testing import assert_almost_equal
@@ -210,7 +212,11 @@ class TestSklearnPipeline(ExtTestCase):
         titanic_url = (
             "https://raw.githubusercontent.com/amueller/"
             "scipy-2017-sklearn/091d371/notebooks/datasets/titanic3.csv")
-        data = pandas.read_csv(titanic_url)
+        try:
+            data = pandas.read_csv(titanic_url)
+        except HTTPError:
+            warnings.warn("Connectivity issue for '{}'.".format(titanic_url))
+            return
         X = data.drop("survived", axis=1)
         y = data["survived"]
 
@@ -311,9 +317,7 @@ class TestSklearnPipeline(ExtTestCase):
         model_onnx = convert_sklearn(
             model,
             "column transformer weights",
-            [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32,
-        )
+            [("input", FloatTensorType([None, X.shape[1]]))])
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,
@@ -328,9 +332,7 @@ class TestSklearnPipeline(ExtTestCase):
         model_onnx = convert_sklearn(
             model,
             "column transformer drop",
-            [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32,
-        )
+            [("input", FloatTensorType([None, X.shape[1]]))])
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,
@@ -345,8 +347,7 @@ class TestSklearnPipeline(ExtTestCase):
                 remainder='passthrough'), 3, n_features=100)
         model_onnx = convert_sklearn(
             model, "column transformer passthrough",
-            [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32)
+            [("input", FloatTensorType([None, X.shape[1]]))])
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,
@@ -360,8 +361,7 @@ class TestSklearnPipeline(ExtTestCase):
                 remainder='passthrough'), 3, n_features=100)
         model_onnx = convert_sklearn(
             model, "column transformer passthrough",
-            [("input", FloatTensorType([None, X.shape[1]]))],
-            dtype=numpy.float32)
+            [("input", FloatTensorType([None, X.shape[1]]))])
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,
@@ -421,4 +421,5 @@ class TestSklearnPipeline(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestSklearnPipeline().test_combine_inputs_floats_ints()
     unittest.main()

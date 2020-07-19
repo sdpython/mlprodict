@@ -220,7 +220,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
         oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X_test})
+        got = oinf.run({'X': X_test.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['variable'])
         exp = clr.transform(X_test)
         self.assertEqualArray(exp, got['variable'], decimal=6)

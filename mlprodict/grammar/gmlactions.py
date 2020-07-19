@@ -28,7 +28,8 @@ class MLModel(MLActionFunction):
         vars = self.enumerate_variables()
         res = list(sorted(set(v.name_var for v in vars)))
         if len(res) == 0:
-            raise ValueError("At least one variable must be defined.")
+            raise ValueError(  # pragma: no cover
+                "At least one variable must be defined.")
         return res
 
     @property

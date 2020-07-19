@@ -7,14 +7,14 @@ lightgbm/operator_converters/LightGbm.py>`_.
 from collections import Counter
 import copy
 import numbers
-import numpy as np
+import numpy
 from skl2onnx.common._apply_operation import apply_div, apply_reshape, apply_sub  # pylint: disable=E0611
 from skl2onnx.common.tree_ensemble import get_default_tree_classifier_attribute_pairs
 from skl2onnx.proto import onnx_proto
 from skl2onnx.common.shape_calculator import (
     calculate_linear_regressor_output_shapes,
-    calculate_linear_classifier_output_shapes
-)
+    calculate_linear_classifier_output_shapes)
+from skl2onnx.common.data_types import guess_numpy_type
 
 
 def calculate_lightgbm_output_shapes(operator):
@@ -31,7 +31,7 @@ def calculate_lightgbm_output_shapes(operator):
         return calculate_linear_classifier_output_shapes(operator)
     if objective.startswith('regression'):
         return calculate_linear_regressor_output_shapes(operator)
-    raise NotImplementedError(
+    raise NotImplementedError(  # pragma: no cover
         "Objective '{}' is not implemented yet.".format(objective))
 
 
@@ -279,6 +279,10 @@ def convert_lightgbm(scope, operator, container):
                            for pair in sorted(merged_indexes, key=lambda x: x[0])]
             attrs[k] = sorted_list
 
+    dtype = guess_numpy_type(operator.inputs[0].type)
+    if dtype != numpy.float64:
+        dtype = numpy.float32
+
     # Create ONNX object
     if (gbm_text['objective'].startswith('binary') or
             gbm_text['objective'].startswith('multiclass')):
@@ -286,7 +290,7 @@ def convert_lightgbm(scope, operator, container):
         # and ZipMap
         class_type = onnx_proto.TensorProto.STRING  # pylint: disable=E1101
         zipmap_attrs = {'name': scope.get_unique_variable_name('ZipMap')}
-        if all(isinstance(i, (numbers.Real, bool, np.bool_))
+        if all(isinstance(i, (numbers.Real, bool, numpy.bool_))
                for i in gbm_model.classes_):
             class_type = onnx_proto.TensorProto.INT64  # pylint: disable=E1101
             class_labels = [int(i) for i in gbm_model.classes_]
@@ -305,7 +309,7 @@ def convert_lightgbm(scope, operator, container):
             'probability_tensor')
         label_tensor_name = scope.get_unique_variable_name('label_tensor')
 
-        if container.dtype == np.float64:
+        if dtype == numpy.float64:
             container.add_node('TreeEnsembleClassifierDouble', operator.input_full_names,
                                [label_tensor_name, probability_tensor_name],
                                op_domain='mlprodict', **attrs)
@@ -378,7 +382,7 @@ def convert_lightgbm(scope, operator, container):
             # and TreeEnsembleClassifier have different ONNX attributes
             attrs['target' + k[5:]] = copy.deepcopy(attrs[k])
             del attrs[k]
-        if container.dtype == np.float64:
+        if dtype == numpy.float64:
             container.add_node('TreeEnsembleRegressorDouble', operator.input_full_names,
                                output_name, op_domain='mlprodict', **attrs)
         else:

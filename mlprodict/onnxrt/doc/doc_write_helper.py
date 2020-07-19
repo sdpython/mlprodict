@@ -100,7 +100,7 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
                                indent=indent, len=len,
                                link=link, table=table,
                                optim_param=optim_param)
-        except KeyError as e:
+        except KeyError as e:  # pragma: no cover
             rows = [
                 '', str(e), '',
                 "title='{}'".format(title),

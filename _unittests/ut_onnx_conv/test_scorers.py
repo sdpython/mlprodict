@@ -13,6 +13,7 @@ try:
 except ImportError:
     from sklearn.metrics.scorer import _PredictScorer
 from mlprodict.onnx_conv import to_onnx, register_scorers
+from mlprodict.onnx_conv.scorers.register import CustomScorerTransform
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv.scorers.cdist_score import score_cdist_sum
 
@@ -36,6 +37,13 @@ class TestScorers(ExtTestCase):
         scorer = make_scorer(score_cdist_sum, greater_is_better=False)
         self.assertIsInstance(scorer, _PredictScorer)
 
+    def test_custom_transformer(self):
+        def mse(x, y):
+            return x - y
+        tr = CustomScorerTransform("mse", mse, {})
+        rp = repr(tr)
+        self.assertIn("CustomScorerTransform('mse'", rp)
+
     def test_score_cdist_sum_onnx(self):
         X = numpy.array([[0, 1, 0, 2],
                          [1, 0, 4, 5],
@@ -48,9 +56,14 @@ class TestScorers(ExtTestCase):
         options = {id(score_cdist_sum): {"cdist": "single-node"}}
         temp = get_temp_folder(__file__, 'temp_score_cdist_sum_onnx')
 
-        for metric in ['sqeuclidean', 'euclidean']:
-            scorer = make_scorer(
-                score_cdist_sum, metric=metric, greater_is_better=False)
+        for metric in ['sqeuclidean', 'euclidean', 'minkowski']:
+            if metric == 'minkowski':
+                scorer = make_scorer(
+                    score_cdist_sum, metric=metric, greater_is_better=False,
+                    p=3)
+            else:
+                scorer = make_scorer(
+                    score_cdist_sum, metric=metric, greater_is_better=False)
             self.assertRaise(lambda: to_onnx(scorer, X),  # pylint: disable=W0640
                              ValueError)
 
@@ -59,11 +72,14 @@ class TestScorers(ExtTestCase):
 
             oinf1 = OnnxInference(monx1)
             oinf2 = OnnxInference(monx2)
-            res0 = score_cdist_sum(X, Y, metric=metric)
+            if metric == 'minkowski':
+                res0 = score_cdist_sum(X, Y, metric=metric, p=3)
+            else:
+                res0 = score_cdist_sum(X, Y, metric=metric)
             res1 = oinf1.run({'X': X, 'Y': Y})['scores']
             res2 = oinf2.run({'X': X, 'Y': Y})['scores']
-            self.assertEqual(res1, res0)
-            self.assertEqual(res2, res0)
+            self.assertEqualArray(res1, res0, decimal=5)
+            self.assertEqualArray(res2, res0, decimal=5)
 
             name1 = os.path.join(temp, "cdist_scan_%s.onnx" % metric)
             with open(name1, 'wb') as f:

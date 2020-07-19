@@ -14,7 +14,7 @@ try:
         NotImplemented as OrtNotImplemented,
         RuntimeException as OrtRuntimeException,
     )
-except ImportError:
+except ImportError:  # pragma: no cover
     OrtFail = Exception
     OrtNotImplemented = RuntimeError
     OrtInvalidGraph = RuntimeError
@@ -36,7 +36,7 @@ class OnnxWholeSession:
                                     mostly :epkg:`onnxruntime`
         """
         if runtime != 'onnxruntime1':
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "runtime '{}' is not implemented.".format(runtime))
         if hasattr(onnx_data, 'SerializeToString'):
             onnx_data = onnx_data.SerializeToString()

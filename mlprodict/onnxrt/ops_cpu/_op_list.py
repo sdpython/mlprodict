@@ -24,10 +24,14 @@ from .op_constant_of_shape import ConstantOfShape
 from .op_cum_sum import CumSum
 from .op_dict_vectorizer import DictVectorizer
 from .op_div import Div
-from .op_exp import Exp
+from .op_einsum import Einsum
 from .op_equal import Equal
+from .op_erf import Erf
+from .op_exp import Exp
+from .op_eyelike import EyeLike
 from .op_feature_vectorizer import FeatureVectorizer
 from .op_flatten import Flatten
+from .op_gather import Gather
 from .op_gather_elements import GatherElements
 from .op_gemm import Gemm
 from .op_greater import Greater
@@ -70,12 +74,16 @@ from .op_sign import Sign
 from .op_sin import Sin
 from .op_slice import Slice
 from .op_softmax import Softmax
+from .op_solve import Solve
 from .op_sqrt import Sqrt
 from .op_squeeze import Squeeze
+from .op_string_normalizer import StringNormalizer
 from .op_sub import Sub
 from .op_sum import Sum
 from .op_svm_classifier import SVMClassifier, SVMClassifierDouble
 from .op_svm_regressor import SVMRegressor, SVMRegressorDouble
+from .op_tfidfvectorizer import TfIdfVectorizer
+from .op_tokenizer import Tokenizer
 from .op_topk import TopK_10, TopK_11, TopK_1, TopK
 from .op_transpose import Transpose
 from .op_tree_ensemble_classifier import TreeEnsembleClassifier, TreeEnsembleClassifierDouble

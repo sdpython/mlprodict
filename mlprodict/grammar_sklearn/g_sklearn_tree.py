@@ -13,7 +13,9 @@ from ..grammar.gmlactions import MLModel
 
 def sklearn_decision_tree_regressor(model, input_names=None, output_names=None, **kwargs):
     """
-    Converts a `DecisionTreeRegressor <http://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeRegressor.html>`_
+    Converts a `DecisionTreeRegressor
+    <http://scikit-learn.org/stable/modules/generated/
+    sklearn.tree.DecisionTreeRegressor.html>`_
     model into a *grammar* model (semantic graph representation).
 
     @param      model           scikit-learn model
@@ -55,7 +57,8 @@ def sklearn_decision_tree_regressor(model, input_names=None, output_names=None, 
     TODO: create a function tree and an intermediate node and use it here.
     """
     if kwargs.get('with_loop', False):
-        raise NotImplementedError("Loop version is not implemented.")
+        raise NotImplementedError(  # pragma: no cover
+            "Loop version is not implemented.")
     if output_names is None:
         output_names = ['Prediction', 'Score']
     if input_names is None:

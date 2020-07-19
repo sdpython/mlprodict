@@ -14,7 +14,7 @@ following packages:
     python -m virtualenv env
     cd env
     pip install -i https://test.pypi.org/simple/ ort-nightly
-    pip install git+https://github.com/microsoft/onnxconverter-common.git
+    pip install git+https://github.com/microsoft/onnxconverter-common.git@jenkins
     pip install git+https://https://github.com/xadupre/sklearn-onnx.git@jenkins
     pip install mlprodict matplotlib scikit-learn pandas threadpoolctl lightgbm xgboost jinja2
 

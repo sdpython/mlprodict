@@ -87,9 +87,35 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
                             batch, type(skl_pred), skl_pred, ort_pred)) from e
 
         if hasattr(skl_pred, 'todense'):
-            skl_pred = skl_pred.todense()
+            skl_pred = skl_pred.todense().getA()
+            skl_sparse = True
+        else:
+            skl_sparse = False
         if hasattr(ort_pred, 'todense'):
-            ort_pred = ort_pred.todense()
+            ort_pred = ort_pred.todense().getA()
+            ort_sparse = True
+        else:
+            ort_sparse = False
+
+        try:
+            if (any(numpy.isnan(skl_pred.reshape((-1, )))) and
+                    all(~numpy.isnan(ort_pred.reshape((-1, ))))):
+                skl_pred = numpy.nan_to_num(skl_pred)
+            if (any(numpy.isnan(ort_pred.reshape((-1, )))) and
+                    all(~numpy.isnan(skl_pred.reshape((-1, ))))):
+                ort_pred = numpy.nan_to_num(ort_pred)
+        except ValueError as e:
+            print(type(skl_pred))
+            print(skl_pred)
+            print(skl_pred.reshape((-1, )).ravel())
+            print(numpy.isnan(skl_pred.reshape((-1, )).ravel()))
+            print(~numpy.isnan(skl_pred.reshape((-1, )).ravel()))
+            raise RuntimeError(
+                "Unable to compute differences between {}{} - {}{}\n{}\n{}\n"
+                "--------\n{}".format(
+                    skl_pred.shape, " (sparse)" if skl_sparse else "",
+                    ort_pred.shape, " (sparse)" if ort_sparse else "",
+                    e, skl_pred, ort_pred))
 
         if isinstance(ort_pred, list):
             raise RuntimeError("Issue with {}\n{}".format(ort_pred, ort_pred_))
@@ -122,8 +148,10 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
         rel_diff = rel_sort[-4] if len(rel_sort) > 5 else rel_sort[-1]
 
         if numpy.isnan(rel_diff) and not all(numpy.isnan(r_ort_pred)):
-            raise RuntimeError("Unable to compute differences between {}-{}\n{}\n"
-                               "--------\n{}".format(
-                                   skl_pred.shape, ort_pred.shape,
-                                   skl_pred, ort_pred))
+            raise RuntimeError(
+                "Unable to compute differences between {}{} - {}{}\n{}\n"
+                "--------\n{}".format(
+                    skl_pred.shape, " (sparse)" if skl_sparse else "",
+                    ort_pred.shape, " (sparse)" if ort_pred else "",
+                    skl_pred, ort_pred))
         return rel_diff

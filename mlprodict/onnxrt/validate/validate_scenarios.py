@@ -12,14 +12,15 @@ from sklearn.ensemble import (
     ExtraTreesRegressor, ExtraTreesClassifier,
     RandomForestRegressor, RandomForestClassifier,
     HistGradientBoostingRegressor, HistGradientBoostingClassifier,
-    AdaBoostClassifier, GradientBoostingClassifier, GradientBoostingRegressor
+    AdaBoostClassifier, GradientBoostingClassifier, GradientBoostingRegressor,
+    IsolationForest
 )
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_selection import (
     SelectFromModel, SelectPercentile, RFE, RFECV,
     SelectKBest, SelectFwe
 )
-from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process import GaussianProcessRegressor, GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic, RBF
 from sklearn.linear_model import (
     LogisticRegression, LogisticRegressionCV, SGDClassifier,
@@ -28,7 +29,9 @@ from sklearn.linear_model import (
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier, ClassifierChain, RegressorChain
-from sklearn.neighbors import LocalOutlierFactor, KNeighborsRegressor, KNeighborsClassifier
+from sklearn.neighbors import (
+    LocalOutlierFactor, KNeighborsRegressor, KNeighborsClassifier,
+    RadiusNeighborsRegressor, RadiusNeighborsClassifier)
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import Normalizer, PowerTransformer
 from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
@@ -96,25 +99,37 @@ def build_custom_scenarios():
         FeatureHasher: [
             ('default', {}),
         ],
+        GaussianProcessClassifier: [
+            ('expsine', {
+                'kernel': ExpSineSquared(),
+            }, {'conv_options': [{}, {GaussianProcessClassifier: {'optim': 'cdist'}}]}),
+            ('dotproduct', {
+                'kernel': DotProduct(),
+            }, {'conv_options': [{GaussianProcessClassifier: {'optim': 'cdist'}}]}),
+            ('rational', {
+                'kernel': RationalQuadratic(),
+            }, {'conv_options': [{GaussianProcessClassifier: {'optim': 'cdist'}}]}),
+            ('rbf', {
+                'kernel': RBF(),
+            }, {'conv_options': [{GaussianProcessClassifier: {'optim': 'cdist'}}]}),
+        ],
         GaussianProcessRegressor: [
             ('expsine', {
                 'kernel': ExpSineSquared(),
                 'alpha': 20.,
-            }, {'optim': [None, 'onnx'],
-                'conv_options': [{}, {GaussianProcessRegressor: {'optim': 'cdist'}}]}),
+            }, {'conv_options': [{GaussianProcessRegressor: {'optim': 'cdist'}}]}),
             ('dotproduct', {
                 'kernel': DotProduct(),
                 'alpha': 100.,
-            }),
+            }, {'conv_options': [{}, {GaussianProcessRegressor: {'optim': 'cdist'}}]}),
             ('rational', {
                 'kernel': RationalQuadratic(),
                 'alpha': 100.,
-            }, {'conv_options': [{}, {GaussianProcessRegressor: {'optim': 'cdist'}}]}),
+            }, {'conv_options': [{GaussianProcessRegressor: {'optim': 'cdist'}}]}),
             ('rbf', {
                 'kernel': RBF(),
                 'alpha': 100.,
-            }, {'optim': [None, 'onnx'],
-                'conv_options': [{}, {GaussianProcessRegressor: {'optim': 'cdist'}}]}),
+            }, {'conv_options': [{GaussianProcessRegressor: {'optim': 'cdist'}}]}),
         ],
         GaussianRandomProjection: [
             ('eps95', {'eps': 0.95}),
@@ -147,6 +162,9 @@ def build_custom_scenarios():
         ],
         HistGradientBoostingRegressor: [
             ('default', {'max_iter': 100}),
+        ],
+        IsolationForest: [
+            ('default', {'n_estimators': 10}),
         ],
         KNeighborsClassifier: [
             ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},
@@ -241,6 +259,20 @@ def build_custom_scenarios():
         PowerTransformer: [
             ('yeo-johnson', {'method': 'yeo-johnson'}),
             ('box-cox', {'method': 'box-cox'}),
+        ],
+        RadiusNeighborsClassifier: [
+            ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},
+             {'conv_options': [{RadiusNeighborsClassifier: {'optim': 'cdist', 'zipmap': False}}]}),
+            ('weights_k3', {'algorithm': 'brute',
+                            'weights': 'distance', 'n_neighbors': 3},
+             {'conv_options': [{RadiusNeighborsClassifier: {'optim': 'cdist', 'zipmap': False}}]}),
+        ],
+        RadiusNeighborsRegressor: [
+            ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},
+             {'conv_options': [{}, {RadiusNeighborsRegressor: {'optim': 'cdist'}}]}),
+            ('weights_k3', {'algorithm': 'brute',
+                            'weights': 'distance', 'n_neighbors': 3},
+             {'conv_options': [{RadiusNeighborsRegressor: {'optim': 'cdist'}}]}),
         ],
         RandomForestClassifier: [
             ('default', {'n_estimators': 100},

@@ -64,6 +64,10 @@ mlprodict
 .. image:: https://mybinder.org/badge_logo.svg
     :target: https://mybinder.org/v2/gh/sdpython/mlprodict/master?filepath=_doc%2Fnotebooks
 
+.. image:: https://img.shields.io/github/repo-size/sdpython/mlprodict
+    :target: https://github.com/sdpython/mlprodict/
+    :alt: size
+
 .. toctree::
     :maxdepth: 1
 
@@ -95,7 +99,8 @@ does not have any dependency on :epkg:`scikit-learn`.
     import numpy
     from sklearn.linear_model import LinearRegression
     from sklearn.datasets import load_iris
-    from mlprodict.onnxrt import OnnxInference, measure_relative_difference
+    from mlprodict.onnxrt import OnnxInference
+    from mlprodict.onnxrt.validate.validate_difference import measure_relative_difference
     from mlprodict.tools import get_ir_version_from_onnx
 
     iris = load_iris()
@@ -146,7 +151,7 @@ following :epkg:`ONNX` graph.
 
 That concludes the example with :epkg:`ONNX`.
 A similar way was introduced before switching
-to epkg:`ONNX`. It is far less advanced but
+to :epkg:`ONNX`. It is far less advanced but
 aims at producing a :epkg:`C` file replicating the
 predictions.
 

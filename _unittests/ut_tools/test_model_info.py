@@ -1,6 +1,7 @@
 """
 @brief      test log(time=8s)
 """
+import inspect
 import unittest
 from lightgbm import LGBMClassifier, LGBMRegressor  # pylint: disable=C0411
 from xgboost import XGBClassifier, XGBRegressor  # pylint: disable=C0411
@@ -10,14 +11,16 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.ensemble import (
+    ExtraTreesClassifier,
     GradientBoostingClassifier,
     HistGradientBoostingClassifier,
     HistGradientBoostingRegressor,
     RandomForestClassifier,
     RandomForestRegressor,
-)
+    VotingClassifier)
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci  # pylint: disable=C0411
-from mlprodict.tools.model_info import analyze_model
+from mlprodict.tools.model_info import (
+    analyze_model, set_random_state, enumerate_models)
 
 
 class TestModelInfo(ExtTestCase):
@@ -157,6 +160,27 @@ class TestModelInfo(ExtTestCase):
         self.assertGreater(info['estimators_.sum|.sum|tree_.node_count'], 15)
         self.assertGreater(info['estimators_.sum|.sum|tree_.leave_count'], 8)
         self.assertGreater(info['estimators_.max|.max|tree_.max_depth'], 3)
+
+    def test_set_random_state(self):
+
+        def get_values(model):
+            values = []
+            for m in enumerate_models(model):
+                sig = inspect.signature(m.__init__)
+                hasit = any(filter(lambda p: p == 'random_state',
+                                   sig.parameters))
+                if hasit and hasattr(m, 'random_state'):
+                    values.append(m.random_state)
+            return set(values)
+
+        model = VotingClassifier(ExtraTreesClassifier())
+        v1 = get_values(model)
+        self.assertNotEmpty(v1)
+        set_random_state(model, 11)
+        v2 = get_values(model)
+        self.assertNotEmpty(v2)
+        self.assertEqual(len(v1), len(v2))
+        self.assertEqual({11}, v2)
 
 
 if __name__ == "__main__":

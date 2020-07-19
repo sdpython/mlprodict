@@ -24,8 +24,8 @@ try:
         _display_code_lines,
         add_model_import_init,
         find_missing_sklearn_imports)
-except ImportError:
-    from mlprodict.asv_benchmark._create_asv_helper import (  # pragma: no cover
+except ImportError:  # pragma: no cover
+    from mlprodict.asv_benchmark._create_asv_helper import (
         default_asv_conf,
         flask_helper,
         pyspy_template,
@@ -141,8 +141,8 @@ def create_asv_benchmark(
     if opset_min == -1:
         opset_min = get_opset_number_from_onnx()
     if opset_max == -1:
-        opset_max = get_opset_number_from_onnx()
-    if verbose > 0 and fLOG is not None:
+        opset_max = get_opset_number_from_onnx()  # pragma: no cover
+    if verbose > 0 and fLOG is not None:  # pragma: no cover
         fLOG("[create_asv_benchmark] opset in [{}, {}].".format(
             opset_min, opset_max))
 
@@ -186,8 +186,8 @@ def create_asv_benchmark(
                           v in conf['matrix'].items() if k not in drop_keys}
         conf['matrix'].update(matrix)
     elif env is not None:
-        raise ValueError("Unable to handle env='{}'.".format(
-            env))  # pragma: no cover
+        raise ValueError(  # pragma: no cover
+            "Unable to handle env='{}'.".format(env))
     dest = os.path.join(location, "asv.conf.json")
     created.append(dest)
     with open(dest, "w", encoding='utf-8') as f:
@@ -221,7 +221,7 @@ def create_asv_benchmark(
 
     # command line
     if sys.platform.startswith("win"):
-        run_bash = os.path.join(tool_dir, 'run_asv.bat')
+        run_bash = os.path.join(tool_dir, 'run_asv.bat')  # pragma: no cover
     else:
         run_bash = os.path.join(tool_dir, 'run_asv.sh')
     with open(run_bash, 'w') as f:
@@ -326,7 +326,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
     if verbose > 0:
 
         def iterate():
-            for i, row in enumerate(ops):
+            for i, row in enumerate(ops):  # pragma: no cover
                 fLOG("{}/{} - {}".format(i + 1, len(ops), row))
                 yield row
 
@@ -488,6 +488,15 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                 res[k] = v
         return res
 
+    def _make_simple_name(name):
+        simple_name = name.replace("bench_", "").replace("_bench", "")
+        simple_name = simple_name.replace("bench.", "").replace(".bench", "")
+        simple_name = simple_name.replace(".", "-")
+        repl = {'_': '', 'solverliblinear': 'liblinear'}
+        for k, v in repl.items():
+            simple_name = simple_name.replace(k, v)
+        return simple_name
+
     runtimes_abb = {
         'scikit-learn': 'skl',
         'onnxruntime1': 'ort',
@@ -510,9 +519,9 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                 model, scenario, optimisation, extra,
                 dofit, conv_options, problem,
                 shorten=True)
-        except ValueError as e:  # pragma: no cover
+        except ValueError as e:
             if exc:
-                raise e
+                raise e  # pragma: no cover
             warnings.warn(str(e))
             continue
         filename = name.replace(".", "_") + ".py"
@@ -574,6 +583,11 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             atts.append("par_convopts = %r" % format_conv_options(
                 conv_options, model.__name__))
         atts.append("par_full_test_name = %r" % full_class_name)
+
+        simple_name = _make_simple_name(name)
+        atts.append("benchmark_name = %r" % simple_name)
+        atts.append("pretty_name = %r" % simple_name)
+
         if atts:
             class_content = class_content.replace(
                 "# additional parameters",

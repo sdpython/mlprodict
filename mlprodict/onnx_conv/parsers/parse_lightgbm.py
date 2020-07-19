@@ -6,6 +6,8 @@ import numpy
 from sklearn.base import ClassifierMixin
 from skl2onnx._parse import _parse_sklearn_classifier, _parse_sklearn_simple_model
 from skl2onnx.common._apply_operation import apply_concat, apply_cast
+from skl2onnx.common.data_types import guess_proto_type
+from skl2onnx.proto import onnx_proto
 
 
 class WrappedLightGbmBooster:
@@ -81,7 +83,7 @@ def lightgbm_parser(scope, model, inputs, custom_parsers=None):
         if wrapped._model_dict['objective'].startswith('regression'):
             return _parse_sklearn_simple_model(
                 scope, wrapped, inputs, custom_parsers=custom_parsers)
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Objective '{}' is not implemented yet.".format(
                 wrapped._model_dict['objective']))
 
@@ -108,13 +110,15 @@ def converter_lightgbm_concat(scope, operator, container):
     Converter for operator *LightGBMConcat*.
     """
     op = operator.raw_operator
-    options = container.get_options(
-        op, dict(cast=False))
+    options = container.get_options(op, dict(cast=False))
+    proto_dtype = guess_proto_type(operator.inputs[0].type)
+    if proto_dtype != onnx_proto.TensorProto.DOUBLE:  # pylint: disable=E1101
+        proto_dtype = onnx_proto.TensorProto.FLOAT  # pylint: disable=E1101
     if options['cast']:
         concat_name = scope.get_unique_variable_name('cast_lgbm')
         apply_cast(scope, concat_name, operator.outputs[0].full_name, container,
                    operator_name=scope.get_unique_operator_name('cast_lgmb'),
-                   to=container.proto_dtype)
+                   to=proto_dtype)
     else:
         concat_name = operator.outputs[0].full_name
 

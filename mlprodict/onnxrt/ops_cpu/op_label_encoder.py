@@ -30,21 +30,32 @@ class LabelEncoder(OpRun):
                 self.keys_floats, self.values_floats)}
             self.default_ = self.default_float
             self.dtype_ = numpy.float32
+        elif len(self.keys_floats) > 0 and len(self.values_int64s) > 0:
+            self.classes_ = {k: v for k, v in zip(
+                self.keys_floats, self.values_int64s)}
+            self.default_ = self.default_int64
+            self.dtype_ = numpy.int64
         elif len(self.keys_int64s) > 0 and len(self.values_int64s) > 0:
             self.classes_ = {k: v for k, v in zip(
                 self.keys_int64s, self.values_int64s)}
             self.default_ = self.default_int64
             self.dtype_ = numpy.int64
-        elif len(self.keys_strings) > 0 and len(self.values_strings) > 0:
-            self.classes_ = {k.decode('utf-8'): v for k, v in zip(
-                self.keys_strings, self.values_strings)}
-            self.default_ = self.default_string
-            self.dtype_ = numpy.str
         elif len(self.keys_strings) > 0 and len(self.values_int64s) > 0:
             self.classes_ = {k.decode('utf-8'): v for k, v in zip(
                 self.keys_strings, self.values_int64s)}
             self.default_ = self.default_int64
             self.dtype_ = numpy.int64
+        elif len(self.keys_strings) > 0 and len(self.values_strings) > 0:
+            self.classes_ = {
+                k.decode('utf-8'): v.decode('utf-8') for k, v in zip(
+                    self.keys_strings, self.values_strings)}
+            self.default_ = self.default_string
+            self.dtype_ = numpy.array(self.classes_.values).dtype
+        elif len(self.keys_floats) > 0 and len(self.values_strings) > 0:
+            self.classes_ = {k: v.decode('utf-8') for k, v in zip(
+                self.keys_floats, self.values_strings)}
+            self.default_ = self.default_string
+            self.dtype_ = numpy.array(self.classes_.values).dtype
         elif hasattr(self, 'classes_strings'):
             raise RuntimeError("This runtime does not implement version 1 of "
                                "operator LabelEncoder.")
@@ -65,6 +76,6 @@ class LabelEncoder(OpRun):
         return (res, )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
-        nb = max(self.classes_.values()) + 1
+        nb = len(self.classes_.values())
         return (ShapeObject((x[0], nb), dtype=self.dtype_,
                             name="{}-1".format(self.__class__.__name__)), )

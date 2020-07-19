@@ -41,5 +41,5 @@ class Conv(OpRun):
         return (self.rt64_.compute(X, W, B), )
 
     def _infer_shapes(self, X, W, B=None):  # pylint: disable=W0221
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
         # return (args[0].concat_columns(self.axis, *(args[1:])), )

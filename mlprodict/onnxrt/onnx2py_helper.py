@@ -3,6 +3,7 @@
 @brief Functions which converts :epkg:`ONNX` object into
 readable :epgk:`python` objects.
 """
+import pprint
 import warnings
 import numpy
 from scipy.sparse import coo_matrix
@@ -99,8 +100,9 @@ def _sparse_array(shape, data, indices, dtype=None, copy=True):
     @return                 :epkg:`coo_matrix`
     """
     if len(shape) != 2:
-        raise ValueError("Only matrices are allowed or sparse matrices "
-                         "but shape is {}.".format(shape))
+        raise ValueError(  # pragma: no cover
+            "Only matrices are allowed or sparse matrices "
+            "but shape is {}.".format(shape))
     rows = numpy.array([i // shape[1] for i in indices])
     cols = numpy.array([i % shape[1] for i in indices])
     if isinstance(data, numpy.ndarray):
@@ -144,9 +146,38 @@ def _elem_type_as_str(elem_type):
         vt = _elem_type_as_str(this.value_type)
         return {'kind': 'map', 'key': kt, 'value': vt}
 
-    import pprint
-    raise NotImplementedError("elem_type '{}' is unknown\nfields:\n{}\n-----\n{}.".format(
-        elem_type, pprint.pformat(dir(elem_type)), type(elem_type)))
+    raise NotImplementedError(  # pragma: no cover
+        "elem_type '{}' is unknown\nfields:\n{}\n-----\n{}.".format(
+            elem_type, pprint.pformat(dir(elem_type)), type(elem_type)))
+
+
+def _to_array(var):
+    try:
+        data = to_array(var)
+    except ValueError:
+        dims = [d for d in var.dims]
+        if var.data_type == 1 and var.float_data is not None:
+            try:
+                data = _numpy_array(var.float_data, dtype=numpy.float32,
+                                    copy=False).reshape(dims)
+            except ValueError:
+                data = _numpy_array(to_array(var))
+        elif var.data_type == 11 and var.double_data is not None:
+            try:
+                data = _numpy_array(var.double_data, dtype=numpy.float64,
+                                    copy=False).reshape(dims)
+            except ValueError:
+                data = _numpy_array(to_array(var))
+        elif var.data_type == 6 and var.int32_data is not None:
+            data = _numpy_array(var.int32_data, dtype=numpy.int32,
+                                copy=False).reshape(dims)
+        elif var.data_type == 7 and var.int64_data is not None:
+            data = _numpy_array(var.int64_data, dtype=numpy.int64,
+                                copy=False).reshape(dims)
+        else:
+            raise NotImplementedError(
+                "Iniatilizer {} cannot be converted into a dictionary.".format(var))
+    return data
 
 
 def _var_as_dict(var):
@@ -193,13 +224,15 @@ def _var_as_dict(var):
                 value_type = _elem_type_as_str(t.value_type)
                 dtype = dict(kind='map', key=key_type, value=value_type)
             else:
-                import pprint
-                raise NotImplementedError("Unable to convert a type into a dictionary for '{}'. "
-                                          "Available fields: {}.".format(var.type, pprint.pformat(dir(var.type))))
+                raise NotImplementedError(  # pragma: no cover
+                    "Unable to convert a type into a dictionary for '{}'. "
+                    "Available fields: {}.".format(
+                        var.type, pprint.pformat(dir(var.type))))
         else:
-            import pprint
-            raise NotImplementedError("Unable to convert variable into a dictionary for '{}'. "
-                                      "Available fields: {}.".format(var, pprint.pformat(dir(var.type))))
+            raise NotImplementedError(  # pragma: no cover
+                "Unable to convert variable into a dictionary for '{}'. "
+                "Available fields: {}.".format(
+                    var, pprint.pformat(dir(var.type))))
 
         res = dict(name=var.name, type=dtype)
 
@@ -209,7 +242,7 @@ def _var_as_dict(var):
             t = var.sparse_tensor
             try:
                 values = _var_as_dict(t.values)
-            except NotImplementedError as e:
+            except NotImplementedError as e:  # pragma: no cover
                 raise NotImplementedError(
                     "Issue with\n{}\n---".format(var)) from e
             indices = _var_as_dict(t.indices)
@@ -240,61 +273,22 @@ def _var_as_dict(var):
                 dtype, str(var).replace("\n", "").replace(" ", "")))
         return res
 
-    elif hasattr(var, 'op_type'):
+    if hasattr(var, 'op_type'):
         if hasattr(var, 'attribute'):
             atts = {}
             for att in var.attribute:
                 atts[att.name] = _var_as_dict(att)
         return dict(name=var.name, op_type=var.op_type,
                     domain=var.domain, atts=atts)
-
-    elif hasattr(var, 'dims') and len(var.dims) > 0:
+    if hasattr(var, 'dims') and len(var.dims) > 0:
         # initializer
-        dims = [d for d in var.dims]
-        if var.data_type == 1 and var.float_data is not None:
-            try:
-                data = _numpy_array(var.float_data, dtype=numpy.float32,
-                                    copy=False).reshape(dims)
-            except ValueError:
-                data = _numpy_array(to_array(var))
-        elif var.data_type == 11 and var.double_data is not None:
-            try:
-                data = _numpy_array(var.double_data, dtype=numpy.float64,
-                                    copy=False).reshape(dims)
-            except ValueError:
-                data = _numpy_array(to_array(var))
-        elif var.data_type == 6 and var.int32_data is not None:
-            data = _numpy_array(var.int32_data, dtype=numpy.int32,
-                                copy=False).reshape(dims)
-        elif var.data_type == 7 and var.int64_data is not None:
-            data = _numpy_array(var.int64_data, dtype=numpy.int64,
-                                copy=False).reshape(dims)
-        else:
-            raise NotImplementedError(
-                "Iniatilizer {} cannot be converted into a dictionary.".format(var))
+        data = _to_array(var)
         return dict(name=var.name, value=data)
-
-    elif hasattr(var, 'data_type') and var.data_type > 0:
-        if var.data_type == 1 and var.float_data is not None:
-            data = _numpy_array(var.float_data, dtype=numpy.float32,
-                                copy=False)
-        elif var.data_type == 6 and var.int32_data is not None:
-            data = _numpy_array(var.int32_data, dtype=numpy.int32,
-                                copy=False)
-        elif var.data_type == 7 and var.int64_data is not None:
-            data = _numpy_array(var.int64_data, dtype=numpy.int64,
-                                copy=False)
-        elif var.data_type == 11 and var.double_data is not None:
-            data = _numpy_array(var.double_data, dtype=numpy.float64,
-                                copy=False)
-        else:
-            raise NotImplementedError(
-                "Iniatilizer {} cannot be converted into a dictionary.".format(var))
+    if hasattr(var, 'data_type') and var.data_type > 0:
+        data = _to_array(var)
         return dict(name=var.name, value=data)
-
-    else:
-        raise NotImplementedError(
-            "Unable to guess which object it is.\n{}\n---".format(var))
+    raise NotImplementedError(  # pragma: no cover
+        "Unable to guess which object it is.\n{}\n---".format(var))
 
 
 def _type_to_string(dtype):
@@ -311,5 +305,57 @@ def _type_to_string(dtype):
         return "[{0}]".format(_type_to_string(dtype_['elem']))
     if dtype_["kind"] == 'map':
         return "{{{0}, {1}}}".format(dtype_['key'], dtype_['value'])
-    raise NotImplementedError(
+    raise NotImplementedError(  # pragma: no cover
         "Unable to convert into string {} or {}.".format(dtype, dtype_))
+
+
+def numpy_min(x):
+    """
+    Returns the minimum of an array.
+    Deals with text as well.
+    """
+    try:
+        if hasattr(x, 'todense'):
+            x = x.todense()
+        if x.dtype.kind.lower() not in 'uc':
+            return x.min()
+        try:  # pragma: no cover
+            x = x.ravel()
+        except AttributeError:  # pragma: no cover
+            pass
+        keep = list(filter(lambda s: isinstance(s, str), x))
+        if len(keep) == 0:  # pragma: no cover
+            return numpy.nan
+        keep.sort()
+        val = keep[0]
+        if len(val) > 10:  # pragma: no cover
+            val = val[:10] + '...'
+        return "%r" % val
+    except (ValueError, TypeError):
+        return '?'
+
+
+def numpy_max(x):
+    """
+    Returns the maximum of an array.
+    Deals with text as well.
+    """
+    try:
+        if hasattr(x, 'todense'):
+            x = x.todense()
+        if x.dtype.kind.lower() not in 'uc':
+            return x.max()
+        try:  # pragma: no cover
+            x = x.ravel()
+        except AttributeError:  # pragma: no cover
+            pass
+        keep = list(filter(lambda s: isinstance(s, str), x))
+        if len(keep) == 0:  # pragma: no cover
+            return numpy.nan
+        keep.sort()
+        val = keep[-1]
+        if len(val) > 10:  # pragma: no cover
+            val = val[:10] + '...'
+        return "%r" % val
+    except (ValueError, TypeError):
+        return '?'

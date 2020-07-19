@@ -11,32 +11,23 @@ from skl2onnx.common.exceptions import MissingShapeCalculator
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.asv_benchmark.template.skl_model_classifier import (
-    TemplateBenchmarkClassifier
-)
+    TemplateBenchmarkClassifier)
 from mlprodict.asv_benchmark.template.skl_model_classifier_raw_scores import (
-    TemplateBenchmarkClassifierRawScore
-)
+    TemplateBenchmarkClassifierRawScore)
 from mlprodict.asv_benchmark.template.skl_model_clustering import (
-    TemplateBenchmarkClustering
-)
+    TemplateBenchmarkClustering)
 from mlprodict.asv_benchmark.template.skl_model_multi_classifier import (
-    TemplateBenchmarkMultiClassifier
-)
+    TemplateBenchmarkMultiClassifier)
 from mlprodict.asv_benchmark.template.skl_model_regressor import (
-    TemplateBenchmarkRegressor
-)
+    TemplateBenchmarkRegressor)
 from mlprodict.asv_benchmark.template.skl_model_outlier import (
-    TemplateBenchmarkOutlier
-)
+    TemplateBenchmarkOutlier)
 from mlprodict.asv_benchmark.template.skl_model_trainable_transform import (
-    TemplateBenchmarkTrainableTransform
-)
+    TemplateBenchmarkTrainableTransform)
 from mlprodict.asv_benchmark.template.skl_model_transform import (
-    TemplateBenchmarkTransform
-)
+    TemplateBenchmarkTransform)
 from mlprodict.asv_benchmark.template.skl_model_transform_positive import (
-    TemplateBenchmarkTransformPositive
-)
+    TemplateBenchmarkTransformPositive)
 
 
 class TestAsvTemplateBenchmark(ExtTestCase):
@@ -65,7 +56,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                         raise AssertionError(
                             "Predictions are too perfect: {},{}: {}".format(
                                 method, runtime, res[method, runtime]))
-        self.assertEqual(len(res), 15)
+        self.assertEqual(len(res), 24)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
@@ -74,7 +65,9 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_score', 'ort'), ('track_onnxsize', 'ort'),
                ('track_nbnodes', 'skl'), ('track_nbnodes', 'ort'),
                ('track_nbnodes', 'pyrt')]
-        self.assertEqual(set(exp), set(res))
+        self.assertEqual(
+            set(_ for _ in exp if not _[0].startswith('track_v')),
+            set(_ for _ in res if not _[0].startswith('track_v')))
 
     @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_classifier_raw_scores(self):
@@ -100,7 +93,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                         raise AssertionError(
                             "Predictions are too perfect: {},{}: {}".format(
                                 method, runtime, res[method, runtime]))
-        self.assertEqual(len(res), 15)
+        self.assertEqual(len(res), 24)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
@@ -109,7 +102,9 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_score', 'ort'), ('track_onnxsize', 'ort'),
                ('track_nbnodes', 'skl'), ('track_nbnodes', 'ort'),
                ('track_nbnodes', 'pyrt')]
-        self.assertEqual(set(exp), set(res))
+        self.assertEqual(
+            set(_ for _ in exp if not _[0].startswith('track_v')),
+            set(_ for _ in res if not _[0].startswith('track_v')))
 
     @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_clustering(self):
@@ -135,13 +130,15 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                         raise AssertionError(
                             "Predictions are too perfect: {},{}: {}".format(
                                 method, runtime, res[method, runtime]))
-        self.assertEqual(len(res), 10)
+        self.assertEqual(len(res), 16)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
                ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
                ('track_nbnodes', 'skl'), ('track_nbnodes', 'pyrt')]
-        self.assertEqual(set(exp), set(res))
+        self.assertEqual(
+            set(_ for _ in exp if not _[0].startswith('track_v')),
+            set(_ for _ in res if not _[0].startswith('track_v')))
 
     @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_regressor(self):
@@ -167,7 +164,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                         raise AssertionError(
                             "Predictions are too perfect: {},{}: {}".format(
                                 method, runtime, res[method, runtime]))
-        self.assertEqual(len(res), 15)
+        self.assertEqual(len(res), 24)
         exp = [('time_predict', 'skl'), ('peakmem_predict', 'skl'),
                ('track_score', 'skl'), ('track_onnxsize', 'skl'),
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
@@ -176,7 +173,9 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_score', 'ort'), ('track_onnxsize', 'ort'),
                ('track_nbnodes', 'skl'), ('track_nbnodes', 'ort'),
                ('track_nbnodes', 'pyrt')]
-        self.assertEqual(set(exp), set(res))
+        self.assertEqual(
+            set(_ for _ in exp if not _[0].startswith('track_v')),
+            set(_ for _ in res if not _[0].startswith('track_v')))
 
     @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_multi_classifier(self):
@@ -206,13 +205,15 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                         raise AssertionError(
                             "Predictions are too perfect: {},{}: {}".format(
                                 method, runtime, res[method, runtime]))
-        self.assertEqual(len(res), 10)
+        self.assertEqual(len(res), 16)
         exp = [('peakmem_predict', 'skl'), ('time_predict', 'skl'),
                ('track_nbnodes', 'skl'), ('track_onnxsize', 'skl'),
                ('track_score', 'skl'), ('peakmem_predict', 'pyrt'),
                ('time_predict', 'pyrt'), ('track_nbnodes', 'pyrt'),
                ('track_onnxsize', 'pyrt'), ('track_score', 'pyrt')]
-        self.assertEqual(set(exp), set(res))
+        self.assertEqual(
+            set(_ for _ in exp if not _[0].startswith('track_v')),
+            set(_ for _ in res if not _[0].startswith('track_v')))
 
     @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_outlier(self):
@@ -223,7 +224,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        expect = 10
+        expect = 16
         opset = get_opset_number_from_onnx()
         dtype = 'float'
         optim = None
@@ -252,7 +253,9 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
                ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
                ('track_nbnodes', 'skl'), ('track_nbnodes', 'pyrt')]
-        self.assertEqual(set(exp), set(res))
+        self.assertEqual(
+            set(_ for _ in exp if not _[0].startswith('track_v')),
+            set(_ for _ in res if not _[0].startswith('track_v')))
 
     @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_trainable_transform(self):
@@ -293,7 +296,9 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
                ('track_nbnodes', 'skl'), ('track_opset', 'skl'),
                ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
-        self.assertEqual(set(exp), set(res))
+        self.assertEqual(
+            set(_ for _ in exp if not _[0].startswith('track_v')),
+            set(_ for _ in res if not _[0].startswith('track_v')))
 
     @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_transform(self):
@@ -306,7 +311,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         nf = cl.params[2][1]
         opset = get_opset_number_from_onnx()
         dtype = 'float'
-        expect = 10
+        expect = 16
         optim = None
         for runtime in ['skl', 'pyrt']:
             try:
@@ -333,7 +338,9 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('time_predict', 'pyrt'), ('peakmem_predict', 'pyrt'),
                ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
                ('track_nbnodes', 'skl'), ('track_nbnodes', 'pyrt')]
-        self.assertEqual(set(exp), set(res))
+        self.assertEqual(
+            set(_ for _ in exp if not _[0].startswith('track_v')),
+            set(_ for _ in res if not _[0].startswith('track_v')))
 
     @ignore_warnings(category=(UserWarning, ))
     def test_template_benchmark_transformPositive(self):
@@ -374,7 +381,9 @@ class TestAsvTemplateBenchmark(ExtTestCase):
                ('track_score', 'pyrt'), ('track_onnxsize', 'pyrt'),
                ('track_nbnodes', 'skl'), ('track_opset', 'skl'),
                ('track_opset', 'pyrt'), ('track_nbnodes', 'pyrt')]
-        self.assertEqual(set(exp), set(res))
+        self.assertEqual(
+            set(_ for _ in exp if not _[0].startswith('track_v')),
+            set(_ for _ in res if not _[0].startswith('track_v')))
 
 
 if __name__ == "__main__":
