@@ -73,7 +73,6 @@ class TestOnnxTransformer(ExtTestCase):
         except RuntimeError:
             pass
 
-    @skipif_appveyor("crashes")
     def test_multiple_transform(self):
         x = pandas.DataFrame(data=[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
         x.columns = "X1 X2".split()
@@ -84,7 +83,6 @@ class TestOnnxTransformer(ExtTestCase):
             tr.fit()
             self.assertRaise(lambda tr=tr: tr.transform(x), KeyError)
 
-    @skipif_appveyor("crashes")
     def test_pipeline_iris(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -123,7 +121,6 @@ class TestOnnxTransformer(ExtTestCase):
         self.assertEqual(len(y.shape), 2)
         self.assertEqual(y.shape[0], 2)
 
-    @skipif_appveyor("crashes")
     def test_pipeline_iris_intermediate(self):
         iris = load_iris()
         X, y = iris.data, iris.target
