@@ -6,7 +6,8 @@ import unittest
 from logging import getLogger
 from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.pycode import get_temp_folder, ExtTestCase, skipif_circleci
+from pyquickhelper.pycode import (
+    get_temp_folder, ExtTestCase, skipif_circleci, skipif_appveyor)
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
