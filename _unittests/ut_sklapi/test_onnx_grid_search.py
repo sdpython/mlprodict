@@ -71,7 +71,7 @@ class TestInferenceSessionSklearnGridSearch(ExtTestCase):
         cl = classification_report(y_true, y_pred)
         self.assertIn('precision', cl)
         sc = clf.score(X_test, y_test)
-        self.assertGreater(sc, 0.70)
+        self.assertGreater(sc, 0.65)
 
     def test_grid_search_onnx(self):
         iris = load_iris()
@@ -105,7 +105,7 @@ class TestInferenceSessionSklearnGridSearch(ExtTestCase):
         cl = classification_report(y_true, y_pred)
         self.assertIn('precision', cl)
         sc = clf.score(X_test, y_test)
-        self.assertGreater(sc, 0.70)
+        self.assertGreater(sc, 0.65)
 
 
 if __name__ == '__main__':
