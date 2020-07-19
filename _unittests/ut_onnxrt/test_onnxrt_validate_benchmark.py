@@ -48,6 +48,7 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
             temp, "sklearn_opsets_summary.xlsx"), index=False)
 
     @skipif_circleci('too long')
+    @skipif_appveyor('crashes')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_sklearn_operators_benchmark_all(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
