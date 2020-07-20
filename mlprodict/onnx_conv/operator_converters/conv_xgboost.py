@@ -8,7 +8,7 @@ import json
 from pprint import pformat
 import numpy
 from xgboost import XGBClassifier
-from skl2onnx.common.data_types import guess_numpy_type
+from skl2onnx.common.data_types import guess_numpy_type  # pylint: disable=C0411
 
 
 class XGBConverter:
