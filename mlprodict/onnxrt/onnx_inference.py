@@ -111,6 +111,9 @@ class OnnxInference:
         Prepares the instance to deliver predictions.
         """
         self.graph_ = self.to_sequence()
+        if len(self.graph_['sequence']) == 0:
+            raise RuntimeError(
+                "No runnable nodes was found in the ONNX graph.")
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
         self.target_opset_ = self.graph_['targets']

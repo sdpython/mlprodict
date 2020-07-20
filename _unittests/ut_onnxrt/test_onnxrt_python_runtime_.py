@@ -24,6 +24,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
     OnnxConcat,
     OnnxCeil, OnnxClip, OnnxConstant, OnnxConstantOfShape,
+    OnnxDequantizeLinear,
     OnnxDiv,
     OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
@@ -33,6 +34,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxMatMul, OnnxMax, OnnxMean, OnnxMin, OnnxMul,
     OnnxNeg, OnnxNot,
     OnnxPow,
+    OnnxQuantizeLinear,
     OnnxReciprocal,
     OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
     OnnxReduceProd, OnnxReduceSum, OnnxReduceSumSquare,
@@ -623,6 +625,38 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         except RuntimeError:
             pass
 
+    def test_onnxt_runtime_dequantize_linear(self):
+        X = numpy.array([[[[3, 89], [34, 200], [74, 59]],
+                          [[5, 24], [24, 87], [32, 13]],
+                          [[245, 99], [4, 142], [121, 102]], ], ],
+                        dtype=numpy.uint8)
+        x_scale = numpy.array([2, 4, 5], dtype=numpy.float32)
+        x_zero_point = numpy.array([84, 24, 196], dtype=numpy.uint8)
+        exp = ((X.astype(numpy.float32) - x_zero_point.reshape(1, 3, 1, 1).astype(numpy.float32)) *
+               x_scale.reshape(1, 3, 1, 1))
+        onx = OnnxDequantizeLinear(
+            'X', x_scale, x_zero_point, output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqualArray(exp, got['Y'])
+
+        X = numpy.array([0, 3, 128, 255]).astype(numpy.uint8)
+        x_scale = numpy.float32(2)
+        x_zero_point = numpy.uint8(128)
+        exp = numpy.array([-256, -250, 0, 254], dtype=numpy.float32)
+        onx = OnnxDequantizeLinear(
+            'X', x_scale, x_zero_point, output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqualArray(exp, got['Y'])
+        python_tested.append(OnnxDequantizeLinear)
+
     def test_onnxt_runtime_div(self):
         self.common_test_onnxt_runtime_binary(OnnxDiv, lambda x, y: x / y)
 
@@ -893,6 +927,38 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_pow(self):
         self.common_test_onnxt_runtime_binary(OnnxPow, numpy.power)
+
+    def test_onnxt_runtime_quantize_linear(self):
+        X = numpy.array([[[[-162, 10], [-100, 232], [-20, -50]],
+                          [[-76, 0], [0, 252], [32, -44]],
+                          [[245, -485], [-960, -270], [-375, -470]], ], ],
+                        dtype=numpy.float32)
+        y_scale = numpy.array([2, 4, 5], dtype=numpy.float32)
+        y_zero_point = numpy.array([84, 24, 196], dtype=numpy.uint8)
+        exp = ((X / y_scale.reshape(1, 3, 1, 1) +
+                y_zero_point.reshape(1, 3, 1, 1)).astype(numpy.uint8))
+        onx = OnnxQuantizeLinear(
+            'X', y_scale, y_zero_point, output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqualArray(exp, got['Y'])
+
+        X = numpy.array([0, 2, 4, 1000, -254, -1000]).astype(numpy.float32)
+        y_scale = numpy.float32(2)
+        y_zero_point = numpy.uint8(128)
+        exp = numpy.array([128, 129, 130, 255, 1, 0]).astype(numpy.uint8)
+        onx = OnnxQuantizeLinear(
+            'X', y_scale, y_zero_point, output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqualArray(exp, got['Y'])
+        python_tested.append(OnnxQuantizeLinear)
 
     def test_onnxt_runtime_reciprocal(self):
         self.common_test_onnxt_runtime_unary(OnnxReciprocal, numpy.reciprocal)

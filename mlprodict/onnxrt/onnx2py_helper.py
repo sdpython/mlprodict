@@ -126,6 +126,10 @@ def _elem_type_as_str(elem_type):
         return 'int64'
     if elem_type == onnx_proto.TensorProto.INT32:  # pylint: disable=E1101
         return 'int32'
+    if elem_type == onnx_proto.TensorProto.UINT8:  # pylint: disable=E1101
+        return 'uint8'
+    if elem_type == onnx_proto.TensorProto.INT8:  # pylint: disable=E1101
+        return 'int8'
 
     # The following code should be refactored.
     selem = str(elem_type)

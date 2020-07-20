@@ -22,6 +22,7 @@ from .op_conv import Conv
 from .op_constant import Constant
 from .op_constant_of_shape import ConstantOfShape
 from .op_cum_sum import CumSum
+from .op_dequantize_linear import DequantizeLinear
 from .op_dict_vectorizer import DictVectorizer
 from .op_div import Div
 from .op_einsum import Einsum
@@ -55,6 +56,7 @@ from .op_normalizer import Normalizer
 from .op_not import Not
 from .op_one_hot_encoder import OneHotEncoder
 from .op_pow import Pow
+from .op_quantize_linear import QuantizeLinear
 from .op_reciprocal import Reciprocal
 from .op_reduce_log_sum_exp import ReduceLogSumExp
 from .op_reduce_min import ReduceMin
