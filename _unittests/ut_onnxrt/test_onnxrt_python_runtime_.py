@@ -22,6 +22,7 @@ except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
+    OnnxBatchNormalization,
     OnnxConcat,
     OnnxCeil, OnnxClip, OnnxConstant, OnnxConstantOfShape,
     OnnxDequantizeLinear,
@@ -54,6 +55,7 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
+from mlprodict.onnxrt.ops_cpu.op_batch_normalization import _batchnorm_test_mode
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611
     topk_element_min_double, topk_element_max_double, topk_element_fetch_double,
     topk_element_min_float, topk_element_max_float, topk_element_fetch_float,
@@ -392,6 +394,47 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.array([2, 1], dtype=numpy.int64),
                               got['Y'], decimal=6)
+
+    def test_onnxt_batch_normalization(self):
+        # input size: (1, 2, 1, 3)
+        x = numpy.array([[[[-1, 0, 1]], [[2, 3, 4]]]]).astype(numpy.float32)
+        s = numpy.array([1.0, 1.5]).astype(numpy.float32)
+        bias = numpy.array([0, 1]).astype(numpy.float32)
+        mean = numpy.array([0, 3]).astype(numpy.float32)
+        var = numpy.array([1, 1.5]).astype(numpy.float32)
+        y = _batchnorm_test_mode(x, s, bias, mean, var).astype(numpy.float32)
+
+        onx = OnnxBatchNormalization(
+            'X', s, bias, mean, var, output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'])
+
+        # input size: (2, 3, 4, 5)
+        x = numpy.random.randn(2, 3, 4, 5).astype(numpy.float32)
+        s = numpy.random.randn(3).astype(numpy.float32)
+        bias = numpy.random.randn(3).astype(numpy.float32)
+        mean = numpy.random.randn(3).astype(numpy.float32)
+        var = numpy.random.rand(3).astype(numpy.float32)
+        epsilon = 1e-2
+        y = _batchnorm_test_mode(
+            x, s, bias, mean, var, epsilon).astype(numpy.float32)
+
+        onx = OnnxBatchNormalization(
+            'X', s, bias, mean, var,
+            output_names=['Y'], epsilon=epsilon,
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'])
+        python_tested.append(OnnxBatchNormalization)
 
     def test_onnxt_runtime_ceil(self):
         self.common_test_onnxt_runtime_unary(OnnxCeil, numpy.ceil)
