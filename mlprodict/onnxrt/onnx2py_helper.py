@@ -321,7 +321,7 @@ def numpy_min(x):
     try:
         if hasattr(x, 'todense'):
             x = x.todense()
-        if x.dtype.kind.lower() not in 'uc':
+        if x.dtype.kind.lower() not in 'c':
             return x.min()
         try:  # pragma: no cover
             x = x.ravel()
@@ -347,7 +347,7 @@ def numpy_max(x):
     try:
         if hasattr(x, 'todense'):
             x = x.todense()
-        if x.dtype.kind.lower() not in 'uc':
+        if x.dtype.kind.lower() not in 'c':
             return x.max()
         try:  # pragma: no cover
             x = x.ravel()

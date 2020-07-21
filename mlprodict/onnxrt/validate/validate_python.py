@@ -71,7 +71,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
                 continue
             sobj = str(obj)
             if '<string>' in sobj and fct in sobj:
-                fcts_local[fct] = _make_callable(fct, obj, code, gl)
+                fcts_local[fct] = _make_callable(fct, obj, code, gl, False)
 
     gl.update(fcts_local)
     loc = inputs

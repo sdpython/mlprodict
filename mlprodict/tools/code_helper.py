@@ -28,7 +28,7 @@ def numpy_min_max(x, fct):
     try:
         if hasattr(x, 'todense'):
             x = x.todense()
-        if x.dtype.kind.lower() not in 'uc':
+        if x.dtype.kind.lower() not in 'c':
             return fct(x)
         try:  # pragma: no cover
             x = x.ravel()
