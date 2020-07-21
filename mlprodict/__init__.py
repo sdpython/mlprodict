@@ -4,7 +4,7 @@
 @brief Ways to speed up predictions for a machine learned model.
 """
 
-__version__ = "0.4.1207"
+__version__ = "0.4.1208"
 __author__ = "Xavier Dupré"
 
 

@@ -29,7 +29,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxDiv,
     OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
-    OnnxGreater, OnnxGemm,
+    OnnxGreater, OnnxGemm, OnnxGlobalAveragePool,
     OnnxIdentity, OnnxIsNaN,
     OnnxLog, OnnxLpNormalization,
     OnnxMatMul, OnnxMax, OnnxMean, OnnxMin, OnnxMul,
@@ -56,6 +56,7 @@ from mlprodict.tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
 from mlprodict.onnxrt.ops_cpu.op_batch_normalization import _batchnorm_test_mode
+from mlprodict.onnxrt.ops_cpu.op_global_average_pool import _global_average_pool
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611
     topk_element_min_double, topk_element_max_double, topk_element_fetch_double,
     topk_element_min_float, topk_element_max_float, topk_element_fetch_float,
@@ -395,7 +396,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(numpy.array([2, 1], dtype=numpy.int64),
                               got['Y'], decimal=6)
 
-    def test_onnxt_batch_normalization(self):
+    def test_onnxt_runtime_batch_normalization(self):
         # input size: (1, 2, 1, 3)
         x = numpy.array([[[[-1, 0, 1]], [[2, 3, 4]]]]).astype(numpy.float32)
         s = numpy.array([1.0, 1.5]).astype(numpy.float32)
@@ -898,6 +899,38 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
             self.assertEqual(list(sorted(got)), ['Y'])
             self.assertEqualArray(numpy.dot(X, idi.T) +
                                   cst, got['Y'], decimal=6)
+
+    def test_onnxt_runtime_global_average_pool(self):
+        x = x = numpy.random.randn(1, 3, 5, 5).astype(numpy.float32)
+        y = _global_average_pool(x).astype(numpy.float32)
+
+        onx = OnnxGlobalAveragePool(
+            'X', output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'])
+
+        x = numpy.array([[[
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+        ]]]).astype(numpy.float32)
+        y = numpy.array([[[[5]]]]).astype(numpy.float32)
+        onx = OnnxGlobalAveragePool(
+            'X', output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'])
+
+        python_tested.append(OnnxGlobalAveragePool)
 
     def test_onnxt_runtime_greater(self):
         self.common_test_onnxt_runtime_binary(OnnxGreater, numpy.greater)
