@@ -159,9 +159,9 @@ class OnnxInference:
         self.to_dot = self.exporters_.to_dot
         self.to_python = self.exporters_.to_python
 
-        if self.runtime == 'python_compiled':
+        if self.runtime in ('python_compiled', 'python_compiled_debug'):
             # switch the inference method to the compiled one
-            _, fct, code = self._build_compile_run()
+            _, fct, code = self._build_compile_run('debug' in self.runtime)
             setattr(self, '_run_compiled', fct)
             setattr(self, '_run_compiled_code', code)
             self._run = self._run_sequence_runtime_compiled
@@ -235,7 +235,8 @@ class OnnxInference:
         Returns the names and shapes of all inputs.
         This method assumes all inputs are tensors.
         """
-        return [(_.name, _var_as_dict(_)['type']['shape']) for _ in self.obj.graph.input]
+        return [(_.name, _var_as_dict(_)['type']['shape'])
+                for _ in self.obj.graph.input]
 
     @property
     def input_names_shapes_types(self):
@@ -260,7 +261,8 @@ class OnnxInference:
         Returns the names and shapes of all outputs.
         This method assumes all inputs are tensors.
         """
-        return [(_.name, _var_as_dict(_)['type']['shape']) for _ in self.obj.graph.output]
+        return [(_.name, _var_as_dict(_)['type']['shape'])
+                for _ in self.obj.graph.output]
 
     def global_index(self, name):
         """
@@ -962,15 +964,16 @@ class OnnxInference:
 
         return inplaces
 
-    def _build_compile_run(self):
+    def _build_compile_run(self, debug=False):
         """
         Rewrite the run function in python,
         compiles it, and adds it as a method.
 
-        @return     method name, callable object
+        @param      debug       insert debugging code
+        @return                 method name, callable object
 
         .. exref::
-            :title: Run a model with runtime python_compile
+            :title: Run a model with runtime 'python_compiled'
 
             The following code trains a model and compute
             the predictions with runtime ``'python_compiled'``.
@@ -1008,17 +1011,41 @@ class OnnxInference:
                 print(oinf2)
         """
         # inits
+        inputs = self.input_names
         code = ['def compiled_run(dict_inputs):']
+        if debug:
+            code.append("    printed = {}")
         context = {}
         for k, v in self.inits_.items():
-            context[k] = v['value']
-            code.append("    # init: {0}".format(k))
+            if k.startswith("_OPT_"):
+                raise RuntimeError(  # pragma: no cover
+                    "The runtime cannot handle any constant name "
+                    "starting with '_OPT_': '{}'.".format(k))
+            if k in inputs:
+                context["_OPT_" + k] = v['value']
+                code.append("    # init: _OPT_{0}".format(k))
+                if debug:
+                    code.append(
+                        "    debug_print('c.[_OPT_{0}]', _OPT_{0}, printed)".format(k))
+            else:
+                context[k] = v['value']
+                code.append("    # init: {0}".format(k))
+                if debug:
+                    code.append(
+                        "    debug_print('c.[{0}]', {0}, printed)".format(k))
 
         # method signature
-        inputs = self.input_names
         code.append("    # inputs")
         for inp in inputs:
-            code.append("    {0} = dict_inputs['{0}']".format(inp))
+            if '_OPT_' + inp in context:
+                # optional inputs
+                code.append(
+                    "    {0} = dict_inputs.get('{0}', _OPT_{0})".format(inp))
+            else:
+                code.append("    {0} = dict_inputs['{0}']".format(inp))
+            if debug:
+                code.append(
+                    "    debug_print('i.{0}', {0}, printed)".format(inp))
 
         # code
         for i, node in enumerate(self.sequence_):
@@ -1026,6 +1053,11 @@ class OnnxInference:
             context[name] = node.ops_._run
             code.append('    ({1}, ) = {2}({0})'.format(
                 ', '.join(node.inputs), ', '.join(node.outputs), name))
+            if debug:
+                code.append("    print('''# {}''')".format(code[-1][4:]))
+                for o in node.outputs:
+                    code.append(
+                        "    debug_print('o.{0}', {0}, printed)".format(o))
 
         # return
         code.append('    return {')
@@ -1039,7 +1071,8 @@ class OnnxInference:
         obj = compile(final_code, "<string>", 'exec')
         fcts_obj = [_ for _ in obj.co_consts
                     if _ is not None and not isinstance(_, (bool, str, int))]
-        fct = make_callable("compiled_run", fcts_obj[0], final_code, context)
+        fct = make_callable(
+            "compiled_run", fcts_obj[0], final_code, context, debug)
 
         # end
         return "compiled_run", fct, final_code
@@ -1054,6 +1087,6 @@ class OnnxInference:
         del self.graph_
         if not pickable:
             del self.obj
-        if self.runtime == 'python_compiled':
+        if self.runtime in ('python_compiled', 'python_compiled_debug'):
             del self.sequence_
         gc.collect()

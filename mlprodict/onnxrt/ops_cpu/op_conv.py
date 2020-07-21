@@ -6,7 +6,7 @@
 """
 import numpy
 from ._op import OpRun
-# from ..shape_object import ShapeObject
+from ..shape_object import ShapeObjectFct
 from .op_conv_ import ConvFloat, ConvDouble  # pylint: disable=E0611
 
 
@@ -41,5 +41,13 @@ class Conv(OpRun):
         return (self.rt64_.compute(X, W, B), )
 
     def _infer_shapes(self, X, W, B=None):  # pylint: disable=W0221
-        raise NotImplementedError()  # pragma: no cover
-        # return (args[0].concat_columns(self.axis, *(args[1:])), )
+
+        def compute_shape(xshape, wshape, bshape):
+            xs = numpy.ones(xshape, dtype=numpy.float32)
+            ws = numpy.ones(wshape, dtype=numpy.float32)
+            bs = (numpy.ones(bshape, dtype=numpy.float32)
+                  if bshape is not None else None)
+            res = self.rt32_.compute(xs, ws, bs)
+            return res.shape
+
+        return (ShapeObjectFct(compute_shape, X, W, B, name="Conv", dtype=X.dtype), )

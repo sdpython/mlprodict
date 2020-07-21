@@ -41,6 +41,27 @@ class TestOnnxrtCompiled(ExtTestCase):
         self.assertIn('(Y, ) = n0_add(X, Ad_Addcst)', code)
         self.assertIn(' def compiled_run(dict_inputs):', str(oinf))
 
+    def test_onnxt_idi_debug(self):
+        idi = numpy.identity(2)
+        onx = OnnxAdd('X', idi, output_names=['Y'],
+                      op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
+
+        oinf = OnnxInference(model_def, runtime="python_compiled_debug")
+        res, out, err = self.capture(
+            lambda: oinf.run({'X': idi.astype(numpy.float32)}))
+        self.assertEmpty(err)
+        self.assertIn("-='i.X'", out)
+        self.assertIn("-='o.Y'", out)
+        self.assertEqual(idi * 2, res['Y'])
+        self.assertIn('_run_compiled', oinf.__dict__)
+        self.assertIn('_run_compiled_code', oinf.__dict__)
+        code = oinf._run_compiled_code  # pylint: disable=W0212,E1101
+        self.assertIsInstance(code, str)
+        self.assertIn('def compiled_run(dict_inputs):', code)
+        self.assertIn('(Y, ) = n0_add(X, Ad_Addcst)', code)
+        self.assertIn(' def compiled_run(dict_inputs):', str(oinf))
+
     @skipif_circleci('fails to finish')
     def test_onnxt_iris_adaboost_regressor_dt(self):
         iris = load_iris()

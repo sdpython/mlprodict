@@ -23,7 +23,7 @@ except ImportError:
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
     OnnxBatchNormalization,
-    OnnxConcat,
+    OnnxConcat, OnnxConv,
     OnnxCeil, OnnxClip, OnnxConstant, OnnxConstantOfShape,
     OnnxDequantizeLinear,
     OnnxDiv,
@@ -545,6 +545,35 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         python_tested.append(OnnxConstantOfShape)
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
         validate_python_inference(oinfpy, {'X': x})
+
+    def test_onnxt_runtime_conv(self):
+        x = numpy.array([[[[0., 1., 2., 3., 4.],  # (1, 1, 5, 5) input tensor
+                           [5., 6., 7., 8., 9.],
+                           [10., 11., 12., 13., 14.],
+                           [15., 16., 17., 18., 19.],
+                           [20., 21., 22., 23., 24.]]]]).astype(numpy.float32)
+        W = numpy.array([[[[1., 1., 1.],  # (1, 1, 3, 3) tensor for convolution weights
+                           [1., 1., 1.],
+                           [1., 1., 1.]]]]).astype(numpy.float32)
+
+        y_with_padding = numpy.array([[[[12., 21., 27., 33., 24.],  # (1, 1, 5, 5) output tensor
+                                        [33., 54., 63., 72., 51.],
+                                        [63., 99., 108., 117., 81.],
+                                        [93., 144., 153., 162., 111.],
+                                        [72., 111., 117., 123., 84.]]]]).astype(numpy.float32)
+
+        onx = OnnxConv(
+            'X', W, output_names=['Y'],
+            kernel_shape=[3, 3], pads=[1, 1, 1, 1],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y_with_padding, got['Y'])
+
+        python_tested.append(OnnxConv)
 
     def test_onnxt_runtime_cum_sum(self):
         from skl2onnx.algebra.onnx_ops import OnnxCumSum  # pylint: disable=E0611

@@ -880,3 +880,34 @@ class ShapeObject(BaseDimensionShape):
             shape.append(input[i])
 
         return ShapeObject(shape, dtype=input._dtype)
+
+
+class ShapeObjectFct(ShapeObject):
+    """
+    Computes a shape depending on a user defined function.
+    See @see cl Conv for an example.
+    """
+
+    def __init__(self, fct, *shapes, dtype=None, name=None):
+        """
+        @param      fct         function
+        @param      shapes      shapes sent to fct
+        @param      dtype       dtype
+        @param      name        optional, for debugging purposes
+        """
+        ShapeObject.__init__(self, None, dtype=dtype, name=name)
+        self._fct = fct
+        self._shapes = shapes
+
+    def evaluate(self, **kwargs):
+        """
+        Evaluates the shape.
+        """
+        vs = []
+        for v in self._shapes:
+            d = v.evaluate(**kwargs)
+            vs.append(d)
+        res = self._fct(*vs)
+        if self.name is not None:
+            res.name = self.name
+        return res

@@ -29,5 +29,7 @@ class GlobalAveragePool(OpRun):
         return (res, )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
+        if x.shape is None:
+            return (ShapeObject(None, dtype=x.dtype), )
         shape = x.shape[:2] + (1, ) * (len(x.shape) - 2)
         return (ShapeObject(shape, dtype=x.dtype), )
