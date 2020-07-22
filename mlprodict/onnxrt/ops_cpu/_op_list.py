@@ -11,6 +11,7 @@ from .op_add import Add
 from .op_argmax import ArgMax
 from .op_argmin import ArgMin
 from .op_array_feature_extractor import ArrayFeatureExtractor
+from .op_atan import Atan
 from .op_batch_normalization import BatchNormalization
 from .op_binarizer import Binarizer
 from .op_cast import Cast
