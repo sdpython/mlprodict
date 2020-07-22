@@ -21,7 +21,7 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin,
+    OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin, OnnxAtan,
     OnnxBatchNormalization,
     OnnxConcat,
     OnnxCeil, OnnxClip, OnnxConstant, OnnxConstantOfShape,
@@ -395,6 +395,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.array([2, 1], dtype=numpy.int64),
                               got['Y'], decimal=6)
+
+    def test_onnxt_runtime_atan(self):
+        self.common_test_onnxt_runtime_unary(OnnxAtan, numpy.arctan)
 
     def test_onnxt_runtime_batch_normalization(self):
         # input size: (1, 2, 1, 3)
