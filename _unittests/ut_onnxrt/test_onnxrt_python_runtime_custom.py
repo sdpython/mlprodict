@@ -90,6 +90,7 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                 validate_python_inference(
                     oinfpy, {'A': A.astype(numpy.float32),
                              'Y': Y.astype(numpy.float32)})
+                python_tested.append(OnnxSolve)
 
 
 if __name__ == "__main__":
