@@ -405,13 +405,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         x_val = numpy.array([x for y, x in test_pairs], dtype=numpy.float32)
 
         def atan2(y, x):
-            """
-            sx = sign(x)
-            sy = sign(y)
-            pi_part = ((sy^2 - 1 - sy) * (sx - 1)) * (-pi / 2)
-            atan_part = atan(y/x) * sx^2
-            result = pi_part + atan_part
-            """
+            # size: 100000
+            # timeit arctan: 0.00205
+            # timeit arctan2: 0.00361
+            # timeit atan2: 0.00599
             sx = numpy.sign(x)
             sy = numpy.sign(y)
             pi_part = (sy + sx * (sy ** 2 - 1)) * (sx - 1) * (-numpy.pi / 2)
