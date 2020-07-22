@@ -399,6 +399,28 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_atan(self):
         self.common_test_onnxt_runtime_unary(OnnxAtan, numpy.arctan)
 
+    def test_onnxt_runtime_atan2(self):
+        test_pairs = [[y, x] for x in [3., -4., 0.] for y in [5., -6., 0.]]
+        y_val = numpy.array([y for y, x in test_pairs], dtype=numpy.float32)
+        x_val = numpy.array([x for y, x in test_pairs], dtype=numpy.float32)
+
+        def atan2(y, x):
+            """
+            sx = sign(x)
+            sy = sign(y)
+            pi_part = ((sy^2 - 1 - sy) * (sx - 1)) * (-pi / 2)
+            atan_part = atan(y/x) * sx^2
+            result = pi_part + atan_part
+            """
+            sx = numpy.sign(x)
+            sy = numpy.sign(y)
+            pi_part = (sy + sx * (sy ** 2 - 1)) * (sx - 1) * (-numpy.pi / 2)
+            atan_part = numpy.arctan(y / (x + (1 - sx ** 2))) * sx ** 2
+            return atan_part + pi_part
+
+        self.assertEqualArray(
+            numpy.arctan2(y_val, x_val), atan2(y_val, x_val))
+
     def test_onnxt_runtime_batch_normalization(self):
         # input size: (1, 2, 1, 3)
         x = numpy.array([[[[-1, 0, 1]], [[2, 3, 4]]]]).astype(numpy.float32)

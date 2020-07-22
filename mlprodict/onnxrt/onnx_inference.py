@@ -1007,6 +1007,9 @@ class OnnxInference:
                 # to the onnx graph
                 print(oinf2)
         """
+        def clean_name(name):
+            return name.replace(":", "_").replace('.', '_')
+
         # inits
         code = ['def compiled_run(dict_inputs):']
         context = {}
@@ -1018,25 +1021,33 @@ class OnnxInference:
         inputs = self.input_names
         code.append("    # inputs")
         for inp in inputs:
-            code.append("    {0} = dict_inputs['{0}']".format(inp))
+            code.append("    {0} = dict_inputs['{1}']".format(
+                clean_name(inp), inp))
 
         # code
         for i, node in enumerate(self.sequence_):
             name = "n{}_{}".format(i, node.ops_.__class__.__name__.lower())
             context[name] = node.ops_._run
             code.append('    ({1}, ) = {2}({0})'.format(
-                ', '.join(node.inputs), ', '.join(node.outputs), name))
+                ', '.join(map(clean_name, node.inputs)),
+                ', '.join(map(clean_name, node.outputs)),
+                name))
 
         # return
         code.append('    return {')
         for out in self.output_names:
-            code.append("        '{0}': {0},".format(out))
+            code.append("        '{1}': {0},".format(
+                clean_name(out), out))
         code.append('    }')
         final_code = '\n'.join(code)
 
         # compile the outcome
         context['self'] = self
-        obj = compile(final_code, "<string>", 'exec')
+        try:
+            obj = compile(final_code, "<string>", 'exec')
+        except SyntaxError as e:
+            raise SyntaxError(
+                "Unable to compile\n#####\n{}".format(final_code)) from e
         fcts_obj = [_ for _ in obj.co_consts
                     if _ is not None and not isinstance(_, (bool, str, int))]
         fct = make_callable("compiled_run", fcts_obj[0], final_code, context)
