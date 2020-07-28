@@ -400,7 +400,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.common_test_onnxt_runtime_unary(OnnxAtan, numpy.arctan)
 
     def test_onnxt_runtime_atan2(self):
-        test_pairs = [[y, x] for x in [3., -4., 0.] for y in [5., -6., 0.]]
+        test_pairs = [[y, x]
+                      for x in [3., -4., 0., -1., 1.]
+                      for y in [5., -6., 0., -1., 1.]]
         y_val = numpy.array([y for y, x in test_pairs], dtype=numpy.float32)
         x_val = numpy.array([x for y, x in test_pairs], dtype=numpy.float32)
 

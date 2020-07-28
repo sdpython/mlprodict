@@ -16,7 +16,7 @@ except KeyError:
 try:
     import generate_visual_graphs
     import generate_automated_pages
-except ImportError:
+except ImportError:  # pragma: no cover
     this = os.path.dirname(__file__)
     sys.path.append(os.path.join(this, '_exts'))
     import generate_visual_graphs
