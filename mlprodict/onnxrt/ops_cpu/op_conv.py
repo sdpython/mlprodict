@@ -50,4 +50,5 @@ class Conv(OpRun):
             res = self.rt32_.compute(xs, ws, bs)
             return res.shape
 
-        return (ShapeObjectFct(compute_shape, X, W, B, name="Conv", dtype=X.dtype), )
+        return (ShapeObjectFct(
+            compute_shape, X, W, B, name="Conv", dtype=X.dtype), )

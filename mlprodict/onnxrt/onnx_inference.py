@@ -1066,7 +1066,7 @@ class OnnxInference:
                 for o in node.outputs:
                     code.append(
                         "    debug_print('o.{0}', {1}, printed)".format(
-                                clean_name(o), o))
+                            clean_name(o), o))
 
         # return
         code.append('    return {')

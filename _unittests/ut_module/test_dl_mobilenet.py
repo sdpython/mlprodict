@@ -1,5 +1,5 @@
 """
-@brief      test log(time=6s)
+@brief      test log(time=7s)
 """
 import unittest
 import numpy
@@ -35,9 +35,11 @@ class TestLONGMobileNet(ExtTestCase):
                     "Runtime {}:{} produces NaN.\n{}".format(i, rt, Y[out]))
             res.append((rt, Y[out]))
         for rt, r in res[1:]:
+            exp = numpy.squeeze(r[0])
+            got = numpy.squeeze(r)
             try:
-                self.assertEqual(r[0].shape, r.shape)
-                self.assertEqualArray(r[0], r)
+                self.assertEqual(exp.shape, got.shape)
+                self.assertEqualArray(got, exp)
             except AssertionError as e:
                 raise AssertionError(
                     "Issue with runtime: '{}'.".format(rt)) from e

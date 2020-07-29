@@ -2,6 +2,7 @@
 @file
 @brief A couple of tools unrelated to what the package does.
 """
+import pickle
 import keyword
 import re
 import types
@@ -60,6 +61,52 @@ def numpy_max(x):
     Deals with text as well.
     """
     return numpy_min_max(x, lambda x: x.max())
+
+
+def debug_dump(clname, obj, folder=None, ops=None):
+    """
+    Dumps an object for debug purpose.
+
+    @param      obj     object
+    @param      folder  folder
+    @return             filename
+    """
+    def debug_print_(obj, prefix=''):
+        name = clname
+        if isinstance(obj, dict):
+            if 'in' in obj and 'out' in obj:
+                nan_in = any(map(lambda o: any(map(numpy.isnan, o.ravel())),
+                                 obj['in']))
+                nan_out = any(map(lambda o: any(map(numpy.isnan, o.ravel())),
+                                  obj['out']))
+                if not nan_in and nan_out:
+                    print("NAN-notin-out ", name, prefix,
+                          {k: getattr(ops, k, '?') for k in getattr(ops, 'atts', {})})
+                    return True
+                return False
+            for k, v in obj.items():
+                debug_print_([v], k)
+            return None
+        if isinstance(obj, list):
+            for i, o in enumerate(obj):
+                if o is None:
+                    continue
+                if any(map(numpy.isnan, o.ravel())):
+                    print("NAN", prefix, i, name, o.shape)
+            return None
+        raise NotImplementedError(
+            "Unable to debug object of type {}.".format(type(obj)))
+
+    dump = debug_print_(obj)
+    if dump:
+        name = 'cpu-{}-{}-{}.pkl'.format(
+            clname, id(obj), id(ops))
+        if folder is not None:
+            name = "/".join([folder, name])
+        with open(name, 'wb') as f:
+            pickle.dump(obj, f)
+        return name
+    return None
 
 
 def debug_print(k, obj, printed):
