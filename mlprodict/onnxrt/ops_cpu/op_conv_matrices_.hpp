@@ -136,11 +136,11 @@ void Im2col_NCHW(
         int64_t stride_h, int64_t stride_w, T* data_col,
         T padding_value = 0) {
     const int64_t output_h =
-        (height + pad_b + pad_t - (dilation_h * (kernel_h - 1) + 1)) / stride_h +
-        1;
+        (height + pad_b + pad_t - (dilation_h * (kernel_h - 1) + 1))
+        / stride_h + 1;
     const int64_t output_w =
-        (width + pad_l + pad_r - (dilation_w * (kernel_w - 1) + 1)) / stride_w +
-        1;
+        (width + pad_l + pad_r - (dilation_w * (kernel_w - 1) + 1))
+        / stride_w + 1;
   
     // Fast path for zero padding and no dilation
     // From Torch, THNN_(unfolded_copy)
@@ -236,7 +236,8 @@ void ComputePadAndOutputShape(
             case AutoPadType::SAME_UPPER:
             case AutoPadType::SAME_LOWER: {
                 if (dilation != 1)
-                    throw std::runtime_error("Dilation not supported for AutoPadType::SAME_UPPER or AutoPadType::SAME_LOWER.");
+                    throw std::runtime_error(
+                        "Dilation not supported for AutoPadType::SAME_UPPER or AutoPadType::SAME_LOWER.");
                 int64_t legacy_target_size = (in_dim + stride - 1) / stride;
                 int64_t pad_needed = (legacy_target_size - 1) * stride + kernel - in_dim;
                 *out_dim = (in_dim + pad_needed - dkernel) / stride + 1;
@@ -251,32 +252,37 @@ void ComputePadAndOutputShape(
                 *pad_tail = pad_needed - *pad_head;
                 } break;
             default:
-                throw std::runtime_error("Invalid argument.");
+                throw std::runtime_error("Invalid argument in ComputePadAndOutputShape.");
         }
     }
 }
 
 
-
+// The function adds value to C, assuming this array
+// was initialized.
 template <typename NTYPE>
 void gemm(bool transA, bool transB,
           size_t M, size_t N, size_t K, NTYPE alpha,
           const NTYPE* A, const NTYPE* B, NTYPE beta,
           NTYPE* C) {
+
     if (!transA && !transB) {
         // a A B + b C, dimension = M * N
         NTYPE* begin;
         register NTYPE val;
-        size_t i, j, k;
+        NTYPE val0;
+        size_t i, j, k, maxc=0;
         const NTYPE *pA, *pB;
         for(i = 0, begin = C; i < M; ++i) {
             for(j = 0; j < N; ++j, ++begin) {
-                val = *begin * beta;
+                val0 = *begin * beta;
+                val = 0;
                 pA = A + i * K;
                 pB = B + j;
                 for(k = K; k > 0; --k, ++pA, pB += N)
-                    val += *pA * *pB * alpha;
-                *begin = val;
+                    val += *pA * *pB;
+                *begin = val0 + val * alpha;
+                maxc = maxc > (size_t)(begin - C) ? maxc : (size_t)(begin - C);
             }
         }
         return;

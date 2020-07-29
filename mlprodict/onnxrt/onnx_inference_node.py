@@ -102,7 +102,7 @@ class OnnxInferenceNode:
             self.ops_ = load_op(self.onnx_node, desc=self.desc,
                                 options=options if options else None,
                                 variables=variables, dtype=dtype)
-        elif runtime == 'python_compiled':
+        elif runtime in ('python_compiled', 'python_compiled_debug'):
             options['provider'] = 'python'
             self.ops_ = load_op(self.onnx_node, desc=self.desc,
                                 options=options if options else None,

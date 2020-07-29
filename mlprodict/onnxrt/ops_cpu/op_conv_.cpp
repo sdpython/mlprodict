@@ -93,7 +93,7 @@ void Conv<T>::init(
     array2vector(pads_, pads, int64_t);
     array2vector(strides_, strides, int64_t);
 }
- 
+
 
 template<typename T>
 void Conv<T>::compute_kernel_shape(const std::vector<int64_t>& weight_shape,
@@ -101,11 +101,13 @@ void Conv<T>::compute_kernel_shape(const std::vector<int64_t>& weight_shape,
     if (kernel_shape_.size() > 0) {
         kernel_shape = kernel_shape_;
         if (kernel_shape.size() + 2 != weight_shape.size())
-            throw std::runtime_error("kernel_shape num_dims is not compatible with W num_dims (1).");
+            throw std::runtime_error(
+                "kernel_shape num_dims is not compatible with W num_dims (1).");
 
         for (size_t i = 0; i < kernel_shape.size(); ++i)
             if (kernel_shape[i] != weight_shape[i + 2])
-                throw std::runtime_error("kernel_shape num_dims is not compatible with W num_dims (2).");
+                throw std::runtime_error(
+                    "kernel_shape num_dims is not compatible with W num_dims (2).");
     }
     else {
         auto& weight_dims = weight_shape;
@@ -116,19 +118,19 @@ void Conv<T>::compute_kernel_shape(const std::vector<int64_t>& weight_shape,
 
 template<typename T>
 py::array_t<T> Conv<T>::compute(py::array_t<T> X, py::array_t<T> W, py::array_t<T> B) const {
-    
+
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     std::vector<int64_t> w_dims;
     arrayshape2vector(w_dims, W);
-    
+
     const int64_t N = x_dims[0];
     // const int64_t C = x_dims[1];
     const int64_t M = w_dims[0];
 
     std::vector<int64_t> kernel_shape;
     compute_kernel_shape(w_dims, kernel_shape);
-    
+
     std::vector<int64_t> pads(pads_);
     if (pads.empty())
         pads.resize(kernel_shape.size() * 2, 0);
@@ -146,7 +148,7 @@ py::array_t<T> Conv<T>::compute(py::array_t<T> X, py::array_t<T> W, py::array_t<
     std::vector<int64_t> input_shape(x_dims.begin() + 2, x_dims.end());
     infer_output_shape(input_shape, kernel_shape, strides, dilations, pads, y_dims);
     std::vector<int64_t> output_shape(y_dims.begin() + 2, y_dims.end());
-    
+
     // py::array::ShapeContainer shape(y_dims);
     // auto total_size = flattened_dimension(y_dims);
     py::array_t<T> Y(y_dims);
@@ -173,13 +175,13 @@ void Conv<T>::infer_output_shape(
 
     size_t rank = input_shape.size();
     int64_t dim_size;
-                  
+
     for (size_t dim = 0; dim < rank; ++dim) {
         if (dim >= strides_p.size() || dim >= kernel_shape.size() ||
                 dim >= dilations_p.size() || dim >= pads_p.size() ||
                 rank + dim >= pads_p.size())
-            throw std::runtime_error("Failure.");
-        
+            throw std::runtime_error("Failure in infer_output_shape.");
+
         dim_size = 0;
         ComputePadAndOutputShape<T>(
             input_shape[dim], strides_p[dim], kernel_shape[dim],
@@ -187,7 +189,7 @@ void Conv<T>::infer_output_shape(
             &pads_p.at(input_shape.size() + dim),
             &dim_size, ForceSymmetricAutoPadding);
         if (dim_size <= 0)
-            throw std::runtime_error("Invalid argument.");
+            throw std::runtime_error("Invalid argument in infer_output_shape.");
         output_shape.push_back(dim_size);
     }
 }
@@ -216,6 +218,7 @@ void Conv<T>::compute_gil_free(
             
     const int64_t input_image_size = flattened_dimension(input_shape);
     const int64_t output_image_size = flattened_dimension(output_shape);
+    const int64_t y_size = flattened_dimension(y_dims);
     const int64_t kernel_size = flattened_dimension(kernel_shape);
     const int64_t X_offset = C / group_ * input_image_size;
     const int64_t Y_offset = flattened_dimension(y_dims) / y_dims[0] / group_;
@@ -228,6 +231,10 @@ void Conv<T>::compute_gil_free(
  
     const T* Xdata = X.data(0);
     T* Ydata = (T*)Y.data(0);
+    T* yptr;
+    size_t k2;
+
+    std::fill(Ydata, Ydata + y_size, (T)0);
 
     std::vector<int64_t> image_shape(x_dims.begin() + 1, x_dims.end());
     std::vector<int64_t> col_buffer_shape{kernel_dim};
@@ -237,7 +244,7 @@ void Conv<T>::compute_gil_free(
     const size_t kernel_rank = kernel_shape.size();
 
     for (int image_id = 0; image_id < N; ++image_id) {
-            for (int group_id = 0; group_id < group_; ++group_id) {
+        for (int group_id = 0; group_id < group_; ++group_id) {
             if (kernel_rank == 2) {
                 Im2col_NCHW<T>(
                     Xdata + group_id * X_offset,
@@ -274,20 +281,18 @@ void Conv<T>::compute_gil_free(
             gemm<T>(
                 false,
                 false,
-                M / group_,  // m
-                output_image_size,  // n
-                kernel_dim,  // k
-                1, // alpha
-                W.data(0) + group_id * W_offset, // *a
-                col_buffer_data, // *b
-                0,  // beta
+                (size_t)(M / group_),  // m
+                (size_t)(output_image_size),  // n
+                (size_t)kernel_dim,  // k
+                (T)1, // alpha
+                (const T*)W.data(0) + group_id * W_offset, // *a
+                (const T*)col_buffer_data, // *b
+                (T)0,  // beta
                 (T*)Ydata + group_id * Y_offset // *c
             );
         }
 
         if (b_dims.size() != 0 && b_dims[0] != 0) {
-            T* yptr;
-            size_t k2;
             const T* ptrb = B.data(0);
             for(size_t k = 0; k < (size_t)M; ++k, ++ptrb) {
                 yptr = Ydata + k;
@@ -298,7 +303,7 @@ void Conv<T>::compute_gil_free(
 
         Xdata += X_offset * group_;
         Ydata += Y_offset * group_;
-    }
+    }    
 }
 
 
@@ -328,7 +333,7 @@ PYBIND11_MODULE(op_conv_, m) {
 in :epkg:`onnxruntime`.)pbdoc"
     #endif
     ;
-    
+
     py::class_<ConvFloat> clf (m, "ConvFloat",
         R"pbdoc(Implements float runtime for operator Conv. The code is inspired from
 `conv.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/conv.cc>`_
@@ -338,8 +343,8 @@ in :epkg:`onnxruntime`. Supports float only.)pbdoc");
     clf.def("init", &ConvFloat::init,
             "Initializes the runtime with the ONNX attributes.");
     clf.def("compute", &ConvFloat::compute,
-            "Computes the output for operator Conv.");    
-    
+            "Computes the output for operator Conv.");
+
     py::class_<ConvDouble> cld (m, "ConvDouble",
         R"pbdoc(Implements float runtime for operator Conv. The code is inspired from
 `conv.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/conv.cc>`_
@@ -349,7 +354,7 @@ in :epkg:`onnxruntime`. Supports double only.)pbdoc");
     cld.def("init", &ConvDouble::init,
             "Initializes the runtime with the ONNX attributes.");
     cld.def("compute", &ConvDouble::compute,
-            "Computes the output for operator Conv.");    
+            "Computes the output for operator Conv.");
 }
 
 #endif

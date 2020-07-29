@@ -11,6 +11,7 @@ onnx>=1.7.0
 git+https://github.com/xadupre/onnxconverter-common.git@jenkins
 openpyxl
 pybind11
+pyensae
 py-cpuinfo
 pyinstrument
 pylint>=2.4.2

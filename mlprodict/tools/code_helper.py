@@ -2,6 +2,7 @@
 @file
 @brief A couple of tools unrelated to what the package does.
 """
+import pickle
 import keyword
 import re
 import types
@@ -20,7 +21,118 @@ def change_style(name):
     return s2 if not keyword.iskeyword(s2) else s2 + "_"
 
 
-def make_callable(fct, obj, code, gl):
+def numpy_min_max(x, fct):
+    """
+    Returns the minimum of an array.
+    Deals with text as well.
+    """
+    try:
+        if hasattr(x, 'todense'):
+            x = x.todense()
+        if x.dtype.kind.lower() not in 'c':
+            return fct(x)
+        try:  # pragma: no cover
+            x = x.ravel()
+        except AttributeError:  # pragma: no cover
+            pass
+        keep = list(filter(lambda s: isinstance(s, str), x))
+        if len(keep) == 0:  # pragma: no cover
+            return numpy.nan
+        keep.sort()
+        val = keep[0]
+        if len(val) > 10:  # pragma: no cover
+            val = val[:10] + '...'
+        return "%r" % val
+    except (ValueError, TypeError):
+        return '?'
+
+
+def numpy_min(x):
+    """
+    Returns the maximum of an array.
+    Deals with text as well.
+    """
+    return numpy_min_max(x, lambda x: x.min())
+
+
+def numpy_max(x):
+    """
+    Returns the maximum of an array.
+    Deals with text as well.
+    """
+    return numpy_min_max(x, lambda x: x.max())
+
+
+def debug_dump(clname, obj, folder=None, ops=None):
+    """
+    Dumps an object for debug purpose.
+
+    @param      obj     object
+    @param      folder  folder
+    @return             filename
+    """
+    def debug_print_(obj, prefix=''):
+        name = clname
+        if isinstance(obj, dict):
+            if 'in' in obj and 'out' in obj:
+                nan_in = any(map(lambda o: any(map(numpy.isnan, o.ravel())),
+                                 obj['in']))
+                nan_out = any(map(lambda o: any(map(numpy.isnan, o.ravel())),
+                                  obj['out']))
+                if not nan_in and nan_out:
+                    print("NAN-notin-out ", name, prefix,
+                          {k: getattr(ops, k, '?') for k in getattr(ops, 'atts', {})})
+                    return True
+                return False
+            for k, v in obj.items():
+                debug_print_([v], k)
+            return None
+        if isinstance(obj, list):
+            for i, o in enumerate(obj):
+                if o is None:
+                    continue
+                if any(map(numpy.isnan, o.ravel())):
+                    print("NAN", prefix, i, name, o.shape)
+            return None
+        raise NotImplementedError(
+            "Unable to debug object of type {}.".format(type(obj)))
+
+    dump = debug_print_(obj)
+    if dump:
+        name = 'cpu-{}-{}-{}.pkl'.format(
+            clname, id(obj), id(ops))
+        if folder is not None:
+            name = "/".join([folder, name])
+        with open(name, 'wb') as f:
+            pickle.dump(obj, f)
+        return name
+    return None
+
+
+def debug_print(k, obj, printed):
+    """
+    Displays informations on an object.
+
+    @param      k       name
+    @param      obj     object
+    @param      printed memorizes already printed object
+    """
+    if k not in printed:
+        printed[k] = obj
+        if hasattr(obj, 'shape'):
+            print("-='{}' shape={} dtype={} min={} max={}{}".format(
+                  k, obj.shape, obj.dtype, numpy_min(obj),
+                  numpy_max(obj),
+                  ' (sparse)' if 'coo_matrix' in str(type(obj)) else ''))
+        elif (isinstance(obj, list) and len(obj) > 0 and
+                not isinstance(obj[0], dict)):
+            print("-='{}' list len={} min={} max={}".format(
+                  k, len(obj), min(obj), max(obj)))
+        else:
+            print("-='{}' type={}".format(k, type(obj)))
+
+
+def make_callable(fct, obj, code, gl, debug):
     """
     Creates a callable function able to
     cope with default values as the combination
@@ -31,6 +143,7 @@ def make_callable(fct, obj, code, gl):
     @param      obj     output of function *compile*
     @param      code    code including the signature
     @param      gl      context (local and global)
+    @param      debug   add debug function
     @return             callable functions
     """
     cst = "def " + fct + "("
@@ -62,6 +175,12 @@ def make_callable(fct, obj, code, gl):
         if int(f) == f:
             f = int(f)
         defs.append((name, f))
+
+    # debug
+    if debug:
+        gl = gl.copy()
+        gl['debug_print'] = debug_print
+        gl['print'] = print
     # specific
     if "value=array([0.], dtype=float32)" in sig:
         defs.append(('value', numpy.array([0.], dtype=numpy.float32)))

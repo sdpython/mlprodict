@@ -10,7 +10,7 @@ from scipy.linalg import solve  # pylint: disable=E0611
 from ...tools.code_helper import make_callable
 
 
-def _make_callable(fct, obj, code, gl):
+def _make_callable(fct, obj, code, gl, debug):
     """
     Same function as @see fn make_callable but deals with
     function which an undefined number of arguments.
@@ -20,7 +20,7 @@ def _make_callable(fct, obj, code, gl):
 
     if fct == "pyrt_Concat":
         return pyrt_Concat_
-    return make_callable(fct, obj, code, gl)
+    return make_callable(fct, obj, code, gl, debug)
 
 
 def validate_python_inference(oinf, inputs, tolerance=0.):
@@ -71,7 +71,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
                 continue
             sobj = str(obj)
             if '<string>' in sobj and fct in sobj:
-                fcts_local[fct] = _make_callable(fct, obj, code, gl)
+                fcts_local[fct] = _make_callable(fct, obj, code, gl, False)
 
     gl.update(fcts_local)
     loc = inputs
