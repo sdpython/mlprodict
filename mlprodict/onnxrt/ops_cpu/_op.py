@@ -278,7 +278,8 @@ class OpRun:
     def atts_value(self):
         "Returns all parameters in a dictionary."
         if hasattr(self, 'atts'):
-            return {k: getattr(self, k) for k in self.atts}
+            return {k: getattr(self, k)
+                    for k in self.atts}  # pylint: disable=E1101
         return None
 
 
