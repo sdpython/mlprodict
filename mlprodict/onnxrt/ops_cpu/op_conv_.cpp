@@ -44,7 +44,9 @@ class Conv {
                   py::array_t<int64_t> pads,
                   py::array_t<int64_t> strides);
 
-        py::array_t<T> compute(py::array_t<T> X, py::array_t<T> W, py::array_t<T> B) const;
+        py::array_t<T> compute(py::array_t<T, py::array::c_style | py::array::forcecast> X,
+                               py::array_t<T, py::array::c_style | py::array::forcecast> W,
+                               py::array_t<T, py::array::c_style | py::array::forcecast> B) const;
     
     private:
 
@@ -117,7 +119,9 @@ void Conv<T>::compute_kernel_shape(const std::vector<int64_t>& weight_shape,
 
 
 template<typename T>
-py::array_t<T> Conv<T>::compute(py::array_t<T> X, py::array_t<T> W, py::array_t<T> B) const {
+py::array_t<T> Conv<T>::compute(py::array_t<T, py::array::c_style | py::array::forcecast> X,
+                                py::array_t<T, py::array::c_style | py::array::forcecast> W,
+                                py::array_t<T, py::array::c_style | py::array::forcecast> B) const {
 
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
