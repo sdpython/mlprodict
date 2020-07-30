@@ -278,13 +278,14 @@ def inspect_sklearn_model(model, recursive=True):
     return insmodel(model)
 
 
-def set_n_jobs(model, params):
+def set_n_jobs(model, params, n_jobs=None):
     """
     Looks into model signature and add parameter *n_jobs*
     if available. The function does not overwrite the parameter.
 
     @param      model       model class
     @param      params      current set of parameters
+    @param      n_jobs      number of CPU or *n_jobs* if specified or 0
     @return                 new set of parameters
 
     On this machine, the default value is the following.
@@ -300,6 +301,8 @@ def set_n_jobs(model, params):
     sig = inspect.signature(model.__init__)
     if 'n_jobs' not in sig.parameters:
         return params
+    if n_jobs == 0:
+        n_jobs = None
     params = params.copy() if params else {}
-    params['n_jobs'] = multiprocessing.cpu_count()
+    params['n_jobs'] = n_jobs or multiprocessing.cpu_count()
     return params

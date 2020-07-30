@@ -23,7 +23,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
                      out_graph=None, force_return=False,
                      dtype=None, skip_long_test=False,
                      number=1, repeat=1, time_kwargs_fact='lin',
-                     time_limit=4):
+                     time_limit=4, n_jobs=0):
     """
     Walks through most of :epkg:`scikit-learn` operators
     or model or predictor or transformer, tries to convert
@@ -86,6 +86,8 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         *time_kwargs* depending on the model
         (see :func:`_multiply_time_kwargs <mlprodict.onnxrt.validate.validate_helper._multiply_time_kwargs>`)
     :param time_limit: to stop benchmarking after this limit of time
+    :param n_jobs: force the number of jobs to have this value,
+        by default, it is equal to the number of CPU
     :param fLOG: logging function
 
     .. cmdref::
@@ -149,7 +151,8 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
             extended_list=extended_list, time_kwargs=time_kwargs,
             n_features=n_features, fLOG=fLOG, force_return=True,
             out_graph=None, dtype=dtype, skip_long_test=skip_long_test,
-            time_kwargs_fact=time_kwargs_fact, time_limit=time_limit)
+            time_kwargs_fact=time_kwargs_fact, time_limit=time_limit,
+            n_jobs=n_jobs)
 
     from ..onnxrt.validate import enumerate_validated_operator_opsets  # pylint: disable=E0402
 
@@ -188,6 +191,10 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         time_kwargs = json.loads(time_kwargs)
         # json only allows string as keys
         time_kwargs = {int(k): v for k, v in time_kwargs.items()}
+    if isinstance(n_jobs, str):
+        n_jobs = int(n_jobs)
+        if n_jobs == 0:
+            n_jobs = None
     if time_kwargs is not None and not isinstance(time_kwargs, dict):
         raise ValueError(  # pragma: no cover
             "time_kwargs must be a dictionary not {}\n{}".format(
@@ -241,7 +248,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
             extended_list=extended_list, time_kwargs=time_kwargs, dump_all=dump_all,
             n_features=n_features, filter_exp=fct_filter,
             skip_long_test=skip_long_test, time_limit=time_limit,
-            time_kwargs_fact=time_kwargs_fact))
+            time_kwargs_fact=time_kwargs_fact, n_jobs=n_jobs))
         return rows
 
     def catch_build_rows(models_):
