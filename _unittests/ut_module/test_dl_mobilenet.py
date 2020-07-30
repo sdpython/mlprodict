@@ -31,7 +31,8 @@ class TestLONGMobileNet(ExtTestCase):
             name = oinf.input_names[0]
             out = oinf.output_names[0]
             if 'debug' in rt:
-                Y, stdout, _ = self.capture(lambda oi=oinf: oi.run({name: X}))
+                Y, stdout, _ = self.capture(
+                    lambda oi=oinf: oi.run({name: X}))  # pylint: disable=W0640
                 self.assertIn('-=', stdout)
             else:
                 Y = oinf.run({name: X})
