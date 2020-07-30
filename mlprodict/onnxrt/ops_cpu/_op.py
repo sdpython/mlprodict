@@ -274,6 +274,14 @@ class OpRun:
         return ("import numpy",
                 "return numpy.%s(%s)" % (numpy_name, ", ".join(inputs)))
 
+    @property
+    def atts_value(self):
+        "Returns all parameters in a dictionary."
+        if hasattr(self, 'atts'):
+            return {k: getattr(self, k)
+                    for k in self.atts}  # pylint: disable=E1101
+        return None
+
 
 class OpRunUnary(OpRun):
     """
