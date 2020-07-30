@@ -14,10 +14,9 @@ from ... import __version__ as ort_version
 from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
 from ...tools.model_info import analyze_model, set_random_state
 from ...tools.asv_options_helper import (
-    get_opset_number_from_onnx, get_ir_version_from_onnx
-)
+    get_opset_number_from_onnx, get_ir_version_from_onnx)
 from ..onnx_inference import OnnxInference
-from ..optim.sklearn_helper import inspect_sklearn_model
+from ..optim.sklearn_helper import inspect_sklearn_model, set_n_jobs
 from ..optim.onnx_helper import onnx_statistics
 from ..optim import onnx_optimisations
 from .validate_problems import find_suitable_problem
@@ -28,8 +27,7 @@ from .validate_helper import (
     _measure_time, _shape_exc, dump_into_folder,
     default_time_kwargs, RuntimeBadResultsError,
     _dictionary2str, _merge_options, _multiply_time_kwargs,
-    _get_problem_data
-)
+    _get_problem_data)
 from .validate_benchmark import benchmark_fct
 
 
@@ -346,6 +344,7 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
                        'init_types': init_types, 'inst': extra if extra else None,
                        'n_features': X_train.shape[1] if len(X_train.shape) == 2 else 1}
                 inst = None
+                extra = set_n_jobs(model, extra)
                 try:
                     inst = model(**extra)
                 except TypeError as e:  # pragma: no cover
