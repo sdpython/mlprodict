@@ -13,13 +13,11 @@ from sklearn.ensemble import (
     RandomForestRegressor, RandomForestClassifier,
     HistGradientBoostingRegressor, HistGradientBoostingClassifier,
     AdaBoostClassifier, GradientBoostingClassifier, GradientBoostingRegressor,
-    IsolationForest
-)
+    IsolationForest)
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_selection import (
     SelectFromModel, SelectPercentile, RFE, RFECV,
-    SelectKBest, SelectFwe
-)
+    SelectKBest, SelectFwe)
 from sklearn.gaussian_process import GaussianProcessRegressor, GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic, RBF
 from sklearn.linear_model import (
@@ -145,8 +143,8 @@ def build_custom_scenarios():
             ('cl', {
                 'estimator': LogisticRegression(solver='liblinear'),
                 'param_grid': {'fit_intercept': [False, True]}},
-             {'conv_options': [{GridSearchCV: {'zipmap': False}}]},
-             ['b-cl', 'm-cl', '~b-cl-64']),
+             {'conv_options': [{GridSearchCV: {'zipmap': False}}],
+              'subset_problems': ['b-cl', 'm-cl', '~b-cl-64']}),
             ('reg', {
                 'estimator': LinearRegression(),
                 'param_grid': {'fit_intercept': [False, True]},

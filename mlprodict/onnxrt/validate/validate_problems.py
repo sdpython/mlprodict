@@ -15,8 +15,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticD
 from sklearn.ensemble import (
     AdaBoostRegressor, GradientBoostingRegressor, AdaBoostClassifier,
     BaggingClassifier, VotingClassifier, GradientBoostingClassifier,
-    RandomForestClassifier
-)
+    RandomForestClassifier)
 try:
     from sklearn.ensemble import StackingClassifier, StackingRegressor
 except ImportError:  # pragma: no cover
@@ -24,18 +23,15 @@ except ImportError:  # pragma: no cover
     StackingClassifier, StackingRegressor = None, None
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_extraction.text import (
-    CountVectorizer, TfidfVectorizer, TfidfTransformer
-)
+    CountVectorizer, TfidfVectorizer, TfidfTransformer)
 from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
 from sklearn.ensemble import (
     HistGradientBoostingRegressor,
-    HistGradientBoostingClassifier
-)
+    HistGradientBoostingClassifier)
 from sklearn.feature_selection import (
     RFE, RFECV, GenericUnivariateSelect,
     SelectPercentile, SelectFwe, SelectKBest,
-    SelectFdr, SelectFpr, SelectFromModel,
-)
+    SelectFdr, SelectFpr, SelectFromModel)
 from sklearn.gaussian_process import GaussianProcessClassifier, GaussianProcessRegressor
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import (
@@ -47,29 +43,26 @@ from sklearn.linear_model import (
     PassiveAggressiveClassifier, RidgeClassifier,
     RidgeClassifierCV, PassiveAggressiveRegressor,
     HuberRegressor, LogisticRegression, SGDClassifier,
-    LogisticRegressionCV, Perceptron
-)
+    LogisticRegressionCV, Perceptron)
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import (
-    OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier
-)
+    OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier)
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
 from sklearn.naive_bayes import BernoulliNB, GaussianNB, MultinomialNB, ComplementNB
 from sklearn.neighbors import (
     NearestCentroid, RadiusNeighborsClassifier,
-    NeighborhoodComponentsAnalysis,
-)
+    NeighborhoodComponentsAnalysis)
 from sklearn.preprocessing import (
     LabelBinarizer, LabelEncoder,
-    OneHotEncoder, PowerTransformer,
-)
+    OneHotEncoder, PowerTransformer)
 from sklearn.semi_supervised import LabelPropagation, LabelSpreading
 from sklearn.svm import LinearSVC, LinearSVR, NuSVR, SVR, SVC, NuSVC
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, ExtraTreeClassifier
 from sklearn.utils import shuffle
 from skl2onnx.common.data_types import (
-    FloatTensorType, DoubleTensorType, StringTensorType, DictionaryType
-)
+    FloatTensorType, DoubleTensorType, StringTensorType, DictionaryType)
+from ._validate_problems_helper import (
+    _noshapevar, _1d_problem, text_alpha_num)
 
 
 def _modify_dimension(X, n_features, seed=19):
@@ -114,6 +107,11 @@ def _modify_dimension(X, n_features, seed=19):
     return res
 
 
+###########
+# datasets
+###########
+
+
 def _problem_for_predictor_binary_classification(
         dtype=numpy.float32, n_features=None, add_nan=False):
     """
@@ -133,6 +131,8 @@ def _problem_for_predictor_binary_classification(
         rows = numpy.random.randint(0, X.shape[0] - 1, X.shape[0] // 3)
         cols = numpy.random.randint(0, X.shape[1] - 1, X.shape[0] // 3)
         X[rows, cols] = numpy.nan
+    X = X.astype(dtype)
+    y = y.astype(numpy.int64)
     return (X, y, [('X', X[:1].astype(dtype))],
             'predict_proba', 1, X.astype(dtype))
 
@@ -150,6 +150,8 @@ def _problem_for_predictor_multi_classification(dtype=numpy.float32, n_features=
     X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
+    X = X.astype(dtype)
+    y = y.astype(numpy.int64)
     return (X, y, [('X', X[:1].astype(dtype))],
             'predict_proba', 1, X.astype(dtype))
 
@@ -172,6 +174,8 @@ def _problem_for_predictor_multi_classification_label(dtype=numpy.float32, n_fea
         y2[i, _] = 1
     for i in range(0, y.shape[0], 5):
         y2[i, (y[i] + 1) % 3] = 1
+    X = X.astype(dtype)
+    y2 = y2.astype(numpy.int64)
     return (X, y2, [('X', X[:1].astype(dtype))],
             'predict_proba', 1, X.astype(dtype))
 
@@ -207,7 +211,9 @@ def _problem_for_predictor_regression(many_output=False, options=None,
         rows = numpy.random.randint(0, X.shape[0] - 1, X.shape[0] // 3)
         cols = numpy.random.randint(0, X.shape[1] - 1, X.shape[0] // 3)
         X[rows, cols] = numpy.nan
-    return (X, y.astype(float), itt,
+    X = X.astype(dtype)
+    y = y.astype(dtype)
+    return (X, y, itt,
             meth, 'all' if many_output else 0, X.astype(dtype))
 
 
@@ -240,6 +246,8 @@ def _problem_for_predictor_multi_regression(many_output=False, options=None,
     y2 = numpy.empty((y.shape[0], 2))
     y2[:, 0] = y
     y2[:, 1] = y + 0.5
+    X = X.astype(dtype)
+    y2 = y2.astype(dtype)
     return (X, y2, itt,
             meth, 'all' if many_output else 0, X.astype(dtype))
 
@@ -256,6 +264,7 @@ def _problem_for_numerical_transform(dtype=numpy.float32, n_features=None):
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
+    X = X.astype(dtype)
     return (X, None, [('X', X[:1].astype(dtype))],
             'transform', 0, X.astype(dtype=numpy.float32))
 
@@ -271,6 +280,7 @@ def _problem_for_numerical_transform_positive(dtype=numpy.float32, n_features=No
     rnd = state.randn(*data.data.shape) / 3
     X = numpy.abs(data.data + rnd)
     X = _modify_dimension(X, n_features)
+    X = X.astype(dtype)
     return (X, None, [('X', X[:1].astype(dtype))],
             'transform', 0, X.astype(dtype=numpy.float32))
 
@@ -288,6 +298,8 @@ def _problem_for_numerical_trainable_transform(dtype=numpy.float32, n_features=N
     X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target + numpy.arange(len(data.target)) / 100
+    X = X.astype(dtype)
+    y = y.astype(dtype)
     return (X, y, [('X', X[:1].astype(dtype))],
             'transform', 0, X.astype(dtype))
 
@@ -305,6 +317,8 @@ def _problem_for_numerical_trainable_transform_cl(dtype=numpy.float32, n_feature
     X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
+    X = X.astype(dtype)
+    y = y.astype(numpy.int64)
     return (X, y, [('X', X[:1].astype(dtype))],
             'transform', 0, X.astype(dtype))
 
@@ -321,6 +335,7 @@ def _problem_for_clustering(dtype=numpy.float32, n_features=None):
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
+    X = X.astype(dtype)
     return (X, None, [('X', X[:1].astype(dtype))],
             'predict', 0, X.astype(dtype))
 
@@ -337,6 +352,7 @@ def _problem_for_clustering_scores(dtype=numpy.float32, n_features=None):
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
+    X = X.astype(dtype)
     return (X, None, [('X', X[:1].astype(dtype))],
             'transform', 1, X.astype(dtype))
 
@@ -353,6 +369,7 @@ def _problem_for_outlier(dtype=numpy.float32, n_features=None):
     rnd = state.randn(*X.shape) / 3
     X += rnd
     X = _modify_dimension(X, n_features)
+    X = X.astype(dtype)
     return (X, None, [('X', X[:1].astype(dtype))],
             'predict', 0, X.astype(dtype))
 
@@ -370,6 +387,8 @@ def _problem_for_numerical_scoring(dtype=numpy.float32, n_features=None):
     X += rnd
     y = data.target.astype(dtype) + numpy.arange(len(data.target)) / 100
     y /= numpy.max(y)
+    X = X.astype(dtype)
+    y = y.astype(dtype)
     return (X, y, [('X', X[:1].astype(dtype))],
             'score', 0, X.astype(dtype))
 
@@ -387,6 +406,8 @@ def _problem_for_clnoproba(dtype=numpy.float32, n_features=None):
     X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
+    X = X.astype(dtype)
+    y = y.astype(numpy.int64)
     return (X, y, [('X', X[:1].astype(dtype))],
             'predict', 0, X.astype(dtype))
 
@@ -409,6 +430,8 @@ def _problem_for_clnoproba_binary(dtype=numpy.float32, n_features=None, add_nan=
         rows = numpy.random.randint(0, X.shape[0] - 1, X.shape[0] // 3)
         cols = numpy.random.randint(0, X.shape[1] - 1, X.shape[0] // 3)
         X[rows, cols] = numpy.nan
+    X = X.astype(dtype)
+    y = y.astype(numpy.int64)
     return (X, y, [('X', X[:1].astype(dtype))],
             'predict', 0, X.astype(dtype))
 
@@ -426,6 +449,8 @@ def _problem_for_cl_decision_function(dtype=numpy.float32, n_features=None):
     X += rnd
     X = _modify_dimension(X, n_features)
     y = data.target
+    X = X.astype(dtype)
+    y = y.astype(numpy.int64)
     return (X, y, [('X', X[:1].astype(dtype))],
             'decision_function', 1, X.astype(dtype))
 
@@ -444,6 +469,8 @@ def _problem_for_cl_decision_function_binary(dtype=numpy.float32, n_features=Non
     X = _modify_dimension(X, n_features)
     y = data.target
     y[y == 2] = 1
+    X = X.astype(dtype)
+    y = y.astype(numpy.int64)
     return (X, y, [('X', X[:1].astype(dtype))],
             'decision_function', 1, X.astype(dtype))
 
@@ -456,6 +483,7 @@ def _problem_for_label_encoder(dtype=numpy.int64, n_features=None):
     # X = data.data
     y = data.target.astype(dtype)
     itt = [('X', y[:1].astype(dtype))]
+    y = y.astype(dtype)
     return (y, None, itt, 'transform', 0, y)
 
 
@@ -468,43 +496,11 @@ def _problem_for_dict_vectorizer(dtype=numpy.float32, n_features=None):
     y = data.target
     y2 = [{_: dtype(1000 + i)} for i, _ in enumerate(y)]
     y2[0][2] = -2
-    itt = [("X", DictionaryType(StringTensorType([1]), FloatTensorType([1])))]
+    cltype = FloatTensorType if dtype == numpy.float32 else DoubleTensorType
+    itt = [("X", DictionaryType(StringTensorType([1]), cltype([1])))]
     y2 = numpy.array(y2)
+    y = y.astype(numpy.int64)
     return (y2, y, itt, 'transform', 0, y2)
-
-
-text_alpha_num = [
-    ('zero', 0),
-    ('one', 1),
-    ('two', 2),
-    ('three', 3),
-    ('four', 4),
-    ('five', 5),
-    ('six', 6),
-    ('seven', 7),
-    ('eight', 8),
-    ('nine', 9),
-    ('dix', 10),
-    ('eleven', 11),
-    ('twelve', 12),
-    ('thirteen', 13),
-    ('fourteen', 14),
-    ('fifteen', 15),
-    ('sixteen', 16),
-    ('seventeen', 17),
-    ('eighteen', 18),
-    ('nineteen', 19),
-    ('twenty', 20),
-    ('twenty one', 21),
-    ('twenty two', 22),
-    ('twenty three', 23),
-    ('twenty four', 24),
-    ('twenty five', 25),
-    ('twenty six', 26),
-    ('twenty seven', 27),
-    ('twenty eight', 28),
-    ('twenty nine', 29),
-]
 
 
 def _problem_for_tfidf_vectorizer(dtype=numpy.float32, n_features=None):
@@ -524,11 +520,8 @@ def _problem_for_tfidf_transformer(dtype=numpy.float32, n_features=None):
     X = numpy.array([_[0] for _ in text_alpha_num])
     y = numpy.array([_[1] for _ in text_alpha_num], dtype=dtype)
     X2 = CountVectorizer().fit_transform(X).astype(dtype)
-    if dtype == numpy.float32:
-        cl = FloatTensorType
-    else:
-        cl = DoubleTensorType
-    itt = [("X", cl([None, X2.shape[1]]))]
+    cltype = FloatTensorType if dtype == numpy.float32 else DoubleTensorType
+    itt = [("X", cltype([None, X2.shape[1]]))]
     return (X2, y, itt, 'transform', 0, X2)
 
 
@@ -541,7 +534,8 @@ def _problem_for_feature_hasher(dtype=numpy.float32, n_features=None):
     y = data.target
     y2 = [{("cl%d" % _): dtype(1000 + i)} for i, _ in enumerate(y)]
     y2[0]["cl2"] = -2
-    itt = [("X", DictionaryType(StringTensorType([1]), FloatTensorType([1])))]
+    cltype = FloatTensorType if dtype == numpy.float32 else DoubleTensorType
+    itt = [("X", DictionaryType(StringTensorType([1]), cltype([1])))]
     y2 = numpy.array(y2)
     return (y2, y, itt, 'transform', 0, y2)
 
@@ -824,55 +818,6 @@ def find_suitable_problem(model):
             raise ValueError("Unrecognized problem '{}' in\n{}".format(
                 r, "\n".join(sorted(_problems))))
     return res
-
-
-def _guess_noshape(obj, shape):
-    if isinstance(obj, numpy.ndarray):
-        if obj.dtype == numpy.float32:
-            return FloatTensorType(shape)
-        elif obj.dtype == numpy.float64:
-            return DoubleTensorType(shape)
-        else:
-            raise NotImplementedError(  # pragma: no cover
-                "Unable to process object(1) [{}].".format(obj))
-    else:
-        raise NotImplementedError(  # pragma: no cover
-            "Unable to process object(2) [{}].".format(obj))
-
-
-def _noshapevar(fct):
-
-    def process_itt(itt, Xort):
-        if isinstance(itt, tuple):
-            return (process_itt(itt[0], Xort), itt[1])
-        else:
-            # name = "V%s_" % str(id(Xort))[:5]
-            new_itt = []
-            for a, b in itt:
-                # shape = [name + str(i) for s in b.shape]
-                shape = [None for s in b.shape]
-                new_itt.append((a, _guess_noshape(b, shape)))
-            return new_itt
-
-    def new_fct(**kwargs):
-        X, y, itt, meth, mo, Xort = fct(**kwargs)
-        new_itt = process_itt(itt, Xort)
-        return X, y, new_itt, meth, mo, Xort
-    return new_fct
-
-
-def _1d_problem(fct):
-
-    def new_fct(**kwargs):
-        n_features = kwargs.get('n_features', None)
-        if n_features not in (None, 1):
-            raise RuntimeError("Misconfiguration: the number of features must not be "
-                               "specified for a 1D problem.")
-        X, y, itt, meth, mo, Xort = fct(**kwargs)
-        new_itt = itt  # process_itt(itt, Xort)
-        X = X[:, 0]
-        return X, y, new_itt, meth, mo, Xort
-    return new_fct
 
 
 _problems = {
