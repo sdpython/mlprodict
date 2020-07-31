@@ -1,10 +1,11 @@
 """
-@brief      test tree node (time=15s)
+@brief      test tree node (time=101s)
 """
 import os
 import unittest
 from pyquickhelper.loghelper import BufferedPrint
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import (
+    ExtTestCase, get_temp_folder, skipif_travis)
 from mlprodict.__main__ import main
 
 
@@ -21,7 +22,7 @@ class TestCliValidateBug(ExtTestCase):
                    '-o', '11', '-op', '11', '-v', '2', '-b', '1',
                    '--runtime', 'python_compiled,onnxruntime1',
                    '--models', 'RandomForestRegressor', '--n_features', '4',
-                   '--out_graph', gr, '--dtype', '32'],
+                   '--out_graph', gr, '--dtype', '32', '--n_jobs', '1'],
              fLOG=st.fprint)
         res = str(st)
         self.assertIn('RandomForestRegressor', res)
@@ -30,6 +31,7 @@ class TestCliValidateBug(ExtTestCase):
         self.assertExists(out2)
         self.assertExists(gr)
 
+    @skipif_travis('too long')
     def test_cli_validate_model_rfbug_410(self):
         temp = get_temp_folder(__file__, "temp_validate_model_rfbug410")
         out1 = os.path.join(temp, "raw.xlsx")

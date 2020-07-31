@@ -16,12 +16,13 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from sklearn.ensemble import (
-    RandomForestRegressor, AdaBoostRegressor)
+    RandomForestRegressor, AdaBoostRegressor, RandomForestClassifier)
+from sklearn.tree import DecisionTreeClassifier
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxIdentity, OnnxAdd)
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.optim.sklearn_helper import (
-    enumerate_pipeline_models, inspect_sklearn_model)
+    enumerate_pipeline_models, inspect_sklearn_model, set_n_jobs)
 from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.tools import get_opset_number_from_onnx
@@ -152,6 +153,19 @@ class TestSklearnHelper(ExtTestCase):
         self.assertIn('subgraphs', stats)
         self.assertGreater(stats['subgraphs'], 1)
         self.assertGreater(stats['op_Identity'], 2)
+
+    def test_set_n_jobs(self):
+        params = set_n_jobs(RandomForestClassifier, None)
+        self.assertIsInstance(params, dict)
+        self.assertIn('n_jobs', params)
+        self.assertIsInstance(params['n_jobs'], int)
+        self.assertGreater(params['n_jobs'], 1)
+
+        params = set_n_jobs(DecisionTreeClassifier, None)
+        self.assertEmpty(params)
+
+        params = set_n_jobs(RandomForestClassifier, {'n_jobs': 100000})
+        self.assertEqual(params, {'n_jobs': 100000})
 
 
 if __name__ == "__main__":

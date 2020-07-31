@@ -14,10 +14,9 @@ from ... import __version__ as ort_version
 from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
 from ...tools.model_info import analyze_model, set_random_state
 from ...tools.asv_options_helper import (
-    get_opset_number_from_onnx, get_ir_version_from_onnx
-)
+    get_opset_number_from_onnx, get_ir_version_from_onnx)
 from ..onnx_inference import OnnxInference
-from ..optim.sklearn_helper import inspect_sklearn_model
+from ..optim.sklearn_helper import inspect_sklearn_model, set_n_jobs
 from ..optim.onnx_helper import onnx_statistics
 from ..optim import onnx_optimisations
 from .validate_problems import find_suitable_problem
@@ -28,8 +27,7 @@ from .validate_helper import (
     _measure_time, _shape_exc, dump_into_folder,
     default_time_kwargs, RuntimeBadResultsError,
     _dictionary2str, _merge_options, _multiply_time_kwargs,
-    _get_problem_data
-)
+    _get_problem_data)
 from .validate_benchmark import benchmark_fct
 
 
@@ -181,7 +179,7 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
                                extended_list=False, dump_all=False,
                                n_features=None, skip_long_test=True,
                                filter_scenario=None, time_kwargs_fact=None,
-                               time_limit=4):
+                               time_limit=4, n_jobs=None):
     """
     Lists all compatible opsets for a specific model.
 
@@ -222,6 +220,8 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
     @param      skip_long_test  skips tests for high values of N if they seem too long
     @param      time_kwargs_fact see :func:`_multiply_time_kwargs <mlprodict.onnxrt.validate.validate_helper._multiply_time_kwargs>`
     @param      time_limit      to stop benchmarking after this amount of time was spent
+    @param      n_jobs          *n_jobs* is set to the number of CPU by default unless this
+                                value is changed
     @return                     dictionaries, each row has the following
                                 keys: opset, exception if any, conversion time,
                                 problem chosen to test the conversion...
@@ -346,6 +346,7 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
                        'init_types': init_types, 'inst': extra if extra else None,
                        'n_features': X_train.shape[1] if len(X_train.shape) == 2 else 1}
                 inst = None
+                extra = set_n_jobs(model, extra, n_jobs=n_jobs)
                 try:
                     inst = model(**extra)
                 except TypeError as e:  # pragma: no cover
@@ -763,7 +764,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                                         fail_bad_results=False,
                                         filter_scenario=None,
                                         time_kwargs_fact=None,
-                                        time_limit=4):
+                                        time_limit=4, n_jobs=None):
     """
     Tests all possible configurations for all possible
     operators and returns the results.
@@ -810,6 +811,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
     @param      fail_bad_results fails if the results are aligned with :epkg:`scikit-learn`
     @param      time_kwargs_fact see :func:`_multiply_time_kwargs <mlprodict.onnxrt.validate.validate_helper._multiply_time_kwargs>`
     @param      time_limit      to skip the rest of the test after this limit (in second)
+    @param      n_jobs          *n_jobs* is set to the number of CPU by default unless this
+                                value is changed
     @param      fLOG            logging function
     @return                     list of dictionaries
 
@@ -889,7 +892,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                 n_features=n_features, skip_long_test=skip_long_test,
                 filter_scenario=filter_scenario,
                 time_kwargs_fact=time_kwargs_fact,
-                time_limit=time_limit):
+                time_limit=time_limit, n_jobs=n_jobs):
 
             for mandkey in ('inst', 'method_name', 'problem',
                             'scenario'):

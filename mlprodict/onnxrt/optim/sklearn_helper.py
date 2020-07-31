@@ -2,10 +2,11 @@
 @file
 @brief Helpers to manipulate :epkg:`scikit-learn` models.
 """
+import inspect
+import multiprocessing
 import numpy
 from sklearn.base import (
-    TransformerMixin, ClassifierMixin, RegressorMixin, BaseEstimator
-)
+    TransformerMixin, ClassifierMixin, RegressorMixin, BaseEstimator)
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 
@@ -275,3 +276,33 @@ def inspect_sklearn_model(model, recursive=True):
             update(sts, st)
         return st
     return insmodel(model)
+
+
+def set_n_jobs(model, params, n_jobs=None):
+    """
+    Looks into model signature and add parameter *n_jobs*
+    if available. The function does not overwrite the parameter.
+
+    @param      model       model class
+    @param      params      current set of parameters
+    @param      n_jobs      number of CPU or *n_jobs* if specified or 0
+    @return                 new set of parameters
+
+    On this machine, the default value is the following.
+
+    .. runpython::
+        :showcode:
+
+        import multiprocessing
+        print(multiprocessing.cpu_count())
+    """
+    if params is not None and 'n_jobs' in params:
+        return params
+    sig = inspect.signature(model.__init__)
+    if 'n_jobs' not in sig.parameters:
+        return params
+    if n_jobs == 0:
+        n_jobs = None
+    params = params.copy() if params else {}
+    params['n_jobs'] = n_jobs or multiprocessing.cpu_count()
+    return params

@@ -5,6 +5,7 @@ for many regressors and classifiers.
 import os
 import textwrap
 import hashlib
+from ..onnxrt.optim.sklearn_helper import set_n_jobs
 
 # exec function does not import models but potentially
 # requires all specific models used to defines scenarios
@@ -451,7 +452,7 @@ def add_model_import_init(
     lines = [content, "", "    def _create_model(self):"]
     if extra is not None and len(extra) > 0:
         lines.append("        return {}(".format(model.__name__))
-        lines.append(_format_dict(extra, 12))
+        lines.append(_format_dict(set_n_jobs(model, extra), 12))
         lines.append("        )")
     else:
         lines.append("        return {}()".format(model.__name__))

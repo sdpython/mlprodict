@@ -16,9 +16,10 @@ class TestLONGMobileNet(ExtTestCase):
         model_file = "mobilenetv2-1.0.onnx"
         download_data(model_file, website=src)
         X = numpy.random.rand(1, 3, 224, 224).astype(dtype=numpy.float32)
+        rts = ['python', 'python_compiled_debug',
+               'python_compiled', 'onnxruntime1']
         res = []
-        for i, rt in enumerate(['python', 'python_compiled_debug',
-                                'python_compiled', 'onnxruntime1']):
+        for i, rt in enumerate(rts):
             oinf = OnnxInference(model_file, runtime=rt)
             self.assertNotEmpty(oinf)
             self.assertEqual(oinf.input_names[:1], ['data'])
@@ -29,7 +30,12 @@ class TestLONGMobileNet(ExtTestCase):
                     (0, -1), oinf.inits_["reshape_attr_tensor421"]['value'])
             name = oinf.input_names[0]
             out = oinf.output_names[0]
-            Y = oinf.run({name: X})
+            if 'debug' in rt:
+                Y, stdout, _ = self.capture(
+                    lambda oi=oinf: oi.run({name: X}))  # pylint: disable=W0640
+                self.assertIn('-=', stdout)
+            else:
+                Y = oinf.run({name: X})
             if any(map(numpy.isnan, Y[out].ravel())):
                 raise AssertionError(
                     "Runtime {}:{} produces NaN.\n{}".format(i, rt, Y[out]))
