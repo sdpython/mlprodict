@@ -166,29 +166,16 @@ def build_custom_scenarios():
         ],
         KNeighborsClassifier: [
             ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},
-             {'conv_options': [{}, {KNeighborsClassifier: {'optim': 'cdist', 'zipmap': False}}]}),
+             {'conv_options': [{KNeighborsClassifier: {'optim': 'cdist', 'zipmap': False}}]}),
             ('weights_k3', {'algorithm': 'brute',
                             'weights': 'distance', 'n_neighbors': 3},
              {'conv_options': [{KNeighborsClassifier: {'optim': 'cdist', 'zipmap': False}}]}),
-            ('kdt_k3', {'algorithm': 'kd_tree', 'n_neighbors': 3},
-             {'conv_options': [{KNeighborsClassifier: {'optim': 'cdist', 'zipmap': False}}]}),
-            ('kdt_mink_k3', {
-                'algorithm': 'kd_tree', 'metric': "minkowski",
-                'metric_params': {'p': 2.1}, 'n_neighbors': 3},
-             {'conv_options': [{KNeighborsClassifier: {
-                 'optim': 'cdist', 'zipmap': False}}]}),
         ],
         KNeighborsRegressor: [
             ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},
-             {'conv_options': [{}, {KNeighborsRegressor: {'optim': 'cdist'}}]}),
+             {'conv_options': [{KNeighborsRegressor: {'optim': 'cdist'}}]}),
             ('weights_k3', {'algorithm': 'brute',
                             'weights': 'distance', 'n_neighbors': 3},
-             {'conv_options': [{KNeighborsRegressor: {'optim': 'cdist'}}]}),
-            ('kd_tree_k3', {'algorithm': 'kd_tree', 'n_neighbors': 3}),
-            ('mink_k3', {'algorithm': 'kd_tree',
-                         'metric': "minkowski",
-                         'metric_params': {'p': 2.1},
-                         'n_neighbors': 3},
              {'conv_options': [{KNeighborsRegressor: {'optim': 'cdist'}}]}),
         ],
         LatentDirichletAllocation: [
