@@ -53,6 +53,16 @@ Validation
 C++ classes
 +++++++++++
 
+**Gather**
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_gather_.GatherDouble
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_gather_.GatherFloat
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_gather_.GatherInt64
+
+**ArrayFeatureExtractor**
+
 .. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.array_feature_extractor_double
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.array_feature_extractor_float
@@ -75,7 +85,7 @@ C++ classes
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_.RuntimeTreeEnsembleRegressorFloat
 
-Still tree ensembles but refactored.
+**Still tree ensembles but refactored.**
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_p_.RuntimeTreeEnsembleClassifierPDouble
 

@@ -20,7 +20,7 @@ Functions to help understand models.
 
 .. autosignature:: mlprodict.onnxrt.optimisation._main_onnx_optim.onnx_optimisations
 
-.. autosignature:: mlprodict.onnxrt.optimisation.onnx_helper.onnx_statistics
+.. autosignature:: mlprodict.onnxrt.optim.onnx_statistics
 
 .. autosignature:: mlprodict.onnxrt.onnx_inference_manipulations.select_model_inputs_outputs
 
