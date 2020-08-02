@@ -5,8 +5,7 @@ API
 .. toctree::
     :maxdepth: 1
 
-    cc
-    grammar
+    cc_grammar
     sklearn
     onnxrt
     onnxrt_ops

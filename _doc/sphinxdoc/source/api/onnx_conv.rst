@@ -29,15 +29,24 @@ A couple of custom converters were written to test
 scenarios not necessarily part of the official ONNX
 specifications.
 
-.. autosignature:: mlprodict.onnx_conv.sklconv.ada_boost.convert_sklearn_ada_boost_regressor
+.. autosignature:: mlprodict.onnx_conv.sklconv.tree_converters.new_convert_sklearn_decision_tree_classifier
 
-.. autosignature:: mlprodict.onnx_conv.sklconv.tree_converters.convert_sklearn_decision_tree_regressor
+.. autosignature:: mlprodict.onnx_conv.sklconv.tree_converters.new_convert_sklearn_decision_tree_regressor
 
-.. autosignature:: mlprodict.onnx_conv.sklconv.tree_converters.convert_sklearn_gradient_boosting_regressor
+.. autosignature:: mlprodict.onnx_conv.sklconv.tree_converters.new_convert_sklearn_gradient_boosting_classifier
 
-.. autosignature:: mlprodict.onnx_conv.sklconv.tree_converters.convert_sklearn_random_forest_regressor_converter
+.. autosignature:: mlprodict.onnx_conv.sklconv.tree_converters.new_convert_sklearn_gradient_boosting_regressor
 
-.. autosignature:: mlprodict.onnx_conv.sklconv.svm_converters.convert_sklearn_svm
+.. autosignature:: mlprodict.onnx_conv.sklconv.svm_converters.new_convert_sklearn_random_forest_classifier
+
+.. autosignature:: mlprodict.onnx_conv.sklconv.svm_converters.new_convert_sklearn_random_forest_regressor
+
+SVM
++++
+
+.. autosignature:: mlprodict.onnx_conv.sklconv.svm_converters.new_convert_sklearn_svm_classifier
+
+.. autosignature:: mlprodict.onnx_conv.sklconv.svm_converters.new_convert_sklearn_svm_regressor
 
 XGBoost
 +++++++
