@@ -198,7 +198,7 @@ class TestCreateAsvBenchmark(ExtTestCase):
         with open(full_name, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn("class KNNReg_", content)
-        self.assertIn("[{}, 'cdist'],", content)
+        self.assertIn("['cdist'],", content)
 
     def test_create_asv_benchmark_gpr(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
