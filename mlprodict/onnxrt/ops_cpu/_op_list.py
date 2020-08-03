@@ -21,6 +21,7 @@ from .op_celu import Celu
 from .op_clip import Clip_6, Clip_11, Clip
 from .op_concat import Concat
 from .op_conv import Conv
+from .op_conv_transpose import ConvTranspose
 from .op_constant import Constant
 from .op_constant_of_shape import ConstantOfShape
 from .op_cum_sum import CumSum

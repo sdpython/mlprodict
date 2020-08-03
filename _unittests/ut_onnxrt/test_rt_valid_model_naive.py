@@ -66,6 +66,7 @@ class TestRtValidateNaive(ExtTestCase):
         model, X = self.fit_classification_model(BernoulliNB(), 2)
         model_onnx = convert_sklearn(
             model, "?", [("input", FloatTensorType([None, X.shape[1]]))],
+            options={id(model): {'zipmap': False}},
             target_opset=get_opset_number_from_onnx())
         exp1 = model.predict(X)
         exp = model.predict_proba(X)
@@ -75,8 +76,8 @@ class TestRtValidateNaive(ExtTestCase):
             lambda: OnnxInference(model_onnx, runtime='onnxruntime2'),
             'c')[0]
         got = oinf.run({'input': X})
-        self.assertEqualArray(exp1, got['output_label'])
-        got2 = DataFrame(got['output_probability']).values
+        self.assertEqualArray(exp1, got['label'])
+        got2 = DataFrame(got['probabilities']).values
         self.assertEqualArray(exp, got2, decimal=4)
 
 

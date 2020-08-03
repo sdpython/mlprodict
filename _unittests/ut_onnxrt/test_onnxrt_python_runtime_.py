@@ -23,7 +23,7 @@ except ImportError:
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin, OnnxAtan,
     OnnxBatchNormalization,
-    OnnxConcat, OnnxConv,
+    OnnxConcat, OnnxConv, OnnxConvTranspose,
     OnnxCeil, OnnxClip,
     OnnxConstant, OnnxConstant_9, OnnxConstant_11,
     OnnxConstantOfShape,
@@ -600,6 +600,62 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(y_with_padding, got['Y'])
 
         python_tested.append(OnnxConv)
+
+    def test_onnxt_runtime_conv_transpose(self):
+        x = numpy.array([[[[0., 1., 2.],  # (1, 1, 3, 3)
+                           [3., 4., 5.],
+                           [6., 7., 8.]]]]).astype(numpy.float32)
+        W = numpy.array([[[[1., 1., 1.],  # (1, 2, 3, 3)
+                           [1., 1., 1.],
+                           [1., 1., 1.]],
+                          [[1., 1., 1.],
+                           [1., 1., 1.],
+                           [1., 1., 1.]]]]).astype(numpy.float32)
+
+        y_with_padding = numpy.array([[[[0., 1., 3., 3., 2.],  # (1, 2, 5, 5)
+                                        [3., 8., 15., 12., 7.],
+                                        [9., 21., 36., 27., 15.],
+                                        [9., 20., 33., 24., 13.],
+                                        [6., 13., 21., 15., 8.]],
+
+                                       [[0., 1., 3., 3., 2.],
+                                        [3., 8., 15., 12., 7.],
+                                        [9., 21., 36., 27., 15.],
+                                        [9., 20., 33., 24., 13.],
+                                        [6., 13., 21., 15., 8.]]]]).astype(numpy.float32)
+
+        onx = OnnxConvTranspose(
+            'X', W, output_names=['Y'],
+            kernel_shape=[3, 3], pads=[1, 1, 1, 1],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y_with_padding, got['Y'])
+
+        python_tested.append(OnnxConv)
+
+    def test_onnxt_runtime_conv_transpose_1d(self):
+        x = numpy.array([[[0., 1., 2.]]]).astype(numpy.float32)
+        W = numpy.array([[[1., 1., 1.],  # (1, 2, 3)
+                          [1., 1., 1.]]]).astype(numpy.float32)
+
+        y_with_padding = numpy.array(
+            [[[0., 1., 3., 3., 2.],  # (1, 2, 5)
+              [0., 1., 3., 3., 2.]]]).astype(numpy.float32)
+
+        onx = OnnxConvTranspose(
+            'X', W, output_names=['Y'],
+            kernel_shape=[3, 3], pads=[1, 1, 1, 1],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y_with_padding, got['Y'])
 
     def test_onnxt_runtime_cum_sum(self):
         from skl2onnx.algebra.onnx_ops import OnnxCumSum  # pylint: disable=E0611

@@ -371,8 +371,24 @@ if not r:
         define_macros=define_macros,
         language='c++')
 
+    ext_conv_transpose = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_conv_transpose_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_transpose_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
     ext_modules = [
         ext_conv,
+        ext_conv_transpose,
         ext_gather,
         ext_svm_classifier,
         ext_svm_regressor,
