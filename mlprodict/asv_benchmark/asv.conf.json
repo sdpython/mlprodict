@@ -79,6 +79,7 @@
         "mlinsights": [],
         "numpy": [],
         "onnx": ["http://localhost:8067/simple/"],
+        "onnxconverter_common": ["git+https://github.com/xadupre/onnxconverter_common.git@jenkins"],
         "onnxruntime": ["http://localhost:8067/simple/"],
         "pandas": [],
         "Pillow": [],

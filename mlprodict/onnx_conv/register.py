@@ -6,7 +6,6 @@
 import warnings
 import numbers
 import numpy
-from skl2onnx._parse import _parse_sklearn_classifier
 from skl2onnx import update_registered_converter
 from skl2onnx.common.shape_calculator import (
     calculate_linear_classifier_output_shapes,
@@ -25,6 +24,14 @@ def _custom_parser_xgboost(scope, model, inputs, custom_parsers=None):
                for i in model.classes_):
         raise NotImplementedError(  # pragma: no cover
             "Current converter does not support string labels.")
+    try:
+        from skl2onnx._parse import _parse_sklearn_classifier
+    except ImportError as e:
+        import skl2onnx
+        raise ImportError(
+            "Hidden API has changed in module 'skl2onnx=={}', "
+            "installation path is '{}'.".format(
+                skl2onnx.__version__, skl2onnx.__file__)) from e
     return _parse_sklearn_classifier(scope, model, inputs)
 
 
@@ -49,6 +56,14 @@ def _register_converters_lightgbm(exc=True):
                 "Cannot register LGBMClassifier due to '{}'.".format(e))
             LGBMClassifier = None
     if LGBMClassifier is not None:
+        try:
+            from skl2onnx._parse import _parse_sklearn_classifier
+        except ImportError as e:
+            import skl2onnx
+            raise ImportError(
+                "Hidden API has changed in module 'skl2onnx=={}', "
+                "installation path is '{}'.".format(
+                    skl2onnx.__version__, skl2onnx.__file__))
         from .operator_converters.conv_lightgbm import (
             convert_lightgbm, calculate_lightgbm_output_shapes)
         update_registered_converter(
