@@ -26,7 +26,7 @@ class DequantizeLinear(OpRun):
 
         if len(args) > 2:
             if args[2].dtype != args[0].dtype:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma no cover
                     "Type mismatch {} != {} in DequantizeLinear.".format(
                         args[0].dtype, args[2].dtype))
 

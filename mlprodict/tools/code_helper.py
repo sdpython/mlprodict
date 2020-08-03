@@ -21,7 +21,7 @@ def change_style(name):
     return s2 if not keyword.iskeyword(s2) else s2 + "_"
 
 
-def numpy_min_max(x, fct):
+def numpy_min_max(x, fct, minmax=False):
     """
     Returns the minimum of an array.
     Deals with text as well.
@@ -29,7 +29,8 @@ def numpy_min_max(x, fct):
     try:
         if hasattr(x, 'todense'):
             x = x.todense()
-        if x.dtype.kind.lower() not in 'c':
+        if (x.dtype.kind[0] not in 'Uc' or
+                x.dtype in {numpy.uint8}):
             return fct(x)
         try:  # pragma: no cover
             x = x.ravel()
@@ -38,12 +39,12 @@ def numpy_min_max(x, fct):
         keep = list(filter(lambda s: isinstance(s, str), x))
         if len(keep) == 0:  # pragma: no cover
             return numpy.nan
-        keep.sort()
+        keep.sort(reverse=minmax)
         val = keep[0]
         if len(val) > 10:  # pragma: no cover
             val = val[:10] + '...'
         return "%r" % val
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, AttributeError):
         return '?'
 
 
@@ -52,7 +53,7 @@ def numpy_min(x):
     Returns the maximum of an array.
     Deals with text as well.
     """
-    return numpy_min_max(x, lambda x: x.min())
+    return numpy_min_max(x, lambda x: x.min(), minmax=False)
 
 
 def numpy_max(x):
@@ -60,7 +61,7 @@ def numpy_max(x):
     Returns the maximum of an array.
     Deals with text as well.
     """
-    return numpy_min_max(x, lambda x: x.max())
+    return numpy_min_max(x, lambda x: x.max(), minmax=True)
 
 
 def debug_dump(clname, obj, folder=None, ops=None):
@@ -94,7 +95,7 @@ def debug_dump(clname, obj, folder=None, ops=None):
                 if any(map(numpy.isnan, o.ravel())):
                     print("NAN", prefix, i, name, o.shape)
             return None
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Unable to debug object of type {}.".format(type(obj)))
 
     dump = debug_print_(obj)

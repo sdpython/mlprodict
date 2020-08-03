@@ -24,7 +24,9 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin, OnnxAtan,
     OnnxBatchNormalization,
     OnnxConcat, OnnxConv,
-    OnnxCeil, OnnxClip, OnnxConstant, OnnxConstantOfShape,
+    OnnxCeil, OnnxClip,
+    OnnxConstant, OnnxConstant_9, OnnxConstant_11,
+    OnnxConstantOfShape,
     OnnxDequantizeLinear,
     OnnxDiv,
     OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxEyeLike,
@@ -1781,19 +1783,28 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
             sparse.indices, indices_tensor)  # pylint: disable=E1101
         self.assertEqual(sparse.dims, dense_shape)  # pylint: disable=E1101
 
-        X = numpy.array([0.1, 0.2], dtype=numpy.float32)
-        cst = OnnxConstant(value_floats=X, op_version=12)
-        onx = OnnxAdd('X', cst, op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        try:
-            oinf = OnnxInference(model_def)
-        except RuntimeError as e:
-            raise RuntimeError(
-                "Unable to load the model:\n{}".format(model_def)) from e
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Ad_C0', 'Co_output0'])
-        self.assertEqualArray(X * 2, got['Ad_C0'])
+        for opset, cls in [(get_opset_number_from_onnx(), OnnxConstant),
+                           (9, OnnxConstant_9), (11, OnnxConstant_11)]:
+            X = numpy.array([0.1, 0.2], dtype=numpy.float32)
+            if opset >= 12:
+                cst = cls(value_floats=X, op_version=opset)
+            else:
+                cst = cls(value=X, op_version=opset)
+            onx = OnnxAdd('X', cst, op_version=opset)
+            model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                    target_opset=opset)
+            try:
+                oinf = OnnxInference(model_def)
+            except RuntimeError as e:
+                raise RuntimeError(
+                    "Unable to load the model:\n{}".format(model_def)) from e
+            got = oinf.run({'X': X})
+            if opset >= 11:
+                self.assertEqual(list(sorted(got)), ['Ad_C0', 'Co_output0'])
+                self.assertEqualArray(X * 2, got['Ad_C0'])
+            else:
+                self.assertEqual(list(sorted(got)), ['Ad_C0'])
+                self.assertEqualArray(X * 2, got['Ad_C0'])
 
 
 if __name__ == "__main__":

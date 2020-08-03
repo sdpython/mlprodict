@@ -7,19 +7,14 @@ import onnx
 import pandas
 try:
     from onnxruntime.capi.onnxruntime_pybind11_state import (
-        InvalidArgument as OrtInvalidArgument
-    )
+        InvalidArgument as OrtInvalidArgument)
 except ImportError:  # pragma no cover
     OrtInvalidArgument = RuntimeError
 from .utils_backend_common import (
-    load_data_and_model,
-    extract_options,
-    ExpectedAssertionError,
-    OnnxBackendAssertionError,
+    load_data_and_model, extract_options,
+    ExpectedAssertionError, OnnxBackendAssertionError,
     OnnxRuntimeMissingNewOnnxOperatorException,
-    _compare_expected,
-    _create_column,
-)
+    _compare_expected, _create_column)
 
 
 def compare_runtime_session(  # pylint: disable=R0912
@@ -66,7 +61,8 @@ def compare_runtime_session(  # pylint: disable=R0912
     elif options is None:
         options = {}
     elif not isinstance(options, dict):
-        raise TypeError("options must be a dictionary.")
+        raise TypeError(  # pragma no cover
+            "options must be a dictionary.")
 
     if verbose:  # pragma no cover
         print("[compare_runtime] InferenceSession('{}')".format(onx))
@@ -194,7 +190,7 @@ def compare_runtime_session(  # pylint: disable=R0912
     try:
         try:
             output = sess.run(None, inputs, **run_options)
-        except TypeError:
+        except TypeError:  # pragma no cover
             output = sess.run(None, inputs)
         lambda_onnx = lambda: sess.run(None, inputs)  # noqa
         if verbose:  # pragma no cover

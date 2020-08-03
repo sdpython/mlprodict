@@ -45,7 +45,7 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
         diffs = []
         if batch:
             if len(skl_pred) != len(ort_pred):
-                return 1e10
+                return 1e10  # pragma: no cover
             for i in range(len(skl_pred)):  # pylint: disable=C0200
                 diff = measure_relative_difference(skl_pred[i], ort_pred[i])
                 diffs.append(diff)
@@ -54,9 +54,9 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
                 try:
                     diff = measure_relative_difference(
                         skl_pred[i], [_[i] for _ in ort_pred])
-                except IndexError:
+                except IndexError:  # pragma: no cover
                     return 1e9
-                except RuntimeError as e:
+                except RuntimeError as e:  # pragma: no cover
                     raise RuntimeError("Unable to compute differences between"
                                        "\n{}--------\n{}".format(
                                            skl_pred, ort_pred)) from e
@@ -75,9 +75,9 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
                     ort_pred = pandas.DataFrame(
                         [o[0] for o in ort_pred]).values
                 else:
-                    raise RuntimeError("Unable to compute differences between"
-                                       "\n{}--------\n{}".format(
-                                           skl_pred, ort_pred))
+                    raise RuntimeError(  # pragma: no cover
+                        "Unable to compute differences between"
+                        "\n{}--------\n{}".format(skl_pred, ort_pred))
             else:
                 try:
                     ort_pred = numpy.array(ort_pred)
@@ -104,7 +104,7 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
             if (any(numpy.isnan(ort_pred.reshape((-1, )))) and
                     all(~numpy.isnan(skl_pred.reshape((-1, ))))):
                 ort_pred = numpy.nan_to_num(ort_pred)
-        except ValueError as e:
+        except ValueError as e:  # pragma: no cover
             print(type(skl_pred))
             print(skl_pred)
             print(skl_pred.reshape((-1, )).ravel())
@@ -129,10 +129,10 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
 
         if hasattr(skl_pred, 'A'):
             # ravel() on matrix still returns a matrix
-            skl_pred = skl_pred.A
+            skl_pred = skl_pred.A  # pragma: no cover
         if hasattr(ort_pred, 'A'):
             # ravel() on matrix still returns a matrix
-            ort_pred = ort_pred.A
+            ort_pred = ort_pred.A  # pragma: no cover
         r_skl_pred = skl_pred.ravel()
         r_ort_pred = ort_pred.ravel()
         ab = numpy.abs(r_skl_pred)
@@ -148,7 +148,7 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
         rel_diff = rel_sort[-4] if len(rel_sort) > 5 else rel_sort[-1]
 
         if numpy.isnan(rel_diff) and not all(numpy.isnan(r_ort_pred)):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to compute differences between {}{} - {}{}\n{}\n"
                 "--------\n{}".format(
                     skl_pred.shape, " (sparse)" if skl_sparse else "",

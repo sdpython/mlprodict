@@ -61,7 +61,7 @@ class OneHotEncoder(OpRun):
                         rows.append(dict(row=i, value=x[i]))
                         if len(rows) > 5:
                             break
-                raise RuntimeError(
+                raise RuntimeError(  # pragma no cover
                     "One observation did not have any defined category.\n"
                     "classes: {}\nfirst rows:\n{}\nres:\n{}\nx:\n{}".format(
                         self.classes_, "\n".join(str(_) for _ in rows),

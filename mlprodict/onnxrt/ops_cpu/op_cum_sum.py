@@ -22,7 +22,7 @@ class CumSum(OpRun):
         axis = None if len(axis) == 0 else axis[0]
         if axis is None:
             if self.reverse or self.exclusive:
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma no cover
                     'reverse=1 or exclusive=1 not implemented')
             if self.inplaces.get(0, False):
                 return (numpy.cumsum(x, out=x), )
@@ -30,7 +30,7 @@ class CumSum(OpRun):
         if not isinstance(axis, (numpy.int32, numpy.int64)):
             if (len(axis.shape) > 1 or
                     (len(axis.shape) > 0 and axis.shape[0] != 1)):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma no cover
                     "axis must be an array of one number not {} "
                     "(shape {})".format(axis, axis.shape))
             if len(axis.shape) > 0:

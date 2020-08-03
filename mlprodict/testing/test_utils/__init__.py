@@ -20,8 +20,7 @@ from .tests_helper import (  # noqa
     fit_classification_model,
     fit_classification_model_simple,
     fit_multilabel_classification_model,
-    fit_regression_model,
-)
+    fit_regression_model)
 
 
 def create_tensor(N, C, H=None, W=None):
@@ -30,21 +29,22 @@ def create_tensor(N, C, H=None, W=None):
         return numpy.random.rand(N, C).astype(numpy.float32, copy=False)  # pylint: disable=E1101
     elif H is not None and W is not None:
         return numpy.random.rand(N, C, H, W).astype(numpy.float32, copy=False)  # pylint: disable=E1101
-    raise ValueError('This function only produce 2-D or 4-D tensor.')
+    raise ValueError(  # pragma no cover
+        'This function only produce 2-D or 4-D tensor.')
 
 
 def _get_ir_version(opv):
     if opv >= 12:
         return 7
-    if opv >= 11:
+    if opv >= 11:  # pragma no cover
         return 6
-    if opv >= 10:
+    if opv >= 10:  # pragma no cover
         return 5
-    if opv >= 9:
+    if opv >= 9:  # pragma no cover
         return 4
-    if opv >= 8:
+    if opv >= 8:  # pragma no cover
         return 4
-    return 3
+    return 3  # pragma no cover
 
 
 TARGET_OPSET = get_opset_number_from_onnx()
