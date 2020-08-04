@@ -626,7 +626,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
         onx = OnnxConvTranspose(
             'X', W, output_names=['Y'],
-            kernel_shape=[3, 3], pads=[1, 1, 1, 1],
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
@@ -648,7 +647,208 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
         onx = OnnxConvTranspose(
             'X', W, output_names=['Y'],
-            kernel_shape=[3, 3], pads=[1, 1, 1, 1],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y_with_padding, got['Y'])
+
+    def test_onnxt_runtime_conv_transpose_3d(self):
+        x = numpy.arange(60).reshape((1, 1, 3, 4, 5)).astype(numpy.float32)
+        W = numpy.ones((1, 2, 3, 3, 3)).astype(numpy.float32)
+
+        y_with_padding = numpy.array(
+            [[[[[0., 1., 3., 6., 9., 7., 4.],  # (1, 2, 5, 6, 7)
+                [5., 12., 21., 27., 33., 24., 13.],
+                [15., 33., 54., 63., 72., 51., 27.],
+                [30., 63., 99., 108., 117., 81., 42.],
+                [25., 52., 81., 87., 93., 64., 33.],
+                [15., 31., 48., 51., 54., 37., 19.]],
+
+                [[20., 42., 66., 72., 78., 54., 28.],
+                 [50., 104., 162., 174., 186., 128., 66.],
+                 [90., 186., 288., 306., 324., 222., 114.],
+                 [120., 246., 378., 396., 414., 282., 144.],
+                 [90., 184., 282., 294., 306., 208., 106.],
+                 [50., 102., 156., 162., 168., 114., 58.]],
+
+                [[60., 123., 189., 198., 207., 141., 72.],
+                 [135., 276., 423., 441., 459., 312., 159.],
+                 [225., 459., 702., 729., 756., 513., 261.],
+                 [270., 549., 837., 864., 891., 603., 306.],
+                 [195., 396., 603., 621., 639., 432., 219.],
+                 [105., 213., 324., 333., 342., 231., 117.]],
+
+                [[60., 122., 186., 192., 198., 134., 68.],
+                 [130., 264., 402., 414., 426., 288., 146.],
+                 [210., 426., 648., 666., 684., 462., 234.],
+                 [240., 486., 738., 756., 774., 522., 264.],
+                 [170., 344., 522., 534., 546., 368., 186.],
+                 [90., 182., 276., 282., 288., 194., 98.]],
+
+                [[40., 81., 123., 126., 129., 87., 44.],
+                 [85., 172., 261., 267., 273., 184., 93.],
+                 [135., 273., 414., 423., 432., 291., 147.],
+                 [150., 303., 459., 468., 477., 321., 162.],
+                 [105., 212., 321., 327., 333., 224., 113.],
+                 [55., 111., 168., 171., 174., 117., 59.]]],
+
+              [[[0., 1., 3., 6., 9., 7., 4.],
+                [5., 12., 21., 27., 33., 24., 13.],
+                [15., 33., 54., 63., 72., 51., 27.],
+                [30., 63., 99., 108., 117., 81., 42.],
+                [25., 52., 81., 87., 93., 64., 33.],
+                [15., 31., 48., 51., 54., 37., 19.]],
+
+                [[20., 42., 66., 72., 78., 54., 28.],
+                 [50., 104., 162., 174., 186., 128., 66.],
+                 [90., 186., 288., 306., 324., 222., 114.],
+                 [120., 246., 378., 396., 414., 282., 144.],
+                 [90., 184., 282., 294., 306., 208., 106.],
+                 [50., 102., 156., 162., 168., 114., 58.]],
+
+                [[60., 123., 189., 198., 207., 141., 72.],
+                 [135., 276., 423., 441., 459., 312., 159.],
+                 [225., 459., 702., 729., 756., 513., 261.],
+                 [270., 549., 837., 864., 891., 603., 306.],
+                 [195., 396., 603., 621., 639., 432., 219.],
+                 [105., 213., 324., 333., 342., 231., 117.]],
+
+                [[60., 122., 186., 192., 198., 134., 68.],
+                 [130., 264., 402., 414., 426., 288., 146.],
+                 [210., 426., 648., 666., 684., 462., 234.],
+                 [240., 486., 738., 756., 774., 522., 264.],
+                 [170., 344., 522., 534., 546., 368., 186.],
+                 [90., 182., 276., 282., 288., 194., 98.]],
+
+                [[40., 81., 123., 126., 129., 87., 44.],
+                 [85., 172., 261., 267., 273., 184., 93.],
+                 [135., 273., 414., 423., 432., 291., 147.],
+                 [150., 303., 459., 468., 477., 321., 162.],
+                 [105., 212., 321., 327., 333., 224., 113.],
+                 [55., 111., 168., 171., 174., 117., 59.]]]]]).astype(numpy.float32)
+
+        onx = OnnxConvTranspose(
+            'X', W, output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y_with_padding, got['Y'])
+
+    def test_onnxt_runtime_conv_transpose_attributes(self):
+        x = numpy.arange(60).reshape((1, 1, 3, 3)).astype(numpy.float32)
+        W = numpy.ones((1, 2, 3, 3)).astype(numpy.float32)
+
+        y_with_padding = numpy.array(
+            [[[[0., 0., 1., 1., 3., 2., 2., 0.],  # (1, 2, 10, 8)
+                [0., 0., 1., 1., 3., 2., 2., 0.],
+                [0., 0., 1., 1., 3., 2., 2., 0.],
+                [3., 3., 7., 4., 9., 5., 5., 0.],
+                [3., 3., 7., 4., 9., 5., 5., 0.],
+                [3., 3., 7., 4., 9., 5., 5., 0.],
+                [6., 6., 13., 7., 15., 8., 8., 0.],
+                [6., 6., 13., 7., 15., 8., 8., 0.],
+                [6., 6., 13., 7., 15., 8., 8., 0.],
+                [0., 0., 0., 0., 0., 0., 0., 0.]],
+
+              [[0., 0., 1., 1., 3., 2., 2., 0.],
+                [0., 0., 1., 1., 3., 2., 2., 0.],
+                [0., 0., 1., 1., 3., 2., 2., 0.],
+                [3., 3., 7., 4., 9., 5., 5., 0.],
+                [3., 3., 7., 4., 9., 5., 5., 0.],
+                [3., 3., 7., 4., 9., 5., 5., 0.],
+                [6., 6., 13., 7., 15., 8., 8., 0.],
+                [6., 6., 13., 7., 15., 8., 8., 0.],
+                [6., 6., 13., 7., 15., 8., 8., 0.],
+                [0., 0., 0., 0., 0., 0., 0., 0.]]]]).astype(numpy.float32)
+
+        onx = OnnxConvTranspose(
+            'X', W, output_names=['Y'],
+            strides=[3, 2], output_shape=[10, 8],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y_with_padding, got['Y'])
+
+        onx = OnnxConvTranspose(
+            'X', W, output_names=['Y'],
+            strides=[3, 2], output_padding=[1, 1],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y_with_padding, got['Y'])
+
+        onx = OnnxConvTranspose(
+            'X', W, output_names=['Y'],
+            strides=[3, 2], output_shape=[10, 8],
+            kernel_shape=[3, 3], output_padding=[1, 1],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y_with_padding, got['Y'])
+
+    def test_onnxt_runtime_conv_transpose_dilation(self):
+        x = numpy.array([[[[3., 8., 1.],  # (1, 1, 3, 3)
+                           [9., 5., 7.],
+                           [3., 2., 6.]]]]).astype(numpy.float32)
+        W = numpy.array([[[[7., 2.],  # (1, 1, 2, 2)
+                           [1., 9.]]]]).astype(numpy.float32)
+
+        y_with_padding = numpy.array(
+            [[[[21., 56., 13., 16., 2.],  # [1, 1, 5, 5]
+                [63., 35., 67., 10., 14.],
+                [24., 22., 76., 76., 21.],
+                [9., 5., 88., 45., 63.],
+                [3., 2., 33., 18., 54.]]]]).astype(numpy.float32)
+
+        onx = OnnxConvTranspose(
+            'X', W, output_names=['Y'], dilations=[2, 2],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y_with_padding, got['Y'])
+
+    def test_onnxt_runtime_conv_transpose_pads(self):
+        x = numpy.arange(9).reshape((1, 1, 3, 3)).astype(numpy.float32)
+        W = numpy.ones((1, 2, 3, 3)).astype(numpy.float32)
+
+        y_with_padding = numpy.array(
+            [[[[1., 1., 3.],  # (1, 2, 7, 3)
+                [1., 1., 3.],
+                [7., 4., 9.],
+                [7., 4., 9.],
+                [7., 4., 9.],
+                [13., 7., 15.],
+                [13., 7., 15.]],
+
+              [[1., 1., 3.],
+                [1., 1., 3.],
+                [7., 4., 9.],
+                [7., 4., 9.],
+                [7., 4., 9.],
+                [13., 7., 15.],
+                [13., 7., 15.]]]]).astype(numpy.float32)
+
+        onx = OnnxConvTranspose(
+            'X', W, output_names=['Y'],
+            strides=[3, 2], pads=[1, 2, 1, 2],
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
@@ -1864,4 +2064,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestOnnxrtPythonRuntime().test_onnxt_runtime_conv_transpose_1d()
     unittest.main()

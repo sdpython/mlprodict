@@ -370,3 +370,13 @@ constexpr T roundUpPow2(T a) {
 inline int64_t HandleNegativeAxis(int64_t axis, int64_t tensor_rank) {
   return axis < 0 ? axis + tensor_rank : axis;
 }
+
+void debug_print(const std::string &msg, const std::vector<int64_t>& value);
+void debug_print(const std::string &msg, const std::vector<float>& value);
+void debug_print(const std::string &msg, size_t size, const float* value);
+void debug_print(const std::string &msg, const std::vector<double>& value);
+void debug_print(const std::string &msg, size_t size, const double* value);
+void debug_print(const std::string &msg, int64_t value);
+void debug_print(const std::string &msg, int64_t iter, int64_t end);
+void debug_print(const std::string &msg, size_t i, size_t j, size_t k, float pa, float pb, float val);
+void debug_print(const std::string &msg, size_t i, size_t j, size_t k, double pa, double pb, double val);

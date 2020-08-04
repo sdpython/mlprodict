@@ -258,6 +258,52 @@ void ComputePadAndOutputShape(
 }
 
 
+template <typename T>
+void ComputeTransposePadAndOutputShape(
+      const int64_t in_size, const int64_t stride,
+      const int64_t kernel, const int64_t dilation,
+      const int64_t adj, AutoPadType pad_type,
+      int64_t* pad_head, int64_t* pad_tail,
+      int64_t* out_size) {
+    if (*out_size != -1) {
+        // total padding size
+        int64_t paddings = std::max<int64_t>(0, (in_size - 1) * stride + adj + (kernel - 1) * dilation + 1 - *out_size);
+        if (pad_type == AutoPadType::SAME_UPPER) {  // pad more on head when paddings are odd.
+            *pad_head = paddings - paddings / 2;
+            *pad_tail = paddings / 2;
+        }
+        else {
+            // for pad_type is NOTSET, SAME_LOWER or VALID
+            // set pad_head as paddings/2, pad_tail as paddings-paddings/2.
+            // That said, we pad more on tail when paddings are odd.
+            *pad_head = paddings / 2;
+            *pad_tail = paddings - paddings / 2;
+        }
+        return;
+    }
+    if (pad_type != AutoPadType::NOTSET) {
+        switch (pad_type) {
+            // We handle cases of AutoPadType::VALID and AutoPadType::SAME_UPPER/LOWER,
+            // the same way
+            case AutoPadType::VALID:
+            case AutoPadType::SAME_UPPER:
+            case AutoPadType::SAME_LOWER:
+                *pad_head = 0;
+                *pad_tail = 0;
+                *out_size = (in_size - 1) * stride + adj + (kernel - 1) * dilation + 1;
+                break;
+            default:
+              throw std::runtime_error("pad type not supported");
+        }
+    }
+    else {
+        *out_size = (in_size - 1) * stride + adj +
+                    (kernel - 1) * dilation + 1 -
+                    *pad_head - *pad_tail;
+    }
+}
+
+
 // The function adds value to C, assuming this array
 // was initialized.
 template <typename NTYPE>
@@ -266,26 +312,61 @@ void gemm(bool transA, bool transB,
           const NTYPE* A, const NTYPE* B, NTYPE beta,
           NTYPE* C) {
 
-    if (!transA && !transB) {
-        // a A B + b C, dimension = M * N
-        NTYPE* begin;
-        register NTYPE val;
-        NTYPE val0;
-        size_t i, j, k, maxc=0;
-        const NTYPE *pA, *pB;
-        for(i = 0, begin = C; i < M; ++i) {
-            for(j = 0; j < N; ++j, ++begin) {
-                val0 = *begin * beta;
-                val = 0;
-                pA = A + i * K;
-                pB = B + j;
-                for(k = K; k > 0; --k, ++pA, pB += N)
-                    val += *pA * *pB;
-                *begin = val0 + val * alpha;
-                maxc = maxc > (size_t)(begin - C) ? maxc : (size_t)(begin - C);
-            }
+    if (transA) {
+        if (transB) {
         }
-        return;
+        else {
+            // a A B + b C, dimension = M * N
+            NTYPE* begin;
+            register NTYPE val;
+            NTYPE val0;
+            size_t i, j, k, maxc=0;
+            const NTYPE *pA, *pB;
+            for(i = 0, begin = C; i < M; ++i) {
+                for(j = 0; j < N; ++j, ++begin) {
+                    val0 = *begin * beta;
+                    val = 0;
+                    pA = A + i;
+                    pB = B + j;
+                    for(k = K; k > 0; --k, pA += K, pB += N) {
+                        val += *pA * *pB;
+                        debug_print("gemm10: ", i, j, k, *pA, *pB, val);
+                    }
+                    *begin = val0 + val * alpha;
+                    maxc = maxc > (size_t)(begin - C) ? maxc : (size_t)(begin - C);
+                    if (maxc > M * N)
+                        throw std::runtime_error("gemm10: maxc > M * N");
+                }
+            }
+            return;
+        }
+    }
+    else {
+        if (transB) {
+        }
+        else {
+            // a A B + b C, dimension = M * N
+            NTYPE* begin;
+            register NTYPE val;
+            NTYPE val0;
+            size_t i, j, k, maxc=0;
+            const NTYPE *pA, *pB;
+            for(i = 0, begin = C; i < M; ++i) {
+                for(j = 0; j < N; ++j, ++begin) {
+                    val0 = *begin * beta;
+                    val = 0;
+                    pA = A + i * K;
+                    pB = B + j;
+                    for(k = K; k > 0; --k, ++pA, pB += N)
+                        val += *pA * *pB;
+                    *begin = val0 + val * alpha;
+                    maxc = maxc > (size_t)(begin - C) ? maxc : (size_t)(begin - C);
+                    if (maxc > M * N)
+                        throw std::runtime_error("gemm00: maxc > M * N");
+                }
+            }
+            return;
+        }
     }
     throw std::runtime_error("Not implemented for transposed matrices.");
 }    
