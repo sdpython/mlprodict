@@ -13,10 +13,10 @@ from .op_conv_transpose_ import ConvTransposeFloat, ConvTransposeDouble  # pylin
 class ConvTranspose(OpRun):
 
     atts = {'auto_pad': 'NOTSET', 'group': 1,
-            'dilations': [1, 1],
+            'dilations': [],
             'kernel_shape': [],
             'pads': [],
-            'strides': [1, 1],
+            'strides': [],
             'output_padding': [],
             'output_shape': []}
 

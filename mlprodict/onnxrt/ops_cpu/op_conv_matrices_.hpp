@@ -60,7 +60,7 @@ static void Im2colWithEqualPadding(
 
 
 template <typename T>
-void Im2colNd_NCHW (
+void Im2colNd_NCHW(
         const T* data_img, const int64_t* im_shape,
         const int64_t* col_shape, int64_t /*img_size*/,
         int64_t /*col_size*/, const int64_t* kernel_shape,
@@ -75,6 +75,7 @@ void Im2colNd_NCHW (
     int64_t channels_col = col_shape[0];
     std::vector<int64_t> d_offset(N, 0);
     std::vector<int64_t> d_iter(N, 0);
+
     for (int64_t c_col = 0; c_col < channels_col; ++c_col) {
         // Loop over spatial axes in reverse order to compute a per-axis offset.
         int64_t offset = c_col;
@@ -328,10 +329,8 @@ void gemm(bool transA, bool transB,
                     val = 0;
                     pA = A + i;
                     pB = B + j;
-                    for(k = K; k > 0; --k, pA += K, pB += N) {
+                    for(k = K; k > 0; --k, pA += K, pB += N)
                         val += *pA * *pB;
-                        debug_print("gemm10: ", i, j, k, *pA, *pB, val);
-                    }
                     *begin = val0 + val * alpha;
                     maxc = maxc > (size_t)(begin - C) ? maxc : (size_t)(begin - C);
                     if (maxc > M * N)

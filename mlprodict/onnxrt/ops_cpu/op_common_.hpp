@@ -4,6 +4,7 @@
 #include <vector>
 #include <thread>
 #include <iterator>
+#include <iostream> // cout
 #include <math.h>
 
 #if defined(_WIN32) || defined(WIN32)
@@ -363,20 +364,40 @@ DIMTYPE SizeFromDimension(const std::vector<DIMTYPE>& shape, size_t start, size_
 
 template <typename T, T b>
 constexpr T roundUpPow2(T a) {
-  return (a + (b - 1)) & (~(b - 1));
+    return (a + (b - 1)) & (~(b - 1));
 }
 
 
 inline int64_t HandleNegativeAxis(int64_t axis, int64_t tensor_rank) {
-  return axis < 0 ? axis + tensor_rank : axis;
+    return axis < 0 ? axis + tensor_rank : axis;
 }
 
-void debug_print(const std::string &msg, const std::vector<int64_t>& value);
-void debug_print(const std::string &msg, const std::vector<float>& value);
-void debug_print(const std::string &msg, size_t size, const float* value);
-void debug_print(const std::string &msg, const std::vector<double>& value);
-void debug_print(const std::string &msg, size_t size, const double* value);
-void debug_print(const std::string &msg, int64_t value);
+
+template <typename T>
+void debug_print(const std::string& msg, size_t size, const T* value) {
+    std::cout << msg << " - size:" << size << " :: ";
+    size_t i = size > 10 ? 10 : size;
+    for (size_t j = 0; j < i; ++j)
+        std::cout << value[j] << " ";
+    std::cout << "\n";
+}
+
+
+template <typename T>
+void debug_print(const std::string& msg, const std::vector<T>& value) {
+    auto size = value.size();
+    std::cout << msg << " - size:" << size << " :: ";
+    size_t i = size > 10 ? 10 : size;
+    for (size_t j = 0; j < i; ++j)
+        std::cout << value[j] << " ";
+    std::cout << "\n";
+}
+
+
+void debug_print(const std::string& msg, float value);
+void debug_print(const std::string& msg, double value);
+void debug_print(const std::string& msg, int64_t value);
+void debug_print(const std::string& msg, size_t value);
 void debug_print(const std::string &msg, int64_t iter, int64_t end);
 void debug_print(const std::string &msg, size_t i, size_t j, size_t k, float pa, float pb, float val);
 void debug_print(const std::string &msg, size_t i, size_t j, size_t k, double pa, double pb, double val);

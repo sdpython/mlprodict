@@ -4,7 +4,7 @@
 #endif
 #include "op_common_.hpp"
 #include <string.h> // memcpy
-#include <stdlib.h> //realloc
+#include <stdlib.h> // realloc
 
 
 POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value) {
@@ -98,76 +98,45 @@ AutoPadType to_AutoPadType(const std::string &input) {
 }
 
 
-void debug_print(const std::string &msg, const std::vector<int64_t>& value) {
-    char message[1000];
-    sprintf(message, "%s - size: %d :: ", msg, value.size());
-    int i = value.size() > 6 ? 6 : value.size();
-    for (int j=0; j < i; ++j)
-        sprintf(message + strlen(message), "%d ", value[j]);
-    sprintf(message + strlen(message), "\n");
-    printf(message);
-}
-
-
-void debug_print(const std::string &msg, const std::vector<float>& value) {
-    char message[1000];
-    sprintf(message, "%s - size: %d :: ", msg, value.size());
-    int i = value.size() > 6 ? 6 : value.size();
-    for (int j=0; j < i; ++j)
-        sprintf(message + strlen(message), "%f ", value[j]);
-    sprintf(message + strlen(message), "\n");
-    printf(message);
-}
-
-
-void debug_print(const std::string &msg, const std::vector<double>& value) {
-    char message[1000];
-    sprintf(message, "%s - size: %d :: ", msg, value.size());
-    int i = value.size() > 6 ? 6 : value.size();
-    for (int j=0; j < i; ++j)
-        sprintf(message + strlen(message), "%g ", value[j]);
-    sprintf(message + strlen(message), "\n");
-    printf(message);
-}
-
-
-void debug_print(const std::string &msg, size_t size, const float* value) {
-    char message[1000];
-    sprintf(message, "%s - size: %d :: ", msg, size);
-    int i = size > 6 ? 6 : size;
-    for (int j=0; j < i; ++j)
-        sprintf(message + strlen(message), "%g ", value[j]);
-    sprintf(message + strlen(message), "\n");
-    printf(message);
-}
-
-
-void debug_print(const std::string &msg, size_t size, const double* value) {
-    char message[1000];
-    sprintf(message, "%s - size: %d :: ", msg, size);
-    int i = size > 6 ? 6 : size;
-    for (int j=0; j < i; ++j)
-        sprintf(message + strlen(message), "%g ", value[j]);
-    sprintf(message + strlen(message), "\n");
-    printf(message);
-}
-
-
-void debug_print(const std::string &msg, int64_t value) {
-    printf("%s: %d\n", msg, value);
-}
-
-
 void debug_print(const std::string &msg, int64_t iter, int64_t end) {
-    printf("%s: %d/%d\n", msg, iter, end);
+    std::cout << msg << ":" << iter << "/" << end << "\n";
 }
 
 
 void debug_print(const std::string &msg, size_t i, size_t j, size_t k, float pa, float pb, float val) {
-    printf("%s: (%d,%d,%d): %f, %f -> %f\n", msg, i, j, k, pa, pb, val);
+    std::cout << msg << ": (" << i << "," << j << "," << k << "): " << pa << "," << pb << " -> " << val << "\n";
 }
 
 
 void debug_print(const std::string &msg, size_t i, size_t j, size_t k, double pa, double pb, double val) {
-    printf("%s: (%d,%d,%d): %f, %f -> %f\n", msg, i, j, k, pa, pb, val);
+    std::cout << msg << ": (" << i << "," << j << "," << k << "): " << pa << "," << pb << " -> " << val << "\n";
 }
+
+
+template <typename T>
+void debug_print_(const std::string& msg, T value) {
+    std::cout << msg << ":" << value << "\n";
+}
+
+void debug_print(const std::string& msg, float value) {
+    debug_print_(msg, value);
+}
+
+
+void debug_print(const std::string& msg, double value) {
+    debug_print_(msg, value);
+}
+
+
+void debug_print(const std::string& msg, int64_t value) {
+    debug_print_(msg, value);
+}
+
+
+void debug_print(const std::string& msg, size_t value) {
+    debug_print_(msg, value);
+}
+
+
+
+
