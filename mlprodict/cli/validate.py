@@ -327,7 +327,7 @@ def _validate_runtime_separate_process(**kwargs):
     if models in (None, ""):
         from ..onnxrt.validate.validate_helper import sklearn_operators
         models = [_['name'] for _ in sklearn_operators(extended=True)]
-    else:
+    elif not isinstance(models, list):
         models = models.strip().split(',')
 
     skip_models = kwargs['skip_models']

@@ -116,6 +116,33 @@ def fit_classification_model_simple(model, n_classes, is_int=False,
     return model, X_test
 
 
+def _raw_score_binary_classification(model, X):
+    scores = model.decision_function(X)
+    if len(scores.shape) == 1:
+        scores = scores.reshape(-1, 1)
+    if len(scores.shape) != 2 or scores.shape[1] != 1:
+        raise RuntimeError(
+            "Unexpected shape {} for a binary classifiation".format(
+                scores.shape))
+    return numpy.hstack([-scores, scores])
+
+
+def _save_model_dump(model, folder, basename, names):
+    if hasattr(model, "save"):  # pragma: no cover
+        dest = os.path.join(folder, basename + ".model.keras")
+        names.append(dest)
+        model.save(dest)
+    else:
+        dest = os.path.join(folder, basename + ".model.pkl")
+        names.append(dest)
+        with open(dest, "wb") as f:
+            try:
+                pickle.dump(model, f)
+            except AttributeError as e:  # pragma no cover
+                print("[dump_data_and_model] cannot pickle model '{}'"
+                      " due to {}.".format(dest, e))
+
+
 def dump_data_and_model(
         data, model, onnx_model=None, basename="model", folder=None,
         inputs=None, backend=('python', 'onnxruntime'),
@@ -222,16 +249,6 @@ def dump_data_and_model(
     else:
         dataone = data
 
-    def _raw_score_binary_classification(model, X):
-        scores = model.decision_function(X)
-        if len(scores.shape) == 1:
-            scores = scores.reshape(-1, 1)
-        if len(scores.shape) != 2 or scores.shape[1] != 1:
-            raise RuntimeError(
-                "Unexpected shape {} for a binary classifiation".format(
-                    scores.shape))
-        return numpy.hstack([-scores, scores])
-
     if methods is not None:
         prediction = []
         for method in methods:
@@ -309,19 +326,7 @@ def dump_data_and_model(
     with open(dest, "wb") as f:
         pickle.dump(data, f)
 
-    if hasattr(model, "save"):  # pragma: no cover
-        dest = os.path.join(folder, basename + ".model.keras")
-        names.append(dest)
-        model.save(dest)
-    else:
-        dest = os.path.join(folder, basename + ".model.pkl")
-        names.append(dest)
-        with open(dest, "wb") as f:
-            try:
-                pickle.dump(model, f)
-            except AttributeError as e:  # pragma no cover
-                print("[dump_data_and_model] cannot pickle model '{}'"
-                      " due to {}.".format(dest, e))
+    _save_model_dump(model, folder, basename, names)
 
     if dump_error_log:  # pragma: no cover
         error_dump = os.path.join(folder, basename + ".err")
@@ -329,7 +334,10 @@ def dump_data_and_model(
     if onnx_model is None:  # pragma: no cover
         array = numpy.array(data)
         if inputs is None:
-            inputs = [("input", FloatTensorType(list(array.shape)))]
+            if array.dtype == numpy.float64:
+                inputs = [("input", DoubleTensorType(list(array.shape)))]
+            else:
+                inputs = [("input", FloatTensorType(list(array.shape)))]
         onnx_model, _ = convert_model(model, basename, inputs)
 
     dest = os.path.join(folder, basename + ".model.onnx")
