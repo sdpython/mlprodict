@@ -122,7 +122,7 @@ def dump_data_and_model(
         context=None, allow_failure=None, methods=None,
         dump_error_log=None, benchmark=None, comparable_outputs=None,
         intermediate_steps=False, fail_evenif_notimplemented=False,
-        verbose=False, classes=None):
+        verbose=False, classes=None, check_error=None):
     """
     Saves data with pickle, saves the model with pickle and *onnx*,
     runs and saves the predictions for the given model.
@@ -170,6 +170,8 @@ def dump_data_and_model(
         of a new operator defiend in ONNX.
     :param classes: classes names
         (only for classifier, mandatory if option 'nocl' is used)
+    :param check_error: do not raise an exception if the error message
+        contains this text
     :return: the created files
 
     Some convention for the name,
@@ -358,6 +360,18 @@ def dump_data_and_model(
                     context=context, verbose=verbose,
                     comparable_outputs=comparable_outputs,
                     intermediate_steps=intermediate_steps)
+            elif check_error:
+                try:
+                    output, lambda_onnx = compare_backend(
+                        b, runtime_test, options=extract_options(basename),
+                        context=context, verbose=verbose,
+                        comparable_outputs=comparable_outputs,
+                        intermediate_steps=intermediate_steps)
+                except Exception as e:
+                    if check_error in str(e):
+                        warnings.warn(str(e))
+                        continue
+                    raise e
             else:
                 try:
                     output, lambda_onnx = compare_backend(

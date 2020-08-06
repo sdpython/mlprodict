@@ -176,9 +176,9 @@ class TestSklearnGaussianProcess(ExtTestCase):
             gp, initial_types=[('X', DoubleTensorType([None, None]))],
             target_opset=TARGET_OPSET)
         self.assertTrue(model_onnx is not None)
-        dump_data_and_model(
-            X, gp, model_onnx, verbose=False,
-            basename="SklearnGaussianProcessRBFT")
+        dump_data_and_model(X, gp, model_onnx, verbose=False,
+                            basename="SklearnGaussianProcessRBFT",
+                            check_error="misses kernel")
 
     def test_gpr_rbf_fitted_false(self):
 
@@ -218,7 +218,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
             decimal=4)
         dump_data_and_model(Xtest_.astype(np.float32), gp, model_onnx,
                             verbose=False,
-                            basename="SklearnGaussianProcessRBFStd-Out0")
+                            basename="SklearnGaussianProcessRBFStd-Out0",
+                            check_error="misses kernel")
 
     def test_gpr_rbf_fitted_return_std_exp_sine_squared_true(self):
 
@@ -237,7 +238,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
         dump_data_and_model(
             Xtest_.astype(np.float64), gp, model_onnx,
             verbose=False,
-            basename="SklearnGaussianProcessExpSineSquaredStdT-Out0-Dec3")
+            basename="SklearnGaussianProcessExpSineSquaredStdT-Out0-Dec3",
+            check_error="misses kernel")
         self.check_outputs(gp, model_onnx, Xtest_.astype(np.float64),
                            predict_attributes=options[GaussianProcessRegressor],
                            decimal=4)
@@ -281,7 +283,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(
             Xtest_.astype(np.float64), gp, model_onnx,
-            basename="SklearnGaussianProcessExpSineSquaredStdDouble-Out0-Dec4")
+            basename="SklearnGaussianProcessExpSineSquaredStdDouble-Out0-Dec4",
+            check_error="misses kernel")
         self.check_outputs(gp, model_onnx, Xtest_.astype(np.float64),
                            predict_attributes=options[
             GaussianProcessRegressor],
@@ -303,7 +306,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(
             Xtest_.astype(np.float64), gp, model_onnx,
-            basename="SklearnGaussianProcessDotProductStdDouble-Out0-Dec3")
+            basename="SklearnGaussianProcessDotProductStdDouble-Out0-Dec3",
+            check_error="misses kernel")
         self.check_outputs(gp, model_onnx, Xtest_.astype(np.float64),
                            predict_attributes=options[
             GaussianProcessRegressor],
@@ -325,7 +329,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(
             Xtest_.astype(np.float64), gp, model_onnx,
-            basename="SklearnGaussianProcessRationalQuadraticStdDouble-Out0")
+            basename="SklearnGaussianProcessRationalQuadraticStdDouble-Out0",
+            check_error="misses kernel")
         self.check_outputs(gp, model_onnx, Xtest_.astype(np.float64),
                            predict_attributes=options[
             GaussianProcessRegressor])

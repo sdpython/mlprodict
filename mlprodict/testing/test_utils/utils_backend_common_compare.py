@@ -91,7 +91,7 @@ def compare_runtime_session(  # pylint: disable=R0912
             if "NOT_IMPLEMENTED : Failed to find kernel" in str(e):
                 # onnxruntime does not implement a specific node yet
                 # in the kernel included in onnxruntime.
-                raise OnnxRuntimeMissingNewOnnxOperatorException(  # pragma no cover
+                raise OnnxBackendAssertionError(  # pragma no cover
                     "{3} misses a kernel for operator "
                     "'{0}'\n{1}\nONNX\n{2}".format(
                         onx, e, smodel, cls_session))
