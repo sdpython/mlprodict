@@ -15,7 +15,7 @@ from sklearn.datasets import (
     make_regression)
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
-from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from ...tools.asv_options_helper import get_ir_version_from_onnx
 from .utils_backend import compare_backend
 from .utils_backend_common import (
@@ -143,7 +143,7 @@ def _save_model_dump(model, folder, basename, names):
                       " due to {}.".format(dest, e))
 
 
-def dump_data_and_model(
+def dump_data_and_model(  # pylint: disable=R0912
         data, model, onnx_model=None, basename="model", folder=None,
         inputs=None, backend=('python', 'onnxruntime'),
         context=None, allow_failure=None, methods=None,
@@ -362,7 +362,7 @@ def dump_data_and_model(
                 allow = evaluate_condition(b, allow_failure)
             else:
                 allow = allow_failure
-            if allow is None:
+            if allow is None and not check_error:
                 output, lambda_onnx = compare_backend(
                     b, runtime_test, options=extract_options(basename),
                     context=context, verbose=verbose,
