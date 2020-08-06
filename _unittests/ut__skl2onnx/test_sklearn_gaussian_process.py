@@ -12,8 +12,9 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (
     Sum, DotProduct, ExpSineSquared, RationalQuadratic,
     RBF, ConstantKernel as C)
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import train_test_split
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper import compare_module_version
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from skl2onnx import to_onnx, __version__ as skl2_vers
@@ -400,6 +401,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         self.check_outputs(gp, model_onnx, X_test, {})
 
+    @ignore_warnings(ConvergenceWarning)
     def test_gpr_fitted_partial_float64_operator_cdist_sine(self):
         data = load_iris()
         X = data.data
