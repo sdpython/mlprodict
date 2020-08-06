@@ -99,42 +99,42 @@ AutoPadType to_AutoPadType(const std::string &input) {
 
 
 void debug_print(const std::string &msg, int64_t iter, int64_t end) {
-    std::cout << msg << ":" << iter << "/" << end << "\n";
+    std::cout << msg.c_str() << ":" << iter << "/" << end << "\n";
 }
 
 
 void debug_print(const std::string &msg, size_t i, size_t j, size_t k, float pa, float pb, float val) {
-    std::cout << msg << ": (" << i << "," << j << "," << k << "): " << pa << "," << pb << " -> " << val << "\n";
+    std::cout << msg.c_str() << ": (" << i << "," << j << "," << k << "): " << pa << "," << pb << " -> " << val << "\n";
 }
 
 
 void debug_print(const std::string &msg, size_t i, size_t j, size_t k, double pa, double pb, double val) {
-    std::cout << msg << ": (" << i << "," << j << "," << k << "): " << pa << "," << pb << " -> " << val << "\n";
+    std::cout << msg.c_str() << ": (" << i << "," << j << "," << k << "): " << pa << "," << pb << " -> " << val << "\n";
 }
 
 
 template <typename T>
 void debug_print_(const std::string& msg, T value) {
-    std::cout << msg << ":" << value << "\n";
+    std::cout << msg.c_str() << ":" << value << "\n";
 }
 
 void debug_print(const std::string& msg, float value) {
-    debug_print_(msg, value);
+    debug_print_(msg.c_str(), value);
 }
 
 
 void debug_print(const std::string& msg, double value) {
-    debug_print_(msg, value);
+    debug_print_(msg.c_str(), value);
 }
 
 
 void debug_print(const std::string& msg, int64_t value) {
-    debug_print_(msg, value);
+    debug_print_(msg.c_str(), value);
 }
 
 
 void debug_print(const std::string& msg, size_t value) {
-    debug_print_(msg, value);
+    debug_print_(msg.c_str(), value);
 }
 
 
