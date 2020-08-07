@@ -67,7 +67,9 @@ py::array_t<NTYPE> array_feature_extractor(py::array_t<NTYPE, py::array::c_style
         z_shape.push_back(num_indices);
     }
     else {
-        z_shape = x_shape;
+        z_shape.resize(x_shape.size());
+        for(size_t i = 0; i < x_shape.size(); ++i)
+            z_shape[i] = (ssize_t)x_shape[i];
         z_shape[x_num_dims - 1] = num_indices;
     }
 
