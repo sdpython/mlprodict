@@ -121,7 +121,7 @@ def _raw_score_binary_classification(model, X):
     if len(scores.shape) == 1:
         scores = scores.reshape(-1, 1)
     if len(scores.shape) != 2 or scores.shape[1] != 1:
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unexpected shape {} for a binary classifiation".format(
                 scores.shape))
     return numpy.hstack([-scores, scores])
@@ -375,7 +375,7 @@ def dump_data_and_model(  # pylint: disable=R0912
                         context=context, verbose=verbose,
                         comparable_outputs=comparable_outputs,
                         intermediate_steps=intermediate_steps)
-                except Exception as e:
+                except Exception as e:  # pragma: no cover
                     if check_error in str(e):
                         warnings.warn(str(e))
                         continue
