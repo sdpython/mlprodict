@@ -41,7 +41,7 @@ class QuantizeLinear(OpRun):
             elif dtype == numpy.int8:
                 numpy.clip(x, -128, 127, out=x)
             else:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma no cover
                     "Unexpected dtype for input 2 {}.".format(dtype))
             return (x.astype(dtype), )
 

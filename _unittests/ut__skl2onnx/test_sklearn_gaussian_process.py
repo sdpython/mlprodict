@@ -12,8 +12,9 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (
     Sum, DotProduct, ExpSineSquared, RationalQuadratic,
     RBF, ConstantKernel as C)
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import train_test_split
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper import compare_module_version
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from skl2onnx import to_onnx, __version__ as skl2_vers
@@ -175,9 +176,9 @@ class TestSklearnGaussianProcess(ExtTestCase):
             gp, initial_types=[('X', DoubleTensorType([None, None]))],
             target_opset=TARGET_OPSET)
         self.assertTrue(model_onnx is not None)
-        dump_data_and_model(
-            X, gp, model_onnx, verbose=False,
-            basename="SklearnGaussianProcessRBFT")
+        dump_data_and_model(X, gp, model_onnx, verbose=False,
+                            basename="SklearnGaussianProcessRBFT",
+                            check_error="misses a kernel")
 
     def test_gpr_rbf_fitted_false(self):
 
@@ -217,7 +218,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
             decimal=4)
         dump_data_and_model(Xtest_.astype(np.float32), gp, model_onnx,
                             verbose=False,
-                            basename="SklearnGaussianProcessRBFStd-Out0")
+                            basename="SklearnGaussianProcessRBFStd-Out0",
+                            check_error="misses a kernel")
 
     def test_gpr_rbf_fitted_return_std_exp_sine_squared_true(self):
 
@@ -236,7 +238,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
         dump_data_and_model(
             Xtest_.astype(np.float64), gp, model_onnx,
             verbose=False,
-            basename="SklearnGaussianProcessExpSineSquaredStdT-Out0-Dec3")
+            basename="SklearnGaussianProcessExpSineSquaredStdT-Out0-Dec3",
+            check_error="misses a kernel")
         self.check_outputs(gp, model_onnx, Xtest_.astype(np.float64),
                            predict_attributes=options[GaussianProcessRegressor],
                            decimal=4)
@@ -280,7 +283,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(
             Xtest_.astype(np.float64), gp, model_onnx,
-            basename="SklearnGaussianProcessExpSineSquaredStdDouble-Out0-Dec4")
+            basename="SklearnGaussianProcessExpSineSquaredStdDouble-Out0-Dec4",
+            check_error="misses a kernel")
         self.check_outputs(gp, model_onnx, Xtest_.astype(np.float64),
                            predict_attributes=options[
             GaussianProcessRegressor],
@@ -302,7 +306,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(
             Xtest_.astype(np.float64), gp, model_onnx,
-            basename="SklearnGaussianProcessDotProductStdDouble-Out0-Dec3")
+            basename="SklearnGaussianProcessDotProductStdDouble-Out0-Dec3",
+            check_error="misses a kernel")
         self.check_outputs(gp, model_onnx, Xtest_.astype(np.float64),
                            predict_attributes=options[
             GaussianProcessRegressor],
@@ -324,7 +329,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(
             Xtest_.astype(np.float64), gp, model_onnx,
-            basename="SklearnGaussianProcessRationalQuadraticStdDouble-Out0")
+            basename="SklearnGaussianProcessRationalQuadraticStdDouble-Out0",
+            check_error="misses a kernel")
         self.check_outputs(gp, model_onnx, Xtest_.astype(np.float64),
                            predict_attributes=options[
             GaussianProcessRegressor])
@@ -400,6 +406,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         self.check_outputs(gp, model_onnx, X_test, {})
 
+    @ignore_warnings(ConvergenceWarning)
     def test_gpr_fitted_partial_float64_operator_cdist_sine(self):
         data = load_iris()
         X = data.data

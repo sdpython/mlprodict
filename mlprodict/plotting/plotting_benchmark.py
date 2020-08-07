@@ -159,32 +159,32 @@ def plot_benchmark_metrics(metric, xlabel=None, ylabel=None,
         return plot_benchmark_metrics(metric, ax=ax, xlabel=ylabel, ylabel=xlabel,
                                       middle=middle, transpose=False,
                                       cbar_kw=cbar_kw, cbarlabel=cbarlabel)
-    else:
-        x = numpy.array(list(sorted(set(k[0] for k in metric))))
-        y = numpy.array(list(sorted(set(k[1] for k in metric))))
-        rx = {v: i for i, v in enumerate(x)}
-        ry = {v: i for i, v in enumerate(y)}
 
-        X, _ = numpy.meshgrid(x, y)
-        zm = numpy.zeros(X.shape, dtype=numpy.float64)
-        for k, v in metric.items():
-            zm[ry[k[1]], rx[k[0]]] = v
+    x = numpy.array(list(sorted(set(k[0] for k in metric))))
+    y = numpy.array(list(sorted(set(k[1] for k in metric))))
+    rx = {v: i for i, v in enumerate(x)}
+    ry = {v: i for i, v in enumerate(y)}
 
-        xs = [str(_) for _ in x]
-        ys = [str(_) for _ in y]
-        vmin = min(metric.values())
-        vmax = max(metric.values())
-        if middle is not None:
-            v1 = middle / vmin
-            v2 = middle / vmax
-            vmin = min(vmin, v2)
-            vmax = max(vmax, v1)
-        ax, im, cbar = heatmap(zm, ys, xs, ax=ax, cmap="bwr",
-                               norm=LogNorm(vmin=vmin, vmax=vmax),
-                               cbarlabel=cbarlabel, cbar_kw=cbar_kw)
-        annotate_heatmap(im, valfmt=valfmt)
-        if xlabel is not None:
-            ax.set_xlabel(xlabel)
-        if ylabel is not None:
-            ax.set_ylabel(ylabel)
-        return ax, cbar
+    X, _ = numpy.meshgrid(x, y)
+    zm = numpy.zeros(X.shape, dtype=numpy.float64)
+    for k, v in metric.items():
+        zm[ry[k[1]], rx[k[0]]] = v
+
+    xs = [str(_) for _ in x]
+    ys = [str(_) for _ in y]
+    vmin = min(metric.values())
+    vmax = max(metric.values())
+    if middle is not None:
+        v1 = middle / vmin
+        v2 = middle / vmax
+        vmin = min(vmin, v2)
+        vmax = max(vmax, v1)
+    ax, im, cbar = heatmap(zm, ys, xs, ax=ax, cmap="bwr",
+                           norm=LogNorm(vmin=vmin, vmax=vmax),
+                           cbarlabel=cbarlabel, cbar_kw=cbar_kw)
+    annotate_heatmap(im, valfmt=valfmt)
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+    return ax, cbar

@@ -26,7 +26,7 @@ def register_operator(cls, name=None, overwrite=True):
     if name not in _additional_ops:
         _additional_ops[name] = cls
     elif not overwrite:
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unable to overwrite existing operator '{}': {} "
             "by {}".format(name, _additional_ops[name], cls))
 
@@ -55,7 +55,7 @@ def load_op(onnx_node, desc=None, options=None):
     @return                     runtime class
     """
     if desc is None:
-        raise ValueError("desc should not be None.")
+        raise ValueError("desc should not be None.")  # pragma no cover
     name = onnx_node.op_type
     opset = options.get('target_opset', None) if options is not None else None
     current_opset = get_opset_number_from_onnx()
@@ -64,7 +64,7 @@ def load_op(onnx_node, desc=None, options=None):
         opset = None
     if opset is not None:
         if not isinstance(opset, int):
-            raise TypeError(
+            raise TypeError(  # pragma no cover
                 "opset must be an integer not {}".format(type(opset)))
         name_opset = name + "_" + str(opset)
         for op in range(opset, 0, -1):
@@ -85,7 +85,7 @@ def load_op(onnx_node, desc=None, options=None):
     elif name in d_op_list:
         cl = d_op_list[name]
     else:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma no cover
             "Operator '{}' has no runtime yet. Available list:\n"
             "{}\n--- +\n{}".format(
                 name, "\n".join(sorted(_additional_ops)),
@@ -96,7 +96,8 @@ def load_op(onnx_node, desc=None, options=None):
         if cl.version_higher_than > opv:
             # The chosen implementation does not support
             # the opset version, we need to downgrade it.
-            if 'target_opset' in options and options['target_opset'] is not None:
+            if ('target_opset' in options and  # pragma: no cover
+                    options['target_opset'] is not None):
                 raise RuntimeError(
                     "Supported version {} > {} (opset={}) required version, "
                     "unable to find an implementation version {} found "

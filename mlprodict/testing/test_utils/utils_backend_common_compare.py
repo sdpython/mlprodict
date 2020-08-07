@@ -7,19 +7,14 @@ import onnx
 import pandas
 try:
     from onnxruntime.capi.onnxruntime_pybind11_state import (
-        InvalidArgument as OrtInvalidArgument
-    )
+        InvalidArgument as OrtInvalidArgument)
 except ImportError:  # pragma no cover
     OrtInvalidArgument = RuntimeError
 from .utils_backend_common import (
-    load_data_and_model,
-    extract_options,
-    ExpectedAssertionError,
-    OnnxBackendAssertionError,
+    load_data_and_model, extract_options,
+    ExpectedAssertionError, OnnxBackendAssertionError,
     OnnxRuntimeMissingNewOnnxOperatorException,
-    _compare_expected,
-    _create_column,
-)
+    _compare_expected, _create_column)
 
 
 def compare_runtime_session(  # pylint: disable=R0912
@@ -66,7 +61,8 @@ def compare_runtime_session(  # pylint: disable=R0912
     elif options is None:
         options = {}
     elif not isinstance(options, dict):
-        raise TypeError("options must be a dictionary.")
+        raise TypeError(  # pragma no cover
+            "options must be a dictionary.")
 
     if verbose:  # pragma no cover
         print("[compare_runtime] InferenceSession('{}')".format(onx))
@@ -90,6 +86,13 @@ def compare_runtime_session(  # pylint: disable=R0912
                 # onnxruntime does not implement a specific node yet.
                 raise OnnxRuntimeMissingNewOnnxOperatorException(  # pragma no cover
                     "{3} does not implement a new operator "
+                    "'{0}'\n{1}\nONNX\n{2}".format(
+                        onx, e, smodel, cls_session))
+            if "NOT_IMPLEMENTED : Failed to find kernel" in str(e):
+                # onnxruntime does not implement a specific node yet
+                # in the kernel included in onnxruntime.
+                raise OnnxBackendAssertionError(  # pragma no cover
+                    "{3} misses a kernel for operator "
                     "'{0}'\n{1}\nONNX\n{2}".format(
                         onx, e, smodel, cls_session))
             raise OnnxBackendAssertionError(  # pragma no cover
@@ -194,7 +197,7 @@ def compare_runtime_session(  # pylint: disable=R0912
     try:
         try:
             output = sess.run(None, inputs, **run_options)
-        except TypeError:
+        except TypeError:  # pragma no cover
             output = sess.run(None, inputs)
         lambda_onnx = lambda: sess.run(None, inputs)  # noqa
         if verbose:  # pragma no cover

@@ -29,7 +29,7 @@ def _numpy_dot_inplace_left(a, b):
             try:
                 numpy.dot(a, b.reshape(b.shape[0], 1), out=a[:, :1])
                 return a[:, :1].reshape(a.shape[0])
-            except ValueError:
+            except ValueError:  # pragma no cover
                 return numpy.dot(a, b)
     return numpy.dot(a, b)
 
@@ -41,12 +41,12 @@ def _numpy_dot_inplace_right(a, b):
             try:
                 numpy.dot(a, b, out=b[:a.shape[0], :])
                 return b[:a.shape[0], :]
-            except ValueError:
+            except ValueError:  # pragma no cover
                 return numpy.dot(a, b)
         if len(a.shape) == 1:
             try:
                 numpy.dot(a, b, out=b[:1, :])
                 return b[:1, :]
-            except ValueError:
+            except ValueError:  # pragma no cover
                 return numpy.dot(a, b)
     return numpy.dot(a, b)

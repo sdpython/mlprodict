@@ -4,7 +4,7 @@
 #endif
 #include "op_common_.hpp"
 #include <string.h> // memcpy
-#include <stdlib.h> //realloc
+#include <stdlib.h> // realloc
 
 
 POST_EVAL_TRANSFORM to_POST_EVAL_TRANSFORM(const std::string &value) {
@@ -96,3 +96,47 @@ AutoPadType to_AutoPadType(const std::string &input) {
                              input + 
                              std::string("' is not defined."));
 }
+
+
+void debug_print(const std::string &msg, int64_t iter, int64_t end) {
+    std::cout << msg.c_str() << ":" << iter << "/" << end << "\n";
+}
+
+
+void debug_print(const std::string &msg, size_t i, size_t j, size_t k, float pa, float pb, float val) {
+    std::cout << msg.c_str() << ": (" << i << "," << j << "," << k << "): " << pa << "," << pb << " -> " << val << "\n";
+}
+
+
+void debug_print(const std::string &msg, size_t i, size_t j, size_t k, double pa, double pb, double val) {
+    std::cout << msg.c_str() << ": (" << i << "," << j << "," << k << "): " << pa << "," << pb << " -> " << val << "\n";
+}
+
+
+template <typename T>
+void debug_print_(const std::string& msg, T value) {
+    std::cout << msg.c_str() << ":" << value << "\n";
+}
+
+void debug_print(const std::string& msg, float value) {
+    debug_print_(msg.c_str(), value);
+}
+
+
+void debug_print(const std::string& msg, double value) {
+    debug_print_(msg.c_str(), value);
+}
+
+
+void debug_print(const std::string& msg, int64_t value) {
+    debug_print_(msg.c_str(), value);
+}
+
+
+void debug_print(const std::string& msg, size_t value) {
+    debug_print_(msg.c_str(), value);
+}
+
+
+
+

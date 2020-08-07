@@ -15,7 +15,7 @@ from sklearn.datasets import (
     make_regression)
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
-from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from ...tools.asv_options_helper import get_ir_version_from_onnx
 from .utils_backend import compare_backend
 from .utils_backend_common import (
@@ -116,13 +116,40 @@ def fit_classification_model_simple(model, n_classes, is_int=False,
     return model, X_test
 
 
-def dump_data_and_model(
+def _raw_score_binary_classification(model, X):
+    scores = model.decision_function(X)
+    if len(scores.shape) == 1:
+        scores = scores.reshape(-1, 1)
+    if len(scores.shape) != 2 or scores.shape[1] != 1:
+        raise RuntimeError(
+            "Unexpected shape {} for a binary classifiation".format(
+                scores.shape))
+    return numpy.hstack([-scores, scores])
+
+
+def _save_model_dump(model, folder, basename, names):
+    if hasattr(model, "save"):  # pragma: no cover
+        dest = os.path.join(folder, basename + ".model.keras")
+        names.append(dest)
+        model.save(dest)
+    else:
+        dest = os.path.join(folder, basename + ".model.pkl")
+        names.append(dest)
+        with open(dest, "wb") as f:
+            try:
+                pickle.dump(model, f)
+            except AttributeError as e:  # pragma no cover
+                print("[dump_data_and_model] cannot pickle model '{}'"
+                      " due to {}.".format(dest, e))
+
+
+def dump_data_and_model(  # pylint: disable=R0912
         data, model, onnx_model=None, basename="model", folder=None,
         inputs=None, backend=('python', 'onnxruntime'),
         context=None, allow_failure=None, methods=None,
         dump_error_log=None, benchmark=None, comparable_outputs=None,
         intermediate_steps=False, fail_evenif_notimplemented=False,
-        verbose=False, classes=None):
+        verbose=False, classes=None, check_error=None):
     """
     Saves data with pickle, saves the model with pickle and *onnx*,
     runs and saves the predictions for the given model.
@@ -170,6 +197,8 @@ def dump_data_and_model(
         of a new operator defiend in ONNX.
     :param classes: classes names
         (only for classifier, mandatory if option 'nocl' is used)
+    :param check_error: do not raise an exception if the error message
+        contains this text
     :return: the created files
 
     Some convention for the name,
@@ -219,16 +248,6 @@ def dump_data_and_model(
         dataone = data[:1].copy()
     else:
         dataone = data
-
-    def _raw_score_binary_classification(model, X):
-        scores = model.decision_function(X)
-        if len(scores.shape) == 1:
-            scores = scores.reshape(-1, 1)
-        if len(scores.shape) != 2 or scores.shape[1] != 1:
-            raise RuntimeError(
-                "Unexpected shape {} for a binary classifiation".format(
-                    scores.shape))
-        return numpy.hstack([-scores, scores])
 
     if methods is not None:
         prediction = []
@@ -307,19 +326,7 @@ def dump_data_and_model(
     with open(dest, "wb") as f:
         pickle.dump(data, f)
 
-    if hasattr(model, "save"):  # pragma: no cover
-        dest = os.path.join(folder, basename + ".model.keras")
-        names.append(dest)
-        model.save(dest)
-    else:
-        dest = os.path.join(folder, basename + ".model.pkl")
-        names.append(dest)
-        with open(dest, "wb") as f:
-            try:
-                pickle.dump(model, f)
-            except AttributeError as e:  # pragma no cover
-                print("[dump_data_and_model] cannot pickle model '{}'"
-                      " due to {}.".format(dest, e))
+    _save_model_dump(model, folder, basename, names)
 
     if dump_error_log:  # pragma: no cover
         error_dump = os.path.join(folder, basename + ".err")
@@ -327,7 +334,10 @@ def dump_data_and_model(
     if onnx_model is None:  # pragma: no cover
         array = numpy.array(data)
         if inputs is None:
-            inputs = [("input", FloatTensorType(list(array.shape)))]
+            if array.dtype == numpy.float64:
+                inputs = [("input", DoubleTensorType(list(array.shape)))]
+            else:
+                inputs = [("input", FloatTensorType(list(array.shape)))]
         onnx_model, _ = convert_model(model, basename, inputs)
 
     dest = os.path.join(folder, basename + ".model.onnx")
@@ -352,12 +362,24 @@ def dump_data_and_model(
                 allow = evaluate_condition(b, allow_failure)
             else:
                 allow = allow_failure
-            if allow is None:
+            if allow is None and not check_error:
                 output, lambda_onnx = compare_backend(
                     b, runtime_test, options=extract_options(basename),
                     context=context, verbose=verbose,
                     comparable_outputs=comparable_outputs,
                     intermediate_steps=intermediate_steps)
+            elif check_error:
+                try:
+                    output, lambda_onnx = compare_backend(
+                        b, runtime_test, options=extract_options(basename),
+                        context=context, verbose=verbose,
+                        comparable_outputs=comparable_outputs,
+                        intermediate_steps=intermediate_steps)
+                except Exception as e:
+                    if check_error in str(e):
+                        warnings.warn(str(e))
+                        continue
+                    raise e
             else:
                 try:
                     output, lambda_onnx = compare_backend(
