@@ -420,7 +420,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
             return atan_part + pi_part
 
         self.assertEqualArray(
-            numpy.arctan2(y_val, x_val), atan2(y_val, x_val))
+            numpy.arctan2(y_val, x_val), atan2(y_val, x_val), decimal=6)
 
     def test_onnxt_runtime_batch_normalization(self):
         # input size: (1, 2, 1, 3)
