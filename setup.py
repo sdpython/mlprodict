@@ -200,7 +200,7 @@ if not r:
     elif sys.platform.startswith("darwin"):
         libraries_thread = None
         extra_compile_args = ['-stdlib=libc++', '-mmacosx-version-min=10.7',
-                              '-fpermissive',
+                              '-fpermissive', '-std=c++11',
                               '-Xpreprocessor', '-fopenmp']
         extra_link_args = ['-lomp']
         define_macros = [('USE_OPENMP', None)]
