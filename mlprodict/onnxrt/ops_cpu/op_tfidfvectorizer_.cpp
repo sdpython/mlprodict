@@ -16,6 +16,8 @@
 #include <omp.h>
 #endif
 
+#include <memory>
+
 namespace py = pybind11;
 #endif
 
