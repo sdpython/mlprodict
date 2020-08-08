@@ -5,7 +5,10 @@ for many regressors and classifiers.
 import os
 import textwrap
 import hashlib
-from ..onnxrt.optim.sklearn_helper import set_n_jobs
+try:
+    from ..onnxrt.optim.sklearn_helper import set_n_jobs
+except ValueError:
+    from mlprodict.onnxrt.optim.sklearn_helper import set_n_jobs
 
 # exec function does not import models but potentially
 # requires all specific models used to defines scenarios
@@ -46,8 +49,9 @@ default_asv_conf = {
         "Pillow": [],
         "pybind11": [],
         "scipy": [],
-        "skl2onnx": ["git+https://github.com/xadupre/sklearn-onnx.git@jenkins"],
-        "scikit-learn": ["git+https://github.com/scikit-learn/scikit-learn.git"],
+        "onnxconverter-common": ["http://localhost:8067/simple/"],  # "git+https://github.com/xadupre/onnxconverter-common.git@jenkins"],
+        "skl2onnx": ["http://localhost:8067/simple/"],  # "git+https://github.com/xadupre/sklearn-onnx.git@jenkins"],
+        "scikit-learn": ["http://localhost:8067/simple/"],  # "git+https://github.com/scikit-learn/scikit-learn.git"],
         "xgboost": [],
     },
     "benchmark_dir": "benches",
