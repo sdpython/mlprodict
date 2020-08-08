@@ -5,12 +5,37 @@
 History
 =======
 
-current - 2020-07-08 - 0.00Mb
+current - 2020-08-08 - 0.00Mb
 =============================
 
-* `137`: Remove parameter dtype (onnx conversion) (2020-07-08)
-* `138`: Add code to register custom python operator (2020-07-08)
+* `159`: Implements runtime for ConvTranspose (2020-08-07)
+* `160`: Fixes #159, add operator ConvTranspose, refactoring. (2020-08-07)
+* `158`: Fixes benchmark import issues (2020-08-03)
+* `157`: Simplify scenarios, reduce time for benchmark. (2020-08-02)
+* `155`: Fixes API on documentation (2020-08-02)
+* `156`: Fixes #155, improves documentation (2020-08-02)
+* `154`: Fixes y_train dtype for most of the problems. Fixes subproblems with GridSearchCV (2020-07-31)
+* `152`: Set n_jobs to the number of core - 1 when doing benchmark (2020-07-31)
+* `153`: Fixes #152, set set n_jobs to the number of CPU (2020-07-31)
+* `151`: Force operator Conv to use continuous array (2020-07-30)
+* `150`: Fixes nan issue in operator conv (2020-07-29)
+* `145`: Fixes missing shape inference for operator conv (2020-07-29)
+* `147`: Fixes #145, #150, shape inference for operator Conv (2020-07-29)
+* `148`: Add operator atan (2020-07-22)
+* `149`: Fixes #148, add operator Atan (2020-07-22)
+* `144`: Implements operator GlobalAveragePool (2020-07-21)
+* `146`: Fixes #144, add operator GlobalAveragePool (2020-07-21)
+* `142`: Implement python runtime for operator BatchNormalization (2020-07-21)
+* `143`: Fixes #142, add operator BatchNormalization (2020-07-21)
+* `140`: Implement runtime for QuantizeLinear, DequantizeLinear (2020-07-20)
+* `141`: Fixes #140, add runtime for QuantizeLinear, DequantizeLinear (2020-07-20)
+
+0.4.1204 - 2020-07-09 - 0.31Mb
+==============================
+
 * `139`: Add runtime for operator EyeLike (2020-07-08)
+* `138`: Add code to register custom python operator (2020-07-08)
+* `137`: Remove parameter dtype (onnx conversion) (2020-07-08)
 * `136`: Add parameter reshape to OnnxTransformer (2020-07-03)
 * `135`: Add a function to change the first dimension output (ONNX). (2020-07-03)
 * `133`: Implements runtime for operator Gather (ONNX) (2020-06-18)
