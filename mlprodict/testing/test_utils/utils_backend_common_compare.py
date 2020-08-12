@@ -20,7 +20,8 @@ from .utils_backend_common import (
 def compare_runtime_session(  # pylint: disable=R0912
         cls_session, test, decimal=5, options=None,
         verbose=False, context=None, comparable_outputs=None,
-        intermediate_steps=False, classes=None):
+        intermediate_steps=False, classes=None,
+        disable_optimisation=False):
     """
     The function compares the expected output (computed with
     the model before being converted to ONNX) and the ONNX output
@@ -40,6 +41,7 @@ def compare_runtime_session(  # pylint: disable=R0912
     :param intermediate_steps: displays intermediate steps
         in case of an error
     :param classes: classes names (if option 'nocl' is used)
+    :param disable_optimisation: disable optimisation the runtime may do
     :return: tuple (outut, lambda function to run the predictions)
 
     The function does not return anything but raises an error
@@ -53,6 +55,7 @@ def compare_runtime_session(  # pylint: disable=R0912
         print("[compare_runtime] test '{}' loaded".format(test['onnx']))
 
     onx = test['onnx']
+
     if options is None:
         if isinstance(onx, str):
             options = extract_options(onx)
@@ -67,8 +70,12 @@ def compare_runtime_session(  # pylint: disable=R0912
     if verbose:  # pragma no cover
         print("[compare_runtime] InferenceSession('{}')".format(onx))
 
+    runtime_options = dict(disable_optimisation=disable_optimisation)
     try:
-        sess = cls_session(onx)
+        sess = cls_session(onx, runtime_options=runtime_options)
+    except TypeError as e:
+        raise TypeError(
+            "Wrong signature for '{}'.".format(cls_session.__name__))
     except ExpectedAssertionError as expe:  # pragma no cover
         raise expe
     except Exception as e:  # pylint: disable=W0703

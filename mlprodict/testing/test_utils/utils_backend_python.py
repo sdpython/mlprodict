@@ -76,7 +76,8 @@ class OnnxInference2(OnnxInference):
 
 def compare_runtime(test, decimal=5, options=None,
                     verbose=False, context=None, comparable_outputs=None,
-                    intermediate_steps=False, classes=None):
+                    intermediate_steps=False, classes=None,
+                    disable_optimisation=False):
     """
     The function compares the expected output (computed with
     the model before being converted to ONNX) and the ONNX output
@@ -95,6 +96,7 @@ def compare_runtime(test, decimal=5, options=None,
     :param intermediate_steps: displays intermediate steps
         in case of an error
     :param classes: classes names (if option 'nocl' is used)
+    :param disable_optimisation: disable optimisation the runtime may do
     :return: tuple (outut, lambda function to run the predictions)
 
     The function does not return anything but raises an error
@@ -105,4 +107,4 @@ def compare_runtime(test, decimal=5, options=None,
         verbose=verbose, context=context,
         comparable_outputs=comparable_outputs,
         intermediate_steps=intermediate_steps,
-        classes=classes)
+        classes=classes, disable_optimisation=disable_optimisation)

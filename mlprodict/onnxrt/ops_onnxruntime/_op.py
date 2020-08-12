@@ -7,7 +7,8 @@ import numpy
 import onnx.defs
 from onnx.helper import make_tensor
 from onnx import TensorProto
-from onnxruntime import InferenceSession, SessionOptions, RunOptions
+from onnxruntime import (
+    InferenceSession, SessionOptions, RunOptions, GraphOptimizationLevel)
 try:
     from onnxruntime.capi.onnxruntime_pybind11_state import (
         InvalidArgument as OrtInvalidArgument,
@@ -112,7 +113,9 @@ class OpRunOnnxRuntime:
         options = self.options.copy()
         target_opset = options.pop('target_opset', None)
         domain = options.pop('domain', None)
+        disable_optimisation = options.pop('disable_optimisation', False)
         ir_version = options.pop('ir_version', None)
+
         if domain == '' and target_opset < 9:
             # target_opset should be >= 9 not {} for main domain.
             # We assume it was the case when the graph was created.
@@ -229,9 +232,12 @@ class OpRunOnnxRuntime:
             pass
         if ir_version is not None:
             self.onnx_.ir_version = ir_version
+        if disable_optimisation:
+            sess_options.graph_optimization_level = (
+                GraphOptimizationLevel.ORT_ENABLE_ALL)
         try:
-            self.sess_ = InferenceSession(self.onnx_.SerializeToString(),
-                                          sess_options=sess_options)
+            self.sess_ = InferenceSession(
+                self.onnx_.SerializeToString(), sess_options=sess_options)
         except (RuntimeError, OrtNotImplemented, OrtInvalidGraph, OrtFail) as e:
             raise RuntimeError("Unable to load node '{}' (output type was {})\n{}".format(
                 self.onnx_node.op_type, "guessed" if forced else "inferred",
