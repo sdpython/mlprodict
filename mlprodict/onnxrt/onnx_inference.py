@@ -90,6 +90,7 @@ class OnnxInference:
         """
         return {'onnx': self.obj.SerializeToString(),
                 'runtime': self.runtime,
+                'runtime_options': self.runtime_options,
                 'skip_run': self.skip_run,
                 'input_inplace': self.input_inplace,
                 'inplace': self.inplace,
@@ -102,6 +103,7 @@ class OnnxInference:
         onx = state['onnx']
         self.obj = load_model(BytesIO(onx))
         self.runtime = state['runtime']
+        self.runtime_options = state['runtime_options']
         self.skip_run = state['skip_run']
         self.input_inplace = state['input_inplace']
         self.inplace = state['inplace']
