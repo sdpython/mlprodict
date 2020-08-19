@@ -33,7 +33,7 @@ class InferenceSession2:
                     "be sepcified at the same time.")
             kwargs['sess_options'] = SessionOptions()
             kwargs['sess_options'].graph_optimization_level = (
-                GraphOptimizationLevel.ORT_ENABLE_ALL)
+                GraphOptimizationLevel.ORT_DISABLE_ALL)
         self.sess, self.outi, self.erri = _capture_output(
             lambda: InferenceSession(*args, **kwargs), 'c')
 
