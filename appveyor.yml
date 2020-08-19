@@ -20,7 +20,7 @@ install:
   - "%PYTHON%\\Scripts\\pip install -r requirements_conda.txt"
   - "%PYTHON%\\Scripts\\pip install pymyinstall"
   - "%PYTHON%\\Scripts\\pip install -r requirements.txt"
-  - "%PYTHON%\\Scripts\\pip install onnxruntime>=1.3.0"
+  - "%PYTHON%\\Scripts\\pip install onnxruntime>=1.4.0"
   - "%PYTHON%\\Scripts\\pymy_install3 --task=tool --source=zip graphviz"
   - "set PATH=%PATH%;C:\\projects\\mlprodict\\build\\update_modules\\Graphviz\\bin"
 build: off
