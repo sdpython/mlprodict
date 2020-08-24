@@ -43,7 +43,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceProd, OnnxReduceSum, OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
     OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign, OnnxSin,
-    OnnxSoftmax, OnnxSqueeze,
+    OnnxSoftmax, OnnxSqueeze, OnnxSplit,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxTopK, OnnxTranspose,
 )
@@ -1711,6 +1711,46 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxSlice)
+
+    def test_onnxt_runtime_split(self):
+        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(numpy.float32)
+        y = [numpy.array([1., 2.]).astype(numpy.float32),
+             numpy.array([3., 4.]).astype(numpy.float32),
+             numpy.array([5., 6.]).astype(numpy.float32)]
+
+        onx = OnnxSplit('X', axis=0, split=[2, 2, 2],
+                        output_names=['Y1', 'Y2', 'Y3'],
+                        op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y[0], got['Y1'])
+        self.assertEqualArray(y[1], got['Y2'])
+        self.assertEqualArray(y[2], got['Y3'])
+
+        onx = OnnxSplit('X', axis=0,
+                        output_names=['Y1', 'Y2', 'Y3'],
+                        op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y[0], got['Y1'])
+        self.assertEqualArray(y[1], got['Y2'])
+        self.assertEqualArray(y[2], got['Y3'])
+
+        x = numpy.array([[1., 2., 3., 4., 5., 6.],
+                         [7., 8., 9., 10., 11., 12.]]).astype(numpy.float32)
+        y = [numpy.array([[1., 2.], [7., 8.]]).astype(numpy.float32),
+             numpy.array([[3., 4., 5., 6.], [9., 10., 11., 12.]]).astype(numpy.float32)]
+        onx = OnnxSplit('X', axis=1, split=[2, 4],
+                        output_names=['Y1', 'Y2'],
+                        op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y[0], got['Y1'])
+        self.assertEqualArray(y[1], got['Y2'])
+
 
     def test_onnxt_runtime_sqrt(self):
         self.common_test_onnxt_runtime_unary(OnnxSqrt, numpy.sqrt)
