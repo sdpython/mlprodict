@@ -610,7 +610,7 @@ class OnnxInference:
         else:
             def dispsimple(arr):
                 if hasattr(arr, 'shape'):
-                    if len(arr.shape) == 1:
+                    if len(arr.shape) <= 1:
                         threshold = 8
                     else:
                         threshold = min(

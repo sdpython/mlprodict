@@ -5,30 +5,37 @@
 History
 =======
 
-current - 2020-08-08 - 0.00Mb
+current - 2020-08-25 - 0.00Mb
 =============================
 
-* `159`: Implements runtime for ConvTranspose (2020-08-07)
+* `163`: Add runtime for operator Unsqueeze (2020-08-25)
+* `167`: Add runtime for Operator Or (2020-08-25)
+* `166`: Add runtime for operator And (2020-08-25)
+* `165`: Add runtime for operator GreaterOrEqual (2020-08-25)
+* `164`: Add runtime for operator If (2020-08-25)
+* `162`: Add runtime for operator Split (2020-08-25)
+* `161`: Add support for disable_optimisation (2020-08-12)
 * `160`: Fixes #159, add operator ConvTranspose, refactoring. (2020-08-07)
+* `159`: Implements runtime for ConvTranspose (2020-08-07)
 * `158`: Fixes benchmark import issues (2020-08-03)
 * `157`: Simplify scenarios, reduce time for benchmark. (2020-08-02)
-* `155`: Fixes API on documentation (2020-08-02)
 * `156`: Fixes #155, improves documentation (2020-08-02)
+* `155`: Fixes API on documentation (2020-08-02)
 * `154`: Fixes y_train dtype for most of the problems. Fixes subproblems with GridSearchCV (2020-07-31)
-* `152`: Set n_jobs to the number of core - 1 when doing benchmark (2020-07-31)
 * `153`: Fixes #152, set set n_jobs to the number of CPU (2020-07-31)
+* `152`: Set n_jobs to the number of core - 1 when doing benchmark (2020-07-31)
 * `151`: Force operator Conv to use continuous array (2020-07-30)
 * `150`: Fixes nan issue in operator conv (2020-07-29)
-* `145`: Fixes missing shape inference for operator conv (2020-07-29)
 * `147`: Fixes #145, #150, shape inference for operator Conv (2020-07-29)
-* `148`: Add operator atan (2020-07-22)
+* `145`: Fixes missing shape inference for operator conv (2020-07-29)
 * `149`: Fixes #148, add operator Atan (2020-07-22)
-* `144`: Implements operator GlobalAveragePool (2020-07-21)
+* `148`: Add operator atan (2020-07-22)
 * `146`: Fixes #144, add operator GlobalAveragePool (2020-07-21)
-* `142`: Implement python runtime for operator BatchNormalization (2020-07-21)
+* `144`: Implements operator GlobalAveragePool (2020-07-21)
 * `143`: Fixes #142, add operator BatchNormalization (2020-07-21)
-* `140`: Implement runtime for QuantizeLinear, DequantizeLinear (2020-07-20)
+* `142`: Implement python runtime for operator BatchNormalization (2020-07-21)
 * `141`: Fixes #140, add runtime for QuantizeLinear, DequantizeLinear (2020-07-20)
+* `140`: Implement runtime for QuantizeLinear, DequantizeLinear (2020-07-20)
 
 0.4.1204 - 2020-07-09 - 0.31Mb
 ==============================

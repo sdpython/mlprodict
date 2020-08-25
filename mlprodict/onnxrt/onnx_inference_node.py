@@ -220,11 +220,11 @@ class OnnxInferenceNode:
                 ".".format(type(self.ops_)))
         if len(self.outputs) != len(res):
             raise RuntimeError(  # pragma: no cover
-                "Mismatch number of outputs got {} for names {} (node='{}')."
+                "Mismatch number of outputs got {} != {} for names {} (node='{}')."
                 "\n{}".format(
-                    len(res), list(self.outputs),
+                    len(res), len(self.outputs), list(self.outputs),
                     self.ops_.__class__.__name__,
-                    pprint.pformat(self.desc)))
+                    pprint.pformat(self.desc, depth=2)))
         for name, value in zip(self.outputs, res):
             values[name] = value
         return values
