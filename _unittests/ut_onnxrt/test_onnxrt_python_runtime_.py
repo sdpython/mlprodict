@@ -21,7 +21,7 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin, OnnxAtan,
+    OnnxAbs, OnnxAdd, OnnxAnd, OnnxArgMax, OnnxArgMin, OnnxAtan,
     OnnxBatchNormalization,
     OnnxConcat, OnnxConv, OnnxConvTranspose,
     OnnxCeil, OnnxClip,
@@ -261,6 +261,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_add(self):
         self.common_test_onnxt_runtime_binary(OnnxAdd, numpy.add)
+
+    def test_onnxt_runtime_and(self):
+        self.common_test_onnxt_runtime_binary(OnnxAnd, numpy.logical_and)
 
     def test_onnxt_runtime_argmax(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)

@@ -8,6 +8,7 @@
 from ._op import OpRun
 from .op_abs import Abs
 from .op_add import Add
+from .op_and import And
 from .op_argmax import ArgMax
 from .op_argmin import ArgMin
 from .op_array_feature_extractor import ArrayFeatureExtractor
