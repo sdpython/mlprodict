@@ -42,6 +42,7 @@ from .op_global_average_pool import GlobalAveragePool
 from .op_greater import Greater
 from .op_floor import Floor
 from .op_identity import Identity
+from .op_if import If
 from .op_imputer import Imputer
 from .op_isnan import IsNaN
 from .op_label_encoder import LabelEncoder
@@ -95,6 +96,7 @@ from .op_topk import TopK_10, TopK_11, TopK_1, TopK
 from .op_transpose import Transpose
 from .op_tree_ensemble_classifier import TreeEnsembleClassifier, TreeEnsembleClassifierDouble
 from .op_tree_ensemble_regressor import TreeEnsembleRegressor, TreeEnsembleRegressorDouble
+from .op_unsqueeze import Unsqueeze
 from .op_where import Where
 from .op_zipmap import ZipMap
 

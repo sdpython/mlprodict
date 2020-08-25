@@ -737,12 +737,34 @@ class ShapeObject(BaseDimensionShape):
         else:
             self._shape.append(DimensionObject(dim))
 
+    def insert(self, dim, pos=0):
+        """
+        Inserts a dimension at position *pos*.
+        """
+        if self._shape is None:
+            return
+        if isinstance(dim, DimensionObject):
+            self._shape.insert(pos, dim)
+        else:
+            self._shape.insert(pos, DimensionObject(dim))
+
     def squeeze(self, axis):
         """
         Removes one dimension.
         """
         cp = self.copy(name='{}-SZ'.format(self.name))
         cp.drop_axis(axis)
+        return cp
+
+    def unsqueeze(self, axes):
+        """
+        Adds dimensions.
+        """
+        cp = self
+        name = '{}-USZ'.format(self.name)
+        for ax in axes[::-1]:
+            cp = cp.copy(name=name)
+            cp.insert(ax, 1)
         return cp
 
     def transpose(self, perm):

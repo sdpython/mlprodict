@@ -46,6 +46,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSoftmax, OnnxSqueeze, OnnxSplit,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxTopK, OnnxTranspose,
+    OnnxUnsqueeze,
 )
 try:
     from skl2onnx.algebra.onnx_ops import OnnxCelu
@@ -1750,7 +1751,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(y[0], got['Y1'])
         self.assertEqualArray(y[1], got['Y2'])
-
+        python_tested.append(OnnxSplit)
 
     def test_onnxt_runtime_sqrt(self):
         self.common_test_onnxt_runtime_unary(OnnxSqrt, numpy.sqrt)
@@ -1899,6 +1900,29 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(X.T, got['Y'])
         python_tested.append(OnnxTranspose)
+
+    def test_onnxt_runtime_unsqueeze(self):
+        x = numpy.random.randn(1, 3, 1, 5).astype(numpy.float32)
+        y = numpy.expand_dims(x, axis=-2)
+        onx = OnnxUnsqueeze('X', axes=[-2], output_names=['Y'],
+                          op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
+        
+        x = numpy.random.randn(3, 4, 5).astype(numpy.float32)
+        y = numpy.expand_dims(x, axis=2)
+        y = numpy.expand_dims(y, axis=4)
+        y = numpy.expand_dims(y, axis=5)
+        onx = OnnxUnsqueeze('X', axes=[2, 4, 5], output_names=['Y'],
+                          op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
+        
+        python_tested.append(OnnxUnsqueeze)
 
     def test_cpp_topk_min_1(self):
         X = numpy.array([1, -1], dtype=numpy.float64)

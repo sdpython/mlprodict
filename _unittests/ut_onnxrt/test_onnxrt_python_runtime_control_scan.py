@@ -8,15 +8,14 @@ from scipy.spatial.distance import squareform, pdist, cdist as scipy_cdist
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import load_iris
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxIdentity, OnnxAdd
-)
+    OnnxIdentity, OnnxAdd)
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools import get_opset_number_from_onnx
 
 
-class TestOnnxrtPythonRuntimeScan(ExtTestCase):
+class TestOnnxrtPythonRuntimeControlScan(ExtTestCase):
 
     def setUp(self):
         logger = getLogger('skl2onnx')

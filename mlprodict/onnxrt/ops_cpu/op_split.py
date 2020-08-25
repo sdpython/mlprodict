@@ -15,11 +15,13 @@ class Split(OpRun):
 
     atts = {'axis': 0, 'split': None}
 
-    def __init__(self, *args, **options):
+    def __init__(self, onnx_node, desc=None, **options):
         if 'split' not in options:
             options['split'] = None
-        OpRun.__init__(self, *args, **options)
-        self.nb_outputs = len(args[0].output)
+        OpRun.__init__(self, onnx_node, desc=desc,
+                       expected_attributes=Split.atts,
+                       **options)
+        self.nb_outputs = len(onnx_node.output)
 
     def _run(self, mat):  # pylint: disable=W0221
         if self.split is None:

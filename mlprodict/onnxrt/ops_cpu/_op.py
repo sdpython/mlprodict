@@ -463,6 +463,9 @@ class OpRunBinary(OpRun):
         """
         Calls method ``_run``.
         """
+        if x is None or y is None:
+            raise RuntimeError("x and y have different dtype: {} != {} ({})".format(
+                type(x), type(y), type(self)))
         if x.dtype != y.dtype:
             raise RuntimeTypeError(
                 "Input type mismatch: {} != {} (operator '{}', shapes {}, {})".format(
