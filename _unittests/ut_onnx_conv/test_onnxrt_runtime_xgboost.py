@@ -82,6 +82,8 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
                         obj = objective.replace(
                             'reg:squarederror2', 'reg:squarederror')
                         clr = cl(objective=obj, n_estimators=n_estimators)
+                        if len(y_train.shape) == 2:
+                            y_train = y_train[:, 1]
                         clr.fit(X_train, y_train)
 
                         model_def = to_onnx(clr, X_train.astype(numpy.float32))

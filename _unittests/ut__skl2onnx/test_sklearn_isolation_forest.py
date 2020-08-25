@@ -40,6 +40,15 @@ class TestSklearnIsolationForest(ExtTestCase):
             backend=('python', ), methods=['predict', 'decision_function'],
             verbose=False)
 
+    def test_isolation_forest_op1(self):
+        isol = IsolationForest(n_estimators=3, random_state=0)
+        data = numpy.array([[-1.1, -1.2], [0.3, 0.2],
+                            [0.5, 0.4], [100., 99.]], dtype=numpy.float32)
+        model = isol.fit(data)
+        with self.assertRaises(RuntimeError):
+            to_onnx(model, data,
+                    target_opset={'': TARGET_OPSET, 'ai.onnx.ml': 1})
+
 
 if __name__ == '__main__':
     unittest.main()
