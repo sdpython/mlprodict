@@ -69,6 +69,7 @@ epkg_dictionary.update({
     "DataFrame": "https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html",
     'dot': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'DOT': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
+    'einsum': 'https://numpy.org/doc/stable/reference/generated/numpy.einsum.html',
     'exec': 'https://docs.python.org/3/library/functions.html#exec',
     'GaussianProcessRegressor': 'https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html',
     'Iris': 'https://en.wikipedia.org/wiki/Iris_flower_data_set',
@@ -100,6 +101,7 @@ epkg_dictionary.update({
     'Rust': 'https://www.rust-lang.org/',
     'sklearn-onnx': 'https://github.com/onnx/sklearn-onnx',
     'Tokenizer': 'https://github.com/microsoft/onnxruntime/blob/master/docs/ContribOperators.md#com.microsoft.Tokenizer',
+    'tqdm': 'https://github.com/tqdm/tqdm',
     'TransferTransformer': 'http://www.xavierdupre.fr/app/mlinsights/helpsphinx/mlinsights/mlmodel/transfer_transformer.html',
     'xgboost': "https://xgboost.readthedocs.io/en/latest/",
 })

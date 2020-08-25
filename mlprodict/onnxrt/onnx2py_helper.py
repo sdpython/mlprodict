@@ -1,7 +1,7 @@
 """
 @file
 @brief Functions which converts :epkg:`ONNX` object into
-readable :epgk:`python` objects.
+readable :epkg:`python` objects.
 """
 import pprint
 import warnings

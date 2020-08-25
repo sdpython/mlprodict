@@ -11,5 +11,6 @@ from ._op import OpRunBinaryNumpy
 class Add(OpRunBinaryNumpy):
 
     def __init__(self, onnx_node, desc=None, **options):
+        "constructor"
         OpRunBinaryNumpy.__init__(self, numpy.add, onnx_node,
                                   desc=desc, **options)

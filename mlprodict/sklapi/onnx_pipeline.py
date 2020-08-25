@@ -51,7 +51,7 @@ class OnnxPipeline(Pipeline):
     :param white_op: see @see fn to_onnx
     :param black_op: see @see fn to_onnx
     :param final_types: see @see fn to_onnx
-    :param target_opset: ONNX targeted opset
+    :param op_version: ONNX targeted opset
 
     The class stores transformers before converting them into ONNX
     in attributes ``raw_steps_``.
@@ -63,19 +63,20 @@ class OnnxPipeline(Pipeline):
 
     def __init__(self, steps, *, memory=None, verbose=False,
                  output_name=None, enforce_float32=True,
-                 runtime='python', op_version=None, options=None,
-                 white_op=None, black_op=None, final_types=None):
+                 runtime='python', options=None,
+                 white_op=None, black_op=None, final_types=None,
+                 op_version=None):
         Pipeline.__init__(
             self, steps, memory=memory, verbose=verbose)
         self.output_name = output_name
         self.enforce_float32 = enforce_float32
         self.runtime = runtime
-        self.op_version = op_version
         self.options = options
         self.white_op = white_op
         self.white_op = white_op
         self.black_op = black_op
         self.final_types = final_types
+        self.op_version = op_version
 
     def fit(self, X, y=None, **fit_params):
         """
@@ -160,6 +161,7 @@ class OnnxPipeline(Pipeline):
         """
         Converts a transformer into ONNX.
 
+        @param  name                model name
         @param  fitted_transformer  fitted transformer
         @param  x_train             training dataset
         @return                     corresponding @see cl OnnxTransformer
@@ -177,6 +179,7 @@ class OnnxPipeline(Pipeline):
         if 'options' in kwargs:
             kwargs['options'] = self._preprocess_options(
                 name, kwargs['options'])
+        kwargs['target_opset'] = self.op_version
         onx = to_onnx(fitted_transformer, x_train, **kwargs)
         tr = OnnxTransformer(
             onx.SerializeToString(), output_name=self.output_name,

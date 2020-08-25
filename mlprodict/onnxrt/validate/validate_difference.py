@@ -16,7 +16,7 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
 
     @param      skl_pred        prediction from :epkg:`scikit-learn`
                                 or any other way
-    @param      skl_ort         prediction from an :epkg:`ONNX` runtime
+    @param      ort_pred        prediction from an :epkg:`ONNX` runtime
                                 or any other way
     @param      batch           predictions are processed in a batch,
                                 *skl_pred* and *ort_pred* should be arrays

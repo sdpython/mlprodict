@@ -159,7 +159,7 @@ def dump_data_and_model(  # pylint: disable=R0912
     :param model: any model
     :param onnx_model: *onnx* model or *None* to use an onnx converters to convert it
         only if the model accepts one float vector
-    :param basemodel: three files are writen ``<basename>.data.pkl``,
+    :param basename: three files are writen ``<basename>.data.pkl``,
         ``<basename>.model.pkl``, ``<basename>.model.onnx``
     :param folder: files are written in this folder,
         it is created if it does not exist, if *folder* is None,
@@ -437,6 +437,8 @@ def convert_model(model, name, input_types):
 
     :param model: model, *scikit-learn*, *keras*,
          or *coremltools* object
+    :param name: model name
+    :param input_types: input types
     :return: *onnx* model
     """
     from skl2onnx import convert_sklearn
