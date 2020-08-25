@@ -171,8 +171,9 @@ def _sklearn_subfolder(model):
     spl = mod.split('.')
     try:
         pos = spl.index('sklearn')
-    except ValueError:  # pragma: no cover
-        raise ValueError("Unable to find 'sklearn' in '{}'.".format(mod))
+    except ValueError as e:  # pragma: no cover
+        raise ValueError(
+            "Unable to find 'sklearn' in '{}'.".format(mod)) from e
     res = spl[pos + 1: -1]
     if len(res) == 0:
         if spl[-1] == 'sklearn':

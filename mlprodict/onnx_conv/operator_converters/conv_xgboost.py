@@ -33,7 +33,7 @@ class XGBConverter:
             if "objective" not in params:
                 raise AttributeError('ojective')
         except AttributeError as e:
-            raise RuntimeError('Missing attribute in XGBoost model ' + str(e))
+            raise RuntimeError('Missing attribute in XGBoost model.') from e
 
     @staticmethod
     def common_members(xgb_node, inputs):
@@ -72,15 +72,15 @@ class XGBConverter:
             if feature_id[0] == "f":
                 try:
                     feature_id = int(feature_id[1:])
-                except ValueError:
+                except ValueError as e:
                     raise RuntimeError(
-                        "Unable to interpret '{0}'".format(feature_id))
+                        "Unable to interpret '{0}'".format(feature_id)) from e
             else:
                 try:
                     feature_id = int(feature_id)
                 except ValueError:
                     raise RuntimeError(
-                        "Unable to interpret '{0}'".format(feature_id))
+                        "Unable to interpret '{0}'".format(feature_id)) from e
 
         # Split condition for sklearn
         # * if X_ptr[X_sample_stride * i + X_fx_stride * node.feature] <= node.threshold:

@@ -41,14 +41,13 @@ class Split(OpRun):
 
     def _infer_shapes(self, data):  # pylint: disable=W0221
         if self.split is None:
-            # TODO: implement the case when split is not defined.
             return tuple([ShapeObject(None, dtype=data.dtype)
                           for o in range(self.nb_outputs)])
         split = self.split
 
         res = []
         pos = 0
-        for spl in self.split:
+        for spl in split:
             shape = data.copy()
             shape[self.axis] = DimensionObject(spl)
             pos += spl

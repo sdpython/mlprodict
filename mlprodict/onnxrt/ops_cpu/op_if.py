@@ -4,9 +4,7 @@
 @file
 @brief Runtime operator.
 """
-import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class If(OpRun):
@@ -34,7 +32,7 @@ class If(OpRun):
                                if hasattr(self.else_branch, 'run_in_scan')
                                else self.else_branch.run)
 
-    def _run(self, cond, named_inputs=None):
+    def _run(self, cond, named_inputs=None):  # pylint: disable=W0221
         if named_inputs is None:
             named_inputs = {}
         if len(self.then_branch.input_names) > 0:
@@ -57,13 +55,13 @@ class If(OpRun):
                     raise RuntimeError(  # pragma: no cover
                         "Unable to find named input '{}' in\n{}.".format(
                             k, "\n".join(sorted(named_inputs))))
-                
+
         if all(cond):
             outputs = self._run_meth_then(named_inputs)
             return tuple([outputs[name] for name in self.then_branch.output_names])
         outputs = self._run_meth_else(named_inputs)
         return tuple([outputs[name] for name in self.else_branch.output_names])
 
-    def _infer_shapes(self, cond, **named_inputs):
+    def _infer_shapes(self, cond, named_inputs=None):  # pylint: disable=W0221
         res = self.then_branch._set_shape_inference_runtime()
         return tuple([res[name] for name in self.then_branch.output_names])

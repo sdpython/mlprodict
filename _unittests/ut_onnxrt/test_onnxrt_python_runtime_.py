@@ -1916,23 +1916,23 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         x = numpy.random.randn(1, 3, 1, 5).astype(numpy.float32)
         y = numpy.expand_dims(x, axis=-2)
         onx = OnnxUnsqueeze('X', axes=[-2], output_names=['Y'],
-                          op_version=get_opset_number_from_onnx())
+                            op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(y, got['Y'])
-        
+
         x = numpy.random.randn(3, 4, 5).astype(numpy.float32)
         y = numpy.expand_dims(x, axis=2)
         y = numpy.expand_dims(y, axis=4)
         y = numpy.expand_dims(y, axis=5)
         onx = OnnxUnsqueeze('X', axes=[2, 4, 5], output_names=['Y'],
-                          op_version=get_opset_number_from_onnx())
+                            op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(y, got['Y'])
-        
+
         python_tested.append(OnnxUnsqueeze)
 
     def test_cpp_topk_min_1(self):

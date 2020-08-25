@@ -87,7 +87,7 @@ class ShapeOperator(BaseDimensionShape):
                 res = self._fct(*args)
             except TypeError as e:
                 raise RuntimeError(
-                    "Unable to evaluate operator {} due to {}".format(repr(self), e))
+                    "Unable to evaluate operator {} due to {}".format(repr(self), e)) from e
         return res
 
     def _evaluate_string_(self, args, **kwargs):

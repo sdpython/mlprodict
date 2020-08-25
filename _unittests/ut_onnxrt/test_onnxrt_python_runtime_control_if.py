@@ -5,11 +5,9 @@ import unittest
 from logging import getLogger
 from collections import OrderedDict
 import numpy
-from scipy.spatial.distance import squareform, pdist, cdist as scipy_cdist
 from pyquickhelper.pycode import ExtTestCase
-from sklearn.datasets import load_iris
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxIf, OnnxConstant, OnnxSum, OnnxGreater, OnnxIdentity)
+    OnnxIf, OnnxConstant, OnnxGreater)
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
@@ -39,9 +37,8 @@ class TestOnnxrtPythonRuntimeControlIf(ExtTestCase):
             outputs=[('res', tensor_type())],
             target_opset=op_version)
 
-        node = OnnxSum('X', op_version=op_version)
         onx = OnnxIf(OnnxGreater('X', numpy.array([0], dtype=numpy.float32),
-                                op_version=op_version),
+                                 op_version=op_version),
                      output_names=['Z'],
                      then_branch=bthen_body.graph,
                      else_branch=belse_body.graph,

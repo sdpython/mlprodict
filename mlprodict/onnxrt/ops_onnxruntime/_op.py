@@ -140,13 +140,13 @@ class OpRunOnnxRuntime:
                     raise RuntimeError(
                         "Probable issue as one dimension is null.\n--\n{}".format(
                             self.onnx_))
-            except AttributeError:
+            except AttributeError as e:
                 # older version of skl2onnx
                 self.onnx_ = self.inst_.to_onnx(inputs)
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(
                         "Probable issue as one dimension is null.\n--\n{}".format(
-                            self.onnx_))
+                            self.onnx_)) from e
             forced = False
         elif self.onnx_node.op_type == 'Scan':
             self.inst_ = self.alg_class(
@@ -196,7 +196,7 @@ class OpRunOnnxRuntime:
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(
                         "Probable issue as one dimension is null.\n--\n{}".format(
-                            self.onnx_))
+                            self.onnx_)) from e
 
         if len(self.onnx_.graph.output) != len(self.outputs):
             # Something is wrong, falls back to default plan.
