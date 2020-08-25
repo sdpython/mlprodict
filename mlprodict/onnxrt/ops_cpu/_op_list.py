@@ -62,6 +62,7 @@ from .op_neg import Neg
 from .op_normalizer import Normalizer
 from .op_not import Not
 from .op_one_hot_encoder import OneHotEncoder
+from .op_or import Or
 from .op_pow import Pow
 from .op_quantize_linear import QuantizeLinear
 from .op_reciprocal import Reciprocal

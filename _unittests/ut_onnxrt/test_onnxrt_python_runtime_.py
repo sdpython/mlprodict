@@ -36,6 +36,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxLog, OnnxLpNormalization,
     OnnxMatMul, OnnxMax, OnnxMean, OnnxMin, OnnxMul,
     OnnxNeg, OnnxNot,
+    OnnxOr,
     OnnxPow,
     OnnxQuantizeLinear,
     OnnxReciprocal,
@@ -1364,6 +1365,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_not(self):
         self.common_test_onnxt_runtime_unary(OnnxNot, numpy.logical_not)
+
+    def test_onnxt_runtime_or(self):
+        self.common_test_onnxt_runtime_binary(OnnxOr, numpy.logical_or)
 
     def test_onnxt_runtime_pow(self):
         self.common_test_onnxt_runtime_binary(OnnxPow, numpy.power)
