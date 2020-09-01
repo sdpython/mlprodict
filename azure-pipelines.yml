@@ -99,13 +99,13 @@ jobs:
    - script: |
           export MACOSX_DEPLOYMENT_TARGET=10.14
           python setup.py build_ext --inplace
-    displayName: 'Build package'
+     displayName: 'Build package'
    - script: |
       python -u setup.py unittests
-    displayName: 'Runs Unit Tests'
+     displayName: 'Runs Unit Tests'
    - script: |
       python -u setup.py bdist_wheel
-    displayName: 'Build Package'
+     displayName: 'Build Package'
    - task: PublishPipelineArtifact@0
      inputs:
        artifactName: 'wheel-mac-$(python.version)'
