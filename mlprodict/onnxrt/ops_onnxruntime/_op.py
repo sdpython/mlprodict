@@ -9,18 +9,11 @@ from onnx.helper import make_tensor
 from onnx import TensorProto
 from onnxruntime import (
     InferenceSession, SessionOptions, RunOptions, GraphOptimizationLevel)
-try:
-    from onnxruntime.capi.onnxruntime_pybind11_state import (
-        InvalidArgument as OrtInvalidArgument,
-        NotImplemented as OrtNotImplemented,
-        InvalidGraph as OrtInvalidGraph,
-        Fail as OrtFail,
-    )
-except ImportError:  # pragma: no cover
-    OrtInvalidArgument = RuntimeError
-    OrtNotImplemented = RuntimeError
-    OrtInvalidGraph = RuntimeError
-    OrtFail = RuntimeError
+from onnxruntime.capi.onnxruntime_pybind11_state import (
+    InvalidArgument as OrtInvalidArgument,
+    NotImplemented as OrtNotImplemented,
+    InvalidGraph as OrtInvalidGraph,
+    Fail as OrtFail)
 import skl2onnx.algebra.onnx_ops as alg
 try:
     import skl2onnx.algebra.custom_ops as alg2
@@ -28,8 +21,7 @@ except ImportError:  # pragma: no cover
     # older version of skl2onnx
     alg2 = alg
 from ..optim.graph_schema_helper import (
-    get_defined_inputs, get_defined_outputs, proto2vars
-)
+    get_defined_inputs, get_defined_outputs, proto2vars)
 
 
 _schemas = {
@@ -59,7 +51,8 @@ class OpRunOnnxRuntime:
             if 'atts' in desc:
                 for a, b in desc['atts'].items():
                     if not isinstance(b, dict) or 'value' not in b:
-                        raise ValueError("Unexpected value {}.".format(b))
+                        raise ValueError(  # pragma: no cover
+                            "Unexpected value {}.".format(b))
                     options[a] = b['value']
 
         self.options = options
@@ -137,10 +130,10 @@ class OpRunOnnxRuntime:
                 self.onnx_ = self.inst_.to_onnx(inputs, target_opset=target_opset,
                                                 domain=domain)
                 if "dim_value: 0" in str(self.onnx_):
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Probable issue as one dimension is null.\n--\n{}".format(
                             self.onnx_))
-            except AttributeError as e:
+            except AttributeError as e:  # pragma: no cover
                 # older version of skl2onnx
                 self.onnx_ = self.inst_.to_onnx(inputs)
                 if "dim_value: 0" in str(self.onnx_):
@@ -165,7 +158,7 @@ class OpRunOnnxRuntime:
                                             target_opset=target_opset,
                                             domain=domain)
             if "dim_value: 0" in str(self.onnx_):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Probable issue as one dimension is null.\n--\n{}".format(
                         self.onnx_))
             forced = True
@@ -180,7 +173,7 @@ class OpRunOnnxRuntime:
                 self.onnx_ = self.inst_.to_onnx(
                     inputs, target_opset=target_opset, domain=domain)
                 if "dim_value: 0" in str(self.onnx_):
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Probable issue as one dimension is null.\n--\n{}\n---\n{}".format(
                             self.onnx_, inputs))
                 forced = False
@@ -194,7 +187,7 @@ class OpRunOnnxRuntime:
                                                 target_opset=target_opset,
                                                 domain=domain)
                 if "dim_value: 0" in str(self.onnx_):
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Probable issue as one dimension is null.\n--\n{}".format(
                             self.onnx_)) from e
 
@@ -234,7 +227,7 @@ class OpRunOnnxRuntime:
             self.onnx_.ir_version = ir_version
         if disable_optimisation:
             sess_options.graph_optimization_level = (
-                GraphOptimizationLevel.ORT_ENABLE_ALL)
+                GraphOptimizationLevel.ORT_DISABLE_ALL)
         try:
             self.sess_ = InferenceSession(
                 self.onnx_.SerializeToString(), sess_options=sess_options)
@@ -252,7 +245,7 @@ class OpRunOnnxRuntime:
 
         try:
             res = self.sess_.run(None, inputs, self.run_options)
-        except (RuntimeError, OrtInvalidArgument) as e:
+        except (RuntimeError, OrtInvalidArgument) as e:  # pragma: no cover
             dtypes = {k: v.dtype for k, v in inputs.items()}
             shapes = {k: v.shape for k, v in inputs.items()}
             exp = [_.name for _ in self.sess_.get_inputs()]

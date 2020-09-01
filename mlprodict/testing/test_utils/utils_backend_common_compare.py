@@ -5,11 +5,8 @@
 import numpy
 import onnx
 import pandas
-try:
-    from onnxruntime.capi.onnxruntime_pybind11_state import (
-        InvalidArgument as OrtInvalidArgument)
-except ImportError:  # pragma no cover
-    OrtInvalidArgument = RuntimeError
+from onnxruntime.capi.onnxruntime_pybind11_state import (
+    InvalidArgument as OrtInvalidArgument)
 from .utils_backend_common import (
     load_data_and_model, extract_options,
     ExpectedAssertionError, OnnxBackendAssertionError,

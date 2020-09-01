@@ -273,7 +273,7 @@ def _var_as_dict(var):
             ts = _var_as_dict(var.sparse_tensor)
             res['value'] = ts['value']
         elif "'value'" in str(var):
-            warnings.warn("No value: {} -- {}".format(
+            warnings.warn("No value: {} -- {}".format(  # pragma: no cover
                 dtype, str(var).replace("\n", "").replace(" ", "")))
         return res
 
@@ -321,7 +321,7 @@ def numpy_min(x):
     try:
         if hasattr(x, 'todense'):
             x = x.todense()
-        if x.dtype.kind.lower() not in 'c':
+        if x.dtype.kind not in 'cUC':
             return x.min()
         try:  # pragma: no cover
             x = x.ravel()
@@ -335,7 +335,8 @@ def numpy_min(x):
         if len(val) > 10:  # pragma: no cover
             val = val[:10] + '...'
         return "%r" % val
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as e:
+        raise e
         return '?'
 
 
@@ -347,7 +348,7 @@ def numpy_max(x):
     try:
         if hasattr(x, 'todense'):
             x = x.todense()
-        if x.dtype.kind.lower() not in 'c':
+        if x.dtype.kind not in 'cUC':
             return x.max()
         try:  # pragma: no cover
             x = x.ravel()

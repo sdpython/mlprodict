@@ -50,7 +50,7 @@ def get_defined_inputs(input_names, variables=None, dtype=None):
                 arr = ty['value']
                 try:
                     return _guess_type(arr)
-                except RuntimeError as e:
+                except RuntimeError as e:  # pragma: no cover
                     raise RuntimeError(
                         "Unable to guess type of variable '{}' - {}."
                         "".format(name, arr)) from e
@@ -97,7 +97,7 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None, d
     # TopK
     elif onnx_node.op_type == "TopK" and len(outputs) == 2:
         if len(typed_inputs) != 2:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Wrong typed_inputs, got {}.".format(typed_inputs))
         outputs = [(outputs[0], typed_inputs[0][1]),
                    (outputs[1], Int64TensorType())]

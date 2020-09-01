@@ -4,10 +4,7 @@
 """
 import pickle
 import os
-try:
-    from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
-except ImportError:
-    OrtFail = RuntimeError
+from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
 import sklearn
 from .. import OnnxInference
 from .validate_helper import default_time_kwargs, measure_time, _multiply_time_kwargs
@@ -69,14 +66,15 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
         try:
             from tqdm import tqdm
             loop = tqdm(files)
-        except ImportError:
+        except ImportError:  # pragma: no cover
             pass
 
     for pkl in loop:
         if "ERROR" in pkl:
             # An error.
             if verbose >= 2 and fLOG is not None:
-                fLOG("[enumerate_benchmark_replay] skip '{}'.".format(pkl))
+                fLOG(  # pragma: no cover
+                    "[enumerate_benchmark_replay] skip '{}'.".format(pkl))
             continue
         if verbose >= 2 and fLOG is not None:
             fLOG("[enumerate_benchmark_replay] process '{}'.".format(pkl))
@@ -106,19 +104,20 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
             if rt == 'onnxruntime':
                 try:
                     oinfs[rt] = SimplifiedOnnxInference(onx)
-                except (OrtFail, RuntimeError) as e:
+                except (OrtFail, RuntimeError) as e:  # pragma: no cover
                     row['ERROR'] = str(e)
                     oinfs[rt] = None
             else:
                 try:
                     oinfs[rt] = OnnxInference(onx, runtime=rt)
-                except (OrtFail, RuntimeError) as e:
+                except (OrtFail, RuntimeError) as e:  # pragma: no cover
                     row['ERROR'] = str(e)
                     oinfs[rt] = None
 
         for k, v in sorted(tkw.items()):
             if verbose >= 3 and fLOG is not None:
-                fLOG("[enumerate_benchmark_replay] process n_rows={} - {}".format(k, v))
+                fLOG(  # pragma: no cover
+                    "[enumerate_benchmark_replay] process n_rows={} - {}".format(k, v))
             xt = make_n_rows(X_test, k)
             number = v['number']
             repeat = v['repeat']
@@ -139,7 +138,7 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
                 if oinf is None:
                     continue
                 if len(oinf.input_names) != 1:
-                    raise NotImplementedError(
+                    raise NotImplementedError(  # pragma: no cover
                         "This function only allows one input not {}".format(
                             len(oinf.input_names)))
                 name = oinf.input_names[0]
@@ -147,7 +146,8 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
                                    number=number, repeat=repeat,
                                    div_by_number=True)
                 if verbose >= 4 and fLOG is not None:
-                    fLOG("[enumerate_benchmark_replay] {}={}".format(rt, ort))
+                    fLOG(  # pragma: no cover
+                        "[enumerate_benchmark_replay] {}={}".format(rt, ort))
                 row['%d-%s-detail' % (k, rt)] = ort
                 row['%d-%s' % (k, rt)] = ort['average']
         yield row

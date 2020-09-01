@@ -7,19 +7,12 @@ from io import BytesIO
 import onnx
 from onnxruntime import (
     InferenceSession, SessionOptions, RunOptions, GraphOptimizationLevel)
-try:
-    from onnxruntime.capi.onnxruntime_pybind11_state import (
-        Fail as OrtFail,
-        InvalidGraph as OrtInvalidGraph,
-        InvalidArgument as OrtInvalidArgument,
-        NotImplemented as OrtNotImplemented,
-        RuntimeException as OrtRuntimeException)
-except ImportError:  # pragma: no cover
-    OrtFail = Exception
-    OrtNotImplemented = RuntimeError
-    OrtInvalidGraph = RuntimeError
-    OrtInvalidArgument = RuntimeError
-    OrtRuntimeException = RuntimeError
+from onnxruntime.capi.onnxruntime_pybind11_state import (
+    Fail as OrtFail,
+    InvalidGraph as OrtInvalidGraph,
+    InvalidArgument as OrtInvalidArgument,
+    NotImplemented as OrtNotImplemented,
+    RuntimeException as OrtRuntimeException)
 from ...tools.asv_options_helper import display_onnx
 
 
