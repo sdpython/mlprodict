@@ -4,7 +4,7 @@
 """
 import pickle
 import os
-from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
+from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail  # pylint: disable=E0611
 import sklearn
 from .. import OnnxInference
 from .validate_helper import default_time_kwargs, measure_time, _multiply_time_kwargs

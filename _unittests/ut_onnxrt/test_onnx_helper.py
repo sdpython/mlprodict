@@ -106,7 +106,6 @@ class TestOnnxHelper(ExtTestCase):
         v = numpy.array([0])
         f = _numpy_array(v)
         self.assertEqualArray(f, v)
-        
 
 
 if __name__ == "__main__":

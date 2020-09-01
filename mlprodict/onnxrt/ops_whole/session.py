@@ -7,7 +7,7 @@ from io import BytesIO
 import onnx
 from onnxruntime import (
     InferenceSession, SessionOptions, RunOptions, GraphOptimizationLevel)
-from onnxruntime.capi.onnxruntime_pybind11_state import (
+from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
     Fail as OrtFail,
     InvalidGraph as OrtInvalidGraph,
     InvalidArgument as OrtInvalidArgument,

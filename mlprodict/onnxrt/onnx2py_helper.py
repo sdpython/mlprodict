@@ -335,8 +335,7 @@ def numpy_min(x):
         if len(val) > 10:  # pragma: no cover
             val = val[:10] + '...'
         return "%r" % val
-    except (ValueError, TypeError) as e:
-        raise e
+    except (ValueError, TypeError):
         return '?'
 
 

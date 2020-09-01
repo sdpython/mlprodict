@@ -66,9 +66,8 @@ jobs:
        architecture: 'x64'
    - script: gcc --version
      displayName: 'gcc version'
-   - script: |
-          brew update
-    displayName: 'brew update'
+   - script: brew update
+     displayName: 'brew update'
    - script: export
      displayName: 'export'
    - script: gcc --version

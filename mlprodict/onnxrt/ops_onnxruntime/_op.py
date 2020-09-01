@@ -9,7 +9,7 @@ from onnx.helper import make_tensor
 from onnx import TensorProto
 from onnxruntime import (
     InferenceSession, SessionOptions, RunOptions, GraphOptimizationLevel)
-from onnxruntime.capi.onnxruntime_pybind11_state import (
+from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
     InvalidArgument as OrtInvalidArgument,
     NotImplemented as OrtNotImplemented,
     InvalidGraph as OrtInvalidGraph,
