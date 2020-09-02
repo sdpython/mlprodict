@@ -27,7 +27,7 @@ inline bool _isnan_(double x) {
            ( (unsigned)ieee754.u != 0 ) > 0x7ff00000;
 }
 
-inline bool _isnan_(double x) { return _isnan_((double)x); }
+inline bool _isnan_(float x) { return _isnan_((double)x); }
 
 #endif
 
