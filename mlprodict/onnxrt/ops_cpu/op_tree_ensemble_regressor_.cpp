@@ -470,7 +470,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
         val = x_data[feature_base + nodes_featureids_[treeindex]]; \
         treeindex = root + \
             ((val CMP nodes_values_[treeindex] || \
-                (missing_tracks_true_[treeindex] && std::isnan(static_cast<NTYPE>(val)))) \
+                (missing_tracks_true_[treeindex] && _isnan_(static_cast<NTYPE>(val)))) \
               ? nodes_truenodeids_[treeindex] \
               : nodes_falsenodeids_[treeindex]); \
         mode = nodes_modes_[treeindex]; \
@@ -556,7 +556,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
       NTYPE val = x_data[feature_base + nodes_featureids_[treeindex]];
       tracktrue = missing_tracks_true_.size() == nodes_truenodeids_.size() &&
                   missing_tracks_true_[treeindex] &&
-                  std::isnan(static_cast<NTYPE>(val));
+                  _isnan_(static_cast<NTYPE>(val));
       NTYPE threshold = nodes_values_[treeindex];
       switch (mode) {
         case NODE_MODE::BRANCH_LEQ:
