@@ -210,6 +210,8 @@ if not r:
         extra_compile_args = ['-fopenmp']
         extra_link_args = ['-lgomp']
         define_macros = [('USE_OPENMP', None)]
+        if "Ubuntu" in platform.version() and "16.04" in platform.version():
+            extra_compile_args.append('-std=c++11')
 
     # extensions
     ext_gather = Extension(
