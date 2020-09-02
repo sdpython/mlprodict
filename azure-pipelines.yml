@@ -1,7 +1,7 @@
 jobs:
  - job: 'TestLinux'
    pool:
-     vmImage: 'ubuntu-latest'
+     vmImage: 'ubuntu-16.04'
    strategy:
      matrix:
        Python37-Linux:
@@ -58,7 +58,7 @@ jobs:
    strategy:
      matrix:
        Python37-Mac:
-         python.version: '3.7'
+         python.version: '3.8'
      maxParallel: 3
 
    steps:

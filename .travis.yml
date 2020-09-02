@@ -2,7 +2,7 @@ dist: bionic
 sudo: true
 language: python
 python:
-    - "3.7"
+    - "3.8"
 before_install:
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo apt-get update -qq
