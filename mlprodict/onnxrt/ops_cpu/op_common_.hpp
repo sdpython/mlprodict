@@ -21,7 +21,7 @@ inline bool _isnan_(double x) { return ::isnan(x); }
 
 // See https://stackoverflow.com/questions/2249110/how-do-i-make-a-portable-isnan-isinf-function
 inline bool _isnan_(double x) {
-    union { uint64 u; double f; } ieee754;
+    union { uint64_t u; double f; } ieee754;
     ieee754.f = x;
     return ( (unsigned)(ieee754.u >> 32) & 0x7fffffff ) +
            ( (unsigned)ieee754.u != 0 ) > 0x7ff00000;
