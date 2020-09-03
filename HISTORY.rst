@@ -5,14 +5,15 @@
 History
 =======
 
-current - 2020-08-25 - 0.00Mb
+current - 2020-09-03 - 0.00Mb
 =============================
 
-* `163`: Add runtime for operator Unsqueeze (2020-08-25)
+* `169`: fix compiling issue with ubuntu 16.04 (2020-09-03)
 * `167`: Add runtime for Operator Or (2020-08-25)
 * `166`: Add runtime for operator And (2020-08-25)
 * `165`: Add runtime for operator GreaterOrEqual (2020-08-25)
 * `164`: Add runtime for operator If (2020-08-25)
+* `163`: Add runtime for operator Unsqueeze (2020-08-25)
 * `162`: Add runtime for operator Split (2020-08-25)
 * `161`: Add support for disable_optimisation (2020-08-12)
 * `160`: Fixes #159, add operator ConvTranspose, refactoring. (2020-08-07)
