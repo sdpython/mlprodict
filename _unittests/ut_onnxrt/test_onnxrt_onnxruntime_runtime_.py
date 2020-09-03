@@ -103,6 +103,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
             target_opset=get_opset_number_from_onnx(),
             options={id(model): {'optim': 'cdist'}})
         oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
+        X = X[:7]
         got = oinf.run({'X': X.astype(numpy.float32)})['variable']
         exp = model.predict(X.astype(numpy.float32))
         if any(numpy.isnan(got.ravel())):
