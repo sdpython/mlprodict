@@ -2161,26 +2161,28 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
         for opset, cls in [(get_opset_number_from_onnx(), OnnxConstant),
                            (9, OnnxConstant_9), (11, OnnxConstant_11)]:
-            X = numpy.array([0.1, 0.2], dtype=numpy.float32)
-            if opset >= 12:
-                cst = cls(value_floats=X, op_version=opset)
-            else:
-                cst = cls(value=X, op_version=opset)
-            onx = OnnxAdd('X', cst, op_version=opset)
-            model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                    target_opset=opset)
-            try:
-                oinf = OnnxInference(model_def)
-            except RuntimeError as e:
-                raise RuntimeError(
-                    "Unable to load the model:\n{}".format(model_def)) from e
-            got = oinf.run({'X': X})
-            if opset >= 11:
-                self.assertEqual(list(sorted(got)), ['Ad_C0', 'Co_output0'])
-                self.assertEqualArray(X * 2, got['Ad_C0'])
-            else:
-                self.assertEqual(list(sorted(got)), ['Ad_C0'])
-                self.assertEqualArray(X * 2, got['Ad_C0'])
+            with self.subTest(opset=opset):
+                X = numpy.array([0.1, 0.2], dtype=numpy.float32)
+                if opset >= 12:
+                    cst = cls(value_floats=X, op_version=opset)
+                else:
+                    cst = cls(value=X, op_version=opset)
+                onx = OnnxAdd('X', cst, op_version=opset)
+                model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                        target_opset=opset)
+                try:
+                    oinf = OnnxInference(model_def)
+                except RuntimeError as e:
+                    raise RuntimeError(
+                        "Unable to load the model:\n{}".format(model_def)) from e
+                got = oinf.run({'X': X})
+                if opset >= 11:
+                    self.assertEqual(list(sorted(got)), [
+                                     'Ad_C0', 'Co_output0'])
+                    self.assertEqualArray(X * 2, got['Ad_C0'])
+                else:
+                    self.assertEqual(list(sorted(got)), ['Ad_C0'])
+                    self.assertEqualArray(X * 2, got['Ad_C0'])
 
 
 if __name__ == "__main__":
