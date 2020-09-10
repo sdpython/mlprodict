@@ -34,7 +34,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
     OnnxIdentity, OnnxIsNaN,
     OnnxLog, OnnxLpNormalization,
-    OnnxMatMul, OnnxMax, OnnxMean, OnnxMin, OnnxMul,
+    OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMul,
     OnnxNeg, OnnxNot,
     OnnxOr,
     OnnxPad, OnnxPow,
@@ -68,6 +68,7 @@ from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611
 from mlprodict.onnxrt.ops_cpu.op_celu import _vcelu1, pycelu
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 from mlprodict.onnxrt.ops_cpu.op_pad import _pad_impl
+from mlprodict.onnxrt.ops_cpu.op_maxpool import _pool_get_output_shape, _pool_impl
 
 
 sparse_support = []
@@ -1341,6 +1342,42 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.common_test_onnxt_runtime_binary(
             OnnxMax, lambda x, y: numpy.maximum(x, y))
 
+    def test_onnxt_runtime_maxpool_1d_default(self):
+        X = numpy.random.randn(1, 3, 32).astype(numpy.float32)
+        kernel_shape = [2]
+        strides = [1]
+        out_shape = _pool_get_output_shape(
+            b'VALID', X.shape[2:], kernel_shape, strides)
+        exp = _pool_impl(
+            X, X.shape, kernel_shape, strides, out_shape, [0], b'MAX')
+        onx = OnnxMaxPool(
+            'X', output_names=['Y'], kernel_shape=kernel_shape,
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx(
+            {'X': X}, target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqualArray(exp, got['Y'])
+
+    def test_onnxt_runtime_maxpool_2d_ceil(self):
+        X = numpy.array([[[[1, 2, 3, 4],
+                           [5, 6, 7, 8],
+                           [9, 10, 11, 12],
+                           [13, 14, 15, 16]]]]).astype(numpy.float32)
+        exp = numpy.array([[[[11, 12], [15, 16]]]]).astype(numpy.float32)
+        kernel_shape = [3, 3]
+        strides = [2, 2]
+        ceil_mode = True
+        onx = OnnxMaxPool(
+            'X', output_names=['Y'], kernel_shape=kernel_shape,
+            strides=strides, ceil_mode=ceil_mode,
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx(
+            {'X': X}, target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqualArray(exp, got['Y'])
+
     def test_onnxt_runtime_mean(self):
         idi = numpy.identity(2, dtype=numpy.float64)
         onx = OnnxMean('X', idi, output_names=['Y'],
@@ -1418,6 +1455,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         oinf = OnnxInference(model_def)
         got = oinf.run({'data': data, 'pads': pads})
         self.assertEqualArray(exp, got['Y'])
+        python_tested.append(OnnxPad)
 
     def test_onnxt_runtime_pad2(self):
         data = numpy.random.randn(1, 3, 4, 5).astype(numpy.float32)
@@ -2264,5 +2302,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_pad()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_maxpool()
     unittest.main()
