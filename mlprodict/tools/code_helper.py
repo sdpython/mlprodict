@@ -68,8 +68,10 @@ def debug_dump(clname, obj, folder=None, ops=None):
     """
     Dumps an object for debug purpose.
 
+    @param      clname  class name
     @param      obj     object
     @param      folder  folder
+    @param      ops     operator to dump
     @return             filename
     """
     def debug_print_(obj, prefix=''):

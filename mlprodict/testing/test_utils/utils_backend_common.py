@@ -89,7 +89,7 @@ def load_data_and_model(items_as_dict, **context):
                     except ImportError as e:  # pragma no cover
                         if '.model.' in v:
                             continue
-                        raise ImportError(  # pragma no cover
+                        raise ImportError(  # pylint: disable=W0707
                             "Unable to load '{0}' due to {1}".format(v, e))
                     res[k] = bin
             else:

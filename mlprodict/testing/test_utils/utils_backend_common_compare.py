@@ -5,11 +5,8 @@
 import numpy
 import onnx
 import pandas
-try:
-    from onnxruntime.capi.onnxruntime_pybind11_state import (
-        InvalidArgument as OrtInvalidArgument)
-except ImportError:  # pragma no cover
-    OrtInvalidArgument = RuntimeError
+from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
+    InvalidArgument as OrtInvalidArgument)
 from .utils_backend_common import (
     load_data_and_model, extract_options,
     ExpectedAssertionError, OnnxBackendAssertionError,
@@ -20,7 +17,8 @@ from .utils_backend_common import (
 def compare_runtime_session(  # pylint: disable=R0912
         cls_session, test, decimal=5, options=None,
         verbose=False, context=None, comparable_outputs=None,
-        intermediate_steps=False, classes=None):
+        intermediate_steps=False, classes=None,
+        disable_optimisation=False):
     """
     The function compares the expected output (computed with
     the model before being converted to ONNX) and the ONNX output
@@ -40,6 +38,7 @@ def compare_runtime_session(  # pylint: disable=R0912
     :param intermediate_steps: displays intermediate steps
         in case of an error
     :param classes: classes names (if option 'nocl' is used)
+    :param disable_optimisation: disable optimisation the runtime may do
     :return: tuple (outut, lambda function to run the predictions)
 
     The function does not return anything but raises an error
@@ -53,6 +52,7 @@ def compare_runtime_session(  # pylint: disable=R0912
         print("[compare_runtime] test '{}' loaded".format(test['onnx']))
 
     onx = test['onnx']
+
     if options is None:
         if isinstance(onx, str):
             options = extract_options(onx)
@@ -67,13 +67,17 @@ def compare_runtime_session(  # pylint: disable=R0912
     if verbose:  # pragma no cover
         print("[compare_runtime] InferenceSession('{}')".format(onx))
 
+    runtime_options = dict(disable_optimisation=disable_optimisation)
     try:
-        sess = cls_session(onx)
+        sess = cls_session(onx, runtime_options=runtime_options)
+    except TypeError as e:
+        raise TypeError(  # pylint: disable=W0707
+            "Wrong signature for '{}'.".format(cls_session.__name__))
     except ExpectedAssertionError as expe:  # pragma no cover
         raise expe
     except Exception as e:  # pylint: disable=W0703
         if "CannotLoad" in options:  # pragma no cover
-            raise ExpectedAssertionError(
+            raise ExpectedAssertionError(  # pylint: disable=W0707
                 "Unable to load onnx '{0}' due to\n{1}".format(onx, e))
         else:  # pragma no cover
             if verbose:  # pragma no cover
@@ -84,18 +88,18 @@ def compare_runtime_session(  # pylint: disable=R0912
             if ("NOT_IMPLEMENTED : Could not find an implementation "
                     "for the node" in str(e)):
                 # onnxruntime does not implement a specific node yet.
-                raise OnnxRuntimeMissingNewOnnxOperatorException(  # pragma no cover
+                raise OnnxRuntimeMissingNewOnnxOperatorException(  # pylint: disable=W0707
                     "{3} does not implement a new operator "
                     "'{0}'\n{1}\nONNX\n{2}".format(
                         onx, e, smodel, cls_session))
             if "NOT_IMPLEMENTED : Failed to find kernel" in str(e):
                 # onnxruntime does not implement a specific node yet
                 # in the kernel included in onnxruntime.
-                raise OnnxBackendAssertionError(  # pragma no cover
+                raise OnnxBackendAssertionError(  # pylint: disable=W0707
                     "{3} misses a kernel for operator "
                     "'{0}'\n{1}\nONNX\n{2}".format(
                         onx, e, smodel, cls_session))
-            raise OnnxBackendAssertionError(  # pragma no cover
+            raise OnnxBackendAssertionError(  # pylint: disable=W0707
                 "Unable to load onnx '{0}'\nONNX\n{1}\n{2}".format(
                     onx, smodel, e))
 
@@ -130,7 +134,7 @@ def compare_runtime_session(  # pylint: disable=R0912
                 try:
                     array_input = numpy.array(input)
                 except Exception:  # pragma no cover
-                    raise OnnxBackendAssertionError(
+                    raise OnnxBackendAssertionError(  # pylint: disable=W0707
                         "Wrong number of inputs onnx {0} != "
                         "original {1}, onnx='{2}'"
                         .format(len(inp), len(input), onx))
@@ -152,7 +156,7 @@ def compare_runtime_session(  # pylint: disable=R0912
                 try:
                     array_input = numpy.array(input)
                 except Exception:  # pragma no cover
-                    raise OnnxBackendAssertionError(
+                    raise OnnxBackendAssertionError(  # pylint: disable=W0707
                         "Wrong number of inputs onnx {0} != "
                         "original {1}, onnx='{2}'"
                         .format(len(inp), len(input), onx))
@@ -209,7 +213,7 @@ def compare_runtime_session(  # pylint: disable=R0912
         if intermediate_steps:
             sess.run(None, inputs, verbose=3, fLOG=print)
         if "-Fail" in onx:
-            raise ExpectedAssertionError(
+            raise ExpectedAssertionError(  # pylint: disable=W0707
                 "{1} cannot compute the prediction for '{0}'".
                 format(onx, cls_session))
         else:
@@ -219,13 +223,13 @@ def compare_runtime_session(  # pylint: disable=R0912
             else:
                 smodel = ""
             import pprint
-            raise OnnxBackendAssertionError(
+            raise OnnxBackendAssertionError(  # pylint: disable=W0707
                 "{4} cannot compute the predictions"
                 " for '{0}' due to {1}{2}\n{3}"
                 .format(onx, e, smodel, pprint.pformat(inputs),
                         cls_session))
     except Exception as e:  # pragma no cover
-        raise OnnxBackendAssertionError(
+        raise OnnxBackendAssertionError(  # pylint: disable=W0707
             "Unable to run onnx '{0}' due to {1}".format(onx, e))
     if verbose:  # pragma no cover
         print("[compare_runtime] done type={}".format(type(output)))
@@ -251,7 +255,7 @@ def compare_runtime_session(  # pylint: disable=R0912
             smodel = "\nJSON ONNX\n" + str(model)
         else:
             smodel = ""
-        raise OnnxBackendAssertionError(
+        raise OnnxBackendAssertionError(  # pylint: disable=W0707
             "Model '{0}' has discrepencies.\n{1}: {2}{3}".format(
                 onx, type(e), e, smodel))
 

@@ -82,12 +82,14 @@ def fit_multilabel_classification_model(model, n_classes=5, n_labels=2,
 
 
 def fit_regression_model(model, is_int=False, n_targets=1, is_bool=False,
-                         factor=1.):
+                         factor=1., n_features=10, n_samples=500,
+                         n_informative=10):
     """
     Fits a regression model.
     """
-    X, y = make_regression(n_features=10, n_samples=500,
-                           n_targets=n_targets, random_state=42)[:2]
+    X, y = make_regression(n_features=n_features, n_samples=n_samples,
+                           n_targets=n_targets, random_state=42,
+                           n_informative=n_informative)[:2]
     y *= factor
     X = X.astype(numpy.int64) if is_int or is_bool else X.astype(numpy.float32)
     if is_bool:
@@ -121,7 +123,7 @@ def _raw_score_binary_classification(model, X):
     if len(scores.shape) == 1:
         scores = scores.reshape(-1, 1)
     if len(scores.shape) != 2 or scores.shape[1] != 1:
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unexpected shape {} for a binary classifiation".format(
                 scores.shape))
     return numpy.hstack([-scores, scores])
@@ -149,7 +151,7 @@ def dump_data_and_model(  # pylint: disable=R0912
         context=None, allow_failure=None, methods=None,
         dump_error_log=None, benchmark=None, comparable_outputs=None,
         intermediate_steps=False, fail_evenif_notimplemented=False,
-        verbose=False, classes=None, check_error=None):
+        verbose=False, classes=None, check_error=None, disable_optimisation=False):
     """
     Saves data with pickle, saves the model with pickle and *onnx*,
     runs and saves the predictions for the given model.
@@ -159,7 +161,7 @@ def dump_data_and_model(  # pylint: disable=R0912
     :param model: any model
     :param onnx_model: *onnx* model or *None* to use an onnx converters to convert it
         only if the model accepts one float vector
-    :param basemodel: three files are writen ``<basename>.data.pkl``,
+    :param basename: three files are writen ``<basename>.data.pkl``,
         ``<basename>.model.pkl``, ``<basename>.model.onnx``
     :param folder: files are written in this folder,
         it is created if it does not exist, if *folder* is None,
@@ -199,6 +201,8 @@ def dump_data_and_model(  # pylint: disable=R0912
         (only for classifier, mandatory if option 'nocl' is used)
     :param check_error: do not raise an exception if the error message
         contains this text
+    :param disable_optimisation: disable all optimisations *onnxruntime*
+        could do
     :return: the created files
 
     Some convention for the name,
@@ -367,15 +371,17 @@ def dump_data_and_model(  # pylint: disable=R0912
                     b, runtime_test, options=extract_options(basename),
                     context=context, verbose=verbose,
                     comparable_outputs=comparable_outputs,
-                    intermediate_steps=intermediate_steps)
+                    intermediate_steps=intermediate_steps,
+                    disable_optimisation=disable_optimisation)
             elif check_error:
                 try:
                     output, lambda_onnx = compare_backend(
                         b, runtime_test, options=extract_options(basename),
                         context=context, verbose=verbose,
                         comparable_outputs=comparable_outputs,
-                        intermediate_steps=intermediate_steps)
-                except Exception as e:
+                        intermediate_steps=intermediate_steps,
+                        disable_optimisation=disable_optimisation)
+                except Exception as e:  # pragma: no cover
                     if check_error in str(e):
                         warnings.warn(str(e))
                         continue
@@ -433,6 +439,8 @@ def convert_model(model, name, input_types):
 
     :param model: model, *scikit-learn*, *keras*,
          or *coremltools* object
+    :param name: model name
+    :param input_types: input types
     :return: *onnx* model
     """
     from skl2onnx import convert_sklearn

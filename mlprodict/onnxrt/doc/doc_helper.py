@@ -302,7 +302,11 @@ def debug_onnx_object(obj, depth=3):
                 continue
 
             if isinstance(val, dict):
-                for kk, vv in sorted(val.items()):
+                try:
+                    sorted_list = list(sorted(val.items()))
+                except TypeError:
+                    sorted_list = list(val.items())
+                for kk, vv in sorted_list:
                     rows.append("  - [%s]: %s" % (str(kk), str(vv)))
                     res = debug_onnx_object(vv, depth - 1)
                     if res is None:

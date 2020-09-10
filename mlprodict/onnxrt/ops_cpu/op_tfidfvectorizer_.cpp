@@ -16,6 +16,8 @@
 #include <omp.h>
 #endif
 
+#include <memory>
+
 namespace py = pybind11;
 #endif
 
@@ -30,19 +32,30 @@ namespace py = pybind11;
 // for (1,2,3) node 2 would be a child of 1 but have id == 0
 // because (1,2) does not exists. Node 3 would have a valid id.
 template <class T>
-struct NgramPart;
+class NgramPart;
 
 template <>
-struct NgramPart<int64_t>;
+class NgramPart<int64_t>;
 
 using NgramPartInt = NgramPart<int64_t>;
-using IntMap = std::unordered_map<int64_t, std::unique_ptr<NgramPartInt>>;
+
+class IntMap : public std::unordered_map<int64_t, NgramPartInt*> {
+    public:
+        IntMap() : std::unordered_map<int64_t, NgramPartInt*>() { }
+        ~IntMap() {
+            for(auto it = begin(); it != end(); ++it)
+                delete it->second;
+        }
+};
+
 
 template <>
-struct NgramPart<int64_t> {
-    size_t id_;  // 0 - means no entry, search for a bigger N
-    IntMap leafs_;
-    explicit NgramPart(size_t id) : id_(id) {}
+class NgramPart<int64_t> {
+    public:
+        size_t id_;  // 0 - means no entry, search for a bigger N
+        IntMap leafs_;
+        NgramPart(size_t id) : id_(id) {}
+        ~NgramPart() { }
 };
 
 
@@ -127,7 +140,7 @@ inline size_t PopulateGrams(ForwardIter first, size_t ngrams, size_t ngram_size,
         size_t n = 1;
         Map* m = &c;
         while (true) {
-            auto p = m->emplace(*first, std::make_unique<NgramPart<int64_t>>(0));
+            auto p = m->emplace(*first, new NgramPart<int64_t>(0));
             ++first;
             if (n == ngram_size) {
                 p.first->second->id_ = ngram_id;

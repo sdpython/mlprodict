@@ -16,7 +16,7 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
 
     @param      skl_pred        prediction from :epkg:`scikit-learn`
                                 or any other way
-    @param      skl_ort         prediction from an :epkg:`ONNX` runtime
+    @param      ort_pred        prediction from an :epkg:`ONNX` runtime
                                 or any other way
     @param      batch           predictions are processed in a batch,
                                 *skl_pred* and *ort_pred* should be arrays
@@ -115,7 +115,7 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
                 "--------\n{}".format(
                     skl_pred.shape, " (sparse)" if skl_sparse else "",
                     ort_pred.shape, " (sparse)" if ort_sparse else "",
-                    e, skl_pred, ort_pred))
+                    e, skl_pred, ort_pred)) from e
 
         if isinstance(ort_pred, list):
             raise RuntimeError("Issue with {}\n{}".format(ort_pred, ort_pred_))

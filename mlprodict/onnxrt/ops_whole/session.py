@@ -5,21 +5,14 @@
 """
 from io import BytesIO
 import onnx
-from onnxruntime import InferenceSession, SessionOptions, RunOptions
-try:
-    from onnxruntime.capi.onnxruntime_pybind11_state import (
-        Fail as OrtFail,
-        InvalidGraph as OrtInvalidGraph,
-        InvalidArgument as OrtInvalidArgument,
-        NotImplemented as OrtNotImplemented,
-        RuntimeException as OrtRuntimeException,
-    )
-except ImportError:  # pragma: no cover
-    OrtFail = Exception
-    OrtNotImplemented = RuntimeError
-    OrtInvalidGraph = RuntimeError
-    OrtInvalidArgument = RuntimeError
-    OrtRuntimeException = RuntimeError
+from onnxruntime import (
+    InferenceSession, SessionOptions, RunOptions, GraphOptimizationLevel)
+from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
+    Fail as OrtFail,
+    InvalidGraph as OrtInvalidGraph,
+    InvalidArgument as OrtInvalidArgument,
+    NotImplemented as OrtNotImplemented,
+    RuntimeException as OrtRuntimeException)
 from ...tools.asv_options_helper import display_onnx
 
 
@@ -29,11 +22,12 @@ class OnnxWholeSession:
     it lets the runtime handle the graph logic as well.
     """
 
-    def __init__(self, onnx_data, runtime):
+    def __init__(self, onnx_data, runtime, runtime_options=None):
         """
         @param      onnx_data       :epkg:`ONNX` model or data
         @param      runtime         runtime to be used,
                                     mostly :epkg:`onnxruntime`
+        @param      runtime_options runtime options
         """
         if runtime != 'onnxruntime1':
             raise NotImplementedError(  # pragma: no cover
@@ -53,6 +47,10 @@ class OnnxWholeSession:
         except AttributeError:  # pragma: no cover
             # onnxruntime not recent enough.
             pass
+        if (runtime_options is not None and
+                runtime_options.get('disable_optimisation', False)):
+            sess_options.graph_optimization_level = (
+                GraphOptimizationLevel.ORT_ENABLE_ALL)
         try:
             self.sess = InferenceSession(onnx_data, sess_options=sess_options)
         except (OrtFail, OrtNotImplemented, OrtInvalidGraph,

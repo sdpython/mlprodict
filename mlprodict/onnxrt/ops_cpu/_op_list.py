@@ -8,6 +8,7 @@
 from ._op import OpRun
 from .op_abs import Abs
 from .op_add import Add
+from .op_and import And
 from .op_argmax import ArgMax
 from .op_argmin import ArgMin
 from .op_array_feature_extractor import ArrayFeatureExtractor
@@ -40,8 +41,10 @@ from .op_gather_elements import GatherElements
 from .op_gemm import Gemm
 from .op_global_average_pool import GlobalAveragePool
 from .op_greater import Greater
+from .op_greater_or_equal import GreaterOrEqual
 from .op_floor import Floor
 from .op_identity import Identity
+from .op_if import If
 from .op_imputer import Imputer
 from .op_isnan import IsNaN
 from .op_label_encoder import LabelEncoder
@@ -49,6 +52,7 @@ from .op_less import Less
 from .op_linear_classifier import LinearClassifier
 from .op_linear_regressor import LinearRegressor
 from .op_log import Log
+from .op_loop import Loop
 from .op_lp_normalization import LpNormalization
 from .op_matmul import MatMul
 from .op_max import Max
@@ -59,6 +63,7 @@ from .op_neg import Neg
 from .op_normalizer import Normalizer
 from .op_not import Not
 from .op_one_hot_encoder import OneHotEncoder
+from .op_or import Or
 from .op_pow import Pow
 from .op_quantize_linear import QuantizeLinear
 from .op_reciprocal import Reciprocal
@@ -79,6 +84,7 @@ from .op_sigmoid import Sigmoid
 from .op_sign import Sign
 from .op_sin import Sin
 from .op_slice import Slice
+from .op_split import Split
 from .op_softmax import Softmax
 from .op_solve import Solve
 from .op_sqrt import Sqrt
@@ -94,6 +100,7 @@ from .op_topk import TopK_10, TopK_11, TopK_1, TopK
 from .op_transpose import Transpose
 from .op_tree_ensemble_classifier import TreeEnsembleClassifier, TreeEnsembleClassifierDouble
 from .op_tree_ensemble_regressor import TreeEnsembleRegressor, TreeEnsembleRegressorDouble
+from .op_unsqueeze import Unsqueeze
 from .op_where import Where
 from .op_zipmap import ZipMap
 

@@ -1,7 +1,7 @@
 """
 @file
 @brief Functions which converts :epkg:`ONNX` object into
-readable :epgk:`python` objects.
+readable :epkg:`python` objects.
 """
 import pprint
 import warnings
@@ -158,7 +158,7 @@ def _elem_type_as_str(elem_type):
 def _to_array(var):
     try:
         data = to_array(var)
-    except ValueError:
+    except ValueError as e:
         dims = [d for d in var.dims]
         if var.data_type == 1 and var.float_data is not None:
             try:
@@ -180,7 +180,7 @@ def _to_array(var):
                                 copy=False).reshape(dims)
         else:
             raise NotImplementedError(
-                "Iniatilizer {} cannot be converted into a dictionary.".format(var))
+                "Iniatilizer {} cannot be converted into a dictionary.".format(var)) from e
     return data
 
 
@@ -273,7 +273,7 @@ def _var_as_dict(var):
             ts = _var_as_dict(var.sparse_tensor)
             res['value'] = ts['value']
         elif "'value'" in str(var):
-            warnings.warn("No value: {} -- {}".format(
+            warnings.warn("No value: {} -- {}".format(  # pragma: no cover
                 dtype, str(var).replace("\n", "").replace(" ", "")))
         return res
 
@@ -321,7 +321,7 @@ def numpy_min(x):
     try:
         if hasattr(x, 'todense'):
             x = x.todense()
-        if x.dtype.kind.lower() not in 'c':
+        if x.dtype.kind not in 'cUC':
             return x.min()
         try:  # pragma: no cover
             x = x.ravel()
@@ -347,7 +347,7 @@ def numpy_max(x):
     try:
         if hasattr(x, 'todense'):
             x = x.todense()
-        if x.dtype.kind.lower() not in 'c':
+        if x.dtype.kind not in 'cUC':
             return x.max()
         try:  # pragma: no cover
             x = x.ravel()

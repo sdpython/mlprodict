@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import os
+import platform
 from setuptools import setup, Extension
 from setuptools import find_packages
 
@@ -210,6 +211,8 @@ if not r:
         extra_compile_args = ['-fopenmp']
         extra_link_args = ['-lgomp']
         define_macros = [('USE_OPENMP', None)]
+        if "Ubuntu" in platform.version() and "16.04" in platform.version():
+            extra_compile_args.append('-std=c++11')
 
     # extensions
     ext_gather = Extension(
@@ -416,7 +419,7 @@ if not r:
         packages=packages,
         package_dir=package_dir,
         package_data=package_data,
-        setup_requires=["pybind11", "numpy", "onnx>=1.7", "scikit-learn",
+        setup_requires=["pybind11", "numpy", "onnx>=1.7", "scikit-learn>=0.21",
                         "jinja2", 'cython'],
         install_requires=["pybind11", "numpy>=1.17", "onnx>=1.7", 'scipy>=1.0.0',
                           'jinja2', 'cython'],
@@ -430,7 +433,7 @@ if not r:
                          'onnxruntime>=1.1.0', 'joblib', 'threadpoolctl'],
             'all': ['scikit-learn>=0.21', 'skl2onnx>=1.7',
                     'onnxconverter-common>=1.7',
-                    'onnxruntime>=1.3.0', 'scipy' 'joblib', 'pandas',
+                    'onnxruntime>=1.4.0', 'scipy' 'joblib', 'pandas',
                     'threadpoolctl', 'mlinsights>=0.2.450',
                     'lightgbm', 'xgboost'],
         },

@@ -35,12 +35,14 @@ def check_is_almost_equal(xv, exp, precision=1e-5, message=None):
     """
     if isinstance(exp, float) or len(exp.ravel()) == 1:
         if not (isinstance(xv, float) or len(xv.ravel()) == 1):
-            raise TypeError(
-                "Type mismatch between {0} and {1} (expected).".format(type(xv), type(exp)))
+            raise TypeError(  # pragma: no cover
+                "Type mismatch between {0} and {1} (expected).".format(
+                    type(xv), type(exp)))
         diff = abs(xv - exp)
         if diff > 1e-5:
-            raise ValueError(
-                "Predictions are different expected={0}, computed={1}".format(exp, xv))
+            raise ValueError(  # pragma: no cover
+                "Predictions are different expected={0}, computed={1}".format(
+                    exp, xv))
     else:
         if not isinstance(xv, numpy.ndarray):
             raise TypeError(
@@ -53,7 +55,7 @@ def check_is_almost_equal(xv, exp, precision=1e-5, message=None):
             if message is None:
                 raise e
             else:
-                raise AssertionError(message) from e
+                raise AssertionError(message) from e  # pragma: no cover
 
 
 def check_model_representation(model, X, y=None, convs=None,
@@ -76,12 +78,14 @@ def check_model_representation(model, X, y=None, convs=None,
     @return                 function to call to run the prediction
     """
     if not only_float:
-        raise NotImplementedError("Only float are allowed.")
+        raise NotImplementedError(  # pragma: no cover
+            "Only float are allowed.")
     if isinstance(X, list):
         X = pandas.DataFrame(X)
         if len(X.shape) != 2:
-            raise ValueError(
-                "X cannot be converted into a proper DataFrame. It has shape {0}.".format(X.shape))
+            raise ValueError(  # pragma: no cover
+                "X cannot be converted into a proper DataFrame. It has shape {0}."
+                "".format(X.shape))
         if only_float:
             X = X.as_matrix()
     if isinstance(y, list):
@@ -133,13 +137,14 @@ def check_model_representation(model, X, y=None, convs=None,
         elif len(ske.shape) == 2:
             output_names = ["p%d" % i for i in range(ske.shape[1])]
         else:
-            raise ValueError("Cannot guess default values for output_names.")
+            raise ValueError(  # pragma: no cover
+                "Cannot guess default values for output_names.")
 
     for lang in convs:
         if lang in ('c', ):
             code_c = gr.export(lang=lang)['code']
             if code_c is None:
-                raise ValueError("cannot be None")
+                raise ValueError("cannot be None")  # pragma: no cover
 
             compile_fct = compile_c_function
 
@@ -152,9 +157,10 @@ def check_model_representation(model, X, y=None, convs=None,
                     try:
                         fct = compile_fct(
                             code_c, len(output_names), suffix=suffix, fLOG=lambda s: fout.write(s + "\n"))
-                    except Exception as e:
-                        raise Exception("Unable to compile a code\n-OUT-\n{0}\n-ERR-\n{1}\n-CODE-\n{2}".format(
-                            fout.getvalue(), ferr.getvalue(), code_c)) from e
+                    except Exception as e:  # pragma: no cover
+                        raise RuntimeError(
+                            "Unable to compile a code\n-OUT-\n{0}\n-ERR-\n{1}\n-CODE-"
+                            "\n{2}".format(fout.getvalue(), ferr.getvalue(), code_c)) from e
 
             if verbose and fLOG:
                 fLOG("-----------------")
@@ -170,9 +176,11 @@ def check_model_representation(model, X, y=None, convs=None,
             lotc_exp = lotc.copy()
             lotc2 = fct(oneX, lotc)
             if not numpy.array_equal(lotc_exp, lotc2):
-                raise ValueError(
-                    "Second call returns different results.\n{0}\n{1}".format(lotc_exp, lotc2))
+                raise ValueError(  # pragma: no cover
+                    "Second call returns different results.\n{0}\n{1}".format(
+                        lotc_exp, lotc2))
         else:
             ser = gr.export(lang="json", hook={'array': lambda v: v.tolist()})
             if ser is None:
-                raise ValueError("No output for long='{0}'".format(lang))
+                raise ValueError(  # pragma: no cover
+                    "No output for long='{0}'".format(lang))

@@ -72,7 +72,7 @@ class OnnxInferenceNode:
 
     def setup_runtime(self, runtime=None, variables=None, rt_class=None,
                       target_opset=None, dtype=None, domain=None,
-                      ir_version=None):
+                      ir_version=None, runtime_options=None):
         """
         Loads runtime.
 
@@ -85,6 +85,7 @@ class OnnxInferenceNode:
         @param      domain          node domain
         @param      ir_version      if not None, changes the default value
                                     given by :epkg:`ONNX`
+        @param      runtime_options runtime options
         """
         if self.desc is None:
             raise AttributeError(
@@ -98,6 +99,8 @@ class OnnxInferenceNode:
             options['target_opset'] = target_opset
         if ir_version is not None:
             options['ir_version'] = ir_version
+        if runtime_options is not None:
+            options.update(runtime_options)
         if runtime == 'onnxruntime2':
             self.ops_ = load_op(self.onnx_node, desc=self.desc,
                                 options=options if options else None,
@@ -217,11 +220,11 @@ class OnnxInferenceNode:
                 ".".format(type(self.ops_)))
         if len(self.outputs) != len(res):
             raise RuntimeError(  # pragma: no cover
-                "Mismatch number of outputs got {} for names {} (node='{}')."
+                "Mismatch number of outputs got {} != {} for names {} (node='{}')."
                 "\n{}".format(
-                    len(res), list(self.outputs),
+                    len(res), len(self.outputs), list(self.outputs),
                     self.ops_.__class__.__name__,
-                    pprint.pformat(self.desc)))
+                    pprint.pformat(self.desc, depth=2)))
         for name, value in zip(self.outputs, res):
             values[name] = value
         return values

@@ -78,6 +78,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
 
         :param X: unused
         :param y: unused
+        :param fit_params: additional parameter (unused)
         :return: self
         """
         from ..onnxrt.optim.onnx_helper import change_input_first_dimension

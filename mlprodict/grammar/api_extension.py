@@ -36,9 +36,9 @@ class AutoAction:
         if hasattr(self, name):
             try:
                 return getattr(self, name)(hook=hook, result_name=result_name)
-            except TypeError:  # pragma: no cover
+            except TypeError as e:  # pragma: no cover
                 raise TypeError(
-                    "Signature of '{0}' is wrong for type '{1}'".format(name, type(self)))
+                    "Signature of '{0}' is wrong for type '{1}'".format(name, type(self))) from e
         else:
             raise NotImplementedError(  # pragma: no cover
                 "No conversion is implemented for lang='{0}' and type='{1}'".format(
@@ -88,9 +88,9 @@ class AutoType:
         if hasattr(self, name):
             try:
                 return getattr(self, name)(value, hook=hook)
-            except TypeError:  # pragma: no cover
+            except TypeError as e:  # pragma: no cover
                 raise TypeError(
-                    "Singature of '{0}' is wrong for type '{1}'".format(name, type(self)))
+                    "Singature of '{0}' is wrong for type '{1}'".format(name, type(self))) from e
         else:
             raise NotImplementedError(  # pragma: no cover
                 "No formatting is implemented for lang='{0}' and type='{1}'".format(

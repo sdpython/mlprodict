@@ -22,7 +22,6 @@ class TestDisplay(ExtTestCase):
         lr.fit(X, y)
         model_onnx = to_onnx(lr, X.astype(numpy.float32))
         disp = display_onnx(model_onnx)
-        self.assertIn('[...]', disp)
         self.assertIn('opset_import', disp)
         self.assertIn('producer_version', disp)
         self.assertLess(len(disp), 1010)

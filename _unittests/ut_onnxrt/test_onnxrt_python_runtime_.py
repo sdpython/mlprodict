@@ -21,7 +21,7 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAbs, OnnxAdd, OnnxArgMax, OnnxArgMin, OnnxAtan,
+    OnnxAbs, OnnxAdd, OnnxAnd, OnnxArgMax, OnnxArgMin, OnnxAtan,
     OnnxBatchNormalization,
     OnnxConcat, OnnxConv, OnnxConvTranspose,
     OnnxCeil, OnnxClip,
@@ -31,11 +31,12 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxDiv,
     OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
-    OnnxGreater, OnnxGemm, OnnxGlobalAveragePool,
+    OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
     OnnxIdentity, OnnxIsNaN,
     OnnxLog, OnnxLpNormalization,
     OnnxMatMul, OnnxMax, OnnxMean, OnnxMin, OnnxMul,
     OnnxNeg, OnnxNot,
+    OnnxOr,
     OnnxPow,
     OnnxQuantizeLinear,
     OnnxReciprocal,
@@ -43,9 +44,10 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceProd, OnnxReduceSum, OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
     OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign, OnnxSin,
-    OnnxSoftmax, OnnxSqueeze,
+    OnnxSoftmax, OnnxSqueeze, OnnxSplit,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxTopK, OnnxTranspose,
+    OnnxUnsqueeze,
 )
 try:
     from skl2onnx.algebra.onnx_ops import OnnxCelu
@@ -261,6 +263,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_add(self):
         self.common_test_onnxt_runtime_binary(OnnxAdd, numpy.add)
 
+    def test_onnxt_runtime_and(self):
+        self.common_test_onnxt_runtime_binary(OnnxAnd, numpy.logical_and)
+
     def test_onnxt_runtime_argmax(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
@@ -420,7 +425,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
             return atan_part + pi_part
 
         self.assertEqualArray(
-            numpy.arctan2(y_val, x_val), atan2(y_val, x_val))
+            numpy.arctan2(y_val, x_val), atan2(y_val, x_val), decimal=6)
 
     def test_onnxt_runtime_batch_normalization(self):
         # input size: (1, 2, 1, 3)
@@ -1291,6 +1296,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_greater(self):
         self.common_test_onnxt_runtime_binary(OnnxGreater, numpy.greater)
 
+    def test_onnxt_runtime_greater_or_equal(self):
+        self.common_test_onnxt_runtime_binary(
+            OnnxGreaterOrEqual, numpy.greater_equal)
+
     def test_onnxt_runtime_identity(self):
         self.common_test_onnxt_runtime_unary(OnnxIdentity, lambda x: x)
 
@@ -1356,6 +1365,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_not(self):
         self.common_test_onnxt_runtime_unary(OnnxNot, numpy.logical_not)
+
+    def test_onnxt_runtime_or(self):
+        self.common_test_onnxt_runtime_binary(OnnxOr, numpy.logical_or)
 
     def test_onnxt_runtime_pow(self):
         self.common_test_onnxt_runtime_binary(OnnxPow, numpy.power)
@@ -1712,6 +1724,46 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxSlice)
 
+    def test_onnxt_runtime_split(self):
+        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(numpy.float32)
+        y = [numpy.array([1., 2.]).astype(numpy.float32),
+             numpy.array([3., 4.]).astype(numpy.float32),
+             numpy.array([5., 6.]).astype(numpy.float32)]
+
+        onx = OnnxSplit('X', axis=0, split=[2, 2, 2],
+                        output_names=['Y1', 'Y2', 'Y3'],
+                        op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y[0], got['Y1'])
+        self.assertEqualArray(y[1], got['Y2'])
+        self.assertEqualArray(y[2], got['Y3'])
+
+        onx = OnnxSplit('X', axis=0,
+                        output_names=['Y1', 'Y2', 'Y3'],
+                        op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y[0], got['Y1'])
+        self.assertEqualArray(y[1], got['Y2'])
+        self.assertEqualArray(y[2], got['Y3'])
+
+        x = numpy.array([[1., 2., 3., 4., 5., 6.],
+                         [7., 8., 9., 10., 11., 12.]]).astype(numpy.float32)
+        y = [numpy.array([[1., 2.], [7., 8.]]).astype(numpy.float32),
+             numpy.array([[3., 4., 5., 6.], [9., 10., 11., 12.]]).astype(numpy.float32)]
+        onx = OnnxSplit('X', axis=1, split=[2, 4],
+                        output_names=['Y1', 'Y2'],
+                        op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y[0], got['Y1'])
+        self.assertEqualArray(y[1], got['Y2'])
+        python_tested.append(OnnxSplit)
+
     def test_onnxt_runtime_sqrt(self):
         self.common_test_onnxt_runtime_unary(OnnxSqrt, numpy.sqrt)
 
@@ -1859,6 +1911,29 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(X.T, got['Y'])
         python_tested.append(OnnxTranspose)
+
+    def test_onnxt_runtime_unsqueeze(self):
+        x = numpy.random.randn(1, 3, 1, 5).astype(numpy.float32)
+        y = numpy.expand_dims(x, axis=-2)
+        onx = OnnxUnsqueeze('X', axes=[-2], output_names=['Y'],
+                            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
+
+        x = numpy.random.randn(3, 4, 5).astype(numpy.float32)
+        y = numpy.expand_dims(x, axis=2)
+        y = numpy.expand_dims(y, axis=4)
+        y = numpy.expand_dims(y, axis=5)
+        onx = OnnxUnsqueeze('X', axes=[2, 4, 5], output_names=['Y'],
+                            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
+
+        python_tested.append(OnnxUnsqueeze)
 
     def test_cpp_topk_min_1(self):
         X = numpy.array([1, -1], dtype=numpy.float64)
@@ -2086,26 +2161,28 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
         for opset, cls in [(get_opset_number_from_onnx(), OnnxConstant),
                            (9, OnnxConstant_9), (11, OnnxConstant_11)]:
-            X = numpy.array([0.1, 0.2], dtype=numpy.float32)
-            if opset >= 12:
-                cst = cls(value_floats=X, op_version=opset)
-            else:
-                cst = cls(value=X, op_version=opset)
-            onx = OnnxAdd('X', cst, op_version=opset)
-            model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                    target_opset=opset)
-            try:
-                oinf = OnnxInference(model_def)
-            except RuntimeError as e:
-                raise RuntimeError(
-                    "Unable to load the model:\n{}".format(model_def)) from e
-            got = oinf.run({'X': X})
-            if opset >= 11:
-                self.assertEqual(list(sorted(got)), ['Ad_C0', 'Co_output0'])
-                self.assertEqualArray(X * 2, got['Ad_C0'])
-            else:
-                self.assertEqual(list(sorted(got)), ['Ad_C0'])
-                self.assertEqualArray(X * 2, got['Ad_C0'])
+            with self.subTest(opset=opset):
+                X = numpy.array([0.1, 0.2], dtype=numpy.float32)
+                if opset >= 12:
+                    cst = cls(value_floats=X, op_version=opset)
+                else:
+                    cst = cls(value=X, op_version=opset)
+                onx = OnnxAdd('X', cst, op_version=opset)
+                model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                        target_opset=opset)
+                try:
+                    oinf = OnnxInference(model_def)
+                except RuntimeError as e:
+                    raise RuntimeError(
+                        "Unable to load the model:\n{}".format(model_def)) from e
+                got = oinf.run({'X': X})
+                if opset >= 11:
+                    self.assertEqual(list(sorted(got)), [
+                                     'Ad_C0', 'Co_output0'])
+                    self.assertEqualArray(X * 2, got['Ad_C0'])
+                else:
+                    self.assertEqual(list(sorted(got)), ['Ad_C0'])
+                    self.assertEqualArray(X * 2, got['Ad_C0'])
 
 
 if __name__ == "__main__":

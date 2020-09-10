@@ -44,7 +44,7 @@ class OnnxInference:
     def __init__(self, onnx_or_bytes_or_stream, runtime=None,
                  skip_run=False, inplace=True,
                  input_inplace=False, ir_version=None,
-                 target_opset=None):
+                 target_opset=None, runtime_options=None):
         """
         @param      onnx_or_bytes_or_stream :epkg:`onnx` object,
                                             bytes, or filename or stream
@@ -58,6 +58,7 @@ class OnnxInference:
                                             <mlprodict.onnxrt.onnx_inference.OnnxInference._guess_inplace>`
         @param      ir_version              if not None, overwrite the default version
         @param      target_opset            used to overwrite *target_opset*
+        @param      runtime_options         specific options for the runtime
         """
         if isinstance(onnx_or_bytes_or_stream, bytes):
             self.obj = load_model(BytesIO(onnx_or_bytes_or_stream))
@@ -80,6 +81,7 @@ class OnnxInference:
         self.input_inplace = input_inplace
         self.inplace = inplace
         self.force_target_opset = target_opset
+        self.runtime_options = runtime_options
         self._init()
 
     def __getstate__(self):
@@ -88,6 +90,7 @@ class OnnxInference:
         """
         return {'onnx': self.obj.SerializeToString(),
                 'runtime': self.runtime,
+                'runtime_options': self.runtime_options,
                 'skip_run': self.skip_run,
                 'input_inplace': self.input_inplace,
                 'inplace': self.inplace,
@@ -100,6 +103,7 @@ class OnnxInference:
         onx = state['onnx']
         self.obj = load_model(BytesIO(onx))
         self.runtime = state['runtime']
+        self.runtime_options = state['runtime_options']
         self.skip_run = state['skip_run']
         self.input_inplace = state['input_inplace']
         self.inplace = state['inplace']
@@ -128,7 +132,8 @@ class OnnxInference:
                 # Loads the onnx with onnxruntime as a single file.
                 del self.graph_
                 from .ops_whole.session import OnnxWholeSession
-                self._whole = OnnxWholeSession(self.obj, self.runtime)
+                self._whole = OnnxWholeSession(
+                    self.obj, self.runtime, self.runtime_options)
                 self._run = self._run_whole_runtime
             else:
                 self.sequence_ = self.graph_['sequence']
@@ -141,11 +146,13 @@ class OnnxInference:
                     if self.runtime == 'onnxruntime2':
                         node.setup_runtime(self.runtime, variables, self.__class__,
                                            target_opset=target_opset, dtype=dtype,
-                                           domain=domain, ir_version=self.ir_version_)
+                                           domain=domain, ir_version=self.ir_version_,
+                                           runtime_options=self.runtime_options)
                     else:
                         node.setup_runtime(self.runtime, variables, self.__class__,
                                            target_opset=target_opset, domain=domain,
-                                           ir_version=self.ir_version_)
+                                           ir_version=self.ir_version_,
+                                           runtime_options=self.runtime_options)
                     if hasattr(node, 'ops_') and hasattr(node.ops_, 'typed_outputs_'):
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v
@@ -603,7 +610,7 @@ class OnnxInference:
         else:
             def dispsimple(arr):
                 if hasattr(arr, 'shape'):
-                    if len(arr.shape) == 1:
+                    if len(arr.shape) <= 1:
                         threshold = 8
                     else:
                         threshold = min(

@@ -2,7 +2,8 @@
 @file
 @brief Inspired from skl2onnx, handles two backends.
 """
-from onnxruntime import InferenceSession
+from onnxruntime import (
+    InferenceSession, GraphOptimizationLevel, SessionOptions)
 from pyquickhelper.pycode import is_travis_or_appveyor
 from .utils_backend_common_compare import compare_runtime_session
 
@@ -22,6 +23,17 @@ class InferenceSession2:
 
     def __init__(self, *args, **kwargs):
         "Overwrites the constructor."
+        runtime_options = kwargs.pop('runtime_options', {})
+        disable_optimisation = runtime_options.pop(
+            'disable_optimisation', False)
+        if disable_optimisation:
+            if 'sess_options' in kwargs:
+                raise RuntimeError(
+                    "Incompatible options, 'disable_options' and 'sess_options' cannot "
+                    "be sepcified at the same time.")
+            kwargs['sess_options'] = SessionOptions()
+            kwargs['sess_options'].graph_optimization_level = (
+                GraphOptimizationLevel.ORT_DISABLE_ALL)
         self.sess, self.outi, self.erri = _capture_output(
             lambda: InferenceSession(*args, **kwargs), 'c')
 
@@ -42,7 +54,8 @@ class InferenceSession2:
 
 def compare_runtime(test, decimal=5, options=None,
                     verbose=False, context=None, comparable_outputs=None,
-                    intermediate_steps=False, classes=None):
+                    intermediate_steps=False, classes=None,
+                    disable_optimisation=False):
     """
     The function compares the expected output (computed with
     the model before being converted to ONNX) and the ONNX output
@@ -61,6 +74,8 @@ def compare_runtime(test, decimal=5, options=None,
     :param intermediate_steps: displays intermediate steps
         in case of an error
     :param classes: classes names (if option 'nocl' is used)
+    :param disable_optimisation: disable optimisation onnxruntime
+        could do
     :return: tuple (outut, lambda function to run the predictions)
 
     The function does not return anything but raises an error
@@ -71,4 +86,4 @@ def compare_runtime(test, decimal=5, options=None,
         verbose=verbose, context=context,
         comparable_outputs=comparable_outputs,
         intermediate_steps=intermediate_steps,
-        classes=classes)
+        classes=classes, disable_optimisation=disable_optimisation)

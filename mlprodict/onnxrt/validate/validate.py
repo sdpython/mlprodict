@@ -321,7 +321,7 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
                 except TypeError as e:  # pragma: no cover
                     raise TypeError(
                         "Unable to interpret 'scenario_extra'\n{}".format(
-                            scenario_extra))
+                            scenario_extra)) from e
                 if optimisations is None:
                     optimisations = [None]
                 if new_conv_options is None:

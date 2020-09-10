@@ -35,7 +35,6 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 
-
 def build_model(m, e, n, f, o, j, opts):
     filename = "%s-e%d-n%d-f%d-onnx%d-nj%d-opts%s.pkl" % (
         m, e, n, f, o, j, opts)
@@ -50,7 +49,8 @@ def build_model(m, e, n, f, o, j, opts):
     if m == 'RandomForestRegressor':
         rf = RandomForestRegressor(n_estimators=e, random_state=1, n_jobs=j)
     elif m == 'GradientBoostingRegressor':
-        rf = GradientBoostingRegressor(n_estimators=e, random_state=1, n_jobs=j)
+        rf = GradientBoostingRegressor(
+            n_estimators=e, random_state=1, n_jobs=j)
     elif m == 'LinearRegressor':
         rf = LinearRegressor(random_state=1)
     elif m == 'LogisticRegression':
@@ -86,7 +86,8 @@ def build_model(m, e, n, f, o, j, opts):
             options = {id(rf): {'zipmap': False}}
         else:
             options = None
-        model_onnx = to_onnx(rf, X_train[:1].astype(np.float32), options=options)
+        model_onnx = to_onnx(rf, X_train[:1].astype(
+            np.float32), options=options)
         buffer_onnx = model_onnx.SerializeToString()
         data['onnx'] = buffer_onnx
 
@@ -149,7 +150,7 @@ def main(m="LogisticRegression", e=100, n=10000,
          f=10, r=1000, a=True, o=True, j=2, opts=""):
     """
     Builds a model and benchmarks the model converted into ONNX.
-    
+
     :param m: model name or experiment
     :param e: number of estimators or trees
     :param n: number of rows
@@ -160,7 +161,7 @@ def main(m="LogisticRegression", e=100, n=10000,
     :param j: n_jobs
     :param opts: options
     """
-    model_data = build_model(m, e, n, f, o, j, opts)    
+    model_data = build_model(m, e, n, f, o, j, opts)
 
     if a:
         with config_context(assume_finite=True):
@@ -170,6 +171,6 @@ def main(m="LogisticRegression", e=100, n=10000,
         benchmark(model_data['model'], model_data.get('onnx', None),
                   model_data['data'], r)
 
+
 # Use py-spy: `py-spy record --native -r 10 -o plot_benchmark.svg -- python plot_benchmark.py`
 main()
-    

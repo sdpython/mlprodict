@@ -24,7 +24,7 @@ def heatmap(data, row_labels, col_labels, ax=None,
                         <https://matplotlib.org/api/_as_gen/matplotlib.pyplot.colorbar.html>`_.
                         Optional.
     @param  cbarlabel   the label for the colorbar. Optional.
-    @aram   kwargs      all other arguments are forwarded to `imshow
+    @param   kwargs     all other arguments are forwarded to `imshow
                         <https://matplotlib.org/api/_as_gen/matplotlib.pyplot.imshow.html>`_
     @return             ax, image, color bar
     """
@@ -86,7 +86,7 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
     @param  threshold   value in data units according to which the colors from textcolors are
                         applied. If None (the default) uses the middle of the colormap as
                         separation. Optional.
-    @param  kwargs      all other arguments are forwarded to each call to `text` used to create
+    @param  textkw      all other arguments are forwarded to each call to `text` used to create
                         the text labels.
     @return             annotated objects
     """

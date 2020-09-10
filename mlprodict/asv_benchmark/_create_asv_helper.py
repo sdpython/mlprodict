@@ -5,7 +5,10 @@ for many regressors and classifiers.
 import os
 import textwrap
 import hashlib
-from ..onnxrt.optim.sklearn_helper import set_n_jobs
+try:
+    from ..onnxrt.optim.sklearn_helper import set_n_jobs
+except ValueError:
+    from mlprodict.onnxrt.optim.sklearn_helper import set_n_jobs
 
 # exec function does not import models but potentially
 # requires all specific models used to defines scenarios
@@ -46,8 +49,12 @@ default_asv_conf = {
         "Pillow": [],
         "pybind11": [],
         "scipy": [],
-        "skl2onnx": ["git+https://github.com/xadupre/sklearn-onnx.git@jenkins"],
-        "scikit-learn": ["git+https://github.com/scikit-learn/scikit-learn.git"],
+        # "git+https://github.com/xadupre/onnxconverter-common.git@jenkins"],
+        "onnxconverter-common": ["http://localhost:8067/simple/"],
+        # "git+https://github.com/xadupre/sklearn-onnx.git@jenkins"],
+        "skl2onnx": ["http://localhost:8067/simple/"],
+        # "git+https://github.com/scikit-learn/scikit-learn.git"],
+        "scikit-learn": ["http://localhost:8067/simple/"],
         "xgboost": [],
     },
     "benchmark_dir": "benches",
@@ -164,8 +171,9 @@ def _sklearn_subfolder(model):
     spl = mod.split('.')
     try:
         pos = spl.index('sklearn')
-    except ValueError:  # pragma: no cover
-        raise ValueError("Unable to find 'sklearn' in '{}'.".format(mod))
+    except ValueError as e:  # pragma: no cover
+        raise ValueError(
+            "Unable to find 'sklearn' in '{}'.".format(mod)) from e
     res = spl[pos + 1: -1]
     if len(res) == 0:
         if spl[-1] == 'sklearn':

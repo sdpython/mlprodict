@@ -2,6 +2,7 @@
 @brief      test tree node (time=30s)
 """
 import os
+import sys
 import unittest
 from pyquickhelper.loghelper import BufferedPrint
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder, skipif_appveyor
@@ -11,6 +12,7 @@ from mlprodict.__main__ import main
 class TestCliValidateProcess(ExtTestCase):
 
     @skipif_appveyor("tries to recompile the module...")
+    @unittest.skipIf(sys.platform.startswith("darwin"), reason="crash")
     def test_cli_validate_model_process_csv(self):
         temp = get_temp_folder(__file__, "temp_validate_model_process_csv")
         out1 = os.path.join(temp, "raw.csv")

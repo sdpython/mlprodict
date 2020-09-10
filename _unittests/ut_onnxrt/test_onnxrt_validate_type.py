@@ -114,5 +114,4 @@ class TestOnnxrtValidateType(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtValidateType().test_validate_sklearn_operators_float32()
     unittest.main()

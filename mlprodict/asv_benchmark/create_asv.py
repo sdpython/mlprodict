@@ -8,10 +8,7 @@ import json
 import textwrap
 import warnings
 import re
-try:
-    from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8  # pragma: no cover
-except ImportError:  # pragma: no cover
-    remove_extra_spaces_and_pep8 = lambda code, *args, **kwargs: code
+from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8
 try:
     from ._create_asv_helper import (
         default_asv_conf,

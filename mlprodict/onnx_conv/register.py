@@ -63,7 +63,7 @@ def _register_converters_lightgbm(exc=True):
             raise ImportError(
                 "Hidden API has changed in module 'skl2onnx=={}', "
                 "installation path is '{}'.".format(
-                    skl2onnx.__version__, skl2onnx.__file__))
+                    skl2onnx.__version__, skl2onnx.__file__)) from e
         from .operator_converters.conv_lightgbm import (
             convert_lightgbm, calculate_lightgbm_output_shapes)
         update_registered_converter(

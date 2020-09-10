@@ -24,8 +24,8 @@ mlprodict
 .. image:: https://circleci.com/gh/sdpython/mlprodict/tree/master.svg?style=svg
     :target: https://circleci.com/gh/sdpython/mlprodict/tree/master
 
-.. image:: https://dev.azure.com/xavierdupre3/mlprodict3/_apis/build/status/sdpython.mlprodict
-    :target: https://dev.azure.com/xavierdupre3/mlprodict3/
+.. image:: https://dev.azure.com/xavierdupre3/mlprodict/_apis/build/status/sdpython.mlprodict
+    :target: https://dev.azure.com/xavierdupre3/mlprodict/
 
 .. image:: https://badge.fury.io/py/mlprodict.svg
     :target: https://pypi.org/project/mlprodict/

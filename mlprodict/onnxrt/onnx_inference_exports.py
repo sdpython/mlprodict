@@ -144,6 +144,7 @@ class OnnxInferenceExport:
             inter_vars[obj.name] = obj
 
         # nodes
+        fill_names = {}
         for node in self.oinf.obj.graph.node:
             exp.append("")
             for out in node.output:
@@ -158,8 +159,13 @@ class OnnxInferenceExport:
 
             dobj = _var_as_dict(node)
             if dobj['name'].strip() == '':
-                raise RuntimeError(
-                    "Issue with a node\n{}\n----\n{}".format(dobj, node))
+                name = node.op_type
+                iname = 1
+                while name in fill_names:
+                    name = "%s%d" % (name, iname)
+                    iname += 1
+                dobj['name'] = name
+                node.name = name
 
             atts = []
             if 'atts' in dobj:
@@ -175,38 +181,44 @@ class OnnxInferenceExport:
                         atts.append('{}={}'.format(k, val))
             satts = "" if len(atts) == 0 else ("\\n" + "\\n".join(atts))
 
-            if recursive and node.op_type in {'Scan'}:
-                # creates the subgraph
-                body = dobj['atts']['body']['value']
-                oinf = self.oinf.__class__(
-                    body, runtime=self.oinf.runtime, skip_run=self.oinf.skip_run)
-                subprefix = prefix + "B_"
-                subdot = oinf.to_dot(recursive=recursive, prefix=subprefix,
-                                     add_rt_shapes=add_rt_shapes)
-                lines = subdot.split("\n")
-                start = 0
-                for i, line in enumerate(lines):
-                    if '[' in line:
-                        start = i
-                        break
-                subgraph = "\n".join(lines[start:])
+            if recursive and node.op_type in {'Scan', 'Loop', 'If'}:
+                fields = (['then_branch', 'else_branch']
+                          if node.op_type == 'If' else ['body'])
+                for field in fields:
+                    if field not in dobj['atts']:
+                        continue
 
-                # connecting the subgraph
-                exp.append("  subgraph cluster_{}{} {{".format(
-                    node.op_type, id(node)))
-                exp.append('    label="{0}\\n({1}){2}";'.format(
-                    dobj['op_type'], dobj['name'], satts))
-                exp.append('    fontsize={0};'.format(fontsize))
-                exp.append('    color=black;')
-                exp.append(
-                    '\n'.join(map(lambda s: '  ' + s, subgraph.split('\n'))))
+                    # creates the subgraph
+                    body = dobj['atts'][field]['value']
+                    oinf = self.oinf.__class__(
+                        body, runtime=self.oinf.runtime, skip_run=self.oinf.skip_run)
+                    subprefix = prefix + "B_"
+                    subdot = oinf.to_dot(recursive=recursive, prefix=subprefix,
+                                         add_rt_shapes=add_rt_shapes)
+                    lines = subdot.split("\n")
+                    start = 0
+                    for i, line in enumerate(lines):
+                        if '[' in line:
+                            start = i
+                            break
+                    subgraph = "\n".join(lines[start:])
 
-                for inp1, inp2 in zip(node.input, body.input):
+                    # connecting the subgraph
+                    exp.append("  subgraph cluster_{}{} {{".format(
+                        node.op_type, id(node)))
+                    exp.append('    label="{0}\\n({1}){2}";'.format(
+                        dobj['op_type'], dobj['name'], satts))
+                    exp.append('    fontsize={0};'.format(fontsize))
+                    exp.append('    color=black;')
                     exp.append(
-                        "  {0}{1} -> {2}{3};".format(prefix, inp1, subprefix, inp2.name))
-                for out1, out2 in zip(body.output, node.output):
-                    exp.append(
-                        "  {0}{1} -> {2}{3};".format(subprefix, out1.name, prefix, out2))
+                        '\n'.join(map(lambda s: '  ' + s, subgraph.split('\n'))))
+
+                    for inp1, inp2 in zip(node.input, body.input):
+                        exp.append(
+                            "  {0}{1} -> {2}{3};".format(prefix, inp1, subprefix, inp2.name))
+                    for out1, out2 in zip(body.output, node.output):
+                        exp.append(
+                            "  {0}{1} -> {2}{3};".format(subprefix, out1.name, prefix, out2))
 
             else:
                 exp.append('  {4}{1} [shape=box style="filled,rounded" color=orange label="{0}\\n({1}){2}" fontsize={3}];'.format(

@@ -10,7 +10,9 @@ from sklearn.datasets import load_iris
 from sklearn.cluster import KMeans
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.optim.onnx_helper import change_input_first_dimension
-from mlprodict.onnxrt.onnx2py_helper import to_bytes, from_bytes
+from mlprodict.onnxrt.onnx2py_helper import (
+    to_bytes, from_bytes, numpy_max, numpy_min, _type_to_string,
+    _numpy_array)
 from mlprodict.onnxrt.ops_cpu._op_helper import proto2dtype
 from mlprodict.onnxrt import OnnxInference
 
@@ -79,6 +81,31 @@ class TestOnnxHelper(ExtTestCase):
             dt = proto2dtype(t)
             self.assertTrue(dt is not None)
         self.assertRaise(lambda: proto2dtype(671), ValueError)
+
+    def test_numpy_min_max(self):
+        val = numpy.array(['a', 'b'])
+        r = numpy_min(val)
+        self.assertEqual(r, "'a'")
+        r = numpy_max(val)
+        self.assertEqual(r, "'b'")
+        val = numpy.array(['a', 0])
+        r = numpy_min(val)
+        self.assertEqual(r, "'0'")
+        val = numpy.array(['aaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'b'])
+        r = numpy_min(val)
+        self.assertEqual(r, "'aaaaaaaaaa...'")
+        val = numpy.array(['a', 'bbbbbbbbbbbbbbbbbbbbbbbbbbb'])
+        r = numpy_max(val)
+        self.assertEqual(r, "'bbbbbbbbbb...'")
+
+    def test__type_to_string(self):
+        d = dict(a=0, b=1)
+        self.assertRaise(lambda: _type_to_string(d), KeyError)
+
+    def test__numpy_array(self):
+        v = numpy.array([0])
+        f = _numpy_array(v)
+        self.assertEqualArray(f, v)
 
 
 if __name__ == "__main__":

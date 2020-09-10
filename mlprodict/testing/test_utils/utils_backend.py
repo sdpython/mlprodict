@@ -8,7 +8,8 @@ from .utils_backend_python import compare_runtime as compare_runtime_pyrt
 
 def compare_backend(backend, test, decimal=5, options=None, verbose=False,
                     context=None, comparable_outputs=None,
-                    intermediate_steps=False, classes=None):
+                    intermediate_steps=False, classes=None,
+                    disable_optimisation=False):
     """
     The function compares the expected output (computed with
     the model before being converted to ONNX) and the ONNX output.
@@ -27,6 +28,8 @@ def compare_backend(backend, test, decimal=5, options=None, verbose=False,
     :param intermediate_steps: displays intermediate steps
         in case of an error
     :param classes: classes names (if option 'nocl' is used)
+    :param disable_optimisation: disable optimisation onnxruntime
+        could do
 
     The function does not return anything but raises an error
     if the comparison failed.
@@ -36,10 +39,12 @@ def compare_backend(backend, test, decimal=5, options=None, verbose=False,
         return compare_runtime_ort(
             test, decimal, options=options, verbose=verbose,
             comparable_outputs=comparable_outputs,
-            intermediate_steps=False, classes=classes)
+            intermediate_steps=False, classes=classes,
+            disable_optimisation=disable_optimisation)
     if backend == "python":
         return compare_runtime_pyrt(
             test, decimal, options=options, verbose=verbose,
             comparable_outputs=comparable_outputs,
-            intermediate_steps=intermediate_steps, classes=classes)
+            intermediate_steps=intermediate_steps, classes=classes,
+            disable_optimisation=disable_optimisation)
     raise ValueError("Does not support backend '{0}'.".format(backend))

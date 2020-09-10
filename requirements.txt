@@ -14,7 +14,7 @@ pybind11
 pyensae
 py-cpuinfo
 pyinstrument
-pylint>=2.4.2
+pylint>=2.6.0
 pyquickhelper>=1.9.3396
 git+https://github.com/xadupre/sklearn-onnx.git@jenkins
 sphinx

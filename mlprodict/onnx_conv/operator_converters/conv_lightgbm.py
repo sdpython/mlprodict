@@ -106,13 +106,13 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
     if isinstance(tree_structure['threshold'], str):
         try:
             attrs['nodes_values'].append(float(tree_structure['threshold']))
-        except ValueError:  # pragma: no cover
+        except ValueError as e:  # pragma: no cover
             import pprint
             text = pprint.pformat(tree_structure)
             if len(text) > 100000:
                 text = text[:100000] + "\n..."
             raise TypeError("threshold must be a number not '{}'"
-                            "\n{}".format(tree_structure['threshold'], text))
+                            "\n{}".format(tree_structure['threshold'], text)) from e
     attrs['nodes_values'].append(tree_structure['threshold'])
 
     # Assume left is the true branch and right is the false branch
@@ -167,13 +167,13 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
         if isinstance(node['threshold'], str):
             try:
                 attrs['nodes_values'].append(float(node['threshold']))
-            except ValueError:  # pragma: no cover
+            except ValueError as e:  # pragma: no cover
                 import pprint
                 text = pprint.pformat(node)
                 if len(text) > 100000:
                     text = text[:100000] + "\n..."
                 raise TypeError("threshold must be a number not '{}'"
-                                "\n{}".format(node['threshold'], text))
+                                "\n{}".format(node['threshold'], text)) from e
         else:
             attrs['nodes_values'].append(node['threshold'])
 
