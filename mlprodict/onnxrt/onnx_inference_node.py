@@ -213,7 +213,8 @@ class OnnxInferenceNode:
         except (TypeError, ValueError) as e:
             raise TypeError(
                 "Unable to call infer_shapes with {} arguments for class"
-                " '{}'".format(len(args), self.ops_.__class__.__name__)) from e
+                " '{}' ({})".format(len(args), self.ops_.__class__.__name__,
+                                    self.ops_.infer_shapes)) from e
         if not isinstance(res, tuple):
             raise RuntimeError(  # pragma: no cover
                 "Results of an operator should be a tuple for operator '{}'"

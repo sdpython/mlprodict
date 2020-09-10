@@ -37,7 +37,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxMatMul, OnnxMax, OnnxMean, OnnxMin, OnnxMul,
     OnnxNeg, OnnxNot,
     OnnxOr,
-    OnnxPow,
+    OnnxPad, OnnxPow,
     OnnxQuantizeLinear,
     OnnxReciprocal,
     OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
@@ -67,6 +67,7 @@ from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611
     topk_element_min_int64, topk_element_max_int64, topk_element_fetch_int64)
 from mlprodict.onnxrt.ops_cpu.op_celu import _vcelu1, pycelu
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
+from mlprodict.onnxrt.ops_cpu.op_pad import _pad_impl
 
 
 sparse_support = []
@@ -1369,6 +1370,83 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_or(self):
         self.common_test_onnxt_runtime_binary(OnnxOr, numpy.logical_or)
 
+    def test_onnxt_runtime_pad(self):
+        data = numpy.array([[1.0, 1.2], [2.3, 3.4], [4.5, 5.7]],
+                           dtype=numpy.float32)
+        pads = numpy.array([0, 2, 0, 0], dtype=numpy.int64)
+        constant_value = numpy.array([0.0], dtype=numpy.float32)
+        exp = numpy.array([[0.0, 0.0, 1.0, 1.2],
+                           [0.0, 0.0, 2.3, 3.4],
+                           [0.0, 0.0, 4.5, 5.7]], dtype=numpy.float32)
+        onx = OnnxPad(
+            'data', 'pads', constant_value, output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'data': data, 'pads': pads},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'data': data, 'pads': pads})
+        self.assertEqualArray(exp, got['Y'])
+
+        data = numpy.array([[1.0, 1.2], [2.3, 3.4], [4.5, 5.7]],
+                           dtype=numpy.float32)
+        pads = numpy.array([0, 2, 0, 0], dtype=numpy.int64)
+        constant_value = numpy.array([0.0], dtype=numpy.float32)
+        exp = numpy.array([[1.0, 1.2, 1.0, 1.2],
+                           [2.3, 3.4, 2.3, 3.4],
+                           [4.5, 5.7, 4.5, 5.7]], dtype=numpy.float32)
+        onx = OnnxPad(
+            'data', 'pads', output_names=['Y'],
+            mode='reflect', op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'data': data, 'pads': pads},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'data': data, 'pads': pads})
+        self.assertEqualArray(exp, got['Y'])
+
+        data = numpy.array([[1.0, 1.2], [2.3, 3.4], [4.5, 5.7]],
+                           dtype=numpy.float32)
+        pads = numpy.array([0, 2, 0, 0], dtype=numpy.int64)
+        constant_value = numpy.array([0.0], dtype=numpy.float32)
+        exp = numpy.array([[1.0, 1.0, 1.0, 1.2],
+                           [2.3, 2.3, 2.3, 3.4],
+                           [4.5, 4.5, 4.5, 5.7]], dtype=numpy.float32)
+        onx = OnnxPad(
+            'data', 'pads', output_names=['Y'],
+            mode='edge', op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'data': data, 'pads': pads},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'data': data, 'pads': pads})
+        self.assertEqualArray(exp, got['Y'])
+
+    def test_onnxt_runtime_pad2(self):
+        data = numpy.random.randn(1, 3, 4, 5).astype(numpy.float32)
+        pads = numpy.array([0, 0, 1, 3, 0, 0, 2, 4]).astype(numpy.int64)
+        constant_value = numpy.array([1.2], dtype=numpy.float32)
+        exp = _pad_impl(data, pads, 'constant', 1.2)
+        onx = OnnxPad(
+            'data', 'pads', constant_value, output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'data': data, 'pads': pads},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'data': data, 'pads': pads})
+        self.assertEqualArray(exp, got['Y'])
+
+        for mode in ('edge', 'reflect'):
+            onx = OnnxPad(
+                'data', 'pads', output_names=['Y'],
+                mode=mode, op_version=get_opset_number_from_onnx())
+            model_def = onx.to_onnx({'data': data, 'pads': pads},
+                                    target_opset=get_opset_number_from_onnx())
+
+            data = numpy.random.randn(1, 3, 4, 5).astype(numpy.int32)
+            pads = numpy.array([0, 0, 1, 1, 0, 0, 1, 1]).astype(numpy.int64)
+            exp = _pad_impl(data, pads, mode)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'data': data, 'pads': pads})
+            self.assertEqualArray(exp, got['Y'])
+
     def test_onnxt_runtime_pow(self):
         self.common_test_onnxt_runtime_binary(OnnxPow, numpy.power)
 
@@ -2186,5 +2264,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_conv_transpose_attributes()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_pad()
     unittest.main()
