@@ -68,7 +68,7 @@ from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611
 from mlprodict.onnxrt.ops_cpu.op_celu import _vcelu1, pycelu
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 from mlprodict.onnxrt.ops_cpu.op_pad import _pad_impl
-from mlprodict.onnxrt.ops_cpu.op_maxpool import _pool_get_output_shape, _pool_impl
+from mlprodict.onnxrt.ops_cpu.op_max_pool import _pool_get_output_shape, _pool_impl
 
 
 sparse_support = []
@@ -2302,5 +2302,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_maxpool()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_maxpool_1d_default()
     unittest.main()

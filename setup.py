@@ -215,6 +215,22 @@ if not r:
             extra_compile_args.append('-std=c++11')
 
     # extensions
+    ext_max_pool = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_max_pool_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_max_pool_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
     ext_gather = Extension(
         'mlprodict.onnxrt.ops_cpu.op_gather_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_gather_.cpp'),
@@ -393,6 +409,7 @@ if not r:
         ext_conv,
         ext_conv_transpose,
         ext_gather,
+        ext_max_pool,
         ext_svm_classifier,
         ext_svm_regressor,
         ext_tfidfvectorizer,
