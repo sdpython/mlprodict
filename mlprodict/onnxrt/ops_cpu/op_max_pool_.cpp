@@ -244,7 +244,9 @@ py::tuple MaxPool<T>::compute(py::array_t<T, py::array::c_style | py::array::for
 
     std::vector<int64_t> pads = pads_;
     if (pads.size() == 0)
-        pads.resize(x_dims.size(), (int64_t)0);
+        pads.resize(kernel_shape_.size() * 2 > (x_dims.size() - 2) * 2 
+                        ? kernel_shape_.size() * 2 : (x_dims.size() - 2) * 2,
+                    (int64_t)0);
     std::vector<int64_t> kernel_shape = kernel_shape_;
     std::vector<int64_t> output_dims = SetOutputSize(x_dims, x_dims[1], &pads, &strides,
                                                      &kernel_shape, &dilations);
@@ -286,9 +288,9 @@ struct MaxPool1DTask final {
     }
 
     void operator()(std::ptrdiff_t begin, std::ptrdiff_t end) const {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+        #ifdef _OPENMP
+        #pragma omp parallel for
+        #endif
         for (int64_t c = begin; c < end; ++c)
             operator()(c);
     }
@@ -315,7 +317,166 @@ struct MaxPool1DTask final {
         }
     }
 };
- 
+
+
+template <typename T>
+struct MaxPool2DTask final {
+    const T* X_data;
+    T* Y_data;
+    int64_t* I_data;
+    int64_t x_step;
+    int64_t y_step;
+    int64_t dilation_h;
+    int64_t dilation_w;
+    int64_t pooled_height;
+    int64_t pooled_width;
+    int64_t stride_h;
+    int64_t stride_w;
+    int64_t height;
+    int64_t width;
+    const std::vector<int64_t>& kernel_shape;
+    const std::vector<int64_t>& pads;
+    int64_t storage_order;
+
+    TensorOpCost Cost() {
+        double loop_count = static_cast<double>(
+            pooled_height * pooled_width * kernel_shape[0] * kernel_shape[1]);
+        return TensorOpCost{loop_count, loop_count, loop_count};
+    }
+
+    void operator()(std::ptrdiff_t begin, std::ptrdiff_t end) const {
+        #ifdef _OPENMP
+        #pragma omp parallel for
+        #endif
+        for (int64_t c = begin; c < end; ++c)
+            operator()(c);
+    }
+
+    void operator()(std::ptrdiff_t c) const {
+        const T* x_d = X_data + c * x_step;
+        T* y_d = Y_data + c * y_step;
+        int64_t* i_d = I_data ? I_data + c * y_step : nullptr;
+        for (int64_t ph = 0; ph < pooled_height; ++ph) {
+            int64_t hstart = ph * stride_h - pads[0];
+            int64_t hend = hstart + kernel_shape[0] * dilation_h;
+            for (int64_t pw = 0; pw < pooled_width; ++pw) {
+                int64_t wstart = pw * stride_w - pads[1];
+                int64_t wend = wstart + kernel_shape[1] * dilation_w;
+                const int64_t pool_index = ph * pooled_width + pw;
+                T Yh = std::numeric_limits<T>::lowest();
+                int64_t h_index = -1;
+                int64_t w_index = -1;
+                for (int64_t h = hstart; h < hend; h += dilation_h) {
+                    if (static_cast<uint64_t>(h) < static_cast<uint64_t>(height)) {
+                        for (int64_t w = wstart; w < wend; w += dilation_w) {
+                            if (static_cast<uint64_t>(w) < static_cast<uint64_t>(width)) {
+                                const int64_t input_index = h * width + w;
+                                if (x_d[input_index] > Yh) {
+                                    Yh = x_d[input_index];
+                                    h_index = h;
+                                    w_index = w;
+                                }
+                            }
+                        }
+                    }
+                }
+                y_d[pool_index] = Yh;
+                if (i_d != nullptr)
+                    i_d[pool_index] =
+                        storage_order == 0 ? c * x_step + h_index * width + w_index
+                                           : c * x_step + h_index + w_index * height;
+            }
+        }
+    }
+};
+
+
+template <typename T>
+struct MaxPool3DTask {
+    const T* X_data;
+    T* Y_data;
+    int64_t* I_data;
+    int64_t x_step;
+    int64_t y_step;
+    int64_t dilation_h;
+    int64_t dilation_w;
+    int64_t dilation_d;
+    int64_t pooled_height;
+    int64_t pooled_width;
+    int64_t pooled_depth;
+    int64_t stride_h;
+    int64_t stride_w;
+    int64_t stride_d;
+    int64_t height;
+    int64_t width;
+    int64_t depth;
+    const std::vector<int64_t>& kernel_shape;
+    const std::vector<int64_t>& pads;
+    int64_t storage_order;
+
+    void operator()(std::ptrdiff_t begin, std::ptrdiff_t end) const {
+        #ifdef _OPENMP
+        #pragma omp parallel for
+        #endif
+        for (int64_t c = begin; c < end; ++c)
+            operator()(c);
+    }
+
+    TensorOpCost Cost() {
+        double loop_count = static_cast<double>(pooled_height * pooled_width * pooled_depth * kernel_shape[0] *
+                                                kernel_shape[1] * kernel_shape[2]);
+        return TensorOpCost{loop_count, loop_count, loop_count};
+    }
+
+    void operator()(std::ptrdiff_t c) const {
+        const T* x_d = X_data + c * x_step;
+        T* y_d = Y_data + c * y_step;
+        int64_t* i_d = I_data ? I_data + c * y_step : nullptr;
+
+        for (int64_t ph = 0; ph < pooled_height; ++ph) {
+            int64_t hstart = ph * stride_h - pads[0];
+            int64_t hend = hstart + kernel_shape[0] * dilation_h;
+            for (int64_t pw = 0; pw < pooled_width; ++pw) {
+                int64_t wstart = pw * stride_w - pads[1];
+                int64_t wend = wstart + kernel_shape[1] * dilation_w;
+                for (int64_t pd = 0; pd < pooled_depth; ++pd) {
+                    int64_t dstart = pd * stride_d - pads[2];
+                    int64_t dend = dstart + kernel_shape[2] * dilation_d;
+                    const int64_t pool_index = ph * pooled_width * pooled_depth + pw * pooled_depth + pd;
+                    T Yh = std::numeric_limits<T>::lowest();
+                    int64_t h_index = -1;
+                    int64_t w_index = -1;
+                    int64_t d_index = -1;
+                    for (int64_t h = hstart; h < hend; h += dilation_h) {
+                        if (static_cast<uint64_t>(h) < static_cast<uint64_t>(height)) {
+                            for (int64_t w = wstart; w < wend; w += dilation_w) {
+                                if (static_cast<uint64_t>(w) < static_cast<uint64_t>(width)) {
+                                    for (int64_t d = dstart; d < dend; d += dilation_d) {
+                                        if (static_cast<uint64_t>(d) < static_cast<uint64_t>(depth)) {
+                                            const int64_t input_index = h * width * depth + w * depth + d;
+                                            if (x_d[input_index] > Yh) {
+                                                Yh = x_d[input_index];
+                                                h_index = h;
+                                                w_index = w;
+                                                d_index = d;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    y_d[pool_index] = Yh;
+                    if (i_d != nullptr)
+                        i_d[pool_index] = storage_order == 0
+                                ? c * x_step + h_index * width * depth + w_index * depth + d_index
+                                : c * x_step + h_index + w_index * height + d_index * height * width;
+                }
+            }
+        }
+    }
+};
+
 
 template<typename T>
 void MaxPool<T>::compute_gil_free(
@@ -341,7 +502,8 @@ void MaxPool<T>::compute_gil_free(
     int64_t pooled_depth = kernel_shape.size() > 2 ? y_dims[4] : 1;
     const int64_t total_channels = x_dims[0] * channels;
     int64_t stride_h = global_pooling_ ? 1 : strides[0];
-                
+    int64_t stride_w = global_pooling_ ? 1 : strides[1];
+    int64_t stride_d = global_pooling_ ? 1 : strides[2];
 
     switch (kernel_shape.size()) {
         case 1: {
@@ -356,38 +518,36 @@ void MaxPool<T>::compute_gil_free(
             break;
         }
 
-        /*
         case 2: {
             int64_t x_step = height * width;
             int64_t y_step = pooled_height * pooled_width;
-            const int64_t dilation_h = pool_attrs_.dilations[0];
-            const int64_t dilation_w = pool_attrs_.dilations[1];
-            RunLoop<MaxPool2DTask<T>>(
-                tp, total_channels,
-                {X_data, Y_data, I_data, x_step, y_step, dilation_h,
-                 dilation_w, pooled_height, pooled_width, stride_h(),
-                stride_w(), height, width, kernel_shape, pads, pool_attrs_.storage_order});
+            const int64_t dilation_h = dilations[0];
+            const int64_t dilation_w = dilations[1];
+            MaxPool2DTask<T> task {X_data, Y_data, I_data, x_step, y_step, dilation_h,
+                                   dilation_w, pooled_height, pooled_width, stride_h,
+                                   stride_w, height, width, kernel_shape, pads,
+                                   storage_order_};
+            task(0, total_channels);
             break;
         }
         
         case 3: {
             int64_t x_step = height * width * depth;
             int64_t y_step = pooled_height * pooled_width * pooled_depth;
-            const int64_t dilation_h = pool_attrs_.dilations[0];
-            const int64_t dilation_w = pool_attrs_.dilations[1];
-            const int64_t dilation_d = pool_attrs_.dilations[2];
-            RunLoop<MaxPool3DTask<T>>(tp, total_channels,
-                                      {X_data, Y_data, I_data, x_step, y_step,
-                                       dilation_h, dilation_w, dilation_d, pooled_height, pooled_width,
-                                       pooled_depth, stride_h(), stride_w(), stride_d(), height,
-                                       width, depth, kernel_shape, pads, pool_attrs_.storage_order});
+            const int64_t dilation_h = dilations[0];
+            const int64_t dilation_w = dilations[1];
+            const int64_t dilation_d = dilations[2];
+            MaxPool3DTask<T> task {X_data, Y_data, I_data, x_step, y_step,
+                                   dilation_h, dilation_w, dilation_d, pooled_height, pooled_width,
+                                   pooled_depth, stride_h, stride_w, stride_d, height,
+                                   width, depth, kernel_shape, pads, storage_order_};
+            task(0, total_channels);
             break;
         }
-        */
         
         default:
             throw std::runtime_error("MaxPool: not implemented error.");
-  }
+    }
 }
 
 
