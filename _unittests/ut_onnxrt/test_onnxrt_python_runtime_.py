@@ -1452,6 +1452,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['Y'])
+        python_tested.append(OnnxMaxPool)
 
     def test_onnxt_runtime_max_pool_3d_default(self):
         X = numpy.random.randn(1, 3, 32, 32, 32).astype(numpy.float32)
