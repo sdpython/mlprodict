@@ -2372,7 +2372,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(sparse.dims, dense_shape)  # pylint: disable=E1101
 
         for opset, cls in [(get_opset_number_from_onnx(), OnnxConstant),
-                           (9, OnnxConstant_9), (11, OnnxConstant_11)]:
+                           # (9, OnnxConstant_9),
+                           (11, OnnxConstant_11)]:
             with self.subTest(opset=opset):
                 X = numpy.array([0.1, 0.2], dtype=numpy.float32)
                 if opset >= 12:
