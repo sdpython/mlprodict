@@ -1018,7 +1018,7 @@ class OnnxInference:
                 print(oinf2)
         """
         def clean_name(name):
-            return name.replace(":", "_").replace('.', '_')
+            return name.replace(":", "_").replace('.', '_').replace('/', '_')
 
         # inits
         inputs = self.input_names

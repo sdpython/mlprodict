@@ -369,3 +369,11 @@ void gemm(bool transA, bool transB,
     }
     throw std::runtime_error("Not implemented for transposed matrices.");
 }    
+
+
+template <typename T>
+class ConvPoolCommon {
+    
+};
+
+

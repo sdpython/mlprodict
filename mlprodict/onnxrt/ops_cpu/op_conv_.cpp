@@ -23,7 +23,7 @@ namespace py = pybind11;
 
 
 template <typename T>
-class Conv {
+class Conv : ConvPoolCommon<T> {
     
     private:
         
@@ -75,7 +75,7 @@ class Conv {
 };
 
 template<typename T>
-Conv<T>::Conv() {
+Conv<T>::Conv() : ConvPoolCommon<T>() {
 }
 
 

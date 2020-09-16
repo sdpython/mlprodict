@@ -56,6 +56,7 @@ from .op_loop import Loop
 from .op_lp_normalization import LpNormalization
 from .op_matmul import MatMul
 from .op_max import Max
+from .op_max_pool import MaxPool
 from .op_mean import Mean
 from .op_min import Min
 from .op_mul import Mul

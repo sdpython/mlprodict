@@ -23,7 +23,7 @@ namespace py = pybind11;
 
 
 template <typename T>
-class ConvTranspose {
+class ConvTranspose : ConvPoolCommon<T> {
     
     private:
         
@@ -83,7 +83,7 @@ class ConvTranspose {
 };
 
 template<typename T>
-ConvTranspose<T>::ConvTranspose() {
+ConvTranspose<T>::ConvTranspose() : ConvPoolCommon<T>() {
 }
 
 
@@ -357,35 +357,35 @@ class ConvTransposeDouble : public ConvTranspose<double>
 PYBIND11_MODULE(op_conv_transpose_, m) {
 	m.doc() =
     #if defined(__APPLE__)
-    "Implements Conv operator."
+    "Implements ConvTranspose operator."
     #else
     R"pbdoc(Implements runtime for operator Conv. The code is inspired from
-`conv.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/conv_transpose.cc>`_
+`conv_transpose.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/conv_transpose.cc>`_
 in :epkg:`onnxruntime`.)pbdoc"
     #endif
     ;
 
     py::class_<ConvTransposeFloat> clf (m, "ConvTransposeFloat",
         R"pbdoc(Implements float runtime for operator Conv. The code is inspired from
-`conv.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/conv_transpose.cc>`_
+`conv_transpose.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/conv_transpose.cc>`_
 in :epkg:`onnxruntime`. Supports float only.)pbdoc");
 
     clf.def(py::init<>());
     clf.def("init", &ConvTransposeFloat::init,
             "Initializes the runtime with the ONNX attributes.");
     clf.def("compute", &ConvTransposeFloat::compute,
-            "Computes the output for operator Conv.");
+            "Computes the output for operator ConvTranspose.");
 
     py::class_<ConvTransposeDouble> cld (m, "ConvTransposeDouble",
         R"pbdoc(Implements float runtime for operator Conv. The code is inspired from
-`conv.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/conv_transpose.cc>`_
+`conv_transpose.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/conv_transpose.cc>`_
 in :epkg:`onnxruntime`. Supports double only.)pbdoc");
 
     cld.def(py::init<>());
     cld.def("init", &ConvTransposeDouble::init,
             "Initializes the runtime with the ONNX attributes.");
     cld.def("compute", &ConvTransposeDouble::compute,
-            "Computes the output for operator Conv.");
+            "Computes the output for operator ConvTranspose.");
 }
 
 #endif
