@@ -71,7 +71,7 @@ def convert_scorer(fct, initial_types, name=None,
         kwargs = fct._kwargs
         fct = fct._score_func
     else:
-        kwargs = None
+        kwargs = None  # pragma: no cover
     if name is None:
         name = "mlprodict_fct_ONNX(%s)" % fct.__name__
     tr = CustomScorerTransform(fct.__name__, fct, kwargs)
@@ -138,11 +138,11 @@ def guess_schema_from_data(X, tensor_type=None, schema=None):
     unique = set()
     for _, col in init:
         if len(col.shape) != 2:
-            return init
+            return init  # pragma: no cover
         if col.shape[0] is not None:
-            return init
+            return init  # pragma: no cover
         if len(unique) > 0 and col.__class__ not in unique:
-            return init
+            return init  # pragma: no cover
         unique.add(col.__class__)
     unique = list(unique)
     return [('X', unique[0]([None, sum(_[1].shape[1] for _ in init)]))]
@@ -337,14 +337,14 @@ def to_onnx(model, X=None, name=None, initial_types=None,
         if dtype is None:
             raise RuntimeError("dtype cannot be None")  # pragma: no cover
         if isinstance(dtype, FloatTensorType):
-            dtype = numpy.float32
+            dtype = numpy.float32  # pragma: no cover
         elif isinstance(dtype, DoubleTensorType):
-            dtype = numpy.float64
+            dtype = numpy.float64  # pragma: no cover
         new_dtype = dtype
         if isinstance(dtype, numpy.ndarray):
-            new_dtype = dtype.dtype
+            new_dtype = dtype.dtype  # pragma: no cover
         elif isinstance(dtype, DataType):
-            new_dtype = numpy.float32
+            new_dtype = numpy.float32  # pragma: no cover
         if new_dtype not in (numpy.float32, numpy.float64, numpy.int64,
                              numpy.int32):
             raise NotImplementedError(  # pragma: no cover
@@ -362,9 +362,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
                 if hasattr(v, 'dtype'):
                     dtype = guess_numpy_type(v.dtype)
                 else:
-                    dtype = v
-                if dtype != numpy.float64:
-                    dtype = numpy.float32
+                    dtype = v  # pragma: no cover
                 it, _, ndt = _guess_type_(v, None, dtype)
                 for i in range(len(it)):  # pylint: disable=C0200
                     it[i] = (k, it[i][1])  # pylint: disable=C0200

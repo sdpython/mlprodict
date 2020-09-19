@@ -34,7 +34,7 @@ class SVMClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
         """
         if op_name == "SVMClassifierDouble":
             return SVMClassifierDoubleSchema()
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
     def _init(self, dtype):
@@ -44,7 +44,8 @@ class SVMClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
         elif dtype == numpy.float64:
             self.rt_ = RuntimeSVMClassifierDouble(20)
         else:
-            raise RuntimeTypeError("Unsupported dtype={}.".format(dtype))
+            raise RuntimeTypeError(  # pragma: no cover
+                "Unsupported dtype={}.".format(dtype))
         atts = [self._get_typed_attributes(k)
                 for k in SVMClassifier.atts]
         self.rt_.init(*atts)

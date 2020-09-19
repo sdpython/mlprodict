@@ -12,7 +12,7 @@ from ..shape_object import ShapeObject
 def _pad_impl(data, raw_pads, mode, constant_values=0.0):
     input_rank = data.ndim
     if input_rank * 2 != raw_pads.size:
-        raise Exception(
+        raise RuntimeError(  # pragma: no cover
             'The number of elements in raw_pads should be 2 * data_rank')
 
     half = raw_pads.shape[0] // 2

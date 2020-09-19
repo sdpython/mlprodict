@@ -23,7 +23,7 @@ class Normalizer(OpRunUnaryNum):
         elif self.norm == b'L2':  # pylint: disable=E1101
             self._norm = Normalizer.norm_l2
         else:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Unexpected value for norm='{}'.".format(self.norm))  # pylint: disable=E1101
 
     @staticmethod

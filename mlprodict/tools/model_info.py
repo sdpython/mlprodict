@@ -58,7 +58,8 @@ def _reduce_infos(infos):
             return obj
 
     if not isinstance(infos, list):
-        raise TypeError("infos must a list not {}.".format(type(infos)))
+        raise TypeError(  # pragma: no cover
+            "infos must a list not {}.".format(type(infos)))
     keys = set()
     for info in infos:
         if not isinstance(info, dict):
@@ -75,7 +76,7 @@ def _reduce_infos(infos):
         elif k.endswith('.max_depth'):
             info['max|%s' % k] = max(values)
         elif k.endswith('.size'):
-            info['sum|%s' % k] = sum(values)
+            info['sum|%s' % k] = sum(values)  # pragma: no cover
         else:
             try:
                 un = set(values)
@@ -201,7 +202,7 @@ def analyze_model(model, simplify=True):
                 ii = analyze_model(v, False)
                 infos.append(ii)
         if len(infos) == 0:
-            return info
+            return info  # pragma: no cover
         for k, v in _reduce_infos(infos).items():
             info['.%s' % k] = v
         return info

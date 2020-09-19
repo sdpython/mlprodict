@@ -30,7 +30,7 @@ def heatmap(data, row_labels, col_labels, ax=None,
     """
 
     if not ax:
-        ax = plt.gca()
+        ax = plt.gca()  # pragma: no cover
 
     # Plot the heatmap
     im = ax.imshow(data, **kwargs)
@@ -93,7 +93,7 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
     if not isinstance(data, (list, numpy.ndarray)):
         data = im.get_array()
     if threshold is not None:
-        threshold = im.norm(threshold)
+        threshold = im.norm(threshold)  # pragma: no cover
     else:
         threshold = im.norm(data.max()) / 2.
 

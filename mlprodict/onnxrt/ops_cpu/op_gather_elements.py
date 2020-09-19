@@ -40,7 +40,7 @@ def gather_numpy(self, dim, index):
     idx_xsection_shape = index.shape[:dim] + index.shape[dim + 1:]
     self_xsection_shape = self.shape[:dim] + self.shape[dim + 1:]
     if idx_xsection_shape != self_xsection_shape:
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             "Except for dimension {}, all dimensions of "
             "index and self should be the same size".format(dim))
     data_swaped = numpy.swapaxes(self, 0, dim)
@@ -50,7 +50,7 @@ def gather_numpy(self, dim, index):
     except ValueError as e:
         if len(index_swaped.shape) == 2 and len(data_swaped.shape) == 2:
             return gather_numpy_2(self, dim, index)
-        raise e
+        raise e  # pragma: no cover
 
     return numpy.swapaxes(gathered, 0, dim)
 

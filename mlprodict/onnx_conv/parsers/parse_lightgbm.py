@@ -23,7 +23,7 @@ class WrappedLightGbmBooster:
         self.n_features_ = len(self._model_dict['feature_names'])
         if self._model_dict['objective'].startswith('binary'):
             self.operator_name = 'LgbmClassifier'
-        elif self._model_dict['objective'].startswith('regression'):
+        elif self._model_dict['objective'].startswith('regression'):  # pragma: no cover
             self.operator_name = 'LgbmRegressor'
         else:  # pragma: no cover
             raise NotImplementedError('Unsupported LightGbm objective: {}'.format(
@@ -71,8 +71,9 @@ def lightgbm_parser(scope, model, inputs, custom_parsers=None):
     Agnostic parser for LightGBM Booster.
     """
     if hasattr(model, "fit"):
-        raise TypeError("This converter does not apply on type '{}'."
-                        "".format(type(model)))
+        raise TypeError(  # pragma: no cover
+            "This converter does not apply on type '{}'."
+            "".format(type(model)))
 
     if len(inputs) == 1:
         wrapped = WrappedLightGbmBooster(model)
@@ -80,7 +81,7 @@ def lightgbm_parser(scope, model, inputs, custom_parsers=None):
             wrapped = WrappedLightGbmBoosterClassifier(wrapped)
             return _parse_sklearn_classifier(
                 scope, wrapped, inputs, custom_parsers=custom_parsers)
-        if wrapped._model_dict['objective'].startswith('regression'):
+        if wrapped._model_dict['objective'].startswith('regression'):  # pragma: no cover
             return _parse_sklearn_simple_model(
                 scope, wrapped, inputs, custom_parsers=custom_parsers)
         raise NotImplementedError(  # pragma: no cover

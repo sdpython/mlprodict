@@ -5,7 +5,7 @@ import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.grammar_sklearn import sklearn2graph
-from mlprodict.grammar.exc import Float32InfError
+from mlprodict.grammar_sklearn.grammar.exc import Float32InfError
 
 
 class TestGrammarSklearnLinearBugFloat(ExtTestCase):

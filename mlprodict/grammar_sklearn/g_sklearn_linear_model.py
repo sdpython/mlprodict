@@ -5,11 +5,11 @@
 """
 import numpy
 from .g_sklearn_type_helpers import check_type
-from ..grammar.exc import Float32InfError
-from ..grammar.gactions import MLActionCst, MLActionVar, MLActionConcat, MLActionReturn
-from ..grammar.gactions_num import MLActionAdd, MLActionSign
-from ..grammar.gactions_tensor import MLActionTensorDot
-from ..grammar.gmlactions import MLModel
+from .grammar.exc import Float32InfError
+from .grammar.gactions import MLActionCst, MLActionVar, MLActionConcat, MLActionReturn
+from .grammar.gactions_num import MLActionAdd, MLActionSign
+from .grammar.gactions_tensor import MLActionTensorDot
+from .grammar.gmlactions import MLModel
 
 
 def sklearn_logistic_regression(model, input_names=None, output_names=None, **kwargs):
@@ -53,7 +53,7 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
             raise Float32InfError(  # pragma: no cover
                 'Unable to convert coefficient {0}: {1}'.format(i, coef[i]))
     if numpy.isinf(bias):
-        raise Float32InfError(
+        raise Float32InfError(  # pragma: no cover
             'Unable to convert intercept {0}'.format(model.intercept_[0]))
 
     gr_coef = MLActionCst(coef)

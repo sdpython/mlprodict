@@ -7,7 +7,7 @@ import textwrap
 import hashlib
 try:
     from ..onnxrt.optim.sklearn_helper import set_n_jobs
-except ValueError:
+except ValueError:  # pragma: no cover
     from mlprodict.onnxrt.optim.sklearn_helper import set_n_jobs
 
 # exec function does not import models but potentially
@@ -240,9 +240,10 @@ def _asv_class_name(model, scenario, optimisation,
 
     def clean_str_list(val):
         if val is None:
-            return ""
+            return ""  # pragma: no cover
         if isinstance(val, list):
-            return ".".join(clean_str_list(v) for v in val if v)
+            return ".".join(  # pragma: no cover
+                clean_str_list(v) for v in val if v)
         return clean_str(val)
 
     els = ['bench', model.__name__, scenario, clean_str(problem)]
@@ -416,7 +417,7 @@ def add_model_import_init(
             add_params.append('par_optims = {}'.format(
                 _format_dict(optimisation, indent=4)))
         else:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Unable to interpret optimisation {}.".format(optimisation))
 
     # look for import place

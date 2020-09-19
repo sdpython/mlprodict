@@ -115,7 +115,7 @@ class MLActionTensorMul(MLActionTensorVector):
         @param  act1    first tensor
         @param  act2    second tensor
         """
-        MLActionTensorVector.__init__(
+        MLActionTensorVector.__init__(  # pragma: no cover
             self, act1, act2, "amul", lambda v1, v2: numpy.multiply(v1, v2))
 
 
@@ -143,5 +143,5 @@ class MLActionTensorAdd(MLActionTensorVector):
         @param  act1    first tensor
         @param  act2    second tensor
         """
-        MLActionTensorVector.__init__(
+        MLActionTensorVector.__init__(  # pragma: no cover
             self, act1, act2, "aadd", lambda v1, v2: v1 + v2)

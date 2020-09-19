@@ -57,7 +57,8 @@ def extract_information_from_filename(name):
             if 'opset' not in res:
                 res['opset'] = i
                 continue
-            raise ValueError("Unable to parse '{}'.".format(name))
+            raise ValueError(  # pragma: no cover
+                "Unable to parse '{}'.".format(name))
 
         if 'scenario' not in res:
             res['scenario'] = v
@@ -90,7 +91,8 @@ def extract_information_from_filename(name):
         elif res['model'].endswith('Reg'):
             res['model'] += "ressor"
         if res['model'].startswith('HGB'):
-            res['model'] = "HistGradientBoosting" + res['model'][3:]
+            res['model'] = "HistGradientBoosting" + \
+                res['model'][3:]  # pragma: no cover
         res['model'] = rep.get(res['model'], res['model'])
     return res
 

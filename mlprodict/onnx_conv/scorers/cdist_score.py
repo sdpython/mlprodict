@@ -44,8 +44,6 @@ def convert_score_cdist_sum(scope, operator, container):
     out = operator.outputs
     opv = container.target_opset
     dtype = guess_numpy_type(operator.inputs[0].type)
-    if dtype != numpy.float64:
-        dtype = numpy.float32
     out = operator.outputs
 
     options = container.get_options(score_cdist_sum, dict(cdist=None))

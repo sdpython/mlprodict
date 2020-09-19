@@ -61,9 +61,9 @@ def plot_validate_benchmark(df):
     import matplotlib.pyplot as plt
 
     if 'n_features' not in df.columns:
-        df["n_features"] = 4
+        df["n_features"] = numpy.nan  # pragma: no cover
     if 'runtime' not in df.columns:
-        df['runtime'] = '?'
+        df['runtime'] = '?'  # pragma: no cover
 
     fmt = "{} [{}-{}|{}] D{}"
     df["label"] = df.apply(
@@ -151,7 +151,7 @@ def plot_validate_benchmark(df):
             continue
         prev = final.iloc[i - 1, 0]
         if '[' not in label:
-            continue
+            continue  # pragma: no cover
         label = label.split()[0]
         prev = prev.split()[0]
         if _model_name(label) == _model_name(prev):
@@ -193,26 +193,27 @@ def plot_validate_benchmark(df):
                      color=colors[runtime])
             axi.set_title(place)
 
+    def _plot_axis(axi, x, xlim):
+        axi.plot([1, 1], [0, max(x)], 'g-')
+        axi.plot([2, 2], [0, max(x)], 'r--')
+        axi.set_xlim(xlim)
+        axi.set_xscale('log')
+        axi.set_ylim([min(x) - 2, max(x) + 1])
+
+    def _plot_final(axi, x, final):
+        axi.set_yticks(x)
+        axi.set_yticklabels(final['label'])
+
     if hasattr(ax, 'shape'):
         for i in range(len(ax)):  # pylint: disable=C0200
-            ax[i].plot([1, 1], [0, max(x)], 'g-')
-            ax[i].plot([2, 2], [0, max(x)], 'r--')
-            ax[i].set_xlim(xlim)
-            ax[i].set_xscale('log')
-            ax[i].set_ylim([min(x) - 2, max(x) + 1])
+            _plot_axis(ax[i], x, xlim)
 
         ax[min(ax.shape[0] - 1, 2)].legend()
-        ax[0].set_yticks(x)
-        ax[0].set_yticklabels(final['label'])
+        _plot_final(ax[0], x, final)
     else:
-        ax.plot([1, 1], [0, max(x)], 'g-')
-        ax.plot([2, 2], [0, max(x)], 'r--')
-        ax.set_xscale('log')
+        _plot_axis(ax, x, xlim)
+        _plot_final(ax, x, final)
         ax.legend()
-        ax.set_yticks(x)
-        ax.set_yticklabels(final['label'])
-        ax.set_xlim(xlim)
-        ax.set_ylim([min(x) - 2, max(x) + 1])
 
     fig.subplots_adjust(left=0.25)
     return fig, ax

@@ -145,9 +145,9 @@ def create_asv_benchmark(
 
     # creates the folder if it does not exist.
     if not os.path.exists(location):
-        if verbose > 0 and fLOG is not None:
+        if verbose > 0 and fLOG is not None:  # pragma: no cover
             fLOG("[create_asv_benchmark] create folder '{}'.".format(location))
-        os.makedirs(location)
+        os.makedirs(location)  # pragma: no cover
 
     location_test = os.path.join(location, 'benches')
     if not os.path.exists(location_test):
@@ -159,8 +159,8 @@ def create_asv_benchmark(
     created = []
     if clean:
         for name in os.listdir(location_test):
-            full_name = os.path.join(location_test, name)
-            if os.path.isfile(full_name):
+            full_name = os.path.join(location_test, name)  # pragma: no cover
+            if os.path.isfile(full_name):  # pragma: no cover
                 os.remove(full_name)
 
     # configuration
@@ -169,11 +169,12 @@ def create_asv_benchmark(
         for k, v in conf_params.items():
             conf[k] = v
     if build is not None:
-        for fi in ['env_dir', 'results_dir', 'html_dir']:
+        for fi in ['env_dir', 'results_dir', 'html_dir']:  # pragma: no cover
             conf[fi] = os.path.join(build, conf[fi])
     if env == 'same':
         if matrix is not None:
-            raise ValueError("Parameter matrix must be None if env is 'same'.")
+            raise ValueError(  # pragma: no cover
+                "Parameter matrix must be None if env is 'same'.")
         conf['pythons'] = ['same']
         conf['matrix'] = {}
     elif matrix is not None:
@@ -363,7 +364,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
             model, verbose, fLOG, extended_list)
         if extras is None or problems is None:
             # Not tested yet.
-            continue
+            continue  # pragma: no cover
 
         # flat or not flat
         created, location_model, prefix_import, dest_pyspy_model = _handle_init_files(
@@ -413,7 +414,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                 if (filter_scenario is not None and
                         not filter_scenario(model, prob, scenario,
                                             extra, new_conv_options)):
-                    continue
+                    continue  # pragma: no cover
 
                 if verbose >= 3 and fLOG is not None:
                     fLOG("[create_asv_benchmark] model={} scenario={} optim={} extra={} dofit={} (problem={} method_name='{}')".format(
@@ -433,7 +434,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                     patterns=patterns)
                 for cr in created:
                     if cr in all_created:
-                        raise RuntimeError(
+                        raise RuntimeError(  # pragma: no cover
                             "File '{}' was already created.".format(cr))
                     all_created.add(cr)
                     if verbose > 1 and fLOG is not None:
@@ -473,7 +474,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
     def _nick_name_options(model, opts):
         # Shorten common onnx options, see _CommonAsvSklBenchmark._to_onnx.
         if opts is None:
-            return opts
+            return opts  # pragma: no cover
         short_opts = shorten_onnx_options(model, opts)
         if short_opts is not None:
             return short_opts
@@ -482,7 +483,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             if hasattr(k, '__name__'):
                 res["####" + k.__name__ + "####"] = v
             else:
-                res[k] = v
+                res[k] = v  # pragma: no cover
         return res
 
     def _make_simple_name(name):
@@ -516,9 +517,9 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                 model, scenario, optimisation, extra,
                 dofit, conv_options, problem,
                 shorten=True)
-        except ValueError as e:
+        except ValueError as e:  # pragma: no cover
             if exc:
-                raise e  # pragma: no cover
+                raise e
             warnings.warn(str(e))
             continue
         filename = name.replace(".", "_") + ".py"
@@ -526,7 +527,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             class_content = _select_pattern_problem(problem, patterns)
         except ValueError as e:
             if exc:
-                raise e
+                raise e  # pragma: no cover
             warnings.warn(str(e))
             continue
         full_class_name = _asv_class_name(

@@ -85,4 +85,4 @@ class ArgMax_12(_ArgMax):
 if onnx_opset_version() >= 12:
     ArgMax = ArgMax_12
 else:
-    ArgMax = ArgMax_11
+    ArgMax = ArgMax_11  # pragma: no cover

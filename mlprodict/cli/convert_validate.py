@@ -101,14 +101,14 @@ def convert_validate(pkl, data=None, schema=None,
                              --verbose 1
     """
     if fLOG is None:
-        verbose = 0
+        verbose = 0  # pragma: no cover
     if use_double not in (None, 'float64', 'switch'):
         raise ValueError(  # pragma: no cover
             "use_double must be either None, 'float64' or 'switch'")
     if optim == '':
-        optim = None
+        optim = None  # pragma: no cover
     if target_opset == '':
-        target_opset = None
+        target_opset = None  # pragma: no cover
     if verbose == 0:
         logger = getLogger('skl2onnx')
         logger.disabled = True
@@ -165,7 +165,8 @@ def convert_validate(pkl, data=None, schema=None,
 
     if noshape:
         if verbose > 0:
-            fLOG("[convert_validate] convert the model with no shape information")
+            fLOG(  # pragma: no cover
+                "[convert_validate] convert the model with no shape information")
         schema = [(name, col.__class__([None, None])) for name, col in schema]
         onx = to_onnx(
             model, initial_types=schema, rewrite_ops=rewrite_ops,

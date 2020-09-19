@@ -110,16 +110,32 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         Ensures that double floats are converted into single floats
         if *enforce_float32* is True or raises an exception.
         """
-        for k in inputs:
+        sht = self.onnxrt_.input_names_shapes_types if hasattr(
+            self, "onnxrt_") else None
+        if sht is not None and len(sht) != len(inputs):
+            raise RuntimeError(  # pragma: no cover
+                "Unexpected number of inputs {} != {} (expected).".format(
+                    len(inputs), len(sht)))
+        for i, k in enumerate(inputs):
             v = inputs[k]
             if isinstance(v, numpy.ndarray):
-                if v.dtype == numpy.float64:
-                    if self.enforce_float32:
-                        inputs[k] = v.astype(numpy.float32)
-                    else:
-                        raise TypeError(  # pragma: no cover
-                            "onnxunruntime only supports floats. Input '{0}' "
-                            "should be converted.".format(k))
+                if v.dtype == numpy.float64 and self.enforce_float32:
+                    inputs[k] = v.astype(numpy.float32)
+                    continue
+                if not hasattr(self, "onnxrt_"):
+                    continue
+                exp = sht[i]
+                if exp[1][1:] != v.shape[1:]:
+                    raise RuntimeError(  # pragma: no cover
+                        "Unexpected shape for input '{}': {} != {} "
+                        "(expected).".format(
+                            k, v.shape, exp[1]))
+                if ((v.dtype == numpy.float32 and exp[2] != 'tensor(float)') or
+                        (v.dtype == numpy.float64 and exp[2] != 'tensor(double)')):
+                    raise TypeError(
+                        "Unexpected dtype for input '{}': {} != {} "
+                        "(expected).".format(
+                            k, v.dtype, exp[2]))
 
     def transform(self, X, y=None, **inputs):
         """

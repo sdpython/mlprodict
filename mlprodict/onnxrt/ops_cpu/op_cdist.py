@@ -32,7 +32,7 @@ class CDist(OpRunBinaryNum):
     def _find_custom_operator_schema(self, op_name):
         if op_name == "CDist":
             return CDistSchema()
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
     def _infer_shapes(self, a, b):  # pylint: disable=W0221

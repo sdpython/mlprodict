@@ -33,7 +33,7 @@ class SVMRegressorCommon(OpRunUnaryNum):
         """
         if op_name == "SVMRegressorDouble":
             return SVMRegressorDoubleSchema()
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
     def _init(self, dtype):
@@ -42,7 +42,8 @@ class SVMRegressorCommon(OpRunUnaryNum):
         elif dtype == numpy.float64:
             self.rt_ = RuntimeSVMRegressorDouble(50)
         else:
-            raise RuntimeTypeError("Unsupported dtype={}.".format(dtype))
+            raise RuntimeTypeError(  # pragma: no cover
+                "Unsupported dtype={}.".format(dtype))
         atts = [self._get_typed_attributes(k)
                 for k in SVMRegressor.atts]
         self.rt_.init(*atts)

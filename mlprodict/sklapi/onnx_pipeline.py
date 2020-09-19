@@ -174,8 +174,6 @@ class OnnxPipeline(Pipeline):
         kwargs = {k: getattr(self, k) for k in atts}
         if self.enforce_float32 or x_train.dtype != numpy.float64:
             x_train = x_train.astype(numpy.float32)
-        elif 'dtype' not in kwargs:
-            kwargs['dtype'] = numpy.float64
         if 'options' in kwargs:
             kwargs['options'] = self._preprocess_options(
                 name, kwargs['options'])

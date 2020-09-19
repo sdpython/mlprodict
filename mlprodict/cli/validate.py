@@ -176,15 +176,16 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
 
     # handling parameters
     if opset_max == "":
-        opset_max = None
+        opset_max = None  # pragma: no cover
     if isinstance(opset_min, str):
-        opset_min = int(opset_min)
+        opset_min = int(opset_min)  # pragma: no cover
     if isinstance(opset_max, str):
         opset_max = int(opset_max)
     if isinstance(verbose, str):
-        verbose = int(verbose)
+        verbose = int(verbose)  # pragma: no cover
     if isinstance(extended_list, str):
-        extended_list = extended_list in ('1', 'True', 'true')
+        extended_list = extended_list in (
+            '1', 'True', 'true')  # pragma: no cover
     if time_kwargs in (None, ''):
         time_kwargs = None
     if isinstance(time_kwargs, str):
@@ -218,7 +219,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         def fct_filter_exp2(m, p):
             return fct_filter_exp(m, p) and '64' not in p
         fct_filter = fct_filter_exp2
-    elif dtype == '64':
+    elif dtype == '64':  # pragma: no cover
         def fct_filter_exp3(m, p):
             return fct_filter_exp(m, p) and '64' in p
         fct_filter = fct_filter_exp3
@@ -295,8 +296,9 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
         raise RuntimeError("No result produced by the benchmark.")
     piv = summary_report(df)
     if 'optim' not in piv:
-        raise RuntimeError("Unable to produce a summary. Missing column in \n{}".format(
-            piv.columns))
+        raise RuntimeError(  # pragma: no cover
+            "Unable to produce a summary. Missing column in \n{}".format(
+                piv.columns))
 
     if out_summary:
         if verbose > 0:
@@ -344,7 +346,7 @@ def _validate_runtime_separate_process(**kwargs):
         from tqdm import tqdm
         pbar = tqdm(skls)
     else:
-        pbar = skls
+        pbar = skls  # pragma: no cover
 
     for op in pbar:
         if not isinstance(pbar, list):
@@ -354,13 +356,13 @@ def _validate_runtime_separate_process(**kwargs):
             out_raw = os.path.splitext(kwargs['out_raw'])
             out_raw = "".join([out_raw[0], "_", op, out_raw[1]])
         else:
-            out_raw = None
+            out_raw = None  # pragma: no cover
 
         if kwargs['out_summary']:
             out_summary = os.path.splitext(kwargs['out_summary'])
             out_summary = "".join([out_summary[0], "_", op, out_summary[1]])
         else:
-            out_summary = None
+            out_summary = None  # pragma: no cover
 
         new_kwargs = kwargs.copy()
         if 'fLOG' in new_kwargs:

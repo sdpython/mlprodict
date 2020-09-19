@@ -11,18 +11,6 @@ from ._op import OpRun
 from .op_max_pool_ import MaxPoolFloat, MaxPoolDouble  # pylint: disable=E0611
 
 
-def _pool_get_pad_shape(auto_pad, input_spatial_shape, kernel_spatial_shape,
-                        strides_spatial, output_spatial_shape):
-    pad_shape = [0] * len(input_spatial_shape)
-    if auto_pad in (b'SAME_UPPER', b'SAME_LOWER'):
-        for i in range(len(input_spatial_shape)):  # pylint: disable=C0200
-            pad_shape[i] = (output_spatial_shape[i] - 1) * strides_spatial[i] + \
-                kernel_spatial_shape[i] - input_spatial_shape[i]
-    elif auto_pad == b'VALID':
-        pass
-    return pad_shape
-
-
 def _pool_get_output_shape(auto_pad, input_spatial_shape, kernel_spatial_shape,
                            strides_spatial):
     out_shape = [0] * len(input_spatial_shape)

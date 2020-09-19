@@ -26,7 +26,7 @@ def _custom_parser_xgboost(scope, model, inputs, custom_parsers=None):
             "Current converter does not support string labels.")
     try:
         from skl2onnx._parse import _parse_sklearn_classifier
-    except ImportError as e:
+    except ImportError as e:  # pragma: no cover
         import skl2onnx
         raise ImportError(
             "Hidden API has changed in module 'skl2onnx=={}', "
@@ -58,7 +58,7 @@ def _register_converters_lightgbm(exc=True):
     if LGBMClassifier is not None:
         try:
             from skl2onnx._parse import _parse_sklearn_classifier
-        except ImportError as e:
+        except ImportError as e:  # pragma: no cover
             import skl2onnx
             raise ImportError(
                 "Hidden API has changed in module 'skl2onnx=={}', "

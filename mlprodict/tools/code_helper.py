@@ -86,10 +86,10 @@ def debug_dump(clname, obj, folder=None, ops=None):
                     print("NAN-notin-out ", name, prefix,
                           {k: getattr(ops, k, '?') for k in getattr(ops, 'atts', {})})
                     return True
-                return False
-            for k, v in obj.items():
+                return False  # pragma: no cover
+            for k, v in obj.items():  # pragma: no cover
                 debug_print_([v], k)
-            return None
+            return None  # pragma: no cover
         if isinstance(obj, list):
             for i, o in enumerate(obj):
                 if o is None:
@@ -128,10 +128,10 @@ def debug_print(k, obj, printed):
                   numpy_max(obj),
                   ' (sparse)' if 'coo_matrix' in str(type(obj)) else ''))
         elif (isinstance(obj, list) and len(obj) > 0 and
-                not isinstance(obj[0], dict)):
+                not isinstance(obj[0], dict)):  # pragma: no cover
             print("-='{}' list len={} min={} max={}".format(
                   k, len(obj), min(obj), max(obj)))
-        else:
+        else:  # pragma: no cover
             print("-='{}' type={}".format(k, type(obj)))
 
 
@@ -191,11 +191,11 @@ def make_callable(fct, obj, code, gl, debug):
     if res.__defaults__ != tuple(_[1] for _ in defs):  # pylint: disable=E1101
         # See https://docs.python.org/3/library/inspect.html
         # See https://stackoverflow.com/questions/11291242/python-dynamically-create-function-at-runtime
-        lines = [str(sig)]
+        lines = [str(sig)]  # pragma: no cover
         for name in ['co_argcount', 'co_cellvars', 'co_code', 'co_consts', 'co_filename',
                      'co_firstlineno', 'co_flags', 'co_freevars', 'co_kwonlyargcount',
                      'co_lnotab', 'co_name', 'co_names', 'co_nlocals', 'co_stacksize',
-                     'co_varnames']:
+                     'co_varnames']:  # pragma: no cover
             v = getattr(res.__code__, name, None)  # pylint: disable=E1101
             if v is not None:
                 lines.append('%s=%r' % (name, v))

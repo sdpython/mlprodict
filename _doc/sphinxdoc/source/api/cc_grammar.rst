@@ -13,4 +13,4 @@ Cc
 Grammar
 +++++++
 
-.. autosignature:: mlprodict.grammar.gmlactions.MLModel
+.. autosignature:: mlprodict.grammar_sklearn.grammar.gmlactions.MLModel

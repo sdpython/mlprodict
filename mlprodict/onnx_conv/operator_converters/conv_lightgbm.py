@@ -29,7 +29,7 @@ def calculate_lightgbm_output_shapes(operator):
         objective = op.objective_
     if objective.startswith('binary') or objective.startswith('multiclass'):
         return calculate_linear_classifier_output_shapes(operator)
-    if objective.startswith('regression'):
+    if objective.startswith('regression'):  # pragma: no cover
         return calculate_linear_regressor_output_shapes(operator)
     raise NotImplementedError(  # pragma: no cover
         "Objective '{}' is not implemented yet.".format(objective))
@@ -104,8 +104,9 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
     attrs['nodes_modes'].append(
         _translate_split_criterion(tree_structure['decision_type']))
     if isinstance(tree_structure['threshold'], str):
-        try:
-            attrs['nodes_values'].append(float(tree_structure['threshold']))
+        try:  # pragma: no cover
+            attrs['nodes_values'].append(  # pragma: no cover
+                float(tree_structure['threshold']))
         except ValueError as e:  # pragma: no cover
             import pprint
             text = pprint.pformat(tree_structure)
@@ -113,7 +114,8 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
                 text = text[:100000] + "\n..."
             raise TypeError("threshold must be a number not '{}'"
                             "\n{}".format(tree_structure['threshold'], text)) from e
-    attrs['nodes_values'].append(tree_structure['threshold'])
+    else:
+        attrs['nodes_values'].append(tree_structure['threshold'])
 
     # Assume left is the true branch and right is the false branch
     attrs['nodes_truenodeids'].append(left_id)
@@ -165,8 +167,9 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
         attrs['nodes_modes'].append(
             _translate_split_criterion(node['decision_type']))
         if isinstance(node['threshold'], str):
-            try:
-                attrs['nodes_values'].append(float(node['threshold']))
+            try:  # pragma: no cover
+                attrs['nodes_values'].append(  # pragma: no cover
+                    float(node['threshold']))
             except ValueError as e:  # pragma: no cover
                 import pprint
                 text = pprint.pformat(node)

@@ -16,11 +16,13 @@ class Where(OpRun):
 
     def _run(self, condition, x, y):  # pylint: disable=W0221
         if x.dtype != y.dtype:
-            raise RuntimeError("x and y should share the same dtype {} != {}".format(
-                x.dtype, y.dtype))
+            raise RuntimeError(  # pragma: no cover
+                "x and y should share the same dtype {} != {}".format(
+                    x.dtype, y.dtype))
         if x.shape != y.shape:
-            raise RuntimeError("x and y should share the same shape {} != {}".format(
-                x.shape, y.shape))
+            raise RuntimeError(  # pragma: no cover
+                "x and y should share the same shape {} != {}".format(
+                    x.shape, y.shape))
         return (numpy.where(condition, x, y).astype(x.dtype), )
 
     def _infer_shapes(self, condition, x, y):  # pylint: disable=W0221

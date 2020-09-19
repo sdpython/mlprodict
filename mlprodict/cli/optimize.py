@@ -52,9 +52,9 @@ def onnx_optim(name, outfile=None, recursive=True, options=None, verbose=0, fLOG
         raise FileNotFoundError(  # pragma: no cover
             "Unable to find file '{}'.".format(name))
     if outfile == "":
-        outfile = None
+        outfile = None  # pragma: no cover
     if options == "":
-        options = None
+        options = None  # pragma: no cover
     if verbose >= 1 and fLOG is not None:
         fLOG("[onnx_optim] read file '{}'.".format(name))
     with open(name, 'rb') as f:

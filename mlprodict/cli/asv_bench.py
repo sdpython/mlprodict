@@ -74,29 +74,30 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
         skip_models = ({} if skip_models in (None, "")
                        else skip_models.strip().split(','))
     if opset_max == "":
-        opset_max = None
+        opset_max = None  # pragma: no cover
     if isinstance(opset_min, str):
-        opset_min = int(opset_min)
+        opset_min = int(opset_min)  # pragma: no cover
     if isinstance(opset_max, str):
-        opset_max = int(opset_max)
+        opset_max = int(opset_max)  # pragma: no cover
     if isinstance(verbose, str):
-        verbose = int(verbose)
+        verbose = int(verbose)  # pragma: no cover
     if isinstance(extended_list, str):
-        extended_list = extended_list in ('1', 'True', 'true')
+        extended_list = extended_list in (
+            '1', 'True', 'true')  # pragma: no cover
     if isinstance(add_pyspy, str):
-        add_pyspy = add_pyspy in ('1', 'True', 'true')
+        add_pyspy = add_pyspy in ('1', 'True', 'true')  # pragma: no cover
     if not isinstance(runtime, list):
         runtime = runtime.split(',')
     if not isinstance(dims, list):
         dims = [int(_) for _ in dims.split(',')]
     if matrix is not None:
         if matrix in ('None', ''):
-            matrix = None
+            matrix = None  # pragma: no cover
         elif not isinstance(matrix, dict):
             matrix = json.loads(matrix)
     if not isinstance(n_features, list):
         if n_features in (None, ""):
-            n_features = None
+            n_features = None  # pragma: no cover
         else:
             n_features = list(map(int, n_features.split(',')))
     flat = flat in (True, 'True', 1, '1')
@@ -106,7 +107,7 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
 
     if dtype in ('', None):
         fct_filter = fct_filter_exp
-    elif dtype == '32':
+    elif dtype == '32':  # pragma: no cover
         def fct_filter_exp2(m, p):
             return fct_filter_exp(m, p) and '64' not in p
         fct_filter = fct_filter_exp2
@@ -115,7 +116,8 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
             return fct_filter_exp(m, p) and '64' in p
         fct_filter = fct_filter_exp3
     else:
-        raise ValueError("dtype must be empty, 32, 64 not '{}'.".format(dtype))
+        raise ValueError(  # pragma: no cover
+            "dtype must be empty, 32, 64 not '{}'.".format(dtype))
 
     if conf_params is not None:
         res = {}

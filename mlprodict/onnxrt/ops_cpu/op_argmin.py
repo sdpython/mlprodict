@@ -85,4 +85,4 @@ class ArgMin_12(_ArgMin):
 if onnx_opset_version() >= 12:
     ArgMin = ArgMin_12
 else:
-    ArgMin = ArgMin_11
+    ArgMin = ArgMin_11  # pragma: no cover

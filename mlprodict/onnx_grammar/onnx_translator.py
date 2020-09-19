@@ -141,13 +141,14 @@ class OnnxTranslator(CodeTranslator):
 
     def _get_last(self, name, info=None):
         if len(self._stack) == 0:
-            raise RuntimeError("Stack is empty.")
+            raise RuntimeError("Stack is empty.")  # pragma: no cover
         last = self._stack[-1]
         if ((isinstance(name, str) and last[0] != name) or
                 (isinstance(name, tuple) and last[0] not in name)):
-            raise RuntimeError("Last item is not '{}'\n{}\n---\n{}".format(
-                name, pprint.pformat(self._stack),
-                pprint.pformat(info) if info else ""))
+            raise RuntimeError(  # pragma: no cover
+                "Last item is not '{}'\n{}\n---\n{}".format(
+                    name, pprint.pformat(self._stack),
+                    pprint.pformat(info) if info else ""))
         return last
 
     def make_msg(self, info):
@@ -432,7 +433,7 @@ class OnnxTranslator(CodeTranslator):
             return
         if kind in ('Name', 'Cst'):
             self._get_last(
-                ('Assign', 'BinOp', 'Call', 'Return', 'FunctionDef', 'keyword'))
+                ('Assign', 'BinOp', 'Call', 'Return', 'FunctionDef', 'keyword', 'UnaryOp'))
             return
         if kind == 'BinOp':
             self._stack.append(
@@ -550,12 +551,15 @@ class OnnxTranslator(CodeTranslator):
                         (child['str'], child.get('annotation', None)))
                 else:
                     raise RuntimeError(  # pragma: no cover
-                        "Unable to interpret type '{}' in function definition.\n{}".format(
+                        "Unable to interpret type '{}' in function definition."
+                        "\n{}".format(
                             child['type'], pprint.pformat(info)))
             return
         if kind == "Name":
             op, buf = self._get_last(
-                ('Assign', 'BinOp', 'Call', 'Return', 'FunctionDef', 'keyword'), info)
+                ('Assign', 'BinOp', 'Call', 'Return', 'FunctionDef', 'keyword',
+                 'UnaryOp'),
+                info)
             if op == 'Assign':
                 buf['name'] = info['str']
                 return

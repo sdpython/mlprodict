@@ -46,6 +46,38 @@ class TestOnnxPipeline(ExtTestCase):
         self.assertEqualArray(res["label"], pipe.predict(X))
         self.assertEqualArray(res["probabilities"], pipe.predict_proba(X))
 
+    def test_pipeline_iris_enfore_false(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        pipe = OnnxPipeline([
+            ('pca', PCA(n_components=2)),
+            ('no', StandardScaler()),
+            ('lr', LogisticRegression())],
+            enforce_float32=False,
+            op_version=get_opset_number_from_onnx())
+        pipe.fit(X, y)
+        pipe.fit(X, y)
+        self.assertTrue(hasattr(pipe, 'raw_steps_'))
+        self.assertEqual(len(pipe.steps), 3)
+        self.assertEqual(len(pipe.raw_steps_), 3)
+        self.assertIsInstance(pipe.steps[0][1], OnnxTransformer)
+        self.assertIsInstance(pipe.steps[1][1], OnnxTransformer)
+
+        X = X.astype(numpy.float64)
+        model_def = to_onnx(pipe, X[:1], target_opset=pipe.op_version,
+                            options={id(pipe): {'zipmap': False}})
+        sess = OnnxInference(model_def)
+        res = sess.run({'X': X})
+        self.assertEqualArray(res["label"], pipe.predict(X))
+        self.assertEqualArray(res["probabilities"], pipe.predict_proba(X))
+        self.assertRaise(lambda: sess.run(
+            {'X': X.astype(numpy.float32)}), RuntimeError)
+        self.assertRaise(lambda: sess.run(
+            {'X': X.reshape((2, -1, 4))}), ValueError)
+        self.assertRaise(lambda: sess.run({'X': X.astype(numpy.float64),
+                                           'Y': X.astype(numpy.float64)}),
+                         KeyError)
+
     def test_transfer_transformer(self):
         _register_converters_mlinsights(True)
         iris = load_iris()

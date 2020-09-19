@@ -19,8 +19,9 @@ class LinearRegressor(OpRunUnaryNum):
                                expected_attributes=LinearRegressor.atts,
                                **options)
         if not isinstance(self.coefficients, numpy.ndarray):
-            raise TypeError("coefficient must be an array not {}.".format(
-                type(self.coefficients)))
+            raise TypeError(  # pragma: no cover
+                "coefficient must be an array not {}.".format(
+                    type(self.coefficients)))
         n = self.coefficients.shape[0] // self.targets
         self.coefficients = self.coefficients.reshape(self.targets, n).T
 
@@ -31,6 +32,7 @@ class LinearRegressor(OpRunUnaryNum):
         if self.post_transform == b'NONE':
             pass
         else:
-            raise NotImplementedError("Unknown post_transform: '{}'.".format(
-                self.post_transform))
+            raise NotImplementedError(  # pragma: no cover
+                "Unknown post_transform: '{}'.".format(
+                    self.post_transform))
         return (score, )

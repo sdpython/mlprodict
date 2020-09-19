@@ -5,10 +5,10 @@
 """
 import numpy
 from .g_sklearn_type_helpers import check_type
-from ..grammar.gactions import MLActionVar, MLActionCst, MLActionIfElse, MLActionReturn
-from ..grammar.gactions_tensor import MLActionTensorTake
-from ..grammar.gactions_num import MLActionTestInf, MLActionTestEqual
-from ..grammar.gmlactions import MLModel
+from .grammar.gactions import MLActionVar, MLActionCst, MLActionIfElse, MLActionReturn
+from .grammar.gactions_tensor import MLActionTensorTake
+from .grammar.gactions_num import MLActionTestInf, MLActionTestEqual
+from .grammar.gmlactions import MLModel
 
 
 def sklearn_decision_tree_regressor(model, input_names=None, output_names=None, **kwargs):

@@ -8,11 +8,16 @@ from textwrap import dedent
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnx_grammar import CodeNodeVisitor, translate_fct2onnx
+from mlprodict.onnx_grammar.onnx_translation import py_mul
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestOnnxGrammarTranslate(ExtTestCase):
+
+    def test_py_mul(self):
+        r = py_mul(4, 5)
+        self.assertEqual(r, 20)
 
     def test_tree_job(self):
 
@@ -32,6 +37,34 @@ class TestOnnxGrammarTranslate(ExtTestCase):
             for ch in ast.iter_child_nodes(n):
                 stack.append((ind + 1, ch))
         self.assertEmpty(stack)
+
+    def test_compare1(self):
+
+        def fct1(x, y):
+            z = x + numpy.abs(y)
+            return x < z
+
+        def fct2(x, y):
+            z = x + numpy.abs(y)
+            return x < z
+
+        def fct3(x, y):
+            z = x + numpy.abs(y)
+            return x == z
+
+        for fct in [fct1, fct2, fct3]:
+            code = inspect.getsource(fct)
+            node = ast.parse(dedent(code))
+            stack = [(0, node)]
+
+            while len(stack) > 0:
+                ind, n = stack[-1]
+                del stack[-1]
+                att = {name: ch for name, ch in ast.iter_fields(n)}
+                self.assertTrue(att is not None)
+                for ch in ast.iter_child_nodes(n):
+                    stack.append((ind + 1, ch))
+            self.assertEmpty(stack)
 
     def test_translation(self):
 
@@ -222,9 +255,17 @@ class TestOnnxGrammarTranslate(ExtTestCase):
             z = x + numpy.transpose(y, axes=[1, 0])
             return x * z
 
+        onnx_code1 = translate_fct2onnx(
+            trs, context=None, output_names=['Z'])
+        code = inspect.getsource(trs)
+        onnx_code2 = translate_fct2onnx(
+            code, context=None, output_names=['Z'])
+        self.assertEqual(onnx_code2, onnx_code1)
+
         onnx_code = translate_fct2onnx(
             trs, context={'numpy.transpose': numpy.transpose},
             output_names=['Z'])
+        self.assertEqual(onnx_code, onnx_code1)
         exp = dedent("""
             def trs(x, y, dtype=numpy.float32, op_version=None):
                 z = (
@@ -273,7 +314,41 @@ class TestOnnxGrammarTranslate(ExtTestCase):
                   'y': numpy.array([[-0.3, 0.4]], dtype=numpy.float32).T}
 
         expected = trs(inputs['x'], inputs['y'])
+        onnx_g = r.to_onnx(inputs)
+        oinf = OnnxInference(onnx_g)
+        res = oinf.run(inputs)
+        self.assertEqualArray(expected, res['Z'])
 
+    def test_export_transpose_compile_unary(self):
+
+        def trs(x):
+            z = - x
+            return z
+
+        onnx_code = translate_fct2onnx(
+            trs, context={'numpy.transpose': numpy.transpose},
+            output_names=['Z'])
+        print(onnx_code)
+
+        fct = translate_fct2onnx(
+            trs, context=None, cpl=True, output_names=['Z'])
+        self.assertTrue(callable(fct))
+
+        from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
+            OnnxAdd, OnnxTranspose, OnnxMul, OnnxIdentity)
+        ctx = {'OnnxAdd': OnnxAdd,
+               'OnnxTranspose': OnnxTranspose,
+               'OnnxMul': OnnxMul, 'OnnxIdentity': OnnxIdentity}
+
+        fct = translate_fct2onnx(
+            trs, context={'numpy.transpose': numpy.transpose},
+            cpl=True, context_cpl=ctx, output_names=['Z'])
+
+        r = fct('x', 'y', op_version=get_opset_number_from_onnx())
+        self.assertIsInstance(r, OnnxIdentity)
+
+        inputs = {'x': numpy.array([[1, 2]], dtype=numpy.float32)}
+        expected = trs(inputs['x'])
         onnx_g = r.to_onnx(inputs)
 
         oinf = OnnxInference(onnx_g)

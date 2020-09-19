@@ -72,10 +72,10 @@ class XGBConverter:
             if feature_id[0] == "f":
                 try:
                     feature_id = int(feature_id[1:])
-                except ValueError as e:
+                except ValueError as e:  # pragma: no cover
                     raise RuntimeError(
                         "Unable to interpret '{0}'".format(feature_id)) from e
-            else:
+            else:  # pragma: no cover
                 try:
                     feature_id = int(feature_id)
                 except ValueError:
@@ -98,7 +98,7 @@ class XGBConverter:
         attr_pairs['nodes_falsenodeids'].append(false_child_id)
         attr_pairs['nodes_missing_value_tracks_true'].append(missing)
         if 'nodes_hitrates' in attr_pairs:
-            attr_pairs['nodes_hitrates'].append(hitrate)
+            attr_pairs['nodes_hitrates'].append(hitrate)  # pragma: no cover
         if mode == 'LEAF':
             if is_classifier:
                 for i, w in enumerate(weights):
@@ -136,7 +136,7 @@ class XGBConverter:
                     XGBConverter._fill_node_attributes(
                         treeid, tree_weight, ch, attr_pairs, is_classifier, remap)
                 else:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Unable to convert this node {0}".format(ch))
 
         else:
@@ -165,7 +165,8 @@ class XGBConverter:
     def fill_tree_attributes(js_xgb_node, attr_pairs, tree_weights, is_classifier):
         "fills tree attributes"
         if not isinstance(js_xgb_node, list):
-            raise TypeError("js_xgb_node must be a list")
+            raise TypeError(  # pragma: no cover
+                "js_xgb_node must be a list")
         for treeid, (jstree, w) in enumerate(zip(js_xgb_node, tree_weights)):
             remap = XGBConverter._remap_nodeid(jstree)
             XGBConverter._fill_node_attributes(
@@ -198,12 +199,13 @@ class XGBRegressorConverter(XGBConverter):
             xgb_node, inputs)
 
         if objective in ["reg:gamma", "reg:tweedie"]:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Objective '{}' not supported.".format(objective))
 
         booster = xgb_node.get_booster()
         if booster is None:
-            raise RuntimeError("The model was probably not trained.")
+            raise RuntimeError(  # pragma: no cover
+                "The model was probably not trained.")
 
         attr_pairs = XGBRegressorConverter._get_default_tree_attribute_pairs()
         attr_pairs['base_values'] = [base_score]
@@ -250,7 +252,8 @@ class XGBClassifierConverter(XGBConverter):
         objective, base_score, js_trees = XGBConverter.common_members(
             xgb_node, inputs)
         if base_score is None:
-            raise RuntimeError("base_score cannot be None")
+            raise RuntimeError(  # pragma: no cover
+                "base_score cannot be None")
         params = XGBConverter.get_xgb_params(xgb_node)
 
         attr_pairs = XGBClassifierConverter._get_default_tree_attribute_pairs()
@@ -258,9 +261,10 @@ class XGBClassifierConverter(XGBConverter):
             js_trees, attr_pairs, [1 for _ in js_trees], True)
 
         if len(attr_pairs['class_treeids']) == 0:
-            raise RuntimeError("XGBoost model is empty.")
+            raise RuntimeError(  # pragma: no cover
+                "XGBoost model is empty.")
         if 'n_estimators' not in params:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Parameters not found, existing:\n{}".format(
                     pformat(params)))
         ncl = (max(attr_pairs['class_treeids']) + 1) // params['n_estimators']
@@ -314,7 +318,8 @@ class XGBClassifierConverter(XGBConverter):
                                    op_name),
                                op_domain='ai.onnx.ml', **attr_pairs)
         else:
-            raise RuntimeError("Unexpected objective: {0}".format(objective))
+            raise RuntimeError(  # pragma: no cover
+                "Unexpected objective: {0}".format(objective))
 
 
 def convert_xgboost(scope, operator, container):

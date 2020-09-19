@@ -29,12 +29,12 @@ class DictVectorizer(OpRun):
                 self.dict_labels[v.decode('utf-8')] = i
             self.is_int = False
         if len(self.dict_labels) == 0:
-            raise RuntimeError("int64_vocabulary and string_vocabulary "
-                               "cannot be both empty.")
+            raise RuntimeError(  # pragma: no cover
+                "int64_vocabulary and string_vocabulary cannot be both empty.")
 
     def _run(self, x):  # pylint: disable=W0221
         if not isinstance(x, (numpy.ndarray, list)):
-            raise RuntimeTypeError(
+            raise RuntimeTypeError(  # pragma: no cover
                 "x must be iterable not {}.".format(type(x)))
         values = []
         rows = []

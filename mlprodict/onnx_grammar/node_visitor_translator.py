@@ -96,8 +96,8 @@ class CodeNodeVisitor(ast.NodeVisitor):
         """
         Displays line and column information into a string.
         """
-        return "line {}, col {}".format(getattr(node, 'lineno', '?'),
-                                        getattr(node, 'col_offset', '?'))
+        return "line {}, col {}".format(  # pragma: no cover
+            getattr(node, 'lineno', '?'), getattr(node, 'col_offset', '?'))
 
     def visit(self, node):
         """
@@ -375,4 +375,4 @@ class CodeNodeVisitor(ast.NodeVisitor):
                     'n': None}
             self.push(cont)
             return self.generic_visit_args(node, cont)
-        return self.visit_(node)
+        return self.visit_(node)  # pragma: no cover

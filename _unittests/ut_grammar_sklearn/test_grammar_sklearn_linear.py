@@ -61,7 +61,7 @@ class TestGrammarSklearnLinear(ExtTestCase):
             raise ValueError("cannot be None")
 
         X = numpy.array([[numpy.float32(1), numpy.float32(2)]])
-        fct = compile_c_function(code_c, 2)
+        fct = compile_c_function(code_c, 2, additional_paths=['ggg'])
 
         e2 = fct(X[0, :])
         e1 = lr.predict(X)

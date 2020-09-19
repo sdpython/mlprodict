@@ -5,9 +5,9 @@
 """
 import numpy
 from .g_sklearn_type_helpers import check_type
-from ..grammar.gactions import MLActionVar, MLActionCst, MLActionReturn
-from ..grammar.gactions_tensor import MLActionTensorDiv, MLActionTensorSub
-from ..grammar.gmlactions import MLModel
+from .grammar.gactions import MLActionVar, MLActionCst, MLActionReturn
+from .grammar.gactions_tensor import MLActionTensorDiv, MLActionTensorSub
+from .grammar.gmlactions import MLModel
 
 
 def sklearn_standard_scaler(model, input_names=None, output_names=None, **kwargs):

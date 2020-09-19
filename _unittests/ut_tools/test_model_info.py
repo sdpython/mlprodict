@@ -3,6 +3,7 @@
 """
 import inspect
 import unittest
+import numpy
 from lightgbm import LGBMClassifier, LGBMRegressor  # pylint: disable=C0411
 from xgboost import XGBClassifier, XGBRegressor  # pylint: disable=C0411
 from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
@@ -21,6 +22,7 @@ from sklearn.ensemble import (
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci  # pylint: disable=C0411
 from mlprodict.tools.model_info import (
     analyze_model, set_random_state, enumerate_models)
+from mlprodict.onnx_conv import to_onnx
 
 
 class TestModelInfo(ExtTestCase):
@@ -150,6 +152,13 @@ class TestModelInfo(ExtTestCase):
         self.assertIn('classes_.shape', info)
         self.assertEqual(info['classes_.shape'], 3)
         self.assertEqual(info['_fit_X.shape'], (150, 4))
+
+    def test_knnc_onnx(self):
+        model = self.fit(KNeighborsClassifier())
+        onx = to_onnx(model, numpy.zeros((3, 4), dtype=numpy.float32))
+        info = analyze_model(onx)
+        self.assertIn('op_Identity', info)
+        self.assertEqual(info['op_Identity'], 1)
 
     @skipif_circleci('issue, too long')
     def test_gbc(self):
