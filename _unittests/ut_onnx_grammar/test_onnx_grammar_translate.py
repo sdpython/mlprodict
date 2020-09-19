@@ -328,17 +328,18 @@ class TestOnnxGrammarTranslate(ExtTestCase):
         onnx_code = translate_fct2onnx(
             trs, context={'numpy.transpose': numpy.transpose},
             output_names=['Z'])
-        print(onnx_code)
 
         fct = translate_fct2onnx(
             trs, context=None, cpl=True, output_names=['Z'])
         self.assertTrue(callable(fct))
 
         from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-            OnnxAdd, OnnxTranspose, OnnxMul, OnnxIdentity)
+            OnnxAdd, OnnxTranspose, OnnxMul, OnnxIdentity,
+            OnnxNeg)
         ctx = {'OnnxAdd': OnnxAdd,
                'OnnxTranspose': OnnxTranspose,
-               'OnnxMul': OnnxMul, 'OnnxIdentity': OnnxIdentity}
+               'OnnxMul': OnnxMul, 'OnnxIdentity': OnnxIdentity,
+               'OnnxNeg': OnnxNeg}
 
         fct = translate_fct2onnx(
             trs, context={'numpy.transpose': numpy.transpose},

@@ -521,7 +521,7 @@ class OnnxTranslator(CodeTranslator):
                     continue
                 o, v = node['args'][i]
                 if (o == 'UnaryOp' and len(v['args']) == 1 and
-                        isinstance(v['args'][0], (int, float, str, numpy.int64,
+                        isinstance(v['args'][0], (int, float, numpy.int64,
                                                   numpy.float32, numpy.float64))):
                     if v['op'] == 'Sub':
                         node['args'][i] = -v['args'][0]
@@ -555,6 +555,7 @@ class OnnxTranslator(CodeTranslator):
                         "\n{}".format(
                             child['type'], pprint.pformat(info)))
             return
+
         if kind == "Name":
             op, buf = self._get_last(
                 ('Assign', 'BinOp', 'Call', 'Return', 'FunctionDef', 'keyword',
@@ -571,6 +572,9 @@ class OnnxTranslator(CodeTranslator):
                 return
             elif op == 'keyword':
                 buf['value'] = info['str']
+                return
+            elif op == 'UnaryOp':
+                buf['args'].append(info['str'])
                 return
             elif op == 'FunctionDef':
                 raise RuntimeError("Default value must be constant, variable '{}' was "

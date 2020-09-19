@@ -125,7 +125,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                 if not hasattr(self, "onnxrt_"):
                     continue
                 exp = sht[i]
-                if exp[1][1:] != v.shape[1:]:
+                if exp[1] != ('?', ) and exp[1][1:] != v.shape[1:]:
                     raise RuntimeError(  # pragma: no cover
                         "Unexpected shape for input '{}': {} != {} "
                         "(expected).".format(

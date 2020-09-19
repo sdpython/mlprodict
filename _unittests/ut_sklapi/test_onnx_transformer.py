@@ -12,7 +12,7 @@ from sklearn.linear_model import LogisticRegression
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import convert_sklearn
 from skl2onnx.algebra.onnx_ops import OnnxMul  # pylint: disable=E0611
-from pyquickhelper.pycode import ExtTestCase, skipif_appveyor
+from pyquickhelper.pycode import ExtTestCase, skipif_appveyor, ignore_warnings
 from mlprodict.sklapi import OnnxTransformer
 from mlprodict.tools import get_opset_number_from_onnx
 
@@ -81,8 +81,10 @@ class TestOnnxTransformer(ExtTestCase):
         self.assertNotEmpty(res)
         for _, tr in res:
             tr.fit()
-            self.assertRaise(lambda tr=tr: tr.transform(x), KeyError)
+            self.assertRaise(lambda tr=tr: tr.transform(x),
+                             (KeyError, RuntimeError))
 
+    @ignore_warnings(DeprecationWarning)
     def test_pipeline_iris(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -104,6 +106,7 @@ class TestOnnxTransformer(ExtTestCase):
         shapes = set(shapes)
         self.assertEqual(shapes, {(150, 3), (150, 4), (150, 2), (150,)})
 
+    @ignore_warnings(DeprecationWarning)
     @skipif_appveyor("crashes")
     def test_pipeline_iris_change_dim(self):
         from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument  # pylint: disable=E0611
@@ -121,6 +124,7 @@ class TestOnnxTransformer(ExtTestCase):
         self.assertEqual(len(y.shape), 2)
         self.assertEqual(y.shape[0], 2)
 
+    @ignore_warnings(DeprecationWarning)
     def test_pipeline_iris_intermediate(self):
         iris = load_iris()
         X, y = iris.data, iris.target
