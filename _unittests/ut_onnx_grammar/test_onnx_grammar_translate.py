@@ -328,6 +328,7 @@ class TestOnnxGrammarTranslate(ExtTestCase):
         onnx_code = translate_fct2onnx(
             trs, context={'numpy.transpose': numpy.transpose},
             output_names=['Z'])
+        self.assertIn('OnnxNeg', onnx_code)
 
         fct = translate_fct2onnx(
             trs, context=None, cpl=True, output_names=['Z'])
