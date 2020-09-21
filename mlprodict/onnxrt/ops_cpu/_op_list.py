@@ -74,7 +74,7 @@ from .op_reduce_min import ReduceMin
 from .op_reduce_max import ReduceMax
 from .op_reduce_mean import ReduceMean
 from .op_reduce_prod import ReduceProd
-from .op_reduce_sum import ReduceSum
+from .op_reduce_sum import ReduceSum_11, ReduceSum_13, ReduceSum
 from .op_reduce_sum_square import ReduceSumSquare
 from .op_relu import Relu
 from .op_reshape import Reshape

@@ -8,8 +8,7 @@ from io import StringIO
 import numpy
 from scipy.sparse import coo_matrix, csr_matrix, SparseEfficiencyWarning
 from scipy.special import (  # pylint: disable=E0611
-    expit as logistic_sigmoid,
-    erf)
+    expit as logistic_sigmoid, erf)
 from scipy.spatial.distance import cdist
 from onnx import TensorProto
 from onnx.helper import make_sparse_tensor, make_tensor
@@ -41,7 +40,9 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxQuantizeLinear,
     OnnxReciprocal,
     OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
-    OnnxReduceProd, OnnxReduceSum, OnnxReduceSumSquare,
+    OnnxReduceProd,
+    OnnxReduceSum, OnnxReduceSumApi11,
+    OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
     OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign, OnnxSin,
     OnnxSoftmax, OnnxSqueeze, OnnxSplit,
@@ -1801,25 +1802,31 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.sum(X), got['Y'], decimal=6)
 
-        onx = OnnxReduceSum('X', output_names=['Y'], axes=1,
-                            op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.sum(X, axis=1).ravel(),
-                              got['Y'].ravel())
+        for opset in (11, 12, 13):
+            if onnx_opset_version() < opset:
+                continue
+            onx = OnnxReduceSumApi11('X', output_names=['Y'], axes=1,
+                                     op_version=opset)
+            model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                    target_opset=opset)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': X})
+            self.assertEqual(list(sorted(got)), ['Y'])
+            self.assertEqualArray(numpy.sum(X, axis=1).ravel(),
+                                  got['Y'].ravel())
 
-        onx = OnnxReduceSum('X', output_names=['Y'], axes=1, keepdims=1,
-                            op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.sum(X, axis=1, keepdims=1).ravel(),
-                              got['Y'].ravel())
+        for opset in (11, 12, 13):
+            if onnx_opset_version() < opset:
+                continue
+            onx = OnnxReduceSumApi11('X', output_names=['Y'], axes=1, keepdims=1,
+                                     op_version=opset)
+            model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                    target_opset=opset)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': X})
+            self.assertEqual(list(sorted(got)), ['Y'])
+            self.assertEqualArray(numpy.sum(X, axis=1, keepdims=1).ravel(),
+                                  got['Y'].ravel())
         python_tested.append(OnnxReduceSum)
 
     def test_onnxt_runtime_reduce_sum_square(self):

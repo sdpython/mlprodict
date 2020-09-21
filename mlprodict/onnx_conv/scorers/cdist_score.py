@@ -36,7 +36,7 @@ def convert_score_cdist_sum(scope, operator, container):
                 op._fct, score_cdist_sum))
 
     from skl2onnx.algebra.complex_functions import onnx_cdist
-    from skl2onnx.algebra.onnx_ops import OnnxReduceSum  # pylint: disable=E0611
+    from skl2onnx.algebra.onnx_ops import OnnxReduceSumApi11  # pylint: disable=E0611
     from skl2onnx.common.data_types import guess_numpy_type
 
     X = operator.inputs[0]
@@ -56,9 +56,13 @@ def convert_score_cdist_sum(scope, operator, container):
         container.add_node('CDist', [X.full_name, Y.full_name], cdist_name,
                            op_domain='mlprodict', name=scope.get_unique_operator_name('CDist'),
                            **attrs)
-        container.add_node('ReduceSum', [cdist_name], out[0].full_name,
-                           axes=[1], keepdims=0,
-                           name=scope.get_unique_operator_name('ReduceSum'))
+        if container.target_opset < 13:
+            container.add_node('ReduceSum', [cdist_name], out[0].full_name,
+                               axes=[1], keepdims=0,
+                               name=scope.get_unique_operator_name('ReduceSum'))
+        else:
+            raise NotImplementedError(
+                "ReduceSum for opset>=13 is not impelmented yet.")
     else:
         metric = kwargs['metric']
         if metric == 'minkowski':
@@ -68,7 +72,7 @@ def convert_score_cdist_sum(scope, operator, container):
             dists = onnx_cdist(X, Y, dtype=dtype, op_version=opv,
                                metric=kwargs['metric'])
 
-        res = OnnxReduceSum(dists, axes=[1], keepdims=0,
-                            output_names=[out[0].full_name],
-                            op_version=opv)
+        res = OnnxReduceSumApi11(dists, axes=[1], keepdims=0,
+                                 output_names=[out[0].full_name],
+                                 op_version=opv)
         res.add_to(scope, container)
