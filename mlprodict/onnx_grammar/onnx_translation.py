@@ -117,8 +117,14 @@ def get_default_context_cpl():
     from skl2onnx.algebra.onnx_operator import OnnxOperator
     d = onnx_ops.__dict__
     for k, v in d.items():
-        if k.startswith("Onnx") and issubclass(v, OnnxOperator):
-            ctx[k] = v
+        try:
+            if k.startswith("Onnx") and issubclass(v, OnnxOperator):
+                ctx[k] = v
+        except TypeError as e:
+            if inspect.isfunction(v):
+                continue
+            raise RuntimeError(  # pragma: no cover
+                "Issue with {}={} (type={})".format(k, v, type(v))) from e
     return ctx
 
 
