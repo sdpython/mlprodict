@@ -101,7 +101,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None):
         values = {p.key: p.value for p in model.metadata_props}
         helper.set_model_props(onnx_model, values)
 
-    del onnx_model.opset_import[:]
+    del onnx_model.opset_import[:]  # pylint: disable=E1101
     for oimp in model.opset_import:
         op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
         op_set.domain = oimp.domain
