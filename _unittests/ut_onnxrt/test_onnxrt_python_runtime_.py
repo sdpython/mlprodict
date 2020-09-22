@@ -1793,18 +1793,18 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_reduce_sum(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
-        onx = OnnxReduceSum('X', output_names=['Y'], keepdims=0,
-                            op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.sum(X), got['Y'], decimal=6)
-
-        for opset in (11, 12, 13):
+        for opset in (11, 12, 13, get_opset_number_from_onnx()):
             if onnx_opset_version() < opset:
                 continue
+            onx = OnnxReduceSum('X', output_names=['Y'], keepdims=0,
+                                op_version=opset)
+            model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                    target_opset=opset)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': X})
+            self.assertEqual(list(sorted(got)), ['Y'])
+            self.assertEqualArray(numpy.sum(X), got['Y'], decimal=6)
+
             onx = OnnxReduceSumApi11('X', output_names=['Y'], axes=1,
                                      op_version=opset)
             model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
