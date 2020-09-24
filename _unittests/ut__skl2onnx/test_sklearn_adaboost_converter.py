@@ -27,6 +27,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             [("input", FloatTensorType((None, X_test.shape[1])))],
             target_opset=10)
         self.assertIsNotNone(model_onnx)
+        self.assertNotIn("noop_with_empty_axes", str(model_onnx))
         dump_data_and_model(
             X_test, model, model_onnx,
             basename="SklearnAdaBoostClassifierSAMMER")
@@ -42,6 +43,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             [("input", FloatTensorType((None, X_test.shape[1])))],
             target_opset=10, options=options)
         self.assertIsNotNone(model_onnx)
+        self.assertNotIn("noop_with_empty_axes", str(model_onnx))
         dump_data_and_model(
             X_test, model, model_onnx,
             basename="SklearnAdaBoostClassifierSAMMERDecisionFunction",
@@ -57,6 +59,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             [("input", FloatTensorType((None, X_test.shape[1])))],
             target_opset=10)
         self.assertIsNotNone(model_onnx)
+        self.assertNotIn("noop_with_empty_axes", str(model_onnx))
         dump_data_and_model(
             X_test, model, model_onnx,
             basename="SklearnAdaBoostClassifierSAMMERLogReg")
@@ -125,6 +128,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             [("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=10)
         self.assertIsNotNone(model_onnx)
+        self.assertNotIn("noop_with_empty_axes", str(model_onnx))
         dump_data_and_model(
             X, model, model_onnx,
             basename="SklearnAdaBoostRegressor-Dec4")
@@ -138,6 +142,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             [("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=10)
         self.assertIsNotNone(model_onnx)
+        self.assertNotIn("noop_with_empty_axes", str(model_onnx))
         dump_data_and_model(
             X, model, model_onnx,
             basename="SklearnAdaBoostRegressorLReg-Dec4")
@@ -149,6 +154,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             model, "AdaBoost regression",
             [("input", Int64TensorType([None, X.shape[1]]))],
             target_opset=10)
+        self.assertNotIn("noop_with_empty_axes", str(model_onnx))
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,
@@ -162,6 +168,7 @@ class TestSklearnAdaBoostModels(ExtTestCase):
             [("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=10)
         self.assertIsNotNone(model_onnx)
+        self.assertNotIn("noop_with_empty_axes", str(model_onnx))
         dump_data_and_model(
             X, model, model_onnx,
             basename="SklearnAdaBoostRegressorLR-Dec4")
@@ -192,9 +199,9 @@ class TestSklearnAdaBoostModels(ExtTestCase):
         model_onnx = convert_sklearn(
             model, "AdaBoost regression",
             [("input", BooleanTensorType([None, X.shape[1]]))],
-            target_opset=10,
-        )
+            target_opset=10)
         self.assertIsNotNone(model_onnx)
+        self.assertNotIn("noop_with_empty_axes", str(model_onnx))
         dump_data_and_model(
             X, model, model_onnx,
             basename="SklearnAdaBoostRegressorBool")

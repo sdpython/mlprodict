@@ -604,8 +604,8 @@ class OpRunReduceNumpy(OpRunUnaryNum):
                  expected_attributes=None, **options):
         if 'axes' not in expected_attributes:
             raise RuntimeError(  # pragma: no cover
-                "Parameter 'axes' is expected but not found in {}"
-                "".format(expected_attributes))
+                "Parameter 'axes' is expected but not found in {} "
+                "from class {}".format(expected_attributes, type(self)))
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
                                expected_attributes=expected_attributes,
                                **options)

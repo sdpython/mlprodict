@@ -9,19 +9,25 @@ from onnx.defs import onnx_opset_version
 from ._op import OpRunReduceNumpy
 
 
-class ReduceSum_11(OpRunReduceNumpy):
+class ReduceSum_1(OpRunReduceNumpy):
 
     atts = {'axes': [], 'keepdims': 1}
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunReduceNumpy.__init__(self, onnx_node, desc=desc,
-                                  expected_attributes=ReduceSum_11.atts,
+                                  expected_attributes=ReduceSum_1.atts,
                                   **options)
 
     def _run(self, data):  # pylint: disable=W0221
         return (numpy.sum(data, axis=self.axes,
                           keepdims=self.keepdims,
                           dtype=data.dtype), )
+
+
+class ReduceSum_11(ReduceSum_1):
+
+    def __init__(self, onnx_node, desc=None, **options):
+        ReduceSum_1.__init__(self, onnx_node, desc=desc, **options)
 
 
 class ReduceSum_13(OpRunReduceNumpy):
@@ -43,5 +49,7 @@ class ReduceSum_13(OpRunReduceNumpy):
 
 if onnx_opset_version() >= 13:
     ReduceSum = ReduceSum_13
-else:
+elif onnx_opset_version() >= 11:
     ReduceSum = ReduceSum_11
+else:
+    ReduceSum = ReduceSum_1

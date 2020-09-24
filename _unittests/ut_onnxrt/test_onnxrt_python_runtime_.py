@@ -1793,17 +1793,23 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_onnxt_runtime_reduce_sum(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
-        for opset in (11, 12, 13, get_opset_number_from_onnx()):
+        for opset in (10, 11, 12, 13, get_opset_number_from_onnx()):
             if onnx_opset_version() < opset:
                 continue
-            onx = OnnxReduceSum('X', output_names=['Y'], keepdims=0,
-                                op_version=opset)
-            model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                    target_opset=opset)
-            oinf = OnnxInference(model_def)
-            got = oinf.run({'X': X})
-            self.assertEqual(list(sorted(got)), ['Y'])
-            self.assertEqualArray(numpy.sum(X), got['Y'], decimal=6)
+            if opset < 13:
+                onx = OnnxReduceSum_11('X', output_names=['Y'], keepdims=0,
+                                       op_version=opset)
+                model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                        target_opset=opset)
+                oinf = OnnxInference(model_def)
+                got = oinf.run({'X': X})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(numpy.sum(X), got['Y'], decimal=6)
+                name = oinf.sequence_[0].ops_.__class__.__name__
+                if opset < 11:
+                    self.assertEqual(name, 'ReduceSum_1')
+                else:
+                    self.assertEqual(name, 'ReduceSum_11')
 
             onx = OnnxReduceSumApi11('X', output_names=['Y'], axes=1,
                                      op_version=opset)
@@ -1814,6 +1820,13 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
             self.assertEqual(list(sorted(got)), ['Y'])
             self.assertEqualArray(numpy.sum(X, axis=1).ravel(),
                                   got['Y'].ravel())
+            name = oinf.sequence_[0].ops_.__class__.__name__
+            if opset >= 13:
+                self.assertEqual(name, 'ReduceSum_13')
+            elif opset >= 11:
+                self.assertEqual(name, 'ReduceSum_11')
+            else:
+                self.assertEqual(name, 'ReduceSum_1')
 
         for opset in (11, 12, 13):
             if onnx_opset_version() < opset:
@@ -2359,18 +2372,12 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
     def test_make_sparse_tensor_12(self):
         values = [1.1, 2.2, 3.3, 4.4, 5.5]
         values_tensor = make_tensor(
-            name='test',
-            data_type=TensorProto.FLOAT,  # pylint: disable=E1101
-            dims=(5, ),
-            vals=values
-        )
+            name='test', data_type=TensorProto.FLOAT,  # pylint: disable=E1101
+            dims=(5, ), vals=values)
         indices = [1, 3, 5, 7, 9]
         indices_tensor = make_tensor(
-            name='test_indices',
-            data_type=TensorProto.INT64,  # pylint: disable=E1101
-            dims=(5, ),
-            vals=indices
-        )
+            name='test_indices', data_type=TensorProto.INT64,  # pylint: disable=E1101
+            dims=(5, ), vals=indices)
         dense_shape = [10]
         sparse = make_sparse_tensor(values_tensor, indices_tensor, dense_shape)
         self.assertEqual(sparse.values, values_tensor)  # pylint: disable=E1101
@@ -2406,5 +2413,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_max_pool_3d_default()
+    TestOnnxrtPythonRuntime().test_onnxt_runtime_reduce_sum()
     unittest.main()
