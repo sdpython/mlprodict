@@ -41,7 +41,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReciprocal,
     OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
     OnnxReduceProd,
-    OnnxReduceSum, OnnxReduceSumApi11, OnnxReduceSum_11,
+    OnnxReduceSum, OnnxReduceSumApi11, OnnxReduceSum_11, OnnxReduceSum_1,
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
     OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign, OnnxSin,
@@ -1797,8 +1797,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
             if onnx_opset_version() < opset:
                 continue
             if opset < 13:
-                onx = OnnxReduceSum_11('X', output_names=['Y'], keepdims=0,
-                                       op_version=opset)
+                cl = OnnxReduceSum_11 if opset >= 11 else OnnxReduceSum_1
+                onx = cl('X', output_names=['Y'], keepdims=0,
+                         op_version=opset)
                 model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                         target_opset=opset)
                 oinf = OnnxInference(model_def)
