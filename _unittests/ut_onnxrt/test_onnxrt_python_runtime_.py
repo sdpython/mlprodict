@@ -41,7 +41,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReciprocal,
     OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
     OnnxReduceProd,
-    OnnxReduceSum, OnnxReduceSumApi11,
+    OnnxReduceSum, OnnxReduceSumApi11, OnnxReduceSum_11,
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
     OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign, OnnxSin,
