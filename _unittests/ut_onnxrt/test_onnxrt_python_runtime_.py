@@ -2398,7 +2398,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                 onx = OnnxAdd('X', cst, op_version=opset)
                 try:
                     model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                             target_opset=opset)
+                                            target_opset=opset)
                 except RuntimeError as e:
                     if opset == 9:
                         continue
