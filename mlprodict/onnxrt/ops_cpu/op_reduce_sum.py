@@ -46,19 +46,13 @@ class ReduceSum_13(OpRunReduceNumpy):
                           keepdims=self.keepdims,
                           dtype=data.dtype), )
 
-    def _infer_shapes(self, *datas, axes=None):  # pylint: disable=W0221
+    def infer_shapes(self, data, axes=None):  # pylint: disable=E0202,W0221
+        return self._infer_shapes(data, axes=axes)
+
+    def _infer_shapes(self, data, axes=None):  # pylint: disable=W0221
         """
         Returns the same shape by default.
         """
-        if len(datas) == 1:
-            data = datas[0]
-        elif len(datas) == 2 and axes is None:
-            data, axes = datas
-        else:
-            raise RuntimeError(  # pragma: no cover
-                "Unexpected arguments len(datas)=={} axes is {}".format(
-                    len(datas), "None" if axes is None else "not None"))
-
         sh = data.reduce(axes, self.keepdims,  # pylint: disable=E1101
                          dtype=numpy.int64)  # pylint: disable=E1101
         return (sh, )
