@@ -55,8 +55,8 @@ class ReduceSum_13(OpRunReduceNumpy):
         elif len(datas) == 2 and axes is None:
             data, axes = datas
         else:
-            raise RuntimeError(
-                "Unexpected arguments len(datas)=={} axes is".format(
+            raise RuntimeError(  # pragma: no cover
+                "Unexpected arguments len(datas)=={} axes is {}".format(
                     len(datas), "None" if axes is None else "not None"))
 
         sh = data.reduce(axes, self.keepdims,  # pylint: disable=E1101
