@@ -609,6 +609,9 @@ class ShapeObject(BaseDimensionShape):
             if self.name is None:
                 return self.copy()
             return self.copy(name="{}-RD".format(self.name))
+        if axis is None:
+            return ShapeObject((1, ), self._dtype if dtype is None else dtype,
+                               name="{}-RDN".format(self.name))
         if 0 <= axis < len(self._shape):
             cp = self._shape.copy()
             if keepdims:

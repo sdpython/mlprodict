@@ -46,6 +46,14 @@ class ReduceSum_13(OpRunReduceNumpy):
                           keepdims=self.keepdims,
                           dtype=data.dtype), )
 
+    def _infer_shapes(self, data, axes=None):  # pylint: disable=W0221
+        """
+        Returns the same shape by default.
+        """
+        sh = x.reduce(axes, self.keepdims,  # pylint: disable=E1101
+                      dtype=numpy.int64)  # pylint: disable=E1101
+        return (sh, )
+
 
 if onnx_opset_version() >= 13:
     ReduceSum = ReduceSum_13
