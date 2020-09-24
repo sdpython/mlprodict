@@ -50,8 +50,8 @@ class ReduceSum_13(OpRunReduceNumpy):
         """
         Returns the same shape by default.
         """
-        sh = x.reduce(axes, self.keepdims,  # pylint: disable=E1101
-                      dtype=numpy.int64)  # pylint: disable=E1101
+        sh = data.reduce(axes, self.keepdims,  # pylint: disable=E1101
+                         dtype=numpy.int64)  # pylint: disable=E1101
         return (sh, )
 
 
