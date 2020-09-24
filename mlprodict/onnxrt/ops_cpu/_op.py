@@ -606,6 +606,12 @@ class OpRunReduceNumpy(OpRunUnaryNum):
             raise RuntimeError(  # pragma: no cover
                 "Parameter 'axes' is expected but not found in {} "
                 "from class {}".format(expected_attributes, type(self)))
+        if (expected_attributes.get('noop_with_empty_axes', 0) and
+                (expected_attributes['axes'] is None or
+                    len(expected_attributes['axes']) == 0)):
+            raise RuntimeError(  # pragma: no cover
+                "Parameter 'axes' cannot be empty as {} (noop_with_empty_axes=1) "
+                "from class {}".format(expected_attributes, type(self)))
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
                                expected_attributes=expected_attributes,
                                **options)

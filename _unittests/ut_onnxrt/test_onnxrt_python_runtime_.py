@@ -2396,12 +2396,17 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                 else:
                     cst = cls(value=X, op_version=opset)
                 onx = OnnxAdd('X', cst, op_version=opset)
-                model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                        target_opset=opset)
+                try:
+                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                             target_opset=opset)
+                except RuntimeError as e:
+                    if opset == 9:
+                        continue
+                    raise e
                 try:
                     oinf = OnnxInference(model_def)
                 except RuntimeError as e:
-                    raise RuntimeError(
+                    raise AssertionError(
                         "Unable to load the model:\n{}".format(model_def)) from e
                 got = oinf.run({'X': X})
                 if opset >= 11:

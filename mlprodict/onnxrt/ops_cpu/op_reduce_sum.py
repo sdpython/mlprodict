@@ -32,7 +32,7 @@ class ReduceSum_11(ReduceSum_1):
 
 class ReduceSum_13(OpRunReduceNumpy):
 
-    atts = {'keepdims': 1, 'noop_with_empty_axes': 0}
+    atts = {'axes': [], 'keepdims': 1, 'noop_with_empty_axes': 0}
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunReduceNumpy.__init__(self, onnx_node, desc=desc,
