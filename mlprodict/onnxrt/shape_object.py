@@ -621,7 +621,7 @@ class ShapeObject(BaseDimensionShape):
                 return c
 
             return ShapeObjectFct(
-                    drop_axis, self, axis, name="DropAxis", dtype=self.dtype)
+                drop_axis, self, axis, name="DropAxis", dtype=self.dtype)
 
         if 0 <= axis < len(self._shape):
             cp = self._shape.copy()

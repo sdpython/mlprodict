@@ -6,7 +6,7 @@
 """
 import numpy
 from onnx.defs import onnx_opset_version
-from ._op import OpRunReduceNumpy
+from ._op import OpRunReduceNumpy, RuntimeTypeError
 
 
 class ReduceSum_1(OpRunReduceNumpy):
@@ -39,7 +39,7 @@ class ReduceSum_13(OpRunReduceNumpy):
                                   expected_attributes=ReduceSum_13.atts,
                                   **options)
 
-    def run(self, data, axes=None):  # pylint: disable=E0202
+    def run(self, data, axes=None):  # pylint: disable=E0202,W0221
         """
         Calls method ``_run``.
         """
@@ -48,7 +48,7 @@ class ReduceSum_13(OpRunReduceNumpy):
             raise RuntimeTypeError(  # pragma: no cover
                 "Output type mismatch: input '{}' != output '{}' "
                 "(operator '{}')".format(
-                    x.dtype, res[0].dtype, self.__class__.__name__))
+                    data.dtype, res[0].dtype, self.__class__.__name__))
         return res
 
     def _run(self, data, axes=None):  # pylint: disable=W0221
