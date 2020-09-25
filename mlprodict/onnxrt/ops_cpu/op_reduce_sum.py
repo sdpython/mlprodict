@@ -39,6 +39,18 @@ class ReduceSum_13(OpRunReduceNumpy):
                                   expected_attributes=ReduceSum_13.atts,
                                   **options)
 
+    def run(self, data, axes=None):  # pylint: disable=E0202
+        """
+        Calls method ``_run``.
+        """
+        res = self._run(self, data, axes=axes)
+        if res[0].dtype != x.dtype:
+            raise RuntimeTypeError(  # pragma: no cover
+                "Output type mismatch: input '{}' != output '{}' "
+                "(operator '{}')".format(
+                    x.dtype, res[0].dtype, self.__class__.__name__))
+        return res
+
     def _run(self, data, axes=None):  # pylint: disable=W0221
         if axes is None and self.noop_with_empty_axes:
             return (data, )
