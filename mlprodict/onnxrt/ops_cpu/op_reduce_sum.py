@@ -51,7 +51,14 @@ class ReduceSum_13(OpRunReduceNumpy):
                     x.dtype, res[0].dtype, self.__class__.__name__))
         return res
 
-    def _run(self, data, axes=None):  # pylint: disable=W0221
+    def _run(self, *datas, axes=None):  # pylint: disable=W0221
+        if len(datas) == 1:
+            data = datas[0]
+        elif len(datas) == 2 and axes is None:
+            data, axes = datas
+        else:
+            raise RuntimeError(  # pragma: no cover
+                "Wrong number of attributes.")
         if axes is None and self.noop_with_empty_axes:
             return (data, )
         return (numpy.sum(data, axis=axes,
