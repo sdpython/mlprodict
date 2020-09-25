@@ -43,22 +43,15 @@ class ReduceSum_13(OpRunReduceNumpy):
         """
         Calls method ``_run``.
         """
-        res = self._run(self, *datas, **kwargs)
-        if res[0].dtype != x.dtype:
+        res = self._run(*datas, **kwargs)
+        if res[0].dtype != datas[0].dtype:
             raise RuntimeTypeError(  # pragma: no cover
                 "Output type mismatch: input '{}' != output '{}' "
                 "(operator '{}')".format(
                     x.dtype, res[0].dtype, self.__class__.__name__))
         return res
 
-    def _run(self, *datas, axes=None):  # pylint: disable=W0221
-        if len(datas) == 1:
-            data = datas[0]
-        elif len(datas) == 2 and axes is None:
-            data, axes = datas
-        else:
-            raise RuntimeError(  # pragma: no cover
-                "Wrong number of attributes.")
+    def _run(self, data, axes=None):  # pylint: disable=W0221
         if axes is None and self.noop_with_empty_axes:
             return (data, )
         return (numpy.sum(data, axis=axes,
@@ -68,17 +61,10 @@ class ReduceSum_13(OpRunReduceNumpy):
     def infer_shapes(self, *datas, **kwargs):  # pylint: disable=E0202,W0221
         return self._infer_shapes(*datas, **kwargs)
 
-    def _infer_shapes(self, *datas, axes=None):  # pylint: disable=W0221
+    def _infer_shapes(self, data, axes=None):  # pylint: disable=W0221
         """
         Returns the same shape by default.
         """
-        if len(datas) == 1:
-            data = datas[0]
-        elif len(datas) == 2 and axes is None:
-            data, axes = datas
-        else:
-            raise RuntimeError(  # pragma: no cover
-                "Wrong number of attributes.")
         sh = data.reduce(axes, self.keepdims,  # pylint: disable=E1101
                          dtype=numpy.int64)  # pylint: disable=E1101
         return (sh, )
