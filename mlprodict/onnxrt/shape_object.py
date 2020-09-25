@@ -612,6 +612,17 @@ class ShapeObject(BaseDimensionShape):
         if axis is None:
             return ShapeObject((1, ), self._dtype if dtype is None else dtype,
                                name="{}-RDN".format(self.name))
+
+        if isinstance(axis, ShapeObject):
+
+            def drop_axis(shape, a):
+                c = list(shape)
+                del c[a[0]]
+                return c
+
+            return ShapeObjectFct(
+                    drop_axis, self, axis, name="DropAxis", dtype=self.dtype)
+
         if 0 <= axis < len(self._shape):
             cp = self._shape.copy()
             if keepdims:
