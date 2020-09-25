@@ -24,7 +24,12 @@ class Squeeze(OpRunUnaryNum):
             self.axes = tuple(self.axes)
 
     def _run(self, data):  # pylint: disable=W0221
-        sq = numpy.squeeze(data, axis=self.axes)
+        if isinstance(self.axes, (tuple, list)):
+            sq = data
+            for a in reversed(self.axes):
+                sq = numpy.squeeze(sq, axis=a)
+        else:
+            sq = numpy.squeeze(data, axis=self.axes)
         return (sq, )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221

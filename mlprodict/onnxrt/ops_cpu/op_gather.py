@@ -26,7 +26,7 @@ class Gather(OpRun):
 
     def _run(self, x, indices):  # pylint: disable=W0221
         if not x.flags['C_CONTIGUOUS']:
-            x = x.ascontiguousarray()
+            x = numpy.ascontiguousarray(x)
         if not indices.flags['C_CONTIGUOUS']:
             indices = indices.ascontiguousarray()
         try:
