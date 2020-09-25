@@ -46,8 +46,8 @@ class ReduceSum_13(OpRunReduceNumpy):
                           keepdims=self.keepdims,
                           dtype=data.dtype), )
 
-    def infer_shapes(self, data, axes=None):  # pylint: disable=E0202,W0221
-        return self._infer_shapes(data, axes=axes)
+    def infer_shapes(self, *datas, **kwargs):  # pylint: disable=E0202,W0221
+        return self._infer_shapes(*datas, **kwargs)
 
     def _infer_shapes(self, data, axes=None):  # pylint: disable=W0221
         """
