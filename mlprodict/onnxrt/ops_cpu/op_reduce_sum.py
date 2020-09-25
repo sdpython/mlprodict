@@ -49,10 +49,17 @@ class ReduceSum_13(OpRunReduceNumpy):
     def infer_shapes(self, *datas, **kwargs):  # pylint: disable=E0202,W0221
         return self._infer_shapes(*datas, **kwargs)
 
-    def _infer_shapes(self, data, axes=None):  # pylint: disable=W0221
+    def _infer_shapes(self, *datas, axes=None):  # pylint: disable=W0221
         """
         Returns the same shape by default.
         """
+        if len(datas) == 1:
+            data = datas[0]
+        elif len(datas) == 2 and axes is None:
+            data, axes = datas
+        else:
+            raise RuntimeError(  # pragma: no cover
+                "Wrong number of attributes.")
         sh = data.reduce(axes, self.keepdims,  # pylint: disable=E1101
                          dtype=numpy.int64)  # pylint: disable=E1101
         return (sh, )
