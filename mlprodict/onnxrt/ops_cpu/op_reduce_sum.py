@@ -39,11 +39,11 @@ class ReduceSum_13(OpRunReduceNumpy):
                                   expected_attributes=ReduceSum_13.atts,
                                   **options)
 
-    def run(self, data, axes=None):  # pylint: disable=E0202
+    def run(self, *datas, **kwargs):  # pylint: disable=E0202
         """
         Calls method ``_run``.
         """
-        res = self._run(self, data, axes=axes)
+        res = self._run(self, *datas, **kwargs)
         if res[0].dtype != x.dtype:
             raise RuntimeTypeError(  # pragma: no cover
                 "Output type mismatch: input '{}' != output '{}' "
