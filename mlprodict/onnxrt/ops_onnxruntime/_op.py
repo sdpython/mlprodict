@@ -201,7 +201,7 @@ class OpRunOnnxRuntime:
                                             target_opset=target_opset,
                                             domain=domain)
             if "dim_value: 0" in str(self.onnx_):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Probable issue as one dimension is null.\n--\n{}".format(
                         self.onnx_))
         else:
@@ -226,7 +226,7 @@ class OpRunOnnxRuntime:
         if ir_version is not None:
             self.onnx_.ir_version = ir_version
         if disable_optimisation:
-            sess_options.graph_optimization_level = (
+            sess_options.graph_optimization_level = (  # pragma: no cover
                 GraphOptimizationLevel.ORT_DISABLE_ALL)
         try:
             self.sess_ = InferenceSession(

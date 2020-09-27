@@ -29,7 +29,8 @@ def side_by_side_by_values(sessions, *args, inputs=None, **kwargs):
     because sometimes inputs must be different.
     """
     if not kwargs.get('intermediate', True):
-        raise ValueError("kwargs must not set intermediate to True")
+        raise ValueError(  # pragma: no cover
+            "kwargs must not set intermediate to True")
     kwargs['intermediate'] = True
     verbose = kwargs.get('verbose', 0)
     fLOG = kwargs.get('fLOG', None)
@@ -46,8 +47,9 @@ def side_by_side_by_values(sessions, *args, inputs=None, **kwargs):
             new_sess = sess
             new_inputs = inputs
         if verbose > 0 and fLOG:
-            fLOG('[side_by_side_by_values] run session {}/{}'.format(
-                i + 1, len(sessions)))
+            fLOG(  # pragma: no cover
+                '[side_by_side_by_values] run session {}/{}'.format(
+                    i + 1, len(sessions)))
         res = new_sess.run(new_inputs, *args, **kwargs)
         results.append([(k, v) for k, v in res.items()])
 
@@ -87,13 +89,13 @@ def side_by_side_by_values(sessions, *args, inputs=None, **kwargs):
             if diff < 1e-5:
                 row['cmp'] = 'OK'
             elif diff < 0.0001:
-                row['cmp'] = 'e<0.0001'
+                row['cmp'] = 'e<0.0001'  # pragma: no cover
             elif diff < 0.001:
-                row['cmp'] = 'e<0.001'
+                row['cmp'] = 'e<0.001'  # pragma: no cover
             elif diff < 0.01:
-                row['cmp'] = 'e<0.01'
+                row['cmp'] = 'e<0.01'  # pragma: no cover
             elif diff < 0.1:
-                row['cmp'] = 'e<0.1'
+                row['cmp'] = 'e<0.1'  # pragma: no cover
             else:
                 row['cmp'] = "ERROR->=%1.1f" % diff
         rows.append(row)

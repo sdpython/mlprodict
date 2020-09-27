@@ -130,10 +130,10 @@ class OnnxInferenceNode:
         @param  target_opset    use a specific target opset
         """
         if 'atts' not in self.desc:
-            return
+            return  # pragma: no cover
         for _, v in self.desc['atts'].items():
             if 'value' not in v:
-                continue
+                continue  # pragma: no cover
             value = v['value']
             if isinstance(value, onnx_proto.GraphProto):
                 sess = rt_class(v['value'], runtime=runtime,

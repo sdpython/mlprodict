@@ -79,7 +79,7 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
                         benchmark, debug, verbose, time_kwargs,
                         skip_long_test, time_kwargs_fact, fLOG):
     if not check_runtime:
-        return None
+        return None  # pragma: no cover
     if verbose >= 2 and fLOG is not None:
         fLOG("[enumerate_compatible_opset] check_runtime SKL {}-{}-{}-{}-{}".format(
             id(inst), method_name, predict_kwargs, time_kwargs,
@@ -263,13 +263,13 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
     problems, extras = _retrieve_problems_extra(
         model, verbose, fLOG, extended_list)
     if isinstance(problems, dict):
-        yield problems
-        problems = []
+        yield problems  # pragma: no cover
+        problems = []  # pragma: no cover
 
     if opset_max is None:
-        opset_max = get_opset_number_from_onnx()
-        opsets = list(range(opset_min, opset_max + 1))
-        opsets.append(None)
+        opset_max = get_opset_number_from_onnx()  # pragma: no cover
+        opsets = list(range(opset_min, opset_max + 1))  # pragma: no cover
+        opsets.append(None)  # pragma: no cover
     else:
         opsets = list(range(opset_min, opset_max + 1))
 
@@ -442,8 +442,9 @@ def _call_conv_runtime_opset(
             obs_op['opset'] = opset
 
         if len(init_types) != 1:
-            raise NotImplementedError("Multiple types are is not implemented: "
-                                      "{}.".format(init_types))
+            raise NotImplementedError(  # pragma: no cover
+                "Multiple types are is not implemented: "
+                "{}.".format(init_types))
 
         if not isinstance(runtime, list):
             runtime = [runtime]
@@ -487,13 +488,13 @@ def _call_conv_runtime_opset(
                     fLOG(  # pragma: no cover
                         "[enumerate_compatible_opset] ONNX:\n{}".format(conv))
 
-                if all_conv_options.get('optim', '') == 'cdist':
+                if all_conv_options.get('optim', '') == 'cdist':  # pragma: no cover
                     check_cdist = [_ for _ in str(conv).split('\n')
                                    if 'CDist' in _]
                     check_scan = [_ for _ in str(conv).split('\n')
                                   if 'Scan' in _]
                     if len(check_cdist) == 0 and len(check_scan) > 0:
-                        raise RuntimeError(  # pragma: no cover
+                        raise RuntimeError(
                             "Operator CDist was not used in\n{}"
                             "".format(conv))
 
@@ -556,7 +557,7 @@ def _call_conv_runtime_opset(
                                             skip_long_test=kwargs['skip_long_test'],
                                             time_limit=time_limit)
                     else:
-                        yield obs_op.copy()
+                        yield obs_op.copy()  # pragma: no cover
 
 
 def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
@@ -681,7 +682,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                         type(opred), _shape(opred), opred))
 
             if numpy.isnan(max_rel_diff):
-                obs_op['_8max_rel_diff_batch_exc'] = (
+                obs_op['_8max_rel_diff_batch_exc'] = (  # pragma: no cover
                     "Unable to compute differences between"
                     " {}-{}\n{}\n--------\n{}".format(
                         _shape_exc(
@@ -835,13 +836,13 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
     if verbose > 0:
 
         def iterate():
-            for i, row in enumerate(ops):
+            for i, row in enumerate(ops):  # pragma: no cover
                 fLOG("{}/{} - {}".format(i + 1, len(ops), row))
                 yield row
 
         if verbose >= 11:
-            verbose -= 10
-            loop = iterate()
+            verbose -= 10  # pragma: no cover
+            loop = iterate()  # pragma: no cover
         else:
             try:
                 from tqdm import trange
@@ -927,7 +928,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                 elif diff < 0.001:
                     obs['available'] = 'e<0.001'
                 elif diff < 0.01:
-                    obs['available'] = 'e<0.01'
+                    obs['available'] = 'e<0.01'  # pragma: no cover
                 elif diff < 0.1:
                     obs['available'] = 'e<0.1'
                 else:

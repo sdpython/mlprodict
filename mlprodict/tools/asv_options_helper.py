@@ -33,7 +33,7 @@ def expand_onnx_options(model, optim):
     elif optim == 'raw_scores':
         options = {model.__class__: {'raw_scores': True, 'zipmap': False}}
     else:
-        options = optim
+        options = optim  # pragma: no cover
     return options
 
 

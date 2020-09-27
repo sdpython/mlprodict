@@ -60,10 +60,10 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None):
         restart = False
         for i, _, inp, out in idnodes:
             if restart:
-                break
+                break  # pragma: no cover
             if nodes[i] is None:
                 # Already removed.
-                continue
+                continue  # pragma: no cover
             if inp in inputs and out in outputs:
                 # Cannot be removed.
                 continue
@@ -76,7 +76,7 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None):
                         nodes[j] = _rename_node_input(nodes[j], out, inp)
                         rem += 1
                         if nodes[j].op_type == 'Identity':
-                            restart = True
+                            restart = True  # pragma: no cover
                 nodes[i] = None
                 rem += 1
                 continue
@@ -89,7 +89,7 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None):
                         nodes[j] = _rename_node_output(nodes[j], inp, out)
                         rem += 1
                         if nodes[j].op_type == 'Identity':
-                            restart = True
+                            restart = True  # pragma: no cover
                     if inp in nodes[j].input:
                         nodes[j] = _rename_node_input(nodes[j], inp, out)
                         rem += 1

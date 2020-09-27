@@ -33,11 +33,12 @@ class ZipMapDictionary(dict):
         """
         if mat is not None:
             if not isinstance(mat, numpy.ndarray):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     'matrix is expected, got {}.'.format(type(mat)))
             if len(mat.shape) not in (2, 3):
-                raise ValueError("matrix must have two or three dimensions but got {}"
-                                 ".".format(mat.shape))
+                raise ValueError(  # pragma: no cover
+                    "matrix must have two or three dimensions but got {}"
+                    ".".format(mat.shape))
         dict.__init__(self)
         self._rev_keys = rev_keys
         self._values = values
@@ -134,11 +135,12 @@ class ArrayZipMapDictionary(list):
         """
         if mat is not None:
             if not isinstance(mat, numpy.ndarray):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     'matrix is expected, got {}.'.format(type(mat)))
             if len(mat.shape) not in (2, 3):
-                raise ValueError("matrix must have two or three dimensions but got {}"
-                                 ".".format(mat.shape))
+                raise ValueError(  # pragma: no cover
+                    "matrix must have two or three dimensions but got {}"
+                    ".".format(mat.shape))
         list.__init__(self)
         self._rev_keys = rev_keys
         self._mat = mat
@@ -180,8 +182,9 @@ class ArrayZipMapDictionary(list):
                 res = [(i, 'c%d' % i)
                        for i in range(self._mat.shape[0] * self._mat.shape[2])]
             else:
-                raise RuntimeError(
-                    "Unable to guess the right number of columns for shapes: {}".format(self._mat.shape))
+                raise RuntimeError(  # pragma: no cover
+                    "Unable to guess the right number of columns for "
+                    "shapes: {}".format(self._mat.shape))
         else:
             res.sort()
         return [_[1] for _ in res]

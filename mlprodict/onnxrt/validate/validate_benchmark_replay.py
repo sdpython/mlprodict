@@ -72,7 +72,7 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
     for pkl in loop:
         if "ERROR" in pkl:
             # An error.
-            if verbose >= 2 and fLOG is not None:
+            if verbose >= 2 and fLOG is not None:  # pragma: no cover
                 fLOG(  # pragma: no cover
                     "[enumerate_benchmark_replay] skip '{}'.".format(pkl))
             continue
@@ -128,7 +128,8 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
                                    number=number, repeat=repeat,
                                    div_by_number=True)
             if verbose >= 4 and fLOG is not None:
-                fLOG("[enumerate_benchmark_replay] skl={}".format(skl))
+                fLOG(  # pragma: no cover
+                    "[enumerate_benchmark_replay] skl={}".format(skl))
             row['%d-skl-details' % k] = skl
             row['%d-skl' % k] = skl['average']
 
@@ -136,7 +137,7 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
             for rt in runtime:
                 oinf = oinfs[rt]
                 if oinf is None:
-                    continue
+                    continue  # pragma: no cover
                 if len(oinf.input_names) != 1:
                     raise NotImplementedError(  # pragma: no cover
                         "This function only allows one input not {}".format(

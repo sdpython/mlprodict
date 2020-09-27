@@ -4,11 +4,12 @@
 import os
 import unittest
 import pickle
+from textwrap import dedent
 import numpy
 from scipy.sparse import csr_matrix
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.tools.code_helper import (
-    debug_print, debug_dump, numpy_min, numpy_max)
+    debug_print, debug_dump, numpy_min, numpy_max, make_callable)
 
 
 class TestCodeHelper(ExtTestCase):
@@ -66,6 +67,22 @@ class TestCodeHelper(ExtTestCase):
         b = numpy_min([1, 3])
         self.assertEqual(a, '?')
         self.assertEqual(b, '?')
+
+    def test_make_callable(self):
+
+        # compile the outcome
+        code = dedent("""
+            def fctf(b=True):
+                return b
+        """)
+        context = {}
+        obj = compile(code, "<string>", 'exec')
+        fcts_obj = [_ for _ in obj.co_consts
+                    if _ is not None and not isinstance(_, (bool, str, int))]
+        fct = make_callable(
+            "fctf", fcts_obj[0], code, context, False)
+        self.assertTrue(fct(True))  # pylint: disable=E1102
+        self.assertFalse(fct(False))  # pylint: disable=E1102
 
 
 if __name__ == "__main__":

@@ -53,7 +53,7 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
     def update(sts, st):
         for k, v in st.items():
             if k in ['size'] or k in atts:
-                continue
+                continue  # pragma: no cover
             if k in sts:
                 sts[k] += v
             else:
@@ -81,7 +81,7 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
             stats[opi.domain] = opi.version
 
         graph = onnx_model.graph
-    elif not hasattr(onnx_model, 'node'):
+    elif not hasattr(onnx_model, 'node'):  # pragma: no cover
         # We're in a node.
         stats = {'nnodes': 1}
         if hasattr(onnx_model, 'attribute') and onnx_model.attribute:
@@ -105,7 +105,7 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
     if recursive:
         for node in graph.node:
             if not hasattr(node, 'attribute'):
-                continue
+                continue  # pragma: no cover
             for att in node.attribute:
                 if att.name != 'body':
                     continue
@@ -145,7 +145,7 @@ def change_input_first_dimension(onnx_model, N=None, debug_info=None):
         value_info.type.CopyFrom(  # pylint: disable=E1101
             variable.type.to_onnx_type())  # pylint: disable=E1101
         if variable.type.doc_string:  # pylint: disable=E0611
-            value_info.doc_string = variable.type.doc_string
+            value_info.doc_string = variable.type.doc_string  # pragma: no cover
         return value_info
 
     if hasattr(onnx_model, 'graph'):

@@ -46,7 +46,7 @@ text_alpha_num = [
 def _guess_noshape(obj, shape):
     if isinstance(obj, numpy.ndarray):
         if obj.dtype == numpy.float32:
-            return FloatTensorType(shape)
+            return FloatTensorType(shape)  # pragma: no cover
         if obj.dtype == numpy.float64:
             return DoubleTensorType(shape)
         raise NotImplementedError(  # pragma: no cover
@@ -81,8 +81,9 @@ def _1d_problem(fct):
     def new_fct(**kwargs):
         n_features = kwargs.get('n_features', None)
         if n_features not in (None, 1):
-            raise RuntimeError("Misconfiguration: the number of features must not be "
-                               "specified for a 1D problem.")
+            raise RuntimeError(  # pragma: no cover
+                "Misconfiguration: the number of features must not be "
+                "specified for a 1D problem.")
         X, y, itt, meth, mo, Xort = fct(**kwargs)
         new_itt = itt  # process_itt(itt, Xort)
         X = X[:, 0]

@@ -34,7 +34,7 @@ class Tokenizer(OpRunUnary):
         try:
             self.str_separators_ = set(_.decode('utf-8')
                                        for _ in self.separators)
-        except AttributeError as e:
+        except AttributeError as e:  # pragma: no cover
             raise RuntimeTypeError(
                 "Unable to interpret separators {}.".format(self.separators)) from e
         if self.tokenexp not in (None, b''):
@@ -43,7 +43,7 @@ class Tokenizer(OpRunUnary):
     def _find_custom_operator_schema(self, op_name):
         if op_name == "Tokenizer":
             return TokenizerSchema()
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
     def _run(self, text):  # pylint: disable=W0221
@@ -55,7 +55,7 @@ class Tokenizer(OpRunUnary):
         if self.tokenexp not in (None, ''):
             return self._run_regex_tokenization(
                 text, self.stops_, self.tokenexp_)
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unable to guess which tokenization to use, sep={}, "
             "tokenexp='{}'.".format(self.separators, self.tokenexp))
 
@@ -102,7 +102,7 @@ class Tokenizer(OpRunUnary):
                         max_pos = max(pos, max_pos)
             res = res[:, :, :max_pos]
         else:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Only vector or matrices are supported not shape {}.".format(text.shape))
         return (res, )
 
@@ -163,7 +163,7 @@ class Tokenizer(OpRunUnary):
         if len(x) == 2:
             return (ShapeObject((x[0], x[1], None), dtype=x.dtype,
                                 name=self.__class__.__name__), )
-        raise RuntimeTypeError(
+        raise RuntimeTypeError(  # pragma: no cover
             "Only two dimension are allowed, got {}.".format(x))
 
 

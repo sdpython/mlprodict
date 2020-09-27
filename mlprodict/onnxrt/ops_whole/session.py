@@ -49,7 +49,7 @@ class OnnxWholeSession:
             pass
         if (runtime_options is not None and
                 runtime_options.get('disable_optimisation', False)):
-            sess_options.graph_optimization_level = (
+            sess_options.graph_optimization_level = (  # pragma: no cover
                 GraphOptimizationLevel.ORT_ENABLE_ALL)
         try:
             self.sess = InferenceSession(onnx_data, sess_options=sess_options)

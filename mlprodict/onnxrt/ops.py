@@ -16,9 +16,10 @@ def load_op(onnx_node, desc=None, options=None, variables=None, dtype=None):
     @return                     runtime class
     """
     if desc is None:
-        raise ValueError("desc should not be None.")
+        raise ValueError(  # pragma: no cover
+            "desc should not be None.")
     if options is None:
-        provider = 'python'
+        provider = 'python'  # pragma: no cover
     else:
         provider = options.get('provider', 'python')
         if 'provider' in options:

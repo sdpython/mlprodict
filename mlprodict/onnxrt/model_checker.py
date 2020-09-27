@@ -45,8 +45,9 @@ def enumerate_random_inputs(inputs, n=100, dtype=numpy.float32, force=1):
             rnd = randint(0, 2, inputs[k].size).reshape(  # pylint: disable=E1101
                 inputs[k].shape)  # pylint: disable=E1101
             if rnd.min() == rnd.max() or rnd.max() != 1:
-                raise RuntimeError("Minimum and maximum are equal or maximum is not 1. "
-                                   "Randomness failed.")
+                raise RuntimeError(  # pragma: no cover
+                    "Minimum and maximum are equal or maximum is not 1. "
+                    "Randomness failed.")
             rnd = rnd.astype(dtype)
             ma1 = ranges[k][0] * rnd
             ma2 = ranges[k][1] * (-(rnd - 1))
@@ -78,7 +79,7 @@ def onnx_shaker(oinf, inputs, output_fct, n=100, dtype=numpy.float32, force=1):
         res = output_fct(res_)
         sq = numpy.squeeze(res)
         if len(sq.shape) != 1:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "The function only works with shape={}".format(sq.shape))
         if results is None:
             results = numpy.empty((sq.shape[0], n), dtype=sq.dtype)

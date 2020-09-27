@@ -89,7 +89,7 @@ def onnx_remove_node_redundant(onnx_model, recursive=True, debug_info=None,
         hs = _hash_obj_content(init, max_size=max_hash_size)
         if hs in hashes:
             # Already seen.
-            rename[init.name] = hashes[hs]
+            rename[init.name] = hashes[hs]  # pragma: no cover
         else:
             # New.
             hashes[hs] = init.name

@@ -179,8 +179,8 @@ def plot_validate_benchmark(df):
             axi = ax[index]
             done.add((index, runtime))
         else:
-            if (0, runtime) in done:
-                raise RuntimeError(  # pragma: no cover
+            if (0, runtime) in done:  # pragma: no cover
+                raise RuntimeError(
                     "Issue with column '{}'\nlabels={}\nruntimes={}\ncolumns="
                     "{}\nvalues={}\n{}".format(
                         c, final.label, runtimes, final.columns, values, final))
@@ -210,7 +210,7 @@ def plot_validate_benchmark(df):
 
         ax[min(ax.shape[0] - 1, 2)].legend()
         _plot_final(ax[0], x, final)
-    else:
+    else:  # pragma: no cover
         _plot_axis(ax, x, xlim)
         _plot_final(ax, x, final)
         ax.legend()

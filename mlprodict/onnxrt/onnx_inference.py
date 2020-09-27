@@ -116,14 +116,14 @@ class OnnxInference:
         """
         self.graph_ = self.to_sequence()
         if len(self.graph_['sequence']) == 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "No runnable nodes was found in the ONNX graph.")
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
         self.target_opset_ = self.graph_['targets']
         if self.force_target_opset is not None:
             if isinstance(self.force_target_opset, dict):
-                self.target_opset_ = self.force_target_opset
+                self.target_opset_ = self.force_target_opset  # pragma: no cover
             else:
                 self.target_opset_ = {'': self.force_target_opset}
         self.ir_version_ = self.graph_['ir_version']
@@ -187,7 +187,7 @@ class OnnxInference:
     def _guess_input_dtype(self):
         for _, v in self.graph_['inputs'].items():
             if 'type' not in v:
-                continue
+                continue  # pragma: no cover
             t = v['type']
             if 'elem' not in t:
                 continue
@@ -212,7 +212,7 @@ class OnnxInference:
         """
         usual
         """
-        return "OnnxInference(...)"
+        return "OnnxInference(...)"  # pragma: no cover
 
     def check_model(self):
         """
@@ -367,7 +367,7 @@ class OnnxInference:
                         raise RuntimeError(  # pragma: no cover
                             "A parameter has no (sparse) value '{}' for node '{}'\nv={}\ndobj=[{}]".format(
                                 k, node.name, v, node))
-            if node.name in nodes:
+            if node.name in nodes:  # pragma: no cover
                 i = 2
                 while True:
                     new_name = "%s_n%i" % (node.name, i)
@@ -616,14 +616,14 @@ class OnnxInference:
                         threshold = min(
                             50, min(50 // arr.shape[1], 8) * arr.shape[1])
                     if hasattr(arr, 'todense'):
-                        fLOG(numpy.array2string(arr.todense(), max_line_width=120,
-                                                suppress_small=True,
-                                                threshold=threshold))
+                        fLOG(  # pragma: no cover
+                            numpy.array2string(arr.todense(), max_line_width=120,
+                                               suppress_small=True, threshold=threshold))
                     else:
                         fLOG(numpy.array2string(arr, max_line_width=120,
                                                 suppress_small=True,
                                                 threshold=threshold))
-                else:
+                else:  # pragma: no cover
                     s = str(arr)
                     if len(s) > 50:
                         s = s[:50] + "..."
@@ -641,11 +641,11 @@ class OnnxInference:
                                 k, obj.shape, obj.dtype, numpy_min(obj),
                                 numpy_max(obj),
                                 ' (sparse)' if isinstance(obj, coo_matrix) else ''))
-                        elif (isinstance(obj, list) and len(obj) > 0 and
+                        elif (isinstance(obj, list) and len(obj) > 0 and  # pragma: no cover
                                 not isinstance(obj[0], dict)):
                             fLOG("-kv='{}' list len={} min={} max={}".format(
                                 k, len(obj), min(obj), max(obj)))
-                        else:
+                        else:  # pragma: no cover
                             fLOG("-kv='{}' type={}".format(k, type(obj)))
 
             keys = set(k for k in range(len(values)) if values[k] is not None)
@@ -828,7 +828,8 @@ class OnnxInference:
                     v['value'] = v['value'].astype(dtype_out)
                     done.append(("pass1", "+", "init", k, v['value']))
                 else:
-                    done.append(("pass1", "-", "init", k, v['value']))
+                    done.append(("pass1", "-", "init", k,
+                                 v['value']))  # pragma: no cover
         for k, v in self.graph_['nodes'].items():
             res = v.switch_initializers_dtype(dtype_in=dtype_in,
                                               dtype_out=dtype_out)
@@ -1087,7 +1088,7 @@ class OnnxInference:
         context['self'] = self
         try:
             obj = compile(final_code, "<string>", 'exec')
-        except SyntaxError as e:
+        except SyntaxError as e:  # pragma: no cover
             raise SyntaxError(
                 "Unable to compile\n#####\n{}".format(final_code)) from e
         fcts_obj = [_ for _ in obj.co_consts

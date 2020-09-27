@@ -36,7 +36,7 @@ def to_bytes(val):
     if isinstance(val, numpy.ndarray):
         pb = from_array(val)
     else:
-        pb = val
+        pb = val  # pragma: no cover
     return pb.SerializeToString()
 
 
@@ -67,7 +67,7 @@ def from_bytes(b):
         pb = TensorProto()
         pb.ParseFromString(b)
     else:
-        pb = b
+        pb = b  # pragma: no cover
     return to_array(pb)
 
 
@@ -108,8 +108,9 @@ def _sparse_array(shape, data, indices, dtype=None, copy=True):
     if isinstance(data, numpy.ndarray):
         res = coo_matrix((data, (rows, cols)), dtype=dtype)
     else:
-        res = coo_matrix((numpy.array(data, dtype=dtype, copy=copy),
-                          (rows, cols)), dtype=dtype)
+        res = coo_matrix(  # pragma: no cover
+            (numpy.array(data, dtype=dtype, copy=copy),
+             (rows, cols)), dtype=dtype)
     return res
 
 
@@ -158,7 +159,7 @@ def _elem_type_as_str(elem_type):
 def _to_array(var):
     try:
         data = to_array(var)
-    except ValueError as e:
+    except ValueError as e:  # pragma: no cover
         dims = [d for d in var.dims]
         if var.data_type == 1 and var.float_data is not None:
             try:
@@ -335,7 +336,7 @@ def numpy_min(x):
         if len(val) > 10:  # pragma: no cover
             val = val[:10] + '...'
         return "%r" % val
-    except (ValueError, TypeError):
+    except (ValueError, TypeError):  # pragma: no cover
         return '?'
 
 
@@ -361,5 +362,5 @@ def numpy_max(x):
         if len(val) > 10:  # pragma: no cover
             val = val[:10] + '...'
         return "%r" % val
-    except (ValueError, TypeError):
+    except (ValueError, TypeError):  # pragma: no cover
         return '?'

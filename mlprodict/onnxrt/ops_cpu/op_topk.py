@@ -10,8 +10,7 @@ from ._op import OpRun
 from ._op_onnx_numpy import (  # pylint: disable=E0611
     topk_element_min_double, topk_element_max_double, topk_element_fetch_double,
     topk_element_min_float, topk_element_max_float, topk_element_fetch_float,
-    topk_element_min_int64, topk_element_max_int64, topk_element_fetch_int64,
-)
+    topk_element_min_int64, topk_element_max_int64, topk_element_fetch_int64)
 
 
 def topk_sorted_implementation(X, k, axis, largest):
@@ -197,7 +196,7 @@ class TopK_11(_CommonTopK):
                              expected_attributes=TopK_11.atts,
                              **options)
         if self.sorted not in (True, 1):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "TopK does not implement anything for sorted=0.")
 
     def _run(self, data, ink):  # pylint: disable=W0221
@@ -218,7 +217,7 @@ class TopK_11(_CommonTopK):
 
 if onnx_opset_version() >= 11:
     TopK = TopK_11
-elif onnx_opset_version() >= 10:
+elif onnx_opset_version() >= 10:  # pragma: no cover
     TopK = TopK_10
-else:
+else:  # pragma: no cover
     TopK = TopK_1

@@ -17,8 +17,9 @@ def enumerate_model_node_outputs(model, add_node=False):
     @return                 enumerator
     """
     if not hasattr(model, "graph"):
-        raise TypeError("Parameter model is not an ONNX model but "
-                        "{}".format(type(model)))
+        raise TypeError(  # pragma: no cover
+            "Parameter model is not an ONNX model but "
+            "{}".format(type(model)))
     for node in model.graph.node:
         for out in node.output:
             yield (out, node) if add_node else out
@@ -36,9 +37,11 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None):
     The function removes unneeded files.
     """
     if inputs is not None:
-        raise NotImplementedError("Parameter inputs cannot be empty.")
+        raise NotImplementedError(  # pragma: no cover
+            "Parameter inputs cannot be empty.")
     if outputs is None:
-        raise RuntimeError("Parameter outputs cannot be None.")
+        raise RuntimeError(  # pragma: no cover
+            "Parameter outputs cannot be None.")
     if not isinstance(outputs, list):
         outputs = [outputs]
 
@@ -49,7 +52,8 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None):
         mark_var[inp.name] = 0
     for out in outputs:
         if out not in mark_var:
-            raise ValueError("Output '{}' not found in model.".format(out))
+            raise ValueError(  # pragma: no cover
+                "Output '{}' not found in model.".format(out))
         mark_var[out] = 1
 
     nodes = model.graph.node[::-1]
@@ -108,6 +112,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None):
         op_set.version = oimp.version
 
     if len(onnx_model.graph.input) != len(model.graph.input):  # pylint: disable=E1101
-        raise RuntimeError("Input mismatch {} != {}".format(
-            len(onnx_model.input), len(model.input)))  # pylint: disable=E1101
+        raise RuntimeError(  # pragma: no cover
+            "Input mismatch {} != {}".format(
+                len(onnx_model.input), len(model.input)))  # pylint: disable=E1101
     return onnx_model

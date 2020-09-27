@@ -25,12 +25,12 @@ def make_n_rows(x, n, y=None):
     if len(x.shape) < 2:
         r = numpy.empty((n, ), dtype=x.dtype)
         if y is not None:
-            ry = numpy.empty((n, ), dtype=y.dtype)
+            ry = numpy.empty((n, ), dtype=y.dtype)  # pragma: no cover
         for i in range(0, n, x.shape[0]):
             end = min(i + x.shape[0], n)
             r[i: end] = x[0: end - i]
             if y is not None:
-                ry[i: end] = y[0: end - i]
+                ry[i: end] = y[0: end - i]  # pragma: no cover
     else:
         r = numpy.empty((n, x.shape[1]), dtype=x.dtype)
         if y is not None:
@@ -42,7 +42,7 @@ def make_n_rows(x, n, y=None):
             end = min(i + x.shape[0], n)
             try:
                 r[i: end, :] = x[0: end - i, :]
-            except ValueError as e:
+            except ValueError as e:  # pragma: no cover
                 raise ValueError(
                     "Unexpected error: r.shape={} x.shape={} end={} i={}".format(
                         r.shape, x.shape, end, i)) from e
@@ -89,27 +89,28 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
     can be used to measure time spent in each node.
     """
     if time_kwargs is None:
-        time_kwargs = default_time_kwargs()
+        time_kwargs = default_time_kwargs()  # pragma: no cover
 
     def make(x, n):
         return make_n_rows(x, n)
 
     def allow(N, obs):
         if obs is None:
-            return True
+            return True  # pragma: no cover
         prob = obs['problem']
         if "-cov" in prob and N > 1000:
-            return False
+            return False  # pragma: no cover
         return True
 
     Ns = list(sorted(time_kwargs))
     res = {}
     for N in Ns:
         if not isinstance(N, int):
-            raise RuntimeError("time_kwargs ({}) is wrong:\n{}".format(
-                type(time_kwargs), time_kwargs))
+            raise RuntimeError(  # pragma: no cover
+                "time_kwargs ({}) is wrong:\n{}".format(
+                    type(time_kwargs), time_kwargs))
         if not allow(N, obs):
-            continue
+            continue  # pragma: no cover
         x = make(X, N)
         number = time_kwargs[N]['number']
         repeat = time_kwargs[N]['repeat']
@@ -126,7 +127,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
                             row['N'] = N
                     else:
                         if len(agg) != len(ms):
-                            raise RuntimeError(
+                            raise RuntimeError(  # pragma: no cover
                                 "Not the same number of nodes {} != {}.".format(len(agg), len(ms)))
                         for a, b in zip(agg, ms):
                             a['time'] += b['time']
@@ -134,7 +135,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
                     main = agg
                 else:
                     if len(agg) != len(main):
-                        raise RuntimeError(
+                        raise RuntimeError(  # pragma: no cover
                             "Not the same number of nodes {} != {}.".format(len(agg), len(main)))
                     for a, b in zip(main, agg):
                         a['time'] += b['time']
@@ -160,7 +161,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
                 res[N] is not None and
                 res[N].get('total', time_limit) >= time_limit):
             # too long
-            break
+            break  # pragma: no cover
     if node_time:
         rows = []
         for _, v in res.items():

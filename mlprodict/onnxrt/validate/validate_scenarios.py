@@ -38,7 +38,7 @@ from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, ExtraTre
 
 try:
     from sklearn.ensemble import StackingClassifier, StackingRegressor
-except ImportError:
+except ImportError:  # pragma: no cover
     # new in 0.22
     StackingClassifier, StackingRegressor = None, None
 
@@ -394,7 +394,7 @@ def interpret_options_from_string(st):
     @return             evaluated object
     """
     if isinstance(st, dict):
-        return st
+        return st  # pragma: no cover
     value = eval(st)  # pylint: disable=W0123
     return value
 

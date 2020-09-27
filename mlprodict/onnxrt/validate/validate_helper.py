@@ -58,7 +58,7 @@ def modules_list():
     def try_import(name):
         try:
             mod = import_module(name)
-        except ImportError:
+        except ImportError:  # pragma: no cover
             return None
         return (dict(name=name, version=mod.__version__)
                 if hasattr(mod, '__version__') else dict(name=name))
@@ -87,7 +87,7 @@ def _dispsimple(arr, fLOG):
         fLOG(numpy.array2string(arr, max_line_width=120,
                                 suppress_small=True,
                                 threshold=threshold))
-    else:
+    else:  # pragma: no cover
         s = str(arr)
         if len(s) > 50:
             s = s[:50] + "..."
@@ -98,7 +98,7 @@ def _merge_options(all_conv_options, aoptions):
     if aoptions is None:
         return copy.deepcopy(all_conv_options)
     if not isinstance(aoptions, dict):
-        return copy.deepcopy(aoptions)
+        return copy.deepcopy(aoptions)  # pragma: no cover
     merged = {}
     for k, v in all_conv_options.items():
         if k in aoptions:
@@ -138,7 +138,7 @@ def sklearn_operators(subfolder=None, extended=False,
     found = []
     for subm in sorted(subfolders):
         if isinstance(subm, list):
-            continue
+            continue  # pragma: no cover
         if subfolder is not None and subm != subfolder:
             continue
 
@@ -196,7 +196,7 @@ def sklearn_operators(subfolder=None, extended=False,
         for m in models:
             try:
                 name = m.__module__.split('.')
-            except AttributeError as e:
+            except AttributeError as e:  # pragma: no cover
                 raise AttributeError("Unexpected value, m={}".format(m)) from e
             sub = '.'.join(name[1:])
             pack = name[0]
@@ -243,7 +243,7 @@ def _measure_time(fct, repeat=1, number=1, first_run=True):
         values.append(end - begin)
     if repeat * number == 1:
         return res, values[0], values
-    return res, sum(values) / (repeat * number), values
+    return res, sum(values) / (repeat * number), values  # pragma: no cover
 
 
 def _shape_exc(obj):
@@ -342,11 +342,11 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False, first_run=T
     *number* times the execution of the main statement.
     """
     if x is None:
-        raise ValueError("x cannot be None")
+        raise ValueError("x cannot be None")  # pragma: no cover
 
     try:
         stmt(x)
-    except RuntimeError as e:
+    except RuntimeError as e:  # pragma: no cover
         raise RuntimeError("{}-{}".format(type(x), x.dtype)) from e
 
     def fct():
@@ -400,7 +400,7 @@ def _multiply_time_kwargs(time_kwargs, time_kwargs_fact, inst):
         pprint(kw2)
     """
     if time_kwargs is None:
-        raise ValueError("time_kwargs cannot be None.")
+        raise ValueError("time_kwargs cannot be None.")  # pragma: no cover
     if time_kwargs_fact in ('', None):
         return time_kwargs
     try:
@@ -423,8 +423,9 @@ def _multiply_time_kwargs(time_kwargs, time_kwargs_fact, inst):
                 time_kwargs_modified[k]['repeat'] *= 1
             return time_kwargs_modified
         return time_kwargs
-    raise ValueError("Unable to interpret time_kwargs_fact='{}'.".format(
-        time_kwargs_fact))
+    raise ValueError(  # pragma: no cover
+        "Unable to interpret time_kwargs_fact='{}'.".format(
+            time_kwargs_fact))
 
 
 def _get_problem_data(prob, n_features):
@@ -435,13 +436,14 @@ def _get_problem_data(prob, n_features):
     elif len(data_problem) == 7:
         X_, y_, init_types, method, output_index, Xort_, dofit = data_problem
     else:
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unable to interpret problem '{}'.".format(prob))
     if (len(X_.shape) == 2 and X_.shape[1] != n_features and
             n_features is not None):
-        raise RuntimeError("Problem '{}' with n_features={} returned {} features"
-                           "(func={}).".format(prob, n_features, X_.shape[1],
-                                               _problems[prob]))
+        raise RuntimeError(  # pragma: no cover
+            "Problem '{}' with n_features={} returned {} features"
+            "(func={}).".format(prob, n_features, X_.shape[1],
+                                _problems[prob]))
     if y_ is None:
         (X_train, X_test, Xort_train,  # pylint: disable=W0612
             Xort_test) = train_test_split(

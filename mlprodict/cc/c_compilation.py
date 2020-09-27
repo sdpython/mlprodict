@@ -173,9 +173,9 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
         if fLOG:  # pragma: no cover
             for p in include_paths:
                 fLOG("[compile_c_function] INCLUDE += '{0}'".format(p))
-        if 'INCLUDE' in os.environ:
+        if 'INCLUDE' in os.environ:  # pragma: no cover
             os.environ["INCLUDE"] += ";" + ";".join(include_paths)
-        else:
+        else:  # pragma: no cover
             os.environ["INCLUDE"] = ";".join(include_paths)
 
     is_float = dtype == numpy.float32
@@ -232,6 +232,7 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
 
     def wrapper_float(features, output=None):
         "wrapper for float"
-        return wrapper(features, output, "float*", numpy.float32)
+        return wrapper(  # pragma: no cover
+            features, output, "float*", numpy.float32)
 
     return wrapper_float if is_float else wrapper_double

@@ -156,13 +156,13 @@ def get_rst_doc(op_name):
             opts.append('heterogeneous')
         if opts:
             return " (%s)" % ", ".join(opts)
-        return ""
+        return ""  # pragma: no cover
 
     def getconstraint(const, ii):
         if const.type_param_str:
             name = const.type_param_str
         else:
-            name = str(ii)
+            name = str(ii)  # pragma: no cover
         if const.allowed_type_strs:
             name += " " + ", ".join(const.allowed_type_strs)
         return name
@@ -170,14 +170,14 @@ def get_rst_doc(op_name):
     def getname(obj, i):
         name = obj.name
         if len(name) == 0:
-            return str(i)
+            return str(i)  # pragma: no cover
         return name
 
     def process_documentation(doc):
         if doc is None:
             doc = ''
         if isinstance(doc, Undefined):
-            doc = ''
+            doc = ''  # pragma: no cover
         if not isinstance(doc, str):
             raise TypeError(  # pragma: no cover
                 "Unexpected type {} for {}".format(type(doc), doc))
@@ -230,16 +230,11 @@ def get_rst_doc(op_name):
 
     def process_default_value(value):
         if value is None:
-            return ''
+            return ''  # pragma: no cover
         res = []
         for c in str(value):
-            if c >= 'A' and 'Z':
-                res.append(c)
-                continue
-            if c >= 'a' and 'z':
-                res.append(c)
-                continue
-            if c >= '0' and '9':
+            if ((c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z') or
+                    (c >= '0' and c <= '9')):
                 res.append(c)
                 continue
             if c in '[]-+(),.?':
@@ -304,7 +299,7 @@ def debug_onnx_object(obj, depth=3):
             if isinstance(val, dict):
                 try:
                     sorted_list = list(sorted(val.items()))
-                except TypeError:
+                except TypeError:  # pragma: no cover
                     sorted_list = list(val.items())
                 for kk, vv in sorted_list:
                     rows.append("  - [%s]: %s" % (str(kk), str(vv)))
