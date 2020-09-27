@@ -112,9 +112,9 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         """
         sht = self.onnxrt_.input_names_shapes_types if hasattr(
             self, "onnxrt_") else None
-        if sht is not None and len(sht) != len(inputs):
+        if sht is not None and len(sht) < len(inputs):
             raise RuntimeError(  # pragma: no cover
-                "Unexpected number of inputs {} != {} (expected).".format(
+                "Unexpected number of inputs {} > {} (expected).".format(
                     len(inputs), len(sht)))
         for i, k in enumerate(inputs):
             v = inputs[k]
