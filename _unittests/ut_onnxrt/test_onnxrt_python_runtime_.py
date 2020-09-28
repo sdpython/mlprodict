@@ -28,6 +28,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxConstantOfShape,
     OnnxDequantizeLinear,
     OnnxDiv,
+    OnnxDropout, OnnxDropout_7,
     OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
@@ -70,6 +71,7 @@ from mlprodict.onnxrt.ops_cpu.op_celu import _vcelu1, pycelu
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 from mlprodict.onnxrt.ops_cpu.op_pad import _pad_impl
 from mlprodict.onnxrt.ops_cpu.op_max_pool import _pool_get_output_shape, _pool_impl
+from mlprodict.onnxrt.ops_cpu.op_dropout import _dropout
 
 
 sparse_support = []
@@ -84,7 +86,7 @@ def make_coo_matrix(*args, **kwargs):
     return coo
 
 
-class TestOnnxrtPythonRuntime(ExtTestCase):
+class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @classmethod
     def setUpClass(cls):
@@ -1067,6 +1069,81 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
     def test_onnxt_runtime_div(self):
         self.common_test_onnxt_runtime_binary(OnnxDiv, lambda x, y: x / y)
+
+    def test_onnxt_runtime_dropout_10(self):
+        seed = numpy.int64(0)
+        X = numpy.random.randn(3, 4, 5).astype(numpy.float32)
+        onx = OnnxDropout_7('X', output_names=['Y'], op_version=10)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType())],
+                                target_opset=10)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqual(got['Y'].shape, X.shape)
+        self.assertEqualArray(got['Y'], _dropout(X, seed=seed)[0])
+        python_tested.append(OnnxDropout)
+
+    def test_onnxt_runtime_dropout(self):
+        seed = numpy.int64(0)
+        X = numpy.random.randn(3, 4, 5).astype(numpy.float32)
+
+        onx = OnnxDropout('X', output_names=['Y'], seed=seed,
+                          op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType())],
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqual(got['Y'].shape, X.shape)
+        self.assertEqualArray(got['Y'], _dropout(X, seed=seed)[0])
+
+        onx = OnnxDropout('X', output_names=['Y', 'Z'], seed=seed,
+                          op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType()),
+                                         ('Z', FloatTensorType())],
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y', 'Z'])
+        self.assertEqual(got['Y'].shape, X.shape)
+        res = _dropout(X, seed=seed, return_mask=True)
+        self.assertEqualArray(got['Y'], res[0])
+        self.assertEqualArray(got['Z'], res[1])
+
+        R = numpy.array([0.1], dtype=numpy.float32)
+        onx = OnnxDropout('X', 'R', output_names=['Y'], seed=seed,
+                          op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32),
+                                 'R': R.astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType())],
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'R': R})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqual(got['Y'].shape, X.shape)
+        self.assertEqualArray(
+            got['Y'], _dropout(X, seed=seed, drop_probability=0.1)[0])
+
+        R = numpy.array([0.75], dtype=numpy.float32)
+        B = numpy.array([True])
+        onx = OnnxDropout('X', 'R', 'B', output_names=['Y'], seed=seed,
+                          op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32),
+                                 'R': R, 'B': B},
+                                outputs=[('Y', FloatTensorType())],
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'R': R, 'B': B})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqual(got['Y'].shape, X.shape)
+        self.assertEqualArray(
+            got['Y'], _dropout(X, seed=seed, drop_probability=0.75,
+                               training_mode=True)[0])
+
+        python_tested.append(OnnxDropout)
 
     def test_onnxt_runtime_einsum(self):
         X = numpy.random.randn(5, 2, 3).astype(numpy.float32)
@@ -2419,5 +2496,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxrtPythonRuntime().test_onnxt_runtime_reduce_sum()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_dropout()
     unittest.main()
