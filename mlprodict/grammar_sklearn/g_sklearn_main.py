@@ -104,7 +104,7 @@ def sklearn2graph(model, output_names=None, **kwargs):
         print("\\n".join(_ for _ in ccode['code'].split("\\n") if "//" not in _))
 
     Function ``adot``, ``sign``, ``concat`` are implemented in module
-    :mod:`mlprodict.cc.c_helpers`. Function
+    :mod:`mlprodict.grammar_sklearn.cc.c_compilation`. Function
     :func:`compile_c_function <mlprodict.grammar_sklearn.cc.c_compilation.compile_c_function>`
     can compile this with :epkg:`cffi`.
 

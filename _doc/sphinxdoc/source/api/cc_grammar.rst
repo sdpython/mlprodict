@@ -8,7 +8,7 @@ Experiments
 Cc
 ++
 
-.. autosignature:: mlprodict.cc.c_compilation.compile_c_function
+.. autosignature:: mlprodict.grammar_sklearn.cc.c_compilation.compile_c_function
 
 Grammar
 +++++++
