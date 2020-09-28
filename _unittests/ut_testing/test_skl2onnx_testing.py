@@ -115,6 +115,8 @@ class TestSklearnTesting(ExtTestCase):
         self.assertEqual(c.dtype, numpy.int64)
         c = _create_column(values, dtype="tensor(float)")
         self.assertEqual(c.dtype, numpy.float32)
+        c = _create_column(values, dtype="tensor(float64)")
+        self.assertEqual(c.dtype, numpy.float64)
         c = _create_column(values, dtype="tensor(string)")
         self.assertEqual(str(c.dtype), "<U1")
         self.assertRaise(lambda: _create_column(values, dtype="tensor(float64s)"),
@@ -136,6 +138,23 @@ class TestSklearnTesting(ExtTestCase):
         val = [{'a': 2}, {'a': 3}]
         res = _post_process_output(val)
         self.assertEqualArray(res, numpy.array([[2], [3]]))
+
+        res = _post_process_output([])
+        self.assertEqualArray(res, [])
+
+        val = [numpy.array([4.1]), numpy.array([4.1])]
+        res = _post_process_output(val)
+        self.assertEqualArray(res, numpy.array([[4.1], [4.1]]))
+
+        val = [[4.1], [4.1]]
+        res = _post_process_output(val)
+        self.assertEqualArray(res, numpy.array(val))
+
+        val = [[[4.1], [4.2]], [[4.1], [4.2]]]
+        exp = [numpy.array([[4.1], [4.1]]),
+               numpy.array([[4.2], [4.2]])]
+        res = _post_process_output(val)
+        self.assertEqualArray(res, exp)
 
 
 if __name__ == "__main__":

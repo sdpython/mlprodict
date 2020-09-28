@@ -19,11 +19,13 @@ class If(OpRun):
                        expected_attributes=If.atts,
                        **options)
         if not hasattr(self.then_branch, 'run'):
-            raise RuntimeError("Parameter 'then_branch' must have a method 'run', "
-                               "type {}.".format(type(self.then_branch)))
+            raise RuntimeError(  # pragma: no error
+                "Parameter 'then_branch' must have a method 'run', "
+                "type {}.".format(type(self.then_branch)))
         if not hasattr(self.else_branch, 'run'):
-            raise RuntimeError("Parameter 'else_branch' must have a method 'run', "
-                               "type {}.".format(type(self.else_branch)))
+            raise RuntimeError(  # pragma: no error
+                "Parameter 'else_branch' must have a method 'run', "
+                "type {}.".format(type(self.else_branch)))
 
         self._run_meth_then = (self.then_branch.run_in_scan
                                if hasattr(self.then_branch, 'run_in_scan')

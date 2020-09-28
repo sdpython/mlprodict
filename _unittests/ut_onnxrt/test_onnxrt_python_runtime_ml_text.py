@@ -10,7 +10,7 @@ from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx.common.data_types import (
     StringTensorType, FloatTensorType, Int64TensorType)
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxStringNormalizer, OnnxTfIdfVectorizer)
+    OnnxStringNormalizer, OnnxTfIdfVectorizer, OnnxLabelEncoder)
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnx_conv.onnx_ops import OnnxTokenizer
 from mlprodict.onnxrt import OnnxInference
@@ -22,6 +22,63 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
     def setUp(self):
         logger = getLogger('skl2onnx')
         logger.disabled = True
+
+    def test_onnxrt_label_encoder_strings(self):
+        
+        corpus = numpy.array(['AA', 'BB', 'AA', 'CC'])
+        op = OnnxLabelEncoder(
+            'text', op_version=get_opset_number_from_onnx(),
+            keys_strings=['AA', 'BB', 'CC'],
+            values_strings=['LEAA', 'LEBB', 'LECC'],
+            output_names=['out'])
+        onx = op.to_onnx(inputs=[('text', StringTensorType())])
+        oinf = OnnxInference(onx)
+        res = oinf.run({'text': corpus})
+        self.assertEqual(list(res['out']), ['LEAA', 'LEBB', 'LEAA', 'LECC'])
+        
+    def test_onnxrt_label_encoder_floats(self):
+        
+        corpus = numpy.array([0.1, 0.2, 0.3, 0.2], dtype=numpy.float32)
+        op = OnnxLabelEncoder(
+            'text', op_version=get_opset_number_from_onnx(),
+            keys_floats=[0.1, 0.2, 0.3],
+            values_floats=[0.3, 0.4, 0.5],
+            output_names=['out'])
+        onx = op.to_onnx(inputs=[('text', FloatTensorType())])
+        oinf = OnnxInference(onx)
+        res = oinf.run({'text': corpus})
+        self.assertEqualArray(
+            res['out'], numpy.array([0.3, 0.4, 0.5, 0.4], dtype=numpy.float32))
+        
+    def test_onnxrt_label_encoder_raise(self):
+        
+        self.assertRaise(
+            lambda: OnnxLabelEncoder(
+                'text', op_version=get_opset_number_from_onnx(),
+                keys_strings=['AA', 'BB', 'CC'],
+                classes_strings=['LEAA', 'LEBB', 'LECC'],
+                output_names=['out']),
+            TypeError)
+    
+        corpus = numpy.array(['AA', 'BB', 'AA', 'CC'])
+
+        op = OnnxLabelEncoder(
+                'text', op_version=get_opset_number_from_onnx(),
+                keys_strings=['AA', 'BB', 'CC'],
+                values_floats=[0.1, 0.2, 0.3],
+                output_names=['out'])
+    
+        onx = op.to_onnx(inputs=[('text', StringTensorType())])
+        self.assertRaise(lambda: OnnxInference(onx), RuntimeError)
+
+        op = OnnxLabelEncoder(
+                'text', op_version=get_opset_number_from_onnx(),
+                keys_strings=['AA', 'BB', 'CC'],
+                values_strings=[],
+                output_names=['out'])
+    
+        onx = op.to_onnx(inputs=[('text', StringTensorType())])
+        self.assertRaise(lambda: OnnxInference(onx), RuntimeError)
 
     def test_onnxrt_string_normalizer(self):
         corpus = numpy.array([

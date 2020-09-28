@@ -15,7 +15,8 @@ from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler, Binarizer
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx import convert_sklearn
-from skl2onnx.common.data_types import FloatTensorType, StringTensorType, DictionaryType
+from skl2onnx.common.data_types import (
+    FloatTensorType, StringTensorType, DictionaryType)
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference

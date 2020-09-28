@@ -53,6 +53,15 @@ class TestOnnxrtPythonRuntimeControlIf(ExtTestCase):
         self.assertEqualArray(numpy.array([0.], dtype=numpy.float32),
                               got['Z'])
 
+        x = numpy.array([-1, -2], dtype=numpy.float32)
+        y = numpy.array([-1, -3], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32),
+                                 'Y': y.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x, 'Y': y})
+        self.assertEqualArray(numpy.array([1.], dtype=numpy.float32),
+                              got['Z'])
+
 
 if __name__ == "__main__":
     unittest.main()

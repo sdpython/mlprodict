@@ -62,8 +62,9 @@ class LabelEncoder(OpRun):
             self.default_ = self.default_string
             self.dtype_ = numpy.array(self.classes_.values).dtype
         elif hasattr(self, 'classes_strings'):
-            raise RuntimeError("This runtime does not implement version 1 of "
-                               "operator LabelEncoder.")
+            raise RuntimeError(  # pragma: no cover
+                "This runtime does not implement version 1 of "
+                "operator LabelEncoder.")
         else:
             raise RuntimeError(
                 "No encoding was defined in {}.".format(onnx_node))

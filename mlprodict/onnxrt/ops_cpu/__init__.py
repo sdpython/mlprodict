@@ -96,8 +96,8 @@ def load_op(onnx_node, desc=None, options=None):
         if cl.version_higher_than > opv:
             # The chosen implementation does not support
             # the opset version, we need to downgrade it.
-            if ('target_opset' in options and  # pragma: no cover
-                    options['target_opset'] is not None):
+            if ('target_opset' in options and
+                    options['target_opset'] is not None):  # pragma: no cover
                 raise RuntimeError(
                     "Supported version {} > {} (opset={}) required version, "
                     "unable to find an implementation version {} found "
@@ -110,5 +110,5 @@ def load_op(onnx_node, desc=None, options=None):
             return load_op(onnx_node, desc=desc, options=options)
 
     if options is None:
-        options = {}
+        options = {}  # pragma: no cover
     return cl(onnx_node, desc=desc, **options)
