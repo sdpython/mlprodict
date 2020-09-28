@@ -7,7 +7,7 @@ import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing import iris_data, check_model_representation
 from mlprodict.grammar_sklearn import sklearn2graph, identify_interpreter
-from mlprodict.cc import compile_c_function
+from mlprodict.grammar_sklearn.cc import compile_c_function
 
 
 class TestGrammarSklearnLinear(ExtTestCase):
@@ -61,7 +61,8 @@ class TestGrammarSklearnLinear(ExtTestCase):
             raise ValueError("cannot be None")
 
         X = numpy.array([[numpy.float32(1), numpy.float32(2)]])
-        fct = compile_c_function(code_c, 2, additional_paths=['ggg'])
+        fct = compile_c_function(code_c, 2, additional_paths=[
+                                 'ggg'], suffix='_float')
 
         e2 = fct(X[0, :])
         e1 = lr.predict(X)
@@ -89,7 +90,7 @@ class TestGrammarSklearnLinear(ExtTestCase):
 
         X = numpy.array([[numpy.float64(1), numpy.float64(2)]])
         fct = compile_c_function(code_c, 2, additional_paths=['ggg'],
-                                 dtype=numpy.float64)
+                                 dtype=numpy.float64, suffix='_double')
 
         e2 = fct(X[0, :])
         e1 = lr.predict(X)
@@ -107,9 +108,10 @@ class TestGrammarSklearnLinear(ExtTestCase):
             rows.append(' '.join(map(str, args)))
 
         check_model_representation(
-            LinearRegression, X.tolist(), y.tolist(), verbose=True, fLOG=myprint)
+            LinearRegression, X, y, verbose=True, fLOG=myprint, suffix='A')
         check_model_representation(
-            LinearRegression, X, y, verbose=True, fLOG=myprint)
+            LinearRegression, X.tolist(), y.tolist(), verbose=True,
+            fLOG=myprint, suffix='B')
         self.assertGreater(len(rows), 2)
 
 

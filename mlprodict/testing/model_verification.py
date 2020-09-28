@@ -7,7 +7,7 @@ import pandas
 import numpy
 from numpy.testing import assert_allclose
 from ..grammar_sklearn import sklearn2graph
-from ..cc import compile_c_function
+from ..grammar_sklearn.cc import compile_c_function
 
 
 def iris_data():

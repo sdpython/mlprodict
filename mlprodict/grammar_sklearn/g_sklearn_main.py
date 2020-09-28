@@ -105,12 +105,12 @@ def sklearn2graph(model, output_names=None, **kwargs):
 
     Function ``adot``, ``sign``, ``concat`` are implemented in module
     :mod:`mlprodict.cc.c_helpers`. Function
-    :func:`compile_c_function <mlprodict.cc.c_helpers.compile_c_function>`
+    :func:`compile_c_function <mlprodict.grammar_sklearn.cc.c_compilation.compile_c_function>`
     can compile this with :epkg:`cffi`.
 
     ::
 
-        from mlprodict.cc.c_helpers import compile_c_function
+        from mlprodict.grammar_sklearn.cc.c_compilation import compile_c_function
         fct = compile_c_function(code_c, 2)
         e2 = fct(X[0, :])
         print(e2)
