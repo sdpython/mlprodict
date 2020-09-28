@@ -67,8 +67,8 @@ class OpRunOnnxRuntime:
                 i = 0
                 new_name = "{}_{}".format(name, i)
                 while new_name in mapping:
-                    i += 1
-                    new_name = "{}_{}".format(name, i)
+                    i += 1  # pragma: no cover
+                    new_name = "{}_{}".format(name, i)  # pragma: no cover
                 mapping[new_name] = name
                 new_inputs.append(new_name)
             else:

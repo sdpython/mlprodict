@@ -61,7 +61,7 @@ def convert_score_cdist_sum(scope, operator, container):
                                axes=[1], keepdims=0,
                                name=scope.get_unique_operator_name('ReduceSum'))
         else:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "ReduceSum for opset>=13 is not impelmented yet.")
     else:
         metric = kwargs['metric']

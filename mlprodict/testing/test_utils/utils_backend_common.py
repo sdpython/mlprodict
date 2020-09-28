@@ -83,10 +83,10 @@ def load_data_and_model(items_as_dict, **context):
     for k, v in items_as_dict.items():
         if isinstance(v, str):
             if os.path.splitext(v)[-1] == ".pkl":
-                with open(v, "rb") as f:
+                with open(v, "rb") as f:  # pragma: no cover
                     try:
                         bin = pickle.load(f)
-                    except ImportError as e:  # pragma no cover
+                    except ImportError as e:
                         if '.model.' in v:
                             continue
                         raise ImportError(  # pylint: disable=W0707
@@ -141,7 +141,7 @@ def compare_outputs(expected, output, verbose=False, **kwargs):
     if Dec3:
         kwargs["decimal"] = min(kwargs["decimal"], 3)
     if Dec2:
-        kwargs["decimal"] = min(kwargs["decimal"], 2)
+        kwargs["decimal"] = min(kwargs["decimal"], 2)  # pragma: no cover
     if isinstance(expected, numpy.ndarray) and isinstance(
             output, numpy.ndarray):
         if SkipDim1:

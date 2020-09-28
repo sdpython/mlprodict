@@ -70,7 +70,7 @@ def compare_runtime_session(  # pylint: disable=R0912
     runtime_options = dict(disable_optimisation=disable_optimisation)
     try:
         sess = cls_session(onx, runtime_options=runtime_options)
-    except TypeError as e:
+    except TypeError as e:  # pragma: no cover
         raise TypeError(  # pylint: disable=W0707
             "Wrong signature for '{}'.".format(cls_session.__name__))
     except ExpectedAssertionError as expe:  # pragma no cover

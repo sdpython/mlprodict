@@ -47,4 +47,5 @@ def compare_backend(backend, test, decimal=5, options=None, verbose=False,
             comparable_outputs=comparable_outputs,
             intermediate_steps=intermediate_steps, classes=classes,
             disable_optimisation=disable_optimisation)
-    raise ValueError("Does not support backend '{0}'.".format(backend))
+    raise ValueError(  # pragma: no cover
+        "Does not support backend '{0}'.".format(backend))

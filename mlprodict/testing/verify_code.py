@@ -607,8 +607,8 @@ class CodeNodeVisitor(ast.NodeVisitor):
         return self.generic_visit_args(node, cont)
 
     def visit_(self, node):  # pylint: disable=C0116
-        help(node)
-        assert False
+        raise RuntimeError(  # pragma: no cover
+            "This node is not handled: {}".format(node))
 
     def visit_Subscript(self, node):  # pylint: disable=C0116
         cont = {

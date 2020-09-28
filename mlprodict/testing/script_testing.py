@@ -40,7 +40,7 @@ def _enumerate_fit_info(fits):
         chs = fit['children']
         if len(chs) < 2:
             # unable to extract the needed information
-            continue
+            continue  # pragma: no cover
         model = chs[0]['str']
         if model.endswith('.fit'):
             model = model[:-4]
@@ -90,7 +90,7 @@ def verify_script(file_or_name, try_onnx=True, existing_loc=None,
         filename = file_or_name
         with open(file_or_name, 'r', encoding='utf-8') as f:
             content = f.read()
-    else:
+    else:  # pragma: no cover
         content = file_or_name
         filename = "<string>"
 

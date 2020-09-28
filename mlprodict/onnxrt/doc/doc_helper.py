@@ -175,7 +175,7 @@ def get_rst_doc(op_name):
 
     def process_documentation(doc):
         if doc is None:
-            doc = ''
+            doc = ''  # pragma: no cover
         if isinstance(doc, Undefined):
             doc = ''  # pragma: no cover
         if not isinstance(doc, str):

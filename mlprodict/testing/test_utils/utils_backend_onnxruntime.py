@@ -10,7 +10,7 @@ from .utils_backend_common_compare import compare_runtime_session
 
 def _capture_output(fct, kind):
     if is_travis_or_appveyor():
-        return fct(), None, None
+        return fct(), None, None  # pragma: no cover
     from cpyquickhelper.io import capture_output
     return capture_output(fct, kind)
 
@@ -28,7 +28,7 @@ class InferenceSession2:
             'disable_optimisation', False)
         if disable_optimisation:
             if 'sess_options' in kwargs:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Incompatible options, 'disable_options' and 'sess_options' cannot "
                     "be sepcified at the same time.")
             kwargs['sess_options'] = SessionOptions()

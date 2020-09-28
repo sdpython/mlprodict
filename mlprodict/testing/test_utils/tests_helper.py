@@ -273,7 +273,7 @@ def dump_data_and_model(  # pylint: disable=R0912
                 # we only take the last one for benchmark
                 lambda_original = lambda: call(dataone)  # noqa
             else:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Method '{0}' is not callable.".format(method))
     else:
         if hasattr(model, "predict"):
@@ -313,7 +313,7 @@ def dump_data_and_model(  # pylint: disable=R0912
                 prediction = model.transform(data)
                 lambda_original = lambda: model.transform(dataone)  # noqa
         else:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Model has no predict or transform method: {0}".format(
                     type(model)))
 
@@ -744,8 +744,10 @@ def binary_array_to_string(mat):
     Used to compare decision path.
     """
     if not isinstance(mat, numpy.ndarray):
-        raise NotImplementedError()
+        raise NotImplementedError(  # pragma: no cover
+            "Not implemented for other types than arrays.")
     if len(mat.shape) != 2:
-        raise NotImplementedError()
+        raise NotImplementedError(  # pragma: no cover
+            "Not implemented for other arrays than matrices.")
     res = [[str(i) for i in row] for row in mat.tolist()]
     return [''.join(row) for row in res]

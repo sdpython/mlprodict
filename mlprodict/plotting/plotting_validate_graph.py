@@ -184,8 +184,8 @@ def plot_validate_benchmark(df):
                     "Issue with column '{}'\nlabels={}\nruntimes={}\ncolumns="
                     "{}\nvalues={}\n{}".format(
                         c, final.label, runtimes, final.columns, values, final))
-            done.add((0, runtime))
-            axi = ax
+            done.add((0, runtime))  # pragma: no cover
+            axi = ax  # pragma: no cover
         if c in final.columns:
             yl = final.loc[:, c]
             xl = x + decrt[runtime] / 2
