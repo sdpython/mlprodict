@@ -138,6 +138,16 @@ class MLNumTypeFloat32(MLNumTypeSingle):
             self, numpy.float32, 'float32', 'float', 'float32')
 
 
+class MLNumTypeFloat64(MLNumTypeSingle):
+    """
+    A numpy.float64.
+    """
+
+    def __init__(self):
+        MLNumTypeSingle.__init__(
+            self, numpy.float64, 'float64', 'double', 'float64')
+
+
 class MLNumTypeInt32(MLNumTypeSingle):
     """
     A numpy.int32.
@@ -145,6 +155,16 @@ class MLNumTypeInt32(MLNumTypeSingle):
 
     def __init__(self):
         MLNumTypeSingle.__init__(self, numpy.int32, 'int32', 'int', 'int32')
+
+
+class MLNumTypeInt64(MLNumTypeSingle):
+    """
+    A numpy.int64.
+    """
+
+    def __init__(self):
+        MLNumTypeSingle.__init__(
+            self, numpy.int32, 'int64', 'int64_t', 'int64')
 
 
 class MLNumTypeBool(MLNumTypeSingle):

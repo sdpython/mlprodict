@@ -30,6 +30,7 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
 
     Additional parameters:
     - *with_loop*: False by default, *True* not implemented.
+    - *dtype*: float32 or float64
     """
     if kwargs.get('with_loop', False):
         raise NotImplementedError(  # pragma: no cover
@@ -44,9 +45,10 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
     if len(model.coef_.shape) > 1 and min(model.coef_.shape) != 1:
         raise NotImplementedError(  # pragma: no cover
             "Multiclass is not implemented yet: coef_.shape={0}.".format(model.coef_.shape))
+    dtype = kwargs.get('dtype', numpy.float32)
     coef_ = model.coef_.ravel()
-    coef = coef_.astype(numpy.float32)
-    bias = numpy.float32(model.intercept_[0])
+    coef = coef_.astype(dtype)
+    bias = dtype(model.intercept_[0])
 
     for i, c in enumerate(coef):
         if numpy.isinf(c):
@@ -86,6 +88,7 @@ def sklearn_linear_regression(model, input_names=None, output_names=None, **kwar
 
     Additional parameters:
     - *with_loop*: False by default, *True* not implemented.
+    - *dtype*: float32 or float64
     """
     if kwargs.get('with_loop', False):  # pragma: no cover
         raise NotImplementedError("Loop version is not implemented.")
@@ -100,9 +103,10 @@ def sklearn_linear_regression(model, input_names=None, output_names=None, **kwar
         raise NotImplementedError(  # pragma: no cover
             "MultiOutput is not implemented yet: coef_.shape={0}.".format(model.coef_.shape))
 
+    dtype = kwargs.get('dtype', numpy.float32)
     coef_ = model.coef_.ravel()
-    coef = coef_.astype(numpy.float32)
-    bias = numpy.float32(model.intercept_)
+    coef = coef_.astype(dtype)
+    bias = dtype(model.intercept_)
 
     for i, c in enumerate(coef):
         if numpy.isinf(c):

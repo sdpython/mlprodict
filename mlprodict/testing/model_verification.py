@@ -87,7 +87,7 @@ def check_model_representation(model, X, y=None, convs=None,
                 "X cannot be converted into a proper DataFrame. It has shape {0}."
                 "".format(X.shape))
         if only_float:
-            X = X.as_matrix()
+            X = X.values
     if isinstance(y, list):
         y = numpy.array(y)
     if convs is None:

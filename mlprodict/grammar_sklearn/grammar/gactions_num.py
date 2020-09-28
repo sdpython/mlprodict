@@ -2,7 +2,7 @@
 @file
 @brief Action definition.
 """
-from .gtypes import MLNumTypeFloat32, MLNumTypeBool
+from .gtypes import MLNumTypeFloat32, MLNumTypeFloat64, MLNumTypeBool
 from .gactions import MLActionBinary, MLActionFunctionCall
 
 
@@ -38,9 +38,9 @@ class MLActionSign(MLActionFunctionCall):
         @param  act1    first element
         """
         MLActionFunctionCall.__init__(self, "sign", act1.output, act1)
-        if not isinstance(act1.output, MLNumTypeFloat32):
+        if not isinstance(act1.output, (MLNumTypeFloat32, MLNumTypeFloat64)):
             raise TypeError(  # pragma: no cover
-                "The input action must produce float32 not '{0}'".format(type(act1.output)))
+                "The input action must produce float32 or float64 not '{0}'".format(type(act1.output)))
 
     def execute(self, **kwargs):
         MLActionFunctionCall.execute(self, **kwargs)

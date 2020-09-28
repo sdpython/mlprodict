@@ -45,7 +45,7 @@ class TestGrammarSklearnLinear(ExtTestCase):
 
     @unittest.skipIf(platform.system().lower() == "darwin",
                      reason="compilation issue with CFFI")
-    def test_sklearn_train_lr_into_c(self):
+    def test_sklearn_train_lr_into_c_float(self):
         from sklearn.linear_model import LogisticRegression
         from sklearn.datasets import load_iris
         iris = load_iris()
@@ -69,6 +69,34 @@ class TestGrammarSklearnLinear(ExtTestCase):
         self.assertEqual(e1[0], e2[0])
         self.assertEqualFloat(p1, e2[1])
 
+    @unittest.skipIf(platform.system().lower() == "darwin",
+                     reason="compilation issue with CFFI")
+    def test_sklearn_train_lr_into_c_double(self):
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.datasets import load_iris
+        iris = load_iris()
+        X = iris.data[:, :2]
+        y = iris.target
+        y[y == 2] = 1
+        lr = LogisticRegression()
+        lr.fit(X, y)
+        gr = sklearn2graph(lr, output_names=['Prediction', 'Score'],
+                           dtype=numpy.float64)
+
+        code_c = gr.export(lang="c")['code']
+        if code_c is None:
+            raise ValueError("cannot be None")
+
+        X = numpy.array([[numpy.float64(1), numpy.float64(2)]])
+        fct = compile_c_function(code_c, 2, additional_paths=['ggg'],
+                                 dtype=numpy.float64)
+
+        e2 = fct(X[0, :])
+        e1 = lr.predict(X)
+        p1 = lr.decision_function(X)
+        self.assertEqual(e1[0], e2[0])
+        self.assertEqualFloat(p1, e2[1])
+
     @unittest.skipIf(platform.system().lower() == "darwin", reason="compilation issue with CFFI")
     def test_sklearn_linear_regression_verbose(self):
         from sklearn.linear_model import LinearRegression
@@ -78,6 +106,8 @@ class TestGrammarSklearnLinear(ExtTestCase):
         def myprint(*args, **kwargs):
             rows.append(' '.join(map(str, args)))
 
+        check_model_representation(
+            LinearRegression, X.tolist(), y.tolist(), verbose=True, fLOG=myprint)
         check_model_representation(
             LinearRegression, X, y, verbose=True, fLOG=myprint)
         self.assertGreater(len(rows), 2)
