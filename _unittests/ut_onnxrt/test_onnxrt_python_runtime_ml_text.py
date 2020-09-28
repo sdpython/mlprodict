@@ -60,8 +60,6 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
                 output_names=['out']),
             TypeError)
 
-        corpus = numpy.array(['AA', 'BB', 'AA', 'CC'])
-
         op = OnnxLabelEncoder(
             'text', op_version=get_opset_number_from_onnx(),
             keys_strings=['AA', 'BB', 'CC'],
