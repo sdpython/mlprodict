@@ -29,6 +29,7 @@ from .op_cum_sum import CumSum
 from .op_dequantize_linear import DequantizeLinear
 from .op_dict_vectorizer import DictVectorizer
 from .op_div import Div
+from .op_dropout import Dropout, Dropout_7, Dropout_12
 from .op_einsum import Einsum
 from .op_equal import Equal
 from .op_erf import Erf
