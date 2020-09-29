@@ -36,7 +36,7 @@ class TestRtValidateGaussianMixture(ExtTestCase):
             verbose, models={"GaussianMixture"}, opset_min=9,
             opset_max=11, fLOG=myprint,
             runtime='python', debug=debug,
-            filter_exp=lambda m, p: 'b-cl' in p))
+            filter_exp=lambda m, p: 'mix' in p))
         self.assertGreater(len(rows), 1)
         self.assertIn('skl_nop', rows[-1])
         keys = set()

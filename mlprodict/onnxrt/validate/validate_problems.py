@@ -5,8 +5,9 @@ The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
 import numpy
-from sklearn.base import ClusterMixin, BiclusterMixin, OutlierMixin
-from sklearn.base import RegressorMixin, ClassifierMixin
+from sklearn.base import (
+    ClusterMixin, BiclusterMixin, OutlierMixin,
+    RegressorMixin, ClassifierMixin)
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.cross_decomposition import PLSSVD
 from sklearn.datasets import load_iris
@@ -44,6 +45,7 @@ from sklearn.linear_model import (
     RidgeClassifierCV, PassiveAggressiveRegressor,
     HuberRegressor, LogisticRegression, SGDClassifier,
     LogisticRegressionCV, Perceptron)
+from sklearn.mixture._base import BaseMixture
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.multiclass import (
     OneVsRestClassifier, OneVsOneClassifier, OutputCodeClassifier)
@@ -153,6 +155,25 @@ def _problem_for_predictor_multi_classification(dtype=numpy.float32, n_features=
     X = X.astype(dtype)
     y = y.astype(numpy.int64)
     return (X, y, [('X', X[:1].astype(dtype))],
+            'predict_proba', 1, X.astype(dtype))
+
+
+def _problem_for_mixture(dtype=numpy.float32, n_features=None):
+    """
+    Returns *X, y, intial_types, method, node name, X runtime* for a
+    m-cl classification problem.
+    It is based on Iris dataset.
+    """
+    data = load_iris()
+    X = data.data
+    state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
+    rnd = state.randn(*X.shape) / 3
+    X += rnd
+    X = _modify_dimension(X, n_features)
+    y = data.target
+    X = X.astype(dtype)
+    y = y.astype(numpy.int64)
+    return (X, None, [('X', X[:1].astype(dtype))],
             'predict_proba', 1, X.astype(dtype))
 
 
@@ -798,6 +819,8 @@ def find_suitable_problem(model):
             res.extend(['b-cl', '~b-cl-64', 'm-cl', '~m-label'])
         if issubclass(model, RegressorMixin):
             res.extend(['b-reg', 'm-reg', '~b-reg-64', '~m-reg-64'])
+        if issubclass(model, BaseMixture):
+            res.extend(['mix', '~mix-64'])
 
         if len(res) > 0:
             return res
@@ -826,6 +849,7 @@ _problems = {
     'cluster': _problem_for_clustering,
     'num+y-tr': _problem_for_numerical_trainable_transform,
     'num+y-tr-cl': _problem_for_numerical_trainable_transform_cl,
+    'mix': _problem_for_mixture,
     # others
     '~num-tr-clu': _problem_for_clustering_scores,
     "~m-label": _problem_for_predictor_multi_classification_label,
@@ -860,6 +884,10 @@ _problems = {
     '~num-tr-clu-64': lambda n_features=None: _problem_for_clustering_scores(
         dtype=numpy.float64, n_features=n_features),
     "~m-reg-64": lambda n_features=None: _problem_for_predictor_multi_regression(
+        dtype=numpy.float64, n_features=n_features),
+    "~num-tr-64": lambda n_features=None: _problem_for_numerical_transform(
+        dtype=numpy.float64, n_features=n_features),
+    '~mix-64': lambda n_features=None: _problem_for_mixture(
         dtype=numpy.float64, n_features=n_features),
     #
     "~b-cl-NF": (lambda n_features=None: _problem_for_predictor_binary_classification(

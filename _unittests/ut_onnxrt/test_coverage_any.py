@@ -5,6 +5,7 @@ import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.linear_model import LogisticRegression
+from sklearn.mixture import GaussianMixture
 from sklearn.neural_network import MLPClassifier
 from mlprodict.onnxrt.validate.validate_problems import (
     find_suitable_problem, _problem_for_clnoproba_binary,
@@ -20,6 +21,8 @@ class TestCoverageAny(ExtTestCase):
                           '~b-cl-dec', '~m-cl-dec'], res)
         res = find_suitable_problem(MLPClassifier)
         self.assertEqual(['b-cl', '~b-cl-64', 'm-cl', '~m-label'], res)
+        res = find_suitable_problem(GaussianMixture)
+        self.assertEqual(['mix', '~mix-64'], res)
 
     def test_problems(self):
         res = _problem_for_clnoproba_binary(add_nan=True)
