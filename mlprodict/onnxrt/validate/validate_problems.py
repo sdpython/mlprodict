@@ -202,8 +202,8 @@ def _problem_for_predictor_regression(many_output=False, options=None,
         X = X[:, :n_features]
         itt = [('X', X[:1].astype(dtype))]
     if nbrows is not None:
-        X = X[::nbrows, :]
-        y = y[::nbrows]
+        X = X[:nbrows, :]
+        y = y[:nbrows]
         itt = [('X', X[:1].astype(dtype))]
     if options is not None:
         itt = itt, options
@@ -238,8 +238,8 @@ def _problem_for_predictor_multi_regression(many_output=False, options=None,
         X = X[:, :n_features]
         itt = [('X', X[:1].astype(dtype))]
     if nbrows is not None:
-        X = X[::nbrows, :]
-        y = y[::nbrows]
+        X = X[:nbrows, :]
+        y = y[:nbrows]
         itt = [('X', X[:1].astype(dtype))]
     if options is not None:
         itt = itt, options
@@ -651,9 +651,6 @@ def find_suitable_problem(model):
                     'b-reg', '~b-reg-64',  # 'm-reg'
                     ]
 
-        if model in {GaussianProcessClassifier}:
-            return ['b-cl', 'm-cl', '~b-cl-64']
-
         if model in {DictVectorizer}:
             return ['key-int-col']
 
@@ -676,8 +673,11 @@ def find_suitable_problem(model):
                      HistGradientBoostingClassifier}:
             return ['b-cl', 'm-cl', '~b-cl-64', '~b-cl-nan']
 
+        if model in {GaussianProcessClassifier}:
+            return ['b-cl', 'm-cl', '~b-cl-64']
+
         if model in {BaggingClassifier, BernoulliNB, CalibratedClassifierCV,
-                     ComplementNB, GaussianNB, GaussianProcessClassifier,
+                     ComplementNB, GaussianNB,
                      GradientBoostingClassifier, LabelPropagation, LabelSpreading,
                      LinearDiscriminantAnalysis, LogisticRegressionCV,
                      MultinomialNB, QuadraticDiscriminantAnalysis,
@@ -770,13 +770,6 @@ def find_suitable_problem(model):
         if model in {LatentDirichletAllocation, NMF, PowerTransformer}:
             return ['num-tr-pos']
 
-        # predict, predict_proba
-        if hasattr(model, 'predict_proba'):
-            if model is OneVsRestClassifier:
-                return ['m-cl', '~m-label']
-            else:
-                return ['b-cl', 'm-cl', '~m-label']
-
         if hasattr(model, 'predict'):
             if "Classifier" in str(model):
                 return ['b-cl', '~b-cl-64', 'm-cl', '~m-label']
@@ -800,12 +793,12 @@ def find_suitable_problem(model):
             res.extend(['outlier'])
 
         if issubclass(model, ClassifierMixin):
+            if model is OneVsRestClassifier:
+                return ['m-cl', '~m-label']
             res.extend(['b-cl', '~b-cl-64', 'm-cl', '~m-label'])
         if issubclass(model, RegressorMixin):
             res.extend(['b-reg', 'm-reg', '~b-reg-64', '~m-reg-64'])
 
-        if len(res) == 0 and hasattr(model, 'fit') and hasattr(model, 'score'):
-            return ['~scoring']
         if len(res) > 0:
             return res
 
@@ -815,8 +808,9 @@ def find_suitable_problem(model):
     res = _internal(model)
     for r in res:
         if r not in _problems:
-            raise ValueError("Unrecognized problem '{}' in\n{}".format(
-                r, "\n".join(sorted(_problems))))
+            raise ValueError(  # pragma: no cover
+                "Unrecognized problem '{}' in\n{}".format(
+                    r, "\n".join(sorted(_problems))))
     return res
 
 

@@ -11,8 +11,7 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from skl2onnx.common.data_types import (
     StringTensorType, FloatTensorType, Int64TensorType,
-    BooleanTensorType
-)
+    BooleanTensorType)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
 from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
@@ -201,6 +200,18 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         got = oif.run(df_test)
         values = pandas.DataFrame(got['output_probability']).values
         self.assertEqualArray(exp, values[:, 1], decimal=5)
+
+    def test_lightgbm_booster_classifier(self):
+        X = numpy.array([[0, 1], [1, 1], [2, 0], [1, 2]], dtype=numpy.float32)
+        y = [0, 1, 0, 1]
+        data = Dataset(X, label=y)
+        model = lgb_train({'boosting_type': 'rf', 'objective': 'binary',
+                           'n_estimators': 3, 'min_child_samples': 1,
+                           'subsample_freq': 1, 'bagging_fraction': 0.5,
+                           'feature_fraction': 0.5},
+                          data)
+        model_onnx = to_onnx(model, X)
+        self.assertNotEmpty(model_onnx)
 
 
 if __name__ == "__main__":

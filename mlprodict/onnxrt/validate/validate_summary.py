@@ -85,7 +85,7 @@ class _MyEncoder(json.JSONEncoder):
             obj = dict(clsname=o.__class__.__name__)
             obj.update(o.get_params())
             return json.dumps(obj, sort_keys=True)
-        return json.dumps(o, sort_keys=True)
+        return json.dumps(o, sort_keys=True)  # pragma: no cover
 
 
 def _jsonify(x):
@@ -192,13 +192,13 @@ def summary_report(df, add_cols=None, add_index=None):
 
         def replace_msg(text):
             if isinstance(text, MissingShapeCalculator):
-                return "NO CONVERTER"
+                return "NO CONVERTER"  # pragma: no cover
             if str(text).startswith("Unable to find a shape calculator for type '"):
                 return "NO CONVERTER"
             if str(text).startswith("Unable to find problem for model '"):
-                return "NO PROBLEM"
+                return "NO PROBLEM"  # pragma: no cover
             if "not implemented for float64" in str(text):
-                return "NO RUNTIME 64"
+                return "NO RUNTIME 64"  # pragma: no cover
             return str(text)
 
         piv2 = pandas.pivot_table(
@@ -258,7 +258,7 @@ def summary_report(df, add_cols=None, add_index=None):
     # adding versions
     def keep_values(x):
         if isinstance(x, float) and numpy.isnan(x):
-            return False
+            return False  # pragma: no cover
         return True
 
     col_versions = [c for c in df.columns if c.startswith("v_")]
@@ -288,7 +288,7 @@ def merge_benchmark(dfs, column='runtime', baseline=None, suffix='-base'):
     def add_prefix(prefix, v):
         if isinstance(v, str):
             return prefix + v
-        return v
+        return v  # pragma: no cover
 
     conc = []
     for k, df in dfs.items():
@@ -310,7 +310,7 @@ def merge_benchmark(dfs, column='runtime', baseline=None, suffix='-base'):
             for v in index:
                 try:
                     if numpy.isnan(v):
-                        continue
+                        continue  # pragma: no cover
                 except (ValueError, TypeError):
                     pass
                 k.append(v)
@@ -350,7 +350,7 @@ def merge_benchmark(dfs, column='runtime', baseline=None, suffix='-base'):
         for i in range(merged.shape[0]):
             key = get_key(tuple(merged.loc[i, indices]))
             if key not in indexed:
-                continue
+                continue  # pragma: no cover
             value = indexed[key]
             for r in ratios:
                 if r.endswith('-min') or r.endswith('-max'):

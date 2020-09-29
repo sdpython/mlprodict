@@ -126,7 +126,7 @@ def compare_runtime_session(  # pylint: disable=R0912
                 if shape == input.shape[1]:
                     inputs = {n.name: input[:, i] for i, n in enumerate(inp)}
                 else:
-                    raise OnnxBackendAssertionError(
+                    raise OnnxBackendAssertionError(  # pragma: no cover
                         "Wrong number of inputs onnx {0} != "
                         "original shape {1}, onnx='{2}'"
                         .format(len(inp), input.shape, onx))
