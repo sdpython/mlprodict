@@ -2524,9 +2524,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            (11, OnnxConstant_11)]:
             with self.subTest(opset=opset):
                 if opset >= 12:
-                    cst = cls(value_floats=values)
+                    cst = cls(value_floats=values, op_version=opset)
                 else:
-                    cst = cls(value=values)
+                    cst = cls(value=values, op_version=opset)
                 onx = OnnxAdd('X', cst, op_version=opset)
                 try:
                     model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
