@@ -257,7 +257,8 @@ def dump_data_and_model(  # pylint: disable=R0912
         prediction = []
         for method in methods:
             if callable(method):
-                call = lambda X, model=model: method(model, X)  # noqa
+                call = lambda X, model=model: method(
+                    model, X)  # pragma: no cover
             else:
                 try:
                     call = getattr(model, method)
@@ -271,7 +272,7 @@ def dump_data_and_model(  # pylint: disable=R0912
             if callable(call):
                 prediction.append(call(data))
                 # we only take the last one for benchmark
-                lambda_original = lambda: call(dataone)  # noqa
+                lambda_original = lambda: call(dataone)
             else:
                 raise RuntimeError(  # pragma: no cover
                     "Method '{0}' is not callable.".format(method))
@@ -280,38 +281,39 @@ def dump_data_and_model(  # pylint: disable=R0912
             if _has_predict_proba(model):
                 # Classifier
                 prediction = [model.predict(data), model.predict_proba(data)]
-                lambda_original = lambda: model.predict_proba(dataone)  # noqa
+                lambda_original = lambda: model.predict_proba(dataone)
             elif _has_decision_function(model):
                 # Classifier without probabilities
                 prediction = [model.predict(data),
                               model.decision_function(data)]
                 lambda_original = (
-                    lambda: model.decision_function(dataone))  # noqa
+                    lambda: model.decision_function(dataone))
             elif _has_transform_model(model):
                 # clustering
                 try:
                     prediction = [model.predict(data), model.transform(data)]
-                    lambda_original = lambda: model.transform(dataone)  # noqa
+                    lambda_original = lambda: model.transform(dataone)
                 except ValueError:
                     # 0.23 enforced type checking.
                     d64 = data.astype(numpy.float64)
                     prediction = [model.predict(d64), model.transform(d64)]
                     dataone64 = dataone.astype(numpy.float64)
-                    lambda_original = lambda: model.transform(dataone64)  # noqa
+                    lambda_original = lambda: model.transform(dataone64)
             else:
                 # Regressor or VotingClassifier
                 prediction = [model.predict(data)]
-                lambda_original = lambda: model.predict(dataone)  # noqa
+                lambda_original = lambda: model.predict(dataone)
 
         elif hasattr(model, "transform"):
             options = extract_options(basename)
             SklCol = options.get("SklCol", False)
             if SklCol:
-                prediction = model.transform(data.ravel())
-                lambda_original = lambda: model.transform(dataone.ravel())  # noqa
+                prediction = model.transform(data.ravel())  # pragma: no cover
+                lambda_original = lambda: model.transform(
+                    dataone.ravel())  # pragma: no cover
             else:
                 prediction = model.transform(data)
-                lambda_original = lambda: model.transform(dataone)  # noqa
+                lambda_original = lambda: model.transform(dataone)
         else:
             raise TypeError(  # pragma: no cover
                 "Model has no predict or transform method: {0}".format(
@@ -361,9 +363,10 @@ def dump_data_and_model(  # pylint: disable=R0912
             backend = [backend]
         for b in backend:
             if not is_backend_enabled(b):
-                continue
+                continue  # pragma: no cover
             if isinstance(allow_failure, str):
-                allow = evaluate_condition(b, allow_failure)
+                allow = evaluate_condition(
+                    b, allow_failure)  # pragma: no cover
             else:
                 allow = allow_failure
             if allow is None and not check_error:

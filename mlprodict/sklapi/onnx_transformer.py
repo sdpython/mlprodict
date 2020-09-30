@@ -132,7 +132,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                             k, v.shape, exp[1]))
                 if ((v.dtype == numpy.float32 and exp[2] != 'tensor(float)') or
                         (v.dtype == numpy.float64 and exp[2] != 'tensor(double)')):
-                    raise TypeError(
+                    raise TypeError(  # pragma: no cover
                         "Unexpected dtype for input '{}': {} != {} "
                         "(expected).".format(
                             k, v.dtype, exp[2]))

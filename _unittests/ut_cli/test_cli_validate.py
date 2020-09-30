@@ -27,7 +27,7 @@ class TestCliValidate(ExtTestCase):
                    "LogisticRegression,LinearRegression",
                    '-o', '10', '-op', '10', '-v', '2', '-b', '1',
                    '-t', '{"1":{"number":10,"repeat":10},"10":{"number":5,"repeat":5}}',
-                   '--out_graph', gr],
+                   '--out_graph', gr, '--n_jobs', '0'],
              fLOG=st.fprint)
         res = str(st)
         self.assertIn('Linear', res)

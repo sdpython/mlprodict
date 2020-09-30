@@ -1436,6 +1436,26 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['Y'])
+        self.assertEqual(got['Y'].dtype, X.dtype)
+
+    def test_onnxt_runtime_max_pool_1d_default_64(self):
+        X = numpy.random.randn(1, 3, 32).astype(numpy.float64)
+        kernel_shape = [2]
+        strides = [1]
+        out_shape = _pool_get_output_shape(
+            b'VALID', X.shape[2:], kernel_shape, strides)
+        exp = _pool_impl(
+            X, X.shape, kernel_shape, strides, out_shape, [0], b'MAX')
+        onx = OnnxMaxPool(
+            'X', output_names=['Y'], kernel_shape=kernel_shape,
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx(
+            {'X': X}, target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqualArray(exp, got['Y'])
+        self.assertEqual(got['Y'].dtype, X.dtype)
+        self.assertEqual(got['Y'].dtype, numpy.float64)
 
     def test_onnxt_runtime_max_pool_2d(self):
         # ceil
@@ -2494,7 +2514,42 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     self.assertEqual(list(sorted(got)), ['Ad_C0'])
                     self.assertEqualArray(X * 2, got['Ad_C0'])
 
+    def test_make_constant(self):
+        X = numpy.array([0.1, 0.2], dtype=numpy.float32)
+        values = [1.1, 2.2]
+        exp = numpy.array([1.2, 2.4], dtype=numpy.float32)
+
+        for opset, cls in [(get_opset_number_from_onnx(), OnnxConstant),
+                           (9, OnnxConstant_9),
+                           (11, OnnxConstant_11)]:
+            with self.subTest(opset=opset):
+                if opset >= 12:
+                    cst = cls(value_floats=values)
+                else:
+                    cst = cls(value=values)
+                onx = OnnxAdd('X', cst, op_version=opset)
+                try:
+                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                            target_opset=opset)
+                except RuntimeError as e:
+                    if opset == 9:
+                        continue
+                    raise e
+                try:
+                    oinf = OnnxInference(model_def)
+                except RuntimeError as e:
+                    raise AssertionError(
+                        "Unable to load the model:\n{}".format(model_def)) from e
+                got = oinf.run({'X': X})
+                if opset >= 11:
+                    self.assertEqual(list(sorted(got)), [
+                                     'Ad_C0', 'Co_output0'])
+                    self.assertEqualArray(exp, got['Ad_C0'])
+                else:
+                    self.assertEqual(list(sorted(got)), ['Ad_C0'])
+                    self.assertEqualArray(exp, got['Ad_C0'])
+
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_dropout()
+    # TestOnnxrtPythonRuntime().test_make_constant()
     unittest.main()

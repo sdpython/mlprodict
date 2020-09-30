@@ -250,7 +250,7 @@ class OnnxTranslator(CodeTranslator):
                         sexpr2 = write_expression(
                             stack_fct_used, expr2, indent + 1)
                         if any(filter(lambda s: 'op_version="op_version"' in s, sexpr2)):
-                            continue
+                            continue  # pragma: no cover
                         rows.extend(sexpr2)
                         rows[-1] += ","
                     rows.append('{}op_version=op_version'.format(

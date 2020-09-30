@@ -8,8 +8,8 @@ from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from sklearn.ensemble import (
     ExtraTreesClassifier,
     RandomForestClassifier,
-    ExtraTreesRegressor
-)
+    ExtraTreesRegressor,
+    VotingClassifier)
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import OneClassSVM, NuSVC
 from sklearn.tree import DecisionTreeClassifier
@@ -22,13 +22,13 @@ from mlprodict.testing.test_utils import (
     fit_regression_model,
     dump_one_class_classification,
     dump_multilabel_classification,
-    create_tensor,
-)
+    create_tensor)
+from mlprodict.testing.test_utils.tests_helper import (
+    _has_predict_proba, _has_decision_function, _has_transform_model)
 from mlprodict.testing.test_utils.utils_backend_common import (
     OnnxBackendAssertionError,
     _create_column,
-    _post_process_output,
-)
+    _post_process_output)
 from mlprodict.onnx_conv import register_rewritten_operators
 
 
@@ -155,6 +155,14 @@ class TestSklearnTesting(ExtTestCase):
                numpy.array([[4.2], [4.2]])]
         res = _post_process_output(val)
         self.assertEqualArray(res, exp)
+
+    def test_voting(self):
+        cl = VotingClassifier(
+            estimators=[ExtraTreesClassifier(), RandomForestClassifier()],
+            voting="hard")
+        self.assertFalse(_has_predict_proba(cl))
+        self.assertFalse(_has_decision_function(cl))
+        self.assertFalse(_has_transform_model(cl))
 
 
 if __name__ == "__main__":

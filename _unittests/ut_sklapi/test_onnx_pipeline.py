@@ -195,6 +195,44 @@ class TestOnnxPipeline(ExtTestCase):
         self.assertEqualArray(
             res["probabilities"], pipe.predict_proba(X), decimal=5)
 
+    def test_pipeline_iris_column_transformer_nocache(self):
+
+        class MyMemory:
+            def __init__(self):
+                pass
+
+            def cache(self, obj):
+                return obj
+
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        pipe = OnnxPipeline([
+            ('col', ColumnTransformer([
+                ('pca', PCA(n_components=2), [0, 1]),
+                ('no', StandardScaler(), [2]),
+                ('pass', 'passthrough', [3])
+            ])),
+            ('lr', LogisticRegression())],
+            enforce_float32=True,
+            op_version=get_opset_number_from_onnx(),
+            memory=MyMemory())
+        pipe.fit(X, y)
+        pipe.fit(X, y)
+        self.assertTrue(hasattr(pipe, 'raw_steps_'))
+        self.assertEqual(len(pipe.steps), 2)
+        self.assertEqual(len(pipe.raw_steps_), 2)
+        self.assertIsInstance(pipe.steps[0][1], OnnxTransformer)
+        self.assertIsInstance(pipe.steps[1][1], LogisticRegression)
+
+        X = X.astype(numpy.float32)
+        model_def = to_onnx(pipe, X[:1], target_opset=pipe.op_version,
+                            options={id(pipe): {'zipmap': False}})
+        sess = OnnxInference(model_def)
+        res = sess.run({'X': X})
+        self.assertEqualArray(res["label"], pipe.predict(X))
+        self.assertEqualArray(
+            res["probabilities"], pipe.predict_proba(X), decimal=5)
+
 
 if __name__ == '__main__':
     unittest.main()

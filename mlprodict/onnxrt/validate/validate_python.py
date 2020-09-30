@@ -49,9 +49,11 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
 
     exp = oinf.run(inputs)
     if not isinstance(exp, dict):
-        raise TypeError("exp is not a dictionary by '{}'.".format(type(exp)))
+        raise TypeError(  # pragma: no cover
+            "exp is not a dictionary by '{}'.".format(type(exp)))
     if len(exp) == 0:
-        raise ValueError("No result to compare.")
+        raise ValueError(  # pragma: no cover
+            "No result to compare.")
     inps = ['{0}={0}'.format(k) for k in sorted(inputs)]
     code += "\n".join(['', '', 'opi = OnnxPythonInference()',
                        'res = opi.run(%s)' % ', '.join(inps)])
@@ -77,7 +79,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
     loc = inputs
     try:
         exec(cp, gl, loc)  # pylint: disable=W0122
-    except (NameError, TypeError, SyntaxError) as e:
+    except (NameError, TypeError, SyntaxError) as e:  # pragma: no cover
         raise RuntimeError(
             "Unable to execute code\n-----\n{}".format(code)) from e
 
@@ -87,14 +89,15 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
         got = {keys[0]: got}
 
     if not isinstance(got, dict):
-        raise TypeError("got is not a dictionary by '{}'.".format(type(got)))
+        raise TypeError(  # pragma: no cover
+            "got is not a dictionary by '{}'.".format(type(got)))
     if len(got) != len(exp):
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Different number of results.\nexp: {}\ngot: {}".format(
                 ", ".join(sorted(exp)), ", ".join(sorted(got))))
 
     if keys != list(sorted(got)):
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Different result names.\nexp: {}\ngot: {}".format(
                 ", ".join(sorted(exp)), ", ".join(sorted(got))))
 
@@ -103,7 +106,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
         g = got[k]
         if isinstance(e, numpy.ndarray):
             if e.shape != g.shape:
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "Shapes are different {} != {}.".format(e.shape, g.shape))
             diff = 0
             for a, b in zip(e.ravel(), g.ravel()):
@@ -114,9 +117,9 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
                     continue
                 diff = max(diff, abs(a - b))
             if diff > tolerance:
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "Values are different (max diff={}>{})\n--EXP--\n{}\n--GOT--"
                     "\n{}\n--\n{}".format(diff, tolerance, e, g, code))
         else:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Unable to compare values of type '{}'.".format(type(e)))

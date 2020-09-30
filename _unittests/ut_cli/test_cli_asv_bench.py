@@ -23,7 +23,8 @@ class TestCliAsvBench(ExtTestCase):
                    "-o", '10', '-m',
                    "LogisticRegression,LinearRegression",
                    '-v', '2', '--flat', '1',
-                   '--matrix', '{"onnxruntime":["1.1.1","1.1.2"]}'],
+                   '--matrix', '{"onnxruntime":["1.1.1","1.1.2"]}',
+                   '--conf_params', 'install_timeout,1000;repo_subdir,.'],
              fLOG=st.fprint)
         res = str(st)
         self.assertIn('Lin', res)

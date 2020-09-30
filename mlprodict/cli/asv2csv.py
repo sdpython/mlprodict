@@ -33,20 +33,20 @@ def asv2csv(folder, outfile=None, last_one=False, baseline=None,
     The filename may contain ``<date>``, it is then replaced by
     the time now.
     """
+    iter_rows = enumerate_export_asv_json(
+        folder, last_one=last_one, baseline=baseline, conf=conf)
+
     if outfile is None:
         rows = []
-        for row in enumerate_export_asv_json(
-                folder, last_one=last_one, baseline=baseline, conf=conf):
+        for row in iter_rows:
             fLOG(row)
             rows.append(row)
         return rows
-    else:
-        import pandas
-        df = pandas.DataFrame(enumerate_export_asv_json(
-            folder, last_one=last_one, baseline=baseline,
-            conf=conf))
-        outfile = outfile.replace(
-            "<date>",
-            datetime.now().strftime("%Y%m%dT%H%M%S"))
-        df.to_csv(outfile, index=False)
-        return df
+
+    import pandas
+    df = pandas.DataFrame(iter_rows)
+    outfile = outfile.replace(
+        "<date>",
+        datetime.now().strftime("%Y%m%dT%H%M%S"))
+    df.to_csv(outfile, index=False)
+    return df

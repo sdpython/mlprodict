@@ -276,7 +276,7 @@ class OnnxInferenceExport:
                 elif ':' in line:
                     spl = line.strip().split(':')
                     if len(spl) != 2:
-                        raise RuntimeError(
+                        raise RuntimeError(  # pragma: no cover
                             "Unable to interpret line '{}'.".format(line))
 
                     if spl[0].strip() in ('type', ):
@@ -305,7 +305,7 @@ class OnnxInferenceExport:
                     rows[-1] = rows[-1].rstrip(",")
                     rows.append(line + ",")
                 elif line:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Unable to interpret line '{}'.".format(line))
             rows[-1] = rows[-1].rstrip(',')
             rows.append("}")
@@ -313,7 +313,7 @@ class OnnxInferenceExport:
 
             try:
                 content = json.loads(js)
-            except json.decoder.JSONDecodeError as e:
+            except json.decoder.JSONDecodeError as e:  # pragma: no cover
                 js2 = "\n".join("%04d %s" % (i + 1, line)
                                 for i, line in enumerate(js.split("\n")))
                 raise RuntimeError(

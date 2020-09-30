@@ -1,5 +1,5 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=4s)
 """
 import os
 import json
@@ -8,7 +8,8 @@ import pandas
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.filehelper.compression_helper import unzip_files
 from mlprodict.asv_benchmark import export_asv_json, create_asv_benchmark
-from mlprodict.asv_benchmark.asv_exports import _figures2dict, _coor_to_str
+from mlprodict.asv_benchmark.asv_exports import (
+    _figures2dict, _coor_to_str, _dict2str)
 from mlprodict.asv_benchmark._create_asv_helper import _display_code_lines
 
 
@@ -133,6 +134,12 @@ class TestAsvJsonText(ExtTestCase):
                "{'optim': 'cdist', 'return_std': True}}"]
         sval = _coor_to_str(val)
         self.assertEqual(sval, "M-ort-1-20-11-double-optimcdist-return_std1")
+
+    def test__dict2str(self):
+        d1 = {'e': 2, 'r': 4}
+        self.assertEqual('e2-r4', _dict2str(d1))
+        d2 = {'e': 2, 'd1': d1}
+        self.assertEqual('e2-d1e2-r4', _dict2str(d2))
 
 
 if __name__ == "__main__":

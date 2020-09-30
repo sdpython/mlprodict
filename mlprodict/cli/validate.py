@@ -168,7 +168,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
     if not dump_folder:
         dump_folder = None
     if dump_folder and not os.path.exists(dump_folder):
-        os.mkdir(dump_folder)
+        os.mkdir(dump_folder)  # pragma: no cover
     if dump_folder and not os.path.exists(dump_folder):
         raise FileNotFoundError(  # pragma: no cover
             "Cannot find dump_folder '{0}'.".format(
@@ -260,7 +260,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
                                        RuntimeWarning, FutureWarning))
                 rows = build_rows(models_)
         else:
-            rows = build_rows(models_)
+            rows = build_rows(models_)  # pragma: no cover
         return rows
 
     rows = catch_build_rows(models)
@@ -327,8 +327,9 @@ def _validate_runtime_dict(kwargs):
 def _validate_runtime_separate_process(**kwargs):
     models = kwargs['models']
     if models in (None, ""):
-        from ..onnxrt.validate.validate_helper import sklearn_operators
-        models = [_['name'] for _ in sklearn_operators(extended=True)]
+        from ..onnxrt.validate.validate_helper import sklearn_operators  # pragma: no cover
+        models = [_['name']
+                  for _ in sklearn_operators(extended=True)]  # pragma: no cover
     elif not isinstance(models, list):
         models = models.strip().split(',')
 

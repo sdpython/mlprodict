@@ -261,7 +261,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         @return                 compiled function
         """
         if context is None:
-            context = {}
+            context = {}  # pragma: no cover
         try:
             obj = compile(code, "", "exec")
         except SyntaxError as e:  # pragma: no cover

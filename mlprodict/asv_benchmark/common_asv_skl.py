@@ -76,7 +76,7 @@ class _CommonAsvSklBenchmark:
     def _get_xdtype(self, dtype):
         if dtype in ('float', numpy.float32):
             return numpy.float32
-        elif dtype in ('double', numpy.float64):
+        elif dtype in ('double', '64', 64, numpy.float64):
             return numpy.float64
         raise ValueError(  # pragma: no cover
             "Unknown dtype '{}'.".format(dtype))
@@ -106,8 +106,6 @@ class _CommonAsvSklBenchmark:
             # Expand common onnx options, see _nick_name_options.
             options = expand_onnx_options(model, optim)
 
-        if dtype in (numpy.float64, 'double'):
-            return to_onnx(model, X, options=options, target_opset=opset)
         return to_onnx(model, X, options=options, target_opset=opset)
 
     def _create_onnx_inference(self, onx, runtime):
@@ -138,7 +136,7 @@ class _CommonAsvSklBenchmark:
         elif runtime == 'ort':
             name = 'onnxruntime1'
         elif runtime == 'ort2':
-            name = 'onnxruntime2'
+            name = 'onnxruntime2'  # pragma: no cover
         elif runtime == 'pyrt':
             name = 'python'
         elif runtime == 'pyrtc':
@@ -301,9 +299,9 @@ class _CommonAsvSklBenchmarkClustering(_CommonAsvSklBenchmark):
 
     def _score_metric(self, X, y_exp, y_pred):
         if X.shape[0] == 1:
-            return 0.
+            return 0.  # pragma: no cover
         elif set(y_pred) == 1:
-            return 0.
+            return 0.  # pragma: no cover
         return silhouette_score(X, y_pred)
 
     def _create_onnx_and_runtime(self, runtime, model, X, opset, dtype, optim):
