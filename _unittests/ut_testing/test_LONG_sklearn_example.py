@@ -123,7 +123,7 @@ class TestLONGSklearnExample(ExtTestCase):
                             continue
                         raise e
                     except (KeyError, NameError, RuntimeError, TypeError,
-                            ImportError, AttributeError) as e:
+                            ImportError, AttributeError, ValueError) as e:
                         issues[nfile] = e
                         fLOG('    local function', str(e).split('\n')[0])
                         continue
