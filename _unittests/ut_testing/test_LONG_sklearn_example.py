@@ -118,12 +118,11 @@ class TestLONGSklearnExample(ExtTestCase):
                         fLOG('    missing variable', str(e).split('\n')[0])
                         continue
                     except ValueError as e:
-                        if skl_version == "0.22.2.post1":
-                            fLOG('    value error', str(e).split('\n')[0])
-                            continue
+                        issues[nfile] = e
+                        fLOG('    value error', str(e).split('\n')[0])
                         raise e
                     except (KeyError, NameError, RuntimeError, TypeError,
-                            ImportError, AttributeError, ValueError) as e:
+                            ImportError, AttributeError) as e:
                         issues[nfile] = e
                         fLOG('    local function', str(e).split('\n')[0])
                         continue

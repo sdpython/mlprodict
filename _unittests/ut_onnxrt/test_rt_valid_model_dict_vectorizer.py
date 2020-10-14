@@ -28,7 +28,7 @@ class TestRtValidateDictVectorizer(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        debug = True
+        debug = False
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"DictVectorizer"},
             fLOG=myprint,

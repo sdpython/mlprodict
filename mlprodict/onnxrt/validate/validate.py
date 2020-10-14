@@ -476,7 +476,7 @@ def _call_conv_runtime_opset(
                     conv, t4 = _measure_time(fct_conv)[:2]
                     obs_op["convert_time"] = t4
                 except (RuntimeError, IndexError, AttributeError, TypeError,
-                        ValueError, NameError) as e:
+                        ValueError, NameError, NotImplementedError) as e:
                     if debug:
                         fLOG(pprint.pformat(obs_op))  # pragma: no cover
                         raise  # pragma: no cover
