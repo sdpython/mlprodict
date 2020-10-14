@@ -22,12 +22,18 @@ class Cast(OpRun):
             self._dtype = numpy.float32
         elif self.to == TensorProto.DOUBLE:  # pylint: disable=E1101
             self._dtype = numpy.float64
+        elif self.to == TensorProto.UINT8:  # pylint: disable=E1101
+            self._dtype = numpy.uint8
+        elif self.to == TensorProto.INT8:  # pylint: disable=E1101
+            self._dtype = numpy.int8
         elif self.to == TensorProto.INT32:  # pylint: disable=E1101
             self._dtype = numpy.int32
         elif self.to == TensorProto.INT64:  # pylint: disable=E1101
             self._dtype = numpy.int64
         elif self.to == TensorProto.BOOL:  # pylint: disable=E1101
             self._dtype = numpy.bool
+        elif self.to == TensorProto.STRING:  # pylint: disable=E1101
+            self._dtype = numpy.str
         else:
             raise ValueError(  # pragma: no cover
                 "Unexpected value for to='{}'.".format(
