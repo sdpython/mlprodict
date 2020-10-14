@@ -120,7 +120,7 @@ class TestLONGSklearnExample(ExtTestCase):
                     except ValueError as e:
                         issues[nfile] = e
                         fLOG('    value error', str(e).split('\n')[0])
-                        raise e
+                        continue
                     except (KeyError, NameError, RuntimeError, TypeError,
                             ImportError, AttributeError) as e:
                         issues[nfile] = e
