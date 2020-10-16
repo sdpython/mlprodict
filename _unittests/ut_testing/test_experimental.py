@@ -13,9 +13,12 @@ class TestExperimental(ExtTestCase):
 
     def ort_path(self, x, pads):
         pads = list(pads[:, 0]) + list(pads[:, 1])
-        X = helper.make_tensor_value_info('X', TensorProto.FLOAT, x.shape)
-        P = helper.make_tensor_value_info('P', TensorProto.INT64, [len(pads), ])
-        Y = helper.make_tensor_value_info('Y', TensorProto.FLOAT, tuple(-1 for s in x.shape))
+        X = helper.make_tensor_value_info(
+            'X', TensorProto.FLOAT, x.shape)  # pylint: disable=E1101
+        P = helper.make_tensor_value_info(
+            'P', TensorProto.INT64, [len(pads), ])  # pylint: disable=E1101
+        Y = helper.make_tensor_value_info(
+            'Y', TensorProto.FLOAT, tuple(-1 for s in x.shape))  # pylint: disable=E1101
         npads = numpy.array(pads, dtype=numpy.int64)
         op = helper.make_node('Pad', ['X', 'P'], ['Y'])
         graph = helper.make_graph([op], 'graph', [X, P], [Y])
@@ -114,7 +117,8 @@ class TestExperimental(ExtTestCase):
     def test_experimental_pad_negative(self):
         arr = numpy.arange(6) + 10
         paddings = numpy.array([1, -1]).reshape((-1, 2)) * 2
-        self.assertRaise(lambda: custom_pad(arr, paddings), NotImplementedError)
+        self.assertRaise(lambda: custom_pad(
+            arr, paddings), NotImplementedError)
 
 
 if __name__ == "__main__":
