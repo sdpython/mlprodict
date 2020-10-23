@@ -19,7 +19,10 @@ class ReduceLogSumExp(OpRunReduceNumpy):
 
     def _run(self, data):  # pylint: disable=W0221
         tax = tuple(self.axes) if self.axes else None
-        mx = data.max(axis=tax, keepdims=True)
+        data_max = data.copy()
+        ind = numpy.isinf(data_max)
+        data_max[ind] = -numpy.inf
+        mx = data_max.max(axis=tax, keepdims=True)
         sub = numpy.subtract(data, mx)
         exp = numpy.exp(sub, out=sub)
         mxs = numpy.sum(exp, axis=tax,

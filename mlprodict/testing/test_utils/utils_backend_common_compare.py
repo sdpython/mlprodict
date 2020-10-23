@@ -256,7 +256,7 @@ def compare_runtime_session(  # pylint: disable=R0912
         else:
             smodel = ""
         raise OnnxBackendAssertionError(  # pylint: disable=W0707
-            "Model '{0}' has discrepencies.\n{1}: {2}{3}".format(
-                onx, type(e), e, smodel))
+            "Model '{}' has discrepencies with cls='{}'.\n{}: {}{}".format(
+                onx, sess.__class__.__name__, type(e), e, smodel))
 
     return output0, lambda_onnx

@@ -1751,6 +1751,20 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         res = numpy.log(numpy.sum(numpy.exp(X), axis=1, keepdims=1))
         self.assertEqualArray(
             res.ravel(), got['Y'].ravel())  # pylint: disable=E1101
+
+        X = numpy.array([[1., numpy.inf],
+                         [numpy.inf, 1],
+                         [1., -numpy.inf],
+                         [-numpy.inf, 1]], dtype=float)
+        onx = OnnxReduceLogSumExp('X', output_names=['Y'], keepdims=0, axes=[1],
+                                  op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        res = numpy.log(numpy.sum(numpy.exp(X), axis=1))
+        self.assertEqualArray(res, got['Y'], decimal=6)
         python_tested.append(OnnxReduceLogSumExp)
 
     def test_onnxt_runtime_reduce_max(self):
@@ -1938,6 +1952,20 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             self.assertEqual(list(sorted(got)), ['Y'])
             self.assertEqualArray(numpy.sum(X, axis=1, keepdims=1).ravel(),
                                   got['Y'].ravel())
+
+        X = numpy.array([[1., numpy.inf],
+                         [numpy.inf, 1],
+                         [1., -numpy.inf],
+                         [-numpy.inf, 1]], dtype=float)
+        onx = OnnxReduceSum('X', output_names=['Y'], keepdims=0, axes=[1],
+                            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        res = numpy.sum(X, axis=1)
+        self.assertEqualArray(res, got['Y'], decimal=6)
         python_tested.append(OnnxReduceSum)
 
     def test_onnxt_runtime_reduce_sum_square(self):

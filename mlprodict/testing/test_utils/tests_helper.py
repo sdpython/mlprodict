@@ -375,7 +375,8 @@ def dump_data_and_model(  # pylint: disable=R0912
                     context=context, verbose=verbose,
                     comparable_outputs=comparable_outputs,
                     intermediate_steps=intermediate_steps,
-                    disable_optimisation=disable_optimisation)
+                    disable_optimisation=disable_optimisation,
+                    classes=classes)
             elif check_error:
                 try:
                     output, lambda_onnx = compare_backend(
@@ -383,7 +384,8 @@ def dump_data_and_model(  # pylint: disable=R0912
                         context=context, verbose=verbose,
                         comparable_outputs=comparable_outputs,
                         intermediate_steps=intermediate_steps,
-                        disable_optimisation=disable_optimisation)
+                        disable_optimisation=disable_optimisation,
+                        classes=classes)
                 except Exception as e:  # pragma: no cover
                     if check_error in str(e):
                         warnings.warn(str(e))
