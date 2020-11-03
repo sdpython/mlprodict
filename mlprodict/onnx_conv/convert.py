@@ -14,9 +14,10 @@ except ImportError:  # pragma: no cover
     from sklearn.metrics.scorer import _PredictScorer
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from skl2onnx.common.data_types import (
-    FloatTensorType, DoubleTensorType, DataType, guess_numpy_type)
-from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
+    FloatTensorType, DoubleTensorType, DataType, guess_numpy_type,
+    StringTensorType, Int64TensorType)
 from skl2onnx import convert_sklearn
+from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from skl2onnx.algebra.type_helper import _guess_type
 from .register_rewritten_converters import register_rewritten_operators
 from .register import register_converters
@@ -101,7 +102,10 @@ def guess_initial_types(X, initial_types):
         if isinstance(X, pandas.DataFrame):
             initial_types = []
             for c in X.columns:
-                g = _guess_type(X[c].values)
+                if isinstance(X[c].values[0], (str, numpy.str)):
+                    g = StringTensorType()
+                else:
+                    g = _guess_type(X[c].values)
                 g.shape = [None, 1]
                 initial_types.append((c, g))
         else:
@@ -146,6 +150,48 @@ def guess_schema_from_data(X, tensor_type=None, schema=None):
         unique.add(col.__class__)
     unique = list(unique)
     return [('X', unique[0]([None, sum(_[1].shape[1] for _ in init)]))]
+
+
+def get_inputs_from_data(X, schema=None):
+    """
+    Produces input data for *onnx* runtime.
+
+    @param  X       data
+    @param  schema  schema if None, schema is guessed with
+        @see fn guess_schema_from_data
+    @return input data
+    """
+    def _cast_data(X, ct):
+        if isinstance(ct, FloatTensorType):
+            return X.astype(numpy.float32)
+        if isinstance(ct, DoubleTensorType):
+            return X.astype(numpy.float64)
+        if isinstance(ct, StringTensorType):
+            return X.astype(numpy.str)
+        if isinstance(ct, Int64TensorType):
+            return X.astype(numpy.int64)
+        raise RuntimeError(
+            "Unexpected column type {} for type {}."
+            "".format(ct, type(X)))
+
+    if schema is None:
+        schema = guess_schema_from_data(X)
+    if isinstance(X, numpy.ndarray):
+        if len(schema) != 1:
+            raise RuntimeError(  # pragma: no cover
+                "More than one column but input is an array.")
+        return {schema[0][0]: _cast_data(X, schema[0][1])}
+    elif isinstance(X, pandas.DataFrame):
+        if len(schema) != X.shape[1]:
+            raise RuntimeError(  # pragma: no cover
+                "Mismatch between onnx columns {} and DataFrame columns {}"
+                "".format(len(schema), X.shape[1]))
+        return {sch[0]: _cast_data(X[c].values, sch[1]).reshape((-1, 1))
+                for sch, c in zip(schema, X.columns)}
+    else:
+        raise TypeError(
+            "Unexpected type {}, expecting an array or a dataframe."
+            "".format(type(X)))
 
 
 def guess_schema_from_model(model, tensor_type=None, schema=None):

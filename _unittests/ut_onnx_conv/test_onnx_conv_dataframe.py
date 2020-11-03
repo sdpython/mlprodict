@@ -10,7 +10,9 @@ from pyquickhelper.pycode import ExtTestCase
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from mlprodict.onnx_conv import to_onnx
+from skl2onnx.common.data_types import Int64TensorType
+from mlprodict.onnx_conv import (
+    to_onnx, guess_schema_from_data, get_inputs_from_data)
 from mlprodict.onnxrt import OnnxInference
 
 
@@ -32,7 +34,10 @@ class TestOnnxConvDataframe(ExtTestCase):
     def test_pipeline_dataframe_case4(self):
         self.case_test_pipeline_dataframe(4)
 
-    def case_test_pipeline_dataframe(self, case):
+    def test_pipeline_dataframe_case4_cat(self):
+        self.case_test_pipeline_dataframe(4, cat=True)
+
+    def case_test_pipeline_dataframe(self, case, cat=False):
         text = """
                 fixed_acidity,volatile_acidity,citric_acid,residual_sugar,chlorides,free_sulfur_dioxide,total_sulfur_dioxide,density,pH,sulphates,alcohol,quality,color
                 7.4,0.7,0.0,1.9,0.076,11.0,34.0,0.9978,3.51,0.56,9.4,5,red
@@ -88,8 +93,15 @@ class TestOnnxConvDataframe(ExtTestCase):
         else:
             raise NotImplementedError()
 
-        pipe.fit(X_train)
+        if cat:
+            X_train['color'] = X_train['color'].astype('category')
+        schema = guess_schema_from_data(X_train)
+        if isinstance(schema[-1][-1], Int64TensorType):
+            raise AssertionError(
+                "Issue with type of last column %r: %r." % (
+                    schema[-1], X_train.dtypes[-1]))
 
+        pipe.fit(X_train)
         model_onnx = to_onnx(pipe, X_train)
         try:
             oinf = OnnxInference(model_onnx)
@@ -98,8 +110,7 @@ class TestOnnxConvDataframe(ExtTestCase):
                 case, e)) from e
 
         pred = pipe.transform(X_train)
-        inputs = {c: X_train[c].values for c in X_train.columns}
-        inputs = {c: v.reshape((v.shape[0], 1)) for c, v in inputs.items()}
+        inputs = get_inputs_from_data(X_train)
         onxp = oinf.run(inputs)
         got = onxp['transformed_column']
         self.assertEqualArray(pred, got)
