@@ -109,6 +109,26 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
 
         self.assertGreater(nb_tests, 8)
 
+    def test_xgboost_classifier_i5450(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, random_state=10)
+        clr = XGBClassifier(objective="multi:softmax",
+                            max_depth=1, n_estimators=2)
+        clr.fit(X_train, y_train, eval_set=[
+                (X_test, y_test)], early_stopping_rounds=40)
+        onx = to_onnx(clr, X_train[:1].astype(numpy.float32),
+                      options={XGBClassifier: {'zipmap': False}})
+        sess = OnnxInference(onx)
+        predict_list = [1., 20., 466., 0.]
+        predict_array = numpy.array(predict_list).reshape(
+            (1, -1)).astype(numpy.float32)
+        pred_onx = sess.run({'X': predict_array})
+        pred_onx = pred_onx['probabilities']
+        pred_xgboost = clr.predict_proba(predict_array)
+        self.assertEqualArray(pred_xgboost, pred_onx)
+
 
 if __name__ == "__main__":
     unittest.main()
