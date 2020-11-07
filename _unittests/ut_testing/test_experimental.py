@@ -7,6 +7,7 @@ from onnx import helper, TensorProto
 from onnxruntime import InferenceSession
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing.experimental import custom_pad
+from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestExperimental(ExtTestCase):
@@ -23,6 +24,9 @@ class TestExperimental(ExtTestCase):
         op = helper.make_node('Pad', ['X', 'P'], ['Y'])
         graph = helper.make_graph([op], 'graph', [X, P], [Y])
         model = helper.make_model(graph, producer_name='model')
+        op_set = model.opset_import.add()
+        op_set.domain = ''
+        op_set.version = get_opset_number_from_onnx()
         sess = InferenceSession(model.SerializeToString())
         return numpy.squeeze(sess.run(['Y'], {'X': x, 'P': npads}))
 
