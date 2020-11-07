@@ -10,6 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from sklearn.mixture import GaussianMixture
+from sklearn.tree import DecisionTreeRegressor
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlinsights.mlmodel import TransferTransformer
 from mlprodict.onnx_conv import to_onnx
@@ -45,6 +46,13 @@ class TestOnnxPipeline(ExtTestCase):
         res = sess.run({'X': X})
         self.assertEqualArray(res["label"], pipe.predict(X))
         self.assertEqualArray(res["probabilities"], pipe.predict_proba(X))
+
+    def test_pipeline_none_params(self):
+        model_onx = OnnxPipeline([
+            ('scaler', StandardScaler()),
+            ('dt', DecisionTreeRegressor(max_depth=2))
+        ])
+        self.assertNotEmpty(model_onx)
 
     def test_pipeline_iris_enfore_false(self):
         iris = load_iris()
@@ -235,4 +243,5 @@ class TestOnnxPipeline(ExtTestCase):
 
 
 if __name__ == '__main__':
+    TestOnnxPipeline().test_pipeline_none_params()
     unittest.main()

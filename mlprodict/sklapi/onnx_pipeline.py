@@ -66,8 +66,6 @@ class OnnxPipeline(Pipeline):
                  runtime='python', options=None,
                  white_op=None, black_op=None, final_types=None,
                  op_version=None):
-        Pipeline.__init__(
-            self, steps, memory=memory, verbose=verbose)
         self.output_name = output_name
         self.enforce_float32 = enforce_float32
         self.runtime = runtime
@@ -77,6 +75,10 @@ class OnnxPipeline(Pipeline):
         self.black_op = black_op
         self.final_types = final_types
         self.op_version = op_version
+        # The constructor calls _validate_step and it checks the value
+        # of black_op.
+        Pipeline.__init__(
+            self, steps, memory=memory, verbose=verbose)
 
     def fit(self, X, y=None, **fit_params):
         """
