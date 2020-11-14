@@ -2667,6 +2667,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            (9, OnnxConstant_9),
                            (11, OnnxConstant_11)]:
             with self.subTest(opset=opset):
+                print("*****", opset, cls)
                 if opset >= 12:
                     cst = cls(value_floats=values, op_version=opset)
                 else:
@@ -2679,12 +2680,15 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     if opset == 9:
                         continue
                     raise e
+                print(model_def)
                 try:
                     oinf = OnnxInference(model_def)
                 except RuntimeError as e:
                     raise AssertionError(
                         "Unable to load the model:\n{}".format(model_def)) from e
+                print('RUN')
                 got = oinf.run({'X': X})
+                print('OK')
                 if opset >= 11:
                     self.assertEqual(list(sorted(got)), [
                                      'Ad_C0', 'Co_output0'])
