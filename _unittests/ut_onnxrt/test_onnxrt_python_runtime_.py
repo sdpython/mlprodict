@@ -2,6 +2,7 @@
 @brief      test log(time=2s)
 """
 import unittest
+import sys
 from logging import getLogger
 from contextlib import redirect_stdout
 from io import StringIO
@@ -10,10 +11,11 @@ from scipy.sparse import coo_matrix, csr_matrix, SparseEfficiencyWarning
 from scipy.special import (  # pylint: disable=E0611
     expit as logistic_sigmoid, erf)
 from scipy.spatial.distance import cdist
-from onnx import TensorProto
+from onnx import TensorProto, __version__ as onnx_version
 from onnx.helper import make_sparse_tensor, make_tensor
 from onnx.defs import onnx_opset_version
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper import compare_module_version
 from sklearn.utils.extmath import softmax
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -88,11 +90,11 @@ def make_coo_matrix(*args, **kwargs):
 
 
 def wraplog():
-    def wrapper(fct):        
+    def wrapper(fct):
         def call_f(self):
-            print('BEGIN %s' % fct.__name__)
+            # print('BEGIN %s' % fct.__name__)
             fct(self)
-            print('DONE %s' % fct.__name__)
+            # print('DONE %s' % fct.__name__)
         return call_f
     return wrapper
 
@@ -2663,11 +2665,18 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         values = [1.1, 2.2]
         exp = numpy.array([1.2, 2.4], dtype=numpy.float32)
 
-        for opset, cls in [(get_opset_number_from_onnx(), OnnxConstant),
-                           (9, OnnxConstant_9),
-                           (11, OnnxConstant_11)]:
+        opset_tests = [
+            (get_opset_number_from_onnx(), OnnxConstant),
+            (11, OnnxConstant_11)]
+
+        if (not sys.platform.startswith('win') or
+                compare_module_version(onnx_version, (1, 8, 0)) != 0):
+            # to_onnx fails for opset, it is expected
+            # but it makes python crash on python for onnx 1.8.0
+            opset_tests.append((9, OnnxConstant_9))
+
+        for opset, cls in opset_tests:
             with self.subTest(opset=opset):
-                print("*****", opset, cls)
                 if opset >= 12:
                     cst = cls(value_floats=values, op_version=opset)
                 else:
@@ -2680,15 +2689,12 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     if opset == 9:
                         continue
                     raise e
-                print(model_def)
                 try:
                     oinf = OnnxInference(model_def)
                 except RuntimeError as e:
                     raise AssertionError(
                         "Unable to load the model:\n{}".format(model_def)) from e
-                print('RUN')
                 got = oinf.run({'X': X})
-                print('OK')
                 if opset >= 11:
                     self.assertEqual(list(sorted(got)), [
                                      'Ad_C0', 'Co_output0'])
