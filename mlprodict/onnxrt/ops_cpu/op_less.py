@@ -29,4 +29,4 @@ class LessOrEqual(OpRunBinary):
         return (numpy.less_equal(a, b), )
 
     def to_python(self, inputs):
-        return self._to_python_numpy(inputs, self.__class__.__name__.lower())
+        return self._to_python_numpy(inputs, "less_equal")
