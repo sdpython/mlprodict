@@ -178,6 +178,13 @@ def custom_einsum(equation, x, y):
                 ind += inc * i
         return ind, cd[col_sum][0]
 
+    def get_incs(cd, shape):
+        incs = []
+        for c, sh in shape.items():
+            inc = cd[c][0] if c in cd else 0
+            incs.append(inc)
+        return incs
+
     if x.dtype != y.dtype:
         raise RuntimeError("x and y must have the same dtype.")
     eqx = equation.split(',')[0]
@@ -206,10 +213,15 @@ def custom_einsum(equation, x, y):
     len_index = len(index)
     loop_size = dx[c_sum[0]][0]
 
+    i_left_loop, inc_left = get_index(cdx, shape, index, c_sum[0])
+    i_right_loop, inc_right = get_index(cdy, shape, index, c_sum[0])
+    left_inc = get_incs(cdx, shape)
+    right_inc = get_incs(cdy, shape)
+
     for i in range(0, full_size):
 
-        i_left, inc_left = get_index(cdx, shape, index, c_sum[0])
-        i_right, inc_right = get_index(cdy, shape, index, c_sum[0])
+        i_left = i_left_loop
+        i_right = i_right_loop
 
         # summation
         add = zeros[0]
@@ -222,10 +234,16 @@ def custom_einsum(equation, x, y):
         # increment
         pos = len_index - 1
         index[pos] += 1
+        i_left_loop += left_inc[pos]
+        i_right_loop += right_inc[pos]
         while pos > 0 and index[pos] >= shape_dims[pos]:
+            i_left_loop -= left_inc[pos] * index[pos]
+            i_right_loop -= right_inc[pos] * index[pos]
             index[pos] = 0
             pos -= 1
             index[pos] += 1
+            i_left_loop += left_inc[pos]
+            i_right_loop += right_inc[pos]
 
     new_shape = tuple(v[0] for v in shape.values())
     return zrav.reshape(new_shape)
