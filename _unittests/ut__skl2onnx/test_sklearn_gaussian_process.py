@@ -7,6 +7,7 @@ from io import StringIO
 import numpy as np
 import pandas as pd
 from numpy.testing import assert_almost_equal
+from onnxruntime import __version__ as ort_version
 from sklearn.datasets import load_iris
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (
@@ -18,7 +19,6 @@ from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper import compare_module_version
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from skl2onnx import to_onnx, __version__ as skl2_vers
-from onnxruntime import __version__ as ort_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.testing.test_utils import (
     dump_data_and_model, fit_regression_model, TARGET_OPSET)

@@ -4,12 +4,12 @@
 import unittest
 import math
 import numpy
+from onnxruntime import InferenceSession
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeRegressor
-from onnxruntime import InferenceSession
 from skl2onnx.sklapi import CastTransformer
 from skl2onnx import convert_sklearn, to_onnx
 from skl2onnx.common.data_types import (

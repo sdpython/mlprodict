@@ -7,6 +7,7 @@ import warnings
 import numpy
 from pandas import DataFrame
 from scipy.spatial.distance import cdist as scipy_cdist
+from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument as OrtInvalidArgument  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.datasets import load_iris, make_regression
@@ -24,7 +25,6 @@ from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import Int64TensorType
 import skl2onnx
 from skl2onnx.algebra.complex_functions import onnx_cdist
-from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument as OrtInvalidArgument  # pylint: disable=E0611
 from mlprodict.onnx_conv import (
     register_converters, to_onnx)
 from mlprodict.onnxrt import OnnxInference

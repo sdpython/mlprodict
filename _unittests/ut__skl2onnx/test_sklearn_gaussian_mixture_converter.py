@@ -3,10 +3,10 @@
 """
 import unittest
 import numpy as np
-from sklearn.datasets import load_iris
-from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from onnxruntime import InferenceSession
 from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail  # pylint: disable=E0611
+from sklearn.datasets import load_iris
+from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from skl2onnx import convert_sklearn, to_onnx
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.testing.test_utils import dump_data_and_model, TARGET_OPSET
