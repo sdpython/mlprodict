@@ -92,9 +92,9 @@ def make_coo_matrix(*args, **kwargs):
 def wraplog():
     def wrapper(fct):
         def call_f(self):
-            # print('BEGIN %s' % fct.__name__)
+            print('BEGIN %s' % fct.__name__)
             fct(self)
-            # print('DONE %s' % fct.__name__)
+            print('DONE %s' % fct.__name__)
         return call_f
     return wrapper
 
