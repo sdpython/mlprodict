@@ -2,6 +2,7 @@
 @file
 @brief Experimental implementation.
 """
+from collections import OrderedDict
 import numpy
 
 
@@ -80,3 +81,151 @@ def custom_pad(arr, paddings, constant=0, debug=False):
 
     # final
     return res.reshape(new_shape)
+
+
+def custom_einsum(equation, x, y):
+    """
+    Experimental implementation of operator Einsum
+    when it does a matrix multiplication.
+    Case: ``bsnh,btnh->bnts`` with shapes
+    `(1,512,12,64)` and `(1,512,12,64)`.
+
+    :param equation: equation
+    :param x: first matrix
+    :param y: second matrix
+    :return: result of *einsum*
+    """
+    def _check_eq(eq, sh):
+        if len(eq) != len(sh):
+            raise ValueError(
+                "Unable to map equation %r to shape %r." % (eq, sh))
+
+    def _split(eq, sh):
+        dx = OrderedDict((e, (v, i)) for i, (e, v) in enumerate(zip(eq, sh)))
+        return dx
+
+    def _interpret(dx, dy, eqr):
+        c_uni = []
+        c_trp = []
+        c_sum = []
+        for r in eqr:
+            if r in dx:
+                if r in dy:
+                    if dx[r][0] != dy[r][0]:
+                        raise ValueError(
+                            "Dimension mismatch for letter "
+                            "%r dx=%r dy=%r." % (r, dx, dy))
+                    c_trp.append(r)
+                else:
+                    c_uni.append((r, None))
+            elif r in dy:
+                c_uni.append((None, r))
+            else:
+                raise ValueError(
+                    "Unexpected letter %r in result %r." % (r, eqr))
+        for c in dx:
+            if c not in eqr:
+                if c not in dy:
+                    raise ValueError(
+                        "Unable to guess what to do with column %r (left side)" % c)
+                if dx[c][0] != dy[c][0]:
+                    raise ValueError(
+                        "Dimension mismatch for letter "
+                        "%r dx=%r dy=%r." % (c, dx, dy))
+                c_sum.append(c)
+        for c in dy:
+            if c not in eqr and c not in dx:
+                raise ValueError(
+                    "Unable to guess what to do with column %r (right side)" % c)
+        shape = OrderedDict()
+        for i, r in enumerate(eqr):
+            if r in c_trp:
+                shape[r] = (dx[r][0], i)
+            else:
+                for a, b in c_uni:
+                    if a == r:
+                        shape[r] = (dx[r][0], i)
+                        break
+                    if b == r:
+                        shape[r] = (dy[r][0], i)
+                        break
+        if len(shape) != len(eqr):
+            raise RuntimeError(
+                "Unable to compute the output shape "
+                "dx=%r dy=%r eqr=%r got shape=%r." % (dx, dy, eqr, shape))
+        return shape, c_trp, c_uni, c_sum
+
+    def _inc(d):
+        t = 1
+        drev = list(reversed(d.items()))
+        res = []
+        for c, (sh, p) in drev:
+            res.append((c, (t, p)))
+            t *= sh
+        return OrderedDict(reversed(res))
+
+    def prod(seq):
+        p = 1
+        for s in seq:
+            p *= s
+        return p
+
+    def get_index(cd, shape, index, col_sum):
+        ind = 0
+        for c, i in zip(shape, index):
+            if c in cd:
+                inc = cd[c][0]
+                ind += inc * i
+        return ind, cd[col_sum][0]
+
+    if x.dtype != y.dtype:
+        raise RuntimeError("x and y must have the same dtype.")
+    eqx = equation.split(',')[0]
+    eqy = equation.split(',')[-1].split('->')[0]
+    eqr = equation.split('->')[-1]
+    _check_eq(eqx, x.shape)
+    _check_eq(eqy, y.shape)
+    dx = _split(eqx, x.shape)
+    dy = _split(eqy, y.shape)
+    shape, __, _, c_sum = _interpret(dx, dy, eqr)
+    cdx = _inc(dx)
+    cdy = _inc(dy)
+    xrav = x.ravel()
+    yrav = y.ravel()
+    full_size = prod(v[0] for v in shape.values())
+    zrav = numpy.empty((full_size, ), dtype=x.dtype)
+
+    # loop
+    if len(c_sum) != 1:
+        raise NotImplementedError(
+            "More than one summation indices %r in equation %r." % (
+                c_sum, equation))
+    zeros = numpy.zeros((1, ), dtype=x.dtype)
+    shape_dims = [v[0] for v in shape.values()]
+    index = [0 for s in shape]
+    len_index = len(index)
+    loop_size = dx[c_sum[0]][0]
+
+    for i in range(0, full_size):
+
+        i_left, inc_left = get_index(cdx, shape, index, c_sum[0])
+        i_right, inc_right = get_index(cdy, shape, index, c_sum[0])
+
+        # summation
+        add = zeros[0]
+        for _ in range(loop_size):
+            add += xrav[i_left] * yrav[i_right]
+            i_left += inc_left
+            i_right += inc_right
+        zrav[i] = add
+
+        # increment
+        pos = len_index - 1
+        index[pos] += 1
+        while pos > 0 and index[pos] >= shape_dims[pos]:
+            index[pos] = 0
+            pos -= 1
+            index[pos] += 1
+
+    new_shape = tuple(v[0] for v in shape.values())
+    return zrav.reshape(new_shape)
