@@ -33,6 +33,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
     OnnxIdentity, OnnxIsNaN,
+    OnnxLess, OnnxLessOrEqual,
     OnnxLog, OnnxLpNormalization,
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMul,
     OnnxNeg, OnnxNot,
@@ -1385,6 +1386,13 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     def test_onnxt_runtime_isnan(self):
         self.common_test_onnxt_runtime_unary(OnnxIsNaN, numpy.isnan)
+
+    def test_onnxt_runtime_less(self):
+        self.common_test_onnxt_runtime_binary(OnnxLess, numpy.less)
+
+    def test_onnxt_runtime_less_or_equal(self):
+        self.common_test_onnxt_runtime_binary(
+            OnnxLessOrEqual, numpy.less_equal)
 
     def test_onnxt_runtime_log(self):
         self.common_test_onnxt_runtime_unary(OnnxLog, numpy.log)
