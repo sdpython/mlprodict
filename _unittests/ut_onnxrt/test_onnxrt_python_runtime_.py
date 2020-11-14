@@ -87,6 +87,16 @@ def make_coo_matrix(*args, **kwargs):
     return coo
 
 
+def wraplog():
+    def wrapper(fct):        
+        def call_f(self):
+            print('BEGIN %s' % fct.__name__)
+            fct(self)
+            print('DONE %s' % fct.__name__)
+        return call_f
+    return wrapper
+
+
 class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @classmethod
@@ -257,21 +267,26 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             self.assertEqual(exp, got['Y'])
         sparse_support.append(('BinOp', op_version, onnx_cl.__name__))
 
+    @wraplog()
     def test_onnxt_runtime_abs(self):
         self.common_test_onnxt_runtime_unary(OnnxAbs, numpy.abs)
 
+    @wraplog()
     def test_onnxt_runtime_abs_debug(self):
         f = StringIO()
         with redirect_stdout(f):
             self.common_test_onnxt_runtime_unary(
                 OnnxAbs, numpy.abs, debug=True)
 
+    @wraplog()
     def test_onnxt_runtime_add(self):
         self.common_test_onnxt_runtime_binary(OnnxAdd, numpy.add)
 
+    @wraplog()
     def test_onnxt_runtime_and(self):
         self.common_test_onnxt_runtime_binary(OnnxAnd, numpy.logical_and)
 
+    @wraplog()
     def test_onnxt_runtime_argmax(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
@@ -327,6 +342,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
     @unittest.skipIf(onnx_opset_version() < 12, reason="needs onnx 1.7.0")
+    @wraplog()
     def test_onnxt_runtime_argmax_12(self):
         self.assertGreater(onnx_opset_version(), 12)
         from skl2onnx.algebra.onnx_ops import OnnxArgMax_12  # pylint: disable=E0611
@@ -341,6 +357,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(numpy.array([1, 2], dtype=numpy.int64),
                               got['Y'], decimal=6)
 
+    @wraplog()
     def test_onnxt_runtime_argmin(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
@@ -395,6 +412,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         sparse_support.append(('UnOp', None, OnnxArgMin.__name__))
 
     @unittest.skipIf(onnx_opset_version() < 12, reason="needs onnx 1.7.0")
+    @wraplog()
     def test_onnxt_runtime_argmin_12(self):
         self.assertGreater(onnx_opset_version(), 12)
         from skl2onnx.algebra.onnx_ops import OnnxArgMin_12  # pylint: disable=E0611
@@ -409,9 +427,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(numpy.array([2, 1], dtype=numpy.int64),
                               got['Y'], decimal=6)
 
+    @wraplog()
     def test_onnxt_runtime_atan(self):
         self.common_test_onnxt_runtime_unary(OnnxAtan, numpy.arctan)
 
+    @wraplog()
     def test_onnxt_runtime_atan2(self):
         test_pairs = [[y, x]
                       for x in [3., -4., 0., -1., 1.]
@@ -433,6 +453,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(
             numpy.arctan2(y_val, x_val), atan2(y_val, x_val), decimal=6)
 
+    @wraplog()
     def test_onnxt_runtime_batch_normalization(self):
         # input size: (1, 2, 1, 3)
         x = numpy.array([[[[-1, 0, 1]], [[2, 3, 4]]]]).astype(numpy.float32)
@@ -474,16 +495,19 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxBatchNormalization)
 
+    @wraplog()
     def test_onnxt_runtime_ceil(self):
         self.common_test_onnxt_runtime_unary(OnnxCeil, numpy.ceil)
 
     @unittest.skipIf(OnnxCelu is None, reason="onnx too recent")
+    @wraplog()
     def test_onnxt_runtime_celu1(self):
         self.common_test_onnxt_runtime_unary(
             OnnxCelu, _vcelu1, op_version=12,
             outputs=[('Y', FloatTensorType([None, 2]))])
 
     @unittest.skipIf(OnnxCelu is None, reason="onnx too recent")
+    @wraplog()
     def test_onnxt_runtime_celu2(self):
         _vcelu2 = numpy.vectorize(
             lambda x: pycelu(x, 1.), otypes=[numpy.float])
@@ -493,6 +517,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @unittest.skipIf(onnx_opset_version() < 11,
                      reason="Explicitely tests Clip >= 11")
+    @wraplog()
     def test_onnxt_runtime_clip(self):
         self.common_test_onnxt_runtime_unary(
             lambda x, output_names=None, op_version=None: OnnxClip(
@@ -516,6 +541,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             lambda x: numpy.clip(x, 0.1, 2.1))
         python_tested.append(OnnxClip)
 
+    @wraplog()
     def test_onnxt_runtime_clip_10(self):
         from skl2onnx.algebra.onnx_ops import OnnxClip_6  # pylint: disable=E0611
         self.common_test_onnxt_runtime_unary(
@@ -544,6 +570,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             lambda x: numpy.clip(x, 0.1, 2.1),
             op_version=10)
 
+    @wraplog()
     def test_onnxt_runtime_concat(self):
         cst = numpy.array([[1, 2]], dtype=numpy.float32)
         onx = OnnxConcat('X', 'Y', cst, output_names=['Z'],
@@ -568,6 +595,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                      'Y': Y.astype(numpy.float32)})
         python_tested.append(OnnxConcat)
 
+    @wraplog()
     def test_onnxt_runtime_constant_of_shape(self):
         x = numpy.array([2, 2], dtype=numpy.int64)
         y = numpy.zeros((2, 2))
@@ -583,6 +611,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
         validate_python_inference(oinfpy, {'X': x})
 
+    @wraplog()
     def test_onnxt_runtime_conv(self):
         x = numpy.array([[[[0., 1., 2., 3., 4.],  # (1, 1, 5, 5) input tensor
                            [5., 6., 7., 8., 9.],
@@ -612,6 +641,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
         python_tested.append(OnnxConv)
 
+    @wraplog()
     def test_onnxt_runtime_conv_transpose(self):
         x = numpy.array([[[[0., 1., 2.],  # (1, 1, 3, 3)
                            [3., 4., 5.],
@@ -647,6 +677,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
         python_tested.append(OnnxConv)
 
+    @wraplog()
     def test_onnxt_runtime_conv_transpose_1d(self):
         x = numpy.array([[[0., 1., 2.]]]).astype(numpy.float32)
         W = numpy.array([[[1., 1., 1.],  # (1, 2, 3)
@@ -674,6 +705,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
         python_tested.append(OnnxConvTranspose)
 
+    @wraplog()
     def test_onnxt_runtime_conv_transpose_3d(self):
         x = numpy.arange(60).reshape((1, 1, 3, 4, 5)).astype(numpy.float32)
         W = numpy.ones((1, 2, 3, 3, 3)).astype(numpy.float32)
@@ -760,6 +792,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(y_with_padding, got['Y'])
 
     @unittest.skipIf(True, reason="fails with output_shape")
+    @wraplog()
     def test_onnxt_runtime_conv_transpose_output_shape(self):
         x = numpy.arange(9).reshape((1, 1, 3, 3)).astype(numpy.float32)
         W = numpy.ones((1, 2, 3, 3)).astype(numpy.float32)
@@ -805,6 +838,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             self.assertEqual(list(sorted(got)), ['Y'])
             self.assertEqualArray(y_with_padding, got['Y'])
 
+    @wraplog()
     def test_onnxt_runtime_conv_transpose_attributes(self):
         x = numpy.arange(9).reshape((1, 1, 3, 3)).astype(numpy.float32)
         W = numpy.ones((1, 2, 3, 3)).astype(numpy.float32)
@@ -857,6 +891,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             self.assertEqual(list(sorted(got)), ['Y'])
             self.assertEqualArray(y_with_padding, got['Y'])
 
+    @wraplog()
     def test_onnxt_runtime_conv_transpose_dilation(self):
         x = numpy.array([[[[3., 8., 1.],  # (1, 1, 3, 3)
                            [9., 5., 7.],
@@ -881,6 +916,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(y_with_padding, got['Y'])
 
+    @wraplog()
     def test_onnxt_runtime_conv_transpose_pads(self):
         x = numpy.arange(9).reshape((1, 1, 3, 3)).astype(numpy.float32)
         W = numpy.ones((1, 2, 3, 3)).astype(numpy.float32)
@@ -913,6 +949,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(y_with_padding, got['Y'])
 
+    @wraplog()
     def test_onnxt_runtime_cum_sum(self):
         from skl2onnx.algebra.onnx_ops import OnnxCumSum  # pylint: disable=E0611
 
@@ -1036,6 +1073,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         except RuntimeError:
             pass
 
+    @wraplog()
     def test_onnxt_runtime_dequantize_linear(self):
         X = numpy.array([[[[3, 89], [34, 200], [74, 59]],
                           [[5, 24], [24, 87], [32, 13]],
@@ -1068,9 +1106,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(exp, got['Y'])
         python_tested.append(OnnxDequantizeLinear)
 
+    @wraplog()
     def test_onnxt_runtime_div(self):
         self.common_test_onnxt_runtime_binary(OnnxDiv, lambda x, y: x / y)
 
+    @wraplog()
     def test_onnxt_runtime_dropout_10(self):
         seed = numpy.int64(0)
         X = numpy.random.randn(3, 4, 5).astype(numpy.float32)
@@ -1085,6 +1125,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(got['Y'], _dropout(X, seed=seed)[0])
         python_tested.append(OnnxDropout)
 
+    @wraplog()
     def test_onnxt_runtime_dropout(self):
         seed = numpy.int64(0)
         X = numpy.random.randn(3, 4, 5).astype(numpy.float32)
@@ -1146,6 +1187,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
         python_tested.append(OnnxDropout)
 
+    @wraplog()
     def test_onnxt_runtime_einsum(self):
         X = numpy.random.randn(5, 2, 3).astype(numpy.float32)
         Y = numpy.random.randn(5, 3, 4).astype(numpy.float32)
@@ -1163,6 +1205,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(exp, got['Z'])
         python_tested.append(OnnxEinsum)
 
+    @wraplog()
     def test_onnxt_runtime_eyelike(self):
         onx = OnnxEyeLike('X', k=0, output_names=['Y'])
         X = numpy.array([2, 2], dtype=numpy.int64)
@@ -1176,15 +1219,19 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(exp, got['Y'])
         python_tested.append(OnnxEyeLike)
 
+    @wraplog()
     def test_onnxt_runtime_equal(self):
         self.common_test_onnxt_runtime_binary(OnnxEqual, numpy.equal)
 
+    @wraplog()
     def test_onnxt_runtime_erf(self):
         self.common_test_onnxt_runtime_unary(OnnxErf, erf)
 
+    @wraplog()
     def test_onnxt_runtime_exp(self):
         self.common_test_onnxt_runtime_unary(OnnxExp, numpy.exp)
 
+    @wraplog()
     def test_onnxt_runtime_flatten(self):
         shape = (2, 3, 4, 5)
         x = numpy.random.random_sample(shape).astype(  # pylint: disable=E1101
@@ -1207,9 +1254,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
             validate_python_inference(oinfpy, {'X': x})
 
+    @wraplog()
     def test_onnxt_runtime_floor(self):
         self.common_test_onnxt_runtime_unary(OnnxFloor, numpy.floor)
 
+    @wraplog()
     def test_onnxt_runtime_gather_elements(self):
         from skl2onnx.algebra.onnx_ops import OnnxGatherElements  # pylint: disable=E0611
         # ex 1
@@ -1251,10 +1300,12 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            [7, 2, 3]], dtype=numpy.float32)
         self.assertEqual(exp, got['Z'])
 
+    @wraplog()
     def test_onnxt_runtime_gemm_python(self):
         self.do_test_onnxt_runtime_gemm("python")
         python_tested.append(OnnxGemm)
 
+    @wraplog()
     def test_onnxt_runtime_gemm_onnxruntime(self):
         self.do_test_onnxt_runtime_gemm("onnxruntime1")
 
@@ -1342,6 +1393,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             self.assertEqualArray(numpy.dot(X, idi.T) +
                                   cst, got['Y'], decimal=6)
 
+    @wraplog()
     def test_onnxt_runtime_global_average_pool(self):
         x = x = numpy.random.randn(1, 3, 5, 5).astype(numpy.float32)
         y = _global_average_pool(x).astype(numpy.float32)
@@ -1377,26 +1429,33 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_greater(self):
         self.common_test_onnxt_runtime_binary(OnnxGreater, numpy.greater)
 
+    @wraplog()
     def test_onnxt_runtime_greater_or_equal(self):
         self.common_test_onnxt_runtime_binary(
             OnnxGreaterOrEqual, numpy.greater_equal)
 
+    @wraplog()
     def test_onnxt_runtime_identity(self):
         self.common_test_onnxt_runtime_unary(OnnxIdentity, lambda x: x)
 
+    @wraplog()
     def test_onnxt_runtime_isnan(self):
         self.common_test_onnxt_runtime_unary(OnnxIsNaN, numpy.isnan)
 
+    @wraplog()
     def test_onnxt_runtime_less(self):
         self.common_test_onnxt_runtime_binary(OnnxLess, numpy.less)
 
+    @wraplog()
     def test_onnxt_runtime_less_or_equal(self):
         self.common_test_onnxt_runtime_binary(
             OnnxLessOrEqual, numpy.less_equal)
 
+    @wraplog()
     def test_onnxt_runtime_log(self):
         self.common_test_onnxt_runtime_unary(OnnxLog, numpy.log)
 
+    @wraplog()
     def test_onnxt_runtime_lp_normalization(self):
         onx = OnnxLpNormalization('X', output_names=['Y'], p=2, axis=1,
                                   op_version=get_opset_number_from_onnx())
@@ -1421,13 +1480,16 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(got['Y'], exp)
         python_tested.append(OnnxLpNormalization)
 
+    @wraplog()
     def test_onnxt_runtime_matmul(self):
         self.common_test_onnxt_runtime_binary(OnnxMatMul, lambda x, y: x @ y)
 
+    @wraplog()
     def test_onnxt_runtime_max(self):
         self.common_test_onnxt_runtime_binary(
             OnnxMax, lambda x, y: numpy.maximum(x, y))
 
+    @wraplog()
     def test_onnxt_runtime_max_pool_1d_default(self):
         X = numpy.random.randn(1, 3, 32).astype(numpy.float32)
         kernel_shape = [2]
@@ -1446,6 +1508,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(exp, got['Y'])
         self.assertEqual(got['Y'].dtype, X.dtype)
 
+    @wraplog()
     def test_onnxt_runtime_max_pool_1d_default_64(self):
         X = numpy.random.randn(1, 3, 32).astype(numpy.float64)
         kernel_shape = [2]
@@ -1465,6 +1528,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(got['Y'].dtype, X.dtype)
         self.assertEqual(got['Y'].dtype, numpy.float64)
 
+    @wraplog()
     def test_onnxt_runtime_max_pool_2d(self):
         # ceil
         X = numpy.array([[[[1, 2, 3, 4],
@@ -1560,6 +1624,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(exp, got['Y'])
         python_tested.append(OnnxMaxPool)
 
+    @wraplog()
     def test_onnxt_runtime_max_pool_3d_default(self):
         X = numpy.random.randn(1, 3, 32, 32, 32).astype(numpy.float32)
         out_shape = _pool_get_output_shape(
@@ -1580,6 +1645,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             return
         self.assertEqualArray(exp, got['Y'])
 
+    @wraplog()
     def test_onnxt_runtime_mean(self):
         idi = numpy.identity(2, dtype=numpy.float64)
         onx = OnnxMean('X', idi, output_names=['Y'],
@@ -1593,22 +1659,28 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray((idi + X) / 2, got['Y'], decimal=6)
         python_tested.append(OnnxMean)
 
+    @wraplog()
     def test_onnxt_runtime_min(self):
         self.common_test_onnxt_runtime_binary(
             OnnxMin, lambda x, y: numpy.minimum(x, y))
 
+    @wraplog()
     def test_onnxt_runtime_mul(self):
         self.common_test_onnxt_runtime_binary(OnnxMul, lambda x, y: x * y)
 
+    @wraplog()
     def test_onnxt_runtime_nrg(self):
         self.common_test_onnxt_runtime_unary(OnnxNeg, numpy.negative)
 
+    @wraplog()
     def test_onnxt_runtime_not(self):
         self.common_test_onnxt_runtime_unary(OnnxNot, numpy.logical_not)
 
+    @wraplog()
     def test_onnxt_runtime_or(self):
         self.common_test_onnxt_runtime_binary(OnnxOr, numpy.logical_or)
 
+    @wraplog()
     def test_onnxt_runtime_pad(self):
         data = numpy.array([[1.0, 1.2], [2.3, 3.4], [4.5, 5.7]],
                            dtype=numpy.float32)
@@ -1659,6 +1731,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(exp, got['Y'])
         python_tested.append(OnnxPad)
 
+    @wraplog()
     def test_onnxt_runtime_pad2(self):
         data = numpy.random.randn(1, 3, 4, 5).astype(numpy.float32)
         pads = numpy.array([0, 0, 1, 3, 0, 0, 2, 4]).astype(numpy.int64)
@@ -1687,9 +1760,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             got = oinf.run({'data': data, 'pads': pads})
             self.assertEqualArray(exp, got['Y'])
 
+    @wraplog()
     def test_onnxt_runtime_pow(self):
         self.common_test_onnxt_runtime_binary(OnnxPow, numpy.power)
 
+    @wraplog()
     def test_onnxt_runtime_quantize_linear(self):
         X = numpy.array([[[[-162, 10], [-100, 232], [-20, -50]],
                           [[-76, 0], [0, 252], [32, -44]],
@@ -1722,9 +1797,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(exp, got['Y'])
         python_tested.append(OnnxQuantizeLinear)
 
+    @wraplog()
     def test_onnxt_runtime_reciprocal(self):
         self.common_test_onnxt_runtime_unary(OnnxReciprocal, numpy.reciprocal)
 
+    @wraplog()
     def test_onnxt_runtime_reduce_log_sum_exp(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
@@ -1775,6 +1852,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(res, got['Y'], decimal=6)
         python_tested.append(OnnxReduceLogSumExp)
 
+    @wraplog()
     def test_onnxt_runtime_reduce_max(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
@@ -1809,6 +1887,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                               got['Y'].ravel())
         python_tested.append(OnnxReduceMax)
 
+    @wraplog()
     def test_onnxt_runtime_reduce_mean(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
@@ -1842,6 +1921,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                               got['Y'].ravel())
         python_tested.append(OnnxReduceMean)
 
+    @wraplog()
     def test_onnxt_runtime_reduce_min(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
@@ -1876,6 +1956,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                               got['Y'].ravel())
         python_tested.append(OnnxReduceMin)
 
+    @wraplog()
     def test_onnxt_runtime_reduce_prod(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
@@ -1909,6 +1990,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                               got['Y'].ravel())
         python_tested.append(OnnxReduceProd)
 
+    @wraplog()
     def test_onnxt_runtime_reduce_sum(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
@@ -1976,6 +2058,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(res, got['Y'], decimal=6)
         python_tested.append(OnnxReduceSum)
 
+    @wraplog()
     def test_onnxt_runtime_reduce_sum_square(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
@@ -2009,11 +2092,13 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                               got['Y'].ravel())
         python_tested.append(OnnxReduceSumSquare)
 
+    @wraplog()
     def test_onnxt_runtime_relu(self):
         self.common_test_onnxt_runtime_unary(
             OnnxRelu, lambda x: numpy.maximum(x, 0))
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
+    @wraplog()
     def test_onnxt_runtime_reshape(self):
         sh = numpy.array([1, 4], dtype=numpy.int64)
         onx = OnnxReshape('X', sh, output_names=['Y'],
@@ -2028,6 +2113,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(exp, got['Y'])
         python_tested.append(OnnxReshape)
 
+    @wraplog()
     def test_onnxt_runtime_shape(self):
         x = numpy.random.randn(20, 2).astype(  # pylint: disable=E1101
             numpy.float32)  # pylint: disable=E1101
@@ -2040,15 +2126,19 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxShape)
 
+    @wraplog()
     def test_onnxt_runtime_sigmoid(self):
         self.common_test_onnxt_runtime_unary(OnnxSigmoid, logistic_sigmoid)
 
+    @wraplog()
     def test_onnxt_runtime_sign(self):
         self.common_test_onnxt_runtime_unary(OnnxSign, numpy.sign)
 
+    @wraplog()
     def test_onnxt_runtime_sin(self):
         self.common_test_onnxt_runtime_unary(OnnxSin, numpy.sin)
 
+    @wraplog()
     def test_onnxt_runtime_slice(self):
         x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
             numpy.float32)  # pylint: disable=E1101
@@ -2090,6 +2180,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxSlice)
 
+    @wraplog()
     def test_onnxt_runtime_split(self):
         x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(numpy.float32)
         y = [numpy.array([1., 2.]).astype(numpy.float32),
@@ -2130,9 +2221,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(y[1], got['Y2'])
         python_tested.append(OnnxSplit)
 
+    @wraplog()
     def test_onnxt_runtime_sqrt(self):
         self.common_test_onnxt_runtime_unary(OnnxSqrt, numpy.sqrt)
 
+    @wraplog()
     def test_onnxt_runtime_squeeze(self):
         x = numpy.random.randn(20, 1).astype(  # pylint: disable=E1101
             numpy.float32)  # pylint: disable=E1101
@@ -2155,15 +2248,19 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxSqueeze)
 
+    @wraplog()
     def test_onnxt_runtime_softmax(self):
         self.common_test_onnxt_runtime_unary(OnnxSoftmax, softmax)
 
+    @wraplog()
     def test_onnxt_runtime_sub(self):
         self.common_test_onnxt_runtime_binary(OnnxSub, lambda x, y: x - y)
 
+    @wraplog()
     def test_onnxt_runtime_sum(self):
         self.common_test_onnxt_runtime_binary(OnnxSum, lambda x, y: x + y)
 
+    @wraplog()
     def test_onnxt_runtime_topk(self):
         X = numpy.array([[0, 1, 2, 3, 4],
                          [1, -1, -2, 4, 5],
@@ -2226,6 +2323,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(exp, got['Y'])
         python_tested.append(OnnxTopK)
 
+    @wraplog()
     def test_onnxt_runtime_topk2(self):
         X = numpy.array([[-0., -0.08000002, -2., -2.88000023]],
                         dtype=numpy.float32)
@@ -2248,6 +2346,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                           dtype=numpy.int64)
         self.assertEqualArray(exp, got['Yi'])
 
+    @wraplog()
     def test_onnxt_runtime_transpose(self):
         X = numpy.array([[0, 1, 2, 3, 4],
                          [1, -1, -2, 4, 5],
@@ -2278,6 +2377,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(X.T, got['Y'])
         python_tested.append(OnnxTranspose)
 
+    @wraplog()
     def test_onnxt_runtime_unsqueeze(self):
         x = numpy.random.randn(1, 3, 1, 5).astype(numpy.float32)
         y = numpy.expand_dims(x, axis=-2)
@@ -2301,6 +2401,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
         python_tested.append(OnnxUnsqueeze)
 
+    @wraplog()
     def test_cpp_topk_min_1(self):
         X = numpy.array([1, -1], dtype=numpy.float64)
         to1 = topk_sorted_implementation(X, 1, 0, 0)
@@ -2349,6 +2450,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         v2 = topk_element_fetch_float(X, to2)
         self.assertEqualArray(to1[0], v2)
 
+    @wraplog()
     def test_cpp_topk_min_2(self):
         X = numpy.array([[0, 1, 2, 3, 4],
                          [1, -1, -2, 4, 5],
@@ -2392,6 +2494,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         v2 = topk_element_fetch_double(X, to2)
         self.assertEqualArray(to1[0], v2)
 
+    @wraplog()
     def test_cpp_topk_max_1(self):
         X = numpy.array([1, -1], dtype=numpy.float64)
         to1 = topk_sorted_implementation(X, 1, 0, 1)
@@ -2440,6 +2543,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         v2 = topk_element_fetch_float(X, to2)
         self.assertEqualArray(to1[0], v2)
 
+    @wraplog()
     def test_cpp_topk_max_2(self):
         X = numpy.array([[0, 1, 2, 3, 4],
                          [1, -1, -2, 4, 5],
@@ -2483,6 +2587,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         v2 = topk_element_fetch_double(X, to2)
         self.assertEqualArray(to1[0], v2)
 
+    @wraplog()
     def test_cpp_topk_max_openmp(self):
         X = numpy.random.randn(100, 10).astype(  # pylint: disable=E1101
             numpy.float64)  # pylint: disable=E1101
@@ -2492,6 +2597,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         v2 = topk_element_fetch_double(X, to2)
         self.assertEqualArray(to1[0], v2)
 
+    @wraplog()
     def test_cpp_pairwise(self):
         X = numpy.full((20, 4), 1, dtype=numpy.float32)
         X[::2, 3] = 20
@@ -2503,6 +2609,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(to1[1], to2)
 
     @unittest.skipIf(onnx_opset_version() < 12, reason="new API not available")
+    @wraplog()
     def test_make_sparse_tensor_12(self):
         values = [1.1, 2.2, 3.3, 4.4, 5.5]
         values_tensor = make_tensor(
@@ -2550,6 +2657,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     self.assertEqual(list(sorted(got)), ['Ad_C0'])
                     self.assertEqualArray(X * 2, got['Ad_C0'])
 
+    @wraplog()
     def test_make_constant(self):
         X = numpy.array([0.1, 0.2], dtype=numpy.float32)
         values = [1.1, 2.2]
