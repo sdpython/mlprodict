@@ -41,15 +41,14 @@ from .op_gather import Gather
 from .op_gather_elements import GatherElements
 from .op_gemm import Gemm
 from .op_global_average_pool import GlobalAveragePool
-from .op_greater import Greater
-from .op_greater_or_equal import GreaterOrEqual
+from .op_greater import Greater, GreaterOrEqual
 from .op_floor import Floor
 from .op_identity import Identity
 from .op_if import If
 from .op_imputer import Imputer
 from .op_isnan import IsNaN
 from .op_label_encoder import LabelEncoder
-from .op_less import Less
+from .op_less import Less, LessOrEqual
 from .op_linear_classifier import LinearClassifier
 from .op_linear_regressor import LinearRegressor
 from .op_log import Log
