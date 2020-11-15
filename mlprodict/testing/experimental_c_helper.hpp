@@ -116,7 +116,7 @@ NTYPE flattened_dimension(const std::vector<NTYPE>& values, int64_t first) {
 
 
 template<typename DIMTYPE1, typename DIMTYPE2, typename NTYPE>
-void shape2strides(const std::vector<DIMTYPE2>& shape, 
+void shape2strides(const std::vector<DIMTYPE1>& shape, 
                    std::vector<DIMTYPE2>& strides, NTYPE cst) {
     strides.resize(shape.size());
     strides[strides.size()-1] = static_cast<DIMTYPE2>(sizeof(NTYPE));
