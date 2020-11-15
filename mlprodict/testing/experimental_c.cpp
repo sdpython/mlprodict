@@ -210,6 +210,13 @@ void mapshape2shape(const mapshape_type &shape, std::vector<int64_t>& out_shape)
         out_shape.push_back(shape.value(i).first);
 }
 
+void mapshape2shape(const mapshape_type &shape, std::vector<size_t>& out_shape) {
+    out_shape.clear();
+    out_shape.reserve(shape.size());
+    for(size_t i = 0; i < shape.size(); ++i)
+        out_shape.push_back(static_cast<size_t>(shape.value(i).first));
+}
+
 
 template<typename NTYPE>
 py::array_t<NTYPE> custom_einsum(const std::string& equation,
