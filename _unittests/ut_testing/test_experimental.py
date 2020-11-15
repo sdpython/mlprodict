@@ -159,12 +159,15 @@ class TestExperimental(ExtTestCase):
         self.assertEqualArray(ein, ein2)
 
     def test_experimental_einsum_c(self):
+        print("test_experimental_einsum_c")
         eq = "bsnh,btnh->bnts"
 
         x = numpy.arange(8).reshape((1, 2, 2, 2)).astype(numpy.int64)
         y = (numpy.arange(8).reshape((1, 2, 2, 2)) + 100).astype(numpy.int64)
         ein = numpy.einsum(eq, x, y)
+        print("A")
         ein2 = custom_einsum_int64(eq, x, y)
+        print("B")
         self.assertEqual(ein.shape, ein2.shape)
         self.assertEqualArray(ein, ein2)
 
@@ -173,23 +176,32 @@ class TestExperimental(ExtTestCase):
         bady1 = numpy.random.rand(2, 8, 3, 5)
         bady2 = numpy.random.rand(1, 8, 3, 6)
         ein = numpy.einsum(eq, x, y)
+        print("A0")
         self.assertRaise(lambda: custom_einsum_double(
             "bsnhj,btnh->bnts", x, y), RuntimeError)
+        print("A1")
         self.assertRaise(lambda: custom_einsum_double(
             "bsnh,btnhj->bnts", x, y), RuntimeError)
+        print("A2")
         self.assertRaise(lambda: custom_einsum_double(
             eq, x, bady1), RuntimeError)
+        print("A3")
         self.assertRaise(lambda: custom_einsum_double(
             eq, x, bady2), RuntimeError)
+        print("A4")
         self.assertRaise(lambda: custom_einsum_double(
             eq, bady1, x), RuntimeError)
+        print("A5")
         self.assertRaise(lambda: custom_einsum_double(
             eq, bady2, x), RuntimeError)
+        print("A6")
         self.assertRaise(
             lambda: custom_einsum_double(
                 "bsnhv,btnhv->bnts", numpy.random.rand(1, 8, 3, 5, 2),
                 numpy.random.rand(1, 8, 3, 5, 2)), RuntimeError)
+        print("A7")
         ein2 = custom_einsum_double(eq, x, y)
+        print("A8")
         self.assertEqual(ein.shape, ein2.shape)
         self.assertEqualArray(ein, ein2)
 
