@@ -319,7 +319,7 @@ void gemm(bool transA, bool transB,
         else {
             // a A B + b C, dimension = M * N
             NTYPE* begin;
-            register NTYPE val;
+            NTYPE val;
             NTYPE val0;
             size_t i, j, k, maxc=0;
             const NTYPE *pA, *pB;
@@ -346,7 +346,7 @@ void gemm(bool transA, bool transB,
         else {
             // a A B + b C, dimension = M * N
             NTYPE* begin;
-            register NTYPE val;
+            NTYPE val;
             NTYPE val0;
             size_t i, j, k, maxc=0;
             const NTYPE *pA, *pB;

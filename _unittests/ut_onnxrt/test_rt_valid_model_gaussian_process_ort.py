@@ -4,6 +4,7 @@
 import unittest
 from logging import getLogger
 import numpy
+from onnxruntime import __version__ as ort_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from pyquickhelper.texthelper.version_helper import compare_module_version
@@ -16,7 +17,6 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ExpSineSquared
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.common.data_types import FloatTensorType
-from onnxruntime import __version__ as ort_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx

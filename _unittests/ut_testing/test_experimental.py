@@ -5,14 +5,16 @@ import unittest
 import numpy
 from onnx import helper, TensorProto
 from onnxruntime import InferenceSession
-from pyquickhelper.pycode import ExtTestCase
-from mlprodict.testing.experimental import custom_pad
+from pyquickhelper.pycode import ExtTestCase, is_travis_or_appveyor
+from mlprodict.testing.experimental import custom_pad, custom_einsum
+from mlprodict.testing.experimental_c import (  # pylint: disable=E0611
+    custom_einsum_double, custom_einsum_int64)
 from mlprodict.tools import get_opset_number_from_onnx
 
 
 class TestExperimental(ExtTestCase):
 
-    def ort_path(self, x, pads):
+    def ort_path_pad(self, x, pads):
         pads = list(pads[:, 0]) + list(pads[:, 1])
         X = helper.make_tensor_value_info(
             'X', TensorProto.FLOAT, x.shape)  # pylint: disable=E1101
@@ -86,36 +88,36 @@ class TestExperimental(ExtTestCase):
 
         arr = numpy.random.rand(5, 5, 2).astype(numpy.float32)
         paddings = numpy.array([1, 1, 1, 1, 1, 1]).reshape((-1, 2))
-        self.fct_test(custom_pad, self.ort_path, arr, paddings)
+        self.fct_test(custom_pad, self.ort_path_pad, arr, paddings)
 
     def test_experimental_pad_positive_ort(self):
         arr = (numpy.arange(6) + 10).astype(numpy.float32)
         paddings = numpy.array([1, 1]).reshape((-1, 2)) * 2
-        self.fct_test(custom_pad, self.ort_path, arr, paddings)
+        self.fct_test(custom_pad, self.ort_path_pad, arr, paddings)
 
         arr = (numpy.arange(6) + 10).astype(numpy.float32)
         paddings = numpy.array([1, 1]).reshape((-1, 2))
-        self.fct_test(custom_pad, self.ort_path, arr, paddings)
+        self.fct_test(custom_pad, self.ort_path_pad, arr, paddings)
 
         arr = (numpy.arange(6).reshape((2, -1)) + 10).astype(numpy.float32)
         paddings = numpy.array([1, 1, 1, 1]).reshape((-1, 2)) * 2
-        self.fct_test(custom_pad, self.ort_path, arr, paddings)
+        self.fct_test(custom_pad, self.ort_path_pad, arr, paddings)
 
         arr = (numpy.arange(6).reshape((2, -1)) + 10).astype(numpy.float32)
         paddings = numpy.array([1, 1, 2, 2]).reshape((-1, 2))
-        self.fct_test(custom_pad, self.ort_path, arr, paddings)
+        self.fct_test(custom_pad, self.ort_path_pad, arr, paddings)
 
         arr = (numpy.arange(6).reshape((2, -1)) + 10).astype(numpy.float32)
         paddings = numpy.array([1, 1, 1, 1]).reshape((-1, 2))
-        self.fct_test(custom_pad, self.ort_path, arr, paddings)
+        self.fct_test(custom_pad, self.ort_path_pad, arr, paddings)
 
         arr = (numpy.arange(6).reshape((1, 2, -1)) + 10).astype(numpy.float32)
         paddings = numpy.array([1, 1, 1, 1, 1, 1]).reshape((-1, 2))
-        self.fct_test(custom_pad, self.ort_path, arr, paddings)
+        self.fct_test(custom_pad, self.ort_path_pad, arr, paddings)
 
         arr = (numpy.arange(6).reshape((1, 2, -1)) + 10).astype(numpy.float32)
         paddings = numpy.array([1, 1, 1, 1, 1, 1]).reshape((-1, 2)) * 2
-        self.fct_test(custom_pad, self.ort_path, arr, paddings)
+        self.fct_test(custom_pad, self.ort_path_pad, arr, paddings)
 
     def test_experimental_pad_negative(self):
         arr = numpy.arange(6) + 10
@@ -123,6 +125,80 @@ class TestExperimental(ExtTestCase):
         self.assertRaise(lambda: custom_pad(
             arr, paddings), NotImplementedError)
 
+    def test_experimental_einsum(self):
+        eq = "bsnh,btnh->bnts"
+
+        x = numpy.arange(8).reshape((1, 2, 2, 2))
+        y = numpy.arange(8).reshape((1, 2, 2, 2)) + 100
+        ein = numpy.einsum(eq, x, y)
+        ein2 = custom_einsum(eq, x, y)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2)
+
+        x = numpy.random.rand(1, 8, 3, 5)
+        y = numpy.random.rand(1, 8, 3, 5)
+        bady1 = numpy.random.rand(2, 8, 3, 5)
+        bady2 = numpy.random.rand(1, 8, 3, 6)
+        ein = numpy.einsum(eq, x, y)
+        self.assertRaise(lambda: custom_einsum(
+            eq, x.astype(int), y), RuntimeError)
+        self.assertRaise(lambda: custom_einsum(
+            "bsnhj,btnh->bnts", x, y), ValueError)
+        self.assertRaise(lambda: custom_einsum(
+            "bsnh,btnhj->bnts", x, y), ValueError)
+        self.assertRaise(lambda: custom_einsum(eq, x, bady1), ValueError)
+        self.assertRaise(lambda: custom_einsum(eq, x, bady2), ValueError)
+        self.assertRaise(lambda: custom_einsum(eq, bady1, x), ValueError)
+        self.assertRaise(lambda: custom_einsum(eq, bady2, x), ValueError)
+        self.assertRaise(
+            lambda: custom_einsum(
+                "bsnhv,btnhv->bnts", numpy.random.rand(1, 8, 3, 5, 2),
+                numpy.random.rand(1, 8, 3, 5, 2)), NotImplementedError)
+        ein2 = custom_einsum(eq, x, y)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2)
+
+    def is_ci_win(self):
+        return is_travis_or_appveyor() == "appveyor"
+
+    def test_experimental_einsum_c(self):
+        eq = "bsnh,btnh->bnts"
+
+        x = numpy.arange(8).reshape((1, 2, 2, 2)).astype(numpy.int64)
+        y = (numpy.arange(8).reshape((1, 2, 2, 2)) + 100).astype(numpy.int64)
+        ein = numpy.einsum(eq, x, y)
+        ein2 = custom_einsum_int64(eq, x, y)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2)
+
+        x = numpy.random.rand(1, 8, 3, 5)
+        y = numpy.random.rand(1, 8, 3, 5)
+        bady1 = numpy.random.rand(2, 8, 3, 5)
+        bady2 = numpy.random.rand(1, 8, 3, 6)
+        ein = numpy.einsum(eq, x, y)
+        if not self.is_ci_win():
+            # It crashes on appveyor.
+            self.assertRaise(lambda: custom_einsum_double(
+                "bsnhj,btnh->bnts", x, y), RuntimeError)
+            self.assertRaise(lambda: custom_einsum_double(
+                "bsnh,btnhj->bnts", x, y), RuntimeError)
+            self.assertRaise(lambda: custom_einsum_double(
+                eq, x, bady1), RuntimeError)
+            self.assertRaise(lambda: custom_einsum_double(
+                eq, x, bady2), RuntimeError)
+            self.assertRaise(lambda: custom_einsum_double(
+                eq, bady1, x), RuntimeError)
+            self.assertRaise(lambda: custom_einsum_double(
+                eq, bady2, x), RuntimeError)
+            self.assertRaise(
+                lambda: custom_einsum_double(
+                    "bsnhv,btnhv->bnts", numpy.random.rand(1, 8, 3, 5, 2),
+                    numpy.random.rand(1, 8, 3, 5, 2)), RuntimeError)
+        ein2 = custom_einsum_double(eq, x, y)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2)
+
 
 if __name__ == "__main__":
+    # TestExperimental().test_experimental_einsum_c()
     unittest.main()

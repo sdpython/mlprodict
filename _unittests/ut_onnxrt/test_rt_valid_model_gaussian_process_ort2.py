@@ -3,6 +3,7 @@
 """
 import unittest
 from logging import getLogger
+from onnxruntime import __version__ as ort_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from pyquickhelper.texthelper.version_helper import compare_module_version
@@ -12,7 +13,6 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from skl2onnx import __version__ as skl2onnx_version
-from onnxruntime import __version__ as ort_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 
 

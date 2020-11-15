@@ -39,6 +39,7 @@ package_data = {
     project_var_name + ".asv_benchmark": ["*.json"],
     project_var_name + ".onnxrt.ops_cpu": ["*.cpp", "*.hpp"],
     project_var_name + ".onnxrt.validate.data": ["*.csv"],
+    project_var_name + ".testing": ["*.cpp", "*.hpp"],
 }
 
 ############
@@ -405,9 +406,24 @@ if not r:
         define_macros=define_macros,
         language='c++')
 
+    ext_experimental_c = Extension(
+        'mlprodict.testing.experimental_c',
+        [os.path.join(root, 'mlprodict/testing/experimental_c.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/testing')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
     ext_modules = [
         ext_conv,
         ext_conv_transpose,
+        ext_experimental_c,
         ext_gather,
         ext_max_pool,
         ext_svm_classifier,
