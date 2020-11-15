@@ -7,6 +7,8 @@ from onnx import helper, TensorProto
 from onnxruntime import InferenceSession
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing.experimental import custom_pad, custom_einsum
+from mlprodict.testing.experimental_c import (  # pylint: disable=E0611
+    custom_einsum_double, custom_einsum_int64)
 from mlprodict.tools import get_opset_number_from_onnx
 
 
@@ -156,7 +158,42 @@ class TestExperimental(ExtTestCase):
         self.assertEqual(ein.shape, ein2.shape)
         self.assertEqualArray(ein, ein2)
 
+    def test_experimental_einsum_c(self):
+        eq = "bsnh,btnh->bnts"
+
+        x = numpy.arange(8).reshape((1, 2, 2, 2)).astype(numpy.int64)
+        y = (numpy.arange(8).reshape((1, 2, 2, 2)) + 100).astype(numpy.int64)
+        ein = numpy.einsum(eq, x, y)
+        ein2 = custom_einsum_int64(eq, x, y)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2)
+
+        x = numpy.random.rand(1, 8, 3, 5)
+        y = numpy.random.rand(1, 8, 3, 5)
+        bady1 = numpy.random.rand(2, 8, 3, 5)
+        bady2 = numpy.random.rand(1, 8, 3, 6)
+        ein = numpy.einsum(eq, x, y)
+        self.assertRaise(lambda: custom_einsum_double(
+            "bsnhj,btnh->bnts", x, y), RuntimeError)
+        self.assertRaise(lambda: custom_einsum_double(
+            "bsnh,btnhj->bnts", x, y), RuntimeError)
+        self.assertRaise(lambda: custom_einsum_double(
+            eq, x, bady1), RuntimeError)
+        self.assertRaise(lambda: custom_einsum_double(
+            eq, x, bady2), RuntimeError)
+        self.assertRaise(lambda: custom_einsum_double(
+            eq, bady1, x), RuntimeError)
+        self.assertRaise(lambda: custom_einsum_double(
+            eq, bady2, x), RuntimeError)
+        self.assertRaise(
+            lambda: custom_einsum_double(
+                "bsnhv,btnhv->bnts", numpy.random.rand(1, 8, 3, 5, 2),
+                numpy.random.rand(1, 8, 3, 5, 2)), RuntimeError)
+        ein2 = custom_einsum_double(eq, x, y)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2)
+
 
 if __name__ == "__main__":
-    TestExperimental().test_experimental_einsum()
+    # TestExperimental().test_experimental_einsum_c()
     unittest.main()

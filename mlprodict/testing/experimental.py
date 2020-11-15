@@ -83,7 +83,7 @@ def custom_pad(arr, paddings, constant=0, debug=False):
     return res.reshape(new_shape)
 
 
-def custom_einsum(equation, x, y):
+def custom_einsum(equation, x, y, debug=False):
     """
     Experimental implementation of operator Einsum
     when it does a matrix multiplication.
@@ -93,7 +93,12 @@ def custom_einsum(equation, x, y):
     :param equation: equation
     :param x: first matrix
     :param y: second matrix
+    :param debug: display internal information
     :return: result of *einsum*
+
+    This implementation does not any transpose,
+    it does a direct computation of the final result.
+    It does not implementation diagonal summation (square product).
     """
     def _check_eq(eq, sh):
         if len(eq) != len(sh):
@@ -180,7 +185,7 @@ def custom_einsum(equation, x, y):
 
     def get_incs(cd, shape):
         incs = []
-        for c, sh in shape.items():
+        for c in shape:
             inc = cd[c][0] if c in cd else 0
             incs.append(inc)
         return incs
@@ -215,8 +220,26 @@ def custom_einsum(equation, x, y):
 
     i_left_loop, inc_left = get_index(cdx, shape, index, c_sum[0])
     i_right_loop, inc_right = get_index(cdy, shape, index, c_sum[0])
-    left_inc = get_incs(cdx, shape)
-    right_inc = get_incs(cdy, shape)
+    left_incs = get_incs(cdx, shape)
+    right_incs = get_incs(cdy, shape)
+
+    if debug:
+        def MakeString(*args):
+            return "".join(map(str, args))
+
+        print(MakeString("equation=", equation))
+        print(MakeString("c_sum=", c_sum))
+        print(MakeString("full_size=", full_size))
+        print(MakeString("loop_size=", loop_size))
+        print(MakeString("i_left_loop=", i_left_loop))
+        print(MakeString("i_right_loop=", i_right_loop))
+        print(MakeString("inc_left=", inc_left))
+        print(MakeString("inc_right=", inc_right))
+        print(MakeString("left_incs=", left_incs))
+        print(MakeString("right_incs=", right_incs))
+        print(MakeString("shape=", shape))
+        print(MakeString("cdx=", cdx))
+        print(MakeString("cdy=", cdy))
 
     for i in range(0, full_size):
 
@@ -231,19 +254,25 @@ def custom_einsum(equation, x, y):
             i_right += inc_right
         zrav[i] = add
 
+        if debug:
+            print(MakeString(
+                "  -- index=", index, " ii=", i,
+                " i_left_loop=", i_left_loop, " i_right_loop=", i_right_loop,
+                " add=", add))
+
         # increment
         pos = len_index - 1
         index[pos] += 1
-        i_left_loop += left_inc[pos]
-        i_right_loop += right_inc[pos]
+        i_left_loop += left_incs[pos]
+        i_right_loop += right_incs[pos]
         while pos > 0 and index[pos] >= shape_dims[pos]:
-            i_left_loop -= left_inc[pos] * index[pos]
-            i_right_loop -= right_inc[pos] * index[pos]
+            i_left_loop -= left_incs[pos] * index[pos]
+            i_right_loop -= right_incs[pos] * index[pos]
             index[pos] = 0
             pos -= 1
             index[pos] += 1
-            i_left_loop += left_inc[pos]
-            i_right_loop += right_inc[pos]
+            i_left_loop += left_incs[pos]
+            i_right_loop += right_incs[pos]
 
     new_shape = tuple(v[0] for v in shape.values())
     return zrav.reshape(new_shape)

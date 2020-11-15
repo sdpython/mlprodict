@@ -39,6 +39,7 @@ package_data = {
     project_var_name + ".asv_benchmark": ["*.json"],
     project_var_name + ".onnxrt.ops_cpu": ["*.cpp", "*.hpp"],
     project_var_name + ".onnxrt.validate.data": ["*.csv"],
+    project_var_name + ".testing": ["*.cpp", "*.hpp"],
 }
 
 ############

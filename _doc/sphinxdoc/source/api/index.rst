@@ -13,4 +13,5 @@ API
     sklapi
     asv
     validation
+    testing
     tools

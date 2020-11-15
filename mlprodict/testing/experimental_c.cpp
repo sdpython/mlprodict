@@ -34,7 +34,36 @@ namespace py = pybind11;
 ////////////////
 
 typedef std::pair<int64_t, size_t> mapshape_element;
-typedef std::map<char, mapshape_element> mapshape_type;
+
+class mapshape_type {
+    protected:
+        std::map<char, mapshape_element> container;
+        std::vector<char> order;
+    public:
+        mapshape_type() : container() {}
+        inline size_t size() const { return container.size(); }
+        inline const mapshape_element& at(const char& c) const { return container.at(c); }
+        inline const mapshape_element& value(size_t i) const { return container.at(order[i]); }
+        inline char key(size_t i) const { return order[i]; }
+        void clear() {
+            container.clear();
+            order.clear();
+        }
+        void add(char c, const mapshape_element& el) {
+            container[c] = el;
+            order.push_back(c);
+        }
+        bool has_key(const char& key) const {
+            return container.find(key) != container.end();
+        }
+};
+
+template <>
+inline void MakeStringInternal(std::ostringstream& ss, const mapshape_type& t) noexcept {
+    for(size_t i = 0; i < t.size(); ++i) {
+        ss << t.key(i) << ":" << t.value(i).first << "," << t.value(i).second << " ";
+    }
+}
 
 
 template <typename TYPE>
@@ -47,14 +76,14 @@ void _check_eq(const std::string&eq, const TYPE& sh) {
 void _split(const std::string& eq, const mapshape_type& sh, mapshape_type& dx) {
     dx.clear();
     for (size_t i = 0; i < sh.size(); ++i) {
-        dx[eq[i]] = mapshape_element(sh.at(eq[i]).first, i);
+        dx.add(eq[i], mapshape_element(sh.at(eq[i]).first, i));
     }
 }
 
 void _split(const std::string& eq, const std::vector<int64_t>& sh, mapshape_type& dx) {
     dx.clear();
     for (size_t i = 0; i < sh.size(); ++i) {
-        dx[eq[i]] = mapshape_element(sh[i], i);
+        dx.add(eq[i], mapshape_element(sh[i], i));
     }
 }
 
@@ -67,182 +96,217 @@ void _equation_split(const std::string& equation,
     eqr = equation.substr(dash+2, equation.size() - dash - 2);
 }
 
-/*
-def _interpret(dx, dy, eqr):
-    c_uni = []
-    c_trp = []
-    c_sum = []
-    for r in eqr:
-        if r in dx:
-            if r in dy:
-                if dx[r][0] != dy[r][0]:
-                    raise ValueError(
-                        "Dimension mismatch for letter "
-                        "%r dx=%r dy=%r." % (r, dx, dy))
-                c_trp.append(r)
-            else:
-                c_uni.append((r, None))
-        elif r in dy:
-            c_uni.append((None, r))
-        else:
-            raise ValueError(
-                "Unexpected letter %r in result %r." % (r, eqr))
-    for c in dx:
-        if c not in eqr:
-            if c not in dy:
-                raise ValueError(
-                    "Unable to guess what to do with column %r (left side)" % c)
-            if dx[c][0] != dy[c][0]:
-                raise ValueError(
-                    "Dimension mismatch for letter "
-                    "%r dx=%r dy=%r." % (c, dx, dy))
-            c_sum.append(c)
-    for c in dy:
-        if c not in eqr and c not in dx:
-            raise ValueError(
-                "Unable to guess what to do with column %r (right side)" % c)
-    shape = OrderedDict()
-    for i, r in enumerate(eqr):
-        if r in c_trp:
-            shape[r] = (dx[r][0], i)
-        else:
-            for a, b in c_uni:
-                if a == r:
-                    shape[r] = (dx[r][0], i)
-                    break
-                if b == r:
-                    shape[r] = (dy[r][0], i)
-                    break
-    if len(shape) != len(eqr):
-        raise RuntimeError(
-            "Unable to compute the output shape "
-            "dx=%r dy=%r eqr=%r got shape=%r." % (dx, dy, eqr, shape))
-    return shape, c_trp, c_uni, c_sum
-*/
+void _interpret(const mapshape_type& dx, const mapshape_type& dy, const std::string& eqr,
+                mapshape_type& shape, std::vector<std::pair<char,char>>& c_uni,
+                std::vector<char>& c_trp, std::vector<char>& c_sum) {
+    c_uni.clear();
+    c_trp.clear();
+    c_sum.clear();
+    c_uni.reserve(eqr.size());
+    c_trp.reserve(eqr.size());
+    c_sum.reserve(eqr.size());
+    for (char r: eqr) {
+        if (dx.has_key(r)) {
+            if (dy.has_key(r)) {
+                if (dx.at(r).first != dy.at(r).first)
+                    throw std::runtime_error(MakeString(
+                        "Dimension mismatch for letter ", r, " dx=", dx, " dy=", dy, "."));
+                c_trp.push_back(r);
+            }
+            else
+                c_uni.push_back(std::pair<char,char>(r, '#'));
+        }
+        else if (dy.has_key(r))
+            c_uni.push_back(std::pair<char,char>('#', r));
+        else
+            throw std::runtime_error(MakeString(
+                "Unexpected letter ", r, " in result ", eqr, "."));
+    }
+    for (size_t i = 0; i < dx.size(); ++i) {
+        char c = dx.key(i);
+        if (std::find(eqr.begin(), eqr.end(), c) == eqr.end()) {
+            if (!dy.has_key(c))
+                throw std::runtime_error(MakeString(
+                    "Unable to guess what to do with column ", c, " (left side)."));
+            if (dx.at(c).first != dy.at(c).first) 
+                throw std::runtime_error(MakeString(
+                    "Dimension mismatch for letter ", c, " dx=", dx, " dy=", dy, "."));
+            c_sum.push_back(c);
+        }
+    }
+    for (size_t i = 0; i < dy.size(); ++i) {
+        char c = dy.key(i);
+        if (std::find(eqr.begin(), eqr.end(), c) == eqr.end() && !dx.has_key(c))
+            throw std::runtime_error(MakeString(
+                "Unable to guess what to do with column ", c, " (right side)."));
+    }
+    shape.clear();
+    for (size_t i = 0; i < eqr.size(); ++i) {
+        char r = eqr[i];
+        if (std::find(c_trp.begin(), c_trp.end(), r) != c_trp.end()) 
+            shape.add(r, mapshape_element(dx.at(r).first, i));
+        else {
+            for (auto p: c_uni) {
+                if (p.first == r) {
+                    shape.add(r, mapshape_element(dx.at(r).first, i));
+                    break;
+                }
+                if (p.second == r) {
+                    shape.add(r, mapshape_element(dy.at(r).first, i));
+                    break;
+                }
+            }
+        }
+    }
+    if (shape.size() != eqr.size())
+        throw std::runtime_error(MakeString(
+            "Unable to compute the output shape dx=", dx , "dy=", dy, " eqr=", eqr, " got shape=", shape, "."));
+}
     
-        /*
+void _inc(const mapshape_type &d, mapshape_type& res) {
+    int64_t t = 1;
+    std::vector<std::pair<char, mapshape_element>> temp;
+    temp.reserve(d.size());
+    for (int i = (int)d.size()-1; i >= 0; --i) {
+        temp.push_back(std::pair<char, mapshape_element>(
+            d.key(i), mapshape_element(t, d.value(i).second)));
+        t *= d.value(i).first;
+    }
+    res.clear();
+    for(auto it = temp.rbegin(); it != temp.rend(); ++it)
+        res.add(it->first, it->second);
+}
 
+int64_t prod(const mapshape_type& seq) {
+    int64_t p = 1;
+    for (size_t i = 0; i < seq.size(); ++i)
+        p *= seq.value(i).first;
+    return p;
+}
 
+void get_index(const mapshape_type &cd, const mapshape_type &shape,
+               const std::vector<int64_t>& index, char col_sum,
+               int64_t& ind, int64_t& out_inc) {
+    ind = 0;
+    for(size_t i = 0; i < shape.size(); ++i) {
+        if (cd.has_key(shape.key(i)))
+            ind += shape.value(i).first * index[i];
+    }
+    out_inc = cd.at(col_sum).first;
+}
 
-    def _inc(d):
-        t = 1
-        drev = list(reversed(d.items()))
-        res = []
-        for c, (sh, p) in drev:
-            res.append((c, (t, p)))
-            t *= sh
-        return OrderedDict(reversed(res))
+void get_incs(const mapshape_type &cd, const mapshape_type &shape,
+               std::vector<int64_t>& incs) {
+    incs.clear();
+    incs.reserve(cd.size());
+    for(size_t i = 0; i < shape.size(); ++i)
+        incs.push_back(cd.has_key(shape.key(i)) ? cd.at(shape.key(i)).first : 0);
+}
 
-    def prod(seq):
-        p = 1
-        for s in seq:
-            p *= s
-        return p
-
-    def get_index(cd, shape, index, col_sum):
-        ind = 0
-        for c, i in zip(shape, index):
-            if c in cd:
-                inc = cd[c][0]
-                ind += inc * i
-        return ind, cd[col_sum][0]
-
-    def get_incs(cd, shape):
-        incs = []
-        for c, sh in shape.items():
-            inc = cd[c][0] if c in cd else 0
-            incs.append(inc)
-        return incs
-
-
-*/
+void mapshape2shape(const mapshape_type &shape, std::vector<int64_t>& out_shape) {
+    out_shape.clear();
+    out_shape.reserve(shape.size());
+    for(size_t i = 0; i < shape.size(); ++i)
+        out_shape.push_back(shape.value(i).first);
+}
 
 
 template<typename NTYPE>
 py::array_t<NTYPE> custom_einsum(const std::string& equation,
                                  py::array_t<NTYPE, py::array::c_style | py::array::forcecast> x,
                                  py::array_t<NTYPE, py::array::c_style | py::array::forcecast> y) {
-                                               
+
     std::vector<int64_t> x_shape, y_shape;
     arrayshape2vector(x_shape, x);
     arrayshape2vector(y_shape, y);
-                                               
+
     const NTYPE* x_data = x.data();
     const NTYPE* y_data = y.data();
-                                     
+
     std::string eqx, eqy, eqr;
-    _equation_split(equation, eqx, eqy, eqr);                            
+    _equation_split(equation, eqx, eqy, eqr);
     _check_eq(eqx, x_shape);
     _check_eq(eqy, y_shape);
     mapshape_type dx, dy;
     _split(eqx, x_shape, dx);
     _split(eqy, y_shape, dy);
-                                     
-    /*
 
-    shape, __, _, c_sum = _interpret(dx, dy, eqr)
-    cdx = _inc(dx)
-    cdy = _inc(dy)
-    xrav = x.ravel()
-    yrav = y.ravel()
-    full_size = prod(v[0] for v in shape.values())
-    zrav = numpy.empty((full_size, ), dtype=x.dtype)
+    mapshape_type shape;
+    std::vector<std::pair<char,char>> c_uni;
+    std::vector<char> c_trp, c_sum;
+    _interpret(dx, dy, eqr, shape, c_uni, c_trp, c_sum);
 
-    # loop
-    if len(c_sum) != 1:
-        raise NotImplementedError(
-            "More than one summation indices %r in equation %r." % (
-                c_sum, equation))
-    zeros = numpy.zeros((1, ), dtype=x.dtype)
-    shape_dims = [v[0] for v in shape.values()]
-    index = [0 for s in shape]
-    len_index = len(index)
-    loop_size = dx[c_sum[0]][0]
+    if (c_sum.size() != 1)
+        throw std::runtime_error(MakeString(
+            "More than one summation indices ", c_sum, " in equation ", equation, "."));
 
-    i_left_loop, inc_left = get_index(cdx, shape, index, c_sum[0])
-    i_right_loop, inc_right = get_index(cdy, shape, index, c_sum[0])
-    left_inc = get_incs(cdx, shape)
-    right_inc = get_incs(cdy, shape)
+    mapshape_type cdx, cdy;
+    _inc(dx, cdx);
+    _inc(dy, cdy);
+    int64_t full_size = prod(shape);
 
-    for i in range(0, full_size):
-
-        i_left = i_left_loop
-        i_right = i_right_loop
-
-        # summation
-        add = zeros[0]
-        for _ in range(loop_size):
-            add += xrav[i_left] * yrav[i_right]
-            i_left += inc_left
-            i_right += inc_right
-        zrav[i] = add
-
-        # increment
-        pos = len_index - 1
-        index[pos] += 1
-        i_left_loop += left_inc[pos]
-        i_right_loop += right_inc[pos]
-        while pos > 0 and index[pos] >= shape_dims[pos]:
-            i_left_loop -= left_inc[pos] * index[pos]
-            i_right_loop -= right_inc[pos] * index[pos]
-            index[pos] = 0
-            pos -= 1
-            index[pos] += 1
-            i_left_loop += left_inc[pos]
-            i_right_loop += right_inc[pos]
-
-    new_shape = tuple(v[0] for v in shape.values())
-    return zrav.reshape(new_shape)                                     
-                                     
-*/                                     
-
-    
-    std::vector<NTYPE> z_vector(flattened_dimension(z_shape));
+    std::vector<NTYPE> z_vector(full_size);
     NTYPE* z_data = z_vector.data();
 
+    // loop
+    std::vector<int64_t> shape_dims(shape.size());
+    std::vector<int64_t> index(shape.size());
+    for(size_t i = 0; i < shape.size(); ++i) {
+        shape_dims[i] = shape.value(i).first;
+        index[i] = 0;
+    }
+
+    size_t len_index = index.size();
+    int64_t loop_size = dx.at(c_sum[0]).first;
+
+    int64_t i_left_loop, inc_left, i_right_loop, inc_right;
+    get_index(cdx, shape, index, c_sum[0], i_left_loop, inc_left);
+    get_index(cdy, shape, index, c_sum[0], i_right_loop, inc_right);
+
+    std::vector<int64_t> left_incs, right_incs;
+    get_incs(cdx, shape, left_incs);
+    get_incs(cdy, shape, right_incs);
+    NTYPE add;
+    const NTYPE *xp, *yp;
+    NTYPE *zp;
+    NTYPE *z_end = z_data + full_size;
+    size_t pos;
+    int64_t i_loop;
+
+    for(zp = z_data; zp != z_end; ++zp) {
+
+        // summation
+        add = (NTYPE)0;
+        xp = x_data + i_left_loop;
+        yp = y_data + i_right_loop;
+
+        for (i_loop = loop_size; i_loop != 0; xp += inc_left, yp += inc_right, --i_loop) {
+            add += *xp * *yp;
+        }
+        *zp = add;
+
+        // increment
+        pos = len_index - 1;
+        ++index[pos];
+        i_left_loop += left_incs[pos];
+        i_right_loop += right_incs[pos];
+        while (pos > 0 && index[pos] >= shape_dims[pos]) {
+            i_left_loop -= left_incs[pos] * index[pos];
+            i_right_loop -= right_incs[pos] * index[pos];
+            index[pos] = 0;
+            --pos;
+            ++index[pos];
+            i_left_loop += left_incs[pos];
+            i_right_loop += right_incs[pos];
+        }
+    }
+
+    std::vector<int64_t> z_shape;
     std::vector<ssize_t> strides;
+
+    mapshape2shape(shape, z_shape);
     shape2strides(z_shape, strides, (NTYPE)0);
-    
+
     return py::array_t<NTYPE>(
         py::buffer_info(
             &z_vector[0],
