@@ -25,6 +25,14 @@ from onnxruntime import InferenceSession
 from skl2onnx.algebra.onnx_ops import OnnxEinsum
 from skl2onnx.common.data_types import DoubleTensorType
 import onnx
+try:
+    from tensorflow import einsum as tf_einsum, convert_to_tensor
+except ImportError:
+    tf_einsum = None
+try:
+    from torch import einsum as torch_einsum, from_numpy
+except ImportError:
+    torch_einsum = None
 
 
 def build_ort_einsum(equation, op_version=12):
@@ -37,35 +45,70 @@ def build_ort_einsum(equation, op_version=12):
     return lambda x, y: sess.run(None, {'x': x, 'y': y})
 
 
+def loop_einsum_eq(fct, equation, xs, ys):
+    for x, y in zip(xs, ys):
+        fct(equation, x, y)
+
+
+def loop_einsum(fct, xs, ys):
+    for x, y in zip(xs, ys):
+        fct(x, y)
+
+
 equation = "bsnh,btnh->bnts"
 ort_einsum = build_ort_einsum(equation)
 res = []
-for dim in tqdm([8, 16, 32, 64, 128, 256, 512]):
-    x = numpy.random.rand(1, dim, 12, 64)
-    y = numpy.random.rand(1, dim, 12, 64)
+for dim in tqdm([8, 16, 32, 64, 100, 128, 200,
+                 256, 500, 512, 600]):
+    xs = [numpy.random.rand(1, dim, 12, 64) for _ in range(5)]
+    ys = [numpy.random.rand(1, dim, 12, 64) for _ in range(5)]
 
-    ort_einsum(x, y)
-
-    ctx = dict(equation=equation, x=x, y=y, einsum=numpy.einsum)
-    obs = measure_time("einsum(equation, x, y)", div_by_number=True, context=ctx,
-                       repeat=5, number=5)
+    ctx = dict(equation=equation, xs=xs, ys=ys, einsum=numpy.einsum,
+               loop_einsum=loop_einsum, loop_einsum_eq=loop_einsum_eq)
+    obs = measure_time("loop_einsum_eq(einsum, equation, xs, ys)",
+                       div_by_number=True, context=ctx,
+                       repeat=5, number=1)
     obs['dim'] = dim
     obs['fct'] = 'numpy.einsum'
     res.append(obs)
 
     ctx['einsum'] = ort_einsum
-    obs = measure_time("einsum(x, y)", div_by_number=True, context=ctx,
-                       repeat=5, number=5)
+    obs = measure_time("loop_einsum(einsum, xs, ys)",
+                       div_by_number=True, context=ctx,
+                       repeat=5, number=1)
     obs['dim'] = dim
     obs['fct'] = 'ort_einsum'
     res.append(obs)
 
     ctx['einsum'] = custom_einsum_double
-    obs = measure_time("einsum(equation, x, y)", div_by_number=True, context=ctx,
-                       repeat=5, number=5)
+    obs = measure_time("loop_einsum_eq(einsum, equation, xs, ys)",
+                       div_by_number=True, context=ctx,
+                       repeat=5, number=1)
     obs['dim'] = dim
     obs['fct'] = 'custom_einsum_double'
     res.append(obs)
+
+    if tf_einsum is not None:
+        ctx['einsum'] = tf_einsum
+        ctx['xs'] = [convert_to_tensor(x) for x in xs]
+        ctx['ys'] = [convert_to_tensor(y) for y in ys]
+        obs = measure_time("loop_einsum_eq(einsum, equation, xs, ys)",
+                           div_by_number=True, context=ctx,
+                           repeat=5, number=1)
+        obs['dim'] = dim
+        obs['fct'] = 'tf_einsum'
+        res.append(obs)
+
+    if torch_einsum is not None:
+        ctx['einsum'] = torch_einsum
+        ctx['xs'] = [from_numpy(x) for x in xs]
+        ctx['ys'] = [from_numpy(y) for y in ys]
+        obs = measure_time("loop_einsum_eq(einsum, equation, xs, ys)",
+                           div_by_number=True, context=ctx,
+                           repeat=5, number=1)
+        obs['dim'] = dim
+        obs['fct'] = 'torch_einsum'
+        res.append(obs)
 
 df = pandas.DataFrame(res)
 df
@@ -83,6 +126,10 @@ piv
 rs = piv.copy()
 rs['custom_einsum_double'] = rs['numpy.einsum'] / rs['custom_einsum_double']
 rs['ort_einsum'] = rs['numpy.einsum'] / rs['ort_einsum']
+if 'tf_einsum' in rs.columns:
+    rs['tf_einsum'] = rs['numpy.einsum'] / rs['tf_einsum']
+if 'torch_einsum' in rs.columns:
+    rs['torch_einsum'] = rs['numpy.einsum'] / rs['torch_einsum']
 rs['numpy.einsum'] = 1.
 rs
 
@@ -90,5 +137,5 @@ rs
 # Graphs.
 fig, ax = plt.subplots(1, 2, figsize=(12, 4))
 piv.plot(logx=True, logy=True, ax=ax[0], title="Einsum benchmark")
-rs.plot(logx=True, ax=ax[1], title="Einsum Speedup, baseline=numpy")
+rs.plot(logx=True, logy=True, ax=ax[1], title="Einsum Speedup, baseline=numpy")
 plt.show()
