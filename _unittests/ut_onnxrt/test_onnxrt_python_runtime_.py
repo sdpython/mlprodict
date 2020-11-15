@@ -2628,9 +2628,17 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             sparse.indices, indices_tensor)  # pylint: disable=E1101
         self.assertEqual(sparse.dims, dense_shape)  # pylint: disable=E1101
 
-        for opset, cls in [(get_opset_number_from_onnx(), OnnxConstant),
-                           (9, OnnxConstant_9),
-                           (11, OnnxConstant_11)]:
+        opset_tests = [
+            (get_opset_number_from_onnx(), OnnxConstant),
+            (11, OnnxConstant_11)]
+
+        if (not sys.platform.startswith('win') or
+                compare_module_version(onnx_version, (1, 8, 0)) != 0):
+            # to_onnx fails for opset, it is expected
+            # but it makes python crash on python for onnx 1.8.0
+            opset_tests.append((9, OnnxConstant_9))
+
+        for opset, cls in opset_tests:
             with self.subTest(opset=opset):
                 X = numpy.array([0.1, 0.2], dtype=numpy.float32)
                 if opset >= 12:
