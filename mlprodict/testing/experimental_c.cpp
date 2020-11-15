@@ -33,66 +33,96 @@ namespace py = pybind11;
 // begin: einsum
 ////////////////
 
+typedef std::pair<int64_t, size_t> mapshape_element;
+typedef std::map<char, mapshape_element> mapshape_type;
+
+
+template <typename TYPE>
+void _check_eq(const std::string&eq, const TYPE& sh) {
+    if (eq.size() != sh.size())
+        throw std::runtime_error(MakeString(
+            "Unable to map equation ", eq, " to shape ", sh, "."));
+}
+
+void _split(const std::string& eq, const mapshape_type& sh, mapshape_type& dx) {
+    dx.clear();
+    for (size_t i = 0; i < sh.size(); ++i) {
+        dx[eq[i]] = mapshape_element(sh.at(eq[i]).first, i);
+    }
+}
+
+void _split(const std::string& eq, const std::vector<int64_t>& sh, mapshape_type& dx) {
+    dx.clear();
+    for (size_t i = 0; i < sh.size(); ++i) {
+        dx[eq[i]] = mapshape_element(sh[i], i);
+    }
+}
+
+void _equation_split(const std::string& equation,
+                     std::string& eqx, std::string& eqy, std::string& eqr) {
+    size_t comma = equation.find_first_of(",");
+    size_t dash = equation.find_first_of("-", comma);
+    eqx = equation.substr(0, comma);
+    eqy = equation.substr(comma + 1, dash - comma - 1);
+    eqr = equation.substr(dash+2, equation.size() - dash - 2);
+}
+
 /*
-    def _check_eq(eq, sh):
-        if len(eq) != len(sh):
-            raise ValueError(
-                "Unable to map equation %r to shape %r." % (eq, sh))
-
-    def _split(eq, sh):
-        dx = OrderedDict((e, (v, i)) for i, (e, v) in enumerate(zip(eq, sh)))
-        return dx
-
-    def _interpret(dx, dy, eqr):
-        c_uni = []
-        c_trp = []
-        c_sum = []
-        for r in eqr:
-            if r in dx:
-                if r in dy:
-                    if dx[r][0] != dy[r][0]:
-                        raise ValueError(
-                            "Dimension mismatch for letter "
-                            "%r dx=%r dy=%r." % (r, dx, dy))
-                    c_trp.append(r)
-                else:
-                    c_uni.append((r, None))
-            elif r in dy:
-                c_uni.append((None, r))
-            else:
-                raise ValueError(
-                    "Unexpected letter %r in result %r." % (r, eqr))
-        for c in dx:
-            if c not in eqr:
-                if c not in dy:
-                    raise ValueError(
-                        "Unable to guess what to do with column %r (left side)" % c)
-                if dx[c][0] != dy[c][0]:
+def _interpret(dx, dy, eqr):
+    c_uni = []
+    c_trp = []
+    c_sum = []
+    for r in eqr:
+        if r in dx:
+            if r in dy:
+                if dx[r][0] != dy[r][0]:
                     raise ValueError(
                         "Dimension mismatch for letter "
-                        "%r dx=%r dy=%r." % (c, dx, dy))
-                c_sum.append(c)
-        for c in dy:
-            if c not in eqr and c not in dx:
-                raise ValueError(
-                    "Unable to guess what to do with column %r (right side)" % c)
-        shape = OrderedDict()
-        for i, r in enumerate(eqr):
-            if r in c_trp:
-                shape[r] = (dx[r][0], i)
+                        "%r dx=%r dy=%r." % (r, dx, dy))
+                c_trp.append(r)
             else:
-                for a, b in c_uni:
-                    if a == r:
-                        shape[r] = (dx[r][0], i)
-                        break
-                    if b == r:
-                        shape[r] = (dy[r][0], i)
-                        break
-        if len(shape) != len(eqr):
-            raise RuntimeError(
-                "Unable to compute the output shape "
-                "dx=%r dy=%r eqr=%r got shape=%r." % (dx, dy, eqr, shape))
-        return shape, c_trp, c_uni, c_sum
+                c_uni.append((r, None))
+        elif r in dy:
+            c_uni.append((None, r))
+        else:
+            raise ValueError(
+                "Unexpected letter %r in result %r." % (r, eqr))
+    for c in dx:
+        if c not in eqr:
+            if c not in dy:
+                raise ValueError(
+                    "Unable to guess what to do with column %r (left side)" % c)
+            if dx[c][0] != dy[c][0]:
+                raise ValueError(
+                    "Dimension mismatch for letter "
+                    "%r dx=%r dy=%r." % (c, dx, dy))
+            c_sum.append(c)
+    for c in dy:
+        if c not in eqr and c not in dx:
+            raise ValueError(
+                "Unable to guess what to do with column %r (right side)" % c)
+    shape = OrderedDict()
+    for i, r in enumerate(eqr):
+        if r in c_trp:
+            shape[r] = (dx[r][0], i)
+        else:
+            for a, b in c_uni:
+                if a == r:
+                    shape[r] = (dx[r][0], i)
+                    break
+                if b == r:
+                    shape[r] = (dy[r][0], i)
+                    break
+    if len(shape) != len(eqr):
+        raise RuntimeError(
+            "Unable to compute the output shape "
+            "dx=%r dy=%r eqr=%r got shape=%r." % (dx, dy, eqr, shape))
+    return shape, c_trp, c_uni, c_sum
+*/
+    
+        /*
+
+
 
     def _inc(d):
         t = 1
@@ -124,15 +154,32 @@ namespace py = pybind11;
             incs.append(inc)
         return incs
 
-    if x.dtype != y.dtype:
-        raise RuntimeError("x and y must have the same dtype.")
-    eqx = equation.split(',')[0]
-    eqy = equation.split(',')[-1].split('->')[0]
-    eqr = equation.split('->')[-1]
-    _check_eq(eqx, x.shape)
-    _check_eq(eqy, y.shape)
-    dx = _split(eqx, x.shape)
-    dy = _split(eqy, y.shape)
+
+*/
+
+
+template<typename NTYPE>
+py::array_t<NTYPE> custom_einsum(const std::string& equation,
+                                 py::array_t<NTYPE, py::array::c_style | py::array::forcecast> x,
+                                 py::array_t<NTYPE, py::array::c_style | py::array::forcecast> y) {
+                                               
+    std::vector<int64_t> x_shape, y_shape;
+    arrayshape2vector(x_shape, x);
+    arrayshape2vector(y_shape, y);
+                                               
+    const NTYPE* x_data = x.data();
+    const NTYPE* y_data = y.data();
+                                     
+    std::string eqx, eqy, eqr;
+    _equation_split(equation, eqx, eqy, eqr);                            
+    _check_eq(eqx, x_shape);
+    _check_eq(eqy, y_shape);
+    mapshape_type dx, dy;
+    _split(eqx, x_shape, dx);
+    _split(eqy, y_shape, dy);
+                                     
+    /*
+
     shape, __, _, c_sum = _interpret(dx, dy, eqr)
     cdx = _inc(dx)
     cdy = _inc(dy)
@@ -185,26 +232,11 @@ namespace py = pybind11;
             i_right_loop += right_inc[pos]
 
     new_shape = tuple(v[0] for v in shape.values())
-    return zrav.reshape(new_shape)
-*/
+    return zrav.reshape(new_shape)                                     
+                                     
+*/                                     
 
-
-template<typename NTYPE>
-py::array_t<NTYPE> custom_einsum(const std::string& equation,
-                                 py::array_t<NTYPE, py::array::c_style | py::array::forcecast> x,
-                                 py::array_t<NTYPE, py::array::c_style | py::array::forcecast> y) {
-                                               
-    std::vector<int64_t> x_shape, y_shape;
-
-    arrayshape2vector(x_shape, x);
-    ssize_t x_num_dims = x_shape.size();
-    arrayshape2vector(y_shape, y);
-    ssize_t y_num_dims = y_shape.size();
-                                               
-    const NTYPE* x_data = x.data();
-    const NTYPE* y_data = y.data();
-
-
+    
     std::vector<NTYPE> z_vector(flattened_dimension(z_shape));
     NTYPE* z_data = z_vector.data();
 
