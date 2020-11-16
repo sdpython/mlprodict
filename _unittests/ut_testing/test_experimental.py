@@ -249,7 +249,34 @@ class TestExperimental(ExtTestCase):
         self.assertEqual(ein.shape, ein2.shape)
         self.assertEqualArray(ein, ein2, decimal=5)
 
+    def test_experimental_einsum_c_eq2_optim_th2(self):
+        eq = "bsnh,btnh->bnts"
+
+        x = numpy.arange(8).reshape((1, 2, 2, 2)).astype(numpy.int64)
+        y = (numpy.arange(8).reshape((1, 2, 2, 2)) + 100).astype(numpy.int64)
+        ein = numpy.einsum(eq, x, y)
+        custom_einsum_int64(eq, x, y, nthread=1)
+        ein2 = custom_einsum_int64(eq, x, y, nthread=2)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2)
+
+        x = numpy.random.rand(1, 8, 12, 64).astype(numpy.float)
+        y = numpy.random.rand(1, 8, 12, 64).astype(numpy.float)
+        ein = numpy.einsum(eq, x, y)
+        ein2 = custom_einsum_float(eq, x, y, 2)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2, decimal=5)
+
+    def test_experimental_einsum_c_eq2_optim2(self):
+        eq = "bshn,bthn->bnts"
+        x = numpy.random.rand(1, 8, 12, 64).astype(numpy.float)
+        y = numpy.random.rand(1, 8, 12, 64).astype(numpy.float)
+        ein = numpy.einsum(eq, x, y)
+        ein2 = custom_einsum_float(eq, x, y)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2, decimal=5)
+
 
 if __name__ == "__main__":
-    # TestExperimental().test_experimental_einsum_c()
+    # TestExperimental().test_experimental_einsum_c_eq2_optim_th2()
     unittest.main()
