@@ -67,6 +67,10 @@ def custom_einsum_float_tr(eq, x, y):
         x = x.transpose((0, 1, 3, 2))
         y = y.transpose((0, 1, 3, 2))
         return custom_einsum_float("bsnh,btnh->bnts", x, y, nthread=-1)
+    if eq == "bhsn,bhtn->bnts":
+        x = x.transpose((0, 2, 3, 1))
+        y = y.transpose((0, 2, 3, 1))
+        return custom_einsum_float("bsnh,btnh->bnts", x, y, nthread=-1)
     return custom_einsum_float(eq, x, y, nthread=-1)
 
 
@@ -76,9 +80,9 @@ def benchmark_equation(equation):
     res = []
     for dim in tqdm([8, 16, 32, 64, 100, 128, 200,
                      256, 500, 512]):
-        xs = [numpy.random.rand(1, dim, 12, 64).astype(numpy.float32)
+        xs = [numpy.random.rand(2, dim, 12, 64).astype(numpy.float32)
               for _ in range(5)]
-        ys = [numpy.random.rand(1, dim, 12, 64).astype(numpy.float32)
+        ys = [numpy.random.rand(2, dim, 12, 64).astype(numpy.float32)
               for _ in range(5)]
 
         ctx = dict(equation=equation, xs=xs, ys=ys, einsum=numpy.einsum,
@@ -156,9 +160,9 @@ def benchmark_equation(equation):
     # Graphs.
     fig, ax = plt.subplots(1, 2, figsize=(12, 4))
     piv.plot(logx=True, logy=True, ax=ax[0],
-             title="Einsum benchmark\n%s -- (1, N, 12, 64)" % equation)
+             title="Einsum benchmark\n%s -- (2, N, 12, 64)" % equation)
     rs.plot(logx=True, logy=True, ax=ax[1],
-            title="Einsum Speedup, baseline=numpy\n%s -- (1, N, 12, 64)" % equation)
+            title="Einsum Speedup, baseline=numpy\n%s -- (2, N, 12, 64)" % equation)
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
 
@@ -184,6 +188,21 @@ ax
 # Second equation.
 
 equation = "bshn,bthn->bnts"
+df, piv, ax = benchmark_equation(equation)
+df
+
+####################################
+# Ratios
+piv
+
+####################################
+# Graph.
+ax
+
+###################################
+# Third equation.
+
+equation = "bhsn,bhtn->bnts"
 df, piv, ax = benchmark_equation(equation)
 df
 
