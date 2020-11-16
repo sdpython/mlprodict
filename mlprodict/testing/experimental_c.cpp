@@ -28,6 +28,9 @@ namespace py = pybind11;
 
 #include "experimental_c_helper.hpp"
 
+#include <xmmintrin.h>
+#include <emmintrin.h>
+
 
 ////////////////
 // begin: einsum
@@ -217,6 +220,101 @@ void mapshape2shape(const mapshape_type &shape, std::vector<size_t>& out_shape) 
         out_shape.push_back(static_cast<size_t>(shape.value(i).first));
 }
 
+template <typename NTYPE>
+NTYPE vector_dot_product_pointer16(const NTYPE *p1, const NTYPE *p2, size_t size) {
+	NTYPE sum = 0;
+	for (; size != 0; ++p1, ++p2, --size)
+		sum += *p1 * *p2;
+	return sum;
+}
+
+template <>
+float vector_dot_product_pointer16(const float *p1, const float *p2, size_t size) {
+	float sum = 0;
+    if (size > 4) {
+        __m128 c1, c2;
+        __m128 r1 = _mm_setzero_ps();
+        for (; size > 4; p1 += 4, p2 += 4, size -= 4)
+            r1 = _mm_add_ps(r1, _mm_mul_ps(_mm_load_ps(p1), _mm_load_ps(p2)));
+        c1 = _mm_shuffle_ps(r1, r1, _MM_SHUFFLE(2, 3, 0, 1));
+        c2 = _mm_add_ps(r1, c1);
+        c1 = _mm_movehl_ps(c1, c2);
+        c2 = _mm_add_ss(c2, c1);
+        sum += _mm_cvtss_f32(c2);
+    }
+	for (; size != 0; ++p1, ++p2, --size)
+		sum += *p1 * *p2;
+	return sum;
+}
+
+template <typename NTYPE>
+NTYPE vector_dot_product_pointer_stride(const NTYPE *xp, const NTYPE *yp, size_t size,
+                                        int64_t inc_left, int64_t inc_right) {
+    NTYPE add = (NTYPE)0;
+    for (int64_t i_loop = size; i_loop != 0; xp += inc_left, yp += inc_right, --i_loop) {
+        add += *xp * *yp;
+    }
+    return add;
+}
+
+void set_index(int64_t begin, const std::vector<int64_t>& shape_dims, std::vector<int64_t>& index) {
+    int64_t sum = 1;
+    for(size_t i = shape_dims.size()-1; i > 0; --i) {
+        index[i] = begin % shape_dims[i];
+        begin -= index[i] * sum;
+        sum *= shape_dims[i];
+    }
+    index[0] = begin;
+}    
+
+
+template <typename NTYPE>
+void custom_einsum_matmul(const NTYPE* x_data, const NTYPE* y_data,
+                          int64_t i_left_loop, int64_t i_right_loop,
+                          int64_t inc_left, int64_t inc_right, int64_t loop_size,
+                          const std::vector<int64_t>& left_incs,
+                          const std::vector<int64_t>& right_incs,
+                          NTYPE* z_data,
+                          const std::vector<int64_t> &shape_dims,
+                          int64_t begin, int64_t end) {
+    const NTYPE *xp, *yp;
+    NTYPE *zp;
+    size_t pos;
+    NTYPE *z_end = z_data + end;
+    size_t len_index = shape_dims.size();
+    std::vector<int64_t> index(shape_dims.size());
+    set_index(begin, shape_dims, index);
+
+    for(zp = z_data + begin; zp != z_end; ++zp) {
+
+        // summation
+        xp = x_data + i_left_loop;
+        yp = y_data + i_right_loop;
+
+        if (inc_left == 1 && inc_right == 1) {
+            *zp = vector_dot_product_pointer16(xp, yp, loop_size);
+        }
+        else {
+            *zp = vector_dot_product_pointer_stride(xp, yp, loop_size, inc_left, inc_right);
+        }
+
+        // increment
+        pos = len_index - 1;
+        ++index[pos];
+        i_left_loop += left_incs[pos];
+        i_right_loop += right_incs[pos];
+        while (pos > 0 && index[pos] >= shape_dims[pos]) {
+            i_left_loop -= left_incs[pos] * index[pos];
+            i_right_loop -= right_incs[pos] * index[pos];
+            index[pos] = 0;
+            --pos;
+            ++index[pos];
+            i_left_loop += left_incs[pos];
+            i_right_loop += right_incs[pos];
+        }
+    }
+}
+
 
 template<typename NTYPE>
 py::array_t<NTYPE> custom_einsum(const std::string& equation,
@@ -257,56 +355,25 @@ py::array_t<NTYPE> custom_einsum(const std::string& equation,
 
     // loop
     std::vector<int64_t> shape_dims(shape.size());
-    std::vector<int64_t> index(shape.size());
-    for(size_t i = 0; i < shape.size(); ++i) {
+    for(size_t i = 0; i < shape.size(); ++i)
         shape_dims[i] = shape.value(i).first;
-        index[i] = 0;
-    }
 
-    size_t len_index = index.size();
     int64_t loop_size = dx.at(c_sum[0]).first;
-
-    int64_t i_left_loop, inc_left, i_right_loop, inc_right;
-    get_index(cdx, shape, index, c_sum[0], i_left_loop, inc_left);
-    get_index(cdy, shape, index, c_sum[0], i_right_loop, inc_right);
 
     std::vector<int64_t> left_incs, right_incs;
     get_incs(cdx, shape, left_incs);
     get_incs(cdy, shape, right_incs);
-    NTYPE add;
-    const NTYPE *xp, *yp;
-    NTYPE *zp;
-    NTYPE *z_end = z_data + full_size;
-    size_t pos;
-    int64_t i_loop;
 
-    for(zp = z_data; zp != z_end; ++zp) {
+    int64_t i_left_loop, inc_left, i_right_loop, inc_right;
+    
+    std::vector<int64_t> index(shape.size(), 0);
+    get_index(cdx, shape, index, c_sum[0], i_left_loop, inc_left);
+    get_index(cdy, shape, index, c_sum[0], i_right_loop, inc_right);
 
-        // summation
-        add = (NTYPE)0;
-        xp = x_data + i_left_loop;
-        yp = y_data + i_right_loop;
-
-        for (i_loop = loop_size; i_loop != 0; xp += inc_left, yp += inc_right, --i_loop) {
-            add += *xp * *yp;
-        }
-        *zp = add;
-
-        // increment
-        pos = len_index - 1;
-        ++index[pos];
-        i_left_loop += left_incs[pos];
-        i_right_loop += right_incs[pos];
-        while (pos > 0 && index[pos] >= shape_dims[pos]) {
-            i_left_loop -= left_incs[pos] * index[pos];
-            i_right_loop -= right_incs[pos] * index[pos];
-            index[pos] = 0;
-            --pos;
-            ++index[pos];
-            i_left_loop += left_incs[pos];
-            i_right_loop += right_incs[pos];
-        }
-    }
+    custom_einsum_matmul(x_data, y_data,
+                         i_left_loop, i_right_loop, inc_left, inc_right, loop_size,
+                         left_incs, right_incs, z_data, shape_dims,
+                         0 /*begin*/, full_size /*end*/);
 
     std::vector<int64_t> z_shape;
     std::vector<ssize_t> strides;

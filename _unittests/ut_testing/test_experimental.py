@@ -8,7 +8,7 @@ from onnxruntime import InferenceSession
 from pyquickhelper.pycode import ExtTestCase, is_travis_or_appveyor
 from mlprodict.testing.experimental import custom_pad, custom_einsum
 from mlprodict.testing.experimental_c import (  # pylint: disable=E0611
-    custom_einsum_double, custom_einsum_int64)
+    custom_einsum_double, custom_einsum_int64, custom_einsum_float)
 from mlprodict.tools import get_opset_number_from_onnx
 
 
@@ -158,6 +158,39 @@ class TestExperimental(ExtTestCase):
         self.assertEqual(ein.shape, ein2.shape)
         self.assertEqualArray(ein, ein2)
 
+    def test_experimental_einsum_eq2(self):
+        eq = "bshn,bthn->bnts"
+
+        x = numpy.arange(8).reshape((1, 2, 2, 2))
+        y = numpy.arange(8).reshape((1, 2, 2, 2)) + 100
+        ein = numpy.einsum(eq, x, y)
+        ein2 = custom_einsum(eq, x, y)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2)
+
+        x = numpy.random.rand(1, 8, 3, 5)
+        y = numpy.random.rand(1, 8, 3, 5)
+        bady1 = numpy.random.rand(2, 8, 3, 5)
+        bady2 = numpy.random.rand(1, 8, 3, 6)
+        ein = numpy.einsum(eq, x, y)
+        self.assertRaise(lambda: custom_einsum(
+            eq, x.astype(int), y), RuntimeError)
+        self.assertRaise(lambda: custom_einsum(
+            "bsnhj,btnh->bnts", x, y), ValueError)
+        self.assertRaise(lambda: custom_einsum(
+            "bsnh,btnhj->bnts", x, y), ValueError)
+        self.assertRaise(lambda: custom_einsum(eq, x, bady1), ValueError)
+        self.assertRaise(lambda: custom_einsum(eq, x, bady2), ValueError)
+        self.assertRaise(lambda: custom_einsum(eq, bady1, x), ValueError)
+        self.assertRaise(lambda: custom_einsum(eq, bady2, x), ValueError)
+        self.assertRaise(
+            lambda: custom_einsum(
+                "bsnhv,btnhv->bnts", numpy.random.rand(1, 8, 3, 5, 2),
+                numpy.random.rand(1, 8, 3, 5, 2)), NotImplementedError)
+        ein2 = custom_einsum(eq, x, y)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2)
+
     def is_ci_win(self):
         return is_travis_or_appveyor() == "appveyor"
 
@@ -197,6 +230,24 @@ class TestExperimental(ExtTestCase):
         ein2 = custom_einsum_double(eq, x, y)
         self.assertEqual(ein.shape, ein2.shape)
         self.assertEqualArray(ein, ein2)
+
+    def test_experimental_einsum_c_eq2(self):
+        eq = "bshn,bthn->bnts"
+        x = numpy.random.rand(1, 8, 3, 5)
+        y = numpy.random.rand(1, 8, 3, 5)
+        ein = numpy.einsum(eq, x, y)
+        ein2 = custom_einsum_double(eq, x, y)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2)
+
+    def test_experimental_einsum_c_eq2_optim(self):
+        eq = "bsnh,btnh->bnts"
+        x = numpy.random.rand(1, 8, 12, 64).astype(numpy.float)
+        y = numpy.random.rand(1, 8, 12, 64).astype(numpy.float)
+        ein = numpy.einsum(eq, x, y)
+        ein2 = custom_einsum_float(eq, x, y)
+        self.assertEqual(ein.shape, ein2.shape)
+        self.assertEqualArray(ein, ein2, decimal=5)
 
 
 if __name__ == "__main__":
