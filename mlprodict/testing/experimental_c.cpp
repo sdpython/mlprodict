@@ -225,23 +225,23 @@ NTYPE vector_dot_product_pointer16(const NTYPE *p1, const NTYPE *p2, size_t size
 	return sum;
 }
 
+std::string code_optimisation() {
+    #if USE_OPENMP
+    std::string omp = MakeString("omp=", omp_get_num_threads());
+    #else
+    std::string omp = MakeString("th=", 1);
+    #endif
+    #if defined(__AVX__)
+    return MakeString("AVX-", omp);
+    #else
+    return MakeString("SSE-", omp);
+    #endif
+}
+
 template <>
 float vector_dot_product_pointer16(const float *p1, const float *p2, size_t size) {
 	float sum = 0;
-    /* // SSE
-    if (size > 4) {
-        __m128 c1, c2;
-        __m128 r1 = _mm_setzero_ps();
-        for (; size > 4; p1 += 4, p2 += 4, size -= 4)
-            r1 = _mm_add_ps(r1, _mm_mul_ps(_mm_load_ps(p1), _mm_load_ps(p2)));
-        c1 = _mm_shuffle_ps(r1, r1, _MM_SHUFFLE(2, 3, 0, 1));
-        c2 = _mm_add_ps(r1, c1);
-        c1 = _mm_movehl_ps(c1, c2);
-        c2 = _mm_add_ss(c2, c1);
-        sum += _mm_cvtss_f32(c2);
-    }
-    */
-    // AVX
+    #if defined(__AVX__)
     if (size > 8) {
         __m256 r256 = _mm256_setzero_ps();
         for (; size > 8; p1 += 8, p2 += 8, size -= 8)
@@ -256,6 +256,19 @@ float vector_dot_product_pointer16(const float *p1, const float *p2, size_t size
         c2 = _mm_add_ss(c2, c1);
         sum += _mm_cvtss_f32(c2);
     }
+    #else
+    if (size > 4) {
+        __m128 c1, c2;
+        __m128 r1 = _mm_setzero_ps();
+        for (; size > 4; p1 += 4, p2 += 4, size -= 4)
+            r1 = _mm_add_ps(r1, _mm_mul_ps(_mm_load_ps(p1), _mm_load_ps(p2)));
+        c1 = _mm_shuffle_ps(r1, r1, _MM_SHUFFLE(2, 3, 0, 1));
+        c2 = _mm_add_ps(r1, c1);
+        c1 = _mm_movehl_ps(c1, c2);
+        c2 = _mm_add_ss(c2, c1);
+        sum += _mm_cvtss_f32(c2);
+    }
+    #endif
 	for (; size != 0; ++p1, ++p2, --size)
 		sum += *p1 * *p2;
 	return sum;
@@ -486,6 +499,9 @@ PYBIND11_MODULE(experimental_c, m) {
     R"pbdoc(C++ experimental implementations.)pbdoc"
     #endif
     ;
+
+    m.def("code_optimisation", &code_optimisation,
+            R"pbdoc(Returns a string giving some insights about optimisations.)pbdoc");
 
     m.def("custom_einsum_float",
             &custom_einsum_float,

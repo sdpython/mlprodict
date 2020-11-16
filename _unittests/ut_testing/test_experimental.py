@@ -8,7 +8,8 @@ from onnxruntime import InferenceSession
 from pyquickhelper.pycode import ExtTestCase, is_travis_or_appveyor
 from mlprodict.testing.experimental import custom_pad, custom_einsum
 from mlprodict.testing.experimental_c import (  # pylint: disable=E0611
-    custom_einsum_double, custom_einsum_int64, custom_einsum_float)
+    custom_einsum_double, custom_einsum_int64, custom_einsum_float,
+    code_optimisation)
 from mlprodict.tools import get_opset_number_from_onnx
 
 
@@ -276,7 +277,10 @@ class TestExperimental(ExtTestCase):
         self.assertEqual(ein.shape, ein2.shape)
         self.assertEqualArray(ein, ein2, decimal=5)
 
+    def test_code_optimisation(self):
+        res = code_optimisation()
+        self.assertIn("=", res)
 
 if __name__ == "__main__":
-    # TestExperimental().test_experimental_einsum_c_eq2_optim_th2()
+    # TestExperimental().test_code_optimisation()
     unittest.main()

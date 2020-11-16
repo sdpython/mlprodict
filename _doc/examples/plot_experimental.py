@@ -54,7 +54,7 @@ def loop_einsum_eq(fct, equation, xs, ys):
 
 def loop_einsum_eq_th(fct, equation, xs, ys):
     for x, y in zip(xs, ys):
-        fct(equation, x, y, nthread=-1)
+        fct(equation, x, y, nthread=4)
 
 
 def loop_einsum(fct, xs, ys):
@@ -66,12 +66,12 @@ def custom_einsum_float_tr(eq, x, y):
     if eq == "bshn,bthn->bnts":
         x = x.transpose((0, 1, 3, 2))
         y = y.transpose((0, 1, 3, 2))
-        return custom_einsum_float("bsnh,btnh->bnts", x, y, nthread=-1)
+        return custom_einsum_float("bsnh,btnh->bnts", x, y, nthread=4)
     if eq == "bhsn,bhtn->bnts":
         x = x.transpose((0, 2, 3, 1))
         y = y.transpose((0, 2, 3, 1))
-        return custom_einsum_float("bsnh,btnh->bnts", x, y, nthread=-1)
-    return custom_einsum_float(eq, x, y, nthread=-1)
+        return custom_einsum_float("bsnh,btnh->bnts", x, y, nthread=4)
+    return custom_einsum_float(eq, x, y, nthread=4)
 
 
 def benchmark_equation(equation):
