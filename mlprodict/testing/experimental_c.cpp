@@ -227,11 +227,11 @@ NTYPE vector_dot_product_pointer16(const NTYPE *p1, const NTYPE *p2, size_t size
 
 std::string code_optimisation() {
     #if USE_OPENMP
-    std::string omp = MakeString("omp=", omp_get_num_threads());
+    std::string omp = MakeString("omp=", omp_get_num_procs());
     #else
     std::string omp = MakeString("th=", 1);
     #endif
-    #if defined(__AVX__)
+    #if defined(_CMP_EQ_OQ)  // defined in immintrin
     return MakeString("AVX-", omp);
     #else
     return MakeString("SSE-", omp);
@@ -409,7 +409,7 @@ py::array_t<NTYPE> custom_einsum(const std::string& equation,
         if (nthread > 1)
             omp_set_num_threads(nthread);
         else
-            nthread = omp_get_num_threads();
+            nthread = omp_get_num_procs();
         int N = nthread * 4;
         int64_t h = full_size / N;
         if (h == 0) {

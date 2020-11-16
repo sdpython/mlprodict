@@ -13,9 +13,20 @@ It compares *numpy* implementation to a custom implementation,
 .. contents::
     :local:
 
-Einsum
-++++++
+Available optimisation
+++++++++++++++++++++++
+
+The code shows which optimisation is used for the custom
+implementation, *AVX* or *SSE* and the number of available processors,
+equal to the default number of used threads to parallelize.
 """
+from mlprodict.testing.experimental_c import code_optimisation
+print(code_optimisation())
+
+###################################
+# Einsum
+# ++++++
+
 import numpy
 import pandas
 import matplotlib.pyplot as plt
@@ -54,7 +65,7 @@ def loop_einsum_eq(fct, equation, xs, ys):
 
 def loop_einsum_eq_th(fct, equation, xs, ys):
     for x, y in zip(xs, ys):
-        fct(equation, x, y, nthread=4)
+        fct(equation, x, y, nthread=-1)
 
 
 def loop_einsum(fct, xs, ys):
@@ -66,12 +77,12 @@ def custom_einsum_float_tr(eq, x, y):
     if eq == "bshn,bthn->bnts":
         x = x.transpose((0, 1, 3, 2))
         y = y.transpose((0, 1, 3, 2))
-        return custom_einsum_float("bsnh,btnh->bnts", x, y, nthread=4)
+        return custom_einsum_float("bsnh,btnh->bnts", x, y, nthread=-1)
     if eq == "bhsn,bhtn->bnts":
         x = x.transpose((0, 2, 3, 1))
         y = y.transpose((0, 2, 3, 1))
-        return custom_einsum_float("bsnh,btnh->bnts", x, y, nthread=4)
-    return custom_einsum_float(eq, x, y, nthread=4)
+        return custom_einsum_float("bsnh,btnh->bnts", x, y, nthread=-1)
+    return custom_einsum_float(eq, x, y, nthread=-1)
 
 
 def benchmark_equation(equation):
