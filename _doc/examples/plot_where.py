@@ -7,10 +7,8 @@ Compares implementations of Where
 The following function benchmark different implementation
 of function :epkg:`numpy:where`.
 If available, :epkg:`tensorflow` and :epkg:`pytorch` are included as well.
-The custom implementation does not do any transpose.
-It uses parallelisation and SIMD optimization when the summation
-happens on the last axis of both matrices. It only implements
-matrix multiplication.
+The benchmark compares the operator *where* to an equivalent implementation
+`where(c, x, y) = x * c - y * (c - 1)`.
 
 .. contents::
     :local:
@@ -18,9 +16,6 @@ matrix multiplication.
 Available optimisation
 ++++++++++++++++++++++
 
-The code shows which optimisation is used for the custom
-implementation, *AVX* or *SSE* and the number of available processors,
-equal to the default number of used threads to parallelize.
 """
 from mlprodict.testing.experimental_c import code_optimisation
 print(code_optimisation())
