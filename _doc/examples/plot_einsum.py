@@ -1,8 +1,8 @@
 """
 .. _l-einsum:
 
-Compares implementation of Einsum
-=================================
+Compares implementations of Einsum
+==================================
 
 The following function benchmark different implementation
 of function :epkg:`numpy:einsum`.
@@ -129,7 +129,7 @@ def benchmark_equation(equation):
         obs['dim'] = dim
         obs['fct'] = 'ort_einsum'
         res.append(obs)
-        
+
         # custom implementation
         ctx['einsum'] = custom_einsum_float
         obs = measure_time(
@@ -191,13 +191,15 @@ def benchmark_equation(equation):
     # Graphs.
     fig, ax = plt.subplots(1, 2, figsize=(12, 4))
     piv.plot(logx=True, logy=True, ax=ax[0],
-             title="Einsum benchmark\n%s -- (2, N, 12, 64)" % equation)
-    ax[0].legend(prop={"size":6})
+             title="Einsum benchmark\n%s -- (2, N, 12, 64)"
+                   "\nlower better" % equation)
+    ax[0].legend(prop={"size": 6})
     rs.plot(logx=True, logy=True, ax=ax[1],
-            title="Einsum Speedup, baseline=numpy\n%s -- (2, N, 12, 64)" % equation)
+            title="Einsum Speedup, baseline=numpy\n%s -- (2, N, 12, 64)"
+                  "\nhigher better" % equation)
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
-    ax[1].legend(prop={"size":6})
+    ax[1].legend(prop={"size": 6})
 
     return df, piv, ax
 
@@ -236,7 +238,7 @@ piv.T
 #
 # The summation does not happen on the last axis but
 # on the second one. It is worth transposing before multiplying.
-# 
+#
 
 equation = "bhsn,bhtn->bnts"
 df, piv, ax = benchmark_equation(equation)
