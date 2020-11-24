@@ -74,8 +74,7 @@ struct TreeNodeElement {
 
 
 template<typename NTYPE>
-class _Aggregator
-{
+class _Aggregator {
     protected:
 
         size_t n_trees_;
@@ -144,8 +143,7 @@ class _Aggregator
 
 
 template<typename NTYPE>
-class _AggregatorSum : public _Aggregator<NTYPE>
-{
+class _AggregatorSum : public _Aggregator<NTYPE> {
     // has_score is not used.
     public:
 
@@ -214,8 +212,7 @@ class _AggregatorSum : public _Aggregator<NTYPE>
 
 
 template<typename NTYPE>
-class _AggregatorAverage : public _AggregatorSum<NTYPE>
-{
+class _AggregatorAverage : public _AggregatorSum<NTYPE> {
     public:
         
         inline _AggregatorAverage<NTYPE>(size_t n_trees,
@@ -255,8 +252,7 @@ class _AggregatorAverage : public _AggregatorSum<NTYPE>
 
 
 template<typename NTYPE>
-class _AggregatorMin : public _Aggregator<NTYPE>
-{
+class _AggregatorMin : public _Aggregator<NTYPE> {
     public:
 
         inline _AggregatorMin<NTYPE>(size_t n_trees,
@@ -314,8 +310,7 @@ class _AggregatorMin : public _Aggregator<NTYPE>
 
 
 template<typename NTYPE>
-class _AggregatorMax : public _Aggregator<NTYPE>
-{
+class _AggregatorMax : public _Aggregator<NTYPE> {
     public:
 
         inline _AggregatorMax<NTYPE>(size_t n_trees,
@@ -377,8 +372,7 @@ class _AggregatorMax : public _Aggregator<NTYPE>
 
 
 template<typename NTYPE>
-class _AggregatorClassifier : public _AggregatorSum<NTYPE>
-{
+class _AggregatorClassifier : public _AggregatorSum<NTYPE> {
     private:
 
         const std::vector<int64_t> * class_labels_;
