@@ -74,6 +74,11 @@ struct TreeNodeElement {
     }
 };
 
+#if !defined(UINT_MAX)
+#define UINT_MAX 4294967295
+#endif
+#define ID_LEAF_TRUE_NODE UINT_MAX
+
 template<typename NTYPE>
 struct ArrayTreeNodeElement {
     std::vector<TreeNodeElementId> id;
@@ -91,7 +96,7 @@ struct ArrayTreeNodeElement {
     std::vector<bool> is_missing_track_true;
     
     inline bool is_not_leaf(size_t i) const { 
-        return truenode[i] != nullptr; 
+        return truenode[i] != ID_LEAF_TRUE_NODE; 
     }
     int64_t get_sizeof() {
         int64_t res = sizeof(ArrayTreeNodeElement<NTYPE>) +
