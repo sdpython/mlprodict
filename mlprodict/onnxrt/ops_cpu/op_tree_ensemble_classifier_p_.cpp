@@ -16,7 +16,7 @@ class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE>
 
     public:
         
-        RuntimeTreeEnsembleClassifierP(int omp_tree, int omp_N);
+        RuntimeTreeEnsembleClassifierP(int omp_tree, int omp_N, bool array_structure);
         ~RuntimeTreeEnsembleClassifierP();
 
         void init(
@@ -45,8 +45,9 @@ class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE>
 
 
 template<typename NTYPE>
-RuntimeTreeEnsembleClassifierP<NTYPE>::RuntimeTreeEnsembleClassifierP(int omp_tree, int omp_N) :
-   RuntimeTreeEnsembleCommonP<NTYPE>(omp_tree, omp_N) {
+RuntimeTreeEnsembleClassifierP<NTYPE>::RuntimeTreeEnsembleClassifierP(
+        int omp_tree, int omp_N, bool array_structure) :
+   RuntimeTreeEnsembleCommonP<NTYPE>(omp_tree, omp_N, array_structure) {
 }
 
 
@@ -120,15 +121,15 @@ py::array_t<NTYPE> RuntimeTreeEnsembleClassifierP<NTYPE>::compute_tree_outputs(p
 
 class RuntimeTreeEnsembleClassifierPFloat : public RuntimeTreeEnsembleClassifierP<float> {
     public:
-        RuntimeTreeEnsembleClassifierPFloat(int omp_tree, int omp_N) :
-            RuntimeTreeEnsembleClassifierP<float>(omp_tree, omp_N) {}
+        RuntimeTreeEnsembleClassifierPFloat(int omp_tree, int omp_N, bool array_structure) :
+            RuntimeTreeEnsembleClassifierP<float>(omp_tree, omp_N, array_structure) {}
 };
 
 
 class RuntimeTreeEnsembleClassifierPDouble : public RuntimeTreeEnsembleClassifierP<double> {
     public:
-        RuntimeTreeEnsembleClassifierPDouble(int omp_tree, int omp_N) :
-            RuntimeTreeEnsembleClassifierP<double>(omp_tree, omp_N) {}
+        RuntimeTreeEnsembleClassifierPDouble(int omp_tree, int omp_N, bool array_structure) :
+            RuntimeTreeEnsembleClassifierP<double>(omp_tree, omp_N, array_structure) {}
 };
 
 
@@ -152,11 +153,12 @@ in :epkg:`onnxruntime`. Supports float only.
 
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
-:param omp_N: number of observvations above which the runtime uses
+:param omp_N: number of observations above which the runtime uses
     :epkg:`openmp` to parallelize the predictions
+:param array_structure: different implementation for better performance
 )pbdoc");
 
-    clf.def(py::init<int, int>());
+    clf.def(py::init<int, int, bool>());
     clf.def_readwrite("omp_tree_", &RuntimeTreeEnsembleClassifierPFloat::omp_tree_,
         "Number of trees above which the computation is parallelized for one observation.");
     clf.def_readwrite("omp_N_", &RuntimeTreeEnsembleClassifierPFloat::omp_N_,
@@ -196,11 +198,12 @@ in :epkg:`onnxruntime`. Supports double only.
 
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
-:param omp_N: number of observvations above which the runtime uses
+:param omp_N: number of observations above which the runtime uses
     :epkg:`openmp` to parallelize the predictions
+:param array_structure: different implementation for better performance
 )pbdoc");
 
-    cld.def(py::init<int, int>());
+    cld.def(py::init<int, int, bool>());
     cld.def_readwrite("omp_tree_", &RuntimeTreeEnsembleClassifierPDouble::omp_tree_,
         "Number of trees above which the computation is parallelized for one observation.");
     cld.def_readwrite("omp_N_", &RuntimeTreeEnsembleClassifierPDouble::omp_N_,

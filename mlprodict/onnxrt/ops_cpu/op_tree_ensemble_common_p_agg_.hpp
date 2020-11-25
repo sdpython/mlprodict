@@ -55,23 +55,48 @@ enum MissingTrack {
 template<typename NTYPE>
 struct TreeNodeElement {
     TreeNodeElementId id;
-    int feature_id;
+    size_t feature_id;
     NTYPE value;
     NTYPE hitrates;
     NODE_MODE mode;
     TreeNodeElement *truenode;
     TreeNodeElement *falsenode;
     MissingTrack missing_tracks;
-    std::vector<SparseValue<NTYPE>> weights;
-    
-    bool is_not_leave;
+    SparseValue<NTYPE> weights0;
+    std::vector<SparseValue<NTYPE>> weights_vect;
     bool is_missing_track_true;
-    
+
+    inline bool is_not_leaf () const { 
+        return truenode != nullptr; 
+    }
     int64_t get_sizeof() {
-        return sizeof(TreeNodeElement) + weights.size() * sizeof(SparseValue<NTYPE>);
+        return sizeof(TreeNodeElement) + weights_vect.size() * sizeof(SparseValue<NTYPE>);
     }
 };
 
+template<typename NTYPE>
+struct ArrayTreeNodeElement {
+    std::vector<TreeNodeElementId> id;
+    std::vector<size_t> feature_id;
+    std::vector<NTYPE> value;
+    std::vector<NTYPE> hitrates;
+    std::vector<NODE_MODE> mode;
+    std::vector<size_t> truenode;
+    std::vector<size_t> falsenode;
+    std::vector<MissingTrack> missing_tracks;
+    std::vector<SparseValue<NTYPE>> weights0;
+    std::vector<std::vector<SparseValue<NTYPE>>> weights;
+    std::vector<size_t> root_id;
+
+    std::vector<bool> is_missing_track_true;
+    
+    inline bool is_not_leaf(size_t i) const { 
+        return truenode[i] != nullptr; 
+    }
+    int64_t get_sizeof() {
+        return sizeof(TreeNodeElement) + weights_vect.size() * sizeof(SparseValue<NTYPE>);
+    }
+};
 
 template<typename NTYPE>
 class _Aggregator {
@@ -89,7 +114,7 @@ class _Aggregator {
         inline _Aggregator(size_t n_trees,
                            const int64_t& n_targets_or_classes,
                            POST_EVAL_TRANSFORM post_transform,
-                           const std::vector<NTYPE> * base_values) : 
+                           const std::vector<NTYPE>* base_values) : 
                 n_trees_(n_trees), n_targets_or_classes_(n_targets_or_classes),
                 post_transform_(post_transform), base_values_(base_values) {
             origin_ = base_values_->size() == 1 ? (*base_values_)[0] : 0.f;
@@ -100,8 +125,11 @@ class _Aggregator {
         
         // 1 output
 
-        inline void ProcessTreeNodePrediction1(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions, TreeNodeElement<NTYPE>* root,
                                                unsigned char* has_predictions) const {}
+
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions, const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                               size_t node_id, unsigned char* has_predictions) const {}
 
         inline void MergePrediction1(NTYPE* predictions, unsigned char* has_predictions,
                                      NTYPE* predictions2, unsigned char* has_predictions2) const {}
@@ -115,7 +143,7 @@ class _Aggregator {
 
         // N outputs
         
-        void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE>* root,
                                        unsigned char* has_predictions) const {}
 
         void MergePrediction(int64_t n,
@@ -159,9 +187,16 @@ class _AggregatorSum : public _Aggregator<NTYPE> {
         // 1 output
                                
         inline void ProcessTreeNodePrediction1(NTYPE* predictions,
-                                               TreeNodeElement<NTYPE> * root,
+                                               TreeNodeElement<NTYPE>* root,
                                                unsigned char* has_predictions) const {
-            *predictions += root->weights[0].value;
+            *predictions += root->weights0.value;
+        }
+
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions,
+                                               const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                               size_t node_id,
+                                               unsigned char* has_predictions) const {
+            *predictions += array_nodes.weights0[node_id].value;
         }
 
         inline void MergePrediction1(NTYPE* predictions, unsigned char* has_predictions,
@@ -180,7 +215,7 @@ class _AggregatorSum : public _Aggregator<NTYPE> {
         
         void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                        unsigned char* has_predictions) const {
-            for(auto it = root->weights.cbegin(); it != root->weights.cend(); ++it) {
+            for(auto it = root->weights_vect.cbegin(); it != root->weights_vect.cend(); ++it) {
                 predictions[it->i] += it->value;
                 has_predictions[it->i] = 1;
             }
@@ -268,8 +303,18 @@ class _AggregatorMin : public _Aggregator<NTYPE> {
                                
         inline void ProcessTreeNodePrediction1(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                                unsigned char* has_predictions) const {
-            *predictions = (!(*has_predictions) || root->weights[0].value < *predictions) 
-                                    ? root->weights[0].value : *predictions;
+            *predictions = (!(*has_predictions) || root->weights0.value < *predictions) 
+                                    ? root->weights0.value : *predictions;
+            *has_predictions = 1;
+        }
+
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions,
+                                               const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                               size_t node_id,
+                                               unsigned char* has_predictions) const {
+            auto val = array_nodes.weights0[node_id].value;
+            *predictions = (!(*has_predictions) || val < *predictions) 
+                                    ? val : *predictions;
             *has_predictions = 1;
         }
 
@@ -287,7 +332,7 @@ class _AggregatorMin : public _Aggregator<NTYPE> {
         
         void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                        unsigned char* has_predictions) const {
-            for(auto it = root->weights.cbegin(); it != root->weights.cend(); ++it) {
+            for(auto it = root->weights_vect.cbegin(); it != root->weights_vect.cend(); ++it) {
                 predictions[it->i] = (!has_predictions[it->i] || it->value < predictions[it->i]) 
                                         ? it->value : predictions[it->i];
                 has_predictions[it->i] = 1;
@@ -326,8 +371,18 @@ class _AggregatorMax : public _Aggregator<NTYPE> {
 
         inline void ProcessTreeNodePrediction1(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                                unsigned char* has_predictions) const {
-            *predictions = (!(*has_predictions) || root->weights[0].value > *predictions) 
-                                    ? root->weights[0].value : *predictions;
+            *predictions = (!(*has_predictions) || root->weights0.value > *predictions) 
+                                    ? root->weights0.value : *predictions;
+            *has_predictions = 1;
+        }
+
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions,
+                                               const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                               size_t node_id,
+                                               unsigned char* has_predictions) const {
+            auto val = array_nodes.weights0[node_id].value;
+            *predictions = (!(*has_predictions) || val > *predictions) 
+                                    ? val : *predictions;
             *has_predictions = 1;
         }
 
@@ -345,7 +400,7 @@ class _AggregatorMax : public _Aggregator<NTYPE> {
 
         void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                        unsigned char* has_predictions) const {
-            for(auto it = root->weights.cbegin(); it != root->weights.cend(); ++it) {
+            for(auto it = root->weights_vect.cbegin(); it != root->weights_vect.cend(); ++it) {
                 predictions[it->i] = (!has_predictions[it->i] || it->value > predictions[it->i]) 
                                         ? it->value : predictions[it->i];
                 has_predictions[it->i] = 1;

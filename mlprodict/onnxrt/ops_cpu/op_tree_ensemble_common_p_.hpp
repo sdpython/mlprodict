@@ -22,8 +22,7 @@
 * cause computation errors. The class is not thread safe.
 */
 template<typename NTYPE>
-class RuntimeTreeEnsembleCommonP
-{
+class RuntimeTreeEnsembleCommonP {
     public:
 
         // tree_ensemble_regressor.h
@@ -31,9 +30,11 @@ class RuntimeTreeEnsembleCommonP
         int64_t n_targets_or_classes_;
         POST_EVAL_TRANSFORM post_transform_;
         AGGREGATE_FUNCTION aggregate_function_;
+
         int64_t n_nodes_;
         TreeNodeElement<NTYPE>* nodes_;
         std::vector<TreeNodeElement<NTYPE>*> roots_;
+        ArrayTreeNodeElement<NTYPE> array_nodes;
 
         int64_t max_tree_depth_;
         int64_t n_trees_;
@@ -42,10 +43,11 @@ class RuntimeTreeEnsembleCommonP
         int omp_tree_;
         int omp_N_;
         int64_t sizeof_;
+        bool array_structure_;
 
     public:
 
-        RuntimeTreeEnsembleCommonP(int omp_tree, int omp_N);
+        RuntimeTreeEnsembleCommonP(int omp_tree, int omp_N, bool array_structure);
         ~RuntimeTreeEnsembleCommonP();
 
         void init(
@@ -109,13 +111,15 @@ class RuntimeTreeEnsembleCommonP
         template<typename AGG>
         py::tuple compute_cl_agg(py::array_t<NTYPE> X, const AGG &agg);
 
-    private :
+    private:
 
         template<typename AGG>
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
                               const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
                               py::array_t<int64_t>* Y, const AGG &agg);
-    
+
+        void switch_to_array_structure();
+
     private:
         // buffers, mutable
         std::vector<NTYPE> _scores_t_tree;
@@ -127,10 +131,12 @@ class RuntimeTreeEnsembleCommonP
 
 
 template<typename NTYPE>
-RuntimeTreeEnsembleCommonP<NTYPE>::RuntimeTreeEnsembleCommonP(int omp_tree, int omp_N) {
+RuntimeTreeEnsembleCommonP<NTYPE>::RuntimeTreeEnsembleCommonP(
+        int omp_tree, int omp_N, bool array_structure) {
     omp_tree_ = omp_tree;
     omp_N_ = omp_N;
     nodes_ = NULL;
+    array_structure_ = array_structure;
 }
 
 
@@ -290,7 +296,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
         node->value = nodes_values[i];
         node->hitrates = i < nodes_hitrates.size() ? nodes_hitrates[i] : -1;
         node->mode = cmodes[i];
-        node->is_not_leave = node->mode != NODE_MODE::LEAF;
+        // node->is_not_leaf = node->mode != NODE_MODE::LEAF;
         node->truenode = NULL; // nodes_truenodeids[i];
         node->falsenode = NULL; // nodes_falsenodeids[i];
         node->missing_tracks = i < (size_t)nodes_missing_value_tracks_true.size()
@@ -312,7 +318,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
     TreeNodeElement<NTYPE> * it;
     for(i = 0; i < (size_t)n_nodes_; ++i) {
         it = nodes_ + i;
-        if (!it->is_not_leave)
+        if (it->mode == NODE_MODE::LEAF) // !it->is_not_leaf)
             continue;
         coor.tree_id = it->id.tree_id;
         coor.node_id = (int)nodes_truenodeids[i];
@@ -381,7 +387,9 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
         }
         w.i = target_class_ids[i];
         w.value = target_class_weights[i];
-        idi[ind]->weights.push_back(w);
+        if (idi[ind]->weights_vect.size() == 0)
+            idi[ind]->weights0 = w;
+        idi[ind]->weights_vect.push_back(w);
     }
 
     n_trees_ = roots_.size();
@@ -405,8 +413,15 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
         _scores_classes[i].resize(n_targets_or_classes_);
         _has_scores_classes[i].resize(n_targets_or_classes_);
     }
+    
+    if (array_structure_)
+        switch_to_array_structure();
 }
 
+template<typename NTYPE>
+void RuntimeTreeEnsembleCommonP<NTYPE>::switch_to_array_structure() {
+    throw std::runtime_error("switch_to_array_structure not implemented.");
+}
 
 template<typename NTYPE>
 std::vector<std::string> RuntimeTreeEnsembleCommonP<NTYPE>::get_nodes_modes() const {
@@ -667,7 +682,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
 
 #define TREE_FIND_VALUE(CMP) \
     if (has_missing_tracks_) { \
-        while (root->is_not_leave) { \
+        while (root->is_not_leaf()) { \
             val = x_data[root->feature_id]; \
             root = (val CMP root->value || \
                     (root->is_missing_track_true && _isnan_(val) )) \
@@ -675,7 +690,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
         } \
     } \
     else { \
-        while (root->is_not_leave) { \
+        while (root->is_not_leaf()) { \
             val = x_data[root->feature_id]; \
             root = val CMP root->value ? root->truenode : root->falsenode; \
         } \
@@ -691,7 +706,7 @@ TreeNodeElement<NTYPE> *
         switch(root->mode) {
             case NODE_MODE::BRANCH_LEQ:
                 if (has_missing_tracks_) {
-                    while (root->is_not_leave) {
+                    while (root->is_not_leaf()) {
                         val = x_data[root->feature_id];
                         root = (val <= root->value ||
                                 (root->is_missing_track_true && _isnan_(val) ))
@@ -699,7 +714,7 @@ TreeNodeElement<NTYPE> *
                     }
                 }
                 else {
-                    while (root->is_not_leave) {
+                    while (root->is_not_leaf()) {
                         val = x_data[root->feature_id];
                         root = val <= root->value ? root->truenode : root->falsenode;
                     }
@@ -731,7 +746,7 @@ TreeNodeElement<NTYPE> *
     }
     else {  // Different rules to compare to node thresholds.
         NTYPE threshold;
-        while (root->is_not_leave) {
+        while (root->is_not_leaf()) {
             val = x_data[root->feature_id];
             threshold = root->value;
             switch (root->mode) {
