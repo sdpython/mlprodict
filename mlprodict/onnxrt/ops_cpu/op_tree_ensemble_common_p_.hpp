@@ -420,6 +420,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
 
 template<typename NTYPE>
 void RuntimeTreeEnsembleCommonP<NTYPE>::switch_to_array_structure() {
+    sizeof_ += array_nodes.get_sizeof();
     throw std::runtime_error("switch_to_array_structure not implemented.");
 }
 

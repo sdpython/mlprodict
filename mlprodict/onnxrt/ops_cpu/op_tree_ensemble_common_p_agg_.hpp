@@ -94,7 +94,20 @@ struct ArrayTreeNodeElement {
         return truenode[i] != nullptr; 
     }
     int64_t get_sizeof() {
-        return sizeof(TreeNodeElement) + weights_vect.size() * sizeof(SparseValue<NTYPE>);
+        int64_t res = sizeof(ArrayTreeNodeElement<NTYPE>) +
+            id.size() * sizeof(TreeNodeElementId) +
+            feature_id.size() * sizeof(size_t) +
+            value.size() * sizeof(NTYPE) +
+            hitrates.size() * sizeof(NTYPE) +
+            mode.size() * sizeof(NODE_MODE) +
+            truenode.size() * sizeof(size_t) +
+            falsenode.size() * sizeof(truenode) +
+            missing_tracks.size() * sizeof(MissingTrack) +
+            weights0.size() * sizeof(SparseValue<NTYPE>) +
+            root_id.size() * sizeof(size_t);
+        for(auto it = weights.begin(); it != weights.end(); ++it)
+            res += it->size() * sizeof(SparseValue<NTYPE>);
+        return res;
     }
 };
 
