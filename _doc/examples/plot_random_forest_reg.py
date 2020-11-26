@@ -1,14 +1,28 @@
 """
 .. _l-example-tree-ensemble-bench:
 
-Benchmark Random Forests, Tree Ensemble
-=======================================
+Benchmark Random Forests, Tree Ensemble, (AoS and SoA)
+======================================================
 
 The script compares different implementations for the operator
 TreeEnsembleRegressor.
 
+* *baseline*: RandomForestRegressor from :epkg:`scikit-learn`
+* *ort*: :epkg:`onnxruntime`
+* *mlprodict*: an implementation based on an array of structures,
+  every structure describes a node
+* *mlprodict2* similar implementation but instead of having an
+  array of structures, it relies on a structure of arrays.
+
 .. contents::
     :local:
+
+A structure of arrays has better performance:
+`Case study: Comparing Arrays of Structures and Structures of
+Arrays Data Layouts for a Compute-Intensive Loop
+<https://software.intel.com/content/www/us/en/develop/articles/
+a-case-study-comparing-aos-arrays-of-structures-and-soa-structures-of-arrays-data-layouts.html>`_.
+See also `AoS and SoA <https://en.wikipedia.org/wiki/AoS_and_SoA>`_.
 
 Import
 ++++++
@@ -75,8 +89,10 @@ def fcts_model(X, y, max_depth, n_estimators, n_jobs):
     onx = convert_sklearn(rf, initial_types=initial_types)
     sess = InferenceSession(onx.SerializeToString())
     outputs = [o.name for o in sess.get_outputs()]
-    oinf = OnnxInference(onx, runtime="python_compiled")
+    oinf = OnnxInference(onx, runtime="python")
     name = outputs[0]
+    oinf2 = OnnxInference(onx, runtime="python")
+    oinf2.sequence_[0].ops_._init(numpy.float32, 2)
 
     def predict_skl_predict(X, model=rf):
         return rf.predict(X)
@@ -87,10 +103,12 @@ def fcts_model(X, y, max_depth, n_estimators, n_jobs):
     def predict_onnx_inference(X, oinf=oinf):
         return oinf.run({'X': X})[name]
 
+    def predict_onnx_inference2(X, oinf=oinf):
+        return oinf2.run({'X': X})[name]
+
     return {'predict': (
-        predict_skl_predict,
-        predict_onnxrt_predict,
-        predict_onnx_inference,
+        predict_skl_predict, predict_onnxrt_predict,
+        predict_onnx_inference, predict_onnx_inference2,
     )}
 
 
@@ -122,7 +140,7 @@ def bench(n_obs, n_features, max_depths, n_estimatorss, n_jobss,
                     for n in n_obs:
                         for method in methods:
 
-                            fct1, fct2, fct3 = fcts[method]
+                            fct1, fct2, fct3, fct4 = fcts[method]
 
                             if not allow_configuration(n=n, nfeat=nfeat,
                                                        max_depth=max_depth,
@@ -173,6 +191,17 @@ def bench(n_obs, n_features, max_depths, n_estimatorss, n_jobss,
                                     break
                             end = time()
                             obs["time_mlprodict"] = (end - st) / r2
+
+                            # measures the other new implementation 2
+                            st = time()
+                            r2 = 0
+                            for X in Xs:
+                                p2 = fct4(X)
+                                r2 += 1
+                                if r2 >= repeated:
+                                    break
+                            end = time()
+                            obs["time_mlprodict2"] = (end - st) / r2
 
                             # final
                             res.append(obs)

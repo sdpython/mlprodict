@@ -238,4 +238,3 @@ in :epkg:`onnxruntime`. Supports double only.
 }
 
 #endif
-

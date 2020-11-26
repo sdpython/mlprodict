@@ -10,13 +10,9 @@ from ._op_helper import _get_typed_class_attribute
 from ._op import OpRunUnaryNum, RuntimeTypeError
 from ._new_ops import OperatorSchema
 from .op_tree_ensemble_regressor_ import (  # pylint: disable=E0611
-    RuntimeTreeEnsembleRegressorFloat,
-    RuntimeTreeEnsembleRegressorDouble,
-)
+    RuntimeTreeEnsembleRegressorFloat, RuntimeTreeEnsembleRegressorDouble)
 from .op_tree_ensemble_regressor_p_ import (  # pylint: disable=E0611
-    RuntimeTreeEnsembleRegressorPFloat,
-    RuntimeTreeEnsembleRegressorPDouble,
-)
+    RuntimeTreeEnsembleRegressorPFloat, RuntimeTreeEnsembleRegressorPDouble)
 
 
 class TreeEnsembleRegressorCommon(OpRunUnaryNum):
@@ -47,6 +43,8 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
                 self.rt_ = RuntimeTreeEnsembleRegressorFloat()
             elif version == 1:
                 self.rt_ = RuntimeTreeEnsembleRegressorPFloat(60, 20, False)
+            elif version == 2:
+                self.rt_ = RuntimeTreeEnsembleRegressorPFloat(60, 20, True)
             else:
                 raise ValueError("Unknown version '{}'.".format(version))
         elif dtype == numpy.float64:
@@ -54,6 +52,8 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
                 self.rt_ = RuntimeTreeEnsembleRegressorDouble()
             elif version == 1:
                 self.rt_ = RuntimeTreeEnsembleRegressorPDouble(60, 20, False)
+            elif version == 2:
+                self.rt_ = RuntimeTreeEnsembleRegressorPDouble(60, 20, True)
             else:
                 raise ValueError("Unknown version '{}'.".format(version))
         else:

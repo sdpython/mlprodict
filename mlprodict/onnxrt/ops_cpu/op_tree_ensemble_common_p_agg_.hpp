@@ -164,6 +164,9 @@ class _Aggregator {
         void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE>* root,
                                        unsigned char* has_predictions) const {}
 
+        void ProcessTreeNodePrediction(NTYPE* predictions, const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                       size_t node_id, unsigned char* has_predictions) const {}
+
         void MergePrediction(int64_t n,
                              NTYPE* predictions, unsigned char* has_predictions,
                              NTYPE* predictions2, unsigned char* has_predictions2) const {}
@@ -234,6 +237,14 @@ class _AggregatorSum : public _Aggregator<NTYPE> {
         void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                        unsigned char* has_predictions) const {
             for(auto it = root->weights_vect.cbegin(); it != root->weights_vect.cend(); ++it) {
+                predictions[it->i] += it->value;
+                has_predictions[it->i] = 1;
+            }
+        }
+
+        void ProcessTreeNodePrediction(NTYPE* predictions, const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                       size_t node_id, unsigned char* has_predictions) const {
+            for(auto it = array_nodes.weights[node_id].cbegin(); it != array_nodes.weights[node_id].cend(); ++it) {
                 predictions[it->i] += it->value;
                 has_predictions[it->i] = 1;
             }
@@ -357,6 +368,15 @@ class _AggregatorMin : public _Aggregator<NTYPE> {
             }
         }
 
+        void ProcessTreeNodePrediction(NTYPE* predictions, const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                       size_t node_id, unsigned char* has_predictions) const {
+            for(auto it = array_nodes.weights[node_id].cbegin(); it != array_nodes.weights[node_id].cend(); ++it) {
+                predictions[it->i] = (!has_predictions[it->i] || it->value < predictions[it->i]) 
+                                        ? it->value : predictions[it->i];
+                has_predictions[it->i] = 1;
+            }
+        }
+
         void MergePrediction(int64_t n, NTYPE* predictions, unsigned char* has_predictions,
                              const NTYPE* predictions2, const unsigned char* has_predictions2) const {
             for(int64_t i = 0; i < n; ++i) {
@@ -419,6 +439,15 @@ class _AggregatorMax : public _Aggregator<NTYPE> {
         void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                        unsigned char* has_predictions) const {
             for(auto it = root->weights_vect.cbegin(); it != root->weights_vect.cend(); ++it) {
+                predictions[it->i] = (!has_predictions[it->i] || it->value > predictions[it->i]) 
+                                        ? it->value : predictions[it->i];
+                has_predictions[it->i] = 1;
+            }
+        }
+
+        void ProcessTreeNodePrediction(NTYPE* predictions, const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                       size_t node_id, unsigned char* has_predictions) const {
+            for(auto it = array_nodes.weights[node_id].cbegin(); it != array_nodes.weights[node_id].cend(); ++it) {
                 predictions[it->i] = (!has_predictions[it->i] || it->value > predictions[it->i]) 
                                         ? it->value : predictions[it->i];
                 has_predictions[it->i] = 1;

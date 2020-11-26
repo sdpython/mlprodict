@@ -49,6 +49,8 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
                 self.rt_ = RuntimeTreeEnsembleClassifierFloat()
             elif version == 1:
                 self.rt_ = RuntimeTreeEnsembleClassifierPFloat(60, 20, False)
+            elif version == 2:
+                self.rt_ = RuntimeTreeEnsembleClassifierPFloat(60, 20, True)
             else:
                 raise ValueError("Unknown version '{}'.".format(version))
         elif dtype == numpy.float64:
@@ -56,6 +58,8 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
                 self.rt_ = RuntimeTreeEnsembleClassifierDouble()
             elif version == 1:
                 self.rt_ = RuntimeTreeEnsembleClassifierPDouble(60, 20, False)
+            elif version == 2:
+                self.rt_ = RuntimeTreeEnsembleClassifierPDouble(60, 20, True)
             else:
                 raise ValueError("Unknown version '{}'.".format(version))
         else:

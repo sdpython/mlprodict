@@ -1,5 +1,5 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=3s)
 """
 import unittest
 from logging import getLogger
@@ -7,7 +7,9 @@ import numpy
 import pandas
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, GradientBoostingRegressor
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    GradientBoostingClassifier, GradientBoostingRegressor)
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnx_conv import to_onnx
@@ -383,6 +385,21 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         nb2 = ru.omp_get_max_threads()
         self.assertEqual(nb2, nb)
 
+    def test_openmp_compilation_p_true(self):
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import RuntimeTreeEnsembleRegressorPFloat  # pylint: disable=E0611
+        ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, True)
+        r = ru.runtime_options()
+        self.assertEqual('OPENMP', r)
+        nb = ru.omp_get_max_threads()
+        self.assertGreater(nb, 0)
+
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_p_ import RuntimeTreeEnsembleClassifierPFloat  # pylint: disable=E0611
+        ru = RuntimeTreeEnsembleClassifierPFloat(1, 1, True)
+        r = ru.runtime_options()
+        self.assertEqual('OPENMP', r)
+        nb2 = ru.omp_get_max_threads()
+        self.assertEqual(nb2, nb)
+
     def test_cpp_average(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_average  # pylint: disable=E0611
         confs = [[100, 100, False, True],
@@ -391,6 +408,23 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                  [10, 10, False, False],
                  [2, 2, False, True],
                  [2, 2, False, False]]
+        for conf in confs:
+            with self.subTest(conf=tuple(conf)):
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_average(
+                        *(conf + [b, False]))
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_average(
+                        *(conf + [b, True]))
+
+    def test_cpp_average_impl_true(self):
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_average  # pylint: disable=E0611
+        confs = [[100, 100, True, True],
+                 [100, 100, True, False],
+                 [10, 10, True, True],
+                 [10, 10, True, False],
+                 [2, 2, True, True],
+                 [2, 2, True, False]]
         for conf in confs:
             with self.subTest(conf=tuple(conf)):
                 for b in [False, True]:
@@ -415,6 +449,21 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                 for b in [False, True]:
                     test_tree_regressor_multitarget_min(*(conf + [b, True]))
 
+    def test_cpp_min_true(self):
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_min  # pylint: disable=E0611
+        confs = [[100, 100, True, True],
+                 [100, 100, True, False],
+                 [10, 10, True, True],
+                 [10, 10, True, False],
+                 [2, 2, True, True],
+                 [2, 2, True, False]]
+        for conf in reversed(confs):
+            with self.subTest(conf=tuple(conf)):
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_min(*(conf + [b, False]))
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_min(*(conf + [b, True]))
+
     def test_cpp_max(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_max  # pylint: disable=E0611
         confs = [[100, 100, False, True],
@@ -430,7 +479,95 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                 for b in [False, True]:
                     test_tree_regressor_multitarget_max(*(conf + [b, True]))
 
+    def test_cpp_max_true(self):
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_max  # pylint: disable=E0611
+        confs = [[100, 100, True, True],
+                 [100, 100, True, False],
+                 [10, 10, True, True],
+                 [10, 10, True, False],
+                 [2, 2, True, True],
+                 [2, 2, True, False]]
+        for conf in confs:
+            with self.subTest(conf=tuple(conf)):
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_max(*(conf + [b, False]))
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_max(*(conf + [b, True]))
+
+    def common_test_onnxrt_python_tree_ensemble_runtime_version(self, dtype):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        y = numpy.vstack([y, y]).T
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = DecisionTreeRegressor()
+        clr.fit(X_train, y_train)
+
+        # default runtime
+        model_def = to_onnx(clr, X_train.astype(dtype))
+        oinf = OnnxInference(model_def)
+        oinf.sequence_[0].ops_._init(dtype, 1)  # pylint: disable=W0212
+        y = oinf.run({'X': X_test.astype(dtype)})
+        self.assertEqual(list(sorted(y)), ['variable'])
+        lexp = clr.predict(X_test)
+        self.assertEqual(lexp.shape, y['variable'].shape)
+        self.assertEqualArray(lexp, y['variable'])
+
+        # other runtime
+        for rv in [0, 1, 2]:
+            with self.subTest(runtime_version=rv):
+                oinf.sequence_[0].ops_._init(dtype, rv)  # pylint: disable=W0212
+                y = oinf.run({'X': X_test.astype(dtype)})
+                self.assertEqualArray(lexp, y['variable'])
+        with self.subTest(runtime_version=4):
+            self.assertRaise(
+                lambda: oinf.sequence_[0].ops_._init(dtype, 4),  # pylint: disable=W0212
+                ValueError)
+
+    def test_onnxrt_python_tree_ensemble_runtime_version_float(self):
+        self.common_test_onnxrt_python_tree_ensemble_runtime_version(
+            numpy.float32)
+
+    def test_onnxrt_python_tree_ensemble_runtime_version_double(self):
+        self.common_test_onnxrt_python_tree_ensemble_runtime_version(
+            numpy.float64)
+
+    def common_test_onnxrt_python_tree_ensemble_runtime_version_cls(self, dtype):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        y = numpy.vstack([y, y]).T
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = DecisionTreeClassifier()
+        clr.fit(X_train, y_train)
+
+        # default runtime
+        model_def = to_onnx(clr, X_train.astype(dtype),
+                            options={DecisionTreeClassifier: {'zipmap': False}})
+        oinf = OnnxInference(model_def)
+        oinf.sequence_[0].ops_._init(dtype, 1)  # pylint: disable=W0212
+        y = oinf.run({'X': X_test.astype(dtype)})
+        self.assertEqual(list(sorted(y)), ['label', 'probabilities'])
+        lexp = clr.predict_proba(X_test)
+        self.assertEqualArray(lexp, y['probabilities'])
+
+        # other runtime
+        for rv in [0, 1, 2]:
+            with self.subTest(runtime_version=rv):
+                oinf.sequence_[0].ops_._init(dtype, rv)  # pylint: disable=W0212
+                y = oinf.run({'X': X_test.astype(dtype)})
+                self.assertEqualArray(lexp, y['probabilities'])
+        with self.subTest(runtime_version=4):
+            self.assertRaise(
+                lambda: oinf.sequence_[0].ops_._init(dtype, 4),  # pylint: disable=W0212
+                ValueError)
+
+    def test_onnxrt_python_tree_ensemble_runtime_version_float_cls(self):
+        self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
+            numpy.float32)
+
+    def test_onnxrt_python_tree_ensemble_runtime_version_double_cls(self):
+        self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
+            numpy.float64)
+
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_GradientBoostingRegressor64()
     unittest.main()
