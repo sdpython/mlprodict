@@ -42,18 +42,28 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
             if version == 0:
                 self.rt_ = RuntimeTreeEnsembleRegressorFloat()
             elif version == 1:
-                self.rt_ = RuntimeTreeEnsembleRegressorPFloat(60, 20, False)
+                self.rt_ = RuntimeTreeEnsembleRegressorPFloat(
+                    60, 20, False, False)
             elif version == 2:
-                self.rt_ = RuntimeTreeEnsembleRegressorPFloat(60, 20, True)
+                self.rt_ = RuntimeTreeEnsembleRegressorPFloat(
+                    60, 20, True, False)
+            elif version == 3:
+                self.rt_ = RuntimeTreeEnsembleRegressorPFloat(
+                    60, 20, True, True)
             else:
                 raise ValueError("Unknown version '{}'.".format(version))
         elif dtype == numpy.float64:
             if version == 0:
                 self.rt_ = RuntimeTreeEnsembleRegressorDouble()
             elif version == 1:
-                self.rt_ = RuntimeTreeEnsembleRegressorPDouble(60, 20, False)
+                self.rt_ = RuntimeTreeEnsembleRegressorPDouble(
+                    60, 20, False, False)
             elif version == 2:
-                self.rt_ = RuntimeTreeEnsembleRegressorPDouble(60, 20, True)
+                self.rt_ = RuntimeTreeEnsembleRegressorPDouble(
+                    60, 20, True, False)
+            elif version == 3:
+                self.rt_ = RuntimeTreeEnsembleRegressorPDouble(
+                    60, 20, True, True)
             else:
                 raise ValueError("Unknown version '{}'.".format(version))
         else:

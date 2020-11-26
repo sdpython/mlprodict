@@ -33,6 +33,7 @@ from io import BytesIO
 from time import perf_counter as time
 from itertools import combinations, chain
 from itertools import combinations_with_replacement as combinations_w_r
+from multiprocessing import cpu_count
 
 import matplotlib
 import numpy
@@ -93,6 +94,8 @@ def fcts_model(X, y, max_depth, n_estimators, n_jobs):
     name = outputs[0]
     oinf2 = OnnxInference(onx, runtime="python")
     oinf2.sequence_[0].ops_._init(numpy.float32, 2)
+    oinf3 = OnnxInference(onx, runtime="python")
+    oinf3.sequence_[0].ops_._init(numpy.float32, 3)
 
     def predict_skl_predict(X, model=rf):
         return rf.predict(X)
@@ -106,10 +109,13 @@ def fcts_model(X, y, max_depth, n_estimators, n_jobs):
     def predict_onnx_inference2(X, oinf2=oinf2):
         return oinf2.run({'X': X})[name]
 
+    def predict_onnx_inference3(X, oinf3=oinf3):
+        return oinf3.run({'X': X})[name]
+
     return {'predict': (
         predict_skl_predict, predict_onnxrt_predict,
         predict_onnx_inference, predict_onnx_inference2,
-    )}
+        predict_onnx_inference3)}
 
 
 ##############################
@@ -140,7 +146,7 @@ def bench(n_obs, n_features, max_depths, n_estimatorss, n_jobss,
                     for n in n_obs:
                         for method in methods:
 
-                            fct1, fct2, fct3, fct4 = fcts[method]
+                            fct1, fct2, fct3, fct4, fct5 = fcts[method]
 
                             if not allow_configuration(n=n, nfeat=nfeat,
                                                        max_depth=max_depth,
@@ -202,6 +208,17 @@ def bench(n_obs, n_features, max_depths, n_estimatorss, n_jobss,
                                     break
                             end = time()
                             obs["time_mlprodict2"] = (end - st) / r2
+
+                            # measures the other new implementation 3
+                            st = time()
+                            r2 = 0
+                            for X in Xs:
+                                p2 = fct5(X)
+                                r2 += 1
+                                if r2 >= repeated:
+                                    break
+                            end = time()
+                            obs["time_mlprodict3"] = (end - st) / r2
 
                             # final
                             res.append(obs)
@@ -298,7 +315,7 @@ def run_bench(repeat=100, verbose=False):
     n_features = [30]
     max_depths = [6, 8, 10, 12]
     n_estimatorss = [100]
-    n_jobss = [4]
+    n_jobss = [cpu_count()]
 
     start = time()
     results = bench(n_obs, n_features, max_depths, n_estimatorss, n_jobss,
@@ -306,7 +323,7 @@ def run_bench(repeat=100, verbose=False):
     end = time()
 
     results_df = pandas.DataFrame(results)
-    print("Total time = %0.3f sec\n" % (end - start))
+    print("Total time = %0.3f sec cpu=%d\n" % (end - start, cpu_count()))
 
     # plot the results
     return results_df
