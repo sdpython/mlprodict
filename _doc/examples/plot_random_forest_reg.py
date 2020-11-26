@@ -8,11 +8,16 @@ The script compares different implementations for the operator
 TreeEnsembleRegressor.
 
 * *baseline*: RandomForestRegressor from :epkg:`scikit-learn`
-* *ort*: :epkg:`onnxruntime`
+* *ort*: :epkg:`onnxruntime`,
 * *mlprodict*: an implementation based on an array of structures,
-  every structure describes a node
+  every structure describes a node,
 * *mlprodict2* similar implementation but instead of having an
-  array of structures, it relies on a structure of arrays.
+  array of structures, it relies on a structure of arrays,
+  it parallelizes per block of 128 observations and inside
+  every block, goes through trees then through observations
+  (double loop),
+* *mlprodict3*: parallelizes per trees, this implementation
+  is faster when the depth is higher than 10.
 
 .. contents::
     :local:

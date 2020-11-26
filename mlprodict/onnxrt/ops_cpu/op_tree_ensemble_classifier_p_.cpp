@@ -148,15 +148,16 @@ in :epkg:`onnxruntime`.)pbdoc"
 
     py::class_<RuntimeTreeEnsembleClassifierPFloat> clf (m, "RuntimeTreeEnsembleClassifierPFloat",
         R"pbdoc(Implements float runtime for operator TreeEnsembleClassifier. The code is inspired from
-`tree_ensemble_Classifier.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Classifier.cc>`_
+`tree_ensemble_Classifier.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/
+core/providers/cpu/ml/tree_ensemble_Classifier.cc>`_
 in :epkg:`onnxruntime`. Supports float only.
 
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
 :param omp_N: number of observations above which the runtime uses
     :epkg:`openmp` to parallelize the predictions
-:param array_structure: different implementation for better performance
-:param para_tree: parallelize the computation per tree instead of observations
+:param array_structure: (bool) different implementation for better performance
+:param para_tree: (bool) parallelize the computation per tree instead of observations
 )pbdoc");
 
     clf.def(py::init<int, int, bool, bool>());
@@ -194,15 +195,16 @@ in :epkg:`onnxruntime`. Supports float only.
 
     py::class_<RuntimeTreeEnsembleClassifierPDouble> cld (m, "RuntimeTreeEnsembleClassifierPDouble",
         R"pbdoc(Implements double runtime for operator TreeEnsembleClassifier. The code is inspired from
-`tree_ensemble_Classifier.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Classifier.cc>`_
+`tree_ensemble_Classifier.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/
+core/providers/cpu/ml/tree_ensemble_Classifier.cc>`_
 in :epkg:`onnxruntime`. Supports double only.
 
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
 :param omp_N: number of observations above which the runtime uses
     :epkg:`openmp` to parallelize the predictions
-:param array_structure: different implementation for better performance
-:param para_tree: parallelize the computation per tree instead of observations
+:param array_structure: (bool) different implementation for better performance
+:param para_tree: (bool) parallelize the computation per tree instead of observations
 )pbdoc");
 
     cld.def(py::init<int, int, bool, bool>());

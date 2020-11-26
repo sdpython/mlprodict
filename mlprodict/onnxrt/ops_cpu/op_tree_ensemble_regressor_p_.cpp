@@ -264,7 +264,8 @@ PYBIND11_MODULE(op_tree_ensemble_regressor_p_, m) {
     "Implements runtime for operator TreeEnsembleRegressor."
     #else
     R"pbdoc(Implements runtime for operator TreeEnsembleRegressor. The code is inspired from
-`tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
+`tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/
+onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
 in :epkg:`onnxruntime`.)pbdoc"
     #endif
     ;
@@ -278,15 +279,16 @@ in :epkg:`onnxruntime`.)pbdoc"
 
     py::class_<RuntimeTreeEnsembleRegressorPFloat> clf (m, "RuntimeTreeEnsembleRegressorPFloat",
         R"pbdoc(Implements float runtime for operator TreeEnsembleRegressor. The code is inspired from
-`tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
+`tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/
+core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
 in :epkg:`onnxruntime`. Supports float only.
 
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
 :param omp_N: number of observations above which the runtime uses
     :epkg:`openmp` to parallelize the predictions
-:param array_structure: different implementation for better performance
-:param para_tree: parallelize the computation per tree instead of observations
+:param array_structure: (bool) different implementation for better performance
+:param para_tree: (bool) parallelize the computation per tree instead of observations
 )pbdoc");
 
     clf.def(py::init<int, int, bool, bool>());
@@ -324,15 +326,16 @@ in :epkg:`onnxruntime`. Supports float only.
 
     py::class_<RuntimeTreeEnsembleRegressorPDouble> cld (m, "RuntimeTreeEnsembleRegressorPDouble",
         R"pbdoc(Implements double runtime for operator TreeEnsembleRegressor. The code is inspired from
-`tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
+`tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/
+core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
 in :epkg:`onnxruntime`. Supports double only.
 
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
 :param omp_N: number of observations above which the runtime uses
     :epkg:`openmp` to parallelize the predictions
-:param array_structure: different implementation for better performance
-:param para_tree: parallelize the computation per tree instead of observations
+:param array_structure: (bool) different implementation for better performance
+:param para_tree: (bool) parallelize the computation per tree instead of observations
 )pbdoc");
 
     cld.def(py::init<int, int, bool, bool>());
