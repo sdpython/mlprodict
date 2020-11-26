@@ -103,7 +103,7 @@ def fcts_model(X, y, max_depth, n_estimators, n_jobs):
     def predict_onnx_inference(X, oinf=oinf):
         return oinf.run({'X': X})[name]
 
-    def predict_onnx_inference2(X, oinf=oinf):
+    def predict_onnx_inference2(X, oinf2=oinf2):
         return oinf2.run({'X': X})[name]
 
     return {'predict': (

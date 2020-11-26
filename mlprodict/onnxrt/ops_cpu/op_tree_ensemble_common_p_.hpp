@@ -728,6 +728,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
     }
 }
 
+#define BATCHSIZE 128
 
 template<typename NTYPE> template<typename AGG>
 void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
@@ -790,23 +791,60 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
                 }
             }
             else {
-                NTYPE scores;
-                unsigned char has_scores;
-                size_t j;
+                if (N < BATCHSIZE * 16) {
+                    NTYPE scores;
+                    unsigned char has_scores;
+                    size_t j;
 
-                #ifdef USE_OPENMP
-                #pragma omp parallel for private(j, scores, has_scores)
-                #endif
-                for (int64_t i = 0; i < N; ++i) {
-                    scores = 0;
-                    has_scores = 0;
-                    for (j = 0; j < (size_t)n_trees_; ++j)
-                        agg.ProcessTreeNodePrediction1(
-                            &scores, array_nodes_,
-                            ProcessTreeNodeLeave(array_nodes_.root_id[j], x_data + i * stride),
-                            &has_scores);
-                    agg.FinalizeScores1((NTYPE*)Z_.data(i), scores, has_scores,
-                                        Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
+                    #ifdef USE_OPENMP
+                    #pragma omp parallel for private(j, scores, has_scores)
+                    #endif
+                    for (int64_t i = 0; i < N; ++i) {
+                        scores = 0;
+                        has_scores = 0;
+                        for (j = 0; j < (size_t)n_trees_; ++j)
+                            agg.ProcessTreeNodePrediction1(
+                                &scores, array_nodes_,
+                                ProcessTreeNodeLeave(array_nodes_.root_id[j], x_data + i * stride),
+                                &has_scores);
+                        agg.FinalizeScores1((NTYPE*)Z_.data(i), scores, has_scores,
+                                            Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
+                    }
+                }
+                else {
+                    int64_t NB = N - N % BATCHSIZE;
+                    #ifdef USE_OPENMP
+                    #pragma omp parallel for
+                    #endif
+                    for (int64_t i = 0; i < NB; i += BATCHSIZE) {
+                        NTYPE scores[BATCHSIZE] = {0, 0, 0, 0, 0, 0, 0, 0};
+                        unsigned char has_scores[BATCHSIZE] = {0, 0, 0, 0, 0, 0, 0, 0};
+                        for (size_t j = 0; j < (size_t)n_trees_; ++j) {
+                            for (size_t k = 0; k < BATCHSIZE; ++k) {
+                                agg.ProcessTreeNodePrediction1(
+                                    &scores[k], array_nodes_,
+                                    ProcessTreeNodeLeave(
+                                        array_nodes_.root_id[j], x_data + (i + k) * stride),
+                                    &has_scores[k]);
+                            }
+                        }
+                        for (size_t k = 0; k < BATCHSIZE; ++k) {
+                            agg.FinalizeScores1((NTYPE*)Z_.data(i + k), scores[k], has_scores[k],
+                                                Y == nullptr ? nullptr : 
+                                                    (int64_t*)_mutable_unchecked1(*Y).data(i + k));
+                        }
+                    }
+                    for (int64_t i = NB; i < N; ++i) {
+                        NTYPE scores = 0;
+                        unsigned char has_scores = 0;
+                        for (size_t j = 0; j < (size_t)n_trees_; ++j)
+                            agg.ProcessTreeNodePrediction1(
+                                &scores, array_nodes_,
+                                ProcessTreeNodeLeave(array_nodes_.root_id[j], x_data + i * stride),
+                                &has_scores);
+                        agg.FinalizeScores1((NTYPE*)Z_.data(i), scores, has_scores,
+                                            Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
+                    }
                 }
             }
         }
@@ -1025,6 +1063,7 @@ TreeNodeElement<NTYPE> *
 
 #define TREE_FIND_VALUE_ID(CMP) \
     if (has_missing_tracks_) { \
+        NTYPE val; \
         while (array_nodes_.is_not_leaf(root_id)) { \
             val = x_data[array_nodes_.feature_id[root_id]]; \
             root_id = (val CMP array_nodes_.value[root_id] || \
@@ -1034,8 +1073,7 @@ TreeNodeElement<NTYPE> *
     } \
     else { \
         while (array_nodes_.is_not_leaf(root_id)) { \
-            val = x_data[array_nodes_.feature_id[root_id]]; \
-            root_id = val CMP array_nodes_.value[root_id] \
+            root_id = x_data[array_nodes_.feature_id[root_id]] CMP array_nodes_.value[root_id] \
                 ? array_nodes_.truenode[root_id] \
                 : array_nodes_.falsenode[root_id]; \
         } \
@@ -1045,11 +1083,11 @@ TreeNodeElement<NTYPE> *
 template<typename NTYPE>
 size_t RuntimeTreeEnsembleCommonP<NTYPE>::ProcessTreeNodeLeave(
             size_t root_id, const NTYPE* x_data) const {
-    NTYPE val;
     if (same_mode_) {
         switch(array_nodes_.mode[root_id]) {
             case NODE_MODE::BRANCH_LEQ:
                 if (has_missing_tracks_) {
+                    NTYPE val;
                     while (array_nodes_.is_not_leaf(root_id)) {
                         val = x_data[array_nodes_.feature_id[root_id]];
                         root_id = (val <= array_nodes_.value[root_id] ||
@@ -1059,8 +1097,7 @@ size_t RuntimeTreeEnsembleCommonP<NTYPE>::ProcessTreeNodeLeave(
                 }
                 else {
                     while (array_nodes_.is_not_leaf(root_id)) {
-                        val = x_data[array_nodes_.feature_id[root_id]];
-                        root_id = val <= array_nodes_.value[root_id]
+                        root_id = x_data[array_nodes_.feature_id[root_id]] <= array_nodes_.value[root_id]
                             ? array_nodes_.truenode[root_id]
                             : array_nodes_.falsenode[root_id];
                     }
@@ -1092,7 +1129,7 @@ size_t RuntimeTreeEnsembleCommonP<NTYPE>::ProcessTreeNodeLeave(
         }
     }
     else {  // Different rules to compare to node thresholds.
-        NTYPE threshold;
+        NTYPE threshold, val;
         while (array_nodes_.is_not_leaf(root_id)) {
             val = x_data[array_nodes_.feature_id[root_id]];
             threshold = array_nodes_.value[root_id];
