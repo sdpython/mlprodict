@@ -249,11 +249,13 @@ class TestLightGbmTreeStructur(ExtTestCase):
         X = (X * 10).astype(numpy.int32)
 
         oif = OnnxInference(onx)
-        pred = oif.run({'x': X})
-        label = pred["output_label"]
-        self.assertEqual(label.shape, (X.shape[0], ))
-        prob = DataFrame(pred["output_probability"]).values
-        self.assertEqual(prob.shape, (X.shape[0], 2))
+        for row in [1, 10, 20, 30, 40, 50, 60, 70]:
+            with self.subTest(row=row):
+                pred = oif.run({'x': X[:row].astype(numpy.float32)})
+                label = pred["output_label"]
+                self.assertEqual(label.shape, (row, ))
+                prob = DataFrame(pred["output_probability"]).values
+                self.assertEqual(prob.shape, (row, 2))
 
 
 if __name__ == "__main__":

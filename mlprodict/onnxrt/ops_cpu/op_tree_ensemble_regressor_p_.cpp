@@ -190,8 +190,7 @@ void test_tree_ensemble_regressor(int omp_tree, int omp_N, bool array_structure,
         }
         else {
             py::array_t<float, py::array::c_style> arr(X.size(), X.data());
-            if ((X.size() / 3) != (float)(X.size() / 3) || 
-                (X.size() / 3 == 0)) {
+            if ((X.size() / 3) != (float)(X.size() / 3) || (X.size() / 3 == 0)) {
                 char buffer[1000];
                 sprintf(buffer, "Empty ouput (got) %d, ended up with %d, %d.",
                     (int)X.size(), (int)(X.size() / 3), 3);
@@ -212,10 +211,31 @@ void test_tree_ensemble_regressor(int omp_tree, int omp_N, bool array_structure,
             for(size_t i = 0; i < cres.size(); ++i) {
                 if (cres[i] != results[i]) {
                     char buffer[1000];
-                    sprintf(buffer, "Value mismatch at position %d(%d): (got) %f != %f (expected) (omp_tree=%d, omp_N=%d, one_obs=%d).",
-                        (int)i, (int)cres.size(), (double)cres[i], (double)results[i],
-                        (int)omp_tree, (int)omp_N, (int)(one_obs ? 1 : 0));
-                    throw std::runtime_error(buffer);
+                    char buffer2[2000];
+                    sprintf(buffer, "Value mismatch at position %d(%d): (got) %f != %f (expected)\nomp_tree=%d\nomp_N=%d?%d\narray_structure=%d\npara_tree=%d\none_obs=%d\nn_targets=%d\nn_trees=%d\n.",
+                        (int)i,
+                        (int)cres.size(),
+                        (double)cres[i],
+                        (double)results[i],
+                        (int)omp_tree,
+                        (int)omp_N, (int)X.size()/3,
+                        (int)array_structure ? 1 : 0,
+                        (int)para_tree ? 1 : 0,
+                        (int)(one_obs ? 1 : 0),
+                        (int)n_targets,
+                        (int)nodes_treeids[nodes_treeids.size()-1]);
+                    if (cres.size() >= 6) {
+                        sprintf(buffer2, "%s\n%f,%f\n%f,%f\n%f,%f\n----\n%f,%f\n%f,%f\n%f,%f",
+                                buffer, results[0], results[1], results[2], results[3],
+                                results[4], results[5],
+                                cres[0], cres[1], cres[2], cres[3],
+                                cres[4], cres[5]);
+                    }
+                    else {
+                        sprintf(buffer2, "%s\n%f,%f\n----\n%f,%f",
+                                buffer, results[0], results[1], cres[0], cres[1]);
+                    }
+                    throw std::runtime_error(buffer2);
                 }
             }
         }
@@ -231,6 +251,19 @@ void test_tree_regressor_multitarget_average(
     std::vector<float> base_values{0.f, 0.f};
     test_tree_ensemble_regressor(omp_tree, omp_N, array_structure, para_tree, X, base_values,
                                  results, "AVERAGE", oneobs, compute, check);
+}
+
+
+void test_tree_regressor_multitarget_sum(
+        int omp_tree, int omp_N, bool array_structure, bool para_tree,
+        bool oneobs, bool compute, bool check) {
+    std::vector<float> X = {1.f, 0.0f, 0.4f, 3.0f, 44.0f, -3.f, 12.0f, 12.9f, -312.f, 23.0f, 11.3f, -222.f, 23.0f, 11.3f, -222.f, 23.0f, 3311.3f, -222.f, 23.0f, 11.3f, -222.f, 43.0f, 413.3f, -114.f};
+    std::vector<float> results = {1.33333333f, 29.f, 3.f, 14.f, 2.f, 23.f, 2.f, 23.f, 2.f, 23.f, 2.66666667f, 17.f, 2.f, 23.f, 3.f, 14.f};
+    for(auto it = results.begin(); it != results.end(); ++it)
+        *it *= 3;
+    std::vector<float> base_values{0.f, 0.f};
+    test_tree_ensemble_regressor(omp_tree, omp_N, array_structure, para_tree, X, base_values,
+                                 results, "SUM", oneobs, compute, check);
 }
 
 
@@ -276,6 +309,8 @@ in :epkg:`onnxruntime`.)pbdoc"
           "Test the runtime (min).");
     m.def("test_tree_regressor_multitarget_max", &test_tree_regressor_multitarget_max,
           "Test the runtime (max).");
+    m.def("test_tree_regressor_multitarget_sum", &test_tree_regressor_multitarget_sum,
+          "Test the runtime (sum).");
 
     py::class_<RuntimeTreeEnsembleRegressorPFloat> clf (m, "RuntimeTreeEnsembleRegressorPFloat",
         R"pbdoc(Implements float runtime for operator TreeEnsembleRegressor. The code is inspired from

@@ -417,7 +417,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                     test_tree_regressor_multitarget_average(
                         *(conf + [b, True]))
 
-    def test_cpp_average_impl_true(self):
+    def test_cpp_average_true(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_average  # pylint: disable=E0611
         confs = [[100, 100, True, False, True],
                  [100, 100, True, False, False],
@@ -432,6 +432,40 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                         *(conf + [b, False]))
                 for b in [False, True]:
                     test_tree_regressor_multitarget_average(
+                        *(conf + [b, True]))
+
+    def test_cpp_sum(self):
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_sum  # pylint: disable=E0611
+        confs = [[100, 100, False, False, True],
+                 [100, 100, False, False, False],
+                 [10, 10, False, False, True],
+                 [10, 10, False, False, False],
+                 [2, 2, False, False, True],
+                 [2, 2, False, False, False]]
+        for conf in confs:
+            with self.subTest(conf=tuple(conf)):
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_sum(
+                        *(conf + [b, False]))
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_sum(
+                        *(conf + [b, True]))
+
+    def test_cpp_sum_true(self):
+        from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_sum  # pylint: disable=E0611
+        confs = [[100, 100, True, False, True],
+                 [100, 100, True, False, False],
+                 [10, 10, True, False, True],
+                 [10, 10, True, False, False],
+                 [2, 2, True, False, True],
+                 [2, 2, True, False, False]]
+        for conf in confs:
+            with self.subTest(conf=tuple(conf)):
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_sum(
+                        *(conf + [b, False]))
+                for b in [False, True]:
+                    test_tree_regressor_multitarget_sum(
                         *(conf + [b, True]))
 
     def test_cpp_min(self):
@@ -557,9 +591,8 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         iris = load_iris()
         X, y = iris.data, iris.target
         y = y.astype(numpy.int64)
-        y[y == 2] = 0
-        if multi:
-            y = numpy.vstack([y, y]).T
+        if not multi:
+            y[y == 2] = 0
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = RandomForestClassifier(n_estimators=40)
         clr.fit(X_train, y_train)
@@ -570,7 +603,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
             d = X_test.shape[0] * i
             X_test2[d:d + X_test.shape[0], :] = X_test
         X_test = X_test2
-        X_test = X_test[:40]
+        # X_test = X_test
 
         # default runtime
         model_def = to_onnx(clr, X_train.astype(dtype),
@@ -598,6 +631,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                 y = oinf.run({'X': X_test.astype(dtype)})
                 self.assertEqualArray(
                     lexp, y['probabilities'], decimal=decimal[dtype])
+
         with self.subTest(runtime_version=40):
             self.assertRaise(
                 lambda: oinf.sequence_[0].ops_._init(  # pylint: disable=W0212
@@ -622,5 +656,4 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_tree_ensemble_runtime_version_float_cls_multi()
     unittest.main()

@@ -1,5 +1,5 @@
 """
-.. _l-example-tree-ensemble-bench:
+.. _l-example-tree-ensemble-reg-bench:
 
 Benchmark Random Forests, Tree Ensemble, (AoS and SoA)
 ======================================================
@@ -13,10 +13,10 @@ TreeEnsembleRegressor.
   every structure describes a node,
 * *mlprodict2* similar implementation but instead of having an
   array of structures, it relies on a structure of arrays,
-  it parallelizes per block of 128 observations and inside
+  it parallelizes by blocks of 128 observations and inside
   every block, goes through trees then through observations
   (double loop),
-* *mlprodict3*: parallelizes per trees, this implementation
+* *mlprodict3*: parallelizes by trees, this implementation
   is faster when the depth is higher than 10.
 
 .. contents::

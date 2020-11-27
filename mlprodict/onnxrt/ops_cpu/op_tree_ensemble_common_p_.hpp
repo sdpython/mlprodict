@@ -15,6 +15,12 @@
 // https://cims.nyu.edu/~stadler/hpc17/material/ompLec.pdf
 // http://amestoy.perso.enseeiht.fr/COURS/CoursMulticoreProgrammingButtari.pdf
 
+#if 0
+#define DEBUGPRINT(s) std::cout << MakeString(s, "\n");
+#else
+#define DEBUGPRINT(s)
+#endif
+
 
 /**
 * This classes parallelizes itself the computation,
@@ -127,14 +133,6 @@ class RuntimeTreeEnsembleCommonP {
                                               py::array_t<int64_t>* Y, const AGG &agg);
 
         void switch_to_array_structure();
-
-    private:
-        // buffers, mutable
-        std::vector<NTYPE> _scores_t_tree;
-        std::vector<unsigned char> _has_scores_t_tree;
-    
-        std::vector<std::vector<NTYPE>> _scores_classes;
-        std::vector<std::vector<unsigned char>> _has_scores_classes;
 };
 
 
@@ -413,17 +411,6 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
     }
     sizeof_ += sizeof(TreeNodeElement<NTYPE>) * roots_.size();
 
-    if (n_targets_or_classes_ == 1) {
-        _scores_t_tree.resize(n_trees_);
-        _has_scores_t_tree.resize(n_trees_);
-    }
-    _scores_classes.resize(omp_get_max_threads());
-    _has_scores_classes.resize(omp_get_max_threads());
-    for(size_t i = 0; i < _scores_classes.size(); ++i) {
-        _scores_classes[i].resize(n_targets_or_classes_);
-        _has_scores_classes[i].resize(n_targets_or_classes_);
-    }
-    
     if (array_structure_)
         switch_to_array_structure();
     else if (para_tree_)
@@ -565,38 +552,41 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
     const NTYPE* x_data = X.data(0);
 
     if (n_targets_or_classes_ == 1) {
-        if (N == 1) {
+        if ((N == 1) && (n_trees_ <= omp_tree_)) { DEBUGPRINT("A")
             NTYPE scores = 0;
             unsigned char has_scores = 0;
-            if (n_trees_ <= omp_tree_) {
-                for (int64_t j = 0; j < n_trees_; ++j)
-                    agg.ProcessTreeNodePrediction1(
-                        &scores,
-                        ProcessTreeNodeLeave(roots_[j], x_data),
-                        &has_scores);
-            }
-            else {
-                std::fill(_scores_t_tree.begin(), _scores_t_tree.end(), (NTYPE)0);
-                std::fill(_has_scores_t_tree.begin(), _has_scores_t_tree.end(), 0);
-                #ifdef USE_OPENMP
-                #pragma omp parallel for
-                #endif
-                for (int64_t j = 0; j < n_trees_; ++j) {
-                    agg.ProcessTreeNodePrediction1(
-                        &(_scores_t_tree[j]),
-                        ProcessTreeNodeLeave(roots_[j], x_data),
-                        &(_has_scores_t_tree[j]));
-                }
-                auto it = _scores_t_tree.cbegin();
-                auto it2 = _has_scores_t_tree.cbegin();
-                for(; it != _scores_t_tree.cend(); ++it, ++it2)
-                    agg.MergePrediction1(&scores, &has_scores, &(*it), &(*it2));
-            }
+            for (int64_t j = 0; j < n_trees_; ++j)
+                agg.ProcessTreeNodePrediction1(
+                    &scores,
+                    ProcessTreeNodeLeave(roots_[j], x_data),
+                    &has_scores);
 
             agg.FinalizeScores1((NTYPE*)Z_.data(0), scores, has_scores,
                                 Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(0));
         }
-        else if (N <= omp_N_) {
+        else if (N == 1) { DEBUGPRINT("B")
+            NTYPE scores = 0;
+            unsigned char has_scores = 0;
+            std::vector<NTYPE> local_scores(n_trees_, (NTYPE)0);
+            std::vector<unsigned char> local_has_score(n_trees_, 0);
+            #ifdef USE_OPENMP
+            #pragma omp parallel for
+            #endif
+            for (int64_t j = 0; j < n_trees_; ++j) {
+                agg.ProcessTreeNodePrediction1(
+                    &(local_scores[j]),
+                    ProcessTreeNodeLeave(roots_[j], x_data),
+                    &(local_has_score[j]));
+            }
+            auto it = local_scores.cbegin();
+            auto it2 = local_has_score.cbegin();
+            for(; it != local_scores.cend(); ++it, ++it2)
+                agg.MergePrediction1(&scores, &has_scores, &(*it), &(*it2));
+
+            agg.FinalizeScores1((NTYPE*)Z_.data(0), scores, has_scores,
+                                Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(0));
+        }
+        else if (N <= omp_N_) { DEBUGPRINT("C")
             NTYPE scores;
             unsigned char has_scores;
             size_t j;
@@ -613,7 +603,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                                     Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
             }
         }
-        else {
+        else { DEBUGPRINT("D")
             NTYPE scores;
             unsigned char has_scores;
             size_t j;
@@ -635,58 +625,48 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
         }
     }
     else {
-        if (N == 1) {
-            std::vector<NTYPE>& scores = _scores_classes[0];
-            std::vector<unsigned char>& has_scores = _has_scores_classes[0];
-            std::fill(scores.begin(), scores.end(), (NTYPE)0);
-            std::fill(has_scores.begin(), has_scores.end(), 0);
+        if ((N == 1) && (n_trees_ <= omp_tree_)) { DEBUGPRINT("E")
+            std::vector<NTYPE> scores(n_targets_or_classes_, (NTYPE)0);
+            std::vector<unsigned char> has_scores(scores.size(), 0);
 
-            if (n_trees_ <= omp_tree_) {
-                for (int64_t j = 0; j < n_trees_; ++j) {
-                    agg.ProcessTreeNodePrediction(
-                        scores.data(),
-                        ProcessTreeNodeLeave(roots_[j], x_data),
-                        has_scores.data());
-                }
-                agg.FinalizeScores(scores, has_scores, (NTYPE*)Z_.data(0), -1,
-                                   Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(0));
+            for (int64_t j = 0; j < n_trees_; ++j) {
+                agg.ProcessTreeNodePrediction(
+                    scores.data(),
+                    ProcessTreeNodeLeave(roots_[j], x_data),
+                    has_scores.data());
             }
-            else {
-                for(size_t i = 0; i < _scores_classes.size(); ++i) {
-                    std::fill(_scores_classes[i].begin(), _scores_classes[i].end(), (NTYPE)0);
-                    std::fill(_has_scores_classes[i].begin(), _has_scores_classes[i].end(), 0);
-                }
-                #ifdef USE_OPENMP
-                #pragma omp parallel
-                #endif
-                {
-                    #ifdef USE_OPENMP
-                    #pragma omp for
-                    #endif
-                    for (int64_t j = 0; j < n_trees_; ++j) {
-                        auto th = omp_get_thread_num();
-                        std::vector<NTYPE>& private_scores = _scores_classes[th];
-                        std::vector<unsigned char>& private_has_scores = _has_scores_classes[th];
-                        agg.ProcessTreeNodePrediction(
-                            private_scores.data(),
-                            ProcessTreeNodeLeave(roots_[j], x_data),
-                            private_has_scores.data());
-                    }
-                }
-            
-                for (size_t i = 1; i < _scores_classes.size(); ++i) {
-                    agg.MergePrediction(n_targets_or_classes_,
-                        scores.data(), has_scores.data(),
-                        _scores_classes[i].data(), _has_scores_classes[i].data());
-                }
-
-                agg.FinalizeScores(scores, has_scores, (NTYPE*)Z_.data(0), -1,
-                                   Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(0));
-            }
+            agg.FinalizeScores(scores.data(), has_scores.data(), (NTYPE*)Z_.data(0), -1,
+                               Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(0));
         }
-        else if (N <= omp_N_) {
-            std::vector<NTYPE>& scores = _scores_classes[0];
-            std::vector<unsigned char>& has_scores = _has_scores_classes[0];
+        else if (N == 1) { DEBUGPRINT("F")
+            auto nth = omp_get_max_threads();
+            std::vector<NTYPE> scores(nth * n_targets_or_classes_, (NTYPE)0);
+            std::vector<unsigned char> has_scores(scores.size(), 0);
+
+            #ifdef USE_OPENMP
+            #pragma omp parallel for
+            #endif
+            for (int64_t j = 0; j < n_trees_; ++j) {
+                auto th = omp_get_thread_num();
+                agg.ProcessTreeNodePrediction(
+                    &scores[th * n_targets_or_classes_],
+                    ProcessTreeNodeLeave(roots_[j], x_data),
+                    &has_scores[th * n_targets_or_classes_]);
+            }
+        
+            for (size_t th = 1; th < nth; ++th) {
+                agg.MergePrediction(n_targets_or_classes_,
+                    scores.data(), has_scores.data(),
+                    &scores[th * n_targets_or_classes_],
+                    &has_scores[th * n_targets_or_classes_]);
+            }
+
+            agg.FinalizeScores(scores.data(), has_scores.data(), (NTYPE*)Z_.data(0), -1,
+                               Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(0));
+        }
+        else if (N <= omp_N_) { DEBUGPRINT("H")
+            std::vector<NTYPE> scores(n_targets_or_classes_);
+            std::vector<unsigned char> has_scores(scores.size());
             size_t j;
 
             for (int64_t i = 0; i < N; ++i) {
@@ -697,34 +677,35 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                         scores.data(),
                         ProcessTreeNodeLeave(roots_[j], x_data + i * stride),
                         has_scores.data());
-                agg.FinalizeScores(scores, has_scores,
+                agg.FinalizeScores(scores.data(), has_scores.data(),
                                    (NTYPE*)Z_.data(i * n_targets_or_classes_), -1,
                                    Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
             }
         }
-        else {
+        else { DEBUGPRINT("I")
+            auto nth = omp_get_max_threads();
+            std::vector<NTYPE> scores(nth * n_targets_or_classes_, (NTYPE)0);
+            std::vector<unsigned char> has_scores(scores.size(), 0);
+
             #ifdef USE_OPENMP
-            #pragma omp parallel
+            #pragma omp parallel for
             #endif
-            {
-                #ifdef USE_OPENMP
-                #pragma omp for
-                #endif
-                for (int64_t i = 0; i < N; ++i) {
-                    auto th = omp_get_thread_num();
-                    std::vector<NTYPE>& scores = _scores_classes[th];
-                    std::vector<unsigned char>& has_scores = _has_scores_classes[th];
-                    std::fill(scores.begin(), scores.end(), (NTYPE)0);
-                    std::fill(has_scores.begin(), has_scores.end(), 0);
-                    for (size_t j = 0; j < roots_.size(); ++j)
-                        agg.ProcessTreeNodePrediction(
-                            scores.data(),
-                            ProcessTreeNodeLeave(roots_[j], x_data + i * stride),
-                            has_scores.data());
-                    agg.FinalizeScores(scores, has_scores,
-                                       (NTYPE*)Z_.data(i * n_targets_or_classes_), -1,
-                                       Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
-                }
+            for (int64_t i = 0; i < N; ++i) {
+                auto th = omp_get_thread_num();
+                NTYPE* p_score = &scores[th * n_targets_or_classes_];
+                unsigned char* p_has_score = &has_scores[th * n_targets_or_classes_];
+                std::fill(p_score, p_score + n_targets_or_classes_, (NTYPE)0);
+                std::fill(p_has_score, p_has_score + n_targets_or_classes_, 0);
+                const NTYPE* local_x_data = x_data + i * stride;
+                for (size_t j = 0; j < roots_.size(); ++j)
+                    agg.ProcessTreeNodePrediction(
+                        p_score,
+                        ProcessTreeNodeLeave(roots_[j], local_x_data),
+                        p_has_score);
+
+                agg.FinalizeScores(p_score, p_has_score,
+                                   (NTYPE*)Z_.data(i * n_targets_or_classes_), -1,
+                                   Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
             }
         }
     }
@@ -743,59 +724,57 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
     const NTYPE* x_data = X.data(0);
                     
     if (n_targets_or_classes_ == 1) {
-        if (N == 1) {
+        if ((N == 1)  && ((omp_get_max_threads() <= 1) || (n_trees_ <= omp_tree_))) { DEBUGPRINT("M")
             NTYPE scores = 0;
             unsigned char has_scores = 0;
-            if ((omp_get_max_threads() <= 1) || (n_trees_ <= omp_tree_)) {
-                for (int64_t j = 0; j < n_trees_; ++j)
-                    agg.ProcessTreeNodePrediction1(
-                        &scores, array_nodes_,
-                        ProcessTreeNodeLeave(array_nodes_.root_id[j], x_data),
-                        &has_scores);
-            }
-            else {
-                std::fill(_scores_t_tree.begin(), _scores_t_tree.end(), (NTYPE)0);
-                std::fill(_has_scores_t_tree.begin(), _has_scores_t_tree.end(), 0);
-                #ifdef USE_OPENMP
-                #pragma omp parallel for
-                #endif
-                for (int64_t j = 0; j < n_trees_; ++j) {
-                    agg.ProcessTreeNodePrediction1(
-                        &(_scores_t_tree[j]), array_nodes_,
-                        ProcessTreeNodeLeave(array_nodes_.root_id[j], x_data),
-                        &(_has_scores_t_tree[j]));
-                }
-                auto it = _scores_t_tree.cbegin();
-                auto it2 = _has_scores_t_tree.cbegin();
-                for(; it != _scores_t_tree.cend(); ++it, ++it2)
-                    agg.MergePrediction1(&scores, &has_scores, &(*it), &(*it2));
-            }
+            for (int64_t j = 0; j < n_trees_; ++j)
+                agg.ProcessTreeNodePrediction1(
+                    &scores, array_nodes_,
+                    ProcessTreeNodeLeave(array_nodes_.root_id[j], x_data),
+                    &has_scores);
 
             agg.FinalizeScores1((NTYPE*)Z_.data(0), scores, has_scores,
                                 Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(0));
         }
-        else if ((omp_get_max_threads() > 1) && para_tree_ && (n_trees_ > omp_tree_)) {
+        else if (N == 1) { DEBUGPRINT("N")
+            NTYPE scores = 0;
+            unsigned char has_scores = 0;
+            std::vector<NTYPE> scores_t_tree(n_trees_, (NTYPE)0);
+            std::vector<unsigned char> has_scores_t_tree(n_trees_, 0);
+            #ifdef USE_OPENMP
+            #pragma omp parallel for
+            #endif
+            for (int64_t j = 0; j < n_trees_; ++j) {
+                agg.ProcessTreeNodePrediction1(
+                    &(scores_t_tree[j]), array_nodes_,
+                    ProcessTreeNodeLeave(array_nodes_.root_id[j], x_data),
+                    &(has_scores_t_tree[j]));
+            }
+            auto it = scores_t_tree.cbegin();
+            auto it2 = has_scores_t_tree.cbegin();
+            for(; it != scores_t_tree.cend(); ++it, ++it2)
+                agg.MergePrediction1(&scores, &has_scores, &(*it), &(*it2));
+
+            agg.FinalizeScores1((NTYPE*)Z_.data(0), scores, has_scores,
+                                Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(0));
+        }
+        else if ((omp_get_max_threads() > 1) && para_tree_ && (n_trees_ > omp_tree_)) { DEBUGPRINT("O")
             auto nth = omp_get_max_threads();
             std::vector<NTYPE> local_scores(N * nth, 0);
             std::vector<unsigned char> local_has_scores(local_scores.size(), 0);
             #ifdef USE_OPENMP
-            #pragma omp parallel
+            #pragma omp parallel for
             #endif
-            {
-                #ifdef USE_OPENMP
-                #pragma omp for
-                #endif
-                for (int64_t j = 0; j < n_trees_; ++j) {
-                    auto th = omp_get_thread_num();
-                    const NTYPE* local_x_data = x_data;
-                    NTYPE* p_score = &local_scores[th * N];
-                    unsigned char* p_has_score = &local_has_scores[th * N];
-                    for(int64_t i = 0; i < N; ++i, local_x_data += stride, ++p_score, ++p_has_score) {
-                        agg.ProcessTreeNodePrediction1(
-                            p_score, array_nodes_,
-                            ProcessTreeNodeLeave(array_nodes_.root_id[j], local_x_data),
-                            p_has_score);
-                    }
+            for (int64_t j = 0; j < n_trees_; ++j) {
+                auto th = omp_get_thread_num();
+                const NTYPE* local_x_data = x_data;
+                NTYPE* p_score = &local_scores[th * N];
+                unsigned char* p_has_score = &local_has_scores[th * N];
+                for(int64_t i = 0; i < N; ++i, local_x_data += stride, ++p_score, ++p_has_score) {
+                    agg.ProcessTreeNodePrediction1(
+                        p_score, array_nodes_,
+                        ProcessTreeNodeLeave(array_nodes_.root_id[j], local_x_data),
+                        p_has_score);
                 }
             }
             #ifdef USE_OPENMP
@@ -813,7 +792,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
                                     Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
             }
         }
-        else if ((omp_get_max_threads() <= 1) || (N <= omp_N_)) {
+        else if ((omp_get_max_threads() <= 1) || (N <= omp_N_)) { DEBUGPRINT("P")
             NTYPE scores;
             unsigned char has_scores;
             size_t j;
@@ -830,7 +809,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
                                     Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
             }
         }
-        else if (N < BATCHSIZE * 16) {
+        else if (N < BATCHSIZE * 16) { DEBUGPRINT("Q")
             NTYPE scores;
             unsigned char has_scores;
             size_t j;
@@ -850,7 +829,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
                                     Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
             }
         }
-        else {
+        else { DEBUGPRINT("R")
             int64_t NB = N - N % BATCHSIZE;
             #ifdef USE_OPENMP
             #pragma omp parallel for
@@ -889,11 +868,9 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
         }
     }
     else {
-        if ((N == 1) && ((omp_get_max_threads() <= 1) || (n_trees_ <= omp_tree_))) {
-            std::vector<NTYPE>& scores = _scores_classes[0];
-            std::vector<unsigned char>& has_scores = _has_scores_classes[0];
-            std::fill(scores.begin(), scores.end(), (NTYPE)0);
-            std::fill(has_scores.begin(), has_scores.end(), 0);
+        if ((N == 1) && ((omp_get_max_threads() <= 1) || (n_trees_ <= omp_tree_))) { DEBUGPRINT("S")
+            std::vector<NTYPE> scores(n_targets_or_classes_, (NTYPE)0);
+            std::vector<unsigned char> has_scores(n_targets_or_classes_, 0);
 
             for (int64_t j = 0; j < n_trees_; ++j) {
                 agg.ProcessTreeNodePrediction(
@@ -901,37 +878,32 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
                     ProcessTreeNodeLeave(array_nodes_.root_id[j], x_data),
                     has_scores.data());
             }
-            agg.FinalizeScores(scores, has_scores, (NTYPE*)Z_.data(0), -1,
+            agg.FinalizeScores(scores.data(), has_scores.data(), (NTYPE*)Z_.data(0), -1,
                                Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(0));
         }
-        else if (para_tree_ && ((omp_get_max_threads() <= 1) || (n_trees_ > omp_tree_))) {
+        else if (para_tree_ && (omp_get_max_threads() > 1) && (n_trees_ > omp_tree_)) { DEBUGPRINT("T")
             auto nth = omp_get_max_threads();
             auto size_obs = N * n_targets_or_classes_;
-            std::vector<NTYPE> local_scores(nth * N * n_targets_or_classes_, 0);
+            std::vector<NTYPE> local_scores(nth * size_obs, 0);
             std::vector<unsigned char> local_has_scores(local_scores.size(), 0);
             #ifdef USE_OPENMP
-            #pragma omp parallel
+            #pragma omp parallel for
             #endif
-            {
-                #ifdef USE_OPENMP
-                #pragma omp for
-                #endif
-                for (int64_t j = 0; j < n_trees_; ++j) {
-                    auto th = omp_get_thread_num();
-                    int64_t d = th * size_obs;
-                    NTYPE* p_score = &local_scores[d];
-                    unsigned char* p_has_score = &local_has_scores[d];
-                    const NTYPE* local_x_data = x_data;
-                    auto node = array_nodes_.root_id[j];
-                    for(int64_t i = 0; i < N; ++i,
-                            local_x_data += stride,
-                            p_score += n_targets_or_classes_,
-                            p_has_score += n_targets_or_classes_) {
-                        agg.ProcessTreeNodePrediction(
-                            p_score, array_nodes_,
-                            ProcessTreeNodeLeave(node, local_x_data),
-                            p_has_score);
-                    }
+            for (int64_t j = 0; j < n_trees_; ++j) {
+                auto th = omp_get_thread_num();
+                int64_t d = th * size_obs;
+                NTYPE* p_score = &local_scores[d];
+                unsigned char* p_has_score = &local_has_scores[d];
+                const NTYPE* local_x_data = x_data;
+                auto node = array_nodes_.root_id[j];
+                for(int64_t i = 0; i < N; ++i,
+                        local_x_data += stride,
+                        p_score += n_targets_or_classes_,
+                        p_has_score += n_targets_or_classes_) {
+                    agg.ProcessTreeNodePrediction(
+                        p_score, array_nodes_,
+                        ProcessTreeNodeLeave(node, local_x_data),
+                        p_has_score);
                 }
             }
                     
@@ -948,18 +920,14 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
                         n_targets_or_classes_, 
                         p_score, p_has_score, pp_score, pp_has_score);
                 }
-
-                // Copy should not be r.
-                std::vector<NTYPE> c_score(p_score, p_score + n_targets_or_classes_);
-                std::vector<unsigned char> c_has_score(p_has_score, p_has_score + n_targets_or_classes_);
-                agg.FinalizeScores(c_score, c_has_score,
+                agg.FinalizeScores(p_score, p_has_score,
                                    (NTYPE*)Z_.data(i * n_targets_or_classes_), -1,
                                    Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
             }
         }
-        else if ((omp_get_max_threads() <= 1) || (N <= omp_N_)) {
-            std::vector<NTYPE>& scores = _scores_classes[0];
-            std::vector<unsigned char>& has_scores = _has_scores_classes[0];
+        else if ((omp_get_max_threads() <= 1) || (N <= omp_N_)) { DEBUGPRINT("U")
+            std::vector<NTYPE> scores(n_targets_or_classes_);
+            std::vector<unsigned char> has_scores(n_targets_or_classes_);
             size_t j;
 
             for (int64_t i = 0; i < N; ++i) {
@@ -970,34 +938,33 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
                         scores.data(), array_nodes_,
                         ProcessTreeNodeLeave(array_nodes_.root_id[j], x_data + i * stride),
                         has_scores.data());
-                agg.FinalizeScores(scores, has_scores,
+                agg.FinalizeScores(scores.data(), has_scores.data(),
                                    (NTYPE*)Z_.data(i * n_targets_or_classes_), -1,
                                    Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
             }
         }
-        else {
+        else { DEBUGPRINT("V")
+            auto nth = omp_get_max_threads();
+            std::vector<NTYPE> local_scores(nth * n_targets_or_classes_);
+            std::vector<unsigned char> local_has_scores(local_scores.size());
             #ifdef USE_OPENMP
-            #pragma omp parallel
+            #pragma omp parallel for
             #endif
-            {
-                #ifdef USE_OPENMP
-                #pragma omp for
-                #endif
-                for (int64_t i = 0; i < N; ++i) {
-                    auto th = omp_get_thread_num();
-                    std::vector<NTYPE>& scores = _scores_classes[th];
-                    std::vector<unsigned char>& has_scores = _has_scores_classes[th];
-                    std::fill(scores.begin(), scores.end(), (NTYPE)0);
-                    std::fill(has_scores.begin(), has_scores.end(), 0);
-                    for (size_t j = 0; j < roots_.size(); ++j)
-                        agg.ProcessTreeNodePrediction(
-                            scores.data(), array_nodes_,
-                            ProcessTreeNodeLeave(array_nodes_.root_id[j], x_data + i * stride),
-                            has_scores.data());
-                    agg.FinalizeScores(scores, has_scores,
-                                       (NTYPE*)Z_.data(i * n_targets_or_classes_), -1,
-                                       Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
-                }
+            for (int64_t i = 0; i < N; ++i) {
+                auto th = omp_get_thread_num();
+                NTYPE* p_score = &local_scores[th * n_targets_or_classes_];
+                unsigned char* p_has_score = &local_has_scores[th * n_targets_or_classes_];
+                const NTYPE * local_x_data = x_data + i * stride;
+                std::fill(p_score, p_score + n_targets_or_classes_, (NTYPE)0);
+                std::fill(p_has_score, p_has_score + n_targets_or_classes_, 0);
+                for (size_t j = 0; j < roots_.size(); ++j)
+                    agg.ProcessTreeNodePrediction(
+                        p_score, array_nodes_,
+                        ProcessTreeNodeLeave(array_nodes_.root_id[j], local_x_data),
+                        p_has_score);
+                agg.FinalizeScores(p_score, p_has_score,
+                                   (NTYPE*)Z_.data(i * n_targets_or_classes_), -1,
+                                   Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
             }
         }
     }

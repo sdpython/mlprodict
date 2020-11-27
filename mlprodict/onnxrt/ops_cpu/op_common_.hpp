@@ -211,33 +211,45 @@ void ComputeSoftmaxZero(std::vector<NTYPE>& values) {
 
 
 template<class NTYPE>
-void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform,
+size_t write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform,
                   NTYPE* Z, int add_second_class) {
-    if (scores.size() >= 2) {
+    if ((scores.size() == 1) && add_second_class) {
+        scores.push_back(0);
+        return write_scores(1, scores.data(), post_transform, Z, add_second_class);
+    }
+    return write_scores(scores.size(), scores.data(), post_transform, Z, add_second_class);
+}
+
+
+template<class NTYPE>
+size_t write_scores(size_t n_classes, NTYPE* scores, POST_EVAL_TRANSFORM post_transform,
+                  NTYPE* Z, int add_second_class) {
+    if (n_classes >= 2) {
+        NTYPE * end = scores + n_classes;
         switch (post_transform) {
             case POST_EVAL_TRANSFORM::PROBIT:
-                for(auto it = scores.cbegin(); it != scores.cend(); ++it, ++Z)
+                for(auto it = scores; it != end; ++it, ++Z)
                     *Z = ComputeProbit(*it);
                 break;
             case POST_EVAL_TRANSFORM::LOGISTIC:
-                for(auto it = scores.cbegin(); it != scores.cend(); ++it, ++Z)
+                for(auto it = scores; it != end; ++it, ++Z)
                     *Z = ComputeLogistic(*it);
                 break;
             case POST_EVAL_TRANSFORM::SOFTMAX:
-                ComputeSoftmax(scores);
-                memcpy(Z, scores.data(), scores.size() * sizeof(NTYPE));
+                ComputeSoftmax(scores, end);
+                memcpy(Z, scores, n_classes * sizeof(NTYPE));
                 break;
             case POST_EVAL_TRANSFORM::SOFTMAX_ZERO:
-                ComputeSoftmaxZero(scores);
-                memcpy(Z, scores.data(), scores.size() * sizeof(NTYPE));
+                ComputeSoftmaxZero(scores, end);
+                memcpy(Z, scores, n_classes * sizeof(NTYPE));
                 break;
             default:
             case POST_EVAL_TRANSFORM::NONE:
-                memcpy(Z, scores.data(), scores.size() * sizeof(NTYPE));
+                memcpy(Z, scores, n_classes * sizeof(NTYPE));
                 break;
         }
     }
-    else if (scores.size() == 1) {  //binary case
+    else if (n_classes == 1) {  //binary case
         if (post_transform == POST_EVAL_TRANSFORM::PROBIT) {
             scores[0] = ComputeProbit(scores[0]);
             *Z = scores[0];
@@ -245,29 +257,32 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
         else {
             switch (add_second_class) {
                 case 0:  //0=all positive weights, winning class is positive
-                    scores.push_back(scores[0]);
+                    scores[1] = scores[0];
                     scores[0] = 1.f - scores[0];  //put opposite score in positive slot
                     *Z = scores[0];
                     *(Z+1) = scores[1];
+                    ++n_classes;
                     break;
                 case 1:  //1 = all positive weights, winning class is negative
-                    scores.push_back(scores[0]);
+                    scores[1] = scores[0];
                     scores[0] = 1.f - scores[0];  //put opposite score in positive slot
                     *Z = scores[0];
                     *(Z+1) = scores[1];
+                    ++n_classes;
                     break;
                 case 2:
                 case 3:  //2 = mixed weights, winning class is positive
                     if (post_transform == POST_EVAL_TRANSFORM::LOGISTIC) {
-                        scores.push_back(ComputeLogistic(scores[0]));  //ml_logit(scores[k]);
+                        scores[1] = ComputeLogistic(scores[0]);  //ml_logit(scores[k]);
                         scores[0] = ComputeLogistic(-scores[0]);
                     }
                     else {
-                        scores.push_back(scores[0]);
+                        scores[1] = scores[0];
                         scores[0] = -scores[0];
                     }
                     *Z = scores[0];
                     *(Z+1) = scores[1];
+                    ++n_classes;
                     break;
                 default:
                     *Z = scores[0];
@@ -275,6 +290,7 @@ void write_scores(std::vector<NTYPE>& scores, POST_EVAL_TRANSFORM post_transform
             }
         }
     }
+    return n_classes;
 }
 
 
@@ -325,8 +341,7 @@ void write_scores2(NTYPE* scores, POST_EVAL_TRANSFORM post_transform,
 
 
 template<class NTYPE>
-NTYPE flattened_dimension(const std::vector<NTYPE>& values)
-{
+NTYPE flattened_dimension(const std::vector<NTYPE>& values) {
     NTYPE r = 1;
     for(auto it = values.begin(); it != values.end(); ++it)
         r *= *it;
@@ -335,8 +350,7 @@ NTYPE flattened_dimension(const std::vector<NTYPE>& values)
 
 
 template<class NTYPE>
-NTYPE flattened_dimension(const std::vector<NTYPE>& values, int64_t first)
-{
+NTYPE flattened_dimension(const std::vector<NTYPE>& values, int64_t first) {
     NTYPE r = 1;
     auto end = values.begin() + first;
     for(auto it = values.begin(); it != end; ++it)
@@ -347,8 +361,7 @@ NTYPE flattened_dimension(const std::vector<NTYPE>& values, int64_t first)
 
 template<class DIMTYPE, class NTYPE>
 void shape2strides(const std::vector<DIMTYPE>& shape, 
-                   std::vector<DIMTYPE>& strides, NTYPE cst)
-{
+                   std::vector<DIMTYPE>& strides, NTYPE cst) {
     strides.resize(shape.size());
     strides[strides.size()-1] = sizeof(NTYPE);
     for(ssize_t i = strides.size()-2; i >= 0; --i)
@@ -357,8 +370,7 @@ void shape2strides(const std::vector<DIMTYPE>& shape,
 
 
 template<class DIMTYPE>
-DIMTYPE SizeFromDimension(const std::vector<DIMTYPE>& shape, size_t start, size_t end)
-{
+DIMTYPE SizeFromDimension(const std::vector<DIMTYPE>& shape, size_t start, size_t end) {
     DIMTYPE size = 1;
     for (size_t i = start; i < end; i++) {
         if (shape[i] < 0)
@@ -408,3 +420,22 @@ void debug_print(const std::string& msg, size_t value);
 void debug_print(const std::string &msg, int64_t iter, int64_t end);
 void debug_print(const std::string &msg, size_t i, size_t j, size_t k, float pa, float pb, float val);
 void debug_print(const std::string &msg, size_t i, size_t j, size_t k, double pa, double pb, double val);
+
+
+template <typename T>
+inline void MakeStringInternal(std::ostringstream& ss, const T& t) noexcept {
+    ss << t;
+}
+
+template <typename T, typename... Args>
+inline void MakeStringInternal(std::ostringstream& ss, const T& t, const Args&... args) noexcept {
+    MakeStringInternal(ss, t);
+    MakeStringInternal(ss, args...);
+}
+
+template <typename... Args>
+inline std::string MakeString(const Args&... args) {
+    std::ostringstream ss;
+    MakeStringInternal(ss, args...);
+    return std::string(ss.str());
+}

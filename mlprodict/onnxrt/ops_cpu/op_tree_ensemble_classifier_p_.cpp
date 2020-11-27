@@ -38,7 +38,7 @@ class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE>
             py::array_t<NTYPE> nodes_values, // 15
             const std::string& post_transform // 16
             );
-        
+
         py::tuple compute_cl(py::array_t<NTYPE> X);
         py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> X);
 };
