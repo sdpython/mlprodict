@@ -24,7 +24,7 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
 
     def __init__(self, dtype, onnx_node, desc=None,
                  expected_attributes=None,
-                 runtime_version=1, **options):
+                 runtime_version=3, **options):
         OpRunClassifierProb.__init__(self, onnx_node, desc=desc,
                                      expected_attributes=expected_attributes,
                                      **options)

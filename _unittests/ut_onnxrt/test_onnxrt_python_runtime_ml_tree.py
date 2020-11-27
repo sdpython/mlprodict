@@ -494,10 +494,12 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                 for b in [False, True]:
                     test_tree_regressor_multitarget_max(*(conf + [b, True]))
 
-    def common_test_onnxrt_python_tree_ensemble_runtime_version(self, dtype):
+    def common_test_onnxrt_python_tree_ensemble_runtime_version(self, dtype, multi=False):
         iris = load_iris()
         X, y = iris.data, iris.target
         y = y.astype(dtype)
+        if multi:
+            y = numpy.vstack([y, y]).T
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = RandomForestRegressor(n_estimators=70)
         clr.fit(X_train, y_train)
@@ -543,11 +545,23 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(
             numpy.float64)
 
-    def common_test_onnxrt_python_tree_ensemble_runtime_version_cls(self, dtype):
+    def test_onnxrt_python_tree_ensemble_runtime_version_float_multi(self):
+        self.common_test_onnxrt_python_tree_ensemble_runtime_version(
+            numpy.float32, True)
+
+    def test_onnxrt_python_tree_ensemble_runtime_version_double_multi(self):
+        self.common_test_onnxrt_python_tree_ensemble_runtime_version(
+            numpy.float64, True)
+
+    def common_test_onnxrt_python_tree_ensemble_runtime_version_cls(self, dtype, multi=False):
         iris = load_iris()
         X, y = iris.data, iris.target
+        y = y.astype(numpy.int64)
+        y[y == 2] = 0
+        if multi:
+            y = numpy.vstack([y, y]).T
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = RandomForestClassifier(n_estimators=70)
+        clr = RandomForestClassifier(n_estimators=40)
         clr.fit(X_train, y_train)
 
         X_test2 = numpy.empty(
@@ -556,12 +570,17 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
             d = X_test.shape[0] * i
             X_test2[d:d + X_test.shape[0], :] = X_test
         X_test = X_test2
+        X_test = X_test[:40]
 
         # default runtime
         model_def = to_onnx(clr, X_train.astype(dtype),
-                            options={RandomForestClassifier: {'zipmap': False}})
+                            options={RandomForestClassifier: {
+                                'zipmap': False}},
+                            target_opset=12)
         oinf = OnnxInference(model_def)
-        oinf.sequence_[0].ops_._init(dtype, 1)  # pylint: disable=W0212
+        for op in oinf.sequence_:
+            if hasattr(op.ops_, '_init'):
+                op.ops_._init(dtype, 1)  # pylint: disable=W0212
         y = oinf.run({'X': X_test.astype(dtype)})
         self.assertEqual(list(sorted(y)), ['label', 'probabilities'])
         lexp = clr.predict_proba(X_test)
@@ -573,8 +592,9 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         # other runtime
         for rv in [0, 1, 2, 3]:
             with self.subTest(runtime_version=rv):
-                oinf.sequence_[0].ops_._init(  # pylint: disable=W0212
-                    dtype, rv)
+                for op in oinf.sequence_:
+                    if hasattr(op.ops_, '_init'):
+                        op.ops_._init(dtype, rv)  # pylint: disable=W0212
                 y = oinf.run({'X': X_test.astype(dtype)})
                 self.assertEqualArray(
                     lexp, y['probabilities'], decimal=decimal[dtype])
@@ -592,7 +612,15 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float64)
 
+    def test_onnxrt_python_tree_ensemble_runtime_version_float_cls_multi(self):
+        self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
+            numpy.float32, True)
+
+    def test_onnxrt_python_tree_ensemble_runtime_version_double_cls_multi(self):
+        self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
+            numpy.float64, True)
+
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_tree_ensemble_runtime_version_float()
+    # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_tree_ensemble_runtime_version_float_cls_multi()
     unittest.main()

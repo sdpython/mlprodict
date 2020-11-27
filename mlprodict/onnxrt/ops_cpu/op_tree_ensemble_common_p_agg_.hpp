@@ -494,10 +494,10 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE> {
                                      bool weights_are_all_positive,
                                      int64_t positive_label = 1,
                                      int64_t negative_label = 0) :
-            _AggregatorSum<NTYPE>(n_trees, n_targets_or_classes,
-                                  post_transform, base_values),
-            class_labels_(class_labels), binary_case_(binary_case),
-            weights_are_all_positive_(weights_are_all_positive),
+                _AggregatorSum<NTYPE>(n_trees, n_targets_or_classes,
+                                      post_transform, base_values),
+                class_labels_(class_labels), binary_case_(binary_case),
+                weights_are_all_positive_(weights_are_all_positive),
             positive_label_(positive_label), negative_label_(negative_label) { }
             
         const char * name() const { return "_AggregatorClassifier"; }

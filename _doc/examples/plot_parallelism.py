@@ -113,9 +113,9 @@ for N in tqdm(list(range(2, 21))):
 
     with config_context(assume_finite=True):
         m = measure_time("hgb.predict(x)",
-                        {'hgb': hgb, 'x': X32[:N]},
-                        div_by_number=True,
-                        number=15)
+                         {'hgb': hgb, 'x': X32[:N]},
+                         div_by_number=True,
+                         number=15)
     m['N'] = N
     m['RT'] = 'SKL'
     obs.append(m)
