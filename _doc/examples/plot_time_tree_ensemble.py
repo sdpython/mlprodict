@@ -6,7 +6,7 @@ Benchmark Random Forests, Tree Ensemble
 
 The following scripts benchmarks different libraries
 implementing random forest and boosting trees.
-This benchmark can be replicating by installing the
+This benchmark can be replicated by installing the
 following packages:
 
 ::
@@ -22,7 +22,7 @@ following packages:
     :local:
 
 Import
-+++++++
+++++++
 """
 import os
 import pickle

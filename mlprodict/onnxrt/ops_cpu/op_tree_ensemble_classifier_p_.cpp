@@ -5,9 +5,8 @@
 
 
 template<typename NTYPE>
-class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE>
-{
-    public :
+class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE> {
+    public:
 
         //std::vector<std::string> classlabels_strings_;
         std::vector<int64_t> classlabels_int64s_;
@@ -16,7 +15,7 @@ class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE>
 
     public:
         
-        RuntimeTreeEnsembleClassifierP(int omp_tree, int omp_N);
+        RuntimeTreeEnsembleClassifierP(int omp_tree, int omp_N, bool array_structure, bool para_tree);
         ~RuntimeTreeEnsembleClassifierP();
 
         void init(
@@ -38,15 +37,16 @@ class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE>
             py::array_t<NTYPE> nodes_values, // 15
             const std::string& post_transform // 16
             );
-        
+
         py::tuple compute_cl(py::array_t<NTYPE> X);
         py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> X);
 };
 
 
 template<typename NTYPE>
-RuntimeTreeEnsembleClassifierP<NTYPE>::RuntimeTreeEnsembleClassifierP(int omp_tree, int omp_N) :
-   RuntimeTreeEnsembleCommonP<NTYPE>(omp_tree, omp_N) {
+RuntimeTreeEnsembleClassifierP<NTYPE>::RuntimeTreeEnsembleClassifierP(
+        int omp_tree, int omp_N, bool array_structure, bool para_tree) :
+   RuntimeTreeEnsembleCommonP<NTYPE>(omp_tree, omp_N, array_structure, para_tree) {
 }
 
 
@@ -120,15 +120,15 @@ py::array_t<NTYPE> RuntimeTreeEnsembleClassifierP<NTYPE>::compute_tree_outputs(p
 
 class RuntimeTreeEnsembleClassifierPFloat : public RuntimeTreeEnsembleClassifierP<float> {
     public:
-        RuntimeTreeEnsembleClassifierPFloat(int omp_tree, int omp_N) :
-            RuntimeTreeEnsembleClassifierP<float>(omp_tree, omp_N) {}
+        RuntimeTreeEnsembleClassifierPFloat(int omp_tree, int omp_N, bool array_structure, bool para_tree) :
+            RuntimeTreeEnsembleClassifierP<float>(omp_tree, omp_N, array_structure, para_tree) {}
 };
 
 
 class RuntimeTreeEnsembleClassifierPDouble : public RuntimeTreeEnsembleClassifierP<double> {
     public:
-        RuntimeTreeEnsembleClassifierPDouble(int omp_tree, int omp_N) :
-            RuntimeTreeEnsembleClassifierP<double>(omp_tree, omp_N) {}
+        RuntimeTreeEnsembleClassifierPDouble(int omp_tree, int omp_N, bool array_structure, bool para_tree) :
+            RuntimeTreeEnsembleClassifierP<double>(omp_tree, omp_N, array_structure, para_tree) {}
 };
 
 
@@ -147,16 +147,19 @@ in :epkg:`onnxruntime`.)pbdoc"
 
     py::class_<RuntimeTreeEnsembleClassifierPFloat> clf (m, "RuntimeTreeEnsembleClassifierPFloat",
         R"pbdoc(Implements float runtime for operator TreeEnsembleClassifier. The code is inspired from
-`tree_ensemble_Classifier.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Classifier.cc>`_
+`tree_ensemble_Classifier.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/
+core/providers/cpu/ml/tree_ensemble_Classifier.cc>`_
 in :epkg:`onnxruntime`. Supports float only.
 
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
-:param omp_N: number of observvations above which the runtime uses
+:param omp_N: number of observations above which the runtime uses
     :epkg:`openmp` to parallelize the predictions
+:param array_structure: (bool) different implementation for better performance
+:param para_tree: (bool) parallelize the computation per tree instead of observations
 )pbdoc");
 
-    clf.def(py::init<int, int>());
+    clf.def(py::init<int, int, bool, bool>());
     clf.def_readwrite("omp_tree_", &RuntimeTreeEnsembleClassifierPFloat::omp_tree_,
         "Number of trees above which the computation is parallelized for one observation.");
     clf.def_readwrite("omp_N_", &RuntimeTreeEnsembleClassifierPFloat::omp_N_,
@@ -191,16 +194,19 @@ in :epkg:`onnxruntime`. Supports float only.
 
     py::class_<RuntimeTreeEnsembleClassifierPDouble> cld (m, "RuntimeTreeEnsembleClassifierPDouble",
         R"pbdoc(Implements double runtime for operator TreeEnsembleClassifier. The code is inspired from
-`tree_ensemble_Classifier.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Classifier.cc>`_
+`tree_ensemble_Classifier.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/
+core/providers/cpu/ml/tree_ensemble_Classifier.cc>`_
 in :epkg:`onnxruntime`. Supports double only.
 
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
-:param omp_N: number of observvations above which the runtime uses
+:param omp_N: number of observations above which the runtime uses
     :epkg:`openmp` to parallelize the predictions
+:param array_structure: (bool) different implementation for better performance
+:param para_tree: (bool) parallelize the computation per tree instead of observations
 )pbdoc");
 
-    cld.def(py::init<int, int>());
+    cld.def(py::init<int, int, bool, bool>());
     cld.def_readwrite("omp_tree_", &RuntimeTreeEnsembleClassifierPDouble::omp_tree_,
         "Number of trees above which the computation is parallelized for one observation.");
     cld.def_readwrite("omp_N_", &RuntimeTreeEnsembleClassifierPDouble::omp_N_,
@@ -235,4 +241,3 @@ in :epkg:`onnxruntime`. Supports double only.
 }
 
 #endif
-
