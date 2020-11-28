@@ -1,25 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-@brief      test log(time=171s)
+@brief      test log(time=15s)
 """
 import os
 import unittest
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.ipythonhelper import test_notebook_execution_coverage
 from pyquickhelper.pycode import (
-    add_missing_development_version, ExtTestCase,
-    skipif_circleci
+    add_missing_development_version, ExtTestCase
 )
 import mlprodict
 
 
-class TestNotebookOnnxNodeTime(ExtTestCase):
+class TestNotebookTransferLearning(ExtTestCase):
 
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)
 
-    @skipif_circleci("unexected issue, no benchmark is performed even it is asked")
-    def test_notebook_onnx_time(self):
+    def test_notebook_transfer_learning(self):
         fLOG(
             __file__,
             self._testMethodName,
@@ -28,8 +26,10 @@ class TestNotebookOnnxNodeTime(ExtTestCase):
         self.assertNotEmpty(mlprodict is not None)
         folder = os.path.join(os.path.dirname(__file__),
                               "..", "..", "_doc", "notebooks")
-        test_notebook_execution_coverage(__file__, "onnx_node_time", folder,
-                                         this_module_name="mlprodict", fLOG=fLOG)
+        to_copy = ["800px-Tour_Eiffel_Wikimedia_Commons_(cropped).jpg"]
+        test_notebook_execution_coverage(__file__, "transfer_learning", folder,
+                                         this_module_name="mlprodict", fLOG=fLOG,
+                                         copy_files=to_copy)
 
 
 if __name__ == "__main__":

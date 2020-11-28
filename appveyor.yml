@@ -19,7 +19,7 @@ before_test:
   - "%PYTHON%\\python -u setup.py build_ext --inplace"
 
 test_script:
-  - "%PYTHON%\\python -u setup.py unittests -d 50"
+  - "%PYTHON%\\python -u setup.py unittests -d 15 -g ".*((LONG)|(SKIP)|(notebooks)).*"
 
 after_test:
   - "%PYTHON%\\python -u setup.py bdist_wheel"
