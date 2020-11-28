@@ -140,7 +140,7 @@ tree2 = {'average_output': False,
          'version': 'v2'}
 
 
-class TestLightGbmTreeStructur(ExtTestCase):
+class TestLightGbmTreeStructure(ExtTestCase):
 
     def setUp(self):
         logger = getLogger('skl2onnx')
@@ -230,7 +230,8 @@ class TestLightGbmTreeStructur(ExtTestCase):
         nb2 = sum(count_nodes(t['tree_structure']) for t in tree['tree_info'])
         self.assertEqual(nb1, nb2)
         self.assertEqual(nb1, 16)
-        onx = to_onnx(model, initial_types=[('x', FloatTensorType([None, 4]))])
+        onx = to_onnx(model, initial_types=[('x', FloatTensorType([None, 4]))],
+                      options={id(model): {'zipmap': False}})
         self.assertTrue(model.visited)
 
         for n in onx.graph.node:

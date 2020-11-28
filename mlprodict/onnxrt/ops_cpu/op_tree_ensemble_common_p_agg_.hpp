@@ -66,7 +66,7 @@ struct TreeNodeElement {
     std::vector<SparseValue<NTYPE>> weights_vect;
     bool is_missing_track_true;
 
-    inline bool is_not_leaf () const { 
+    inline bool is_not_leaf() const { 
         return truenode != nullptr; 
     }
     int64_t get_sizeof() {
@@ -92,7 +92,6 @@ struct ArrayTreeNodeElement {
     std::vector<SparseValue<NTYPE>> weights0;
     std::vector<std::vector<SparseValue<NTYPE>>> weights;
     std::vector<size_t> root_id;
-
     std::vector<bool> is_missing_track_true;
     
     inline bool is_not_leaf(size_t i) const { 
@@ -110,6 +109,7 @@ struct ArrayTreeNodeElement {
             falsenode.size() * sizeof(truenode) +
             missing_tracks.size() * sizeof(MissingTrack) +
             weights0.size() * sizeof(SparseValue<NTYPE>) +
+            is_missing_track_true.size() * sizeof(bool) +
             root_id.size() * sizeof(size_t);
         for(auto it = weights.begin(); it != weights.end(); ++it)
             res += it->size() * sizeof(SparseValue<NTYPE>);

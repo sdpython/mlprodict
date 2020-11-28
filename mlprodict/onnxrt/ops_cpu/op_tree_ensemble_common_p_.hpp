@@ -428,6 +428,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::switch_to_array_structure() {
     array_nodes_.truenode.resize(n_nodes_);
     array_nodes_.falsenode.resize(n_nodes_);
     array_nodes_.missing_tracks.resize(n_nodes_);
+    array_nodes_.is_missing_track_true.resize(n_nodes_);
     array_nodes_.weights0.resize(n_nodes_);
     array_nodes_.weights.resize(n_nodes_);
     array_nodes_.root_id.resize(n_nodes_);
@@ -446,6 +447,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::switch_to_array_structure() {
             ? ID_LEAF_TRUE_NODE : std::distance(first, nodes_[i].truenode);
         array_nodes_.falsenode[i] = nodes_[i].falsenode == nullptr
             ? ID_LEAF_TRUE_NODE : std::distance(first, nodes_[i].falsenode);
+        array_nodes_.is_missing_track_true[i] = nodes_[i].is_missing_track_true;
     }
 
     array_nodes_.root_id.resize(roots_.size());
@@ -453,6 +455,14 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::switch_to_array_structure() {
         array_nodes_.root_id[i] = std::distance(first, roots_[i]);
 
     sizeof_ += array_nodes_.get_sizeof();
+
+    for(int64_t i = 0; i < n_nodes_; ++i) {        
+        if (nodes_[i].is_not_leaf() != array_nodes_.is_not_leaf(i))
+            throw std::runtime_error(MakeString(
+                "Inconsistent results for is_node_leaf ", i, " true: ",
+                array_nodes_.truenode[i], " false:", array_nodes_.falsenode[i],
+                " leaf: ", nodes_[i].is_not_leaf() ? 1 : 0));
+    }
 
     if (nodes_ != nullptr) {
         for(int64_t i = 0; i < n_nodes_; ++i)
