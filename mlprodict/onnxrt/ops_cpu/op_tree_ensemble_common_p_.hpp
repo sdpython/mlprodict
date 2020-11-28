@@ -17,8 +17,10 @@
 
 #if 0
 #define DEBUGPRINT(s) std::cout << MakeString(s, "\n");
+#define ASSERTTREE(cond, msg) if(!(cond)) throw std::runtime_error(MakeString(msg, " - failed: ", #cond));
 #else
 #define DEBUGPRINT(s)
+#define ASSERTTREE(cond, msg)
 #endif
 
 
@@ -614,22 +616,23 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
             }
         }
         else { DEBUGPRINT("D")
-            NTYPE scores;
-            unsigned char has_scores;
-            size_t j;
+            auto nth = omp_get_max_threads();
+            NTYPE* scores = (NTYPE*) alloca(nth * sizeof(NTYPE));
+            unsigned char* has_scores = (unsigned char*) alloca(nth);
 
             #ifdef USE_OPENMP
-            #pragma omp parallel for private(j, scores, has_scores)
+            #pragma omp parallel for
             #endif
             for (int64_t i = 0; i < N; ++i) {
-                scores = 0;
-                has_scores = 0;
-                for (j = 0; j < (size_t)n_trees_; ++j)
+                auto th = omp_get_thread_num();
+                scores[th] = 0;
+                has_scores[th] = 0;
+                for (size_t j = 0; j < (size_t)n_trees_; ++j)
                     agg.ProcessTreeNodePrediction1(
-                        &scores,
+                        &scores[th],
                         ProcessTreeNodeLeave(roots_[j], x_data + i * stride),
-                        &has_scores);
-                agg.FinalizeScores1((NTYPE*)Z_.data(i), scores, has_scores,
+                        &has_scores[th]);
+                agg.FinalizeScores1((NTYPE*)Z_.data(i), scores[th], has_scores[th],
                                     Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
             }
         }
@@ -772,6 +775,8 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
             auto nth = omp_get_max_threads();
             std::vector<NTYPE> local_scores(N * nth, 0);
             std::vector<unsigned char> local_has_scores(local_scores.size(), 0);
+            for(int k = 0; k < N; ++k)
+                *((NTYPE*)Z_.data(k)) = -123;
             #ifdef USE_OPENMP
             #pragma omp parallel for
             #endif
@@ -786,7 +791,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
                         ProcessTreeNodeLeave(array_nodes_.root_id[j], local_x_data),
                         p_has_score);
                 }
-            }
+            }            
             #ifdef USE_OPENMP
             #pragma omp parallel for
             #endif
@@ -820,22 +825,23 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
             }
         }
         else if (N < BATCHSIZE * 16) { DEBUGPRINT("Q")
-            NTYPE scores;
-            unsigned char has_scores;
-            size_t j;
+            auto nth = omp_get_max_threads();
+            NTYPE* scores = (NTYPE*) alloca(nth * sizeof(NTYPE));
+            unsigned char* has_scores = (unsigned char*) alloca(nth);
 
             #ifdef USE_OPENMP
-            #pragma omp parallel for private(j, scores, has_scores)
+            #pragma omp parallel for
             #endif
             for (int64_t i = 0; i < N; ++i) {
-                scores = 0;
-                has_scores = 0;
-                for (j = 0; j < (size_t)n_trees_; ++j)
+                auto th = omp_get_thread_num();
+                scores[th] = 0;
+                has_scores[th] = 0;
+                for (size_t j = 0; j < (size_t)n_trees_; ++j)
                     agg.ProcessTreeNodePrediction1(
-                        &scores, array_nodes_,
+                        &scores[th], array_nodes_,
                         ProcessTreeNodeLeave(array_nodes_.root_id[j], x_data + i * stride),
-                        &has_scores);
-                agg.FinalizeScores1((NTYPE*)Z_.data(i), scores, has_scores,
+                        &has_scores[th]);
+                agg.FinalizeScores1((NTYPE*)Z_.data(i), scores[th], has_scores[th],
                                     Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
             }
         }
@@ -1098,6 +1104,7 @@ TreeNodeElement<NTYPE> *
     if (has_missing_tracks_) { \
         NTYPE val; \
         while (array_nodes_.is_not_leaf(root_id)) { \
+            ASSERTTREE((root_id >= 0) && ((int64_t)root_id < n_nodes_), "root_id") \
             val = x_data[array_nodes_.feature_id[root_id]]; \
             root_id = (val CMP array_nodes_.value[root_id] || \
                     (array_nodes_.is_missing_track_true[root_id] && _isnan_(val) )) \
@@ -1106,6 +1113,7 @@ TreeNodeElement<NTYPE> *
     } \
     else { \
         while (array_nodes_.is_not_leaf(root_id)) { \
+            ASSERTTREE((root_id >= 0) && ((int64_t)root_id < n_nodes_), "root_id") \
             root_id = x_data[array_nodes_.feature_id[root_id]] CMP array_nodes_.value[root_id] \
                 ? array_nodes_.truenode[root_id] \
                 : array_nodes_.falsenode[root_id]; \
@@ -1122,6 +1130,7 @@ size_t RuntimeTreeEnsembleCommonP<NTYPE>::ProcessTreeNodeLeave(
                 if (has_missing_tracks_) {
                     NTYPE val;
                     while (array_nodes_.is_not_leaf(root_id)) {
+                        ASSERTTREE((root_id >= 0) && ((int64_t)root_id < n_nodes_), "root_id")
                         val = x_data[array_nodes_.feature_id[root_id]];
                         root_id = (val <= array_nodes_.value[root_id] ||
                                 (array_nodes_.is_missing_track_true[root_id] && _isnan_(val) ))
@@ -1130,6 +1139,7 @@ size_t RuntimeTreeEnsembleCommonP<NTYPE>::ProcessTreeNodeLeave(
                 }
                 else {
                     while (array_nodes_.is_not_leaf(root_id)) {
+                        ASSERTTREE((root_id >= 0) && ((int64_t)root_id < n_nodes_), "root_id")
                         root_id = x_data[array_nodes_.feature_id[root_id]] <= array_nodes_.value[root_id]
                             ? array_nodes_.truenode[root_id]
                             : array_nodes_.falsenode[root_id];
@@ -1164,6 +1174,7 @@ size_t RuntimeTreeEnsembleCommonP<NTYPE>::ProcessTreeNodeLeave(
     else {  // Different rules to compare to node thresholds.
         NTYPE threshold, val;
         while (array_nodes_.is_not_leaf(root_id)) {
+            ASSERTTREE((root_id >= 0) && ((int64_t)root_id < n_nodes_), "root_id")
             val = x_data[array_nodes_.feature_id[root_id]];
             threshold = array_nodes_.value[root_id];
             switch (array_nodes_.mode[root_id]) {

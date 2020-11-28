@@ -42,4 +42,3 @@
     * `Memory Layout Transformations
       <https://software.intel.com/content/www/us/en/develop/articles/
       memory-layout-transformations.html>`_
-    

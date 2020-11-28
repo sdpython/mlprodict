@@ -587,12 +587,15 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(
             numpy.float64, True)
 
-    def common_test_onnxrt_python_tree_ensemble_runtime_version_cls(self, dtype, multi=False):
+    def common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
+            self, dtype, multi=False, single_cls=False):
         iris = load_iris()
         X, y = iris.data, iris.target
         y = y.astype(numpy.int64)
         if not multi:
             y[y == 2] = 0
+        if single_cls:
+            y[:] = 0
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
         clr = RandomForestClassifier(n_estimators=40)
         clr.fit(X_train, y_train)
@@ -619,18 +622,37 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         lexp = clr.predict_proba(X_test)
         decimal = {numpy.float32: 5, numpy.float64: 1}
         with self.subTest(dtype=dtype):
-            self.assertEqualArray(
-                lexp, y['probabilities'], decimal=decimal[dtype])
+            if single_cls:
+                diff = list(
+                    sorted(numpy.abs(lexp.ravel() - y['probabilities'])))
+                mx = max(diff[:-5])
+                if mx > 1e-5:
+                    self.assertEqualArray(
+                        lexp.ravel(), y['probabilities'], decimal=decimal[dtype])
+            else:
+                self.assertEqualArray(
+                    lexp, y['probabilities'], decimal=decimal[dtype])
 
         # other runtime
         for rv in [0, 1, 2, 3]:
+            if single_cls and rv == 0:
+                continue
             with self.subTest(runtime_version=rv):
                 for op in oinf.sequence_:
                     if hasattr(op.ops_, '_init'):
                         op.ops_._init(dtype, rv)  # pylint: disable=W0212
                 y = oinf.run({'X': X_test.astype(dtype)})
-                self.assertEqualArray(
-                    lexp, y['probabilities'], decimal=decimal[dtype])
+                if single_cls:
+                    diff = list(
+                        sorted(numpy.abs(lexp.ravel() - y['probabilities'])))
+                    mx = max(diff[:-5])
+                    if mx > 1e-5:
+                        print(diff)
+                        self.assertEqualArray(
+                            lexp.ravel(), y['probabilities'], decimal=decimal[dtype])
+                else:
+                    self.assertEqualArray(
+                        lexp, y['probabilities'], decimal=decimal[dtype])
 
         with self.subTest(runtime_version=40):
             self.assertRaise(
@@ -654,6 +676,45 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float64, True)
 
+    def test_onnxrt_python_tree_ensemble_runtime_version_float_cls_single(self):
+        self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
+            numpy.float32, False, True)
+
+    def test_onnxrt_python_tree_ensemble_runtime_version_double_cls_single(self):
+        self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
+            numpy.float64, False, True)
+
+    def test_bug_crash(self):
+        rnd = numpy.random.RandomState(4)  # pylint: disable=E1101
+        ntrain = 10000
+        nfeat = 30
+        X_train = numpy.empty((ntrain, nfeat)).astype(numpy.float32)
+        X_train[:, :] = rnd.rand(ntrain, nfeat)[:, :]
+        eps = rnd.rand(ntrain) - 0.5
+        y_train_f = X_train.sum(axis=1) + eps
+        y_train = (y_train_f > 12).astype(numpy.int64)
+        y_train[y_train_f > 15] = 2
+        y_train[y_train_f < 10] = 3
+        y_train[:] = 2
+
+        rf = RandomForestClassifier(max_depth=2, n_estimators=80, n_jobs=4)
+        rf.fit(X_train, y_train)
+        onx = to_onnx(rf, X_train[:1], options={id(rf): {'zipmap': False}})
+
+        for rv in [3, 2, 1]:
+            oinf = OnnxInference(onx)
+            oinf.sequence_[0].ops_._init(numpy.float32, rv)  # pylint: disable=W0212
+
+            for n in [20, 100, 10000, 1, 1000, 10]:
+                print(rv, n)
+                x = numpy.empty((n, X_train.shape[1]), dtype=numpy.float32)
+                x[:, :] = rnd.rand(n, X_train.shape[1])[:, :]
+                with self.subTest(version=rv, n=n):
+                    y = oinf.run({'X': x})['probabilities']
+                    lexp = rf.predict_proba(x)
+                    self.assertEqualArray(lexp.ravel(), y, decimal=5)
+
 
 if __name__ == "__main__":
+    # TestOnnxrtPythonRuntimeMlTree().test_bug_crash()
     unittest.main()
