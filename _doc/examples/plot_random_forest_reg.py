@@ -97,6 +97,7 @@ def fcts_model(X, y, max_depth, n_estimators, n_jobs):
     sess = InferenceSession(onx.SerializeToString())
     outputs = [o.name for o in sess.get_outputs()]
     oinf = OnnxInference(onx, runtime="python")
+    oinf.sequence_[0].ops_._init(numpy.float32, 1)
     name = outputs[0]
     oinf2 = OnnxInference(onx, runtime="python")
     oinf2.sequence_[0].ops_._init(numpy.float32, 2)

@@ -24,10 +24,10 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
 
     def __init__(self, dtype, onnx_node, desc=None,
                  expected_attributes=None,
-                 runtime_version=1, **options):
-        OpRunClassifierProb.__init__(self, onnx_node, desc=desc,
-                                     expected_attributes=expected_attributes,
-                                     **options)
+                 runtime_version=3, **options):
+        OpRunClassifierProb.__init__(
+            self, onnx_node, desc=desc,
+            expected_attributes=expected_attributes, **options)
         self._init(dtype=dtype, version=runtime_version)
 
     def _get_typed_attributes(self, k):
@@ -117,9 +117,9 @@ class TreeEnsembleClassifier(TreeEnsembleClassifierCommon):
     ])
 
     def __init__(self, onnx_node, desc=None, **options):
-        TreeEnsembleClassifierCommon.__init__(self, numpy.float32, onnx_node, desc=desc,
-                                              expected_attributes=TreeEnsembleClassifier.atts,
-                                              **options)
+        TreeEnsembleClassifierCommon.__init__(
+            self, numpy.float32, onnx_node, desc=desc,
+            expected_attributes=TreeEnsembleClassifier.atts, **options)
 
 
 class TreeEnsembleClassifierDouble(TreeEnsembleClassifierCommon):
@@ -145,9 +145,9 @@ class TreeEnsembleClassifierDouble(TreeEnsembleClassifierCommon):
     ])
 
     def __init__(self, onnx_node, desc=None, **options):
-        TreeEnsembleClassifierCommon.__init__(self, numpy.float64, onnx_node, desc=desc,
-                                              expected_attributes=TreeEnsembleClassifier.atts,
-                                              **options)
+        TreeEnsembleClassifierCommon.__init__(
+            self, numpy.float64, onnx_node, desc=desc,
+            expected_attributes=TreeEnsembleClassifier.atts, **options)
 
 
 class TreeEnsembleClassifierDoubleSchema(OperatorSchema):
