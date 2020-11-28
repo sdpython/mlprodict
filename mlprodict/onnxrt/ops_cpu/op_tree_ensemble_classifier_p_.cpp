@@ -5,8 +5,7 @@
 
 
 template<typename NTYPE>
-class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE>
-{
+class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE> {
     public:
 
         //std::vector<std::string> classlabels_strings_;

@@ -684,7 +684,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float64, False, True)
 
-    def test_bug_crash(self):
+    def test_random_forest_with_only_one_class(self):
         rnd = numpy.random.RandomState(4)  # pylint: disable=E1101
         ntrain = 10000
         nfeat = 30
@@ -703,10 +703,10 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
         for rv in [3, 2, 1]:
             oinf = OnnxInference(onx)
-            oinf.sequence_[0].ops_._init(numpy.float32, rv)  # pylint: disable=W0212
+            oinf.sequence_[0].ops_._init(  # pylint: disable=W0212
+                numpy.float32, rv)
 
-            for n in [20, 100, 10000, 1, 1000, 10]:
-                print(rv, n)
+            for n in [1, 20, 100, 10000, 1, 1000, 10]:
                 x = numpy.empty((n, X_train.shape[1]), dtype=numpy.float32)
                 x[:, :] = rnd.rand(n, X_train.shape[1])[:, :]
                 with self.subTest(version=rv, n=n):
@@ -716,5 +716,4 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntimeMlTree().test_bug_crash()
     unittest.main()

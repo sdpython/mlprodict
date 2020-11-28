@@ -296,7 +296,7 @@ size_t write_scores(size_t n_classes, NTYPE* scores, POST_EVAL_TRANSFORM post_tr
 
 
 template<class NTYPE>
-void write_scores2(NTYPE* scores, POST_EVAL_TRANSFORM post_transform,
+size_t write_scores2(NTYPE* scores, POST_EVAL_TRANSFORM post_transform,
                    NTYPE* Z, int add_second_class) {
     switch (post_transform) {
         case POST_EVAL_TRANSFORM::PROBIT:
@@ -320,6 +320,7 @@ void write_scores2(NTYPE* scores, POST_EVAL_TRANSFORM post_transform,
             memcpy(Z, scores, 2 * sizeof(NTYPE));
             break;
     }
+    return 2;
 }
 
 
@@ -418,9 +419,9 @@ void debug_print(const std::string& msg, float value);
 void debug_print(const std::string& msg, double value);
 void debug_print(const std::string& msg, int64_t value);
 void debug_print(const std::string& msg, size_t value);
-void debug_print(const std::string &msg, int64_t iter, int64_t end);
-void debug_print(const std::string &msg, size_t i, size_t j, size_t k, float pa, float pb, float val);
-void debug_print(const std::string &msg, size_t i, size_t j, size_t k, double pa, double pb, double val);
+void debug_print(const std::string& msg, int64_t iter, int64_t end);
+void debug_print(const std::string& msg, size_t i, size_t j, size_t k, float pa, float pb, float val);
+void debug_print(const std::string& msg, size_t i, size_t j, size_t k, double pa, double pb, double val);
 
 
 template <typename T>

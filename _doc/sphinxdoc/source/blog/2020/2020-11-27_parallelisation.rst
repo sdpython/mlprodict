@@ -11,7 +11,9 @@
     100 trees and a depth >= 10. The only difference was that the computation
     was parallelized by trees and not by observations. These
     observations are benchmarked in
-    :ref:`l-example-tree-ensemble-reg-bench`.
+    :ref:`l-example-tree-ensemble-reg-bench`
+    (:ref:`l-example-tree-ensemble-cls-bench-multi` for the
+    multiclass version).
 
     * `forest.py
       <https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/ensemble/_forest.py#L683>`_

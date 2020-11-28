@@ -775,8 +775,6 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
             auto nth = omp_get_max_threads();
             std::vector<NTYPE> local_scores(N * nth, 0);
             std::vector<unsigned char> local_has_scores(local_scores.size(), 0);
-            for(int k = 0; k < N; ++k)
-                *((NTYPE*)Z_.data(k)) = -123;
             #ifdef USE_OPENMP
             #pragma omp parallel for
             #endif

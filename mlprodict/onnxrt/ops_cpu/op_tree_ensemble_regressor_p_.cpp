@@ -5,8 +5,7 @@
 
 
 template<typename NTYPE>
-class RuntimeTreeEnsembleRegressorP : public RuntimeTreeEnsembleCommonP<NTYPE>
-{
+class RuntimeTreeEnsembleRegressorP : public RuntimeTreeEnsembleCommonP<NTYPE> {
     public:
 
         RuntimeTreeEnsembleRegressorP(int omp_tree, int omp_N, bool array_structure, bool para_tree);

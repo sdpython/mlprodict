@@ -581,6 +581,7 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE> {
                 scores[0] = -scores[1];
                 //has_score = true;
                 has_scores[1] = 1;
+                write_additional_scores = 0;
             }
             else if (this->base_values_->size() == 1) {
                 // ONNX is vague about two classes and only one base_values.
@@ -596,9 +597,9 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE> {
             }
 
             *Y = _set_score_binary(write_additional_scores, &(scores[0]), has_scores);
-            write_scores2(scores, this->post_transform_, Z,
-                          write_additional_scores);
-            return 2;
+            return write_additional_scores == -1
+                ? write_scores(this->n_targets_or_classes_, scores, this->post_transform_, Z, write_additional_scores)
+                : write_scores2(scores, this->post_transform_, Z, write_additional_scores);
         }
 
         // N outputs
