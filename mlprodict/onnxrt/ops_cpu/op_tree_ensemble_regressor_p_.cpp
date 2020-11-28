@@ -5,11 +5,10 @@
 
 
 template<typename NTYPE>
-class RuntimeTreeEnsembleRegressorP : public RuntimeTreeEnsembleCommonP<NTYPE>
-{
+class RuntimeTreeEnsembleRegressorP : public RuntimeTreeEnsembleCommonP<NTYPE> {
     public:
 
-        RuntimeTreeEnsembleRegressorP(int omp_tree, int omp_N);
+        RuntimeTreeEnsembleRegressorP(int omp_tree, int omp_N, bool array_structure, bool para_tree);
         ~RuntimeTreeEnsembleRegressorP();
 
         void init(
@@ -37,8 +36,9 @@ class RuntimeTreeEnsembleRegressorP : public RuntimeTreeEnsembleCommonP<NTYPE>
 
 
 template<typename NTYPE>
-RuntimeTreeEnsembleRegressorP<NTYPE>::RuntimeTreeEnsembleRegressorP(int omp_tree, int omp_N) :
-   RuntimeTreeEnsembleCommonP<NTYPE>(omp_tree, omp_N) {
+RuntimeTreeEnsembleRegressorP<NTYPE>::RuntimeTreeEnsembleRegressorP(
+        int omp_tree, int omp_N, bool array_structure, bool para_tree) :
+   RuntimeTreeEnsembleCommonP<NTYPE>(omp_tree, omp_N, array_structure, para_tree) {
 }
 
 
@@ -126,19 +126,19 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute_tree_outputs(py
 
 class RuntimeTreeEnsembleRegressorPFloat : public RuntimeTreeEnsembleRegressorP<float> {
     public:
-        RuntimeTreeEnsembleRegressorPFloat(int omp_tree, int omp_N) :
-            RuntimeTreeEnsembleRegressorP<float>(omp_tree, omp_N) {}
+        RuntimeTreeEnsembleRegressorPFloat(int omp_tree, int omp_N, bool array_structure, bool para_tree) :
+            RuntimeTreeEnsembleRegressorP<float>(omp_tree, omp_N, array_structure, para_tree) {}
 };
 
 
 class RuntimeTreeEnsembleRegressorPDouble : public RuntimeTreeEnsembleRegressorP<double> {
     public:
-        RuntimeTreeEnsembleRegressorPDouble(int omp_tree, int omp_N) :
-            RuntimeTreeEnsembleRegressorP<double>(omp_tree, omp_N) {}
+        RuntimeTreeEnsembleRegressorPDouble(int omp_tree, int omp_N, bool array_structure, bool para_tree) :
+            RuntimeTreeEnsembleRegressorP<double>(omp_tree, omp_N, array_structure, para_tree) {}
 };
 
 
-void test_tree_ensemble_regressor(int omp_tree, int omp_N,
+void test_tree_ensemble_regressor(int omp_tree, int omp_N, bool array_structure, bool para_tree,
                                   const std::vector<float>& X,
                                   const std::vector<float>& base_values,
                                   const std::vector<float>& results,
@@ -164,7 +164,7 @@ void test_tree_ensemble_regressor(int omp_tree, int omp_N,
     std::vector<float> nodes_hitrates;
     std::vector<int64_t> nodes_missing_value_tracks_true;
 
-    RuntimeTreeEnsembleRegressorPFloat tree(omp_tree, omp_N);
+    RuntimeTreeEnsembleRegressorPFloat tree(omp_tree, omp_N, array_structure, para_tree);
     tree.init_c(aggregate_function, base_values, n_targets,
                 nodes_falsenodeids, nodes_featureids, nodes_hitrates,
                 nodes_missing_value_tracks_true, nodes_modes,
@@ -189,8 +189,7 @@ void test_tree_ensemble_regressor(int omp_tree, int omp_N,
         }
         else {
             py::array_t<float, py::array::c_style> arr(X.size(), X.data());
-            if ((X.size() / 3) != (float)(X.size() / 3) || 
-                (X.size() / 3 == 0)) {
+            if ((X.size() / 3) != (float)(X.size() / 3) || (X.size() / 3 == 0)) {
                 char buffer[1000];
                 sprintf(buffer, "Empty ouput (got) %d, ended up with %d, %d.",
                     (int)X.size(), (int)(X.size() / 3), 3);
@@ -211,10 +210,31 @@ void test_tree_ensemble_regressor(int omp_tree, int omp_N,
             for(size_t i = 0; i < cres.size(); ++i) {
                 if (cres[i] != results[i]) {
                     char buffer[1000];
-                    sprintf(buffer, "Value mismatch at position %d(%d): (got) %f != %f (expected) (omp_tree=%d, omp_N=%d, one_obs=%d).",
-                        (int)i, (int)cres.size(), (double)cres[i], (double)results[i],
-                        (int)omp_tree, (int)omp_N, (int)(one_obs ? 1 : 0));
-                    throw std::runtime_error(buffer);
+                    char buffer2[2000];
+                    sprintf(buffer, "Value mismatch at position %d(%d): (got) %f != %f (expected)\nomp_tree=%d\nomp_N=%d?%d\narray_structure=%d\npara_tree=%d\none_obs=%d\nn_targets=%d\nn_trees=%d\n.",
+                        (int)i,
+                        (int)cres.size(),
+                        (double)cres[i],
+                        (double)results[i],
+                        (int)omp_tree,
+                        (int)omp_N, (int)X.size()/3,
+                        (int)array_structure ? 1 : 0,
+                        (int)para_tree ? 1 : 0,
+                        (int)(one_obs ? 1 : 0),
+                        (int)n_targets,
+                        (int)nodes_treeids[nodes_treeids.size()-1]);
+                    if (cres.size() >= 6) {
+                        sprintf(buffer2, "%s\n%f,%f\n%f,%f\n%f,%f\n----\n%f,%f\n%f,%f\n%f,%f",
+                                buffer, results[0], results[1], results[2], results[3],
+                                results[4], results[5],
+                                cres[0], cres[1], cres[2], cres[3],
+                                cres[4], cres[5]);
+                    }
+                    else {
+                        sprintf(buffer2, "%s\n%f,%f\n----\n%f,%f",
+                                buffer, results[0], results[1], cres[0], cres[1]);
+                    }
+                    throw std::runtime_error(buffer2);
                 }
             }
         }
@@ -223,29 +243,47 @@ void test_tree_ensemble_regressor(int omp_tree, int omp_N,
 
 
 void test_tree_regressor_multitarget_average(
-        int omp_tree, int omp_N, bool oneobs, bool compute, bool check) {
+        int omp_tree, int omp_N, bool array_structure, bool para_tree,
+        bool oneobs, bool compute, bool check) {
     std::vector<float> X = {1.f, 0.0f, 0.4f, 3.0f, 44.0f, -3.f, 12.0f, 12.9f, -312.f, 23.0f, 11.3f, -222.f, 23.0f, 11.3f, -222.f, 23.0f, 3311.3f, -222.f, 23.0f, 11.3f, -222.f, 43.0f, 413.3f, -114.f};
     std::vector<float> results = {1.33333333f, 29.f, 3.f, 14.f, 2.f, 23.f, 2.f, 23.f, 2.f, 23.f, 2.66666667f, 17.f, 2.f, 23.f, 3.f, 14.f};
     std::vector<float> base_values{0.f, 0.f};
-    test_tree_ensemble_regressor(omp_tree, omp_N, X, base_values,
+    test_tree_ensemble_regressor(omp_tree, omp_N, array_structure, para_tree, X, base_values,
                                  results, "AVERAGE", oneobs, compute, check);
 }
 
 
-void test_tree_regressor_multitarget_min(int omp_tree, int omp_N, bool oneobs, bool compute, bool check) {
+void test_tree_regressor_multitarget_sum(
+        int omp_tree, int omp_N, bool array_structure, bool para_tree,
+        bool oneobs, bool compute, bool check) {
+    std::vector<float> X = {1.f, 0.0f, 0.4f, 3.0f, 44.0f, -3.f, 12.0f, 12.9f, -312.f, 23.0f, 11.3f, -222.f, 23.0f, 11.3f, -222.f, 23.0f, 3311.3f, -222.f, 23.0f, 11.3f, -222.f, 43.0f, 413.3f, -114.f};
+    std::vector<float> results = {1.33333333f, 29.f, 3.f, 14.f, 2.f, 23.f, 2.f, 23.f, 2.f, 23.f, 2.66666667f, 17.f, 2.f, 23.f, 3.f, 14.f};
+    for(auto it = results.begin(); it != results.end(); ++it)
+        *it *= 3;
+    std::vector<float> base_values{0.f, 0.f};
+    test_tree_ensemble_regressor(omp_tree, omp_N, array_structure, para_tree, X, base_values,
+                                 results, "SUM", oneobs, compute, check);
+}
+
+
+void test_tree_regressor_multitarget_min(
+        int omp_tree, int omp_N, bool array_structure, bool para_tree,
+        bool oneobs, bool compute, bool check) {
     std::vector<float> X = {1.f, 0.0f, 0.4f, 3.0f, 44.0f, -3.f, 12.0f, 12.9f, -312.f, 23.0f, 11.3f, -222.f, 23.0f, 11.3f, -222.f, 23.0f, 3311.3f, -222.f, 23.0f, 11.3f, -222.f, 43.0f, 413.3f, -114.f};
     std::vector<float> results = {5.f, 28.f, 8.f, 19.f, 7.f, 28.f, 7.f, 28.f, 7.f, 28.f, 7.f, 19.f, 7.f, 28.f, 8.f, 19.f};
     std::vector<float> base_values{5.f, 5.f};
-    test_tree_ensemble_regressor(omp_tree, omp_N, X, base_values,
+    test_tree_ensemble_regressor(omp_tree, omp_N, array_structure, para_tree, X, base_values,
                                  results, "MIN", oneobs, compute, check);
 }
 
 
-void test_tree_regressor_multitarget_max(int omp_tree, int omp_N, bool oneobs, bool compute, bool check) {
+void test_tree_regressor_multitarget_max(
+        int omp_tree, int omp_N, bool array_structure, bool para_tree,
+        bool oneobs, bool compute, bool check) {
     std::vector<float> X = {1.f, 0.0f, 0.4f, 3.0f, 44.0f, -3.f, 12.0f, 12.9f, -312.f, 23.0f, 11.3f, -222.f, 23.0f, 11.3f, -222.f, 23.0f, 3311.3f, -222.f, 23.0f, 11.3f, -222.f, 43.0f, 413.3f, -114.f};
     std::vector<float> results = {2.f, 41.f, 3.f, 14.f, 2.f, 23.f, 2.f, 23.f, 2.f, 23.f, 3.f, 23.f, 2.f, 23.f, 3.f, 14.f};
     std::vector<float> base_values{0.f, 0.f};
-    test_tree_ensemble_regressor(omp_tree, omp_N, X, base_values,
+    test_tree_ensemble_regressor(omp_tree, omp_N, array_structure, para_tree, X, base_values,
                                  results, "MAX", oneobs, compute, check);
 }
 
@@ -258,7 +296,8 @@ PYBIND11_MODULE(op_tree_ensemble_regressor_p_, m) {
     "Implements runtime for operator TreeEnsembleRegressor."
     #else
     R"pbdoc(Implements runtime for operator TreeEnsembleRegressor. The code is inspired from
-`tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
+`tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/
+onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
 in :epkg:`onnxruntime`.)pbdoc"
     #endif
     ;
@@ -269,19 +308,24 @@ in :epkg:`onnxruntime`.)pbdoc"
           "Test the runtime (min).");
     m.def("test_tree_regressor_multitarget_max", &test_tree_regressor_multitarget_max,
           "Test the runtime (max).");
+    m.def("test_tree_regressor_multitarget_sum", &test_tree_regressor_multitarget_sum,
+          "Test the runtime (sum).");
 
     py::class_<RuntimeTreeEnsembleRegressorPFloat> clf (m, "RuntimeTreeEnsembleRegressorPFloat",
         R"pbdoc(Implements float runtime for operator TreeEnsembleRegressor. The code is inspired from
-`tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
+`tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/
+core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
 in :epkg:`onnxruntime`. Supports float only.
 
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
-:param omp_N: number of observvations above which the runtime uses
-:epkg:`openmp` to parallelize the predictions
+:param omp_N: number of observations above which the runtime uses
+    :epkg:`openmp` to parallelize the predictions
+:param array_structure: (bool) different implementation for better performance
+:param para_tree: (bool) parallelize the computation per tree instead of observations
 )pbdoc");
 
-    clf.def(py::init<int, int>());
+    clf.def(py::init<int, int, bool, bool>());
     clf.def_readwrite("omp_tree_", &RuntimeTreeEnsembleRegressorPFloat::omp_tree_,
         "Number of trees above which the computation is parallelized for one observation.");
     clf.def_readwrite("omp_N_", &RuntimeTreeEnsembleRegressorPFloat::omp_N_,
@@ -316,16 +360,19 @@ in :epkg:`onnxruntime`. Supports float only.
 
     py::class_<RuntimeTreeEnsembleRegressorPDouble> cld (m, "RuntimeTreeEnsembleRegressorPDouble",
         R"pbdoc(Implements double runtime for operator TreeEnsembleRegressor. The code is inspired from
-`tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
+`tree_ensemble_regressor.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/
+core/providers/cpu/ml/tree_ensemble_Regressor.cc>`_
 in :epkg:`onnxruntime`. Supports double only.
 
 :param omp_tree: number of trees above which the runtime uses :epkg:`openmp`
     to parallelize tree computation when the number of observations it 1
-:param omp_N: number of observvations above which the runtime uses
-:epkg:`openmp` to parallelize the predictions
+:param omp_N: number of observations above which the runtime uses
+    :epkg:`openmp` to parallelize the predictions
+:param array_structure: (bool) different implementation for better performance
+:param para_tree: (bool) parallelize the computation per tree instead of observations
 )pbdoc");
 
-    cld.def(py::init<int, int>());
+    cld.def(py::init<int, int, bool, bool>());
     cld.def_readwrite("omp_tree_", &RuntimeTreeEnsembleRegressorPDouble::omp_tree_,
         "Number of trees above which the computation is parallelized for one observation.");
     cld.def_readwrite("omp_N_", &RuntimeTreeEnsembleRegressorPDouble::omp_N_,

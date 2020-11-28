@@ -20,6 +20,7 @@ import numpy
 from pandas import DataFrame
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from sklearn import config_context
 from sklearn.datasets import make_regression
 from sklearn.experimental import enable_hist_gradient_boosting
 from sklearn.ensemble import HistGradientBoostingRegressor
@@ -83,9 +84,10 @@ X32 = X_test.astype(numpy.float32)
 
 
 def runlocal():
-    for i in range(0, 100):
-        oinf.run({'X': X32[:1000]})
-        hgb.predict(X_test[:1000])
+    with config_context(assume_finite=True):
+        for i in range(0, 100):
+            oinf.run({'X': X32[:1000]})
+            hgb.predict(X_test[:1000])
 
 
 print("profiling...")
@@ -109,10 +111,11 @@ for N in tqdm(list(range(2, 21))):
     m['RT'] = 'ONNX'
     obs.append(m)
 
-    m = measure_time("hgb.predict(x)",
-                     {'hgb': hgb, 'x': X32[:N]},
-                     div_by_number=True,
-                     number=15)
+    with config_context(assume_finite=True):
+        m = measure_time("hgb.predict(x)",
+                         {'hgb': hgb, 'x': X32[:N]},
+                         div_by_number=True,
+                         number=15)
     m['N'] = N
     m['RT'] = 'SKL'
     obs.append(m)

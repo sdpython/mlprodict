@@ -304,3 +304,6 @@ _unittests/ut_asv_benchmark/cache*.pickle
 build_ext.bat
 _doc/examples/*.pkl
 _doc/examples/plot_benchmark.svg
+_doc/examples/plot_*.csv
+_doc/examples/plot_*.xlsx
+_doc/examples/plot_*.png

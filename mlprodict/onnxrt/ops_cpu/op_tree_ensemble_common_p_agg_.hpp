@@ -55,27 +55,70 @@ enum MissingTrack {
 template<typename NTYPE>
 struct TreeNodeElement {
     TreeNodeElementId id;
-    int feature_id;
+    size_t feature_id;
     NTYPE value;
     NTYPE hitrates;
     NODE_MODE mode;
     TreeNodeElement *truenode;
     TreeNodeElement *falsenode;
     MissingTrack missing_tracks;
-    std::vector<SparseValue<NTYPE>> weights;
-    
-    bool is_not_leave;
+    SparseValue<NTYPE> weights0;
+    std::vector<SparseValue<NTYPE>> weights_vect;
     bool is_missing_track_true;
-    
+
+    inline bool is_not_leaf() const { 
+        return truenode != nullptr; 
+    }
     int64_t get_sizeof() {
-        return sizeof(TreeNodeElement) + weights.size() * sizeof(SparseValue<NTYPE>);
+        return sizeof(TreeNodeElement) + weights_vect.size() * sizeof(SparseValue<NTYPE>);
     }
 };
 
+#if !defined(UINT_MAX)
+#define UINT_MAX 4294967295
+#endif
+#define ID_LEAF_TRUE_NODE UINT_MAX
 
 template<typename NTYPE>
-class _Aggregator
-{
+struct ArrayTreeNodeElement {
+    std::vector<TreeNodeElementId> id;
+    std::vector<size_t> feature_id;
+    std::vector<NTYPE> value;
+    std::vector<NTYPE> hitrates;
+    std::vector<NODE_MODE> mode;
+    std::vector<size_t> truenode;
+    std::vector<size_t> falsenode;
+    std::vector<MissingTrack> missing_tracks;
+    std::vector<SparseValue<NTYPE>> weights0;
+    std::vector<std::vector<SparseValue<NTYPE>>> weights;
+    std::vector<size_t> root_id;
+    std::vector<bool> is_missing_track_true;
+    
+    inline bool is_not_leaf(size_t i) const { 
+        return truenode[i] != ID_LEAF_TRUE_NODE; 
+    }
+
+    int64_t get_sizeof() {
+        int64_t res = sizeof(ArrayTreeNodeElement<NTYPE>) +
+            id.size() * sizeof(TreeNodeElementId) +
+            feature_id.size() * sizeof(size_t) +
+            value.size() * sizeof(NTYPE) +
+            hitrates.size() * sizeof(NTYPE) +
+            mode.size() * sizeof(NODE_MODE) +
+            truenode.size() * sizeof(size_t) +
+            falsenode.size() * sizeof(truenode) +
+            missing_tracks.size() * sizeof(MissingTrack) +
+            weights0.size() * sizeof(SparseValue<NTYPE>) +
+            is_missing_track_true.size() * sizeof(bool) +
+            root_id.size() * sizeof(size_t);
+        for(auto it = weights.begin(); it != weights.end(); ++it)
+            res += it->size() * sizeof(SparseValue<NTYPE>);
+        return res;
+    }
+};
+
+template<typename NTYPE>
+class _Aggregator {
     protected:
 
         size_t n_trees_;
@@ -87,10 +130,18 @@ class _Aggregator
 
     public:
 
+        inline bool use_base_values() const { return use_base_values_; }
+        inline POST_EVAL_TRANSFORM post_transform() const { return post_transform_; }
+        inline size_t n_trees() const { return n_trees_; }
+        inline size_t n_targets_or_classes() const { return n_targets_or_classes_; }
+        inline NTYPE origin() const { return origin_; }
+
+    public:
+
         inline _Aggregator(size_t n_trees,
                            const int64_t& n_targets_or_classes,
                            POST_EVAL_TRANSFORM post_transform,
-                           const std::vector<NTYPE> * base_values) : 
+                           const std::vector<NTYPE>* base_values) : 
                 n_trees_(n_trees), n_targets_or_classes_(n_targets_or_classes),
                 post_transform_(post_transform), base_values_(base_values) {
             origin_ = base_values_->size() == 1 ? (*base_values_)[0] : 0.f;
@@ -101,39 +152,46 @@ class _Aggregator
         
         // 1 output
 
-        inline void ProcessTreeNodePrediction1(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions, TreeNodeElement<NTYPE>* root,
                                                unsigned char* has_predictions) const {}
+
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions, const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                               size_t node_id, unsigned char* has_predictions) const {}
 
         inline void MergePrediction1(NTYPE* predictions, unsigned char* has_predictions,
                                      NTYPE* predictions2, unsigned char* has_predictions2) const {}
 
-        inline void FinalizeScores1(NTYPE* Z, NTYPE& val,
-                                    unsigned char& has_scores,
-                                    int64_t * Y = 0) const {
+        inline size_t FinalizeScores1(NTYPE* Z, NTYPE& val,
+                                      unsigned char& has_scores,
+                                      int64_t * Y = 0) const {
             val = has_scores ? (val + origin_) : origin_;
             *Z = post_transform_ == POST_EVAL_TRANSFORM::PROBIT ? ComputeProbit(val) : val;
+            return 1;
         }
 
         // N outputs
         
-        void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
+        void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE>* root,
                                        unsigned char* has_predictions) const {}
+
+        void ProcessTreeNodePrediction(NTYPE* predictions, const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                       size_t node_id, unsigned char* has_predictions) const {}
 
         void MergePrediction(int64_t n,
                              NTYPE* predictions, unsigned char* has_predictions,
                              NTYPE* predictions2, unsigned char* has_predictions2) const {}
 
-        void FinalizeScores(std::vector<NTYPE>& scores,
-                            std::vector<unsigned char>& has_scores,
-                            NTYPE* Z, int add_second_class,
-                            int64_t * Y = 0) const {
+        size_t FinalizeScores(NTYPE* scores,
+                              unsigned char* has_scores,
+                              NTYPE* Z, int add_second_class,
+                              int64_t * Y = 0) const {
             NTYPE val;
             for (int64_t jt = 0; jt < n_targets_or_classes_; ++jt) {
                 val = use_base_values_ ? (*base_values_)[jt] : 0.f;
                 val += has_scores[jt] ? scores[jt] : 0;
                 scores[jt] = val;
             }
-            write_scores(scores, post_transform_, Z, add_second_class);
+            return write_scores(this->n_targets_or_classes_, scores, post_transform_, Z, add_second_class);
         }
 };
 
@@ -144,8 +202,7 @@ class _Aggregator
 
 
 template<typename NTYPE>
-class _AggregatorSum : public _Aggregator<NTYPE>
-{
+class _AggregatorSum : public _Aggregator<NTYPE> {
     // has_score is not used.
     public:
 
@@ -161,9 +218,16 @@ class _AggregatorSum : public _Aggregator<NTYPE>
         // 1 output
                                
         inline void ProcessTreeNodePrediction1(NTYPE* predictions,
-                                               TreeNodeElement<NTYPE> * root,
+                                               TreeNodeElement<NTYPE>* root,
                                                unsigned char* has_predictions) const {
-            *predictions += root->weights[0].value;
+            *predictions += root->weights0.value;
+        }
+
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions,
+                                               const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                               size_t node_id,
+                                               unsigned char* has_predictions) const {
+            *predictions += array_nodes.weights0[node_id].value;
         }
 
         inline void MergePrediction1(NTYPE* predictions, unsigned char* has_predictions,
@@ -171,18 +235,27 @@ class _AggregatorSum : public _Aggregator<NTYPE>
             *predictions += *predictions2;
         }
 
-        inline void FinalizeScores1(NTYPE* Z, NTYPE& val,
+        inline size_t FinalizeScores1(NTYPE* Z, NTYPE& val,
                                     unsigned char& has_scores,
                                     int64_t * Y = 0) const {
             val += this->origin_;
             *Z = this->post_transform_ == POST_EVAL_TRANSFORM::PROBIT ? ComputeProbit(val) : val;
+            return 1;
         }
 
         // N outputs
         
         void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                        unsigned char* has_predictions) const {
-            for(auto it = root->weights.cbegin(); it != root->weights.cend(); ++it) {
+            for(auto it = root->weights_vect.cbegin(); it != root->weights_vect.cend(); ++it) {
+                predictions[it->i] += it->value;
+                has_predictions[it->i] = 1;
+            }
+        }
+
+        void ProcessTreeNodePrediction(NTYPE* predictions, const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                       size_t node_id, unsigned char* has_predictions) const {
+            for(auto it = array_nodes.weights[node_id].cbegin(); it != array_nodes.weights[node_id].cend(); ++it) {
                 predictions[it->i] += it->value;
                 has_predictions[it->i] = 1;
             }
@@ -198,24 +271,24 @@ class _AggregatorSum : public _Aggregator<NTYPE>
             }
         }
 
-        void FinalizeScores(std::vector<NTYPE>& scores,
-                            std::vector<unsigned char>& has_scores,
-                            NTYPE* Z, int add_second_class,
-                            int64_t * Y = 0) const {
+        size_t FinalizeScores(NTYPE* scores,
+                              unsigned char* has_scores,
+                              NTYPE* Z, int add_second_class,
+                              int64_t * Y = 0) const {
             if (this->use_base_values_) {
-                auto it = scores.begin();
+                auto it = scores;
+                auto end = scores + this->n_targets_or_classes_;
                 auto it2 = this->base_values_->cbegin();
-                for (; it != scores.end(); ++it, ++it2)
+                for (; it != end; ++it, ++it2)
                     *it += *it2;
             }
-            write_scores(scores, this->post_transform_, Z, add_second_class);
+            return write_scores(this->n_targets_or_classes_, scores, this->post_transform_, Z, add_second_class);
         }
 };
 
 
 template<typename NTYPE>
-class _AggregatorAverage : public _AggregatorSum<NTYPE>
-{
+class _AggregatorAverage : public _AggregatorSum<NTYPE> {
     public:
         
         inline _AggregatorAverage<NTYPE>(size_t n_trees,
@@ -227,36 +300,38 @@ class _AggregatorAverage : public _AggregatorSum<NTYPE>
 
         const char * name() const { return "_AggregatorAverage"; }
 
-        inline void FinalizeScores1(NTYPE* Z, NTYPE& val,
-                                    unsigned char& has_scores,
-                                    int64_t * Y = 0) const {
+        inline size_t FinalizeScores1(NTYPE* Z, NTYPE& val,
+                                      unsigned char& has_scores,
+                                      int64_t * Y = 0) const {
             val /= this->n_trees_;
             val += this->origin_;
             *Z = this->post_transform_ == POST_EVAL_TRANSFORM::PROBIT ? ComputeProbit(val) : val;
+            return 1;
         }
 
-        void FinalizeScores(std::vector<NTYPE>& scores,
-                            std::vector<unsigned char>& has_scores,
-                            NTYPE* Z, int add_second_class,
-                            int64_t * Y = 0) const {
+        size_t FinalizeScores(NTYPE* scores,
+                              unsigned char* has_scores,
+                              NTYPE* Z, int add_second_class,
+                              int64_t * Y = 0) const {
             if (this->use_base_values_) {
-                auto it = scores.begin();
+                auto it = scores;
                 auto it2 = this->base_values_->cbegin();
-                for (; it != scores.end(); ++it, ++it2)
+                auto end = scores + this->n_targets_or_classes_;
+                for (; it != end; ++it, ++it2)
                     *it = *it / this->n_trees_ + *it2;
             }
             else {                
-                for (auto it = scores.begin(); it != scores.end(); ++it)
+                auto end = scores + this->n_targets_or_classes_;
+                for (auto it = scores; it != end; ++it)
                     *it /= this->n_trees_;
             }
-            write_scores(scores, this->post_transform_, Z, add_second_class);
+            return write_scores(this->n_targets_or_classes_, scores, this->post_transform_, Z, add_second_class);
         }        
 };
 
 
 template<typename NTYPE>
-class _AggregatorMin : public _Aggregator<NTYPE>
-{
+class _AggregatorMin : public _Aggregator<NTYPE> {
     public:
 
         inline _AggregatorMin<NTYPE>(size_t n_trees,
@@ -272,8 +347,18 @@ class _AggregatorMin : public _Aggregator<NTYPE>
                                
         inline void ProcessTreeNodePrediction1(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                                unsigned char* has_predictions) const {
-            *predictions = (!(*has_predictions) || root->weights[0].value < *predictions) 
-                                    ? root->weights[0].value : *predictions;
+            *predictions = (!(*has_predictions) || root->weights0.value < *predictions) 
+                                    ? root->weights0.value : *predictions;
+            *has_predictions = 1;
+        }
+
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions,
+                                               const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                               size_t node_id,
+                                               unsigned char* has_predictions) const {
+            auto val = array_nodes.weights0[node_id].value;
+            *predictions = (!(*has_predictions) || val < *predictions) 
+                                    ? val : *predictions;
             *has_predictions = 1;
         }
 
@@ -291,7 +376,16 @@ class _AggregatorMin : public _Aggregator<NTYPE>
         
         void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                        unsigned char* has_predictions) const {
-            for(auto it = root->weights.cbegin(); it != root->weights.cend(); ++it) {
+            for(auto it = root->weights_vect.cbegin(); it != root->weights_vect.cend(); ++it) {
+                predictions[it->i] = (!has_predictions[it->i] || it->value < predictions[it->i]) 
+                                        ? it->value : predictions[it->i];
+                has_predictions[it->i] = 1;
+            }
+        }
+
+        void ProcessTreeNodePrediction(NTYPE* predictions, const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                       size_t node_id, unsigned char* has_predictions) const {
+            for(auto it = array_nodes.weights[node_id].cbegin(); it != array_nodes.weights[node_id].cend(); ++it) {
                 predictions[it->i] = (!has_predictions[it->i] || it->value < predictions[it->i]) 
                                         ? it->value : predictions[it->i];
                 has_predictions[it->i] = 1;
@@ -314,8 +408,7 @@ class _AggregatorMin : public _Aggregator<NTYPE>
 
 
 template<typename NTYPE>
-class _AggregatorMax : public _Aggregator<NTYPE>
-{
+class _AggregatorMax : public _Aggregator<NTYPE> {
     public:
 
         inline _AggregatorMax<NTYPE>(size_t n_trees,
@@ -331,8 +424,18 @@ class _AggregatorMax : public _Aggregator<NTYPE>
 
         inline void ProcessTreeNodePrediction1(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                                unsigned char* has_predictions) const {
-            *predictions = (!(*has_predictions) || root->weights[0].value > *predictions) 
-                                    ? root->weights[0].value : *predictions;
+            *predictions = (!(*has_predictions) || root->weights0.value > *predictions) 
+                                    ? root->weights0.value : *predictions;
+            *has_predictions = 1;
+        }
+
+        inline void ProcessTreeNodePrediction1(NTYPE* predictions,
+                                               const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                               size_t node_id,
+                                               unsigned char* has_predictions) const {
+            auto val = array_nodes.weights0[node_id].value;
+            *predictions = (!(*has_predictions) || val > *predictions) 
+                                    ? val : *predictions;
             *has_predictions = 1;
         }
 
@@ -350,7 +453,16 @@ class _AggregatorMax : public _Aggregator<NTYPE>
 
         void ProcessTreeNodePrediction(NTYPE* predictions, TreeNodeElement<NTYPE> * root,
                                        unsigned char* has_predictions) const {
-            for(auto it = root->weights.cbegin(); it != root->weights.cend(); ++it) {
+            for(auto it = root->weights_vect.cbegin(); it != root->weights_vect.cend(); ++it) {
+                predictions[it->i] = (!has_predictions[it->i] || it->value > predictions[it->i]) 
+                                        ? it->value : predictions[it->i];
+                has_predictions[it->i] = 1;
+            }
+        }
+
+        void ProcessTreeNodePrediction(NTYPE* predictions, const ArrayTreeNodeElement<NTYPE>& array_nodes,
+                                       size_t node_id, unsigned char* has_predictions) const {
+            for(auto it = array_nodes.weights[node_id].cbegin(); it != array_nodes.weights[node_id].cend(); ++it) {
                 predictions[it->i] = (!has_predictions[it->i] || it->value > predictions[it->i]) 
                                         ? it->value : predictions[it->i];
                 has_predictions[it->i] = 1;
@@ -377,8 +489,7 @@ class _AggregatorMax : public _Aggregator<NTYPE>
 
 
 template<typename NTYPE>
-class _AggregatorClassifier : public _AggregatorSum<NTYPE>
-{
+class _AggregatorClassifier : public _AggregatorSum<NTYPE> {
     private:
 
         const std::vector<int64_t> * class_labels_;
@@ -398,25 +509,25 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE>
                                      bool weights_are_all_positive,
                                      int64_t positive_label = 1,
                                      int64_t negative_label = 0) :
-            _AggregatorSum<NTYPE>(n_trees, n_targets_or_classes,
-                                  post_transform, base_values),
-            class_labels_(class_labels), binary_case_(binary_case),
-            weights_are_all_positive_(weights_are_all_positive),
+                _AggregatorSum<NTYPE>(n_trees, n_targets_or_classes,
+                                      post_transform, base_values),
+                class_labels_(class_labels), binary_case_(binary_case),
+                weights_are_all_positive_(weights_are_all_positive),
             positive_label_(positive_label), negative_label_(negative_label) { }
             
         const char * name() const { return "_AggregatorClassifier"; }
 
-        void get_max_weight(const std::vector<NTYPE>& classes, 
-                            const std::vector<unsigned char>& has_scores, 
+        void get_max_weight(const NTYPE* classes, 
+                            const unsigned char* has_scores, 
                             int64_t& maxclass, NTYPE& maxweight) const {
             maxclass = -1;
             maxweight = (NTYPE)0;
-            typename std::vector<NTYPE>::const_iterator it;
-            typename std::vector<unsigned char>::const_iterator itb;
-            for (it = classes.cbegin(), itb = has_scores.cbegin();
-               it != classes.cend(); ++it, ++itb) {
+            const NTYPE* it;
+            const NTYPE* end = classes + this->n_targets_or_classes_;
+            const unsigned char* itb;
+            for (it = classes, itb = has_scores; it != end; ++it, ++itb) {
                 if (*itb && (maxclass == -1 || *it > maxweight)) {
-                    maxclass = (int64_t)(it - classes.cbegin());
+                    maxclass = (int64_t)(it - classes);
                     maxweight = *it;
                 }
             }
@@ -457,9 +568,9 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE>
 
         // 1 output
         
-        inline void FinalizeScores1(NTYPE* Z, NTYPE& val,
-                                    unsigned char& has_score,
-                                    int64_t * Y = 0) const {
+        inline size_t FinalizeScores1(NTYPE* Z, NTYPE& val,
+                                      unsigned char& has_score,
+                                      int64_t * Y = 0) const {
             NTYPE scores[2];
             unsigned char has_scores[2] = {1, 0};
 
@@ -470,6 +581,7 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE>
                 scores[0] = -scores[1];
                 //has_score = true;
                 has_scores[1] = 1;
+                write_additional_scores = 0;
             }
             else if (this->base_values_->size() == 1) {
                 // ONNX is vague about two classes and only one base_values.
@@ -485,18 +597,20 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE>
             }
 
             *Y = _set_score_binary(write_additional_scores, &(scores[0]), has_scores);
-            write_scores2(scores, this->post_transform_, Z,
-                          write_additional_scores);            
+            return write_additional_scores == -1
+                ? write_scores(this->n_targets_or_classes_, scores, this->post_transform_, Z, write_additional_scores)
+                : write_scores2(scores, this->post_transform_, Z, write_additional_scores);
         }
 
         // N outputs
         
-        void FinalizeScores(std::vector<NTYPE>& scores,
-                            std::vector<unsigned char>& has_scores,
-                            NTYPE* Z, int add_second_class,
-                            int64_t * Y = 0) const {
+        size_t FinalizeScores(NTYPE* scores,
+                              unsigned char* has_scores,
+                              NTYPE* Z, int add_second_class,
+                              int64_t * Y = 0) const {
             NTYPE maxweight = (NTYPE)0;
             int64_t maxclass = -1;
+            size_t n_classes = this->n_targets_or_classes_;
 
             int write_additional_scores = -1;
             if (this->n_targets_or_classes_ > 2) {
@@ -535,16 +649,16 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE>
                     // ONNX is vague about two classes and only one base_values.
                     scores[0] += (*(this->base_values_))[0];
                     if (!has_scores[1])
-                      scores.pop_back();
+                        --n_classes;
                 }
                 else if (this->base_values_->size() == 0) {
                     if (!has_scores[1])
-                      scores.pop_back();
+                        --n_classes;
                 }
 
                 *Y = _set_score_binary(write_additional_scores, &(scores[0]), &(has_scores[0]));
             }
 
-            write_scores(scores, this->post_transform_, Z, write_additional_scores);
+            return write_scores(n_classes, scores, this->post_transform_, Z, write_additional_scores);
         }
 };

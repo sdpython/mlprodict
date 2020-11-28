@@ -140,7 +140,7 @@ tree2 = {'average_output': False,
          'version': 'v2'}
 
 
-class TestLightGbmTreeStructur(ExtTestCase):
+class TestLightGbmTreeStructure(ExtTestCase):
 
     def setUp(self):
         logger = getLogger('skl2onnx')
@@ -230,7 +230,8 @@ class TestLightGbmTreeStructur(ExtTestCase):
         nb2 = sum(count_nodes(t['tree_structure']) for t in tree['tree_info'])
         self.assertEqual(nb1, nb2)
         self.assertEqual(nb1, 16)
-        onx = to_onnx(model, initial_types=[('x', FloatTensorType([None, 4]))])
+        onx = to_onnx(model, initial_types=[('x', FloatTensorType([None, 4]))],
+                      options={id(model): {'zipmap': False}})
         self.assertTrue(model.visited)
 
         for n in onx.graph.node:
@@ -249,11 +250,13 @@ class TestLightGbmTreeStructur(ExtTestCase):
         X = (X * 10).astype(numpy.int32)
 
         oif = OnnxInference(onx)
-        pred = oif.run({'x': X})
-        label = pred["output_label"]
-        self.assertEqual(label.shape, (X.shape[0], ))
-        prob = DataFrame(pred["output_probability"]).values
-        self.assertEqual(prob.shape, (X.shape[0], 2))
+        for row in [1, 10, 20, 30, 40, 50, 60, 70]:
+            with self.subTest(row=row):
+                pred = oif.run({'x': X[:row].astype(numpy.float32)})
+                label = pred["output_label"]
+                self.assertEqual(label.shape, (row, ))
+                prob = DataFrame(pred["output_probability"]).values
+                self.assertEqual(prob.shape, (row, 2))
 
 
 if __name__ == "__main__":
