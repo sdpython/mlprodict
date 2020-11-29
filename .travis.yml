@@ -16,4 +16,4 @@ install:
 before_script:
   - python setup.py build_ext --inplace
 script:
-  - python setup.py unittests
+  - python setup.py unittests -g ".*((LONG)|(SKIP)|(notebooks)).*"

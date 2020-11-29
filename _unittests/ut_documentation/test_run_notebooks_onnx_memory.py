@@ -7,8 +7,7 @@ import unittest
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.ipythonhelper import test_notebook_execution_coverage
 from pyquickhelper.pycode import (
-    add_missing_development_version, ExtTestCase
-)
+    add_missing_development_version, ExtTestCase)
 import mlprodict
 
 
