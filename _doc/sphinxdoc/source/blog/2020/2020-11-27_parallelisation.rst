@@ -44,3 +44,9 @@
     * `Memory Layout Transformations
       <https://software.intel.com/content/www/us/en/develop/articles/
       memory-layout-transformations.html>`_
+
+    Other readings:
+
+    * `Demystifying The Restrict Keyword
+      <https://cellperformance.beyond3d.com/articles/2006/05/demystifying-the-restrict-keyword.html>`_
+    * `Aliasing <https://en.wikipedia.org/wiki/Aliasing_%28computing%29>`_
