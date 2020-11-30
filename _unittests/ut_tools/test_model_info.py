@@ -1,5 +1,5 @@
 """
-@brief      test log(time=4s)
+@brief      test log(time=16s)
 """
 import inspect
 import unittest
@@ -170,7 +170,6 @@ class TestModelInfo(ExtTestCase):
         self.assertGreater(info['estimators_.sum|.sum|tree_.leave_count'], 8)
         self.assertGreater(info['estimators_.max|.max|tree_.max_depth'], 3)
 
-    @skipif_circleci('issue, too long')
     def test_set_random_state(self):
 
         def get_values(model):
