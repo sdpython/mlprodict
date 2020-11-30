@@ -37,9 +37,9 @@ jobs:
      displayName: 'Install onnxruntime'
    - script: |
        python -u setup.py build_ext --inplace
-     displayName: 'Runs Unit Tests'
+     displayName: 'Build package inplace'
    - script: |
-       python -u setup.py unittests
+       python -u setup.py unittests -g ".*((LONG)|(SKIP)|(notebooks)).*"
      displayName: 'Runs Unit Tests'
    - script: |
        python -u setup.py bdist_wheel
@@ -90,7 +90,7 @@ jobs:
      displayName: 'Install onnxruntime'
    - script: |
        python -u setup.py build_ext --inplace
-     displayName: 'Runs Unit Tests'
+     displayName: 'Build package inplace'
    - script: |
        python -u setup.py unittests -d 20
      displayName: 'Runs Unit Tests'
@@ -125,8 +125,8 @@ jobs:
      displayName: 'Install omp'
    - script: brew install pandoc
      displayName: 'Install Pandoc'
-   - script: brew install graphviz
-     displayName: 'Install Graphviz'
+   #- script: brew install graphviz
+   #  displayName: 'Install Graphviz'
    # - script: brew cask install mactex
    #   displayName: 'Install latex'
    - script: python -m pip install --upgrade pip setuptools wheel
@@ -144,9 +144,9 @@ jobs:
    - script: |
           export MACOSX_DEPLOYMENT_TARGET=10.14
           python setup.py build_ext --inplace
-     displayName: 'Build package'
+     displayName: 'Build package inplace'
    - script: |
-      python -u setup.py unittests
+      python -u setup.py unittests -g ".*((LONG)|(SKIP)|(notebooks)).*"
      displayName: 'Runs Unit Tests'
    - script: |
       python -u setup.py bdist_wheel

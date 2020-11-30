@@ -170,6 +170,7 @@ class TestModelInfo(ExtTestCase):
         self.assertGreater(info['estimators_.sum|.sum|tree_.leave_count'], 8)
         self.assertGreater(info['estimators_.max|.max|tree_.max_depth'], 3)
 
+    @skipif_circleci('issue, too long')
     def test_set_random_state(self):
 
         def get_values(model):
