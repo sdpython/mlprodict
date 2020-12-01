@@ -66,26 +66,30 @@ def perm2eq(perm):
     return "%s->%s" % (first, second)
 
 
-def benchmark_op(perm, repeat=5, number=1, name="transpose", shape_fct=None):
+def benchmark_op(perm, repeat=5, number=5, name="transpose", shape_fct=None):
     if shape_fct is None:
-        shape_fct = lambda dim: (dim, dim, 1, dim)
+        shape_fct = lambda dim: (3, dim, 1, dim)
     ort_fct = build_ort_transpose(perm)
     res = []
     for dim in tqdm([8, 16, 32, 64, 100, 128, 200,
-                     256, 500, 512]):
+                     256, 400, 512]):
         shape = shape_fct(dim)
         xs = [numpy.random.rand(*shape).astype(numpy.float32)
               for _ in range(5)]
         ys = [perm for _ in range(5)]
         equation = perm2eq(perm)
+        info = dict(perm=perm, shape=shape)
 
         # numpy
-        ctx = dict(xs=xs, ys=ys, fct=numpy.transpose, loop_fct=loop_fct)
+        ctx = dict(xs=xs, ys=ys, fct=numpy.transpose, loop_fct=loop_fct,
+                   )
         obs = measure_time(
             "loop_fct(fct, xs, ys)",
             div_by_number=True, context=ctx, repeat=repeat, number=number)
         obs['dim'] = dim
         obs['fct'] = 'numpy'
+        obs.update(info)
+
         res.append(obs)
 
         # onnxruntime
@@ -95,6 +99,7 @@ def benchmark_op(perm, repeat=5, number=1, name="transpose", shape_fct=None):
             div_by_number=True, context=ctx, repeat=repeat, number=number)
         obs['dim'] = dim
         obs['fct'] = 'ort'
+        obs.update(info)
         res.append(obs)
 
         if tf_transpose is not None:
@@ -107,6 +112,7 @@ def benchmark_op(perm, repeat=5, number=1, name="transpose", shape_fct=None):
                 div_by_number=True, context=ctx, repeat=repeat, number=number)
             obs['dim'] = dim
             obs['fct'] = 'tf'
+            obs.update(info)
             res.append(obs)
 
         if torch_einsum is not None:
@@ -119,6 +125,7 @@ def benchmark_op(perm, repeat=5, number=1, name="transpose", shape_fct=None):
                 div_by_number=True, context=ctx, repeat=repeat, number=number)
             obs['dim'] = dim
             obs['fct'] = 'torch'
+            obs.update(info)
             res.append(obs)
 
     # Dataframes
@@ -145,9 +152,10 @@ def benchmark_op(perm, repeat=5, number=1, name="transpose", shape_fct=None):
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
     ax[1].legend(prop={"size": 6})
-
     return df, piv, ax
 
+
+dfs = []
 
 ###################################
 # First permutation: (1, 0, 2, 3)
@@ -155,6 +163,7 @@ def benchmark_op(perm, repeat=5, number=1, name="transpose", shape_fct=None):
 
 perm = (1, 0, 2, 3)
 df, piv, ax = benchmark_op(perm)
+dfs.append(df)
 df.pivot("fct", "N", "average")
 
 ####################################
@@ -168,6 +177,7 @@ piv.T
 
 perm = (1, 0, 3, 2)
 df, piv, ax = benchmark_op(perm)
+dfs.append(df)
 df.pivot("fct", "N", "average")
 
 ####################################
@@ -181,6 +191,7 @@ piv.T
 
 perm = (0, 2, 1, 3)
 df, piv, ax = benchmark_op(perm)
+dfs.append(df)
 df.pivot("fct", "N", "average")
 
 ####################################
@@ -194,6 +205,7 @@ piv.T
 
 perm = (3, 1, 2, 0)
 df, piv, ax = benchmark_op(perm)
+dfs.append(df)
 df.pivot("fct", "N", "average")
 
 ####################################
@@ -207,6 +219,7 @@ piv.T
 
 perm = (1, 2, 3, 0)
 df, piv, ax = benchmark_op(perm)
+dfs.append(df)
 df.pivot("fct", "N", "average")
 
 ####################################
@@ -223,5 +236,10 @@ piv.T
 # <https://pytorch.org/docs/stable/generated/torch.transpose.html>`_,
 # it appears that the function is optimized when only two dimensions
 # are permuted.
+
+merged = pandas.concat(dfs)
+name = "transpose"
+merged.to_csv("plot_%s.csv" % name, index=False)
+merged.to_excel("plot_%s.xlsx" % name, index=False)
 
 plt.show()
