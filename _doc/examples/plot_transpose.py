@@ -18,13 +18,16 @@ Available optimisation
 
 The code shows which parallelisation optimisation could be used,
 *AVX* or *SSE* and the number of available processors.
+Both :epkg:`numpy` and :epkg:`torch` have lazy implementations,
+the function switches dimensions and strides but does not move
+any data. That's why function *contiguous* was called in both cases.
 """
 from mlprodict.testing.experimental_c import code_optimisation
 print(code_optimisation())
 
 ###################################
-# Transpose implementation
-# ++++++++++++++++++++++++
+# Transpose implementations
+# +++++++++++++++++++++++++
 
 import numpy
 import pandas
@@ -68,28 +71,30 @@ def perm2eq(perm):
 
 def benchmark_op(perm, repeat=5, number=5, name="transpose", shape_fct=None):
     if shape_fct is None:
-        shape_fct = lambda dim: (3, dim, 1, dim)
+        shape_fct = lambda dim: (3, dim, 1, 512)
     ort_fct = build_ort_transpose(perm)
     res = []
     for dim in tqdm([8, 16, 32, 64, 100, 128, 200,
-                     256, 400, 512]):
+                     256, 400, 512, 1024]):
         shape = shape_fct(dim)
+        n_arrays = 10 if dim < 512 else 4
         xs = [numpy.random.rand(*shape).astype(numpy.float32)
-              for _ in range(5)]
-        ys = [perm for _ in range(5)]
+              for _ in range(n_arrays)]
+        ys = [perm for _ in range(n_arrays)]
         equation = perm2eq(perm)
         info = dict(perm=perm, shape=shape)
 
         # numpy
-        ctx = dict(xs=xs, ys=ys, fct=numpy.transpose, loop_fct=loop_fct,
-                   )
+        ctx = dict(
+            xs=xs, ys=ys,
+            fct=lambda x, y: numpy.ascontiguousarray(numpy.transpose(x, y)),
+            loop_fct=loop_fct)
         obs = measure_time(
             "loop_fct(fct, xs, ys)",
             div_by_number=True, context=ctx, repeat=repeat, number=number)
         obs['dim'] = dim
         obs['fct'] = 'numpy'
         obs.update(info)
-
         res.append(obs)
 
         # onnxruntime
@@ -115,9 +120,22 @@ def benchmark_op(perm, repeat=5, number=5, name="transpose", shape_fct=None):
             obs.update(info)
             res.append(obs)
 
+            # tensorflow with copy
+            ctx['fct'] = lambda x, y: tf_transpose(
+                convert_to_tensor(x)).numpy()
+            ctx['xs'] = xs
+            ctx['ys'] = ys
+            obs = measure_time(
+                "loop_fct(fct, xs, ys)",
+                div_by_number=True, context=ctx, repeat=repeat, number=number)
+            obs['dim'] = dim
+            obs['fct'] = 'tf_copy'
+            obs.update(info)
+            res.append(obs)
+
         if torch_einsum is not None:
             # torch
-            ctx['fct'] = lambda x, y: torch_einsum(equation, x)
+            ctx['fct'] = lambda x, y: torch_einsum(equation, x).contiguous()
             ctx['xs'] = [from_numpy(x) for x in xs]
             ctx['ys'] = ys  # [from_numpy(y) for y in ys]
             obs = measure_time(
@@ -135,7 +153,7 @@ def benchmark_op(perm, repeat=5, number=5, name="transpose", shape_fct=None):
     piv = df.pivot('N', 'fct', 'average')
 
     rs = piv.copy()
-    for c in ['ort', 'torch', 'tf']:
+    for c in ['ort', 'torch', 'tf', 'tf_copy']:
         if c in rs.columns:
             rs[c] = rs['numpy'] / rs[c]
     rs['numpy'] = 1.
@@ -202,6 +220,13 @@ piv.T
 ###################################
 # Fourth permutation: (3, 1, 2, 0)
 # ++++++++++++++++++++++++++++++++
+#
+# This transposition is equivalent to a reshape
+# because it only moves the empty axis.
+# The comparison is entirely fair as the cost
+# for onnxruntime includes a copy from numpy to
+# onnxruntime, a reshape = another copy, than a copy
+# back to numpy.
 
 perm = (3, 1, 2, 0)
 df, piv, ax = benchmark_op(perm)
@@ -227,19 +252,33 @@ df.pivot("fct", "N", "average")
 piv.T
 
 
+###################################
+# Six th permutation: (1, 2, 4, 3, 0)
+# +++++++++++++++++++++++++++++++++++
+
+perm = (1, 2, 4, 3, 0)
+df, piv, ax = benchmark_op(perm, shape_fct=lambda dim: (3, dim, 1, 8, 512))
+dfs.append(df)
+df.pivot("fct", "N", "average")
+
+####################################
+# Ratios
+piv.T
+
+
 ####################################
 # Conclusion
 # ++++++++++
 #
-# :epkg:`pytorch` implementation is much faster.
-# Look at the signature of function `transpose
-# <https://pytorch.org/docs/stable/generated/torch.transpose.html>`_,
-# it appears that the function is optimized when only two dimensions
-# are permuted.
+# All libraries have similar implementations.
+# :epkg:`onnxruntime` measures includes 2 mores copies,
+# one to copy from numpy container to onnxruntime container,
+# another one to copy back from onnxruntime container to numpy.
 
 merged = pandas.concat(dfs)
 name = "transpose"
 merged.to_csv("plot_%s.csv" % name, index=False)
 merged.to_excel("plot_%s.xlsx" % name, index=False)
+plt.savefig("plot_%s.png" % name)
 
 plt.show()
