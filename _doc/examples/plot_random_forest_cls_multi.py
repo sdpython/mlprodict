@@ -15,20 +15,14 @@ for multi-classification.
 Import
 ++++++
 """
-import sys
 import warnings
-from io import BytesIO
 from time import perf_counter as time
-from itertools import combinations, chain
-from itertools import combinations_with_replacement as combinations_w_r
 from multiprocessing import cpu_count
-
-import matplotlib
 import numpy
 from numpy.random import rand
 from numpy.testing import assert_almost_equal
-import matplotlib.pyplot as plt
 import pandas
+import matplotlib.pyplot as plt
 from sklearn import config_context
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils._testing import ignore_warnings
@@ -142,17 +136,19 @@ def bench(n_obs, n_features, max_depths, n_estimatorss, n_jobss,
 
                             fct1, fct2, fct3, fct4, fct5 = fcts[method]
 
-                            if not allow_configuration(n=n, nfeat=nfeat,
-                                                       max_depth=max_depth,
-                                                       n_estimator=n_estimators,
-                                                       n_jobs=n_jobs, method=method):
+                            if not allow_configuration(
+                                    n=n, nfeat=nfeat, max_depth=max_depth,
+                                    n_estimator=n_estimators, n_jobs=n_jobs,
+                                    method=method):
                                 continue
 
-                            obs = dict(n_obs=n, nfeat=nfeat, max_depth=max_depth,
-                                       n_estimators=n_estimators, method=method,
+                            obs = dict(n_obs=n, nfeat=nfeat,
+                                       max_depth=max_depth,
+                                       n_estimators=n_estimators,
+                                       method=method,
                                        n_jobs=n_jobs)
 
-                            # creates different inputs to avoid caching in any ways
+                            # creates different inputs to avoid caching
                             Xs = []
                             for r in range(repeat):
                                 x = numpy.empty((n, nfeat))
@@ -266,8 +262,10 @@ def plot_rf_models(dfr):
             for nf in sorted(set(dfr.nfeat)):
                 for est in sorted(set(dfr.n_estimators)):
                     for n_jobs in sorted(set(dfr.n_jobs)):
-                        sub = dfr[(dfr.max_depth == max_depth) & (dfr.nfeat == nf) &
-                                  (dfr.n_estimators == est) & (dfr.n_jobs == n_jobs)]
+                        sub = dfr[(dfr.max_depth == max_depth) &
+                                  (dfr.nfeat == nf) &
+                                  (dfr.n_estimators == est) &
+                                  (dfr.n_jobs == n_jobs)]
                         ax = axs[row, pos]
                         labels = sub.n_obs
                         means = sub["speedup_%s" % engine]
@@ -282,8 +280,9 @@ def plot_rf_models(dfr):
 
                         if pos == 0:
                             ax.set_ylabel('Speedup')
-                        ax.set_title('%s\ndepth %d - %d features\n %d estimators %d jobs' % (
-                            name, max_depth, nf, est, n_jobs))
+                        ax.set_title(
+                            '%s\ndepth %d - %d features\n %d estimators '
+                            '%d jobs' % (name, max_depth, nf, est, n_jobs))
                         if row == len(engines) - 1:
                             ax.set_xlabel('batch size')
                         ax.set_xticks(x)

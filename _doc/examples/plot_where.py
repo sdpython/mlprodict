@@ -17,6 +17,14 @@ Available optimisation
 ++++++++++++++++++++++
 
 """
+import numpy
+import pandas
+import matplotlib.pyplot as plt
+from onnxruntime import InferenceSession
+from skl2onnx.common.data_types import FloatTensorType, BooleanTensorType
+from skl2onnx.algebra.onnx_ops import OnnxWhere, OnnxSub, OnnxMul
+from cpyquickhelper.numbers.speed_measure import measure_time
+from tqdm import tqdm
 from mlprodict.testing.experimental_c import code_optimisation
 print(code_optimisation())
 
@@ -24,15 +32,6 @@ print(code_optimisation())
 # Where: common code
 # ++++++++++++++++++
 
-import numpy
-import pandas
-import matplotlib.pyplot as plt
-from tqdm import tqdm
-from cpyquickhelper.numbers.speed_measure import measure_time
-from onnxruntime import InferenceSession
-from skl2onnx.algebra.onnx_ops import OnnxWhere, OnnxSub, OnnxMul
-from skl2onnx.common.data_types import FloatTensorType, BooleanTensorType
-import onnx
 try:
     from tensorflow import where as tf_where, convert_to_tensor
 except ImportError:

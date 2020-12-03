@@ -24,6 +24,16 @@ The code shows which optimisation is used for the custom
 implementation, *AVX* or *SSE* and the number of available processors,
 equal to the default number of used threads to parallelize.
 """
+import numpy
+import pandas
+import matplotlib.pyplot as plt
+from onnxruntime import InferenceSession
+from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx.algebra.onnx_ops import OnnxEinsum
+from cpyquickhelper.numbers.speed_measure import measure_time
+from tqdm import tqdm
+from opt_einsum import contract
+from mlprodict.testing.experimental_c import custom_einsum_float
 from mlprodict.testing.experimental_c import code_optimisation
 print(code_optimisation())
 
@@ -31,17 +41,6 @@ print(code_optimisation())
 # Einsum: common code
 # +++++++++++++++++++
 
-import numpy
-import pandas
-import matplotlib.pyplot as plt
-from opt_einsum import contract
-from tqdm import tqdm
-from cpyquickhelper.numbers.speed_measure import measure_time
-from mlprodict.testing.experimental_c import custom_einsum_float
-from onnxruntime import InferenceSession
-from skl2onnx.algebra.onnx_ops import OnnxEinsum
-from skl2onnx.common.data_types import FloatTensorType
-import onnx
 try:
     from tensorflow import einsum as tf_einsum, convert_to_tensor
 except ImportError:

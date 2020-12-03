@@ -22,6 +22,14 @@ Both :epkg:`numpy` and :epkg:`torch` have lazy implementations,
 the function switches dimensions and strides but does not move
 any data. That's why function *contiguous* was called in both cases.
 """
+import numpy
+import pandas
+import matplotlib.pyplot as plt
+from onnxruntime import InferenceSession
+from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx.algebra.onnx_ops import OnnxTranspose
+from cpyquickhelper.numbers.speed_measure import measure_time
+from tqdm import tqdm
 from mlprodict.testing.experimental_c import code_optimisation
 print(code_optimisation())
 
@@ -29,18 +37,8 @@ print(code_optimisation())
 # Transpose implementations
 # +++++++++++++++++++++++++
 
-import numpy
-import pandas
-import matplotlib.pyplot as plt
-from tqdm import tqdm
-from cpyquickhelper.numbers.speed_measure import measure_time
-from onnxruntime import InferenceSession
-from skl2onnx.algebra.onnx_ops import OnnxTranspose
-from skl2onnx.common.data_types import FloatTensorType
-import onnx
 try:
     from tensorflow import transpose as tf_transpose, convert_to_tensor
-    from tensorflow import einsum as tf_einsum
 except ImportError:
     tf_transpose = None
 try:
@@ -71,7 +69,7 @@ def perm2eq(perm):
 
 def benchmark_op(perm, repeat=5, number=5, name="transpose", shape_fct=None):
     if shape_fct is None:
-        shape_fct = lambda dim: (3, dim, 1, 512)
+        def shape_fct(dim): return (3, dim, 1, 512)
     ort_fct = build_ort_transpose(perm)
     res = []
     for dim in tqdm([8, 16, 32, 64, 100, 128, 200,

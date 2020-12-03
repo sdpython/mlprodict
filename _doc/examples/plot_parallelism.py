@@ -22,7 +22,6 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from sklearn import config_context
 from sklearn.datasets import make_regression
-from sklearn.experimental import enable_hist_gradient_boosting
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.model_selection import train_test_split
 from cpyquickhelper.numbers.speed_measure import measure_time
@@ -168,9 +167,8 @@ print('gain', parallized_gain(df))
 # distinct number of trees and then the prediction
 # time is measured for different number of observations.
 
-tries = [(nb, N)
-         for N in range(2, 21, 2)
-         for nb in ([2, 5, 8] + list(range(10, 50, 5)) + list(range(50, 101, 10)))]
+tries_set = [2, 5, 8] + list(range(10, 50, 5)) + list(range(50, 101, 10))
+tries = [(nb, N) for N in range(2, 21, 2) for nb in tries_set]
 
 ###########################
 # training

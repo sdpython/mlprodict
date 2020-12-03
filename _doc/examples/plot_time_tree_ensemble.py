@@ -16,7 +16,8 @@ following packages:
     pip install -i https://test.pypi.org/simple/ ort-nightly
     pip install git+https://github.com/microsoft/onnxconverter-common.git@jenkins
     pip install git+https://https://github.com/xadupre/sklearn-onnx.git@jenkins
-    pip install mlprodict matplotlib scikit-learn pandas threadpoolctl lightgbm xgboost jinja2
+    pip install mlprodict matplotlib scikit-learn pandas threadpoolctl
+    pip install mlprodict lightgbm xgboost jinja2
 
 .. contents::
     :local:
@@ -26,13 +27,15 @@ Import
 """
 import os
 import pickle
-import timeit
 from pprint import pprint
 import numpy
 import pandas
-import onnx
-import onnxruntime
+import matplotlib.pyplot as plt
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
 from onnxruntime import InferenceSession
+from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import make_classification
 from skl2onnx import to_onnx
 from mlprodict.onnx_conv import register_converters
@@ -48,16 +51,16 @@ register_converters()
 # +++++++
 
 max_depth = 7
-n_classes = 10
-n_estimators = 250
-n_features = 200
+n_classes = 5
+n_estimators = 100
+n_features = 10
 REPEAT = 3
 NUMBER = 1
 train, test = 2000, 10000
 
 print('dataset')
 X_, y_ = make_classification(n_samples=train + test, n_features=n_features,
-                             n_classes=n_classes, n_informative=n_classes // 2)
+                             n_classes=n_classes, n_informative=n_features - 3)
 X_ = X_.astype(numpy.float32)
 y_ = y_.astype(numpy.int64)
 X_train, X_test = X_[:train], X_[train:]
@@ -84,7 +87,6 @@ def train_cache(model, X_train, y_train, max_depth, n_estimators, n_classes):
 # RandomForestClassifier
 # ++++++++++++++++++++++
 
-from sklearn.ensemble import RandomForestClassifier
 rf = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth)
 print('train')
 rf = train_cache(rf, X_train, y_train, max_depth, n_estimators, n_classes)
@@ -97,9 +99,11 @@ pprint(res)
 
 ########################################
 # ONNX
+# ++++
 
 
-def measure_onnx_runtime(model, xt, repeat=REPEAT, number=NUMBER, verbose=True):
+def measure_onnx_runtime(model, xt, repeat=REPEAT, number=NUMBER,
+                         verbose=True):
     if verbose:
         print(model.__class__.__name__)
 
@@ -153,7 +157,6 @@ compilation.extend(list(measure_onnx_runtime(rf, X_test)))
 # HistGradientBoostingClassifier
 # ++++++++++++++++++++++++++++++
 
-from sklearn.ensemble import HistGradientBoostingClassifier
 hist = HistGradientBoostingClassifier(
     max_iter=n_estimators, max_depth=max_depth)
 print('train')
@@ -165,7 +168,6 @@ compilation.extend(list(measure_onnx_runtime(hist, X_test)))
 # LightGBM
 # ++++++++
 
-from lightgbm import LGBMClassifier
 lgb = LGBMClassifier(n_estimators=n_estimators, max_depth=max_depth)
 print('train')
 lgb = train_cache(lgb, X_train, y_train, max_depth, n_estimators, n_classes)
@@ -176,7 +178,6 @@ compilation.extend(list(measure_onnx_runtime(lgb, X_test)))
 # XGBoost
 # +++++++
 
-from xgboost import XGBClassifier
 xgb = XGBClassifier(n_estimators=n_estimators, max_depth=max_depth)
 print('train')
 xgb = train_cache(xgb, X_train, y_train, max_depth, n_estimators, n_classes)
@@ -188,7 +189,10 @@ compilation.extend(list(measure_onnx_runtime(xgb, X_test)))
 # +++++++
 #
 # All data
+name = 'plot_time_tree_ensemble'
 df = pandas.DataFrame(compilation)
+df.to_csv('%s.csv' % name, index=False)
+df.to_excel('%s.xlsx' % name, index=False)
 df
 
 #########################################
@@ -198,6 +202,7 @@ piv
 
 ###########################################
 # Graphs.
-piv.T.plot()
-import matplotlib.pyplot as plt
+piv.T.plot(kind="bar")
+
+plt.savefig('%s.png' % name)
 plt.show()

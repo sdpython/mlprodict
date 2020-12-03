@@ -16,6 +16,8 @@ when the machine learned model is embedded in a service.
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.datasets import load_iris
+from mlprodict.grammar_sklearn import sklearn2graph
+
 iris = load_iris()
 X = iris.data[:, :2]
 y = iris.target
@@ -25,7 +27,6 @@ lr.fit(X, y)
 
 ############################
 # Conversion into a graph.
-from mlprodict.grammar_sklearn import sklearn2graph
 gr = sklearn2graph(lr, output_names=['Prediction', 'Score'])
 
 ######################################
