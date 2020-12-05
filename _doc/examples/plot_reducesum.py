@@ -31,7 +31,7 @@ from mlprodict.testing.experimental_c import code_optimisation
 print(code_optimisation())
 
 ###################################
-# Transpose implementations
+# ReduceSum implementations
 # +++++++++++++++++++++++++
 
 try:
@@ -146,13 +146,13 @@ def benchmark_op(axes, repeat=5, number=5, name="reducesum", shape_fct=None):
     piv.plot(logx=True, logy=True, ax=ax[0],
              title="%s benchmark\n%r - %r"
                    "\nlower better" % (name, shape_name, axes))
-    ax[0].legend(prop={"size": 6})
+    ax[0].legend(prop={"size": 7})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="%s Speedup, baseline=numpy\n%r - %r"
                   "\nhigher better" % (name, shape_name, axes))
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
-    ax[1].legend(prop={"size": 6})
+    ax[1].legend(prop={"size": 7})
     return df, piv, ax
 
 
@@ -256,6 +256,8 @@ piv.T
 
 
 ###################################
+# .. _l-reducesum-problem1:
+#
 # (1, 3)
 # ^^^^^^
 
@@ -286,6 +288,9 @@ piv.T
 # Conclusion
 # ++++++++++
 #
+# Some of the configurations should be investigated.
+# :ref:`l-reducesum-problem1`. The reduction on tensorflow
+# in one dimension seems to be lazy.
 
 merged = pandas.concat(dfs)
 name = "reducesum"

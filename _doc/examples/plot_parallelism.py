@@ -30,6 +30,12 @@ from mlprodict.onnx_conv import to_onnx, register_rewritten_operators
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.model_info import analyze_model
 
+#####################################
+# Available optimisations on this machine.
+
+from mlprodict.testing.experimental_c import code_optimisation
+print(code_optimisation())
+
 
 ########################################
 # Training and converting a model

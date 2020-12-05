@@ -161,13 +161,13 @@ def benchmark_op(perm, repeat=5, number=5, name="transpose", shape_fct=None):
     piv.plot(logx=True, logy=True, ax=ax[0],
              title="%s benchmark\n%r - %r - %s"
                    "\nlower better" % (name, shape_name, perm, equation))
-    ax[0].legend(prop={"size": 6})
+    ax[0].legend(prop={"size": 7})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="%s Speedup, baseline=numpy\n%r - %r - %s"
                   "\nhigher better" % (name, shape_name, perm, equation))
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
-    ax[1].legend(prop={"size": 6})
+    ax[1].legend(prop={"size": 7})
     return df, piv, ax
 
 
@@ -204,6 +204,14 @@ piv.T
 ###################################
 # Third permutation: (0, 2, 1, 3)
 # ++++++++++++++++++++++++++++++++
+#
+# This transposition is equivalent to a reshape
+# because it only moves the empty axis.
+# The comparison is entirely fair as the cost
+# for onnxruntime includes a copy from numpy to
+# onnxruntime, a reshape = another copy, than a copy
+# back to numpy. Tensorflow and pytorch seems
+# to have a lazy implementation in this case.
 
 perm = (0, 2, 1, 3)
 df, piv, ax = benchmark_op(perm)
@@ -218,13 +226,6 @@ piv.T
 ###################################
 # Fourth permutation: (3, 1, 2, 0)
 # ++++++++++++++++++++++++++++++++
-#
-# This transposition is equivalent to a reshape
-# because it only moves the empty axis.
-# The comparison is entirely fair as the cost
-# for onnxruntime includes a copy from numpy to
-# onnxruntime, a reshape = another copy, than a copy
-# back to numpy.
 
 perm = (3, 1, 2, 0)
 df, piv, ax = benchmark_op(perm)
@@ -272,6 +273,7 @@ piv.T
 # :epkg:`onnxruntime` measures includes 2 mores copies,
 # one to copy from numpy container to onnxruntime container,
 # another one to copy back from onnxruntime container to numpy.
+# Parallelisation should be investigated.
 
 merged = pandas.concat(dfs)
 name = "transpose"

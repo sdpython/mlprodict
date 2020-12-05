@@ -4,8 +4,8 @@
 Benchmark Random Forests, Tree Ensemble
 =======================================
 
-The following scripts benchmarks different libraries
-implementing random forest and boosting trees.
+The following script benchmarks different libraries
+implementing random forests and boosting trees.
 This benchmark can be replicated by installing the
 following packages:
 
@@ -202,7 +202,14 @@ piv
 
 ###########################################
 # Graphs.
-piv.T.plot(kind="bar")
-
+ax = piv.T.plot(kind="bar")
+ax.set_title("Comparison for %d observations and %d features" % X_test.shape)
 plt.savefig('%s.png' % name)
+
+###########################################
+# Available optimisation on this machine:
+
+from mlprodict.testing.experimental_c import code_optimisation
+print(code_optimisation())
+
 plt.show()

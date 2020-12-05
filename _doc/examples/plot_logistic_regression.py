@@ -33,3 +33,12 @@ gr = sklearn2graph(lr, output_names=['Prediction', 'Score'])
 # Conversion into C
 ccode = gr.export(lang='c')
 print(ccode['code'])
+
+####################################
+# This approach may work on small models.
+# On bigger models with many dimensions,
+# it would be better to use AVX instructions and parallelisation.
+# Below, the optimisation this machine can offer.
+
+from mlprodict.testing.experimental_c import code_optimisation
+print(code_optimisation())

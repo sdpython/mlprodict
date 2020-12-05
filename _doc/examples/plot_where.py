@@ -181,12 +181,12 @@ def benchmark_equation():
     fig, ax = plt.subplots(1, 2, figsize=(12, 4))
     piv.plot(logx=True, logy=True, ax=ax[0],
              title="where benchmark -- (N, N)\nlower better")
-    ax[0].legend(prop={"size": 6})
+    ax[0].legend(prop={"size": 7})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="where Speedup, baseline=numpy -- (N, N)\nhigher better")
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
-    ax[1].legend(prop={"size": 6})
+    ax[1].legend(prop={"size": 7})
 
     return df, piv, ax
 
@@ -206,5 +206,7 @@ piv.T
 # Conclusion
 # ++++++++++
 #
+# The implementation of Where should be faster
+# than the formula `where(c, x, y) = x * c - y * (c - 1)`.
 
 plt.show()

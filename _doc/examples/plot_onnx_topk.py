@@ -36,6 +36,15 @@ from mlprodict.onnxrt.ops_cpu.op_topk import (
 from mlprodict import __version__ as mlp_version
 from mlprodict.plotting.plotting import plot_benchmark_metrics
 
+############################################
+# Available optimisation on this machine.
+
+from mlprodict.testing.experimental_c import code_optimisation
+print(code_optimisation())
+
+###########################################
+# Graph.
+
 
 def plot_metric(metric, ax=None, xlabel="N", ylabel="k", middle=1.,
                 transpose=False, shrink=1.0, title=None):
@@ -326,7 +335,12 @@ plot_metric(bench_ort_para, transpose=False,
             title="TopK, onnxruntime vs mlprodict\n< 1 means mlprodict "
             "is faster\nparallelisation above 50 rows", shrink=0.75)
 
-
+#################################
+# onnxruntime and mlprodict implement the same algorithm.
+# The only difference comes from the threshold which
+# trigger the parallelisation. It should depend on the machine.
+# That explains the difference in time for 100 observations.
+#
 ##############################
 # Interesting...
 #

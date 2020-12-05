@@ -34,6 +34,13 @@ from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt import OnnxInference
 
+############################################
+# Available optimisation on this machine.
+
+from mlprodict.testing.experimental_c import code_optimisation
+print(code_optimisation())
+
+
 ###################################
 # Versions
 # ++++++++

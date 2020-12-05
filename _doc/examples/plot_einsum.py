@@ -34,6 +34,7 @@ from cpyquickhelper.numbers.speed_measure import measure_time
 from tqdm import tqdm
 from opt_einsum import contract
 from mlprodict.testing.experimental_c import custom_einsum_float
+
 from mlprodict.testing.experimental_c import code_optimisation
 print(code_optimisation())
 
@@ -192,13 +193,13 @@ def benchmark_equation(equation):
     piv.plot(logx=True, logy=True, ax=ax[0],
              title="Einsum benchmark\n%s -- (2, N, 12, 64)"
                    "\nlower better" % equation)
-    ax[0].legend(prop={"size": 6})
+    ax[0].legend(prop={"size": 7})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="Einsum Speedup, baseline=numpy\n%s -- (2, N, 12, 64)"
                   "\nhigher better" % equation)
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
-    ax[1].legend(prop={"size": 6})
+    ax[1].legend(prop={"size": 7})
 
     return df, piv, ax
 
@@ -252,5 +253,7 @@ piv.T
 # Conclusion
 # ++++++++++
 #
+# The implementation of Einsum in onnxruntime could be improved
+# for this specific case. pytorch is better.
 
 plt.show()
