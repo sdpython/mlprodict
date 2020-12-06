@@ -146,13 +146,13 @@ def benchmark_op(axes, repeat=5, number=5, name="reducesum", shape_fct=None):
     piv.plot(logx=True, logy=True, ax=ax[0],
              title="%s benchmark\n%r - %r"
                    "\nlower better" % (name, shape_name, axes))
-    ax[0].legend(prop={"size": 7})
+    ax[0].legend(prop={"size": 9})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="%s Speedup, baseline=numpy\n%r - %r"
                   "\nhigher better" % (name, shape_name, axes))
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
-    ax[1].legend(prop={"size": 7})
+    ax[1].legend(prop={"size": 9})
     return df, piv, ax
 
 

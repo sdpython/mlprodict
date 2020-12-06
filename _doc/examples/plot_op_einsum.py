@@ -193,13 +193,13 @@ def benchmark_equation(equation):
     piv.plot(logx=True, logy=True, ax=ax[0],
              title="Einsum benchmark\n%s -- (2, N, 12, 64)"
                    "\nlower better" % equation)
-    ax[0].legend(prop={"size": 7})
+    ax[0].legend(prop={"size": 9})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="Einsum Speedup, baseline=numpy\n%s -- (2, N, 12, 64)"
                   "\nhigher better" % equation)
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
-    ax[1].legend(prop={"size": 7})
+    ax[1].legend(prop={"size": 9})
 
     return df, piv, ax
 
