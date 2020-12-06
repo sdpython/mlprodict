@@ -19,12 +19,6 @@ class Einsum(OpRun):
                        expected_attributes=Einsum.atts,
                        **options)
 
-    def _preprocess(self, a):
-        if self.axis >= len(a.shape):
-            new_shape = a.shape + (1, ) * (self.axis + 1 - len(a.shape))
-            return a.reshape(new_shape)
-        return a
-
     def _run(self, *args):  # pylint: disable=W0221
         return (numpy.einsum(self.equation, *args), )
 

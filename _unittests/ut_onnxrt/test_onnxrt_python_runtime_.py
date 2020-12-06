@@ -58,7 +58,8 @@ try:
     from skl2onnx.algebra.onnx_ops import OnnxCelu
 except ImportError:
     OnnxCelu = None
-from skl2onnx.common.data_types import FloatTensorType, Int64TensorType, DoubleTensorType
+from skl2onnx.common.data_types import (
+    FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType)
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import (
@@ -140,9 +141,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             outputs=outputs)
         if debug:
             print(model_def)
+        python_tested.append(onnx_cl)
 
         # python code
-        python_tested.append(onnx_cl)
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
         validate_python_inference(oinfpy, {'X': X.astype(numpy.float32)})
 
@@ -170,6 +171,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
+
         # inplace2
         onx2 = OnnxIdentity(
             onnx_cl('X', op_version=op_version),
@@ -181,6 +183,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
+
         # input inplace
         expe = np_fct(X)
         oinf = OnnxInference(model_def, input_inplace=True, inplace=True)
@@ -290,58 +293,63 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_argmax(self):
-        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+        for opset in range(11, get_opset_number_from_onnx() + 1):
+            with self.subTest(opset=opset):
+                X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
-        onx = OnnxArgMax('X', output_names=['Y'], keepdims=0,
-                         op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.argmax(X, axis=0), got['Y'], decimal=6)
+                onx = OnnxArgMax('X', output_names=['Y'], keepdims=0,
+                                 op_version=opset)
+                model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                        target_opset=opset)
+                oinf = OnnxInference(model_def)
+                got = oinf.run({'X': X})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(numpy.argmax(
+                    X, axis=0), got['Y'], decimal=6)
 
-        python_tested.append(OnnxArgMax)
-        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
-        validate_python_inference(oinfpy, {'X': X.astype(numpy.float32)})
+                python_tested.append(OnnxArgMax)
+                oinfpy = OnnxInference(
+                    model_def, runtime="python", inplace=True)
+                validate_python_inference(
+                    oinfpy, {'X': X.astype(numpy.float32)})
 
-        onx = OnnxArgMax('X', output_names=['Y'], axis=1, keepdims=0,
-                         op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.argmax(X, axis=1).ravel(),
-                              got['Y'].ravel())
+                onx = OnnxArgMax('X', output_names=['Y'], axis=1, keepdims=0,
+                                 op_version=opset)
+                model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                        target_opset=opset)
+                oinf = OnnxInference(model_def)
+                got = oinf.run({'X': X})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(numpy.argmax(X, axis=1).ravel(),
+                                      got['Y'].ravel())
 
-        onx = OnnxArgMax('X', output_names=['Y'], axis=1, keepdims=1,
-                         op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.argmax(X, axis=1).ravel(),
-                              got['Y'].ravel())
+                onx = OnnxArgMax('X', output_names=['Y'], axis=1, keepdims=1,
+                                 op_version=opset)
+                model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                        target_opset=opset)
+                oinf = OnnxInference(model_def)
+                got = oinf.run({'X': X})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(numpy.argmax(X, axis=1).ravel(),
+                                      got['Y'].ravel())
 
-        # sparse
-        X = make_coo_matrix(X, dtype=numpy.float32)
-        try:
-            exp = numpy.argmax(X, axis=1)
-        except (TypeError, NotImplementedError, ValueError) as e:
-            # Function np_fct does not work on sparse data.
-            sparse_no_numpy.append((OnnxArgMax.__name__, None, e))
-            return
+                # sparse
+                X = make_coo_matrix(X, dtype=numpy.float32)
+                try:
+                    exp = numpy.argmax(X, axis=1)
+                except (TypeError, NotImplementedError, ValueError) as e:
+                    # Function np_fct does not work on sparse data.
+                    sparse_no_numpy.append((OnnxArgMax.__name__, None, e))
+                    return
 
-        model_def_sparse = onx.to_onnx({'X': X},
-                                       target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def_sparse, input_inplace=False)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(exp, got['Y'], decimal=6)
-        sparse_support.append(('UnOp', None, OnnxArgMax.__name__))
-        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+                model_def_sparse = onx.to_onnx({'X': X},
+                                               target_opset=opset)
+                oinf = OnnxInference(model_def_sparse, input_inplace=False)
+                got = oinf.run({'X': X})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(exp, got['Y'], decimal=6)
+                sparse_support.append(('UnOp', None, OnnxArgMax.__name__))
+                X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
     @unittest.skipIf(onnx_opset_version() < 12, reason="needs onnx 1.7.0")
     @wraplog()
@@ -361,57 +369,61 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_argmin(self):
-        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+        for opset in range(11, get_opset_number_from_onnx() + 1):
+            with self.subTest(opset=opset):
+                X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
-        onx = OnnxArgMin('X', output_names=['Y'], keepdims=0,
-                         op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.argmin(X, axis=0), got['Y'], decimal=6)
+                onx = OnnxArgMin('X', output_names=['Y'], keepdims=0,
+                                 op_version=opset)
+                model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                        target_opset=opset)
+                oinf = OnnxInference(model_def)
+                got = oinf.run({'X': X})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(numpy.argmin(
+                    X, axis=0), got['Y'], decimal=6)
 
-        python_tested.append(OnnxArgMin)
-        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
-        validate_python_inference(oinfpy, {'X': X.astype(numpy.float32)})
+                python_tested.append(OnnxArgMin)
+                oinfpy = OnnxInference(
+                    model_def, runtime="python", inplace=True)
+                validate_python_inference(
+                    oinfpy, {'X': X.astype(numpy.float32)})
 
-        onx = OnnxArgMin('X', output_names=['Y'], axis=1, keepdims=0,
-                         op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.argmin(X, axis=1).ravel(),
-                              got['Y'].ravel())
+                onx = OnnxArgMin('X', output_names=['Y'], axis=1, keepdims=0,
+                                 op_version=opset)
+                model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                        target_opset=opset)
+                oinf = OnnxInference(model_def)
+                got = oinf.run({'X': X})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(numpy.argmin(X, axis=1).ravel(),
+                                      got['Y'].ravel())
 
-        onx = OnnxArgMin('X', output_names=['Y'], axis=1, keepdims=1,
-                         op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(numpy.argmin(X, axis=1).ravel(),
-                              got['Y'].ravel())
+                onx = OnnxArgMin('X', output_names=['Y'], axis=1, keepdims=1,
+                                 op_version=opset)
+                model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                        target_opset=opset)
+                oinf = OnnxInference(model_def)
+                got = oinf.run({'X': X})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(numpy.argmin(X, axis=1).ravel(),
+                                      got['Y'].ravel())
 
-        # sparse
-        X = make_coo_matrix(X, dtype=numpy.float32)
-        try:
-            exp = numpy.argmin(X, axis=1)
-        except (TypeError, NotImplementedError, ValueError) as e:
-            # Function np_fct does not work on sparse data.
-            sparse_no_numpy.append((OnnxArgMin.__name__, None, e))
-            return
+                # sparse
+                X = make_coo_matrix(X, dtype=numpy.float32)
+                try:
+                    exp = numpy.argmin(X, axis=1)
+                except (TypeError, NotImplementedError, ValueError) as e:
+                    # Function np_fct does not work on sparse data.
+                    sparse_no_numpy.append((OnnxArgMin.__name__, None, e))
+                    return
 
-        model_def_sparse = onx.to_onnx({'X': X},
-                                       target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def_sparse, input_inplace=False)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(exp, got['Y'], decimal=6)
-        sparse_support.append(('UnOp', None, OnnxArgMin.__name__))
+                model_def_sparse = onx.to_onnx({'X': X}, target_opset=opset)
+                oinf = OnnxInference(model_def_sparse, input_inplace=False)
+                got = oinf.run({'X': X})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(exp, got['Y'], decimal=6)
+                sparse_support.append(('UnOp', None, OnnxArgMin.__name__))
 
     @unittest.skipIf(onnx_opset_version() < 12, reason="needs onnx 1.7.0")
     @wraplog()
@@ -1206,6 +1218,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         exp = numpy.einsum(equation, X, Y)
         self.assertEqualArray(exp, got['Z'])
         python_tested.append(OnnxEinsum)
+
+        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+        validate_python_inference(oinfpy, {'X': X.astype(numpy.float32),
+                                           'Y': Y.astype(numpy.float32)})
 
     @wraplog()
     def test_onnxt_runtime_eyelike(self):
@@ -2639,33 +2655,77 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             opset_tests.append((9, OnnxConstant_9))
 
         for opset, cls in opset_tests:
-            with self.subTest(opset=opset):
-                X = numpy.array([0.1, 0.2], dtype=numpy.float32)
-                if opset >= 12:
-                    cst = cls(value_floats=X, op_version=opset)
-                else:
-                    cst = cls(value=X, op_version=opset)
-                onx = OnnxAdd('X', cst, op_version=opset)
-                try:
-                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                            target_opset=opset)
-                except RuntimeError as e:
-                    if opset == 9:
+            for ty, nty in [('float', numpy.float32),
+                            ('int', numpy.int64),
+                            ('string', numpy.str)]:
+                with self.subTest(opset=opset, type=ty):
+                    X = numpy.array([0.1, 0.2], dtype=numpy.float32)
+                    if opset >= 12:
+                        if ty == 'float':
+                            cst = cls(value_floats=X, op_version=opset,
+                                      output_names=['cst'])
+                            tty = FloatTensorType
+                        elif ty == 'int':
+                            cst = cls(value_ints=(X + 1).astype(nty), op_version=opset,
+                                      output_names=['cst'])
+                            tty = Int64TensorType
+                        elif ty == 'string':
+                            cst = cls(value_strings=X.astype(nty), op_version=opset,
+                                      output_names=['cst'])
+                            tty = StringTensorType
+                        else:
+                            raise AssertionError(
+                                "{}-{} not tested.".format(ty, nty))
+                    elif ty != 'float':
                         continue
-                    raise e
-                try:
-                    oinf = OnnxInference(model_def)
-                except RuntimeError as e:
-                    raise AssertionError(
-                        "Unable to load the model:\n{}".format(model_def)) from e
-                got = oinf.run({'X': X})
-                if opset >= 11:
-                    self.assertEqual(list(sorted(got)), [
-                                     'Ad_C0', 'Co_output0'])
-                    self.assertEqualArray(X * 2, got['Ad_C0'])
-                else:
-                    self.assertEqual(list(sorted(got)), ['Ad_C0'])
-                    self.assertEqualArray(X * 2, got['Ad_C0'])
+                    else:
+                        cst = cls(value=X, op_version=opset)
+                        nty = numpy.float32
+                        tty = FloatTensorType
+                    onx = OnnxAdd('X', cst, op_version=opset,
+                                  output_names=['Y'])
+                    try:
+                        model_def = onx.to_onnx(
+                            {'X': X.astype(nty)}, target_opset=opset,
+                            outputs=[('Y', tty()), ('cst', tty())])
+                    except RuntimeError as e:
+                        if opset == 9:
+                            continue
+                        raise e
+                    try:
+                        oinf = OnnxInference(model_def)
+                    except RuntimeError as e:
+                        raise AssertionError(
+                            "Unable to load the model:\n{}".format(model_def)) from e
+                    if tty == StringTensorType:
+                        continue
+                    try:
+                        got = oinf.run({'X': X.astype(nty)})
+                    except Exception as e:
+                        rows = []
+
+                        def bprint(*args):
+                            rows.append(str(args))
+                        try:
+                            oinf.run({'X': X.astype(nty)},
+                                     verbose=13, fLOG=bprint)
+                        except Exception:  # pylint: disable=W0703
+                            pass
+                        raise AssertionError(
+                            "Execution issue\n{}\n----\n{}".format(
+                                "\n".join(map(str, rows)),
+                                model_def)) from e
+                    if ty == 'float':
+                        vexp = X * 2
+                    else:
+                        vexp = X.astype(nty) + 1
+                    if opset >= 11:
+                        self.assertEqual(list(sorted(got)), [
+                                         'Y', 'cst'])
+                        self.assertEqualArray(vexp, got['Y'])
+                    else:
+                        self.assertEqual(list(sorted(got)), ['Y'])
+                        self.assertEqualArray(vexp, got['Y'])
 
     @wraplog()
     def test_make_constant(self):
