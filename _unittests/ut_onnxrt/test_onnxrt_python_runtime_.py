@@ -2705,7 +2705,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                         rows = []
 
                         def bprint(*args):
-                            rows.append(str(args))
+                            rows.append(str(args))  # pylint: disable=W0640
                         try:
                             oinf.run({'X': X.astype(nty)},
                                      verbose=13, fLOG=bprint)
@@ -2724,7 +2724,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                          'Y', 'cst'])
                         self.assertEqualArray(vexp, got['Y'])
                     else:
-                        self.assertEqual(list(sorted(got)), ['Y'])
+                        self.assertEqual(list(sorted(got)), ['Y', 'cst'])
                         self.assertEqualArray(vexp, got['Y'])
 
     @wraplog()

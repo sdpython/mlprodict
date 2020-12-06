@@ -7,13 +7,9 @@ from logging import getLogger
 from pandas import DataFrame, read_csv
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import (
-    get_temp_folder, ExtTestCase, skipif_circleci
-)
+    get_temp_folder, ExtTestCase, skipif_circleci)
 from sklearn.exceptions import ConvergenceWarning
-try:
-    from sklearn.utils._testing import ignore_warnings
-except ImportError:
-    from sklearn.utils.testing import ignore_warnings
+from sklearn.utils._testing import ignore_warnings
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 
@@ -47,6 +43,7 @@ class TestOnnxrtValidate(ExtTestCase):
         df.to_excel(os.path.join(
             temp, "sklearn_opsets_report.xlsx"), index=False)
 
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_summary(self):
         this = os.path.abspath(os.path.dirname(__file__))
         data = os.path.join(this, "data", "sklearn_opsets_report.csv")

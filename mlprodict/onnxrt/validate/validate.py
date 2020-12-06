@@ -10,6 +10,8 @@ import numpy
 from numpy.linalg import LinAlgError
 import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.utils._testing import ignore_warnings
 from ... import __version__ as ort_version
 from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
 from ...tools.model_info import analyze_model, set_random_state
@@ -31,6 +33,7 @@ from .validate_helper import (
 from .validate_benchmark import benchmark_fct
 
 
+@ignore_warnings(category=(UserWarning, ConvergenceWarning))
 def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
                  Xort_test, init_types, store_models,
                  debug, verbose, fLOG):
