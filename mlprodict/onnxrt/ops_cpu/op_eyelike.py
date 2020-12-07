@@ -6,7 +6,7 @@
 """
 import numpy
 from ._op import OpRun
-from ._op_helper import proto2dtype
+from ._op_helper import proto2dtype, dtype_name
 from ..shape_object import ShapeObject
 
 
@@ -29,5 +29,5 @@ class EyeLike(OpRun):
     def to_python(self, inputs):
         return (
             "import numpy",
-            "return numpy.eye(*inputs, k=%d, dtype=numpy.%s)" % (
-                self.k, self.dtype_))
+            "return numpy.eye(*%s, k=%d, dtype=numpy.%s)" % (
+                inputs[0], self.k, dtype_name(self.dtype_)))

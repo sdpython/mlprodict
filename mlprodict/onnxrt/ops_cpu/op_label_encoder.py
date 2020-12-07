@@ -69,7 +69,7 @@ class LabelEncoder(OpRun):
             raise RuntimeError(
                 "No encoding was defined in {}.".format(onnx_node))
         if len(self.classes_) == 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Empty classes for LabelEncoder, (onnx_node='{}')\n{}.".format(
                     self.onnx_node.name, onnx_node))
 

@@ -75,7 +75,7 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
             if verbose >= 2 and fLOG is not None:  # pragma: no cover
                 fLOG(  # pragma: no cover
                     "[enumerate_benchmark_replay] skip '{}'.".format(pkl))
-            continue
+            continue  # pragma: no cover
         if verbose >= 2 and fLOG is not None:
             fLOG("[enumerate_benchmark_replay] process '{}'.".format(pkl))
         row = {}

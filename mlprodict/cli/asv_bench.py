@@ -125,7 +125,8 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
         for kv in kvs:
             spl = kv.split(',')
             if len(spl) != 2:
-                raise ValueError("Unable to interpret '{}'.".format(kv))
+                raise ValueError(  # pragma: no cover
+                    "Unable to interpret '{}'.".format(kv))
             k, v = spl
             res[k] = v
         conf_params = res

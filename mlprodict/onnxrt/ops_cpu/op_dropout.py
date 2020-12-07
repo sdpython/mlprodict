@@ -81,4 +81,4 @@ class Dropout_12(DropoutBase):
 if onnx_opset_version() >= 12:
     Dropout = Dropout_12
 else:
-    Dropout = Dropout_7
+    Dropout = Dropout_7  # pragma: no cover

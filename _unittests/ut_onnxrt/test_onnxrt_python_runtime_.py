@@ -1235,6 +1235,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         exp = numpy.eye(*X, k=0)
         self.assertEqualArray(exp, got['Y'])
+
+        oinfpy = OnnxInference(model_def, runtime="python")
+        validate_python_inference(oinfpy, {'X': X.astype(numpy.int64)})
         python_tested.append(OnnxEyeLike)
 
     @wraplog()
@@ -2158,6 +2161,22 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_slice(self):
+        # steps
+        x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
+            numpy.float32)  # pylint: disable=E1101
+        y = x[0:3:2, 0:10:2]
+        starts = numpy.array([0, 0], dtype=numpy.int64)
+        ends = numpy.array([3, 10], dtype=numpy.int64)
+        axes = numpy.array([0, 1], dtype=numpy.int64)
+        steps = numpy.array([2, 2], dtype=numpy.int64)
+        onx = OnnxSlice('X', starts, ends, axes, steps, output_names=['Y'],
+                        op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
+
+        # other
         x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
             numpy.float32)  # pylint: disable=E1101
         y = x[0:3, 0:10]

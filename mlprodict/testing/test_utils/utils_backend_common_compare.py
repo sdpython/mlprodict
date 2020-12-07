@@ -116,6 +116,10 @@ def compare_runtime_session(  # pylint: disable=R0912
             inputs = input
         elif isinstance(input, (list, numpy.ndarray, pandas.DataFrame)):
             inp = sess.get_inputs()
+            outs = sess.get_outputs()
+            if len(outs) == 0:
+                raise OnnxBackendAssertionError(  # pragma: no cover
+                    "Wrong number of outputs, onnx='{2}'".format(onx))
             if len(inp) == len(input):
                 inputs = {i.name: v for i, v in zip(inp, input)}
             elif len(inp) == 1:

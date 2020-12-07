@@ -29,8 +29,8 @@ def proto2dtype(proto_type):
     """
     Converts a proto type into a :epkg:`numpy` type.
 
-    @param      proto_type      example ``onnx.TensorProto.FLOAT``
-    @return                     :epkg:`numpy` dtype
+    :param proto_type: example ``onnx.TensorProto.FLOAT``
+    :return: :epkg:`numpy` dtype
     """
     if proto_type == TensorProto.FLOAT:  # pylint: disable=E1101
         return numpy.float32
@@ -47,3 +47,23 @@ def proto2dtype(proto_type):
     raise ValueError(
         "Unable to convert proto_type {} to numpy type.".format(
             proto_type))
+
+
+def dtype_name(dtype):
+    """
+    Returns the name of a numpy dtype.
+    """
+    if dtype == numpy.float32:
+        return "float32"
+    if dtype == numpy.float64:
+        return "float64"
+    if dtype == numpy.int32:
+        return "int32"
+    if dtype == numpy.int64:
+        return "int64"
+    if dtype == numpy.str:
+        return "str"
+    if dtype == numpy.bool:
+        return "bool"
+    raise ValueError(
+        "Unexpected dtype {}.".format(dtype))
