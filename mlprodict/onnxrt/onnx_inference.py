@@ -268,7 +268,7 @@ class OnnxInference:
         Returns the names and shapes of all outputs.
         This method assumes all inputs are tensors.
         """
-        return [(_.name, _var_as_dict(_)['type']['shape'])
+        return [(_.name, _var_as_dict(_)['type'].get('shape', None))
                 for _ in self.obj.graph.output]
 
     def global_index(self, name):
