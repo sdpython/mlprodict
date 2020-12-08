@@ -29,8 +29,8 @@ def find_node_input_name(node, name):
     :param name: node name
     :return: input index
     """
-    for i, node in enumerate(node.input.node):
-        if node.name == name:
+    for i, inode in enumerate(node.input.node):
+        if inode.name == name:
             return i
     return -1
 
@@ -50,7 +50,7 @@ def insert_node(model, op_type, node, input_index=0, new_name=None, **attrs):
     else:
         inode = node
     if isinstance(input_index, str):
-        input_index_ = find_node_input_name(input_index)
+        input_index_ = find_node_input_name(node, input_index)
         if input_index_ == -1:
             raise RuntimeError(
                 "Unable to find input_index %r in node %r." % (
