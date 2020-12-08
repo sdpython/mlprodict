@@ -47,20 +47,25 @@ class Slice_10(SliceCommon):
 
 class Slice_1(SliceCommon):
 
-    atts = {'starts': [], 'ends': [], 'axes': [], 'steps': []}
+    atts = {'starts': [], 'ends': [], 'axes': []}
 
     def __init__(self, onnx_node, desc=None, **options):
         SliceCommon.__init__(self, onnx_node, desc=desc,
                              expected_attributes=Slice_1.atts,
                              **options)
+        for f in ['starts', 'ends', 'steps', 'axes']:
+            if not hasattr(self, f):
+                continue
+            if getattr(self, f) is not None and len(getattr(self, f)) == 0:
+                setattr(self, f, None)
 
     def _run(self, data):  # pylint: disable=W0221
         return SliceCommon._run(
-            data, self.starts, self.ends, self.axes, self.steps)
+            self, data, self.starts, self.ends, self.axes)
 
     def _infer_shapes(self, data):  # pylint: disable=W0221
         return SliceCommon._infer_shapes(
-            data, self.starts, self.ends, self.axes, self.steps)
+            self, data, self.starts, self.ends, self.axes)
 
 
 if onnx_opset_version() >= 10:

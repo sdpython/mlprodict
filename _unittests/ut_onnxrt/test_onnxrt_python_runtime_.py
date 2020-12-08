@@ -2161,60 +2161,79 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_slice(self):
-        # steps
-        x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
-            numpy.float32)  # pylint: disable=E1101
-        y = x[0:3:2, 0:10:2]
-        starts = numpy.array([0, 0], dtype=numpy.int64)
-        ends = numpy.array([3, 10], dtype=numpy.int64)
-        axes = numpy.array([0, 1], dtype=numpy.int64)
-        steps = numpy.array([2, 2], dtype=numpy.int64)
-        onx = OnnxSlice('X', starts, ends, axes, steps, output_names=['Y'],
-                        op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        got = OnnxInference(model_def).run({'X': x})
-        self.assertEqualArray(y, got['Y'])
+        for opset in [9, get_opset_number_from_onnx()]:
+            if opset > get_opset_number_from_onnx():
+                continue
+            with self.subTest(opset=opset):
+                # steps
+                x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
+                    numpy.float32)  # pylint: disable=E1101
+                y = x[0:3:2, 0:10:2]
+                starts = numpy.array([0, 0], dtype=numpy.int64)
+                ends = numpy.array([3, 10], dtype=numpy.int64)
+                axes = numpy.array([0, 1], dtype=numpy.int64)
+                steps = numpy.array([2, 2], dtype=numpy.int64)
+                if opset < 10:
+                    onx = OnnxSlice('X', starts=starts, ends=ends, axes=axes,
+                                    output_names=['Y'], op_version=opset)
+                    y = x[0:3, 0:10]
+                else:
+                    onx = OnnxSlice('X', starts, ends, axes, steps,
+                                    output_names=['Y'], op_version=opset)
+                model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                        target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(y, got['Y'])
 
-        # other
-        x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
-            numpy.float32)  # pylint: disable=E1101
-        y = x[0:3, 0:10]
-        starts = numpy.array([0, 0], dtype=numpy.int64)
-        ends = numpy.array([3, 10], dtype=numpy.int64)
-        onx = OnnxSlice('X', starts, ends, output_names=['Y'],
-                        op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        got = OnnxInference(model_def).run({'X': x})
-        self.assertEqualArray(y, got['Y'])
+                # other
+                x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
+                    numpy.float32)
+                y = x[0:3, 0:10]
+                starts = numpy.array([0, 0], dtype=numpy.int64)
+                ends = numpy.array([3, 10], dtype=numpy.int64)
+                if opset < 10:
+                    onx = OnnxSlice('X', starts=starts, ends=ends,
+                                    output_names=['Y'], op_version=opset)
+                else:
+                    onx = OnnxSlice('X', starts, ends, output_names=['Y'],
+                                    op_version=opset)
+                model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                        target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(y, got['Y'])
 
-        x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
-            numpy.float32)  # pylint: disable=E1101
-        y = x[0:3, 0:10]
-        starts = numpy.array([0, 0], dtype=numpy.int64)
-        ends = numpy.array([3, 10], dtype=numpy.int64)
-        axes = numpy.array([0, 1], dtype=numpy.int64)
-        onx = OnnxSlice('X', starts, ends, axes, output_names=['Y'],
-                        op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        got = OnnxInference(model_def).run({'X': x})
-        self.assertEqualArray(y, got['Y'])
+                x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
+                    numpy.float32)
+                y = x[0:3, 0:10]
+                starts = numpy.array([0, 0], dtype=numpy.int64)
+                ends = numpy.array([3, 10], dtype=numpy.int64)
+                axes = numpy.array([0, 1], dtype=numpy.int64)
+                if opset < 10:
+                    onx = OnnxSlice('X', starts=starts, ends=ends, axes=axes,
+                                    output_names=['Y'], op_version=opset)
+                else:
+                    onx = OnnxSlice('X', starts, ends, axes, output_names=['Y'],
+                                    op_version=opset)
+                model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                        target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(y, got['Y'])
 
-        x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
-            numpy.float32)  # pylint: disable=E1101
-        y = x[0:3:-1, 0:10:2]
-        starts = numpy.array([0, 0], dtype=numpy.int64)
-        ends = numpy.array([3, 10], dtype=numpy.int64)
-        axes = numpy.array([0, 1], dtype=numpy.int64)
-        steps = numpy.array([-1, 2], dtype=numpy.int64)
-        onx = OnnxSlice('X', starts, ends, axes, steps, output_names=['Y'],
-                        op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        got = OnnxInference(model_def).run({'X': x})
-        self.assertEqualArray(y, got['Y'])
+                if opset < 10:
+                    continue
+                x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
+                    numpy.float32)
+                y = x[0:3:-1, 0:10:2]
+                starts = numpy.array([0, 0], dtype=numpy.int64)
+                ends = numpy.array([3, 10], dtype=numpy.int64)
+                axes = numpy.array([0, 1], dtype=numpy.int64)
+                steps = numpy.array([-1, 2], dtype=numpy.int64)
+                onx = OnnxSlice('X', starts, ends, axes, steps, output_names=['Y'],
+                                op_version=opset)
+                model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                        target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxSlice)
 
     @wraplog()
@@ -2792,5 +2811,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_make_constant()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_slice()
     unittest.main()
