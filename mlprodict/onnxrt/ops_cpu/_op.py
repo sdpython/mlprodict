@@ -558,8 +558,13 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
                                 expected_attributes=expected_attributes,
                                 **options)
         self.numpy_fct = numpy_fct
+        self._cannot_inplace_int = self.numpy_fct in (
+            numpy.divide, numpy.true_divide)
 
     def _run(self, a, b):  # pylint: disable=W0221
+        if (self._cannot_inplace_int and
+                numpy.issubdtype(a.dtype, numpy.integer)):
+            return (self.numpy_fct(a, b), )
         if self.inplaces.get(0, False) and a.size >= b.size:
             if len(a.shape) == 1 and b.shape == (1, 1):
                 a = a.reshape(1, a.shape[0])

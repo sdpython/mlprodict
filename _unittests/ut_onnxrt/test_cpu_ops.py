@@ -143,17 +143,21 @@ class TestCpuOps(ExtTestCase):
         for opset in [9, 12, TARGET_OPSET]:
             if opset > TARGET_OPSET:
                 continue
-            with self.subTest(opset=opset):
-                model = OneVsRestClassifier(
-                    RandomForestClassifier(n_estimators=2, max_depth=3))
-                model, X = fit_multilabel_classification_model(
-                    model, 3, is_int=False, n_features=5)
-                model_onnx = to_onnx(
-                    model, X[:1], target_opset=opset)
-                oinf = OnnxInference(model_onnx)
-                got = oinf.run({'X': X})
-                exp = model.predict(X), model.predict_proba(X)
-                self.assertEqual(got, exp)
+            model = OneVsRestClassifier(
+                RandomForestClassifier(n_estimators=2, max_depth=3))
+            model, X = fit_multilabel_classification_model(
+                model, 3, is_int=False, n_features=5)
+            model_onnx = to_onnx(
+                model, X[:1], target_opset=opset,
+                options={id(model): {'zipmap': False}})
+            X = X[:7]
+            for rt in ['python', 'onnxruntime1']:
+                with self.subTest(opset=opset, rt=rt):
+                    oinf = OnnxInference(model_onnx, runtime=rt)
+                    got = oinf.run({'X': X})
+                    exp = model.predict(X), model.predict_proba(X)
+                    self.assertEqualArray(exp[0], got['label'])
+                    self.assertEqualArray(exp[1], got['probabilities'])
 
 
 if __name__ == "__main__":
