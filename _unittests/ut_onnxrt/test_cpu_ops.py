@@ -156,6 +156,7 @@ class TestCpuOps(ExtTestCase):
                     oinf = OnnxInference(model_onnx, runtime=rt)
                     got = oinf.run({'X': X})
                     exp = model.predict(X), model.predict_proba(X)
+                    self.assertEqual(exp[1].shape[1], 3)
                     self.assertEqualArray(exp[0], got['label'])
                     self.assertEqualArray(exp[1], got['probabilities'])
 
