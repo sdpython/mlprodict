@@ -5,13 +5,18 @@ import unittest
 from logging import getLogger
 import numpy
 import onnx
-from pyquickhelper.pycode import ExtTestCase
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.multiclass import OneVsRestClassifier
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxConv)
+from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.ops_cpu.op_conv import Conv
 from mlprodict.onnxrt.onnx2py_helper import _var_as_dict
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.testing.test_utils.tests_helper import fit_multilabel_classification_model
+from mlprodict.testing.test_utils import TARGET_OPSET
 
 
 class TestCpuOps(ExtTestCase):
@@ -20,6 +25,7 @@ class TestCpuOps(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @ignore_warnings(DeprecationWarning)
     def test_cpu_conv(self):
 
         x = numpy.array([[[[0., 1., 2., 3., 4.],  # (1, 1, 5, 5) input tensor
@@ -131,6 +137,28 @@ class TestCpuOps(ExtTestCase):
                         "runtimes disagree about nan {}: {} # {} ? {}".format(
                             ii, diff[ii], gotrt['Y'].ravel()[ii], got['Y'].ravel()[ii]))
             self.assertEqualArray(gotrt['Y'], got['Y'], decimal=5)
+
+    def test_slice_bug(self):
+
+        for opset in [9, 12, TARGET_OPSET]:
+            if opset > TARGET_OPSET:
+                continue
+            model = OneVsRestClassifier(
+                RandomForestClassifier(n_estimators=2, max_depth=3))
+            model, X = fit_multilabel_classification_model(
+                model, 3, is_int=False, n_features=5)
+            model_onnx = to_onnx(
+                model, X[:1], target_opset=opset,
+                options={id(model): {'zipmap': False}})
+            X = X[:7]
+            for rt in ['python', 'onnxruntime1']:
+                with self.subTest(opset=opset, rt=rt):
+                    oinf = OnnxInference(model_onnx, runtime=rt)
+                    got = oinf.run({'X': X})
+                    exp = model.predict(X), model.predict_proba(X)
+                    self.assertEqual(exp[1].shape[1], 3)
+                    self.assertEqualArray(exp[0], got['label'])
+                    self.assertEqualArray(exp[1], got['probabilities'])
 
 
 if __name__ == "__main__":

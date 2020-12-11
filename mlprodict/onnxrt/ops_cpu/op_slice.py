@@ -4,11 +4,12 @@
 @file
 @brief Runtime operator.
 """
-from ._op import OpRun
+from onnx.defs import onnx_opset_version
 from ..shape_object import ShapeObject
+from ._op import OpRun
 
 
-class Slice(OpRun):
+class SliceCommon(OpRun):
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,
@@ -34,5 +35,40 @@ class Slice(OpRun):
 
     def _infer_shapes(self, data, starts, ends, axes=None, steps=None):  # pylint: disable=W0221
         pref = str(hex(id(self))[2:])
-        shape = ["nslice%s_%d" % (pref, i) for i in range(len(data))]
+        shape = ["nslice%s_%d" % (pref, i) for i in range(len(data.shape))]
         return (ShapeObject(shape, data.dtype), )
+
+
+class Slice_10(SliceCommon):
+    def __init__(self, onnx_node, desc=None, **options):
+        SliceCommon.__init__(self, onnx_node, desc=desc,
+                             **options)
+
+
+class Slice_1(SliceCommon):
+
+    atts = {'starts': [], 'ends': [], 'axes': []}
+
+    def __init__(self, onnx_node, desc=None, **options):
+        SliceCommon.__init__(self, onnx_node, desc=desc,
+                             expected_attributes=Slice_1.atts,
+                             **options)
+        for f in ['starts', 'ends', 'steps', 'axes']:
+            if not hasattr(self, f):
+                continue
+            if getattr(self, f) is not None and len(getattr(self, f)) == 0:
+                setattr(self, f, None)
+
+    def _run(self, data):  # pylint: disable=W0221
+        return SliceCommon._run(
+            self, data, self.starts, self.ends, self.axes)
+
+    def _infer_shapes(self, data):  # pylint: disable=W0221
+        return SliceCommon._infer_shapes(
+            self, data, self.starts, self.ends, self.axes)
+
+
+if onnx_opset_version() >= 10:
+    Slice = Slice_10
+else:
+    Slice = Slice_1  # pragma: no cover

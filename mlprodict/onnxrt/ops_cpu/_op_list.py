@@ -86,7 +86,7 @@ from .op_shape import Shape
 from .op_sigmoid import Sigmoid
 from .op_sign import Sign
 from .op_sin import Sin
-from .op_slice import Slice
+from .op_slice import Slice, Slice_1, Slice_10
 from .op_split import Split
 from .op_softmax import Softmax
 from .op_solve import Solve

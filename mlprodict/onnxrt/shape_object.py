@@ -45,7 +45,8 @@ class ShapeOperator(BaseDimensionShape):
         for a in self._args:
             if not isinstance(a, DimensionObject):
                 raise TypeError(
-                    "All arguments must be of type DimensionObject not '{}'.".format(type(a)))
+                    "All arguments must be of type DimensionObject not '{}'."
+                    "".format(type(a)))
 
     def __repr__(self):
         """
@@ -649,7 +650,7 @@ class ShapeObject(BaseDimensionShape):
 
         st_shape = []
         for s in self.shape:
-            if isinstance(s._dim, (int, str)):
+            if isinstance(getattr(s, "_dim", None), (int, str)):
                 st_shape.append(str(s._dim))
             else:
                 st_shape.append(repr(s))
