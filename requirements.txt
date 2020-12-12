@@ -13,6 +13,7 @@ git+https://github.com/xadupre/onnxconverter-common.git@jenkins
 openpyxl
 opt-einsum
 pybind11
+pydot
 pyensae
 py-cpuinfo
 pyinstrument
