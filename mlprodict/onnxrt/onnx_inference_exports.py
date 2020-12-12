@@ -95,7 +95,7 @@ class OnnxInferenceExport:
                 node_producer=GetOpNodeProducer(
                     "docstring", fillcolor="orange", style="filled",
                     shape="box"))
-            return pydot_graph.to_string()            
+            return pydot_graph.to_string()
 
         inter_vars = {}
         exp = ["digraph{"]
