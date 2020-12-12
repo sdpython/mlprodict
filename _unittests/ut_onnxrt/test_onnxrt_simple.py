@@ -104,6 +104,19 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('Ad_Addcst -> Ad_Add;', dot)
         self.assertIn('Ad_Add1 -> Y;', dot)
 
+    def test_onnxt_dot_onnx(self):
+        idi = numpy.identity(2)
+        idi2 = numpy.identity(2) * 2
+        onx = OnnxAdd(
+            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            idi2, output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        dot = oinf.to_dot(use_onnx=True)
+        self.assertIn('[label="Ad_Addcst1"', dot)
+
     def test_onnxt_dot_shape(self):
         idi = numpy.identity(2)
         idi2 = numpy.identity(2) * 2

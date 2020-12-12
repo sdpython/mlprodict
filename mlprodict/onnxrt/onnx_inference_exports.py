@@ -23,16 +23,18 @@ class OnnxInferenceExport:
         """
         self.oinf = oinf
 
-    def to_dot(self, recursive=False, prefix='', add_rt_shapes=False, **params):
+    def to_dot(self, recursive=False, prefix='', add_rt_shapes=False,
+               use_onnx=False, **params):
         """
         Produces a :epkg:`DOT` language string for the graph.
 
-        @param      params          additional params to draw the graph
-        @param      recursive       also show subgraphs inside operator like
-                                    @see cl Scan
-        @param      prefix          prefix for every node name
-        @param      add_rt_shapes   adds shapes infered from the python runtime
-        @return                     string
+        :param params: additional params to draw the graph
+        :param recursive: also show subgraphs inside operator like
+            @see cl Scan
+        :param prefix: prefix for every node name
+        :param add_rt_shapes: adds shapes infered from the python runtime
+        :param use_onnx: use :epkg:`onnx` dot format instead of this one
+        :return: string
 
         Default options for the graph are:
 
@@ -83,6 +85,17 @@ class OnnxInferenceExport:
             'height': '0.1',
         }
         options.update(params)
+
+        if use_onnx:
+            from onnx.tools.net_drawer import GetPydotGraph, GetOpNodeProducer
+
+            pydot_graph = GetPydotGraph(
+                self.oinf.obj.graph, name=self.oinf.obj.graph.name,
+                rankdir=params.get('rankdir', "TB"),
+                node_producer=GetOpNodeProducer(
+                    "docstring", fillcolor="orange", style="filled",
+                    shape="box"))
+            return pydot_graph.to_string()            
 
         inter_vars = {}
         exp = ["digraph{"]
