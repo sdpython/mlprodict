@@ -54,7 +54,7 @@ class TestOnnxPipeline(ExtTestCase):
         ])
         self.assertNotEmpty(model_onx)
 
-    def test_pipeline_iris_enfore_false(self):
+    def test_pipeline_iris_enforce_false(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         pipe = OnnxPipeline([
@@ -81,7 +81,7 @@ class TestOnnxPipeline(ExtTestCase):
         self.assertRaise(lambda: sess.run(
             {'X': X.astype(numpy.float32)}), RuntimeError)
         self.assertRaise(lambda: sess.run(
-            {'X': X.reshape((2, -1, 4))}), ValueError)
+            {'X': X.reshape((2, -1, 4))}), (ValueError, IndexError))
         self.assertRaise(lambda: sess.run({'X': X.astype(numpy.float64),
                                            'Y': X.astype(numpy.float64)}),
                          KeyError)
