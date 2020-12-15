@@ -3,6 +3,7 @@
 @brief      test log(time=2s)
 """
 import os
+import warnings
 import unittest
 import numpy
 from pyquickhelper.pycode import (
@@ -31,7 +32,14 @@ class TestPlotOnnx(ExtTestCase):
         import matplotlib.pyplot as plt
         _, ax = plt.subplots(1, 1)
 
-        plot_onnx(model_def, ax=ax)
+        try:
+            plot_onnx(model_def, ax=ax)
+        except FileNotFoundError as e:
+            if "No such file or directory: 'dot'" in str(e):
+                warnings.warn(
+                    "Unable to test the dot syntax, dot is mssing", UserWarning)
+                return
+            raise e
         if __name__ == "__main__":
             temp = get_temp_folder(__file__, "temp_plot_onnx")
             img = os.path.join(temp, "img.png")

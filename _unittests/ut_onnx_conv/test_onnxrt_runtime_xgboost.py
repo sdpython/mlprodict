@@ -94,13 +94,13 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
                             exp = clr.predict(X_test)
                             self.assertEqual(list(sorted(y)), ['variable'])
                             self.assertEqualArray(
-                                exp, y['variable'].ravel(), decimal=6)
+                                exp, y['variable'].ravel(), decimal=5)
                         else:
                             exp = clr.predict_proba(X_test)
                             self.assertEqual(list(sorted(y)), [
                                              'output_label', 'output_probability'])
                             got = DataFrame(y['output_probability']).values
-                            self.assertEqualArray(exp, got, decimal=6)
+                            self.assertEqualArray(exp, got, decimal=5)
 
                             exp = clr.predict(X_test)
                             self.assertEqualArray(exp, y['output_label'])
