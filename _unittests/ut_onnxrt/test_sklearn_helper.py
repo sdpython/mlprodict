@@ -72,7 +72,7 @@ class TestSklearnHelper(ExtTestCase):
         self.assertEqual(res['ntrees'], 10)
         onx = to_onnx(clr, X_train[:1].astype(numpy.float32))
         ostats = onnx_statistics(onx)
-        for k, v in {'nnodes': 1, 'doc_string': '', 'domain': 'ai.onnx', 'model_version': 0,
+        for k, v in {'nnodes': 11, 'doc_string': '', 'domain': 'ai.onnx', 'model_version': 0,
                      'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
             self.assertEqual(ostats[k], v)
 
@@ -101,7 +101,7 @@ class TestSklearnHelper(ExtTestCase):
         self.assertEqual(res['nop'], 11)
         onx = to_onnx(clr, X_train[:1].astype(numpy.float32))
         ostats = onnx_statistics(onx)
-        for k, v in {'nnodes': 2, 'doc_string': '', 'domain': 'ai.onnx', 'model_version': 0,
+        for k, v in {'nnodes': 12, 'doc_string': '', 'domain': 'ai.onnx', 'model_version': 0,
                      'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
             self.assertEqual(ostats[k], v)
 
