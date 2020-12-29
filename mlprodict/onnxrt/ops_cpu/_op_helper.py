@@ -44,6 +44,8 @@ def proto2dtype(proto_type):
         return numpy.int64
     if proto_type == TensorProto.INT32:  # pylint: disable=E1101
         return numpy.int32
+    if proto_type == TensorProto.FLOAT16:  # pylint: disable=E1101
+        return numpy.float16
     raise ValueError(
         "Unable to convert proto_type {} to numpy type.".format(
             proto_type))
@@ -57,6 +59,8 @@ def dtype_name(dtype):
         return "float32"
     if dtype == numpy.float64:
         return "float64"
+    if dtype == numpy.float16:
+        return "float16"
     if dtype == numpy.int32:
         return "int32"
     if dtype == numpy.int64:

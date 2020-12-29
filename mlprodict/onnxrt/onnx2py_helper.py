@@ -131,6 +131,8 @@ def _elem_type_as_str(elem_type):
         return 'uint8'
     if elem_type == onnx_proto.TensorProto.INT8:  # pylint: disable=E1101
         return 'int8'
+    if elem_type == onnx_proto.TensorProto.FLOAT16:  # pylint: disable=E1101
+        return 'float16'
 
     # The following code should be refactored.
     selem = str(elem_type)
@@ -178,6 +180,9 @@ def _to_array(var):
                                 copy=False).reshape(dims)
         elif var.data_type == 7 and var.int64_data is not None:
             data = _numpy_array(var.int64_data, dtype=numpy.int64,
+                                copy=False).reshape(dims)
+        elif var.data_type == 10 and var.float16_data is not None:
+            data = _numpy_array(var.float16_data, dtype=numpy.float16,
                                 copy=False).reshape(dims)
         else:
             raise NotImplementedError(

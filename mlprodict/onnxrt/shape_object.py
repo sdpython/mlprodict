@@ -492,6 +492,8 @@ class ShapeObject(BaseDimensionShape):
             self._dtype = numpy.float64
         elif self._dtype in ('float32', 'float'):
             self._dtype = numpy.float32
+        elif self._dtype in (numpy.float16, 'float16'):
+            self._dtype = numpy.float16
         elif self._dtype in ('int32', ):
             self._dtype = numpy.int32
         elif self._dtype in (int, 'int', 'int64'):
@@ -510,7 +512,7 @@ class ShapeObject(BaseDimensionShape):
             self._dtype = numpy.uint8
         elif self._dtype not in {
                 numpy.float32, numpy.float64, numpy.int32, numpy.int64,
-                numpy.str, numpy.bool, None,
+                numpy.str, numpy.bool, numpy.float16, None,
                 'map'}:
             raise ValueError(  # pragma: no cover
                 "dtype has an unexpected value: '{}'.".format(self._dtype))
@@ -838,7 +840,8 @@ class ShapeObject(BaseDimensionShape):
         if len(tys) == 1:
             return list(tys)[0]
         if any(tys & {numpy.float64, numpy.int64,
-                      numpy.float32, numpy.int32}):
+                      numpy.float32, numpy.int32,
+                      numpy.float16}):
             return numpy.float64
         raise RuntimeError(  # pragma: no cover
             "Unable to infer types based on {}.".format(tys))
