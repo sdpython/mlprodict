@@ -382,7 +382,6 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIsInstance(mt[0], dict)
 
     def test_blofat16(self):
-
         node1 = make_node("Min", ["X", "Y"], ["Z"], name="trans")
 
         graph = make_graph(
