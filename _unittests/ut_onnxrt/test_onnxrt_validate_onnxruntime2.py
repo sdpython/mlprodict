@@ -20,10 +20,13 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summa
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 
 
+ignored_warnings = (UserWarning, ConvergenceWarning, RuntimeWarning, FutureWarning)
+
+
 class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
 
     @skipif_appveyor('crashes')
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=ignored_warnings)
     def test_validate_sklearn_operators_onnxruntime_KMeans(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -46,7 +49,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         # self.assertGreater(len(buffer), 1)
 
     @skipif_appveyor('crashes')
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=ignored_warnings)
     def test_validate_sklearn_operators_onnxruntime_BernoulliNB(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -67,7 +70,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         self.assertGreater(len(buffer), 1 if debug else 0)
 
     @skipif_appveyor('crashes')
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=ignored_warnings)
     def test_validate_sklearn_operators_onnxruntime_AdaBoostRegressor(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -89,7 +92,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         self.assertGreater(len(buffer), 1 if debug else 0)
 
     @skipif_appveyor('crashes')
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=ignored_warnings)
     def test_validate_sklearn_operators_onnxruntime_LogisticRegression(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -110,7 +113,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         # self.assertGreater(len(buffer), 1)
 
     @skipif_appveyor('crashes')
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=ignored_warnings)
     def test_validate_sklearn_operators_all_onnxruntime(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -120,7 +123,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
             __file__, "temp_validate_sklearn_operators_all_onnxruntime2")
         if False:  # pylint: disable=W0125
             rows = list(enumerate_validated_operator_opsets(
-                verbose, models={"LogisticRegression"},
+                verbose, models={"PLSCanonical"},
                 fLOG=fLOG,
                 runtime='onnxruntime2', debug=True))
         else:
