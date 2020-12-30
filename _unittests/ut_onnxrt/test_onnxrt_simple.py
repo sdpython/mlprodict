@@ -11,7 +11,9 @@ from logging import getLogger
 import numpy
 import pandas
 from onnx.onnx_cpp2py_export.checker import ValidationError  # pylint: disable=E0401,E0611
-from onnx.helper import make_tensor
+from onnx.helper import (
+    make_tensor, make_node, make_graph, make_tensor_value_info,
+    make_model)
 from onnx import TensorProto
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
@@ -378,6 +380,33 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIsInstance(mt, list)
         self.assertGreater(len(mt), 1)
         self.assertIsInstance(mt[0], dict)
+
+    def test_blofat16(self):
+        node1 = make_node("Min", ["X", "Y"], ["Z"], name="trans")
+
+        graph = make_graph(
+            [node1], "min_graph",
+            [make_tensor_value_info("X", TensorProto.FLOAT16, [3]),  # pylint: disable=E1101
+             make_tensor_value_info("Y", TensorProto.FLOAT16, [3])],  # pylint: disable=E1101
+            [make_tensor_value_info("Z", TensorProto.FLOAT16, [3])])  # pylint: disable=E1101
+        model_proto = make_model(graph)
+
+        oinf = OnnxInference(model_proto)
+        x_val = [1, 2, -3]
+        y_val = [4, -5, -6]
+        res = oinf.run({"X": numpy.array(x_val, dtype=numpy.float16),
+                        "Y": numpy.array(y_val, dtype=numpy.float16)})
+        self.assertEqualArray(res['Z'], numpy.array(
+            [1, -5, -6], dtype=numpy.float16))
+        dot = oinf.to_dot()
+        self.assertIn('float16', dot)
+
+        oinf = OnnxInference(model_proto, runtime='python_compiled')
+        res = oinf.run({"X": numpy.array(x_val, dtype=numpy.float16),
+                        "Y": numpy.array(y_val, dtype=numpy.float16)})
+        self.assertEqualArray(res['Z'], numpy.array(
+            [1, -5, -6], dtype=numpy.float16))
+        self.assertIn('n0_min(X, Y)', str(oinf))
 
 
 if __name__ == "__main__":

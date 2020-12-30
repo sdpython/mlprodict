@@ -3,13 +3,13 @@
 @brief Functions to help guessing the final graph structure.
 """
 import numpy
+from onnxconverter_common.data_types import Float16TensorType
 from skl2onnx.common.data_types import (
     DataType,
     FloatTensorType, SequenceType, DictionaryType,
     Int64Type, Int64TensorType, BooleanTensorType,
     Int32TensorType, DoubleTensorType, FloatType,
-    StringTensorType
-)
+    StringTensorType)
 from skl2onnx.common.data_types import _guess_type_proto
 from skl2onnx.algebra.type_helper import _guess_type as skl2onnx__guess_type
 from skl2onnx.proto import TensorProto
@@ -158,6 +158,8 @@ def proto2vars(values):
             return BooleanTensorType(shape)
         if it == TensorProto.STRING:  # pylint: disable=E1101
             return StringTensorType(shape)
+        if it == TensorProto.FLOAT16:  # pylint: disable=E1101
+            return Float16TensorType(shape)
         raise NotImplementedError(  # pragma: no cover
             "Unrecognized proto type {} with shape {}".format(it, shape))
 

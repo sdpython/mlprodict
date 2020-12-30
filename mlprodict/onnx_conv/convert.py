@@ -392,7 +392,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
         elif isinstance(dtype, DataType):
             new_dtype = numpy.float32  # pragma: no cover
         if new_dtype not in (numpy.float32, numpy.float64, numpy.int64,
-                             numpy.int32):
+                             numpy.int32, numpy.float16):
             raise NotImplementedError(  # pragma: no cover
                 "dtype should be real not {} ({})".format(new_dtype, dtype))
         return initial_types, dtype, new_dtype

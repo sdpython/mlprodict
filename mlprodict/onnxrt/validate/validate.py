@@ -50,7 +50,7 @@ def _dofit_model(dofit, obs, inst, X_train, y_train, X_test, y_test,
                     lambda: inst.fit(X_train, y_train))[1]
         except (AttributeError, TypeError, ValueError,
                 IndexError, NotImplementedError, MemoryError,
-                LinAlgError) as e:
+                LinAlgError, StopIteration) as e:
             if debug:
                 raise  # pragma: no cover
             obs["_1training_time_exc"] = str(e)
