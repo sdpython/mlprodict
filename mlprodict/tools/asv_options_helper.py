@@ -72,7 +72,7 @@ def benchmark_version():
         from mlprodict.tools.asv_options_helper import benchmark_version
         print(benchmark_version())
     """
-    return [12]
+    return [13]
 
 
 def ir_version():

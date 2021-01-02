@@ -13,7 +13,7 @@ from mlprodict.onnxrt import OnnxInference
 class TestCoverageRuntimeOps(ExtTestCase):
 
     def test_op_constant(self):
-        for opv in [9, 10, 11, 12]:
+        for opv in [9, 10, 11, 12, 13]:
             for dtype in [numpy.float32, numpy.float64,
                           numpy.int32, numpy.int64]:
                 with self.subTest(opv=opv, dtype=dtype):

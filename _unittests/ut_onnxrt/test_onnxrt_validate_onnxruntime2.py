@@ -20,7 +20,8 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summa
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 
 
-ignored_warnings = (UserWarning, ConvergenceWarning, RuntimeWarning, FutureWarning)
+ignored_warnings = (UserWarning, ConvergenceWarning,
+                    RuntimeWarning, FutureWarning)
 
 
 class TestOnnxrtValidateOnnxRuntime(ExtTestCase):

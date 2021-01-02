@@ -5,37 +5,44 @@
 History
 =======
 
-current - 2020-12-11 - 0.00Mb
+current - 2021-01-02 - 0.00Mb
 =============================
 
+* `200`: Add support for bfloat16 (2020-12-30)
+* `201`: Fixes #200, add support for float16 (2020-12-30)
+* `199`: Fix unit tests recently failing due to onnxruntime update. (2020-12-15)
+
+0.4.1352 - 2020-12-11 - 1.42Mb
+==============================
+
 * `196`: Fixes operator Slice for opset 9 (2020-12-11)
-* `197`: Add a function to plot an onnx graph into matplotlib (2020-12-09)
 * `198`: Fixes #197, add function to plot onnx graph with matplotlib (2020-12-09)
-* `194`: Add a function to insert a cast operator between two nodes (2020-12-08)
+* `197`: Add a function to plot an onnx graph into matplotlib (2020-12-09)
 * `195`: Fixes #194, add function to add an operator in the graph (2020-12-08)
+* `194`: Add a function to insert a cast operator between two nodes (2020-12-08)
 * `193`: Improves notebook coverage, update CI (2020-11-29)
-* `191`: Improves performance of TreeEnsemble (2020-11-28)
 * `192`: Fixes #191, improves performance of TreeEnsemble (2020-11-28)
-* `189`: Introduce parallelization in experimental einsum implementation (2020-11-17)
+* `191`: Improves performance of TreeEnsemble (2020-11-28)
 * `190`: Fixes #189, parallelization of Einsum (2020-11-17)
-* `187`: Custom implementation for operator Einsum (2020-11-15)
+* `189`: Introduce parallelization in experimental einsum implementation (2020-11-17)
 * `188`: Fixes #187, custom implementation for operator Einsum (2020-11-15)
-* `185`: Add operator LessOrEqual (2020-11-15)
+* `187`: Custom implementation for operator Einsum (2020-11-15)
 * `186`: Fixes #185, add operator LessOrEqual (2020-11-15)
+* `185`: Add operator LessOrEqual (2020-11-15)
 * `181`: Fix converter xgboost when ntree_limit is set up (2020-11-14)
-* `178`: Fixes unit test testing OnnxConv (issue with shapes) (2020-11-07)
-* `182`: Fixes #178, fix xgboost issue with ntree_limit (2020-11-07)
-* `183`: Fix error in OnnxPipeline, parameter black_op not found (2020-11-07)
 * `184`: Fixes #183, fix missing parameter black_op in OnnxPipeline (2020-11-07)
-* `179`: guess_schema_data_type fails with category in dataframe (2020-11-03)
+* `183`: Fix error in OnnxPipeline, parameter black_op not found (2020-11-07)
+* `182`: Fixes #178, fix xgboost issue with ntree_limit (2020-11-07)
+* `178`: Fixes unit test testing OnnxConv (issue with shapes) (2020-11-07)
 * `180`: Fixes #179, fix guess_schema_from_data for categories (2020-11-03)
-* `175`: Add operator Dropout (2020-09-29)
+* `179`: guess_schema_data_type fails with category in dataframe (2020-11-03)
 * `176`: Fixes #175, add operator dropout (2020-09-29)
+* `175`: Add operator Dropout (2020-09-29)
 * `174`: Add support for ReduceSum >= 13 (2020-09-21)
-* `172`: Add runtime for operator MaxPool (2020-09-16)
 * `173`: Fixes #172, add runtime for operator MaxPool (2020-09-16)
-* `170`: Add runtime for operator Pad (2020-09-10)
+* `172`: Add runtime for operator MaxPool (2020-09-16)
 * `171`: Fixes #170, add operator Pad (2020-09-10)
+* `170`: Add runtime for operator Pad (2020-09-10)
 
 0.4.1259 - 2020-09-03 - 1.32Mb
 ==============================

@@ -28,11 +28,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.split(__file__)[0])))
 local_template = os.path.join(os.path.abspath(
     os.path.dirname(__file__)), "phdoc_templates")
 
-set_sphinx_variables(__file__, "mlprodict", "Xavier Dupré", 2020,
-                     "alabaster", alabaster.get_path(),
-                     locals(), extlinks=dict(
-                         issue=('https://github.com/sdpython/mlprodict/issues/%s', 'issue')),
-                     title="Python Runtime for ONNX", book=True)
+set_sphinx_variables(
+    __file__, "mlprodict", "Xavier Dupré", 2021,
+    "alabaster", alabaster.get_path(),
+    locals(), extlinks=dict(
+        issue=('https://github.com/sdpython/mlprodict/issues/%s', 'issue')),
+    title="Python Runtime for ONNX", book=True)
 
 blog_root = "http://www.xavierdupre.fr/app/mlprodict/helpsphinx/"
 extensions.extend([
@@ -42,7 +43,8 @@ extensions.extend([
 ])
 
 html_context = {
-    'css_files': get_default_stylesheet() + ['_static/my-styles.css', '_static/gallery.css'],
+    'css_files': get_default_stylesheet() + [
+        '_static/my-styles.css', '_static/gallery.css'],
 }
 
 html_logo = "phdoc_static/project_ico.png"

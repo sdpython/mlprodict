@@ -5,7 +5,7 @@ jobs:
    strategy:
      matrix:
        Python37-Linux:
-         python.version: '3.7'
+         python.version: '3.9'
      maxParallel: 3
  
    steps:
@@ -58,7 +58,7 @@ jobs:
    strategy:
      matrix:
        Python37-Linux:
-         python.version: '3.7'
+         python.version: '3.9'
      maxParallel: 3
  
    steps:
@@ -101,7 +101,7 @@ jobs:
    strategy:
      matrix:
        Python37-Mac:
-         python.version: '3.8'
+         python.version: '3.9'
      maxParallel: 3
 
    steps:
@@ -127,7 +127,7 @@ jobs:
      displayName: 'Install Pandoc'
    #- script: brew install graphviz
    #  displayName: 'Install Graphviz'
-   # - script: brew cask install mactex
+   # - script: brew install mactex --cask
    #   displayName: 'Install latex'
    - script: python -m pip install --upgrade pip setuptools wheel
      displayName: 'Install tools'
