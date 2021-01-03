@@ -92,7 +92,7 @@ jobs:
             export ONNX_ML=1
             export ONNX_BUILD_TESTS=1
             export ONNXIFI_DUMMY_BACKEND=1
-            pip install -e
+            pip install -e .
             cd ..
 
       - run:

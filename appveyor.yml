@@ -22,7 +22,7 @@ install:
   - set ONNX_BUILD_TESTS=1
   - set ONNXIFI_DUMMY_BACKEND=1
   - python setup.py bdist_wheel
-  - pip install -e
+  - pip install -e .
   - cd ..
   # onnxruntime
   - "%PYTHON%\\Scripts\\pip install -i https://test.pypi.org/simple/ ort-nightly"
