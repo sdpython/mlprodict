@@ -17,9 +17,9 @@ install:
   # onnx
   - git clone -b master --single-branch https://github.com/sdpython/onnx.git --recursive
   - cd onnx
-  - export ONNX_ML=1
-  - export ONNX_BUILD_TESTS=1
-  - export ONNXIFI_DUMMY_BACKEND=1
+  - set ONNX_ML=1
+  - set ONNX_BUILD_TESTS=1
+  - set ONNXIFI_DUMMY_BACKEND=1
   - python -u setup.py bdist_wheel
   - pip install "dist\\*"
   - cd ..

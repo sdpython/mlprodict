@@ -63,9 +63,9 @@ jobs:
             ls /usr/bin/llvm*
 
       - run:
-          name: Install protobuf-compiler
+          name: Install protobuf-compiler cmake
           command: |
-            sudo apt-get install protobuf-compiler libprotoc-dev
+            sudo apt-get install protobuf-compiler libprotoc-dev cmake
 
       - run:
           name: Install standard libraries

@@ -17,6 +17,7 @@ before_install:
     # - sudo ln -s /usr/bin/llvm-config-10 /usr/bin/llvm-config
     - sudo apt-get -y install graphviz
     # onnx
+    - sudo apt-get install protobuf-compiler libprotoc-dev cmake
     - git clone -b master --single-branch https://github.com/sdpython/onnx.git --recursive
     - cd onnx
     - export ONNX_ML=1
