@@ -10,6 +10,7 @@ init:
 
 install:
   - "%PYTHON%\\python -m pip install --upgrade pip"
+  - pip install wheel
   # for many packages
   - "%PYTHON%\\Scripts\\pip install -r requirements-win.txt"
   # install precompiled versions not available on pypi
@@ -20,8 +21,8 @@ install:
   - set ONNX_ML=1
   - set ONNX_BUILD_TESTS=1
   - set ONNXIFI_DUMMY_BACKEND=1
-  - python -u setup.py bdist_wheel
-  - pip install "dist\\*"
+  - python setup.py bdist_wheel
+  - pip install -e
   - cd ..
   # onnxruntime
   - "%PYTHON%\\Scripts\\pip install -i https://test.pypi.org/simple/ ort-nightly"
