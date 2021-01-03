@@ -16,13 +16,14 @@ install:
   # install precompiled versions not available on pypi
   - "%PYTHON%\\Scripts\\pymy_install3 llvmlite numba"
   # onnx
-  - git clone -b master --single-branch https://github.com/sdpython/onnx.git --recursive
+  - git clone -b master --single-branch https://github.com/onnx/onnx.git --recursive
   - cd onnx
   - set ONNX_ML=1
   - set ONNX_BUILD_TESTS=1
   - set ONNXIFI_DUMMY_BACKEND=1
   - python setup.py bdist_wheel
-  - pip install -e .
+  - dir dist
+  - python setup.py install
   - cd ..
   # onnxruntime
   - "%PYTHON%\\Scripts\\pip install -i https://test.pypi.org/simple/ ort-nightly"

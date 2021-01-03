@@ -87,12 +87,14 @@ jobs:
           name: Build onnx
           command: |
             python3 -m venv venv
-            git clone -b master --single-branch https://github.com/sdpython/onnx.git --recursive
+            git clone -b master --single-branch https://github.com/onnx/onnx.git --recursive
             cd onnx
             export ONNX_ML=1
             export ONNX_BUILD_TESTS=1
             export ONNXIFI_DUMMY_BACKEND=1
-            pip install -e .
+            python setup.py bdist_wheel
+            ls dist
+            python setup.py install
             cd ..
 
       - run:
