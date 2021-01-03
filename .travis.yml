@@ -1,15 +1,26 @@
-dist: bionic
+dist: focal
 sudo: true
 language: python
-python:
-    - "3.9"
+
+matrix:
+  include:
+  - python: 3.9
+    name: "Python39"
+
+before_install:
+    - sudo apt-get install libgeos-dev libproj-dev proj-data graphviz libblas-dev liblapack-dev
+    - wget https://apt.llvm.org/llvm.sh
+    - chmod +x llvm.sh
+    - sudo ./llvm.sh 10
+    - ls /usr/bin/llvm*
+    - export LLVM_CONFIG=/usr/bin/llvm-config
+    # - sudo ln -s /usr/bin/llvm-config-10 /usr/bin/llvm-config
+    - sudo apt-get -y install graphviz      
 
 install:
-  - gcc --version
-  - pip install -r requirements_conda.txt
   - pip install -r requirements.txt
-  #- pip install -i https://test.pypi.org/simple/ ort-nightly
-  - pip install onnxruntime
+  - pip install -i https://test.pypi.org/simple/ ort-nightly
+  # - pip install onnxruntime
 
 before_script:
   - python setup.py build_ext --inplace

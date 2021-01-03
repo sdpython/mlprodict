@@ -11,8 +11,8 @@ jobs:
 
       - restore_cache:
           keys:
-          - v3-dependencies-{{ checksum "requirements.txt" }}
-          - v3-dependencies-
+          - v2-dependencies-{{ checksum "requirements.txt" }}
+          - v2-dependencies-
 
 #       - run:
 #           name: Install omp
@@ -54,12 +54,29 @@ jobs:
                     sudo apt-get install -y graphviz
           
       - run:
-          name: install dependencies (1)
+          name: Install llvmlite
           command: |
-            python3 -m venv venv
+            sudo apt-get install lsb-release wget software-properties-common
+            wget https://apt.llvm.org/llvm.sh
+            chmod +x llvm.sh
+            sudo ./llvm.sh 10
+            ls /usr/bin/llvm*
+
+      - run:
+          name: Install standard libraries
+          command: |
+            python -m venv venv
             . venv/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements_conda.txt
+            pip install scipy matplotlib numpy cython pandas
+
+      - run:
+          name: Install numba, llvmlite
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            # export LLVM_CONFIG=/usr/local/opt/llvm/bin/llvm-config
+            sudo ln -s /usr/bin/llvm-config-10 /usr/bin/llvm-config
+            pip install llvmlite numba
 
       - run:
           name: install dependencies (2)
@@ -74,13 +91,13 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             pip freeze | grep onnx
-            pip install onnxruntime>=1.4.0 --verbose
+            pip install onnxruntime>=1.6.0 --verbose
             pip show onnxruntime
 
       - save_cache:
           paths:
             - ./venv
-          key: v3-dependencies-{{ checksum "requirements.txt" }}
+          key: v2-dependencies-{{ checksum "requirements.txt" }}
         
       - run:
           name: install sklearn-onnx, onnxconverter-common
@@ -90,11 +107,13 @@ jobs:
             pip install git+https://github.com/xadupre/sklearn-onnx.git@jenkins --upgrade
 
       - run:
-          name: pip freeze
+          name: check list of dependencies
           command: |
+            python -m venv venv
             . venv/bin/activate
             pip freeze
-
+            apt list --installed
+        
       - run:
           name: compile and build
           command: |
@@ -118,17 +137,17 @@ jobs:
             mkdir -p test-reports/src
             cp -r  mlprodict test-reports/src
 
-      #- run:
-      #    name: documentation
-      #    command: |
-      #      . venv/bin/activate
-      #      python setup.py build_sphinx
-            
-      #- run:
-      #    name: copy documentation
-      #    command: |
-      #      mkdir -p test-reports/doc
-      #      zip -r -9  test-reports/doc/documentation_html.zip _doc/sphinxdoc/build/html
+#      - run:
+#          name: documentation
+#          command: |
+#           . venv/bin/activate
+#           python setup.py build_sphinx
+#           
+#      - run:
+#          name: copy documentation
+#          command: |
+#           mkdir -p test-reports/doc
+#           zip -r -9  test-reports/doc/documentation_html.zip _doc/sphinxdoc/build/html
             
       - store_artifacts:
           path: test-reports
