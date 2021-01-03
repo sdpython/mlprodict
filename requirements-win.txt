@@ -12,6 +12,7 @@ pandas
 psutil
 pylint
 pymyinstall
+pyquickhelper
 pyshp
 scikit-learn
 threadpoolctl

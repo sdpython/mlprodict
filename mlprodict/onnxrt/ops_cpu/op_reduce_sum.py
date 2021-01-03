@@ -6,7 +6,7 @@
 """
 import numpy
 from onnx.defs import onnx_opset_version
-from ._op import OpRunReduceNumpy, RuntimeTypeError
+from ._op import OpRunReduceNumpy, RuntimeTypeError, OpRun
 
 
 class ReduceSum_1(OpRunReduceNumpy):
@@ -50,6 +50,9 @@ class ReduceSum_13(OpRunReduceNumpy):
                 "(operator '{}')".format(
                     data.dtype, res[0].dtype, self.__class__.__name__))
         return res
+
+    def _run_no_checks_(self, x, axes=None):  # pylint: disable=W0221
+        return OpRun.run(self, x, axes)
 
     def _run(self, data, axes=None):  # pylint: disable=W0221
         if axes is None and self.noop_with_empty_axes:

@@ -58,7 +58,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
                     raise AssertionError(mes)
 
     @ignore_warnings(FutureWarning)
-    def test_onnxt_iris_gaussian_process_exp_sine_squared(self):
+    def test_onnxt_iris_gaussian_process_exp_sine_squared_12(self):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
@@ -69,7 +69,50 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
 
         model_def = to_onnx(
             clr, X_train.astype(numpy.float32),
-            options={GaussianProcessRegressor: {'return_std': True}})
+            options={GaussianProcessRegressor: {'return_std': True}},
+            target_opset=12)
+        oinf = OnnxInference(model_def, runtime='python')
+
+        res = oinf.run({'X': X_test.astype(numpy.float32)})
+        ym2, std2 = res['GPmean'], res['GPcovstd']
+        self.assertEqualArray(numpy.squeeze(ym), numpy.squeeze(ym2), decimal=5)
+        self.assertEqualArray(std, std2, decimal=5)
+
+        res = oinf.switch_initializers_dtype(clr)
+        last = res[-1]
+        self.assertEqual(last[0], 'pass2')
+        _linv = 0
+        for a in enumerate_fitted_arrays(clr):
+            if "_K_inv" in a[-2]:
+                _linv += 1
+        self.assertEqual(_linv, 1)
+        res = oinf.run({'X': X_test.astype(numpy.float64)})
+        ym3, std3 = res['GPmean'], res['GPcovstd']
+        self.assertEqualArray(ym3, ym2)
+        self.assertEqualArray(std3, std2, decimal=5)
+        d1 = numpy.sum(numpy.abs(ym.ravel() - ym2.ravel()))
+        d2 = numpy.sum(numpy.abs(ym.ravel() - ym3.ravel()))
+        d3 = numpy.sum(numpy.abs(ym2.ravel() - ym3.ravel()))
+        self.assertLess(d2, min(d1, d3) / 2)
+        d1 = numpy.sum(numpy.abs(std.ravel() - std2.ravel()))
+        d2 = numpy.sum(numpy.abs(std.ravel() - std3.ravel()))
+        d3 = numpy.sum(numpy.abs(std2.ravel() - std3.ravel()))
+        self.assertLess(d2, min(d1, d3) / 2)
+
+    @ignore_warnings(FutureWarning)
+    def test_onnxt_iris_gaussian_process_exp_sine_squared_13(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
+        clr = GaussianProcessRegressor(
+            kernel=ExpSineSquared(), alpha=100)
+        clr.fit(X_train, y_train)
+        ym, std = clr.predict(X_test, return_std=True)
+
+        model_def = to_onnx(
+            clr, X_train.astype(numpy.float32),
+            options={GaussianProcessRegressor: {'return_std': True}},
+            target_opset=13)
         oinf = OnnxInference(model_def, runtime='python')
 
         res = oinf.run({'X': X_test.astype(numpy.float32)})
@@ -110,7 +153,8 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
 
         model_def = to_onnx(
             clr, X_train.astype(numpy.float32),
-            options={GaussianProcessRegressor: {'return_std': True}})
+            options={GaussianProcessRegressor: {'return_std': True}},
+            target_opset=12)
         oinf = OnnxInference(model_def, runtime='python')
 
         res = oinf.run({'X': X_test.astype(numpy.float32)})
