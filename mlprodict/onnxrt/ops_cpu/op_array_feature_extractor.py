@@ -7,11 +7,10 @@
 import numpy
 from ._op import OpRun
 from ..shape_object import ShapeObject
-from ._op_onnx_numpy import (  # pylint: disable=E0611
+from ._op_onnx_numpy import (  # pylint: disable=E0611,E0401
     array_feature_extractor_double,
     array_feature_extractor_int64,
-    array_feature_extractor_float
-)
+    array_feature_extractor_float)
 
 
 def _array_feature_extrator(data, indices):

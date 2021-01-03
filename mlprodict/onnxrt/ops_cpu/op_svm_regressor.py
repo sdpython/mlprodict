@@ -9,7 +9,7 @@ import numpy
 from ._op_helper import _get_typed_class_attribute
 from ._op import OpRunUnaryNum, RuntimeTypeError
 from ._new_ops import OperatorSchema
-from .op_svm_regressor_ import (  # pylint: disable=E0611
+from .op_svm_regressor_ import (  # pylint: disable=E0611,E0401
     RuntimeSVMRegressorFloat,
     RuntimeSVMRegressorDouble,
 )

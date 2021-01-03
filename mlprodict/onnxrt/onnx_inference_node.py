@@ -159,7 +159,7 @@ class OnnxInferenceNode:
 
         if not isinstance(res, tuple):
             raise RuntimeError(  # pragma: no cover
-                "Results of an operator should be a tuple.")
+                "Results of operator %r should be a tuple." % type(self.ops_))
         if len(self.outputs) != len(res):
             raise RuntimeError(  # pragma: no cover
                 "Mismatch number of outputs got {} for names {}.\n{}".format(

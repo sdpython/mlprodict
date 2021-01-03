@@ -87,11 +87,11 @@ from .op_sigmoid import Sigmoid
 from .op_sign import Sign
 from .op_sin import Sin
 from .op_slice import Slice, Slice_1, Slice_10
-from .op_split import Split
+from .op_split import Split, Split_2, Split_11, Split_13
 from .op_softmax import Softmax
 from .op_solve import Solve
 from .op_sqrt import Sqrt
-from .op_squeeze import Squeeze
+from .op_squeeze import Squeeze, Squeeze_1, Squeeze_11, Squeeze_13
 from .op_string_normalizer import StringNormalizer
 from .op_sub import Sub
 from .op_sum import Sum
@@ -103,7 +103,7 @@ from .op_topk import TopK_10, TopK_11, TopK_1, TopK
 from .op_transpose import Transpose
 from .op_tree_ensemble_classifier import TreeEnsembleClassifier, TreeEnsembleClassifierDouble
 from .op_tree_ensemble_regressor import TreeEnsembleRegressor, TreeEnsembleRegressorDouble
-from .op_unsqueeze import Unsqueeze
+from .op_unsqueeze import Unsqueeze, Unsqueeze_1, Unsqueeze_11, Unsqueeze_13
 from .op_where import Where
 from .op_zipmap import ZipMap
 

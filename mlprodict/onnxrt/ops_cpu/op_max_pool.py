@@ -8,7 +8,7 @@ import itertools
 import numpy
 from ..shape_object import ShapeObjectFct
 from ._op import OpRun
-from .op_max_pool_ import MaxPoolFloat, MaxPoolDouble  # pylint: disable=E0611
+from .op_max_pool_ import MaxPoolFloat, MaxPoolDouble  # pylint: disable=E0611,E0401
 
 
 def _pool_get_output_shape(auto_pad, input_spatial_shape, kernel_spatial_shape,

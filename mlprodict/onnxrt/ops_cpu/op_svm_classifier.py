@@ -10,7 +10,7 @@ from ._op_helper import _get_typed_class_attribute
 from ._op import OpRunClassifierProb, RuntimeTypeError
 from ._op_classifier_string import _ClassifierCommon
 from ._new_ops import OperatorSchema
-from .op_svm_classifier_ import (  # pylint: disable=E0611
+from .op_svm_classifier_ import (  # pylint: disable=E0611,E0401
     RuntimeSVMClassifierFloat,
     RuntimeSVMClassifierDouble,
 )
