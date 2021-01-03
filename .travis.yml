@@ -15,7 +15,16 @@ before_install:
     - ls /usr/bin/llvm*
     - export LLVM_CONFIG=/usr/bin/llvm-config
     # - sudo ln -s /usr/bin/llvm-config-10 /usr/bin/llvm-config
-    - sudo apt-get -y install graphviz      
+    - sudo apt-get -y install graphviz
+    # onnx
+    - git clone -b master --single-branch https://github.com/sdpython/onnx.git --recursive
+    - cd onnx
+    - export ONNX_ML=1
+    - export ONNX_BUILD_TESTS=1
+    - export ONNXIFI_DUMMY_BACKEND=1
+    - python -u setup.py bdist_wheel
+    - pip install -y "dist/*"
+    - cd ..
 
 install:
   - pip install -r requirements.txt

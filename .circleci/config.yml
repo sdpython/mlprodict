@@ -52,7 +52,7 @@ jobs:
           name: Install graphviz
           command: |
                     sudo apt-get install -y graphviz
-          
+
       - run:
           name: Install llvmlite
           command: |
@@ -63,11 +63,16 @@ jobs:
             ls /usr/bin/llvm*
 
       - run:
+          name: Install protobuf-compiler
+          command: |
+            sudo apt-get install protobuf-compiler libprotoc-dev
+
+      - run:
           name: Install standard libraries
           command: |
             python -m venv venv
             . venv/bin/activate
-            pip install scipy matplotlib numpy cython pandas
+            pip install scipy matplotlib numpy cython pandas wheel
 
       - run:
           name: Install numba, llvmlite
@@ -77,6 +82,19 @@ jobs:
             # export LLVM_CONFIG=/usr/local/opt/llvm/bin/llvm-config
             sudo ln -s /usr/bin/llvm-config-10 /usr/bin/llvm-config
             pip install llvmlite numba
+
+      - run:
+          name: Build onnx
+          command: |
+            python3 -m venv venv
+            git clone -b master --single-branch https://github.com/sdpython/onnx.git --recursive
+            cd onnx
+            export ONNX_ML=1
+            export ONNX_BUILD_TESTS=1
+            export ONNXIFI_DUMMY_BACKEND=1
+            python -u setup.py bdist_wheel
+            pip install -y "dist/*"
+            cd ..
 
       - run:
           name: install dependencies (2)
@@ -134,6 +152,7 @@ jobs:
             python setup.py bdist_wheel
             mkdir -p test-reports/dist
             cp dist/*.whl test-reports/dist
+            cp onnx/dist/*.whl test-reports/dist
             mkdir -p test-reports/src
             cp -r  mlprodict test-reports/src
 
