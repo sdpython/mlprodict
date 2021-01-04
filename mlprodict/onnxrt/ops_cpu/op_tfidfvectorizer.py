@@ -7,7 +7,7 @@
 import numpy
 from ._op import OpRunUnary, RuntimeTypeError
 from ..shape_object import ShapeObject
-from .op_tfidfvectorizer_ import RuntimeTfIdfVectorizer  # pylint: disable=E0611
+from .op_tfidfvectorizer_ import RuntimeTfIdfVectorizer  # pylint: disable=E0611,E0401
 
 
 class TfIdfVectorizer(OpRunUnary):

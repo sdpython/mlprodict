@@ -155,11 +155,15 @@ class OnnxInferenceNode:
         else:
             args = list(values[k] for k in self.inputs_indices)
 
-        res = self.ops_.run(*args)
+        try:
+            res = self.ops_.run(*args)
+        except TypeError as e:
+            raise RuntimeError(
+                "Unable to run operator %r." % type(self.ops_)) from e
 
         if not isinstance(res, tuple):
             raise RuntimeError(  # pragma: no cover
-                "Results of an operator should be a tuple.")
+                "Results of operator %r should be a tuple." % type(self.ops_))
         if len(self.outputs) != len(res):
             raise RuntimeError(  # pragma: no cover
                 "Mismatch number of outputs got {} for names {}.\n{}".format(

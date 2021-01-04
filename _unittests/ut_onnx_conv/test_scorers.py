@@ -6,7 +6,7 @@ import unittest
 from logging import getLogger
 from collections import OrderedDict
 import numpy
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import ExtTestCase, get_temp_folder, ignore_warnings
 from sklearn.metrics import make_scorer
 try:
     from sklearn.metrics._scorer import _PredictScorer
@@ -25,6 +25,7 @@ class TestScorers(ExtTestCase):
         logger.disabled = True
         register_scorers()
 
+    @ignore_warnings((DeprecationWarning, UserWarning))
     def test_score_cdist_sum(self):
         X = numpy.array([[0, 1, 0, 2],
                          [1, 0, 4, 5],
@@ -37,6 +38,7 @@ class TestScorers(ExtTestCase):
         scorer = make_scorer(score_cdist_sum, greater_is_better=False)
         self.assertIsInstance(scorer, _PredictScorer)
 
+    @ignore_warnings((DeprecationWarning, UserWarning))
     def test_custom_transformer(self):
         def mse(x, y):
             return x - y
@@ -44,6 +46,7 @@ class TestScorers(ExtTestCase):
         rp = repr(tr)
         self.assertIn("CustomScorerTransform('mse'", rp)
 
+    @ignore_warnings((DeprecationWarning, UserWarning))
     def test_score_cdist_sum_onnx(self):
         X = numpy.array([[0, 1, 0, 2],
                          [1, 0, 4, 5],

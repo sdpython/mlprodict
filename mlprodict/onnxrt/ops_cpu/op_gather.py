@@ -7,7 +7,7 @@
 import numpy
 from ._op import OpRun
 from ..shape_object import ShapeObject
-from .op_gather_ import (  # pylint: disable=E0611
+from .op_gather_ import (  # pylint: disable=E0611,E0401
     GatherFloat, GatherDouble, GatherInt64)
 
 

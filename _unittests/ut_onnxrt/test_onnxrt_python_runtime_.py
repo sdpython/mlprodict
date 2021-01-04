@@ -49,10 +49,12 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
     OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign, OnnxSin,
-    OnnxSoftmax, OnnxSqueeze, OnnxSplit,
+    OnnxSplitApi11,
+    OnnxSoftmax, OnnxSplit,
     OnnxSqrt, OnnxSub, OnnxSum,
+    OnnxSqueeze, OnnxSqueezeApi11,
     OnnxTopK, OnnxTranspose,
-    OnnxUnsqueeze,
+    OnnxUnsqueeze, OnnxUnsqueezeApi11
 )
 try:
     from skl2onnx.algebra.onnx_ops import OnnxCelu
@@ -67,7 +69,7 @@ from mlprodict.tools.asv_options_helper import (
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
 from mlprodict.onnxrt.ops_cpu.op_batch_normalization import _batchnorm_test_mode
 from mlprodict.onnxrt.ops_cpu.op_global_average_pool import _global_average_pool
-from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611
+from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611,E0401
     topk_element_min_double, topk_element_max_double, topk_element_fetch_double,
     topk_element_min_float, topk_element_max_float, topk_element_fetch_float,
     topk_element_min_int64, topk_element_max_int64, topk_element_fetch_int64)
@@ -2068,8 +2070,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                          [numpy.inf, 1],
                          [1., -numpy.inf],
                          [-numpy.inf, 1]], dtype=float)
-        onx = OnnxReduceSum('X', output_names=['Y'], keepdims=0, axes=[1],
-                            op_version=get_opset_number_from_onnx())
+        onx = OnnxReduceSumApi11(
+            'X', output_names=['Y'], keepdims=0, axes=[1],
+            op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
         oinf = OnnxInference(model_def)
@@ -2238,43 +2241,46 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_split(self):
-        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(numpy.float32)
-        y = [numpy.array([1., 2.]).astype(numpy.float32),
-             numpy.array([3., 4.]).astype(numpy.float32),
-             numpy.array([5., 6.]).astype(numpy.float32)]
+        for opset in [10, 11, 12, 13, get_opset_number_from_onnx()]:
+            if opset > get_opset_number_from_onnx():
+                continue
+            with self.subTest(opset=opset):
+                x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(numpy.float32)
+                y = [numpy.array([1., 2.]).astype(numpy.float32),
+                     numpy.array([3., 4.]).astype(numpy.float32),
+                     numpy.array([5., 6.]).astype(numpy.float32)]
+                onx = OnnxSplitApi11(
+                    'X', axis=0, split=[2, 2, 2], output_names=['Y1', 'Y2', 'Y3'],
+                    op_version=opset)
+                model_def = onx.to_onnx(
+                    {'X': x.astype(numpy.float32)}, target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(y[0], got['Y1'])
+                self.assertEqualArray(y[1], got['Y2'])
+                self.assertEqualArray(y[2], got['Y3'])
 
-        onx = OnnxSplit('X', axis=0, split=[2, 2, 2],
-                        output_names=['Y1', 'Y2', 'Y3'],
-                        op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        got = OnnxInference(model_def).run({'X': x})
-        self.assertEqualArray(y[0], got['Y1'])
-        self.assertEqualArray(y[1], got['Y2'])
-        self.assertEqualArray(y[2], got['Y3'])
+                onx = OnnxSplitApi11(
+                    'X', axis=0, output_names=['Y1', 'Y2', 'Y3'],
+                    op_version=opset)
+                model_def = onx.to_onnx(
+                    {'X': x.astype(numpy.float32)}, target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(y[0], got['Y1'])
+                self.assertEqualArray(y[1], got['Y2'])
+                self.assertEqualArray(y[2], got['Y3'])
 
-        onx = OnnxSplit('X', axis=0,
-                        output_names=['Y1', 'Y2', 'Y3'],
-                        op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        got = OnnxInference(model_def).run({'X': x})
-        self.assertEqualArray(y[0], got['Y1'])
-        self.assertEqualArray(y[1], got['Y2'])
-        self.assertEqualArray(y[2], got['Y3'])
-
-        x = numpy.array([[1., 2., 3., 4., 5., 6.],
-                         [7., 8., 9., 10., 11., 12.]]).astype(numpy.float32)
-        y = [numpy.array([[1., 2.], [7., 8.]]).astype(numpy.float32),
-             numpy.array([[3., 4., 5., 6.], [9., 10., 11., 12.]]).astype(numpy.float32)]
-        onx = OnnxSplit('X', axis=1, split=[2, 4],
-                        output_names=['Y1', 'Y2'],
-                        op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        got = OnnxInference(model_def).run({'X': x})
-        self.assertEqualArray(y[0], got['Y1'])
-        self.assertEqualArray(y[1], got['Y2'])
+                x = numpy.array([[1., 2., 3., 4., 5., 6.],
+                                 [7., 8., 9., 10., 11., 12.]]).astype(numpy.float32)
+                y = [numpy.array([[1., 2.], [7., 8.]]).astype(numpy.float32),
+                     numpy.array([[3., 4., 5., 6.], [9., 10., 11., 12.]]).astype(numpy.float32)]
+                onx = OnnxSplitApi11(
+                    'X', axis=1, split=[2, 4], output_names=['Y1', 'Y2'],
+                    op_version=opset)
+                model_def = onx.to_onnx(
+                    {'X': x.astype(numpy.float32)}, target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(y[0], got['Y1'])
+                self.assertEqualArray(y[1], got['Y2'])
         python_tested.append(OnnxSplit)
 
     @wraplog()
@@ -2283,25 +2289,29 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_squeeze(self):
-        x = numpy.random.randn(20, 1).astype(  # pylint: disable=E1101
-            numpy.float32)  # pylint: disable=E1101
-        y = numpy.squeeze(x)
-        onx = OnnxSqueeze('X', axes=[1], output_names=['Y'],
-                          op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        got = OnnxInference(model_def).run({'X': x})
-        self.assertEqualArray(y, got['Y'])
+        for opset in [10, 11, 12, 13, get_opset_number_from_onnx()]:
+            if opset > get_opset_number_from_onnx():
+                continue
+            with self.subTest(opset=opset):
+                x = numpy.random.randn(20, 1).astype(  # pylint: disable=E1101
+                    numpy.float32)  # pylint: disable=E1101
+                y = numpy.squeeze(x)
+                onx = OnnxSqueezeApi11(
+                    'X', axes=[1], output_names=['Y'], op_version=opset)
+                model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                        target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(y, got['Y'])
 
-        x = numpy.random.randn(1, 20).astype(  # pylint: disable=E1101
-            numpy.float32)  # pylint: disable=E1101
-        y = numpy.squeeze(x)
-        onx = OnnxSqueeze('X', axes=[0], output_names=['Y'],
-                          op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        got = OnnxInference(model_def).run({'X': x})
-        self.assertEqualArray(y, got['Y'])
+                x = numpy.random.randn(1, 20).astype(  # pylint: disable=E1101
+                    numpy.float32)  # pylint: disable=E1101
+                y = numpy.squeeze(x)
+                onx = OnnxSqueezeApi11(
+                    'X', axes=[0], output_names=['Y'], op_version=opset)
+                model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                        target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxSqueeze)
 
     @wraplog()
@@ -2435,26 +2445,29 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_unsqueeze(self):
-        x = numpy.random.randn(1, 3, 1, 5).astype(numpy.float32)
-        y = numpy.expand_dims(x, axis=-2)
-        onx = OnnxUnsqueeze('X', axes=[-2], output_names=['Y'],
-                            op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        got = OnnxInference(model_def).run({'X': x})
-        self.assertEqualArray(y, got['Y'])
+        for opset in [10, 11, 12, 13, get_opset_number_from_onnx()]:
+            if opset > get_opset_number_from_onnx():
+                continue
+            with self.subTest(opset=opset):
+                x = numpy.random.randn(1, 3, 1, 5).astype(numpy.float32)
+                y = numpy.expand_dims(x, axis=-2)
+                onx = OnnxUnsqueezeApi11(
+                    'X', axes=[-2], output_names=['Y'], op_version=opset)
+                model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                        target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(y, got['Y'])
 
-        x = numpy.random.randn(3, 4, 5).astype(numpy.float32)
-        y = numpy.expand_dims(x, axis=2)
-        y = numpy.expand_dims(y, axis=4)
-        y = numpy.expand_dims(y, axis=5)
-        onx = OnnxUnsqueeze('X', axes=[2, 4, 5], output_names=['Y'],
-                            op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        got = OnnxInference(model_def).run({'X': x})
-        self.assertEqualArray(y, got['Y'])
-
+                x = numpy.random.randn(3, 4, 5).astype(numpy.float32)
+                y = numpy.expand_dims(x, axis=2)
+                y = numpy.expand_dims(y, axis=4)
+                y = numpy.expand_dims(y, axis=5)
+                onx = OnnxUnsqueezeApi11(
+                    'X', axes=[2, 4, 5], output_names=['Y'], op_version=opset)
+                model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                        target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxUnsqueeze)
 
     @wraplog()
@@ -2811,5 +2824,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_slice()
+    TestOnnxrtPythonRuntime().test_onnxt_runtime_unsqueeze()
     unittest.main()

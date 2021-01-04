@@ -1,19 +1,38 @@
-dist: bionic
+dist: focal
 sudo: true
 language: python
-python:
-    - "3.8"
+
+matrix:
+  include:
+  - python: 3.9
+    name: "Python39"
+
 before_install:
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-  - sudo apt-get update -qq
-  - sudo apt-get install libomp-dev
+    - sudo apt-get install libgeos-dev libproj-dev proj-data graphviz libblas-dev liblapack-dev
+    - wget https://apt.llvm.org/llvm.sh
+    - chmod +x llvm.sh
+    - sudo ./llvm.sh 10
+    - ls /usr/bin/llvm*
+    - export LLVM_CONFIG=/usr/bin/llvm-config
+    # - sudo ln -s /usr/bin/llvm-config-10 /usr/bin/llvm-config
+    - sudo apt-get -y install graphviz
+    # onnx
+    - sudo apt-get install protobuf-compiler libprotoc-dev cmake
+    - git clone -b master --single-branch https://github.com/onnx/onnx.git --recursive
+    - cd onnx
+    - export ONNX_ML=1
+    - export ONNX_BUILD_TESTS=1
+    - export ONNXIFI_DUMMY_BACKEND=1
+    - pip install -e .
+    - cd ..
+
 install:
-  - gcc --version
-  - pip install -r requirements_conda.txt
   - pip install -r requirements.txt
-  #- pip install -i https://test.pypi.org/simple/ ort-nightly
-  - pip install onnxruntime
+  - pip install -i https://test.pypi.org/simple/ ort-nightly
+  # - pip install onnxruntime
+
 before_script:
   - python setup.py build_ext --inplace
+
 script:
   - python setup.py unittests -g ".*((LONG)|(SKIP)|(notebooks)).*"

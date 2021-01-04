@@ -7,7 +7,8 @@
 import numpy
 from ._op import OpRun
 from ..shape_object import ShapeObjectFct
-from .op_conv_transpose_ import ConvTransposeFloat, ConvTransposeDouble  # pylint: disable=E0611
+from .op_conv_transpose_ import (  # pylint: disable=E0611,E0401
+    ConvTransposeFloat, ConvTransposeDouble)
 
 
 class ConvTranspose(OpRun):

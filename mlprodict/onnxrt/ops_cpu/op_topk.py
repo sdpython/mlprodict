@@ -7,7 +7,7 @@
 import numpy
 from onnx.defs import onnx_opset_version
 from ._op import OpRun
-from ._op_onnx_numpy import (  # pylint: disable=E0611
+from ._op_onnx_numpy import (  # pylint: disable=E0611,E0401
     topk_element_min_double, topk_element_max_double, topk_element_fetch_double,
     topk_element_min_float, topk_element_max_float, topk_element_fetch_float,
     topk_element_min_int64, topk_element_max_int64, topk_element_fetch_int64)

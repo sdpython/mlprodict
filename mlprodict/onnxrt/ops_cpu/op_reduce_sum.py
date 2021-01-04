@@ -6,7 +6,7 @@
 """
 import numpy
 from onnx.defs import onnx_opset_version
-from ._op import OpRunReduceNumpy, RuntimeTypeError
+from ._op import OpRunReduceNumpy, RuntimeTypeError, OpRun
 
 
 class ReduceSum_1(OpRunReduceNumpy):
@@ -51,12 +51,25 @@ class ReduceSum_13(OpRunReduceNumpy):
                     data.dtype, res[0].dtype, self.__class__.__name__))
         return res
 
+    def _run_no_checks_(self, x, axes=None):  # pylint: disable=W0221
+        return OpRun.run(self, x, axes)
+
     def _run(self, data, axes=None):  # pylint: disable=W0221
         if axes is None and self.noop_with_empty_axes:
             return (data, )
-        return (numpy.sum(data, axis=axes,
-                          keepdims=self.keepdims,
-                          dtype=data.dtype), )
+        if axes is not None and not isinstance(axes, int):
+            if isinstance(axes, numpy.ndarray) and len(axes.shape) == 0:
+                axes = int(axes)
+            else:
+                axes = tuple(axes) if len(axes) > 0 else None
+        try:
+            return (numpy.sum(data, axis=axes,
+                              keepdims=self.keepdims,
+                              dtype=data.dtype), )
+        except TypeError as e:
+            raise TypeError(
+                "Unable to reduce shape %r with axes=%r." % (
+                    data.shape, axes)) from e
 
     def infer_shapes(self, data, axes=None):  # pylint: disable=E0202,W0221
         return self._infer_shapes(data, axes=axes)

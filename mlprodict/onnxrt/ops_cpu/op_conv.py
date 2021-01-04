@@ -7,7 +7,7 @@
 import numpy
 from ._op import OpRun
 from ..shape_object import ShapeObjectFct
-from .op_conv_ import ConvFloat, ConvDouble  # pylint: disable=E0611
+from .op_conv_ import ConvFloat, ConvDouble  # pylint: disable=E0611,E0401
 
 
 class Conv(OpRun):

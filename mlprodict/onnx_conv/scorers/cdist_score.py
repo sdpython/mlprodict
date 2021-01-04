@@ -4,6 +4,7 @@
 :epkg:`cdist`.
 """
 import numpy
+from onnx import onnx_pb as onnx_proto
 from scipy.spatial.distance import cdist
 
 
@@ -61,8 +62,13 @@ def convert_score_cdist_sum(scope, operator, container):
                                axes=[1], keepdims=0,
                                name=scope.get_unique_operator_name('ReduceSum'))
         else:
-            raise NotImplementedError(  # pragma: no cover
-                "ReduceSum for opset>=13 is not impelmented yet.")
+            axis_name = scope.get_unique_variable_name('axis')
+            container.add_initializer(
+                axis_name, onnx_proto.TensorProto.INT64, [1], [1])  # pylint: disable=E1101
+            container.add_node(
+                'ReduceSum', [cdist_name, axis_name],
+                out[0].full_name, keepdims=0,
+                name=scope.get_unique_operator_name('ReduceSum'))
     else:
         metric = kwargs['metric']
         if metric == 'minkowski':

@@ -12,7 +12,7 @@ from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_array_feature_extractor import _array_feature_extrator, sizeof_dtype
-from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import array_feature_extractor_double  # pylint: disable=E0611
+from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import array_feature_extractor_double  # pylint: disable=E0611,E0401
 from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
 
 

@@ -10,11 +10,11 @@ from ._op_helper import _get_typed_class_attribute
 from ._op import OpRunClassifierProb, RuntimeTypeError
 from ._op_classifier_string import _ClassifierCommon
 from ._new_ops import OperatorSchema
-from .op_tree_ensemble_classifier_ import (  # pylint: disable=E0611
+from .op_tree_ensemble_classifier_ import (  # pylint: disable=E0611,E0401
     RuntimeTreeEnsembleClassifierDouble,
     RuntimeTreeEnsembleClassifierFloat,
 )
-from .op_tree_ensemble_classifier_p_ import (  # pylint: disable=E0611
+from .op_tree_ensemble_classifier_p_ import (  # pylint: disable=E0611,E0401
     RuntimeTreeEnsembleClassifierPFloat,
     RuntimeTreeEnsembleClassifierPDouble,
 )
