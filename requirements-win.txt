@@ -1,6 +1,7 @@
 astroid
 cython
 docutils
+et_xmlfile
 ijson
 importlib_metadata
 ipython
