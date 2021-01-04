@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 from pandas import DataFrame
 from onnxruntime import InferenceSession, __version__ as ort_version
 from tqdm import tqdm
-from cpyquickhelper.numbers.speed_measure import measure_time
+from mlprodict.tools import measure_time
 from pyquickhelper.pycode.profiling import profile
 from skl2onnx.algebra.onnx_ops import OnnxTopK_11
 from skl2onnx.common.data_types import FloatTensorType

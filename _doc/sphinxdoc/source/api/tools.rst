@@ -5,6 +5,11 @@ Tools
 .. contents::
     :local:
 
+Benchmark
++++++++++
+
+.. autosignature:: mlprodict.tools.speed_measure.measure_time
+
 ONNX helpers
 ++++++++++++
 

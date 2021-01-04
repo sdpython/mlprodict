@@ -22,7 +22,6 @@ asv
 # git+https://github.com/sdpython/asv.git@jenkins
 chardet
 coverage>=5.0
-cpyquickhelper
 jyquickhelper
 lightgbm
 memory_profiler
