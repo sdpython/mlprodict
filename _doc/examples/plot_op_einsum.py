@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 from onnxruntime import InferenceSession
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import OnnxEinsum
-from cpyquickhelper.numbers.speed_measure import measure_time
+from mlprodict.tools import measure_time
 from tqdm import tqdm
 from opt_einsum import contract
 from mlprodict.testing.experimental_c import custom_einsum_float

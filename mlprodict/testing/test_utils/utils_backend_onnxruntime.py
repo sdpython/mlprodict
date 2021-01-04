@@ -11,8 +11,12 @@ from .utils_backend_common_compare import compare_runtime_session
 def _capture_output(fct, kind):
     if is_travis_or_appveyor():
         return fct(), None, None  # pragma: no cover
-    from cpyquickhelper.io import capture_output
-    return capture_output(fct, kind)
+    try:
+        from cpyquickhelper.io import capture_output
+    except ImportError:
+        # cpyquickhelper not available
+        return fct(), None, None  # pragma: no cover
+    return capture_output(fct, kind)  # pragma: no cover
 
 
 class InferenceSession2:
