@@ -1,9 +1,11 @@
 astroid
 cython
+docutils
 ijson
 importlib_metadata
 ipython
 isort
+jdcal
 joblib
 jupyter
 matplotlib
@@ -12,6 +14,7 @@ numpy
 pandas
 psutil
 pybind11
+pycodestyle
 pylint
 pymyinstall
 pyquickhelper
