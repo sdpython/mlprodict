@@ -153,7 +153,6 @@ jobs:
             python setup.py bdist_wheel
             mkdir -p test-reports/dist
             cp dist/*.whl test-reports/dist
-            cp onnx/dist/*.whl test-reports/dist
             mkdir -p test-reports/src
             cp -r  mlprodict test-reports/src
 

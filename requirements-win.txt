@@ -1,4 +1,5 @@
 astroid
+cython
 ijson
 importlib_metadata
 ipython
@@ -10,6 +11,7 @@ nbformat
 numpy
 pandas
 psutil
+pybind11
 pylint
 pymyinstall
 pyquickhelper
