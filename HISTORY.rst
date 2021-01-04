@@ -5,11 +5,13 @@
 History
 =======
 
-current - 2021-01-02 - 0.00Mb
+current - 2021-01-04 - 0.00Mb
 =============================
 
-* `200`: Add support for bfloat16 (2020-12-30)
+* `202`: Enable opset 13 (ONNX) (2021-01-04)
+* `203`: Enable Python 3.9, enable opset 13, upgrade version number (2021-01-04)
 * `201`: Fixes #200, add support for float16 (2020-12-30)
+* `200`: Add support for bfloat16 (2020-12-30)
 * `199`: Fix unit tests recently failing due to onnxruntime update. (2020-12-15)
 
 0.4.1352 - 2020-12-11 - 1.42Mb
