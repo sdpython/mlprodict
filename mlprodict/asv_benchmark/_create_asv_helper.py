@@ -35,7 +35,7 @@ default_asv_conf = {
     "environment_type": "virtualenv",
     "install_timeout": 600,
     "show_commit_url": "https://github.com/sdpython/mlprodict/commit/",
-    "pythons": ["3.7"],
+    # "pythons": ["__PYVER__"],
     "matrix": {
         "cython": [],
         "jinja2": [],
