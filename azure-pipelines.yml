@@ -79,7 +79,8 @@ jobs:
     displayName: 'gcc version'
   - script: brew install libomp
     displayName: 'Install omp'
-  - script: brew install p7zip
+  - script: brew upgrade p7zip
+    continueOnError: true
     displayName: 'Install p7zip'
   - script: brew install pandoc
     displayName: 'Install Pandoc'
