@@ -49,10 +49,10 @@ jobs:
     displayName: 'Runs Unit Tests'
   - script: |
       python -m pip install cibuildwheel
-      set CIBW_BEFORE_BUILD=pip install .
-      set CIBW_BEFORE_BUILD=pip install pybind11 cython numpy scipy pyquickhelper scikit-learn pandas pandas_streaming onnx
-      set CIBW_BUILD=cp37-win_amd64 cp38-win_amd64 cp39-win_amd64
-      python -m cibuildwheel --output-dir dist/wheelhouse
+      export CIBW_BEFORE_BUILD=pip install .
+      export CIBW_BEFORE_BUILD=pip install pybind11 cython numpy scipy pyquickhelper scikit-learn pandas pandas_streaming onnx
+      export CIBW_BUILD="cp37-manylinux_x86_64 cp38-manylinux_x86_64 cp39-manylinux_x86_64"
+      python -m cibuildwheel --output-dir dist/wheelhouse --platform linux
     displayName: 'Build Package many'
   - task: PublishPipelineArtifact@0
     inputs:
@@ -119,7 +119,8 @@ jobs:
       python -m pip install cibuildwheel
       export CIBW_BEFORE_BUILD="pip install ."
       export CIBW_BEFORE_BUILD="pip install pybind11 cython numpy scipy pyquickhelper scikit-learn pandas pandas_streaming onnx"
-      export CIBW_BUILD="cp37-macosx_x86_64 cp38-macosx_x86_64 cp39-macosx_x86_64"
+      export CIBW_BUILD="cp37-macosx_x86_64 cp38-macosx_x86_64"
+      # cp39-macosx_x86_64 fails due to missing dependencies
       python -m cibuildwheel --output-dir dist/wheelhouse
     displayName: 'Build Package many'
   - task: PublishPipelineArtifact@0
@@ -144,6 +145,8 @@ jobs:
     displayName: 'Install tools'
   - script: pip install -r requirements.txt
     displayName: 'Install Requirements'
+  - script: pip install onnxruntime
+    displayName: 'Install onnxruntime'
   - script: python -c "import platform;print(platform.version())"
     displayName: 'Platform'
   - script: python -u setup.py build_ext --inplace
