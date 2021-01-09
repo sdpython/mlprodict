@@ -151,7 +151,7 @@ jobs:
     displayName: 'Platform'
   - script: python -u setup.py build_ext --inplace
     displayName: 'Build inplace'
-  - script: python -u setup.py unittests -d 5
+  - script: python -u setup.py unittests -d 2
     displayName: 'Runs Unit Tests'
   - script: |
       python -m pip install cibuildwheel
