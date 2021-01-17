@@ -134,8 +134,8 @@ class TestSklearnPipeline(ExtTestCase):
             model,
             "pipeline",
             [
-                ("input1", Int64TensorType([None, 1])),
                 ("input2", FloatTensorType([None, 1])),
+                ("input1", Int64TensorType([None, 1])),
             ],
         )
         self.assertTrue(
