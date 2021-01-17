@@ -107,7 +107,7 @@ class OnnxInferenceExport:
         shapes = {}
         if add_rt_shapes:
             if not hasattr(self.oinf, 'shapes_'):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "No information on shapes, check the runtime '{}'.".format(self.oinf.runtime))
             for name, shape in self.oinf.shapes_.items():
                 va = shape.evaluate().to_string()
@@ -171,7 +171,7 @@ class OnnxInferenceExport:
                             out, fontsize, prefix, sh))
 
             dobj = _var_as_dict(node)
-            if dobj['name'].strip() == '':
+            if dobj['name'].strip() == '':  # pragma: no cover
                 name = node.op_type
                 iname = 1
                 while name in fill_names:
@@ -199,7 +199,7 @@ class OnnxInferenceExport:
                           if node.op_type == 'If' else ['body'])
                 for field in fields:
                     if field not in dobj['atts']:
-                        continue
+                        continue  # pragma: no cover
 
                     # creates the subgraph
                     body = dobj['atts'][field]['value']
@@ -543,10 +543,10 @@ class OnnxInferenceExport:
                 if ext == '.py':
                     with open(kf, "w", encoding="utf-8") as f:
                         f.write(v)
-                elif ext == '.pkl':
+                elif ext == '.pkl':  # pragma: no cover
                     with open(kf, "wb") as f:
                         f.write(v)
                 else:
-                    raise NotImplementedError(
+                    raise NotImplementedError(  # pragma: no cover
                         "Unknown extension for file '{}'.".format(k))
         return file_data

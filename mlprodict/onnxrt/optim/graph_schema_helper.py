@@ -17,7 +17,7 @@ from skl2onnx.proto import TensorProto
 
 def _guess_type(var):
     if isinstance(var, dict) and 'value' in var:
-        return skl2onnx__guess_type(var['value'])
+        return skl2onnx__guess_type(var['value'])  # pragma: no cover
     return skl2onnx__guess_type(var)
 
 
@@ -35,7 +35,8 @@ def get_defined_inputs(input_names, variables=None, dtype=None):
     """
     def guess_type_variable(name):
         if variables is None:
-            return DoubleTensorType() if dtype == numpy.float64 else FloatTensorType()
+            return (  # pragma: no cover
+                DoubleTensorType() if dtype == numpy.float64 else FloatTensorType())
         elif name in variables:
             ty = variables[name]
             if isinstance(ty, DataType):

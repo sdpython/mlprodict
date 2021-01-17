@@ -36,7 +36,7 @@ def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=Non
         new_model.model_version = onnx_model.model_version
         new_model.doc_string = onnx_model.doc_string
         if hasattr(onnx_model, 'value_info'):
-            graph.value_info.extend(onnx_model.value_info)
+            graph.value_info.extend(onnx_model.value_info)  # pragma: no cover
         while len(new_model.opset_import) > 0:  # pylint: disable=E1101
             new_model.opset_import.pop()  # pylint: disable=E1101
         for oimp in onnx_model.opset_import:
@@ -58,7 +58,7 @@ def _apply_remove_node_fct_node(fct, node, recursive, debug_info):
     @return                 new node
     """
     if not hasattr(node, 'attribute'):
-        return node
+        return node  # pragma: no cover
     modified = 0
     new_atts = []
     for att in node.attribute:
@@ -102,11 +102,11 @@ def _make_node(op_type, inputs, outputs, name=None, doc_string=None,
     if name:
         node.name = name
     if doc_string:
-        node.doc_string = doc_string
+        node.doc_string = doc_string  # pragma: no cover
     if domain is not None:
         node.domain = domain
     if isinstance(attributes, dict):
-        if len(attributes) > 0:
+        if len(attributes) > 0:  # pragma: no cover
             node.attribute.extend(  # pylint: disable=E1101
                 make_attribute(key, value)
                 for key, value in sorted(attributes.items()))
@@ -149,11 +149,20 @@ def _rename_node_input(onnx_node, old_name, new_name=None):
                 new_atts.append(att)
         atts = new_atts
     else:
-        atts = onnx_node.attribute
+        atts = None  # pragma: no cover
     node = _make_node(
         onnx_node.op_type, inputs, outputs, name=onnx_node.name,
         domain=onnx_node.domain, attributes=atts)
     return node
+
+
+def _copy_value_info_proto(new_name, obj):
+    value_info = ValueInfoProto()
+    value_info.name = new_name
+    value_info.type.CopyFrom(obj.type)  # pylint: disable=E1101
+    if obj.type.doc_string:
+        value_info.doc_string = obj.type.doc_string
+    return value_info
 
 
 def _rename_graph_output(graph, old_name, new_name):
@@ -169,12 +178,7 @@ def _rename_graph_output(graph, old_name, new_name):
         if old_name != o.name:
             outputs.append(o)
         else:
-            value_info = ValueInfoProto()
-            value_info.name = new_name
-            value_info.type.CopyFrom(o.type)  # pylint: disable=E1101
-            if o.type.doc_string:
-                value_info.doc_string = o.type.doc_string
-            outputs.append(value_info)
+            outputs.append(_copy_value_info_proto(new_name, o))
     nodes = list(graph.node)
     nodes.append(_make_node('Identity', [old_name], [new_name]))
     new_graph = make_graph(nodes, graph.name, graph.input, outputs,
@@ -196,12 +200,7 @@ def _rename_graph_input(graph, old_name, new_name):
         if old_name != i.name:
             inputs.append(i)
         else:
-            value_info = ValueInfoProto()
-            value_info.name = new_name
-            value_info.type.CopyFrom(i.type)  # pylint: disable=E1101
-            if i.type.doc_string:
-                value_info.doc_string = i.type.doc_string
-            inputs.append(value_info)
+            inputs.append(_copy_value_info_proto(new_name, i))
     nodes = list(graph.node)
     nodes.append(_make_node('Identity', [new_name], [old_name]))
     new_graph = make_graph(nodes, graph.name, inputs, graph.output,
@@ -239,7 +238,7 @@ def _rename_node_output(onnx_node, old_name, new_name):
                 new_atts.append(att)
         atts = new_atts
     else:
-        atts = onnx_node.attribute
+        atts = None  # pragma: no cover
     node = _make_node(
         onnx_node.op_type, inputs, outputs, name=onnx_node.name,
         domain=onnx_node.domain, attributes=atts)

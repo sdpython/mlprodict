@@ -249,9 +249,9 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
     is linear.
     """
     if opset_min == -1:
-        opset_min = get_opset_number_from_onnx()
+        opset_min = get_opset_number_from_onnx()  # pragma: no cover
     if opset_max == -1:
-        opset_max = get_opset_number_from_onnx()
+        opset_max = get_opset_number_from_onnx()  # pragma: no cover
     if verbose > 0 and fLOG is not None:
         fLOG("[enumerate_compatible_opset] opset in [{}, {}].".format(
             opset_min, opset_max))

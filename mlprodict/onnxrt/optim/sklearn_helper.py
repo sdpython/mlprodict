@@ -54,9 +54,9 @@ def enumerate_pipeline_models(pipe, coor=None, vs=None):
         for couple in enumerate_pipeline_models(  # pragma: no cover
                 pipe.mapper, coor + (0,)):
             yield couple
-    elif hasattr(pipe, 'built_features'):
+    elif hasattr(pipe, 'built_features'):  # pragma: no cover
         # sklearn_pandas.dataframe_mapper.DataFrameMapper
-        for i, (columns, transformers, _) in enumerate(  # pragma: no cover
+        for i, (columns, transformers, _) in enumerate(
                 pipe.built_features):
             if isinstance(columns, str):
                 columns = (columns,)
@@ -166,10 +166,10 @@ def pairwise_array_distances(l1, l2, metric='l1med'):
     dist = numpy.full((len(l1), len(l2)), 1e9)
     for i, a1 in enumerate(l1):
         if not isinstance(a1, numpy.ndarray):
-            continue
+            continue  # pragma: no cover
         for j, a2 in enumerate(l2):
             if not isinstance(a2, numpy.ndarray):
-                continue
+                continue  # pragma: no cover
             if a1.shape != a2.shape:
                 continue
             a = numpy.median(numpy.abs(a1))

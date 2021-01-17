@@ -641,8 +641,8 @@ class OnnxInference:
                                 k, obj.shape, obj.dtype, numpy_min(obj),
                                 numpy_max(obj),
                                 ' (sparse)' if isinstance(obj, coo_matrix) else ''))
-                        elif (isinstance(obj, list) and len(obj) > 0 and  # pragma: no cover
-                                not isinstance(obj[0], dict)):
+                        elif (isinstance(obj, list) and len(obj) > 0 and
+                                not isinstance(obj[0], dict)):  # pragma: no cover
                             fLOG("-kv='{}' list len={} min={} max={}".format(
                                 k, len(obj), min(obj), max(obj)))
                         else:  # pragma: no cover

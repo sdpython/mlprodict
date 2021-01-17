@@ -191,7 +191,7 @@ class OpRunOnnxRuntime:
                         "Probable issue as one dimension is null.\n--\n{}".format(
                             self.onnx_)) from e
 
-        if len(self.onnx_.graph.output) != len(self.outputs):
+        if len(self.onnx_.graph.output) != len(self.outputs):  # pragma: no cover
             # Something is wrong, falls back to default plan.
             forced = True
             outputs = get_defined_outputs(

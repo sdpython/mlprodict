@@ -101,7 +101,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None):
     onnx_model.domain = model.domain
     onnx_model.model_version = model.model_version
     onnx_model.doc_string = model.doc_string
-    if len(model.metadata_props) > 0:
+    if len(model.metadata_props) > 0:  # pragma: no cover
         values = {p.key: p.value for p in model.metadata_props}
         helper.set_model_props(onnx_model, values)
 
