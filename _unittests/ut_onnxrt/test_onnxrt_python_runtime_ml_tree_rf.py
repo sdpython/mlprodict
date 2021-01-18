@@ -1,5 +1,5 @@
 """
-@brief      test log(time=8s)
+@brief      test log(time=12s)
 """
 import unittest
 from logging import getLogger
@@ -48,7 +48,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
                 clr = RandomForestRegressor(n_jobs=1)
             else:
                 clr = RandomForestRegressor(
-                    n_estimators=ntrees, n_jobs=1, max_depth=4)
+                    n_estimators=ntrees, n_jobs=1, max_depth=3)
 
         clr.fit(X_train, y_train)
 
@@ -122,27 +122,6 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
         self.onnxrt_python_RandomForestRegressor_dtype(
             numpy.float64, full=True)
 
-    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
-    def test_rt_RandomForestRegressor_python64(self):
-        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
-        logger = getLogger('skl2onnx')
-        logger.disabled = True
-        verbose = 1 if __name__ == "__main__" else 0
-
-        debug = True
-        buffer = []
-
-        def myprint(*args, **kwargs):
-            buffer.append(" ".join(map(str, args)))
-
-        rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"RandomForestRegressor"},
-            opset_min=-1, fLOG=myprint,
-            runtime='python', debug=debug,
-            filter_exp=lambda m, p: p == "~b-reg-64"))
-        self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1 if debug else 0)
-
     @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_rt_RandomForestRegressor_python64_compiled(self):
@@ -169,26 +148,6 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             filter_exp=lambda m, p: pp(p) == "~b-reg-64"))
         if len(rows) == 0:
             raise AssertionError("Empty rows: {}".format(pps))
-
-    @skipif_circleci('too long')
-    @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
-    def test_rt_HistGradientBoostingRegressor_python64(self):
-        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
-        logger = getLogger('skl2onnx')
-        logger.disabled = True
-        verbose = 1 if __name__ == "__main__" else 0
-
-        debug = True
-        buffer = []
-
-        def myprint(*args, **kwargs):
-            buffer.append(" ".join(map(str, args)))
-
-        rows = list(enumerate_validated_operator_opsets(
-            verbose, models={"HistGradientBoostingRegressor"}, opset_min=-1, fLOG=myprint,
-            runtime='python', debug=debug, filter_exp=lambda m, p: '64' in p))
-        self.assertGreater(len(rows), 1)
-        self.assertGreater(len(buffer), 1 if debug else 0)
 
     @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))

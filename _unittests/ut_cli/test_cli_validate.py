@@ -1,5 +1,5 @@
 """
-@brief      test tree node (time=30s)
+@brief      test tree node (time=15s)
 """
 import os
 import unittest
@@ -26,7 +26,7 @@ class TestCliValidate(ExtTestCase):
                    "--out_summary", out2, "--models",
                    "LogisticRegression,LinearRegression",
                    '-o', '10', '-op', '10', '-v', '2', '-b', '1',
-                   '-t', '{"1":{"number":10,"repeat":10},"10":{"number":5,"repeat":5}}',
+                   '-t', '{"1":{"number":2,"repeat":2},"10":{"number":1,"repeat":1}}',
                    '--out_graph', gr, '--n_jobs', '0'],
              fLOG=st.fprint)
         res = str(st)
@@ -42,7 +42,7 @@ class TestCliValidate(ExtTestCase):
         st = BufferedPrint()
         main(args=["validate_runtime", "--out_raw", out1,
                    "--out_summary", out2, "--models",
-                   "LogisticRegression,LinearRegression",
+                   "LinearRegression",
                    '-o', '10', '-op', '10', '-v', '2', '-b', '1'],
              fLOG=st.fprint)
         res = str(st)
@@ -57,7 +57,7 @@ class TestCliValidate(ExtTestCase):
         st = BufferedPrint()
         main(args=["validate_runtime", "--out_raw", out1,
                    "--out_summary", out2, "--models",
-                   "LogisticRegression,LinearRegression",
+                   "LinearRegression",
                    '-o', '10', '-op', '10', '-v', '2', '-b', '1',
                    '-n', '20'],
              fLOG=st.fprint)

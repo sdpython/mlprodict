@@ -1,5 +1,5 @@
 """
-@brief      test log(time=40s)
+@brief      test log(time=10s)
 """
 import os
 import unittest
@@ -34,6 +34,7 @@ class TestOnnxrtValidate(ExtTestCase):
                 verbose, debug=None, fLOG=fLOG, dump_folder=temp,
                 time_kwargs={get_opset_number_from_onnx(): dict(
                     number=2, repeat=2)},
+                models={"DecisionTreeClassifier", "LinearRegression"},
                 n_features=[None]))
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)

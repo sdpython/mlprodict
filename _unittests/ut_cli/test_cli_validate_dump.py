@@ -22,7 +22,7 @@ class TestCliValidateDump(ExtTestCase):
         st = BufferedPrint()
         models = ','.join([
             "LinearRegression",
-            "LogisticRegression",
+            # "LogisticRegression",
             "DecisionTreeRegressor",
             # "DecisionTreeClassifier",
         ])
@@ -45,7 +45,7 @@ class TestCliValidateDump(ExtTestCase):
                 "--out_summary", out2, "--models",
                 models, '-r', "python,onnxruntime1",
                 '-o', '10', '-op', '10', '-v', '1', '-b', '1',
-                '-dum', '1', '-du', temp, '-n', '20,100,500',
+                '-dum', '1', '-du', temp, '-n', '20,50',
                 '--out_graph', graph, '--dtype', '32']
         cmd = "python -m mlprodict " + " ".join(args)
         fLOG(cmd)

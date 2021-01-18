@@ -64,8 +64,9 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
                 fLOG=fLOG, runtime="onnxruntime1",
                 versions=True):
             rows.append(row)
-            if len(rows) > 40:
+            if len(rows) > 6:
                 break
+            fLOG('i')
         self.assertGreater(len(rows), 1)
         df = DataFrame(rows)
         for col in ['skl', 'batch']:

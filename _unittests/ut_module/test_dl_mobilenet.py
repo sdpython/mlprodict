@@ -1,5 +1,5 @@
 """
-@brief      test log(time=7s)
+@brief      test log(time=12s)
 """
 import unittest
 import numpy
@@ -16,8 +16,8 @@ class TestLONGMobileNet(ExtTestCase):
         model_file = "mobilenetv2-1.0.onnx"
         download_data(model_file, website=src)
         X = numpy.random.rand(1, 3, 224, 224).astype(dtype=numpy.float32)
-        rts = ['python', 'python_compiled_debug',
-               'python_compiled', 'onnxruntime1']
+        rts = ['python']
+        # rts = ['python_compiled_debug', 'python_compiled', 'onnxruntime1']
         res = []
         for i, rt in enumerate(rts):
             oinf = OnnxInference(model_file, runtime=rt)

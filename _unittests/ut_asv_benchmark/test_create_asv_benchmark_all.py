@@ -1,5 +1,5 @@
 """
-@brief      test log(time=20s)
+@brief      test log(time=12s)
 """
 import os
 import unittest
@@ -19,6 +19,7 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
         temp = get_temp_folder(__file__, "temp_create_asv_benchmark_all")
         created = create_asv_benchmark(
             location=temp, verbose=1, fLOG=fLOG,
+            models={'LogisticRegression', 'DecisionTreeClassifier', 'PCA'},
             skip_models={
                 'DictVectorizer', 'FeatureHasher',  # 'CountVectorizer'
             }, runtime=('scikit-learn', 'python', 'onnxruntime1'),

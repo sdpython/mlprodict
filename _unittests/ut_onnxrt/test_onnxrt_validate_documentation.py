@@ -1,5 +1,5 @@
 """
-@brief      test log(time=40s)
+@brief      test log(time=10s)
 """
 import unittest
 from logging import getLogger
@@ -57,6 +57,8 @@ class TestOnnxrtValidateDocumentation(ExtTestCase):
                 rows.append('')
                 subs.append(sub)
                 fLOG("subfolder '{}' - {} scenarios.".format(sub, len(models)))
+                if len(subs) > 2:
+                    break
 
         self.assertGreater(len(subs), 2)
 
