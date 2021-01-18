@@ -73,7 +73,7 @@ def _summary_report_indices(df, add_cols=None, add_index=None):
     columns = ['opset']
     indices = indices + indices2
     if add_index is not None:
-        for i in add_index:
+        for i in add_index:  # pragma: no cover
             if i not in indices:
                 indices.append(i)
     return columns, indices, col_values
@@ -236,7 +236,7 @@ def summary_report(df, add_cols=None, add_index=None):
 
     def clean_values(value):
         if not isinstance(value, str):
-            return value
+            return value  # pragma: no cover
         if "ERROR->=1000000" in value:
             value = "big-diff"
         elif "ERROR" in value:

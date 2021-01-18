@@ -8,7 +8,7 @@ import numpy
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
@@ -34,7 +34,7 @@ class TestOnnxrtBenchRandomForest(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
 
         oinf = OnnxInference(model_def, runtime='python')
-        ti = timeit.repeat("oinf.run({'X': X_test2})", number=100,
+        ti = timeit.repeat("oinf.run({'X': X_test2})", number=2,
                            globals={'oinf': oinf, 'X_test2': X_test2},
                            repeat=10)
         self.assertEqual(len(ti), 10)
@@ -44,6 +44,7 @@ class TestOnnxrtBenchRandomForest(ExtTestCase):
             self.assertFalse(op.ops_.rt_.consecutive_leaf_data_)
         # print("B",sum(ti), ti)
 
+    @skipif_circleci('two long')
     def test_onnxt_iris_random_forest_classifier_multi(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -56,7 +57,7 @@ class TestOnnxrtBenchRandomForest(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
 
         oinf = OnnxInference(model_def, runtime='python')
-        ti = timeit.repeat("oinf.run({'X': X_test2})", number=100,
+        ti = timeit.repeat("oinf.run({'X': X_test2})", number=2,
                            globals={'oinf': oinf, 'X_test2': X_test2},
                            repeat=10)
         self.assertEqual(len(ti), 10)
@@ -66,6 +67,7 @@ class TestOnnxrtBenchRandomForest(ExtTestCase):
             self.assertTrue(op.ops_.rt_.consecutive_leaf_data_)
         # print("C",sum(ti), ti)
 
+    @skipif_circleci('two long')
     def test_onnxt_iris_random_forest_regressor(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -78,7 +80,7 @@ class TestOnnxrtBenchRandomForest(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
 
         oinf = OnnxInference(model_def, runtime='python')
-        ti = timeit.repeat("oinf.run({'X': X_test2})", number=100,
+        ti = timeit.repeat("oinf.run({'X': X_test2})", number=2,
                            globals={'oinf': oinf, 'X_test2': X_test2},
                            repeat=10)
         self.assertEqual(len(ti), 10)

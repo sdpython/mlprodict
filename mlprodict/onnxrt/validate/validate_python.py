@@ -114,7 +114,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
                     continue
                 if (isinstance(a, float) and isinstance(b, float) and
                         numpy.isnan(a) and numpy.isnan(b)):
-                    continue
+                    continue  # pragma: no cover
                 diff = max(diff, abs(a - b))
             if diff > tolerance:
                 raise ValueError(  # pragma: no cover

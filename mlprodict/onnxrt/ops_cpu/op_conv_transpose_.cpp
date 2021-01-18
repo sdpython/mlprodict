@@ -140,9 +140,9 @@ py::array_t<T> ConvTranspose<T>::compute(py::array_t<T, py::array::c_style | py:
     std::vector<int64_t> w_dims;
     arrayshape2vector(w_dims, W);
 
-    const int64_t N = x_dims[0];
+    // const int64_t N = x_dims[0];
     // const int64_t C = x_dims[1];
-    const int64_t M = w_dims[1];
+    // const int64_t M = w_dims[1];
 
     std::vector<int64_t> input_shape(x_dims.begin() + 2, x_dims.end());
 
@@ -256,13 +256,13 @@ void ConvTranspose<T>::compute_gil_free(
 
     const int64_t N = x_dims[0];
     const int64_t C = x_dims[1];
-    const int64_t num_input_channels = C;
+    // const int64_t num_input_channels = C;
     const int64_t num_output_channels = w_dims[1] * group_;
     const int64_t M = w_dims[0];
 
     const int64_t input_shape_size = flattened_dimension(input_shape);
     const int64_t output_image_size = flattened_dimension(y_dims, 2);
-    const int64_t output_shape_size = flattened_dimension(output_shape);
+    // const int64_t output_shape_size = flattened_dimension(output_shape);
     const int64_t y_size = flattened_dimension(y_dims);
     const int64_t kernel_size = flattened_dimension(kernel_shape);
     const int64_t X_offset = C / group_ * input_shape_size;
@@ -286,7 +286,7 @@ void ConvTranspose<T>::compute_gil_free(
 
     std::fill(Ydata, Ydata + y_size, (T)0);
 
-    const size_t kernel_rank = kernel_shape.size();
+    // const size_t kernel_rank = kernel_shape.size();
     
     std::vector<int64_t> output_shape2(y_dims.begin() + 1, y_dims.end());
     output_shape2[0] /= group_;

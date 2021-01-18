@@ -667,7 +667,9 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                     &has_scores[th * n_targets_or_classes_]);
             }
         
-            for (size_t th = 1; th < nth; ++th) {
+            if (nth <= 0)
+                throw std::runtime_error("nth must strictly positive.");
+            for (size_t th = 1; th < (size_t)nth; ++th) {
                 agg.MergePrediction(n_targets_or_classes_,
                     scores.data(), has_scores.data(),
                     &scores[th * n_targets_or_classes_],
@@ -897,6 +899,9 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
         }
         else if (para_tree_ && (omp_get_max_threads() > 1) && (n_trees_ > omp_tree_)) { DEBUGPRINT("T")
             auto nth = omp_get_max_threads();
+            if (nth <= 0)
+                throw std::runtime_error("nth must strictly positive.");
+            
             auto size_obs = N * n_targets_or_classes_;
             std::vector<NTYPE> local_scores(nth * size_obs, 0);
             std::vector<unsigned char> local_has_scores(local_scores.size(), 0);
@@ -929,7 +934,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
                 unsigned char* p_has_score = &local_has_scores[i * n_targets_or_classes_];
                 NTYPE* pp_score = p_score + size_obs;
                 unsigned char* pp_has_score = p_has_score + size_obs;
-                for (size_t j = 1; j < nth; ++j, pp_score += size_obs, pp_has_score += size_obs) {
+                for (size_t j = 1; j < (size_t)nth; ++j, pp_score += size_obs, pp_has_score += size_obs) {
                     agg.MergePrediction(
                         n_targets_or_classes_, 
                         p_score, p_has_score, pp_score, pp_has_score);

@@ -306,7 +306,7 @@ def _type_to_string(dtype):
     Converts a type into a readable string.
     """
     if not isinstance(dtype, dict):
-        dtype_ = _var_as_dict(dtype)
+        dtype_ = _var_as_dict(dtype)  # pragma: no cover
     else:
         dtype_ = dtype
     if dtype_["kind"] == 'tensor':

@@ -145,9 +145,9 @@ class TestOnnxPipeline(ExtTestCase):
         X, y = iris.data, iris.target
         pipe = OnnxPipeline([
             ('gm', TransferTransformer(
-                GaussianMixture(n_components=2),
+                GaussianMixture(n_components=2, random_state=2),
                 trainable=True, method='predict_proba')),
-            ('lr', LogisticRegression())],
+            ('lr', LogisticRegression(random_state=2))],
             enforce_float32=True,
             op_version=get_opset_number_from_onnx(),
             options={'gm__score_samples': True,
@@ -171,8 +171,8 @@ class TestOnnxPipeline(ExtTestCase):
         sess = OnnxInference(model_def)
         res = sess.run({'X': X})
         self.assertEqual(list(sorted(res)), ['label', 'probabilities'])
-        self.assertEqualArray(res["label"], pipe.predict(X))
         self.assertEqualArray(res["probabilities"], pipe.predict_proba(X))
+        self.assertEqualArray(res["label"], pipe.predict(X))
 
     def test_pipeline_iris_column_transformer(self):
         iris = load_iris()
@@ -243,5 +243,5 @@ class TestOnnxPipeline(ExtTestCase):
 
 
 if __name__ == '__main__':
-    TestOnnxPipeline().test_pipeline_none_params()
+    # TestOnnxPipeline().test_pipeline_pickable_options()
     unittest.main()
