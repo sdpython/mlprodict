@@ -13,4 +13,4 @@ then
     rm build/env -r -f
 fi
 echo --PUBLISH--
-python -m asv publish --config mlprodict/asv_benchmark/asv.conf.json -o ../../dist/asv/html || exit 1
+python -m asv publish --config mlprodict/asv_benchmark/asv.conf.json -o ../../dist/asv/html --environment existing:same || exit 1
