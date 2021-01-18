@@ -134,6 +134,7 @@ class TestSklearnPipeline(ExtTestCase):
             model,
             "pipeline",
             [
+                # First input decides the output type.
                 ("input2", FloatTensorType([None, 1])),
                 ("input1", Int64TensorType([None, 1])),
             ],
@@ -421,5 +422,5 @@ class TestSklearnPipeline(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestSklearnPipeline().test_combine_inputs_floats_ints()
+    # TestSklearnPipeline().test_combine_inputs_floats_ints()
     unittest.main()
