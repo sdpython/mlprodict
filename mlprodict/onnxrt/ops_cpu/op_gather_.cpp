@@ -115,7 +115,7 @@ void GatherCopyData(const py::array_t<int64_t, py::array::c_style | py::array::f
         int64_t idx = indices_data[i];
         if (idx < -axis_dim_limit || idx >= axis_dim_limit) {
             char buffer[1000];
-            sprintf(buffer, "Indices element out of data bounds, idx=%d  must be within the inclusive range [%d,%d]",
+            sprintf(buffer, "Indices element out of data bounds, idx=%ld  must be within the inclusive range [%ld,%ld]",
                     idx, -axis_dim_limit, axis_dim_limit-1);
         }
     }

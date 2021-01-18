@@ -171,8 +171,8 @@ class TestOnnxPipeline(ExtTestCase):
         sess = OnnxInference(model_def)
         res = sess.run({'X': X})
         self.assertEqual(list(sorted(res)), ['label', 'probabilities'])
-        self.assertEqualArray(res["label"], pipe.predict(X))
         self.assertEqualArray(res["probabilities"], pipe.predict_proba(X))
+        self.assertEqualArray(res["label"], pipe.predict(X))
 
     def test_pipeline_iris_column_transformer(self):
         iris = load_iris()
@@ -243,5 +243,5 @@ class TestOnnxPipeline(ExtTestCase):
 
 
 if __name__ == '__main__':
-    TestOnnxPipeline().test_pipeline_none_params()
+    # TestOnnxPipeline().test_pipeline_pickable_options()
     unittest.main()

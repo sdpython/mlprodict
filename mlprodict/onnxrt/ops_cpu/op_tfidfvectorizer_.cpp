@@ -213,7 +213,7 @@ void RuntimeTfIdfVectorizer::Init(
         auto items = end_idx - start_idx;
         if (items > 0) {
             auto ngrams = items / ngram_size;
-            if (ngram_size >= min_gram_length && ngram_size <= max_gram_length)
+            if ((int)ngram_size >= min_gram_length && (int)ngram_size <= max_gram_length)
                 ngram_id = PopulateGrams<int64_t>(
                     pool_int64s.begin() + start_idx, ngrams, ngram_size,
                     ngram_id, int64_map_);
