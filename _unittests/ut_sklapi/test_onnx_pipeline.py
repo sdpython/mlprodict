@@ -145,7 +145,7 @@ class TestOnnxPipeline(ExtTestCase):
         X, y = iris.data, iris.target
         pipe = OnnxPipeline([
             ('gm', TransferTransformer(
-                GaussianMixture(n_components=2, random_state=2),
+                GaussianMixture(n_components=5, random_state=2),
                 trainable=True, method='predict_proba')),
             ('lr', LogisticRegression(random_state=2))],
             enforce_float32=True,
