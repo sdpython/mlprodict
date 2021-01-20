@@ -48,6 +48,7 @@ default_asv_conf = {
         "pandas": [],
         "Pillow": [],
         "pybind11": [],
+        "pyquickhelper": [],
         "scipy": [],
         # "git+https://github.com/xadupre/onnxconverter-common.git@jenkins"],
         "onnxconverter-common": ["http://localhost:8067/simple/"],

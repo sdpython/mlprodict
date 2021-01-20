@@ -84,6 +84,7 @@
         "pandas": [],
         "Pillow": [],
         "pybind11": [],
+        "pyquickhelper": [],
 	    "scipy": [],
         "skl2onnx": ["http://localhost:8067/simple/"],  // ["git+https://github.com/xadupre/sklearn-onnx.git@jenkins"],
         "scikit-learn": ["http://localhost:8067/simple/"],  // ["git+https://github.com/scikit-learn/scikit-learn.git"],
