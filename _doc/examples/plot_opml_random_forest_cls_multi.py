@@ -264,7 +264,7 @@ def plot_rf_models(dfr):
     row = 0
     for row, engine in enumerate(engines):
         pos = 0
-        name = "RandomForestRegressor - %s" % engine
+        name = "RandomForestClassifier - %s" % engine
         for max_depth in sorted(set(dfr.max_depth)):
             for nf in sorted(set(dfr.nfeat)):
                 for est in sorted(set(dfr.n_estimators)):
