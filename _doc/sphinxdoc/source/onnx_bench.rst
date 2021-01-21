@@ -155,7 +155,7 @@ it is *1/r* faster than *scikit-learn*.
             row["name"], row["problem"], row["scenario"], row["optim"],
             row["n_features"], row["opset"]).replace("-default|", "-*]"), axis=1)
     indices = ['label']
-    values = ['RT/SKL-N=1', 'N=10', 'N=100', 'N=1000', 'N=10000', 'N=100000']
+    values = ['RT/SKL-N=1', 'N=10', 'N=100', 'N=1000', 'N=10000']
     df1 = df1[indices + values]
     df2 = df2[indices + values]
     df = df1.merge(df2, on="label", suffixes=("__pyrtc", "__ort"), how='outer')

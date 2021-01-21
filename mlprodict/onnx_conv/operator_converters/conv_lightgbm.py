@@ -110,8 +110,8 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
         except ValueError as e:  # pragma: no cover
             import pprint
             text = pprint.pformat(tree_structure)
-            if len(text) > 100000:
-                text = text[:100000] + "\n..."
+            if len(text) > 99999:
+                text = text[:99999] + "\n..."
             raise TypeError("threshold must be a number not '{}'"
                             "\n{}".format(tree_structure['threshold'], text)) from e
     else:
@@ -173,8 +173,8 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
             except ValueError as e:  # pragma: no cover
                 import pprint
                 text = pprint.pformat(node)
-                if len(text) > 100000:
-                    text = text[:100000] + "\n..."
+                if len(text) > 99999:
+                    text = text[:99999] + "\n..."
                 raise TypeError("threshold must be a number not '{}'"
                                 "\n{}".format(node['threshold'], text)) from e
         else:

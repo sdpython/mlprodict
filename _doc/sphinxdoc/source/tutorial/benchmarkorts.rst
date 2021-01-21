@@ -87,8 +87,8 @@ and with :epkg:`scikit-learn`.
     keep = [
         'name', 'problem', 'scenario', 'optim', 'n_features', 'runtime',
         'skl_version', 'opset11',
-        'RT/SKL-N=1', 'N=100000',
-        'RT/SKL-N=1-base', 'N=100000-base',
+        'RT/SKL-N=1',
+        'RT/SKL-N=1-base',
         ]
     suma = suma[keep].copy()
 
@@ -100,11 +100,11 @@ and with :epkg:`scikit-learn`.
             "'raw_scores': True", "RAW")
 
     suma['ORT ?x SKL ONE'] = 1. / suma["RT/SKL-N=1"]
-    suma['ORT ?x SKL BATCH'] = 1. / suma["N=100000"]
+    suma['ORT ?x SKL BATCH'] = 1. / suma["N=10000"]
     suma['NEW ?x ORT ONE'] = 1. / suma["RT/SKL-N=1-base"]
-    suma['NEW ?x ORT BATCH'] = 1. / suma["N=100000-base"]
+    suma['NEW ?x ORT BATCH'] = 1. / suma["N=10000-base"]
     suma['optim'] = suma['optim'].apply(replace)
-    suma = suma.drop(['RT/SKL-N=1', 'N=100000', 'RT/SKL-N=1-base', 'N=100000-base'], axis=1)
+    suma = suma.drop(['RT/SKL-N=1', 'N=10000', 'RT/SKL-N=1-base', 'N=10000-base'], axis=1)
 
     writer = pandas.ExcelWriter('merged.xlsx', engine='xlsxwriter')
     suma.to_excel(writer, index=False, float_format="%1.3f",

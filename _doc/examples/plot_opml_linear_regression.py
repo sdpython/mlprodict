@@ -259,7 +259,7 @@ def plot_rf_models(dfr):
 
 @ignore_warnings(category=FutureWarning)
 def run_bench(repeat=250, verbose=False):
-    n_obs = [1, 10, 100, 1000, 10000, 100000]
+    n_obs = [1, 10, 100, 1000, 10000]
     methods = ['predict']
     n_features = [10, 50]
     n_jobss = [cpu_count()]

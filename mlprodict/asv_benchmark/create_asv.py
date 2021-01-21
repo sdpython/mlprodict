@@ -64,7 +64,7 @@ def create_asv_benchmark(
         location, opset_min=-1, opset_max=None,
         runtime=('scikit-learn', 'python_compiled'), models=None,
         skip_models=None, extended_list=True,
-        dims=(1, 10, 100, 10000, 100000),
+        dims=(1, 10, 100, 10000),
         n_features=(4, 20), dtype=None,
         verbose=0, fLOG=print, clean=True,
         conf_params=None, filter_exp=None,
@@ -540,7 +540,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         # n_features, N, runtimes
         rep = {
             "['skl', 'pyrtc', 'ort'],  # values for runtime": str(runtime),
-            "[1, 10, 100, 1000, 10000, 100000],  # values for N": str(dims),
+            "[1, 10, 100, 1000, 10000],  # values for N": str(dims),
             "[4, 20],  # values for nf": str(n_features),
             "[get_opset_number_from_onnx()],  # values for opset": str(opsets),
             "['float', 'double'],  # values for dtype":
