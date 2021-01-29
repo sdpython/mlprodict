@@ -52,7 +52,7 @@ except (ValueError, ImportError):  # pragma: no cover
     from mlprodict.testing.verify_code import verify_code
 
 # exec function does not import models but potentially
-# requires all specific models used to defines scenarios
+# requires all specific models used to define scenarios
 try:
     from ..onnxrt.validate.validate_scenarios import *  # pylint: disable=W0614,W0401
 except ValueError:  # pragma: no cover
