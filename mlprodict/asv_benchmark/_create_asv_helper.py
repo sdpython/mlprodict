@@ -451,7 +451,9 @@ def add_model_import_init(
     exp_imports = _additional_imports(model.__name__)
     if exp_imports:
         add_imports.extend(exp_imports)
-    imp_inst = "from {} import {}".format(mod, model.__name__)
+    imp_inst = (
+        "try:\n    from {0} import {1}\nexcept ImportError:\n    {1} = None"
+        "".format(mod, model.__name__))
     add_imports.append(imp_inst)
     add_imports.append("#  __IMPORTS__")
     lines[keep + 1] = "\n".join(add_imports)
