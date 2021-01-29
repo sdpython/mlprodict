@@ -7,14 +7,14 @@ import textwrap
 import hashlib
 try:
     from ..onnxrt.optim.sklearn_helper import set_n_jobs
-except ValueError:  # pragma: no cover
+except (ValueError, InportError):  # pragma: no cover
     from mlprodict.onnxrt.optim.sklearn_helper import set_n_jobs
 
 # exec function does not import models but potentially
 # requires all specific models used to defines scenarios
 try:
     from ..onnxrt.validate.validate_scenarios import *  # pylint: disable=W0614,W0401
-except ValueError:  # pragma: no cover
+except (ValueError, InportError):  # pragma: no cover
     # Skips this step if used in a benchmark.
     pass
 
