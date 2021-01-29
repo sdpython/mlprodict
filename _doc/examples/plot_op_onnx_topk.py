@@ -201,7 +201,7 @@ def benchmark_test(X, fct1, fct2, N, K, repeat=10, number=10):
 
 
 K = [1, 2, 5, 10, 15]
-N = [1, 2, 3, 10, 100, 1000, 10000, 100000]
+N = [1, 2, 3, 10, 100, 1000, 10000]
 
 bench_para = benchmark_test(
     X32, (lambda x, k: topk_sorted_implementation_cpp(

@@ -311,7 +311,7 @@ def plot_rf_models(dfr):
 
 @ignore_warnings(category=FutureWarning)
 def run_bench(repeat=100, verbose=False):
-    n_obs = [1, 10, 100, 1000, 10000, 100000]
+    n_obs = [1, 10, 100, 1000, 10000]
     methods = ['predict']
     n_features = [30]
     max_depths = [6, 8, 10, 12]

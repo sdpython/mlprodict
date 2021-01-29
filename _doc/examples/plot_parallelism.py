@@ -42,7 +42,7 @@ print(code_optimisation())
 # +++++++++++++++++++++++++++++++
 
 
-data = make_regression(100000, 20)
+data = make_regression(50000, 20)
 X, y = data
 X_train, X_test, y_train, y_test = train_test_split(X, y)
 

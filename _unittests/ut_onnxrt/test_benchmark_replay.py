@@ -26,7 +26,7 @@ class TestBenchmarkReplay(ExtTestCase):
         rows = list(enumerate_benchmark_replay(
             temp, runtime='python', verbose=0))
         df = pandas.DataFrame(rows)
-        self.assertEqual(df.shape, (4, 39))
+        self.assertEqual(df.shape, (4, 35))
         self.assertIn('1000-skl-details', df.columns)
         self.assertIn('1000-skl', df.columns)
 
@@ -45,7 +45,7 @@ class TestBenchmarkReplay(ExtTestCase):
         rows = list(enumerate_benchmark_replay(
             temp, runtime='onnxruntime', verbose=0))
         df = pandas.DataFrame(rows)
-        self.assertEqual(df.shape, (4, 39))
+        self.assertEqual(df.shape, (4, 35))
         self.assertIn('1000-skl-details', df.columns)
         self.assertIn('1000-skl', df.columns)
 

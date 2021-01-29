@@ -29,7 +29,7 @@ class TemplateBenchmarkClassifier(_CommonAsvSklBenchmarkClassifier):
     """
     params = [
         ['skl', 'pyrtc', 'ort'],  # values for runtime
-        [1, 10, 100, 1000, 10000, 100000],  # values for N
+        [1, 10, 100, 1000, 10000],  # values for N
         [4, 20],  # values for nf
         [get_opset_number_from_onnx()],  # values for opset
         ['float', 'double'],  # values for dtype

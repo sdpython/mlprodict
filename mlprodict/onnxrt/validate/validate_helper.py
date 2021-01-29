@@ -320,7 +320,6 @@ def default_time_kwargs():
         100: dict(number=8, repeat=10),
         1000: dict(number=5, repeat=5),
         10000: dict(number=3, repeat=3),
-        100000: dict(number=2, repeat=1),
     }
 
 
