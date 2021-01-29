@@ -44,6 +44,38 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
             raise AssertionError("Visited files\n{}".format(
                 "\n".join(allnames)))
 
+    def test_create_asv_benchmark_pyspy_knn(self):
+        self.assertNotEmpty(mlprodict)
+        temp = get_temp_folder(__file__, "temp_create_asv_benchmark_pyspy_knn")
+        created = create_asv_benchmark(
+            location=temp, verbose=0,
+            runtime=('scikit-learn', 'python', 'onnxruntime1'),
+            exc=False, execute=True,
+            models={'KNeighborsClassifier'},
+            add_pyspy=True)
+        self.assertNotEmpty(created)
+
+        verif = False
+        allnames = []
+        for path, _, files in os.walk(os.path.join(temp, 'pyspy')):
+            for zoo in files:
+                if '__init__' in zoo:
+                    continue
+                allnames.append(zoo)
+                fullname = os.path.join(path, zoo)
+                with open(fullname, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                if (zoo.endswith(
+                        "bench_KNNClas_default_k3_b_cl_64_algorithmbrute_n_neighbors3"
+                        "_10000_20_13_double_optcdist-zm0.py") and
+                        compare_module_version(sklearn.__version__, "0.21") >= 0):
+                    if "setup_profile" not in content:
+                        raise AssertionError(content)
+                    verif = True
+        if not verif:
+            raise AssertionError("Visited files\n{}".format(
+                "\n".join(allnames)))
+
     def test_create_asv_benchmark_pyspy_compiled(self):
         self.assertNotEmpty(mlprodict)
         temp = get_temp_folder(
