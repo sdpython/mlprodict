@@ -29,7 +29,7 @@ def verify_code(source, exc=True):
     imports = v._imports
     names = v._names
     args = v._args
-    known = {'super': None}
+    known = {'super': None, 'ImportError': None}
     for kn in imports:
         known[kn[0]] = kn
     for kn in assign:

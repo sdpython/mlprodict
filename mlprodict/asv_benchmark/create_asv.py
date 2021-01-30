@@ -52,10 +52,10 @@ except (ValueError, ImportError):  # pragma: no cover
     from mlprodict.testing.verify_code import verify_code
 
 # exec function does not import models but potentially
-# requires all specific models used to defines scenarios
+# requires all specific models used to define scenarios
 try:
     from ..onnxrt.validate.validate_scenarios import *  # pylint: disable=W0614,W0401
-except ValueError:  # pragma: no cover
+except (ValueError, ImportError):  # pragma: no cover
     # Skips this step if used in a benchmark.
     pass
 
@@ -495,6 +495,24 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             simple_name = simple_name.replace(k, v)
         return simple_name
 
+    def _optdict2string(opt):
+        if isinstance(opt, str):
+            return opt
+        if isinstance(opt, list):
+            raise TypeError(
+                "Unable to process type %r." % type(opt))
+        reps = {True: 1, False: 0, 'zipmap': 'zm',
+                'optim': 'opt'}
+        info = []
+        for k, v in sorted(opt.items()):
+            if isinstance(v, dict):
+                v = _optdict2string(v)
+            if k.startswith('####'):
+                k = ''
+            i = '{}{}'.format(reps.get(k, k), reps.get(v, v))
+            info.append(i)
+        return "-".join(info)
+
     runtimes_abb = {
         'scikit-learn': 'skl',
         'onnxruntime1': 'ort',
@@ -688,7 +706,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
 
                                 thename = "{n}_{dim}_{nf}_{opset}_{dtype}_{opt}.py".format(
                                     n=fullname_pyspy, dim=dim, nf=nf,
-                                    opset=opset, dtype=dtype, opt=opt)
+                                    opset=opset, dtype=dtype, opt=_optdict2string(opt))
                                 with open(thename, 'w', encoding='utf-8') as f:
                                     f.write(tmpl)
                                 names.append(thename)
