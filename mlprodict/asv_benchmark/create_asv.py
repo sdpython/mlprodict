@@ -562,7 +562,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             "[4, 20],  # values for nf": str(n_features),
             "[get_opset_number_from_onnx()],  # values for opset": str(opsets),
             "['float', 'double'],  # values for dtype":
-                "['float']" if '-64' not in problem else "['float', 'double']",
+                "['float']" if '-64' not in problem else "['double']",
             "[None],  # values for optim": "%r" % nck_opts,
         }
         for k, v in rep.items():

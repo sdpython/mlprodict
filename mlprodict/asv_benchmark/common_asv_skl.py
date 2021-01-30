@@ -127,6 +127,16 @@ class _CommonAsvSklBenchmark:
 
     # Part which does not change.
 
+    def _check_rt(self, rt, meth):
+        """
+        Checks that runtime has the appropriate method.
+        """
+        if rt is None:
+            raise ValueError("rt cannot be empty.")
+        if not hasattr(rt, meth):
+            raise TypeError(
+                "rt of type %r has no method %r." % (type(rt), meth))
+
     def runtime_name(self, runtime):
         """
         Returns the runtime shortname.
@@ -261,6 +271,7 @@ class _CommonAsvSklBenchmarkClassifier(_CommonAsvSklBenchmark):
             rt_fct_track_ = lambda X: model.predict(X)
         else:
             rt_ = self._create_onnx_inference(onx, name)
+            self._check_rt(rt_, 'run')
             rt_fct_ = lambda pX: rt_.run({'X': pX})
             rt_fct_track_ = lambda pX: rt_fct_(pX)['output_label']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -286,6 +297,7 @@ class _CommonAsvSklBenchmarkClassifierRawScore(_CommonAsvSklBenchmark):
             rt_fct_track_ = lambda X: model.predict(X)
         else:
             rt_ = self._create_onnx_inference(onx, name)
+            self._check_rt(rt_, 'run')
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['output_label']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -315,6 +327,7 @@ class _CommonAsvSklBenchmarkClustering(_CommonAsvSklBenchmark):
             rt_fct_track_ = lambda X: model.predict(X.astype(numpy.float64))
         else:
             rt_ = self._create_onnx_inference(onx, name)
+            self._check_rt(rt_, 'run')
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['label']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -359,6 +372,7 @@ class _CommonAsvSklBenchmarkMultiClassifier(_CommonAsvSklBenchmark):
             rt_fct_track_ = lambda X: model.predict(X)
         else:
             rt_ = self._create_onnx_inference(onx, name)
+            self._check_rt(rt_, 'run')
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['output_label']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -384,6 +398,7 @@ class _CommonAsvSklBenchmarkOutlier(_CommonAsvSklBenchmark):
             rt_fct_track_ = lambda X: model.predict(X)
         else:
             rt_ = self._create_onnx_inference(onx, name)
+            self._check_rt(rt_, 'run')
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['scores']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -408,6 +423,7 @@ class _CommonAsvSklBenchmarkRegressor(_CommonAsvSklBenchmark):
             rt_fct_track_ = lambda X: model.predict(X)
         else:
             rt_ = self._create_onnx_inference(onx, name)
+            self._check_rt(rt_, 'run')
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['variable']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -433,6 +449,7 @@ class _CommonAsvSklBenchmarkTrainableTransform(_CommonAsvSklBenchmark):
             rt_fct_track_ = lambda X: model.transform(X)
         else:
             rt_ = self._create_onnx_inference(onx, name)
+            self._check_rt(rt_, 'run')
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['variable']
         return onx, rt_, rt_fct_, rt_fct_track_
@@ -458,6 +475,7 @@ class _CommonAsvSklBenchmarkTransform(_CommonAsvSklBenchmark):
             rt_fct_track_ = lambda X: model.transform(X)
         else:
             rt_ = self._create_onnx_inference(onx, name)
+            self._check_rt(rt_, 'run')
             rt_fct_ = lambda X: rt_.run({'X': X})
             rt_fct_track_ = lambda X: rt_fct_(X)['variable']
         return onx, rt_, rt_fct_, rt_fct_track_

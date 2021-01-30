@@ -24,8 +24,9 @@ class TestCreateAsvBenchmarkLogReg(ExtTestCase):
             runtime=('scikit-learn', 'python', 'onnxruntime1'),
             exc=False, execute=True, models={'LogisticRegression'})
         if len(created) < 6:
-            raise AssertionError("Number of created files is too small.\n{}".format(
-                "\n".join(sorted(created))))
+            raise AssertionError(
+                "Number of created files is too small.\n{}".format(
+                    "\n".join(sorted(created))))
 
         reg = re.compile("class ([a-zA-Z0-9_]+)[(]")
         verif = 0
