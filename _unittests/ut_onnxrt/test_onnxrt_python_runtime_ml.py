@@ -275,12 +275,12 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         X, y = iris.data, iris.target
         X = X.astype(numpy.int64)
         for i in range(X.shape[1]):
-            X[i::10, i] = numpy.nan
+            X[i::10, i] = -1
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=11)
-        clr = SimpleImputer()
+        clr = SimpleImputer(missing_values=-1., strategy='most_frequent')
         clr.fit(X_train, y_train)
 
-        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+        model_def = to_onnx(clr, X_train)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X_test})
         self.assertEqual(list(sorted(got)), ['variable'])
