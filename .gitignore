@@ -307,3 +307,4 @@ _doc/examples/plot_benchmark.svg
 _doc/examples/plot_*.csv
 _doc/examples/plot_*.xlsx
 _doc/examples/plot_*.png
+_unittests/ut_tools/mobilenetv2-7*
