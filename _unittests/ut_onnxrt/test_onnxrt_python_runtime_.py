@@ -628,7 +628,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         validate_python_inference(oinfpy, {'X': x})
 
     @wraplog()
-    def test_onnxt_runtime_conv(self):
+    def test_onnxt_runtime_conv0(self):
         x = numpy.array([[[[0., 1., 2., 3., 4.],  # (1, 1, 5, 5) input tensor
                            [5., 6., 7., 8., 9.],
                            [10., 11., 12., 13., 14.],
@@ -638,6 +638,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            [1., 1., 1.],
                            [1., 1., 1.]]]]).astype(numpy.float32)
 
+        # test 1
         y_with_padding = numpy.array([[[[12., 21., 27., 33., 24.],  # (1, 1, 5, 5) output tensor
                                         [33., 54., 63., 72., 51.],
                                         [63., 99., 108., 117., 81.],
@@ -650,12 +651,138 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': x})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualArray(y_with_padding, got['Y'])
+        for rt in ['python', 'onnxruntime1']:
+            with self.subTest(runtime=rt):
+                oinf = OnnxInference(model_def, runtime=rt)
+                got = oinf.run({'X': x})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(y_with_padding, got['Y'])
+
+        # test 2
+        y_without_padding = numpy.array([[[[54., 63., 72.],  # (1, 1, 3, 3) output tensor
+                                           [99., 108., 117.],
+                                           [144., 153., 162.]]]]).astype(numpy.float32)
+
+        onx = OnnxConv(
+            'X', W, output_names=['Y'],
+            kernel_shape=[3, 3], pads=[0, 0, 0, 0],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        for rt in ['python', 'onnxruntime1']:
+            with self.subTest(runtime=rt):
+                oinf = OnnxInference(model_def, runtime=rt)
+                got = oinf.run({'X': x})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(y_without_padding, got['Y'])
+
+        # test 3
+        y = numpy.array([[[[12., 27., 24.],
+                           [63., 108., 81.],
+                           [72., 117., 84.]]]]).astype(numpy.float32)
+
+        onx = OnnxConv(
+            'X', W, output_names=['Y'],
+            kernel_shape=[3, 3],
+            auto_pad='SAME_LOWER', strides=[2, 2],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        for rt in ['python', 'onnxruntime1']:
+            with self.subTest(runtime=rt):
+                oinf = OnnxInference(model_def, runtime=rt)
+                got = oinf.run({'X': x})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(y, got['Y'])
 
         python_tested.append(OnnxConv)
+
+    @wraplog()
+    def test_onnxt_runtime_conv1(self):
+        x = numpy.array([[[[0., 1., 2., 3., 4.],
+                           [5., 6., 7., 8., 9.],
+                           [10., 11., 12., 13., 14.],
+                           [15., 16., 17., 18., 19.],
+                           [20., 21., 22., 23., 24.],
+                           [25., 26., 27., 28., 29.],
+                           [30., 31., 32., 33., 34.]]]]).astype(numpy.float32)
+        W = numpy.array([[[[1., 1., 1.],  # (1, 1, 3, 3) tensor for convolution weights
+                           [1., 1., 1.],
+                           [1., 1., 1.]]]]).astype(numpy.float32)
+
+        # test 1
+        y_with_padding = numpy.array([[[[12., 27., 24.],  # (1, 1, 4, 3) output tensor
+                                        [63., 108., 81.],
+                                        [123., 198., 141.],
+                                        [112., 177., 124.]]]]).astype(numpy.float32)
+
+        onx = OnnxConv(
+            'X', W, output_names=['Y'],
+            kernel_shape=[3, 3], pads=[1, 1, 1, 1], strides=[2, 2],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        for rt in ['python', 'onnxruntime1']:
+            with self.subTest(runtime=rt):
+                oinf = OnnxInference(model_def, runtime=rt)
+                got = oinf.run({'X': x})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(y_with_padding, got['Y'])
+
+        # test 2
+        y_without_padding = numpy.array([[[[54., 72.],  # (1, 1, 3, 2) output tensor
+                                           [144., 162.],
+                                           [234., 252.]]]]).astype(numpy.float32)
+
+        onx = OnnxConv(
+            'X', W, output_names=['Y'],
+            kernel_shape=[3, 3], pads=[0, 0, 0, 0], strides=[2, 2],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        for rt in ['python', 'onnxruntime1']:
+            with self.subTest(runtime=rt):
+                oinf = OnnxInference(model_def, runtime=rt)
+                got = oinf.run({'X': x})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(y_without_padding, got['Y'])
+
+        # test 3
+        y_with_asymmetric_padding = numpy.array([[[[21., 33.],  # (1, 1, 4, 2) output tensor
+                                                   [99., 117.],
+                                                   [189., 207.],
+                                                   [171., 183.]]]]).astype(numpy.float32)
+
+        onx = OnnxConv(
+            'X', W, output_names=['Y'],
+            kernel_shape=[3, 3], pads=[1, 0, 1, 0], strides=[2, 2],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        for rt in ['python', 'onnxruntime1']:
+            with self.subTest(runtime=rt):
+                oinf = OnnxInference(model_def, runtime=rt)
+                got = oinf.run({'X': x})
+                self.assertEqual(list(sorted(got)), ['Y'])
+                self.assertEqualArray(y_with_asymmetric_padding, got['Y'])
+
+    @wraplog()
+    def test_onnxt_runtime_conv2_B(self):
+        x = numpy.random.rand(1, 3, 5, 4).astype(numpy.float32)
+        W = numpy.random.rand(4, 3, 3, 3).astype(numpy.float32)
+        B = numpy.array([100, 700, 1000, 7000], dtype=numpy.float32)
+        onx = OnnxConv(
+            'X', 'W', 'B', output_names=['Y'],
+            kernel_shape=[3, 3], pads=[1, 1, 1, 1], strides=[2, 2],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x, 'W': W, 'B': B},
+                                target_opset=get_opset_number_from_onnx())
+        ys = []
+        for rt in ['python', 'onnxruntime1']:
+            oinf = OnnxInference(model_def, runtime=rt)
+            got = oinf.run({'X': x, 'W': W, 'B': B})
+            ys.append(got['Y'])
+        self.assertEqualArray(ys[0], ys[1])
 
     @wraplog()
     def test_onnxt_runtime_conv_transpose(self):
@@ -692,6 +819,25 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(y_with_padding, got['Y'])
 
         python_tested.append(OnnxConv)
+
+    @wraplog()
+    def test_onnxt_runtime_conv_transpose_B(self):
+        x = numpy.random.rand(1, 3, 5, 4).astype(numpy.float32)
+        W = numpy.random.rand(3, 4, 3, 3).astype(numpy.float32)
+        B = numpy.array([100, 700, 1000, 7000], dtype=numpy.float32)
+        onx = OnnxConvTranspose(
+            'X', 'W', 'B', output_names=['Y'],
+            kernel_shape=[3, 3], pads=[1, 1, 1, 1], strides=[2, 2],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x, 'W': W, 'B': B},
+                                target_opset=get_opset_number_from_onnx())
+        ys = []
+        for rt in ['python', 'onnxruntime1']:
+            oinf = OnnxInference(model_def, runtime=rt)
+            got = oinf.run({'X': x, 'W': W, 'B': B})
+            ys.append(got['Y'])
+        self.assertEqual(len(ys), 2)
+        # self.assertEqualArray(ys[0], ys[1])
 
     @wraplog()
     def test_onnxt_runtime_conv_transpose_1d(self):
@@ -2824,5 +2970,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 
 if __name__ == "__main__":
-    TestOnnxrtPythonRuntime().test_onnxt_runtime_unsqueeze()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_conv_transpose_B()
     unittest.main()

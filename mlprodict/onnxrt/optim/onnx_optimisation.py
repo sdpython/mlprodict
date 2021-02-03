@@ -5,6 +5,7 @@
 from ._onnx_optimisation_common import _apply_optimisation_on_graph
 from .onnx_optimisation_identity import onnx_remove_node_identity
 from .onnx_optimisation_redundant import onnx_remove_node_redundant
+from .onnx_optimisation_unused import onnx_remove_node_unused
 
 
 def onnx_remove_node(onnx_model, recursive=True, debug_info=None):
@@ -30,6 +31,8 @@ def onnx_remove_node(onnx_model, recursive=True, debug_info=None):
             recursive=recursive, debug_info=debug_info)
 
     graph = onnx_model
+    graph = onnx_remove_node_unused(
+        graph, recursive=recursive, debug_info=debug_info)
     graph = onnx_remove_node_identity(
         graph, recursive=recursive, debug_info=debug_info)
     graph = onnx_remove_node_redundant(

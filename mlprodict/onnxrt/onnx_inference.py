@@ -16,10 +16,12 @@ from onnx import onnx_pb as onnx_proto
 from onnx.helper import make_model
 from ..tools.code_helper import make_callable
 from .onnx_inference_node import OnnxInferenceNode
-from .onnx_inference_manipulations import select_model_inputs_outputs, enumerate_model_node_outputs
+from .onnx_inference_manipulations import (
+    select_model_inputs_outputs, enumerate_model_node_outputs)
+from .onnx_inference_exports import OnnxInferenceExport
+from .optim import onnx_remove_node_unused
 from .onnx2py_helper import _var_as_dict, numpy_min, numpy_max
 from .shape_object import ShapeObject
-from .onnx_inference_exports import OnnxInferenceExport
 
 
 class OnnxInference:
@@ -700,17 +702,29 @@ class OnnxInference:
                                           ", ".join(sorted(values)))) from e
         return (res, mtime) if node_time else res
 
-    def build_intermediate(self):
+    def build_intermediate(self, outputs=None):
         """
         Builds every possible :epkg:`ONNX` file
         which computes one specific intermediate output
         from the inputs.
 
-        @return         :epkg:`*py:collections:OrderedDict`
+        :param outputs: subsets of outputs to get,
+            None to get all outputs,
+        :return: :epkg:`*py:collections:OrderedDict`
+
+        .. versionchanged: 0.6
         """
+        if outputs is not None:
+            if isinstance(outputs, str):
+                outputs = [outputs]
+            if not isinstance(outputs, set):
+                outputs = set(outputs)
         ord = OrderedDict()
         for output in enumerate_model_node_outputs(self.obj):
+            if outputs is not None and output not in outputs:
+                continue
             subonx = select_model_inputs_outputs(self.obj, output)
+            subonx = onnx_remove_node_unused(subonx)
             ord[output] = OnnxInference(subonx, runtime=self.runtime,
                                         skip_run=self.skip_run)
         return ord

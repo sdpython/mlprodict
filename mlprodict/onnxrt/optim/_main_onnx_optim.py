@@ -17,5 +17,6 @@ def onnx_optimisations(onnx_model, recursive=True, debug_info=None, **options):
     @return                     new onnx _model
     """
     new_model = onnx_remove_node(
-        onnx_model, recursive=recursive, debug_info=debug_info)
+        onnx_model, recursive=recursive, debug_info=debug_info,
+        **options)
     return new_model

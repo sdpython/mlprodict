@@ -1,6 +1,8 @@
 """
 @file
 @brief Tools to test models from the :epkg:`ONNX Zoo`.
+
+.. versionadded:: 0.6
 """
 import os
 import urllib.request
@@ -12,9 +14,9 @@ from onnx import TensorProto, numpy_helper
 def short_list_zoo_models():
     """
     Returns a short list from :epkg:`ONNX Zoo`.
-    
+
     :return: list of dictionaries.
-    
+
     .. runpython::
         :showcode:
 
@@ -47,16 +49,18 @@ def short_list_zoo_models():
                    "classification/efficientnet-lite4/model/"
                    "efficientnet-lite4-11.tar.gz"),
     ]
-    
+
 
 def _download_url(url, output_path, name, verbose=False):
     if verbose:
+        from tqdm import tqdm
+
         class DownloadProgressBar(tqdm):
             def update_to(self, b=1, bsize=1, tsize=None):
+                "progress bar hook"
                 if tsize is not None:
                     self.total = tsize
                 self.update(b * bsize - self.n)
-
 
         with DownloadProgressBar(unit='B', unit_scale=True,
                                  miniters=1, desc=name) as t:
@@ -69,7 +73,7 @@ def _download_url(url, output_path, name, verbose=False):
 def load_data(folder):
     """
     Restores protobuf data stored in a folder.
-    
+
     :param folder: folder
     :return: dictionary
     """
@@ -80,18 +84,17 @@ def load_data(folder):
         if ext == '.pb':
             data = TensorProto()
             with open(os.path.join(folder, name), 'rb') as f:
-                data.ParseFromString(f.read())            
+                data.ParseFromString(f.read())
             res[noext] = numpy_helper.to_array(data)
-            
+
     return res
-    
 
 
 def download_model_data(name, model=None, cache=None, verbose=False):
     """
     Downloads a model and returns a link to the local
     :epkg:`ONNX` file and data which can be used as inputs.
-    
+
     :param name: model name (see @see fn short_list_zoo_models)
     :param model: url or empty to get the default value
         returned by @see fn short_list_zoo_models)
@@ -114,7 +117,7 @@ def download_model_data(name, model=None, cache=None, verbose=False):
     if cache is None:
         cache = os.path.abspath('.')
     dest = os.path.join(cache, last_name)
-    if not os.path.exists(dest):        
+    if not os.path.exists(dest):
         _download_url(model, dest, name, verbose=verbose)
     size = os.stat(dest).st_size
     if size < 2 ** 20:  # pragma: no cover
@@ -133,13 +136,13 @@ def download_model_data(name, model=None, cache=None, verbose=False):
         from pyquickhelper.filehelper.compression_helper import (
             untar_files)
         untar_files(outtar, where_to=cache)
-    
+
     onnx_files = [_ for _ in os.listdir(onnx_file) if _.endswith(".onnx")]
     if len(onnx_files) != 1:
         raise FileNotFoundError(  # pragma: no cover
             "Unable to find any onnx file in %r." % onnx_files)
     final_onnx = os.path.join(onnx_file, onnx_files[0])
-    
+
     # data
     data = [_ for _ in os.listdir(onnx_file)
             if os.path.isdir(os.path.join(onnx_file, _))]
@@ -148,16 +151,16 @@ def download_model_data(name, model=None, cache=None, verbose=False):
         examples[f] = load_data(os.path.join(onnx_file, f))
 
     return final_onnx, examples
-    
 
-def verify_model(onnx_file, examples, runtime=None, tol=1e-5):
+
+def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4):
     """
     Verifies a model.
-    
+
     :param onnx_file: ONNX file
     :param examples: list of examples to verify
     :param runtime: a runtime to use
-    :param tol: error tolerance when checking the output
+    :param abs_tol: error tolerance when checking the output
     :return: errors for every sample
     """
     if runtime == 'onnxruntime':
@@ -170,13 +173,13 @@ def verify_model(onnx_file, examples, runtime=None, tol=1e-5):
         def _lin_(sess, data, names):
             r = sess.run(data)
             return [r[n] for n in names]
-            
+
         from ..onnxrt import OnnxInference
         sess = OnnxInference(onnx_file, runtime=runtime)
         names = sess.input_names
         onames = sess.output_names
         meth = lambda data, s=sess, ns=onames: _lin_(s, data, ns)
-    
+
     rows = []
     for index, (name, data) in enumerate(examples.items()):
         inputs = {n: data[v] for n, v in zip(names, data)}
@@ -187,7 +190,7 @@ def verify_model(onnx_file, examples, runtime=None, tol=1e-5):
             raise RuntimeError(
                 "Number of outputs %d is != expected outputs %d." % (
                     len(outputs), len(onames)))
-        for i in range(len(outputs)):
+        for i in range(len(outputs)):  # pylint: disable=C0200
             if outputs[i].shape != expected[i].shape:
                 raise ValueError(
                     "Shape mismatch got %r != expected %r." % (
@@ -195,7 +198,7 @@ def verify_model(onnx_file, examples, runtime=None, tol=1e-5):
             diff = numpy.abs(outputs[i] - expected[i]).ravel()
             absolute = diff.max()
             relative = absolute / numpy.median(diff) if absolute > 0 else 0.
-            if absolute > tol or relative > tol:
+            if absolute > abs_tol:
                 raise ValueError(
                     "Example %d, inferred and expected resuls are different "
                     "for output %d: abs=%r rel=%r (runtime=%r)."
