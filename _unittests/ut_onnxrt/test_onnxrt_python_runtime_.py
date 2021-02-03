@@ -782,7 +782,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf = OnnxInference(model_def, runtime=rt)
             got = oinf.run({'X': x, 'W': W, 'B': B})
             ys.append(got['Y'])
-        self.assertEqualArray(ys[0], ys[1])
+        self.assertEqualArray(ys[0], ys[1], decimal=5)
 
     @wraplog()
     def test_onnxt_runtime_conv_transpose(self):

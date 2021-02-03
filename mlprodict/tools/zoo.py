@@ -56,6 +56,8 @@ def _download_url(url, output_path, name, verbose=False):
         from tqdm import tqdm
 
         class DownloadProgressBar(tqdm):
+            "progress bar hook"
+
             def update_to(self, b=1, bsize=1, tsize=None):
                 "progress bar hook"
                 if tsize is not None:

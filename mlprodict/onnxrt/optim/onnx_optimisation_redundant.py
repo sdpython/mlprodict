@@ -42,7 +42,7 @@ def _hash_obj_content(obj, max_size=1000):
 
 
 def onnx_remove_node_redundant(onnx_model, recursive=True, debug_info=None,
-                               max_hash_size=1000):
+                               max_hash_size=1000, **options):
     """
     Removes redundant part of the graph. A redundant part is
     a set of nodes which takes the same inputs and produces
@@ -55,6 +55,7 @@ def onnx_remove_node_redundant(onnx_model, recursive=True, debug_info=None,
     @param      debug_info      debug information (private)
     @param      max_hash_size   limit the size of a hash used to detect
                                 identical subgraphs
+    @param      options         additional options (unused)
     @return                     new onnx _model
     """
     if debug_info is None:
@@ -67,7 +68,7 @@ def onnx_remove_node_redundant(onnx_model, recursive=True, debug_info=None,
         return _apply_optimisation_on_graph(
             onnx_remove_node_redundant, onnx_model,
             recursive=recursive, debug_info=debug_info,
-            max_hash_size=max_hash_size)
+            max_hash_size=max_hash_size, **options)
 
     def _enumerate_rename_list_nodes_inputs(nodes, rename):
         for i, node in enumerate(nodes):

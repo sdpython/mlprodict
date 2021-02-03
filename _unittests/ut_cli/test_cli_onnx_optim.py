@@ -8,8 +8,9 @@ import pandas
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
+from sklearn.exceptions import ConvergenceWarning
 from pyquickhelper.loghelper import BufferedPrint
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import ExtTestCase, get_temp_folder, ignore_warnings
 from mlprodict.__main__ import main
 from mlprodict.cli import convert_validate, onnx_optim
 
@@ -22,6 +23,7 @@ class TestCliOnnxOptim(ExtTestCase):
         res = str(st)
         self.assertIn("verbose", res)
 
+    @ignore_warnings(ConvergenceWarning)
     def test_onnx_optim(self):
         iris = load_iris()
         X, y = iris.data, iris.target
