@@ -89,6 +89,7 @@ epkg_dictionary.update({
     'onnx': 'https://github.com/onnx/onnx',
     'ONNX Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators.md',
     'ONNX ML Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators-ml.md',
+    'ONNX Zoo': 'https://github.com/onnx/models',
     'onnxconverter_common': 'https://github.com/onnx/onnxmltools/tree/master/onnxutils/onnxconverter_common',
     'OnnxOperatorMixin': 'https://github.com/onnx/sklearn-onnx/blob/master/skl2onnx/algebra/onnx_operator_mixin.py#L16',
     'onnxruntime': 'https://github.com/microsoft/onnxruntime',

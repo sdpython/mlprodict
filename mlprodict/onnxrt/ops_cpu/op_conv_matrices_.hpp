@@ -373,7 +373,6 @@ void gemm(bool transA, bool transB,
 
 template <typename T>
 class ConvPoolCommon {
-    
 };
 
 

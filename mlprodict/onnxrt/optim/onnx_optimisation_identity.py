@@ -11,7 +11,7 @@ from ._onnx_optimisation_common import (  # pylint: disable=E0611
 )
 
 
-def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None):
+def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **options):
     """
     Removes as many *Identity* nodes as possible.
     The function looks into every node and subgraphs if
@@ -23,6 +23,7 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None):
     @param      onnx_model      onnx model
     @param      recursive       looks into subgraphs
     @param      debug_info      debug information (private)
+    @param      options         additional options (unused)
     @return                     new onnx _model
     """
     if debug_info is None:
@@ -34,7 +35,7 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None):
     if hasattr(onnx_model, 'graph'):
         return _apply_optimisation_on_graph(
             onnx_remove_node_identity, onnx_model,
-            recursive=recursive, debug_info=debug_info)
+            recursive=recursive, debug_info=debug_info, **options)
 
     graph = onnx_model
 

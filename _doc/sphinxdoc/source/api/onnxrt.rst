@@ -128,6 +128,8 @@ is left unchanged.
 
 .. autosignature:: mlprodict.onnxrt.optim.onnx_optimisation_redundant.onnx_remove_node_redundant
 
+.. autosignature:: mlprodict.onnxrt.optim.onnx_remove_unused.onnx_remove_node_unused
+
 Shapes
 ++++++
 

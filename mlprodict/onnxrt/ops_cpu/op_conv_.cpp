@@ -299,8 +299,8 @@ void Conv<T>::compute_gil_free(
         if (b_dims.size() != 0 && b_dims[0] != 0) {
             const T* ptrb = B.data(0);
             for(size_t k = 0; k < (size_t)M; ++k, ++ptrb) {
-                yptr = Ydata + k;
-                for(k2 = 0; k2 < (size_t)output_image_size; ++k2, yptr += M)
+                yptr = Ydata + output_image_size * k;
+                for(k2 = 0; k2 < (size_t)output_image_size; ++k2, ++yptr)
                     *yptr += *ptrb;
             }
         }
@@ -311,15 +311,13 @@ void Conv<T>::compute_gil_free(
 }
 
 
-class ConvFloat : public Conv<float>
-{
+class ConvFloat : public Conv<float> {
     public:
         ConvFloat() : Conv<float>() {}
 };
 
 
-class ConvDouble : public Conv<double>
-{
+class ConvDouble : public Conv<double> {
     public:
         ConvDouble() : Conv<double>() {}
 };

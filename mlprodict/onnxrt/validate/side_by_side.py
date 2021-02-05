@@ -2,6 +2,7 @@
 @file
 @brief Helpers to compare executions.
 """
+import copy
 from .validate_difference import measure_relative_difference
 
 
@@ -45,7 +46,7 @@ def side_by_side_by_values(sessions, *args, inputs=None, **kwargs):
             new_inputs = inputs[i]
         else:
             new_sess = sess
-            new_inputs = inputs
+            new_inputs = copy.deepcopy(inputs)
         if verbose > 0 and fLOG:
             fLOG(  # pragma: no cover
                 '[side_by_side_by_values] run session {}/{}'.format(

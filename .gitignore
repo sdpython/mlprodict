@@ -307,3 +307,7 @@ _doc/examples/plot_benchmark.svg
 _doc/examples/plot_*.csv
 _doc/examples/plot_*.xlsx
 _doc/examples/plot_*.png
+_unittests/ut_tools/*.gz
+_unittests/ut_tools/*.tar
+_unittests/ut_tools/**/*.npz
+_unittests/ut_tools/**/*.pb

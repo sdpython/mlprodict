@@ -36,6 +36,10 @@ class Conv(OpRun):
                     numpy.array(self.strides, dtype=numpy.int64))
 
     def _run(self, X, W, B=None):  # pylint: disable=W0221
+        if X is None:
+            raise ValueError(
+                "X cannot be None for operator %r, ONNX=%r" % (
+                    type(self), self.onnx_node))
         if X.dtype == numpy.float32:
             return (self.rt32_.compute(X, W, B), )
         return (self.rt64_.compute(X, W, B), )

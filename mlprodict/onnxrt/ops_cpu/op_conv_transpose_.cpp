@@ -324,10 +324,12 @@ void ConvTranspose<T>::compute_gil_free(
         }
             
         if (b_dims.size() != 0 && b_dims[0] != 0) {
+            // conv: output_image_size, M
+            // convt: output_image_size, num_output_channels
             const T* ptrb = B.data(0);
-            for(size_t k = 0; k < (size_t)M; ++k, ++ptrb) {
-                yptr = Ydata + k;
-                for(k2 = 0; k2 < (size_t)output_image_size; ++k2, yptr += M)
+            for(size_t k = 0; k < (size_t)num_output_channels; ++k, ++ptrb) {
+                yptr = Ydata + output_image_size * k;
+                for(k2 = 0; k2 < (size_t)output_image_size; ++k2, ++yptr)
                     *yptr += *ptrb;
             }
         }
@@ -338,15 +340,13 @@ void ConvTranspose<T>::compute_gil_free(
 }
 
 
-class ConvTransposeFloat : public ConvTranspose<float>
-{
+class ConvTransposeFloat : public ConvTranspose<float> {
     public:
         ConvTransposeFloat() : ConvTranspose<float>() {}
 };
 
 
-class ConvTransposeDouble : public ConvTranspose<double>
-{
+class ConvTransposeDouble : public ConvTranspose<double> {
     public:
         ConvTransposeDouble() : ConvTranspose<double>() {}
 };
