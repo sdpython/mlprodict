@@ -82,6 +82,8 @@ def load_data(folder):
     :return: dictionary
     """
     res = OrderedDict()
+    res['in'] = OrderedDict()
+    res['out'] = OrderedDict()
     files = os.listdir(folder)
     for name in files:
         noext, ext = os.path.splitext(name)
@@ -89,7 +91,13 @@ def load_data(folder):
             data = TensorProto()
             with open(os.path.join(folder, name), 'rb') as f:
                 data.ParseFromString(f.read())
-            res[noext] = numpy_helper.to_array(data)
+            if noext.startswith('input'):
+                res['in'][noext] = numpy_helper.to_array(data)
+            elif noext.startswith('output'):
+                res['out'][noext] = numpy_helper.to_array(data)
+            else:
+                raise ValueError(  # pragma: no cover
+                    "Unable to guess anything about %r." % noext)
 
     return res
 
@@ -172,7 +180,8 @@ def download_model_data(name, model=None, cache=None, verbose=False):
     return final_onnx, examples
 
 
-def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4):
+def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4,
+                 verbose=0, fLOG=None):
     """
     Verifies a model.
 
@@ -180,6 +189,9 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4):
     :param examples: list of examples to verify
     :param runtime: a runtime to use
     :param abs_tol: error tolerance when checking the output
+    :param verbose: verbosity level for for runtime other than
+        `'onnxruntime'`
+    :param fLOG: logging function when `verbose > 0`
     :return: errors for every sample
     """
     if runtime == 'onnxruntime':
@@ -190,7 +202,7 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4):
         onames = list(range(len(sess.get_outputs())))
     else:
         def _lin_(sess, data, names):
-            r = sess.run(data, verbose=1, fLOG=print)
+            r = sess.run(data, verbose=verbose, fLOG=fLOG)
             return [r[n] for n in names]
 
         from ..onnxrt import OnnxInference
@@ -200,25 +212,25 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4):
         meth = lambda data, s=sess, ns=onames: _lin_(s, data, ns)
 
     rows = []
-    for index, (name, data) in enumerate(examples.items()):
+    for index, (name, data_inout) in enumerate(examples.items()):
+        data = data_inout["in"]
         if len(data) != len(names):
             raise RuntimeError(
-                "Mismathed number of inputs %d != %d." % (
-                    len(data), len(names)))
+                "Mismathed number of inputs %d != %d\ninputs: %r\nmodel: %r."
+                "" % (len(data), len(names), list(sorted(data)), names))
         inputs = {n: data[v] for n, v in zip(names, data)}
         outputs = meth(inputs)
-        data_values = list(data.items())
-        expected = [d[1] for d in data_values[len(inputs):]]
+        expected = data_inout['out']
         if len(outputs) != len(onames):
             raise RuntimeError(
                 "Number of outputs %d is != expected outputs %d." % (
                     len(outputs), len(onames)))
-        for i in range(len(outputs)):  # pylint: disable=C0200
-            if outputs[i].shape != expected[i].shape:
+        for i, (output, expect) in enumerate(zip(outputs, expected.items())):
+            if output.shape != expect[1].shape:
                 raise ValueError(
                     "Shape mismatch got %r != expected %r." % (
-                        outputs[i].shape, expected[i].shape))
-            diff = numpy.abs(outputs[i] - expected[i]).ravel()
+                        output.shape, expect[1].shape))
+            diff = numpy.abs(output - expect[1]).ravel()
             absolute = diff.max()
             relative = absolute / numpy.median(diff) if absolute > 0 else 0.
             if absolute > abs_tol:

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@brief      test log(time=5s)
+@brief      test log(time=10s)
 """
 import unittest
 import pprint
@@ -23,7 +23,12 @@ class TestZoo(ExtTestCase):
         for k, data in data.items():
             self.assertIn("test_data_set", k)
             self.assertEqual(len(data), 2)
-            for name, t in data.items():
+            self.assertEqual(len(data['in']), 1)
+            self.assertEqual(len(data['out']), 1)
+            for name, t in data['in'].items():
+                self.assertIn('_', name)
+                self.assertIsInstance(t, numpy.ndarray)
+            for name, t in data['out'].items():
                 self.assertIn('_', name)
                 self.assertIsInstance(t, numpy.ndarray)
 
@@ -33,7 +38,7 @@ class TestZoo(ExtTestCase):
         oinf2 = oinf2.build_intermediate('474')['474']
         oinf1 = OnnxInference(link, runtime="onnxruntime1")
         oinf1 = oinf1.build_intermediate('474')['474']
-        inputs = {'input': data['test_data_set_0']['input_0']}
+        inputs = {'input': data['test_data_set_0']['in']['input_0']}
         rows = side_by_side_by_values([oinf1, oinf2], inputs=inputs)
         for row in rows:
             keep = []
@@ -64,5 +69,5 @@ class TestZoo(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestDisplay().test_verify_side_by_side()
+    # TestZoo().test_verify_model_squeezenet()
     unittest.main()

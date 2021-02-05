@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@brief      test log(time=5s)
+@brief      test log(time=120s)
 """
 import unittest
 from pyquickhelper.pycode import ExtTestCase
@@ -9,7 +9,7 @@ from mlprodict.tools.zoo import download_model_data, verify_model
 
 class TestLONGZoo(ExtTestCase):
 
-    def _test_verify_model(self, name):
+    def c_test_verify_model(self, name):
         link, data = download_model_data(name, cache=".")
         for rt in ['onnxruntime', 'onnxruntime1', 'python']:
             with self.subTest(runtime=rt):
@@ -24,25 +24,24 @@ class TestLONGZoo(ExtTestCase):
                     verify_model(link, data, runtime=rt)
 
     def test_resnet18(self):
-        self._test_verify_model('resnet18')
+        self.c_test_verify_model('resnet18')
 
     def test_squeezenet(self):
-        self._test_verify_model('squeezenet')
+        self.c_test_verify_model('squeezenet')
 
     def test_densenet121(self):
-        self._test_verify_model('densenet121')
+        self.c_test_verify_model('densenet121')
 
     def test_inception2(self):
-        self._test_verify_model('inception2')
+        self.c_test_verify_model('inception2')
 
     @unittest.skipIf(True, "AveragePool is missing.")
     def test_shufflenet(self):
-        self._test_verify_model('shufflenet')
+        self.c_test_verify_model('shufflenet')
 
     def test_efficientnet_lite4(self):
-        self._test_verify_model('efficientnet-lite4')
+        self.c_test_verify_model('efficientnet-lite4')
 
 
 if __name__ == "__main__":
-    # TestDisplay().test_resnet18()
     unittest.main()

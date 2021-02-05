@@ -235,27 +235,42 @@ class OnnxInference:
     def input_names(self):
         """
         Returns the names of all inputs.
+        It does not include the optional inputs.
+
+        .. versionchanged:: 0.6
+            The list does not include optional inputs anymore.
         """
-        return [_.name for _ in self.obj.graph.input]
+        inits = set(_.name for _ in self.obj.graph.initializer)
+        return [_.name for _ in self.obj.graph.input if _.name not in inits]
 
     @property
     def input_names_shapes(self):
         """
         Returns the names and shapes of all inputs.
         This method assumes all inputs are tensors.
+        It does not include the optional inputs.
+
+        .. versionchanged:: 0.6
+            The list does not include optional inputs anymore.
         """
+        names = set(self.input_names)
         return [(_.name, _var_as_dict(_)['type']['shape'])
-                for _ in self.obj.graph.input]
+                for _ in self.obj.graph.input if _.name in names]
 
     @property
     def input_names_shapes_types(self):
         """
         Returns the names, shapes, types of all inputs.
         This method assumes all inputs are tensors.
+        It does not include the optional inputs.
+
+        .. versionchanged:: 0.6
+            The list does not include optional inputs anymore.
         """
+        names = set(self.input_names)
         return [(_.name, _var_as_dict(_)['type']['shape'],
                  'tensor(%s)' % _var_as_dict(_)['type']['elem'])
-                for _ in self.obj.graph.input]
+                for _ in self.obj.graph.input if _.name in names]
 
     @property
     def output_names(self):
