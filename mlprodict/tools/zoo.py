@@ -33,10 +33,12 @@ def short_list_zoo_models():
                    "classification/resnet/model/resnet18-v1-7.tar.gz"),
         dict(name="squeezenet",
              model="https://github.com/onnx/models/raw/master/vision/"
-                   "classification/squeezenet/model/squeezenet1.0-9.tar.gz"),
+                   "classification/squeezenet/model/squeezenet1.0-9.tar.gz",
+             folder="squeezenet"),
         dict(name="densenet121",
              model="https://github.com/onnx/models/raw/master/vision/"
-                   "classification/densenet-121/model/densenet-9.tar.gz"),
+                   "classification/densenet-121/model/densenet-9.tar.gz",
+             folder="densenet121"),
         dict(name="inception2",
              model="https://github.com/onnx/models/raw/master/vision/"
                    "classification/inception_and_googlenet/inception_v2/"
@@ -104,11 +106,14 @@ def download_model_data(name, model=None, cache=None, verbose=False):
     :param verbose: display a progress bar
     :return: local onnx file, input data
     """
+    suggested_folder = None
     if model is None:
         model_list = short_list_zoo_models()
         for mod in model_list:
             if mod['name'] == name:
                 model = mod['model']
+                if 'folder' in mod:  # pylint: disable=R1715
+                    suggested_folder = mod['folder']
                 break
         if model is None:
             raise ValueError(
@@ -138,6 +143,18 @@ def download_model_data(name, model=None, cache=None, verbose=False):
         from pyquickhelper.filehelper.compression_helper import (
             untar_files)
         untar_files(outtar, where_to=cache)
+
+    if suggested_folder is not None:
+        fold_onnx = [suggested_folder]
+    else:
+        fold_onnx = [onnx_file, onnx_file.split('-')[0],
+                     '-'.join(onnx_file.split('-')[:-1]),
+                     '-'.join(onnx_file.split('-')[:-1]).replace('-', '_')]
+    fold_onnx_ok = [_ for _ in fold_onnx if os.path.exists(_)]
+    if len(fold_onnx_ok) != 1:
+        raise FileNotFoundError(  # pragma: no cover
+            "Unable to find an existing folder among %r." % fold_onnx)
+    onnx_file = fold_onnx_ok[0]
 
     onnx_files = [_ for _ in os.listdir(onnx_file) if _.endswith(".onnx")]
     if len(onnx_files) != 1:
@@ -173,7 +190,7 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4):
         onames = list(range(len(sess.get_outputs())))
     else:
         def _lin_(sess, data, names):
-            r = sess.run(data)
+            r = sess.run(data, verbose=1, fLOG=print)
             return [r[n] for n in names]
 
         from ..onnxrt import OnnxInference
@@ -184,6 +201,10 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4):
 
     rows = []
     for index, (name, data) in enumerate(examples.items()):
+        if len(data) != len(names):
+            raise RuntimeError(
+                "Mismathed number of inputs %d != %d." % (
+                    len(data), len(names)))
         inputs = {n: data[v] for n, v in zip(names, data)}
         outputs = meth(inputs)
         data_values = list(data.items())

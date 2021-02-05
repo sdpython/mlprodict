@@ -11,7 +11,7 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.side_by_side import side_by_side_by_values
 
 
-class TestDisplay(ExtTestCase):
+class TestZoo(ExtTestCase):
 
     def test_download_model_data_fail(self):
         self.assertRaise(lambda: download_model_data("hhh"), ValueError)
@@ -50,8 +50,14 @@ class TestDisplay(ExtTestCase):
                 raise AssertionError(
                     "Mismatch\n%s" % pprint.pformat(keep))
 
-    def test_verify_model(self):
+    def test_verify_model_mobilenet(self):
         link, data = download_model_data("mobilenet", cache=".")
+        for rt in ['onnxruntime', 'onnxruntime1', 'python']:
+            with self.subTest(runtime=rt):
+                verify_model(link, data, runtime=rt)
+
+    def test_verify_model_squeezenet(self):
+        link, data = download_model_data("squeezenet", cache=".")
         for rt in ['onnxruntime', 'onnxruntime1', 'python']:
             with self.subTest(runtime=rt):
                 verify_model(link, data, runtime=rt)
@@ -59,5 +65,4 @@ class TestDisplay(ExtTestCase):
 
 if __name__ == "__main__":
     # TestDisplay().test_verify_side_by_side()
-    # stop
     unittest.main()
