@@ -3,4 +3,4 @@
 @file
 @brief Shortcut to *npy*.
 """
-from .onnx_numpy import OnnxNumpy
+from .onnx_numpy import OnnxNumpyCompiler
