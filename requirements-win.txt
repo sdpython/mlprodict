@@ -22,4 +22,5 @@ pyquickhelper
 pyshp
 scikit-learn
 threadpoolctl
+typish
 wheel
