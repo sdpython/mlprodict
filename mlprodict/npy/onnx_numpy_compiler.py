@@ -9,6 +9,7 @@ try:
 except ImportError:
     from nptyping import NDArray as typing_NDArray
 from ..onnxrt import OnnxInference
+from .onnx_variable import OnnxVar
 
 
 class OnnxNumpyCompiler:
@@ -32,7 +33,7 @@ class OnnxNumpyCompiler:
             self.fct_ = fct
             if not inspect.isfunction(fct):
                 raise TypeError(
-                    "Unexpected type for fct, it must be function.")
+                    "Unexpected type for fct=%r, it must be function." % fct)
             self.onnx_ = None
             self.onnx_ = self._to_onnx(op_version=op_version)
         self.runtime_ = self._build_runtime(op_version=op_version,
@@ -61,11 +62,6 @@ class OnnxNumpyCompiler:
         Returns the annotations for function `fct_`.
         """
         args = self.fct_.__code__.co_varnames
-        if 'op_version' not in args:
-            raise RuntimeError(
-                "The function should have a parameter called 'op_version', "
-                "usually `op_version=None`. It defines the ONNX opset "
-                "the converter will use to convert the computation.")
         annotations = self.fct_.__annotations__
         inputs = []
         outputs = []
@@ -95,7 +91,18 @@ class OnnxNumpyCompiler:
             inputs, outputs = self._parse_annotation()
             names_in = [oi[0] for oi in inputs]
             names_out = [oi[0] for oi in outputs]
-            onx_algebra = self.fct_(*names_in, op_version=op_version)
+            names_var = [OnnxVar(n) for n in names_in]
+            if 'op_version' in self.fct_.__code__.co_varnames:
+                onx_algebra = self.fct_(*names_in, op_version=op_version)
+            else:
+                onx_var = self.fct_(*names_var)
+                onx_algebra = onx_var.to_algebra(op_version=op_version)
+            if isinstance(onx_algebra, str):
+                raise RuntimeError(  # pragma: no cover
+                    "Unexpected str type %r." % onx_algebra)
+            if isinstance(onx_algebra, tuple):
+                raise NotImplementedError(
+                    "Not implemented when the function returns multiple results.")
             if hasattr(onx_algebra, 'to_onnx'):
                 # skl2onnx algebra
                 onx_algebra.output_names = names_out

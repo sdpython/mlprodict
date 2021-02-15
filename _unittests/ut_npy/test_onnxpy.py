@@ -19,14 +19,6 @@ class TestOnnxPy(ExtTestCase):
                  op_version=None) -> ONC.NDArray[Any, numpy.float32]:
         return OnnxAbs(x, op_version=op_version)
 
-    @staticmethod
-    def onnx_abs_fail(x: ONC.NDArray[Any, numpy.float32]
-                      ) -> ONC.NDArray[Any, numpy.float32]:
-        return OnnxAbs(x)
-
-    def test_annotation_fail(self):
-        self.assertRaise(lambda: ONC(TestOnnxPy.onnx_abs_fail), RuntimeError)
-
     def test_annotation(self):
         cl = ONC(TestOnnxPy.onnx_abs, op_version=12)
         ann = cl._parse_annotation()  # pylint: disable=W0212
