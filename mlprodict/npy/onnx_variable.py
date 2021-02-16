@@ -18,7 +18,7 @@ class OnnxVar:
 
     def to_algebra(self, op_version=None):
         """
-        Converter the variable into an operator.
+        Converts the variable into an operator.
         """
         if self.onnx_op is None:
             if len(self.inputs) != 1:
@@ -30,3 +30,33 @@ class OnnxVar:
         for inp in self.inputs:
             new_inputs.append(inp.to_algebra(op_version=op_version))
         return self.onnx_op(*new_inputs, op_version=op_version)
+
+    def __add__(self, y):
+        "Addition."
+        from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
+        return OnnxVar(self, y, op=OnnxAdd)
+
+    def __sub__(self, y):
+        "Subtraction."
+        from skl2onnx.algebra.onnx_ops import OnnxSub  # pylint: disable=E0611
+        return OnnxVar(self, y, op=OnnxSub)
+
+    def __mul__(self, y):
+        "Multiplication."
+        from skl2onnx.algebra.onnx_ops import OnnxMul  # pylint: disable=E0611
+        return OnnxVar(self, y, op=OnnxMul)
+
+    def __matmul__(self, y):
+        "Matrix multiplication."
+        from skl2onnx.algebra.onnx_ops import OnnxMatMul  # pylint: disable=E0611
+        return OnnxVar(self, y, op=OnnxMatMul)
+
+    def __truediv__(self, y):
+        "Division, no difference between `/` and `//`."
+        from skl2onnx.algebra.onnx_ops import OnnxDiv  # pylint: disable=E0611
+        return OnnxVar(self, y, op=OnnxDiv)
+
+    def __floordiv__(self, y):
+        "Division, no difference between `/` and `//`."
+        from skl2onnx.algebra.onnx_ops import OnnxDiv  # pylint: disable=E0611
+        return OnnxVar(self, y, op=OnnxDiv)

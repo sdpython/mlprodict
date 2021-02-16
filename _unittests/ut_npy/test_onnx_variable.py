@@ -25,6 +25,48 @@ def test_abs_abs(x: NDArray[Any, numpy.float32],
     return nxnp.abs(nxnp.abs(x))
 
 
+@onnxnumpy
+def test_abs_add(x: NDArray[Any, numpy.float32],
+                 ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy addition"
+    return nxnp.abs(x) + x
+
+
+@onnxnumpy
+def test_abs_sub(x: NDArray[Any, numpy.float32],
+                 ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy addition"
+    return nxnp.abs(x) - x
+
+
+@onnxnumpy
+def test_abs_mul(x: NDArray[Any, numpy.float32],
+                 ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy addition"
+    return nxnp.abs(x) * x
+
+
+@onnxnumpy
+def test_abs_matmul(x: NDArray[Any, numpy.float32],
+                 ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy addition"
+    return nxnp.abs(x) @ x
+
+
+@onnxnumpy
+def test_abs_div(x: NDArray[Any, numpy.float32],
+                 ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy addition"
+    return nxnp.abs(x) / x
+
+
+@onnxnumpy
+def test_abs_idiv(x: NDArray[Any, numpy.float32],
+                  ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy addition"
+    return nxnp.abs(x) // x
+
+
 class TestOnnxVariable(ExtTestCase):
 
     def test_onnx_variable_abs(self):
@@ -35,10 +77,41 @@ class TestOnnxVariable(ExtTestCase):
         self.assertTrue(hasattr(test_abs, 'compiled'))
         self.assertIsInstance(test_abs.compiled, ONC)
 
-    def test_onnx_variable_abs_abs(self):
+    def test_onnx_variable_abs_add(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
-        y = test_abs_abs(x)
-        self.assertEqualArray(y, numpy.abs(x))
+        y = test_abs_add(x)
+        self.assertEqualArray(y, numpy.abs(x) + x)
+
+    def test_onnx_variable_abs_sub(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_sub(x)
+        self.assertEqualArray(y, numpy.abs(x) - x)
+
+    def test_onnx_variable_abs_mul(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_mul(x)
+        self.assertEqualArray(y, numpy.abs(x) * x)
+
+    def test_onnx_variable_abs_matmul(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_matmul(x)
+        self.assertEqualArray(y, numpy.abs(x) @ x)
+
+    def test_onnx_variable_abs_div(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_div(x)
+        self.assertEqualArray(y, numpy.abs(x) / x)
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.int64)
+        y = test_abs_div(x)
+        self.assertEqualArray(y, numpy.abs(x) / x)
+
+    def test_onnx_variable_abs_idiv(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_idiv(x)
+        self.assertEqualArray(y, numpy.abs(x) // x)
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.int64)
+        y = test_abs_idiv(x)
+        self.assertEqualArray(y, numpy.abs(x) // x)
 
 
 if __name__ == "__main__":
