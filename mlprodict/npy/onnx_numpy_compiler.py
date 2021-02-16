@@ -119,7 +119,7 @@ class OnnxNumpyCompiler:
         """
         Returns the annotations for function `fct_`.
         """
-        args = self.fct_.__code__.co_varnames
+        args = self.fct_.__code__.co_varnames[:self.fct_.__code__.co_argcount]
         annotations = self.fct_.__annotations__
         inputs = []
         outputs = []

@@ -16,28 +16,32 @@ class OnnxVar:
     def __init__(self, *inputs, op=None):
         self.inputs = inputs
         self.onnx_op = op
+        self.alg_ = None
 
     def to_algebra(self, op_version=None):
         """
         Converts the variable into an operator.
         """
-        if self.onnx_op is None:
-            if len(self.inputs) != 1:
-                print(self.inputs)
-                raise RuntimeError("Unexpected numer of inputs, 1 expected, "
-                                   "got {} instead.".format(self.inputs))
-            return self.inputs[0]
-        new_inputs = []
-        for inp in self.inputs:
-            if isinstance(inp, (
-                    int, float, str, numpy.ndarray, numpy.int32,
-                    numpy.int64, numpy.float32, numpy.float64,
-                    numpy.bool_, numpy.str, numpy.int8, numpy.uint8,
-                    numpy.int16, numpy.uint16, numpy.uint32, numpy.uint64)):
-                new_inputs.append(inp)
+        if self.alg_ is None:
+            if self.onnx_op is None:
+                if len(self.inputs) != 1:
+                    print(self.inputs)
+                    raise RuntimeError("Unexpected numer of inputs, 1 expected, "
+                                       "got {} instead.".format(self.inputs))
+                self.alg_ = self.inputs[0]
             else:
-                new_inputs.append(inp.to_algebra(op_version=op_version))
-        return self.onnx_op(*new_inputs, op_version=op_version)
+                new_inputs = []
+                for inp in self.inputs:
+                    if isinstance(inp, (
+                            int, float, str, numpy.ndarray, numpy.int32,
+                            numpy.int64, numpy.float32, numpy.float64,
+                            numpy.bool_, numpy.str, numpy.int8, numpy.uint8,
+                            numpy.int16, numpy.uint16, numpy.uint32, numpy.uint64)):
+                        new_inputs.append(inp)
+                    else:
+                        new_inputs.append(inp.to_algebra(op_version=op_version))
+                self.alg_ = self.onnx_op(*new_inputs, op_version=op_version)
+        return self.alg_
 
     def __add__(self, y):
         "Addition."
