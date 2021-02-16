@@ -26,7 +26,7 @@ is called.
     def custom_fct(x: NDArray[Any, numpy.float32],
                    ) -> NDArray[Any, numpy.float32]:
         "onnx numpy abs"
-        return nxnp.abs(x)
+        return nxnp.abs(x) + numpy.float32(1)
 
     x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
     y = custom_fct(x)

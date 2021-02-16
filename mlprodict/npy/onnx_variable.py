@@ -2,6 +2,7 @@
 @file
 @brief Intermediate class between :epkg:`numpy` and :epkg:`onnx`.
 """
+import numpy
 
 
 class OnnxVar:
@@ -28,7 +29,14 @@ class OnnxVar:
             return self.inputs[0]
         new_inputs = []
         for inp in self.inputs:
-            new_inputs.append(inp.to_algebra(op_version=op_version))
+            if isinstance(inp, (
+                    int, float, str, numpy.ndarray, numpy.int32,
+                    numpy.int64, numpy.float32, numpy.float64,
+                    numpy.bool_, numpy.str, numpy.int8, numpy.uint8,
+                    numpy.int16, numpy.uint16, numpy.uint32, numpy.uint64)):
+                new_inputs.append(inp)
+            else:
+                new_inputs.append(inp.to_algebra(op_version=op_version))
         return self.onnx_op(*new_inputs, op_version=op_version)
 
     def __add__(self, y):

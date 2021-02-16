@@ -33,6 +33,21 @@ def test_abs_add(x: NDArray[Any, numpy.float32],
 
 
 @onnxnumpy
+def test_abs_addm(x1: NDArray[Any, numpy.float32],
+                  x2: NDArray[Any, numpy.float32]
+                 ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy addition"
+    return nxnp.abs(x1) + x2
+
+
+@onnxnumpy
+def test_abs_add2(x: NDArray[Any, numpy.float32],
+                  ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy addition"
+    return nxnp.abs(x) + numpy.float32(2)
+
+
+@onnxnumpy
 def test_abs_sub(x: NDArray[Any, numpy.float32],
                  ) -> NDArray[Any, numpy.float32]:
     "onnx numpy addition"
@@ -81,6 +96,16 @@ class TestOnnxVariable(ExtTestCase):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_add(x)
         self.assertEqualArray(y, numpy.abs(x) + x)
+
+    def test_onnx_variable_abs_addm(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_addm(x, x)
+        self.assertEqualArray(y, numpy.abs(x) + x)
+
+    def test_onnx_variable_abs_add_cst(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_add2(x)
+        self.assertEqualArray(y, numpy.abs(x) + 2)
 
     def test_onnx_variable_abs_sub(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
