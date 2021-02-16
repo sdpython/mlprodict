@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-@brief      test log(time=10s)
+@brief      test log(time=3s)
 """
 import unittest
 from typing import Any
 import numpy
 from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.npy import OnnxNumpyCompiler as ONC
+from mlprodict.npy import OnnxNumpyCompiler as ONC, NDArray
 from skl2onnx.algebra.onnx_ops import OnnxAbs  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
 
@@ -15,8 +15,8 @@ from skl2onnx.common.data_types import FloatTensorType
 class TestOnnxPy(ExtTestCase):
 
     @staticmethod
-    def onnx_abs(x: ONC.NDArray[Any, numpy.float32],
-                 op_version=None) -> ONC.NDArray[Any, numpy.float32]:
+    def onnx_abs(x: NDArray[Any, numpy.float32],
+                 op_version=None) -> NDArray[Any, numpy.float32]:
         return OnnxAbs(x, op_version=op_version)
 
     def test_annotation(self):

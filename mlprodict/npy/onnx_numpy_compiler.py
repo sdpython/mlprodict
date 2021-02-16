@@ -3,13 +3,72 @@
 @brief Implements :epkg:`numpy` functions with onnx and a runtime.
 """
 import inspect
-from typing import Any
-try:
-    from numpy.typing import NDArray as typing_NDArray
-except ImportError:
-    from nptyping import NDArray as typing_NDArray
+from typing import Any, TypeVar, Generic
+import numpy
 from ..onnxrt import OnnxInference
 from .onnx_variable import OnnxVar
+
+Shape = TypeVar("Shape")
+DType = TypeVar("DType")
+
+
+class NDArray(numpy.ndarray, Generic[Shape, DType]):
+    "Used to annotation ONNX numpy functions."
+    pass
+
+
+class OnnxNumpyFunction:
+    """
+    Class wrapping a function build with
+    @see cl OnnxNumpyCompiler.
+    """
+
+    def __init__(self, compiler, rt, inputs, outputs):
+        self.compiler = compiler
+        self.inputs = inputs
+        self.outputs = outputs
+        self.rt = rt
+
+
+class OnnxNumpyFunctionOnnxInference(OnnxNumpyFunction):
+    """
+    Overwrites @see cl OnnxNumpyFunction to run an instance of
+    @see cl OnnxInference.
+    """
+
+    def __call__(self, *args):
+        if len(args) != len(self.inputs):
+            raise RuntimeError(
+                "Unexpected number of inputs %d instead of %d." % (
+                    len(args), len(self.inputs)))
+        inp = {k[0]: a for k, a in zip(self.inputs, args)}
+        out = self.rt.run(inp)
+        if len(out) != len(self.outputs):
+            raise RuntimeError(
+                "Unexpected number of outputs %d instead of %d." % (
+                    len(out), len(self.outputs)))
+        return tuple([out[o[0]] for o in self.outputs])
+
+
+class OnnxNumpyFunctionInferenceSession(OnnxNumpyFunction):
+    """
+    Overwrites @see cl OnnxNumpyFunction to run an instance of
+    `InferenceSession` from :epkg:`onnxruntime`.
+    """
+
+    def __call__(self, *args):
+        if len(args) != len(self.inputs):
+            raise RuntimeError(
+                "Unexpected number of inputs %d instead of %d." % (
+                    len(args), len(self.inputs)))
+        inp = {k[0]: a for k, a in zip(self.inputs, args)}
+        out = self.rt.run(None, inp)
+
+        if len(out) != len(self.outputs):
+            raise RuntimeError(
+                "Unexpected number of outputs %d instead of %d." % (
+                    len(out), len(self.outputs)))
+        return tuple(out)
 
 
 class OnnxNumpyCompiler:
@@ -23,7 +82,6 @@ class OnnxNumpyCompiler:
     :param runtime: runtime to choose to execute the onnx graph,
         `python`, `onnxruntime`, `onnxruntime1`
     """
-    NDArray = typing_NDArray
 
     def __init__(self, fct, op_version=None, runtime=None):
         if hasattr(fct, 'SerializeToString'):
@@ -129,36 +187,14 @@ class OnnxNumpyCompiler:
         inputs, outputs = self._parse_annotation()
         if runtime != 'onnxruntime':
             rt = OnnxInference(onx, runtime=runtime)
-            self.rt_ = rt
-
-            def _fct_oi_(*args, inputs=tuple(inputs), outputs=tuple(outputs),
-                         rt=self.rt_):
-                if len(args) != len(inputs):
-                    raise RuntimeError(
-                        "Unexpected number of inputs %d instead of %d." % (
-                            len(args), len(inputs)))
-                inp = {k[0]: a for k, a in zip(inputs, args)}
-                out = rt.run(inp)
-                return tuple([out[o[0]] for o in outputs])
-
-            self.rt_fct_ = _fct_oi_
+            self.rt_fct_ = OnnxNumpyFunctionOnnxInference(
+                self, rt, inputs, outputs)
         else:
             from onnxruntime import InferenceSession
             rt = InferenceSession(onx.SerializeToString())
-            self.rt_ = rt
-
-            def _fct_oi_(*args, inputs=tuple(inputs), outputs=tuple(outputs),
-                         rt=self.rt_):
-                if len(args) != len(inputs):
-                    raise RuntimeError(
-                        "Unexpected number of inputs %d instead of %d." % (
-                            len(args), len(inputs)))
-                inp = {k[0]: a for k, a in zip(inputs, args)}
-                out = rt.run(None, inp)
-                return tuple(out)
-
-            self.rt_fct_ = _fct_oi_
-        return self.rt_
+            self.rt_fct_ = OnnxNumpyFunctionInferenceSession(
+                self, rt, inputs, outputs)
+        return self.rt_fct_
 
     def __call__(self, *args):
         """
