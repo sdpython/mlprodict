@@ -1,5 +1,5 @@
 """
-@brief      test tree node (time=2s)
+@brief      test tree node (time=20s)
 """
 import unittest
 from sklearn.linear_model import LinearRegression, LogisticRegression
