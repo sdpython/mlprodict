@@ -39,7 +39,8 @@ class OnnxVar:
                             numpy.int16, numpy.uint16, numpy.uint32, numpy.uint64)):
                         new_inputs.append(inp)
                     else:
-                        new_inputs.append(inp.to_algebra(op_version=op_version))
+                        new_inputs.append(
+                            inp.to_algebra(op_version=op_version))
                 self.alg_ = self.onnx_op(*new_inputs, op_version=op_version)
         return self.alg_
 

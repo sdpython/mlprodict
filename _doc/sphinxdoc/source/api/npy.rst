@@ -1,4 +1,6 @@
 
+.. _l-numpy-onnxpy:
+
 Numpy revisited with ONNX
 =========================
 
@@ -34,7 +36,9 @@ is called.
 
 Annotations are mandatory to indicate inputs and outputs type.
 As a result, the returned function is strict about types
-as opposed to numpy.
+as opposed to numpy. This approach is similar to what
+:epkg:`tensorflow` with `autograph
+<https://www.tensorflow.org/api_docs/python/tf/autograph>`_.
 
 .. contents::
     :local:
