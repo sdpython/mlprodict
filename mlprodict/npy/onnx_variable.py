@@ -13,10 +13,11 @@ class OnnxVar:
     :param onnx_op: :epkg:`ONNX` operator
     """
 
-    def __init__(self, *inputs, op=None):
+    def __init__(self, *inputs, op=None, **kwargs):
         self.inputs = inputs
         self.onnx_op = op
         self.alg_ = None
+        self.onnx_op_kwargs = kwargs
 
     def to_algebra(self, op_version=None):
         """
@@ -25,7 +26,6 @@ class OnnxVar:
         if self.alg_ is None:
             if self.onnx_op is None:
                 if len(self.inputs) != 1:
-                    print(self.inputs)
                     raise RuntimeError("Unexpected numer of inputs, 1 expected, "
                                        "got {} instead.".format(self.inputs))
                 self.alg_ = self.inputs[0]
@@ -41,8 +41,15 @@ class OnnxVar:
                     else:
                         new_inputs.append(
                             inp.to_algebra(op_version=op_version))
-                self.alg_ = self.onnx_op(*new_inputs, op_version=op_version)
+                self.alg_ = self.onnx_op(*new_inputs, op_version=op_version,
+                                         **self.onnx_op_kwargs)
         return self.alg_
+
+    @property
+    def T(self):
+        "Transpose."
+        from skl2onnx.algebra.onnx_ops import OnnxTranspose  # pylint: disable=E0611
+        return OnnxVar(self, op=OnnxTranspose)
 
     def __add__(self, y):
         "Addition."
@@ -73,3 +80,28 @@ class OnnxVar:
         "Division, no difference between `/` and `//`."
         from skl2onnx.algebra.onnx_ops import OnnxDiv  # pylint: disable=E0611
         return OnnxVar(self, y, op=OnnxDiv)
+
+    def __eq__(self, y):
+        "Equality."
+        from skl2onnx.algebra.onnx_ops import OnnxEqual  # pylint: disable=E0611
+        return OnnxVar(self, y, op=OnnxEqual)
+
+    def __gt__(self, y):
+        "Greater."
+        from skl2onnx.algebra.onnx_ops import OnnxGreater  # pylint: disable=E0611
+        return OnnxVar(self, y, op=OnnxGreater)
+
+    def __lt__(self, y):
+        "Less."
+        from skl2onnx.algebra.onnx_ops import OnnxLess  # pylint: disable=E0611
+        return OnnxVar(self, y, op=OnnxLess)
+
+    def __and__(self, y):
+        "And."
+        from skl2onnx.algebra.onnx_ops import OnnxAnd  # pylint: disable=E0611
+        return OnnxVar(self, y, op=OnnxAnd)
+
+    def __or__(self, y):
+        "And."
+        from skl2onnx.algebra.onnx_ops import OnnxOr  # pylint: disable=E0611
+        return OnnxVar(self, y, op=OnnxOr)

@@ -5,7 +5,7 @@
 import unittest
 from typing import Any
 import numpy
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.npy import onnxnumpy
 import mlprodict.npy.numpy_impl as nxnp
 from mlprodict.npy import OnnxNumpyCompiler as ONC, NDArray
@@ -90,6 +90,62 @@ def test_abs_idiv(x: NDArray[Any, numpy.float32],
     return nxnp.abs(x) // x
 
 
+@onnxnumpy
+def test_abs_equal(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.bool]:
+    "onnx numpy equality"
+    return nxnp.abs(x) == x
+
+
+@onnxnumpy
+def test_abs_greater(x: NDArray[Any, numpy.float32],
+                     ) -> NDArray[Any, numpy.bool]:
+    "onnx numpy greater"
+    return nxnp.abs(x) > x
+
+
+@onnxnumpy
+def test_abs_less(x: NDArray[Any, numpy.float32],
+                  ) -> NDArray[Any, numpy.bool]:
+    "onnx numpy less"
+    return nxnp.abs(x) < x
+
+
+@onnxnumpy
+def test_abs_and(x: NDArray[Any, numpy.bool],
+                 ) -> NDArray[Any, numpy.bool]:
+    "onnx numpy and"
+    return (nxnp.abs(x) < x) and (nxnp.abs(x) < numpy.float32(0))
+
+
+@onnxnumpy
+def test_abs_or(x: NDArray[Any, numpy.bool],
+                ) -> NDArray[Any, numpy.bool]:
+    "onnx numpy or"
+    return (nxnp.abs(x) < x) or (nxnp.abs(x) < numpy.float32(0))
+
+
+@onnxnumpy
+def test_abs_sum1(x: NDArray[Any, numpy.float32],
+                  ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy sum"
+    return nxnp.sum(nxnp.abs(x), axis=0)
+
+
+@onnxnumpy
+def test_abs_sum2(x: NDArray[Any, numpy.float32],
+                  ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy sum"
+    return nxnp.sum(nxnp.abs(x), axis=1, keepdims=1)
+
+
+@onnxnumpy
+def test_abs_transpose_t(x: NDArray[Any, numpy.float32],
+                         ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy transpose T"
+    return nxnp.abs(x).T
+
+
 class TestOnnxVariable(ExtTestCase):
 
     def test_onnx_variable_abs(self):
@@ -152,6 +208,53 @@ class TestOnnxVariable(ExtTestCase):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.int64)
         y = test_abs_idiv(x)
         self.assertEqualArray(y, numpy.abs(x) // x)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_onnx_variable_abs_equal(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_equal(x)
+        self.assertEqualArray(y, numpy.abs(x) == x)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_onnx_variable_abs_greater(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_greater(x)
+        self.assertEqualArray(y, numpy.abs(x) > x)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_onnx_variable_abs_less(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_less(x)
+        self.assertEqualArray(y, numpy.abs(x) < x)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_onnx_variable_abs_and(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_and(x)
+        self.assertEqualArray(
+            y, (numpy.abs(x) < x) & (numpy.abs(x) < 0))
+
+    @ignore_warnings(DeprecationWarning)
+    def test_onnx_variable_abs_or(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_or(x)
+        self.assertEqualArray(
+            y, (numpy.abs(x) < x) | (numpy.abs(x) < 0))
+
+    def test_onnx_variable_abs_sum1(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_sum1(x)
+        self.assertEqualArray(y, numpy.sum(numpy.abs(x), axis=0))
+
+    def test_onnx_variable_abs_sum2(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_sum2(x)
+        self.assertEqualArray(y, numpy.sum(numpy.abs(x), axis=1, keepdims=1))
+
+    def test_onnx_variable_transpose_t(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_transpose_t(x)
+        self.assertEqualArray(y, numpy.abs(x).T)
 
 
 if __name__ == "__main__":
