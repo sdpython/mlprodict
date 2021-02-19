@@ -357,11 +357,12 @@ def to_onnx(model, X=None, name=None, initial_types=None,
         return model.to_onnx(
             X=X, name=name, options=options, black_op=black_op,
             white_op=white_op, final_types=final_types)
+
     if rewrite_ops:
-        old_values = register_rewritten_operators()
+        old_values, old_shapes = register_rewritten_operators()
         register_converters()
     else:
-        old_values = None
+        old_values, old_shapes = {}, {}
 
     def _guess_type_(X, itype, dtype):
         initial_types = guess_initial_types(X, itype)
@@ -432,6 +433,5 @@ def to_onnx(model, X=None, name=None, initial_types=None,
                               black_op=black_op, white_op=white_op,
                               final_types=final_types)
 
-    if old_values is not None:
-        register_rewritten_operators(old_values)
+    register_rewritten_operators(old_values, old_shapes)
     return res

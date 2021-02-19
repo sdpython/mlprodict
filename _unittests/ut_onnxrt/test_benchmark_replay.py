@@ -17,8 +17,8 @@ class TestBenchmarkReplay(ExtTestCase):
             enumerate_benchmark_replay(temp, runtime='python')),
             FileNotFoundError)
         res = list(enumerate_validated_operator_opsets(
-            0, fLOG=None, models={"LogisticRegression"}, opset_min=11,
-            opset_max=11, benchmark=False, store_models=True, dump_all=True,
+            0, fLOG=None, models={"LogisticRegression"}, opset_min=13,
+            opset_max=13, benchmark=False, store_models=True, dump_all=True,
             dump_folder=temp, filter_exp=lambda m, p: (
                 "64" not in p and "b-cl" in p and "dec" not in p)))
         self.assertNotEmpty(res)

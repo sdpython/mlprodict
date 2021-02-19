@@ -11,6 +11,7 @@ API
     onnxrt_ops
     onnx_conv
     sklapi
+    npy
     asv
     validation
     testing

@@ -1,5 +1,5 @@
 """
-@brief      test tree node (time=4s)
+@brief      test tree node (time=100s)
 """
 import unittest
 from logging import getLogger

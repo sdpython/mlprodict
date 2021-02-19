@@ -369,3 +369,24 @@ def numpy_max(x):
         return "%r" % val
     except (ValueError, TypeError):  # pragma: no cover
         return '?'
+
+
+def guess_proto_dtype(dtype):
+    """
+    Guesses the ONNX dtype given a numpy dtype.
+
+    :param dtype: numpy dtype
+    :return: proto type
+    """
+    if dtype == numpy.float32:
+        return TensorProto.FLOAT  # pylint: disable=E1101
+    if dtype == numpy.float64:
+        return TensorProto.DOUBLE  # pylint: disable=E1101
+    if dtype == numpy.int64:
+        return TensorProto.INT64  # pylint: disable=E1101
+    if dtype == numpy.int32:
+        return TensorProto.INT32  # pylint: disable=E1101
+    if dtype in (numpy.bool, bool):
+        return TensorProto.BOOL  # pylint: disable=E1101
+    raise RuntimeError(
+        "Unable to guess type for dtype={}.".format(dtype))  # pragma: no cover

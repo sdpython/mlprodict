@@ -1,5 +1,5 @@
 """
-@brief      test tree node (time=2s)
+@brief      test tree node (time=10s)
 """
 import unittest
 import warnings

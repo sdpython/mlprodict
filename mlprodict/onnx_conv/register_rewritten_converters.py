@@ -3,26 +3,26 @@
 @brief Rewrites some of the converters implemented in
 :epkg:`sklearn-onnx`.
 """
-from skl2onnx.common._registration import _converter_pool
-
+from skl2onnx.common._registration import (
+    _converter_pool, _shape_calculator_pool)
 try:
     from skl2onnx.common._registration import RegisteredConverter
 except ImportError:  # pragma: no cover
     # sklearn-onnx <= 1.6.0
     RegisteredConverter = lambda fct, opts: fct
-
 from .sklconv.tree_converters import (
     new_convert_sklearn_decision_tree_classifier,
     new_convert_sklearn_decision_tree_regressor,
     new_convert_sklearn_gradient_boosting_classifier,
     new_convert_sklearn_gradient_boosting_regressor,
     new_convert_sklearn_random_forest_classifier,
-    new_convert_sklearn_random_forest_regressor,
-)
+    new_convert_sklearn_random_forest_regressor)
 from .sklconv.svm_converters import (
     new_convert_sklearn_svm_classifier,
-    new_convert_sklearn_svm_regressor,
-)
+    new_convert_sklearn_svm_regressor)
+from .sklconv.function_transformer_converters import (
+    new_calculate_sklearn_function_transformer_output_shapes,
+    new_convert_sklearn_function_transformer)
 
 
 _overwritten_operators = {
@@ -58,6 +58,10 @@ _overwritten_operators = {
         new_convert_sklearn_random_forest_classifier,
         _converter_pool['SklearnExtraTreesClassifier'].get_allowed_options()),
     #
+    'SklearnFunctionTransformer': RegisteredConverter(
+        new_convert_sklearn_function_transformer,
+        _converter_pool['SklearnFunctionTransformer'].get_allowed_options()),
+    #
     'SklearnGradientBoostingRegressor': RegisteredConverter(
         new_convert_sklearn_gradient_boosting_regressor,
         _converter_pool['SklearnGradientBoostingRegressor'].get_allowed_options()),
@@ -80,30 +84,60 @@ _overwritten_operators = {
         _converter_pool['SklearnRandomForestClassifier'].get_allowed_options()),
 }
 
+_overwritten_shape_calculator = {
+    "SklearnFunctionTransformer":
+        new_calculate_sklearn_function_transformer_output_shapes,
+}
 
-def register_rewritten_operators(new_values=None):
+
+def register_rewritten_operators(new_converters=None,
+                                 new_shape_calculators=None):
     """
     Registers modified operators and returns the old values.
 
-    @param      new_values      operators to rewrite or None
-                                to rewrite default ones
-    @return                     old values
+    :param new_converters: converters to rewrite or None
+        to rewrite default ones
+    :param new_shape_calculators: shape calculators to rewrite or
+        None to rewrite default ones
+    @return old converters, old shape calculators
     """
-    if new_values is None:
+    old_conv = None
+    old_shape = None
+
+    if new_converters is None:
         for rew in _overwritten_operators:
             if rew not in _converter_pool:
                 raise KeyError(  # pragma: no cover
                     "skl2onnx was not imported and '{}' was not registered."
                     "".format(rew))
-        old_values = {k: _converter_pool[k] for k in _overwritten_operators}
+        old_conv = {k: _converter_pool[k] for k in _overwritten_operators}
         _converter_pool.update(_overwritten_operators)
-        return old_values
+    else:
+        for rew in new_converters:
+            if rew not in _converter_pool:
+                raise KeyError(  # pragma: no cover
+                    "skl2onnx was not imported and '{}' was not registered."
+                    "".format(rew))
+        old_conv = {k: _converter_pool[k] for k in new_converters}
+        _converter_pool.update(new_converters)
 
-    for rew in new_values:
-        if rew not in _converter_pool:
-            raise KeyError(  # pragma: no cover
-                "skl2onnx was not imported and '{}' was not registered."
-                "".format(rew))
-    old_values = {k: _converter_pool[k] for k in new_values}
-    _converter_pool.update(new_values)
-    return old_values
+    if new_shape_calculators is None:
+        for rew in _overwritten_shape_calculator:
+            if rew not in _shape_calculator_pool:
+                raise KeyError(  # pragma: no cover
+                    "skl2onnx was not imported and '{}' was not registered."
+                    "".format(rew))
+        old_shape = {k: _shape_calculator_pool[k]
+                     for k in _overwritten_shape_calculator}
+        _shape_calculator_pool.update(_overwritten_shape_calculator)
+    else:
+        for rew in new_shape_calculators:
+            if rew not in _shape_calculator_pool:
+                raise KeyError(  # pragma: no cover
+                    "skl2onnx was not imported and '{}' was not registered."
+                    "".format(rew))
+        old_shape = {k: _shape_calculator_pool[k]
+                     for k in new_shape_calculators}
+        _shape_calculator_pool.update(new_shape_calculators)
+
+    return old_conv, old_shape

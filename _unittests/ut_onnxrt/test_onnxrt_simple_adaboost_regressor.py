@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import AdaBoostRegressor, RandomForestRegressor
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.datasets import make_regression
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import Int64TensorType
@@ -34,6 +34,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_iris_adaboost_regressor_dt(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -53,6 +54,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel())
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_iris_adaboost_regressor_dt_10(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -73,6 +75,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel())
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_iris_adaboost_regressor_rf(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -89,6 +92,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel(), decimal=5)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_iris_adaboost_regressor_lr(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -105,6 +109,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel(), decimal=5)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_iris_adaboost_regressor_lr_ds2_10(self):
         clr = AdaBoostRegressor(n_estimators=5)
         model, X_test = fit_regression_model(clr)
@@ -117,6 +122,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel(), decimal=5)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_iris_adaboost_regressor_lr_ds2_10_int(self):
         clr = AdaBoostRegressor(n_estimators=5)
         model, X_test = fit_regression_model(clr, is_int=True)
@@ -132,6 +138,7 @@ class TestOnnxrtSimpleAdaboostRegressor(ExtTestCase):
         res1 = oinf.run({'X': X_test})
         self.assertEqualArray(res0, res1['variable'].ravel(), decimal=5)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_iris_adaboost_regressor_lr_ds2_11(self):
         clr = AdaBoostRegressor(n_estimators=5)
         model, X_test = fit_regression_model(clr)
