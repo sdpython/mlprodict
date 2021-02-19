@@ -27,7 +27,6 @@ lightgbm
 memory_profiler
 mlinsights>=0.3
 nbconvert>=6.0.2
-nptyping
 openpyxl
 opt-einsum
 pybind11
