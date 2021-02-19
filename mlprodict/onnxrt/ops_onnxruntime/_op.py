@@ -6,7 +6,6 @@
 import numpy
 import onnx.defs
 from onnx.helper import make_tensor
-from onnx import TensorProto
 from onnxruntime import (
     InferenceSession, SessionOptions, RunOptions, GraphOptimizationLevel)
 from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
@@ -22,6 +21,7 @@ except ImportError:  # pragma: no cover
     alg2 = alg
 from ..optim.graph_schema_helper import (
     get_defined_inputs, get_defined_outputs, proto2vars)
+from ..onnx2py_helper import guess_proto_dtype
 
 
 _schemas = {
@@ -77,14 +77,7 @@ class OpRunOnnxRuntime:
         return mapping, new_inputs
 
     def _guess_proto_type(self, dtype):
-        if dtype == numpy.float32:
-            return TensorProto.FLOAT  # pylint: disable=E1101
-        if dtype == numpy.float64:
-            return TensorProto.DOUBLE  # pylint: disable=E1101
-        if dtype == numpy.int64:
-            return TensorProto.INT64  # pylint: disable=E1101
-        raise RuntimeError(
-            "Unable to guess type for dtype={}.".format(dtype))  # pragma: no cover
+        return guess_proto_dtype(dtype)
 
     def _init(self, variables=None):
         """

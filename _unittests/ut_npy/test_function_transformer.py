@@ -11,12 +11,12 @@ from sklearn.preprocessing import FunctionTransformer
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.onnx_conv import register_rewritten_operators, to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.npy import onnxnumpy
+from mlprodict.npy import onnxnumpy_default
 import mlprodict.npy.numpy_impl as nxnp
 from mlprodict.npy import NDArray
 
 
-@onnxnumpy
+@onnxnumpy_default
 def custom_fct(x: NDArray[Any, numpy.float32],
                ) -> NDArray[Any, numpy.float32]:
     "onnx custom function"

@@ -21,10 +21,10 @@ is called.
 
     import numpy
     from typing import Any
-    from mlprodict.npy import onnxnumpy, NDArray
+    from mlprodict.npy import onnxnumpy_default, NDArray
     import mlprodict.npy.numpy_impl as nxnp
 
-    @onnxnumpy
+    @onnxnumpy_default
     def custom_fct(x: NDArray[Any, numpy.float32],
                    ) -> NDArray[Any, numpy.float32]:
         "onnx numpy abs"
@@ -53,7 +53,8 @@ onnxnumpy
 +++++++++
 
 .. autosignature:: mlprodict.npy.onnx_numpy_wrapper.onnxnumpy
-    :members:
+
+.. autosignature:: mlprodict.npy.onnx_numpy_wrapper.onnxnumpy_default
 
 OnnxNumpyCompiler
 +++++++++++++++++
@@ -71,3 +72,5 @@ Available numpy functions
 +++++++++++++++++++++++++
 
 .. autosignature:: mlprodict.npy.numpy_impl.abs
+
+.. autosignature:: mlprodict.npy.numpy_impl.sum

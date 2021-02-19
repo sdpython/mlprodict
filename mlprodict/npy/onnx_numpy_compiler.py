@@ -91,7 +91,8 @@ class OnnxNumpyCompiler:
             self.fct_ = fct
             if not inspect.isfunction(fct):
                 raise TypeError(
-                    "Unexpected type for fct=%r, it must be function." % fct)
+                    "Unexpected type for fct=%r, it must be "
+                    "function." % type(fct))
             self.onnx_ = None
             self.onnx_ = self._to_onnx(op_version=op_version)
         self.runtime_ = self._build_runtime(op_version=op_version,

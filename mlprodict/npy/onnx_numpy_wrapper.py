@@ -23,20 +23,36 @@ class wrapper_onnxnumpy:
         return self.compiled(*args)
 
 
-def onnxnumpy(fct, op_version=None, runtime=None):
+def onnxnumpy(op_version=None, runtime=None):
     """
-    Wrappers to declare a function implements with
-    :epkg:`ONNX` operators using :epkg:`numpy` operators.
+    Decorator to declare a function implemented using
+    :epkg:`numpy` syntax but executed with :epkg:`ONNX`
+    operators.
 
-    :param fct: function to convert
     :param op_version: :epkg:`ONNX` opset version
     :param runtime: see @see fct
+
+    Equivalent to `onnxnumpy(arg)(foo)`.
+    The decorator must be called with `onnxnumpy()`.
     """
-    compiled = OnnxNumpyCompiler(fct, op_version=op_version,
-                                 runtime=runtime)
+    def decorator_fct(fct):
+        compiled = OnnxNumpyCompiler(fct, op_version=op_version,
+                                     runtime=runtime)
+        newclass = type(
+            "onnxnumpy_%s" % fct.__name__,
+            (wrapper_onnxnumpy,), {'__doc__': fct.__doc__})
 
-    newclass = type(
-        "onnxnumpy_%s" % fct.__name__,
-        (wrapper_onnxnumpy,), {'__doc__': fct.__doc__})
+        return newclass(compiled)
+    return decorator_fct
 
-    return newclass(compiled)
+
+def onnxnumpy_default(fct):
+    """
+    Decorator with options to declare a function implemented
+    using :epkg:`numpy` syntax but executed with :epkg:`ONNX`
+    operators.
+
+    :param fct: function to wrap
+    :param runtime: see @see fct
+    """
+    return onnxnumpy()(fct)
