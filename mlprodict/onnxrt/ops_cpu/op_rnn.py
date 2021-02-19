@@ -5,24 +5,17 @@
 @brief Runtime operator.
 """
 import numpy
+from onnx.defs import onnx_opset_version
 from ._op import OpRun
 from ..shape_object import ShapeObject
 
 
-class RNN(OpRun):
+class CommonRNN(OpRun):
 
-    atts = {
-        'activation_alpha': [0.],
-        'activation_beta': [0.],
-        'activations': ['tanh', 'tanh'],
-        'clip': [],
-        'direction': 'forward',
-        'hidden_size': None,
-    }
-
-    def __init__(self, onnx_node, desc=None, **options):
+    def __init__(self, onnx_node, expected_attributes=None, desc=None,
+                 **options):
         OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=RNN.atts,
+                       expected_attributes=expected_attributes,
                        **options)
 
         if self.direction in ("forward", "reverse"):
@@ -50,6 +43,9 @@ class RNN(OpRun):
                                       self.activation_alpha[1],
                                       self.activation_beta[1])
         self.nb_outputs = len(onnx_node.output)
+        if getattr(self, 'layout', 0) != 0:
+            raise NotImplementedError(
+                "The runtime is not implemented when layout=%r != 0." % self.layout)
 
     def choose_act(self, name, alpha, beta):
         if name == b"Tanh":
@@ -120,3 +116,44 @@ class RNN(OpRun):
         y_h_shape = ShapeObject((num_directions, batch_size, hidden_size),
                                 dtype=X.dtype)
         return (y_shape, y_h_shape)
+
+
+class RNN_7(CommonRNN):
+
+    atts = {
+        'activation_alpha': [0.],
+        'activation_beta': [0.],
+        'activations': ['tanh', 'tanh'],
+        'clip': [],
+        'direction': 'forward',
+        'hidden_size': None,
+    }
+
+    def __init__(self, onnx_node, desc=None, **options):
+        CommonRNN.__init__(self, onnx_node, desc=desc,
+                           expected_attributes=RNN_7.atts,
+                           **options)
+
+
+class RNN_14(CommonRNN):
+
+    atts = {
+        'activation_alpha': [0.],
+        'activation_beta': [0.],
+        'activations': ['tanh', 'tanh'],
+        'clip': [],
+        'direction': 'forward',
+        'hidden_size': None,
+        'layout': 0,
+    }
+
+    def __init__(self, onnx_node, desc=None, **options):
+        CommonRNN.__init__(self, onnx_node, desc=desc,
+                           expected_attributes=RNN_14.atts,
+                           **options)
+
+
+if onnx_opset_version() >= 14:
+    RNN = RNN_14
+else:
+    RNN = RNN_7
