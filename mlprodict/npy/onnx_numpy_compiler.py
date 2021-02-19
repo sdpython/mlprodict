@@ -84,6 +84,9 @@ class OnnxNumpyCompiler:
     """
 
     def __init__(self, fct, op_version=None, runtime=None):
+        if op_version is None:
+            from skl2onnx import __max_supported_opset__
+            op_version = __max_supported_opset__
         if hasattr(fct, 'SerializeToString'):
             self.fct_ = None
             self.onnx_ = fct
