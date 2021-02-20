@@ -1,6 +1,8 @@
 """
 @file
 @brief Intermediate class between :epkg:`numpy` and :epkg:`onnx`.
+
+.. versionadded:: 0.6
 """
 import numpy
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
@@ -8,13 +10,15 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxCast,
     OnnxDiv,
     OnnxEqual,
-    OnnxGreater,
+    OnnxGather, OnnxGreater,
     OnnxLess,
-    OnnxMatMul, OnnxMul,
+    OnnxMatMul, OnnxMod, OnnxMul,
+    OnnxNeg, OnnxNot,
     OnnxOr,
-    OnnxReshape,
-    OnnxSlice, OnnxSub,
-    OnnxTranspose
+    OnnxPow,
+    OnnxReduceSum, OnnxReshape,
+    OnnxSlice, OnnxSqueeze, OnnxSub,
+    OnnxTopK, OnnxTranspose
 )
 
 
@@ -23,11 +27,18 @@ class OnnxVar:
     Variables used into :epkg:`onnx` computation.
 
     :param inputs: variable name or object
-    :param onnx_op: :epkg:`ONNX` operator
+    :param op: :epkg:`ONNX` operator
+    :param select_output: if multiple output are returned by
+        ONNX operator *op*, it takes only one specifed by this
+        argument
+    :param kwargs: addition argument to give operator *op*
+
+    .. versionadded:: 0.6
     """
 
-    def __init__(self, *inputs, op=None, **kwargs):
+    def __init__(self, *inputs, op=None, select_output=None, **kwargs):
         self.inputs = inputs
+        self.select_output = select_output
         self.onnx_op = op
         self.alg_ = None
         self.onnx_op_kwargs = kwargs
@@ -54,8 +65,12 @@ class OnnxVar:
                     else:
                         new_inputs.append(
                             inp.to_algebra(op_version=op_version))
-                self.alg_ = self.onnx_op(*new_inputs, op_version=op_version,
-                                         **self.onnx_op_kwargs)
+                res = self.onnx_op(*new_inputs, op_version=op_version,
+                                   **self.onnx_op_kwargs)
+                if self.select_output is None:
+                    self.alg_ = res
+                else:
+                    self.alg_ = res[self.select_output]
         return self.alg_
 
     @property
@@ -86,6 +101,14 @@ class OnnxVar:
         "Multiplication."
         return OnnxVar(self, y, op=OnnxMul)
 
+    def __pow__(self, y):
+        "Power."
+        return OnnxVar(self, y, op=OnnxPow)
+
+    def __mod__(self, y):
+        "Modulo."
+        return OnnxVar(self, y, op=OnnxMod)
+
     def __matmul__(self, y):
         "Matrix multiplication."
         return OnnxVar(self, y, op=OnnxMatMul)
@@ -101,6 +124,10 @@ class OnnxVar:
     def __eq__(self, y):
         "Equality."
         return OnnxVar(self, y, op=OnnxEqual)
+
+    def __ne__(self, y):
+        "Difference."
+        return OnnxVar(OnnxVar(self, y, op=OnnxEqual), op=OnnxNot)
 
     def __gt__(self, y):
         "Greater."
@@ -118,12 +145,35 @@ class OnnxVar:
         "And."
         return OnnxVar(self, y, op=OnnxOr)
 
+    def not_(self):
+        "Not."
+        return OnnxVar(self, op=OnnxNot)
+
+    def __neg__(self):
+        "Neg."
+        return OnnxVar(self, op=OnnxNeg)
+
     def __getitem__(self, index):
         """
         Deals with multiple scenarios.
+        * *index* is an integer or a slice, a tuple of integers and slices,
+          example: `[0, 1]`, `[:5, :6]`, `[::2]` (**scenario 1**)
+        * *index* is an *ONNX* object (more precisely an instance of
+          @see cl OnnxVar), then the method assumes it is an array of
+          boolean to select a subset of the tensor along the first axis,
+          example: `mat[mat == 0]` (**scenario 2**)
         """
+        if isinstance(index, OnnxVar):
+            # scenario 2
+            cast = OnnxVar(index.astype(numpy.int64), op=OnnxSqueeze)
+            n1 = OnnxVar(cast, op=OnnxReduceSum, keepdims=0)
+            indices = OnnxVar(cast, n1, op=OnnxTopK, select_output=1)
+            return OnnxVar(self, indices, op=OnnxGather)
+
         if not isinstance(index, tuple):
             index = (index, )
+
+        # scenario 1
         starts = []
         ends = []
         axes = []

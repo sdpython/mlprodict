@@ -44,6 +44,8 @@ class ReduceSum_13(OpRunReduceNumpy):
         Calls method ``_run``.
         """
         res = self._run(data, axes=axes)
+        if not self.keepdims and not isinstance(res[0], numpy.ndarray):
+            res = (numpy.array([res[0]], dtype=res[0].dtype), )
         if res[0].dtype != data.dtype:
             raise RuntimeTypeError(  # pragma: no cover
                 "Output type mismatch: input '{}' != output '{}' "

@@ -59,6 +59,7 @@ from .op_max import Max
 from .op_max_pool import MaxPool
 from .op_mean import Mean
 from .op_min import Min
+from .op_mod import Mod
 from .op_mul import Mul
 from .op_neg import Neg
 from .op_normalizer import Normalizer

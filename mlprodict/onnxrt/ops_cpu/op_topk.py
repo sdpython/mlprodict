@@ -27,6 +27,11 @@ def topk_sorted_implementation(X, k, axis, largest):
     <https://github.com/scikit-learn/scikit-learn/tree/master/
     sklearn/neighbors/base.py#L304>`_.
     """
+    if isinstance(k, numpy.ndarray):
+        if k.size != 1:
+            raise RuntimeError(  # pragma: no cover
+                "k must be an integer not %r." % k)
+        k = k[0]
     if len(X.shape) == 2 and axis == 1:
         sample_range = numpy.arange(X.shape[0])[:, None]
         if largest == 0:
@@ -69,27 +74,41 @@ def topk_sorted_implementation_cpp(X, k, axis, largest, th_para=50):
     @param      th_para     threshold for parallelisation
     @return                 top-k values, top-k indices
     """
+    if isinstance(k, numpy.ndarray):
+        if k.size != 1:
+            raise RuntimeError(  # pragma: no cover
+                "k must be an integer not %r." % k)
     if axis != len(X.shape) - 1:
+        if k == 0:
+            return numpy.empty((0,), dtype=numpy.int64)
         return topk_sorted_implementation(X, k, axis, largest)
     if X.dtype == numpy.float64:
+        if k == 0:
+            return numpy.empty((0,), dtype=X.dtype), numpy.empty((0,), dtype=numpy.int64)
         if largest:
             topk_sorted_indices = topk_element_max_double(X, k, True, th_para)
         else:
             topk_sorted_indices = topk_element_min_double(X, k, True, th_para)
         topk_sorted_values = topk_element_fetch_double(X, topk_sorted_indices)
     elif X.dtype == numpy.float32:
+        if k == 0:
+            return numpy.empty((0,), dtype=X.dtype), numpy.empty((0,), dtype=numpy.int64)
         if largest:
             topk_sorted_indices = topk_element_max_float(X, k, True, th_para)
         else:
             topk_sorted_indices = topk_element_min_float(X, k, True, th_para)
         topk_sorted_values = topk_element_fetch_float(X, topk_sorted_indices)
     elif X.dtype == numpy.int64:
+        if k == 0:
+            return numpy.empty((0,), dtype=X.dtype), numpy.empty((0,), dtype=numpy.int64)
         if largest:
             topk_sorted_indices = topk_element_max_int64(X, k, True, th_para)
         else:
             topk_sorted_indices = topk_element_min_int64(X, k, True, th_para)
         topk_sorted_values = topk_element_fetch_int64(X, topk_sorted_indices)
     else:
+        if k == 0:
+            return numpy.empty((0,), dtype=numpy.int64)
         return topk_sorted_implementation(X, k, axis, largest)
     return topk_sorted_values, topk_sorted_indices
 
