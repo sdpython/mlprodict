@@ -2,6 +2,7 @@
 @brief      test log(time=2s)
 """
 import unittest
+import warnings
 import sys
 from logging import getLogger
 from contextlib import redirect_stdout
@@ -37,7 +38,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxIdentity, OnnxIsNaN,
     OnnxLess, OnnxLessOrEqual,
     OnnxLog, OnnxLpNormalization,
-    OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMul,
+    OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
     OnnxNeg, OnnxNot,
     OnnxOr,
     OnnxPad, OnnxPow,
@@ -80,6 +81,17 @@ from mlprodict.onnxrt.ops_cpu.op_max_pool import _pool_get_output_shape, _pool_i
 from mlprodict.onnxrt.ops_cpu.op_dropout import _dropout
 
 
+try:
+    numpy_str = numpy.str
+except ImportError:
+    numpy_str = str
+
+try:
+    numpy_bool = numpy.bool
+except ImportError:
+    numpy_bool = bool
+
+
 sparse_support = []
 sparse_no_numpy = []
 python_tested = []
@@ -96,7 +108,9 @@ def wraplog():
     def wrapper(fct):
         def call_f(self):
             # print('BEGIN %s' % fct.__name__)
-            fct(self)
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter("always", DeprecationWarning)
+                fct(self)
             # print('DONE %s' % fct.__name__)
         return call_f
     return wrapper
@@ -1428,6 +1442,23 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(OnnxFloor, numpy.floor)
 
     @wraplog()
+    def test_onnxt_runtime_gather_elements0(self):
+        from skl2onnx.algebra.onnx_ops import OnnxGatherElements  # pylint: disable=E0611
+        # ex 1
+        data = numpy.array([[1, 2],
+                            [3, 4]], dtype=numpy.float32)
+        indices = numpy.array([], dtype=numpy.int64)
+
+        onx = OnnxGatherElements('X', 'Y', output_names=['Z'], axis=1,
+                                 op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': data, 'Y': indices},
+                                outputs=[('Z', FloatTensorType())],
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': data, 'Y': indices})
+        self.assertEqual(got['Z'].size, 0)
+
+    @wraplog()
     def test_onnxt_runtime_gather_elements(self):
         from skl2onnx.algebra.onnx_ops import OnnxGatherElements  # pylint: disable=E0611
         # ex 1
@@ -1832,6 +1863,12 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_min(self):
         self.common_test_onnxt_runtime_binary(
             OnnxMin, lambda x, y: numpy.minimum(x, y))
+
+    @wraplog()
+    def test_onnxt_runtime_mod(self):
+        self.common_test_onnxt_runtime_binary(
+            OnnxMod, lambda x, y: numpy.nan_to_num(numpy.mod(x, y)),
+            dtype=numpy.int64)
 
     @wraplog()
     def test_onnxt_runtime_mul(self):
@@ -2473,6 +2510,27 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_binary(OnnxSum, lambda x, y: x + y)
 
     @wraplog()
+    def test_onnxt_runtime_topk0(self):
+        X = numpy.array([[0, 1, 2, 3, 4],
+                         [1, -1, -2, 4, 5],
+                         [2, -2, -3, 5, -4]],
+                        dtype=numpy.float32)
+
+        # axis=1, k=0
+        onx = OnnxTopK('X', numpy.array([0], dtype=numpy.int64),
+                       axis=1, output_names=['Y', 'Yi'],
+                       op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType(X.shape)),
+                                         ('Yi', Int64TensorType(X.shape))],
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y', 'Yi'])
+        self.assertEqual(got['Y'].size, 0)
+        self.assertEqual(got['Yi'].size, 0)
+
+    @wraplog()
     def test_onnxt_runtime_topk(self):
         X = numpy.array([[0, 1, 2, 3, 4],
                          [1, -1, -2, 4, 5],
@@ -2854,7 +2912,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         for opset, cls in opset_tests:
             for ty, nty in [('float', numpy.float32),
                             ('int', numpy.int64),
-                            ('string', numpy.str)]:
+                            ('string', numpy_str)]:
                 with self.subTest(opset=opset, type=ty):
                     X = numpy.array([0.1, 0.2], dtype=numpy.float32)
                     if opset >= 12:

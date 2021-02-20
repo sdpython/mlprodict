@@ -1,6 +1,8 @@
 """
 @file
 @brief Implements :epkg:`numpy` functions with onnx and a runtime.
+
+.. versionadded:: 0.6
 """
 import inspect
 from typing import Any, TypeVar, Generic
@@ -13,7 +15,11 @@ DType = TypeVar("DType")
 
 
 class NDArray(numpy.ndarray, Generic[Shape, DType]):
-    "Used to annotation ONNX numpy functions."
+    """
+    Used to annotation ONNX numpy functions.
+
+    .. versionadded:: 0.6
+    """
     pass
 
 
@@ -21,6 +27,8 @@ class OnnxNumpyFunction:
     """
     Class wrapping a function build with
     @see cl OnnxNumpyCompiler.
+
+    .. versionadded:: 0.6
     """
 
     def __init__(self, compiler, rt, inputs, outputs):
@@ -34,15 +42,17 @@ class OnnxNumpyFunctionOnnxInference(OnnxNumpyFunction):
     """
     Overwrites @see cl OnnxNumpyFunction to run an instance of
     @see cl OnnxInference.
+
+    .. versionadded:: 0.6
     """
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         if len(args) != len(self.inputs):
             raise RuntimeError(
                 "Unexpected number of inputs %d instead of %d." % (
                     len(args), len(self.inputs)))
         inp = {k[0]: a for k, a in zip(self.inputs, args)}
-        out = self.rt.run(inp)
+        out = self.rt.run(inp, **kwargs)
         if len(out) != len(self.outputs):
             raise RuntimeError(
                 "Unexpected number of outputs %d instead of %d." % (
@@ -54,13 +64,18 @@ class OnnxNumpyFunctionInferenceSession(OnnxNumpyFunction):
     """
     Overwrites @see cl OnnxNumpyFunction to run an instance of
     `InferenceSession` from :epkg:`onnxruntime`.
+
+    .. versionadded:: 0.6
     """
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         if len(args) != len(self.inputs):
             raise RuntimeError(
                 "Unexpected number of inputs %d instead of %d." % (
                     len(args), len(self.inputs)))
+        if len(kwargs) > 0:
+            raise RuntimeError(
+                "kwargs is not used but it is not empty: %r." % kwargs)
         inp = {k[0]: a for k, a in zip(self.inputs, args)}
         out = self.rt.run(None, inp)
 
@@ -81,6 +96,8 @@ class OnnxNumpyCompiler:
         for the latest one
     :param runtime: runtime to choose to execute the onnx graph,
         `python`, `onnxruntime`, `onnxruntime1`
+
+    .. versionadded:: 0.6
     """
 
     def __init__(self, fct, op_version=None, runtime=None):
@@ -158,6 +175,10 @@ class OnnxNumpyCompiler:
                 onx_algebra = self.fct_(*names_in, op_version=op_version)
             else:
                 onx_var = self.fct_(*names_var)
+                if not hasattr(onx_var, 'to_algebra'):
+                    raise TypeError(
+                        "The function %r to convert must return an instance of "
+                        "OnnxVar but returns type %r." % (self.fct_, type(onx_var)))
                 onx_algebra = onx_var.to_algebra(op_version=op_version)
             if isinstance(onx_algebra, str):
                 raise RuntimeError(  # pragma: no cover

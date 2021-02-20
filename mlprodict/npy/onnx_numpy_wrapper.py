@@ -1,6 +1,8 @@
 """
 @file
 @brief Wraps :epkg:`numpy` functions into :epkg:`onnx`.
+
+.. versionadded:: 0.6
 """
 from .onnx_numpy_compiler import OnnxNumpyCompiler
 
@@ -11,6 +13,8 @@ class wrapper_onnxnumpy:
     on the compiler (type: @see cl OnnxNumpyCompiler).
 
     :param compiled: instance of @see cl OnnxNumpyCompiler
+
+    .. versionadded:: 0.6
     """
 
     def __init__(self, compiled):
@@ -34,6 +38,8 @@ def onnxnumpy(op_version=None, runtime=None):
 
     Equivalent to `onnxnumpy(arg)(foo)`.
     The decorator must be called with `onnxnumpy()`.
+
+    .. versionadded:: 0.6
     """
     def decorator_fct(fct):
         compiled = OnnxNumpyCompiler(fct, op_version=op_version,
@@ -54,5 +60,7 @@ def onnxnumpy_default(fct):
 
     :param fct: function to wrap
     :param runtime: see @see fct
+
+    .. versionadded:: 0.6
     """
     return onnxnumpy()(fct)

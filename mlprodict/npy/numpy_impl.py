@@ -1,6 +1,8 @@
 """
 @file
 @brief :epkg:`numpy` functions implemented with :epkg:`onnx`.
+
+.. versionadded:: 0.6
 """
 import numpy
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611

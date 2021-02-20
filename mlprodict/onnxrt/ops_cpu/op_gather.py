@@ -29,6 +29,8 @@ class Gather(OpRun):
             x = numpy.ascontiguousarray(x)
         if not indices.flags['C_CONTIGUOUS']:
             indices = indices.ascontiguousarray()
+        if indices.size == 0:
+            return (numpy.empty((0, ), dtype=x.dtype), )
         try:
             return (self.rt_[str(x.dtype)].compute(x, indices), )
         except KeyError:

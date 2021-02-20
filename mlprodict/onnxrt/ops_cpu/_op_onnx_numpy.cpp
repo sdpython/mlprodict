@@ -268,6 +268,10 @@ template<class HeapCmp>
 py::array_t<int64_t> topk_element(
         py::array_t<typename HeapCmp::DataType, py::array::c_style | py::array::forcecast> values,
         ssize_t k, bool sorted, ssize_t th_para) {
+
+    if (k == 0) {
+        return py::array_t<int64_t>();
+    }
     std::vector<int64_t> shape_val;
     arrayshape2vector(shape_val, values);
 
@@ -287,7 +291,6 @@ py::array_t<int64_t> topk_element(
     py::buffer_info buf = result.request();
     int64_t* pos = (int64_t*) buf.ptr;
     const typename HeapCmp::DataType* data_val = values.data();
-            
     _topk_element_ptr<HeapCmp>(pos, k, data_val, shape_val, sorted, th_para);
     return result;
 }

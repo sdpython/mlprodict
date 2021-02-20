@@ -81,6 +81,20 @@ def test_abs_mul(x: NDArray[Any, numpy.float32],
 
 
 @onnxnumpy_default
+def test_abs_pow(x: NDArray[Any, numpy.float32],
+                 ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy power"
+    return nxnp.abs(x) ** numpy.float32(2)
+
+
+@onnxnumpy_default
+def test_abs_mod(x: NDArray[Any, numpy.float32],
+                 ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy modulo"
+    return nxnp.abs(x) % numpy.float32(2)
+
+
+@onnxnumpy_default
 def test_abs_matmul(x: NDArray[Any, numpy.float32],
                     ) -> NDArray[Any, numpy.float32]:
     "onnx numpy addition"
@@ -106,6 +120,13 @@ def test_abs_equal(x: NDArray[Any, numpy.float32],
                    ) -> NDArray[Any, numpy_bool]:
     "onnx numpy equality"
     return nxnp.abs(x) == x
+
+
+@onnxnumpy_default
+def test_abs_not_equal(x: NDArray[Any, numpy.float32],
+                       ) -> NDArray[Any, numpy_bool]:
+    "onnx numpy inequality"
+    return nxnp.abs(x) != x
 
 
 @onnxnumpy_default
@@ -174,8 +195,51 @@ def test_abs_reshape(x: NDArray[Any, numpy.float32],
 @onnxnumpy(op_version=11)
 def test_abs_reshape_11(x: NDArray[Any, numpy.float32],
                         ) -> NDArray[Any, numpy.float32]:
-    "onnx numpy reshape"
+    "onnx numpy reshape with opset 11"
     return nxnp.abs(x).reshape((-1, 1))
+
+
+@onnxnumpy_default
+def test_abs_slice(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy slice 1"
+    return nxnp.abs(x)[:, 1]
+
+
+@onnxnumpy_default
+def test_abs_slice2(x: NDArray[Any, numpy.float32],
+                    ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy slice 2"
+    return nxnp.abs(x)[:1, 1]
+
+
+@onnxnumpy_default
+def test_abs_slice23(x: NDArray[Any, numpy.float32],
+                     ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy slice 23"
+    return nxnp.abs(x)[::2, ::3]
+
+
+@onnxnumpy_default
+def test_abs_neg(x: NDArray[Any, numpy.float32],
+                 ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy neg"
+    return - nxnp.abs(x)
+
+
+@onnxnumpy_default
+def test_abs_not(x: NDArray[Any, numpy.float32],
+                 ) -> NDArray[Any, numpy.bool]:
+    "onnx numpy not"
+    temp = nxnp.abs(x) > numpy.float32(0)
+    return temp.not_()
+
+
+@onnxnumpy_default
+def test_abs_filter(x: NDArray[Any, numpy.float32],
+                    ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy not"
+    return nxnp.abs(x)[x[:, 0] > numpy.float32(15)]
 
 
 class TestOnnxVariable(ExtTestCase):
@@ -220,6 +284,16 @@ class TestOnnxVariable(ExtTestCase):
         y = test_abs_mul(x)
         self.assertEqualArray(y, numpy.abs(x) * x)
 
+    def test_onnx_variable_abs_mod(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_mod(x)
+        self.assertEqualArray(y, numpy.abs(x) % 2)
+
+    def test_onnx_variable_abs_pox(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_pow(x)
+        self.assertEqualArray(y, numpy.abs(x) ** 2)
+
     def test_onnx_variable_abs_matmul(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_matmul(x)
@@ -246,6 +320,12 @@ class TestOnnxVariable(ExtTestCase):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_equal(x)
         self.assertEqualArray(y, numpy.abs(x) == x)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_onnx_variable_abs_not_equal(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_not_equal(x)
+        self.assertEqualArray(y, numpy.abs(x) != x)
 
     @ignore_warnings(DeprecationWarning)
     def test_onnx_variable_abs_greater(self):
@@ -308,6 +388,31 @@ class TestOnnxVariable(ExtTestCase):
         self.assertEqualArray(y, numpy.abs(x).reshape((-1, 1)))
         compiled = test_abs_reshape_11.compiled
         self.assertIn("version: 11", str(compiled.onnx_))
+
+    def test_onnx_variable_abs_slice(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_slice(x)
+        self.assertEqualArray(y, numpy.abs(x)[:, 1:])
+
+    def test_onnx_variable_abs_slice23(self):
+        x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
+        y = test_abs_slice23(x)
+        self.assertEqualArray(y, numpy.abs(x)[::2, ::3])
+
+    def test_onnx_variable_abs_neg(self):
+        x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
+        y = test_abs_neg(x)
+        self.assertEqualArray(y, -numpy.abs(x))
+
+    def test_onnx_variable_abs_not(self):
+        x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
+        y = test_abs_not(x)
+        self.assertEqualArray(y, numpy.abs(x) <= 0)
+
+    def test_onnx_variable_abs_filter(self):
+        x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
+        y = test_abs_filter(x)
+        self.assertEqualArray(y, numpy.abs(x)[x[:, 0] > 15])
 
 
 if __name__ == "__main__":
