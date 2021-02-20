@@ -35,6 +35,8 @@ class SliceCommon(OpRun):
 
     def _infer_shapes(self, data, starts, ends, axes=None, steps=None):  # pylint: disable=W0221
         pref = str(hex(id(self))[2:])
+        if data.shape is None:
+            return (ShapeObject(None, data.dtype), )
         shape = ["nslice%s_%d" % (pref, i) for i in range(len(data.shape))]
         return (ShapeObject(shape, data.dtype), )
 

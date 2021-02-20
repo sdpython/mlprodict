@@ -174,8 +174,29 @@ def test_abs_reshape(x: NDArray[Any, numpy.float32],
 @onnxnumpy(op_version=11)
 def test_abs_reshape_11(x: NDArray[Any, numpy.float32],
                         ) -> NDArray[Any, numpy.float32]:
-    "onnx numpy reshape"
+    "onnx numpy reshape with opset 11"
     return nxnp.abs(x).reshape((-1, 1))
+
+
+@onnxnumpy_default
+def test_abs_slice(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy slice 1"
+    return nxnp.abs(x)[:, 1]
+
+
+@onnxnumpy_default
+def test_abs_slice2(x: NDArray[Any, numpy.float32],
+                    ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy slice 2"
+    return nxnp.abs(x)[:1, 1]
+
+
+@onnxnumpy_default
+def test_abs_slice23(x: NDArray[Any, numpy.float32],
+                     ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy slice 23"
+    return nxnp.abs(x)[::2, ::3]
 
 
 class TestOnnxVariable(ExtTestCase):
@@ -308,6 +329,16 @@ class TestOnnxVariable(ExtTestCase):
         self.assertEqualArray(y, numpy.abs(x).reshape((-1, 1)))
         compiled = test_abs_reshape_11.compiled
         self.assertIn("version: 11", str(compiled.onnx_))
+
+    def test_onnx_variable_abs_slice(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_slice(x)
+        self.assertEqualArray(y, numpy.abs(x)[:, 1:])
+
+    def test_onnx_variable_abs_slice23(self):
+        x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
+        y = test_abs_slice23(x)
+        self.assertEqualArray(y, numpy.abs(x)[::2, ::3])
 
 
 if __name__ == "__main__":

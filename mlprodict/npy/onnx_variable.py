@@ -13,7 +13,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxMatMul, OnnxMul,
     OnnxOr,
     OnnxReshape,
-    OnnxSub,
+    OnnxSlice, OnnxSub,
     OnnxTranspose
 )
 
@@ -117,3 +117,44 @@ class OnnxVar:
     def __or__(self, y):
         "And."
         return OnnxVar(self, y, op=OnnxOr)
+
+    def __getitem__(self, index):
+        """
+        Deals with multiple scenarios.
+        """
+        if not isinstance(index, tuple):
+            index = (index, )
+        starts = []
+        ends = []
+        axes = []
+        steps = []
+        for i, ind in enumerate(index):
+            if isinstance(ind, int):
+                starts.append(ind)
+                ends.append(ind + 1)
+                axes.append(i)
+                steps.append(1)
+                continue
+            if isinstance(ind, slice):
+                if ind.start is None and ind.stop is None and ind.step is None:
+                    continue
+                start = 0 if ind.start is None else ind.start
+                end = -1 if ind.stop is None else ind.stop
+                step = 1 if ind.step is None else ind.step
+                starts.append(start)
+                ends.append(end)
+                axes.append(i)
+                steps.append(step)
+                continue
+            raise NotImplementedError(  # pragma: no cover
+                "Not implemented for type %r." % type(ind))
+        if max(steps) == min(steps) == 1:
+            steps = None
+        else:
+            steps = numpy.array(steps, dtype=numpy.int64)
+        starts = numpy.array(starts, dtype=numpy.int64)
+        ends = numpy.array(ends, dtype=numpy.int64)
+        axes = numpy.array(axes, dtype=numpy.int64)
+        if steps is None:
+            return OnnxVar(self, starts, ends, axes, op=OnnxSlice)
+        return OnnxVar(self, starts, ends, axes, steps, op=OnnxSlice)
