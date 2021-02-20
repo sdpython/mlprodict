@@ -54,6 +54,15 @@ class OnnxVar:
                                        "got {} instead.".format(self.inputs))
                 self.alg_ = self.inputs[0]
             else:
+                if isinstance(self.onnx_op, str):
+                    var = self._custom_op(*self.inputs, op_version=op_version,
+                                          **self.onnx_op_kwargs)
+                    alg = var.to_algebra(op_version=op_version)
+                    if not hasattr(self, 'alg_'):
+                        raise RuntimeError(  # pragma: no cover
+                            "Missing attribute 'alg_'.")
+                    return alg
+
                 new_inputs = []
                 for inp in self.inputs:
                     if isinstance(inp, (
@@ -72,6 +81,36 @@ class OnnxVar:
                 else:
                     self.alg_ = res[self.select_output]
         return self.alg_
+
+    def _custom_op(self, *args, op_version=None, runtime=None, **kwargs):
+        """
+        This could be handled before a call to this method
+        but this method can change the conversion of an non-existing
+        operator depending on the given opset.
+        """
+        if self.onnx_op == 'filter':
+            return self._custom_op_filter(*args, op_version=op_version,
+                                          runtime=runtime, **kwargs)
+        raise NotImplementedError(  # pragma: no cover
+            "Unexpected custom operator %r." % self.onnx_op)
+
+    def _custom_op_filter(self, *args, op_version=None, runtime=None, **kwargs):
+        """
+        This could be handled before a call to this method
+        but this method can change the conversion of an non-existing
+        operator depending on the given opset.
+        """
+        if len(args) != 2:
+            raise RuntimeError(  # pragma: no cover
+                "Custom op 'filter' expects two inputs not %r." % len(args))
+        if len(kwargs) != 0:
+            raise RuntimeError(  # pragma: no cover
+                "Custom op 'filter' expects no arguments but got %r." % kwargs)
+        mat, index = args
+        cast = OnnxVar(index.astype(numpy.int64), op=OnnxSqueeze)
+        n1 = OnnxVar(cast, op=OnnxReduceSum, keepdims=0)
+        indices = OnnxVar(cast, n1, op=OnnxTopK, select_output=1)
+        return OnnxVar(mat, indices, op=OnnxGather)
 
     @property
     def T(self):
@@ -165,10 +204,7 @@ class OnnxVar:
         """
         if isinstance(index, OnnxVar):
             # scenario 2
-            cast = OnnxVar(index.astype(numpy.int64), op=OnnxSqueeze)
-            n1 = OnnxVar(cast, op=OnnxReduceSum, keepdims=0)
-            indices = OnnxVar(cast, n1, op=OnnxTopK, select_output=1)
-            return OnnxVar(self, indices, op=OnnxGather)
+            return OnnxVar(self, index, op='filter')
 
         if not isinstance(index, tuple):
             index = (index, )
