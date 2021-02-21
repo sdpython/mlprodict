@@ -49,7 +49,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSum, OnnxReduceSumApi11, OnnxReduceSum_11, OnnxReduceSum_1,
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
-    OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign, OnnxSin,
+    OnnxScatterElements, OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign, OnnxSin,
     OnnxSplitApi11,
     OnnxSoftmax, OnnxSplit,
     OnnxSqrt, OnnxSub, OnnxSum,
@@ -2319,6 +2319,51 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         exp = X.reshape(sh.tolist())
         self.assertEqualArray(exp, got['Y'])
         python_tested.append(OnnxReshape)
+
+    @wraplog()
+    def test_onnxt_runtime_scatter_elements1(self):
+        for opset in [11, get_opset_number_from_onnx()]:
+            if opset > get_opset_number_from_onnx():
+                continue
+            with self.subTest(opset=opset):
+                data = numpy.array(
+                    [[1.0, 2.0, 3.0, 4.0, 5.0]], dtype=numpy.float32)
+                indices = numpy.array([[1, 3]], dtype=numpy.int64)
+                updates = numpy.array([[1.1, 2.1]], dtype=numpy.float32)
+                output = numpy.array(
+                    [[1.0, 1.1, 3.0, 2.1, 5.0]], dtype=numpy.float32)
+
+                onx = OnnxScatterElements(
+                    'X', indices, updates, axis=1,
+                    output_names=['Y'], op_version=opset)
+                model_def = onx.to_onnx(
+                    {'X': data}, target_opset=opset)
+                got = OnnxInference(model_def).run({'X': data})
+                self.assertEqualArray(output, got['Y'])
+        python_tested.append(OnnxScatterElements)
+
+    @wraplog()
+    def test_onnxt_runtime_scatter_elements2(self):
+        for opset in [11, get_opset_number_from_onnx()]:
+            if opset > get_opset_number_from_onnx():
+                continue
+            with self.subTest(opset=opset):
+                x = numpy.arange(20).reshape((4, 5)).astype(  # pylint: disable=E1101
+                    numpy.float32)  # pylint: disable=E1101
+                indices = numpy.array([[1, 1, 1, 1]], dtype=numpy.int64).T
+                updates = numpy.array(
+                    [[-1, -1, -1, -1]], dtype=numpy.float32).T
+                y = x.copy()
+                y[:, 1] = -1
+
+                onx = OnnxScatterElements(
+                    'X', indices, updates, axis=1,
+                    output_names=['Y'], op_version=opset)
+                model_def = onx.to_onnx(
+                    {'X': x, 'indices': indices, 'updates': updates},
+                    target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(y, got['Y'])
 
     @wraplog()
     def test_onnxt_runtime_shape(self):

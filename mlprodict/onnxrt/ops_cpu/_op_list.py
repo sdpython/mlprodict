@@ -83,6 +83,7 @@ from .op_reshape import Reshape, Reshape_5, Reshape_13, Reshape_14
 from .op_rnn import RNN
 from .op_scaler import Scaler
 from .op_scan import Scan
+from .op_scatter_elements import ScatterElements
 from .op_shape import Shape
 from .op_sigmoid import Sigmoid
 from .op_sign import Sign
