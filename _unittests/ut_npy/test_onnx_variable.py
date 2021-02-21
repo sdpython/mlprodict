@@ -238,8 +238,26 @@ def test_abs_not(x: NDArray[Any, numpy.float32],
 @onnxnumpy_default
 def test_abs_filter(x: NDArray[Any, numpy.float32],
                     ) -> NDArray[Any, numpy.float32]:
-    "onnx numpy not"
+    "onnx numpy filter"
     return nxnp.abs(x)[x[:, 0] > numpy.float32(15)]
+
+
+@onnxnumpy_default
+def test_abs_set2(x: NDArray[Any, numpy.float32],
+                  ) -> NDArray[Any, numpy.bool]:
+    "onnx numpy set"
+    temp = nxnp.abs(x).copy()
+    temp[:2, 0] = numpy.float32(-1)
+    return temp
+
+
+@onnxnumpy_default
+def test_abs_set3(x: NDArray[Any, numpy.float32],
+                  ) -> NDArray[Any, numpy.bool]:
+    "onnx numpy set"
+    temp = nxnp.abs(x).copy()
+    temp[:2, :1] = numpy.array([[-1.5, -1.5]], dtype=numpy.float32).T
+    return temp
 
 
 class TestOnnxVariable(ExtTestCase):
@@ -413,6 +431,20 @@ class TestOnnxVariable(ExtTestCase):
         x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
         y = test_abs_filter(x)
         self.assertEqualArray(y, numpy.abs(x)[x[:, 0] > 15])
+
+    def test_onnx_variable_abs_set(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_set2(x)
+        temp = numpy.abs(x)
+        temp[:, 0] = -1
+        self.assertEqualArray(y, temp)
+
+    def test_onnx_variable_abs_set3(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_set3(x)
+        temp = numpy.abs(x)
+        temp[:, 0] = -1.5
+        self.assertEqualArray(y, temp)
 
 
 if __name__ == "__main__":

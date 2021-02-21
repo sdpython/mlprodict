@@ -11,15 +11,26 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxDiv,
     OnnxEqual,
     OnnxGather, OnnxGreater,
+    OnnxIdentity,
     OnnxLess,
     OnnxMatMul, OnnxMod, OnnxMul,
     OnnxNeg, OnnxNot,
     OnnxOr,
     OnnxPow,
     OnnxReduceSum, OnnxReshape,
-    OnnxSlice, OnnxSqueeze, OnnxSub,
+    OnnxScatterElements, OnnxSlice, OnnxSqueeze, OnnxSub,
     OnnxTopK, OnnxTranspose
 )
+
+
+try:
+    numpy_bool = numpy.bool_
+except AttributeError:
+    numpy_bool = bool
+try:
+    numpy_str = numpy.str
+except AttributeError:
+    numpy_str = str
 
 
 class OnnxVar:
@@ -61,6 +72,7 @@ class OnnxVar:
                     if not hasattr(self, 'alg_'):
                         raise RuntimeError(  # pragma: no cover
                             "Missing attribute 'alg_'.")
+                    self.alg_ = alg
                     return alg
 
                 new_inputs = []
@@ -68,12 +80,13 @@ class OnnxVar:
                     if isinstance(inp, (
                             int, float, str, numpy.ndarray, numpy.int32,
                             numpy.int64, numpy.float32, numpy.float64,
-                            numpy.bool_, numpy.str, numpy.int8, numpy.uint8,
+                            numpy_bool, numpy_str, numpy.int8, numpy.uint8,
                             numpy.int16, numpy.uint16, numpy.uint32, numpy.uint64)):
                         new_inputs.append(inp)
                     else:
                         new_inputs.append(
                             inp.to_algebra(op_version=op_version))
+
                 res = self.onnx_op(*new_inputs, op_version=op_version,
                                    **self.onnx_op_kwargs)
                 if self.select_output is None:
@@ -244,3 +257,86 @@ class OnnxVar:
         if steps is None:
             return OnnxVar(self, starts, ends, axes, op=OnnxSlice)
         return OnnxVar(self, starts, ends, axes, steps, op=OnnxSlice)
+
+    def _matrix_multiply(self, indices, axis):
+        """
+        Creates a matrix.
+        """
+        shapes = tuple(i[1] - i[0] for i in indices)
+        mat = numpy.empty(shapes, dtype=numpy.int64)
+        ind = [slice(None) for i in indices]
+        ind[axis] = numpy.arange(0, indices[axis][1] - indices[axis][0])
+        values = numpy.arange(indices[axis][0], indices[axis][1])
+        mat[ind] = values
+        return mat
+
+    def __setitem__(self, index, value):
+        """
+        Deals with multiple scenarios.
+        * *index* is an integer or a slice, a tuple of integers and slices,
+          example: `[0, 1]`, `[:5, :6]`, `[::2]` (**scenario 1**)
+        * *index* is an *ONNX* object (more precisely an instance of
+          @see cl OnnxVar), then the method assumes it is an array of
+          boolean to select a subset of the tensor along the first axis,
+          example: `mat[mat == 0]` (**scenario 2**)
+        This processing is applied before the operator it contains.
+        A copy should be made (Identity node or copy method).
+        """
+        if self.onnx_op is not None and self.onnx_op is not OnnxIdentity:
+            raise RuntimeError(
+                "A copy should be made before setting new values on a matrix. "
+                "Method copy() would do that.")
+        if isinstance(index, OnnxVar):
+            # scenario 2
+            raise NotImplementedError()
+
+        if not isinstance(index, tuple):
+            index = (index, )
+
+        # scenario 1
+        indices = []
+        for d, ind in enumerate(index):
+            if isinstance(ind, int):
+                indices.append((ind, ind + 1))
+            elif isinstance(ind, slice):
+                if ind.step is not None:
+                    raise NotImplementedError(
+                        "Unable to assign new values with step defined "
+                        "on dimension %r." % d)
+                start = 0 if ind.start is None else ind.start
+                if ind.stop is None:
+                    raise NotImplementedError(
+                        "Unable to assign new values with end undefined "
+                        "on dimension %r." % d)
+                stop = ind.stop
+                indices.append((start, stop))
+            else:
+                raise NotImplementedError(
+                    "Unable to assign new values due to unexpected type %r "
+                    "on dimension %r." % (type(ind), d))
+
+        axis = len(index) - 1
+        mat_indices = self._matrix_multiply(indices, axis)
+
+        if isinstance(value, (OnnxVar, numpy.ndarray)):
+            mat_updates = value
+        elif isinstance(value, (numpy.float32, numpy.float64, numpy.int32,
+                                numpy.int64, numpy.uint32, numpy.uint64,
+                                numpy_bool, numpy_str)):
+            mat_updates = numpy.full(
+                mat_indices.shape, value, dtype=value.dtype)
+        else:
+            raise NotImplementedError(
+                "Unable to assign new values due to unexpected type %r "
+                "for value." % type(value))
+
+        self.inputs = [
+            OnnxVar(self.inputs[0], mat_indices, mat_updates, op=OnnxScatterElements,
+                    axis=axis)]
+        return self
+
+    def copy(self):
+        """
+        Returns a copy of self (use of Identity node).
+        """
+        return OnnxVar(self, op=OnnxIdentity)

@@ -54,7 +54,7 @@ class TestOnnxHelper(ExtTestCase):
         for inp in model_onnx.graph.input:
             dim = inp.type.tensor_type.shape.dim[0].dim_value
             self.assertEqual(dim, 0)
-        for inp in new_model.graph.input:
+        for inp in new_model.graph.input:  # pylint: disable=E1101
             dim = inp.type.tensor_type.shape.dim[0].dim_value
             self.assertEqual(dim, 2)
 
