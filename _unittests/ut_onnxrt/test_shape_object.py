@@ -72,7 +72,7 @@ class TestShapeObject(ExtTestCase):
         st = sh.to_string()
         self.assertEqual(st, '(1)+(2)')
 
-        x, y = sh._args  # pylint: disable=W0212
+        x, y = sh._args  # pylint: disable=W0212,W0632
         self.assertEqual(sh._to_string1(x, y), "12")  # pylint: disable=W0212
         self.assertEqual(sh._to_string2(x, y), "1+2")  # pylint: disable=W0212
         self.assertEqual(sh._to_string2b(  # pylint: disable=W0212
