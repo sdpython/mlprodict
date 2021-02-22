@@ -7,7 +7,7 @@ from typing import Any
 import numpy
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.npy import onnxnumpy, onnxnumpy_default
-import mlprodict.npy.numpy_impl as nxnp
+import mlprodict.npy.numpy_onnx_impl as nxnp
 from mlprodict.npy import OnnxNumpyCompiler as ONC, NDArray
 
 
@@ -260,6 +260,13 @@ def test_abs_set3(x: NDArray[Any, numpy.float32],
     return temp
 
 
+@onnxnumpy_default
+def test_log(x: NDArray[Any, numpy.float32],
+             ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy log"
+    return nxnp.log(x)
+
+
 class TestOnnxVariable(ExtTestCase):
 
     def test_onnx_variable_abs(self):
@@ -445,6 +452,11 @@ class TestOnnxVariable(ExtTestCase):
         temp = numpy.abs(x)
         temp[:, 0] = -1.5
         self.assertEqualArray(y, temp)
+
+    def test_onnx_variable_log(self):
+        x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float32)
+        y = test_log(x)
+        self.assertEqualArray(y, numpy.log(x))
 
 
 if __name__ == "__main__":

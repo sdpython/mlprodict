@@ -4,6 +4,12 @@
 Numpy revisited with ONNX
 =========================
 
+.. contents::
+    :local:
+
+Introduction
+++++++++++++
+
 Converting custom code into :epkg:`ONNX` is not necessarily easy.
 One big obstacle is :epkg:`ONNX` does not represent all numpy functions
 with a single operator. One possible option is to provide a
@@ -22,7 +28,7 @@ is called.
     import numpy
     from typing import Any
     from mlprodict.npy import onnxnumpy_default, NDArray
-    import mlprodict.npy.numpy_impl as nxnp
+    import mlprodict.npy.numpy_onnx_impl as nxnp
 
     @onnxnumpy_default
     def custom_fct(x: NDArray[Any, numpy.float32],
@@ -40,13 +46,10 @@ as opposed to numpy. This approach is similar to what
 :epkg:`tensorflow` with `autograph
 <https://www.tensorflow.org/api_docs/python/tf/autograph>`_.
 
-.. contents::
-    :local:
-
 NDArray
 +++++++
 
-.. autosignature:: mlprodict.npy.onnx_numpy_compiler.NDArray
+.. autosignature:: mlprodict.npy.onnx_numpy_annotation.NDArray
     :members:
 
 onnxnumpy
@@ -68,9 +71,20 @@ OnnxVar
 .. autosignature:: mlprodict.npy.onnx_variable.OnnxVar
     :members:
 
-Available numpy functions
-+++++++++++++++++++++++++
+Available numpy functions implemented with ONNX operators
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-.. autosignature:: mlprodict.npy.numpy_impl.abs
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.abs
 
-.. autosignature:: mlprodict.npy.numpy_impl.sum
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.log
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.sum
+
+ONNX functions executed python ONNX runtime
++++++++++++++++++++++++++++++++++++++++++++
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.abs
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.log
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.sum

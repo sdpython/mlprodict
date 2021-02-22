@@ -6,13 +6,20 @@
 """
 import numpy
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAbs, OnnxReduceSum)
+    OnnxAbs,
+    OnnxLog,
+    OnnxReduceSum)
 from .onnx_variable import OnnxVar
 
 
 def abs(x):
     "See :epkg:`numpy:abs`."
     return OnnxVar(x, op=OnnxAbs)
+
+
+def log(x):
+    "See :epkg:`numpy:log`."
+    return OnnxVar(x, op=OnnxLog)
 
 
 def sum(x, axis=0, keepdims=0):

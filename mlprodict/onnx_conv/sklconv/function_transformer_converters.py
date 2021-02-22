@@ -39,10 +39,11 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
         return
 
     if operator.raw_operator.func is not None:
-        raise RuntimeError("FunctionTransformer is not supported unless the "
-                           "transform function is None (= identity). "
-                           "You may raise an issue at "
-                           "https://github.com/onnx/sklearn-onnx/issues.")
+        raise TypeError("FunctionTransformer is not supported unless the "
+                        "transform function is None (= identity) or "
+                        "wrapped with onxnumpy. "
+                        "You may raise an issue at "
+                        "https://github.com/onnx/sklearn-onnx/issues.")
     N = operator.inputs[0].type.shape[0]
     C = 0
     for variable in operator.inputs:
@@ -114,10 +115,11 @@ def new_convert_sklearn_function_transformer(scope, operator, container):
         return
 
     if op.func is not None:
-        raise RuntimeError("FunctionTransformer is not supported unless the "
-                           "transform function is None (= identity). "
-                           "You may raise an issue at "
-                           "https://github.com/onnx/sklearn-onnx/issues.")
+        raise TypeError("FunctionTransformer is not supported unless the "
+                        "transform function is None (= identity) or "
+                        "wrapped with onxnumpy. "
+                        "You may raise an issue at "
+                        "https://github.com/onnx/sklearn-onnx/issues.")
     if len(operator.inputs) == 1:
         apply_identity(scope, operator.inputs[0].full_name,
                        operator.outputs[0].full_name, container)
