@@ -49,6 +49,52 @@ class _NDArrayAlias:
         "usual"
         return "%s(%r)" % (self.__class__.__name__, self.dtypes)
 
+    def _to_onnx_dtype(self, dtype, shape):
+        from skl2onnx.common.data_types import _guess_numpy_type
+        return _guess_numpy_type(dtype, shape)
+
+    def get_inputs_outputs(self, args, version):
+        """
+        Returns the list of inputs, outputs.
+
+        :param args: list of arguments
+        :param version: required version
+        :return: *tuple(inputs, outputs)*, each of them
+            is a list of tuple with the name and the dtype
+        """
+        def _possible_names():
+            yield 'y'
+            yield 'z'
+            yield 'o'
+            for i in range(0, 10000):
+                yield 'o%d' % i
+
+        if version not in self.dtypes:
+            raise TypeError(
+                "Unexpected dtype %r, it should be in %r." % (
+                    version, self.dtypes))
+        onnx_type = self._to_onnx_dtype(version, None)
+        inputs = [(a, onnx_type) for a in args]
+        names_in = set(inp[0] for inp in inputs)
+        name_out = None
+        for name in _possible_names():
+            if name not in names_in:
+                name_out = name
+                break
+        outputs = [(name_out, onnx_type)]
+        return inputs, outputs
+
+    def shape_calculator(self, dims):
+        """
+        Returns expected dimensions given the input dimensions.
+        """
+        if len(dims) == 0:
+            return None
+        res = [dims[0]]
+        for _ in dims[1:]:
+            res.append(None)
+        return res
+
 
 class NDArraySameType(_NDArrayAlias):
     """

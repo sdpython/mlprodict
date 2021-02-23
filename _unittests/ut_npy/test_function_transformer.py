@@ -14,6 +14,7 @@ from mlprodict.onnx_conv import register_rewritten_operators, to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy import onnxnumpy_default
 import mlprodict.npy.numpy_onnx_impl as nxnp
+import mlprodict.npy.numpy_onnx_pyrt as nxnpy
 from mlprodict.npy import NDArray
 
 
@@ -60,14 +61,15 @@ class TestOnnxFunctionTransformer(ExtTestCase):
 
     @ignore_warnings(DeprecationWarning)
     def test_function_transformer_nxnp_log(self):
-        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
-        tr = make_pipeline(FunctionTransformer(nxnp.log), StandardScaler())
+        x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float32)
+        self.assertIsInstance(nxnpy.log(x), numpy.ndarray)
+        tr = make_pipeline(FunctionTransformer(nxnpy.log), StandardScaler())
         tr.fit(x)
         y_exp = tr.transform(x)
         onnx_model = to_onnx(tr, x)
         oinf = OnnxInference(onnx_model)
         y_onx = oinf.run({'X': x})
-        self.assertEqualArray(y_exp, y_onx['variable'])
+        self.assertEqualArray(y_exp, y_onx['variable'], decimal=5)
 
 
 if __name__ == "__main__":

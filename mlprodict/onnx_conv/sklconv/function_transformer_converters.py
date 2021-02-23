@@ -4,6 +4,7 @@
 :epkg:`sklearn-onnx`.
 """
 import copy
+from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx.common._apply_operation import apply_concat, apply_identity
 
 
@@ -13,8 +14,12 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
     :epkg:`sklearn-onnx` to support custom functions
     implemented with :ref:`l-numpy-onnxpy`.
     """
-    if hasattr(operator.raw_operator.func, 'compiled'):
-        compiled = operator.raw_operator.func.compiled
+    fct = operator.raw_operator.func
+    if hasattr(fct, 'signed_compiled'):
+        dtype = guess_numpy_type(operator.inputs[0].type)
+        fct = fct[dtype]
+    if hasattr(fct, 'compiled'):
+        compiled = fct.compiled
         if not hasattr(compiled, 'onnx_'):
             raise RuntimeError(  # pragma: no cover
                 "Attribute 'onnx_' is missing, function was not "
@@ -30,20 +35,23 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
             raise RuntimeError(  # pragma: no cover
                 "Only one output is allowed not %d." % len(outputs))
         input_type = operator.inputs[0].type.__class__
-        N = operator.inputs[0].type.shape[0]
-        dims = [N]
-        out = outputs[0]
-        if hasattr(out, 'dims'):
-            dims.extend(out.dims[1:])
+        if compiled.meta_.get('signature', None):
+            dims = compiled.meta_['signature'].shape_calculator(
+                operator.inputs[0].type.shape)
+        else:
+            N = operator.inputs[0].type.shape[0]
+            dims = [N]
+            out = outputs[0]
+            if hasattr(out, 'dims'):
+                dims.extend(out.dims[1:])
         operator.outputs[0].type = input_type(dims)
         return
 
     if operator.raw_operator.func is not None:
         raise TypeError("FunctionTransformer is not supported unless the "
-                        "transform function is None (= identity) or "
-                        "wrapped with onxnumpy. "
-                        "You may raise an issue at "
-                        "https://github.com/onnx/sklearn-onnx/issues.")
+                        "transform function is of type %r "
+                        "wrapped with onnxnumpy." % type(
+                            operator.raw_operator.func))
     N = operator.inputs[0].type.shape[0]
     C = 0
     for variable in operator.inputs:
@@ -63,8 +71,12 @@ def new_convert_sklearn_function_transformer(scope, operator, container):
     implemented with :ref:`l-numpy-onnxpy`.
     """
     op = operator.raw_operator
-    if hasattr(op.func, 'compiled'):
-        compiled = operator.raw_operator.func.compiled
+    fct = op.func
+    if hasattr(fct, 'signed_compiled'):
+        dtype = guess_numpy_type(operator.inputs[0].type)
+        fct = fct[dtype]
+    if hasattr(fct, 'compiled'):
+        compiled = fct.compiled
         if not hasattr(compiled, 'onnx_'):
             raise RuntimeError(  # pragma: no cover
                 "Attribute 'onnx_' is missing, function was not "
@@ -116,10 +128,8 @@ def new_convert_sklearn_function_transformer(scope, operator, container):
 
     if op.func is not None:
         raise TypeError("FunctionTransformer is not supported unless the "
-                        "transform function is None (= identity) or "
-                        "wrapped with onxnumpy. "
-                        "You may raise an issue at "
-                        "https://github.com/onnx/sklearn-onnx/issues.")
+                        "transform function is of type %r or "
+                        "wrapped with onnxnumpy." % type(op.func))
     if len(operator.inputs) == 1:
         apply_identity(scope, operator.inputs[0].full_name,
                        operator.outputs[0].full_name, container)

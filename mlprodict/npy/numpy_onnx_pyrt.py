@@ -12,22 +12,22 @@ from .numpy_onnx_impl import (
     abs as nx_abs,
     log as nx_log,
     sum as nx_sum)
-from .onnx_numpy_wrapper import onnxnumpy
+from .onnx_numpy_wrapper import onnxnumpy_np
 
 
-@onnxnumpy(signature=NDArraySameTypeSameShape("all"))
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("all"))
 def abs(x):
     "abs"
     return nx_abs(x)
 
 
-@onnxnumpy(signature=NDArraySameTypeSameShape("floats"))
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
 def log(x):
     "log"
     return nx_log(x)
 
 
-@onnxnumpy(signature=NDArraySameType("all"))
+@onnxnumpy_np(signature=NDArraySameType("all"))
 def sum(x, axis=0, keepdims=0):
     "sum"
     return nx_sum(x, axis=axis, keepdims=keepdims)
