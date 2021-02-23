@@ -28,6 +28,6 @@ def log(x):
 
 
 @onnxnumpy_np(signature=NDArraySameType("all"))
-def sum(x, axis=0, keepdims=0):
+def sum(x, axis=None, keepdims=0):
     "sum"
     return nx_sum(x, axis=axis, keepdims=keepdims)

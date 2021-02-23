@@ -7,6 +7,7 @@
 import inspect
 from typing import Any
 from ..onnxrt import OnnxInference
+from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_variable import OnnxVar
 
 
@@ -149,12 +150,17 @@ class OnnxNumpyCompiler:
             is a list of tuple with the name and the dtype,
             *kwargs* is the list of additional parameters
         """
-        params = inspect.signature(self.fct_).parameters
-        args = [name for name, p in params.items()
-                if p.default == inspect.Parameter.empty]
-        kwargs = {name: p.default for name, p in params.items()
-                  if (p.default != inspect.Parameter.empty and
-                      name != 'op_version')}
+        args, kwargs = get_args_kwargs(self.fct_)
+        if isinstance(version, tuple):
+            if len(version) - 1 != len(kwargs):
+                raise RuntimeError(
+                    "Mismatch between version=%r and kwargs=%r for "
+                    "function %r." % (version, kwargs, self.fct_))
+            up = {}
+            for k, v in zip(kwargs, version[1:]):
+                up[k] = v
+            kwargs = kwargs.copy()
+            kwargs.update(up)
 
         if signature is not None:
             inputs, outputs = signature.get_inputs_outputs(args, version)
@@ -201,15 +207,23 @@ class OnnxNumpyCompiler:
         Returns the onnx graph produced by function `fct_`.
         """
         if self.onnx_ is None and self.fct_ is not None:
-            inputs, outputs, _ = self._parse_annotation(
+            inputs, outputs, kwargs = self._parse_annotation(
                 signature=signature, version=version)
+            if (isinstance(version, tuple) and
+                    len(kwargs) + 1 != len(version)):
+                raise NotImplementedError(
+                    "Mismatch between additional parameters %r and "
+                    "version %r for function %r from %r."
+                    "" % (kwargs, version, self.fct_,
+                          getattr(self.fct_, '__module__', None)))
             names_in = [oi[0] for oi in inputs]
             names_out = [oi[0] for oi in outputs]
             names_var = [OnnxVar(n) for n in names_in]
             if 'op_version' in self.fct_.__code__.co_varnames:
-                onx_algebra = self.fct_(*names_in, op_version=op_version)
+                onx_algebra = self.fct_(
+                    *names_in, op_version=op_version, **kwargs)
             else:
-                onx_var = self.fct_(*names_var)
+                onx_var = self.fct_(*names_var, **kwargs)
                 if not hasattr(onx_var, 'to_algebra'):
                     raise TypeError(
                         "The function %r to convert must return an instance of "
@@ -247,11 +261,8 @@ class OnnxNumpyCompiler:
         """
         onx = self._to_onnx(op_version=op_version, signature=signature,
                             version=version)
-        inputs, outputs, kwargs = self._parse_annotation(
+        inputs, outputs, _ = self._parse_annotation(
             signature=signature, version=version)
-        if len(kwargs) > 0:
-            raise NotImplementedError(
-                "Unable to handle additional parameters %r." % kwargs)
         if runtime != 'onnxruntime':
             rt = OnnxInference(onx, runtime=runtime)
             self.rt_fct_ = OnnxNumpyFunctionOnnxInference(

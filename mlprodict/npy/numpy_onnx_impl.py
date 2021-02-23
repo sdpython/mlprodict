@@ -22,7 +22,9 @@ def log(x):
     return OnnxVar(x, op=OnnxLog)
 
 
-def sum(x, axis=0, keepdims=0):
+def sum(x, axis=None, keepdims=0):
     "See :epkg:`numpy:sum`."
+    if axis is None:
+        return OnnxVar(x, op=OnnxReduceSum, keepdims=keepdims)
     return OnnxVar(x, numpy.array([axis], dtype=numpy.int64),
                    op=OnnxReduceSum, keepdims=keepdims)

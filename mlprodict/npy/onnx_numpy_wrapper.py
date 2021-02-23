@@ -4,6 +4,7 @@
 
 .. versionadded:: 0.6
 """
+from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_numpy_compiler import OnnxNumpyCompiler
 
 
@@ -77,6 +78,9 @@ class wrapper_onnxnumpy_np:
     """
 
     def __init__(self, **kwargs):
+        self.fct = kwargs['fct']
+        self.signature = kwargs['signature']
+        self.args, self.kwargs = get_args_kwargs(self.fct)
         self.data = kwargs
         self.signed_compiled = {}
 
@@ -89,9 +93,19 @@ class wrapper_onnxnumpy_np:
             of the function
         :return: instance of @see cl wrapper_onnxnumpy
         """
-        if dtype not in self.signed_compiled:
+        if isinstance(dtype, dict):
+            if len(self.args) == 0:
+                raise RuntimeError(
+                    "Signature does not have any arguments, use directly dtypes.")
+            others = tuple(dtype.get(k, self.kwargs[k]) for k in self.kwargs)
+            key = (dtype['dtype_onnx'], ) + others
+            self._populate(key)
+        elif dtype not in self.signed_compiled:
             self._populate(dtype)
-        return self.signed_compiled[dtype]
+            key = dtype
+        else:
+            key = dtype
+        return self.signed_compiled[key]
 
     def __call__(self, *args):
         """

@@ -4,6 +4,8 @@
 
 .. versionadded:: 0.6
 """
+import inspect
+from collections import OrderedDict
 from typing import TypeVar, Generic
 import numpy
 
@@ -14,6 +16,22 @@ DType = TypeVar("DType")
 all_dtypes = (numpy.float32, numpy.float64,
               numpy.int32, numpy.int64,
               numpy.uint32, numpy.uint64)
+
+
+def get_args_kwargs(fct):
+    """
+    Extracts arguments and optional parameters of a function.
+
+    :param fct: function
+    :return: arguments, OrderedDict
+    """
+    params = inspect.signature(fct).parameters
+    args = [name for name, p in params.items()
+            if p.default == inspect.Parameter.empty]
+    kwargs = OrderedDict((name, p.default) for name, p in params.items()
+                         if (p.default != inspect.Parameter.empty and
+                             name != 'op_version'))
+    return args, kwargs
 
 
 class NDArray(numpy.ndarray, Generic[Shape, DType]):
@@ -47,7 +65,8 @@ class _NDArrayAlias:
 
     def __repr__(self):
         "usual"
-        return "%s(%r)" % (self.__class__.__name__, self.dtypes)
+        return "%s(%r)" % (
+            self.__class__.__name__, self.dtypes)
 
     def _to_onnx_dtype(self, dtype, shape):
         from skl2onnx.common.data_types import _guess_numpy_type
@@ -69,11 +88,16 @@ class _NDArrayAlias:
             for i in range(0, 10000):
                 yield 'o%d' % i
 
-        if version not in self.dtypes:
+        if isinstance(version, tuple):
+            dtype = version[0]
+        else:
+            dtype = version
+
+        if dtype not in self.dtypes:
             raise TypeError(
-                "Unexpected dtype %r, it should be in %r." % (
+                "Unexpected version %r, it should be in %r." % (
                     version, self.dtypes))
-        onnx_type = self._to_onnx_dtype(version, None)
+        onnx_type = self._to_onnx_dtype(dtype, None)
         inputs = [(a, onnx_type) for a in args]
         names_in = set(inp[0] for inp in inputs)
         name_out = None
