@@ -5,22 +5,10 @@
 .. versionadded:: 0.6
 """
 import inspect
-from typing import Any, TypeVar, Generic
-import numpy
+from typing import Any
 from ..onnxrt import OnnxInference
+from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_variable import OnnxVar
-
-Shape = TypeVar("Shape")
-DType = TypeVar("DType")
-
-
-class NDArray(numpy.ndarray, Generic[Shape, DType]):
-    """
-    Used to annotation ONNX numpy functions.
-
-    .. versionadded:: 0.6
-    """
-    pass
 
 
 class OnnxNumpyFunction:
@@ -96,11 +84,16 @@ class OnnxNumpyCompiler:
         for the latest one
     :param runtime: runtime to choose to execute the onnx graph,
         `python`, `onnxruntime`, `onnxruntime1`
+    :param signature: used when the function is not annotated
+    :param version: the same function can be instantiated with
+        different type, this parameter is None or a numpy type
+        if the signature allows multiple types
 
     .. versionadded:: 0.6
     """
 
-    def __init__(self, fct, op_version=None, runtime=None):
+    def __init__(self, fct, op_version=None, runtime=None, signature=None,
+                 version=None):
         if op_version is None:
             from skl2onnx import __max_supported_opset__
             op_version = __max_supported_opset__
@@ -114,9 +107,18 @@ class OnnxNumpyCompiler:
                     "Unexpected type for fct=%r, it must be "
                     "function." % type(fct))
             self.onnx_ = None
-            self.onnx_ = self._to_onnx(op_version=op_version)
-        self.runtime_ = self._build_runtime(op_version=op_version,
-                                            runtime=runtime)
+            self.onnx_ = self._to_onnx(
+                op_version=op_version, signature=signature,
+                version=version)
+        self.runtime_ = self._build_runtime(
+            op_version=op_version, runtime=runtime,
+            signature=signature, version=version)
+        inputs, outputs, kwargs = self._parse_annotation(
+            signature=signature, version=version)
+        self.meta_ = dict(op_version=op_version, runtime=runtime,
+                          signature=signature, version=version,
+                          inputs=inputs, outputs=outputs,
+                          kwargs=kwargs)
 
     def __repr__(self):
         "usual"
@@ -136,11 +138,41 @@ class OnnxNumpyCompiler:
         from skl2onnx.common.data_types import _guess_numpy_type
         return _guess_numpy_type(dtype, shape)
 
-    def _parse_annotation(self):
+    def _parse_annotation(self, signature, version):
         """
         Returns the annotations for function `fct_`.
+
+        :param signature: needed if the annotation is missing,
+            then version might be needed to specify which type
+            to use if the signature allows many
+        :param version: version inside the many signatures possible
+        :return: *tuple(inputs, outputs, kwargs)*, each of them
+            is a list of tuple with the name and the dtype,
+            *kwargs* is the list of additional parameters
         """
-        args = self.fct_.__code__.co_varnames[:self.fct_.__code__.co_argcount]
+        args, kwargs = get_args_kwargs(self.fct_)
+        if isinstance(version, tuple):
+            if len(version) - 1 != len(kwargs):
+                raise RuntimeError(
+                    "Mismatch between version=%r and kwargs=%r for "
+                    "function %r." % (version, kwargs, self.fct_))
+            up = {}
+            for k, v in zip(kwargs, version[1:]):
+                up[k] = v
+            kwargs = kwargs.copy()
+            kwargs.update(up)
+
+        if signature is not None:
+            inputs, outputs = signature.get_inputs_outputs(args, version)
+            return inputs, outputs, kwargs
+
+        def _possible_names():
+            yield 'y'
+            yield 'z'
+            yield 'o'
+            for i in range(0, 10000):
+                yield 'o%d' % i
+
         annotations = self.fct_.__annotations__
         inputs = []
         outputs = []
@@ -149,7 +181,9 @@ class OnnxNumpyCompiler:
                 continue
             if a not in annotations:
                 raise RuntimeError(
-                    "Unable to find annotation for argument %r." % a)
+                    "Unable to find annotation for argument %r. "
+                    "You should annotate the arguments and the results "
+                    "or specify a signature." % a)
             ann = annotations[a]
             shape, dtype = ann.__args__
             shape = self._to_onnx_shape(shape)
@@ -159,22 +193,37 @@ class OnnxNumpyCompiler:
         shape, dtype = ret.__args__
         shape = self._to_onnx_shape(shape)
         dtype = self._to_onnx_dtype(dtype, shape)
-        outputs.append(('y', dtype))
-        return inputs, outputs
+        names_in = set(inp[0] for inp in inputs)
+        name_out = None
+        for name in _possible_names():
+            if name not in names_in:
+                name_out = name
+                break
+        outputs.append((name_out, dtype))
+        return inputs, outputs, kwargs
 
-    def _to_onnx(self, op_version=None):
+    def _to_onnx(self, op_version=None, signature=None, version=None):
         """
         Returns the onnx graph produced by function `fct_`.
         """
         if self.onnx_ is None and self.fct_ is not None:
-            inputs, outputs = self._parse_annotation()
+            inputs, outputs, kwargs = self._parse_annotation(
+                signature=signature, version=version)
+            if (isinstance(version, tuple) and
+                    len(kwargs) + 1 != len(version)):
+                raise NotImplementedError(
+                    "Mismatch between additional parameters %r and "
+                    "version %r for function %r from %r."
+                    "" % (kwargs, version, self.fct_,
+                          getattr(self.fct_, '__module__', None)))
             names_in = [oi[0] for oi in inputs]
             names_out = [oi[0] for oi in outputs]
             names_var = [OnnxVar(n) for n in names_in]
             if 'op_version' in self.fct_.__code__.co_varnames:
-                onx_algebra = self.fct_(*names_in, op_version=op_version)
+                onx_algebra = self.fct_(
+                    *names_in, op_version=op_version, **kwargs)
             else:
-                onx_var = self.fct_(*names_var)
+                onx_var = self.fct_(*names_var, **kwargs)
                 if not hasattr(onx_var, 'to_algebra'):
                     raise TypeError(
                         "The function %r to convert must return an instance of "
@@ -199,7 +248,8 @@ class OnnxNumpyCompiler:
                 "Unable to get the ONNX graph.")
         return self.onnx_
 
-    def _build_runtime(self, op_version=None, runtime=None):
+    def _build_runtime(self, op_version=None, runtime=None,
+                       signature=None, version=None):
         """
         Creates the runtime for the :epkg:`ONNX` graph.
 
@@ -207,9 +257,12 @@ class OnnxNumpyCompiler:
             for the latest one
         :param runtime: runtime to choose to execute the onnx graph,
             `python`, `onnxruntime`, `onnxruntime1`
+        :param signature: used when the function is not annotated
         """
-        onx = self._to_onnx(op_version=op_version)
-        inputs, outputs = self._parse_annotation()
+        onx = self._to_onnx(op_version=op_version, signature=signature,
+                            version=version)
+        inputs, outputs, _ = self._parse_annotation(
+            signature=signature, version=version)
         if runtime != 'onnxruntime':
             rt = OnnxInference(onx, runtime=runtime)
             self.rt_fct_ = OnnxNumpyFunctionOnnxInference(

@@ -21,8 +21,8 @@ class TestOnnxPy(ExtTestCase):
 
     def test_annotation(self):
         cl = ONC(TestOnnxPy.onnx_abs, op_version=12)
-        ann = cl._parse_annotation()  # pylint: disable=W0212
-        inputs, outputs = ann
+        ann = cl._parse_annotation(None, None)  # pylint: disable=W0212
+        inputs, outputs, _ = ann
         self.assertIsInstance(inputs, list)
         self.assertIsInstance(outputs, list)
         self.assertEqual(len(inputs), 1)
