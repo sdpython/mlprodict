@@ -1,8 +1,8 @@
 
 .. _l-numpy-onnxpy:
 
-Numpy revisited with ONNX
-=========================
+Numpy API for ONNX
+==================
 
 .. contents::
     :local:
@@ -24,6 +24,7 @@ is called.
 
 .. runpython::
     :showcode:
+    :warningout: DeprecationWarning
 
     import numpy
     from typing import Any

@@ -35,7 +35,7 @@ def onnxnumpy(op_version=None, runtime=None, signature=None):
     operators.
 
     :param op_version: :epkg:`ONNX` opset version
-    :param runtime: see @see fct
+    :param runtime: see @see cl OnnxInference
     :param signature: it should be used when the function
         is not annoatated.
 
@@ -139,7 +139,7 @@ def onnxnumpy_np(op_version=None, runtime=None, signature=None):
     operators.
 
     :param op_version: :epkg:`ONNX` opset version
-    :param runtime: see @see fct
+    :param runtime: see @see cl OnnxInference
     :param signature: it should be used when the function
         is not annoatated.
 
