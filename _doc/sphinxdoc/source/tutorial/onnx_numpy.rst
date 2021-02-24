@@ -35,7 +35,7 @@ the first examples of `sklearn-onnx tutorial`.
     log_scale_transformer = make_pipeline(
         FunctionTransformer(numpy.log, validate=False),
         StandardScaler())
-        
+
     X = numpy.random.random((5, 2))
 
     log_scale_transformer.fit(X)
@@ -176,6 +176,10 @@ This approach fixes the two issues mentioned above. The goal is write
 a code using the same function as :epkg:`numpy` offers but
 executed by an ONNX runtime. The full API is described at
 :ref:`l-numpy-onnxpy` and introduced here.
+
+**Notebooks**
+
+* :ref:`numpyapionnxrst`
 
 From ONNX to Python
 +++++++++++++++++++
