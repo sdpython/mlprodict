@@ -49,6 +49,7 @@ def modules_list():
     .. runpython::
         :showcode:
         :rst:
+        :warningout: DeprecationWarning
 
         from mlprodict.onnxrt.validate.validate_helper import modules_list
         from pyquickhelper.pandashelper import df2rst
@@ -306,6 +307,7 @@ def default_time_kwargs():
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.onnxrt.validate.validate_helper import default_time_kwargs
         import pprint
@@ -385,6 +387,7 @@ def _multiply_time_kwargs(time_kwargs, time_kwargs_fact, inst):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from pprint import pprint
         from sklearn.linear_model import LinearRegression

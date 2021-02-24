@@ -126,6 +126,7 @@ def create_asv_benchmark(
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         import pprint
         from mlprodict.asv_benchmark.create_asv import default_asv_conf

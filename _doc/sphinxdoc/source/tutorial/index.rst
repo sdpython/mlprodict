@@ -9,5 +9,6 @@ one piece this module can do. More should follow.
     :maxdepth: 1
 
     onnx
+    onnx_numpy
     optim
     benchmark

@@ -31,6 +31,7 @@ of modules below:
 
 .. runpython::
     :showcode:
+    :warningout: DeprecationWarning
     :rst:
 
     from mlprodict.onnxrt.validate.validate_helper import modules_list

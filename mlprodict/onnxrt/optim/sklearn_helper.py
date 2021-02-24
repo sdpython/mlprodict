@@ -24,6 +24,7 @@ def enumerate_pipeline_models(pipe, coor=None, vs=None):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from sklearn.datasets import load_iris
         from sklearn.decomposition import PCA
@@ -106,6 +107,7 @@ def enumerate_fitted_arrays(model):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from sklearn.datasets import load_iris
         from sklearn.decomposition import PCA
@@ -216,6 +218,7 @@ def inspect_sklearn_model(model, recursive=True):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         import pprint
         from sklearn.ensemble import RandomForestClassifier
@@ -292,6 +295,7 @@ def set_n_jobs(model, params, n_jobs=None):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         import multiprocessing
         print(multiprocessing.cpu_count())

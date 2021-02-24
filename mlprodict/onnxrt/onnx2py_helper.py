@@ -25,6 +25,7 @@ def to_bytes(val):
 
         .. runpython::
             :showcode:
+            :warningout: DeprecationWarning
 
             import numpy
             from mlprodict.onnxrt.onnx2py_helper import to_bytes
@@ -54,6 +55,7 @@ def from_bytes(b):
 
         .. runpython::
             :showcode:
+            :warningout: DeprecationWarning
 
             import numpy
             from mlprodict.onnxrt.onnx2py_helper import to_bytes, from_bytes

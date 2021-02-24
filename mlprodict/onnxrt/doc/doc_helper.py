@@ -17,6 +17,7 @@ def type_mapping(name):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.onnxrt.doc.doc_helper import type_mapping
         import pprint
@@ -335,6 +336,7 @@ def visual_rst_template():
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.onnxrt.doc.doc_helper import visual_rst_template
         print(visual_rst_template())

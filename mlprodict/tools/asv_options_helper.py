@@ -19,6 +19,7 @@ def expand_onnx_options(model, optim):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from sklearn.linear_model import LogisticRegression
         from mlprodict.tools.asv_options_helper import expand_onnx_options
@@ -68,6 +69,7 @@ def benchmark_version():
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.tools.asv_options_helper import benchmark_version
         print(benchmark_version())
@@ -82,6 +84,7 @@ def ir_version():
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.tools.asv_options_helper import ir_version
         print(ir_version())
@@ -138,6 +141,7 @@ def get_ir_version_from_onnx(benchmark=True):
 
         .. runpython::
             :showcode:
+            :warningout: DeprecationWarning
 
             from sklearn.linear_model import LinearRegression
             from sklearn.datasets import load_iris

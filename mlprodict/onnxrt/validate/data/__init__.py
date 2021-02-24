@@ -14,6 +14,7 @@ def load_audit():
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.onnxrt.validate.data import load_audit
         df = load_audit()

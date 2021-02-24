@@ -28,6 +28,7 @@ def sklearn2graph(model, output_names=None, **kwargs):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from sklearn.linear_model import LogisticRegression
         from sklearn.datasets import load_iris
@@ -84,6 +85,7 @@ def sklearn2graph(model, output_names=None, **kwargs):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from sklearn.linear_model import LogisticRegression
         from sklearn.datasets import load_iris

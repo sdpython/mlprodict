@@ -292,6 +292,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
 
         .. runpython::
             :showcode:
+            :warningout: DeprecationWarning
 
             from io import StringIO
             from textwrap import dedent

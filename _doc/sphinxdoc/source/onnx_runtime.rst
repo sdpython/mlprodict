@@ -21,6 +21,7 @@ Main class is :class:`OnnxInference
 
 .. runpython::
     :showcode:
+    :warningout: DeprecationWarning
 
     import numpy
     from sklearn.linear_model import LinearRegression
@@ -94,7 +95,7 @@ the cause of the error if it does not work.
 .. runpython::
     :showcode:
     :rst:
-    :warningout: PendingDeprecationWarning UserWarning RuntimeWarning FutureWarning
+    :warningout: DeprecationWarning PendingDeprecationWarning UserWarning RuntimeWarning FutureWarning
 
     from logging import getLogger
     from pyquickhelper.loghelper import noLOG
@@ -142,7 +143,7 @@ intermediate node anymore.
 
 .. runpython::
     :showcode:
-    :warningout: FutureWarning
+    :warningout: FutureWarning DeprecationWarning
 
     import numpy
     from sklearn.ensemble import AdaBoostRegressor
@@ -171,7 +172,7 @@ We create a table similar to :ref:`l-onnx-pyrun-tbl`.
 .. runpython::
     :showcode:
     :rst:
-    :warningout: PendingDeprecationWarning UserWarning RuntimeWarning
+    :warningout: DeprecationWarning PendingDeprecationWarning UserWarning RuntimeWarning
 
     from logging import getLogger
     from pyquickhelper.loghelper import noLOG
@@ -240,7 +241,7 @@ object to :epkg:`ONNX`. We create a table similar to
 .. runpython::
     :showcode:
     :rst:
-    :warningout: PendingDeprecationWarning UserWarning RuntimeWarning
+    :warningout: DeprecationWarning PendingDeprecationWarning UserWarning RuntimeWarning
 
     from logging import getLogger
     from pyquickhelper.loghelper import noLOG

@@ -80,6 +80,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.onnxrt.validate.validate_helper import default_time_kwargs
         import pprint

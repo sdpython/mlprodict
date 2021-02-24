@@ -415,6 +415,7 @@ def modify_tree_for_rule_in_set(gbm, use_float=False):  # pylint: disable=R1710
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         import pprint
         from mlprodict.onnx_conv.operator_converters.conv_lightgbm import modify_tree_for_rule_in_set

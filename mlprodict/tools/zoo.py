@@ -19,6 +19,7 @@ def short_list_zoo_models():
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         import pprint
         from mlprodict.tools.zoo import short_list_zoo_models

@@ -12,6 +12,7 @@ def find_suitable_problem(model):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
         :rst:
 
         from mlprodict.onnx_conv.validate_scenarios import find_suitable_problem
@@ -59,6 +60,7 @@ def build_custom_scenarios():
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.onnx_conv.validate_scenarios import build_custom_scenarios
         import pprint
