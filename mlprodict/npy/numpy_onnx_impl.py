@@ -7,20 +7,27 @@
 import numpy
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs,
-    OnnxAcos,
-    OnnxAsin,
-    OnnxAtan,
-    OnnxCos,
+    OnnxAcos, OnnxAcosh,
+    OnnxArgMax,
+    OnnxArgMin,
+    OnnxAsin, OnnxAsinh,
+    OnnxAtan, OnnxAtanh,
+    OnnxCos, OnnxCosh,
     OnnxErf,
     OnnxExp,
     OnnxIsNaN,
     OnnxLog,
     OnnxReciprocal,
+    OnnxReduceMax,
+    OnnxReduceMean,
+    OnnxReduceMin,
+    OnnxReduceProd,
     OnnxReduceSum,
     OnnxRelu,
     OnnxSign,
-    OnnxSin,
-    OnnxTan,
+    OnnxSin, OnnxSinh,
+    OnnxSqrt,
+    OnnxTan, OnnxTanh,
 )
 from .onnx_variable import OnnxVar
 
@@ -35,9 +42,51 @@ def acos(x):
     return OnnxVar(x, op=OnnxAcos)
 
 
+def acosh(x):
+    "See :epkg:`numpy:acosh`."
+    return OnnxVar(x, op=OnnxAcosh)
+
+
+def amax(x, axis=None, keepdims=0):
+    "See :epkg:`numpy:amax`."
+    if axis is None:
+        return OnnxVar(x, op=OnnxReduceMax, keepdims=keepdims)
+    if not isinstance(axis, list):
+        axis = [axis]
+    return OnnxVar(x, op=OnnxReduceMax, keepdims=keepdims, axes=axis)
+
+
+def amin(x, axis=None, keepdims=0):
+    "See :epkg:`numpy:amin`."
+    if axis is None:
+        return OnnxVar(x, op=OnnxReduceMin, keepdims=keepdims)
+    if not isinstance(axis, list):
+        axis = [axis]
+    return OnnxVar(x, op=OnnxReduceMin, keepdims=keepdims, axes=axis)
+
+
+def argmax(x, axis=None, keepdims=0):
+    "See :epkg:`numpy:argmax`."
+    if axis is None:
+        return OnnxVar(x, op=OnnxArgMax)
+    return OnnxVar(x, op=OnnxArgMax, axis=axis, keepdims=keepdims)
+
+
+def argmin(x, axis=None, keepdims=0):
+    "See :epkg:`numpy:argmin`."
+    if axis is None:
+        return OnnxVar(x, op=OnnxArgMin)
+    return OnnxVar(x, op=OnnxArgMin, axis=axis, keepdims=keepdims)
+
+
 def asin(x):
     "See :epkg:`numpy:asin`."
     return OnnxVar(x, op=OnnxAsin)
+
+
+def asinh(x):
+    "See :epkg:`numpy:asinh`."
+    return OnnxVar(x, op=OnnxAsinh)
 
 
 def atan(x):
@@ -45,9 +94,19 @@ def atan(x):
     return OnnxVar(x, op=OnnxAtan)
 
 
+def atanh(x):
+    "See :epkg:`numpy:atanh`."
+    return OnnxVar(x, op=OnnxAtanh)
+
+
 def cos(x):
     "See :epkg:`numpy:cos`."
     return OnnxVar(x, op=OnnxCos)
+
+
+def cosh(x):
+    "See :epkg:`numpy:cosh`."
+    return OnnxVar(x, op=OnnxCosh)
 
 
 def erf(x):
@@ -70,6 +129,24 @@ def log(x):
     return OnnxVar(x, op=OnnxLog)
 
 
+def mean(x, axis=None, keepdims=0):
+    "See :epkg:`numpy:mean`."
+    if axis is None:
+        return OnnxVar(x, op=OnnxReduceMean, keepdims=keepdims)
+    if not isinstance(axis, list):
+        axis = [axis]
+    return OnnxVar(x, op=OnnxReduceMean, keepdims=keepdims, axes=axis)
+
+
+def prod(x, axis=None, keepdims=0):
+    "See :epkg:`numpy:prod`."
+    if axis is None:
+        return OnnxVar(x, op=OnnxReduceProd, keepdims=keepdims)
+    if not isinstance(axis, list):
+        axis = [axis]
+    return OnnxVar(x, op=OnnxReduceProd, keepdims=keepdims, axes=axis)
+
+
 def relu(x):
     "relu"
     return OnnxVar(x, op=OnnxRelu)
@@ -85,6 +162,21 @@ def sign(x):
     return OnnxVar(x, op=OnnxSign)
 
 
+def sin(x):
+    "See :epkg:`numpy:sin`."
+    return OnnxVar(x, op=OnnxSin)
+
+
+def sinh(x):
+    "See :epkg:`numpy:sinh`."
+    return OnnxVar(x, op=OnnxSinh)
+
+
+def sqrt(x):
+    "See :epkg:`numpy:sqrt`."
+    return OnnxVar(x, op=OnnxSqrt)
+
+
 def sum(x, axis=None, keepdims=0):
     "See :epkg:`numpy:sum`."
     if axis is None:
@@ -93,11 +185,11 @@ def sum(x, axis=None, keepdims=0):
                    op=OnnxReduceSum, keepdims=keepdims)
 
 
-def sin(x):
-    "See :epkg:`numpy:sin`."
-    return OnnxVar(x, op=OnnxSin)
-
-
 def tan(x):
     "See :epkg:`numpy:tan`."
     return OnnxVar(x, op=OnnxTan)
+
+
+def tanh(x):
+    "See :epkg:`numpy:tanh`."
+    return OnnxVar(x, op=OnnxTanh)

@@ -30,13 +30,57 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.arccos, nxnpy.acos, numpy.float32)
 
+    def test_acosh_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(x, numpy.arccosh, nxnpy.acosh, numpy.float32)
+
+    def test_amax_float32(self):
+        kwargs = [{'axis': 0}, {}, {'axis': 1}]
+        for kw in kwargs:
+            with self.subTest(kw=kw):
+                x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
+                self.common_test1(x, numpy.amax, nxnpy.amax,
+                                  numpy.float32, **kw)
+
+    def test_argmax_float32(self):
+        kwargs = [{'axis': 0}, {'axis': 1}]
+        for kw in kwargs:
+            with self.subTest(kw=kw):
+                x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
+                self.common_test1(x, numpy.argmax, nxnpy.argmax,
+                                  numpy.float32, **kw)
+
+    def test_argmin_float32(self):
+        kwargs = [{'axis': 0}, {'axis': 1}]
+        for kw in kwargs:
+            with self.subTest(kw=kw):
+                x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
+                self.common_test1(x, numpy.argmin, nxnpy.argmin,
+                                  numpy.float32, **kw)
+
+    def test_amin_float32(self):
+        kwargs = [{'axis': 0}, {}, {'axis': 1}]
+        for kw in kwargs:
+            with self.subTest(kw=kw):
+                x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
+                self.common_test1(x, numpy.amin, nxnpy.amin,
+                                  numpy.float32, **kw)
+
     def test_asin_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.arcsin, nxnpy.asin, numpy.float32)
 
+    def test_asinh_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(x, numpy.arcsinh, nxnpy.asinh, numpy.float32)
+
     def test_atan_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.arctan, nxnpy.atan, numpy.float32)
+
+    def test_atanh_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(x, numpy.arctanh, nxnpy.atanh, numpy.float32)
 
     def test_cos_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
@@ -63,6 +107,22 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float64)
         self.common_test1(x, numpy.log, nxnpy.log, numpy.float64)
 
+    def test_mean_float32(self):
+        kwargs = [{'axis': 0}, {}, {'axis': 1}]
+        for kw in kwargs:
+            with self.subTest(kw=kw):
+                x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
+                self.common_test1(x, numpy.mean, nxnpy.mean,
+                                  numpy.float32, **kw)
+
+    def test_prod_float32(self):
+        kwargs = [{'axis': 0}, {}, {'axis': 1}]
+        for kw in kwargs:
+            with self.subTest(kw=kw):
+                x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
+                self.common_test1(x, numpy.prod, nxnpy.prod,
+                                  numpy.float32, **kw)
+
     def test_reciprocal_float64(self):
         x = numpy.array([[6.1, 5], [3.5, -7.8]], dtype=numpy.float64)
         self.common_test1(x, numpy.reciprocal,
@@ -88,9 +148,21 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.sin, nxnpy.sin, numpy.float32)
 
+    def test_sinh_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(x, numpy.sinh, nxnpy.sinh, numpy.float32)
+
+    def test_sqrt_float32(self):
+        x = numpy.array([[0.5, 0.1], [0.5, 0.1]], dtype=numpy.float32)
+        self.common_test1(x, numpy.sqrt, nxnpy.sqrt, numpy.float32)
+
     def test_tan_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.tan, nxnpy.tan, numpy.float32)
+
+    def test_tanh_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(x, numpy.tanh, nxnpy.tanh, numpy.float32)
 
 
 if __name__ == "__main__":
