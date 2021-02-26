@@ -77,15 +77,59 @@ Available numpy functions implemented with ONNX operators
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.abs
 
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.acos
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.asin
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.atan
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.cos
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.erf
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.exp
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.isnan
+
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.log
 
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.relu
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.sign
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.sin
+
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.sum
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.tan
 
 ONNX functions executed python ONNX runtime
 +++++++++++++++++++++++++++++++++++++++++++
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.abs
 
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.acos
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.asin
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.atan
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.cos
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.erf
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.exp
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.isnan
+
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.log
 
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.relu
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.sign
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.sin
+
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.sum
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.tan

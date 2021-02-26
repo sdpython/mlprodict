@@ -9,6 +9,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs,
     OnnxAcos,
     OnnxAsin,
+    OnnxAtan,
     OnnxCos,
     OnnxErf,
     OnnxExp,
@@ -18,6 +19,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxRelu,
     OnnxSign,
     OnnxSin,
+    OnnxTan,
 )
 from .onnx_variable import OnnxVar
 
@@ -35,6 +37,11 @@ def acos(x):
 def asin(x):
     "See :epkg:`numpy:asin`."
     return OnnxVar(x, op=OnnxAsin)
+
+
+def atan(x):
+    "See :epkg:`numpy:atan`."
+    return OnnxVar(x, op=OnnxAtan)
 
 
 def cos(x):
@@ -83,3 +90,8 @@ def sum(x, axis=None, keepdims=0):
 def sin(x):
     "See :epkg:`numpy:sin`."
     return OnnxVar(x, op=OnnxSin)
+
+
+def tan(x):
+    "See :epkg:`numpy:tan`."
+    return OnnxVar(x, op=OnnxTan)

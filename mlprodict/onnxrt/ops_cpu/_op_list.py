@@ -103,6 +103,7 @@ from .op_sub import Sub
 from .op_sum import Sum
 from .op_svm_classifier import SVMClassifier, SVMClassifierDouble
 from .op_svm_regressor import SVMRegressor, SVMRegressorDouble
+from .op_tan import Tan
 from .op_tfidfvectorizer import TfIdfVectorizer
 from .op_tokenizer import Tokenizer
 from .op_topk import TopK_10, TopK_11, TopK_1, TopK

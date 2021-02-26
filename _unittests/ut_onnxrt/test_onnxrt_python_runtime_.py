@@ -23,12 +23,14 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAbs, OnnxAdd, OnnxAnd, OnnxArgMax, OnnxArgMin, OnnxAtan,
+    OnnxAbs, OnnxAdd, OnnxAnd, OnnxArgMax, OnnxArgMin,
     OnnxBatchNormalization,
-    OnnxConcat, OnnxConv, OnnxConvTranspose,
+    OnnxAcos, OnnxAsin, OnnxAtan,
     OnnxCeil, OnnxClip,
+    OnnxConcat, OnnxConv, OnnxConvTranspose,
     OnnxConstant, OnnxConstant_9, OnnxConstant_11,
     OnnxConstantOfShape,
+    OnnxCos,
     OnnxDequantizeLinear,
     OnnxDiv,
     OnnxDropout, OnnxDropout_7,
@@ -50,11 +52,11 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
     OnnxScatterElements, OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign, OnnxSin,
-    OnnxSplitApi11,
-    OnnxSoftmax, OnnxSplit,
+    OnnxSize, OnnxSoftmax,
+    OnnxSplit, OnnxSplitApi11,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
-    OnnxTopK, OnnxTranspose,
+    OnnxTan, OnnxTopK, OnnxTranspose,
     OnnxUnsqueeze, OnnxUnsqueezeApi11
 )
 try:
@@ -456,6 +458,14 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.array([2, 1], dtype=numpy.int64),
                               got['Y'], decimal=6)
+
+    @wraplog()
+    def test_onnxt_runtime_acos(self):
+        self.common_test_onnxt_runtime_unary(OnnxAcos, numpy.arccos)
+
+    @wraplog()
+    def test_onnxt_runtime_asin(self):
+        self.common_test_onnxt_runtime_unary(OnnxAsin, numpy.arcsin)
 
     @wraplog()
     def test_onnxt_runtime_atan(self):
@@ -1124,6 +1134,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': x})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(y_with_padding, got['Y'])
+
+    @wraplog()
+    def test_onnxt_runtime_cos(self):
+        self.common_test_onnxt_runtime_unary(OnnxCos, numpy.cos)
 
     @wraplog()
     def test_onnxt_runtime_cum_sum(self):
@@ -2391,6 +2405,19 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(OnnxSin, numpy.sin)
 
     @wraplog()
+    def test_onnxt_runtime_size(self):
+        x = numpy.random.randn(20, 2).astype(  # pylint: disable=E1101
+            numpy.float32)  # pylint: disable=E1101
+        y = x.size
+        onx = OnnxSize('X', output_names=['Y'],
+                       op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(y, got['Y'])
+        python_tested.append(OnnxSize)
+
+    @wraplog()
     def test_onnxt_runtime_slice(self):
         for opset in [9, get_opset_number_from_onnx()]:
             if opset > get_opset_number_from_onnx():
@@ -2553,6 +2580,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_sum(self):
         self.common_test_onnxt_runtime_binary(OnnxSum, lambda x, y: x + y)
+
+    @wraplog()
+    def test_onnxt_runtime_tan(self):
+        self.common_test_onnxt_runtime_unary(OnnxTan, numpy.tan)
 
     @wraplog()
     def test_onnxt_runtime_topk0(self):

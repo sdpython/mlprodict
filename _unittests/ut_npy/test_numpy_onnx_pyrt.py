@@ -34,13 +34,18 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.arcsin, nxnpy.asin, numpy.float32)
 
+    def test_atan_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(x, numpy.arctan, nxnpy.atan, numpy.float32)
+
     def test_cos_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.cos, nxnpy.cos, numpy.float32)
 
     def test_erf_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
-        self.common_test1(x, sp.erf, nxnpy.erf, numpy.float32)  # pylint: disable=E1101
+        self.common_test1(x, sp.erf, nxnpy.erf,  # pylint: disable=E1101
+                          numpy.float32)
 
     def test_exp_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
@@ -77,6 +82,10 @@ class TestNumpyOnnxFunction(ExtTestCase):
     def test_sin_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.sin, nxnpy.sin, numpy.float32)
+
+    def test_tan_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(x, numpy.tan, nxnpy.tan, numpy.float32)
 
 
 if __name__ == "__main__":

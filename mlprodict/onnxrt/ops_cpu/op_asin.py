@@ -23,4 +23,4 @@ class Asin(OpRunUnaryNum):
         return (numpy.arcsin(x, out=x), )
 
     def to_python(self, inputs):
-        return self._to_python_numpy(inputs, self.__class__.__name__.lower())
+        return self._to_python_numpy(inputs, 'arcsin')

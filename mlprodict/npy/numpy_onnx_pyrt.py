@@ -12,6 +12,7 @@ from .numpy_onnx_impl import (
     abs as nx_abs,
     acos as nx_acos,
     asin as nx_asin,
+    atan as nx_atan,
     cos as nx_cos,
     erf as nx_erf,
     exp as nx_exp,
@@ -21,6 +22,7 @@ from .numpy_onnx_impl import (
     sum as nx_sum,
     sign as nx_sign,
     sin as nx_sin,
+    tan as nx_tan,
 )
 from .onnx_numpy_wrapper import onnxnumpy_np
 
@@ -35,6 +37,12 @@ def abs(x):
 def acos(x):
     "acos"
     return nx_acos(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def atan(x):
+    "atan"
+    return nx_atan(x)
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
@@ -95,3 +103,9 @@ def sum(x, axis=None, keepdims=0):
 def sin(x):
     "sin"
     return nx_sin(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def tan(x):
+    "tan"
+    return nx_tan(x)
