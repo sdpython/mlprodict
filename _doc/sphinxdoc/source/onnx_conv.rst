@@ -13,6 +13,7 @@ can be fully converted.
 
 .. runpython::
     :rst:
+    :warningout: DeprecationWarning
     :showcode:
 
     from mlprodict.onnx_conv.register import register_converters

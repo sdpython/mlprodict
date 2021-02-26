@@ -239,6 +239,7 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.onnxrt.validate.validate_helper import default_time_kwargs
         import pprint
@@ -826,6 +827,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.onnxrt.validate.validate_helper import default_time_kwargs
         import pprint

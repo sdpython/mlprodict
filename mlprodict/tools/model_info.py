@@ -177,6 +177,7 @@ def analyze_model(model, simplify=True):
 
         .. runpython::
             :showcode:
+            :warningout: DeprecationWarning
 
             import pprint
             from sklearn.datasets import load_iris

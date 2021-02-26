@@ -95,6 +95,7 @@ does not have any dependency on :epkg:`scikit-learn`.
 
 .. runpython::
     :showcode:
+    :warningout: DeprecationWarning
 
     import numpy
     from sklearn.linear_model import LinearRegression
@@ -157,6 +158,7 @@ predictions.
 
 .. runpython::
     :showcode:
+    :warningout: DeprecationWarning
 
     from sklearn.linear_model import LogisticRegression
     from sklearn.datasets import load_iris

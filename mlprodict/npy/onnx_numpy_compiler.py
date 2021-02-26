@@ -130,8 +130,14 @@ class OnnxNumpyCompiler:
             "fct_ and onnx_ are empty.")
 
     def _to_onnx_shape(self, shape):
-        if shape is Any:
+        if shape is Any or shape is Ellipsis:
             shape = None
+        elif isinstance(shape, tuple):
+            shape = [None if s is Any or s is Ellipsis else s
+                     for s in shape]
+        else:
+            raise RuntimeError(
+                "Unexpected annotated shape %r." % shape)
         return shape
 
     def _to_onnx_dtype(self, dtype, shape):

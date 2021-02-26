@@ -49,6 +49,7 @@ def build_custom_scenarios():
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.onnxrt.validate.validate_scenarios import build_custom_scenarios
         import pprint

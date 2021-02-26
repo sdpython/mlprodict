@@ -42,8 +42,12 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
             N = operator.inputs[0].type.shape[0]
             dims = [N]
             out = outputs[0]
-            if hasattr(out, 'dims'):
-                dims.extend(out.dims[1:])
+            try:
+                extra_dims = out.type.tensor_type.shape.dim
+            except AttributeError:
+                extra_dims = None
+            if extra_dims is not None:
+                dims.extend(extra_dims[1:])
         operator.outputs[0].type = input_type(dims)
         return
 

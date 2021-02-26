@@ -624,6 +624,7 @@ def find_suitable_problem(model):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
         :rst:
 
         from mlprodict.onnxrt.validate.validate import (

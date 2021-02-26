@@ -40,7 +40,17 @@ class NDArray(numpy.ndarray, Generic[Shape, DType]):
 
     .. versionadded:: 0.6
     """
-    pass
+    class ShapeType:
+        "Stores shape information."
+
+        def __init__(self, params):
+            self.__args__ = params
+
+    def __class_getitem__(cls, params):
+        "Overwrites this method."
+        if not isinstance(params, tuple):
+            params = (params,)
+        return NDArray.ShapeType(params)
 
 
 class _NDArrayAlias:

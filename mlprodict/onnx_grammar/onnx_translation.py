@@ -21,6 +21,7 @@ def py_make_float_array(cst, op_version=None):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.onnx_grammar.onnx_translation import py_make_float_array
         print(py_make_float_array(5.5))
@@ -161,6 +162,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
 
         .. runpython::
             :showcode:
+            :warningout: DeprecationWarning
             :process:
             :store_in_file: fct2onnx2.py
 
@@ -189,6 +191,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
 
         .. runpython::
             :showcode:
+            :warningout: DeprecationWarning
             :process:
             :store_in_file: fct2onnx3.py
 

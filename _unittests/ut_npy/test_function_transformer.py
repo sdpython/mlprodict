@@ -22,7 +22,21 @@ from mlprodict.npy import NDArray
 def custom_fct(x: NDArray[Any, numpy.float32],
                ) -> NDArray[Any, numpy.float32]:
     "onnx custom function"
-    return (nxnp.abs(x) + x) / numpy.float32(2)
+    return (nxnp.abs(x) + x) / numpy.float32(2.)
+
+
+@onnxnumpy_default
+def custom_log(x: NDArray[(None, None), numpy.float32],
+               ) -> NDArray[(None, None), numpy.float32]:
+    "onnx custom log"
+    return nxnp.log(x)
+
+
+@onnxnumpy_default
+def custom_logn(x: NDArray[(None, ...), numpy.float32],
+                ) -> NDArray[(None, ...), numpy.float32]:
+    "onnx custom log n"
+    return nxnp.log(x)
 
 
 class TestOnnxFunctionTransformer(ExtTestCase):
@@ -37,7 +51,7 @@ class TestOnnxFunctionTransformer(ExtTestCase):
         self.assertIn('SklearnFunctionTransformer', res[0])
         self.assertIn('SklearnFunctionTransformer', res[1])
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
     def test_function_transformer(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         tr = FunctionTransformer(custom_fct)
@@ -52,18 +66,40 @@ class TestOnnxFunctionTransformer(ExtTestCase):
         y_onx = oinf.run({'X': x})
         self.assertEqualArray(y_exp, y_onx['variable'])
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
     def test_function_transformer_numpy_log(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         tr = make_pipeline(FunctionTransformer(numpy.log), StandardScaler())
         tr.fit(x)
         self.assertRaise(lambda: to_onnx(tr, x), TypeError)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
     def test_function_transformer_nxnp_log(self):
         x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float32)
         self.assertIsInstance(nxnpy.log(x), numpy.ndarray)
         tr = make_pipeline(FunctionTransformer(nxnpy.log), StandardScaler())
+        tr.fit(x)
+        y_exp = tr.transform(x)
+        onnx_model = to_onnx(tr, x)
+        oinf = OnnxInference(onnx_model)
+        y_onx = oinf.run({'X': x})
+        self.assertEqualArray(y_exp, y_onx['variable'], decimal=5)
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    def test_function_transformer_custom_log(self):
+        x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float32)
+        tr = make_pipeline(FunctionTransformer(custom_log), StandardScaler())
+        tr.fit(x)
+        y_exp = tr.transform(x)
+        onnx_model = to_onnx(tr, x)
+        oinf = OnnxInference(onnx_model)
+        y_onx = oinf.run({'X': x})
+        self.assertEqualArray(y_exp, y_onx['variable'], decimal=5)
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    def test_function_transformer_custom_logn(self):
+        x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float32)
+        tr = make_pipeline(FunctionTransformer(custom_logn), StandardScaler())
         tr.fit(x)
         y_exp = tr.transform(x)
         onnx_model = to_onnx(tr, x)

@@ -1724,7 +1724,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             {'X': X}, target_opset=get_opset_number_from_onnx())
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
-        self.assertEqualArray(exp, got['Y'])
+        self.assertEqualArray(exp, got['Y'], decimal=5)
         self.assertEqual(got['Y'].dtype, X.dtype)
         self.assertEqual(got['Y'].dtype, numpy.float64)
 

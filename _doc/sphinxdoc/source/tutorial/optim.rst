@@ -21,7 +21,8 @@ One way to optimize the converted model is to
 create dedicated operators such as the one for function
 :epkg:`cdist`. The first example shows how to
 convert a :epkg:`GaussianProcessRegressor` into
-standard :epkg:`ONNX` (see also @see cl CDist).
+standard :epkg:`ONNX` (see also :class:`CDist
+<mlprodict.onnxrt.ops_cpu.op_cdist.CDist>`).
 
 .. gdot::
     :script: DOT-SECTION

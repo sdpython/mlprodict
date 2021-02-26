@@ -317,6 +317,7 @@ class OnnxInference:
 
             .. runpython::
                 :showcode:
+                :warningout: DeprecationWarning
 
                 import pprint
                 import numpy
@@ -523,6 +524,7 @@ class OnnxInference:
 
             .. runpython::
                 :showcode:
+                :warningout: DeprecationWarning
 
                 import numpy
                 from sklearn.linear_model import LinearRegression
@@ -1020,6 +1022,7 @@ class OnnxInference:
 
             .. runpython::
                 :showcode:
+                :warningout: DeprecationWarning
 
                 from sklearn.datasets import load_iris
                 from sklearn.model_selection import train_test_split

@@ -23,6 +23,7 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         import pprint
         from sklearn.linear_model import LogisticRegression

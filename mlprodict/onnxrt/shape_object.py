@@ -424,6 +424,7 @@ class ShapeObject(BaseDimensionShape):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         import numpy
         from mlprodict.onnxrt.shape_object import ShapeObject

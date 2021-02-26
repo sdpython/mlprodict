@@ -58,6 +58,7 @@ mathdef_link_only = True
 epkg_dictionary.update({
     '_PredictScorer': 'https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/scorer.py#L168',
     'airspeed-velocity': 'https://github.com/airspeed-velocity/asv',
+    'ast': 'https://docs.python.org/3/library/ast.html',
     'asv': 'https://github.com/airspeed-velocity/asv',
     'bench1': 'http://www.xavierdupre.fr/app/mlprodict_bench/helpsphinx/index.html',
     'bench2': 'http://www.xavierdupre.fr/app/mlprodict_bench2/helpsphinx/index.html',
@@ -73,6 +74,7 @@ epkg_dictionary.update({
     'DOT': 'https://en.wikipedia.org/wiki/DOT_(graph_description_language)',
     'einsum': 'https://numpy.org/doc/stable/reference/generated/numpy.einsum.html',
     'exec': 'https://docs.python.org/3/library/functions.html#exec',
+    'FunctionTransformer': 'https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.FunctionTransformer.html',
     'GaussianProcessRegressor': 'https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html',
     'Iris': 'https://en.wikipedia.org/wiki/Iris_flower_data_set',
     'IR_VERSION': 'https://github.com/onnx/onnx/blob/master/docs/IR.md#onnx-versioning',
@@ -105,6 +107,7 @@ epkg_dictionary.update({
     'run_asv.sh': 'https://github.com/sdpython/mlprodict/blob/master/bin/run_asv.sh',
     'Rust': 'https://www.rust-lang.org/',
     'sklearn-onnx': 'https://github.com/onnx/sklearn-onnx',
+    'sklearn-onnx tutorial': 'http://www.xavierdupre.fr/app/onnxcustom/helpsphinx/tutorial.html',
     'tensorflow': 'https://www.tensorflow.org/',
     'Tokenizer': 'https://github.com/microsoft/onnxruntime/blob/master/docs/ContribOperators.md#com.microsoft.Tokenizer',
     'tqdm': 'https://github.com/tqdm/tqdm',

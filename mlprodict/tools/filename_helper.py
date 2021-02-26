@@ -13,6 +13,7 @@ def extract_information_from_filename(name):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         from mlprodict.tools.filename_helper import extract_information_from_filename
 

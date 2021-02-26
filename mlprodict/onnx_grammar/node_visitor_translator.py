@@ -19,6 +19,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
 
         .. runpython::
             :showcode:
+            :warningout: DeprecationWarning
             :process:
             :store_in_file: fct2onnx1.py
 

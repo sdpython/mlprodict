@@ -58,6 +58,7 @@ class OnnxInferenceExport:
 
             .. runpython::
                 :showcode:
+                :warningout: DeprecationWarning
 
                 import numpy
                 from skl2onnx.algebra.onnx_ops import OnnxLinearRegressor
@@ -262,6 +263,7 @@ class OnnxInferenceExport:
 
             .. runpython::
                 :showcode:
+                :warningout: DeprecationWarning
 
                 import numpy
                 from skl2onnx.algebra.onnx_ops import OnnxLinearRegressor
@@ -394,6 +396,7 @@ class OnnxInferenceExport:
 
         .. runpython::
             :showcode:
+            :warningout: DeprecationWarning
 
             import numpy
             from skl2onnx.algebra.onnx_ops import OnnxAdd

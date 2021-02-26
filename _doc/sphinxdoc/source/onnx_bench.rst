@@ -46,6 +46,7 @@ of modules below:
 
 .. runpython::
     :showcode:
+    :warningout: DeprecationWarning
     :rst:
 
     from mlprodict.onnxrt.validate.validate_helper import modules_list
@@ -80,6 +81,7 @@ describes the list of considered problems.
 
 .. runpython::
     :showcode:
+    :warningout: DeprecationWarning
     :rst:
 
     from mlprodict.onnxrt.validate.validate import sklearn_operators, find_suitable_problem
