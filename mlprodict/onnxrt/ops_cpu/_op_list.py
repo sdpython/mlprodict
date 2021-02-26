@@ -12,6 +12,8 @@ from .op_and import And
 from .op_argmax import ArgMax
 from .op_argmin import ArgMin
 from .op_array_feature_extractor import ArrayFeatureExtractor
+from .op_acos import Acos
+from .op_asin import Asin
 from .op_atan import Atan
 from .op_batch_normalization import BatchNormalization
 from .op_binarizer import Binarizer
@@ -25,6 +27,7 @@ from .op_conv import Conv
 from .op_conv_transpose import ConvTranspose
 from .op_constant import Constant
 from .op_constant_of_shape import ConstantOfShape
+from .op_cos import Cos
 from .op_cum_sum import CumSum
 from .op_dequantize_linear import DequantizeLinear
 from .op_dict_vectorizer import DictVectorizer
@@ -88,6 +91,7 @@ from .op_shape import Shape
 from .op_sigmoid import Sigmoid
 from .op_sign import Sign
 from .op_sin import Sin
+from .op_size import Size
 from .op_slice import Slice, Slice_1, Slice_10
 from .op_split import Split, Split_2, Split_11, Split_13
 from .op_softmax import Softmax
