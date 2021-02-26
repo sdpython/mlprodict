@@ -11,19 +11,32 @@ from .onnx_numpy_annotation import (
 from .numpy_onnx_impl import (
     abs as nx_abs,
     acos as nx_acos,
+    acosh as nx_acosh,
+    amin as nx_min,
+    amax as nx_max,
+    argmax as nx_argmax,
+    argmin as nx_argmin,
     asin as nx_asin,
+    asinh as nx_asinh,
     atan as nx_atan,
+    atanh as nx_atanh,
     cos as nx_cos,
+    cosh as nx_cosh,
     erf as nx_erf,
     exp as nx_exp,
     isnan as nx_isnan,
     log as nx_log,
+    mean as nx_mean,
+    prod as nx_prod,
     reciprocal as nx_reciprocal,
     relu as nx_relu,
-    sum as nx_sum,
     sign as nx_sign,
     sin as nx_sin,
+    sinh as nx_sinh,
+    sqrt as nx_sqrt,
+    sum as nx_sum,
     tan as nx_tan,
+    tanh as nx_tanh,
 )
 from .onnx_numpy_wrapper import onnxnumpy_np
 
@@ -41,9 +54,33 @@ def acos(x):
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
-def atan(x):
-    "atan"
-    return nx_atan(x)
+def acosh(x):
+    "acosh"
+    return nx_acosh(x)
+
+
+@onnxnumpy_np(signature=NDArraySameType("all"))
+def amax(x, axis=None, keepdims=0):
+    "amax"
+    return nx_max(x, axis=axis, keepdims=keepdims)
+
+
+@onnxnumpy_np(signature=NDArraySameType("all"))
+def amin(x, axis=None, keepdims=0):
+    "amin"
+    return nx_min(x, axis=axis, keepdims=keepdims)
+
+
+@onnxnumpy_np(signature=NDArraySameType("all"))
+def argmax(x, axis=None, keepdims=0):
+    "argmax"
+    return nx_argmax(x, axis=axis, keepdims=keepdims)
+
+
+@onnxnumpy_np(signature=NDArraySameType("all"))
+def argmin(x, axis=None, keepdims=0):
+    "argmin"
+    return nx_argmin(x, axis=axis, keepdims=keepdims)
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
@@ -53,9 +90,33 @@ def asin(x):
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def asinh(x):
+    "asinh"
+    return nx_asinh(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def atan(x):
+    "atan"
+    return nx_atan(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def atanh(x):
+    "atanh"
+    return nx_atanh(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
 def cos(x):
     "cos"
     return nx_cos(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def cosh(x):
+    "cosh"
+    return nx_cosh(x)
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
@@ -82,6 +143,18 @@ def log(x):
     return nx_log(x)
 
 
+@onnxnumpy_np(signature=NDArraySameType("all"))
+def prod(x, axis=None, keepdims=0):
+    "prod"
+    return nx_prod(x, axis=axis, keepdims=keepdims)
+
+
+@onnxnumpy_np(signature=NDArraySameType("all"))
+def mean(x, axis=None, keepdims=0):
+    "mean"
+    return nx_mean(x, axis=axis, keepdims=keepdims)
+
+
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
 def reciprocal(x):
     "reciprocal"
@@ -100,12 +173,6 @@ def sign(x):
     return nx_sign(x)
 
 
-@onnxnumpy_np(signature=NDArraySameType("all"))
-def sum(x, axis=None, keepdims=0):
-    "sum"
-    return nx_sum(x, axis=axis, keepdims=keepdims)
-
-
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
 def sin(x):
     "sin"
@@ -113,6 +180,30 @@ def sin(x):
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def sinh(x):
+    "sinh"
+    return nx_sinh(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def sqrt(x):
+    "sqrt"
+    return nx_sqrt(x)
+
+
+@onnxnumpy_np(signature=NDArraySameType("all"))
+def sum(x, axis=None, keepdims=0):
+    "sum"
+    return nx_sum(x, axis=axis, keepdims=keepdims)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
 def tan(x):
     "tan"
     return nx_tan(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def tanh(x):
+    "tanh"
+    return nx_tanh(x)

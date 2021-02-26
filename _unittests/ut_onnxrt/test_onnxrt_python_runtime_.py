@@ -25,12 +25,12 @@ except ImportError:
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxAnd, OnnxArgMax, OnnxArgMin,
     OnnxBatchNormalization,
-    OnnxAcos, OnnxAsin, OnnxAtan,
+    OnnxAcos, OnnxAcosh, OnnxAsin, OnnxAsinh, OnnxAtan, OnnxAtanh,
     OnnxCeil, OnnxClip,
     OnnxConcat, OnnxConv, OnnxConvTranspose,
     OnnxConstant, OnnxConstant_9, OnnxConstant_11,
     OnnxConstantOfShape,
-    OnnxCos,
+    OnnxCos, OnnxCosh,
     OnnxDequantizeLinear,
     OnnxDiv,
     OnnxDropout, OnnxDropout_7,
@@ -51,12 +51,13 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSum, OnnxReduceSumApi11, OnnxReduceSum_11, OnnxReduceSum_1,
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
-    OnnxScatterElements, OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign, OnnxSin,
+    OnnxScatterElements, OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign,
+    OnnxSin, OnnxSinh,
     OnnxSize, OnnxSoftmax,
     OnnxSplit, OnnxSplitApi11,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
-    OnnxTan, OnnxTopK, OnnxTranspose,
+    OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose,
     OnnxUnsqueeze, OnnxUnsqueezeApi11
 )
 try:
@@ -464,12 +465,24 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(OnnxAcos, numpy.arccos)
 
     @wraplog()
+    def test_onnxt_runtime_acosh(self):
+        self.common_test_onnxt_runtime_unary(OnnxAcosh, numpy.arccosh)
+
+    @wraplog()
     def test_onnxt_runtime_asin(self):
         self.common_test_onnxt_runtime_unary(OnnxAsin, numpy.arcsin)
 
     @wraplog()
+    def test_onnxt_runtime_asinh(self):
+        self.common_test_onnxt_runtime_unary(OnnxAsinh, numpy.arcsinh)
+
+    @wraplog()
     def test_onnxt_runtime_atan(self):
         self.common_test_onnxt_runtime_unary(OnnxAtan, numpy.arctan)
+
+    @wraplog()
+    def test_onnxt_runtime_atanh(self):
+        self.common_test_onnxt_runtime_unary(OnnxAtanh, numpy.arctanh)
 
     @wraplog()
     def test_onnxt_runtime_atan2(self):
@@ -1138,6 +1151,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_cos(self):
         self.common_test_onnxt_runtime_unary(OnnxCos, numpy.cos)
+
+    @wraplog()
+    def test_onnxt_runtime_cosh(self):
+        self.common_test_onnxt_runtime_unary(OnnxCosh, numpy.cosh)
 
     @wraplog()
     def test_onnxt_runtime_cum_sum(self):
@@ -2405,6 +2422,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(OnnxSin, numpy.sin)
 
     @wraplog()
+    def test_onnxt_runtime_sinh(self):
+        self.common_test_onnxt_runtime_unary(OnnxSinh, numpy.sinh)
+
+    @wraplog()
     def test_onnxt_runtime_size(self):
         x = numpy.random.randn(20, 2).astype(  # pylint: disable=E1101
             numpy.float32)  # pylint: disable=E1101
@@ -2584,6 +2605,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_tan(self):
         self.common_test_onnxt_runtime_unary(OnnxTan, numpy.tan)
+
+    @wraplog()
+    def test_onnxt_runtime_tanh(self):
+        self.common_test_onnxt_runtime_unary(OnnxTanh, numpy.tanh)
 
     @wraplog()
     def test_onnxt_runtime_topk0(self):
