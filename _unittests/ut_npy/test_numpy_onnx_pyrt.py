@@ -63,6 +63,11 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float64)
         self.common_test1(x, numpy.log, nxnpy.log, numpy.float64)
 
+    def test_reciprocal_float64(self):
+        x = numpy.array([[6.1, 5], [3.5, -7.8]], dtype=numpy.float64)
+        self.common_test1(x, numpy.reciprocal,
+                          nxnpy.reciprocal, numpy.float64)
+
     def test_relu_float64(self):
         x = numpy.array([[6.1, 5], [3.5, -7.8]], dtype=numpy.float64)
         self.common_test1(x, lambda x: numpy.maximum(x, 0),

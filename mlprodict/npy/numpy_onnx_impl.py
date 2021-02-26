@@ -15,6 +15,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxExp,
     OnnxIsNaN,
     OnnxLog,
+    OnnxReciprocal,
     OnnxReduceSum,
     OnnxRelu,
     OnnxSign,
@@ -72,6 +73,11 @@ def log(x):
 def relu(x):
     "relu"
     return OnnxVar(x, op=OnnxRelu)
+
+
+def reciprocal(x):
+    "See :epkg:`numpy:reciprocal`."
+    return OnnxVar(x, op=OnnxReciprocal)
 
 
 def sign(x):

@@ -93,6 +93,8 @@ Available numpy functions implemented with ONNX operators
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.log
 
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.reciprocal
+
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.relu
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.sign
@@ -123,6 +125,8 @@ ONNX functions executed python ONNX runtime
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.isnan
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.log
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.reciprocal
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.relu
 

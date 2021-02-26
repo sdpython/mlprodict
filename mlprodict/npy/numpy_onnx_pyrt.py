@@ -18,6 +18,7 @@ from .numpy_onnx_impl import (
     exp as nx_exp,
     isnan as nx_isnan,
     log as nx_log,
+    reciprocal as nx_reciprocal,
     relu as nx_relu,
     sum as nx_sum,
     sign as nx_sign,
@@ -79,6 +80,12 @@ def isnan(x):
 def log(x):
     "log"
     return nx_log(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def reciprocal(x):
+    "reciprocal"
+    return nx_reciprocal(x)
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
