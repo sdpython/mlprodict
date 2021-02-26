@@ -18,7 +18,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxOr,
     OnnxPow,
     OnnxReduceSum, OnnxReshape,
-    OnnxScatterElements, OnnxSlice, OnnxSqueeze, OnnxSub,
+    OnnxScatterElements, OnnxShape, OnnxSize, OnnxSlice,
+    OnnxSqueeze, OnnxSub,
     OnnxTopK, OnnxTranspose
 )
 
@@ -134,6 +135,16 @@ class OnnxVar:
         "Cast"
         from ..onnxrt.onnx2py_helper import guess_proto_dtype
         return OnnxVar(self, op=OnnxCast, to=guess_proto_dtype(dtype))
+
+    @property
+    def shape(self):
+        "Shape"
+        return OnnxVar(self, op=OnnxShape)
+
+    @property
+    def size(self):
+        "Size"
+        return OnnxVar(self, op=OnnxSize)
 
     def reshape(self, shape):
         "Reshape"

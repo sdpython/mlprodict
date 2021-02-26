@@ -274,6 +274,20 @@ def test_abs_log_multi(x):
     return nxnp.log(nxnp.abs(x))
 
 
+@onnxnumpy_default
+def test_abs_shape(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.int64]:
+    "onnx numpy shape"
+    return nxnp.abs(x).shape
+
+
+@onnxnumpy_default
+def test_abs_size(x: NDArray[Any, numpy.float32],
+                  ) -> NDArray[Any, numpy.int64]:
+    "onnx numpy size"
+    return nxnp.abs(x).size
+
+
 class TestOnnxVariable(ExtTestCase):
 
     def test_onnx_variable_abs(self):
@@ -469,6 +483,16 @@ class TestOnnxVariable(ExtTestCase):
         x = numpy.array([[6.1, -5], [-3.5, 7.8]], dtype=numpy.float32)
         y = test_abs_log_multi(x)
         self.assertEqualArray(y, numpy.log(numpy.abs(x)))
+
+    def test_onnx_variable_abs_shape(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_shape(x)
+        self.assertEqualArray(y, numpy.abs(x).shape)
+
+    def test_onnx_variable_abs_size(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_size(x)
+        self.assertEqualArray(y, numpy.abs(x).size)
 
 
 if __name__ == "__main__":
