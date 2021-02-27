@@ -41,7 +41,7 @@ class TestNumpyOnnxFunction(ExtTestCase):
         self.assertEqualArray(expected, got2, decimal=6)
 
     def common_testn(self, xs, npfct, nxfct, dtype, dtype_out=None, **kwargs):
-        xts = [x.astype(dtype) for x in xs]
+        xts = list(xs)
         if dtype_out is None and (kwargs is None or len(kwargs) == 0):
             expected = npfct(*xts)
             try:
@@ -224,4 +224,5 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestNumpyOnnxFunction().test_clip_float32()
     unittest.main()

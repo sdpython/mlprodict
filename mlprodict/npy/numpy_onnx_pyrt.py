@@ -114,7 +114,7 @@ def atanh(x):
     signature=NDArrayType(("all", "all?", "all?"), "all"))
 def clip(x, a_min=None, a_max=None):
     "clip"
-    return nx_cosh(x, a_min, a_max)
+    return nx_clip(x, a_min, a_max)
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))

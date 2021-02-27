@@ -84,6 +84,7 @@ class _NDArrayAlias:
                 raise ValueError(
                     "Unexpected shortcut for dtype %r." % self.dtypes)
         elif isinstance(self.dtypes, (tuple, list)):
+            insig = []
             for dt in self.dtypes:
                 if dt == 'all':
                     dt = all_dtypes
@@ -97,6 +98,8 @@ class _NDArrayAlias:
                     raise TypeError(
                         "Unexpected type error for annotation "
                         "%r." % self)
+                insig.append(dt)
+            self.dtypes = tuple(insig)
 
     def __repr__(self):
         "usual"
