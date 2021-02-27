@@ -36,6 +36,10 @@ class Cast(OpRun):
             self._dtype = numpy.str
         elif self.to == TensorProto.FLOAT16:  # pylint: disable=E1101
             self._dtype = numpy.float16
+        elif self.to == TensorProto.COMPLEX64:  # pylint: disable=E1101
+            self._dtype = numpy.complex64
+        elif self.to == TensorProto.COMPLEX128:  # pylint: disable=E1101
+            self._dtype = numpy.complex128
         else:
             raise ValueError(  # pragma: no cover
                 "Unexpected value for to='{}'.".format(

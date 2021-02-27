@@ -98,7 +98,8 @@ class wrapper_onnxnumpy_np:
                 raise RuntimeError(
                     "Signature does not have any arguments, use directly dtypes.")
             others = tuple(dtype.get(k, self.kwargs[k]) for k in self.kwargs)
-            key = (dtype['dtype_onnx'], ) + others
+            key = ((dtype['dtype_onnx'],
+                    dtype.get('dtype_onnx_out', dtype['dtype_onnx'])), ) + others
             self._populate(key)
         elif dtype not in self.signed_compiled:
             self._populate(dtype)

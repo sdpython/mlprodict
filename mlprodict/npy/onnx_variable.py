@@ -122,7 +122,7 @@ class OnnxVar:
                 "Custom op 'filter' expects no arguments but got %r." % kwargs)
         mat, index = args
         cast = OnnxVar(index.astype(numpy.int64), op=OnnxSqueeze)
-        n1 = OnnxVar(cast, op=OnnxReduceSum, keepdims=0)
+        n1 = OnnxVar(cast, op=OnnxReduceSum, keepdims=1)
         indices = OnnxVar(cast, n1, op=OnnxTopK, select_output=1)
         return OnnxVar(mat, indices, op=OnnxGather)
 
