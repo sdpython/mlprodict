@@ -97,6 +97,8 @@ Available numpy functions implemented with ONNX operators
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.atanh
 
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.ceil
+
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.clip
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.cos
@@ -118,6 +120,8 @@ Available numpy functions implemented with ONNX operators
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.reciprocal
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.relu
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.round
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.sign
 
@@ -158,6 +162,8 @@ ONNX functions executed python ONNX runtime
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.atanh
 
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.ceil
+
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.clip
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.cos
@@ -179,6 +185,8 @@ ONNX functions executed python ONNX runtime
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.reciprocal
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.relu
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.round
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.sign
 

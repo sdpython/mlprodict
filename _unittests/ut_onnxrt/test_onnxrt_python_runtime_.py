@@ -51,6 +51,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSum, OnnxReduceSumApi11, OnnxReduceSum_11, OnnxReduceSum_1,
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
+    OnnxRound,
     OnnxScatterElements, OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign,
     OnnxSin, OnnxSinh,
     OnnxSize, OnnxSoftmax,
@@ -2334,6 +2335,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_relu(self):
         self.common_test_onnxt_runtime_unary(
             OnnxRelu, lambda x: numpy.maximum(x, 0))
+
+    @wraplog()
+    def test_onnxt_runtime_round(self):
+        self.common_test_onnxt_runtime_unary(OnnxRound, numpy.round)
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
     @wraplog()

@@ -128,6 +128,10 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.arctanh, nxnpy.atanh, numpy.float32)
 
+    def test_ceil_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(x, numpy.ceil, nxnpy.ceil, numpy.float32)
+
     def test_clip_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_testn((x, numpy.array([0.2], dtype=numpy.float32)),
@@ -190,6 +194,10 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[6.1, 5], [3.5, -7.8]], dtype=numpy.float64)
         self.common_test1(x, lambda x: numpy.maximum(x, 0),
                           nxnpy.relu, numpy.float64)
+
+    def test_round_float64(self):
+        x = numpy.array([[6.1, 5], [3.5, -7.8]], dtype=numpy.float64)
+        self.common_test1(x, numpy.round, nxnpy.round, numpy.float64)
 
     def test_sign_float64(self):
         x = numpy.array([[-6.1, 5], [3.5, 7.8]], dtype=numpy.float64)
