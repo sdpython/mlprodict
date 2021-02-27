@@ -44,7 +44,7 @@ the first examples of `sklearn-onnx tutorial`.
     # Conversion to ONNX
     try:
         onx = to_onnx(log_scale_transformer, X)
-    except RuntimeError as e:
+    except (RuntimeError, TypeError) as e:
         print(e)
 
 The first step is a `FunctionTransformer` with a custom function

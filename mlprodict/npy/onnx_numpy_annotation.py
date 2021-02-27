@@ -9,6 +9,11 @@ from collections import OrderedDict
 from typing import TypeVar, Generic
 import numpy
 
+try:
+    numpy_bool = numpy.bool_
+except AttributeError:
+    numpy_bool = bool
+
 Shape = TypeVar("Shape")
 DType = TypeVar("DType")
 
@@ -56,13 +61,23 @@ class NDArray(numpy.ndarray, Generic[Shape, DType]):
 class _NDArrayAlias:
     def __init__(self, dtypes=None):
         self.dtypes = dtypes
+        self.dtypes_out = dtypes
         if isinstance(self.dtypes, str):
             if self.dtypes == "all":
                 self.dtypes = all_dtypes
+                self.dtypes_out = self.dtypes
+            elif self.dtypes == "all_int":
+                self.dtypes = all_dtypes
+                self.dtypes_out = (numpy.int64, )
+            elif self.dtypes == "all_bool":
+                self.dtypes = all_dtypes
+                self.dtypes_out = (numpy_bool, )
             elif self.dtypes == "floats":
                 self.dtypes = (numpy.float32, numpy.float64)
+                self.dtypes_out = self.dtypes
             elif self.dtypes == "ints":
                 self.dtypes = (numpy.int32, numpy.int64)
+                self.dtypes_out = self.dtypes
             else:
                 raise ValueError(
                     "Unexpected shortcut for dtype %r." % self.dtypes)
@@ -103,11 +118,20 @@ class _NDArrayAlias:
         else:
             dtype = version
 
+        if isinstance(dtype, tuple):
+            dtype, dtype_out = dtype
+        else:
+            dtype_out = dtype
         if dtype not in self.dtypes:
             raise TypeError(
                 "Unexpected version %r, it should be in %r." % (
                     version, self.dtypes))
+        if dtype_out not in self.dtypes_out:
+            raise TypeError(
+                "Unexpected version %r, it should be in %r." % (
+                    version, self.dtypes_out))
         onnx_type = self._to_onnx_dtype(dtype, None)
+        onnx_type_out = self._to_onnx_dtype(dtype_out, None)
         inputs = [(a, onnx_type) for a in args]
         names_in = set(inp[0] for inp in inputs)
         name_out = None
@@ -115,7 +139,7 @@ class _NDArrayAlias:
             if name not in names_in:
                 name_out = name
                 break
-        outputs = [(name_out, onnx_type)]
+        outputs = [(name_out, onnx_type_out)]
         return inputs, outputs
 
     def shape_calculator(self, dims):

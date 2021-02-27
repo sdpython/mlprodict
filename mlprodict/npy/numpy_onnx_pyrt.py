@@ -71,13 +71,13 @@ def amin(x, axis=None, keepdims=0):
     return nx_min(x, axis=axis, keepdims=keepdims)
 
 
-@onnxnumpy_np(signature=NDArraySameType("all"))
+@onnxnumpy_np(signature=NDArraySameType("all_int"))
 def argmax(x, axis=None, keepdims=0):
     "argmax"
     return nx_argmax(x, axis=axis, keepdims=keepdims)
 
 
-@onnxnumpy_np(signature=NDArraySameType("all"))
+@onnxnumpy_np(signature=NDArraySameType("all_int"))
 def argmin(x, axis=None, keepdims=0):
     "argmin"
     return nx_argmin(x, axis=axis, keepdims=keepdims)
@@ -131,7 +131,7 @@ def exp(x):
     return nx_exp(x)
 
 
-@onnxnumpy_np(signature=NDArraySameTypeSameShape("all"))
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("all_bool"))
 def isnan(x):
     "isnan"
     return nx_isnan(x)
