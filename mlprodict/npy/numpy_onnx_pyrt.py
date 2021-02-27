@@ -20,6 +20,7 @@ from .numpy_onnx_impl import (
     asinh as nx_asinh,
     atan as nx_atan,
     atanh as nx_atanh,
+    clip as nx_clip,
     cos as nx_cos,
     cosh as nx_cosh,
     erf as nx_erf,
@@ -105,6 +106,12 @@ def atan(x):
 def atanh(x):
     "atanh"
     return nx_atanh(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def clip(x, xmin=None, xmax=None):
+    "clip"
+    return nx_cosh(x, xmin, xmax)
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))

@@ -12,6 +12,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxArgMin,
     OnnxAsin, OnnxAsinh,
     OnnxAtan, OnnxAtanh,
+    OnnxClip,
     OnnxCos, OnnxCosh,
     OnnxErf,
     OnnxExp,
@@ -97,6 +98,16 @@ def atan(x):
 def atanh(x):
     "See :epkg:`numpy:atanh`."
     return OnnxVar(x, op=OnnxAtanh)
+
+
+def clip(x, xmin=None, xmax=None):
+    "See :epkg:`numpy:clip`."
+    args = [x]
+    if xmin is not None:
+        args.append(xmin)
+    if xmax is not None:
+        args.append(xmax)
+    return OnnxVar(*args, op=OnnxClip)
 
 
 def cos(x):
