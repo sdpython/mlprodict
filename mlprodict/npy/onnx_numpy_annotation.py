@@ -95,6 +95,8 @@ class _NDArrayAlias:
 
     def _to_onnx_dtype(self, dtype, shape):
         from skl2onnx.common.data_types import _guess_numpy_type
+        if dtype == numpy.bool_:
+            dtype = numpy.bool
         return _guess_numpy_type(dtype, shape)
 
     def get_inputs_outputs(self, args, version):
