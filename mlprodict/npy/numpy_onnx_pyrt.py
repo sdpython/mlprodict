@@ -20,6 +20,7 @@ from .numpy_onnx_impl import (
     asinh as nx_asinh,
     atan as nx_atan,
     atanh as nx_atanh,
+    ceil as nx_ceil,
     cos as nx_cos,
     cosh as nx_cosh,
     erf as nx_erf,
@@ -30,6 +31,7 @@ from .numpy_onnx_impl import (
     prod as nx_prod,
     reciprocal as nx_reciprocal,
     relu as nx_relu,
+    round as nx_round,
     sign as nx_sign,
     sin as nx_sin,
     sinh as nx_sinh,
@@ -108,6 +110,12 @@ def atanh(x):
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def ceil(x):
+    "ceil"
+    return nx_ceil(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
 def cos(x):
     "cos"
     return nx_cos(x)
@@ -165,6 +173,12 @@ def reciprocal(x):
 def relu(x):
     "relu"
     return nx_relu(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def round(x):
+    "round"
+    return nx_round(x)
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
