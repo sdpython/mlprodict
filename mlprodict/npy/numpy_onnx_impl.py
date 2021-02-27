@@ -12,6 +12,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxArgMin,
     OnnxAsin, OnnxAsinh,
     OnnxAtan, OnnxAtanh,
+    OnnxCeil,
     OnnxCos, OnnxCosh,
     OnnxErf,
     OnnxExp,
@@ -24,6 +25,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceProd,
     OnnxReduceSum,
     OnnxRelu,
+    OnnxRound,
     OnnxSign,
     OnnxSin, OnnxSinh,
     OnnxSqrt,
@@ -99,6 +101,11 @@ def atanh(x):
     return OnnxVar(x, op=OnnxAtanh)
 
 
+def ceil(x):
+    "See :epkg:`numpy:ceil`."
+    return OnnxVar(x, op=OnnxCeil)
+
+
 def cos(x):
     "See :epkg:`numpy:cos`."
     return OnnxVar(x, op=OnnxCos)
@@ -155,6 +162,11 @@ def relu(x):
 def reciprocal(x):
     "See :epkg:`numpy:reciprocal`."
     return OnnxVar(x, op=OnnxReciprocal)
+
+
+def round(x):
+    "See :epkg:`numpy:round`."
+    return OnnxVar(x, op=OnnxRound)
 
 
 def sign(x):
