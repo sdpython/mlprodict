@@ -477,7 +477,7 @@ class TestOnnxVariableOrt(ExtTestCase):
     def test_ort_log(self):
         x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float32)
         y = test_log(x)
-        self.assertEqualArray(y, numpy.log(x))
+        self.assertEqualArray(y, numpy.log(x), decimal=6)
 
     def test_ort_abs_log_multi(self):
         x = numpy.array([[6.1, -5], [-3.5, 7.8]], dtype=numpy.float32)
