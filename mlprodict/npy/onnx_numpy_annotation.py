@@ -59,9 +59,11 @@ class NDArray(numpy.ndarray, Generic[Shape, DType]):
 
 
 class _NDArrayAlias:
-    def __init__(self, dtypes=None):
+    def __init__(self, dtypes=None, dtypes_out=None):
+        if dtypes is None:
+            raise ValueError("dtypes cannot be None.")
         self.dtypes = dtypes
-        self.dtypes_out = dtypes
+        self.dtypes_out = dtypes_out
         if isinstance(self.dtypes, str):
             if self.dtypes == "all":
                 self.dtypes = all_dtypes
@@ -83,15 +85,23 @@ class _NDArrayAlias:
                     "Unexpected shortcut for dtype %r." % self.dtypes)
         elif isinstance(self.dtypes, (tuple, list)):
             for dt in self.dtypes:
-                if dt not in all_dtypes:
+                if dt == 'all':
+                    dt = all_dtypes
+                elif dt == 'all?':
+                    dt = (None, ) + all_dtypes
+                elif dt == 'floats':
+                    dt = (numpy.float32, numpy.float64)
+                elif dt == 'floats?':
+                    dt = (None, numpy.float32, numpy.float64)
+                elif dt not in all_dtypes:
                     raise TypeError(
                         "Unexpected type error for annotation "
                         "%r." % self)
 
     def __repr__(self):
         "usual"
-        return "%s(%r)" % (
-            self.__class__.__name__, self.dtypes)
+        return "%s(%r, %r)" % (
+            self.__class__.__name__, self.dtypes, self.dtypes_out)
 
     def _to_onnx_dtype(self, dtype, shape):
         from skl2onnx.common.data_types import _guess_numpy_type
@@ -126,11 +136,11 @@ class _NDArrayAlias:
             dtype_out = dtype
         if dtype not in self.dtypes:
             raise TypeError(
-                "Unexpected version %r, it should be in %r." % (
+                "Unexpected version (1) %r, it should be in %r." % (
                     version, self.dtypes))
         if dtype_out not in self.dtypes_out:
             raise TypeError(
-                "Unexpected version %r, it should be in %r." % (
+                "Unexpected version (2) %r, it should be in %r." % (
                     version, self.dtypes_out))
         onnx_type = self._to_onnx_dtype(dtype, None)
         onnx_type_out = self._to_onnx_dtype(dtype_out, None)
@@ -156,21 +166,68 @@ class _NDArrayAlias:
         return res
 
 
-class NDArraySameType(_NDArrayAlias):
+class NDArrayType(_NDArrayAlias):
     """
     Shortcut to simplify signature description.
 
-    :param
+    :param dtypes: input dtypes
+    :param dtypes_out: output dtypes
 
     .. versionadded:: 0.6
     """
-    pass
+
+    def __init__(self, dtypes=None, dtypes_out=None):
+        _NDArrayAlias.__init__(self, dtypes=dtypes, dtypes_out=dtypes_out)
+
+
+class NDArrayTypeSameShape(NDArrayType):
+    """
+    Shortcut to simplify signature description.
+
+    :param dtypes: input dtypes
+    :param dtypes_out: output dtypes
+
+    .. versionadded:: 0.6
+    """
+
+    def __init__(self, dtypes=None, dtypes_out=None):
+        NDArrayType.__init__(self, dtypes=dtypes, dtypes_out=dtypes_out)
+
+
+class NDArraySameType(NDArrayType):
+    """
+    Shortcut to simplify signature description.
+
+    :param dtypes: input dtypes
+
+    .. versionadded:: 0.6
+    """
+
+    def __init__(self, dtypes=None):
+        if dtypes is None:
+            raise ValueError("dtypes cannot be None.")
+        if isinstance(dtypes, str) and "_" in dtypes:
+            raise ValueError(
+                "dtypes cannot include '_' meaning two different types.")
+        if isinstance(dtypes, tuple):
+            raise ValueError(
+                "dtypes must be a single type.")
+        NDArrayType.__init__(self, dtypes=dtypes)
+
+    def __repr__(self):
+        "usual"
+        return "%s(%r)" % (
+            self.__class__.__name__, self.dtypes)
 
 
 class NDArraySameTypeSameShape(NDArraySameType):
     """
     Shortcut to simplify signature description.
 
+    :param dtypes: input dtypes
+
     .. versionadded:: 0.6
     """
-    pass
+
+    def __init__(self, dtypes=None):
+        NDArraySameType.__init__(self, dtypes=dtypes)

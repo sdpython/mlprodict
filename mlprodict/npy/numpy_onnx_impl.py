@@ -100,13 +100,13 @@ def atanh(x):
     return OnnxVar(x, op=OnnxAtanh)
 
 
-def clip(x, xmin=None, xmax=None):
+def clip(x, a_min=None, a_max=None):
     "See :epkg:`numpy:clip`."
     args = [x]
-    if xmin is not None:
-        args.append(xmin)
-    if xmax is not None:
-        args.append(xmax)
+    if a_min is not None:
+        args.append(a_min)
+    if a_max is not None:
+        args.append(a_max)
     return OnnxVar(*args, op=OnnxClip)
 
 

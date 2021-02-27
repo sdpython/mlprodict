@@ -40,6 +40,34 @@ class TestNumpyOnnxFunction(ExtTestCase):
         got2 = rt2.run(data)[outputs[0]]
         self.assertEqualArray(expected, got2, decimal=6)
 
+    def common_testn(self, xs, npfct, nxfct, dtype, dtype_out=None, **kwargs):
+        xts = [x.astype(dtype) for x in xs]
+        if dtype_out is None and (kwargs is None or len(kwargs) == 0):
+            expected = npfct(*xts)
+            try:
+                nxfct[dtype]
+            except TypeError as e:
+                raise AssertionError(
+                    "Unable to find function key %r (type: %r) signature: %r."
+                    "" % (dtype, type(nxfct), nxfct.signature)) from e
+            got = nxfct[dtype](*xts)
+            compiled = nxfct[dtype].compiled
+        else:
+            expected = npfct(*xts, **kwargs)
+            kwargs['dtype_onnx'] = dtype
+            if dtype_out is not None:
+                kwargs['dtype_onnx_out'] = dtype_out
+            got = nxfct[kwargs](*xts)
+            compiled = nxfct[kwargs].compiled
+        self.assertEqualArray(expected, got)
+        onx = compiled.onnx_
+        rt2 = OnnxInference(onx, runtime="onnxruntime1")
+        inputs = rt2.input_names
+        outputs = rt2.output_names
+        data = {n: x for n, x in zip(inputs, xts)}
+        got2 = rt2.run(data)[outputs[0]]
+        self.assertEqualArray(expected, got2, decimal=6)
+
     def test_abs_float32(self):
         x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
         self.common_test1(x, numpy.abs, nxnpy.abs, numpy.float32)
@@ -99,6 +127,17 @@ class TestNumpyOnnxFunction(ExtTestCase):
     def test_atanh_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.arctanh, nxnpy.atanh, numpy.float32)
+
+    def test_clip_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_testn((x, numpy.array([0.2], dtype=numpy.float32)),
+                          lambda x, y: numpy.clip(x, y, None),
+                          nxnpy.clip, numpy.float32)
+        self.common_testn((x, None, numpy.array([0.2], dtype=numpy.float32)),
+                          numpy.clip, nxnpy.clip, numpy.float32)
+        self.common_testn((x, numpy.array([-0.2], dtype=numpy.float32),
+                           numpy.array([0.2], dtype=numpy.float32)),
+                          numpy.clip, nxnpy.clip, numpy.float32)
 
     def test_cos_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)

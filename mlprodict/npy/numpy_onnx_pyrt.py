@@ -6,6 +6,8 @@ and compiled with this python runtime.
 .. versionadded:: 0.6
 """
 from .onnx_numpy_annotation import (
+    NDArrayType,
+    NDArrayTypeSameShape,
     NDArraySameType,
     NDArraySameTypeSameShape)
 from .numpy_onnx_impl import (
@@ -72,13 +74,13 @@ def amin(x, axis=None, keepdims=0):
     return nx_min(x, axis=axis, keepdims=keepdims)
 
 
-@onnxnumpy_np(signature=NDArraySameType("all_int"))
+@onnxnumpy_np(signature=NDArrayType("all_int"))
 def argmax(x, axis=None, keepdims=0):
     "argmax"
     return nx_argmax(x, axis=axis, keepdims=keepdims)
 
 
-@onnxnumpy_np(signature=NDArraySameType("all_int"))
+@onnxnumpy_np(signature=NDArrayType("all_int"))
 def argmin(x, axis=None, keepdims=0):
     "argmin"
     return nx_argmin(x, axis=axis, keepdims=keepdims)
@@ -108,10 +110,11 @@ def atanh(x):
     return nx_atanh(x)
 
 
-@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
-def clip(x, xmin=None, xmax=None):
+@onnxnumpy_np(
+    signature=NDArrayType(("all", "all?", "all?"), "all"))
+def clip(x, a_min=None, a_max=None):
     "clip"
-    return nx_cosh(x, xmin, xmax)
+    return nx_cosh(x, a_min, a_max)
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
@@ -138,7 +141,7 @@ def exp(x):
     return nx_exp(x)
 
 
-@onnxnumpy_np(signature=NDArraySameTypeSameShape("all_bool"))
+@onnxnumpy_np(signature=NDArrayTypeSameShape("all_bool"))
 def isnan(x):
     "isnan"
     return nx_isnan(x)
