@@ -98,8 +98,10 @@ class wrapper_onnxnumpy_np:
                 raise RuntimeError(
                     "Signature does not have any arguments, use directly dtypes.")
             others = tuple(dtype.get(k, self.kwargs[k]) for k in self.kwargs)
-            key = ((dtype['dtype_onnx'],
-                    dtype.get('dtype_onnx_out', dtype['dtype_onnx'])), ) + others
+            inkey = (dtype['dtype_onnx']
+                     if isinstance(dtype['dtype_onnx'], tuple)
+                     else (dtype['dtype_onnx'], ))
+            key = inkey + others
             self._populate(key)
         elif dtype not in self.signed_compiled:
             self._populate(dtype)
@@ -114,7 +116,7 @@ class wrapper_onnxnumpy_np:
         tensor in *args* defines the templated version of the function
         to convert into *ONNX*.
         """
-        return self[args[0].dtype](*args)
+        return self[tuple(a.dtype for a in args)](*args)
 
     def _populate(self, version):
         """

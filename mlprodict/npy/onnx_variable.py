@@ -54,6 +54,10 @@ class OnnxVar:
         self.onnx_op = op
         self.alg_ = None
         self.onnx_op_kwargs = kwargs
+        for i, inp in enumerate(self.inputs):
+            if isinstance(inp, type):
+                raise TypeError(
+                    "Unexpected type for input %d - %r." % (i, inp))
 
     def to_algebra(self, op_version=None):
         """
