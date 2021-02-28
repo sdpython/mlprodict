@@ -160,6 +160,15 @@ class TestNumpyOnnxFunction(ExtTestCase):
                            numpy.array(0.2, dtype=numpy.float32)),
                           numpy.clip, nxnpy.clip, key)
 
+    def test_compress_float32(self):
+        axes = [0, 1, None]
+        for a in axes:
+            with self.subTest(axis=a):
+                x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
+                cond = numpy.array([False, True])
+                self.common_testn((cond, x), numpy.compress, nxnpy.compress,
+                                  (numpy.float32, numpy_bool), axis=a)
+
     def test_cos_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.cos, nxnpy.cos, numpy.float32)
@@ -275,5 +284,5 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyOnnxFunction().test_abs_float32()
+    TestNumpyOnnxFunction().test_compress_float32()
     unittest.main()

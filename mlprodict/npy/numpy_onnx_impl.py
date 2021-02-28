@@ -17,6 +17,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAtan, OnnxAtanh,
     OnnxCeil,
     OnnxClip,
+    OnnxCompress,
     OnnxConstantOfShape,
     OnnxCos, OnnxCosh,
     OnnxCumSum,
@@ -136,6 +137,13 @@ def clip(x, a_min=None, a_max=None):
     if a_max is not None:
         args.append(a_max)
     return OnnxVar(*args, op=OnnxClip)
+
+
+def compress(condition, x, axis=None):
+    "See :epkg:`numpy:compress`."
+    if axis is None:
+        return OnnxVar(x, condition, op=OnnxCompress)
+    return OnnxVar(x, condition, op=OnnxCompress, axis=axis)
 
 
 def cos(x):

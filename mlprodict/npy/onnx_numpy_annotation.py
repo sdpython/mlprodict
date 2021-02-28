@@ -105,7 +105,8 @@ class _NDArrayAlias:
         raise NotImplementedError(
             "Unexpected input dtype %r." % dtypes)
 
-    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None, nvars=False):
+    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None,
+                 nvars=False):
         "constructor"
         if dtypes is None:
             raise ValueError("dtypes cannot be None.")
@@ -120,6 +121,8 @@ class _NDArrayAlias:
         self.dtypes = _NDArrayAlias._process_type(dtypes)
         if dtypes_out is None:
             self.dtypes_out = (self.dtypes[0], )
+        elif isinstance(dtypes_out, int):
+            self.dtypes_out = (self.dtypes[dtypes_out], )
         else:
             if not isinstance(dtypes_out, (tuple, list)):
                 dtypes_out = (dtypes_out, )

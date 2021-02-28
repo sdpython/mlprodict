@@ -27,6 +27,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxBatchNormalization,
     OnnxAcos, OnnxAcosh, OnnxAsin, OnnxAsinh, OnnxAtan, OnnxAtanh,
     OnnxCeil, OnnxClip,
+    OnnxCompress,
     OnnxConcat, OnnxConv, OnnxConvTranspose,
     OnnxConstant, OnnxConstant_9, OnnxConstant_11,
     OnnxConstantOfShape,
@@ -594,6 +595,23 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 op_version=op_version),
             lambda x: numpy.clip(x, 0.1, 2.1))
         python_tested.append(OnnxClip)
+
+    @wraplog()
+    def test_onnxt_runtime_compress(self):
+        # axis is None
+        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(numpy.float32)
+        x = x.reshape((-1, 2))
+        cond = numpy.array([False, True, False])
+        onx = OnnxCompress('X', 'cond', output_names=['Y'],
+                           op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x, 'cond': cond},
+                                outputs=[('Y', FloatTensorType())],
+                                target_opset=get_opset_number_from_onnx())
+        exp = numpy.compress(cond, x)
+        got = OnnxInference(model_def).run({'X': x, 'cond': cond})
+        self.assertEqualArray(exp, got['Y'])
+
+        python_tested.append(OnnxCompress)
 
     @wraplog()
     def test_onnxt_runtime_clip_10(self):

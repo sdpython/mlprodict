@@ -26,6 +26,7 @@ from .numpy_onnx_impl import (
     atanh as nx_atanh,
     ceil as nx_ceil,
     clip as nx_clip,
+    compress as nx_compress,
     cos as nx_cos,
     cosh as nx_cosh,
     cumsum as nx_cumsum,
@@ -133,6 +134,12 @@ def ceil(x):
 def clip(x, a_min=None, a_max=None):
     "clip"
     return nx_clip(x, a_min, a_max)
+
+
+@onnxnumpy_np(signature=NDArrayType(("bool", "all"), dtypes_out=1))
+def compress(condition, x, axis=None):
+    "compress"
+    return nx_compress(condition, x, axis=axis)
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))

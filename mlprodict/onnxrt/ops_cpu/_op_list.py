@@ -25,6 +25,7 @@ from .op_cdist import CDist
 from .op_ceil import Ceil
 from .op_celu import Celu
 from .op_clip import Clip_6, Clip_11, Clip
+from .op_compress import Compress
 from .op_concat import Concat
 from .op_conv import Conv
 from .op_conv_transpose import ConvTranspose
