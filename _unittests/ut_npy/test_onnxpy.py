@@ -31,7 +31,7 @@ class TestOnnxPy(ExtTestCase):
             if name == 'all':
                 self.assertIsInstance(res, tuple)
             if name == 'int':
-                self.assertEqual(res, numpy.int64)
+                self.assertEqual(res, (numpy.int64, ))
             if name == 'ints':
                 self.assertEqual(res, (numpy.int32, numpy.int64))
             if name == 'floats':
