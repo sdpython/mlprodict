@@ -5,7 +5,7 @@
 .. versionadded:: 0.6
 """
 import numpy
-from onnx import onnx_pb as onnx_proto
+from onnx import onnx_pb as onnx_proto  # pylint: disable=E1101
 from onnx.helper import make_tensor
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs,
