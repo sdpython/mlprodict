@@ -252,6 +252,8 @@ class TestNumpyOnnxFunction(ExtTestCase):
     def test_tanh_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.tanh, nxnpy.tanh, numpy.float32)
+        doc = nxnpy.tanh.__doc__
+        self.assertIn('tanh', doc)
 
 
 if __name__ == "__main__":
