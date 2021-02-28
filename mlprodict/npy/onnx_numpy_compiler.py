@@ -229,7 +229,8 @@ class OnnxNumpyCompiler:
         if self.onnx_ is None and self.fct_ is not None:
             inputs, outputs, kwargs, n_optional = self._parse_annotation(  # pylint: disable=W0612
                 signature=signature, version=version)
-            if (not signature.n_variables and isinstance(version, tuple) and
+            if ((signature is None or not signature.n_variables) and
+                    isinstance(version, tuple) and
                     len(inputs) != len(version) - len(kwargs)):
                 raise NotImplementedError(
                     "Mismatch between additional parameters %r and "
