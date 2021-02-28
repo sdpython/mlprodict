@@ -26,6 +26,7 @@ from .numpy_onnx_impl import (
     clip as nx_clip,
     cos as nx_cos,
     cosh as nx_cosh,
+    einsum as nx_einsum,
     erf as nx_erf,
     exp as nx_exp,
     isnan as nx_isnan,
@@ -135,6 +136,12 @@ def cos(x):
 def cosh(x):
     "cosh"
     return nx_cosh(x)
+
+
+@onnxnumpy_np(signature=NDArrayType("all", nvars=True))
+def einsum(*x, equation=None):
+    "einsum"
+    return nx_einsum(*x, equation=equation)
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))

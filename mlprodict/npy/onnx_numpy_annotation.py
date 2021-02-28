@@ -83,9 +83,9 @@ class _NDArrayAlias:
             if dtypes == "all":
                 dtypes = all_dtypes
             elif dtypes == "int":
-                dtypes = numpy.int64
+                dtypes = (numpy.int64, )
             elif dtypes == "bool":
-                dtypes = (numpy_bool)
+                dtypes = (numpy_bool, )
             elif dtypes == "floats":
                 dtypes = (numpy.float32, numpy.float64)
             elif dtypes == "ints":
@@ -105,7 +105,7 @@ class _NDArrayAlias:
         raise NotImplementedError(
             "Unexpected input dtype %r." % dtypes)
 
-    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None):
+    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None, nvars=False):
         if dtypes is None:
             raise ValueError("dtypes cannot be None.")
         if isinstance(dtypes, str) and '_' in dtypes:
@@ -120,6 +120,7 @@ class _NDArrayAlias:
                 dtypes_out = (dtypes_out, )
             self.dtypes_out = _NDArrayAlias._process_type(dtypes_out)
         self.n_optional = 0 if n_optional is None else n_optional
+        self.n_variables = nvars
 
     def __repr__(self):
         "usual"
@@ -140,20 +141,20 @@ class _NDArrayAlias:
         k0 = key[0]
         res = []
         for i, o in enumerate(self.dtypes_out):
-            if isinstance(o, tuple):
-                if k0 in o:
-                    res.append(k0)
-                else:
-                    raise RuntimeError(
-                        "Unable to guess output type for output %d, "
-                        "input types are %r, expected output is %r."
-                        "" % (i, key, o))
-            elif o in all_dtypes or o in (bool, numpy_bool, str, numpy_str):
-                res.append(o)
+            if not isinstance(o, tuple):
+                raise TypeError(
+                    "All outputs must be tuple, output %d is %r."
+                    "" % (i, o))
+            if (len(o) == 1 and (o[0] in all_dtypes or
+                                 o[0] in (bool, numpy_bool, str, numpy_str))):
+                res.append(o[0])
+            elif k0 in o:
+                res.append(k0)
             else:
                 raise RuntimeError(
-                    "Unable to guess output type %d, "
-                    "output type is %r, input types are %r." % (i, o, key))
+                    "Unable to guess output type for output %d, "
+                    "input types are %r, expected output is %r."
+                    "" % (i, key, o))
         return tuple(res)
 
     def get_inputs_outputs(self, args, kwargs, version):
@@ -166,6 +167,12 @@ class _NDArrayAlias:
         :return: *tuple(inputs, outputs, n_input_range)*,
             each of them is a list of tuple with the name and the dtype
         """
+        for k, v in kwargs.items():
+            if isinstance(v, type):
+                raise RuntimeError(
+                    "Default value for argument %r must not be of type %r"
+                    "." % (k, v))
+
         def _possible_names():
             yield 'y'
             yield 'z'
@@ -174,15 +181,23 @@ class _NDArrayAlias:
                 yield 'o%d' % i
 
         key = version if isinstance(version, tuple) else (version, )
-        names = tuple(args)
-        kw = 0
         items = list(kwargs.items())
-        while len(names) < len(self.dtypes):
-            names = names + (items[kw][0], )
-            kw += 1
-        kwargs = OrderedDict(items[kw:])
-        args = list(names)
-        key_types = key[:len(args)] if len(key) > len(args) else key
+
+        if self.n_variables:
+            ngiven = len(key) - len(items)
+            key_types = key[:ngiven]
+            names = tuple("x%d" % i for i in range(ngiven))
+            args = list(names)
+        else:
+            names = tuple(args)
+            kw = 0
+            while len(names) < len(self.dtypes):
+                names = names + (items[kw][0], )
+                kw += 1
+            kwargs = OrderedDict(items[kw:])
+            args = list(names)
+            key_types = key[:len(args)] if len(key) > len(args) else key
+
         onnx_types = [self._to_onnx_dtype(k, None) for k in key_types]
         inputs = list(zip(args, onnx_types))
 
@@ -227,15 +242,15 @@ class NDArrayType(_NDArrayAlias):
 
     :param dtypes: input dtypes
     :param dtypes_out: output dtypes
-    :param n_optional: number of optional parameters,
-        0 by default
+    :param n_optional: number of optional parameters, 0 by default
+    :param nvars: True if the function allows a variable number of inputs
 
     .. versionadded:: 0.6
     """
 
-    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None):
+    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None, nvars=False):
         _NDArrayAlias.__init__(self, dtypes=dtypes, dtypes_out=dtypes_out,
-                               n_optional=n_optional)
+                               n_optional=n_optional, nvars=nvars)
 
 
 class NDArrayTypeSameShape(NDArrayType):
@@ -244,15 +259,15 @@ class NDArrayTypeSameShape(NDArrayType):
 
     :param dtypes: input dtypes
     :param dtypes_out: output dtypes
-    :param n_optional: number of optional parameters,
-        0 by default
+    :param n_optional: number of optional parameters, 0 by default
+    :param nvars: True if the function allows a variable number of inputs
 
     .. versionadded:: 0.6
     """
 
-    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None):
+    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None, nvars=False):
         NDArrayType.__init__(self, dtypes=dtypes, dtypes_out=dtypes_out,
-                             n_optional=n_optional)
+                             n_optional=n_optional, nvars=nvars)
 
 
 class NDArraySameType(NDArrayType):

@@ -6,8 +6,10 @@ import unittest
 import numpy
 import scipy.special as sp
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper import compare_module_version
 from mlprodict.onnxrt import OnnxInference
 import mlprodict.npy.numpy_onnx_pyrt as nxnpy
+from onnxruntime import __version__ as ort_version
 
 
 try:
@@ -18,7 +20,8 @@ except AttributeError:
 
 class TestNumpyOnnxFunction(ExtTestCase):
 
-    def common_test1(self, x, npfct, nxfct, dtype, dtype_out=None, **kwargs):
+    def common_test1(self, x, npfct, nxfct, dtype, dtype_out=None,
+                     ort=True, **kwargs):
         xt = x.astype(dtype)
         if dtype_out is None and (kwargs is None or len(kwargs) == 0):
             expected = npfct(xt)
@@ -32,13 +35,14 @@ class TestNumpyOnnxFunction(ExtTestCase):
             got = nxfct[kwargs](xt)
             compiled = nxfct[kwargs].compiled
         self.assertEqualArray(expected, got)
-        onx = compiled.onnx_
-        rt2 = OnnxInference(onx, runtime="onnxruntime1")
-        inputs = rt2.input_names
-        outputs = rt2.output_names
-        data = {inputs[0]: xt}
-        got2 = rt2.run(data)[outputs[0]]
-        self.assertEqualArray(expected, got2, decimal=6)
+        if ort:
+            onx = compiled.onnx_
+            rt2 = OnnxInference(onx, runtime="onnxruntime1")
+            inputs = rt2.input_names
+            outputs = rt2.output_names
+            data = {inputs[0]: xt}
+            got2 = rt2.run(data)[outputs[0]]
+            self.assertEqualArray(expected, got2, decimal=6)
 
     def common_testn(self, xs, npfct, nxfct, dtype, dtype_out=None,
                      ort=True, **kwargs):
@@ -151,6 +155,19 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.cos, nxnpy.cos, numpy.float32)
 
+    def test_einsum_float32(self):
+        np_ein = lambda *x, equation=None: numpy.einsum(equation, *x)
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_testn((x, x), np_ein, nxnpy.einsum,  # pylint: disable=E1101
+                          (numpy.float32, numpy.float32), equation='ab,bc->ac')
+        self.common_testn((x, x, x), np_ein, nxnpy.einsum,  # pylint: disable=E1101
+                          (numpy.float32, numpy.float32, numpy.float32),
+                          equation='ab,bc,cd->acd')
+        self.common_test1(x, np_ein, nxnpy.einsum,  # pylint: disable=E1101
+                          numpy.float32, equation='ii')
+        self.common_test1(x, np_ein, nxnpy.einsum,  # pylint: disable=E1101
+                          numpy.float32, equation='ij->ji')
+
     def test_erf_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, sp.erf, nxnpy.erf,  # pylint: disable=E1101
@@ -170,8 +187,10 @@ class TestNumpyOnnxFunction(ExtTestCase):
         self.common_test1(x, numpy.log, nxnpy.log, numpy.float32)
 
     def test_log_float64(self):
+        older_than = compare_module_version(ort_version, "1.7.0") >= 0
         x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float64)
-        self.common_test1(x, numpy.log, nxnpy.log, numpy.float64)
+        self.common_test1(x, numpy.log, nxnpy.log, numpy.float64,
+                          ort=older_than)
 
     def test_mean_float32(self):
         kwargs = [{'axis': 0}, {}, {'axis': 1}]
@@ -233,6 +252,8 @@ class TestNumpyOnnxFunction(ExtTestCase):
     def test_tanh_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.tanh, nxnpy.tanh, numpy.float32)
+        doc = nxnpy.tanh.__doc__
+        self.assertIn('tanh', doc)
 
 
 if __name__ == "__main__":

@@ -105,6 +105,8 @@ Available numpy functions implemented with ONNX operators
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.cosh
 
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.einsum
+
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.erf
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.exp
@@ -161,6 +163,8 @@ ONNX functions executed python ONNX runtime
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.atan
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.atanh
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.einsum
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.ceil
 

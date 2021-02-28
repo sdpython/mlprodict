@@ -151,7 +151,11 @@ def onnxnumpy_np(op_version=None, runtime=None, signature=None):
     .. versionadded:: 0.6
     """
     def decorator_fct(fct):
-        return wrapper_onnxnumpy_np(
+        newclass = type(
+            "onnxnumpy_nb_%s_%s_%s" % (fct.__name__, str(op_version), runtime),
+            (wrapper_onnxnumpy_np,), {'__doc__': fct.__doc__})
+        return newclass(
             fct=fct, op_version=op_version, runtime=runtime,
             signature=signature)
+
     return decorator_fct
