@@ -85,6 +85,8 @@ Available numpy functions implemented with ONNX operators
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.amin
 
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.arange
+
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.argmax
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.argmin
@@ -151,6 +153,8 @@ ONNX functions executed python ONNX runtime
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.amax
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.amin
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.arange
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.argmax
 
