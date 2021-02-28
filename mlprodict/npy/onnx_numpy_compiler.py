@@ -169,7 +169,8 @@ class OnnxNumpyCompiler:
         """
         args, kwargs = get_args_kwargs(self.fct_)
         if isinstance(version, tuple):
-            if not signature.n_variables and len(version) - 1 != len(kwargs):
+            if (not signature.n_variables and
+                    len(version) - len(args) > len(kwargs)):
                 raise RuntimeError(
                     "Mismatch between version=%r and kwargs=%r for "
                     "function %r, signature=%r." % (
@@ -231,7 +232,7 @@ class OnnxNumpyCompiler:
                 signature=signature, version=version)
             if ((signature is None or not signature.n_variables) and
                     isinstance(version, tuple) and
-                    len(inputs) != len(version) - len(kwargs)):
+                    len(inputs) < len(version) - len(kwargs)):
                 raise NotImplementedError(
                     "Mismatch between additional parameters %r and "
                     "version %r for function %r from %r."
@@ -295,14 +296,14 @@ class OnnxNumpyCompiler:
                 self, rt, inputs, outputs, n_optional)
         return self.rt_fct_
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         """
         Executes the function and returns the results.
 
         :param args: arguments
         :return: results
         """
-        res = self.rt_fct_(*args)
+        res = self.rt_fct_(*args, **kwargs)
         if len(res) == 1:
             return res[0]
         return res

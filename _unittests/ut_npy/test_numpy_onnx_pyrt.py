@@ -104,12 +104,12 @@ class TestNumpyOnnxFunction(ExtTestCase):
                                   numpy.float32, **kw)
 
     def test_arange_float32(self):
-        kwargs = [{'step': 1}, {}, {'step': 2}, {'step': -1}]
+        kwargs = [{}, {'step': 1}]
         for kw in kwargs:
             with self.subTest(kw=kw):
                 begin = numpy.array([5], dtype=numpy.int64)
-                end = numpy.array([10 * kw.get('step', 1)], dtype=numpy.int64)
-                self.common_testn((begin, end), numpy.arange, nxnpy.arange,
+                stop = numpy.array([10 * kw.get('step', 1)], dtype=numpy.int64)
+                self.common_testn((begin, stop), numpy.arange, nxnpy.arange,
                                   (numpy.int64, numpy.int64), **kw)
 
     def test_argmax_float32(self):
@@ -266,4 +266,5 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestNumpyOnnxFunction().test_abs_float32()
     unittest.main()

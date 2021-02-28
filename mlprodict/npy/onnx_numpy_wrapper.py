@@ -21,11 +21,11 @@ class wrapper_onnxnumpy:
     def __init__(self, compiled):
         self.compiled = compiled
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         """
         Calls the compiled function with arguments `args`.
         """
-        return self.compiled(*args)
+        return self.compiled(*args, **kwargs)
 
 
 def onnxnumpy(op_version=None, runtime=None, signature=None):

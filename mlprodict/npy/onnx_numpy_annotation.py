@@ -106,8 +106,13 @@ class _NDArrayAlias:
             "Unexpected input dtype %r." % dtypes)
 
     def __init__(self, dtypes=None, dtypes_out=None, n_optional=None, nvars=False):
+        "constructor"
         if dtypes is None:
             raise ValueError("dtypes cannot be None.")
+        if isinstance(dtypes, tuple) and len(dtypes) == 0:
+            raise TypeError("dtypes must not be empty.")
+        if isinstance(dtypes, tuple) and not isinstance(dtypes[0], tuple):
+            dtypes = tuple(t if isinstance(t, str) else (t,) for t in dtypes)
         if isinstance(dtypes, str) and '_' in dtypes:
             dtypes, dtypes_out = dtypes.split('_')
         if not isinstance(dtypes, (tuple, list)):
@@ -121,6 +126,30 @@ class _NDArrayAlias:
             self.dtypes_out = _NDArrayAlias._process_type(dtypes_out)
         self.n_optional = 0 if n_optional is None else n_optional
         self.n_variables = nvars
+
+        if not isinstance(self.dtypes, tuple):
+            raise TypeError(
+                "self.dtypes must be a tuple not {}.".format(self.dtypes))
+        if (len(self.dtypes) == 0 or
+                not isinstance(self.dtypes[0], tuple)):
+            raise TypeError(
+                "Type mismatch in self.dtypes: {}.".format(self.dtypes))
+        if (len(self.dtypes[0]) == 0 or
+                isinstance(self.dtypes[0][0], tuple)):
+            raise TypeError(
+                "Type mismatch in self.dtypes: {}.".format(self.dtypes))
+
+        if not isinstance(self.dtypes_out, tuple):
+            raise TypeError(
+                "self.dtypes_out must be a tuple not {}.".format(self.dtypes_out))
+        if (len(self.dtypes_out) == 0 or
+                not isinstance(self.dtypes_out[0], tuple)):
+            raise TypeError(
+                "Type mismatch in self.dtypes_out: {}.".format(self.dtypes_out))
+        if (len(self.dtypes_out[0]) == 0 or
+                isinstance(self.dtypes_out[0][0], tuple)):
+            raise TypeError(
+                "Type mismatch in self.dtypes_out: {}.".format(self.dtypes_out))
 
     def __repr__(self):
         "usual"

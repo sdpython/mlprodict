@@ -5,16 +5,21 @@
 .. versionadded:: 0.6
 """
 import numpy
+from onnx import onnx_pb as onnx_proto
+from onnx.helper import make_tensor
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs,
     OnnxAcos, OnnxAcosh,
+    OnnxAdd,
     OnnxArgMax,
     OnnxArgMin,
     OnnxAsin, OnnxAsinh,
     OnnxAtan, OnnxAtanh,
     OnnxCeil,
     OnnxClip,
+    OnnxConstantOfShape,
     OnnxCos, OnnxCosh,
+    OnnxCumSum,
     OnnxEinsum,
     OnnxErf,
     OnnxExp,
@@ -69,12 +74,18 @@ def amin(x, axis=None, keepdims=0):
     return OnnxVar(x, op=OnnxReduceMin, keepdims=keepdims, axes=axis)
 
 
-def arange(begin, stop, step=1):
-    "See :epkg:`numpy:arange`."
-    v = numpy.array([stop - begin], dtype=numpy.int64)
-    cst = OnnxVar(v, op=OnnxConstantOfShape, value=step)
-    cs = OnnxVar(cst, op=OnnxCumSum, axis=0)
-    return cs + numpy.array([begin - step], dtype=numpy.int64)
+def arange(start, stop, step=1):
+    "See :epkg:`numpy:arange`, *start*, *stop* must be specified."
+    if step != 1:
+        raise NotImplementedError(
+            "The function is not implemented for step != 1 (step=%r)." % step)
+    value = make_tensor("value", onnx_proto.TensorProto.INT64, (1, ), [step])
+    cst = OnnxVar(stop - start, op=OnnxConstantOfShape, value=value)
+    cs = OnnxVar(cst,
+                 numpy.array([0], dtype=numpy.int64),
+                 op=OnnxCumSum)
+    diff = start - numpy.int64(step)
+    return OnnxVar(cs, diff, op=OnnxAdd)
 
 
 def argmax(x, axis=None, keepdims=0):

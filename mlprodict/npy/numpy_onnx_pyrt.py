@@ -67,10 +67,10 @@ def acosh(x):
     return nx_acosh(x)
 
 
-@onnxnumpy_np(signature=NDArrayType(numpy.int64, numpy.int64))
-def arange(begin, stop, end=1):
-    "arange"
-    return nx_arange(begin, stop, end)
+@onnxnumpy_np(signature=NDArrayType((numpy.int64, numpy.int64)))
+def arange(start, stop, step=1):
+    "arange, *start*, *stop* must be specified."
+    return nx_arange(start, stop, step=step)
 
 
 @onnxnumpy_np(signature=NDArraySameType("all"))
