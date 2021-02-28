@@ -5,6 +5,7 @@ and compiled with this python runtime.
 
 .. versionadded:: 0.6
 """
+import numpy
 from .onnx_numpy_annotation import (
     NDArrayType,
     NDArrayTypeSameShape,
@@ -16,6 +17,7 @@ from .numpy_onnx_impl import (
     acosh as nx_acosh,
     amin as nx_min,
     amax as nx_max,
+    arange as nx_arange,
     argmax as nx_argmax,
     argmin as nx_argmin,
     asin as nx_asin,
@@ -63,6 +65,12 @@ def acos(x):
 def acosh(x):
     "acosh"
     return nx_acosh(x)
+
+
+@onnxnumpy_np(signature=NDArrayType(numpy.int64, numpy.int64))
+def arange(begin, stop, end=1):
+    "arange"
+    return nx_arange(begin, stop, end)
 
 
 @onnxnumpy_np(signature=NDArraySameType("all"))

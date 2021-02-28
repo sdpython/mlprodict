@@ -69,6 +69,14 @@ def amin(x, axis=None, keepdims=0):
     return OnnxVar(x, op=OnnxReduceMin, keepdims=keepdims, axes=axis)
 
 
+def arange(begin, stop, step=1):
+    "See :epkg:`numpy:arange`."
+    v = numpy.array([stop - begin], dtype=numpy.int64)
+    cst = OnnxVar(v, op=OnnxConstantOfShape, value=step)
+    cs = OnnxVar(cst, op=OnnxCumSum, axis=0)
+    return cs + numpy.array([begin - step], dtype=numpy.int64)
+
+
 def argmax(x, axis=None, keepdims=0):
     "See :epkg:`numpy:argmax`."
     if axis is None:
