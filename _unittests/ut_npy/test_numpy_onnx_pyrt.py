@@ -40,7 +40,8 @@ class TestNumpyOnnxFunction(ExtTestCase):
         got2 = rt2.run(data)[outputs[0]]
         self.assertEqualArray(expected, got2, decimal=6)
 
-    def common_testn(self, xs, npfct, nxfct, dtype, dtype_out=None, **kwargs):
+    def common_testn(self, xs, npfct, nxfct, dtype, dtype_out=None,
+                     ort=True, **kwargs):
         xts = list(xs)
         if dtype_out is None and (kwargs is None or len(kwargs) == 0):
             expected = npfct(*xts)
@@ -61,13 +62,14 @@ class TestNumpyOnnxFunction(ExtTestCase):
             got = nxfct[kwargs](*xts)
             compiled = nxfct[kwargs].compiled
         self.assertEqualArray(expected, got)
-        onx = compiled.onnx_
-        rt2 = OnnxInference(onx, runtime="onnxruntime1")
-        inputs = rt2.input_names
-        outputs = rt2.output_names
-        data = {n: x for n, x in zip(inputs, xts)}
-        got2 = rt2.run(data)[outputs[0]]
-        self.assertEqualArray(expected, got2, decimal=6)
+        if ort:
+            onx = compiled.onnx_
+            rt2 = OnnxInference(onx, runtime="onnxruntime1")
+            inputs = rt2.input_names
+            outputs = rt2.output_names
+            data = {n: x for n, x in zip(inputs, xts)}
+            got2 = rt2.run(data)[outputs[0]]
+            self.assertEqualArray(expected, got2, decimal=6)
 
     def test_abs_float32(self):
         x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
@@ -138,11 +140,11 @@ class TestNumpyOnnxFunction(ExtTestCase):
         key = (numpy.float32, numpy.float32, numpy.float32)
         self.common_testn((x, numpy.array([0.2], dtype=numpy.float32)),
                           lambda x, y: numpy.clip(x, y, None),
-                          nxnpy.clip, key)
-        self.common_testn((x, None, numpy.array([0.2], dtype=numpy.float32)),
-                          numpy.clip, nxnpy.clip, key)
-        self.common_testn((x, numpy.array([-0.2], dtype=numpy.float32),
-                           numpy.array([0.2], dtype=numpy.float32)),
+                          nxnpy.clip, key, ort=False)
+        self.common_testn((x, None, numpy.array(0.2, dtype=numpy.float32)),
+                          numpy.clip, nxnpy.clip, key, ort=False)
+        self.common_testn((x, numpy.array(-0.2, dtype=numpy.float32),
+                           numpy.array(0.2, dtype=numpy.float32)),
                           numpy.clip, nxnpy.clip, key)
 
     def test_cos_float32(self):
@@ -234,5 +236,4 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyOnnxFunction().test_sum_float32()
     unittest.main()
