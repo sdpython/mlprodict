@@ -48,8 +48,9 @@ class TestNumpyOnnxFunction(ExtTestCase):
                 nxfct[dtype]
             except TypeError as e:
                 raise AssertionError(
-                    "Unable to find function key %r (type: %r) signature: %r."
-                    "" % (dtype, type(nxfct), nxfct.signature)) from e
+                    "Unable to find function key %r\n(type: %r)\nsignature:"
+                    " %r." % (dtype, type(nxfct),
+                              nxfct.signature)) from e
             got = nxfct[dtype](*xts)
             compiled = nxfct[dtype].compiled
         else:
@@ -134,14 +135,15 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
     def test_clip_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        key = (numpy.float32, numpy.float32, numpy.float32)
         self.common_testn((x, numpy.array([0.2], dtype=numpy.float32)),
                           lambda x, y: numpy.clip(x, y, None),
-                          nxnpy.clip, numpy.float32)
+                          nxnpy.clip, key)
         self.common_testn((x, None, numpy.array([0.2], dtype=numpy.float32)),
-                          numpy.clip, nxnpy.clip, numpy.float32)
+                          numpy.clip, nxnpy.clip, key)
         self.common_testn((x, numpy.array([-0.2], dtype=numpy.float32),
                            numpy.array([0.2], dtype=numpy.float32)),
-                          numpy.clip, nxnpy.clip, numpy.float32)
+                          numpy.clip, nxnpy.clip, key)
 
     def test_cos_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
@@ -185,15 +187,15 @@ class TestNumpyOnnxFunction(ExtTestCase):
                 self.common_test1(x, numpy.prod, nxnpy.prod,
                                   numpy.float32, **kw)
 
-    def test_reciprocal_float64(self):
-        x = numpy.array([[6.1, 5], [3.5, -7.8]], dtype=numpy.float64)
+    def test_reciprocal_float32(self):
+        x = numpy.array([[6.1, 5], [3.5, -7.8]], dtype=numpy.float32)
         self.common_test1(x, numpy.reciprocal,
-                          nxnpy.reciprocal, numpy.float64)
+                          nxnpy.reciprocal, numpy.float32)
 
-    def test_relu_float64(self):
-        x = numpy.array([[6.1, 5], [3.5, -7.8]], dtype=numpy.float64)
+    def test_relu_float32(self):
+        x = numpy.array([[6.1, 5], [3.5, -7.8]], dtype=numpy.float32)
         self.common_test1(x, lambda x: numpy.maximum(x, 0),
-                          nxnpy.relu, numpy.float64)
+                          nxnpy.relu, numpy.float32)
 
     def test_round_float64(self):
         x = numpy.array([[6.1, 5], [3.5, -7.8]], dtype=numpy.float64)
@@ -232,5 +234,5 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyOnnxFunction().test_clip_float32()
+    TestNumpyOnnxFunction().test_sum_float32()
     unittest.main()

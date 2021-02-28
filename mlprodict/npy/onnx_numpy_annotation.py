@@ -14,6 +14,11 @@ try:
 except AttributeError:
     numpy_bool = bool
 
+try:
+    numpy_str = numpy.str
+except AttributeError:
+    numpy_str = str
+
 Shape = TypeVar("Shape")
 DType = TypeVar("DType")
 
@@ -59,52 +64,68 @@ class NDArray(numpy.ndarray, Generic[Shape, DType]):
 
 
 class _NDArrayAlias:
-    def __init__(self, dtypes=None, dtypes_out=None):
-        if dtypes is None:
-            raise ValueError("dtypes cannot be None.")
-        self.dtypes = dtypes
-        self.dtypes_out = dtypes_out
-        if isinstance(self.dtypes, str):
-            if self.dtypes == "all":
-                self.dtypes = all_dtypes
-                self.dtypes_out = self.dtypes
-            elif self.dtypes == "all_int":
-                self.dtypes = all_dtypes
-                self.dtypes_out = (numpy.int64, )
-            elif self.dtypes == "all_bool":
-                self.dtypes = all_dtypes
-                self.dtypes_out = (numpy_bool, )
-            elif self.dtypes == "floats":
-                self.dtypes = (numpy.float32, numpy.float64)
-                self.dtypes_out = self.dtypes
-            elif self.dtypes == "ints":
-                self.dtypes = (numpy.int32, numpy.int64)
-                self.dtypes_out = self.dtypes
+
+    @staticmethod
+    def _process_type(dtypes):
+        """
+        Nicknames such as `floats`, `int`, `ints`, `all`
+        can be used to describe multiple inputs for
+        a signature. This function intreprets that.
+
+        .. runpython::
+            :showcode:
+
+            from mlprodict.npy.onnx_numpy_annotation import _NDArrayAlias
+            for name in ['all', 'int', 'ints', 'floats']:
+                print(name, _NDArrayAlias._process_type(name))
+        """
+        if isinstance(dtypes, str):
+            if dtypes == "all":
+                dtypes = all_dtypes
+            elif dtypes == "int":
+                dtypes = numpy.int64
+            elif dtypes == "bool":
+                dtypes = (numpy_bool)
+            elif dtypes == "floats":
+                dtypes = (numpy.float32, numpy.float64)
+            elif dtypes == "ints":
+                dtypes = (numpy.int32, numpy.int64)
             else:
                 raise ValueError(
-                    "Unexpected shortcut for dtype %r." % self.dtypes)
-        elif isinstance(self.dtypes, (tuple, list)):
-            insig = []
-            for dt in self.dtypes:
-                if dt == 'all':
-                    dt = all_dtypes
-                elif dt == 'all?':
-                    dt = (None, ) + all_dtypes
-                elif dt == 'floats':
-                    dt = (numpy.float32, numpy.float64)
-                elif dt == 'floats?':
-                    dt = (None, numpy.float32, numpy.float64)
-                elif dt not in all_dtypes:
-                    raise TypeError(
-                        "Unexpected type error for annotation "
-                        "%r." % self)
-                insig.append(dt)
-            self.dtypes = tuple(insig)
+                    "Unexpected shortcut for dtype %r." % dtypes)
+            return dtypes
+
+        if isinstance(dtypes, (tuple, list)):
+            insig = [_NDArrayAlias._process_type(dt) for dt in dtypes]
+            return tuple(insig)
+
+        if dtypes in all_dtypes:
+            return dtypes
+
+        raise NotImplementedError(
+            "Unexpected input dtype %r." % dtypes)
+
+    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None):
+        if dtypes is None:
+            raise ValueError("dtypes cannot be None.")
+        if isinstance(dtypes, str) and '_' in dtypes:
+            dtypes, dtypes_out = dtypes.split('_')
+        if not isinstance(dtypes, (tuple, list)):
+            dtypes = (dtypes, )
+        self.dtypes = _NDArrayAlias._process_type(dtypes)
+        if dtypes_out is None:
+            self.dtypes_out = (self.dtypes[0], )
+        else:
+            if not isinstance(dtypes_out, (tuple, list)):
+                dtypes_out = (dtypes_out, )
+            self.dtypes_out = _NDArrayAlias._process_type(dtypes_out)
+        self.n_optional = 0 if n_optional is None else n_optional
 
     def __repr__(self):
         "usual"
-        return "%s(%r, %r)" % (
-            self.__class__.__name__, self.dtypes, self.dtypes_out)
+        return "%s(%r, %r, %r)" % (
+            self.__class__.__name__, self.dtypes, self.dtypes_out,
+            self.n_optional)
 
     def _to_onnx_dtype(self, dtype, shape):
         from skl2onnx.common.data_types import _guess_numpy_type
@@ -112,14 +133,38 @@ class _NDArrayAlias:
             dtype = numpy.bool
         return _guess_numpy_type(dtype, shape)
 
-    def get_inputs_outputs(self, args, version):
+    def _get_output_types(self, key):
+        """
+        Tries to infer output types.
+        """
+        k0 = key[0]
+        res = []
+        for i, o in enumerate(self.dtypes_out):
+            if isinstance(o, tuple):
+                if k0 in o:
+                    res.append(k0)
+                else:
+                    raise RuntimeError(
+                        "Unable to guess output type for output %d, "
+                        "input types are %r, expected output is %r."
+                        "" % (i, key, o))
+            elif o in all_dtypes or o in (bool, numpy_bool, str, numpy_str):
+                res.append(o)
+            else:
+                raise RuntimeError(
+                    "Unable to guess output type %d, "
+                    "output type is %r, input types are %r." % (i, o, key))
+        return tuple(res)
+
+    def get_inputs_outputs(self, args, kwargs, version):
         """
         Returns the list of inputs, outputs.
 
         :param args: list of arguments
+        :param kwargs: list of optional arguments
         :param version: required version
-        :return: *tuple(inputs, outputs)*, each of them
-            is a list of tuple with the name and the dtype
+        :return: *tuple(inputs, outputs, n_input_range)*,
+            each of them is a list of tuple with the name and the dtype
         """
         def _possible_names():
             yield 'y'
@@ -128,34 +173,41 @@ class _NDArrayAlias:
             for i in range(0, 10000):
                 yield 'o%d' % i
 
-        if isinstance(version, tuple):
-            dtype = version[0]
-        else:
-            dtype = version
+        key = version if isinstance(version, tuple) else (version, )
+        names = tuple(args)
+        kw = 0
+        items = list(kwargs.items())
+        while len(names) < len(self.dtypes):
+            names = names + (items[kw][0], )
+            kw += 1
+        kwargs = OrderedDict(items[kw:])
+        args = list(names)
+        key_types = key[:len(args)] if len(key) > len(args) else key
+        onnx_types = [self._to_onnx_dtype(k, None) for k in key_types]
+        inputs = list(zip(args, onnx_types))
 
-        if isinstance(dtype, tuple):
-            dtype, dtype_out = dtype
-        else:
-            dtype_out = dtype
-        if dtype not in self.dtypes:
-            raise TypeError(
-                "Unexpected version (1) %r, it should be in %r." % (
-                    version, self.dtypes))
-        if dtype_out not in self.dtypes_out:
-            raise TypeError(
-                "Unexpected version (2) %r, it should be in %r." % (
-                    version, self.dtypes_out))
-        onnx_type = self._to_onnx_dtype(dtype, None)
-        onnx_type_out = self._to_onnx_dtype(dtype_out, None)
-        inputs = [(a, onnx_type) for a in args]
+        key_out = self._get_output_types(key)
+        onnx_types_out = [self._to_onnx_dtype(k, None) for k in key_out]
+
+        names_out = []
         names_in = set(inp[0] for inp in inputs)
-        name_out = None
-        for name in _possible_names():
-            if name not in names_in:
-                name_out = name
-                break
-        outputs = [(name_out, onnx_type_out)]
-        return inputs, outputs
+        for _ in key_out:
+            for name in _possible_names():
+                if name not in names_in:
+                    name_out = name
+                    break
+            names_out.append(name_out)
+            names_in.add(name_out)
+
+        outputs = list(zip(names_out, onnx_types_out))
+        optional = self.n_optional
+        if optional < 0:
+            raise RuntimeError(
+                "optional cannot be negative %r (self.n_optional=%r, "
+                "len(self.dtypes)=%r, len(inputs)=%r)." % (
+                    optional, self.n_optional, len(self.dtypes),
+                    len(inputs)))
+        return inputs, kwargs, outputs, optional
 
     def shape_calculator(self, dims):
         """
@@ -175,12 +227,15 @@ class NDArrayType(_NDArrayAlias):
 
     :param dtypes: input dtypes
     :param dtypes_out: output dtypes
+    :param n_optional: number of optional parameters,
+        0 by default
 
     .. versionadded:: 0.6
     """
 
-    def __init__(self, dtypes=None, dtypes_out=None):
-        _NDArrayAlias.__init__(self, dtypes=dtypes, dtypes_out=dtypes_out)
+    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None):
+        _NDArrayAlias.__init__(self, dtypes=dtypes, dtypes_out=dtypes_out,
+                               n_optional=n_optional)
 
 
 class NDArrayTypeSameShape(NDArrayType):
@@ -189,12 +244,15 @@ class NDArrayTypeSameShape(NDArrayType):
 
     :param dtypes: input dtypes
     :param dtypes_out: output dtypes
+    :param n_optional: number of optional parameters,
+        0 by default
 
     .. versionadded:: 0.6
     """
 
-    def __init__(self, dtypes=None, dtypes_out=None):
-        NDArrayType.__init__(self, dtypes=dtypes, dtypes_out=dtypes_out)
+    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None):
+        NDArrayType.__init__(self, dtypes=dtypes, dtypes_out=dtypes_out,
+                             n_optional=n_optional)
 
 
 class NDArraySameType(NDArrayType):

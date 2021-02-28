@@ -119,7 +119,7 @@ def ceil(x):
 
 
 @onnxnumpy_np(
-    signature=NDArrayType(("all", "all?", "all?"), "all"))
+    signature=NDArrayType(("all", "all", "all"), "all", n_optional=2))
 def clip(x, a_min=None, a_max=None):
     "clip"
     return nx_clip(x, a_min, a_max)
