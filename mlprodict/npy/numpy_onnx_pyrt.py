@@ -28,6 +28,7 @@ from .numpy_onnx_impl import (
     clip as nx_clip,
     cos as nx_cos,
     cosh as nx_cosh,
+    cumsum as nx_cumsum,
     einsum as nx_einsum,
     erf as nx_erf,
     exp as nx_exp,
@@ -144,6 +145,12 @@ def cos(x):
 def cosh(x):
     "cosh"
     return nx_cosh(x)
+
+
+@onnxnumpy_np(signature=NDArrayType(("all", "ints")))
+def cumsum(x, axis):
+    "cumsum"
+    return nx_cumsum(x, axis)
 
 
 @onnxnumpy_np(signature=NDArrayType("all", nvars=True))

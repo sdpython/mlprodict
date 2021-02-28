@@ -79,7 +79,8 @@ def arange(start, stop, step=1):
     if step != 1:
         raise NotImplementedError(
             "The function is not implemented for step != 1 (step=%r)." % step)
-    value = make_tensor("value", onnx_proto.TensorProto.INT64, (1, ), [step])
+    value = make_tensor(
+        "value", onnx_proto.TensorProto.INT64, (1, ), [step])  # pylint: disable=E1101
     cst = OnnxVar(stop - start, op=OnnxConstantOfShape, value=value)
     cs = OnnxVar(cst,
                  numpy.array([0], dtype=numpy.int64),
@@ -145,6 +146,11 @@ def cos(x):
 def cosh(x):
     "See :epkg:`numpy:cosh`."
     return OnnxVar(x, op=OnnxCosh)
+
+
+def cumsum(x, axis):
+    "See :epkg:`numpy:cumsum`."
+    return OnnxVar(x, axis, op=OnnxCumSum)
 
 
 def einsum(*x, equation=None):

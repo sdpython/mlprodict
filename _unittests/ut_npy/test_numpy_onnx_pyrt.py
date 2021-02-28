@@ -164,6 +164,15 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.cos, nxnpy.cos, numpy.float32)
 
+    def test_cumsum_float32(self):
+        axes = [0, 1]
+        for a in axes:
+            with self.subTest(axis=a):
+                x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
+                ax = numpy.array(a, dtype=numpy.int64)
+                self.common_testn((x, ax), numpy.cumsum, nxnpy.cumsum,
+                                  (numpy.float32, numpy.int64))
+
     def test_einsum_float32(self):
         np_ein = lambda *x, equation=None: numpy.einsum(equation, *x)
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
