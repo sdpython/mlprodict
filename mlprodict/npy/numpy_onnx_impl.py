@@ -15,6 +15,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxCeil,
     OnnxClip,
     OnnxCos, OnnxCosh,
+    OnnxEinsum,
     OnnxErf,
     OnnxExp,
     OnnxIsNaN,
@@ -125,6 +126,11 @@ def cos(x):
 def cosh(x):
     "See :epkg:`numpy:cosh`."
     return OnnxVar(x, op=OnnxCosh)
+
+
+def einsum(*x, equation=None):
+    "See :epkg:`numpy:einsum`."
+    return OnnxVar(*x, op=OnnxEinsum, equation=equation)
 
 
 def erf(x):

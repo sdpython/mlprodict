@@ -169,12 +169,14 @@ class OnnxNumpyCompiler:
         """
         args, kwargs = get_args_kwargs(self.fct_)
         if isinstance(version, tuple):
-            if len(version) - 1 != len(kwargs):
+            if not signature.n_variables and len(version) - 1 != len(kwargs):
                 raise RuntimeError(
                     "Mismatch between version=%r and kwargs=%r for "
-                    "function %r." % (version, kwargs, self.fct_))
+                    "function %r, signature=%r." % (
+                        version, kwargs, self.fct_, signature))
+            vvers = [v for v in version if not isinstance(v, type)]
             up = {}
-            for k, v in zip(kwargs, version[1:]):
+            for k, v in zip(kwargs, vvers):
                 up[k] = v
             kwargs = kwargs.copy()
             kwargs.update(up)
@@ -227,7 +229,7 @@ class OnnxNumpyCompiler:
         if self.onnx_ is None and self.fct_ is not None:
             inputs, outputs, kwargs, n_optional = self._parse_annotation(  # pylint: disable=W0612
                 signature=signature, version=version)
-            if (isinstance(version, tuple) and
+            if (not signature.n_variables and isinstance(version, tuple) and
                     len(inputs) != len(version) - len(kwargs)):
                 raise NotImplementedError(
                     "Mismatch between additional parameters %r and "
