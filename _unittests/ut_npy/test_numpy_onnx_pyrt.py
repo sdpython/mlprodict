@@ -121,7 +121,7 @@ class TestNumpyOnnxFunction(ExtTestCase):
                                   numpy.float32, dtype_out=numpy.int64, **kw)
 
     def test_argmin_float32(self):
-        kwargs = [{'axis': 0}, {'axis': 1}]
+        kwargs = [{'axis': 0}, {'axis': 1}, {}]
         for kw in kwargs:
             with self.subTest(kw=kw):
                 x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
@@ -161,17 +161,24 @@ class TestNumpyOnnxFunction(ExtTestCase):
                           numpy.clip, nxnpy.clip, key)
 
     def test_compress_float32(self):
+        # x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
+        # cond = numpy.array([False, True])
+        # temp = nxnpy.compress(cond, x)
         axes = [0, 1, None]
         for a in axes:
             with self.subTest(axis=a):
                 x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
                 cond = numpy.array([False, True])
                 self.common_testn((cond, x), numpy.compress, nxnpy.compress,
-                                  (numpy.float32, numpy_bool), axis=a)
+                                  (numpy_bool, numpy.float32), axis=a)
 
     def test_cos_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.cos, nxnpy.cos, numpy.float32)
+
+    def test_cosh_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(x, numpy.cosh, nxnpy.cosh, numpy.float32)
 
     def test_cumsum_float32(self):
         axes = [0, 1]
@@ -284,5 +291,5 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyOnnxFunction().test_compress_float32()
+    # TestNumpyOnnxFunction().test_compress_float32()
     unittest.main()

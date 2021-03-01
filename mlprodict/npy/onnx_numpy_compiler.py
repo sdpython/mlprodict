@@ -26,11 +26,11 @@ class OnnxNumpyFunction:
         self.rt = rt
         self.n_optional = n_optional
         if n_optional < 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Wrong configuration, n_optional %r must be >= 0."
                 "" % n_optional)
         if n_optional >= len(inputs):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Wrong configuration, n_optional %r must be >= %r "
                 "the number of inputs." % (n_optional, len(inputs)))
 
@@ -56,7 +56,7 @@ class OnnxNumpyFunctionOnnxInference(OnnxNumpyFunction):
         inp = {k[0]: a for k, a in zip(self.inputs, args)}
         out = self.rt.run(inp, **kwargs)
         if len(out) != len(self.outputs):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unexpected number of outputs %d instead of %d." % (
                     len(out), len(self.outputs)))
         return tuple([out[o[0]] for o in self.outputs])
@@ -73,13 +73,13 @@ class OnnxNumpyFunctionInferenceSession(OnnxNumpyFunction):
     def __call__(self, *args, **kwargs):
         self._check_(*args, **kwargs)
         if len(kwargs) > 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "kwargs is not used but it is not empty: %r." % kwargs)
         inp = {k[0]: a for k, a in zip(self.inputs, args)}
         out = self.rt.run(None, inp)
 
         if len(out) != len(self.outputs):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unexpected number of outputs %d instead of %d." % (
                     len(out), len(self.outputs)))
         return tuple(out)
@@ -114,7 +114,7 @@ class OnnxNumpyCompiler:
         else:
             self.fct_ = fct
             if not inspect.isfunction(fct):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unexpected type for fct=%r, it must be "
                     "function." % type(fct))
             self.onnx_ = None
@@ -147,7 +147,7 @@ class OnnxNumpyCompiler:
             shape = [None if s is Any or s is Ellipsis else s
                      for s in shape]
         else:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unexpected annotated shape %r." % shape)
         return shape
 
@@ -189,9 +189,9 @@ class OnnxNumpyCompiler:
 
         def _possible_names():
             yield 'y'
-            yield 'z'
-            yield 'o'
-            for i in range(0, 10000):
+            yield 'z'  # pragma: no cover
+            yield 'o'  # pragma: no cover
+            for i in range(0, 10000):  # pragma: no cover
                 yield 'o%d' % i
 
         annotations = self.fct_.__annotations__
@@ -201,7 +201,7 @@ class OnnxNumpyCompiler:
             if a == "op_version":
                 continue
             if a not in annotations:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unable to find annotation for argument %r. "
                     "You should annotate the arguments and the results "
                     "or specify a signature." % a)
@@ -233,7 +233,7 @@ class OnnxNumpyCompiler:
             if ((signature is None or not signature.n_variables) and
                     isinstance(version, tuple) and
                     len(inputs) < len(version) - len(kwargs)):
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     "Mismatch between additional parameters %r and "
                     "version %r for function %r from %r."
                     "" % (kwargs, version, self.fct_,
@@ -247,7 +247,7 @@ class OnnxNumpyCompiler:
             else:
                 onx_var = self.fct_(*names_var, **kwargs)
                 if not hasattr(onx_var, 'to_algebra'):
-                    raise TypeError(
+                    raise TypeError(  # pragma: no cover
                         "The function %r to convert must return an instance of "
                         "OnnxVar but returns type %r." % (self.fct_, type(onx_var)))
                 onx_algebra = onx_var.to_algebra(op_version=op_version)

@@ -36,6 +36,10 @@ class TestOnnxPy(ExtTestCase):
                 self.assertEqual(res, (numpy.int32, numpy.int64))
             if name == 'floats':
                 self.assertEqual(res, (numpy.float32, numpy.float64))
+            s = repr(res)
+            self.assertNotEmpty(s)
+            self.assertIn('(', s)
+            self.assertEndsWith(')', s)
 
     def test_annotation(self):
         cl = ONC(TestOnnxPy.onnx_abs, op_version=12)

@@ -88,13 +88,13 @@ def amin(x, axis=None, keepdims=0):
 
 
 @onnxnumpy_np(signature=NDArrayType("all_int"))
-def argmax(x, axis=None, keepdims=0):
+def argmax(x, axis=0, keepdims=0):
     "argmax"
     return nx_argmax(x, axis=axis, keepdims=keepdims)
 
 
 @onnxnumpy_np(signature=NDArrayType("all_int"))
-def argmin(x, axis=None, keepdims=0):
+def argmin(x, axis=0, keepdims=0):
     "argmin"
     return nx_argmin(x, axis=axis, keepdims=keepdims)
 

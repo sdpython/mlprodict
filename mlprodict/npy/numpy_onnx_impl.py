@@ -90,17 +90,13 @@ def arange(start, stop, step=1):
     return OnnxVar(cs, diff, op=OnnxAdd)
 
 
-def argmax(x, axis=None, keepdims=0):
+def argmax(x, axis=0, keepdims=0):
     "See :epkg:`numpy:argmax`."
-    if axis is None:
-        return OnnxVar(x, op=OnnxArgMax)
     return OnnxVar(x, op=OnnxArgMax, axis=axis, keepdims=keepdims)
 
 
-def argmin(x, axis=None, keepdims=0):
+def argmin(x, axis=0, keepdims=0):
     "See :epkg:`numpy:argmin`."
-    if axis is None:
-        return OnnxVar(x, op=OnnxArgMin)
     return OnnxVar(x, op=OnnxArgMin, axis=axis, keepdims=keepdims)
 
 

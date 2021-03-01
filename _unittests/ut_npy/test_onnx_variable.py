@@ -152,10 +152,24 @@ def test_abs_and(x: NDArray[Any, numpy.float32],
 
 
 @onnxnumpy_default
+def test_abs_and2(x: NDArray[Any, numpy.float32],
+                  ) -> NDArray[Any, numpy_bool]:
+    "onnx numpy and"
+    return (nxnp.abs(x) < x) & (nxnp.abs(x) < numpy.float32(0))
+
+
+@onnxnumpy_default
 def test_abs_or(x: NDArray[Any, numpy.float32],
                 ) -> NDArray[Any, numpy_bool]:
     "onnx numpy or"
     return (nxnp.abs(x) < x) or (nxnp.abs(x) < numpy.float32(0))
+
+
+@onnxnumpy_default
+def test_abs_or2(x: NDArray[Any, numpy.float32],
+                 ) -> NDArray[Any, numpy_bool]:
+    "onnx numpy or"
+    return (nxnp.abs(x) < x) | (nxnp.abs(x) < numpy.float32(0))
 
 
 @onnxnumpy_default
@@ -393,9 +407,23 @@ class TestOnnxVariable(ExtTestCase):
             y, (numpy.abs(x) < x) & (numpy.abs(x) < 0))
 
     @ignore_warnings(DeprecationWarning)
+    def test_py_abs_and2(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_and2(x)
+        self.assertEqualArray(
+            y, (numpy.abs(x) < x) & (numpy.abs(x) < 0))
+
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_or(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_or(x)
+        self.assertEqualArray(
+            y, (numpy.abs(x) < x) | (numpy.abs(x) < 0))
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_or2(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_or2(x)
         self.assertEqualArray(
             y, (numpy.abs(x) < x) | (numpy.abs(x) < 0))
 

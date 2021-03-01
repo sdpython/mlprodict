@@ -11,12 +11,12 @@ import numpy
 
 try:
     numpy_bool = numpy.bool_
-except AttributeError:
+except AttributeError:  # pragma: no cover
     numpy_bool = bool
 
 try:
     numpy_str = numpy.str
-except AttributeError:
+except AttributeError:  # pragma: no cover
     numpy_str = str
 
 Shape = TypeVar("Shape")
@@ -108,6 +108,7 @@ class _NDArrayAlias:
     def __init__(self, dtypes=None, dtypes_out=None, n_optional=None,
                  nvars=False):
         "constructor"
+        self.output_type_from_input = 0
         if dtypes is None:
             raise ValueError("dtypes cannot be None.")
         if isinstance(dtypes, tuple) and len(dtypes) == 0:
@@ -123,6 +124,7 @@ class _NDArrayAlias:
             self.dtypes_out = (self.dtypes[0], )
         elif isinstance(dtypes_out, int):
             self.dtypes_out = (self.dtypes[dtypes_out], )
+            self.output_type_from_input = dtypes_out
         else:
             if not isinstance(dtypes_out, (tuple, list)):
                 dtypes_out = (dtypes_out, )
@@ -170,7 +172,7 @@ class _NDArrayAlias:
         """
         Tries to infer output types.
         """
-        k0 = key[0]
+        k0 = key[self.output_type_from_input]
         res = []
         for i, o in enumerate(self.dtypes_out):
             if not isinstance(o, tuple):
@@ -207,9 +209,9 @@ class _NDArrayAlias:
 
         def _possible_names():
             yield 'y'
-            yield 'z'
-            yield 'o'
-            for i in range(0, 10000):
+            yield 'z'  # pragma: no cover
+            yield 'o'  # pragma: no cover
+            for i in range(0, 10000):  # pragma: no cover
                 yield 'o%d' % i
 
         key = version if isinstance(version, tuple) else (version, )

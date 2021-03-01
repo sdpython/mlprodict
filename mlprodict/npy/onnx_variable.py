@@ -26,11 +26,11 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 
 try:
     numpy_bool = numpy.bool_
-except AttributeError:
+except AttributeError:  # pragma: no cover
     numpy_bool = bool
 try:
     numpy_str = numpy.str
-except AttributeError:
+except AttributeError:  # pragma: no cover
     numpy_str = str
 
 
@@ -66,8 +66,9 @@ class OnnxVar:
         if self.alg_ is None:
             if self.onnx_op is None:
                 if len(self.inputs) != 1:
-                    raise RuntimeError("Unexpected numer of inputs, 1 expected, "
-                                       "got {} instead.".format(self.inputs))
+                    raise RuntimeError(  # pragma: no cover
+                        "Unexpected numer of inputs, 1 expected, "
+                        "got {} instead.".format(self.inputs))
                 self.alg_ = self.inputs[0]
             else:
                 if isinstance(self.onnx_op, str):
@@ -303,7 +304,7 @@ class OnnxVar:
                 "Method copy() would do that.")
         if isinstance(index, OnnxVar):
             # scenario 2
-            raise NotImplementedError()
+            raise NotImplementedError()  # pragma: no cover
 
         if not isinstance(index, tuple):
             index = (index, )
@@ -315,18 +316,18 @@ class OnnxVar:
                 indices.append((ind, ind + 1))
             elif isinstance(ind, slice):
                 if ind.step is not None:
-                    raise NotImplementedError(
+                    raise NotImplementedError(  # pragma: no cover
                         "Unable to assign new values with step defined "
                         "on dimension %r." % d)
                 start = 0 if ind.start is None else ind.start
                 if ind.stop is None:
-                    raise NotImplementedError(
+                    raise NotImplementedError(  # pragma: no cover
                         "Unable to assign new values with end undefined "
                         "on dimension %r." % d)
                 stop = ind.stop
                 indices.append((start, stop))
             else:
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     "Unable to assign new values due to unexpected type %r "
                     "on dimension %r." % (type(ind), d))
 
@@ -341,7 +342,7 @@ class OnnxVar:
             mat_updates = numpy.full(
                 mat_indices.shape, value, dtype=value.dtype)
         else:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Unable to assign new values due to unexpected type %r "
                 "for value." % type(value))
 

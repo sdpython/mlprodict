@@ -95,7 +95,7 @@ class wrapper_onnxnumpy_np:
         """
         if isinstance(dtype, dict):
             if len(self.args) == 0:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Signature does not have any arguments, use directly dtypes.")
             others = tuple(dtype.get(k, self.kwargs[k]) for k in self.kwargs)
             inkey = (dtype['dtype_onnx']
@@ -110,7 +110,7 @@ class wrapper_onnxnumpy_np:
             key = dtype
         return self.signed_compiled[key]
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         """
         Calls the compiled function assuming the type of the first
         tensor in *args* defines the templated version of the function
