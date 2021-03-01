@@ -140,10 +140,13 @@ class TestNumpyOnnxFunction(ExtTestCase):
         with self.subTest(version="clip2"):
             self.common_testn((x, numpy.array([0.2], dtype=numpy.float32)),
                               lambda x, y: numpy.clip(x, y, None),
-                              nxnpy.clip, key, ort=False)
+                              nxnpy.clip, key[:2], ort=False)
         with self.subTest(version="clip02"):
-            self.common_testn((x, None, numpy.array(0.2, dtype=numpy.float32)),
-                              numpy.clip, nxnpy.clip, key, ort=False)
+            self.assertRaise(
+                lambda: self.common_testn(
+                    (x, None, numpy.array(0.2, dtype=numpy.float32)),
+                    numpy.clip, nxnpy.clip, key, ort=False),
+                NotImplementedError)
         with self.subTest(version="clip3"):
             self.common_testn((x, numpy.array(-0.2, dtype=numpy.float32),
                                numpy.array(0.2, dtype=numpy.float32)),
@@ -192,7 +195,8 @@ class TestNumpyOnnxFunction(ExtTestCase):
                           (numpy.float32, numpy.float32, 'ab,bc->ac'),
                           equation='ab,bc->ac')
         self.common_testn((x, x, x), np_ein, nxnpy.einsum,  # pylint: disable=E1101
-                          (numpy.float32, numpy.float32, numpy.float32, 'ab,bc,cd->acd'),
+                          (numpy.float32, numpy.float32,
+                           numpy.float32, 'ab,bc,cd->acd'),
                           equation='ab,bc,cd->acd')
         self.common_test1(x, np_ein, nxnpy.einsum,  # pylint: disable=E1101
                           (numpy.float32, 'ii'), equation='ii')
@@ -229,7 +233,7 @@ class TestNumpyOnnxFunction(ExtTestCase):
             with self.subTest(kw=kw):
                 x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
                 self.common_test1(x, numpy.mean, nxnpy.mean,
-                                  (numpy.float32, kw.get('axis', None), 0), 
+                                  (numpy.float32, kw.get('axis', None), 0),
                                   **kw)
 
     def test_prod_float32(self):
@@ -292,5 +296,4 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestNumpyOnnxFunction().test_compress_float32()
     unittest.main()

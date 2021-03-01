@@ -168,14 +168,16 @@ class OnnxNumpyCompiler:
             is a list of tuple with the name and the dtype,
             *kwargs* is the list of additional parameters
         """
-        args, kwargs = get_args_kwargs(self.fct_)
+        args, kwargs = get_args_kwargs(self.fct_, signature.n_optional)
         if isinstance(version, tuple):
-            if (not signature.n_variables and
-                    len(version) - len(args) > len(kwargs)):
+            nv = len(version) - len(args) - signature.n_optional
+            if not signature.n_variables and nv > len(kwargs):
                 raise RuntimeError(
                     "Mismatch between version=%r and kwargs=%r for "
-                    "function %r, signature=%r." % (
-                        version, kwargs, self.fct_, signature))
+                    "function %r, optional argument is %d, "
+                    "signature=%r." % (
+                        version, kwargs, self.fct_,
+                        signature.n_variables, signature))
             vvers = version[-len(kwargs):]
             up = {}
             for k, v in zip(kwargs, vvers):
@@ -239,11 +241,11 @@ class OnnxNumpyCompiler:
                 signature=signature, version=version)
             if ((signature is None or not signature.n_variables) and
                     isinstance(version, tuple) and
-                    len(inputs) < len(version) - len(kwargs)):
+                    len(inputs) < len(version) - len(kwargs) - n_optional):
                 raise NotImplementedError(  # pragma: no cover
-                    "Mismatch between additional parameters %r and "
-                    "version %r for function %r from %r."
-                    "" % (kwargs, version, self.fct_,
+                    "Mismatch between additional parameters %r "
+                    "(n_optional=%r) and version %r for function %r from %r."
+                    "" % (kwargs, n_optional, version, self.fct_,
                           getattr(self.fct_, '__module__', None)))
             names_in = [oi[0] for oi in inputs]
             names_out = [oi[0] for oi in outputs]

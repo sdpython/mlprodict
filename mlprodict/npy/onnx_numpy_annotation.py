@@ -28,17 +28,35 @@ all_dtypes = (numpy.float32, numpy.float64,
               numpy.uint32, numpy.uint64)
 
 
-def get_args_kwargs(fct):
+def get_args_kwargs(fct, n_optional):
     """
     Extracts arguments and optional parameters of a function.
 
     :param fct: function
+    :param n_optional: number of arguments to consider as
+        optional arguments and not parameters, this parameter skips
+        the first *n_optional* paramerters
     :return: arguments, OrderedDict
     """
     params = inspect.signature(fct).parameters
-    args = [name for name, p in params.items()
-            if p.default == inspect.Parameter.empty]
-    kwargs = OrderedDict((name, p.default) for name, p in params.items()
+    if n_optional == 0:
+        items = list(params.items())
+        args = [name for name, p in params.items()
+                if p.default == inspect.Parameter.empty]
+    else:
+        items = []
+        args = []
+        for name, p in params.items():
+            if p.default == inspect.Parameter.empty:
+                args.append(name)
+            else:
+                if n_optional > 0:
+                    args.append(name)
+                    n_optional -= 1
+                else:
+                    items.append((name, p))
+
+    kwargs = OrderedDict((name, p.default) for name, p in items
                          if (p.default != inspect.Parameter.empty and
                              name != 'op_version'))
     return args, kwargs
@@ -64,46 +82,17 @@ class NDArray(numpy.ndarray, Generic[Shape, DType]):
 
 
 class _NDArrayAlias:
+    """
+    Ancestor to custom signature.
 
-    @staticmethod
-    def _process_type(dtypes):
-        """
-        Nicknames such as `floats`, `int`, `ints`, `all`
-        can be used to describe multiple inputs for
-        a signature. This function intreprets that.
+    :param dtypes: input dtypes
+    :param dtypes_out: output dtypes
+    :param n_optional: number of optional parameters, 0 by default
+    :param nvars: True if the function allows an infinite number of inputs,
+        this is incompatible with parameter *n_optional*.
 
-        .. runpython::
-            :showcode:
-
-            from mlprodict.npy.onnx_numpy_annotation import _NDArrayAlias
-            for name in ['all', 'int', 'ints', 'floats']:
-                print(name, _NDArrayAlias._process_type(name))
-        """
-        if isinstance(dtypes, str):
-            if dtypes == "all":
-                dtypes = all_dtypes
-            elif dtypes == "int":
-                dtypes = (numpy.int64, )
-            elif dtypes == "bool":
-                dtypes = (numpy_bool, )
-            elif dtypes == "floats":
-                dtypes = (numpy.float32, numpy.float64)
-            elif dtypes == "ints":
-                dtypes = (numpy.int32, numpy.int64)
-            else:
-                raise ValueError(
-                    "Unexpected shortcut for dtype %r." % dtypes)
-            return dtypes
-
-        if isinstance(dtypes, (tuple, list)):
-            insig = [_NDArrayAlias._process_type(dt) for dt in dtypes]
-            return tuple(insig)
-
-        if dtypes in all_dtypes:
-            return dtypes
-
-        raise NotImplementedError(
-            "Unexpected input dtype %r." % dtypes)
+    .. versionadded:: 0.6
+    """
 
     def __init__(self, dtypes=None, dtypes_out=None, n_optional=None,
                  nvars=False):
@@ -155,6 +144,51 @@ class _NDArrayAlias:
                 isinstance(self.dtypes_out[0][0], tuple)):
             raise TypeError(
                 "Type mismatch in self.dtypes_out: {}.".format(self.dtypes_out))
+
+        if self.n_variables and self.n_optional > 0:
+            raise RuntimeError(
+                "n_variables and n_optional cannot be positive at "
+                "the same type.")
+
+    @staticmethod
+    def _process_type(dtypes):
+        """
+        Nicknames such as `floats`, `int`, `ints`, `all`
+        can be used to describe multiple inputs for
+        a signature. This function intreprets that.
+
+        .. runpython::
+            :showcode:
+
+            from mlprodict.npy.onnx_numpy_annotation import _NDArrayAlias
+            for name in ['all', 'int', 'ints', 'floats']:
+                print(name, _NDArrayAlias._process_type(name))
+        """
+        if isinstance(dtypes, str):
+            if dtypes == "all":
+                dtypes = all_dtypes
+            elif dtypes == "int":
+                dtypes = (numpy.int64, )
+            elif dtypes == "bool":
+                dtypes = (numpy_bool, )
+            elif dtypes == "floats":
+                dtypes = (numpy.float32, numpy.float64)
+            elif dtypes == "ints":
+                dtypes = (numpy.int32, numpy.int64)
+            else:
+                raise ValueError(
+                    "Unexpected shortcut for dtype %r." % dtypes)
+            return dtypes
+
+        if isinstance(dtypes, (tuple, list)):
+            insig = [_NDArrayAlias._process_type(dt) for dt in dtypes]
+            return tuple(insig)
+
+        if dtypes in all_dtypes:
+            return dtypes
+
+        raise NotImplementedError(
+            "Unexpected input dtype %r." % dtypes)
 
     def __repr__(self):
         "usual"
@@ -232,6 +266,16 @@ class _NDArrayAlias:
             args = list(names)
             key_types = key[:len(args)] if len(key) > len(args) else key
 
+        li = len(key_types)
+        optional = self.n_optional - (len(args) - len(key_types))
+        for i in range(0, optional):
+            li = len(key_types) - i - 1
+            if li < 0:
+                break
+            if key_types[li] is not None:
+                break
+        key_types = key_types[:li + 1]
+
         onnx_types = [self._to_onnx_dtype(k, None) for k in key_types]
         inputs = list(zip(args, onnx_types))
 
@@ -249,7 +293,7 @@ class _NDArrayAlias:
             names_in.add(name_out)
 
         outputs = list(zip(names_out, onnx_types_out))
-        optional = self.n_optional
+        optional = self.n_optional - (len(args) - len(inputs))
         if optional < 0:
             raise RuntimeError(
                 "optional cannot be negative %r (self.n_optional=%r, "
@@ -277,7 +321,8 @@ class NDArrayType(_NDArrayAlias):
     :param dtypes: input dtypes
     :param dtypes_out: output dtypes
     :param n_optional: number of optional parameters, 0 by default
-    :param nvars: True if the function allows a variable number of inputs
+    :param nvars: True if the function allows an infinite number of inputs,
+        this is incompatible with parameter *n_optional*.
 
     .. versionadded:: 0.6
     """
@@ -294,7 +339,8 @@ class NDArrayTypeSameShape(NDArrayType):
     :param dtypes: input dtypes
     :param dtypes_out: output dtypes
     :param n_optional: number of optional parameters, 0 by default
-    :param nvars: True if the function allows a variable number of inputs
+    :param nvars: True if the function allows an infinite number of inputs,
+        this is incompatible with parameter *n_optional*.
 
     .. versionadded:: 0.6
     """
