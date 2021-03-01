@@ -81,7 +81,8 @@ class wrapper_onnxnumpy_np:
         self.fct = kwargs['fct']
         self.signature = kwargs['signature']
         self.args, self.kwargs = get_args_kwargs(
-            self.fct, self.signature.n_optional)
+            self.fct,
+            0 if self.signature is None else self.signature.n_optional)
         self.data = kwargs
         self.signed_compiled = {}
 

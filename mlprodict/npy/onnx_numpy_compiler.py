@@ -168,7 +168,8 @@ class OnnxNumpyCompiler:
             is a list of tuple with the name and the dtype,
             *kwargs* is the list of additional parameters
         """
-        args, kwargs = get_args_kwargs(self.fct_, signature.n_optional)
+        args, kwargs = get_args_kwargs(
+            self.fct_, 0 if signature is None else signature.n_optional)
         if isinstance(version, tuple):
             nv = len(version) - len(args) - signature.n_optional
             if not signature.n_variables and nv > len(kwargs):
