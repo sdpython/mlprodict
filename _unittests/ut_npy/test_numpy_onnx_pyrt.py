@@ -9,6 +9,7 @@ from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper import compare_module_version
 from mlprodict.onnxrt import OnnxInference
 import mlprodict.npy.numpy_onnx_pyrt as nxnpy
+from mlprodict.onnxrt.ops_cpu.op_pad import onnx_pad
 from onnxruntime import __version__ as ort_version
 
 
@@ -247,6 +248,24 @@ class TestNumpyOnnxFunction(ExtTestCase):
                                   (numpy.float32, kw.get('axis', None), 0),
                                   **kw)
 
+    def test_pad_float32(self):
+        def custom_pad(x, pads, constant_value=None, mode='constant'):
+            return onnx_pad(x, pads, constant_value=constant_value, mode=mode)
+
+        kwargs = [{'mode': 'constant'}, {'mode': 'edge'},
+                  {'mode': 'reflect'}, {}]
+        for kw in kwargs:
+            with self.subTest(kw=kw):
+                x = numpy.array([[1.0, 1.2], [2.3, 3.4], [4.5, 5.7]],
+                                dtype=numpy.float32)
+                pads = numpy.array([0, 2, 0, 0], dtype=numpy.int64)
+                value = numpy.array([1.77], dtype=numpy.float32)
+                self.common_testn(
+                    (x, pads, value), custom_pad, nxnpy.pad,
+                    (numpy.float32, numpy.int64, numpy.float32,
+                     kw.get('mode', 'constant')), **kw,
+                    ort=kw.get('mode', 'constant') != 'reflect')
+
     def test_prod_float32(self):
         kwargs = [{'axis': 0}, {}, {'axis': 1}]
         for kw in kwargs:
@@ -307,4 +326,5 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestNumpyOnnxFunction().test_pad_float32()
     unittest.main()

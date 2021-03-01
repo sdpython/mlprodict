@@ -28,6 +28,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxFloor,
     OnnxIsNaN,
     OnnxLog,
+    OnnxPad,
     OnnxReciprocal,
     OnnxReduceMax,
     OnnxReduceMean,
@@ -201,6 +202,16 @@ def mean(x, axis=None, keepdims=0):
     if not isinstance(axis, list):
         axis = [axis]
     return OnnxVar(x, op=OnnxReduceMean, keepdims=keepdims, axes=axis)
+
+
+def pad(x, pads, constant_value=None, mode='constant'):
+    """
+    It does not implement :epkg:`numpy:pad` but the ONNX version
+    :func:`onnx_pad <mlprodict.onnxrt.ops_cpu.op_pad.onnx_pad>`.
+    """
+    if constant_value is None:
+        return OnnxVar(x, pads, op=OnnxPad, mode=mode)
+    return OnnxVar(x, pads, constant_value, op=OnnxPad, mode=mode)
 
 
 def prod(x, axis=None, keepdims=0):
