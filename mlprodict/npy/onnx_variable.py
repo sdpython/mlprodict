@@ -10,6 +10,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxCast,
     OnnxDiv,
     OnnxEqual,
+    OnnxFlatten,
     OnnxGather, OnnxGreater,
     OnnxIdentity,
     OnnxLess,
@@ -356,3 +357,16 @@ class OnnxVar:
         Returns a copy of self (use of Identity node).
         """
         return OnnxVar(self, op=OnnxIdentity)
+
+    def flatten(self, axis=0):
+        """
+        Flattens a matrix (see :epkg:`numpy:ndarray:flatten`).
+
+        :param axis: only flatten from axis to the end.
+        :return: @see cl OnnxVariable
+        """
+        fl = OnnxVar(self, op=OnnxFlatten, axis=axis)
+        if axis == 0:
+            return OnnxVar(fl, numpy.array([0], dtype=numpy.int64),
+                           op=OnnxSqueeze)
+        return fl
