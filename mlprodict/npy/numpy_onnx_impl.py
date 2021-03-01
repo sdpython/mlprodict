@@ -21,9 +21,11 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxConstantOfShape,
     OnnxCos, OnnxCosh,
     OnnxCumSum,
+    OnnxDet,
     OnnxEinsum,
     OnnxErf,
     OnnxExp,
+    OnnxFloor,
     OnnxIsNaN,
     OnnxLog,
     OnnxReciprocal,
@@ -157,6 +159,11 @@ def cumsum(x, axis):
     return OnnxVar(x, axis, op=OnnxCumSum)
 
 
+def det(x):
+    "See :epkg:`numpy:linalkg:det`."
+    return OnnxVar(x, op=OnnxDet)
+
+
 def einsum(*x, equation=None):
     "See :epkg:`numpy:einsum`."
     return OnnxVar(*x, op=OnnxEinsum, equation=equation)
@@ -170,6 +177,11 @@ def erf(x):
 def exp(x):
     "See :epkg:`numpy:exp`."
     return OnnxVar(x, op=OnnxExp)
+
+
+def floor(x):
+    "See :epkg:`numpy:floor`."
+    return OnnxVar(x, op=OnnxFloor)
 
 
 def isnan(x):

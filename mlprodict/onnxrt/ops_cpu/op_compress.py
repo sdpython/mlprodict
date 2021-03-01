@@ -28,5 +28,6 @@ class Compress(OpRun):
 
     def to_python(self, inputs):
         if self.axis is None:
-            return "import numpy\nreturn numpy.compress(condition, x)"
-        return "import numpy\nreturn numpy.compress(condition, x, axis=%d)" % self.axis
+            return "import numpy\nreturn numpy.compress(%s, %s)" % tuple(inputs)
+        return "import numpy\nreturn numpy.compress(%s, %s, axis=%d)" % (
+            tuple(inputs) + (self.axis, ))

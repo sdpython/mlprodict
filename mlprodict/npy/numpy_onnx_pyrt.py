@@ -30,9 +30,11 @@ from .numpy_onnx_impl import (
     cos as nx_cos,
     cosh as nx_cosh,
     cumsum as nx_cumsum,
+    det as nx_det,
     einsum as nx_einsum,
     erf as nx_erf,
     exp as nx_exp,
+    floor as nx_floor,
     isnan as nx_isnan,
     log as nx_log,
     mean as nx_mean,
@@ -160,6 +162,12 @@ def cumsum(x, axis):
     return nx_cumsum(x, axis)
 
 
+@onnxnumpy_np(signature=NDArrayType("all"))
+def det(x):
+    "det"
+    return nx_det(x)
+
+
 @onnxnumpy_np(signature=NDArrayType("all", nvars=True))
 def einsum(*x, equation=None):
     "einsum"
@@ -176,6 +184,12 @@ def erf(x):
 def exp(x):
     "exp"
     return nx_exp(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def floor(x):
+    "floor"
+    return nx_floor(x)
 
 
 @onnxnumpy_np(signature=NDArrayTypeSameShape("all_bool"))

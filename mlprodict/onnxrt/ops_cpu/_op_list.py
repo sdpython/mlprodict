@@ -34,6 +34,7 @@ from .op_constant_of_shape import ConstantOfShape
 from .op_cos import Cos
 from .op_cosh import Cosh
 from .op_cum_sum import CumSum
+from .op_det import Det
 from .op_dequantize_linear import DequantizeLinear
 from .op_dict_vectorizer import DictVectorizer
 from .op_div import Div

@@ -33,7 +33,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxConstantOfShape,
     OnnxCos, OnnxCosh,
     OnnxDequantizeLinear,
-    OnnxDiv,
+    OnnxDet, OnnxDiv,
     OnnxDropout, OnnxDropout_7,
     OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
@@ -148,7 +148,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                SparseEfficiencyWarning, PendingDeprecationWarning))
     def common_test_onnxt_runtime_unary(self, onnx_cl, np_fct,
                                         op_version=None,
-                                        outputs=None, debug=False):
+                                        outputs=None, debug=False,
+                                        do_sparse=True):
         if op_version is None:
             op_version = get_opset_number_from_onnx()
         try:
@@ -213,26 +214,28 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(expe, got['Y'], decimal=6)
 
         # sparse
-        row = numpy.array([0, 0, 1, 3, 1])
-        col = numpy.array([0, 2, 1, 3, 1])
-        data = numpy.array([1, 1, 1, 1, 1])
-        X = make_coo_matrix((data, (row.astype(numpy.int64), col.astype(numpy.int64))),
-                            shape=(4, 4), dtype=numpy.float32)
-        try:
-            exp = np_fct(X)
-        except (TypeError, NotImplementedError, ValueError) as e:
-            # Function np_fct does not work on sparse data.
-            sparse_no_numpy.append((onnx_cl.__name__, op_version, e))
-            return
+        if do_sparse:
+            row = numpy.array([0, 0, 1, 3, 1])
+            col = numpy.array([0, 2, 1, 3, 1])
+            data = numpy.array([1, 1, 1, 1, 1])
+            X = make_coo_matrix((data, (row.astype(numpy.int64),
+                                        col.astype(numpy.int64))),
+                                shape=(4, 4), dtype=numpy.float32)
+            try:
+                exp = np_fct(X)
+            except (TypeError, NotImplementedError, ValueError) as e:
+                # Function np_fct does not work on sparse data.
+                sparse_no_numpy.append((onnx_cl.__name__, op_version, e))
+                return
 
-        model_def_sparse = onx.to_onnx(
-            {'X': X.astype(numpy.float32)}, target_opset=op_version)
-        oinf = OnnxInference(
-            model_def_sparse, input_inplace=False, inplace=True)
-        got = oinf.run({'X': X})
-        self.assertEqual(list(sorted(got)), ['Y'])
-        self.assertEqualSparseArray(exp, got['Y'], decimal=6)
-        sparse_support.append(('UnOp', op_version, onnx_cl.__name__))
+            model_def_sparse = onx.to_onnx(
+                {'X': X.astype(numpy.float32)}, target_opset=op_version)
+            oinf = OnnxInference(
+                model_def_sparse, input_inplace=False, inplace=True)
+            got = oinf.run({'X': X})
+            self.assertEqual(list(sorted(got)), ['Y'])
+            self.assertEqualSparseArray(exp, got['Y'], decimal=6)
+            sparse_support.append(('UnOp', op_version, onnx_cl.__name__))
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning,
                                SparseEfficiencyWarning, PendingDeprecationWarning))
@@ -1298,6 +1301,12 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             self.assertEqualArray(exp, got['Y'])
         except RuntimeError:
             pass
+
+    @wraplog()
+    def test_onnxt_runtime_det(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxDet, lambda x: numpy.array([numpy.linalg.det(x)]),
+            do_sparse=False)
 
     @wraplog()
     def test_onnxt_runtime_dequantize_linear(self):

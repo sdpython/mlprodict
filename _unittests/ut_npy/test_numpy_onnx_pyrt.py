@@ -188,6 +188,13 @@ class TestNumpyOnnxFunction(ExtTestCase):
                 self.common_testn((x, ax), numpy.cumsum, nxnpy.cumsum,
                                   (numpy.float32, numpy.int64))
 
+    def test_det_float32(self):
+        x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float32)
+        self.common_test1(x, numpy.linalg.det, nxnpy.det, numpy.float32)
+        x = numpy.array([[[6.1, 5], [3.5, 7.8]],
+                         [[6.1, 5], [3.5, -7.8]]], dtype=numpy.float32)
+        self.common_test1(x, numpy.linalg.det, nxnpy.det, numpy.float32)
+
     def test_einsum_float32(self):
         np_ein = lambda *x, equation=None: numpy.einsum(equation, *x)
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
@@ -211,6 +218,10 @@ class TestNumpyOnnxFunction(ExtTestCase):
     def test_exp_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.exp, nxnpy.exp, numpy.float32)
+
+    def test_floor_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(x, numpy.floor, nxnpy.floor, numpy.float32)
 
     def test_isnan_float32(self):
         x = numpy.array([[6.1, 5], [3.5, numpy.nan]], dtype=numpy.float32)
