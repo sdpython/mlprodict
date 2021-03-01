@@ -35,6 +35,14 @@ class RuntimeTypeError(RuntimeError):
     pass
 
 
+class DefaultNone:
+    """
+    Default value for parameters when the parameter is not set
+    but the operator has a default behaviour for it.
+    """
+    pass
+
+
 class OpRun:
     """
     Ancestor to all operators in this subfolder.
@@ -86,7 +94,9 @@ class OpRun:
             else:
                 for a, b in expected_attributes.items():
                     if a not in options:
-                        if b is None:
+                        if b is DefaultNone:
+                            setattr(self, a, None)
+                        elif b is None:
                             raise RuntimeError(  # pragma: no cover
                                 "Parameter '{}' is missing from operator '{}', "
                                 "given {}.".format(

@@ -85,6 +85,8 @@ Available numpy functions implemented with ONNX operators
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.amin
 
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.arange
+
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.argmax
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.argmin
@@ -101,9 +103,13 @@ Available numpy functions implemented with ONNX operators
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.clip
 
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.compress
+
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.cos
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.cosh
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.cumsum
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.einsum
 
@@ -152,6 +158,8 @@ ONNX functions executed python ONNX runtime
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.amin
 
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.arange
+
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.argmax
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.argmin
@@ -170,9 +178,13 @@ ONNX functions executed python ONNX runtime
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.clip
 
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.compress
+
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.cos
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.cosh
+
+.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.cumsum
 
 .. autosignature:: mlprodict.npy.numpy_onnx_pyrt.erf
 

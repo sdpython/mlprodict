@@ -3,7 +3,9 @@
 @brief Helpers to validate python code.
 """
 import pickle
+import pprint
 import numpy
+from numpy.linalg import det as npy_det  # pylint: disable=E0611
 from scipy.spatial.distance import cdist  # pylint: disable=E0611
 from scipy.special import expit, erf  # pylint: disable=E0611
 from scipy.linalg import solve  # pylint: disable=E0611
@@ -65,7 +67,8 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
     gl = {'numpy': numpy, 'pickle': pickle,
           'expit': expit, 'erf': erf, 'cdist': cdist,
           '_argmax': _argmax, '_argmin': _argmin,
-          '_vcelu1': _vcelu1, 'solve': solve}
+          '_vcelu1': _vcelu1, 'solve': solve,
+          'npy_det': npy_det, 'ndarray': numpy.ndarray}
 
     for fct in pyrt_fcts:
         for obj in cp.co_consts:
@@ -90,7 +93,8 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
 
     if not isinstance(got, dict):
         raise TypeError(  # pragma: no cover
-            "got is not a dictionary by '{}'.".format(type(got)))
+            "got is not a dictionary by '{}'\n--\n{}\n---\n{}.".format(
+                type(got), dir(got), pprint.pformat(str(loc))))
     if len(got) != len(exp):
         raise RuntimeError(  # pragma: no cover
             "Different number of results.\nexp: {}\ngot: {}".format(
@@ -107,7 +111,8 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
         if isinstance(e, numpy.ndarray):
             if e.shape != g.shape:
                 raise ValueError(  # pragma: no cover
-                    "Shapes are different {} != {}.".format(e.shape, g.shape))
+                    "Shapes are different {} != {}\n---\n{}\n{}.".format(
+                        e.shape, g.shape, e, g))
             diff = 0
             for a, b in zip(e.ravel(), g.ravel()):
                 if a == b:

@@ -5,6 +5,7 @@ and compiled with this python runtime.
 
 .. versionadded:: 0.6
 """
+import numpy
 from .onnx_numpy_annotation import (
     NDArrayType,
     NDArrayTypeSameShape,
@@ -16,6 +17,7 @@ from .numpy_onnx_impl import (
     acosh as nx_acosh,
     amin as nx_min,
     amax as nx_max,
+    arange as nx_arange,
     argmax as nx_argmax,
     argmin as nx_argmin,
     asin as nx_asin,
@@ -24,11 +26,15 @@ from .numpy_onnx_impl import (
     atanh as nx_atanh,
     ceil as nx_ceil,
     clip as nx_clip,
+    compress as nx_compress,
     cos as nx_cos,
     cosh as nx_cosh,
+    cumsum as nx_cumsum,
+    det as nx_det,
     einsum as nx_einsum,
     erf as nx_erf,
     exp as nx_exp,
+    floor as nx_floor,
     isnan as nx_isnan,
     log as nx_log,
     mean as nx_mean,
@@ -65,6 +71,12 @@ def acosh(x):
     return nx_acosh(x)
 
 
+@onnxnumpy_np(signature=NDArrayType((numpy.int64, numpy.int64)))
+def arange(start, stop, step=1):
+    "arange, *start*, *stop* must be specified."
+    return nx_arange(start, stop, step=step)
+
+
 @onnxnumpy_np(signature=NDArraySameType("all"))
 def amax(x, axis=None, keepdims=0):
     "amax"
@@ -78,13 +90,13 @@ def amin(x, axis=None, keepdims=0):
 
 
 @onnxnumpy_np(signature=NDArrayType("all_int"))
-def argmax(x, axis=None, keepdims=0):
+def argmax(x, axis=0, keepdims=0):
     "argmax"
     return nx_argmax(x, axis=axis, keepdims=keepdims)
 
 
 @onnxnumpy_np(signature=NDArrayType("all_int"))
-def argmin(x, axis=None, keepdims=0):
+def argmin(x, axis=0, keepdims=0):
     "argmin"
     return nx_argmin(x, axis=axis, keepdims=keepdims)
 
@@ -120,10 +132,16 @@ def ceil(x):
 
 
 @onnxnumpy_np(
-    signature=NDArrayType(("all", "all", "all"), "all", n_optional=2))
+    signature=NDArrayType(("all", "all", "all"), n_optional=2))
 def clip(x, a_min=None, a_max=None):
     "clip"
     return nx_clip(x, a_min, a_max)
+
+
+@onnxnumpy_np(signature=NDArrayType(("bool", "all"), dtypes_out=1))
+def compress(condition, x, axis=None):
+    "compress"
+    return nx_compress(condition, x, axis=axis)
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
@@ -136,6 +154,18 @@ def cos(x):
 def cosh(x):
     "cosh"
     return nx_cosh(x)
+
+
+@onnxnumpy_np(signature=NDArrayType(("all", "ints")))
+def cumsum(x, axis):
+    "cumsum"
+    return nx_cumsum(x, axis)
+
+
+@onnxnumpy_np(signature=NDArrayType("all"))
+def det(x):
+    "det"
+    return nx_det(x)
 
 
 @onnxnumpy_np(signature=NDArrayType("all", nvars=True))
@@ -154,6 +184,12 @@ def erf(x):
 def exp(x):
     "exp"
     return nx_exp(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def floor(x):
+    "floor"
+    return nx_floor(x)
 
 
 @onnxnumpy_np(signature=NDArrayTypeSameShape("all_bool"))

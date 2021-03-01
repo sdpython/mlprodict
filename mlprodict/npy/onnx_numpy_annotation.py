@@ -11,12 +11,12 @@ import numpy
 
 try:
     numpy_bool = numpy.bool_
-except AttributeError:
+except AttributeError:  # pragma: no cover
     numpy_bool = bool
 
 try:
     numpy_str = numpy.str
-except AttributeError:
+except AttributeError:  # pragma: no cover
     numpy_str = str
 
 Shape = TypeVar("Shape")
@@ -28,17 +28,35 @@ all_dtypes = (numpy.float32, numpy.float64,
               numpy.uint32, numpy.uint64)
 
 
-def get_args_kwargs(fct):
+def get_args_kwargs(fct, n_optional):
     """
     Extracts arguments and optional parameters of a function.
 
     :param fct: function
+    :param n_optional: number of arguments to consider as
+        optional arguments and not parameters, this parameter skips
+        the first *n_optional* paramerters
     :return: arguments, OrderedDict
     """
     params = inspect.signature(fct).parameters
-    args = [name for name, p in params.items()
-            if p.default == inspect.Parameter.empty]
-    kwargs = OrderedDict((name, p.default) for name, p in params.items()
+    if n_optional == 0:
+        items = list(params.items())
+        args = [name for name, p in params.items()
+                if p.default == inspect.Parameter.empty]
+    else:
+        items = []
+        args = []
+        for name, p in params.items():
+            if p.default == inspect.Parameter.empty:
+                args.append(name)
+            else:
+                if n_optional > 0:
+                    args.append(name)
+                    n_optional -= 1
+                else:
+                    items.append((name, p))
+
+    kwargs = OrderedDict((name, p.default) for name, p in items
                          if (p.default != inspect.Parameter.empty and
                              name != 'op_version'))
     return args, kwargs
@@ -64,6 +82,73 @@ class NDArray(numpy.ndarray, Generic[Shape, DType]):
 
 
 class _NDArrayAlias:
+    """
+    Ancestor to custom signature.
+
+    :param dtypes: input dtypes
+    :param dtypes_out: output dtypes
+    :param n_optional: number of optional parameters, 0 by default
+    :param nvars: True if the function allows an infinite number of inputs,
+        this is incompatible with parameter *n_optional*.
+
+    .. versionadded:: 0.6
+    """
+
+    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None,
+                 nvars=False):
+        "constructor"
+        self.output_type_from_input = 0
+        if dtypes is None:
+            raise ValueError("dtypes cannot be None.")
+        if isinstance(dtypes, tuple) and len(dtypes) == 0:
+            raise TypeError("dtypes must not be empty.")
+        if isinstance(dtypes, tuple) and not isinstance(dtypes[0], tuple):
+            dtypes = tuple(t if isinstance(t, str) else (t,) for t in dtypes)
+        if isinstance(dtypes, str) and '_' in dtypes:
+            dtypes, dtypes_out = dtypes.split('_')
+        if not isinstance(dtypes, (tuple, list)):
+            dtypes = (dtypes, )
+        self.dtypes = _NDArrayAlias._process_type(dtypes)
+        if dtypes_out is None:
+            self.dtypes_out = (self.dtypes[0], )
+        elif isinstance(dtypes_out, int):
+            self.dtypes_out = (self.dtypes[dtypes_out], )
+            self.output_type_from_input = dtypes_out
+        else:
+            if not isinstance(dtypes_out, (tuple, list)):
+                dtypes_out = (dtypes_out, )
+            self.dtypes_out = _NDArrayAlias._process_type(dtypes_out)
+        self.n_optional = 0 if n_optional is None else n_optional
+        self.n_variables = nvars
+
+        if not isinstance(self.dtypes, tuple):
+            raise TypeError(
+                "self.dtypes must be a tuple not {}.".format(self.dtypes))
+        if (len(self.dtypes) == 0 or
+                not isinstance(self.dtypes[0], tuple)):
+            raise TypeError(
+                "Type mismatch in self.dtypes: {}.".format(self.dtypes))
+        if (len(self.dtypes[0]) == 0 or
+                isinstance(self.dtypes[0][0], tuple)):
+            raise TypeError(
+                "Type mismatch in self.dtypes: {}.".format(self.dtypes))
+
+        if not isinstance(self.dtypes_out, tuple):
+            raise TypeError(
+                "self.dtypes_out must be a tuple not {}.".format(self.dtypes_out))
+        if (len(self.dtypes_out) == 0 or
+                not isinstance(self.dtypes_out[0], tuple)):
+            raise TypeError(
+                "Type mismatch in self.dtypes_out: {}.".format(self.dtypes_out))
+        if (len(self.dtypes_out[0]) == 0 or
+                isinstance(self.dtypes_out[0][0], tuple)):
+            raise TypeError(
+                "Type mismatch in self.dtypes_out: {}.".format(self.dtypes_out))
+
+        if self.n_variables and self.n_optional > 0:
+            raise RuntimeError(
+                "n_variables and n_optional cannot be positive at "
+                "the same type.")
 
     @staticmethod
     def _process_type(dtypes):
@@ -105,23 +190,6 @@ class _NDArrayAlias:
         raise NotImplementedError(
             "Unexpected input dtype %r." % dtypes)
 
-    def __init__(self, dtypes=None, dtypes_out=None, n_optional=None, nvars=False):
-        if dtypes is None:
-            raise ValueError("dtypes cannot be None.")
-        if isinstance(dtypes, str) and '_' in dtypes:
-            dtypes, dtypes_out = dtypes.split('_')
-        if not isinstance(dtypes, (tuple, list)):
-            dtypes = (dtypes, )
-        self.dtypes = _NDArrayAlias._process_type(dtypes)
-        if dtypes_out is None:
-            self.dtypes_out = (self.dtypes[0], )
-        else:
-            if not isinstance(dtypes_out, (tuple, list)):
-                dtypes_out = (dtypes_out, )
-            self.dtypes_out = _NDArrayAlias._process_type(dtypes_out)
-        self.n_optional = 0 if n_optional is None else n_optional
-        self.n_variables = nvars
-
     def __repr__(self):
         "usual"
         return "%s(%r, %r, %r)" % (
@@ -138,7 +206,7 @@ class _NDArrayAlias:
         """
         Tries to infer output types.
         """
-        k0 = key[0]
+        k0 = key[self.output_type_from_input]
         res = []
         for i, o in enumerate(self.dtypes_out):
             if not isinstance(o, tuple):
@@ -175,9 +243,9 @@ class _NDArrayAlias:
 
         def _possible_names():
             yield 'y'
-            yield 'z'
-            yield 'o'
-            for i in range(0, 10000):
+            yield 'z'  # pragma: no cover
+            yield 'o'  # pragma: no cover
+            for i in range(0, 10000):  # pragma: no cover
                 yield 'o%d' % i
 
         key = version if isinstance(version, tuple) else (version, )
@@ -198,6 +266,16 @@ class _NDArrayAlias:
             args = list(names)
             key_types = key[:len(args)] if len(key) > len(args) else key
 
+        li = len(key_types)
+        optional = self.n_optional - (len(args) - len(key_types))
+        for i in range(0, optional):
+            li = len(key_types) - i - 1
+            if li < 0:
+                break
+            if key_types[li] is not None:
+                break
+        key_types = key_types[:li + 1]
+
         onnx_types = [self._to_onnx_dtype(k, None) for k in key_types]
         inputs = list(zip(args, onnx_types))
 
@@ -215,7 +293,7 @@ class _NDArrayAlias:
             names_in.add(name_out)
 
         outputs = list(zip(names_out, onnx_types_out))
-        optional = self.n_optional
+        optional = self.n_optional - (len(args) - len(inputs))
         if optional < 0:
             raise RuntimeError(
                 "optional cannot be negative %r (self.n_optional=%r, "
@@ -243,7 +321,8 @@ class NDArrayType(_NDArrayAlias):
     :param dtypes: input dtypes
     :param dtypes_out: output dtypes
     :param n_optional: number of optional parameters, 0 by default
-    :param nvars: True if the function allows a variable number of inputs
+    :param nvars: True if the function allows an infinite number of inputs,
+        this is incompatible with parameter *n_optional*.
 
     .. versionadded:: 0.6
     """
@@ -260,7 +339,8 @@ class NDArrayTypeSameShape(NDArrayType):
     :param dtypes: input dtypes
     :param dtypes_out: output dtypes
     :param n_optional: number of optional parameters, 0 by default
-    :param nvars: True if the function allows a variable number of inputs
+    :param nvars: True if the function allows an infinite number of inputs,
+        this is incompatible with parameter *n_optional*.
 
     .. versionadded:: 0.6
     """

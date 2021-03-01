@@ -21,11 +21,11 @@ class wrapper_onnxnumpy:
     def __init__(self, compiled):
         self.compiled = compiled
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         """
         Calls the compiled function with arguments `args`.
         """
-        return self.compiled(*args)
+        return self.compiled(*args, **kwargs)
 
 
 def onnxnumpy(op_version=None, runtime=None, signature=None):
@@ -80,7 +80,9 @@ class wrapper_onnxnumpy_np:
     def __init__(self, **kwargs):
         self.fct = kwargs['fct']
         self.signature = kwargs['signature']
-        self.args, self.kwargs = get_args_kwargs(self.fct)
+        self.args, self.kwargs = get_args_kwargs(
+            self.fct,
+            0 if self.signature is None else self.signature.n_optional)
         self.data = kwargs
         self.signed_compiled = {}
 
@@ -95,7 +97,7 @@ class wrapper_onnxnumpy_np:
         """
         if isinstance(dtype, dict):
             if len(self.args) == 0:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Signature does not have any arguments, use directly dtypes.")
             others = tuple(dtype.get(k, self.kwargs[k]) for k in self.kwargs)
             inkey = (dtype['dtype_onnx']
@@ -110,13 +112,17 @@ class wrapper_onnxnumpy_np:
             key = dtype
         return self.signed_compiled[key]
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         """
         Calls the compiled function assuming the type of the first
         tensor in *args* defines the templated version of the function
         to convert into *ONNX*.
         """
-        return self[tuple(a.dtype for a in args)](*args)
+        key = tuple(a if a is None else a.dtype.type for a in args)
+        if len(self.kwargs) == 0:
+            return self[key](*args)
+        others = tuple(kwargs.get(k, self.kwargs[k]) for k in self.kwargs)
+        return self[key + others](*args)
 
     def _populate(self, version):
         """

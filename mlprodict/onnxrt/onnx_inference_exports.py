@@ -443,7 +443,7 @@ class OnnxInferenceExport:
                       "'''"]
         code_imports = ["from io import BytesIO",
                         "import pickle",
-                        "from numpy import array, float32"]
+                        "from numpy import array, float32, ndarray"]
         code_lines = ["class OnnxPythonInference:", "",
                       "    def __init__(self):",
                       "        self._load_inits()", "",

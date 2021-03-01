@@ -25,6 +25,7 @@ from .op_cdist import CDist
 from .op_ceil import Ceil
 from .op_celu import Celu
 from .op_clip import Clip_6, Clip_11, Clip
+from .op_compress import Compress
 from .op_concat import Concat
 from .op_conv import Conv
 from .op_conv_transpose import ConvTranspose
@@ -33,6 +34,7 @@ from .op_constant_of_shape import ConstantOfShape
 from .op_cos import Cos
 from .op_cosh import Cosh
 from .op_cum_sum import CumSum
+from .op_det import Det
 from .op_dequantize_linear import DequantizeLinear
 from .op_dict_vectorizer import DictVectorizer
 from .op_div import Div

@@ -5,19 +5,27 @@
 .. versionadded:: 0.6
 """
 import numpy
+from onnx import onnx_pb as onnx_proto  # pylint: disable=E1101
+from onnx.helper import make_tensor
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs,
     OnnxAcos, OnnxAcosh,
+    OnnxAdd,
     OnnxArgMax,
     OnnxArgMin,
     OnnxAsin, OnnxAsinh,
     OnnxAtan, OnnxAtanh,
     OnnxCeil,
     OnnxClip,
+    OnnxCompress,
+    OnnxConstantOfShape,
     OnnxCos, OnnxCosh,
+    OnnxCumSum,
+    OnnxDet,
     OnnxEinsum,
     OnnxErf,
     OnnxExp,
+    OnnxFloor,
     OnnxIsNaN,
     OnnxLog,
     OnnxReciprocal,
@@ -69,17 +77,28 @@ def amin(x, axis=None, keepdims=0):
     return OnnxVar(x, op=OnnxReduceMin, keepdims=keepdims, axes=axis)
 
 
-def argmax(x, axis=None, keepdims=0):
+def arange(start, stop, step=1):
+    "See :epkg:`numpy:arange`, *start*, *stop* must be specified."
+    if step != 1:
+        raise NotImplementedError(
+            "The function is not implemented for step != 1 (step=%r)." % step)
+    value = make_tensor(
+        "value", onnx_proto.TensorProto.INT64, (1, ), [step])  # pylint: disable=E1101
+    cst = OnnxVar(stop - start, op=OnnxConstantOfShape, value=value)
+    cs = OnnxVar(cst,
+                 numpy.array([0], dtype=numpy.int64),
+                 op=OnnxCumSum)
+    diff = start - numpy.int64(step)
+    return OnnxVar(cs, diff, op=OnnxAdd)
+
+
+def argmax(x, axis=0, keepdims=0):
     "See :epkg:`numpy:argmax`."
-    if axis is None:
-        return OnnxVar(x, op=OnnxArgMax)
     return OnnxVar(x, op=OnnxArgMax, axis=axis, keepdims=keepdims)
 
 
-def argmin(x, axis=None, keepdims=0):
+def argmin(x, axis=0, keepdims=0):
     "See :epkg:`numpy:argmin`."
-    if axis is None:
-        return OnnxVar(x, op=OnnxArgMin)
     return OnnxVar(x, op=OnnxArgMin, axis=axis, keepdims=keepdims)
 
 
@@ -118,6 +137,13 @@ def clip(x, a_min=None, a_max=None):
     return OnnxVar(*args, op=OnnxClip)
 
 
+def compress(condition, x, axis=None):
+    "See :epkg:`numpy:compress`."
+    if axis is None:
+        return OnnxVar(x, condition, op=OnnxCompress)
+    return OnnxVar(x, condition, op=OnnxCompress, axis=axis)
+
+
 def cos(x):
     "See :epkg:`numpy:cos`."
     return OnnxVar(x, op=OnnxCos)
@@ -126,6 +152,16 @@ def cos(x):
 def cosh(x):
     "See :epkg:`numpy:cosh`."
     return OnnxVar(x, op=OnnxCosh)
+
+
+def cumsum(x, axis):
+    "See :epkg:`numpy:cumsum`."
+    return OnnxVar(x, axis, op=OnnxCumSum)
+
+
+def det(x):
+    "See :epkg:`numpy:linalkg:det`."
+    return OnnxVar(x, op=OnnxDet)
 
 
 def einsum(*x, equation=None):
@@ -141,6 +177,11 @@ def erf(x):
 def exp(x):
     "See :epkg:`numpy:exp`."
     return OnnxVar(x, op=OnnxExp)
+
+
+def floor(x):
+    "See :epkg:`numpy:floor`."
+    return OnnxVar(x, op=OnnxFloor)
 
 
 def isnan(x):
