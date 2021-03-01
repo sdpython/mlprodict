@@ -38,6 +38,7 @@ from .numpy_onnx_impl import (
     isnan as nx_isnan,
     log as nx_log,
     mean as nx_mean,
+    pad as nx_pad,
     prod as nx_prod,
     reciprocal as nx_reciprocal,
     relu as nx_relu,
@@ -202,6 +203,12 @@ def isnan(x):
 def log(x):
     "log"
     return nx_log(x)
+
+
+@onnxnumpy_np(signature=NDArrayType(("all", numpy.int64), n_optional=1))
+def pad(x, pads, constant_value=None, mode='constant'):
+    "pad"
+    return nx_pad(x, pads, mode=mode, constant_value=constant_value)
 
 
 @onnxnumpy_np(signature=NDArraySameType("all"))

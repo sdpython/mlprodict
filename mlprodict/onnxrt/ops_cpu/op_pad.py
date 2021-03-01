@@ -25,6 +25,29 @@ def _pad_impl(data, raw_pads, mode, constant_values=0.0):
     return numpy.pad(data, pad_width=pad_width, mode=mode)
 
 
+def onnx_pad(data, pads, constant_value=None, mode='constant'):
+    """
+    Implements :epkg:`numpy:pad` based on ONNX signature.
+
+    :param data: data to pad
+    :param pads: tensor of integers indicating the number of
+        padding elements to add or remove (if negative) at the
+        beginning and end of each axis. For 2D input tensor, it
+        is the number of pixels. `pads` should be a 1D tensor of
+        shape `[2 * input_rank]`. `pads` format should be:
+        `[x1_begin, x2_begin,...,x1_end, x2_end,...]`, where `xi_begin` is
+        the number of pad values added at the beginning of axis `i`
+        and xi_end, the number of pad values added at the end of axis `i`.
+    :param constant_value: A scalar value to be used if the mode chosen is
+        `constant` (by default it is 0, empty string or False).
+    :param mode: Supported modes: `constant`(default), `reflect`, `edge`
+    :return tensor after padding
+    """
+    if constant_value is None:
+        constant_value = data.dtype(constant_value)
+    return _pad_impl(data, pads, mode=mode, constant_values=constant_value)
+
+
 class Pad(OpRun):
 
     atts = {'mode': b'constant'}

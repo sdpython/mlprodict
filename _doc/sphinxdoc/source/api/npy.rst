@@ -111,6 +111,8 @@ Available numpy functions implemented with ONNX operators
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.cumsum
 
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.det
+
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.einsum
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.erf
@@ -122,6 +124,8 @@ Available numpy functions implemented with ONNX operators
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.mean
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.log
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.pad
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.prod
 
@@ -148,72 +152,6 @@ Available numpy functions implemented with ONNX operators
 ONNX functions executed python ONNX runtime
 +++++++++++++++++++++++++++++++++++++++++++
 
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.abs
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.acos
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.acosh
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.amax
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.amin
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.arange
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.argmax
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.argmin
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.asin
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.asinh
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.atan
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.atanh
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.einsum
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.ceil
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.clip
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.compress
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.cos
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.cosh
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.cumsum
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.erf
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.exp
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.isnan
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.log
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.mean
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.prod
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.reciprocal
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.relu
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.round
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.sign
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.sin
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.sinh
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.sqrt
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.sum
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.tan
-
-.. autosignature:: mlprodict.npy.numpy_onnx_pyrt.tanh
+Same function as above, the import goes from
+`from mlprodict.npy.numpy_onnx_impl import <function-name>` to
+`from mlprodict.npy.numpy_onnx_pyrt import <function-name>`.

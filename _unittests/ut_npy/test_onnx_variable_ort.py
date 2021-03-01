@@ -290,6 +290,20 @@ def test_abs_size(x: NDArray[Any, numpy.float32],
     return nxnp.abs(x).size
 
 
+@onnxnumpy(runtime='onnxruntime1')
+def test_abs_flatten(x: NDArray[Any, numpy.float32],
+                     ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy flatten"
+    return nxnp.abs(x).flatten()
+
+
+@onnxnumpy(runtime='onnxruntime1')
+def test_abs_flatten2(x: NDArray[Any, numpy.float32],
+                      ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy flatten"
+    return nxnp.abs(x).flatten(axis=1)
+
+
 class TestOnnxVariableOrt(ExtTestCase):
 
     def test_ort_abs(self):
@@ -493,6 +507,17 @@ class TestOnnxVariableOrt(ExtTestCase):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_size(x)
         self.assertEqualArray(y, numpy.abs(x).size)
+
+    def test_py_abs_flatten(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_flatten(x)
+        self.assertEqualArray(y, numpy.abs(x).flatten())
+
+    def test_py_abs_flatten2(self):
+        x = numpy.array([[[6.11, -51], [3.51, -7.81]],
+                         [[6.1, -5], [3.5, -7.8]]], dtype=numpy.float32)
+        y = test_abs_flatten2(x)
+        self.assertEqualArray(y, numpy.abs(x).flatten().reshape((2, -1)))
 
 
 if __name__ == "__main__":
