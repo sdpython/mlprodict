@@ -138,7 +138,7 @@ def clip(x, a_min=None, a_max=None):
     return nx_clip(x, a_min, a_max)
 
 
-@onnxnumpy_np(signature=NDArrayType(("bool", "all"), dtypes_out=1))
+@onnxnumpy_np(signature=NDArrayType(("bool", "T:all"), dtypes_out=('T',)))
 def compress(condition, x, axis=None):
     "compress"
     return nx_compress(condition, x, axis=axis)
