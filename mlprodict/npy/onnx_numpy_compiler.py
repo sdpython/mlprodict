@@ -6,6 +6,7 @@
 """
 import inspect
 from typing import Any
+import numpy
 from ..onnxrt import OnnxInference
 from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_variable import OnnxVar
@@ -175,12 +176,18 @@ class OnnxNumpyCompiler:
                     "Mismatch between version=%r and kwargs=%r for "
                     "function %r, signature=%r." % (
                         version, kwargs, self.fct_, signature))
-            vvers = [v for v in version if not isinstance(v, type)]
+            vvers = version[-len(kwargs):]
             up = {}
             for k, v in zip(kwargs, vvers):
                 up[k] = v
             kwargs = kwargs.copy()
             kwargs.update(up)
+
+        for k, v in kwargs.items():
+            if isinstance(v, (type, numpy.dtype)):
+                raise RuntimeError(  # pragma: no cover
+                    "Unexpected value for argument %r: %r from %r." % (
+                        k, v, kwargs))
 
         if signature is not None:
             inputs, kwargs, outputs, n_optional = (

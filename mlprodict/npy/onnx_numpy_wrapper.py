@@ -116,7 +116,11 @@ class wrapper_onnxnumpy_np:
         tensor in *args* defines the templated version of the function
         to convert into *ONNX*.
         """
-        return self[tuple(a.dtype for a in args)](*args)
+        key = tuple(a if a is None else a.dtype.type for a in args)
+        if len(self.kwargs) == 0:
+            return self[key](*args)
+        others = tuple(kwargs.get(k, self.kwargs[k]) for k in self.kwargs)
+        return self[key + others](*args)
 
     def _populate(self, version):
         """
