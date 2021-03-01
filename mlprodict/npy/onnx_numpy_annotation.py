@@ -97,7 +97,6 @@ class _NDArrayAlias:
     def __init__(self, dtypes=None, dtypes_out=None, n_optional=None,
                  nvars=False):
         "constructor"
-        self.output_type_from_input = 0
         if dtypes is None:
             raise ValueError("dtypes cannot be None.")
         if isinstance(dtypes, tuple) and len(dtypes) == 0:
@@ -108,16 +107,19 @@ class _NDArrayAlias:
             dtypes, dtypes_out = dtypes.split('_')
         if not isinstance(dtypes, (tuple, list)):
             dtypes = (dtypes, )
-        self.dtypes = _NDArrayAlias._process_type(dtypes)
+
+        self.mapped_types = {}
+        self.dtypes = _NDArrayAlias._process_type(
+            dtypes, self.mapped_types, 0)
         if dtypes_out is None:
             self.dtypes_out = (self.dtypes[0], )
         elif isinstance(dtypes_out, int):
             self.dtypes_out = (self.dtypes[dtypes_out], )
-            self.output_type_from_input = dtypes_out
         else:
             if not isinstance(dtypes_out, (tuple, list)):
                 dtypes_out = (dtypes_out, )
-            self.dtypes_out = _NDArrayAlias._process_type(dtypes_out)
+            self.dtypes_out = _NDArrayAlias._process_type(
+                dtypes_out, self.mapped_types, 0)
         self.n_optional = 0 if n_optional is None else n_optional
         self.n_variables = nvars
 
@@ -151,7 +153,7 @@ class _NDArrayAlias:
                 "the same type.")
 
     @staticmethod
-    def _process_type(dtypes):
+    def _process_type(dtypes, mapped_types, index):
         """
         Nicknames such as `floats`, `int`, `ints`, `all`
         can be used to describe multiple inputs for
@@ -161,10 +163,17 @@ class _NDArrayAlias:
             :showcode:
 
             from mlprodict.npy.onnx_numpy_annotation import _NDArrayAlias
-            for name in ['all', 'int', 'ints', 'floats']:
-                print(name, _NDArrayAlias._process_type(name))
+            for name in ['all', 'int', 'ints', 'floats', 'T']:
+                print(name, _NDArrayAlias._process_type(name, {'T': 0}, 0))
         """
         if isinstance(dtypes, str):
+            if ":" in dtypes:
+                name, dtypes = dtypes.split(':')
+                if name in mapped_types and dtypes != mapped_types[name]:
+                    raise RuntimeError(
+                        "Type name mismatch for '%s:%s' in %r." % (
+                            name, dtypes, list(sorted(mapped_types))))
+                mapped_types[name] = (dtypes, index)
             if dtypes == "all":
                 dtypes = all_dtypes
             elif dtypes == "int":
@@ -175,13 +184,16 @@ class _NDArrayAlias:
                 dtypes = (numpy.float32, numpy.float64)
             elif dtypes == "ints":
                 dtypes = (numpy.int32, numpy.int64)
-            else:
+            elif dtypes not in mapped_types:
                 raise ValueError(
                     "Unexpected shortcut for dtype %r." % dtypes)
+            elif not isinstance(dtypes, tuple):
+                dtypes = (dtypes, )
             return dtypes
 
         if isinstance(dtypes, (tuple, list)):
-            insig = [_NDArrayAlias._process_type(dt) for dt in dtypes]
+            insig = [_NDArrayAlias._process_type(dt, mapped_types, index + d)
+                     for d, dt in enumerate(dtypes)]
             return tuple(insig)
 
         if dtypes in all_dtypes:
@@ -206,7 +218,6 @@ class _NDArrayAlias:
         """
         Tries to infer output types.
         """
-        k0 = key[self.output_type_from_input]
         res = []
         for i, o in enumerate(self.dtypes_out):
             if not isinstance(o, tuple):
@@ -216,8 +227,11 @@ class _NDArrayAlias:
             if (len(o) == 1 and (o[0] in all_dtypes or
                                  o[0] in (bool, numpy_bool, str, numpy_str))):
                 res.append(o[0])
-            elif k0 in o:
-                res.append(k0)
+            elif len(o) == 1 and o[0] in self.mapped_types:
+                info = self.mapped_types[o[0]]
+                res.append(key[info[1]])
+            elif key[0] in o:
+                res.append(key[0])
             else:
                 raise RuntimeError(
                     "Unable to guess output type for output %d, "

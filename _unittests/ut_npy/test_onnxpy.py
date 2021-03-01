@@ -26,8 +26,9 @@ class TestOnnxPy(ExtTestCase):
         return OnnxAbs(x, op_version=op_version)
 
     def test_process_dtype(self):
-        for name in ['all', 'int', 'ints', 'floats']:
-            res = _NDArrayAlias._process_type(name)  # pylint: disable=W0212
+        for name in ['all', 'int', 'ints', 'floats', 'T']:
+            res = _NDArrayAlias._process_type(  # pylint: disable=W0212
+                name, {'T': 0}, 1)
             if name == 'all':
                 self.assertIsInstance(res, tuple)
             if name == 'int':
@@ -36,6 +37,8 @@ class TestOnnxPy(ExtTestCase):
                 self.assertEqual(res, (numpy.int32, numpy.int64))
             if name == 'floats':
                 self.assertEqual(res, (numpy.float32, numpy.float64))
+            if name == 'T':
+                self.assertEqual(res, ('T', ))
             s = repr(res)
             self.assertNotEmpty(s)
             self.assertIn('(', s)
