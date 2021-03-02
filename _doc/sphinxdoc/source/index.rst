@@ -150,35 +150,6 @@ following :epkg:`ONNX` graph.
     oinf = OnnxInference(model_onnx)
     print("DOT-SECTION", oinf.to_dot())
 
-That concludes the example with :epkg:`ONNX`.
-A similar way was introduced before switching
-to :epkg:`ONNX`. It is far less advanced but
-aims at producing a :epkg:`C` file replicating the
-predictions.
-
-.. runpython::
-    :showcode:
-    :warningout: DeprecationWarning
-
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.datasets import load_iris
-
-    iris = load_iris()
-    X = iris.data[:, :2]
-    y = iris.target
-    y[y == 2] = 1
-    lr = LogisticRegression()
-    lr.fit(X, y)
-
-    # Conversion into a graph.
-    from mlprodict.grammar_sklearn import sklearn2graph
-    gr = sklearn2graph(lr, output_names=['Prediction', 'Score'])
-
-    # Conversion into C
-    ccode = gr.export(lang='c')
-    # We print after a little bit of cleaning (remove all comments)
-    print("\n".join(_ for _ in ccode['code'].split("\n") if "//" not in _))
-
 Notebook :ref:`onnxvisualizationrst`
 shows how to visualize an :epkg:`ONNX` pipeline.
 

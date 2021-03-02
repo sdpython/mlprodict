@@ -17,7 +17,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAtan, OnnxAtanh,
     OnnxCeil,
     OnnxClip,
-    OnnxCompress,
+    OnnxCompress, OnnxConcat,
     OnnxConstantOfShape,
     OnnxCos, OnnxCosh,
     OnnxCumSum,
@@ -41,6 +41,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSin, OnnxSinh,
     OnnxSqrt,
     OnnxTan, OnnxTanh,
+    OnnxUnsqueeze,
 )
 from .onnx_variable import OnnxVar
 
@@ -180,6 +181,15 @@ def exp(x):
     return OnnxVar(x, op=OnnxExp)
 
 
+def expand_dims(x, axis):
+    "See :epkg:`numpy:expand_dims`."
+    if not isinstance(axis, int):
+        raise NotImplementedError(
+            "This function only allows integer for axis not %r." % type(axis))
+    return OnnxVar(x, numpy.array([axis], dtype=numpy.int64),
+                   op=OnnxUnsqueeze)
+
+
 def floor(x):
     "See :epkg:`numpy:floor`."
     return OnnxVar(x, op=OnnxFloor)
@@ -274,3 +284,8 @@ def tan(x):
 def tanh(x):
     "See :epkg:`numpy:tanh`."
     return OnnxVar(x, op=OnnxTanh)
+
+
+def unsqueeze(x, axes):
+    "See :epkg:`numpy:expand_dims`."
+    return OnnxVar(x, axes, op=OnnxUnsqueeze)

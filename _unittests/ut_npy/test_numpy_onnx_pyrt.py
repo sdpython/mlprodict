@@ -220,6 +220,12 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.exp, nxnpy.exp, numpy.float32)
 
+    def test_expand_dims_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(
+            x, numpy.expand_dims, nxnpy.expand_dims,
+            (numpy.float32, 0), axis=0)
+
     def test_floor_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.floor, nxnpy.floor, numpy.float32)
@@ -323,6 +329,14 @@ class TestNumpyOnnxFunction(ExtTestCase):
         self.common_test1(x, numpy.tanh, nxnpy.tanh, numpy.float32)
         doc = nxnpy.tanh.__doc__
         self.assertIn('tanh', doc)
+
+    def test_unsqueeze_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        axes = numpy.array([0], dtype=numpy.int64)
+        self.common_testn(
+            (x, axes),
+            lambda x, a: numpy.expand_dims(x, a[0]), nxnpy.unsqueeze,
+            (numpy.float32, numpy.int64))
 
 
 if __name__ == "__main__":

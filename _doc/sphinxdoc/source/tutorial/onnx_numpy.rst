@@ -89,11 +89,13 @@ produces the :epkg:`ONNX` graph.
     from scipy.spatial.distance import squareform, pdist
     from sklearn.gaussian_process.kernels import ExpSineSquared
     from mlprodict.onnx_grammar import translate_fct2onnx
-    from mlprodict.onnx_grammar.onnx_translation import squareform_pdist, py_make_float_array
+    from mlprodict.onnx_grammar.onnx_translation import (
+        squareform_pdist, py_make_float_array)
     from mlprodict.onnxrt import OnnxInference
 
     # The function to convert into ONNX.
-    def kernel_call_ynone(X, length_scale=1.2, periodicity=1.1, pi=3.141592653589793):
+    def kernel_call_ynone(X, length_scale=1.2, periodicity=1.1,
+                          pi=3.141592653589793):
 
         # squareform(pdist(X, ...)) in one function.
         dists = squareform_pdist(X, metric='euclidean')
@@ -169,6 +171,24 @@ not be implemented with ONNX operator. The second drawback is discrepencies.
 They should be minimal but still could happen between a numpy and ONNX
 implementations.
 
+From ONNX to Python
++++++++++++++++++++
+
+The Python Runtime can be optimized by generating
+custom python code and dynamically compile it.
+:class:`OnnxInference <mlprodict.onnxrt.onnx_inference.OnnxInference>`
+computes predictions based on an ONNX graph with a
+python runtime or :epkg:`onnxruntime`.
+Method :meth:`to_python
+<mlprodict.onnxrt.onnx_inference_exports.OnnxInferenceExport.to_python>`
+goes further by converting the ONNX graph into a standalone
+python code. All operators may not be implemented.
+
+Another tool is implemented in
+`onnx2py.py <https://github.com/microsoft/onnxconverter-common/
+blob/master/onnxconverter_common/onnx2py.py>`_ and converts an ONNX
+graph into a python code which produces this graph.
+
 Numpy API for ONNX
 ++++++++++++++++++
 
@@ -180,16 +200,3 @@ executed by an ONNX runtime. The full API is described at
 **Notebooks**
 
 * :ref:`numpyapionnxrst`
-
-From ONNX to Python
-+++++++++++++++++++
-
-The Python Runtime can be optimized by generating
-custom python code and dynamically compile it.
-:class:`OnnxInference <mlprodict.onnxrt.OnnxInference>`
-computes predictions based on an ONNX graph with a
-python runtime or :epkg:`onnxruntime`.
-Method :meth:`to_python
-<mlprodict.onnxrt.onnx_inference_exports.OnnxInferenceExport.to_python>`
-goes further by converting the ONNX graph into a standalone
-python code.

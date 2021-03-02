@@ -34,6 +34,7 @@ from .numpy_onnx_impl import (
     einsum as nx_einsum,
     erf as nx_erf,
     exp as nx_exp,
+    expand_dims as nx_expand_dims,
     floor as nx_floor,
     isnan as nx_isnan,
     log as nx_log,
@@ -50,6 +51,7 @@ from .numpy_onnx_impl import (
     sum as nx_sum,
     tan as nx_tan,
     tanh as nx_tanh,
+    unsqueeze as nx_unsqueeze
 )
 from .onnx_numpy_wrapper import onnxnumpy_np
 
@@ -187,6 +189,12 @@ def exp(x):
     return nx_exp(x)
 
 
+@onnxnumpy_np(signature=NDArrayType("floats"))
+def expand_dims(x, axis=0):
+    "expand_dims"
+    return nx_expand_dims(x, axis)
+
+
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
 def floor(x):
     "floor"
@@ -281,3 +289,9 @@ def tan(x):
 def tanh(x):
     "tanh"
     return nx_tanh(x)
+
+
+@onnxnumpy_np(signature=NDArrayType(("floats", numpy.int64)))
+def unsqueeze(x, axes):
+    "unsqueeze"
+    return nx_unsqueeze(x, axes)
