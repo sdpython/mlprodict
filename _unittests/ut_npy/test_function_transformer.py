@@ -3,8 +3,10 @@
 @brief      test log(time=3s)
 """
 import unittest
+import pickle
 import warnings
 from logging import getLogger
+from io import BytesIO
 from typing import Any
 import numpy
 from sklearn.pipeline import make_pipeline
@@ -65,6 +67,19 @@ class TestOnnxFunctionTransformer(ExtTestCase):
         oinf = OnnxInference(onnx_model)
         y_onx = oinf.run({'X': x})
         self.assertEqualArray(y_exp, y_onx['variable'])
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    def test_function_transformer_pickle(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        tr = FunctionTransformer(custom_fct)
+        tr.fit(x)
+        y_exp = tr.transform(x)
+        st = BytesIO()
+        pickle.dump(tr, st)
+        cp = BytesIO(st.getvalue())
+        tr2 = pickle.load(cp)
+        y_exp2 = tr2.transform(x)
+        self.assertEqualArray(y_exp, y_exp2)
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
     def test_function_transformer_numpy_log(self):

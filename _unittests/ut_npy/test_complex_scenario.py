@@ -7,7 +7,6 @@ import warnings
 from logging import getLogger
 from typing import Any
 import numpy
-from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import FunctionTransformer
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.onnx_conv import register_rewritten_operators, to_onnx
@@ -40,17 +39,17 @@ def custom_fft_abs(x: NDArray[Any, numpy.float32],
                    ) -> NDArray[Any, numpy.float32]:
     "onnx fft"
     dim = x.shape[1]
-    n = nxnp.arange(0, dim)
-    k = n.reshape((-1, 1)).astype(numpy.float64)
-    kn = (k * (n * (-numpy.pi * 2))) / dim
+    n = nxnp.arange(0, dim).astype(numpy.float32)
+    k = n.reshape((-1, 1))
+    kn = (k * (n * numpy.float32(-numpy.pi * 2))) / dim.astype(numpy.float32)
     kn3 = nxnp.expand_dims(kn, 0)
     kn_cos = nxnp.cos(kn3)
     kn_sin = nxnp.sin(kn3)
-    ekn = nxnp.concat(kn_cos, kn_sin, axis=0)
-    res = numpy.dot(ekn, x.T)
+    ekn = nxnp.vstack(kn_cos, kn_sin)
+    res = nxnp.dot(ekn, x.T)
     tr = res ** 2
     mod = tr[0, :, :] + tr[1, :, :]
-    return numpy.sqrt(mod).T
+    return nxnp.sqrt(mod).T
 
 
 class TestOnnxComplexScenario(ExtTestCase):
@@ -66,32 +65,28 @@ class TestOnnxComplexScenario(ExtTestCase):
         self.assertIn('SklearnFunctionTransformer', res[1])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
-    def c_test_function_transformer(self):
+    def test_function_transformer_fft_abs(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
-        tr = FunctionTransformer(custom_fct)
+        tr = FunctionTransformer(custom_fft_abs)
         tr.fit(x)
         y_exp = tr.transform(x)
-        self.assertEqualArray(
-            numpy.array([[6.1, 0.], [3.5, 0.]], dtype=numpy.float32),
-            y_exp)
-
         onnx_model = to_onnx(tr, x)
         oinf = OnnxInference(onnx_model)
         y_onx = oinf.run({'X': x})
         self.assertEqualArray(y_exp, y_onx['variable'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
-    def test_fft_abs(self):
+    def test_futr_fft_abs(self):
         x = numpy.random.randn(3, 4).astype(numpy.float32)
         fft = custom_fft_abs_py(x)
         self.assertEqual(fft.shape, x.shape)
 
         fft_nx = custom_fft_abs(x)
         self.assertEqual(fft_nx.shape, x.shape)
-        self.assertEqualArray(fft, fft_nx)
+        self.assertEqualArray(fft, fft_nx, decimal=5)
 
         def tf_fft(x):
-            import tensorflow as tf
+            import tensorflow as tf  # pylint: disable=E0401
             xc = tf.cast(x, tf.complex64)
             xcf = tf.signal.fft(xc)
             return tf.abs(xcf)
@@ -103,7 +98,7 @@ class TestOnnxComplexScenario(ExtTestCase):
             tfx = None
 
         if tfx is not None:
-            self.assertEqualArray(tfx, fft)
+            self.assertEqualArray(tfx, fft, decimal=5)
 
 
 if __name__ == "__main__":

@@ -4,8 +4,10 @@
 :epkg:`sklearn-onnx`.
 """
 import copy
+from onnx.helper import make_tensor
 from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx.common._apply_operation import apply_concat, apply_identity
+from ...tools.onnx2py_helper import _var_as_dict, guess_proto_dtype
 
 
 def new_calculate_sklearn_function_transformer_output_shapes(operator):
@@ -68,6 +70,20 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
     operator.outputs[0].type = operator.inputs[0].type.__class__([N, C])
 
 
+def _copy_attributes(att):
+    if hasattr(att, 'value'):
+        return att.value
+    vt = _var_as_dict(att)
+    if vt['type']['kind'] == 'tensor':
+        value = vt['value']
+        return make_tensor(att.name, guess_proto_dtype(value.dtype),
+                           value.shape, value.ravel().tolist())
+    if vt['type']['kind'] == 'real':
+        return vt['value']
+    raise RuntimeError(
+        "Unable to copy attribute %r, got %r." % (att, vt))
+
+
 def new_convert_sklearn_function_transformer(scope, operator, container):
     """
     Rewrites the converters implemented in
@@ -121,7 +137,7 @@ def new_convert_sklearn_function_transformer(scope, operator, container):
         for node in nodes:
             atts = {}
             for att in node.attribute:
-                atts[att.name] = att.value
+                atts[att.name] = _copy_attributes(att)
             container.add_node(
                 node.op_type,
                 [names_mapping[n] for n in node.input],

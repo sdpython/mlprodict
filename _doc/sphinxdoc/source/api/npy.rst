@@ -105,6 +105,8 @@ Available numpy functions implemented with ONNX operators
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.compress
 
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.concat
+
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.cos
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.cosh
@@ -113,11 +115,17 @@ Available numpy functions implemented with ONNX operators
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.det
 
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.dot
+
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.einsum
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.erf
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.exp
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.expand_dims
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.hstack
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.isnan
 
@@ -143,11 +151,17 @@ Available numpy functions implemented with ONNX operators
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.sqrt
 
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.squeeze
+
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.sum
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.tan
 
 .. autosignature:: mlprodict.npy.numpy_onnx_impl.tanh
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.unsqueeze
+
+.. autosignature:: mlprodict.npy.numpy_onnx_impl.vstack
 
 ONNX functions executed python ONNX runtime
 +++++++++++++++++++++++++++++++++++++++++++

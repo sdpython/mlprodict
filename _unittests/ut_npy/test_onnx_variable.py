@@ -480,7 +480,7 @@ class TestOnnxVariable(ExtTestCase):
     def test_py_abs_slice(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_slice(x)
-        self.assertEqualArray(y, numpy.abs(x)[:, 1:])
+        self.assertEqualArray(y, numpy.abs(x)[:, 1])
 
     def test_py_abs_slice23(self):
         x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)

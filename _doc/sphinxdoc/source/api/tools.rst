@@ -45,9 +45,9 @@ Plotting
 Serialization
 +++++++++++++
 
-.. autosignature:: mlprodict.onnxrt.onnx2py_helper.from_bytes
+.. autosignature:: mlprodict.tools.onnx2py_helper.from_bytes
 
-.. autosignature:: mlprodict.onnxrt.onnx2py_helper.to_bytes
+.. autosignature:: mlprodict.tools.onnx2py_helper.to_bytes
 
 Versions
 ++++++++

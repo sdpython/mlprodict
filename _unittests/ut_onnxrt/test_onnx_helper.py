@@ -10,7 +10,7 @@ from sklearn.datasets import load_iris
 from sklearn.cluster import KMeans
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.optim.onnx_helper import change_input_first_dimension
-from mlprodict.onnxrt.onnx2py_helper import (
+from mlprodict.tools.onnx2py_helper import (
     to_bytes, from_bytes, numpy_max, numpy_min, _type_to_string,
     _numpy_array)
 from mlprodict.onnxrt.ops_cpu._op_helper import proto2dtype

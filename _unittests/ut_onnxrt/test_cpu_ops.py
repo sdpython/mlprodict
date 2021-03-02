@@ -12,7 +12,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxConv)
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.ops_cpu.op_conv import Conv
-from mlprodict.onnxrt.onnx2py_helper import _var_as_dict
+from mlprodict.tools.onnx2py_helper import _var_as_dict
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.testing.test_utils.tests_helper import fit_multilabel_classification_model

@@ -8,7 +8,7 @@ from io import BytesIO
 import pickle
 import textwrap
 from onnx import numpy_helper
-from .onnx2py_helper import _var_as_dict, _type_to_string
+from ..tools.onnx2py_helper import _var_as_dict, _type_to_string
 
 
 class OnnxInferenceExport:

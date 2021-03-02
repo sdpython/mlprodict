@@ -23,6 +23,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSqueeze, OnnxSub,
     OnnxTopK, OnnxTranspose
 )
+from ..tools.onnx2py_helper import guess_proto_dtype
 
 
 try:
@@ -139,7 +140,6 @@ class OnnxVar:
 
     def astype(self, dtype):
         "Cast"
-        from ..onnxrt.onnx2py_helper import guess_proto_dtype
         return OnnxVar(self, op=OnnxCast, to=guess_proto_dtype(dtype))
 
     @property
@@ -244,12 +244,14 @@ class OnnxVar:
         ends = []
         axes = []
         steps = []
+        axis_squeeze = []
         for i, ind in enumerate(index):
             if isinstance(ind, int):
                 starts.append(ind)
                 ends.append(ind + 1)
                 axes.append(i)
                 steps.append(1)
+                axis_squeeze.append(i)
                 continue
             if isinstance(ind, slice):
                 if ind.start is None and ind.stop is None and ind.step is None:
@@ -272,8 +274,14 @@ class OnnxVar:
         ends = numpy.array(ends, dtype=numpy.int64)
         axes = numpy.array(axes, dtype=numpy.int64)
         if steps is None:
-            return OnnxVar(self, starts, ends, axes, op=OnnxSlice)
-        return OnnxVar(self, starts, ends, axes, steps, op=OnnxSlice)
+            sliced = OnnxVar(self, starts, ends, axes, op=OnnxSlice)
+        else:
+            sliced = OnnxVar(self, starts, ends, axes, steps, op=OnnxSlice)
+        if len(axis_squeeze) > 0:
+            return OnnxVar(
+                sliced, numpy.array(axis_squeeze, dtype=numpy.int64),
+                op=OnnxSqueeze)
+        return sliced
 
     def _matrix_multiply(self, indices, axis):
         """
