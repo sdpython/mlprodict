@@ -17,7 +17,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAtan, OnnxAtanh,
     OnnxCeil,
     OnnxClip,
-    OnnxCompress,
+    OnnxCompress, OnnxConcat,
     OnnxConstantOfShape,
     OnnxCos, OnnxCosh,
     OnnxCumSum,
@@ -28,6 +28,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxFloor,
     OnnxIsNaN,
     OnnxLog,
+    OnnxMatMul,
     OnnxPad,
     OnnxReciprocal,
     OnnxReduceMax,
@@ -40,7 +41,9 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSign,
     OnnxSin, OnnxSinh,
     OnnxSqrt,
+    OnnxSqueeze,
     OnnxTan, OnnxTanh,
+    OnnxUnsqueeze,
 )
 from .onnx_variable import OnnxVar
 
@@ -83,6 +86,10 @@ def arange(start, stop, step=1):
     if step != 1:
         raise NotImplementedError(
             "The function is not implemented for step != 1 (step=%r)." % step)
+    if isinstance(start, (int, numpy.int64)):
+        start = numpy.array([start], dtype=numpy.int64)
+    if isinstance(stop, (int, numpy.int64)):
+        stop = numpy.array([stop], dtype=numpy.int64)
     value = make_tensor(
         "value", onnx_proto.TensorProto.INT64, (1, ), [step])  # pylint: disable=E1101
     cst = OnnxVar(stop - start, op=OnnxConstantOfShape, value=value)
@@ -155,14 +162,27 @@ def cosh(x):
     return OnnxVar(x, op=OnnxCosh)
 
 
+def concat(*x, axis=0):
+    """
+    Operator concat, handle :epkg:`numpy:vstack` and
+    :epkg:`numpy:hstack`.
+    """
+    return OnnxVar(*x, op=OnnxConcat, axis=axis)
+
+
 def cumsum(x, axis):
     "See :epkg:`numpy:cumsum`."
     return OnnxVar(x, axis, op=OnnxCumSum)
 
 
 def det(x):
-    "See :epkg:`numpy:linalkg:det`."
+    "See :epkg:`numpy:linalg:det`."
     return OnnxVar(x, op=OnnxDet)
+
+
+def dot(a, b):
+    "See :epkg:`numpy:dot`."
+    return OnnxVar(a, b, op=OnnxMatMul)
 
 
 def einsum(*x, equation=None):
@@ -180,9 +200,23 @@ def exp(x):
     return OnnxVar(x, op=OnnxExp)
 
 
+def expand_dims(x, axis):
+    "See :epkg:`numpy:expand_dims`."
+    if not isinstance(axis, int):
+        raise NotImplementedError(
+            "This function only allows integer for axis not %r." % type(axis))
+    return OnnxVar(x, numpy.array([axis], dtype=numpy.int64),
+                   op=OnnxUnsqueeze)
+
+
 def floor(x):
     "See :epkg:`numpy:floor`."
     return OnnxVar(x, op=OnnxFloor)
+
+
+def hstack(*x):
+    "See :epkg:`numpy:hstack`."
+    return OnnxVar(*x, op=OnnxConcat, axis=-1)
 
 
 def isnan(x):
@@ -258,6 +292,18 @@ def sqrt(x):
     return OnnxVar(x, op=OnnxSqrt)
 
 
+def squeeze(x, axis=None):
+    "See :epkg:`numpy:squeeze`."
+    if axis is None:
+        raise NotImplementedError(
+            "The case where all empty dimensions are removed is not "
+            "implemented.")
+    if isinstance(axis, int):
+        return OnnxVar(x, numpy.array([axis], dtype=numpy.int64),
+                       op=OnnxSqueeze)
+    return OnnxVar(x, axis, op=OnnxSqueeze)
+
+
 def sum(x, axis=None, keepdims=0):
     "See :epkg:`numpy:sum`."
     if axis is None:
@@ -274,3 +320,13 @@ def tan(x):
 def tanh(x):
     "See :epkg:`numpy:tanh`."
     return OnnxVar(x, op=OnnxTanh)
+
+
+def unsqueeze(x, axes):
+    "See :epkg:`numpy:expand_dims`."
+    return OnnxVar(x, axes, op=OnnxUnsqueeze)
+
+
+def vstack(*x):
+    "See :epkg:`numpy:vstack`."
+    return OnnxVar(*x, op=OnnxConcat, axis=0)

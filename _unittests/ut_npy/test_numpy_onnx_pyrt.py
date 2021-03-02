@@ -172,6 +172,13 @@ class TestNumpyOnnxFunction(ExtTestCase):
                 self.common_testn((cond, x), numpy.compress, nxnpy.compress,
                                   (numpy_bool, numpy.float32, a), axis=a)
 
+    def test_concat_float32(self):
+        npc = lambda *x, axis=None: numpy.vstack(x)
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_testn((x, x), npc, nxnpy.concat,  # pylint: disable=E1101
+                          (numpy.float32, numpy.float32, 0),
+                          axis=0)
+
     def test_cos_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.cos, nxnpy.cos, numpy.float32)
@@ -195,6 +202,11 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[[6.1, 5], [3.5, 7.8]],
                          [[6.1, 5], [3.5, -7.8]]], dtype=numpy.float32)
         self.common_test1(x, numpy.linalg.det, nxnpy.det, numpy.float32)
+
+    def test_dot_float32(self):
+        x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float32)
+        self.common_testn((x, x), numpy.dot, nxnpy.dot,
+                          (numpy.float32, numpy.float32))
 
     def test_einsum_float32(self):
         np_ein = lambda *x, equation=None: numpy.einsum(equation, *x)
@@ -220,9 +232,21 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.exp, nxnpy.exp, numpy.float32)
 
+    def test_expand_dims_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(
+            x, numpy.expand_dims, nxnpy.expand_dims,
+            (numpy.float32, 0), axis=0)
+
     def test_floor_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.floor, nxnpy.floor, numpy.float32)
+
+    def test_hstack_float32(self):
+        npc = lambda *x, axis=None: numpy.hstack(x)
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_testn((x, x), npc, nxnpy.hstack,  # pylint: disable=E1101
+                          (numpy.float32, numpy.float32))
 
     def test_isnan_float32(self):
         x = numpy.array([[6.1, 5], [3.5, numpy.nan]], dtype=numpy.float32)
@@ -314,6 +338,14 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[0.5, 0.1], [0.5, 0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.sqrt, nxnpy.sqrt, numpy.float32)
 
+    def test_squeeze_float32(self):
+        x = numpy.array([[[0.5, 0.1], [-0.5, -0.1]]], dtype=numpy.float32)
+        axes = numpy.array([0], dtype=numpy.int64)
+        self.common_testn(
+            (x, axes),
+            lambda x, a: numpy.squeeze(x, a[0]), nxnpy.squeeze,
+            (numpy.float32, numpy.int64))
+
     def test_tan_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.tan, nxnpy.tan, numpy.float32)
@@ -323,6 +355,20 @@ class TestNumpyOnnxFunction(ExtTestCase):
         self.common_test1(x, numpy.tanh, nxnpy.tanh, numpy.float32)
         doc = nxnpy.tanh.__doc__
         self.assertIn('tanh', doc)
+
+    def test_unsqueeze_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        axes = numpy.array([0], dtype=numpy.int64)
+        self.common_testn(
+            (x, axes),
+            lambda x, a: numpy.expand_dims(x, a[0]), nxnpy.unsqueeze,
+            (numpy.float32, numpy.int64))
+
+    def test_vstack_float32(self):
+        npc = lambda *x, axis=None: numpy.vstack(x)
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_testn((x, x), npc, nxnpy.vstack,  # pylint: disable=E1101
+                          (numpy.float32, numpy.float32))
 
 
 if __name__ == "__main__":

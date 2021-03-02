@@ -16,8 +16,8 @@ from skl2onnx.helpers.onnx_helper import select_model_inputs_outputs
 from skl2onnx.common.data_types import (
     FloatTensorType, DoubleTensorType,
     Int64TensorType)
+from ..tools.onnx2py_helper import _var_as_dict
 from ..onnxrt import OnnxInference
-from ..onnxrt.onnx2py_helper import _var_as_dict
 
 
 class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):

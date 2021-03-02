@@ -30,11 +30,15 @@ from .numpy_onnx_impl import (
     cos as nx_cos,
     cosh as nx_cosh,
     cumsum as nx_cumsum,
+    concat as nx_concat,
     det as nx_det,
+    dot as nx_dot,
     einsum as nx_einsum,
     erf as nx_erf,
     exp as nx_exp,
+    expand_dims as nx_expand_dims,
     floor as nx_floor,
+    hstack as nx_hstack,
     isnan as nx_isnan,
     log as nx_log,
     mean as nx_mean,
@@ -47,9 +51,12 @@ from .numpy_onnx_impl import (
     sin as nx_sin,
     sinh as nx_sinh,
     sqrt as nx_sqrt,
+    squeeze as nx_squeeze,
     sum as nx_sum,
     tan as nx_tan,
     tanh as nx_tanh,
+    unsqueeze as nx_unsqueeze,
+    vstack as nx_vstack,
 )
 from .onnx_numpy_wrapper import onnxnumpy_np
 
@@ -145,6 +152,12 @@ def compress(condition, x, axis=None):
     return nx_compress(condition, x, axis=axis)
 
 
+@onnxnumpy_np(signature=NDArrayType("all", nvars=True))
+def concat(*x, axis=0):
+    "concat"
+    return nx_concat(*x, axis=axis)
+
+
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
 def cos(x):
     "cos"
@@ -169,6 +182,12 @@ def det(x):
     return nx_det(x)
 
 
+@onnxnumpy_np(signature=NDArrayType("all", "all"))
+def dot(a, b):
+    "dot"
+    return nx_dot(a, b)
+
+
 @onnxnumpy_np(signature=NDArrayType("all", nvars=True))
 def einsum(*x, equation=None):
     "einsum"
@@ -187,10 +206,22 @@ def exp(x):
     return nx_exp(x)
 
 
+@onnxnumpy_np(signature=NDArrayType("floats"))
+def expand_dims(x, axis=0):
+    "expand_dims"
+    return nx_expand_dims(x, axis)
+
+
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
 def floor(x):
     "floor"
     return nx_floor(x)
+
+
+@onnxnumpy_np(signature=NDArrayType("all", nvars=True))
+def hstack(*x):
+    "hstack"
+    return nx_hstack(*x)
 
 
 @onnxnumpy_np(signature=NDArrayTypeSameShape("all_bool"))
@@ -265,6 +296,12 @@ def sqrt(x):
     return nx_sqrt(x)
 
 
+@onnxnumpy_np(signature=NDArrayType(("all", numpy.int64), n_optional=1))
+def squeeze(x, axis=None):
+    "squeeze"
+    return nx_squeeze(x, axis)
+
+
 @onnxnumpy_np(signature=NDArraySameType("all"))
 def sum(x, axis=None, keepdims=0):
     "sum"
@@ -281,3 +318,15 @@ def tan(x):
 def tanh(x):
     "tanh"
     return nx_tanh(x)
+
+
+@onnxnumpy_np(signature=NDArrayType(("all", numpy.int64)))
+def unsqueeze(x, axes):
+    "unsqueeze"
+    return nx_unsqueeze(x, axes)
+
+
+@onnxnumpy_np(signature=NDArrayType("all", nvars=True))
+def vstack(*x):
+    "vstack"
+    return nx_vstack(*x)
