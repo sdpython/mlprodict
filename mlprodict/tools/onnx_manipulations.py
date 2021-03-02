@@ -25,14 +25,16 @@ def enumerate_model_node_outputs(model, add_node=False):
             yield (out, node) if add_node else out
 
 
-def select_model_inputs_outputs(model, outputs=None, inputs=None):
+def select_model_inputs_outputs(model, outputs=None, inputs=None,
+                                infer_shapes=False):
     """
     Takes a model and changes its outputs.
 
-    @param      model       :epkg:`ONNX` model
-    @param      inputs      new inputs, same ones if None
-    @param      outputs     new outputs, same ones if None
-    @return                 modified model
+    @param      model           :epkg:`ONNX` model
+    @param      inputs          new inputs, same ones if None
+    @param      outputs         new outputs, same ones if None
+    @param      infer_shapes    infer inputs and outputs shapes
+    @return                     modified model
 
     The function removes unneeded files.
 
@@ -92,14 +94,20 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None):
     # All nodes verifies mark_op[node.name] == 1
     keep_nodes = [node for node in nodes if mark_op[node.name] == 1]
 
-    shapes = shape_inference.infer_shapes(model)
     known_shapes = {}
-    for shape in shapes.graph.value_info:  # pylint: disable=E1101
-        known_shapes[shape.name] = shape.type
-    for shape in shapes.graph.input:  # pylint: disable=E1101
-        known_shapes[shape.name] = shape.type
-    for shape in shapes.graph.output:  # pylint: disable=E1101
-        known_shapes[shape.name] = shape.type
+    if infer_shapes:
+        shapes = shape_inference.infer_shapes(model)
+        for shape in shapes.graph.value_info:  # pylint: disable=E1101
+            known_shapes[shape.name] = shape.type
+        for shape in shapes.graph.input:  # pylint: disable=E1101
+            known_shapes[shape.name] = shape.type
+        for shape in shapes.graph.output:  # pylint: disable=E1101
+            known_shapes[shape.name] = shape.type
+    else:
+        for shape in model.graph.input:  # pylint: disable=E1101
+            known_shapes[shape.name] = shape.type
+        for shape in model.graph.output:  # pylint: disable=E1101
+            known_shapes[shape.name] = shape.type
 
     var_in = []
     for name in inputs:

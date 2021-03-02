@@ -8,7 +8,7 @@ import numpy
 import pandas
 from onnxruntime import __version__ as ort_version
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as CK, Sum
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from skl2onnx.common.data_types import FloatTensorType
 try:
@@ -48,6 +48,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         logger.disabled = True
 
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
+    @ignore_warnings(DeprecationWarning)
     def test_kernel_ker12_def(self):
         ker = (Sum(CK(0.1, (1e-3, 1e3)), CK(0.1, (1e-3, 1e3)) *
                    RBF(length_scale=1, length_scale_bounds=(1e-3, 1e3))))
@@ -64,6 +65,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertEqualArray(m1, m2)
 
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
+    @ignore_warnings(DeprecationWarning)
     def test_kernel_ker2_def(self):
         ker = Sum(
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=10,
@@ -91,6 +93,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
     @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,
                      reason="Node:Scan1 Field 'shape' of type is required but missing.")
+    @ignore_warnings(DeprecationWarning)
     def test_kernel_ker2_def_ort(self):
         ker = Sum(
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=10,
@@ -121,6 +124,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
     @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,
                      reason="Node:Scan1 Field 'shape' of type is required but missing.")
+    @ignore_warnings(DeprecationWarning)
     def test_kernel_ker2_def_ort1(self):
         ker = Sum(
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=10,
@@ -143,10 +147,8 @@ class TestOnnxrtSideBySide(ExtTestCase):
         def myprint(*args, **kwargs):
             rows.append(" ".join(map(str, args)))
 
-        res = _capture_output(
-            lambda: sess.run({'X': Xtest_.astype(numpy.float32)},
-                             intermediate=True, verbose=1, fLOG=myprint),
-            'c')[0]
+        res = sess.run({'X': Xtest_.astype(numpy.float32)},
+                       intermediate=True, verbose=1, fLOG=myprint)
         self.assertGreater(len(rows), 2)
         m1 = res['Y']
         self.assertNotEmpty(m1)
@@ -185,6 +187,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
             [(cpu, inputs), (sess, inputs), (sess3, inputs)])
         self.assertNotEmpty(sbs)
 
+    @ignore_warnings(DeprecationWarning)
     def test_merge_results(self):
         res1 = [('AA', [0, 0]), ('BB', [1, 1])]
         res2 = [('AA', [2, 2]), ('BB', [3, 3])]
