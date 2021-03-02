@@ -33,9 +33,9 @@ ONNX Export
 ONNX Structure
 ++++++++++++++
 
-.. autosignature:: mlprodict.onnxrt.onnx_inference_manipulations.enumerate_model_node_outputs
+.. autosignature:: mlprodict.tools.onnx_manipulations.enumerate_model_node_outputs
 
-.. autosignature:: mlprodict.onnxrt.onnx_inference_manipulations.select_model_inputs_outputs
+.. autosignature:: mlprodict.tools.onnx_manipulations.select_model_inputs_outputs
 
 Validation
 ++++++++++

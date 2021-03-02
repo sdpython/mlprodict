@@ -17,7 +17,7 @@ Functions to help understand models.
 
 .. autosignature:: mlprodict.tools.model_info.analyze_model
 
-.. autosignature:: mlprodict.onnxrt.onnx_inference_manipulations.enumerate_model_node_outputs
+.. autosignature:: mlprodict.tools.onnx_manipulations.enumerate_model_node_outputs
 
 .. autosignature:: mlprodict.tools.code_helper.make_callable
 
@@ -27,7 +27,7 @@ Functions to help understand models.
 
 .. autosignature:: mlprodict.onnxrt.optim.onnx_statistics
 
-.. autosignature:: mlprodict.onnxrt.onnx_inference_manipulations.select_model_inputs_outputs
+.. autosignature:: mlprodict.tools.onnx_manipulations.select_model_inputs_outputs
 
 .. autosignature:: mlprodict.testing.verify_code.verify_code
 

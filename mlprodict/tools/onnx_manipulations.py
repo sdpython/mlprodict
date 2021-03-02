@@ -3,7 +3,7 @@
 @brief Implements a class able to compute the predictions
 from on an :epkg:`ONNX` model.
 """
-from onnx import helper
+from onnx import helper, shape_inference
 
 
 def enumerate_model_node_outputs(model, add_node=False):
@@ -35,21 +35,24 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None):
     @return                 modified model
 
     The function removes unneeded files.
+
+    .. versionchanged:: 0.6
+        Supports the case where inputs are changed.
     """
-    if inputs is not None:
-        raise NotImplementedError(  # pragma: no cover
-            "Parameter inputs cannot be empty.")
-    if outputs is None:
-        raise RuntimeError(  # pragma: no cover
-            "Parameter outputs cannot be None.")
-    if not isinstance(outputs, list):
+    if inputs is not None and not isinstance(inputs, list):
+        inputs = [inputs]
+    if outputs is not None and not isinstance(outputs, list):
         outputs = [outputs]
+    if inputs is None:
+        inputs = [i.name for i in model.graph.input]
+    if outputs is None:
+        outputs = [o.name for o in model.graph.output]
 
     mark_var = {}
     for out in enumerate_model_node_outputs(model):
         mark_var[out] = 0
-    for inp in model.graph.input:
-        mark_var[inp.name] = 0
+    for inp in inputs:
+        mark_var[inp] = 0
     for out in outputs:
         if out not in mark_var:
             raise ValueError(  # pragma: no cover
@@ -79,6 +82,8 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None):
 
             nb += 1
             for inp in node.input:
+                if inp in inputs:
+                    continue
                 if mark_var.get(inp, 0) == 1:
                     continue
                 mark_var[inp] = 1
@@ -87,12 +92,44 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None):
     # All nodes verifies mark_op[node.name] == 1
     keep_nodes = [node for node in nodes if mark_op[node.name] == 1]
 
+    shapes = shape_inference.infer_shapes(model)
+    known_shapes = {}
+    for shape in shapes.graph.value_info:  # pylint: disable=E1101
+        known_shapes[shape.name] = shape.type
+    for shape in shapes.graph.input:  # pylint: disable=E1101
+        known_shapes[shape.name] = shape.type
+    for shape in shapes.graph.output:  # pylint: disable=E1101
+        known_shapes[shape.name] = shape.type
+
+    var_in = []
+    for name in inputs:
+        if name in known_shapes:
+            info = known_shapes[name].tensor_type
+            proto_dtype = info.elem_type
+            shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
+            shape = [None if s == 0 else s for s in shape]
+            value_info = helper.make_tensor_value_info(
+                name, proto_dtype, shape)
+        else:
+            value_info = helper.ValueInfoProto()
+            value_info.name = name
+        var_in.append(value_info)
+
     var_out = []
-    for out in outputs:
-        value_info = helper.ValueInfoProto()
-        value_info.name = out
+    for name in outputs:
+        if name in known_shapes:
+            info = known_shapes[name].tensor_type
+            proto_dtype = info.elem_type
+            shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
+            shape = [None if s == 0 else s for s in shape]
+            value_info = helper.make_tensor_value_info(
+                name, proto_dtype, shape)
+        else:
+            value_info = helper.ValueInfoProto()
+            value_info.name = name
         var_out.append(value_info)
-    graph = helper.make_graph(keep_nodes, model.graph.name, model.graph.input,
+
+    graph = helper.make_graph(keep_nodes, model.graph.name, var_in,
                               var_out, model.graph.initializer)
     onnx_model = helper.make_model(graph)
     onnx_model.ir_version = model.ir_version
@@ -110,9 +147,4 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None):
         op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
         op_set.domain = oimp.domain
         op_set.version = oimp.version
-
-    if len(onnx_model.graph.input) != len(model.graph.input):  # pylint: disable=E1101
-        raise RuntimeError(  # pragma: no cover
-            "Input mismatch {} != {}".format(
-                len(onnx_model.input), len(model.input)))  # pylint: disable=E1101
     return onnx_model
