@@ -168,11 +168,12 @@ class OnnxNumpyCompiler:
             is a list of tuple with the name and the dtype,
             *kwargs* is the list of additional parameters
         """
-        args, kwargs = get_args_kwargs(
-            self.fct_, 0 if signature is None else signature.n_optional)
+        n_opt = 0 if signature is None else signature.n_optional
+        args, kwargs = get_args_kwargs(self.fct_, n_opt)
         if isinstance(version, tuple):
-            nv = len(version) - len(args) - signature.n_optional
-            if not signature.n_variables and nv > len(kwargs):
+            nv = len(version) - len(args) - n_opt
+            if (signature is not None and not
+                    signature.n_variables and nv > len(kwargs)):
                 raise RuntimeError(
                     "Mismatch between version=%r and kwargs=%r for "
                     "function %r, optional argument is %d, "

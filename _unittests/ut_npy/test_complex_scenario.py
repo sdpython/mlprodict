@@ -11,7 +11,7 @@ from sklearn.preprocessing import FunctionTransformer
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.onnx_conv import register_rewritten_operators, to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.npy import onnxnumpy_default, NDArray
+from mlprodict.npy import onnxnumpy_default, onnxnumpy_np, NDArray
 import mlprodict.npy.numpy_onnx_impl as nxnp
 
 
@@ -34,10 +34,7 @@ def custom_fft_abs_py(x):
     return numpy.sqrt(mod).T
 
 
-@onnxnumpy_default
-def custom_fft_abs(x: NDArray[Any, numpy.float32],
-                   ) -> NDArray[Any, numpy.float32]:
-    "onnx fft"
+def _custom_fct(x):
     dim = x.shape[1]
     n = nxnp.arange(0, dim).astype(numpy.float32)
     k = n.reshape((-1, 1))
@@ -50,6 +47,20 @@ def custom_fft_abs(x: NDArray[Any, numpy.float32],
     tr = res ** 2
     mod = tr[0, :, :] + tr[1, :, :]
     return nxnp.sqrt(mod).T
+
+
+@onnxnumpy_default
+def custom_fft_abs(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.float32]:
+    "onnx fft"
+    return _custom_fct(x)
+
+
+@onnxnumpy_np(runtime="onnxruntime1")
+def custom_fft_abs_ort(x: NDArray[Any, numpy.float32],
+                       ) -> NDArray[Any, numpy.float32]:
+    "onnx fft"
+    return _custom_fct(x)
 
 
 class TestOnnxComplexScenario(ExtTestCase):
@@ -66,14 +77,18 @@ class TestOnnxComplexScenario(ExtTestCase):
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
     def test_function_transformer_fft_abs(self):
-        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
-        tr = FunctionTransformer(custom_fft_abs)
-        tr.fit(x)
-        y_exp = tr.transform(x)
-        onnx_model = to_onnx(tr, x)
-        oinf = OnnxInference(onnx_model)
-        y_onx = oinf.run({'X': x})
-        self.assertEqualArray(y_exp, y_onx['variable'])
+        for rt, fct in [('py', custom_fft_abs),
+                        ('ort', custom_fft_abs_ort)]:
+            with self.subTest(runtime=rt):
+                x = numpy.array([[6.1, -5], [3.5, -7.8]],
+                                dtype=numpy.float32)
+                tr = FunctionTransformer(fct)
+                tr.fit(x)
+                y_exp = tr.transform(x)
+                onnx_model = to_onnx(tr, x)
+                oinf = OnnxInference(onnx_model)
+                y_onx = oinf.run({'X': x})
+                self.assertEqualArray(y_exp, y_onx['variable'], decimal=5)
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
     def test_futr_fft_abs(self):
