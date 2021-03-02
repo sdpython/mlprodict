@@ -194,7 +194,7 @@ def test_abs_reshape(x: NDArray[Any, numpy.float32],
     return nxnp.abs(x).reshape((-1, 1))
 
 
-@onnxnumpy(op_version=11)
+@onnxnumpy(op_version=11, runtime='onnxruntime1')
 def test_abs_reshape_11(x: NDArray[Any, numpy.float32],
                         ) -> NDArray[Any, numpy.float32]:
     "onnx numpy reshape with opset 11"

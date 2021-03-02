@@ -24,7 +24,7 @@ class _created_classes:
         if name in self.stored:
             raise RuntimeError(
                 "Class %r already exists in\n%r\n---\n%r" % (
-                    name, "\n".join(sorted(self.stored)), cl))
+                    name, ", ".join(sorted(self.stored)), cl))
         self.stored[name] = cl
         globals()[name] = cl
 
