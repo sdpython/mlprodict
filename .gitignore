@@ -311,3 +311,4 @@ _unittests/ut_tools/*.gz
 _unittests/ut_tools/*.tar
 _unittests/ut_tools/**/*.npz
 _unittests/ut_tools/**/*.pb
+_unittests/ut_onnxrt/onnxruntime_profile*.json

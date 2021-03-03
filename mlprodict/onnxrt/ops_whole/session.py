@@ -3,6 +3,7 @@
 @file
 @brief Shortcut to *ops_whole*.
 """
+import json
 from io import BytesIO
 import onnx
 from onnxruntime import (
@@ -47,10 +48,12 @@ class OnnxWholeSession:
         except AttributeError:  # pragma: no cover
             # onnxruntime not recent enough.
             pass
-        if (runtime_options is not None and
-                runtime_options.get('disable_optimisation', False)):
-            sess_options.graph_optimization_level = (  # pragma: no cover
-                GraphOptimizationLevel.ORT_ENABLE_ALL)
+        if runtime_options is not None:
+            if runtime_options.get('disable_optimisation', False):
+                sess_options.graph_optimization_level = (  # pragma: no cover
+                    GraphOptimizationLevel.ORT_ENABLE_ALL)
+            if runtime_options.get('enable_profiling', True):
+                sess_options.enable_profiling = True
         try:
             self.sess = InferenceSession(onnx_data, sess_options=sess_options)
         except (OrtFail, OrtNotImplemented, OrtInvalidGraph,
@@ -67,3 +70,20 @@ class OnnxWholeSession:
         @return                 list of outputs
         """
         return self.sess.run(None, inputs, self.run_options)
+
+    def get_profiling(self):
+        """
+        Returns the profiling informations.
+        """
+        prof = self.sess.end_profiling()
+        with open(prof, 'r') as f:
+            content = f.read()
+        js = json.loads(content)
+        rows = []
+        for row in js:
+            if 'args' in row and isinstance(row['args'], dict):
+                for k, v in row['args'].items():
+                    row['args_%s' % k] = v
+                del row['args']
+            rows.append(row)
+        return rows
