@@ -8,6 +8,30 @@ from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_numpy_compiler import OnnxNumpyCompiler
 
 
+class _created_classes:
+    """
+    Class to store all dynamic classes created by wrappers.
+    """
+
+    def __init__(self):
+        self.stored = {}
+
+    def append(self, name, cl):
+        """
+        Adds a class into `globals()` to enable pickling on dynamic
+        classes.
+        """
+        if name in self.stored:
+            raise RuntimeError(
+                "Class %r already exists in\n%r\n---\n%r" % (
+                    name, ", ".join(sorted(self.stored)), cl))
+        self.stored[name] = cl
+        globals()[name] = cl
+
+
+_created_classes_inst = _created_classes()
+
+
 class wrapper_onnxnumpy:
     """
     Intermediate wrapper to store a pointer
@@ -26,6 +50,20 @@ class wrapper_onnxnumpy:
         Calls the compiled function with arguments `args`.
         """
         return self.compiled(*args, **kwargs)
+
+    def __getstate__(self):
+        """
+        Serializes everything but the function which generates
+        the ONNX graph, not needed anymore.
+        """
+        return dict(compiled=self.compiled)
+
+    def __setstate__(self, state):
+        """
+        Serializes everything but the function which generates
+        the ONNX graph, not needed anymore.
+        """
+        self.compiled = state['compiled']
 
 
 def onnxnumpy(op_version=None, runtime=None, signature=None):
@@ -47,10 +85,10 @@ def onnxnumpy(op_version=None, runtime=None, signature=None):
         compiled = OnnxNumpyCompiler(
             fct, op_version=op_version, runtime=runtime,
             signature=signature)
+        name = "onnxnumpy_%s_%s_%s" % (fct.__name__, str(op_version), runtime)
         newclass = type(
-            "onnxnumpy_%s_%s_%s" % (fct.__name__, str(op_version), runtime),
-            (wrapper_onnxnumpy,), {'__doc__': fct.__doc__})
-
+            name, (wrapper_onnxnumpy,), {'__doc__': fct.__doc__})
+        _created_classes_inst.append(name, newclass)
         return newclass(compiled)
     return decorator_fct
 
@@ -85,6 +123,23 @@ class wrapper_onnxnumpy_np:
             0 if self.signature is None else self.signature.n_optional)
         self.data = kwargs
         self.signed_compiled = {}
+
+    def __getstate__(self):
+        """
+        Serializes everything but the function which generates
+        the ONNX graph, not needed anymore.
+        """
+        data_copy = {k: v for k, v in self.data.items() if k != 'fct'}
+        return dict(signature=self.signature, args=self.args,
+                    kwargs=self.kwargs, data=data_copy,
+                    signed_compiled=self.signed_compiled)
+
+    def __setstate__(self, state):
+        """
+        Restores serialized data.
+        """
+        for k, v in state.items():
+            setattr(self, k, v)
 
     def __getitem__(self, dtype):
         """
@@ -157,9 +212,14 @@ def onnxnumpy_np(op_version=None, runtime=None, signature=None):
     .. versionadded:: 0.6
     """
     def decorator_fct(fct):
+        name = "onnxnumpy_nb_%s_%s_%s" % (
+            fct.__name__, str(op_version), runtime)
         newclass = type(
-            "onnxnumpy_nb_%s_%s_%s" % (fct.__name__, str(op_version), runtime),
-            (wrapper_onnxnumpy_np,), {'__doc__': fct.__doc__})
+            name, (wrapper_onnxnumpy_np,), {
+                '__doc__': fct.__doc__,
+                '__getstate__': wrapper_onnxnumpy_np.__getstate__,
+                '__setstate__': wrapper_onnxnumpy_np.__setstate__})
+        _created_classes_inst.append(name, newclass)
         return newclass(
             fct=fct, op_version=op_version, runtime=runtime,
             signature=signature)

@@ -127,10 +127,34 @@ class OnnxNumpyCompiler:
             signature=signature, version=version)
         inputs, outputs, kwargs, n_input_range = self._parse_annotation(
             signature=signature, version=version)
+        n_opt = 0 if signature is None else signature.n_optional
+        args, kwargs2 = get_args_kwargs(self.fct_, n_opt)
         self.meta_ = dict(op_version=op_version, runtime=runtime,
                           signature=signature, version=version,
                           inputs=inputs, outputs=outputs,
-                          kwargs=kwargs, n_input_range=n_input_range)
+                          kwargs=kwargs, n_input_range=n_input_range,
+                          args=args, kwargs2=kwargs2,
+                          annotations=self.fct_.__annotations__)
+
+    def __getstate__(self):
+        """
+        Serializes everything but function `fct_`.
+        Function `fct_` is used to build the onnx graph
+        and is not needed anymore.
+        """
+        return dict(onnx_=self.onnx_, meta_=self.meta_)
+
+    def __setstate__(self, state):
+        """
+        Restores serialized data.
+        """
+        for k, v in state.items():
+            setattr(self, k, v)
+        self.runtime_ = self._build_runtime(
+            op_version=self.meta_['op_version'],
+            runtime=self.meta_['runtime'],
+            signature=self.meta_['signature'],
+            version=self.meta_['version'])
 
     def __repr__(self):
         "usual"
@@ -169,7 +193,10 @@ class OnnxNumpyCompiler:
             *kwargs* is the list of additional parameters
         """
         n_opt = 0 if signature is None else signature.n_optional
-        args, kwargs = get_args_kwargs(self.fct_, n_opt)
+        if hasattr(self, 'meta_'):
+            args, kwargs = self.meta_['args'], self.meta_['kwargs2']
+        else:
+            args, kwargs = get_args_kwargs(self.fct_, n_opt)
         if isinstance(version, tuple):
             nv = len(version) - len(args) - n_opt
             if (signature is not None and not
@@ -205,7 +232,10 @@ class OnnxNumpyCompiler:
             for i in range(0, 10000):  # pragma: no cover
                 yield 'o%d' % i
 
-        annotations = self.fct_.__annotations__
+        if hasattr(self, 'meta_'):
+            annotations = self.meta_['annotations']
+        else:
+            annotations = self.fct_.__annotations__
         inputs = []
         outputs = []
         for a in args:

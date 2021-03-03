@@ -69,16 +69,17 @@ class TestOnnxFunctionTransformer(ExtTestCase):
         self.assertEqualArray(y_exp, y_onx['variable'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
-    @unittest.skipIf(True, reason="pickling not implemented yet")
     def test_function_transformer_pickle(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         tr = FunctionTransformer(custom_fct)
         tr.fit(x)
         y_exp = tr.transform(x)
         st = BytesIO()
-        pickle.dump(tr, st)
+        # import cloudpickle as pkl
+        pkl = pickle
+        pkl.dump(tr, st)
         cp = BytesIO(st.getvalue())
-        tr2 = pickle.load(cp)
+        tr2 = pkl.load(cp)
         y_exp2 = tr2.transform(x)
         self.assertEqualArray(y_exp, y_exp2)
 
