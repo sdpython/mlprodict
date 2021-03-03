@@ -34,7 +34,7 @@ def custom_fft_abs_py(x):
     return numpy.sqrt(mod).T
 
 
-def _custom_fct(x):
+def _custom_fft_abs(x):
     dim = x.shape[1]
     n = nxnp.arange(0, dim).astype(numpy.float32)
     k = n.reshape((-1, 1))
@@ -52,15 +52,49 @@ def _custom_fct(x):
 @onnxnumpy_default
 def custom_fft_abs(x: NDArray[Any, numpy.float32],
                    ) -> NDArray[Any, numpy.float32]:
-    "onnx fft"
-    return _custom_fct(x)
+    "onnx fft + abs"
+    return _custom_fft_abs(x)
 
 
 @onnxnumpy_np(runtime="onnxruntime1")
 def custom_fft_abs_ort(x: NDArray[Any, numpy.float32],
                        ) -> NDArray[Any, numpy.float32]:
-    "onnx fft"
-    return _custom_fct(x)
+    "onnx fft + abs"
+    return _custom_fft_abs(x)
+
+
+def atan2(y, x):
+    sx = numpy.sign(x)
+    sy = numpy.sign(y)
+    pi_part = (sy + sx * (sy ** 2 - 1)) * (sx - 1) * (-numpy.pi / 2)
+    atan_part = numpy.arctan(y / (x - (sx ** 2 - 1))) * sx ** 2
+    return atan_part + pi_part
+
+
+def _custom_atan2(y, x):
+    sx = nxnp.sign(x)
+    sy = nxnp.sign(y)
+    one = numpy.array([1], dtype=numpy.float32)
+    pi32 = numpy.array([-numpy.pi / 2], dtype=numpy.float32)
+    pi_part = (sy + sx * (sy ** 2 - one)) * (sx - one) * pi32
+    atan_part = nxnp.atan(y / (x - (sx ** 2 - one))) * sx ** 2
+    return atan_part + pi_part
+
+
+@onnxnumpy_default
+def custom_atan2(y: NDArray[Any, numpy.float32],
+                 x: NDArray[Any, numpy.float32],
+                 ) -> NDArray[Any, numpy.float32]:
+    "onnx atan2"
+    return _custom_atan2(y, x)
+
+
+@onnxnumpy_np(runtime="onnxruntime1")
+def custom_atan2_ort(y: NDArray[Any, numpy.float32],
+                     x: NDArray[Any, numpy.float32],
+                     ) -> NDArray[Any, numpy.float32]:
+    "onnx atan2"
+    return _custom_atan2(y, x)
 
 
 class TestOnnxComplexScenario(ExtTestCase):
@@ -114,6 +148,22 @@ class TestOnnxComplexScenario(ExtTestCase):
 
         if tfx is not None:
             self.assertEqualArray(tfx, fft, decimal=5)
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    def test_function_transformer_atan2(self):
+        for rt, fct in [('py', custom_atan2),
+                        ('ort', custom_atan2_ort)]:
+            with self.subTest(runtime=rt):
+                test_pairs = [[y, x] for x in [3., -4., 0.]
+                              for y in [5., -6., 0.]]
+                y_val = numpy.array(
+                    [y for y, x in test_pairs], dtype=numpy.float32)
+                x_val = numpy.array(
+                    [x for y, x in test_pairs], dtype=numpy.float32)
+                exp = atan2(y_val, x_val)
+                self.assertEqualArray(numpy.arctan2(y_val, x_val), exp)
+                got = fct(y_val, x_val)
+                self.assertEqualArray(exp, got)
 
 
 if __name__ == "__main__":
