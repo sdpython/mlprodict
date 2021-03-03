@@ -69,5 +69,4 @@ class TestZoo(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestZoo().test_verify_model_squeezenet()
     unittest.main()

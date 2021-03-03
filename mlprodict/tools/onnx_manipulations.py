@@ -114,10 +114,14 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
         if name in known_shapes:
             info = known_shapes[name].tensor_type
             proto_dtype = info.elem_type
-            shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
-            shape = [None if s == 0 else s for s in shape]
-            value_info = helper.make_tensor_value_info(
-                name, proto_dtype, shape)
+            if proto_dtype == 0:
+                value_info = helper.ValueInfoProto()
+                value_info.name = name
+            else:
+                shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
+                shape = [None if s == 0 else s for s in shape]
+                value_info = helper.make_tensor_value_info(
+                    name, proto_dtype, shape)
         else:
             value_info = helper.ValueInfoProto()
             value_info.name = name
@@ -128,10 +132,14 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
         if name in known_shapes:
             info = known_shapes[name].tensor_type
             proto_dtype = info.elem_type
-            shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
-            shape = [None if s == 0 else s for s in shape]
-            value_info = helper.make_tensor_value_info(
-                name, proto_dtype, shape)
+            if proto_dtype == 0:
+                value_info = helper.ValueInfoProto()
+                value_info.name = name
+            else:
+                shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
+                shape = [None if s == 0 else s for s in shape]
+                value_info = helper.make_tensor_value_info(
+                    name, proto_dtype, shape)
         else:
             value_info = helper.ValueInfoProto()
             value_info.name = name
