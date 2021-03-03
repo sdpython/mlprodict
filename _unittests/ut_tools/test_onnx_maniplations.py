@@ -16,7 +16,7 @@ from mlprodict.tools import get_opset_number_from_onnx
 
 class TestOptimOnnxUnused(ExtTestCase):
 
-    def test_onnx_remove_unused(self):
+    def test_onnx_remove_unused_outputs(self):
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -32,7 +32,8 @@ class TestOptimOnnxUnused(ExtTestCase):
             cop2, output_names=['final'],
             op_version=get_opset_number_from_onnx())
         model_def = cop4.to_onnx({'X': x})
-        model_def = select_model_inputs_outputs(model_def, "inter")
+        model_def = select_model_inputs_outputs(
+            model_def, "inter", infer_shapes=True)
         stats = onnx_statistics(model_def, optim=True)
         c1 = model_def.SerializeToString()
         new_model = onnx_remove_node_unused(model_def)
@@ -55,6 +56,45 @@ class TestOptimOnnxUnused(ExtTestCase):
         self.assertIn('inter', y1)
         self.assertIn('inter', y2)
         self.assertEqualArray(y1['inter'], y2['inter'])
+
+    def test_onnx_remove_unused_inputs(self):
+        dtype = numpy.float32
+        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((3, 2))
+        cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
+                       op_version=get_opset_number_from_onnx())
+        cop3 = OnnxAdd('X', cop2,
+                       op_version=get_opset_number_from_onnx(),
+                       output_names=['inter'])
+        cop4 = OnnxSub(
+            OnnxMul(cop3, cop3, op_version=get_opset_number_from_onnx()),
+            cop3, output_names=['final'],
+            op_version=get_opset_number_from_onnx())
+        model_def = cop4.to_onnx({'X': x})
+        model_def = select_model_inputs_outputs(
+            model_def, inputs=["inter"], infer_shapes=True)
+        stats = onnx_statistics(model_def, optim=True)
+        c1 = model_def.SerializeToString()
+        new_model = onnx_remove_node_unused(model_def)
+        c2 = model_def.SerializeToString()
+        self.assertEqual(c1, c2)
+        stats2 = onnx_statistics(model_def, optim=True)
+        stats3 = onnx_statistics(new_model, optim=False)
+        self.assertEqual(stats['ninits'], 1)
+        self.assertEqual(stats2['ninits'], 1)
+        self.assertEqual(stats3['ninits'], 0)
+        self.assertEqual(stats2['nnodes'], 2)
+        self.assertEqual(stats3['nnodes'], 2)
+        oinf1 = OnnxInference(model_def)
+        y1 = oinf1.run({'inter': x})
+
+        oinf2 = OnnxInference(new_model)
+        y2 = oinf2.run({'inter': x})
+        self.assertIn('final', y1)
+        self.assertIn('final', y2)
+        self.assertNotIn('inter', y1)
+        self.assertNotIn('inter', y2)
+        self.assertEqualArray(y1['final'], y2['final'])
 
 
 if __name__ == "__main__":
