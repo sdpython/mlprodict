@@ -1153,7 +1153,7 @@ class OnnxInference:
         :param as_df: return the results as a dataframe (True)
         :return: dataframe or list of dictionaries
 
-        .. versionadded:: 0.6            
+        .. versionadded:: 0.6
         """
         if (self.runtime_options is None or
                 not self.runtime_options.get('enable_profiling', False)):
