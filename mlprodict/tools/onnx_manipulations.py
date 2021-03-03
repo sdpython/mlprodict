@@ -4,6 +4,7 @@
 from on an :epkg:`ONNX` model.
 """
 from onnx import helper, shape_inference
+from .onnx2py_helper import guess_proto_dtype
 
 
 def enumerate_model_node_outputs(model, add_node=False):
@@ -26,7 +27,7 @@ def enumerate_model_node_outputs(model, add_node=False):
 
 
 def select_model_inputs_outputs(model, outputs=None, inputs=None,
-                                infer_shapes=False):
+                                infer_shapes=False, overwrite=None):
     """
     Takes a model and changes its outputs.
 
@@ -34,9 +35,12 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     @param      inputs          new inputs, same ones if None
     @param      outputs         new outputs, same ones if None
     @param      infer_shapes    infer inputs and outputs shapes
+    @param      overwrite       overwrite type and shapes for
+                                inputs or outputs, *overwrite* is a
+                                dictionary `{'name': (numpy dtype, shape)}`
     @return                     modified model
 
-    The function removes unneeded files.
+    The function removes unneeded nodes.
 
     .. versionchanged:: 0.6
         Supports the case where inputs are changed.
@@ -111,7 +115,12 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
 
     var_in = []
     for name in inputs:
-        if name in known_shapes:
+        if overwrite is not None and name in overwrite:
+            dtype, shape = overwrite[name]
+            proto_dtype = guess_proto_dtype(dtype)
+            value_info = helper.make_tensor_value_info(
+                name, proto_dtype, shape)
+        elif name in known_shapes:
             info = known_shapes[name].tensor_type
             proto_dtype = info.elem_type
             if proto_dtype == 0:
@@ -129,7 +138,12 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
 
     var_out = []
     for name in outputs:
-        if name in known_shapes:
+        if overwrite is not None and name in overwrite:
+            dtype, shape = overwrite[name]
+            proto_dtype = guess_proto_dtype(dtype)
+            value_info = helper.make_tensor_value_info(
+                name, proto_dtype, shape)
+        elif name in known_shapes:
             info = known_shapes[name].tensor_type
             proto_dtype = info.elem_type
             if proto_dtype == 0:
