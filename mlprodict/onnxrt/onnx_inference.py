@@ -567,7 +567,8 @@ class OnnxInference:
             inputs = OrderedDict((
                 name, retype(numpy.expand_dims(inputs[name].values, axis=1)))
                 for name in inputs.columns)
-        return self._run(inputs, clean_right_away=False, intermediate=intermediate,
+        return self._run(inputs, clean_right_away=False,
+                         intermediate=intermediate,
                          verbose=verbose, node_time=node_time, fLOG=fLOG)
 
     def display_sequence(self, verbose=1):
@@ -1144,3 +1145,28 @@ class OnnxInference:
         if self.runtime in ('python_compiled', 'python_compiled_debug'):
             del self.sequence_
         gc.collect()
+
+    def get_profiling(self, as_df=False):
+        """
+        Returns the profiling after a couple of execution.
+
+        :param as_df: return the results as a dataframe (True)
+        :return: dataframe or list of dictionaries
+
+        .. versionadded:: 0.6
+        """
+        if (self.runtime_options is None or
+                not self.runtime_options.get('enable_profiling', False)):
+            raise RuntimeError(
+                "Profiling is available if options 'enable_profiling' "
+                "is set to true in 'runtime_options' but is %r." % self.runtime_options)
+        prof = None
+        if hasattr(self, '_whole'):
+            prof = self._whole.get_profiling()
+        if prof is None:
+            raise NotImplementedError(
+                "profiling is only implemented for runtime 'onnxruntime1'.")
+        if as_df:
+            import pandas
+            return pandas.DataFrame(prof)
+        return prof
