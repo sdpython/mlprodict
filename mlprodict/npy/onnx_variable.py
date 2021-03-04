@@ -45,17 +45,24 @@ class OnnxVar:
     :param select_output: if multiple output are returned by
         ONNX operator *op*, it takes only one specifed by this
         argument
+    :param dtype: specifies the type of the variable
+        held by this class (*op* is None) in that case
     :param kwargs: addition argument to give operator *op*
 
     .. versionadded:: 0.6
     """
 
-    def __init__(self, *inputs, op=None, select_output=None, **kwargs):
+    def __init__(self, *inputs, op=None, select_output=None,
+                 dtype=None, **kwargs):
         self.inputs = inputs
         self.select_output = select_output
         self.onnx_op = op
         self.alg_ = None
         self.onnx_op_kwargs = kwargs
+        self.dtype = dtype
+        if dtype is not None and (op is not None or len(inputs) != 1):
+            raise RuntimeError(
+                "dtype can only be used if op is None or len(inputs) == 1.")
         for i, inp in enumerate(self.inputs):
             if isinstance(inp, type):
                 raise TypeError(
@@ -69,7 +76,7 @@ class OnnxVar:
             if self.onnx_op is None:
                 if len(self.inputs) != 1:
                     raise RuntimeError(  # pragma: no cover
-                        "Unexpected numer of inputs, 1 expected, "
+                        "Unexpected number of inputs, 1 expected, "
                         "got {} instead.".format(self.inputs))
                 self.alg_ = self.inputs[0]
             else:

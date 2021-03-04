@@ -7,6 +7,7 @@
 import inspect
 from typing import Any
 import numpy
+from skl2onnx.common.data_types import guess_numpy_type
 from ..onnxrt import OnnxInference
 from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_variable import OnnxVar
@@ -242,7 +243,7 @@ class OnnxNumpyCompiler:
             if a == "op_version":
                 continue
             if a not in annotations:
-                raise RuntimeError(  # pragma: no cover
+                raise RuntimeError(
                     "Unable to find annotation for argument %r. "
                     "You should annotate the arguments and the results "
                     "or specify a signature." % a)
@@ -281,7 +282,8 @@ class OnnxNumpyCompiler:
                           getattr(self.fct_, '__module__', None)))
             names_in = [oi[0] for oi in inputs]
             names_out = [oi[0] for oi in outputs]
-            names_var = [OnnxVar(n) for n in names_in]
+            names_var = [OnnxVar(n, dtype=guess_numpy_type(dt[1]))
+                         for n, dt in zip(names_in, inputs)]
             if 'op_version' in self.fct_.__code__.co_varnames:
                 onx_algebra = self.fct_(
                     *names_in, op_version=op_version, **kwargs)

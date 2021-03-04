@@ -10,5 +10,6 @@ one piece this module can do. More should follow.
 
     onnx
     onnx_numpy
+    numpy_api_onnx
     optim
     benchmark
