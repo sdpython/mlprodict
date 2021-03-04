@@ -291,7 +291,10 @@ When calling function `onnx_log_1`, input are detected and
 an ONNX graph is generated and executed. Next time the same function
 is called, if the input type is the same as before, it reuses the same
 ONNX graph and same runtime. Otherwise, it will generate a new
-ONNX graph taking this new type as input.
+ONNX graph taking this new type as input. The expression
+`x.dtype` returns the type of this input in order to cast
+the constant `1` into the right type before being used by
+another operator.
 
 .. runpython::
     :showcode:
@@ -305,18 +308,23 @@ ONNX graph taking this new type as input.
     from mlprodict.onnx_conv import to_onnx
 
     @onnxnumpy_np(signature=NDArrayType('floats'), runtime='onnxruntime')
-    def onnx_log_0(x):
-        return npnx.log(x)
+    def onnx_log_1(x):
+        return npnx.log(x + x.dtype(1))
 
     x = np.random.rand(2, 3)
-    y = onnx_log_0(x.astype(np.float32))
+    y = onnx_log_1(x.astype(np.float32))
     print(y.dtype, y)
 
-    y = onnx_log_0(x.astype(np.float64))
+    y = onnx_log_1(x.astype(np.float64))
     print(y.dtype, y)
 
 There are more options to it. Many of them are used in
-:ref:`f-numpyonnxpyrt`.
+:ref:`f-numpyonnxpyrt`. It is possible to add arguments
+with default values or undefined number of inputs. One
+important detail though, a different value for an argument
+(not an input) means the ONNX graph has to be different.
+Everytime input type or an argument is different, a new ONNX
+graph is generated and executed.
 
 Common errors
 +++++++++++++

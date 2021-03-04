@@ -288,6 +288,12 @@ def test_abs_log_multi(x):
     return nxnp.log(nxnp.abs(x))
 
 
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def test_abs_log_multi_dtype(x):
+    "onnx numpy log multiple type"
+    return nxnp.log(nxnp.abs(x) + x.dtype(1))
+
+
 @onnxnumpy_default
 def test_abs_shape(x: NDArray[Any, numpy.float32],
                    ) -> NDArray[Any, numpy.int64]:
@@ -525,6 +531,11 @@ class TestOnnxVariable(ExtTestCase):
         x = numpy.array([[6.1, -5], [-3.5, 7.8]], dtype=numpy.float32)
         y = test_abs_log_multi(x)
         self.assertEqualArray(y, numpy.log(numpy.abs(x)))
+
+    def test_py_abs_log_multi_dtype(self):
+        x = numpy.array([[6.1, -5], [-3.5, 7.8]], dtype=numpy.float32)
+        y = test_abs_log_multi_dtype(x)
+        self.assertEqualArray(y, numpy.log(numpy.abs(x) + 1))
 
     def test_py_abs_shape(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
