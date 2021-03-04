@@ -242,7 +242,7 @@ class OnnxNumpyCompiler:
             if a == "op_version":
                 continue
             if a not in annotations:
-                raise RuntimeError(  # pragma: no cover
+                raise RuntimeError(
                     "Unable to find annotation for argument %r. "
                     "You should annotate the arguments and the results "
                     "or specify a signature." % a)

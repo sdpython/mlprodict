@@ -161,9 +161,10 @@ class TestOnnxComplexScenario(ExtTestCase):
                 x_val = numpy.array(
                     [x for y, x in test_pairs], dtype=numpy.float32)
                 exp = atan2(y_val, x_val)
-                self.assertEqualArray(numpy.arctan2(y_val, x_val), exp)
+                self.assertEqualArray(
+                    numpy.arctan2(y_val, x_val), exp, decimal=5)
                 got = fct(y_val, x_val)
-                self.assertEqualArray(exp, got)
+                self.assertEqualArray(exp, got, decimal=5)
 
 
 if __name__ == "__main__":

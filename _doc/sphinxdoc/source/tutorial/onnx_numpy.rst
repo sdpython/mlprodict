@@ -196,7 +196,5 @@ This approach fixes the two issues mentioned above. The goal is write
 a code using the same function as :epkg:`numpy` offers but
 executed by an ONNX runtime. The full API is described at
 :ref:`l-numpy-onnxpy` and introduced here.
-
-**Notebooks**
-
-* :ref:`numpyapionnxrst`
+This section is developped in notebook
+:ref:`numpyapionnxrst` and :ref:`l-numpy-api-for-onnx`.

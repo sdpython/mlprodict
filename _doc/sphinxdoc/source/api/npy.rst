@@ -72,6 +72,8 @@ OnnxVar
 .. autosignature:: mlprodict.npy.onnx_variable.OnnxVar
     :members:
 
+.. _l-numpy-onnxpy-list-fct:
+
 Available numpy functions implemented with ONNX operators
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
