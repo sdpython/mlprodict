@@ -5,11 +5,45 @@
 History
 =======
 
-current - 2021-01-04 - 0.00Mb
+current - 2021-03-04 - 0.00Mb
 =============================
 
-* `202`: Enable opset 13 (ONNX) (2021-01-04)
+* `233`: Extend documentation about numpy API for ONNX (2021-03-04)
+* `235`: Supports profiling for runtime onnxruntime1 (2021-03-04)
+* `234`: Add parameter overwrite to select_model_inputs_outputs (2021-03-03)
+* `231`: Supports different inputs in select_model_inputs_outputs (2021-03-03)
+* `232`: Implements pickling for functions used in numpy API for ONNX (2021-03-03)
+* `230`: Add unsqueeze, squeeze, expand_dims to numpy API for ONNX (2021-03-02)
+* `229`: Add method flatten, function pad to numpy API for ONNX (2021-03-01)
+* `228`: Improves numpy API for ONNX: type constraints (2021-03-01)
+* `227`: Add functions arange, cumsum, compress to numpy API for ONNX (2021-03-01)
+* `226`: Add function Einsum to numpy API for ONNX (2021-02-28)
+* `225`: Adds function Clip to numpy API for ONNX (2021-02-28)
+* `224`: Adds functions ceil, round to numpy API for onnx (2021-02-27)
+* `223`: Test numpy API against onnxruntime (2021-02-27)
+* `222`: Add hyperbolic function, prod, mean, argmin, argmax (2021-02-26)
+* `221`: Add many simple functions to numpy API for ONNX (2021-02-26)
+* `220`: Tutorial on numpy API for ONNX (2021-02-26)
+* `219`: Simplifies onnxfication of FunctionTransformer (2021-02-23)
+* `218`: Implements __setitem__ for class OnnxVar (2021-02-21)
+* `217`: Move custom operator to a specific method easier to maintain (2021-02-21)
+* `216`: Fix crash with Gather, TopK when k=0 or indices is empty. (2021-02-20)
+* `215`: Implements __getitem__ for OnnxVar (onnxnumpy) (2021-02-20)
+* `214`: Implements numpy functions with onnx (2021-02-19)
+* `213`: Add parameter show to plot_onnx. (2021-02-11)
+* `210`: Investigate models from ONNX zoo (2021-02-05)
+* `212`: Fixes #210, check first models from zoo, fix operator conv when B is not null (2021-02-05)
+* `211`: numpy 1.20 does not allow nan values in int64 arrays any more, fix a unit test about imputer (2021-02-02)
+* `208`: Add try catch around import in asv benchmark (2021-01-30)
+* `207`: Reduces greater batch size to 10.000 instead of 100.000. (2021-01-29)
+* `205`: Fixes asv configuration (2021-01-18)
+* `206`: Build wheel for all many platforms in CI (2021-01-17)
+
+0.5.1360 - 2021-01-04 - 0.35Mb
+==============================
+
 * `203`: Enable Python 3.9, enable opset 13, upgrade version number (2021-01-04)
+* `202`: Enable opset 13 (ONNX) (2021-01-04)
 * `201`: Fixes #200, add support for float16 (2020-12-30)
 * `200`: Add support for bfloat16 (2020-12-30)
 * `199`: Fix unit tests recently failing due to onnxruntime update. (2020-12-15)
