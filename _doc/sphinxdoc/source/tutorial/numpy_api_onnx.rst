@@ -38,6 +38,7 @@ Following example shows how to replace *numpy* by *ONNX*.
 .. runpython::
     :showcode:
     :warningout: DeprecationWarning
+    :process:
 
     from typing import Any
     import numpy as np
@@ -129,6 +130,7 @@ One instance is added in a pipeline trained on the Iris dataset.
 .. runpython::
     :showcode:
     :warningout: DeprecationWarning
+    :process:
 
     from typing import Any
     import numpy as np
@@ -197,6 +199,7 @@ with arguments :class:`onnxnumpy_np
 .. runpython::
     :showcode:
     :warningout: DeprecationWarning
+    :process:
 
     from typing import Any
     import numpy as np
@@ -244,6 +247,7 @@ as an argument of `to_onnx`.
 .. runpython::
     :showcode:
     :warningout: DeprecationWarning
+    :process:
 
     from typing import Any
     import numpy as np
@@ -299,6 +303,7 @@ another operator.
 .. runpython::
     :showcode:
     :warningout: DeprecationWarning
+    :process:
 
     import numpy as np
     from onnxruntime import InferenceSession
@@ -343,6 +348,7 @@ the conversion to ONNX :meth:`to_algebra
 .. runpython::
     :showcode:
     :warningout: DeprecationWarning
+    :process:
 
     from typing import Any
     import numpy as np
@@ -365,6 +371,7 @@ The runtime would fail executing the ONNX graph without that.
     :showcode:
     :exception:
     :warningout: DeprecationWarning
+    :process:
 
     from typing import Any
     import numpy as np
@@ -386,6 +393,7 @@ types. If types are different, one must be cast into the other one.
     :showcode:
     :exception:
     :warningout: DeprecationWarning
+    :process:
 
     from typing import Any
     import numpy as np
@@ -412,6 +420,7 @@ except one.
     :showcode:
     :exception:
     :warningout: DeprecationWarning
+    :process:
 
     from typing import Any
     import numpy as np
@@ -462,6 +471,7 @@ a new one supporting custom functions implemented this API.
     :showcode:
     :exception:
     :warningout: DeprecationWarning
+    :process:
 
     from typing import Any
     import numpy as np
