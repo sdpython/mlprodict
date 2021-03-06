@@ -1,8 +1,8 @@
 
 .. _l-numpy-api-for-onnx:
 
-Numpy API for ONNX
-==================
+Create ONNX graphs with an API similar to numpy
+===============================================
 
 Many people came accross the task of converting a pipeline
 including a custom preprocessing embedded into a
@@ -11,7 +11,11 @@ including a custom preprocessing embedded into a
 is to create an ONNX graph for every :epkg:`scikit-learn`
 model included in a pipeline. Every converter is a new implementation
 of methods `predict`, `predict_proba` or `transform` with
-:epkg:`ONNX Operators`. Every custom function is not supported.
+:epkg:`ONNX Operators`. But that does not include custom function.
+Writing a converter can be quite verbose and requires to know
+the :epkg:`ONNX Operators`, similar to :epkg:`numpy` but not
+the same.
+
 The goal here is to make it easier for users and have their custom
 function converted in ONNX.
 Everybody playing with :epkg:`scikit-learn` knows :epkg:`numpy`
@@ -64,8 +68,8 @@ Following example shows how to replace *numpy* by *ONNX*.
 
 ONNX runtimes are usually more strict about types than :epkg:`numpy`
 (see :epkg:`onnxruntime`).
-By default a function must be implemented for the same input type
-and there is not implicit cast. There are two important elements
+A function must be implemented for the same input type
+and there is not implicit cast. There are three important elements
 in this example:
 
 * Decorator :func:`onnxnumpy_default <mlprodict.npy.onnx_numpy_wrapper.onnxnumpy_default>`:
@@ -73,6 +77,7 @@ in this example:
 * Annotation: every input and output types must be specified. They are :class:`NDArray
   <mlprodict.npy.onnx_numpy_annotation.NDArray>`, shape can be left undefined by element
   type must be precised.
+* Types: `1` is different than `np.float32(1)`, the right type must be used.
 
 `onnx_log_1` is not a function but an instance of class
 :class:`wrapper_onnxnumpy <mlprodict.npy.onnx_numpy_wrapper.wrapper_onnxnumpy>`.
@@ -80,6 +85,7 @@ This class implements method `__call__` to behave like a function
 and holds an attribute of type
 :class:`OnnxNumpyCompiler <mlprodict.npy.onnx_numpy_compiler.OnnxNumpyCompiler>`.
 This class contains an ONNX graph and a instance of a runtime.
+The following lines lists some usefull attributes.
 
 * `onnx_log_1`: :class:`wrapper_onnxnumpy <mlprodict.npy.onnx_numpy_wrapper.wrapper_onnxnumpy>`
 * `onnx_log_1.compiled`: :class:`OnnxNumpyCompiler <mlprodict.npy.onnx_numpy_compiler.OnnxNumpyCompiler>`
@@ -87,9 +93,10 @@ This class contains an ONNX graph and a instance of a runtime.
 * `onnx_log_1.compiled.rt_fct_.rt`: runtime, by default
   :class:`OnnxInference <mlprodict.onnxrt.onnx_inference.OnnxInference>`
 
+The ONNX graph `onnx_log_1.compiled.onnx_` looks like this:
+
 .. gdot::
     :script: DOT-SECTION
-    :warningout: DeprecationWarning
 
     from typing import Any
     import numpy as np
@@ -107,12 +114,20 @@ This class contains an ONNX graph and a instance of a runtime.
     oinf = onnx_log_1.compiled.rt_fct_.rt
     print("DOT-SECTION", oinf.to_dot())
 
+There is a fundamental different between :epkg:`numpy` and
+:epkg:`ONNX`. :epkg:`numpy` allows inplace modifications.
+The simple instruction ``m[:, 0] = 1`` modifies an entire column
+of an existing array. :epkg:`ONNX` does not allow that, even if the
+same operator can be achieved, the result is a new array.
+See section :ref:`l-inplace-modification-onnx` for more
+details.
+
 Available functions
 +++++++++++++++++++
 
 This tool does not implement every function of :epkg:`numpy`.
-This a work in progress. The list of supported function is
-available at :ref:`l-numpy-onnxpy-list-fct`.
+This a work in progress. The list of supported functions is
+available at :ref:`f-numpyonnximpl`.
 
 Common operators `+`, `-`, `/`, `*`,  `**`, `%`, `[]` are
 supported as well. They are implemented by class
@@ -188,7 +203,7 @@ Use onnxruntime as ONNX runtime
 
 By default, the ONNX graph is executed by the Python runtime
 implemented in this module (see :ref:`l-onnx-python-runtime`).
-It is a mix of :epkg:`numpy` and C++ implementations but it does
+It is a mix of :epkg:`numpy` and C++ implementations and it does
 not require any new dependency. However, it is possible to use
 a different one like :epkg:`onnxruntime` which has an implementation
 for more :epkg:`ONNX Operators`. The only change is a wrapper
@@ -263,7 +278,7 @@ as an argument of `to_onnx`.
 
     target_opset = 11
 
-    @onnxnumpy_np(op_version=target_opset)
+    @onnxnumpy_np(op_version=target_opset)  # first place
     def onnx_log_1(x: NDArray[Any, np.float32]) -> NDArray[(None, None), np.float32]:
         return npnx.log(x + np.float32(1))
 
@@ -280,7 +295,7 @@ as an argument of `to_onnx`.
 
     onx = to_onnx(pipe, X_train[:1], rewrite_ops=True,
                   options={LogisticRegression: {'zipmap': False}},
-                  target_opset=target_opset)
+                  target_opset=target_opset)  # second place
 
     oinf = InferenceSession(onx.SerializeToString())
     print(oinf.run(None, {'X': X_test[:2]})[1])
@@ -291,10 +306,10 @@ Same implementation for float32 and float64
 Only one input type is allowed by default but there is a way
 to define a function supporting more than one type with
 :class:`NDArrayType <mlprodict.npy.onnx_numpy_annotation.NDArrayType>`.
-When calling function `onnx_log_1`, input are detected and
+When calling function `onnx_log_1`, inputs are detected,
 an ONNX graph is generated and executed. Next time the same function
-is called, if the input type is the same as before, it reuses the same
-ONNX graph and same runtime. Otherwise, it will generate a new
+is called, if the input types are the same as before, it reuses the same
+ONNX graph and same runtime. Otherwise, it generates a new
 ONNX graph taking this new type as input. The expression
 `x.dtype` returns the type of this input in order to cast
 the constant `1` into the right type before being used by
@@ -327,9 +342,15 @@ There are more options to it. Many of them are used in
 :ref:`f-numpyonnxpyrt`. It is possible to add arguments
 with default values or undefined number of inputs. One
 important detail though, a different value for an argument
-(not an input) means the ONNX graph has to be different.
-Everytime input type or an argument is different, a new ONNX
+(not an input) means the ONNX graph has to be different because
+this value is stored in the graph instead of being an input.
+Everytime an input type or an argument is different, a new ONNX
 graph is generated and executed.
+
+.. _l-inplace-modification-onnx:
+
+How to convert inplace modifications
+++++++++++++++++++++++++++++++++++++
 
 Common errors
 +++++++++++++
@@ -360,6 +381,11 @@ the conversion to ONNX :meth:`to_algebra
 
     x = np.random.rand(2, 3).astype(np.float32)
     print(onnx_log_1(x))
+
+The execution does not fail but returns an instance of class
+:class:`OnnxVar <mlprodict.npy.onnx_variable.OnnxVar>`. This
+instance holds all the necessary information to create the ONNX
+graph.
 
 Missing annotation
 ^^^^^^^^^^^^^^^^^^
@@ -505,6 +531,6 @@ There are a couple of ways to fix this example. One way is to call
 :func:`to_onnx <mlprodict.onnx_conv.convert.to_onnx>` function with
 argument `rewrite_ops=True`. The function restores the default
 converter after the call. Another way is to call function
-:func:`register_rewritten_operators <mlprodict/onnx_conv/
-register_rewritten_converters.register_rewritten_operators>`
+:func:`register_rewritten_operators
+<mlprodict.onnx_conv.register_rewritten_converters.register_rewritten_operators>`
 but changes are permanent.
