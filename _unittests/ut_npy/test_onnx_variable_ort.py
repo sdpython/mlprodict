@@ -304,6 +304,15 @@ def test_abs_flatten2(x: NDArray[Any, numpy.float32],
     return nxnp.abs(x).flatten(axis=1)
 
 
+# @onnxnumpy(runtime='onnxruntime1')
+def test_abs_set_column(x: NDArray[Any, numpy.float32],
+                        ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy set"
+    temp = nxnp.abs(x).copy()
+    temp[:, 0] = numpy.float32(-1)
+    return temp
+
+
 class TestOnnxVariableOrt(ExtTestCase):
 
     def test_ort_abs(self):
@@ -518,6 +527,14 @@ class TestOnnxVariableOrt(ExtTestCase):
                          [[6.1, -5], [3.5, -7.8]]], dtype=numpy.float32)
         y = test_abs_flatten2(x)
         self.assertEqualArray(y, numpy.abs(x).flatten().reshape((2, -1)))
+
+    def test_py_abs_set_column(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8], [3.5, -7.8]],
+                        dtype=numpy.float32)
+        y = test_abs_set_column(x)
+        temp = numpy.abs(x)
+        temp[:, 0] = -1
+        self.assertEqualArray(y, temp)
 
 
 if __name__ == "__main__":

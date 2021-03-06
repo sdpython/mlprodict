@@ -8,6 +8,7 @@ import numpy
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxAnd,
     OnnxCast,
+    OnnxConcat,
     OnnxDiv,
     OnnxEqual,
     OnnxFlatten,
@@ -294,12 +295,32 @@ class OnnxVar:
         """
         Creates a matrix.
         """
+        for ii, i in enumerate(indices):
+            if isinstance(i[0], OnnxVar) or isinstance(i[1], OnnxVar):
+                raise NotImplementedError(  # pragma: no cover
+                    "Indices %r must be fixed integer: (%r, %r)."
+                    "" % (ii, i[0], i[1]))
         shapes = tuple(i[1] - i[0] for i in indices)
         mat = numpy.empty(shapes, dtype=numpy.int64)
         ind = [slice(None) for i in indices]
         ind[axis] = numpy.arange(0, indices[axis][1] - indices[axis][0])
         values = numpy.arange(indices[axis][0], indices[axis][1])
         mat[ind] = values
+        return mat
+
+    def _matrix_multiply_dynamic(self, indices, axis):
+        """
+        Creates a matrix.
+        """
+        from .numpy_onnx_impl import arange as nxnp_arange
+        shapes = [i[1] - i[0] for i in indices]
+        ind = []
+        for sh in shapes:
+            ind.append(nxnp_arange(0, sh).reshape((1, -1)))
+        if len(ind) > 1:
+            mat = OnnxVar(*ind, op=OnnxConcat, axis=0)
+        else:
+            mat = ind
         return mat
 
     def __setitem__(self, index, value):
@@ -327,6 +348,7 @@ class OnnxVar:
 
         # scenario 1
         indices = []
+        self_shape = None
         for d, ind in enumerate(index):
             if isinstance(ind, int):
                 indices.append((ind, ind + 1))
@@ -337,10 +359,11 @@ class OnnxVar:
                         "on dimension %r." % d)
                 start = 0 if ind.start is None else ind.start
                 if ind.stop is None:
-                    raise NotImplementedError(  # pragma: no cover
-                        "Unable to assign new values with end undefined "
-                        "on dimension %r." % d)
-                stop = ind.stop
+                    if self_shape is None:
+                        self_shape = self.shape
+                    stop = self_shape[d]
+                else:
+                    stop = ind.stop
                 indices.append((start, stop))
             else:
                 raise NotImplementedError(  # pragma: no cover
@@ -348,7 +371,10 @@ class OnnxVar:
                     "on dimension %r." % (type(ind), d))
 
         axis = len(index) - 1
-        mat_indices = self._matrix_multiply(indices, axis)
+        if self_shape is None:
+            mat_indices = self._matrix_multiply(indices, axis)
+        else:
+            mat_indices = self._matrix_multiply_dynamic(indices, axis)
 
         if isinstance(value, (OnnxVar, numpy.ndarray)):
             mat_updates = value

@@ -173,7 +173,7 @@ class wrapper_onnxnumpy_np:
         tensor in *args* defines the templated version of the function
         to convert into *ONNX*.
         """
-        key = tuple(a if (a is None or not hasattr(a, 'dtype'))
+        key = tuple(a if a is None   # or not hasattr(a, 'dtype'))
                     else a.dtype.type for a in args)
         if len(self.kwargs) == 0:
             return self[key](*args)
