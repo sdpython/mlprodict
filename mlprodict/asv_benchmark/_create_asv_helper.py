@@ -168,7 +168,7 @@ def _sklearn_subfolder(model):
     """
     mod = model.__module__
     if mod is not None and mod.startswith('mlinsights'):
-        return ['mlinsights', model.__name__]
+        return ['mlinsights', model.__name__]  # pragma: no cover
     spl = mod.split('.')
     try:
         pos = spl.index('sklearn')
@@ -350,7 +350,7 @@ def _select_pattern_problem(prob, patterns):
         return patterns['transform']
     if 'm-label' in prob:
         return patterns['multi_classifier']
-    raise ValueError(
+    raise ValueError(  # pragma: no cover
         "Unable to guess the right pattern for '{}'.".format(prob))
 
 
@@ -524,15 +524,15 @@ def find_sklearn_module(piece):
         import sklearn.gaussian_process.kernels
         glo[piece] = getattr(sklearn.gaussian_process.kernels, piece)
         return "sklearn.gaussian_process.kernels"
-    if piece in {'LinearSVC', 'LinearSVR', 'NuSVR', 'SVR', 'SVC', 'NuSVC'}:
+    if piece in {'LinearSVC', 'LinearSVR', 'NuSVR', 'SVR', 'SVC', 'NuSVC'}:  # pragma: no cover
         import sklearn.svm
         glo[piece] = getattr(sklearn.svm, piece)
         return "sklearn.svm"
-    if piece in {'KMeans'}:
+    if piece in {'KMeans'}:  # pragma: no cover
         import sklearn.cluster
         glo[piece] = getattr(sklearn.cluster, piece)
         return "sklearn.cluster"
-    if piece in {'OneVsRestClassifier', 'OneVsOneClassifier'}:
+    if piece in {'OneVsRestClassifier', 'OneVsOneClassifier'}:  # pragma: no cover
         import sklearn.multiclass
         glo[piece] = getattr(sklearn.multiclass, piece)
         return "sklearn.multiclass"

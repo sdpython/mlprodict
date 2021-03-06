@@ -55,7 +55,7 @@ def short_list_zoo_models():
 
 
 def _download_url(url, output_path, name, verbose=False):
-    if verbose:
+    if verbose:  # pragma: no cover
         from tqdm import tqdm
 
         class DownloadProgressBar(tqdm):
@@ -216,14 +216,14 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4,
     for index, (name, data_inout) in enumerate(examples.items()):
         data = data_inout["in"]
         if len(data) != len(names):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Mismathed number of inputs %d != %d\ninputs: %r\nmodel: %r."
                 "" % (len(data), len(names), list(sorted(data)), names))
         inputs = {n: data[v] for n, v in zip(names, data)}
         outputs = meth(inputs)
         expected = data_inout['out']
         if len(outputs) != len(onames):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Number of outputs %d is != expected outputs %d." % (
                     len(outputs), len(onames)))
         for i, (output, expect) in enumerate(zip(outputs, expected.items())):
@@ -235,7 +235,7 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4,
             absolute = diff.max()
             relative = absolute / numpy.median(diff) if absolute > 0 else 0.
             if absolute > abs_tol:
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "Example %d, inferred and expected resuls are different "
                     "for output %d: abs=%r rel=%r (runtime=%r)."
                     "" % (index, i, absolute, relative, runtime))

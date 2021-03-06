@@ -132,9 +132,9 @@ class _CommonAsvSklBenchmark:
         Checks that runtime has the appropriate method.
         """
         if rt is None:
-            raise ValueError("rt cannot be empty.")
+            raise ValueError("rt cannot be empty.")  # pragma: no cover
         if not hasattr(rt, meth):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "rt of type %r has no method %r." % (type(rt), meth))
 
     def runtime_name(self, runtime):

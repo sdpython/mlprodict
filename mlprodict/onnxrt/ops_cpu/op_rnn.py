@@ -155,5 +155,5 @@ class RNN_14(CommonRNN):
 
 if onnx_opset_version() >= 14:
     RNN = RNN_14
-else:
+else:  # pragma: no cover
     RNN = RNN_7
