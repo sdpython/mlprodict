@@ -22,7 +22,7 @@ class _created_classes:
         classes.
         """
         if name in self.stored:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Class %r already exists in\n%r\n---\n%r" % (
                     name, ", ".join(sorted(self.stored)), cl))
         self.stored[name] = cl
@@ -73,7 +73,7 @@ def onnxnumpy(op_version=None, runtime=None, signature=None):
     operators.
 
     :param op_version: :epkg:`ONNX` opset version
-    :param runtime: see @see cl OnnxInference
+    :param runtime: `'onnxruntime'` or one implemented by @see cl OnnxInference
     :param signature: it should be used when the function
         is not annoatated.
 
@@ -173,7 +173,8 @@ class wrapper_onnxnumpy_np:
         tensor in *args* defines the templated version of the function
         to convert into *ONNX*.
         """
-        key = tuple(a if a is None else a.dtype.type for a in args)
+        key = tuple(a if (a is None or not hasattr(a, 'dtype'))
+                    else a.dtype.type for a in args)
         if len(self.kwargs) == 0:
             return self[key](*args)
         others = tuple(kwargs.get(k, self.kwargs[k]) for k in self.kwargs)
@@ -203,7 +204,7 @@ def onnxnumpy_np(op_version=None, runtime=None, signature=None):
     operators.
 
     :param op_version: :epkg:`ONNX` opset version
-    :param runtime: see @see cl OnnxInference
+    :param runtime: `'onnxruntime'` or one implemented by @see cl OnnxInference
     :param signature: it should be used when the function
         is not annoatated.
 
