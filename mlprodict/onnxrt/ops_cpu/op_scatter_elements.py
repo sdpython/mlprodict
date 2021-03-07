@@ -32,8 +32,10 @@ def scatter_elements(data, indices, updates, axis=0):
     idx = [[unpack(numpy.indices(idx_xsection_shape).reshape(indices.ndim - 1, -1)),
             indices[tuple(make_slice(indices, axis, i))].reshape(1, -1)[0]]
            for i in range(indices.shape[axis])]
+    print("##", idx)
     idx = list(numpy.concatenate(idx, axis=1))
     idx.insert(axis, idx.pop())
+    print("rr", idx)
 
     # updates_idx is a NumPy advanced indices for indexing
     # of elements in the updates

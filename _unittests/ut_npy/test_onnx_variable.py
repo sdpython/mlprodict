@@ -331,6 +331,15 @@ def test_abs_set_multi(x: NDArray[Any, numpy.float32],
     return temp
 
 
+@onnxnumpy_default
+def test_abs_set_multi0(x: NDArray[Any, numpy.float32],
+                        ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy set"
+    temp = nxnp.abs(x).copy()
+    temp[1, :2, 1] = numpy.float32(-1.5)
+    return temp
+
+
 # @onnxnumpy_default
 def test_abs_set_column(x: NDArray[Any, numpy.float32],
                         ) -> NDArray[Any, numpy.float32]:
@@ -585,6 +594,15 @@ class TestOnnxVariable(ExtTestCase):
         temp[:2, :2, :2] = -1.5
         self.assertEqualArray(y, temp)
 
+    def test_py_abs_set_multi0(self):
+        x = numpy.array([[[6.1, -5], [3.5, -7.8], [3.5, -7.8]],
+                         [[6.1, -5], [3.5, -7.8], [3.5, -7.8]]],
+                        dtype=numpy.float32)
+        y = test_abs_set_multi0(x)
+        temp = numpy.abs(x)
+        temp[1, :2, 1] = -1.5
+        self.assertEqualArray(y, temp)
+
     def test_py_abs_set_column(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8], [3.5, -7.8]],
                         dtype=numpy.float32)
@@ -595,4 +613,5 @@ class TestOnnxVariable(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestOnnxVariable().test_py_abs_set_multi0()
     unittest.main()
