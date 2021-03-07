@@ -10,6 +10,14 @@ from ._op import OpRun
 
 
 def scatter_elements(data, indices, updates, axis=0):
+    """
+    ::
+        // for 3-dim and axis=0
+        //    output[indices[i][j][k]][j][k] = updates[i][j][k]
+        // for axis 1
+        //    output[i][indices[i][j][k]][k] = updates[i][j][k]
+        // and so on    
+    """
     if axis < 0:
         axis = data.ndim + axis
 
@@ -32,10 +40,8 @@ def scatter_elements(data, indices, updates, axis=0):
     idx = [[unpack(numpy.indices(idx_xsection_shape).reshape(indices.ndim - 1, -1)),
             indices[tuple(make_slice(indices, axis, i))].reshape(1, -1)[0]]
            for i in range(indices.shape[axis])]
-    print("##", idx)
     idx = list(numpy.concatenate(idx, axis=1))
     idx.insert(axis, idx.pop())
-    print("rr", idx)
 
     # updates_idx is a NumPy advanced indices for indexing
     # of elements in the updates
