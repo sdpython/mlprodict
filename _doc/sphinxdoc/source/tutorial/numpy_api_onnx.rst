@@ -352,6 +352,46 @@ graph is generated and executed.
 How to convert inplace modifications
 ++++++++++++++++++++++++++++++++++++
 
+As mentioned earlier, there is no way to modify a tensor inplace.
+Every modification implies a copy. A modification can be done
+by creating a new tensor concatenated from other tensors or by using
+operators :epkg:`Op:ScatterElements` or :epkg:`Op:ScatterND`.
+Instruction ``v[5] = 3.5`` is correct with numpy. Class :class:`OnnxVar
+<mlprodict.npy.onnx_variable.OnnxVar>` replaces that instruction
+with operator :epkg:`Op:ScatterElements`.
+
+Operator `[] (__setitem__)` must return the instance itself (`self`).
+That's why the design is different from the other methods. Instead of
+returning a new instance of :class:`OnnxVar
+<mlprodict.npy.onnx_variable.OnnxVar>`, it replaces the only input.
+However, that require the operator `[]` to follow a copy.
+``v[5] = 3.5`` may not be valid but ``v = v.copy(); v[5] = 3.5`` always is.
+Current implementation only supports one dimensional tensor.
+Operators :epkg:`Op:ScatterElements` or :epkg:`Op:ScatterND` are not
+really meant to change only one element but to change many of them.
+
+.. gdot::
+    :script: DOT-SECTION
+
+    from typing import Any
+    import numpy as np
+    import mlprodict.npy.numpy_onnx_impl as npnx
+    from mlprodict.npy import onnxnumpy_default, NDArray
+
+    # The ONNX function
+    @onnxnumpy_default
+    def onnx_change_element(x: NDArray[Any, np.float32]) -> NDArray[Any, np.float32]:
+        shape = x.shape
+        v = x.reshape((-1, )).copy()
+        v[4] = np.float32(5)
+        return v.reshape(shape)
+
+    onx = onnx_change_element.compiled.onnx_
+    oinf = onnx_change_element.compiled.rt_fct_.rt
+    print("DOT-SECTION", oinf.to_dot())
+
+Instructions using slice is also supported: ``v[:5] = 3.5``, ``v[5:] = 3.5``, ...
+
 Common errors
 +++++++++++++
 

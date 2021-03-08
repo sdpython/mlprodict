@@ -89,6 +89,8 @@ epkg_dictionary.update({
     'openmp': 'https://www.openmp.org/',
     'ONNX': 'https://onnx.ai/',
     'onnx': 'https://github.com/onnx/onnx',
+    'Op': ('https://github.com/onnx/onnx/blob/master/docs/Operators.md',
+           ('https://github.com/onnx/onnx/blob/master/docs/Operators.md#{0}', 1)),
     'ONNX Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators.md',
     'ONNX ML Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators-ml.md',
     'ONNX Zoo': 'https://github.com/onnx/models',
