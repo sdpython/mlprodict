@@ -258,24 +258,6 @@ def test_abs_filter(x: NDArray[Any, numpy.float32],
 
 
 @onnxnumpy_default
-def test_abs_set2(x: NDArray[Any, numpy.float32],
-                  ) -> NDArray[Any, numpy.float32]:
-    "onnx numpy set"
-    temp = nxnp.abs(x).copy()
-    temp[:2, 0] = numpy.float32(-1)
-    return temp
-
-
-@onnxnumpy_default
-def test_abs_set3(x: NDArray[Any, numpy.float32],
-                  ) -> NDArray[Any, numpy.float32]:
-    "onnx numpy set"
-    temp = nxnp.abs(x).copy()
-    temp[:2, :1] = numpy.array([[-1.5, -1.5]], dtype=numpy.float32).T
-    return temp
-
-
-@onnxnumpy_default
 def test_log(x: NDArray[Any, numpy.float32],
              ) -> NDArray[Any, numpy.float32]:
     "onnx numpy log"
@@ -323,29 +305,65 @@ def test_abs_flatten2(x: NDArray[Any, numpy.float32],
 
 
 @onnxnumpy_default
-def test_abs_set_multi(x: NDArray[Any, numpy.float32],
-                       ) -> NDArray[Any, numpy.float32]:
+def test_abs_set1a(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.float32]:
     "onnx numpy set"
     temp = nxnp.abs(x).copy()
-    temp[:2, :2, :2] = numpy.float32(-1.5)
+    temp[2] = numpy.float32(-1.5)
     return temp
 
 
 @onnxnumpy_default
-def test_abs_set_multi0(x: NDArray[Any, numpy.float32],
-                        ) -> NDArray[Any, numpy.float32]:
+def test_abs_set1b(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.float32]:
     "onnx numpy set"
     temp = nxnp.abs(x).copy()
-    temp[1, :2, 1] = numpy.float32(-1.5)
+    temp[:4] = numpy.float32(-1.5)
     return temp
 
 
-# @onnxnumpy_default
-def test_abs_set_column(x: NDArray[Any, numpy.float32],
-                        ) -> NDArray[Any, numpy.float32]:
+@onnxnumpy_default
+def test_abs_set1c(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.float32]:
     "onnx numpy set"
     temp = nxnp.abs(x).copy()
-    temp[:, 0] = numpy.float32(-1)
+    temp[:4:2] = numpy.float32(-1.5)
+    return temp
+
+
+@onnxnumpy_default
+def test_abs_set1d(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy set"
+    temp = nxnp.abs(x).copy()
+    temp[:4:2] = numpy.array([-1.5, -1.6], dtype=numpy.float32)
+    return temp
+
+
+@onnxnumpy_default
+def test_abs_set1e(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy set"
+    temp = nxnp.abs(x).copy()
+    temp[2:] = numpy.float32(-1.5)
+    return temp
+
+
+@onnxnumpy_default
+def test_abs_set1f(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy set"
+    temp = nxnp.abs(x).copy()
+    temp[3:5] = numpy.float32(-1.5)
+    return temp
+
+
+@onnxnumpy_default
+def test_abs_set1g(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy set"
+    temp = nxnp.abs(x).copy()
+    temp[3:] = numpy.array([-1.5] * 4, dtype=numpy.float32)
     return temp
 
 
@@ -474,31 +492,37 @@ class TestOnnxVariable(ExtTestCase):
         self.assertEqualArray(
             y, (numpy.abs(x) < x) | (numpy.abs(x) < 0))
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_sum1(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_sum1(x)
         self.assertEqualArray(y, numpy.sum(numpy.abs(x), axis=0))
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_sum2(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_sum2(x)
         self.assertEqualArray(y, numpy.sum(numpy.abs(x), axis=1, keepdims=1))
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_transpose_t(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_transpose_t(x)
         self.assertEqualArray(y, numpy.abs(x).T)
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_cast(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_cast(x)
         self.assertEqualArray(y, numpy.abs(x).astype(numpy.int64))
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_reshape(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_reshape(x)
         self.assertEqualArray(y, numpy.abs(x).reshape((-1, 1)))
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_reshape_11(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_reshape(x)
@@ -510,108 +534,139 @@ class TestOnnxVariable(ExtTestCase):
         compiled = test_abs_reshape_11.compiled
         self.assertIn("version: 11", str(compiled.onnx_))
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_slice(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_slice(x)
         self.assertEqualArray(y, numpy.abs(x)[:, 1])
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_slice23(self):
         x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
         y = test_abs_slice23(x)
         self.assertEqualArray(y, numpy.abs(x)[::2, ::3])
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_neg(self):
         x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
         y = test_abs_neg(x)
         self.assertEqualArray(y, -numpy.abs(x))
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_not(self):
         x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
         y = test_abs_not(x)
         self.assertEqualArray(y, numpy.abs(x) <= 0)
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_filter(self):
         x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
         y = test_abs_filter(x)
         self.assertEqualArray(y, numpy.abs(x)[x[:, 0] > 15])
 
-    def test_py_abs_set(self):
-        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
-        y = test_abs_set2(x)
-        temp = numpy.abs(x)
-        temp[:, 0] = -1
-        self.assertEqualArray(y, temp)
-
-    def test_py_abs_set3(self):
-        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
-        y = test_abs_set3(x)
-        temp = numpy.abs(x)
-        temp[:, 0] = -1.5
-        self.assertEqualArray(y, temp)
-
+    @ignore_warnings(DeprecationWarning)
     def test_py_log(self):
         x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float32)
         y = test_log(x)
         self.assertEqualArray(y, numpy.log(x))
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_log_multi(self):
         x = numpy.array([[6.1, -5], [-3.5, 7.8]], dtype=numpy.float32)
         y = test_abs_log_multi(x)
         self.assertEqualArray(y, numpy.log(numpy.abs(x)))
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_log_multi_dtype(self):
         x = numpy.array([[6.1, -5], [-3.5, 7.8]], dtype=numpy.float32)
         y = test_abs_log_multi_dtype(x)
         self.assertEqualArray(y, numpy.log(numpy.abs(x) + 1))
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_shape(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_shape(x)
         self.assertEqualArray(y, numpy.abs(x).shape)
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_size(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_size(x)
         self.assertEqualArray(y, numpy.abs(x).size)
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_flatten(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_flatten(x)
         self.assertEqualArray(y, numpy.abs(x).flatten())
 
+    @ignore_warnings(DeprecationWarning)
     def test_py_abs_flatten2(self):
         x = numpy.array([[[6.11, -51], [3.51, -7.81]],
                          [[6.1, -5], [3.5, -7.8]]], dtype=numpy.float32)
         y = test_abs_flatten2(x)
         self.assertEqualArray(y, numpy.abs(x).flatten().reshape((2, -1)))
 
-    def test_py_abs_set_multi(self):
-        x = numpy.array([[[6.1, -5], [3.5, -7.8], [3.5, -7.8]],
-                         [[6.1, -5], [3.5, -7.8], [3.5, -7.8]]],
-                        dtype=numpy.float32)
-        y = test_abs_set_multi(x)
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_set1a(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0], dtype=numpy.float32)
+        y = test_abs_set1a(x)
         temp = numpy.abs(x)
-        temp[:2, :2, :2] = -1.5
+        temp[2] = -1.5
         self.assertEqualArray(y, temp)
 
-    def test_py_abs_set_multi0(self):
-        x = numpy.array([[[6.1, -5], [3.5, -7.8], [3.5, -7.8]],
-                         [[6.1, -5], [3.5, -7.8], [3.5, -7.8]]],
-                        dtype=numpy.float32)
-        y = test_abs_set_multi0(x)
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_set1b(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0], dtype=numpy.float32)
+        y = test_abs_set1b(x)
         temp = numpy.abs(x)
-        temp[1, :2, 1] = -1.5
+        temp[:4] = -1.5
         self.assertEqualArray(y, temp)
 
-    def test_py_abs_set_column(self):
-        x = numpy.array([[6.1, -5], [3.5, -7.8], [3.5, -7.8]],
-                        dtype=numpy.float32)
-        y = test_abs_set_column(x)
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_set1c(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0], dtype=numpy.float32)
+        y = test_abs_set1c(x)
         temp = numpy.abs(x)
-        temp[:, 0] = -1
+        temp[:4:2] = -1.5
+        self.assertEqualArray(y, temp)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_set1d(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0], dtype=numpy.float32)
+        y = test_abs_set1d(x)
+        temp = numpy.abs(x)
+        temp[:4:2] = [-1.5, -1.6]
+        self.assertEqualArray(y, temp)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_set1e(self):
+        self.assertIn('op_type: "Shape"', str(test_abs_set1e.compiled.onnx_))
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6., -7.],
+                        dtype=numpy.float32)
+        y = test_abs_set1e(x)
+        temp = numpy.abs(x)
+        temp[2:] = -1.5
+        self.assertEqualArray(y, temp)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_set1f(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
+                        dtype=numpy.float32)
+        y = test_abs_set1f(x)
+        temp = numpy.abs(x)
+        temp[3:5] = -1.5
+        self.assertEqualArray(y, temp)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_set1g(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
+                        dtype=numpy.float32)
+        y = test_abs_set1g(x)
+        temp = numpy.abs(x)
+        temp[3:] = -1.5
         self.assertEqualArray(y, temp)
 
 
 if __name__ == "__main__":
-    # TestOnnxVariable().test_py_abs_set_multi0()
     unittest.main()
