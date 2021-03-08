@@ -10,6 +10,20 @@ from ._op import OpRun
 
 
 def scatter_elements(data, indices, updates, axis=0):
+    """
+    ::
+        // for 3-dim and axis=0
+        //    output[indices[i][j][k]][j][k] = updates[i][j][k]
+        // for axis 1
+        //    output[i][indices[i][j][k]][k] = updates[i][j][k]
+        // and so on
+    """
+    if len(data.shape) == 1 and axis == 0:
+        scattered = numpy.copy(data)
+        for pos, up in zip(indices, updates):
+            scattered[pos] = up
+        return scattered
+
     if axis < 0:
         axis = data.ndim + axis
 

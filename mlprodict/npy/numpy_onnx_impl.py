@@ -299,8 +299,8 @@ def squeeze(x, axis=None):
             "The case where all empty dimensions are removed is not "
             "implemented.")
     if isinstance(axis, int):
-        return OnnxVar(x, numpy.array([axis], dtype=numpy.int64),
-                       op=OnnxSqueeze)
+        raise RuntimeError(  # pragma: no cover
+            "axis must be a tensor.")
     return OnnxVar(x, axis, op=OnnxSqueeze)
 
 

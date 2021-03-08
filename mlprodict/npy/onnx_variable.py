@@ -5,9 +5,10 @@
 .. versionadded:: 0.6
 """
 import numpy
+from onnx.helper import make_tensor
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxAnd,
-    OnnxCast,
+    OnnxCast, OnnxConstantOfShape,
     OnnxDiv,
     OnnxEqual,
     OnnxFlatten,
@@ -290,23 +291,11 @@ class OnnxVar:
                 op=OnnxSqueeze)
         return sliced
 
-    def _matrix_multiply(self, indices, axis):
-        """
-        Creates a matrix.
-        """
-        shapes = tuple(i[1] - i[0] for i in indices)
-        mat = numpy.empty(shapes, dtype=numpy.int64)
-        ind = [slice(None) for i in indices]
-        ind[axis] = numpy.arange(0, indices[axis][1] - indices[axis][0])
-        values = numpy.arange(indices[axis][0], indices[axis][1])
-        mat[ind] = values
-        return mat
-
     def __setitem__(self, index, value):
         """
-        Deals with multiple scenarios.
+        Only supports vectors (1D tensor).
         * *index* is an integer or a slice, a tuple of integers and slices,
-          example: `[0, 1]`, `[:5, :6]`, `[::2]` (**scenario 1**)
+          example: `[0]`, `[:5]`, `[::2]` (**scenario 1**)
         * *index* is an *ONNX* object (more precisely an instance of
           @see cl OnnxVar), then the method assumes it is an array of
           boolean to select a subset of the tensor along the first axis,
@@ -318,6 +307,7 @@ class OnnxVar:
             raise RuntimeError(
                 "A copy should be made before setting new values on a matrix. "
                 "Method copy() would do that.")
+
         if isinstance(index, OnnxVar):
             # scenario 2
             raise NotImplementedError()  # pragma: no cover
@@ -326,45 +316,52 @@ class OnnxVar:
             index = (index, )
 
         # scenario 1
-        indices = []
-        for d, ind in enumerate(index):
-            if isinstance(ind, int):
-                indices.append((ind, ind + 1))
-            elif isinstance(ind, slice):
-                if ind.step is not None:
-                    raise NotImplementedError(  # pragma: no cover
-                        "Unable to assign new values with step defined "
-                        "on dimension %r." % d)
-                start = 0 if ind.start is None else ind.start
-                if ind.stop is None:
-                    raise NotImplementedError(  # pragma: no cover
-                        "Unable to assign new values with end undefined "
-                        "on dimension %r." % d)
-                stop = ind.stop
-                indices.append((start, stop))
-            else:
-                raise NotImplementedError(  # pragma: no cover
-                    "Unable to assign new values due to unexpected type %r "
-                    "on dimension %r." % (type(ind), d))
+        if len(index) == 1:
+            return self._setitem1i_(index[0], value)
+        raise NotImplementedError(
+            "Indices in %d dimensions are not implemented yet." % len(index))
 
-        axis = len(index) - 1
-        mat_indices = self._matrix_multiply(indices, axis)
-
-        if isinstance(value, (OnnxVar, numpy.ndarray)):
-            mat_updates = value
-        elif isinstance(value, (numpy.float32, numpy.float64, numpy.int32,
-                                numpy.int64, numpy.uint32, numpy.uint64,
-                                numpy_bool, numpy_str)):
-            mat_updates = numpy.full(
-                mat_indices.shape, value, dtype=value.dtype)
+    def _setitem1i_(self, index, value):
+        sl = None
+        if isinstance(index, slice):
+            start = 0 if index.start is None else index.start
+            stop = index.stop
+            step = index.step
+            sl = [start, stop, step]
+        elif isinstance(index, int):
+            sl = [index, index + 1, 1]
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unable to assign new values due to unexpected type %r "
-                "for value." % type(value))
+                "Unable to assign new values due to unexpected type %r."
+                "" % type(index))
 
-        self.inputs = [
-            OnnxVar(self.inputs[0], mat_indices, mat_updates, op=OnnxScatterElements,
-                    axis=axis)]
+        if sl[1] is None and isinstance(value, numpy.ndarray):
+            sl[1] = sl[0] + value.size
+        if sl[1] is None:
+            if sl[2] is not None and sl[2] != 1:
+                raise NotImplementedError(
+                    "If the length is not known, step must be 1 not %d." % sl[2])
+            value = make_tensor(
+                "value", guess_proto_dtype(value.dtype), (1, ), [value])  # pylint: disable=E1101
+            inp = self.inputs[0]
+            if not isinstance(inp, OnnxVar):
+                raise RuntimeError(
+                    "Input must be an instance of OnnxVar not %r." % type(inp))
+            cst = OnnxVar(inp.shape, op=OnnxConstantOfShape, value=value)
+            ext = inp[:sl[0]]
+            indices = numpy.arange(0, sl[0]).astype(numpy.int64)
+            add_step = OnnxVar(cst, indices, ext,
+                               op=OnnxScatterElements, axis=0)
+        else:
+            indices = numpy.arange(sl[0], sl[1], sl[2]).astype(numpy.int64)
+            if isinstance(value, numpy.ndarray):
+                values = value
+            else:
+                values = numpy.full(indices.shape, value)
+            add_step = OnnxVar(self.inputs[0], indices, values,
+                               op=OnnxScatterElements, axis=0)
+
+        self.inputs = [add_step]
         return self
 
     def copy(self):

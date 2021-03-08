@@ -39,7 +39,7 @@ class OnnxNumpyFunction:
     def _check_(self, *args, **kwargs):
         if (len(args) < len(self.inputs) - self.n_optional or
                 len(args) > len(self.inputs)):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unexpected number of inputs %d. It should be in [%r, %r]." % (
                     len(args), len(self.inputs) - self.n_optional,
                     len(self.inputs)))
@@ -202,7 +202,7 @@ class OnnxNumpyCompiler:
             nv = len(version) - len(args) - n_opt
             if (signature is not None and not
                     signature.n_variables and nv > len(kwargs)):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Mismatch between version=%r and kwargs=%r for "
                     "function %r, optional argument is %d, "
                     "signature=%r." % (
@@ -243,7 +243,7 @@ class OnnxNumpyCompiler:
             if a == "op_version":
                 continue
             if a not in annotations:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unable to find annotation for argument %r. "
                     "You should annotate the arguments and the results "
                     "or specify a signature." % a)
@@ -309,7 +309,7 @@ class OnnxNumpyCompiler:
                 self.onnx_ = onx
 
         if self.onnx_ is None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to get the ONNX graph.")
         return self.onnx_
 

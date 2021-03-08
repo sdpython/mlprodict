@@ -77,7 +77,7 @@ class NDArray(numpy.ndarray, Generic[Shape, DType]):
     def __class_getitem__(cls, params):
         "Overwrites this method."
         if not isinstance(params, tuple):
-            params = (params,)
+            params = (params,)  # pragma: no cover
         return NDArray.ShapeType(params)
 
 
@@ -98,9 +98,9 @@ class _NDArrayAlias:
                  nvars=False):
         "constructor"
         if dtypes is None:
-            raise ValueError("dtypes cannot be None.")
+            raise ValueError("dtypes cannot be None.")  # pragma: no cover
         if isinstance(dtypes, tuple) and len(dtypes) == 0:
-            raise TypeError("dtypes must not be empty.")
+            raise TypeError("dtypes must not be empty.")  # pragma: no cover
         if isinstance(dtypes, tuple) and not isinstance(dtypes[0], tuple):
             dtypes = tuple(t if isinstance(t, str) else (t,) for t in dtypes)
         if isinstance(dtypes, str) and '_' in dtypes:
@@ -124,31 +124,31 @@ class _NDArrayAlias:
         self.n_variables = nvars
 
         if not isinstance(self.dtypes, tuple):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "self.dtypes must be a tuple not {}.".format(self.dtypes))
         if (len(self.dtypes) == 0 or
                 not isinstance(self.dtypes[0], tuple)):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Type mismatch in self.dtypes: {}.".format(self.dtypes))
         if (len(self.dtypes[0]) == 0 or
                 isinstance(self.dtypes[0][0], tuple)):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Type mismatch in self.dtypes: {}.".format(self.dtypes))
 
         if not isinstance(self.dtypes_out, tuple):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "self.dtypes_out must be a tuple not {}.".format(self.dtypes_out))
         if (len(self.dtypes_out) == 0 or
                 not isinstance(self.dtypes_out[0], tuple)):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Type mismatch in self.dtypes_out: {}.".format(self.dtypes_out))
         if (len(self.dtypes_out[0]) == 0 or
                 isinstance(self.dtypes_out[0][0], tuple)):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Type mismatch in self.dtypes_out: {}.".format(self.dtypes_out))
 
         if self.n_variables and self.n_optional > 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "n_variables and n_optional cannot be positive at "
                 "the same type.")
 
@@ -185,7 +185,7 @@ class _NDArrayAlias:
             elif dtypes == "ints":
                 dtypes = (numpy.int32, numpy.int64)
             elif dtypes not in mapped_types:
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "Unexpected shortcut for dtype %r." % dtypes)
             elif not isinstance(dtypes, tuple):
                 dtypes = (dtypes, )
@@ -221,7 +221,7 @@ class _NDArrayAlias:
         res = []
         for i, o in enumerate(self.dtypes_out):
             if not isinstance(o, tuple):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "All outputs must be tuple, output %d is %r."
                     "" % (i, o))
             if (len(o) == 1 and (o[0] in all_dtypes or
@@ -233,7 +233,7 @@ class _NDArrayAlias:
             elif key[0] in o:
                 res.append(key[0])
             else:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unable to guess output type for output %d, "
                     "input types are %r, expected output is %r."
                     "" % (i, key, o))
@@ -251,7 +251,7 @@ class _NDArrayAlias:
         """
         for k, v in kwargs.items():
             if isinstance(v, type):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Default value for argument %r must not be of type %r"
                     "." % (k, v))
 
@@ -375,12 +375,12 @@ class NDArraySameType(NDArrayType):
 
     def __init__(self, dtypes=None):
         if dtypes is None:
-            raise ValueError("dtypes cannot be None.")
+            raise ValueError("dtypes cannot be None.")  # pragma: no cover
         if isinstance(dtypes, str) and "_" in dtypes:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "dtypes cannot include '_' meaning two different types.")
         if isinstance(dtypes, tuple):
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "dtypes must be a single type.")
         NDArrayType.__init__(self, dtypes=dtypes)
 

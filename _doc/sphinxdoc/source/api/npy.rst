@@ -1,8 +1,14 @@
 
 .. _l-numpy-onnxpy:
 
-Numpy API for ONNX
-==================
+Complete Numpy API for ONNX
+===========================
+
+The numpy API is meant to simplofy the creation of ONNX
+graphs by using functions very similar to what numpy implements.
+This page only makes a list of the available
+functions. A tutorial is available at
+:ref:`l-numpy-api-for-onnx`.
 
 .. contents::
     :local:
@@ -42,7 +48,7 @@ is called.
     print(y)
 
 Annotations are mandatory to indicate inputs and outputs type.
-As a result, the returned function is strict about types
+The decorator returns a function which is strict about types
 as opposed to numpy. This approach is similar to what
 :epkg:`tensorflow` with `autograph
 <https://www.tensorflow.org/api_docs/python/tf/autograph>`_.
@@ -77,93 +83,7 @@ OnnxVar
 Available numpy functions implemented with ONNX operators
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.abs
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.acos
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.acosh
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.amax
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.amin
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.arange
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.argmax
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.argmin
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.asin
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.asinh
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.atan
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.atanh
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.ceil
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.clip
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.compress
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.concat
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.cos
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.cosh
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.cumsum
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.det
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.dot
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.einsum
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.erf
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.exp
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.expand_dims
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.hstack
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.isnan
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.mean
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.log
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.pad
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.prod
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.reciprocal
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.relu
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.round
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.sign
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.sin
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.sinh
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.sqrt
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.squeeze
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.sum
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.tan
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.tanh
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.unsqueeze
-
-.. autosignature:: mlprodict.npy.numpy_onnx_impl.vstack
+All functions are implemented in submodule :ref:`f-numpyonnximpl`.
 
 ONNX functions executed python ONNX runtime
 +++++++++++++++++++++++++++++++++++++++++++
@@ -171,3 +91,7 @@ ONNX functions executed python ONNX runtime
 Same function as above, the import goes from
 `from mlprodict.npy.numpy_onnx_impl import <function-name>` to
 `from mlprodict.npy.numpy_onnx_pyrt import <function-name>`.
+These function are usually not used except in unit test or as
+reference for more complex functions. See the source on github,
+`numpy_onnx_pyrt.py <https://github.com/sdpython/mlprodict/
+blob/master/mlprodict/npy/numpy_onnx_pyrt.py>`_.
