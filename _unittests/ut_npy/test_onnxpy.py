@@ -84,6 +84,12 @@ class TestOnnxPy(ExtTestCase):
                         runtime="esoterique"),
             ValueError)
 
+    def test_wrong_runtime2(self):
+        self.assertRaise(
+            lambda: ONC(TestOnnxPy.onnx_abs, op_version=11,
+                        runtime="esoterique"),
+            ValueError)
+
     def test_runtime(self):
         for rt in ['python', 'onnxruntime1', 'onnxruntime']:
             with self.subTest(rt=rt):
