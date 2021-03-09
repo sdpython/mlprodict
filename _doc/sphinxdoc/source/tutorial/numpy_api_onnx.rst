@@ -97,6 +97,7 @@ The ONNX graph `onnx_log_1.compiled.onnx_` looks like this:
 
 .. gdot::
     :script: DOT-SECTION
+    :process:
 
     from typing import Any
     import numpy as np
@@ -372,6 +373,7 @@ really meant to change only one element but to change many of them.
 
 .. gdot::
     :script: DOT-SECTION
+    :process:
 
     from typing import Any
     import numpy as np
