@@ -112,6 +112,7 @@ epkg_dictionary.update({
     'sklearn-onnx tutorial': 'http://www.xavierdupre.fr/app/onnxcustom/helpsphinx/tutorial.html',
     'tensorflow': 'https://www.tensorflow.org/',
     'Tokenizer': 'https://github.com/microsoft/onnxruntime/blob/master/docs/ContribOperators.md#com.microsoft.Tokenizer',
+    'torch': 'https://pytorch.org/',
     'tqdm': 'https://github.com/tqdm/tqdm',
     'TransferTransformer': 'http://www.xavierdupre.fr/app/mlinsights/helpsphinx/mlinsights/mlmodel/transfer_transformer.html',
     'xgboost': "https://xgboost.readthedocs.io/en/latest/",
