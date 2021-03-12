@@ -16,6 +16,7 @@ from skl2onnx.algebra.onnx_operator import OnnxSubOperator
 from skl2onnx.common.data_types import guess_numpy_type
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.npy import onnxsklearn_transformer, update_registered_converter_npy
 
 
 class DecorrelateTransformer(TransformerMixin, BaseEstimator):
@@ -68,6 +69,17 @@ def decorrelate_transformer_converter2(scope, operator, container):
     Y.add_to(scope, container)
 
 
+class DecorrelateTransformer3(DecorrelateTransformer):
+    pass
+
+
+@onnxsklearn_transformer(register_class=DecorrelateTransformer3)
+def decorrelate_transformer_converter3(X, op=None):
+    mean = op.pca_.mean_.astype(X.dtype)
+    cmp = op.pca_.components_.T.astype(X.dtype)
+    return (X - mean) @ cmp
+
+
 class TestCustomTransformer(ExtTestCase):
 
     def setUp(self):
@@ -105,6 +117,19 @@ class TestCustomTransformer(ExtTestCase):
         exp = dec.transform(X)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['variable'])
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    def test_function_transformer3(self):
+        X = numpy.random.randn(20, 2).astype(numpy.float32)
+        dec = DecorrelateTransformer3()
+        dec.fit(X)
+        onx = to_onnx(dec, X.astype(numpy.float32))
+        oinf = OnnxInference(onx)
+        exp = dec.transform(X)
+        got = oinf.run({'X': X})
+        self.assertEqualArray(exp, got['variable'])
+        X2 = decorrelate_transformer_converter3(X, op=op)
+        self.assertEqualArray(X2, got['variable'])
 
 
 if __name__ == "__main__":
