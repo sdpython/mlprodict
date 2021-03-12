@@ -145,7 +145,7 @@ class OnnxInference:
                 for node in self.sequence_:
                     domain = node.onnx_node.domain
                     target_opset = self.target_opset_.get(domain, None)
-                    if self.runtime == 'onnxruntime2':
+                    if self.runtime in ('onnxruntime2', 'empty'):
                         node.setup_runtime(self.runtime, variables, self.__class__,
                                            target_opset=target_opset, dtype=dtype,
                                            domain=domain, ir_version=self.ir_version_,
@@ -414,7 +414,7 @@ class OnnxInference:
                         k, names[k, 0][0]))
             names[k, 0] = ('I', v)
         for k, v in outputs.items():
-            if (k, 0) in names:
+            if (k, 0) in names and self.runtime != 'empty':
                 raise RuntimeError(  # pragma: no cover
                     "Output '{}' already exists (tag='{}').".format(
                         k, names[k, 0][0]))
