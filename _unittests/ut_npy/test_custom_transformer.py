@@ -10,7 +10,7 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.decomposition import PCA
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx import update_registered_converter
-from skl2onnx.algebra.onnx_ops import (  # pylint: disable=W0201
+from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxIdentity, OnnxMatMul, OnnxSub)
 from skl2onnx.algebra.onnx_operator import OnnxSubOperator
 from skl2onnx.common.data_types import guess_numpy_type
@@ -25,8 +25,8 @@ class DecorrelateTransformer(TransformerMixin, BaseEstimator):
         self.alpha = alpha
 
     def fit(self, X, y=None, sample_weights=None):
-        self.pca_ = PCA(X.shape[1])
-        self.pca_.fit(X)  # pylint: disable=W0201
+        self.pca_ = PCA(X.shape[1])  # pylint: disable=W0201
+        self.pca_.fit(X)
         return self
 
     def transform(self, X):
