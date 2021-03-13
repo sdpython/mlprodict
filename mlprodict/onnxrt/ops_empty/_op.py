@@ -145,7 +145,6 @@ class OpRunOnnxEmpty:
                 raise RuntimeError(  # pragma: no cover
                     "Probable issue as one dimension is null.\n--\n{}".format(
                         self.onnx_))
-            forced = True
         else:
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
                                         op_version=target_opset, domain=domain,
@@ -160,10 +159,8 @@ class OpRunOnnxEmpty:
                     raise RuntimeError(  # pragma: no cover
                         "Probable issue as one dimension is null.\n--\n{}\n---\n{}".format(
                             self.onnx_, inputs))
-                forced = False
             except (RuntimeError, ValueError):
                 # Let's try again by forcing output types.
-                forced = True
                 outputs = get_defined_outputs(
                     self.outputs, self.onnx_node, inputs, variables,
                     dtype=self.dtype)
@@ -178,7 +175,6 @@ class OpRunOnnxEmpty:
         if hasattr(self.onnx_, 'graph'):
             if len(self.onnx_.graph.output) != len(self.outputs):  # pragma: no cover
                 # Something is wrong, falls back to default plan.
-                forced = True
                 outputs = get_defined_outputs(
                     self.outputs, self.onnx_node, inputs, variables,
                     dtype=self.dtype)

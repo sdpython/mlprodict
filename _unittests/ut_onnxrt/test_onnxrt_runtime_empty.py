@@ -4,7 +4,7 @@
 import unittest
 from logging import getLogger
 import numpy
-from onnx import load
+from onnx import helper, TensorProto
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd)
@@ -42,12 +42,22 @@ class TestOnnxrtRuntimeEmpty(ExtTestCase):
         self.assertIn("-> Y;", dot)
 
     @ignore_warnings(DeprecationWarning)
-    def test_onnxt_runtime_empty_complex(self):
-        model_def = load('data/model5.onnx')
+    def test_onnxt_runtime_empty_unknown(self):
+        X = helper.make_tensor_value_info(
+            'X', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
+        Y = helper.make_tensor_value_info(
+            'Y', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
+        Z = helper.make_tensor_value_info(
+            'Z', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
+        node_def = helper.make_node('Add', ['X', 'Y'], ['Zt'], name='Zt')
+        node_def2 = helper.make_node('AddUnknown', ['X', 'Zt'], ['Z'], name='Z')
+        graph_def = helper.make_graph(
+            [node_def, node_def2], 'test-model', [X, Y], [Z])
+        model_def = helper.make_model(graph_def, producer_name='onnx-example')
         oinf = OnnxInference(model_def, runtime='empty')
         self.assertNotEmpty(oinf)
         dot = oinf.to_dot()
-        self.assertIn('bert_pack_inputs', dot)
+        self.assertIn('AddUnknown', dot)
         self.assertNotIn('x{', dot)
 
 
