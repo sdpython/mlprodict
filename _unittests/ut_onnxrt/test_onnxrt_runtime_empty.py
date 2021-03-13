@@ -50,7 +50,8 @@ class TestOnnxrtRuntimeEmpty(ExtTestCase):
         Z = helper.make_tensor_value_info(
             'Z', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
         node_def = helper.make_node('Add', ['X', 'Y'], ['Zt'], name='Zt')
-        node_def2 = helper.make_node('AddUnknown', ['X', 'Zt'], ['Z'], name='Z')
+        node_def2 = helper.make_node(
+            'AddUnknown', ['X', 'Zt'], ['Z'], name='Z')
         graph_def = helper.make_graph(
             [node_def, node_def2], 'test-model', [X, Y], [Z])
         model_def = helper.make_model(graph_def, producer_name='onnx-example')

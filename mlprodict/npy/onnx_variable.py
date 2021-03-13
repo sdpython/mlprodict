@@ -6,6 +6,8 @@
 """
 import numpy
 from onnx.helper import make_tensor
+from skl2onnx.common.data_types import guess_numpy_type
+from skl2onnx.common._topology import Variable  # pylint: disable=E0611,E0001
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxAnd,
     OnnxCast, OnnxConstantOfShape,
@@ -60,7 +62,6 @@ class OnnxVar:
         self.onnx_op = op
         self.alg_ = None
         self.onnx_op_kwargs = kwargs
-        self.dtype = dtype
         if dtype is not None and (op is not None or len(inputs) != 1):
             raise RuntimeError(
                 "dtype can only be used if op is None or len(inputs) == 1.")
@@ -68,6 +69,61 @@ class OnnxVar:
             if isinstance(inp, type):
                 raise TypeError(
                     "Unexpected type for input %d - %r." % (i, inp))
+        self.dtype = self._guess_dtype(dtype)
+
+    def _guess_dtype(self, dtype):
+        "Guesses dtype when not specified."
+        if dtype is not None:
+            return dtype
+        dtypes = []
+        for i, inp in enumerate(self.inputs):
+            if isinstance(inp, str):
+                return None
+            if isinstance(inp, numpy.ndarray):
+                dtypes.append(inp.dtype)
+            elif isinstance(inp, Variable):
+                dt = guess_numpy_type(inp.type)
+                dtypes.append(dt)
+            elif isinstance(inp, OnnxVar):
+                dtypes.append(inp.dtype)
+            elif isinstance(inp, (numpy.float32, numpy.float64, numpy.int32,
+                                  numpy.int64)):
+                dtypes.append(inp.dtype)
+            elif isinstance(inp, numpy_str):
+                dtypes.append(numpy_str)
+            elif isinstance(inp, numpy_bool):
+                dtypes.append(numpy_bool)
+            elif isinstance(inp, int):
+                dtypes.append(numpy.int64)
+            elif isinstance(inp, float):
+                dtypes.append(numpy.float64)
+            else:
+                raise TypeError(
+                    "Unexpected type for input %i type=%r." % (i, type(inp)))
+        dtypes = [_ for _ in dtypes if _ is not None]
+        unique = set(dtypes)
+        if len(unique) != 1:
+            return None
+        return dtypes[0]
+
+    def __repr__(self):
+        "usual"
+        args = []
+        for inp in self.inputs:
+            args.append(repr(inp))
+        if self.onnx_op is not None:
+            if isinstance(self.onnx_op, str):
+                args.append("op=%r" % self.onnx_op)
+            else:
+                args.append("op=%s" % self.onnx_op.__name__)
+        if self.select_output is not None:
+            args.append("select_output=%r" % self.select_output)
+        if self.dtype is not None and self.dtype != self._guess_dtype(None):
+            args.append("dtype=%r" % self.dtype)
+        for k, v in sorted(self.onnx_op_kwargs.items()):
+            args.append("%s=%r" % (k, v))
+        res = "%s(%s)" % (self.__class__.__name__, ", ".join(args))
+        return res
 
     def to_algebra(self, op_version=None):
         """

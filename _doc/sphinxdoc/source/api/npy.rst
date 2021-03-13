@@ -53,18 +53,34 @@ as opposed to numpy. This approach is similar to what
 :epkg:`tensorflow` with `autograph
 <https://www.tensorflow.org/api_docs/python/tf/autograph>`_.
 
-NDArray
-+++++++
+Signatures
+++++++++++
 
 .. autosignature:: mlprodict.npy.onnx_numpy_annotation.NDArray
     :members:
 
-onnxnumpy
-+++++++++
+.. autosignature:: mlprodict.npy.onnx_numpy_annotation.NDArraySameType
+    :members:
+
+.. autosignature:: mlprodict.npy.onnx_numpy_annotation.NDArraySameTypeSameShape
+    :members:
+
+.. autosignature:: mlprodict.npy.onnx_numpy_annotation.NDArrayType
+    :members:
+
+.. autosignature:: mlprodict.npy.onnx_numpy_annotation.NDArrayTypeSameShape
+    :members:
+
+Decorators
+++++++++++
 
 .. autosignature:: mlprodict.npy.onnx_numpy_wrapper.onnxnumpy
 
 .. autosignature:: mlprodict.npy.onnx_numpy_wrapper.onnxnumpy_default
+
+.. autosignature:: mlprodict.npy.onnx_numpy_wrapper.onnxnumpy_np
+
+.. autosignature:: mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_transformer
 
 OnnxNumpyCompiler
 +++++++++++++++++
@@ -77,6 +93,11 @@ OnnxVar
 
 .. autosignature:: mlprodict.npy.onnx_variable.OnnxVar
     :members:
+
+Registration
+++++++++++++
+
+.. autosignature:: mlprodict.npy.onnx_sklearn_wrapper.update_registered_converter_npy
 
 .. _l-numpy-onnxpy-list-fct:
 
