@@ -4,6 +4,7 @@
 """
 import os
 import json
+import re
 from io import BytesIO
 import pickle
 import textwrap
@@ -23,8 +24,8 @@ class OnnxInferenceExport:
         """
         self.oinf = oinf
 
-    def to_dot(self, recursive=False, prefix='', add_rt_shapes=False,
-               use_onnx=False, **params):
+    def to_dot(self, recursive=False, prefix='',  # pylint: disable=R0914
+               add_rt_shapes=False, use_onnx=False, **params):
         """
         Produces a :epkg:`DOT` language string for the graph.
 
@@ -78,6 +79,19 @@ class OnnxInferenceExport:
             See an example of representation in notebook
             :ref:`onnxvisualizationrst`.
         """
+        clean_label_reg1 = re.compile("\\\\x\\{[0-9A-F]{1,6}\\}")
+        clean_label_reg2 = re.compile("\\\\p\\{[0-9P]{1,6}\\}")
+
+        def dot_name(text):
+            return text.replace("/", "_").replace(":", "__")
+
+        def dot_label(text):
+            for reg in [clean_label_reg1, clean_label_reg2]:
+                fall = reg.findall(text)
+                for f in fall:
+                    text = text.replace(f, "_")
+            return text
+
         options = {
             'orientation': 'portrait',
             'ranksep': '0.25',
@@ -123,8 +137,10 @@ class OnnxInferenceExport:
             sh = shapes.get(dobj['name'], '')
             if sh:
                 sh = "\\nshape={}".format(sh)
-            exp.append('  {3}{0} [shape=box color=red label="{0}\\n{1}{4}" fontsize={2}];'.format(
-                dobj['name'], _type_to_string(dobj['type']), fontsize, prefix, sh))
+            exp.append(
+                '  {3}{0} [shape=box color=red label="{0}\\n{1}{4}" fontsize={2}];'.format(
+                    dot_name(dobj['name']), _type_to_string(dobj['type']),
+                    fontsize, prefix, dot_label(sh)))
             inter_vars[obj.name] = obj
 
         # outputs
@@ -134,8 +150,10 @@ class OnnxInferenceExport:
             sh = shapes.get(dobj['name'], '')
             if sh:
                 sh = "\\nshape={}".format(sh)
-            exp.append('  {3}{0} [shape=box color=green label="{0}\\n{1}{4}" fontsize={2}];'.format(
-                dobj['name'], _type_to_string(dobj['type']), fontsize, prefix, sh))
+            exp.append(
+                '  {3}{0} [shape=box color=green label="{0}\\n{1}{4}" fontsize={2}];'.format(
+                    dot_name(dobj['name']), _type_to_string(dobj['type']),
+                    fontsize, prefix, dot_label(sh)))
             inter_vars[obj.name] = obj
 
         # initializer
@@ -152,9 +170,10 @@ class OnnxInferenceExport:
                     st = st[:50] + '...'
             st = st.replace('\n', '\\n')
             kind = ""
-            exp.append('  {6}{0} [shape=box label="{0}\\n{4}{1}({2})\\n{3}" fontsize={5}];'.format(
-                dobj['name'], dobj['value'].dtype,
-                dobj['value'].shape, st, kind, fontsize, prefix))
+            exp.append(
+                '  {6}{0} [shape=box label="{0}\\n{4}{1}({2})\\n{3}" fontsize={5}];'.format(
+                    dot_name(dobj['name']), dobj['value'].dtype,
+                    dobj['value'].shape, dot_label(st), kind, fontsize, prefix))
             inter_vars[obj.name] = obj
 
         # nodes
@@ -169,7 +188,7 @@ class OnnxInferenceExport:
                         sh = "\\nshape={}".format(sh)
                     exp.append(
                         '  {2}{0} [shape=box label="{0}{3}" fontsize={1}];'.format(
-                            out, fontsize, prefix, sh))
+                            dot_name(out), fontsize, dot_name(prefix), dot_label(sh)))
 
             dobj = _var_as_dict(node)
             if dobj['name'].strip() == '':  # pragma: no cover
@@ -221,7 +240,7 @@ class OnnxInferenceExport:
                     exp.append("  subgraph cluster_{}{} {{".format(
                         node.op_type, id(node)))
                     exp.append('    label="{0}\\n({1}){2}";'.format(
-                        dobj['op_type'], dobj['name'], satts))
+                        dobj['op_type'], dot_name(dobj['name']), satts))
                     exp.append('    fontsize={0};'.format(fontsize))
                     exp.append('    color=black;')
                     exp.append(
@@ -229,21 +248,28 @@ class OnnxInferenceExport:
 
                     for inp1, inp2 in zip(node.input, body.input):
                         exp.append(
-                            "  {0}{1} -> {2}{3};".format(prefix, inp1, subprefix, inp2.name))
+                            "  {0}{1} -> {2}{3};".format(
+                                dot_name(prefix), dot_name(inp1),
+                                dot_name(subprefix), dot_name(inp2.name)))
                     for out1, out2 in zip(body.output, node.output):
                         exp.append(
-                            "  {0}{1} -> {2}{3};".format(subprefix, out1.name, prefix, out2))
+                            "  {0}{1} -> {2}{3};".format(
+                                dot_name(subprefix), dot_name(out1.name),
+                                dot_name(prefix), dot_name(out2)))
 
             else:
                 exp.append('  {4}{1} [shape=box style="filled,rounded" color=orange label="{0}\\n({1}){2}" fontsize={3}];'.format(
-                    dobj['op_type'], dobj['name'], satts, fontsize, prefix))
+                    dobj['op_type'], dot_name(dobj['name']), satts, fontsize,
+                    dot_name(prefix)))
 
                 for inp in node.input:
                     exp.append(
-                        "  {0}{1} -> {0}{2};".format(prefix, inp, node.name))
+                        "  {0}{1} -> {0}{2};".format(
+                            dot_name(prefix), dot_name(inp), dot_name(node.name)))
                 for out in node.output:
                     exp.append(
-                        "  {0}{1} -> {0}{2};".format(prefix, node.name, out))
+                        "  {0}{1} -> {0}{2};".format(
+                            dot_name(prefix), dot_name(node.name), dot_name(out)))
 
         exp.append('}')
         return "\n".join(exp)
@@ -428,7 +454,8 @@ class OnnxInferenceExport:
 
         if self.oinf.runtime != 'python':
             raise ValueError(
-                "The runtime must be python not '{}'.".format(self.oinf.runtime))
+                "The runtime must be 'python' not '{}'.".format(
+                    self.oinf.runtime))
 
         # metadata
         obj = {}

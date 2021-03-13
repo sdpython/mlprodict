@@ -9,7 +9,8 @@ from pyquickhelper.cli.cli_helper import create_cli_parser
 from ..onnx_inference import OnnxInference
 
 
-def onnxview(graph, recursive=False, local=False, add_rt_shapes=False):
+def onnxview(graph, recursive=False, local=False, add_rt_shapes=False,
+             runtime='python'):
     """
     Displays an :epkg:`ONNX` graph into a notebook.
 
@@ -20,8 +21,13 @@ def onnxview(graph, recursive=False, local=False, add_rt_shapes=False):
     :param add_rt_shapes: add information about the shapes
         the runtime was able to find out,
         the runtime has to be `'python'`
+    :param runtime: the view fails if a runtime does not implement a specific
+        node unless *runtime* is `'empty'`
+
+    .. versionchanged:: 0.6
+        Parameter *runtime* was added.
     """
-    sess = OnnxInference(graph, skip_run=not add_rt_shapes)
+    sess = OnnxInference(graph, skip_run=not add_rt_shapes, runtime=runtime)
     dot = sess.to_dot(recursive=recursive, add_rt_shapes=add_rt_shapes)
     return RenderJsDot(dot, local=local)
 

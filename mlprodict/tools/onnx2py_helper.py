@@ -135,6 +135,8 @@ def _elem_type_as_str(elem_type):
         return 'int8'
     if elem_type == onnx_proto.TensorProto.FLOAT16:  # pylint: disable=E1101
         return 'float16'
+    if elem_type == 0:  # pylint: disable=E1101
+        return 'unk'
 
     # The following code should be refactored.
     selem = str(elem_type)
@@ -235,6 +237,16 @@ def _var_as_dict(var):
                 key_type = _elem_type_as_str(t.key_type)
                 value_type = _elem_type_as_str(t.value_type)
                 dtype = dict(kind='map', key=key_type, value=value_type)
+            elif hasattr(var.type, 'tensor_type') and var.type.tensor_type.elem_type == 0:
+                t = var.type.tensor_type
+                elem_type = _elem_type_as_str(t.elem_type)
+                shape = t.shape
+                dim = shape.dim
+                dims = [d.dim_value for d in dim]
+                if len(dims) == 0:
+                    dims = '?'
+                dtype = dict(kind='tensor', elem=elem_type,
+                             shape=tuple(dims))
             else:
                 raise NotImplementedError(  # pragma: no cover
                     "Unable to convert a type into a dictionary for '{}'. "
