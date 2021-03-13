@@ -86,6 +86,17 @@ class OnnxVar:
                 dtypes.append(dt)
             elif isinstance(inp, OnnxVar):
                 dtypes.append(inp.dtype)
+            elif isinstance(inp, (numpy.float32, numpy.float64, numpy.int32,
+                                  numpy.int64)):
+                dtypes.append(inp.dtype)
+            elif isinstance(inp, numpy_str):
+                dtypes.append(numpy_str)
+            elif isinstance(inp, numpy_bool):
+                dtypes.append(numpy_bool)
+            elif isinstance(inp, int):
+                dtypes.append(numpy.int64)
+            elif isinstance(inp, float):
+                dtypes.append(numpy.float64)
             else:
                 raise TypeError(
                     "Unexpected type for input %i type=%r." % (i, type(inp)))
