@@ -5,6 +5,8 @@
 import unittest
 import warnings
 from logging import getLogger
+import io
+import pickle
 import numpy
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.decomposition import PCA
@@ -16,7 +18,7 @@ from skl2onnx.algebra.onnx_operator import OnnxSubOperator
 from skl2onnx.common.data_types import guess_numpy_type
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.npy import onnxsklearn_transformer
+from mlprodict.npy import onnxsklearn_transformer, onnxsklearn_class
 
 
 class DecorrelateTransformer(TransformerMixin, BaseEstimator):
@@ -82,6 +84,26 @@ def decorrelate_transformer_converter3(X, op=None):
     return (X - mean) @ cmp
 
 
+@onnxsklearn_class("onnx_transform")
+class DecorrelateTransformerOnnx(TransformerMixin, BaseEstimator):
+    def __init__(self, alpha=0.):
+        BaseEstimator.__init__(self)
+        TransformerMixin.__init__(self)
+        self.alpha = alpha
+
+    def fit(self, X, y=None, sample_weights=None):
+        self.pca_ = PCA(X.shape[1])  # pylint: disable=W0201
+        self.pca_.fit(X)
+        return self
+
+    def onnx_transform(self, X):
+        if X.dtype is None:
+            raise AssertionError("X.dtype cannot be None.")
+        mean = self.pca_.mean_.astype(X.dtype)
+        cmp = self.pca_.components_.T.astype(X.dtype)
+        return (X - mean) @ cmp
+
+
 class TestCustomTransformer(ExtTestCase):
 
     def setUp(self):
@@ -145,6 +167,31 @@ class TestCustomTransformer(ExtTestCase):
         self.assertEqualArray(exp, got['variable'])
         X2 = decorrelate_transformer_converter3(X, op=dec)
         self.assertEqualArray(X2, got['variable'])
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    def test_function_transformer_onnx(self):
+        X = numpy.random.randn(20, 2).astype(numpy.float64)
+        dec = DecorrelateTransformerOnnx()
+        dec.fit(X)
+        exp1 = dec.transform(X)  # pylint: disable=E1101
+        onx = to_onnx(dec, X.astype(numpy.float64))
+        oinf = OnnxInference(onx)
+        exp2 = dec.transform(X)  # pylint: disable=E1101
+        got = oinf.run({'X': X})
+        self.assertEqualArray(exp1, got['variable'])
+        self.assertEqualArray(exp2, got['variable'])
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    def test_function_transformer_onnx_pickle(self):
+        X = numpy.random.randn(20, 2).astype(numpy.float64)
+        dec = DecorrelateTransformerOnnx()
+        dec.fit(X)
+        exp1 = dec.transform(X)  # pylint: disable=E1101
+        st = io.BytesIO()
+        pickle.dump(dec, st)
+        dec2 = pickle.load(io.BytesIO(st.getvalue()))
+        exp2 = dec2.transform(X)
+        self.assertEqualArray(exp1, exp2)
 
 
 if __name__ == "__main__":
