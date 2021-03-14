@@ -62,7 +62,7 @@ mlprodict
     :target: https://github.com/sdpython/mlprodict/
     :alt: size
 
-The packages explores ways to productionize machine learning predictions.
+*mlprodict* explores ways to productionize machine learning predictions.
 One approach uses *ONNX* and tries to implement
 a runtime in python / numpy or wraps
 `onnxruntime <https://github.com/Microsoft/onnxruntime>`_
