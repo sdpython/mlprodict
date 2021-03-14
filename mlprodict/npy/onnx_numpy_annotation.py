@@ -91,6 +91,10 @@ class _NDArrayAlias:
     :param nvars: True if the function allows an infinite number of inputs,
         this is incompatible with parameter *n_optional*.
 
+    *dtypes*, *dtypes_out* by default are a tuple of tuple:
+    * first dimension: type of every input
+    * second dimension: list of types for one input
+
     .. versionadded:: 0.6
     """
 
@@ -141,7 +145,8 @@ class _NDArrayAlias:
         if (len(self.dtypes_out) == 0 or
                 not isinstance(self.dtypes_out[0], tuple)):
             raise TypeError(  # pragma: no cover
-                "Type mismatch in self.dtypes_out: {}.".format(self.dtypes_out))
+                "Type mismatch in self.dtypes_out={}, "
+                "self.dtypes={}.".format(self.dtypes_out, self.dtypes))
         if (len(self.dtypes_out[0]) == 0 or
                 isinstance(self.dtypes_out[0][0], tuple)):
             raise TypeError(  # pragma: no cover

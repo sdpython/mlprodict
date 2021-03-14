@@ -85,7 +85,7 @@ class CustomLinearRegressorOnnx(RegressorMixin, BaseEstimator):
         return X @ self.coef_ + self.intercept_
 
 
-class TestCustomTransformer(ExtTestCase):
+class TestCustomRegressor(ExtTestCase):
 
     def setUp(self):
         logger = getLogger('skl2onnx')

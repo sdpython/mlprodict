@@ -232,6 +232,10 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.exp, nxnpy.exp, numpy.float32)
 
+    def test_expit_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(x, sp.expit, nxnpy.expit, numpy.float32)  # pylint: disable=E1101
+
     def test_expand_dims_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(
@@ -312,6 +316,10 @@ class TestNumpyOnnxFunction(ExtTestCase):
     def test_round_float64(self):
         x = numpy.array([[6.1, 5], [3.5, -7.8]], dtype=numpy.float64)
         self.common_test1(x, numpy.round, nxnpy.round, numpy.float64)
+
+    def test_sigmoid_float32(self):
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        self.common_test1(x, sp.expit, nxnpy.sigmoid, numpy.float32)  # pylint: disable=E1101
 
     def test_sign_float64(self):
         x = numpy.array([[-6.1, 5], [3.5, 7.8]], dtype=numpy.float64)

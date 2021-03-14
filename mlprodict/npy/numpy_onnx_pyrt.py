@@ -36,6 +36,7 @@ from .numpy_onnx_impl import (
     einsum as nx_einsum,
     erf as nx_erf,
     exp as nx_exp,
+    expit as nx_expit,
     expand_dims as nx_expand_dims,
     floor as nx_floor,
     hstack as nx_hstack,
@@ -47,6 +48,7 @@ from .numpy_onnx_impl import (
     reciprocal as nx_reciprocal,
     relu as nx_relu,
     round as nx_round,
+    sigmoid as nx_sigmoid,
     sign as nx_sign,
     sin as nx_sin,
     sinh as nx_sinh,
@@ -206,6 +208,12 @@ def exp(x):
     return nx_exp(x)
 
 
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def expit(x):
+    "expit"
+    return nx_expit(x)
+
+
 @onnxnumpy_np(signature=NDArrayType("floats"))
 def expand_dims(x, axis=0):
     "expand_dims"
@@ -270,6 +278,12 @@ def relu(x):
 def round(x):
     "round"
     return nx_round(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def sigmoid(x):
+    "expit"
+    return nx_sigmoid(x)
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))

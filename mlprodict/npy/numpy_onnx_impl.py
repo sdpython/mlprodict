@@ -38,6 +38,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSum,
     OnnxRelu,
     OnnxRound,
+    OnnxSigmoid,
     OnnxSign,
     OnnxSin, OnnxSinh,
     OnnxSqrt,
@@ -209,6 +210,11 @@ def expand_dims(x, axis):
                    op=OnnxUnsqueeze)
 
 
+def expit(x):
+    "See :epkg:`scipy:special:expit`."
+    return OnnxVar(x, op=OnnxSigmoid)
+
+
 def floor(x):
     "See :epkg:`numpy:floor`."
     return OnnxVar(x, op=OnnxFloor)
@@ -270,6 +276,11 @@ def reciprocal(x):
 def round(x):
     "See :epkg:`numpy:round`."
     return OnnxVar(x, op=OnnxRound)
+
+
+def sigmoid(x):
+    "See :epkg:`scipy:special:expit`."
+    return OnnxVar(x, op=OnnxSigmoid)
 
 
 def sign(x):

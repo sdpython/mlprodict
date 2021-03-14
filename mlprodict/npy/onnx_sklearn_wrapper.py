@@ -5,12 +5,13 @@ for :epkg:`scikit-learn` classes for :epkg:`onnx`.
 
 .. versionadded:: 0.6
 """
-from sklearn.base import TransformerMixin, RegressorMixin
+import numpy
+from sklearn.base import TransformerMixin, RegressorMixin, ClassifierMixin
 from skl2onnx import update_registered_converter
 from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
 from .onnx_variable import OnnxVar
 from .onnx_numpy_wrapper import _created_classes_inst, wrapper_onnxnumpy_np
-from .onnx_numpy_annotation import NDArraySameType
+from .onnx_numpy_annotation import NDArraySameType, NDArrayType
 
 
 def _shape_calculator_transformer(operator):
@@ -56,6 +57,10 @@ def _shape_calculator_regressor(operator):
     cl = X[0].type.__class__
     dim = [X[0].type.shape[0], getattr(op, 'n_outputs_', None)]
     operator.outputs[0].type = cl(dim)
+
+
+def _shape_calculator_classifier(operator):
+    raise NotImplementedError()
 
 
 def _converter_transformer(scope, operator, container):
@@ -127,6 +132,10 @@ def _converter_regressor(scope, operator, container):
     final.add_to(scope, container)
 
 
+def _converter_classifier(scope, operator, container):
+    raise NotImplementedError()
+
+
 def update_registered_converter_npy(
         model, alias, convert_fct, shape_fct=None, overwrite=True,
         parser=None, options=None):
@@ -168,13 +177,16 @@ def update_registered_converter_npy(
 
     default_cvt = {
         TransformerMixin: (_shape_calculator_transformer, _converter_transformer),
-        RegressorMixin: (_shape_calculator_regressor, _converter_regressor)
+        RegressorMixin: (_shape_calculator_regressor, _converter_regressor),
+        ClassifierMixin: (_shape_calculator_classifier, _converter_classifier),
     }
 
     if issubclass(model, TransformerMixin):
         defcl = TransformerMixin
     elif issubclass(model, RegressorMixin):
         defcl = RegressorMixin
+    elif issubclass(model, ClassifierMixin):
+        defcl = ClassifierMixin
     else:
         defcl = None
 
@@ -270,6 +282,30 @@ def onnxsklearn_regressor(op_version=None, runtime=None, signature=None,
     return decorator_fct
 
 
+def onnxsklearn_classifier(op_version=None, runtime=None, signature=None,
+                           register_class=None):
+    """
+    Decorator to declare a converter for a classifier implemented using
+    :epkg:`numpy` syntax but executed with :epkg:`ONNX`
+    operators.
+
+    :param op_version: :epkg:`ONNX` opset version
+    :param runtime: `'onnxruntime'` or one implemented by @see cl OnnxInference
+    :param signature: if None, the signature is replaced by a standard signature
+        for transformer ``NDArraySameType("all")``
+    :param register_class: automatically register this converter
+        for this class to :epkg:`sklearn-onnx`
+
+    .. versionadded:: 0.6
+    """
+    def decorator_fct(fct):
+        return _internal_decorator(fct, signature=signature,
+                                   op_version=op_version,
+                                   runtime=runtime,
+                                   register_class=register_class)
+    return decorator_fct
+
+
 def _internal_method_decorator(register_class, method, op_version=None,
                                runtime=None, signature=None,
                                method_names=None):
@@ -286,6 +322,12 @@ def _internal_method_decorator(register_class, method, op_version=None,
             signature = NDArraySameType("all")
         if method_names is None:
             method_names = ("predict", )
+    elif issubclass(register_class, ClassifierMixin):
+        if signature is None:
+            signature = NDArrayType(
+                ("T:all", ), dtypes_out=((numpy.int64, ), 'T'))
+        if method_names is None:
+            method_names = ("predict", "predict_proba")
 
     if method_names is None:
         raise RuntimeError(
@@ -318,8 +360,12 @@ def _internal_method_decorator(register_class, method, op_version=None,
         m = lambda self, X: method(self, X)
         setattr(register_class, name, m)
     else:
+        import warnings
+        warnings.warn("Several methods are updated for classifiers and clusterers.",
+                      category=RuntimeWarning)
+        return
         raise NotImplementedError(
-            "Several methods are updated for classifier and clusterers.")
+            "Several methods are updated for classifiers and clusterers.")
 
     update_registered_converter_npy(
         register_class, "Sklearn%s" % getattr(
