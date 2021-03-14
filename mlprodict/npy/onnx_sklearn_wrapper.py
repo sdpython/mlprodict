@@ -83,7 +83,12 @@ def _converter_transformer(scope, operator, container):
     fct_cl = operator.onnx_numpy_fct_
 
     opv = container.target_opset
-    inst = fct_cl.fct(xvar, op=operator.raw_operator)
+    try:
+        inst = fct_cl.fct(xvar, op=operator.raw_operator)
+    except TypeError as e:
+        raise TypeError(
+            "Unable to call function %r from %r for operator %r."
+            "" % (fct_cl.fct, fct_cl, operator.raw_operator)) from e
     onx = inst.to_algebra(op_version=opv)
     final = OnnxIdentity(onx, op_version=opv,
                          output_names=[operator.outputs[0].full_name])
@@ -192,6 +197,31 @@ def update_registered_converter_npy(
         parser=parser, options=options)
 
 
+def _internal_decorator(fct, op_version=None, runtime=None, signature=None,
+                        register_class=None):
+    if signature is None:
+        signature = NDArraySameType("all")
+
+    name = "onnxsklearn_parser_%s_%s_%s" % (
+        fct.__name__, str(op_version), runtime)
+    newclass = type(
+        name, (wrapper_onnxnumpy_np,), {
+            '__doc__': fct.__doc__,
+            '__name__': name,
+            '__getstate__': wrapper_onnxnumpy_np.__getstate__,
+            '__setstate__': wrapper_onnxnumpy_np.__setstate__})
+    _created_classes_inst.append(name, newclass)
+    res = newclass(
+        fct=fct, op_version=op_version, runtime=runtime,
+        signature=signature)
+    if register_class is not None:
+        update_registered_converter_npy(
+            register_class, "Sklearn%s" % getattr(
+                register_class, "__name__", "noname"),
+            res, shape_fct=None, overwrite=False)
+    return res
+
+
 def onnxsklearn_transformer(op_version=None, runtime=None, signature=None,
                             register_class=None):
     """
@@ -201,38 +231,18 @@ def onnxsklearn_transformer(op_version=None, runtime=None, signature=None,
 
     :param op_version: :epkg:`ONNX` opset version
     :param runtime: `'onnxruntime'` or one implemented by @see cl OnnxInference
-    :param signature: if None, the signature is replace by a standard signature
+    :param signature: if None, the signature is replaced by a standard signature
         for transformer ``NDArraySameType("all")``
     :param register_class: automatically register this converter
         for this class to :epkg:`sklearn-onnx`
 
-    Equivalent to `onnxnumpy(arg)(foo)`.
-
     .. versionadded:: 0.6
     """
-    if signature is None:
-        signature = NDArraySameType("all")
-
     def decorator_fct(fct):
-        name = "onnxsklearn_parser_%s_%s_%s" % (
-            fct.__name__, str(op_version), runtime)
-        newclass = type(
-            name, (wrapper_onnxnumpy_np,), {
-                '__doc__': fct.__doc__,
-                '__name__': name,
-                '__getstate__': wrapper_onnxnumpy_np.__getstate__,
-                '__setstate__': wrapper_onnxnumpy_np.__setstate__})
-        _created_classes_inst.append(name, newclass)
-        res = newclass(
-            fct=fct, op_version=op_version, runtime=runtime,
-            signature=signature)
-        if register_class is not None:
-            update_registered_converter_npy(
-                register_class, "Sklearn%s" % getattr(
-                    register_class, "__name__", "noname"),
-                res, shape_fct=None, overwrite=False)
-        return res
-
+        return _internal_decorator(fct, signature=signature,
+                                   op_version=op_version,
+                                   runtime=runtime,
+                                   register_class=register_class)
     return decorator_fct
 
 
@@ -245,36 +255,104 @@ def onnxsklearn_regressor(op_version=None, runtime=None, signature=None,
 
     :param op_version: :epkg:`ONNX` opset version
     :param runtime: `'onnxruntime'` or one implemented by @see cl OnnxInference
-    :param signature: if None, the signature is replace by a standard signature
+    :param signature: if None, the signature is replaced by a standard signature
         for transformer ``NDArraySameType("all")``
     :param register_class: automatically register this converter
         for this class to :epkg:`sklearn-onnx`
 
-    Equivalent to `onnxnumpy(arg)(foo)`.
+    .. versionadded:: 0.6
+    """
+    def decorator_fct(fct):
+        return _internal_decorator(fct, signature=signature,
+                                   op_version=op_version,
+                                   runtime=runtime,
+                                   register_class=register_class)
+    return decorator_fct
+
+
+def _internal_method_decorator(register_class, method, op_version=None,
+                               runtime=None, signature=None,
+                               method_names=None):
+    if isinstance(method_names, str):
+        method_names = (method_names, )
+
+    if issubclass(register_class, TransformerMixin):
+        if signature is None:
+            signature = NDArraySameType("all")
+        if method_names is None:
+            method_names = ("transform", )
+    elif issubclass(register_class, RegressorMixin):
+        if signature is None:
+            signature = NDArraySameType("all")
+        if method_names is None:
+            method_names = ("predict", )
+
+    if method_names is None:
+        raise RuntimeError(
+            "Methods to overwrite are not known for class %r and "
+            "method %r." % (register_class, method))
+    if signature is None:
+        raise RuntimeError(
+            "Method to overwrite are not known for class %r and "
+            "method %r." % (register_class, method))
+
+    name = "onnxsklearn_parser_%s_%s_%s" % (
+        register_class.__name__, str(op_version), runtime)
+    newclass = type(
+        name, (wrapper_onnxnumpy_np,), {
+            '__doc__': method.__doc__,
+            '__name__': name,
+            '__getstate__': wrapper_onnxnumpy_np.__getstate__,
+            '__setstate__': wrapper_onnxnumpy_np.__setstate__})
+    _created_classes_inst.append(name, newclass)
+    res = newclass(
+        fct=lambda *args, op=None, **kwargs: method(op, *args, **kwargs),
+        op_version=op_version, runtime=runtime, signature=signature)
+
+    if len(method_names) == 1:
+        name = method_names[0]
+        if hasattr(register_class, name):
+            raise RuntimeError(
+                "Cannot overwrite method %r because it already exists in "
+                "class %r." % (name, register_class))
+        m = lambda self, X: method(self, X)
+        setattr(register_class, name, m)
+    else:
+        raise NotImplementedError(
+            "Several methods are updated for classifier and clusterers.")
+
+    update_registered_converter_npy(
+        register_class, "Sklearn%s" % getattr(
+            register_class, "__name__", "noname"),
+        res, shape_fct=None, overwrite=False)
+    return res
+
+
+def onnxsklearn_class(method_name, op_version=None, runtime=None,
+                      signature=None, method_names=None):
+    """
+    Decorator to declare a converter for a class derivated from
+    :epkg:`scikit-learn`, implementing inference method
+    and using :epkg:`numpy` syntax but executed with
+    :epkg:`ONNX` operators.
+
+    :param method_name: name of the method implementing the
+        inference method with :epkg:`numpy` API for ONNX
+    :param op_version: :epkg:`ONNX` opset version
+    :param runtime: `'onnxruntime'` or one implemented by @see cl OnnxInference
+    :param signature: if None, the signature is replaced by a standard signature
+        depending on the model kind, otherwise, it is the signature of the
+        ONNX function
+    :param method_names: if None, method names is guessed based on
+        the class kind (transformer, regressor, classifier, clusterer)
 
     .. versionadded:: 0.6
     """
-    if signature is None:
-        signature = NDArraySameType("all")
+    def decorator_class(objclass):
+        _internal_method_decorator(
+            objclass, method=getattr(objclass, method_name),
+            signature=signature, op_version=op_version,
+            runtime=runtime, method_names=method_names)
+        return objclass
 
-    def decorator_fct(fct):
-        name = "onnxsklearn_parser_%s_%s_%s" % (
-            fct.__name__, str(op_version), runtime)
-        newclass = type(
-            name, (wrapper_onnxnumpy_np,), {
-                '__doc__': fct.__doc__,
-                '__name__': name,
-                '__getstate__': wrapper_onnxnumpy_np.__getstate__,
-                '__setstate__': wrapper_onnxnumpy_np.__setstate__})
-        _created_classes_inst.append(name, newclass)
-        res = newclass(
-            fct=fct, op_version=op_version, runtime=runtime,
-            signature=signature)
-        if register_class is not None:
-            update_registered_converter_npy(
-                register_class, "Sklearn%s" % getattr(
-                    register_class, "__name__", "noname"),
-                res, shape_fct=None, overwrite=False)
-        return res
-
-    return decorator_fct
+    return decorator_class

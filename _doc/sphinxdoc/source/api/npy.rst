@@ -80,6 +80,8 @@ Decorators
 
 .. autosignature:: mlprodict.npy.onnx_numpy_wrapper.onnxnumpy_np
 
+.. autosignature:: mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_class
+
 .. autosignature:: mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_regressor
 
 .. autosignature:: mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_transformer
