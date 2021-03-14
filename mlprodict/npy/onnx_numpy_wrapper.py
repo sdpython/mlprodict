@@ -87,7 +87,8 @@ def onnxnumpy(op_version=None, runtime=None, signature=None):
             signature=signature)
         name = "onnxnumpy_%s_%s_%s" % (fct.__name__, str(op_version), runtime)
         newclass = type(
-            name, (wrapper_onnxnumpy,), {'__doc__': fct.__doc__})
+            name, (wrapper_onnxnumpy,),
+            {'__doc__': fct.__doc__, '__name__': name})
         _created_classes_inst.append(name, newclass)
         return newclass(compiled)
     return decorator_fct
@@ -188,11 +189,12 @@ class wrapper_onnxnumpy_np:
             fct=self.data["fct"], op_version=self.data["op_version"],
             runtime=self.data["runtime"], signature=self.data["signature"],
             version=version)
+        name = "onnxnumpy_np_%s_%s_%s_%s" % (
+            self.data["fct"].__name__, str(self.data["op_version"]),
+            self.data["runtime"], str(version).split('.')[-1])
         newclass = type(
-            "onnxnumpy_np_%s_%s_%s_%s" % (
-                self.data["fct"].__name__, str(self.data["op_version"]),
-                self.data["runtime"], str(version).split('.')[-1]),
-            (wrapper_onnxnumpy,), {'__doc__': self.data["fct"].__doc__})
+            name, (wrapper_onnxnumpy,),
+            {'__doc__': self.data["fct"].__doc__, '__name__': name})
 
         self.signed_compiled[version] = newclass(compiled)
 
@@ -218,6 +220,7 @@ def onnxnumpy_np(op_version=None, runtime=None, signature=None):
         newclass = type(
             name, (wrapper_onnxnumpy_np,), {
                 '__doc__': fct.__doc__,
+                '__name__': name,
                 '__getstate__': wrapper_onnxnumpy_np.__getstate__,
                 '__setstate__': wrapper_onnxnumpy_np.__setstate__})
         _created_classes_inst.append(name, newclass)

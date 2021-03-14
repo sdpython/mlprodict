@@ -5,6 +5,7 @@ for :epkg:`scikit-learn` classes for :epkg:`onnx`.
 
 .. versionadded:: 0.6
 """
+from sklearn.base import TransformerMixin, RegressorMixin
 from skl2onnx import update_registered_converter
 from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
 from .onnx_variable import OnnxVar
@@ -31,7 +32,30 @@ def _shape_calculator_transformer(operator):
             "This function only supports one output not %r." % len(operator.outputs))
     cl = X[0].type.__class__
     dim = [X[0].type.shape[0], None]
-    operator.outputs[0] = cl(dim)
+    operator.outputs[0].type = cl(dim)
+
+
+def _shape_calculator_regressor(operator):
+    """
+    Default shape calculator for a regressor with one input
+    and one output of the same type.
+
+    .. versionadded:: 0.6
+    """
+    if not hasattr(operator, 'onnx_numpy_fct_'):
+        raise AttributeError(
+            "operator must have attribute 'onnx_numpy_fct_'.")
+    X = operator.inputs
+    if len(X) != 1:
+        raise RuntimeError(
+            "This function only supports one input not %r." % len(X))
+    if len(operator.outputs) != 1:
+        raise RuntimeError(
+            "This function only supports one output not %r." % len(operator.outputs))
+    op = operator.raw_operator
+    cl = X[0].type.__class__
+    dim = [X[0].type.shape[0], getattr(op, 'n_outputs_', None)]
+    operator.outputs[0].type = cl(dim)
 
 
 def _converter_transformer(scope, operator, container):
@@ -39,8 +63,40 @@ def _converter_transformer(scope, operator, container):
     Default converter for a transformer with one input
     and one output of the same type. It assumes instance *operator*
     has an attribute *onnx_numpy_fct_* from a function
-    wrapped with decoarator :func:`onnxsklearn_transformer
+    wrapped with decorator :func:`onnxsklearn_transformer
     <mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_transformer>`.
+
+    .. versionadded:: 0.6
+    """
+    if not hasattr(operator, 'onnx_numpy_fct_'):
+        raise AttributeError(
+            "operator must have attribute 'onnx_numpy_fct_'.")
+    X = operator.inputs
+    if len(X) != 1:
+        raise RuntimeError(
+            "This function only supports one input not %r." % len(X))
+    if len(operator.outputs) != 1:
+        raise RuntimeError(
+            "This function only supports one output not %r." % len(operator.outputs))
+
+    xvar = OnnxVar(X[0])
+    fct_cl = operator.onnx_numpy_fct_
+
+    opv = container.target_opset
+    inst = fct_cl.fct(xvar, op=operator.raw_operator)
+    onx = inst.to_algebra(op_version=opv)
+    final = OnnxIdentity(onx, op_version=opv,
+                         output_names=[operator.outputs[0].full_name])
+    final.add_to(scope, container)
+
+
+def _converter_regressor(scope, operator, container):
+    """
+    Default converter for a regressor with one input
+    and one output of the same type. It assumes instance *operator*
+    has an attribute *onnx_numpy_fct_* from a function
+    wrapped with decorator :func:`onnxsklearn_regressor
+    <mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_regressor>`.
 
     .. versionadded:: 0.6
     """
@@ -105,18 +161,30 @@ def update_registered_converter_npy(
         operator.onnx_numpy_fct_ = obj
         return operator
 
-    if shape_fct is None:
-        local_shape_fct = (
-            lambda operator:
-            _shape_calculator_transformer(
-                addattr(operator, obj)))
-    else:
-        local_shape_fct = shape_fct
+    default_cvt = {
+        TransformerMixin: (_shape_calculator_transformer, _converter_transformer),
+        RegressorMixin: (_shape_calculator_regressor, _converter_regressor)
+    }
 
+    if issubclass(model, TransformerMixin):
+        defcl = TransformerMixin
+    elif issubclass(model, RegressorMixin):
+        defcl = RegressorMixin
+    else:
+        defcl = None
+
+    if shape_fct is not None:
+        raise NotImplementedError(
+            "Custom shape calculator are not implemented yet.")
+
+    shc = default_cvt[defcl][0]
+    local_shape_fct = (
+        lambda operator: shc(addattr(operator, obj)))
+
+    cvtc = default_cvt[defcl][1]
     local_convert_fct = (
         lambda scope, operator, container:
-        _converter_transformer(
-            scope, addattr(operator, obj), container))
+        cvtc(scope, addattr(operator, obj), container))
 
     update_registered_converter(
         model, alias, convert_fct=local_convert_fct,
@@ -145,23 +213,13 @@ def onnxsklearn_transformer(op_version=None, runtime=None, signature=None,
     if signature is None:
         signature = NDArraySameType("all")
 
-    def default_shape_calculator(operator):
-        op = operator.raw_operator
-        if len(operator.inputs) != 1:
-            raise NotImplementedError(
-                "Default shape calculator only supports one input not %r (type=%r)"
-                "." % (len(operator.inputs), type(op)))
-        input_type = operator.inputs[0].type.__class__
-        input_dim = operator.inputs[0].type.shape[0]
-        output_type = input_type([input_dim, None])
-        operator.outputs[0].type = output_type
-
     def decorator_fct(fct):
         name = "onnxsklearn_parser_%s_%s_%s" % (
             fct.__name__, str(op_version), runtime)
         newclass = type(
             name, (wrapper_onnxnumpy_np,), {
                 '__doc__': fct.__doc__,
+                '__name__': name,
                 '__getstate__': wrapper_onnxnumpy_np.__getstate__,
                 '__setstate__': wrapper_onnxnumpy_np.__setstate__})
         _created_classes_inst.append(name, newclass)
@@ -172,7 +230,51 @@ def onnxsklearn_transformer(op_version=None, runtime=None, signature=None,
             update_registered_converter_npy(
                 register_class, "Sklearn%s" % getattr(
                     register_class, "__name__", "noname"),
-                res, shape_fct=default_shape_calculator, overwrite=False)
+                res, shape_fct=None, overwrite=False)
+        return res
+
+    return decorator_fct
+
+
+def onnxsklearn_regressor(op_version=None, runtime=None, signature=None,
+                          register_class=None):
+    """
+    Decorator to declare a converter for a regressor implemented using
+    :epkg:`numpy` syntax but executed with :epkg:`ONNX`
+    operators.
+
+    :param op_version: :epkg:`ONNX` opset version
+    :param runtime: `'onnxruntime'` or one implemented by @see cl OnnxInference
+    :param signature: if None, the signature is replace by a standard signature
+        for transformer ``NDArraySameType("all")``
+    :param register_class: automatically register this converter
+        for this class to :epkg:`sklearn-onnx`
+
+    Equivalent to `onnxnumpy(arg)(foo)`.
+
+    .. versionadded:: 0.6
+    """
+    if signature is None:
+        signature = NDArraySameType("all")
+
+    def decorator_fct(fct):
+        name = "onnxsklearn_parser_%s_%s_%s" % (
+            fct.__name__, str(op_version), runtime)
+        newclass = type(
+            name, (wrapper_onnxnumpy_np,), {
+                '__doc__': fct.__doc__,
+                '__name__': name,
+                '__getstate__': wrapper_onnxnumpy_np.__getstate__,
+                '__setstate__': wrapper_onnxnumpy_np.__setstate__})
+        _created_classes_inst.append(name, newclass)
+        res = newclass(
+            fct=fct, op_version=op_version, runtime=runtime,
+            signature=signature)
+        if register_class is not None:
+            update_registered_converter_npy(
+                register_class, "Sklearn%s" % getattr(
+                    register_class, "__name__", "noname"),
+                res, shape_fct=None, overwrite=False)
         return res
 
     return decorator_fct

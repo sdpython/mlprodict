@@ -11,4 +11,5 @@ from .onnx_numpy_annotation import (
 from .onnx_numpy_compiler import OnnxNumpyCompiler
 from .onnx_numpy_wrapper import onnxnumpy, onnxnumpy_default, onnxnumpy_np
 from .onnx_sklearn_wrapper import (
-    onnxsklearn_transformer, update_registered_converter_npy)
+    update_registered_converter_npy,
+    onnxsklearn_transformer, onnxsklearn_regressor)

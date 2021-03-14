@@ -133,6 +133,19 @@ class TestCustomTransformer(ExtTestCase):
         X2 = decorrelate_transformer_converter3(X, op=dec)
         self.assertEqualArray(X2, got['variable'])
 
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    def test_function_transformer3_float64(self):
+        X = numpy.random.randn(20, 2).astype(numpy.float64)
+        dec = DecorrelateTransformer3()
+        dec.fit(X)
+        onx = to_onnx(dec, X.astype(numpy.float64))
+        oinf = OnnxInference(onx)
+        exp = dec.transform(X)
+        got = oinf.run({'X': X})
+        self.assertEqualArray(exp, got['variable'])
+        X2 = decorrelate_transformer_converter3(X, op=dec)
+        self.assertEqualArray(X2, got['variable'])
+
 
 if __name__ == "__main__":
     unittest.main()
