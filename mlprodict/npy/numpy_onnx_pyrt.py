@@ -335,7 +335,7 @@ def tanh(x):
     return nx_tanh(x)
 
 
-@onnxnumpy_np(signature=NDArrayType(("T:all", "ints"), ("T", (numpy.int64,)))
+@onnxnumpy_np(signature=NDArrayType(("T:all", "ints"), ("T", (numpy.int64,))))
 def topk(x, k, axis=-1, largest=1, sorted=1):
     "topk"
     return nx_topk(x, k, axis=axis, largest=largest, sorted=sorted)
