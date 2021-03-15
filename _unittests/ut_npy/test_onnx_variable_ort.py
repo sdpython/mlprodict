@@ -349,13 +349,13 @@ def test_abs_set1g(x: NDArray[Any, numpy.float32],
     return temp
 
 
-@onnxnumpy(runtime='onnxruntime1')
-def test_abs_topk(x: NDArray[Any, numpy.float32],
-                  ) -> (NDArray[Any, numpy.float32],
-                        NDArray[Any, numpy.int64]):
-    "onnx topk"
-    temp = nxnp.abs(x)
-    return nxnp.topk(temp, numpy.array([1], dtype=numpy.int64))
+# @onnxnumpy(runtime='onnxruntime1')
+# def test_abs_topk(x: NDArray[Any, numpy.float32],
+#                   ) -> (NDArray[Any, numpy.float32],
+#                         NDArray[Any, numpy.int64]):
+#     "onnx topk"
+#     temp = nxnp.abs(x)
+#     return nxnp.topk(temp, numpy.array([1], dtype=numpy.int64))
 
 
 class TestOnnxVariableOrt(ExtTestCase):
