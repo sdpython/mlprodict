@@ -438,3 +438,111 @@ class OnnxVar:
             return OnnxVar(fl, numpy.array([0], dtype=numpy.int64),
                            op=OnnxSqueeze)
         return fl
+
+
+class TupleOnnxAny:
+    """
+    Class used to return multiple @see cl OnnxVar
+    at the same time.
+    """
+
+    def __init__(self, first, *args):
+        if len(args) > 0:
+            self.values = (first,) + args
+            self.unique = None
+        else:
+            self.values = None
+            self.unique = first
+
+    def __len__(self):
+        "usual"
+        if self.values is None:
+            raise NotImplementedError(
+                "Not yet implemented in this case.")
+        return len(self.values)
+
+    def __iter__(self):
+        if self.values is None:
+            raise NotImplementedError(
+                "Not yet implemented in this case.")
+        for v in self.values:
+            yield v
+
+    def __getitem__(self, i):
+        "usual"
+        if self.values is None:
+            return self.unique[i]
+        return self.values[i]
+
+    def to_onnx(self, *args, **kwargs):
+        if self.values is None:
+            if hasattr(self.unique, 'to_onnx'):
+                return self.unique.to_onnx(*args, **kwargs)
+        raise NotImplementedError("Not implemented yet.")
+
+
+class MultiOnnxVar:
+    """
+    Class used to return multiple @see cl OnnxVar
+    at the same time.
+    """
+
+    def __init__(self, *inputs, op=None, dtype=None, **kwargs):
+        "constructor"
+        self.onxvar = OnnxVar(*inputs, op=op, dtype=None, **kwargs)
+        self.alg_ = None
+
+    @property
+    def inputs(self):
+        "Returns `self.onxvar.inputs`."
+        return self.onxvar.inputs
+
+    @property
+    def onnx_op(self):
+        "Returns `self.onxvar.onnx_op`."
+        return self.onxvar.onnx_op
+
+    @property
+    def onnx_op_kwargs(self):
+        "Returns `self.onxvar.onnx_op_kwargs`."
+        return self.onxvar.onnx_op_kwargs
+
+    def to_algebra(self, op_version=None):
+        """
+        Converts the variable into an operator.
+        """
+        if self.alg_ is None:
+            if self.onnx_op is None:
+                if len(self.inputs) == 1:
+                    raise RuntimeError(  # pragma: no cover
+                        "Unexpected number of inputs, >1 expected, "
+                        "got {} instead.".format(self.inputs))
+                self.alg_ = TupleOnnxAny(self.inputs[0], *(self.inputs[1:]))
+            else:
+                if isinstance(self.onnx_op, str):
+                    var = self.onxvar._custom_op(
+                        *self.inputs, op_version=op_version,
+                        **self.onnx_op_kwargs)
+                    alg = var.to_algebra(op_version=op_version)
+                    if not hasattr(self, 'alg_'):
+                        raise RuntimeError(  # pragma: no cover
+                            "Missing attribute 'alg_'.")
+                    self.alg_ = alg
+                    return alg
+
+                new_inputs = []
+                for inp in self.inputs:
+                    if isinstance(inp, (
+                            int, float, str, numpy.ndarray, numpy.int32,
+                            numpy.int64, numpy.float32, numpy.float64,
+                            numpy_bool, numpy_str, numpy.int8, numpy.uint8,
+                            numpy.int16, numpy.uint16, numpy.uint32, numpy.uint64)):
+                        new_inputs.append(inp)
+                    else:
+                        new_inputs.append(
+                            inp.to_algebra(op_version=op_version))
+
+                res = self.onnx_op(  # pylint: disable=E1102
+                    *new_inputs, op_version=op_version, **self.onnx_op_kwargs)
+                self.alg_ = TupleOnnxAny(res)
+        return self.alg_

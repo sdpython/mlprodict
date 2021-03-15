@@ -84,10 +84,9 @@ def custom_linear_classifier_converter3(X, op=None):
         raise AssertionError("X.dtype cannot be None.")
     coef = op.coef_.astype(X.dtype)
     intercept = op.intercept_.astype(X.dtype)
-    print('B', X.dtype, coef.dtype, intercept.dtype)
     prob = nxnp.expit((X @ coef) + intercept)
     label = nxnp.argmax(prob, axis=1)
-    return label, prob
+    return nxnp.xtuple(label, prob)
 
 
 @onnxsklearn_class("onnx_predict")
@@ -109,7 +108,7 @@ class CustomLinearClassifierOnnx(ClassifierMixin, BaseEstimator):
         intercept = self.intercept_.astype(X.dtype)
         prob = nxnp.expit((X @ coef) + intercept)
         label = nxnp.argmax(prob, axis=1)
-        return label, prob
+        return nxnp.xtuple(label, prob)
 
 
 class TestCustomClassifier(ExtTestCase):
@@ -149,11 +148,11 @@ class TestCustomClassifier(ExtTestCase):
         onx = to_onnx(dec, X.astype(numpy.float32))
         oinf = OnnxInference(onx)
         exp = dec.predict(X)
-        prob = dec.predict_proba(X)  # pylint: disable=E0612
+        prob = dec.predict_proba(X)  # pylint: disable=W0612
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['label'])
-        self.assertEqualArray(exp, got['probabilities'])
-        X2, P2 = custom_linear_classifier_converter3(X, op=dec)
+        self.assertEqualArray(prob, got['probabilities'])
+        X2, P2 = custom_linear_classifier_converter3(X, op=dec)  # pylint: disable=E0633
         self.assertEqualArray(X2, got['label'])
         self.assertEqualArray(P2, got['probabilities'])
 
@@ -212,4 +211,7 @@ class TestCustomClassifier(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # cl = TestCustomClassifier()
+    # cl.setUp()
+    # cl.test_function_classifier3_float32()
     unittest.main()

@@ -8,8 +8,8 @@ import scipy.special as sp
 from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper import compare_module_version
 from mlprodict.onnxrt import OnnxInference
-import mlprodict.npy.numpy_onnx_pyrt as nxnpy
 from mlprodict.onnxrt.ops_cpu.op_pad import onnx_pad
+import mlprodict.npy.numpy_onnx_pyrt as nxnpy
 from onnxruntime import __version__ as ort_version
 
 
@@ -234,7 +234,8 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
     def test_expit_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
-        self.common_test1(x, sp.expit, nxnpy.expit, numpy.float32)  # pylint: disable=E1101
+        self.common_test1(x, sp.expit, nxnpy.expit,  # pylint: disable=E1101
+                          numpy.float32)
 
     def test_expand_dims_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
@@ -319,7 +320,8 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
     def test_sigmoid_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
-        self.common_test1(x, sp.expit, nxnpy.sigmoid, numpy.float32)  # pylint: disable=E1101
+        self.common_test1(x, sp.expit, nxnpy.sigmoid,  # pylint: disable=E1101
+                          numpy.float32)
 
     def test_sign_float64(self):
         x = numpy.array([[-6.1, 5], [3.5, 7.8]], dtype=numpy.float64)

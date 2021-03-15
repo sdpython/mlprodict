@@ -252,11 +252,30 @@ class OnnxNumpyCompiler:
             shape = self._to_onnx_shape(shape)
             dtype = self._to_onnx_dtype(dtype, shape)
             inputs.append((a, dtype))
+
         ret = annotations['return']
+        names_in = set(inp[0] for inp in inputs)
+
+        if isinstance(ret, tuple):
+            # multiple outputs
+            names_none = set()
+            for shape_dtype in ret:
+                shape, dtype = shape_dtype.__args__
+                shape = self._to_onnx_shape(shape)
+                dtype = self._to_onnx_dtype(dtype, shape)
+                name_out = None
+                for name in _possible_names():
+                    if name not in names_in and name not in names_none:
+                        name_out = name
+                        break
+                outputs.append((name_out, dtype))
+                names_none.add(name_out)
+            return inputs, outputs, kwargs, 0
+
+        # single outputs
         shape, dtype = ret.__args__
         shape = self._to_onnx_shape(shape)
         dtype = self._to_onnx_dtype(dtype, shape)
-        names_in = set(inp[0] for inp in inputs)
         name_out = None
         for name in _possible_names():
             if name not in names_in:
@@ -310,7 +329,8 @@ class OnnxNumpyCompiler:
 
         if self.onnx_ is None:
             raise RuntimeError(  # pragma: no cover
-                "Unable to get the ONNX graph.")
+                "Unable to get the ONNX graph (class %r, fct_=%r)" % (
+                    type(self), self.fct_))
         return self.onnx_
 
     def _build_runtime(self, op_version=None, runtime=None,

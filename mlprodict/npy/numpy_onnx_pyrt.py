@@ -57,6 +57,7 @@ from .numpy_onnx_impl import (
     sum as nx_sum,
     tan as nx_tan,
     tanh as nx_tanh,
+    topk as nx_topk,
     unsqueeze as nx_unsqueeze,
     vstack as nx_vstack,
 )
@@ -332,6 +333,12 @@ def tan(x):
 def tanh(x):
     "tanh"
     return nx_tanh(x)
+
+
+@onnxnumpy_np(signature=NDArrayType(("T:all", "ints"), ("T", (numpy.int64,)))
+def topk(x, k, axis=-1, largest=1, sorted=1):
+    "topk"
+    return nx_topk(x, k, axis=axis, largest=largest, sorted=sorted)
 
 
 @onnxnumpy_np(signature=NDArrayType(("all", numpy.int64)))

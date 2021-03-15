@@ -305,7 +305,7 @@ class _NDArrayAlias:
         names_in = set(inp[0] for inp in inputs)
         for _ in key_out:
             for name in _possible_names():
-                if name not in names_in:
+                if name not in names_in and name not in names_out:
                     name_out = name
                     break
             names_out.append(name_out)

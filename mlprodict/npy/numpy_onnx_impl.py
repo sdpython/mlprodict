@@ -43,10 +43,10 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSin, OnnxSinh,
     OnnxSqrt,
     OnnxSqueeze,
-    OnnxTan, OnnxTanh,
+    OnnxTan, OnnxTanh, OnnxTopK,
     OnnxUnsqueeze,
 )
-from .onnx_variable import OnnxVar
+from .onnx_variable import OnnxVar, MultiOnnxVar as xtuple
 
 
 def abs(x):
@@ -331,6 +331,12 @@ def tan(x):
 def tanh(x):
     "See :epkg:`numpy:tanh`."
     return OnnxVar(x, op=OnnxTanh)
+
+
+def topk(x, k, axis=-1, largest=1, sorted=1):
+    "See :epkg:`numpy:argsort`."
+    return xtuple(x, k, op=OnnxTopK, axis=axis, largest=largest,
+                  sorted=sorted)
 
 
 def unsqueeze(x, axes):

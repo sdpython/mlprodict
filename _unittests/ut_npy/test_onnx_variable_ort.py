@@ -349,6 +349,15 @@ def test_abs_set1g(x: NDArray[Any, numpy.float32],
     return temp
 
 
+@onnxnumpy(runtime='onnxruntime1')
+def test_abs_topk(x: NDArray[Any, numpy.float32],
+                  ) -> (NDArray[Any, numpy.float32],
+                        NDArray[Any, numpy.int64]):
+    "onnx topk"
+    temp = nxnp.abs(x)
+    return nxnp.topk(temp, numpy.array([1], dtype=numpy.int64))
+
+
 class TestOnnxVariableOrt(ExtTestCase):
 
     def test_ort_abs(self):
@@ -609,6 +618,16 @@ class TestOnnxVariableOrt(ExtTestCase):
         temp = numpy.abs(x)
         temp[3:] = -1.5
         self.assertEqualArray(y, temp)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_topk(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0],
+                        dtype=numpy.float32).reshape((-1, 2))
+        y, yi = test_abs_topk(x)  # pylint: disable=E0633
+        exp_y = numpy.array([[6.1, 7.8, 6.7]], dtype=numpy.float32).T
+        exp_yi = numpy.array([[0, 1, 0]], dtype=numpy.float32).T
+        self.assertEqualArray(exp_y, y)
+        self.assertEqualArray(exp_yi, yi)
 
 
 if __name__ == "__main__":
