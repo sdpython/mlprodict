@@ -119,6 +119,7 @@ class wrapper_onnxnumpy_np:
     def __init__(self, **kwargs):
         self.fct = kwargs['fct']
         self.signature = kwargs['signature']
+        self.fctsig = kwargs.get('fctsig', None)
         self.args, self.kwargs = get_args_kwargs(
             self.fct,
             0 if self.signature is None else self.signature.n_optional)
@@ -188,7 +189,7 @@ class wrapper_onnxnumpy_np:
         compiled = OnnxNumpyCompiler(
             fct=self.data["fct"], op_version=self.data["op_version"],
             runtime=self.data["runtime"], signature=self.data["signature"],
-            version=version)
+            version=version, fctsig=self.data.get('fctsig', None))
         name = "onnxnumpy_np_%s_%s_%s_%s" % (
             self.data["fct"].__name__, str(self.data["op_version"]),
             self.data["runtime"], str(version).split('.')[-1])

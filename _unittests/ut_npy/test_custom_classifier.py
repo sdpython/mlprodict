@@ -243,7 +243,7 @@ class TestCustomClassifier(ExtTestCase):
 
 
 if __name__ == "__main__":
-    #cl = TestCustomClassifier()
+    # cl = TestCustomClassifier()
     # cl.setUp()
     # cl.test_function_classifier_onnx_float32()
     unittest.main()

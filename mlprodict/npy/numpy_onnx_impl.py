@@ -26,7 +26,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxErf,
     OnnxExp,
     OnnxFloor,
-    OnnxIsNaN,
+    OnnxIdentity, OnnxIsNaN,
     OnnxLog,
     OnnxMatMul,
     OnnxPad,
@@ -228,6 +228,11 @@ def hstack(*x):
 def isnan(x):
     "See :epkg:`numpy:isnan`."
     return OnnxVar(x, op=OnnxIsNaN)
+
+
+def identity(x):
+    "Identity."
+    return OnnxVar(x, op=OnnxIdentity)
 
 
 def log(x):

@@ -8,6 +8,7 @@ import inspect
 from typing import Any
 import numpy
 from skl2onnx.common.data_types import guess_numpy_type
+from skl2onnx import __max_supported_opset__
 from ..onnxrt import OnnxInference
 from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_variable import OnnxVar
@@ -101,14 +102,16 @@ class OnnxNumpyCompiler:
     :param version: the same function can be instantiated with
         different type, this parameter is None or a numpy type
         if the signature allows multiple types
+    :param fctsig: function used to overwrite the fct signature
+        in case this one is using `*args, **kwargs`
 
     .. versionadded:: 0.6
     """
 
     def __init__(self, fct, op_version=None, runtime=None, signature=None,
-                 version=None):
+                 version=None, fctsig=None):
+        self.fctsig = fctsig
         if op_version is None:
-            from skl2onnx import __max_supported_opset__
             op_version = __max_supported_opset__
         if hasattr(fct, 'SerializeToString'):
             self.fct_ = None
@@ -129,7 +132,7 @@ class OnnxNumpyCompiler:
         inputs, outputs, kwargs, n_input_range = self._parse_annotation(
             signature=signature, version=version)
         n_opt = 0 if signature is None else signature.n_optional
-        args, kwargs2 = get_args_kwargs(self.fct_, n_opt)
+        args, kwargs2 = get_args_kwargs(self.fctsig or self.fct_, n_opt)
         self.meta_ = dict(op_version=op_version, runtime=runtime,
                           signature=signature, version=version,
                           inputs=inputs, outputs=outputs,
@@ -193,14 +196,11 @@ class OnnxNumpyCompiler:
             is a list of tuple with the name and the dtype,
             *kwargs* is the list of additional parameters
         """
-        if "_internal_method_decorator." in self.fct_.__qualname__:
-            raise AssertionError(
-                "Wrong prefix for function %r." % self.fct_)
         n_opt = 0 if signature is None else signature.n_optional
         if hasattr(self, 'meta_'):
             args, kwargs = self.meta_['args'], self.meta_['kwargs2']
         else:
-            args, kwargs = get_args_kwargs(self.fct_, n_opt)
+            args, kwargs = get_args_kwargs(self.fctsig or self.fct_, n_opt)
         if isinstance(version, tuple):
             nv = len(version) - len(args) - n_opt
             if (signature is not None and not

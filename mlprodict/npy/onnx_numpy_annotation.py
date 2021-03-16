@@ -61,6 +61,9 @@ def get_args_kwargs(fct, n_optional):
     kwargs = OrderedDict((name, p.default) for name, p in items
                          if (p.default != inspect.Parameter.empty and
                              name != 'op_version'))
+    if args[0] == 'self':
+        args = args[1:]
+        kwargs['op_'] = None
     return args, kwargs
 
 

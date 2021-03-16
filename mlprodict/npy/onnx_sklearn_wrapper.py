@@ -423,9 +423,18 @@ def _internal_method_decorator(register_class, method, op_version=None,
             '__getstate__': wrapper_onnxnumpy_np.__getstate__,
             '__setstate__': wrapper_onnxnumpy_np.__setstate__})
     _created_classes_inst.append(name, newclass)
+
+    def _check_(op):
+        if isinstance(op, str):
+            raise TypeError(
+                "Unexpected type: %r: %r." % (type(op), op))
+        return op
+
     res = newclass(
-        fct=lambda *args, op_=None, **kwargs: method(op_, *args, **kwargs),
-        op_version=op_version, runtime=runtime, signature=signature)
+        fct=lambda *args, op_=None, **kwargs: method(
+            _check_(op_), *args, **kwargs),
+        op_version=op_version, runtime=runtime, signature=signature,
+        fctsig=method)
 
     if len(method_names) == 1:
         name = method_names[0]
@@ -433,19 +442,19 @@ def _internal_method_decorator(register_class, method, op_version=None,
             raise RuntimeError(
                 "Cannot overwrite method %r because it already exists in "
                 "class %r." % (name, register_class))
-        m = lambda self, X: method(self, X)
+        m = lambda self, X: res(X, op_=self)
         setattr(register_class, name, m)
     elif len(method_names) == 0:
-        raise NotImplementedError("No available method.")
+        raise RuntimeError("No available method.")
     else:
-        m = lambda self, X: method(self, X)  # res(X, op_=self)
+        m = lambda self, X: res(X, op_=self)
         setattr(register_class, method.__name__ + "_", m)
         for iname, name in enumerate(method_names):
             if hasattr(register_class, name):
                 raise RuntimeError(
                     "Cannot overwrite method %r because it already exists in "
                     "class %r." % (name, register_class))
-            m = lambda self, X: method(self, X)[iname]
+            m = lambda self, X: res(X, op_=self)[iname]
             setattr(register_class, name, m)
 
     update_registered_converter_npy(
