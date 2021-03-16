@@ -114,7 +114,7 @@ def _converter_transformer(scope, operator, container):
 
     opv = container.target_opset
     try:
-        inst = fct_cl.fct(xvar, op=operator.raw_operator)
+        inst = fct_cl.fct(xvar, op_=operator.raw_operator)
     except TypeError as e:
         raise TypeError(
             "Unable to call function %r from %r for operator %r."
@@ -151,7 +151,7 @@ def _converter_regressor(scope, operator, container):
     fct_cl = operator.onnx_numpy_fct_
 
     opv = container.target_opset
-    inst = fct_cl.fct(xvar, op=operator.raw_operator)
+    inst = fct_cl.fct(xvar, op_=operator.raw_operator)
     onx = inst.to_algebra(op_version=opv)
     final = OnnxIdentity(onx, op_version=opv,
                          output_names=[operator.outputs[0].full_name])
@@ -185,7 +185,7 @@ def _converter_classifier(scope, operator, container):
     fct_cl = operator.onnx_numpy_fct_
 
     opv = container.target_opset
-    inst = fct_cl.fct(xvar, op=operator.raw_operator)
+    inst = fct_cl.fct(xvar, op_=operator.raw_operator)
     onx = inst.to_algebra(op_version=opv)
     if isinstance(onx, TupleOnnxAny):
         if len(operator.outputs) != len(onx):
@@ -195,7 +195,8 @@ def _converter_classifier(scope, operator, container):
         for out, ox in zip(operator.outputs, onx):
             if not hasattr(ox, 'add_to'):
                 raise TypeError(
-                    "Unexpected type for onnx graph %r." % type(ox))
+                    "Unexpected type for onnx graph %r, inst=%r." % (
+                        type(ox), type(inst)))
             final = OnnxIdentity(ox, op_version=opv,
                                  output_names=[out.full_name])
             final.add_to(scope, container)
@@ -280,9 +281,6 @@ def update_registered_converter_npy(
 
 def _internal_decorator(fct, op_version=None, runtime=None, signature=None,
                         register_class=None):
-    if signature is None:
-        signature = NDArraySameType("all")
-
     name = "onnxsklearn_parser_%s_%s_%s" % (
         fct.__name__, str(op_version), runtime)
     newclass = type(
@@ -319,6 +317,9 @@ def onnxsklearn_transformer(op_version=None, runtime=None, signature=None,
 
     .. versionadded:: 0.6
     """
+    if signature is None:
+        signature = NDArraySameType("all")
+
     def decorator_fct(fct):
         return _internal_decorator(fct, signature=signature,
                                    op_version=op_version,
@@ -343,6 +344,9 @@ def onnxsklearn_regressor(op_version=None, runtime=None, signature=None,
 
     .. versionadded:: 0.6
     """
+    if signature is None:
+        signature = NDArraySameType("all")
+
     def decorator_fct(fct):
         return _internal_decorator(fct, signature=signature,
                                    op_version=op_version,
@@ -367,6 +371,9 @@ def onnxsklearn_classifier(op_version=None, runtime=None, signature=None,
 
     .. versionadded:: 0.6
     """
+    if signature is None:
+        signature = NDArrayType(("T:all", ), dtypes_out=((numpy.int64, ), 'T'))
+
     def decorator_fct(fct):
         return _internal_decorator(fct, signature=signature,
                                    op_version=op_version,
@@ -417,7 +424,7 @@ def _internal_method_decorator(register_class, method, op_version=None,
             '__setstate__': wrapper_onnxnumpy_np.__setstate__})
     _created_classes_inst.append(name, newclass)
     res = newclass(
-        fct=lambda *args, op=None, **kwargs: method(op, *args, **kwargs),
+        fct=lambda *args, op_=None, **kwargs: method(op_, *args, **kwargs),
         op_version=op_version, runtime=runtime, signature=signature)
 
     if len(method_names) == 1:
@@ -431,6 +438,8 @@ def _internal_method_decorator(register_class, method, op_version=None,
     elif len(method_names) == 0:
         raise NotImplementedError("No available method.")
     else:
+        m = lambda self, X: method(self, X)  # res(X, op_=self)
+        setattr(register_class, method.__name__ + "_", m)
         for iname, name in enumerate(method_names):
             if hasattr(register_class, name):
                 raise RuntimeError(

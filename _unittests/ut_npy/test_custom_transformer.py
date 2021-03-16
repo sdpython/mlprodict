@@ -76,11 +76,11 @@ class DecorrelateTransformer3(DecorrelateTransformer):
 
 
 @onnxsklearn_transformer(register_class=DecorrelateTransformer3)
-def decorrelate_transformer_converter3(X, op=None):
+def decorrelate_transformer_converter3(X, op_=None):
     if X.dtype is None:
         raise AssertionError("X.dtype cannot be None.")
-    mean = op.pca_.mean_.astype(X.dtype)
-    cmp = op.pca_.components_.T.astype(X.dtype)
+    mean = op_.pca_.mean_.astype(X.dtype)
+    cmp = op_.pca_.components_.T.astype(X.dtype)
     return (X - mean) @ cmp
 
 
@@ -152,7 +152,7 @@ class TestCustomTransformer(ExtTestCase):
         exp = dec.transform(X)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['variable'])
-        X2 = decorrelate_transformer_converter3(X, op=dec)
+        X2 = decorrelate_transformer_converter3(X, op_=dec)
         self.assertEqualArray(X2, got['variable'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
@@ -165,7 +165,7 @@ class TestCustomTransformer(ExtTestCase):
         exp = dec.transform(X)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['variable'])
-        X2 = decorrelate_transformer_converter3(X, op=dec)
+        X2 = decorrelate_transformer_converter3(X, op_=dec)
         self.assertEqualArray(X2, got['variable'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))

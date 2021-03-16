@@ -61,11 +61,13 @@ class CustomLinearRegressor3(CustomLinearRegressor):
 
 
 @onnxsklearn_regressor(register_class=CustomLinearRegressor3)
-def custom_linear_regressor_converter3(X, op=None):
+def custom_linear_regressor_converter3(X, op_=None):
+    if op_ is None:
+        raise AssertionError("op_ cannot be None.")
     if X.dtype is None:
         raise AssertionError("X.dtype cannot be None.")
-    coef = op.coef_.astype(X.dtype)
-    intercept = op.intercept_.astype(X.dtype)
+    coef = op_.coef_.astype(X.dtype)
+    intercept = op_.intercept_.astype(X.dtype)
     return (X @ coef) + intercept
 
 
@@ -122,7 +124,7 @@ class TestCustomRegressor(ExtTestCase):
         exp = dec.predict(X)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['variable'])
-        X2 = custom_linear_regressor_converter3(X, op=dec)
+        X2 = custom_linear_regressor_converter3(X, op_=dec)
         self.assertEqualArray(X2, got['variable'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
@@ -137,7 +139,7 @@ class TestCustomRegressor(ExtTestCase):
         exp = dec.predict(X)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['variable'])
-        X2 = custom_linear_regressor_converter3(X, op=dec)
+        X2 = custom_linear_regressor_converter3(X, op_=dec)
         self.assertEqualArray(X2, got['variable'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))

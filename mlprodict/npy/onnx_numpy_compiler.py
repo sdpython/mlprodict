@@ -193,6 +193,9 @@ class OnnxNumpyCompiler:
             is a list of tuple with the name and the dtype,
             *kwargs* is the list of additional parameters
         """
+        if "_internal_method_decorator." in self.fct_.__qualname__:
+            raise AssertionError(
+                "Wrong prefix for function %r." % self.fct_)
         n_opt = 0 if signature is None else signature.n_optional
         if hasattr(self, 'meta_'):
             args, kwargs = self.meta_['args'], self.meta_['kwargs2']
@@ -303,6 +306,7 @@ class OnnxNumpyCompiler:
             names_out = [oi[0] for oi in outputs]
             names_var = [OnnxVar(n, dtype=guess_numpy_type(dt[1]))
                          for n, dt in zip(names_in, inputs)]
+
             if 'op_version' in self.fct_.__code__.co_varnames:
                 onx_algebra = self.fct_(
                     *names_in, op_version=op_version, **kwargs)
@@ -313,6 +317,7 @@ class OnnxNumpyCompiler:
                         "The function %r to convert must return an instance of "
                         "OnnxVar but returns type %r." % (self.fct_, type(onx_var)))
                 onx_algebra = onx_var.to_algebra(op_version=op_version)
+
             if isinstance(onx_algebra, str):
                 raise RuntimeError(  # pragma: no cover
                     "Unexpected str type %r." % onx_algebra)

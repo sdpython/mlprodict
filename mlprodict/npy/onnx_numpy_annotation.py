@@ -37,6 +37,8 @@ def get_args_kwargs(fct, n_optional):
         optional arguments and not parameters, this parameter skips
         the first *n_optional* paramerters
     :return: arguments, OrderedDict
+
+    Any optional argument ending with '_' is ignored.
     """
     params = inspect.signature(fct).parameters
     if n_optional == 0:
@@ -254,6 +256,9 @@ class _NDArrayAlias:
         :return: *tuple(inputs, outputs, n_input_range)*,
             each of them is a list of tuple with the name and the dtype
         """
+        if args == ['args', 'kwargs']:
+            raise RuntimeError(
+                "Issue with signature %r." % args)
         for k, v in kwargs.items():
             if isinstance(v, type):
                 raise RuntimeError(  # pragma: no cover
@@ -316,9 +321,10 @@ class _NDArrayAlias:
         if optional < 0:
             raise RuntimeError(
                 "optional cannot be negative %r (self.n_optional=%r, "
-                "len(self.dtypes)=%r, len(inputs)=%r)." % (
+                "len(self.dtypes)=%r, len(inputs)=%r) "
+                "names_in=%r, names_out=%r." % (
                     optional, self.n_optional, len(self.dtypes),
-                    len(inputs)))
+                    len(inputs), names_in, names_out))
         return inputs, kwargs, outputs, optional
 
     def shape_calculator(self, dims):

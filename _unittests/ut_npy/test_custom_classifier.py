@@ -79,11 +79,15 @@ class CustomLinearClassifier3(CustomLinearClassifier):
 
 
 @onnxsklearn_classifier(register_class=CustomLinearClassifier3)
-def custom_linear_classifier_converter3(X, op=None):
+def custom_linear_classifier_converter3(X, op_=None):
     if X.dtype is None:
         raise AssertionError("X.dtype cannot be None.")
-    coef = op.coef_.astype(X.dtype)
-    intercept = op.intercept_.astype(X.dtype)
+    if isinstance(X, numpy.ndarray):
+        raise TypeError("Unexpected type %r." % X)
+    if op_ is None:
+        raise AssertionError("op_ cannot be None.")
+    coef = op_.coef_.astype(X.dtype)
+    intercept = op_.intercept_.astype(X.dtype)
     prob = nxnp.expit((X @ coef) + intercept)
     label = nxnp.argmax(prob, axis=1)
     return nxnp.xtuple(label, prob)
@@ -104,6 +108,8 @@ class CustomLinearClassifierOnnx(ClassifierMixin, BaseEstimator):
     def onnx_predict(self, X):
         if X.dtype is None:
             raise AssertionError("X.dtype cannot be None.")
+        if isinstance(X, numpy.ndarray):
+            raise TypeError("Unexpected type %r." % X)
         coef = self.coef_.astype(X.dtype)
         intercept = self.intercept_.astype(X.dtype)
         prob = nxnp.expit((X @ coef) + intercept)
@@ -152,7 +158,8 @@ class TestCustomClassifier(ExtTestCase):
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['label'])
         self.assertEqualArray(prob, got['probabilities'])
-        X2, P2 = custom_linear_classifier_converter3(X, op=dec)  # pylint: disable=E0633
+        X2, P2 = custom_linear_classifier_converter3(  # pylint: disable=E0633
+            X, op_=dec)
         self.assertEqualArray(X2, got['label'])
         self.assertEqualArray(P2, got['probabilities'])
 
@@ -170,16 +177,41 @@ class TestCustomClassifier(ExtTestCase):
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['label'])
         self.assertEqualArray(prob, got['probabilities'])
-        X2 = custom_linear_classifier_converter3(X, op=dec)
+        X2 = custom_linear_classifier_converter3(X, op_=dec)
         self.assertEqualArray(X2, got['variable'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
-    def test_function_classifier_onnx(self):
-        X = numpy.random.randn(20, 2).astype(numpy.float64)
+    def test_function_classifier_onnx_float32(self):
+        X = numpy.random.randn(20, 2).astype(numpy.float32)
         y = ((X.sum(axis=1) + numpy.random.randn(
              X.shape[0]).astype(numpy.float32)) >= 0).astype(numpy.int64)
         dec = CustomLinearClassifierOnnx()
         dec.fit(X, y)
+        res = dec.onnx_predict_(X)  # pylint: disable=E1101
+        # print(res)
+        self.assertNotEmpty(res)
+        exp1 = dec.predict(X)  # pylint: disable=E1101
+        prob1 = dec.predict_proba(X)  # pylint: disable=E1101
+        onx = to_onnx(dec, X.astype(numpy.float32))
+        oinf = OnnxInference(onx)
+        exp2 = dec.predict(X)  # pylint: disable=E1101
+        prob2 = dec.predict_proba(X)  # pylint: disable=E1101
+        got = oinf.run({'X': X})
+        self.assertEqualArray(exp1, got['label'])
+        self.assertEqualArray(exp2, got['label'])
+        self.assertEqualArray(prob1, got['probabilities'])
+        self.assertEqualArray(prob2, got['probabilities'])
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    def test_function_classifier_onnx_float64(self):
+        X = numpy.random.randn(20, 2).astype(numpy.float64)
+        y = ((X.sum(axis=1) + numpy.random.randn(
+             X.shape[0]).astype(numpy.float64)) >= 0).astype(numpy.int64)
+        dec = CustomLinearClassifierOnnx()
+        dec.fit(X, y)
+        res = dec.onnx_predict_(X)  # pylint: disable=E1101
+        self.assertIsInstance(res, tuple)
+        self.assertEqual(len(res), 2)
         exp1 = dec.predict(X)  # pylint: disable=E1101
         prob1 = dec.predict_proba(X)  # pylint: disable=E1101
         onx = to_onnx(dec, X.astype(numpy.float64))
@@ -211,7 +243,7 @@ class TestCustomClassifier(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # cl = TestCustomClassifier()
+    #cl = TestCustomClassifier()
     # cl.setUp()
-    # cl.test_function_classifier3_float32()
+    # cl.test_function_classifier_onnx_float32()
     unittest.main()
