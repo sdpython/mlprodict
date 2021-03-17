@@ -6,7 +6,9 @@ for :epkg:`scikit-learn` classes for :epkg:`onnx`.
 .. versionadded:: 0.6
 """
 import numpy
-from sklearn.base import TransformerMixin, RegressorMixin, ClassifierMixin
+from sklearn.base import (
+    ClassifierMixin, ClusterMixin,
+    RegressorMixin, TransformerMixin)
 from skl2onnx import update_registered_converter
 from skl2onnx.common.data_types import Int64TensorType
 from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
@@ -15,36 +17,7 @@ from .onnx_numpy_wrapper import _created_classes_inst, wrapper_onnxnumpy_np
 from .onnx_numpy_annotation import NDArraySameType, NDArrayType
 
 
-def _shape_calculator_transformer(operator):
-    """
-    Default shape calculator for a transformer with one input
-    and one output of the same type.
-
-    .. versionadded:: 0.6
-    """
-    if not hasattr(operator, 'onnx_numpy_fct_'):
-        raise AttributeError(
-            "operator must have attribute 'onnx_numpy_fct_'.")
-    X = operator.inputs
-    if len(X) != 1:
-        raise RuntimeError(
-            "This function only supports one input not %r." % len(X))
-    if len(operator.outputs) != 1:
-        raise RuntimeError(
-            "This function only supports one output not %r." % len(
-                operator.outputs))
-    cl = X[0].type.__class__
-    dim = [X[0].type.shape[0], None]
-    operator.outputs[0].type = cl(dim)
-
-
-def _shape_calculator_regressor(operator):
-    """
-    Default shape calculator for a regressor with one input
-    and one output of the same type.
-
-    .. versionadded:: 0.6
-    """
+def _common_shape_calculator_t(operator):
     if not hasattr(operator, 'onnx_numpy_fct_'):
         raise AttributeError(
             "operator must have attribute 'onnx_numpy_fct_'.")
@@ -62,13 +35,27 @@ def _shape_calculator_regressor(operator):
     operator.outputs[0].type = cl(dim)
 
 
-def _shape_calculator_classifier(operator):
+def _shape_calculator_transformer(operator):
     """
-    Default shape calculator for a classifier with one input
-    and two outputs, label (int64) and probabilites of the same type.
+    Default shape calculator for a transformer with one input
+    and one output of the same type.
 
     .. versionadded:: 0.6
     """
+    _common_shape_calculator_t(operator)
+
+
+def _shape_calculator_regressor(operator):
+    """
+    Default shape calculator for a regressor with one input
+    and one output of the same type.
+
+    .. versionadded:: 0.6
+    """
+    _common_shape_calculator_t(operator)
+
+
+def _common_shape_calculator_int_t(operator):
     if not hasattr(operator, 'onnx_numpy_fct_'):
         raise AttributeError(
             "operator must have attribute 'onnx_numpy_fct_'.")
@@ -87,54 +74,27 @@ def _shape_calculator_classifier(operator):
     operator.outputs[1].type = cl(dim)
 
 
-def _converter_transformer(scope, operator, container):
+def _shape_calculator_classifier(operator):
     """
-    Default converter for a transformer with one input
-    and one output of the same type. It assumes instance *operator*
-    has an attribute *onnx_numpy_fct_* from a function
-    wrapped with decorator :func:`onnxsklearn_transformer
-    <mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_transformer>`.
+    Default shape calculator for a classifier with one input
+    and two outputs, label (int64) and probabilites of the same type.
 
     .. versionadded:: 0.6
     """
-    if not hasattr(operator, 'onnx_numpy_fct_'):
-        raise AttributeError(
-            "operator must have attribute 'onnx_numpy_fct_'.")
-    X = operator.inputs
-    if len(X) != 1:
-        raise RuntimeError(
-            "This function only supports one input not %r." % len(X))
-    if len(operator.outputs) != 1:
-        raise RuntimeError(
-            "This function only supports one output not %r." % len(
-                operator.outputs))
-
-    xvar = OnnxVar(X[0])
-    fct_cl = operator.onnx_numpy_fct_
-
-    opv = container.target_opset
-    try:
-        inst = fct_cl.fct(xvar, op_=operator.raw_operator)
-    except TypeError as e:
-        raise TypeError(
-            "Unable to call function %r from %r for operator %r."
-            "" % (fct_cl.fct, fct_cl, operator.raw_operator)) from e
-    onx = inst.to_algebra(op_version=opv)
-    final = OnnxIdentity(onx, op_version=opv,
-                         output_names=[operator.outputs[0].full_name])
-    final.add_to(scope, container)
+    _common_shape_calculator_int_t(operator)
 
 
-def _converter_regressor(scope, operator, container):
+def _shape_calculator_cluster(operator):
     """
-    Default converter for a regressor with one input
-    and one output of the same type. It assumes instance *operator*
-    has an attribute *onnx_numpy_fct_* from a function
-    wrapped with decorator :func:`onnxsklearn_regressor
-    <mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_regressor>`.
+    Default shape calculator for a clustering with one input
+    and two outputs, label (int64) and distances of the same type.
 
     .. versionadded:: 0.6
     """
+    _common_shape_calculator_int_t(operator)
+
+
+def _common_converter_t(scope, operator, container):
     if not hasattr(operator, 'onnx_numpy_fct_'):
         raise AttributeError(
             "operator must have attribute 'onnx_numpy_fct_'.")
@@ -158,17 +118,33 @@ def _converter_regressor(scope, operator, container):
     final.add_to(scope, container)
 
 
-def _converter_classifier(scope, operator, container):
+def _converter_transformer(scope, operator, container):
     """
-    Default converter for a classifier with one input
-    and two outputs, label and probabilities of the same input type.
-    It assumes instance *operator*
+    Default converter for a transformer with one input
+    and one output of the same type. It assumes instance *operator*
     has an attribute *onnx_numpy_fct_* from a function
-    wrapped with decorator :func:`onnxsklearn_classifier
-    <mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_classifier>`.
+    wrapped with decorator :func:`onnxsklearn_transformer
+    <mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_transformer>`.
 
     .. versionadded:: 0.6
     """
+    _common_converter_t(scope, operator, container)
+
+
+def _converter_regressor(scope, operator, container):
+    """
+    Default converter for a regressor with one input
+    and one output of the same type. It assumes instance *operator*
+    has an attribute *onnx_numpy_fct_* from a function
+    wrapped with decorator :func:`onnxsklearn_regressor
+    <mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_regressor>`.
+
+    .. versionadded:: 0.6
+    """
+    _common_converter_t(scope, operator, container)
+
+
+def _common_converter_int_t(scope, operator, container):
     if not hasattr(operator, 'onnx_numpy_fct_'):
         raise AttributeError(
             "operator must have attribute 'onnx_numpy_fct_'.")
@@ -204,6 +180,42 @@ def _converter_classifier(scope, operator, container):
         final = OnnxIdentity(onx, op_version=opv,
                              output_names=[operator.outputs[0].full_name])
         final.add_to(scope, container)
+
+
+def _converter_classifier(scope, operator, container):
+    """
+    Default converter for a classifier with one input
+    and two outputs, label and probabilities of the same input type.
+    It assumes instance *operator*
+    has an attribute *onnx_numpy_fct_* from a function
+    wrapped with decorator :func:`onnxsklearn_classifier
+    <mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_classifier>`.
+
+    .. versionadded:: 0.6
+    """
+    _common_converter_int_t(scope, operator, container)
+
+
+def _converter_cluster(scope, operator, container):
+    """
+    Default converter for a clustering with one input
+    and two outputs, label and distances of the same input type.
+    It assumes instance *operator*
+    has an attribute *onnx_numpy_fct_* from a function
+    wrapped with decorator :func:`onnxsklearn_cluster
+    <mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_cluster>`.
+
+    .. versionadded:: 0.6
+    """
+    _common_converter_int_t(scope, operator, container)
+
+
+_default_cvt = {
+    ClassifierMixin: (_shape_calculator_classifier, _converter_classifier),
+    ClusterMixin: (_shape_calculator_cluster, _converter_cluster),
+    RegressorMixin: (_shape_calculator_regressor, _converter_regressor),
+    TransformerMixin: (_shape_calculator_transformer, _converter_transformer),
+}
 
 
 def update_registered_converter_npy(
@@ -245,18 +257,14 @@ def update_registered_converter_npy(
         operator.onnx_numpy_fct_ = obj
         return operator
 
-    default_cvt = {
-        TransformerMixin: (_shape_calculator_transformer, _converter_transformer),
-        RegressorMixin: (_shape_calculator_regressor, _converter_regressor),
-        ClassifierMixin: (_shape_calculator_classifier, _converter_classifier),
-    }
-
     if issubclass(model, TransformerMixin):
         defcl = TransformerMixin
     elif issubclass(model, RegressorMixin):
         defcl = RegressorMixin
     elif issubclass(model, ClassifierMixin):
         defcl = ClassifierMixin
+    elif issubclass(model, ClusterMixin):
+        defcl = ClusterMixin
     else:
         defcl = None
 
@@ -264,11 +272,11 @@ def update_registered_converter_npy(
         raise NotImplementedError(
             "Custom shape calculator are not implemented yet.")
 
-    shc = default_cvt[defcl][0]
+    shc = _default_cvt[defcl][0]
     local_shape_fct = (
         lambda operator: shc(addattr(operator, obj)))
 
-    cvtc = default_cvt[defcl][1]
+    cvtc = _default_cvt[defcl][1]
     local_convert_fct = (
         lambda scope, operator, container:
         cvtc(scope, addattr(operator, obj), container))
@@ -404,6 +412,17 @@ def _internal_method_decorator(register_class, method, op_version=None,
                 ("T:all", ), dtypes_out=((numpy.int64, ), 'T'))
         if method_names is None:
             method_names = ("predict", "predict_proba")
+    elif issubclass(register_class, ClusterMixin):
+        if signature is None:
+            signature = NDArrayType(
+                ("T:all", ), dtypes_out=((numpy.int64, ), 'T'))
+        if method_names is None:
+            method_names = ("predict", "transform")
+    elif method_names is None:
+        raise RuntimeError(
+            "No obvious API was detected (one among %s), "
+            "then 'method_names' must be specified and not left "
+            "empty." % (", ".join(map(lambda s: s.__name__, _default_cvt))))
 
     if method_names is None:
         raise RuntimeError(

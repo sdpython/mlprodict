@@ -4,6 +4,7 @@
 """
 import unittest
 import pprint
+import warnings
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.tools.zoo import download_model_data, verify_model
@@ -65,7 +66,10 @@ class TestZoo(ExtTestCase):
         link, data = download_model_data("squeezenet", cache=".")
         for rt in ['onnxruntime', 'onnxruntime1', 'python']:
             with self.subTest(runtime=rt):
-                verify_model(link, data, runtime=rt)
+                try:
+                    verify_model(link, data, runtime=rt)
+                except ConnectionError as e:
+                    warnings.warn("Issue with runtime %r - %r." % (rt, e))
 
 
 if __name__ == "__main__":

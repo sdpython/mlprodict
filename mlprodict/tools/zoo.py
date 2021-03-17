@@ -138,7 +138,7 @@ def download_model_data(name, model=None, cache=None, verbose=False):
     size = os.stat(dest).st_size
     if size < 2 ** 20:  # pragma: no cover
         os.remove(dest)
-        raise RuntimeError(
+        raise ConnectionError(
             "Unable to download model from %r." % model)
 
     outtar = os.path.splitext(dest)[0]
