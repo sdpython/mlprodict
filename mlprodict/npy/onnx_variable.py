@@ -509,9 +509,13 @@ class TupleOnnxAny:
         if self.values is None:
             if hasattr(self.unique, 'to_onnx'):
                 return self.unique.to_onnx(*args, **kwargs)
+        if self.values is not None:
+            if len(self.values) == len(kwargs.get('outputs', [])):
+                return self.values[0].to_onnx(
+                    *args, other_outputs=self.values[1:], **kwargs)
         raise NotImplementedError(
-            "Not implemented yet unique=%r values=%r." % (
-                self.unique, self.values))
+            "Not implemented yet unique=%r values=%r args=%r "
+            "kwargs=%r." % (self.unique, self.values, args, kwargs))
 
 
 class MultiOnnxVar:

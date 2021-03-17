@@ -454,7 +454,8 @@ def _internal_method_decorator(register_class, method, op_version=None,
                 raise RuntimeError(
                     "Cannot overwrite method %r because it already exists in "
                     "class %r." % (name, register_class))
-            m = lambda self, X: res(X, op_=self)[iname]
+            m = lambda self, X, index_output=iname: res(X, op_=self)[
+                index_output]
             setattr(register_class, name, m)
 
     update_registered_converter_npy(

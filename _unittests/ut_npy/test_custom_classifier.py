@@ -103,6 +103,12 @@ class CustomLinearClassifierOnnx(ClassifierMixin, BaseEstimator):
         lr = LogisticRegression().fit(X, y, sample_weights)
         self.coef_ = lr.coef_  # pylint: disable=W0201
         self.intercept_ = lr.intercept_  # pylint: disable=W0201
+        if len(y.shape) == 1 or y.shape[1] == 1:
+            # binary class
+            self.coef_ = numpy.vstack(  # pylint: disable=W0201
+                [-self.coef_, self.coef_])  # pylint: disable=E1130
+            self.intercept_ = numpy.vstack(  # pylint: disable=W0201
+                [-self.intercept_, self.intercept_]).T  # pylint: disable=E1130
         return self
 
     def onnx_predict(self, X):
@@ -177,8 +183,10 @@ class TestCustomClassifier(ExtTestCase):
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['label'])
         self.assertEqualArray(prob, got['probabilities'])
-        X2 = custom_linear_classifier_converter3(X, op_=dec)
-        self.assertEqualArray(X2, got['variable'])
+        X2, P2 = custom_linear_classifier_converter3(  # pylint: disable=E0633
+            X, op_=dec)
+        self.assertEqualArray(X2, got['label'])
+        self.assertEqualArray(P2, got['probabilities'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
     def test_function_classifier_onnx_float32(self):
@@ -188,7 +196,6 @@ class TestCustomClassifier(ExtTestCase):
         dec = CustomLinearClassifierOnnx()
         dec.fit(X, y)
         res = dec.onnx_predict_(X)  # pylint: disable=E1101
-        # print(res)
         self.assertNotEmpty(res)
         exp1 = dec.predict(X)  # pylint: disable=E1101
         prob1 = dec.predict_proba(X)  # pylint: disable=E1101
@@ -197,10 +204,12 @@ class TestCustomClassifier(ExtTestCase):
         exp2 = dec.predict(X)  # pylint: disable=E1101
         prob2 = dec.predict_proba(X)  # pylint: disable=E1101
         got = oinf.run({'X': X})
-        self.assertEqualArray(exp1, got['label'])
-        self.assertEqualArray(exp2, got['label'])
+        self.assertEqualArray(prob1, res[1])
         self.assertEqualArray(prob1, got['probabilities'])
         self.assertEqualArray(prob2, got['probabilities'])
+        self.assertEqualArray(exp1, res[0])
+        self.assertEqualArray(exp1, got['label'])
+        self.assertEqualArray(exp2, got['label'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
     def test_function_classifier_onnx_float64(self):
@@ -243,7 +252,4 @@ class TestCustomClassifier(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # cl = TestCustomClassifier()
-    # cl.setUp()
-    # cl.test_function_classifier_onnx_float32()
     unittest.main()
