@@ -34,7 +34,11 @@ class TestZoo(ExtTestCase):
                 self.assertIsInstance(t, numpy.ndarray)
 
     def test_verify_side_by_side(self):
-        link, data = download_model_data("mobilenet", cache=".")
+        try:
+            link, data = download_model_data("mobilenet", cache=".")
+        except ConnectionError as e:
+            warnings.warn("Unable to continue this test due to %r." % e)
+            return
         oinf2 = OnnxInference(link, runtime="python")
         oinf2 = oinf2.build_intermediate('474')['474']
         oinf1 = OnnxInference(link, runtime="onnxruntime1")
