@@ -121,7 +121,6 @@ class TestCustomRegressor(ExtTestCase):
         dec = CustomLinearRegressor3()
         dec.fit(X, y)
         exp = dec.predict(X)
-        print("**g", id(dec.predict), dec.predict)
         self.assertIsInstance(exp, numpy.ndarray)
 
         onx = to_onnx(dec, X.astype(numpy.float32))
