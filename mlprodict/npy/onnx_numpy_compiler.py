@@ -8,6 +8,7 @@ import inspect
 from typing import Any
 import numpy
 from skl2onnx.common.data_types import guess_numpy_type
+from skl2onnx import __max_supported_opset__
 from ..onnxrt import OnnxInference
 from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_variable import OnnxVar
@@ -101,14 +102,16 @@ class OnnxNumpyCompiler:
     :param version: the same function can be instantiated with
         different type, this parameter is None or a numpy type
         if the signature allows multiple types
+    :param fctsig: function used to overwrite the fct signature
+        in case this one is using `*args, **kwargs`
 
     .. versionadded:: 0.6
     """
 
     def __init__(self, fct, op_version=None, runtime=None, signature=None,
-                 version=None):
+                 version=None, fctsig=None):
+        self.fctsig = fctsig
         if op_version is None:
-            from skl2onnx import __max_supported_opset__
             op_version = __max_supported_opset__
         if hasattr(fct, 'SerializeToString'):
             self.fct_ = None
@@ -129,7 +132,7 @@ class OnnxNumpyCompiler:
         inputs, outputs, kwargs, n_input_range = self._parse_annotation(
             signature=signature, version=version)
         n_opt = 0 if signature is None else signature.n_optional
-        args, kwargs2 = get_args_kwargs(self.fct_, n_opt)
+        args, kwargs2 = get_args_kwargs(self.fctsig or self.fct_, n_opt)
         self.meta_ = dict(op_version=op_version, runtime=runtime,
                           signature=signature, version=version,
                           inputs=inputs, outputs=outputs,
@@ -197,7 +200,7 @@ class OnnxNumpyCompiler:
         if hasattr(self, 'meta_'):
             args, kwargs = self.meta_['args'], self.meta_['kwargs2']
         else:
-            args, kwargs = get_args_kwargs(self.fct_, n_opt)
+            args, kwargs = get_args_kwargs(self.fctsig or self.fct_, n_opt)
         if isinstance(version, tuple):
             nv = len(version) - len(args) - n_opt
             if (signature is not None and not
@@ -252,11 +255,30 @@ class OnnxNumpyCompiler:
             shape = self._to_onnx_shape(shape)
             dtype = self._to_onnx_dtype(dtype, shape)
             inputs.append((a, dtype))
+
         ret = annotations['return']
+        names_in = set(inp[0] for inp in inputs)
+
+        if isinstance(ret, tuple):
+            # multiple outputs
+            names_none = set()
+            for shape_dtype in ret:
+                shape, dtype = shape_dtype.__args__
+                shape = self._to_onnx_shape(shape)
+                dtype = self._to_onnx_dtype(dtype, shape)
+                name_out = None
+                for name in _possible_names():
+                    if name not in names_in and name not in names_none:
+                        name_out = name
+                        break
+                outputs.append((name_out, dtype))
+                names_none.add(name_out)
+            return inputs, outputs, kwargs, 0
+
+        # single outputs
         shape, dtype = ret.__args__
         shape = self._to_onnx_shape(shape)
         dtype = self._to_onnx_dtype(dtype, shape)
-        names_in = set(inp[0] for inp in inputs)
         name_out = None
         for name in _possible_names():
             if name not in names_in:
@@ -284,6 +306,7 @@ class OnnxNumpyCompiler:
             names_out = [oi[0] for oi in outputs]
             names_var = [OnnxVar(n, dtype=guess_numpy_type(dt[1]))
                          for n, dt in zip(names_in, inputs)]
+
             if 'op_version' in self.fct_.__code__.co_varnames:
                 onx_algebra = self.fct_(
                     *names_in, op_version=op_version, **kwargs)
@@ -294,6 +317,7 @@ class OnnxNumpyCompiler:
                         "The function %r to convert must return an instance of "
                         "OnnxVar but returns type %r." % (self.fct_, type(onx_var)))
                 onx_algebra = onx_var.to_algebra(op_version=op_version)
+
             if isinstance(onx_algebra, str):
                 raise RuntimeError(  # pragma: no cover
                     "Unexpected str type %r." % onx_algebra)
@@ -310,7 +334,8 @@ class OnnxNumpyCompiler:
 
         if self.onnx_ is None:
             raise RuntimeError(  # pragma: no cover
-                "Unable to get the ONNX graph.")
+                "Unable to get the ONNX graph (class %r, fct_=%r)" % (
+                    type(self), self.fct_))
         return self.onnx_
 
     def _build_runtime(self, op_version=None, runtime=None,

@@ -19,6 +19,7 @@ from skl2onnx.common.data_types import guess_numpy_type
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy import onnxsklearn_transformer, onnxsklearn_class
+import mlprodict.npy.numpy_onnx_impl as nxnp
 
 
 class DecorrelateTransformer(TransformerMixin, BaseEstimator):
@@ -76,12 +77,12 @@ class DecorrelateTransformer3(DecorrelateTransformer):
 
 
 @onnxsklearn_transformer(register_class=DecorrelateTransformer3)
-def decorrelate_transformer_converter3(X, op=None):
+def decorrelate_transformer_converter3(X, op_=None):
     if X.dtype is None:
         raise AssertionError("X.dtype cannot be None.")
-    mean = op.pca_.mean_.astype(X.dtype)
-    cmp = op.pca_.components_.T.astype(X.dtype)
-    return (X - mean) @ cmp
+    mean = op_.pca_.mean_.astype(X.dtype)
+    cmp = op_.pca_.components_.T.astype(X.dtype)
+    return nxnp.identity((X - mean) @ cmp)
 
 
 @onnxsklearn_class("onnx_transform")
@@ -101,7 +102,7 @@ class DecorrelateTransformerOnnx(TransformerMixin, BaseEstimator):
             raise AssertionError("X.dtype cannot be None.")
         mean = self.pca_.mean_.astype(X.dtype)
         cmp = self.pca_.components_.T.astype(X.dtype)
-        return (X - mean) @ cmp
+        return nxnp.identity((X - mean) @ cmp)
 
 
 class TestCustomTransformer(ExtTestCase):
@@ -152,7 +153,7 @@ class TestCustomTransformer(ExtTestCase):
         exp = dec.transform(X)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['variable'])
-        X2 = decorrelate_transformer_converter3(X, op=dec)
+        X2 = decorrelate_transformer_converter3(X, op_=dec)
         self.assertEqualArray(X2, got['variable'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
@@ -165,7 +166,7 @@ class TestCustomTransformer(ExtTestCase):
         exp = dec.transform(X)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['variable'])
-        X2 = decorrelate_transformer_converter3(X, op=dec)
+        X2 = decorrelate_transformer_converter3(X, op_=dec)
         self.assertEqualArray(X2, got['variable'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))

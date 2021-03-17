@@ -5,12 +5,14 @@ for :epkg:`scikit-learn` classes for :epkg:`onnx`.
 
 .. versionadded:: 0.6
 """
-from sklearn.base import TransformerMixin, RegressorMixin
+import numpy
+from sklearn.base import TransformerMixin, RegressorMixin, ClassifierMixin
 from skl2onnx import update_registered_converter
+from skl2onnx.common.data_types import Int64TensorType
 from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
-from .onnx_variable import OnnxVar
+from .onnx_variable import OnnxVar, TupleOnnxAny
 from .onnx_numpy_wrapper import _created_classes_inst, wrapper_onnxnumpy_np
-from .onnx_numpy_annotation import NDArraySameType
+from .onnx_numpy_annotation import NDArraySameType, NDArrayType
 
 
 def _shape_calculator_transformer(operator):
@@ -29,7 +31,8 @@ def _shape_calculator_transformer(operator):
             "This function only supports one input not %r." % len(X))
     if len(operator.outputs) != 1:
         raise RuntimeError(
-            "This function only supports one output not %r." % len(operator.outputs))
+            "This function only supports one output not %r." % len(
+                operator.outputs))
     cl = X[0].type.__class__
     dim = [X[0].type.shape[0], None]
     operator.outputs[0].type = cl(dim)
@@ -51,11 +54,37 @@ def _shape_calculator_regressor(operator):
             "This function only supports one input not %r." % len(X))
     if len(operator.outputs) != 1:
         raise RuntimeError(
-            "This function only supports one output not %r." % len(operator.outputs))
+            "This function only supports one output not %r." % len(
+                operator.outputs))
     op = operator.raw_operator
     cl = X[0].type.__class__
     dim = [X[0].type.shape[0], getattr(op, 'n_outputs_', None)]
     operator.outputs[0].type = cl(dim)
+
+
+def _shape_calculator_classifier(operator):
+    """
+    Default shape calculator for a classifier with one input
+    and two outputs, label (int64) and probabilites of the same type.
+
+    .. versionadded:: 0.6
+    """
+    if not hasattr(operator, 'onnx_numpy_fct_'):
+        raise AttributeError(
+            "operator must have attribute 'onnx_numpy_fct_'.")
+    X = operator.inputs
+    if len(X) != 1:
+        raise RuntimeError(
+            "This function only supports one input not %r." % len(X))
+    if len(operator.outputs) != 2:
+        raise RuntimeError(
+            "This function only supports two outputs not %r." % len(
+                operator.outputs))
+    op = operator.raw_operator
+    cl = X[0].type.__class__
+    dim = [X[0].type.shape[0], getattr(op, 'n_outputs_', None)]
+    operator.outputs[0].type = Int64TensorType(dim[:1])
+    operator.outputs[1].type = cl(dim)
 
 
 def _converter_transformer(scope, operator, container):
@@ -77,14 +106,15 @@ def _converter_transformer(scope, operator, container):
             "This function only supports one input not %r." % len(X))
     if len(operator.outputs) != 1:
         raise RuntimeError(
-            "This function only supports one output not %r." % len(operator.outputs))
+            "This function only supports one output not %r." % len(
+                operator.outputs))
 
     xvar = OnnxVar(X[0])
     fct_cl = operator.onnx_numpy_fct_
 
     opv = container.target_opset
     try:
-        inst = fct_cl.fct(xvar, op=operator.raw_operator)
+        inst = fct_cl.fct(xvar, op_=operator.raw_operator)
     except TypeError as e:
         raise TypeError(
             "Unable to call function %r from %r for operator %r."
@@ -114,17 +144,66 @@ def _converter_regressor(scope, operator, container):
             "This function only supports one input not %r." % len(X))
     if len(operator.outputs) != 1:
         raise RuntimeError(
-            "This function only supports one output not %r." % len(operator.outputs))
+            "This function only supports one output not %r." % len(
+                operator.outputs))
 
     xvar = OnnxVar(X[0])
     fct_cl = operator.onnx_numpy_fct_
 
     opv = container.target_opset
-    inst = fct_cl.fct(xvar, op=operator.raw_operator)
+    inst = fct_cl.fct(xvar, op_=operator.raw_operator)
     onx = inst.to_algebra(op_version=opv)
     final = OnnxIdentity(onx, op_version=opv,
                          output_names=[operator.outputs[0].full_name])
     final.add_to(scope, container)
+
+
+def _converter_classifier(scope, operator, container):
+    """
+    Default converter for a classifier with one input
+    and two outputs, label and probabilities of the same input type.
+    It assumes instance *operator*
+    has an attribute *onnx_numpy_fct_* from a function
+    wrapped with decorator :func:`onnxsklearn_classifier
+    <mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_classifier>`.
+
+    .. versionadded:: 0.6
+    """
+    if not hasattr(operator, 'onnx_numpy_fct_'):
+        raise AttributeError(
+            "operator must have attribute 'onnx_numpy_fct_'.")
+    X = operator.inputs
+    if len(X) != 1:
+        raise RuntimeError(
+            "This function only supports one input not %r." % len(X))
+    if len(operator.outputs) != 2:
+        raise RuntimeError(
+            "This function only supports two outputs not %r." % len(
+                operator.outputs))
+
+    xvar = OnnxVar(X[0])
+    fct_cl = operator.onnx_numpy_fct_
+
+    opv = container.target_opset
+    inst = fct_cl.fct(xvar, op_=operator.raw_operator)
+    onx = inst.to_algebra(op_version=opv)
+    if isinstance(onx, TupleOnnxAny):
+        if len(operator.outputs) != len(onx):
+            raise RuntimeError(
+                "Mismatched number of outputs expected %d, got %d." % (
+                    len(operator.outputs), len(onx)))
+        for out, ox in zip(operator.outputs, onx):
+            if not hasattr(ox, 'add_to'):
+                raise TypeError(
+                    "Unexpected type for onnx graph %r, inst=%r." % (
+                        type(ox), type(inst)))
+            final = OnnxIdentity(ox, op_version=opv,
+                                 output_names=[out.full_name])
+            final.add_to(scope, container)
+    else:
+        final = OnnxIdentity(onx, op_version=opv,
+                             output_names=[operator.outputs[0].full_name])
+        final.add_to(scope, container)
 
 
 def update_registered_converter_npy(
@@ -168,13 +247,16 @@ def update_registered_converter_npy(
 
     default_cvt = {
         TransformerMixin: (_shape_calculator_transformer, _converter_transformer),
-        RegressorMixin: (_shape_calculator_regressor, _converter_regressor)
+        RegressorMixin: (_shape_calculator_regressor, _converter_regressor),
+        ClassifierMixin: (_shape_calculator_classifier, _converter_classifier),
     }
 
     if issubclass(model, TransformerMixin):
         defcl = TransformerMixin
     elif issubclass(model, RegressorMixin):
         defcl = RegressorMixin
+    elif issubclass(model, ClassifierMixin):
+        defcl = ClassifierMixin
     else:
         defcl = None
 
@@ -199,9 +281,6 @@ def update_registered_converter_npy(
 
 def _internal_decorator(fct, op_version=None, runtime=None, signature=None,
                         register_class=None):
-    if signature is None:
-        signature = NDArraySameType("all")
-
     name = "onnxsklearn_parser_%s_%s_%s" % (
         fct.__name__, str(op_version), runtime)
     newclass = type(
@@ -238,6 +317,9 @@ def onnxsklearn_transformer(op_version=None, runtime=None, signature=None,
 
     .. versionadded:: 0.6
     """
+    if signature is None:
+        signature = NDArraySameType("all")
+
     def decorator_fct(fct):
         return _internal_decorator(fct, signature=signature,
                                    op_version=op_version,
@@ -262,6 +344,36 @@ def onnxsklearn_regressor(op_version=None, runtime=None, signature=None,
 
     .. versionadded:: 0.6
     """
+    if signature is None:
+        signature = NDArraySameType("all")
+
+    def decorator_fct(fct):
+        return _internal_decorator(fct, signature=signature,
+                                   op_version=op_version,
+                                   runtime=runtime,
+                                   register_class=register_class)
+    return decorator_fct
+
+
+def onnxsklearn_classifier(op_version=None, runtime=None, signature=None,
+                           register_class=None):
+    """
+    Decorator to declare a converter for a classifier implemented using
+    :epkg:`numpy` syntax but executed with :epkg:`ONNX`
+    operators.
+
+    :param op_version: :epkg:`ONNX` opset version
+    :param runtime: `'onnxruntime'` or one implemented by @see cl OnnxInference
+    :param signature: if None, the signature is replaced by a standard signature
+        for transformer ``NDArraySameType("all")``
+    :param register_class: automatically register this converter
+        for this class to :epkg:`sklearn-onnx`
+
+    .. versionadded:: 0.6
+    """
+    if signature is None:
+        signature = NDArrayType(("T:all", ), dtypes_out=((numpy.int64, ), 'T'))
+
     def decorator_fct(fct):
         return _internal_decorator(fct, signature=signature,
                                    op_version=op_version,
@@ -286,6 +398,12 @@ def _internal_method_decorator(register_class, method, op_version=None,
             signature = NDArraySameType("all")
         if method_names is None:
             method_names = ("predict", )
+    elif issubclass(register_class, ClassifierMixin):
+        if signature is None:
+            signature = NDArrayType(
+                ("T:all", ), dtypes_out=((numpy.int64, ), 'T'))
+        if method_names is None:
+            method_names = ("predict", "predict_proba")
 
     if method_names is None:
         raise RuntimeError(
@@ -305,9 +423,18 @@ def _internal_method_decorator(register_class, method, op_version=None,
             '__getstate__': wrapper_onnxnumpy_np.__getstate__,
             '__setstate__': wrapper_onnxnumpy_np.__setstate__})
     _created_classes_inst.append(name, newclass)
+
+    def _check_(op):
+        if isinstance(op, str):
+            raise TypeError(
+                "Unexpected type: %r: %r." % (type(op), op))
+        return op
+
     res = newclass(
-        fct=lambda *args, op=None, **kwargs: method(op, *args, **kwargs),
-        op_version=op_version, runtime=runtime, signature=signature)
+        fct=lambda *args, op_=None, **kwargs: method(
+            _check_(op_), *args, **kwargs),
+        op_version=op_version, runtime=runtime, signature=signature,
+        fctsig=method)
 
     if len(method_names) == 1:
         name = method_names[0]
@@ -315,11 +442,21 @@ def _internal_method_decorator(register_class, method, op_version=None,
             raise RuntimeError(
                 "Cannot overwrite method %r because it already exists in "
                 "class %r." % (name, register_class))
-        m = lambda self, X: method(self, X)
+        m = lambda self, X: res(X, op_=self)
         setattr(register_class, name, m)
+    elif len(method_names) == 0:
+        raise RuntimeError("No available method.")
     else:
-        raise NotImplementedError(
-            "Several methods are updated for classifier and clusterers.")
+        m = lambda self, X: res(X, op_=self)
+        setattr(register_class, method.__name__ + "_", m)
+        for iname, name in enumerate(method_names):
+            if hasattr(register_class, name):
+                raise RuntimeError(
+                    "Cannot overwrite method %r because it already exists in "
+                    "class %r." % (name, register_class))
+            m = lambda self, X, index_output=iname: res(X, op_=self)[
+                index_output]
+            setattr(register_class, name, m)
 
     update_registered_converter_npy(
         register_class, "Sklearn%s" % getattr(

@@ -36,6 +36,7 @@ from .numpy_onnx_impl import (
     einsum as nx_einsum,
     erf as nx_erf,
     exp as nx_exp,
+    expit as nx_expit,
     expand_dims as nx_expand_dims,
     floor as nx_floor,
     hstack as nx_hstack,
@@ -47,6 +48,7 @@ from .numpy_onnx_impl import (
     reciprocal as nx_reciprocal,
     relu as nx_relu,
     round as nx_round,
+    sigmoid as nx_sigmoid,
     sign as nx_sign,
     sin as nx_sin,
     sinh as nx_sinh,
@@ -55,6 +57,7 @@ from .numpy_onnx_impl import (
     sum as nx_sum,
     tan as nx_tan,
     tanh as nx_tanh,
+    topk as nx_topk,
     unsqueeze as nx_unsqueeze,
     vstack as nx_vstack,
 )
@@ -206,6 +209,12 @@ def exp(x):
     return nx_exp(x)
 
 
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def expit(x):
+    "expit"
+    return nx_expit(x)
+
+
 @onnxnumpy_np(signature=NDArrayType("floats"))
 def expand_dims(x, axis=0):
     "expand_dims"
@@ -273,6 +282,12 @@ def round(x):
 
 
 @onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def sigmoid(x):
+    "expit"
+    return nx_sigmoid(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
 def sign(x):
     "sign"
     return nx_sign(x)
@@ -318,6 +333,12 @@ def tan(x):
 def tanh(x):
     "tanh"
     return nx_tanh(x)
+
+
+@onnxnumpy_np(signature=NDArrayType(("T:all", "ints"), ("T", (numpy.int64,))))
+def topk(x, k, axis=-1, largest=1, sorted=1):
+    "topk"
+    return nx_topk(x, k, axis=axis, largest=largest, sorted=sorted)
 
 
 @onnxnumpy_np(signature=NDArrayType(("all", numpy.int64)))

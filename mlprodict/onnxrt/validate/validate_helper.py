@@ -377,7 +377,7 @@ def _multiply_time_kwargs(time_kwargs, time_kwargs_fact, inst):
     :param time_kwargs: see below
     :param time_kwargs_fact: see below
     :param inst: :epkg:`scikit-learn` model
-    :return : new *time_kwargs*
+    :return: new *time_kwargs*
 
     Possible values for *time_kwargs_fact*:
 

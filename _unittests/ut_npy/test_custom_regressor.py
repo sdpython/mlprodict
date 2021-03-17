@@ -18,6 +18,7 @@ from skl2onnx.common.data_types import guess_numpy_type
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy import onnxsklearn_regressor, onnxsklearn_class
+import mlprodict.npy.numpy_onnx_impl as nxnp
 
 
 class CustomLinearRegressor(RegressorMixin, BaseEstimator):
@@ -61,12 +62,14 @@ class CustomLinearRegressor3(CustomLinearRegressor):
 
 
 @onnxsklearn_regressor(register_class=CustomLinearRegressor3)
-def custom_linear_regressor_converter3(X, op=None):
+def custom_linear_regressor_converter3(X, op_=None):
+    if op_ is None:
+        raise AssertionError("op_ cannot be None.")
     if X.dtype is None:
         raise AssertionError("X.dtype cannot be None.")
-    coef = op.coef_.astype(X.dtype)
-    intercept = op.intercept_.astype(X.dtype)
-    return (X @ coef) + intercept
+    coef = op_.coef_.astype(X.dtype)
+    intercept = op_.intercept_.astype(X.dtype)
+    return nxnp.identity((X @ coef) + intercept)
 
 
 @onnxsklearn_class("onnx_predict")
@@ -82,10 +85,10 @@ class CustomLinearRegressorOnnx(RegressorMixin, BaseEstimator):
         return self
 
     def onnx_predict(self, X):
-        return X @ self.coef_ + self.intercept_
+        return nxnp.identity(X @ self.coef_.astype(X.dtype) + self.intercept_.astype(X.dtype))
 
 
-class TestCustomTransformer(ExtTestCase):
+class TestCustomRegressor(ExtTestCase):
 
     def setUp(self):
         logger = getLogger('skl2onnx')
@@ -117,12 +120,16 @@ class TestCustomTransformer(ExtTestCase):
             X.shape[0]).astype(numpy.float32))
         dec = CustomLinearRegressor3()
         dec.fit(X, y)
+        exp = dec.predict(X)
+        print("**g", id(dec.predict), dec.predict)
+        self.assertIsInstance(exp, numpy.ndarray)
+
         onx = to_onnx(dec, X.astype(numpy.float32))
         oinf = OnnxInference(onx)
-        exp = dec.predict(X)
         got = oinf.run({'X': X})
+        self.assertIsInstance(got['variable'], numpy.ndarray)
         self.assertEqualArray(exp, got['variable'])
-        X2 = custom_linear_regressor_converter3(X, op=dec)
+        X2 = custom_linear_regressor_converter3(X, op_=dec)
         self.assertEqualArray(X2, got['variable'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
@@ -132,12 +139,14 @@ class TestCustomTransformer(ExtTestCase):
             X.shape[0]).astype(numpy.float64))
         dec = CustomLinearRegressor3()
         dec.fit(X, y)
+        exp = dec.predict(X)
+        self.assertIsInstance(exp, numpy.ndarray)
+
         onx = to_onnx(dec, X.astype(numpy.float64))
         oinf = OnnxInference(onx)
-        exp = dec.predict(X)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['variable'])
-        X2 = custom_linear_regressor_converter3(X, op=dec)
+        X2 = custom_linear_regressor_converter3(X, op_=dec)
         self.assertEqualArray(X2, got['variable'])
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
@@ -148,9 +157,11 @@ class TestCustomTransformer(ExtTestCase):
         dec = CustomLinearRegressorOnnx()
         dec.fit(X, y)
         exp1 = dec.predict(X)  # pylint: disable=E1101
+        self.assertIsInstance(exp1, numpy.ndarray)
         onx = to_onnx(dec, X.astype(numpy.float64))
         oinf = OnnxInference(onx)
         exp2 = dec.predict(X)  # pylint: disable=E1101
+        self.assertIsInstance(exp2, numpy.ndarray)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp1, got['variable'])
         self.assertEqualArray(exp2, got['variable'])

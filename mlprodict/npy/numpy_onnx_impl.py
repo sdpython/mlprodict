@@ -26,7 +26,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxErf,
     OnnxExp,
     OnnxFloor,
-    OnnxIsNaN,
+    OnnxIdentity, OnnxIsNaN,
     OnnxLog,
     OnnxMatMul,
     OnnxPad,
@@ -38,14 +38,15 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSum,
     OnnxRelu,
     OnnxRound,
+    OnnxSigmoid,
     OnnxSign,
     OnnxSin, OnnxSinh,
     OnnxSqrt,
     OnnxSqueeze,
-    OnnxTan, OnnxTanh,
+    OnnxTan, OnnxTanh, OnnxTopK,
     OnnxUnsqueeze,
 )
-from .onnx_variable import OnnxVar
+from .onnx_variable import OnnxVar, MultiOnnxVar as xtuple
 
 
 def abs(x):
@@ -209,6 +210,11 @@ def expand_dims(x, axis):
                    op=OnnxUnsqueeze)
 
 
+def expit(x):
+    "See :epkg:`scipy:special:expit`."
+    return OnnxVar(x, op=OnnxSigmoid)
+
+
 def floor(x):
     "See :epkg:`numpy:floor`."
     return OnnxVar(x, op=OnnxFloor)
@@ -222,6 +228,11 @@ def hstack(*x):
 def isnan(x):
     "See :epkg:`numpy:isnan`."
     return OnnxVar(x, op=OnnxIsNaN)
+
+
+def identity(x):
+    "Identity."
+    return OnnxVar(x, op=OnnxIdentity)
 
 
 def log(x):
@@ -272,6 +283,11 @@ def round(x):
     return OnnxVar(x, op=OnnxRound)
 
 
+def sigmoid(x):
+    "See :epkg:`scipy:special:expit`."
+    return OnnxVar(x, op=OnnxSigmoid)
+
+
 def sign(x):
     "See :epkg:`numpy:sign`."
     return OnnxVar(x, op=OnnxSign)
@@ -320,6 +336,12 @@ def tan(x):
 def tanh(x):
     "See :epkg:`numpy:tanh`."
     return OnnxVar(x, op=OnnxTanh)
+
+
+def topk(x, k, axis=-1, largest=1, sorted=1):
+    "See :epkg:`numpy:argsort`."
+    return xtuple(x, k, op=OnnxTopK, axis=axis, largest=largest,
+                  sorted=sorted)
 
 
 def unsqueeze(x, axes):

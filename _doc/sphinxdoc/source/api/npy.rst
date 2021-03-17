@@ -82,6 +82,8 @@ Decorators
 
 .. autosignature:: mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_class
 
+.. autosignature:: mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_classifier
+
 .. autosignature:: mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_regressor
 
 .. autosignature:: mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_transformer
@@ -96,6 +98,12 @@ OnnxVar
 +++++++
 
 .. autosignature:: mlprodict.npy.onnx_variable.OnnxVar
+    :members:
+
+.. autosignature:: mlprodict.npy.onnx_variable.MultiOnnxVar
+    :members:
+
+.. autosignature:: mlprodict.npy.onnx_variable.TupleOnnxAny
     :members:
 
 Registration

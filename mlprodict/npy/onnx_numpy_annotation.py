@@ -37,6 +37,8 @@ def get_args_kwargs(fct, n_optional):
         optional arguments and not parameters, this parameter skips
         the first *n_optional* paramerters
     :return: arguments, OrderedDict
+
+    Any optional argument ending with '_' is ignored.
     """
     params = inspect.signature(fct).parameters
     if n_optional == 0:
@@ -59,6 +61,9 @@ def get_args_kwargs(fct, n_optional):
     kwargs = OrderedDict((name, p.default) for name, p in items
                          if (p.default != inspect.Parameter.empty and
                              name != 'op_version'))
+    if args[0] == 'self':
+        args = args[1:]
+        kwargs['op_'] = None
     return args, kwargs
 
 
@@ -90,6 +95,10 @@ class _NDArrayAlias:
     :param n_optional: number of optional parameters, 0 by default
     :param nvars: True if the function allows an infinite number of inputs,
         this is incompatible with parameter *n_optional*.
+
+    *dtypes*, *dtypes_out* by default are a tuple of tuple:
+    * first dimension: type of every input
+    * second dimension: list of types for one input
 
     .. versionadded:: 0.6
     """
@@ -141,7 +150,8 @@ class _NDArrayAlias:
         if (len(self.dtypes_out) == 0 or
                 not isinstance(self.dtypes_out[0], tuple)):
             raise TypeError(  # pragma: no cover
-                "Type mismatch in self.dtypes_out: {}.".format(self.dtypes_out))
+                "Type mismatch in self.dtypes_out={}, "
+                "self.dtypes={}.".format(self.dtypes_out, self.dtypes))
         if (len(self.dtypes_out[0]) == 0 or
                 isinstance(self.dtypes_out[0][0], tuple)):
             raise TypeError(  # pragma: no cover
@@ -249,6 +259,9 @@ class _NDArrayAlias:
         :return: *tuple(inputs, outputs, n_input_range)*,
             each of them is a list of tuple with the name and the dtype
         """
+        if args == ['args', 'kwargs']:
+            raise RuntimeError(
+                "Issue with signature %r." % args)
         for k, v in kwargs.items():
             if isinstance(v, type):
                 raise RuntimeError(  # pragma: no cover
@@ -300,7 +313,7 @@ class _NDArrayAlias:
         names_in = set(inp[0] for inp in inputs)
         for _ in key_out:
             for name in _possible_names():
-                if name not in names_in:
+                if name not in names_in and name not in names_out:
                     name_out = name
                     break
             names_out.append(name_out)
@@ -311,9 +324,10 @@ class _NDArrayAlias:
         if optional < 0:
             raise RuntimeError(
                 "optional cannot be negative %r (self.n_optional=%r, "
-                "len(self.dtypes)=%r, len(inputs)=%r)." % (
+                "len(self.dtypes)=%r, len(inputs)=%r) "
+                "names_in=%r, names_out=%r." % (
                     optional, self.n_optional, len(self.dtypes),
-                    len(inputs)))
+                    len(inputs), names_in, names_out))
         return inputs, kwargs, outputs, optional
 
     def shape_calculator(self, dims):

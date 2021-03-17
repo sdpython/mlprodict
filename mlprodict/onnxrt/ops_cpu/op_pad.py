@@ -41,7 +41,7 @@ def onnx_pad(data, pads, constant_value=None, mode='constant'):
     :param constant_value: A scalar value to be used if the mode chosen is
         `constant` (by default it is 0, empty string or False).
     :param mode: Supported modes: `constant`(default), `reflect`, `edge`
-    :return tensor after padding
+    :return: tensor after padding
     """
     if constant_value is None:
         constant_value = data.dtype(constant_value)
