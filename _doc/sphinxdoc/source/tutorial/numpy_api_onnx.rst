@@ -1,8 +1,8 @@
 
 .. _l-numpy-api-for-onnx:
 
-Create ONNX graphs with an API similar to numpy
-===============================================
+Numpy to ONNX: Create ONNX graphs with an API similar to numpy
+==============================================================
 
 Many people came accross the task of converting a pipeline
 including a custom preprocessing embedded into a
