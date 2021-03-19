@@ -71,14 +71,14 @@ class OnnxWholeSession:
         """
         return self.sess.run(None, inputs, self.run_options)
 
-    def get_profiling(self):
+    @staticmethod
+    def process_profiling(js):
         """
-        Returns the profiling informations.
+        Flattens json returned by onnxruntime profiling.
+    
+        :param js: json
+        :return: list of dictionaries
         """
-        prof = self.sess.end_profiling()
-        with open(prof, 'r') as f:
-            content = f.read()
-        js = json.loads(content)
         rows = []
         for row in js:
             if 'args' in row and isinstance(row['args'], dict):
@@ -87,3 +87,13 @@ class OnnxWholeSession:
                 del row['args']
             rows.append(row)
         return rows
+
+    def get_profiling(self):
+        """
+        Returns the profiling informations.
+        """
+        prof = self.sess.end_profiling()
+        with open(prof, 'r') as f:
+            content = f.read()
+        js = json.loads(content)
+        return OnnxWholeSession.process_profiling(js)

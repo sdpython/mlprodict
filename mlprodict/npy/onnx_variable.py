@@ -14,9 +14,9 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxDiv,
     OnnxEqual,
     OnnxFlatten,
-    OnnxGather, OnnxGreater,
+    OnnxGather, OnnxGreater, OnnxGreaterOrEqual,
     OnnxIdentity,
-    OnnxLess,
+    OnnxLess, OnnxLessOrEqual,
     OnnxMatMul, OnnxMod, OnnxMul,
     OnnxNeg, OnnxNot,
     OnnxOr,
@@ -97,6 +97,9 @@ class OnnxVar:
                 dtypes.append(numpy.int64)
             elif isinstance(inp, float):
                 dtypes.append(numpy.float64)
+            elif hasattr(inp, 'fit'):
+                # scikit-learn model
+                continue
             else:
                 raise TypeError(
                     "Unexpected type for input %i type=%r." % (i, type(inp)))
@@ -149,7 +152,10 @@ class OnnxVar:
 
                 new_inputs = []
                 for inp in self.inputs:
-                    if isinstance(inp, (
+                    if hasattr(inp, 'fit'):
+                        # scikit-learn model
+                        new_inputs.append(inp)
+                    elif isinstance(inp, (
                             int, float, str, numpy.ndarray, numpy.int32,
                             numpy.int64, numpy.float32, numpy.float64,
                             numpy_bool, numpy_str, numpy.int8, numpy.uint8,
@@ -262,9 +268,17 @@ class OnnxVar:
         "Difference."
         return OnnxVar(OnnxVar(self, y, op=OnnxEqual), op=OnnxNot)
 
+    def __ge__(self, y):
+        "Greater or Equal."
+        return OnnxVar(self, y, op=OnnxGreaterOrEqual)
+
     def __gt__(self, y):
         "Greater."
         return OnnxVar(self, y, op=OnnxGreater)
+
+    def __le__(self, y):
+        "Less or Equal."
+        return OnnxVar(self, y, op=OnnxLessOrEqual)
 
     def __lt__(self, y):
         "Less."

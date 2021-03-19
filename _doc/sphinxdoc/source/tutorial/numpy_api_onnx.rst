@@ -27,7 +27,8 @@ and automatically have it converted into :epkg:`ONNX`.
 
 Available notebooks:
 
-* :ref:`numpyapionnxrst`
+* :ref:`numpyapionnxftrrst`
+* :ref:`numpyapionnxcclrst`
 
 Principle
 +++++++++

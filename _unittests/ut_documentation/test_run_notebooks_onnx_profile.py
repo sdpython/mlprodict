@@ -11,12 +11,12 @@ from pyquickhelper.pycode import (
 import mlprodict
 
 
-class TestNotebookOnnxMemory(ExtTestCase):
+class TestNotebookOnnxProfile(ExtTestCase):
 
     def setUp(self):
         add_missing_development_version(["jyquickhelper"], __file__, hide=True)
 
-    def test_notebook_onnx_mem(self):
+    def test_notebook_onnx_profile(self):
         fLOG(
             __file__,
             self._testMethodName,
