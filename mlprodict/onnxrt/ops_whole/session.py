@@ -75,7 +75,7 @@ class OnnxWholeSession:
     def process_profiling(js):
         """
         Flattens json returned by onnxruntime profiling.
-    
+
         :param js: json
         :return: list of dictionaries
         """

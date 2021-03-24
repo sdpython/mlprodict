@@ -29,7 +29,8 @@ class TwoLogisticRegressionOnnx(ClassifierMixin, BaseEstimator):
                 "weighted sample not implemented in this example.")
 
         # Barycenters
-        self.weights_ = numpy.array([(y == 0).sum(), (y == 1).sum()])
+        self.weights_ = numpy.array(  # pylint: disable=W0201
+            [(y == 0).sum(), (y == 1).sum()])
         p1 = X[y == 0].sum(axis=0) / self.weights_[0]
         p2 = X[y == 1].sum(axis=0) / self.weights_[1]
         self.centers_ = numpy.vstack([p1, p2])  # pylint: disable=W0201
@@ -60,8 +61,10 @@ class TwoLogisticRegressionOnnx(ClassifierMixin, BaseEstimator):
         sign = ((X - c[0]) @ h) >= numpy.array([0], dtype=X.dtype)
         cast = sign.astype(X.dtype).reshape((-1, 1))
 
-        prob0 = nxnpskl.logistic_regression(X, self.lr0_)[1]
-        prob1 = nxnpskl.logistic_regression(X, self.lr1_)[1]
+        prob0 = nxnpskl.logistic_regression(  # pylint: disable=E1136
+            X, model=self.lr0_)[1]
+        prob1 = nxnpskl.logistic_regression(  # pylint: disable=E1136
+            X, model=self.lr1_)[1]
         prob = prob1 * cast - prob0 * (cast - numpy.array([1], dtype=X.dtype))
         label = nxnp.argmax(prob, axis=1)
         return MultiOnnxVar(label, prob)
@@ -82,8 +85,8 @@ class TestCustomClassifier(ExtTestCase):
         dec.fit(X, y)
         onx = to_onnx(dec, X.astype(numpy.float32))
         oinf = OnnxInference(onx)
-        exp = dec.predict(X)
-        prob = dec.predict_proba(X)
+        exp = dec.predict(X)  # pylint: disable=E1101
+        prob = dec.predict_proba(X)  # pylint: disable=E1101
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['label'].ravel())
         self.assertEqualArray(prob, got['probabilities'])

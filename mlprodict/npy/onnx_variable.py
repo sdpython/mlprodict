@@ -26,6 +26,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSqueeze, OnnxSub,
     OnnxTopK, OnnxTranspose
 )
+from skl2onnx.algebra.onnx_operator import OnnxOperatorItem
+from skl2onnx.common.data_types import _guess_numpy_type
 from ..tools.onnx2py_helper import guess_proto_dtype
 
 
@@ -86,6 +88,8 @@ class OnnxVar:
                 dtypes.append(dt)
             elif isinstance(inp, OnnxVar):
                 dtypes.append(inp.dtype)
+            elif isinstance(inp, MultiOnnxVar):
+                dtypes.append(inp._guess_dtype(dtype))
             elif isinstance(inp, (numpy.float32, numpy.float64, numpy.int32,
                                   numpy.int64)):
                 dtypes.append(inp.dtype)
@@ -138,7 +142,11 @@ class OnnxVar:
                     raise RuntimeError(  # pragma: no cover
                         "Unexpected number of inputs, 1 expected, "
                         "got {} instead.".format(self.inputs))
-                self.alg_ = self.inputs[0]
+                if self.dtype is None or hasattr(self.inputs[0], 'onnx_name'):
+                    self.alg_ = self.inputs[0]
+                else:
+                    self.alg_ = (
+                        self.inputs[0], _guess_numpy_type(self.dtype, None))
             else:
                 if isinstance(self.onnx_op, str):
                     var = self._custom_op(*self.inputs, op_version=op_version,
@@ -470,6 +478,10 @@ class TupleOnnxAny:
         else:
             self.values = None
             self.unique = first
+        if self.values is not None and self.unique is not None:
+            raise RuntimeError(
+                "Unexpected configuration. One member (values or unique) must be "
+                "null, unique=%r, values=%r" % (self.unique, self.values))
 
     def __len__(self):
         "usual"
@@ -505,11 +517,25 @@ class TupleOnnxAny:
 
     @output_names.setter
     def output_names(self, value):
-        "Updates 'output_names' of attribute 'unique'."
+        """
+        Updates 'output_names' of attribute 'unique'
+        or every output name of attribute 'values'.
+        """
         if self.values is None:
-            if hasattr(self.unique, 'to_onnx'):
+            if (hasattr(self.unique, 'to_onnx') or
+                    hasattr(self.unique, 'add_to')):
+                if len(value) > 1:
+                    self.values = tuple(
+                        OnnxIdentity(self.unique[i], output_names=value[i:i + 1],
+                                     op_version=self.unique.op_version)
+                        for i in range(0, len(value)))
+                    self.unique = None
+                    return
                 self.unique.output_names = value
                 return
+            raise NotImplementedError(
+                "Not implemented yet, value=%r, unique=%r values=%r." % (
+                    value, self.unique, self.values))
         if self.values is not None and len(self.values) == len(value):
             for name, v in zip(value, self.values):
                 v.output_names = [name]
@@ -523,6 +549,9 @@ class TupleOnnxAny:
         if self.values is None:
             if hasattr(self.unique, 'to_onnx'):
                 return self.unique.to_onnx(*args, **kwargs)
+            raise NotImplementedError(
+                "Not implemented yet unique=%r values=%r args=%r "
+                "kwargs=%r." % (self.unique, self.values, args, kwargs))
         if self.values is not None:
             if len(self.values) == len(kwargs.get('outputs', [])):
                 return self.values[0].to_onnx(
@@ -542,6 +571,10 @@ class MultiOnnxVar:
         "constructor"
         self.onxvar = OnnxVar(*inputs, op=op, dtype=None, **kwargs)
         self.alg_ = None
+
+    def _guess_dtype(self, dtype):
+        "Guesses dtype when not specified."
+        return self.onxvar._guess_dtype(dtype)
 
     @property
     def inputs(self):
@@ -571,6 +604,9 @@ class MultiOnnxVar:
                         numpy_bool, numpy_str, numpy.int8, numpy.uint8,
                         numpy.int16, numpy.uint16, numpy.uint32, numpy.uint64)):
                     new_inputs.append(inp)
+                elif hasattr(inp, 'fit'):
+                    # scikit-learn models
+                    new_inputs.append(inp)
                 else:
                     new_inputs.append(
                         inp.to_algebra(op_version=op_version))
@@ -585,3 +621,9 @@ class MultiOnnxVar:
                     *new_inputs, op_version=op_version, **self.onnx_op_kwargs)
                 self.alg_ = TupleOnnxAny(res)
         return self.alg_
+
+    def __getitem__(self, index):
+        """
+        Returns the ith elements.
+        """
+        return OnnxVar(self, index=index, op=OnnxOperatorItem)

@@ -115,10 +115,13 @@ Registration
 
 .. _l-numpy-onnxpy-list-fct:
 
-Available numpy functions implemented with ONNX operators
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Available functions implemented with ONNX operators
++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-All functions are implemented in submodule :ref:`f-numpyonnximpl`.
+All functions are implemented in two submodules:
+
+* *numpy function*: :ref:`f-numpyonnximpl`
+* *machine learned models:* :ref:`f-numpyonnximplskl`
 
 ONNX functions executed python ONNX runtime
 +++++++++++++++++++++++++++++++++++++++++++
@@ -129,4 +132,6 @@ Same function as above, the import goes from
 These function are usually not used except in unit test or as
 reference for more complex functions. See the source on github,
 `numpy_onnx_pyrt.py <https://github.com/sdpython/mlprodict/
-blob/master/mlprodict/npy/numpy_onnx_pyrt.py>`_.
+blob/master/mlprodict/npy/numpy_onnx_pyrt.py>`_ and
+`numpy_onnx_pyrt_skl.py <https://github.com/sdpython/mlprodict/
+blob/master/mlprodict/npy/numpy_onnx_pyrt_skl.py>`_.

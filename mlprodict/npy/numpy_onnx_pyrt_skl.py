@@ -13,7 +13,7 @@ from .numpy_onnx_impl_skl import (
 from .onnx_numpy_wrapper import onnxnumpy_np
 
 
-@onnxnumpy_np(signature=NDArrayType("T:all", ((numpy.int64,), "T")))
-def logistic_regression(x, model=None):
+@onnxnumpy_np(signature=NDArrayType(("T:all", ), dtypes_out=((numpy.int64,), "T")))
+def logistic_regression(x, *, model=None):
     "logistic_regression"
-    return nx_logistic_regression(model, x)
+    return nx_logistic_regression(x, model=model)
