@@ -25,7 +25,7 @@ class TestCpuOps(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((DeprecationWarning, FutureWarning))
     def test_cpu_conv(self):
 
         x = numpy.array([[[[0., 1., 2., 3., 4.],  # (1, 1, 5, 5) input tensor
@@ -56,6 +56,7 @@ class TestCpuOps(ExtTestCase):
                              [72., 111., 117., 123., 84.]]]]).astype(numpy.float32)
         self.assertEqualArray(exp, got)
 
+    @ignore_warnings((DeprecationWarning, FutureWarning))
     def test_cpu_conv_init(self):
         x = numpy.random.rand(1, 96, 56, 56).astype(numpy.float32)
         W = numpy.random.rand(24, 96, 1, 1).astype(numpy.float32)
@@ -86,6 +87,7 @@ class TestCpuOps(ExtTestCase):
                             ii, diff[ii], gotrt['Y'].ravel()[ii], got['Y'].ravel()[ii]))
             self.assertEqualArray(gotrt['Y'], got['Y'], decimal=5)
 
+    @ignore_warnings((DeprecationWarning, FutureWarning))
     def test_cpu_conv_group(self):
         x = numpy.random.rand(1, 3, 3, 4).astype(numpy.float32)
         W = numpy.random.rand(9, 1, 3, 3).astype(numpy.float32)
@@ -138,6 +140,7 @@ class TestCpuOps(ExtTestCase):
                             ii, diff[ii], gotrt['Y'].ravel()[ii], got['Y'].ravel()[ii]))
             self.assertEqualArray(gotrt['Y'], got['Y'], decimal=5)
 
+    @ignore_warnings((DeprecationWarning, FutureWarning))
     def test_slice_bug(self):
 
         for opset in [9, 12, TARGET_OPSET]:
