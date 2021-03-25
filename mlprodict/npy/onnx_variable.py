@@ -26,7 +26,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSqueeze, OnnxSub,
     OnnxTopK, OnnxTranspose
 )
-from skl2onnx.algebra.onnx_operator import OnnxOperatorItem
+from skl2onnx.algebra.onnx_operator import OnnxOperatorItem, OnnxOperator
 from skl2onnx.common.data_types import _guess_numpy_type
 from ..tools.onnx2py_helper import guess_proto_dtype
 
@@ -236,68 +236,92 @@ class OnnxVar:
             shape = numpy.array(shape, dtype=numpy.int64)
         return OnnxVar(self, shape, op=OnnxReshape)
 
+    def _make_array(self, y):
+        """Converts *y* into an array if not."""
+        if hasattr(y, 'dtype') and not isinstance(y, (numpy.ndarray, OnnxVar)):
+            return numpy.full((1, ), y, dtype=y.dtype)
+        if isinstance(y, (float, int, str)):
+            return numpy.array([y])
+        return y
+
     def __add__(self, y):
         "Addition."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxAdd)
 
     def __sub__(self, y):
         "Subtraction."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxSub)
 
     def __mul__(self, y):
         "Multiplication."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxMul)
 
     def __pow__(self, y):
         "Power."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxPow)
 
     def __mod__(self, y):
         "Modulo."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxMod)
 
     def __matmul__(self, y):
         "Matrix multiplication."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxMatMul)
 
     def __truediv__(self, y):
         "Division, no difference between `/` and `//`."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxDiv)
 
     def __floordiv__(self, y):
         "Division, no difference between `/` and `//`."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxDiv)
 
     def __eq__(self, y):
         "Equality."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxEqual)
 
     def __ne__(self, y):
         "Difference."
+        y = self._make_array(y)
         return OnnxVar(OnnxVar(self, y, op=OnnxEqual), op=OnnxNot)
 
     def __ge__(self, y):
         "Greater or Equal."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxGreaterOrEqual)
 
     def __gt__(self, y):
         "Greater."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxGreater)
 
     def __le__(self, y):
         "Less or Equal."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxLessOrEqual)
 
     def __lt__(self, y):
         "Less."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxLess)
 
     def __and__(self, y):
         "And."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxAnd)
 
     def __or__(self, y):
         "And."
+        y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxOr)
 
     def not_(self):
@@ -462,7 +486,7 @@ class OnnxVar:
         return fl
 
 
-class TupleOnnxAny:
+class TupleOnnxAny(OnnxOperator):
     """
     Class used to return multiple @see cl OnnxVar
     at the same time.
@@ -482,6 +506,10 @@ class TupleOnnxAny:
             raise RuntimeError(
                 "Unexpected configuration. One member (values or unique) must be "
                 "null, unique=%r, values=%r" % (self.unique, self.values))
+        if self.values is None and self.unique is None:
+            raise RuntimeError(
+                "Unexpected configuration. One member (values or unique) must be "
+                "not null.")
 
     def __len__(self):
         "usual"
@@ -515,6 +543,27 @@ class TupleOnnxAny:
             "Not implemented yet unique=%r values=%r." % (
                 self.unique, self.values))
 
+    def get_output_type_inference(self, input_shapes=None):
+        """
+        Returns the expected output types in a list.
+        """
+        if self.values is None:
+            if hasattr(self.unique, 'get_output_type_inference'):
+                return self.unique.get_output_type_inference(input_shapes)
+        raise NotImplementedError(
+            "Not implemented yet unique=%r values=%r." % (
+                self.unique, self.values))
+
+    @property
+    def outputs(self):
+        "Returns 'output_names' of attribute 'unique'."
+        if self.values is None:
+            if hasattr(self.unique, 'to_onnx'):
+                return self.unique.outputs
+        raise NotImplementedError(
+            "Not implemented yet unique=%r values=%r." % (
+                self.unique, self.values))
+
     @output_names.setter
     def output_names(self, value):
         """
@@ -543,6 +592,28 @@ class TupleOnnxAny:
         raise NotImplementedError(
             "Not implemented yet, value=%r, unique=%r values=%r." % (
                 value, self.unique, self.values))
+
+    def add_to(self, scope, container, operator=None, run_converters=False):
+        """
+        Adds outputs to the container if not already added,
+        registered the outputs if the node is not final.
+
+        :param scope: scope
+        :param container: container
+        :param operator: overwrite inputs
+        :param run_converters: must be True if called from method `to_onnx`
+        """
+        if self.values is not None:
+            for v in self.values:
+                v.add_to(scope, container, operator=operator,
+                         run_converters=run_converters)
+            return
+        if self.unique is not None:
+            self.unique.add_to(scope, container, operator=operator,
+                               run_converters=run_converters)
+            return
+        raise RuntimeError(
+            "Attributes 'unique' and 'values' cannot be both null.")
 
     def to_onnx(self, *args, **kwargs):
         "Converts the underlying class into an ONNX graph."

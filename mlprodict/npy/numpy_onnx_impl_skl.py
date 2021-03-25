@@ -10,4 +10,5 @@ from .onnx_variable import MultiOnnxVar
 
 def logistic_regression(x, *, model=None):
     "See :epkg:`sklearn:linear_model:LogisticRegression`."
-    return MultiOnnxVar(model, x, op=OnnxSubEstimator)
+    return MultiOnnxVar(model, x, op=OnnxSubEstimator,
+                        options={'zipmap': False})

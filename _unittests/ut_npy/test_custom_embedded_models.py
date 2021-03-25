@@ -76,20 +76,28 @@ class TestCustomClassifier(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
-    def test_function_classifier_embedded(self):
-        X = numpy.random.randn(20, 2).astype(numpy.float32)
+    def common_test_function_classifier_embedded(self, dtype):
+        X = numpy.random.randn(20, 2).astype(dtype)
         y = ((X.sum(axis=1) + numpy.random.randn(
              X.shape[0]).astype(numpy.float32)) >= 0).astype(numpy.int64)
         dec = TwoLogisticRegressionOnnx()
         dec.fit(X, y)
-        onx = to_onnx(dec, X.astype(numpy.float32))
+        onx = to_onnx(dec, X.astype(dtype))
         oinf = OnnxInference(onx)
         exp = dec.predict(X)  # pylint: disable=E1101
         prob = dec.predict_proba(X)  # pylint: disable=E1101
         got = oinf.run({'X': X})
+        self.assertEqual(dtype, prob.dtype)
         self.assertEqualArray(exp, got['label'].ravel())
         self.assertEqualArray(prob, got['probabilities'])
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    def test_function_classifier_embedded_float32(self):
+        self.common_test_function_classifier_embedded(numpy.float32)
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    def test_function_classifier_embedded_float64(self):
+        self.common_test_function_classifier_embedded(numpy.float64)
 
 
 if __name__ == "__main__":
