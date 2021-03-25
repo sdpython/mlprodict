@@ -161,10 +161,20 @@ dfs = []
 ###################################
 # Reduction on a particular case
 # ++++++++++++++++++++++++++++++
-# `(8, 24, 48, N)`
+#
+# (8, 24, 48, N)
+# ++++++++++++++
 
 axes = (1, 2)
 df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24, 48, dim))
+dfs.append(df)
+df.pivot("fct", "N", "average")
+
+# (8, 24 * 48, N)
+# ++++++++++++++
+
+axes = (1, )
+df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24 * 48, dim))
 dfs.append(df)
 df.pivot("fct", "N", "average")
 
