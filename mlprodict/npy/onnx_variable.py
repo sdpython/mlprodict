@@ -26,7 +26,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSqueeze, OnnxSub,
     OnnxTopK, OnnxTranspose
 )
-from skl2onnx.algebra.onnx_operator import OnnxOperatorItem, OnnxOperator
+from skl2onnx.algebra.onnx_operator import OnnxOperatorItem
 from skl2onnx.common.data_types import _guess_numpy_type
 from ..tools.onnx2py_helper import guess_proto_dtype
 
@@ -486,7 +486,7 @@ class OnnxVar:
         return fl
 
 
-class TupleOnnxAny(OnnxOperator):
+class TupleOnnxAny:
     """
     Class used to return multiple @see cl OnnxVar
     at the same time.
@@ -533,16 +533,6 @@ class TupleOnnxAny(OnnxOperator):
             return self.unique[i]
         return self.values[i]
 
-    @property
-    def output_names(self):
-        "Returns 'output_names' of attribute 'unique'."
-        if self.values is None:
-            if hasattr(self.unique, 'to_onnx'):
-                return self.unique.output_names
-        raise NotImplementedError(
-            "Not implemented yet unique=%r values=%r." % (
-                self.unique, self.values))
-
     def get_output_type_inference(self, input_shapes=None):
         """
         Returns the expected output types in a list.
@@ -560,6 +550,16 @@ class TupleOnnxAny(OnnxOperator):
         if self.values is None:
             if hasattr(self.unique, 'to_onnx'):
                 return self.unique.outputs
+        raise NotImplementedError(
+            "Not implemented yet unique=%r values=%r." % (
+                self.unique, self.values))
+
+    @property
+    def output_names(self):
+        "Returns 'output_names' of attribute 'unique'."
+        if self.values is None:
+            if hasattr(self.unique, 'to_onnx'):
+                return self.unique.output_names
         raise NotImplementedError(
             "Not implemented yet unique=%r values=%r." % (
                 self.unique, self.values))
@@ -615,7 +615,7 @@ class TupleOnnxAny(OnnxOperator):
         raise RuntimeError(
             "Attributes 'unique' and 'values' cannot be both null.")
 
-    def to_onnx(self, *args, **kwargs):
+    def to_onnx(self, *args, **kwargs):  # pylint: disable=W0222
         "Converts the underlying class into an ONNX graph."
         if self.values is None:
             if hasattr(self.unique, 'to_onnx'):
