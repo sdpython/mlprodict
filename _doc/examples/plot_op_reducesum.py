@@ -6,8 +6,7 @@ Compares implementations of ReduceSum
 
 The following function benchmark different implementation
 of function :epkg:`numpy:sum`.
-It compares *numpy* implementation to
-:epkg:`onnxruntime` implementation.
+It compares *numpy* implementation to :epkg:`onnxruntime` implementation.
 If available, :epkg:`tensorflow` and :epkg:`pytorch` are included as well.
 
 .. contents::
@@ -61,7 +60,8 @@ def loop_fct(fct, xs, ys):
 
 def benchmark_op(axes, repeat=5, number=5, name="reducesum", shape_fct=None):
     if shape_fct is None:
-        def shape_fct(dim): return (3, dim, 1, 128, 64)
+        def shape_fct(dim):
+            return (3, dim, 1, 128, 64)
     ort_fct = build_ort_reducesum(axes)
     res = []
     for dim in tqdm([8, 16, 32, 64, 100, 128, 200,
@@ -157,6 +157,16 @@ def benchmark_op(axes, repeat=5, number=5, name="reducesum", shape_fct=None):
 
 
 dfs = []
+
+###################################
+# Reduction on a particular case
+# ++++++++++++++++++++++++++++++
+# `(8, 24, 48, N)`
+
+axes = (1, 2)
+df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24, 48, dim))
+dfs.append(df)
+df.pivot("fct", "N", "average")
 
 ###################################
 # Reduction on one axis
