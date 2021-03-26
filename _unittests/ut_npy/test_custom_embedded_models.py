@@ -52,6 +52,7 @@ class TwoLogisticRegressionOnnx(ClassifierMixin, BaseEstimator):
             X[sign == 0], y[sign == 0])
         self.lr1_ = LogisticRegression().fit(  # pylint: disable=W0201
             X[sign == 1], y[sign == 1])
+        self.classes_ = self.lr0_.classes_
 
         return self
 
@@ -138,7 +139,8 @@ class TestCustomEmbeddedModels(ExtTestCase):
              X.shape[0]).astype(numpy.float32)) >= 0).astype(numpy.int64)
         dec = TwoLogisticRegressionOnnx()
         dec.fit(X, y)
-        onx = to_onnx(dec, X.astype(dtype))
+        onx = to_onnx(dec, X.astype(dtype),
+                      options={id(dec): {'zipmap': False}})
         oinf = OnnxInference(onx)
         exp = dec.predict(X)  # pylint: disable=E1101
         prob = dec.predict_proba(X)  # pylint: disable=E1101
