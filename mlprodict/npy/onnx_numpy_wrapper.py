@@ -4,6 +4,7 @@
 
 .. versionadded:: 0.6
 """
+import warnings
 from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_numpy_compiler import OnnxNumpyCompiler
 
@@ -22,9 +23,10 @@ class _created_classes:
         classes.
         """
         if name in self.stored:
-            raise RuntimeError(  # pragma: no cover
-                "Class %r already exists in\n%r\n---\n%r" % (
-                    name, ", ".join(sorted(self.stored)), cl))
+            warnings.warn(  # pragma: no cover
+                "Class %r overwritten in\n%r\n---\n%r" % (
+                    name, ", ".join(sorted(self.stored)), cl),
+                RuntimeWarning)
         self.stored[name] = cl
         globals()[name] = cl
 
@@ -175,7 +177,7 @@ class wrapper_onnxnumpy_np:
         tensor in *args* defines the templated version of the function
         to convert into *ONNX*.
         """
-        key = tuple(a if a is None   # or not hasattr(a, 'dtype'))
+        key = tuple(a if (a is None or hasattr(a, 'fit'))
                     else a.dtype.type for a in args)
         if len(self.kwargs) == 0:
             return self[key](*args)

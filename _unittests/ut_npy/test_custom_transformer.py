@@ -14,7 +14,7 @@ from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx import update_registered_converter
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxIdentity, OnnxMatMul, OnnxSub)
-from skl2onnx.algebra.onnx_operator import OnnxSubOperator
+from skl2onnx.algebra.onnx_operator import OnnxSubEstimator
 from skl2onnx.common.data_types import guess_numpy_type
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
@@ -50,7 +50,7 @@ def decorrelate_transformer_converter(scope, operator, container):
     opv = container.target_opset
     out = operator.outputs
     X = operator.inputs[0]
-    subop = OnnxSubOperator(op.pca_, X, op_version=opv)
+    subop = OnnxSubEstimator(op.pca_, X, op_version=opv)
     Y = OnnxIdentity(subop, op_version=opv, output_names=out[:1])
     Y.add_to(scope, container)
 

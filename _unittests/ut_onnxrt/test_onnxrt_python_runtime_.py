@@ -1328,8 +1328,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(exp, got['Y'])
 
         X = numpy.array([0, 3, 128, 255]).astype(numpy.uint8)
-        x_scale = numpy.float32(2)
-        x_zero_point = numpy.uint8(128)
+        x_scale = numpy.array([2], dtype=numpy.float32)
+        x_zero_point = numpy.array([128], dtype=numpy.uint8)
         exp = numpy.array([-256, -250, 0, 254], dtype=numpy.float32)
         onx = OnnxDequantizeLinear(
             'X', x_scale, x_zero_point, output_names=['Y'],
@@ -2049,8 +2049,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(exp, got['Y'])
 
         X = numpy.array([0, 2, 4, 1000, -254, -1000]).astype(numpy.float32)
-        y_scale = numpy.float32(2)
-        y_zero_point = numpy.uint8(128)
+        y_scale = numpy.array([2], dtype=numpy.float32)
+        y_zero_point = numpy.array([128], dtype=numpy.uint8)
         exp = numpy.array([128, 129, 130, 255, 1, 0]).astype(numpy.uint8)
         onx = OnnxQuantizeLinear(
             'X', y_scale, y_zero_point, output_names=['Y'],
@@ -3161,5 +3161,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_conv_transpose_B()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_pad()
     unittest.main()

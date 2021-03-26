@@ -14,7 +14,7 @@ class Pow(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc, **options)
 
     def _run(self, a, b):  # pylint: disable=W0221
-        return (numpy.power(a, b), )
+        return (numpy.power(a, b).astype(a.dtype), )
 
     def _infer_shapes(self, x, b):  # pylint: disable=W0221
         """

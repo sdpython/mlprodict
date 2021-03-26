@@ -206,9 +206,10 @@ class OnnxNumpyCompiler:
             if (signature is not None and not
                     signature.n_variables and nv > len(kwargs)):
                 raise RuntimeError(  # pragma: no cover
-                    "Mismatch between version=%r and kwargs=%r for "
+                    "Mismatch (%d - %d - %d ? %d) between version=%r and kwargs=%r for "
                     "function %r, optional argument is %d, "
                     "signature=%r." % (
+                        len(version), len(args), n_opt, len(kwargs),
                         version, kwargs, self.fct_,
                         signature.n_variables, signature))
             vvers = version[-len(kwargs):]

@@ -139,10 +139,24 @@ def test_abs_greater(x: NDArray[Any, numpy.float32],
 
 
 @onnxnumpy(runtime='onnxruntime1')
+def test_abs_greater_or_equal(x: NDArray[Any, numpy.float32],
+                              ) -> NDArray[Any, numpy_bool]:
+    "onnx numpy greater or equal"
+    return nxnp.abs(x) >= x
+
+
+@onnxnumpy(runtime='onnxruntime1')
 def test_abs_less(x: NDArray[Any, numpy.float32],
                   ) -> NDArray[Any, numpy_bool]:
     "onnx numpy less"
     return nxnp.abs(x) < x
+
+
+@onnxnumpy(runtime='onnxruntime1')
+def test_abs_less_or_equal(x: NDArray[Any, numpy.float32],
+                           ) -> NDArray[Any, numpy_bool]:
+    "onnx numpy less or equal"
+    return nxnp.abs(x) <= x
 
 
 @onnxnumpy(runtime='onnxruntime1')
@@ -439,10 +453,22 @@ class TestOnnxVariableOrt(ExtTestCase):
         self.assertEqualArray(y, numpy.abs(x) > x)
 
     @ignore_warnings(DeprecationWarning)
+    def test_ort_abs_greater_or_equal(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_greater_or_equal(x)
+        self.assertEqualArray(y, numpy.abs(x) >= x)
+
+    @ignore_warnings(DeprecationWarning)
     def test_ort_abs_less(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_less(x)
         self.assertEqualArray(y, numpy.abs(x) < x)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_ort_abs_less_or_equal(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_less_or_equal(x)
+        self.assertEqualArray(y, numpy.abs(x) <= x)
 
     @ignore_warnings(DeprecationWarning)
     def test_ort_abs_and(self):

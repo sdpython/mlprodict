@@ -5,7 +5,7 @@
 import unittest
 import numpy
 import scipy.special as sp
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper import compare_module_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_pad import onnx_pad
@@ -66,6 +66,7 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.arccos, nxnpy.acos, numpy.float32)
 
+    @ignore_warnings(RuntimeWarning)
     def test_acosh_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(x, numpy.arccosh, nxnpy.acosh, numpy.float32)
@@ -382,5 +383,5 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestNumpyOnnxFunction().test_pad_float32()
+    # TestNumpyOnnxFunction().test_arange_float32()
     unittest.main()

@@ -66,7 +66,7 @@ class OnnxEig(OnnxOperator):
     """
 
     since_version = 1
-    expected_inputs = ['X']
+    expected_inputs = [('X', 'T')]
     expected_outputs = ['EigenValues', 'EigenVectors']
     input_range = [1, 1]
     output_range = [1, 2]
