@@ -398,6 +398,35 @@ def onnxsklearn_classifier(op_version=None, runtime=None, signature=None,
     return decorator_fct
 
 
+def onnxsklearn_cluster(op_version=None, runtime=None, signature=None,
+                        register_class=None, overwrite=True):
+    """
+    Decorator to declare a converter for a cluster implemented using
+    :epkg:`numpy` syntax but executed with :epkg:`ONNX`
+    operators.
+
+    :param op_version: :epkg:`ONNX` opset version
+    :param runtime: `'onnxruntime'` or one implemented by @see cl OnnxInference
+    :param signature: if None, the signature is replaced by a standard signature
+        for transformer ``NDArraySameType("all")``
+    :param register_class: automatically register this converter
+        for this class to :epkg:`sklearn-onnx`
+    :param overwrite: overwrite existing registered function if any
+
+    .. versionadded:: 0.6
+    """
+    if signature is None:
+        signature = NDArrayType(("T:all", ), dtypes_out=((numpy.int64, ), 'T'))
+
+    def decorator_fct(fct):
+        return _internal_decorator(fct, signature=signature,
+                                   op_version=op_version,
+                                   runtime=runtime,
+                                   register_class=register_class,
+                                   overwrite=overwrite)
+    return decorator_fct
+
+
 def _internal_method_decorator(register_class, method, op_version=None,
                                runtime=None, signature=None,
                                method_names=None, overwrite=True,

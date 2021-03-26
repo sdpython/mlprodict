@@ -29,7 +29,7 @@ class CustomLinearClassifier(ClassifierMixin, BaseEstimator):
 
     def fit(self, X, y=None, sample_weights=None):
         lr = LogisticRegression().fit(X, y, sample_weights)
-        self.classes_ = lr.classes_
+        self.classes_ = lr.classes_  # pylint: disable=W0201
         self.coef_ = lr.coef_  # pylint: disable=W0201
         self.intercept_ = lr.intercept_  # pylint: disable=W0201
         if len(y.shape) == 1 or y.shape[1] == 1:
@@ -102,7 +102,7 @@ class CustomLinearClassifierOnnx(ClassifierMixin, BaseEstimator):
 
     def fit(self, X, y=None, sample_weights=None):
         lr = LogisticRegression().fit(X, y, sample_weights)
-        self.classes_ = lr.classes_
+        self.classes_ = lr.classes_  # pylint: disable=W0201
         self.coef_ = lr.coef_  # pylint: disable=W0201
         self.intercept_ = lr.intercept_  # pylint: disable=W0201
         if len(y.shape) == 1 or y.shape[1] == 1:

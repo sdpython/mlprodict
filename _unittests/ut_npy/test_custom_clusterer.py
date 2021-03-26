@@ -16,7 +16,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import guess_numpy_type, Int64TensorType
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.npy import onnxsklearn_classifier, onnxsklearn_class
+from mlprodict.npy import onnxsklearn_cluster, onnxsklearn_class
 import mlprodict.npy.numpy_onnx_impl as nxnp
 
 
@@ -67,7 +67,7 @@ class CustomCluster3(CustomCluster):
     pass
 
 
-@onnxsklearn_classifier(register_class=CustomCluster3)
+@onnxsklearn_cluster(register_class=CustomCluster3)
 def custom_cluster_converter3(X, op_=None):
     if X.dtype is None:
         raise AssertionError("X.dtype cannot be None.")

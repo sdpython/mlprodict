@@ -52,7 +52,7 @@ class TwoLogisticRegressionOnnx(ClassifierMixin, BaseEstimator):
             X[sign == 0], y[sign == 0])
         self.lr1_ = LogisticRegression().fit(  # pylint: disable=W0201
             X[sign == 1], y[sign == 1])
-        self.classes_ = self.lr0_.classes_
+        self.classes_ = self.lr0_.classes_  # pylint: disable=W0201
 
         return self
 
