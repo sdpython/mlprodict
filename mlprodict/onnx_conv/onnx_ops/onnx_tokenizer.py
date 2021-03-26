@@ -12,8 +12,8 @@ class OnnxTokenizer_1(OnnxOperator):
     """
 
     since_version = 1
-    expected_inputs = ['text']
-    expected_outputs = ['tokens']
+    expected_inputs = [('text', 'T')]
+    expected_outputs = [('tokens', 'T')]
     input_range = [1, 1]
     output_range = [1, 1]
     is_deprecated = False

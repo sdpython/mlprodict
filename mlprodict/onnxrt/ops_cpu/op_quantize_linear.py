@@ -23,15 +23,18 @@ class QuantizeLinear(OpRun):
         if len(args[1].shape) > 1:
             raise RuntimeError(  # pragma: no cover
                 "Input 2 must be a vector or a number.")
-        if len(args[1].shape) > 0:
+        y_scale = args[1]
+        if len(y_scale.shape) > 0 and y_scale.size == 1:
+            y_scale = y_scale[0]
+        if len(y_scale.shape) > 0:
             new_shape = [1 for s in args[0].shape]
-            new_shape[self.axis] = len(args[1])
+            new_shape[self.axis] = len(y_scale)
             x = args[0] / args[1].reshape(new_shape)
         else:
-            x = args[0] / args[1]
+            x = args[0] / y_scale
         if len(args) > 2:
             dtype = args[2].dtype
-            if len(args[1].shape) > 0:
+            if len(y_scale.shape) > 0:
                 x += args[2].reshape(new_shape)
             else:
                 x += args[2]

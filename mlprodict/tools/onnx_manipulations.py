@@ -27,20 +27,45 @@ def enumerate_model_node_outputs(model, add_node=False):
 
 
 def select_model_inputs_outputs(model, outputs=None, inputs=None,
-                                infer_shapes=False, overwrite=None):
+                                infer_shapes=False, overwrite=None,
+                                verbose=0, fLOG=None):
     """
     Takes a model and changes its outputs.
 
-    @param      model           :epkg:`ONNX` model
-    @param      inputs          new inputs, same ones if None
-    @param      outputs         new outputs, same ones if None
-    @param      infer_shapes    infer inputs and outputs shapes
-    @param      overwrite       overwrite type and shapes for
-                                inputs or outputs, *overwrite* is a
-                                dictionary `{'name': (numpy dtype, shape)}`
-    @return                     modified model
+    :param model: :epkg:`ONNX` model
+    :param inputs: new inputs, same ones if None
+    :param outputs: new outputs, same ones if None
+    :param infer_shapes: infer inputs and outputs shapes
+    :param overwrite: overwrite type and shapes for
+        inputs or outputs, *overwrite* is a
+        dictionary `{'name': (numpy dtype, shape)}`
+    :param verbose: display information while converting
+    :param fLOG: logging function
+    :return: modified model
 
     The function removes unneeded nodes.
+
+    .. exref::
+        :title: Change ONNX model inputs
+
+        The following exampels shows how to change the inputs of model
+        to bypass the first nodes. Shape inferences fails to determine
+        the new inputs type. They need to be overwritten.
+        `verbose=1, fLOG=print` shows the number of deleted nodes.
+
+        ::
+
+            import onnx
+            from mlprodict.tools.onnx_manipulations import select_model_inputs_outputs
+
+            onx = onnx.load(path)
+            onx2 = select_model_inputs_outputs(
+                onx, inputs=["SentenceTokenizer/SentencepieceTokenizeOp:0",
+                             "SentenceTokenizer/SentencepieceTokenizeOp:1"],
+                infer_shapes=True, verbose=1, fLOG=print,
+                overwrite={'SentenceTokenizer/SentencepieceTokenizeOp:0': (numpy.int32, None),
+                           'SentenceTokenizer/SentencepieceTokenizeOp:1': (numpy.int64, None)})
+            onnx.save(onx2, path2)
 
     .. versionchanged:: 0.6
         Supports the case where inputs are changed.
@@ -158,6 +183,12 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
             value_info = helper.ValueInfoProto()
             value_info.name = name
         var_out.append(value_info)
+
+    if verbose > 0 and fLOG is not None:
+        fLOG("[select_model_inputs_outputs] nodes %r --> %r" % (
+            len(model.graph.node), len(keep_nodes)))
+        fLOG("[select_model_inputs_outputs] inputs: %r" % var_in)
+        fLOG("[select_model_inputs_outputs] inputs: %r" % var_out)
 
     graph = helper.make_graph(keep_nodes, model.graph.name, var_in,
                               var_out, model.graph.initializer)

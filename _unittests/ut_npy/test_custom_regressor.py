@@ -52,7 +52,7 @@ def custom_linear_regressor_converter(scope, operator, container):
     dtype = guess_numpy_type(X.type)
     m = OnnxAdd(
         OnnxMatMul(X, op.coef_.astype(dtype), op_version=opv),
-        op.intercept_, op_version=opv)
+        numpy.array([op.intercept_]), op_version=opv)
     Y = OnnxIdentity(m, op_version=opv, output_names=out[:1])
     Y.add_to(scope, container)
 
@@ -85,7 +85,8 @@ class CustomLinearRegressorOnnx(RegressorMixin, BaseEstimator):
         return self
 
     def onnx_predict(self, X):
-        return nxnp.identity(X @ self.coef_.astype(X.dtype) + self.intercept_.astype(X.dtype))
+        return (nxnp.identity(X @ self.coef_.astype(X.dtype) +
+                              self.intercept_.astype(X.dtype)))
 
 
 class TestCustomRegressor(ExtTestCase):

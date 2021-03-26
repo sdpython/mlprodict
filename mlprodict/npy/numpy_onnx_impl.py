@@ -97,7 +97,7 @@ def arange(start, stop, step=1):
     cs = OnnxVar(cst,
                  numpy.array([0], dtype=numpy.int64),
                  op=OnnxCumSum)
-    diff = start - numpy.int64(step)
+    diff = start - numpy.array([step], dtype=numpy.int64)
     return OnnxVar(cs, diff, op=OnnxAdd)
 
 

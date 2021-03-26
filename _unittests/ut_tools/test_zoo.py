@@ -18,7 +18,11 @@ class TestZoo(ExtTestCase):
         self.assertRaise(lambda: download_model_data("hhh"), ValueError)
 
     def test_download_model_data(self):
-        link, data = download_model_data("mobilenet", cache=".")
+        try:
+            link, data = download_model_data("mobilenet", cache=".")
+        except ConnectionError as e:
+            warnings.warn("Unable to continue this test due to %r." % e)
+            return
         self.assertEndsWith("mobilenetv2-7.onnx", link)
         self.assertEqual(len(data), 3)
         for k, data in data.items():
@@ -61,13 +65,21 @@ class TestZoo(ExtTestCase):
                     "Mismatch\n%s" % pprint.pformat(keep))
 
     def test_verify_model_mobilenet(self):
-        link, data = download_model_data("mobilenet", cache=".")
+        try:
+            link, data = download_model_data("mobilenet", cache=".")
+        except ConnectionError as e:
+            warnings.warn("Unable to continue this test due to %r." % e)
+            return
         for rt in ['onnxruntime', 'onnxruntime1', 'python']:
             with self.subTest(runtime=rt):
                 verify_model(link, data, runtime=rt)
 
     def test_verify_model_squeezenet(self):
-        link, data = download_model_data("squeezenet", cache=".")
+        try:
+            link, data = download_model_data("squeezenet", cache=".")
+        except ConnectionError as e:
+            warnings.warn("Unable to continue this test due to %r." % e)
+            return
         for rt in ['onnxruntime', 'onnxruntime1', 'python']:
             with self.subTest(runtime=rt):
                 try:
