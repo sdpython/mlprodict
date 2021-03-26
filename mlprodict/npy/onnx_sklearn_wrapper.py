@@ -393,7 +393,8 @@ def onnxsklearn_classifier(op_version=None, runtime=None, signature=None,
                                    runtime=runtime,
                                    register_class=register_class,
                                    overwrite=overwrite,
-                                   options={'zipmap': [False, True, 'columns']})
+                                   options={'zipmap': [False, True, 'columns'],
+                                            'nocl': [False, True]})
     return decorator_fct
 
 
@@ -421,7 +422,8 @@ def _internal_method_decorator(register_class, method, op_version=None,
         if method_names is None:
             method_names = ("predict", "predict_proba")
         if options is None:
-            options = {'zipmap': [False, True, 'columns']}
+            options = {'zipmap': [False, True, 'columns'],
+                       'nocl': [False, True]}
     elif issubclass(register_class, ClusterMixin):
         if signature is None:
             signature = NDArrayType(

@@ -29,6 +29,7 @@ class CustomLinearClassifier(ClassifierMixin, BaseEstimator):
 
     def fit(self, X, y=None, sample_weights=None):
         lr = LogisticRegression().fit(X, y, sample_weights)
+        self.classes_ = lr.classes_
         self.coef_ = lr.coef_  # pylint: disable=W0201
         self.intercept_ = lr.intercept_  # pylint: disable=W0201
         if len(y.shape) == 1 or y.shape[1] == 1:
@@ -101,6 +102,7 @@ class CustomLinearClassifierOnnx(ClassifierMixin, BaseEstimator):
 
     def fit(self, X, y=None, sample_weights=None):
         lr = LogisticRegression().fit(X, y, sample_weights)
+        self.classes_ = lr.classes_
         self.coef_ = lr.coef_  # pylint: disable=W0201
         self.intercept_ = lr.intercept_  # pylint: disable=W0201
         if len(y.shape) == 1 or y.shape[1] == 1:
@@ -133,7 +135,9 @@ class TestCustomClassifier(ExtTestCase):
             update_registered_converter(
                 CustomLinearClassifier, "SklearnCustomLinearClassifier",
                 custom_linear_classifier_shape_calculator,
-                custom_linear_classifier_converter)
+                custom_linear_classifier_converter,
+                options={'zipmap': [False, True, 'columns'],
+                         'nocl': [True, False]})
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
     def test_function_classifier(self):
@@ -142,7 +146,8 @@ class TestCustomClassifier(ExtTestCase):
              X.shape[0]).astype(numpy.float32)) >= 0).astype(numpy.int64)
         dec = CustomLinearClassifier()
         dec.fit(X, y)
-        onx = to_onnx(dec, X.astype(numpy.float32))
+        onx = to_onnx(dec, X.astype(numpy.float32),
+                      options={id(dec): {'zipmap': False}})
         oinf = OnnxInference(onx)
         exp = dec.predict(X)
         prob = dec.predict_proba(X)
@@ -157,7 +162,8 @@ class TestCustomClassifier(ExtTestCase):
              X.shape[0]).astype(numpy.float32)) >= 0).astype(numpy.int64)
         dec = CustomLinearClassifier3()
         dec.fit(X, y)
-        onx = to_onnx(dec, X.astype(numpy.float32))
+        onx = to_onnx(dec, X.astype(numpy.float32),
+                      options={id(dec): {'zipmap': False}})
         oinf = OnnxInference(onx)
         exp = dec.predict(X)
         prob = dec.predict_proba(X)  # pylint: disable=W0612
@@ -176,7 +182,8 @@ class TestCustomClassifier(ExtTestCase):
              X.shape[0]).astype(numpy.float32)) >= 0).astype(numpy.int64)
         dec = CustomLinearClassifier3()
         dec.fit(X, y)
-        onx = to_onnx(dec, X.astype(numpy.float64))
+        onx = to_onnx(dec, X.astype(numpy.float64),
+                      options={id(dec): {'zipmap': False}})
         oinf = OnnxInference(onx)
         exp = dec.predict(X)
         prob = dec.predict_proba(X)
@@ -199,7 +206,8 @@ class TestCustomClassifier(ExtTestCase):
         self.assertNotEmpty(res)
         exp1 = dec.predict(X)  # pylint: disable=E1101
         prob1 = dec.predict_proba(X)  # pylint: disable=E1101
-        onx = to_onnx(dec, X.astype(numpy.float32))
+        onx = to_onnx(dec, X.astype(numpy.float32),
+                      options={id(dec): {'zipmap': False}})
         oinf = OnnxInference(onx)
         exp2 = dec.predict(X)  # pylint: disable=E1101
         prob2 = dec.predict_proba(X)  # pylint: disable=E1101
@@ -223,7 +231,8 @@ class TestCustomClassifier(ExtTestCase):
         self.assertEqual(len(res), 2)
         exp1 = dec.predict(X)  # pylint: disable=E1101
         prob1 = dec.predict_proba(X)  # pylint: disable=E1101
-        onx = to_onnx(dec, X.astype(numpy.float64))
+        onx = to_onnx(dec, X.astype(numpy.float64),
+                      options={id(dec): {'zipmap': False}})
         oinf = OnnxInference(onx)
         exp2 = dec.predict(X)  # pylint: disable=E1101
         prob2 = dec.predict_proba(X)  # pylint: disable=E1101
