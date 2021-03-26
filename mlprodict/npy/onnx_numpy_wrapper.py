@@ -4,6 +4,7 @@
 
 .. versionadded:: 0.6
 """
+import warnings
 from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_numpy_compiler import OnnxNumpyCompiler
 
@@ -22,9 +23,10 @@ class _created_classes:
         classes.
         """
         if name in self.stored:
-            raise RuntimeError(  # pragma: no cover
-                "Class %r already exists in\n%r\n---\n%r" % (
-                    name, ", ".join(sorted(self.stored)), cl))
+            warnings.warn(  # pragma: no cover
+                "Class %r overwritten in\n%r\n---\n%r" % (
+                    name, ", ".join(sorted(self.stored)), cl),
+                RuntimeWarning)
         self.stored[name] = cl
         globals()[name] = cl
 
