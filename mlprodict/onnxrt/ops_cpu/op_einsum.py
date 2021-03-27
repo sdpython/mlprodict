@@ -19,11 +19,11 @@ class Einsum(OpRun):
                        expected_attributes=Einsum.atts,
                        **options)
         if not isinstance(self.equation, (str, bytes)):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "equation must be string but is %r." % type(self.equation))
         self.equation = self.equation.strip()
         if len(self.equation) == 0:
-            raise TypeError("equation is empty.")
+            raise TypeError("equation is empty.")  # pragma: no cover
 
     def _run(self, *args):  # pylint: disable=W0221
         return (numpy.einsum(self.equation, *args), )

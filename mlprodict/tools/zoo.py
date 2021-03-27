@@ -228,7 +228,7 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4,
                     len(outputs), len(onames)))
         for i, (output, expect) in enumerate(zip(outputs, expected.items())):
             if output.shape != expect[1].shape:
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "Shape mismatch got %r != expected %r." % (
                         output.shape, expect[1].shape))
             diff = numpy.abs(output - expect[1]).ravel()

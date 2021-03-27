@@ -184,7 +184,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
             value_info.name = name
         var_out.append(value_info)
 
-    if verbose > 0 and fLOG is not None:
+    if verbose > 0 and fLOG is not None:  # pragma: no cover
         fLOG("[select_model_inputs_outputs] nodes %r --> %r" % (
             len(model.graph.node), len(keep_nodes)))
         fLOG("[select_model_inputs_outputs] inputs: %r" % var_in)

@@ -46,7 +46,7 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
             out = outputs[0]
             try:
                 extra_dims = out.type.tensor_type.shape.dim
-            except AttributeError:
+            except AttributeError:  # pragma: no cover
                 extra_dims = None
             if extra_dims is not None:
                 dims.extend(extra_dims[1:])
@@ -80,7 +80,7 @@ def _copy_attributes(att):
                            value.shape, value.ravel().tolist())
     if vt['type']['kind'] == 'real':
         return vt['value']
-    raise RuntimeError(
+    raise RuntimeError(  # pragma: no cover
         "Unable to copy attribute %r, got %r." % (att, vt))
 
 
@@ -147,9 +147,10 @@ def new_convert_sklearn_function_transformer(scope, operator, container):
         return
 
     if op.func is not None:
-        raise TypeError("FunctionTransformer is not supported unless the "
-                        "transform function is of type %r or "
-                        "wrapped with onnxnumpy." % type(op.func))
+        raise TypeError(  # pragma: no cover
+            "FunctionTransformer is not supported unless the "
+            "transform function is of type %r or "
+            "wrapped with onnxnumpy." % type(op.func))
     if len(operator.inputs) == 1:
         apply_identity(scope, operator.inputs[0].full_name,
                        operator.outputs[0].full_name, container)
