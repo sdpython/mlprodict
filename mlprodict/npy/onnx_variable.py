@@ -98,7 +98,7 @@ class OnnxVar:
             elif isinstance(inp, numpy_bool):
                 dtypes.append(numpy_bool)
             elif isinstance(inp, int):
-                dtypes.append(numpy.int64)
+                dtypes.append(numpy.int64)  # pragma: no cover
             elif isinstance(inp, float):
                 dtypes.append(numpy.float64)
             elif hasattr(inp, 'fit'):
@@ -420,7 +420,7 @@ class OnnxVar:
         # scenario 1
         if len(index) == 1:
             return self._setitem1i_(index[0], value)
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Indices in %d dimensions are not implemented yet." % len(index))
 
     def _setitem1i_(self, index, value):
@@ -447,7 +447,7 @@ class OnnxVar:
                 "value", guess_proto_dtype(value.dtype), (1, ), [value])  # pylint: disable=E1101
             inp = self.inputs[0]
             if not isinstance(inp, OnnxVar):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Input must be an instance of OnnxVar not %r." % type(inp))
             cst = OnnxVar(inp.shape, op=OnnxConstantOfShape, value=value)
             ext = inp[:sl[0]]
@@ -503,18 +503,18 @@ class TupleOnnxAny:
             self.values = None
             self.unique = first
         if self.values is not None and self.unique is not None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unexpected configuration. One member (values or unique) must be "
                 "null, unique=%r, values=%r" % (self.unique, self.values))
         if self.values is None and self.unique is None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unexpected configuration. One member (values or unique) must be "
                 "not null.")
 
     def __len__(self):
         "usual"
         if self.values is None:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Not yet implemented in this case unique=%r, "
                 "values=%r." % (self.unique, self.values))
         return len(self.values)
@@ -522,7 +522,7 @@ class TupleOnnxAny:
     def __iter__(self):
         "Iterates on the outputs."
         if self.values is None:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Not yet implemented in this case.")
         for v in self.values:
             yield v
@@ -540,7 +540,7 @@ class TupleOnnxAny:
         if self.values is None:
             if hasattr(self.unique, 'get_output_type_inference'):
                 return self.unique.get_output_type_inference(input_shapes)
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Not implemented yet unique=%r values=%r." % (
                 self.unique, self.values))
 
@@ -550,7 +550,7 @@ class TupleOnnxAny:
         if self.values is None:
             if hasattr(self.unique, 'to_onnx'):
                 return self.unique.outputs
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Not implemented yet unique=%r values=%r." % (
                 self.unique, self.values))
 
@@ -560,7 +560,7 @@ class TupleOnnxAny:
         if self.values is None:
             if hasattr(self.unique, 'to_onnx'):
                 return self.unique.output_names
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Not implemented yet unique=%r values=%r." % (
                 self.unique, self.values))
 
@@ -582,14 +582,14 @@ class TupleOnnxAny:
                     return
                 self.unique.output_names = value
                 return
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Not implemented yet, value=%r, unique=%r values=%r." % (
                     value, self.unique, self.values))
         if self.values is not None and len(self.values) == len(value):
             for name, v in zip(value, self.values):
                 v.output_names = [name]
             return
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Not implemented yet, value=%r, unique=%r values=%r." % (
                 value, self.unique, self.values))
 
@@ -612,7 +612,7 @@ class TupleOnnxAny:
             self.unique.add_to(scope, container, operator=operator,
                                run_converters=run_converters)
             return
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Attributes 'unique' and 'values' cannot be both null.")
 
     def to_onnx(self, *args, **kwargs):  # pylint: disable=W0222
@@ -620,14 +620,14 @@ class TupleOnnxAny:
         if self.values is None:
             if hasattr(self.unique, 'to_onnx'):
                 return self.unique.to_onnx(*args, **kwargs)
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Not implemented yet unique=%r values=%r args=%r "
                 "kwargs=%r." % (self.unique, self.values, args, kwargs))
         if self.values is not None:
             if len(self.values) == len(kwargs.get('outputs', [])):
                 return self.values[0].to_onnx(
                     *args, other_outputs=self.values[1:], **kwargs)
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Not implemented yet unique=%r values=%r args=%r "
             "kwargs=%r." % (self.unique, self.values, args, kwargs))
 

@@ -78,6 +78,11 @@ class TestOnnxVariableTuple(ExtTestCase):
         self.assertEqualArray(exp_y, y)
         self.assertEqualArray(exp_yi, yi)
 
+    def test_common_test_abs_topk(self):
+        res = common_test_abs_topk('X')
+        r = repr(res)
+        self.assertNotEmpty(r)
+
 
 if __name__ == "__main__":
     unittest.main()
