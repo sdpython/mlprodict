@@ -568,9 +568,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         bias = numpy.array([0, 1]).astype(numpy.float32)
         mean = numpy.array([0, 3]).astype(numpy.float32)
         var = numpy.array([1, 1.5]).astype(numpy.float32)
-        y, scale, bias, mean, var  = (
-            _batchnorm_training_mode(x, s, bias, mean, var).astype(
-                numpy.float32))
+        y, scale, bias, mean, var = (
+            _batchnorm_training_mode(x, s, bias, mean, var))
 
         onx = OnnxBatchNormalization_14(
             'X', s, bias, mean, var,
