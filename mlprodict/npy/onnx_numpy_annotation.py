@@ -209,7 +209,7 @@ class _NDArrayAlias:
         if dtypes in all_dtypes:
             return dtypes
 
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Unexpected input dtype %r." % dtypes)
 
     def __repr__(self):
@@ -260,7 +260,7 @@ class _NDArrayAlias:
             each of them is a list of tuple with the name and the dtype
         """
         if args == ['args', 'kwargs']:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Issue with signature %r." % args)
         for k, v in kwargs.items():
             if isinstance(v, type):
@@ -293,7 +293,8 @@ class _NDArrayAlias:
             args = list(names)
             key_types = key[:len(args)] if len(key) > len(args) else key
 
-        li = len(key_types)
+        key_types_0 = key_types
+        li = len(key_types) + 1
         optional = self.n_optional - (len(args) - len(key_types))
         for i in range(0, optional):
             li = len(key_types) - i - 1
@@ -303,7 +304,20 @@ class _NDArrayAlias:
                 break
         key_types = key_types[:li + 1]
 
-        onnx_types = [self._to_onnx_dtype(k, None) for k in key_types]
+        n_inputs = len(key_types)  # - optional
+        onnx_types = []
+        for k in key_types[:n_inputs]:
+            try:
+                o = self._to_onnx_dtype(k, None)
+            except NotImplementedError as e:
+                raise NotImplementedError(
+                    "Unable to extract type from [{}] in key {}, "
+                    "optional={} self.n_optional={} len(args)={} "
+                    "li={} args={} key_types_0={}.".format(
+                        k, key_types, optional, self.n_optional,
+                        len(args), li, args, key_types_0)) from e
+            onnx_types.append(o)
+
         inputs = list(zip(args, onnx_types))
 
         key_out = self._get_output_types(key)
@@ -322,7 +336,7 @@ class _NDArrayAlias:
         outputs = list(zip(names_out, onnx_types_out))
         optional = self.n_optional - (len(args) - len(inputs))
         if optional < 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "optional cannot be negative %r (self.n_optional=%r, "
                 "len(self.dtypes)=%r, len(inputs)=%r) "
                 "names_in=%r, names_out=%r." % (
