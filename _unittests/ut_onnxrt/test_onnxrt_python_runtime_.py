@@ -580,7 +580,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': x})
         self.assertEqual(
-            list(sorted(got)), ['Y', 'scale', 'bias', 'mean', 'var'])
+            list(sorted(got)), ['Y', 'bias', 'mean', 'scale', 'var'])
         self.assertEqualArray(y, got['Y'])
         self.assertEqualArray(scale, got['scale'])
         self.assertEqualArray(bias, got['bias'])
