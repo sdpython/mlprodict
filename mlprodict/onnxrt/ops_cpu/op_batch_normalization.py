@@ -16,7 +16,8 @@ def _batchnorm_test_mode(x, s, bias, mean, var, epsilon=1e-5):
     bias = bias.reshape(-1, *dim_ones)
     mean = mean.reshape(-1, *dim_ones)
     var = var.reshape(-1, *dim_ones)
-    return s * (x - mean) / numpy.sqrt(var + epsilon) + bias
+    y = s * (x - mean) / numpy.sqrt(var + epsilon) + bias
+    return y.astype(x.dtype)
 
 
 def _batchnorm_training_mode(x, s, bias, mean, var, momentum=0.9,
@@ -28,8 +29,9 @@ def _batchnorm_training_mode(x, s, bias, mean, var, momentum=0.9,
     output_var = var * momentum + saved_var * (1 - momentum)
     y = _batchnorm_test_mode(x, s, bias, saved_mean, saved_var,
                              epsilon=epsilon)
-    return (y.astype(numpy.float32), saved_mean, saved_var,
-            output_mean, output_var)
+    return (y.astype(x.dtype), saved_mean.astype(x.dtype),
+            saved_var.astype(x.dtype), output_mean.astype(x.dtype),
+            output_var.astype(x.dtype))
 
 
 class BatchNormalization_9(OpRun):
