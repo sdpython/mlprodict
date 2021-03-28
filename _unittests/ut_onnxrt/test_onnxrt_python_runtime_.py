@@ -559,6 +559,28 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         python_tested.append(OnnxBatchNormalization)
 
     @wraplog()
+    def test_onnxt_runtime_batch_normalization_training_fct(self):
+        x = numpy.array([[[[-1, 0, 1]], [[2, 3, 4]]]]).astype(numpy.float32)
+        s = numpy.array([1.0, 1.5]).astype(numpy.float32)
+        bias = numpy.array([0, 1]).astype(numpy.float32)
+        mean = numpy.array([0, 3]).astype(numpy.float32)
+        var = numpy.array([1, 1.5]).astype(numpy.float32)
+        y, scale, bias, mean, var = (
+            _batchnorm_training_mode(x, s, bias, mean, var))
+        self.assertEqualArray(
+            numpy.array([[[[-1.2247356, 0., 1.2247356]],
+                          [[-0.8371035, 1., 2.8371034]]]],
+                        dtype=numpy.float32), y)
+        self.assertEqualArray(
+            numpy.array([0., 3.], dtype=numpy.float32), scale)
+        self.assertEqualArray(
+            numpy.array([0.6666667, 0.6666667], dtype=numpy.float32), bias)
+        self.assertEqualArray(
+            numpy.array([0., 2.9999998], dtype=numpy.float32), mean)
+        self.assertEqualArray(
+            numpy.array([0.96666664, 1.4166666], dtype=numpy.float32), var)
+
+    @wraplog()
     @unittest.skipIf(OnnxBatchNormalization_14 is None,
                      reason="onnx too old")
     def test_onnxt_runtime_batch_normalization_training(self):
@@ -581,11 +603,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': x})
         self.assertEqual(
             list(sorted(got)), ['Y', 'bias', 'mean', 'scale', 'var'])
-        self.assertEqualArray(y, got['Y'])
         self.assertEqualArray(scale, got['scale'])
         self.assertEqualArray(bias, got['bias'])
         self.assertEqualArray(mean, got['mean'])
         self.assertEqualArray(var, got['var'])
+        self.assertEqualArray(y, got['Y'])
 
     @wraplog()
     def test_onnxt_runtime_ceil(self):
