@@ -10,6 +10,7 @@ import numpy
 from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx import __max_supported_opset__
 from ..onnxrt import OnnxInference
+from .onnx_version import FctVersion
 from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_variable import OnnxVar
 
@@ -101,7 +102,8 @@ class OnnxNumpyCompiler:
     :param signature: used when the function is not annotated
     :param version: the same function can be instantiated with
         different type, this parameter is None or a numpy type
-        if the signature allows multiple types
+        if the signature allows multiple types, it must an instance
+        of type @see cl FctVersion
     :param fctsig: function used to overwrite the fct signature
         in case this one is using `*args, **kwargs`
 
@@ -110,6 +112,10 @@ class OnnxNumpyCompiler:
 
     def __init__(self, fct, op_version=None, runtime=None, signature=None,
                  version=None, fctsig=None):
+        if version is not None and not isinstance(version, FctVersion):
+            raise TypeError(
+                "version must be of Type 'FctVersion' not %s - %s"
+                "." % (type(version), version))
         self.fctsig = fctsig
         if op_version is None:
             op_version = __max_supported_opset__
@@ -201,7 +207,7 @@ class OnnxNumpyCompiler:
             args, kwargs = self.meta_['args'], self.meta_['kwargs2']
         else:
             args, kwargs = get_args_kwargs(self.fctsig or self.fct_, n_opt)
-        if isinstance(version, tuple):
+        if version is not None:
             nv = len(version) - len(args) - n_opt
             if (signature is not None and not
                     signature.n_variables and nv > len(kwargs)):
@@ -212,7 +218,7 @@ class OnnxNumpyCompiler:
                         len(version), len(args), n_opt, len(kwargs),
                         version, kwargs, self.fct_,
                         signature.n_variables, signature))
-            vvers = version[-len(kwargs):]
+            vvers = version.kwargs
             up = {}
             for k, v in zip(kwargs, vvers):
                 up[k] = v

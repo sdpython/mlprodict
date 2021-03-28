@@ -8,6 +8,7 @@ import inspect
 from collections import OrderedDict
 from typing import TypeVar, Generic
 import numpy
+from .onnx_version import FctVersion
 
 try:
     numpy_bool = numpy.bool_
@@ -260,6 +261,9 @@ class _NDArrayAlias:
             inputs and outputs are tuple, kwargs are the arguments,
             *optional* is the number of optional arguments
         """
+        if not isinstance(version, FctVersion):
+            raise TypeError("Version must be of type 'FctVersion' not "
+                            "%s, version=%s." % (type(version), version))
         if args == ['args', 'kwargs']:
             raise RuntimeError(  # pragma: no cover
                 "Issue with signature %r." % args)
@@ -268,6 +272,12 @@ class _NDArrayAlias:
                 raise RuntimeError(  # pragma: no cover
                     "Default value for argument %r must not be of type %r"
                     "." % (k, v))
+        if (not self.n_variables and
+                len(args) > len(self.dtypes)):
+            raise RuntimeError(
+                "Unexpected number of inputs version=%s.\n"
+                "Given: args=%s dtypes=%s." % (
+                    version, args, self.dtypes))
 
         def _possible_names():
             yield 'y'
@@ -276,56 +286,35 @@ class _NDArrayAlias:
             for i in range(0, 10000):  # pragma: no cover
                 yield 'o%d' % i
 
-        args0, kwargs0 = args, kwargs
-        key = version if isinstance(version, tuple) else (version, )
-        items = list(kwargs.items())
-        key_types_0 = key
-
+        new_kwargs = OrderedDict(
+            (k, v) for k, v in zip(kwargs, version.kwargs or tuple()))
         if self.n_variables:
             # undefined number of inputs
-            ngiven = len(key) - len(items)
-            key_types = key[:ngiven]
-            names = tuple("x%d" % i for i in range(ngiven))
-            args = list(names)
             optional = 0
         else:
-            # self.dtypes: all possible types including optional inputs
-            # args: inputs given when the function is called
-            # kwargs: arguments given when the function is called
-            # key must be split into inputs and arguments
-            max_args = min(len(items), self.n_optional)
-            kw = max(len(items) - max_args, 0)
-            n_inputs = max(len(key) - kw, 0)
-            kwargs = OrderedDict(items[kw:])
-            names = tuple(args[:n_inputs])
-            args = args[:n_inputs]
-            key_types = key[:len(args)] if len(key) > len(args) else key
-            optional = max(self.n_optional - (len(self.dtypes) - len(args)), 0)
-
-        li = len(key_types) + 1
-        for i in range(0, optional):
-            li = len(key_types) - i - 1
-            if li < 0:
-                break
-            if key_types[li] is not None:
-                break
-        key_types = key_types[:li + 1]
+            optional = len(self.dtypes) - len(version.args)
+            if optional > self.n_optional:
+                raise RuntimeError(
+                    "Unexpected number of optional parameters %d, at most "
+                    "%d are expected, version=%s, args=%s, dtypes=%s." % (
+                        optional, self.n_optional, version, args, self.dtypes))
+            optional = self.n_optional - optional
 
         onnx_types = []
-        for k in key_types:
+        for k in version.args:
             try:
                 o = self._to_onnx_dtype(k, None)
             except NotImplementedError as e:
                 raise NotImplementedError(
-                    "Unable to extract type from [{}] in key {}, "
+                    "Unable to extract type from [{}] in version {}, "
                     "optional={} self.n_optional={} len(args)={} "
-                    "li={} args={} key_types_0={} kwargs={}.".format(
-                        k, key_types, optional, self.n_optional,
-                        len(args), li, args, key_types_0, kwargs)) from e
+                    "args={} kwargs={}.".format(
+                        k, version, optional, self.n_optional,
+                        len(args), args, kwargs)) from e
             onnx_types.append(o)
 
-        inputs = list(zip(args, onnx_types))
-        key_out = self._get_output_types(key)
+        inputs = list(zip(args[:len(version.args)], onnx_types))
+        key_out = self._get_output_types(version.args)
         onnx_types_out = [self._to_onnx_dtype(k, None) for k in key_out]
 
         names_out = []
@@ -348,28 +337,19 @@ class _NDArrayAlias:
                     len(inputs), names_in, names_out))
 
         if (not self.n_variables and
-                len(inputs) + len(kwargs) > len(args0) + len(kwargs)):
+                len(inputs) + len(new_kwargs) > len(version)):
             raise RuntimeError(
                 "Mismatch number of inputs and arguments for version=%s.\n"
-                "Given: args0=%s kwargs=%s.\n"
-                "Returned: inputs=%s kwargs=%s.\n" % (
-                    version, args0, kwargs0, inputs, kwargs))
+                "Given: args=%s kwargs=%s.\n"
+                "Returned: inputs=%s new_kwargs=%s.\n" % (
+                    version, args, kwargs, inputs, new_kwargs))
         if not self.n_variables and len(inputs) > len(self.dtypes):
             raise RuntimeError(
                 "Mismatch number of inputs for version=%s.\n"
-                "Given: args0=%s.\n"
+                "Given: args=%s.\n"
                 "Expected: dtypes=%s\n"
                 "Returned: inputs=%s.\n" % (
-                    version, args0, self.dtypes, inputs))
-        if optional > self.n_optional:
-            raise RuntimeError(
-                "Mismatch number of optional inputs=%s.\n"
-                "Given: args0=%s.\n"
-                "Expected: dtypes=%s\n"
-                "Returned: inputs=%s.\n"
-                "Optional: %d > %d." % (
-                    version, args0, self.dtypes, inputs,
-                    optional, self.n_optional))
+                    version, args, self.dtypes, inputs))
         return inputs, kwargs, outputs, optional
 
     def shape_calculator(self, dims):
