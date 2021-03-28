@@ -608,6 +608,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(mean, got['mean'])
         # self.assertEqualArray(var, got['var'])
         # self.assertEqualArray(y, got['Y'])
+        self.assertNotEmpty(y)
+        self.assertNotEmpty(var)
 
     @wraplog()
     def test_onnxt_runtime_ceil(self):
