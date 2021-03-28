@@ -297,7 +297,7 @@ class OnnxNumpyCompiler:
                 signature=signature, version=version)
             if ((signature is None or not signature.n_variables) and
                     isinstance(version, tuple) and
-                    len(inputs) < len(version) - len(kwargs) - n_optional):
+                    len(inputs) > len(version)):
                 raise NotImplementedError(  # pragma: no cover
                     "Mismatch between additional parameters %r "
                     "(n_optional=%r) and version %r for function %r from %r."

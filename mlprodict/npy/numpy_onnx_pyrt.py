@@ -185,7 +185,7 @@ def det(x):
     return nx_det(x)
 
 
-@onnxnumpy_np(signature=NDArrayType("all", "all"))
+@onnxnumpy_np(signature=NDArrayType(("T:all", "T")))
 def dot(a, b):
     "dot"
     return nx_dot(a, b)

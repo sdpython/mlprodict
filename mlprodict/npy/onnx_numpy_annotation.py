@@ -256,8 +256,9 @@ class _NDArrayAlias:
         :param args: list of arguments
         :param kwargs: list of optional arguments
         :param version: required version
-        :return: *tuple(inputs, outputs, n_input_range)*,
-            each of them is a list of tuple with the name and the dtype
+        :return: *tuple(inputs, kwargs, outputs, optional)*,
+            inputs and outputs are tuple, kwargs are the arguments,
+            *optional* is the number of optional arguments
         """
         if args == ['args', 'kwargs']:
             raise RuntimeError(  # pragma: no cover
@@ -275,27 +276,33 @@ class _NDArrayAlias:
             for i in range(0, 10000):  # pragma: no cover
                 yield 'o%d' % i
 
+        args0, kwargs0 = args, kwargs
         key = version if isinstance(version, tuple) else (version, )
         items = list(kwargs.items())
+        key_types_0 = key
 
         if self.n_variables:
+            # undefined number of inputs
             ngiven = len(key) - len(items)
             key_types = key[:ngiven]
             names = tuple("x%d" % i for i in range(ngiven))
             args = list(names)
+            optional = 0
         else:
-            names = tuple(args)
-            kw = 0
-            while len(names) < len(self.dtypes):
-                names = names + (items[kw][0], )
-                kw += 1
+            # self.dtypes: all possible types including optional inputs
+            # args: inputs given when the function is called
+            # kwargs: arguments given when the function is called
+            # key must be split into inputs and arguments
+            max_args = min(len(items), self.n_optional)
+            kw = max(len(items) - max_args, 0)
+            n_inputs = max(len(key) - kw, 0)
             kwargs = OrderedDict(items[kw:])
-            args = list(names)
+            names = tuple(args[:n_inputs])
+            args = args[:n_inputs]
             key_types = key[:len(args)] if len(key) > len(args) else key
+            optional = max(self.n_optional - (len(self.dtypes) - len(args)), 0)
 
-        key_types_0 = key_types
         li = len(key_types) + 1
-        optional = self.n_optional - (len(args) - len(key_types))
         for i in range(0, optional):
             li = len(key_types) - i - 1
             if li < 0:
@@ -304,22 +311,20 @@ class _NDArrayAlias:
                 break
         key_types = key_types[:li + 1]
 
-        n_inputs = len(key_types)  # - optional
         onnx_types = []
-        for k in key_types[:n_inputs]:
+        for k in key_types:
             try:
                 o = self._to_onnx_dtype(k, None)
             except NotImplementedError as e:
                 raise NotImplementedError(
                     "Unable to extract type from [{}] in key {}, "
                     "optional={} self.n_optional={} len(args)={} "
-                    "li={} args={} key_types_0={}.".format(
+                    "li={} args={} key_types_0={} kwargs={}.".format(
                         k, key_types, optional, self.n_optional,
-                        len(args), li, args, key_types_0)) from e
+                        len(args), li, args, key_types_0, kwargs)) from e
             onnx_types.append(o)
 
         inputs = list(zip(args, onnx_types))
-
         key_out = self._get_output_types(key)
         onnx_types_out = [self._to_onnx_dtype(k, None) for k in key_out]
 
@@ -334,7 +339,6 @@ class _NDArrayAlias:
             names_in.add(name_out)
 
         outputs = list(zip(names_out, onnx_types_out))
-        optional = self.n_optional - (len(args) - len(inputs))
         if optional < 0:
             raise RuntimeError(  # pragma: no cover
                 "optional cannot be negative %r (self.n_optional=%r, "
@@ -342,6 +346,30 @@ class _NDArrayAlias:
                 "names_in=%r, names_out=%r." % (
                     optional, self.n_optional, len(self.dtypes),
                     len(inputs), names_in, names_out))
+
+        if (not self.n_variables and
+                len(inputs) + len(kwargs) > len(args0) + len(kwargs)):
+            raise RuntimeError(
+                "Mismatch number of inputs and arguments for version=%s.\n"
+                "Given: args0=%s kwargs=%s.\n"
+                "Returned: inputs=%s kwargs=%s.\n" % (
+                    version, args0, kwargs0, inputs, kwargs))
+        if not self.n_variables and len(inputs) > len(self.dtypes):
+            raise RuntimeError(
+                "Mismatch number of inputs for version=%s.\n"
+                "Given: args0=%s.\n"
+                "Expected: dtypes=%s\n"
+                "Returned: inputs=%s.\n" % (
+                    version, args0, self.dtypes, inputs))
+        if optional > self.n_optional:
+            raise RuntimeError(
+                "Mismatch number of optional inputs=%s.\n"
+                "Given: args0=%s.\n"
+                "Expected: dtypes=%s\n"
+                "Returned: inputs=%s.\n"
+                "Optional: %d > %d." % (
+                    version, args0, self.dtypes, inputs,
+                    optional, self.n_optional))
         return inputs, kwargs, outputs, optional
 
     def shape_calculator(self, dims):
