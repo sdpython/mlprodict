@@ -8,6 +8,7 @@ from onnx.helper import make_tensor
 from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx.common._apply_operation import apply_concat, apply_identity
 from ...tools.onnx2py_helper import _var_as_dict, guess_proto_dtype
+from ...npy.onnx_version import FctVersion
 
 
 def new_calculate_sklearn_function_transformer_output_shapes(operator):
@@ -19,7 +20,7 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
     fct = operator.raw_operator.func
     if hasattr(fct, 'signed_compiled'):
         dtype = guess_numpy_type(operator.inputs[0].type)
-        fct = fct[dtype]
+        fct = fct[FctVersion((dtype, ), None)]
     if hasattr(fct, 'compiled'):
         compiled = fct.compiled
         if not hasattr(compiled, 'onnx_'):
@@ -94,7 +95,7 @@ def new_convert_sklearn_function_transformer(scope, operator, container):
     fct = op.func
     if hasattr(fct, 'signed_compiled'):
         dtype = guess_numpy_type(operator.inputs[0].type)
-        fct = fct[dtype]
+        fct = fct[FctVersion((dtype, ), None)]
     if hasattr(fct, 'compiled'):
         compiled = fct.compiled
         if not hasattr(compiled, 'onnx_'):
