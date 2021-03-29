@@ -288,7 +288,8 @@ class OnnxNumpyCompiler:
                         break
                 outputs.append((name_out, dtype))
                 names_none.add(name_out)
-            return inputs, outputs, kwargs, 0, n_variables
+            return (inputs, outputs, kwargs, 0,
+                    signature.n_variables if signature is not None else False)
 
         # single outputs
         shape, dtype = ret.__args__
