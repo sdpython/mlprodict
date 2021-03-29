@@ -5,7 +5,6 @@
 import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx.common._topology import Variable
 from mlprodict.npy.onnx_version import FctVersion
 
 
@@ -30,8 +29,8 @@ class TestOnnxVersion(ExtTestCase):
         self.assertEqual(repr(version), "FctVersion((numpy.float32,), None)")
 
     def test_version_exc(self):
-        self.assertRaise(lambda: FctVersion([], None), TypeError)
-        self.assertRaise(lambda: FctVersion(None, []), TypeError)
+        self.assertRaise(lambda: FctVersion([], None)._check_(), TypeError)
+        self.assertRaise(lambda: FctVersion(None, [])._check_(), TypeError)
         version = FctVersion(None, None)
 
         def do(v):

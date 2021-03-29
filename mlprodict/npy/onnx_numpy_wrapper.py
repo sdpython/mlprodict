@@ -155,17 +155,11 @@ class wrapper_onnxnumpy_np:
             of the function
         :return: instance of @see cl wrapper_onnxnumpy
         """
-        if isinstance(dtype, dict):
-            if len(self.args) == 0:
-                raise RuntimeError(  # pragma: no cover
-                    "Signature does not have any arguments, use directly dtypes.")
-            others = tuple(dtype.get(k, self.kwargs[k]) for k in self.kwargs)
-            inkey = (dtype['dtype_onnx']
-                     if isinstance(dtype['dtype_onnx'], tuple)
-                     else (dtype['dtype_onnx'], ))
-            key = inkey + others
-            self._populate(key)
-        elif dtype not in self.signed_compiled:
+        if not isinstance(dtype, FctVersion):
+            raise TypeError(
+                "dtype must be of type 'FctVersion' not %s: %s." % (
+                    type(dtype), dtype))
+        if dtype not in self.signed_compiled:
             self._populate(dtype)
             key = dtype
         else:

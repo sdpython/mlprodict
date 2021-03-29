@@ -8,6 +8,7 @@ from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.npy.onnx_version import FctVersion
 import mlprodict.npy.numpy_onnx_pyrt_skl as nxnpyskl
 from onnxruntime import __version__ as ort_version
 
@@ -21,7 +22,7 @@ class TestNumpyOnnxFunctionSkl(ExtTestCase):
         if not isinstance(key, tuple):
             key = (key, )
         model = model_class().fit(X, y)
-        key = key + (model, )
+        key = FctVersion(key, (model, ))
         expected = model.predict(x), model.predict_proba(x)
         got = nxfct(x, model=model)
         self.assertIn(key, nxfct.signed_compiled)

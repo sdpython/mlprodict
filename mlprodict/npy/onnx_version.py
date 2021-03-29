@@ -6,25 +6,19 @@
 """
 from collections import namedtuple
 
-_version_ = namedtuple("_version_", ['args', 'kwargs'])
 
-
-class FctVersion(_version_):
+class FctVersion(namedtuple("_version_", ['args', 'kwargs'])):
     """
     Identifies a version of a function based on its
     arguments and its parameters.
     """
+    __slots__ = ()
 
-    def __init__(self, args, kwargs):
-        if args is None:
-            args = tuple()
-        if kwargs is None:
-            kwargs = tuple()
-        if not isinstance(args, tuple):
-            raise TypeError("args must be a tuple.")
-        if not isinstance(kwargs, tuple):
-            raise TypeError("kwargs must be a tuple.")
-        _version_.__init__(args, kwargs)
+    def _check_(self):
+        if self.args is not None and not isinstance(self.args, tuple):
+            raise TypeError("args must be None or a tuple.")
+        if self.kwargs is not None and not isinstance(self.kwargs, tuple):
+            raise TypeError("kwargs must None or be a tuple.")
 
     def __repr__(self):
         "usual"

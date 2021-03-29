@@ -59,7 +59,7 @@ class TestOnnxPy(ExtTestCase):
     def test_annotation(self):
         cl = ONC(TestOnnxPy.onnx_abs, op_version=12)
         ann = cl._parse_annotation(None, None)  # pylint: disable=W0212
-        inputs, outputs, _, __ = ann
+        inputs, outputs, _, __, ___ = ann
         self.assertIsInstance(inputs, list)
         self.assertIsInstance(outputs, list)
         self.assertEqual(len(inputs), 1)
@@ -76,7 +76,7 @@ class TestOnnxPy(ExtTestCase):
     def test_annotation_shape(self):
         cl = ONC(TestOnnxPy.onnx_abs_shape, op_version=12)
         ann = cl._parse_annotation(None, None)  # pylint: disable=W0212
-        inputs, outputs, _, __ = ann
+        inputs, outputs, _, __, ___ = ann
         self.assertIsInstance(inputs, list)
         self.assertIsInstance(outputs, list)
         self.assertEqual(len(inputs), 1)

@@ -8,7 +8,7 @@ import numpy
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.linear_model import LinearRegression
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
-from skl2onnx.common._topology import Variable
+from skl2onnx.common._topology import Variable  # pylint: disable=E0001, E0611
 from mlprodict.npy.onnx_version import FctVersion
 from mlprodict.npy.onnx_sklearn_wrapper import (
     _common_shape_calculator_t, _common_shape_calculator_int_t,
@@ -144,14 +144,8 @@ class TestWrappers(ExtTestCase):
              FctVersion((i64, ), None)),
             (NDArrayType(("bool", "T:all"), dtypes_out=('T',)), ['X', 'C'],
              {}, FctVersion((bbb, f32), None)),
-            (NDArrayType("all", nvars=True), ['X', 'Y'], {},
-             FctVersion((f32, f32), None)),
-            # 5
-            (NDArrayType("all", nvars=True), ['X', 'Y', 'Z'], {},
-             FctVersion((f32, f32, f32), None)),
             (NDArrayType(("all", "ints")), ['X', 'I'], {},
              FctVersion((f32, i64), None)),
-            # 7
             (NDArrayType("T:all", "T"), ['X'], {},
              FctVersion((f32, ), None)),
             (NDArrayTypeSameShape("all_bool"), ['B'], {},
@@ -160,7 +154,6 @@ class TestWrappers(ExtTestCase):
              ['X', 'I'], {}, FctVersion((f32, i64), None)),
         ]
         expected = [
-            # 0
             ("[('X', FloatTensorType(shape=[]))]",
              "[('y', FloatTensorType(shape=[]))]"),
             ("[('X', FloatTensorType(shape=[]))]",
@@ -169,14 +162,8 @@ class TestWrappers(ExtTestCase):
              "[('y', Int64TensorType(shape=[]))]"),
             ("[('X', BooleanTensorType(shape=[])), ('C', FloatTensorType(shape=[]))]",
              "[('y', FloatTensorType(shape=[]))]"),
-            ("[('X', FloatTensorType(shape=[])), ('Y', FloatTensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]"),
-            # 5
-            (("[('X', FloatTensorType(shape=[])), ('Y', FloatTensorType(shape=[])), "
-              "('Z', FloatTensorType(shape=[]))]"), "[('y', FloatTensorType(shape=[]))]"),
             ("[('X', FloatTensorType(shape=[])), ('I', Int64TensorType(shape=[]))]",
              "[('y', FloatTensorType(shape=[]))]"),
-            # 7
             ("[('X', FloatTensorType(shape=[]))]",
              "[('y', FloatTensorType(shape=[]))]"),
             ("[('B', BooleanTensorType(shape=[]))]",
@@ -187,13 +174,41 @@ class TestWrappers(ExtTestCase):
         self.assertEqual(len(expected), len(sigs))
         for i, (sigt, expe) in enumerate(zip(sigs, expected)):  # pylint: disable=W0612
             sig, args, kwargs, version = sigt
-            inputs, kwargs, outputs, optional = sig.get_inputs_outputs(
+            inputs, kwargs, outputs, optional, n_vars = sig.get_inputs_outputs(
                 args, kwargs, version)
             self.assertEqual(optional, 0)
             self.assertIsInstance(kwargs, (OrderedDict, dict))
             si, so = expe
             self.assertEqual(si, str(inputs))
             self.assertEqual(so, str(outputs))
+            self.assertEqual(n_vars, False)
+
+    def test_signature_nvars(self):
+        # sig, args, kwargs, version
+        f32 = numpy.float32
+        sigs = [
+            (NDArrayType("all", nvars=True), ['X', 'Y', 'Z'], {},
+             FctVersion((f32, f32, f32), None)),
+            (NDArrayType("all", nvars=True), ['X', 'Y'], {},
+             FctVersion((f32, f32), None)),
+        ]
+        expected = [
+            (("[('X', FloatTensorType(shape=[])), ('Y', FloatTensorType(shape=[])), "
+              "('Z', FloatTensorType(shape=[]))]"), "[('y', FloatTensorType(shape=[]))]"),
+            ("[('X', FloatTensorType(shape=[])), ('Y', FloatTensorType(shape=[]))]",
+             "[('y', FloatTensorType(shape=[]))]"),
+        ]
+        self.assertEqual(len(expected), len(sigs))
+        for i, (sigt, expe) in enumerate(zip(sigs, expected)):  # pylint: disable=W0612
+            sig, args, kwargs, version = sigt
+            inputs, kwargs, outputs, optional, n_vars = sig.get_inputs_outputs(
+                args, kwargs, version)
+            self.assertEqual(optional, 0)
+            self.assertIsInstance(kwargs, (OrderedDict, dict))
+            si, so = expe
+            self.assertEqual(si, str(inputs))
+            self.assertEqual(so, str(outputs))
+            self.assertEqual(n_vars, 1)
 
     def test_signature_optional1(self):
         # sig, args, kwargs, version
@@ -215,13 +230,14 @@ class TestWrappers(ExtTestCase):
         self.assertEqual(len(expected), len(sigs))
         for i, (sigt, expe) in enumerate(zip(sigs, expected)):  # pylint: disable=W0612
             sig, args, kwargs, version = sigt
-            inputs, kwargs, outputs, optional = sig.get_inputs_outputs(
+            inputs, kwargs, outputs, optional, n_vars = sig.get_inputs_outputs(
                 args, kwargs, version)
             self.assertIsInstance(kwargs, (OrderedDict, dict))
             si, so, opt = expe
             self.assertEqual(optional, opt)
             self.assertEqual(si, str(inputs))
             self.assertEqual(so, str(outputs))
+            self.assertEqual(n_vars, 0)
 
     def test_signature_optional2(self):
         # sig, args, kwargs, version
@@ -247,13 +263,14 @@ class TestWrappers(ExtTestCase):
         self.assertEqual(len(expected), len(sigs))
         for i, (sigt, expe) in enumerate(zip(sigs, expected)):  # pylint: disable=W0612
             sig, args, kwargs, version = sigt
-            inputs, kwargs, outputs, optional = sig.get_inputs_outputs(
+            inputs, kwargs, outputs, optional, n_vars = sig.get_inputs_outputs(
                 args, kwargs, version)
             self.assertIsInstance(kwargs, (OrderedDict, dict))
             si, so, opt = expe
             self.assertEqual(optional, opt)
             self.assertEqual(si, str(inputs))
             self.assertEqual(so, str(outputs))
+            self.assertEqual(n_vars, 0)
 
     def test_signature_optional3_kwargs(self):
         # sig, args, kwargs, version
@@ -282,13 +299,14 @@ class TestWrappers(ExtTestCase):
         self.assertEqual(len(expected), len(sigs))
         for i, (sigt, expe) in enumerate(zip(sigs, expected)):  # pylint: disable=W0612
             sig, args, kwargs, version = sigt
-            inputs, kwargs, outputs, optional = sig.get_inputs_outputs(
+            inputs, kwargs, outputs, optional, n_vars = sig.get_inputs_outputs(
                 args, kwargs, version)
             self.assertIsInstance(kwargs, (OrderedDict, dict))
             si, so, opt = expe
             self.assertEqual(optional, opt)
             self.assertEqual(si, str(inputs))
             self.assertEqual(so, str(outputs))
+            self.assertEqual(n_vars, 0)
 
     def test_signature_optional_errors_runtime(self):
         # sig, args, kwargs, version
@@ -306,7 +324,7 @@ class TestWrappers(ExtTestCase):
         for i, sigt in enumerate(sigs):  # pylint: disable=W0612
             sig, args, kwargs, version = sigt
             self.assertRaise(
-                lambda: sig.get_inputs_outputs(args, kwargs, version),
+                lambda: sig.get_inputs_outputs(args, kwargs, version),  # pylint: disable=W0640
                 RuntimeError)
 
     def test_signature_optional_errors_type(self):
@@ -320,7 +338,7 @@ class TestWrappers(ExtTestCase):
         for i, sigt in enumerate(sigs):  # pylint: disable=W0612
             sig, args, kwargs, version = sigt
             self.assertRaise(
-                lambda: sig.get_inputs_outputs(args, kwargs, version),
+                lambda: sig.get_inputs_outputs(args, kwargs, version),  # pylint: disable=W0640
                 TypeError)
 
     def test_signature_optional3_kwargs_more(self):
@@ -339,13 +357,14 @@ class TestWrappers(ExtTestCase):
         self.assertEqual(len(expected), len(sigs))
         for i, (sigt, expe) in enumerate(zip(sigs, expected)):  # pylint: disable=W0612
             sig, args, kwargs, version = sigt
-            inputs, kwargs, outputs, optional = sig.get_inputs_outputs(
+            inputs, kwargs, outputs, optional, n_vars = sig.get_inputs_outputs(
                 args, kwargs, version)
             self.assertIsInstance(kwargs, (OrderedDict, dict))
             si, so, opt = expe
             self.assertEqual(optional, opt)
             self.assertEqual(si, str(inputs))
             self.assertEqual(so, str(outputs))
+            self.assertEqual(n_vars, 0)
 
 
 if __name__ == "__main__":

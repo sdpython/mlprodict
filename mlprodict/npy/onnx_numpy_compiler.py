@@ -23,12 +23,14 @@ class OnnxNumpyFunction:
     .. versionadded:: 0.6
     """
 
-    def __init__(self, compiler, rt, inputs, outputs, n_optional):
+    def __init__(self, compiler, rt, inputs, outputs,
+                 n_optional, n_variables):
         self.compiler = compiler
         self.inputs = inputs
         self.outputs = outputs
         self.rt = rt
         self.n_optional = n_optional
+        self.n_variables = n_variables
         if n_optional < 0:
             raise RuntimeError(  # pragma: no cover
                 "Wrong configuration, n_optional %r must be >= 0."
@@ -39,12 +41,17 @@ class OnnxNumpyFunction:
                 "the number of inputs." % (n_optional, len(inputs)))
 
     def _check_(self, *args, **kwargs):
+        if self.n_variables > 0:
+            return
         if (len(args) < len(self.inputs) - self.n_optional or
                 len(args) > len(self.inputs)):
             raise RuntimeError(  # pragma: no cover
-                "Unexpected number of inputs %d. It should be in [%r, %r]." % (
+                "Unexpected number of inputs %d. It should be in "
+                "[%r, %r] len(args)=%d n_optional=%d n_variables=%d"
+                "\nargs=%s\nkwargs=%s\ninputs=%s" % (
                     len(args), len(self.inputs) - self.n_optional,
-                    len(self.inputs)))
+                    len(args), self.n_optional, self.n_variables,
+                    len(self.inputs), args, kwargs, self.inputs))
 
 
 class OnnxNumpyFunctionOnnxInference(OnnxNumpyFunction):
@@ -135,14 +142,15 @@ class OnnxNumpyCompiler:
         self.runtime_ = self._build_runtime(
             op_version=op_version, runtime=runtime,
             signature=signature, version=version)
-        inputs, outputs, kwargs, n_input_range = self._parse_annotation(
-            signature=signature, version=version)
+        ann = self._parse_annotation(signature=signature, version=version)
+        inputs, outputs, kwargs, n_optional, n_variables = ann
         n_opt = 0 if signature is None else signature.n_optional
         args, kwargs2 = get_args_kwargs(self.fctsig or self.fct_, n_opt)
         self.meta_ = dict(op_version=op_version, runtime=runtime,
                           signature=signature, version=version,
                           inputs=inputs, outputs=outputs,
-                          kwargs=kwargs, n_input_range=n_input_range,
+                          kwargs=kwargs, n_optional=n_optional,
+                          n_variables=n_variables,
                           args=args, kwargs2=kwargs2,
                           annotations=self.fct_.__annotations__)
 
@@ -218,7 +226,7 @@ class OnnxNumpyCompiler:
                         len(version), len(args), n_opt, len(kwargs),
                         version, kwargs, self.fct_,
                         signature.n_variables, signature))
-            vvers = version.kwargs
+            vvers = {} if version.kwargs is None else version.kwargs
             up = {}
             for k, v in zip(kwargs, vvers):
                 up[k] = v
@@ -232,9 +240,9 @@ class OnnxNumpyCompiler:
                         k, v, kwargs))
 
         if signature is not None:
-            inputs, kwargs, outputs, n_optional = (
+            inputs, kwargs, outputs, n_optional, n_variables = (
                 signature.get_inputs_outputs(args, kwargs, version))
-            return inputs, outputs, kwargs, n_optional
+            return inputs, outputs, kwargs, n_optional, n_variables
 
         def _possible_names():
             yield 'y'
@@ -280,7 +288,7 @@ class OnnxNumpyCompiler:
                         break
                 outputs.append((name_out, dtype))
                 names_none.add(name_out)
-            return inputs, outputs, kwargs, 0
+            return inputs, outputs, kwargs, 0, n_variables
 
         # single outputs
         shape, dtype = ret.__args__
@@ -292,15 +300,17 @@ class OnnxNumpyCompiler:
                 name_out = name
                 break
         outputs.append((name_out, dtype))
-        return inputs, outputs, kwargs, 0
+        return (inputs, outputs, kwargs, 0,
+                signature.n_variables if signature is not None else False)
 
     def _to_onnx(self, op_version=None, signature=None, version=None):
         """
         Returns the onnx graph produced by function `fct_`.
         """
         if self.onnx_ is None and self.fct_ is not None:
-            inputs, outputs, kwargs, n_optional = self._parse_annotation(  # pylint: disable=W0612
-                signature=signature, version=version)
+            inputs, outputs, kwargs, n_optional, n_variables = (  # pylint: disable=W0612
+                self._parse_annotation(
+                    signature=signature, version=version))
             if ((signature is None or not signature.n_variables) and
                     isinstance(version, tuple) and
                     len(inputs) > len(version)):
@@ -358,17 +368,19 @@ class OnnxNumpyCompiler:
         """
         onx = self._to_onnx(op_version=op_version, signature=signature,
                             version=version)
-        inputs, outputs, _, n_optional = self._parse_annotation(
+        inputs, outputs, _, n_optional, n_variables = self._parse_annotation(
             signature=signature, version=version)
         if runtime != 'onnxruntime':
             rt = OnnxInference(onx, runtime=runtime)
             self.rt_fct_ = OnnxNumpyFunctionOnnxInference(
-                self, rt, inputs, outputs, n_optional)
+                self, rt, inputs=inputs, outputs=outputs,
+                n_optional=n_optional, n_variables=n_variables)
         else:
             from onnxruntime import InferenceSession
             rt = InferenceSession(onx.SerializeToString())
             self.rt_fct_ = OnnxNumpyFunctionInferenceSession(
-                self, rt, inputs, outputs, n_optional)
+                self, rt, inputs=inputs, outputs=outputs,
+                n_optional=n_optional, n_variables=n_variables)
         return self.rt_fct_
 
     def __call__(self, *args, **kwargs):

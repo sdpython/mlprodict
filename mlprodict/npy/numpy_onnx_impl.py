@@ -102,12 +102,24 @@ def arange(start, stop, step=1):
 
 
 def argmax(x, axis=0, keepdims=0):
-    "See :epkg:`numpy:argmax`."
+    """
+    See :epkg:`numpy:argmax`.
+    .. warning:: ONNX does not implement default value axis=None.
+    """
+    if axis is None:
+        raise NotImplementedError(
+            "ONNX do not allows axis=None.")
     return OnnxVar(x, op=OnnxArgMax, axis=axis, keepdims=keepdims)
 
 
 def argmin(x, axis=0, keepdims=0):
-    "See :epkg:`numpy:argmin`."
+    """
+    See :epkg:`numpy:argmin`.
+    .. warning:: ONNX does not implement default value axis=None.
+    """
+    if axis is None:
+        raise NotImplementedError(
+            "ONNX do not allows axis=None.")
     return OnnxVar(x, op=OnnxArgMin, axis=axis, keepdims=keepdims)
 
 

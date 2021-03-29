@@ -314,6 +314,13 @@ class _NDArrayAlias:
             onnx_types.append(o)
 
         inputs = list(zip(args[:len(version.args)], onnx_types))
+        if self.n_variables and len(inputs) < len(version.args):
+            # Complete the list of inputs
+            last_name = inputs[-1][0]
+            while len(inputs) < len(onnx_types):
+                inputs.append(('%s%d' % (last_name, len(inputs)),
+                               onnx_types[len(inputs)]))
+
         key_out = self._get_output_types(version.args)
         onnx_types_out = [self._to_onnx_dtype(k, None) for k in key_out]
 
@@ -350,7 +357,8 @@ class _NDArrayAlias:
                 "Expected: dtypes=%s\n"
                 "Returned: inputs=%s.\n" % (
                     version, args, self.dtypes, inputs))
-        return inputs, kwargs, outputs, optional
+
+        return inputs, kwargs, outputs, optional, self.n_variables
 
     def shape_calculator(self, dims):
         """
