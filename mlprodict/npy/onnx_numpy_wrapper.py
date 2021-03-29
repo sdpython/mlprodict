@@ -5,6 +5,7 @@
 .. versionadded:: 0.6
 """
 import warnings
+from .onnx_version import FctVersion
 from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_numpy_compiler import OnnxNumpyCompiler
 
@@ -154,17 +155,11 @@ class wrapper_onnxnumpy_np:
             of the function
         :return: instance of @see cl wrapper_onnxnumpy
         """
-        if isinstance(dtype, dict):
-            if len(self.args) == 0:
-                raise RuntimeError(  # pragma: no cover
-                    "Signature does not have any arguments, use directly dtypes.")
-            others = tuple(dtype.get(k, self.kwargs[k]) for k in self.kwargs)
-            inkey = (dtype['dtype_onnx']
-                     if isinstance(dtype['dtype_onnx'], tuple)
-                     else (dtype['dtype_onnx'], ))
-            key = inkey + others
-            self._populate(key)
-        elif dtype not in self.signed_compiled:
+        if not isinstance(dtype, FctVersion):
+            raise TypeError(
+                "dtype must be of type 'FctVersion' not %s: %s." % (
+                    type(dtype), dtype))
+        if dtype not in self.signed_compiled:
             self._populate(dtype)
             key = dtype
         else:
@@ -177,12 +172,15 @@ class wrapper_onnxnumpy_np:
         tensor in *args* defines the templated version of the function
         to convert into *ONNX*.
         """
-        key = tuple(a if (a is None or hasattr(a, 'fit'))
-                    else a.dtype.type for a in args)
         if len(self.kwargs) == 0:
-            return self[key](*args)
-        others = tuple(kwargs.get(k, self.kwargs[k]) for k in self.kwargs)
-        return self[key + others](*args)
+            others = None
+        else:
+            others = tuple(kwargs.get(k, self.kwargs[k]) for k in self.kwargs)
+        key = FctVersion(
+            tuple(a if (a is None or hasattr(a, 'fit'))
+                  else a.dtype.type for a in args),
+            others)
+        return self[key](*args)
 
     def _populate(self, version):
         """
@@ -194,7 +192,7 @@ class wrapper_onnxnumpy_np:
             version=version, fctsig=self.data.get('fctsig', None))
         name = "onnxnumpy_np_%s_%s_%s_%s" % (
             self.data["fct"].__name__, str(self.data["op_version"]),
-            self.data["runtime"], str(version).split('.')[-1])
+            self.data["runtime"], version.as_string())
         newclass = type(
             name, (wrapper_onnxnumpy,),
             {'__doc__': self.data["fct"].__doc__, '__name__': name})

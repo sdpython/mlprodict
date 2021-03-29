@@ -390,6 +390,8 @@ class TestOnnxVariable(ExtTestCase):
         self.assertEqual(test_abs.__doc__, "onnx numpy abs")
         self.assertTrue(hasattr(test_abs, 'compiled'))
         self.assertIsInstance(test_abs.compiled, ONC)
+        rep = repr(test_abs.compiled)
+        self.assertStartsWith("OnnxNumpyCompiler(", rep)
 
     def test_py_abs_add(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)

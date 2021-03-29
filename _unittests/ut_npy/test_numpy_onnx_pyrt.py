@@ -9,8 +9,9 @@ from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper import compare_module_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_pad import onnx_pad
-import mlprodict.npy.numpy_onnx_pyrt as nxnpy
+from mlprodict.npy.onnx_version import FctVersion
 from onnxruntime import __version__ as ort_version
+import mlprodict.npy.numpy_onnx_pyrt as nxnpy
 
 
 try:
@@ -24,6 +25,8 @@ class TestNumpyOnnxFunction(ExtTestCase):
     def common_test1(self, x, npfct, nxfct, key, dtype_out=None, ort=True, **kwargs):
         if not isinstance(key, tuple):
             key = (key, )
+        if not isinstance(key, FctVersion):
+            key = FctVersion(key, None)
         expected = npfct(x, **kwargs)
         got = nxfct(x, **kwargs)
         self.assertIn(key, nxfct.signed_compiled)
@@ -42,7 +45,12 @@ class TestNumpyOnnxFunction(ExtTestCase):
             self.assertEqualArray(expected, got2, decimal=6)
 
     def common_testn(self, xs, npfct, nxfct, key, ort=True, **kwargs):
-        xts = list(xs)
+        if not isinstance(key, FctVersion):
+            key = FctVersion(key, None)
+        if isinstance(xs, numpy.ndarray):
+            xts = [xs]
+        else:
+            xts = xs
         expected = npfct(*xts, **kwargs)
         got = nxfct(*xts, **kwargs)
         self.assertIn(key, nxfct.signed_compiled)
@@ -76,18 +84,16 @@ class TestNumpyOnnxFunction(ExtTestCase):
         for kw in kwargs:
             with self.subTest(kw=kw):
                 x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
-                self.common_test1(x, numpy.amax, nxnpy.amax,
-                                  (numpy.float32, kw.get('axis', None), 0),
-                                  **kw)
+                sig = FctVersion((numpy.float32, ), (kw.get('axis', None), 0))
+                self.common_test1(x, numpy.amax, nxnpy.amax, sig, **kw)
 
     def test_amin_float32(self):
         kwargs = [{'axis': 0}, {}, {'axis': 1}]
         for kw in kwargs:
             with self.subTest(kw=kw):
                 x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
-                self.common_test1(x, numpy.amin, nxnpy.amin,
-                                  (numpy.float32, kw.get('axis', None), 0),
-                                  **kw)
+                sig = FctVersion((numpy.float32, ), (kw.get('axis', None), 0))
+                self.common_test1(x, numpy.amin, nxnpy.amin, sig, **kw)
 
     def test_arange_float32(self):
         kwargs = [{}, {'step': 1}]
@@ -95,26 +101,27 @@ class TestNumpyOnnxFunction(ExtTestCase):
             with self.subTest(kw=kw):
                 begin = numpy.array([5], dtype=numpy.int64)
                 stop = numpy.array([10 * kw.get('step', 1)], dtype=numpy.int64)
-                self.common_testn((begin, stop), numpy.arange, nxnpy.arange,
-                                  (numpy.int64, numpy.int64, 1), **kw)
+                sig = FctVersion((numpy.int64, numpy.int64), (1, ))
+                self.common_testn(
+                    (begin, stop), numpy.arange, nxnpy.arange, sig, **kw)
 
     def test_argmax_float32(self):
         kwargs = [{'axis': 0}, {'axis': 1}]
         for kw in kwargs:
             with self.subTest(kw=kw):
                 x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
-                self.common_test1(x, numpy.argmax, nxnpy.argmax,
-                                  (numpy.float32, kw.get('axis', 0), 0),
-                                  **kw)
+                sig = FctVersion((numpy.float32, ), (kw.get('axis', 0), 0))
+                self.common_test1(
+                    x, numpy.argmax, nxnpy.argmax, sig, **kw)
 
     def test_argmin_float32(self):
-        kwargs = [{'axis': 0}, {'axis': 1}, {}]
+        kwargs = [{'axis': 0}, {'axis': 1}]
         for kw in kwargs:
             with self.subTest(kw=kw):
                 x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
-                self.common_test1(x, numpy.argmin, nxnpy.argmin,
-                                  (numpy.float32, kw.get('axis', 0), 0),
-                                  **kw)
+                sig = FctVersion((numpy.float32, ), (kw.get('axis', 0), 0))
+                self.common_testn(
+                    x, numpy.argmin, nxnpy.argmin, sig, **kw)
 
     def test_asin_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
@@ -170,15 +177,17 @@ class TestNumpyOnnxFunction(ExtTestCase):
             with self.subTest(axis=a):
                 x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
                 cond = numpy.array([False, True])
-                self.common_testn((cond, x), numpy.compress, nxnpy.compress,
-                                  (numpy_bool, numpy.float32, a), axis=a)
+                self.common_testn(
+                    (cond, x), numpy.compress, nxnpy.compress,
+                    FctVersion((numpy_bool, numpy.float32), (a, )), axis=a)
 
     def test_concat_float32(self):
         npc = lambda *x, axis=None: numpy.vstack(x)
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
-        self.common_testn((x, x), npc, nxnpy.concat,  # pylint: disable=E1101
-                          (numpy.float32, numpy.float32, 0),
-                          axis=0)
+        self.common_testn(
+            (x, x), npc, nxnpy.concat,  # pylint: disable=E1101
+            FctVersion((numpy.float32, numpy.float32), (0, )),
+            axis=0)
 
     def test_cos_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
@@ -212,17 +221,21 @@ class TestNumpyOnnxFunction(ExtTestCase):
     def test_einsum_float32(self):
         np_ein = lambda *x, equation=None: numpy.einsum(equation, *x)
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
-        self.common_testn((x, x), np_ein, nxnpy.einsum,  # pylint: disable=E1101
-                          (numpy.float32, numpy.float32, 'ab,bc->ac'),
-                          equation='ab,bc->ac')
-        self.common_testn((x, x, x), np_ein, nxnpy.einsum,  # pylint: disable=E1101
-                          (numpy.float32, numpy.float32,
-                           numpy.float32, 'ab,bc,cd->acd'),
-                          equation='ab,bc,cd->acd')
-        self.common_test1(x, np_ein, nxnpy.einsum,  # pylint: disable=E1101
-                          (numpy.float32, 'ii'), equation='ii')
-        self.common_test1(x, np_ein, nxnpy.einsum,  # pylint: disable=E1101
-                          (numpy.float32, 'ij->ji'), equation='ij->ji')
+        self.common_testn(
+            (x, x), np_ein, nxnpy.einsum,  # pylint: disable=E1101
+            FctVersion((numpy.float32, numpy.float32), ('ab,bc->ac', )),
+            equation='ab,bc->ac')
+        self.common_testn(
+            (x, x, x), np_ein, nxnpy.einsum,  # pylint: disable=E1101
+            FctVersion((numpy.float32, numpy.float32, numpy.float32),
+                       ('ab,bc,cd->acd', )),
+            equation='ab,bc,cd->acd')
+        self.common_test1(
+            x, np_ein, nxnpy.einsum,  # pylint: disable=E1101
+            FctVersion((numpy.float32, ), ('ii', )), equation='ii')
+        self.common_test1(
+            x, np_ein, nxnpy.einsum,  # pylint: disable=E1101
+            FctVersion((numpy.float32, ), ('ij->ji', )), equation='ij->ji')
 
     def test_erf_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
@@ -242,7 +255,7 @@ class TestNumpyOnnxFunction(ExtTestCase):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         self.common_test1(
             x, numpy.expand_dims, nxnpy.expand_dims,
-            (numpy.float32, 0), axis=0)
+            FctVersion((numpy.float32, ), (0, )), axis=0)
 
     def test_floor_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
@@ -274,9 +287,10 @@ class TestNumpyOnnxFunction(ExtTestCase):
         for kw in kwargs:
             with self.subTest(kw=kw):
                 x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
-                self.common_test1(x, numpy.mean, nxnpy.mean,
-                                  (numpy.float32, kw.get('axis', None), 0),
-                                  **kw)
+                self.common_test1(
+                    x, numpy.mean, nxnpy.mean,
+                    FctVersion((numpy.float32, ), (kw.get('axis', None), 0)),
+                    **kw)
 
     def test_pad_float32(self):
         def custom_pad(x, pads, constant_value=None, mode='constant'):
@@ -292,8 +306,26 @@ class TestNumpyOnnxFunction(ExtTestCase):
                 value = numpy.array([1.77], dtype=numpy.float32)
                 self.common_testn(
                     (x, pads, value), custom_pad, nxnpy.pad,
-                    (numpy.float32, numpy.int64, numpy.float32,
-                     kw.get('mode', 'constant')), **kw,
+                    FctVersion((numpy.float32, numpy.int64, numpy.float32),
+                               (kw.get('mode', 'constant'), )), **kw,
+                    ort=kw.get('mode', 'constant') != 'reflect')
+
+    def test_pad_float32_none(self):
+        def custom_pad(x, pads, mode='constant'):
+            res = onnx_pad(x, pads, 0, mode=mode)
+            return res
+
+        kwargs = [{'mode': 'constant'}, {'mode': 'edge'},
+                  {'mode': 'reflect'}, {}]
+        for kw in kwargs:
+            with self.subTest(kw=kw):
+                x = numpy.array([[1.0, 1.2], [2.3, 3.4], [4.5, 5.7]],
+                                dtype=numpy.float32)
+                pads = numpy.array([0, 2, 0, 0], dtype=numpy.int64)
+                self.common_testn(
+                    (x, pads), custom_pad, nxnpy.pad,
+                    FctVersion((numpy.float32, numpy.int64),
+                               (kw.get('mode', 'constant'), )), **kw,
                     ort=kw.get('mode', 'constant') != 'reflect')
 
     def test_prod_float32(self):
@@ -301,9 +333,10 @@ class TestNumpyOnnxFunction(ExtTestCase):
         for kw in kwargs:
             with self.subTest(kw=kw):
                 x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
-                self.common_test1(x, numpy.prod, nxnpy.prod,
-                                  (numpy.float32, kw.get('axis', None), 0),
-                                  **kw)
+                self.common_test1(
+                    x, numpy.prod, nxnpy.prod,
+                    FctVersion((numpy.float32, ), (kw.get('axis', None), 0)),
+                    **kw)
 
     def test_reciprocal_float32(self):
         x = numpy.array([[6.1, 5], [3.5, -7.8]], dtype=numpy.float32)
@@ -333,9 +366,10 @@ class TestNumpyOnnxFunction(ExtTestCase):
         for kw in kwargs:
             with self.subTest(kw=kw):
                 x = numpy.array([[-6.1, 5], [-3.5, 7.8]], dtype=numpy.float32)
-                self.common_test1(x, numpy.sum, nxnpy.sum,
-                                  (numpy.float32, kw.get('axis', None), 0),
-                                  **kw)
+                self.common_test1(
+                    x, numpy.sum, nxnpy.sum,
+                    FctVersion((numpy.float32, ), (kw.get('axis', None), 0)),
+                    **kw)
 
     def test_sin_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
@@ -383,5 +417,5 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestNumpyOnnxFunction().test_arange_float32()
+    # TestNumpyOnnxFunction().test_einsum_float32()
     unittest.main()

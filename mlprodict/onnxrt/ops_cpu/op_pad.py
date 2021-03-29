@@ -44,7 +44,7 @@ def onnx_pad(data, pads, constant_value=None, mode='constant'):
     :return: tensor after padding
     """
     if constant_value is None:
-        constant_value = data.dtype(constant_value)
+        constant_value = numpy.array([0], dtype=data.dtype.type)
     return _pad_impl(data, pads, mode=mode, constant_values=constant_value)
 
 
@@ -59,6 +59,8 @@ class Pad(OpRun):
         self.mode_ = self.mode.decode('ascii')
 
     def _run(self, data, pads, constant_value=None):  # pylint: disable=W0221
+        if constant_value is None:
+            constant_value = 0
         return (_pad_impl(data, pads, mode=self.mode_,
                           constant_values=constant_value), )
 

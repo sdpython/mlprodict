@@ -185,7 +185,7 @@ def det(x):
     return nx_det(x)
 
 
-@onnxnumpy_np(signature=NDArrayType("all", "all"))
+@onnxnumpy_np(signature=NDArrayType(("T:all", "T")))
 def dot(a, b):
     "dot"
     return nx_dot(a, b)
@@ -245,7 +245,7 @@ def log(x):
     return nx_log(x)
 
 
-@onnxnumpy_np(signature=NDArrayType(("all", numpy.int64), n_optional=1))
+@onnxnumpy_np(signature=NDArrayType(("T:all", numpy.int64, 'T'), n_optional=1))
 def pad(x, pads, constant_value=None, mode='constant'):
     "pad"
     return nx_pad(x, pads, mode=mode, constant_value=constant_value)

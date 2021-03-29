@@ -471,7 +471,7 @@ def _internal_method_decorator(register_class, method, op_version=None,
             "method %r." % (register_class, method))
     if signature is None:
         raise RuntimeError(
-            "Method to overwrite are not known for class %r and "
+            "Methods to overwrite are not known for class %r and "
             "method %r." % (register_class, method))
 
     name = "onnxsklearn_parser_%s_%s_%s" % (
@@ -486,7 +486,7 @@ def _internal_method_decorator(register_class, method, op_version=None,
 
     def _check_(op):
         if isinstance(op, str):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected type: %r: %r." % (type(op), op))
         return op
 
@@ -505,7 +505,7 @@ def _internal_method_decorator(register_class, method, op_version=None,
         m = lambda self, X: res(X, op_=self)
         setattr(register_class, name, m)
     elif len(method_names) == 0:
-        raise RuntimeError("No available method.")
+        raise RuntimeError("No available method.")  # pragma: no cover
     else:
         m = lambda self, X: res(X, op_=self)
         setattr(register_class, method.__name__ + "_", m)

@@ -159,7 +159,7 @@ class OpRunOnnxEmpty:
                     raise RuntimeError(  # pragma: no cover
                         "Probable issue as one dimension is null.\n--\n{}\n---\n{}".format(
                             self.onnx_, inputs))
-            except (RuntimeError, ValueError):
+            except (RuntimeError, ValueError):  # pragma: no cover
                 # Let's try again by forcing output types.
                 outputs = get_defined_outputs(
                     self.outputs, self.onnx_node, inputs, variables,
@@ -198,5 +198,5 @@ class OpRunOnnxEmpty:
         Should be overwritten.
         """
         # inputs = {name: val for name, val in zip(self.inputs, args)}
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "This runtime does nothing. Running it is useless.")

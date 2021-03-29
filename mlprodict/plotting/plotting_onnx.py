@@ -25,11 +25,11 @@ def plot_onnx(onx, ax=None, dpi=300, temp_dot=None, temp_img=None,
     from pyquickhelper.helpgen.graphviz_helper import plot_graphviz
 
     if ax is None:
-        ax = plt.gca()
+        ax = plt.gca()  # pragma: no cover
     if not isinstance(onx, OnnxInference):
         oinf = OnnxInference(onx, skip_run=True)
     else:
-        oinf = onx
+        oinf = onx  # pragma: no cover
     dot = oinf.to_dot()
     plot_graphviz(dot, dpi=dpi, ax=ax, temp_dot=temp_dot, temp_img=temp_img)
     if show:

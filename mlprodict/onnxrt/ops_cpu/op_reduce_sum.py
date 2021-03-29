@@ -68,7 +68,7 @@ class ReduceSum_13(OpRunReduceNumpy):
             return (numpy.sum(data, axis=axes,
                               keepdims=self.keepdims,
                               dtype=data.dtype), )
-        except TypeError as e:
+        except TypeError as e:  # pragma: no cover
             raise TypeError(
                 "Unable to reduce shape %r with axes=%r." % (
                     data.shape, axes)) from e
@@ -87,7 +87,7 @@ class ReduceSum_13(OpRunReduceNumpy):
 
 if onnx_opset_version() >= 13:
     ReduceSum = ReduceSum_13
-elif onnx_opset_version() >= 11:
+elif onnx_opset_version() >= 11:  # pragma: no cover
     ReduceSum = ReduceSum_11
-else:
+else:  # pragma: no cover
     ReduceSum = ReduceSum_1
