@@ -29,8 +29,10 @@ class TestOnnxVersion(ExtTestCase):
         self.assertEqual(repr(version), "FctVersion((numpy.float32,), None)")
 
     def test_version_exc(self):
-        self.assertRaise(lambda: FctVersion([], None)._check_(), TypeError)
-        self.assertRaise(lambda: FctVersion(None, [])._check_(), TypeError)
+        self.assertRaise(lambda: FctVersion([], None)._check_(),  # pylint: disable=W0212
+                         TypeError)
+        self.assertRaise(lambda: FctVersion(None, [])._check_(),  # pylint: disable=W0212
+                         TypeError)
         version = FctVersion(None, None)
 
         def do(v):
