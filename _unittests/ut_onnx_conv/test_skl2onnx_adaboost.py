@@ -164,7 +164,7 @@ class TestSklearnTreeEnsembleModels(ExtTestCase):
             target_opset=10)
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(X, model, model_onnx,
-                            basename="SklearnAdaBoostRegressorInt")
+                            basename="SklearnAdaBoostRegressorInt-Dec4")
 
     def test_ada_boost_regressor_lr10(self):
         model, X = fit_regression_model(
