@@ -1375,8 +1375,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         x_scale = numpy.array([2, 4, 5], dtype=numpy.float32)
         x_zero_point = numpy.array([84, 24, 196], dtype=numpy.uint8)
         exp = ((X.astype(numpy.float32) - x_zero_point.reshape(
-                1, 3, 1, 1).astype(numpy.float32)) *
-               x_scale.reshape(1, 3, 1, 1))
+                (1, 3, 1, 1)).astype(numpy.float32)) *
+               x_scale.reshape((1, 3, 1, 1)))
         onx = OnnxDequantizeLinear(
             'X', x_scale, x_zero_point, output_names=['Y'],
             op_version=get_opset_number_from_onnx())
@@ -2096,8 +2096,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                         dtype=numpy.float32)
         y_scale = numpy.array([2, 4, 5], dtype=numpy.float32)
         y_zero_point = numpy.array([84, 24, 196], dtype=numpy.uint8)
-        exp = ((X / y_scale.reshape(1, 3, 1, 1) +
-                y_zero_point.reshape(1, 3, 1, 1)).astype(numpy.uint8))
+        exp = ((X / y_scale.reshape((1, 3, 1, 1)) +
+                y_zero_point.reshape((1, 3, 1, 1))).astype(numpy.uint8))
         onx = OnnxQuantizeLinear(
             'X', y_scale, y_zero_point, output_names=['Y'],
             op_version=get_opset_number_from_onnx())
