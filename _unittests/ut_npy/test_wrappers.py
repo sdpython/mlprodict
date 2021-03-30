@@ -325,7 +325,7 @@ class TestWrappers(ExtTestCase):
             sig, args, kwargs, version = sigt
             self.assertRaise(
                 lambda: sig.get_inputs_outputs(  # pylint: disable=W0640
-                    args, kwargs, version),
+                    args, kwargs, version),  # pylint: disable=W0640
                 RuntimeError)
 
     def test_signature_optional_errors_type(self):
@@ -340,7 +340,7 @@ class TestWrappers(ExtTestCase):
             sig, args, kwargs, version = sigt
             self.assertRaise(
                 lambda: sig.get_inputs_outputs(  # pylint: disable=W0640
-                    args, kwargs, version),
+                    args, kwargs, version),  # pylint: disable=W0640
                 TypeError)
 
     def test_signature_optional3_kwargs_more(self):
