@@ -4,10 +4,10 @@
 Compares implementations of Where
 =================================
 
-The following function benchmark different implementation
-of function :epkg:`numpy:where`.
-If available, :epkg:`tensorflow` and :epkg:`pytorch` are included as well.
-The benchmark compares the operator *where* to an equivalent implementation
+This example compares implementations of function :epkg:`numpy:where`
+from :epkg:`numpy`, :epkg:`onnxruntime`.
+:epkg:`tensorflow` and :epkg:`pytorch` are included as well if available.
+The benchmark also compares the operator *where* to an equivalent implementation
 `where(c, x, y) = x * c - y * (c - 1)`.
 
 .. contents::
@@ -188,7 +188,7 @@ def benchmark_equation():
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
     ax[1].legend(prop={"size": 9})
 
-    return df, piv, ax
+    return df, rs, ax
 
 
 ############
@@ -197,10 +197,7 @@ def benchmark_equation():
 
 df, piv, ax = benchmark_equation()
 df.pivot("fct", "dim", "average")
-
-####################################
-# Ratios
-piv.T
+dfs = [df]
 
 ####################################
 # Conclusion
@@ -208,5 +205,11 @@ piv.T
 #
 # The implementation of Where should be faster
 # than the formula `where(c, x, y) = x * c - y * (c - 1)`.
+
+merged = pandas.concat(dfs)
+name = "where"
+merged.to_csv("plot_%s.csv" % name, index=False)
+merged.to_excel("plot_%s.xlsx" % name, index=False)
+plt.savefig("plot_%s.png" % name)
 
 plt.show()

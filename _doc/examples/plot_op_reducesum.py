@@ -4,9 +4,8 @@
 Compares implementations of ReduceSum
 =====================================
 
-The following function benchmark different implementation
-of function :epkg:`numpy:sum`.
-It compares *numpy* implementation to :epkg:`onnxruntime` implementation.
+This example compares the :epkg:`numpy:sum` from numpy,
+to :epkg:`onnxruntime` implementation.
 If available, :epkg:`tensorflow` and :epkg:`pytorch` are included as well.
 
 .. contents::
@@ -153,7 +152,7 @@ def benchmark_op(axes, repeat=5, number=5, name="reducesum", shape_fct=None):
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
     ax[1].legend(prop={"size": 9})
-    return df, piv, ax
+    return df, rs, ax
 
 
 dfs = []

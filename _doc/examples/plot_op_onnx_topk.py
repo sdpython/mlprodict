@@ -4,10 +4,9 @@
 TopK benchmark
 ==============
 
-The notebook compares :epkg:`onnxruntime` and :epkg:`mlprodict`
-# implementation of operator `TopK
+This example compares :epkg:`onnxruntime` and :epkg:`mlprodict`
+for an implementation of operator `TopK
 <https://github.com/onnx/onnx/blob/master/docs/Operators.md#TopK>`_.
-
 We measure two runtimes by computing a ratio between their
 time execution through the following kind of graphs.
 

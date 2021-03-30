@@ -97,7 +97,7 @@ OnnxNumpyCompiler
 .. autosignature:: mlprodict.npy.onnx_numpy_compiler.OnnxNumpyCompiler
     :members:
 
-.. autosignature:: mlprodict.npy.onnx_version import FctVersion
+.. autosignature::  mlprodict.npy.onnx_version.FctVersion
     :members:
 
 OnnxVar
@@ -131,11 +131,11 @@ ONNX functions executed python ONNX runtime
 +++++++++++++++++++++++++++++++++++++++++++
 
 Same function as above, the import goes from
-`from mlprodict.npy.numpy_onnx_impl import <function-name>` to
-`from mlprodict.npy.numpy_onnx_pyrt import <function-name>`.
+``from mlprodict.npy.numpy_onnx_impl import <function-name>`` to
+``from mlprodict.npy.numpy_onnx_pyrt import <function-name>``.
 These function are usually not used except in unit test or as
 reference for more complex functions. See the source on github,
-`numpy_onnx_pyrt.py <https://github.com/sdpython/mlprodict/
-blob/master/mlprodict/npy/numpy_onnx_pyrt.py>`_ and
-`numpy_onnx_pyrt_skl.py <https://github.com/sdpython/mlprodict/
-blob/master/mlprodict/npy/numpy_onnx_pyrt_skl.py>`_.
+`numpy_onnx_pyrt.py
+<https://github.com/sdpython/mlprodict/blob/master/mlprodict/npy/numpy_onnx_pyrt.py>`_
+and `numpy_onnx_pyrt_skl.py
+<https://github.com/sdpython/mlprodict/blob/master/mlprodict/npy/numpy_onnx_pyrt_skl.py>`_.

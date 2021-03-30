@@ -4,7 +4,7 @@
 Compares implementations of Add
 ===============================
 
-The following code compares the addition of *numpy* 
+This example compares the addition of *numpy*
 to :epkg:`onnxruntime` implementation.
 Function :epkg:`numpy:add` is repeated 3 times. This minimizes the cost
 of copying the data from python to an external library.
@@ -118,7 +118,8 @@ def benchmark_op(repeat=5, number=2, name="add", shape_fcts=None):
 
         if torch_add is not None:
             # torch
-            ctx['fct'] = lambda x, y: torch_add(torch_add(torch_add(x, y), y), y)
+            ctx['fct'] = lambda x, y: torch_add(
+                torch_add(torch_add(x, y), y), y)
             ctx['xs'] = [from_numpy(x) for x in xs]
             ctx['ys'] = [from_numpy(y) for y in ys]
             obs = measure_time(
@@ -154,7 +155,7 @@ def benchmark_op(repeat=5, number=2, name="add", shape_fcts=None):
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
     ax[1].legend(prop={"size": 9})
-    return df, piv, ax
+    return df, rs, ax
 
 
 dfs = []

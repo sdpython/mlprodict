@@ -4,10 +4,8 @@
 Compares implementations of Tranpose
 ====================================
 
-The following function benchmark different implementation
-of function :epkg:`numpy:transpose`.
-It compares *numpy* implementation to
-:epkg:`onnxruntime` implementation.
+This example compares the :epkg:`numpy:transpose` from numpy,
+to :epkg:`onnxruntime` implementation.
 If available, :epkg:`tensorflow` and :epkg:`pytorch` are included as well.
 
 .. contents::
@@ -168,7 +166,7 @@ def benchmark_op(perm, repeat=5, number=5, name="transpose", shape_fct=None):
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
     ax[1].legend(prop={"size": 9})
-    return df, piv, ax
+    return df, rs, ax
 
 
 dfs = []
@@ -182,11 +180,6 @@ df, piv, ax = benchmark_op(perm)
 dfs.append(df)
 df.pivot("fct", "N", "average")
 
-####################################
-# Ratios
-piv.T
-
-
 ###################################
 # Second permutation: (0, 1, 3, 2)
 # ++++++++++++++++++++++++++++++++
@@ -195,11 +188,6 @@ perm = (1, 0, 3, 2)
 df, piv, ax = benchmark_op(perm)
 dfs.append(df)
 df.pivot("fct", "N", "average")
-
-####################################
-# Ratios
-piv.T
-
 
 ###################################
 # Third permutation: (0, 2, 1, 3)
@@ -218,11 +206,6 @@ df, piv, ax = benchmark_op(perm)
 dfs.append(df)
 df.pivot("fct", "N", "average")
 
-####################################
-# Ratios
-piv.T
-
-
 ###################################
 # Fourth permutation: (3, 1, 2, 0)
 # ++++++++++++++++++++++++++++++++
@@ -231,11 +214,6 @@ perm = (3, 1, 2, 0)
 df, piv, ax = benchmark_op(perm)
 dfs.append(df)
 df.pivot("fct", "N", "average")
-
-####################################
-# Ratios
-piv.T
-
 
 ###################################
 # Fifth permutation: (1, 2, 3, 0)
@@ -246,11 +224,6 @@ df, piv, ax = benchmark_op(perm)
 dfs.append(df)
 df.pivot("fct", "N", "average")
 
-####################################
-# Ratios
-piv.T
-
-
 ###################################
 # Six th permutation: (1, 2, 4, 3, 0)
 # +++++++++++++++++++++++++++++++++++
@@ -259,11 +232,6 @@ perm = (1, 2, 4, 3, 0)
 df, piv, ax = benchmark_op(perm, shape_fct=lambda dim: (3, dim, 1, 8, 512))
 dfs.append(df)
 df.pivot("fct", "N", "average")
-
-####################################
-# Ratios
-piv.T
-
 
 ####################################
 # Conclusion

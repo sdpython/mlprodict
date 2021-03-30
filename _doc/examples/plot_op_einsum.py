@@ -4,8 +4,7 @@
 Compares implementations of Einsum
 ==================================
 
-The following function benchmark different implementation
-of function :epkg:`numpy:einsum`.
+This example compares different equations for function :epkg:`numpy:einsum`.
 It compares *numpy* implementation to a custom implementation,
 :epkg:`onnxruntime` implementation and :epkg:`opt-einsum` optimisation.
 If available, :epkg:`tensorflow` and :epkg:`pytorch` are included as well.
@@ -201,20 +200,18 @@ def benchmark_equation(equation):
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
     ax[1].legend(prop={"size": 9})
 
-    return df, piv, ax
+    return df, rs, ax
 
 
 ###################################
 # First equation: bsnh,btnh->bnts
 # +++++++++++++++++++++++++++++++
 
+dfs = []
 equation = "bsnh,btnh->bnts"
 df, piv, ax = benchmark_equation(equation)
 df.pivot("fct", "dim", "average")
-
-####################################
-# Ratios
-piv.T
+dfs.append(df)
 
 ###################################
 # Second equation: bshn,bthn->bnts
@@ -227,10 +224,7 @@ piv.T
 equation = "bshn,bthn->bnts"
 df, piv, ax = benchmark_equation(equation)
 df.pivot("fct", "dim", "average")
-
-####################################
-# Ratios
-piv.T
+dfs.append(df)
 
 ###################################
 # Third equation: bhsn,bhtn->bnts
@@ -238,23 +232,19 @@ piv.T
 #
 # The summation does not happen on the last axis but
 # on the second one. It is worth transposing before multiplying.
-#
 
 equation = "bhsn,bhtn->bnts"
 df, piv, ax = benchmark_equation(equation)
 df.pivot("fct", "dim", "average")
-
-####################################
-# Ratios
-piv.T
-
+dfs.append(df)
 
 ####################################
 # Conclusion
 # ++++++++++
 #
-# The implementation of Einsum in onnxruntime could be improved
-# for this specific case. pytorch is better.
+# pytorch seems quite efficient on these examples.
+# The custom implementation was a way to investigate
+# the implementation of einsum and find some ways to optimize it.
 
 merged = pandas.concat(dfs)
 name = "einsum"

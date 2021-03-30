@@ -5,14 +5,26 @@
 History
 =======
 
-current - 2021-03-04 - 0.00Mb
+current - 2021-03-31 - 0.00Mb
 =============================
 
-* `233`: Extend documentation about numpy API for ONNX (2021-03-04)
+* `247`: Introduces FctVersion to fix issue with optional arguments (2021-03-29)
+* `248`: Adds implementation of BatchNormalization opset 14 (2021-03-29)
+* `246`: Extends example on ReduceSum benchmark (2021-03-26)
+* `244`: Supports embedded models, complete tutorial on numpy API for ONNX (2021-03-26)
+* `243`: Add decorator to wrap converter for clustering (numpy API) (2021-03-17)
+* `242`: Add decorator to wrap converter for classifier (numpy API) (2021-03-17)
+* `241`: Add decorator to register scikit-learn classes with numpy API for ONNX (2021-03-14)
+* `240`: Add decorator to wrap converter for regressor (numpy API) (2021-03-14)
+* `238`: Use numpy API for ONNX to write custom converters (2021-03-13)
+* `239`: Add runtime empty (2021-03-13)
+* `237`: Add a unit test to check an exception (2021-03-10)
+* `236`: Implements __setitem__ for one dimension array (2021-03-08)
 * `235`: Supports profiling for runtime onnxruntime1 (2021-03-04)
+* `233`: Extend documentation about numpy API for ONNX (2021-03-04)
 * `234`: Add parameter overwrite to select_model_inputs_outputs (2021-03-03)
-* `231`: Supports different inputs in select_model_inputs_outputs (2021-03-03)
 * `232`: Implements pickling for functions used in numpy API for ONNX (2021-03-03)
+* `231`: Supports different inputs in select_model_inputs_outputs (2021-03-03)
 * `230`: Add unsqueeze, squeeze, expand_dims to numpy API for ONNX (2021-03-02)
 * `229`: Add method flatten, function pad to numpy API for ONNX (2021-03-01)
 * `228`: Improves numpy API for ONNX: type constraints (2021-03-01)
@@ -31,8 +43,8 @@ current - 2021-03-04 - 0.00Mb
 * `215`: Implements __getitem__ for OnnxVar (onnxnumpy) (2021-02-20)
 * `214`: Implements numpy functions with onnx (2021-02-19)
 * `213`: Add parameter show to plot_onnx. (2021-02-11)
-* `210`: Investigate models from ONNX zoo (2021-02-05)
 * `212`: Fixes #210, check first models from zoo, fix operator conv when B is not null (2021-02-05)
+* `210`: Investigate models from ONNX zoo (2021-02-05)
 * `211`: numpy 1.20 does not allow nan values in int64 arrays any more, fix a unit test about imputer (2021-02-02)
 * `208`: Add try catch around import in asv benchmark (2021-01-30)
 * `207`: Reduces greater batch size to 10.000 instead of 100.000. (2021-01-29)

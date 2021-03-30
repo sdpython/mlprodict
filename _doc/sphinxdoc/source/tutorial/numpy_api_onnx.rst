@@ -303,6 +303,7 @@ is used. Let's see how to do it.
 
 .. runpython::
     :showcode:
+    :warningout: DeprecationWarning
 
     import numpy
     from pandas import DataFrame
@@ -415,6 +416,7 @@ the class is a transformer and automatically adds method
 
 .. runpython::
     :showcode:
+    :warningout: DeprecationWarning
 
     import numpy
     from pandas import DataFrame
