@@ -4,19 +4,19 @@
 Compares implementations of Add
 ===============================
 
-The following function benchmark different implementation
-of function :epkg:`numpy:add`.
-It compares *numpy* implementation to :epkg:`onnxruntime` implementation.
+The following code compares the addition of *numpy* 
+to :epkg:`onnxruntime` implementation.
+Function :epkg:`numpy:add` is repeated 3 times. This minimizes the cost
+of copying the data from python to an external library.
 If available, :epkg:`tensorflow` and :epkg:`pytorch` are included as well.
+The numpy implementation is not the best,
+it allocates more buffers than necessary because parameter *out*
+is not used to reuse buffers.
+
 
 .. contents::
     :local:
 
-Available optimisation
-++++++++++++++++++++++
-
-The code shows which parallelisation optimisation could be used,
-*AVX* or *SSE* and the number of available processors.
 """
 import numpy
 import pandas
@@ -45,7 +45,9 @@ except ImportError:
 
 
 def build_ort_add(op_version=12):
-    node = OnnxAdd('x', 'y', op_version=op_version, output_names=['z'])
+    node1 = OnnxAdd('x', 'y', op_version=op_version)
+    node2 = OnnxAdd(node1, 'y', op_version=op_version)
+    node = OnnxAdd(node2, 'y', op_version=op_version, output_names=['z'])
     onx = node.to_onnx(inputs=[('x', FloatTensorType()),
                                ('y', FloatTensorType())],
                        target_opset=op_version)
@@ -58,7 +60,7 @@ def loop_fct(fct, xs, ys):
         fct(x, y)
 
 
-def benchmark_op(repeat=5, number=5, name="add", shape_fcts=None):
+def benchmark_op(repeat=5, number=2, name="add", shape_fcts=None):
     if shape_fcts is None:
         def shape_fct(dim):
             return (5, dim, dim)
@@ -81,7 +83,7 @@ def benchmark_op(repeat=5, number=5, name="add", shape_fcts=None):
         # numpy
         ctx = dict(
             xs=xs, ys=ys,
-            fct=lambda x, y: numpy.add(x, y),
+            fct=lambda x, y: numpy.add(numpy.add(numpy.add(x, y), y), y),
             loop_fct=loop_fct)
         obs = measure_time(
             "loop_fct(fct, xs, ys)",
@@ -103,7 +105,7 @@ def benchmark_op(repeat=5, number=5, name="add", shape_fcts=None):
 
         if tf_add is not None:
             # tensorflow
-            ctx['fct'] = tf_add
+            ctx['fct'] = lambda x, y: tf_add(tf_add(tf_add(x, y), y), y)
             ctx['xs'] = [convert_to_tensor(x) for x in xs]
             ctx['ys'] = [convert_to_tensor(y) for y in ys]
             obs = measure_time(
@@ -116,7 +118,7 @@ def benchmark_op(repeat=5, number=5, name="add", shape_fcts=None):
 
         if torch_add is not None:
             # torch
-            ctx['fct'] = torch_add
+            ctx['fct'] = lambda x, y: torch_add(torch_add(torch_add(x, y), y), y)
             ctx['xs'] = [from_numpy(x) for x in xs]
             ctx['ys'] = [from_numpy(y) for y in ys]
             obs = measure_time(
@@ -202,9 +204,12 @@ df.pivot("fct", "N", "average")
 # Conclusion
 # ++++++++++
 #
-# *onnxruntime* is slower in anycase.
-# *pytorch* is faster when there is zero or one broadcasted axis.
-# *tf* is faster with two broadcasted axes.
+# It is difficult to have a final conclusion as the addition
+# of two vectors is of the same order of magnitude of a copy
+# between python and the C++ code of onnxruntime, pytorch or
+# tensorflow. numpy is much better of small vectors.
+# onnxruntime, pytorch and tensorflow are not optimized
+# on this case because it is not very common in deep learning.
 
 merged = pandas.concat(dfs)
 name = "add"
