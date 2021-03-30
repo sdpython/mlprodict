@@ -22,6 +22,8 @@ Everybody playing with :epkg:`scikit-learn` knows :epkg:`numpy`
 then it should be possible to write a function using :epkg:`numpy`
 and automatically have it converted into :epkg:`ONNX`.
 
+This API was first added to *mlprodict* in version 0.6.
+
 .. contents::
     :local:
 
@@ -196,6 +198,265 @@ must be added every time this is used:
   *FunctionTransformer* by a new one which supports custom
   functions implemented with this API (see
   :ref:`l-npy-missing-converter`).
+
+Custom Predictor or Transformer
++++++++++++++++++++++++++++++++
+
+Creating a custom predictor or transformer is not a common task
+but still not too difficult with :epkg:`scikit-learn` API.
+It becomes more difficult task when it comes to convert a
+pipeline involving this new model into ONNX. It means writing
+a custom converter or more simply to implement the inference
+function with ONNX operators. It is difficult because ONNX
+operators are close to :epkg:`numpy` function but not exactly
+the same plus testing an ONNX conversion requires to use
+a runtime. That means more lines of code to just test.
+
+Custom Classifier
+^^^^^^^^^^^^^^^^^
+
+The conversion of a classifier is more complex than a regressor
+or a transformer because a classifier implements two methods,
+*predict* for the labels, *predict_proba* for the probabilities.
+Next example implements a weird classifier based on two logistic
+regressions. It does not do anything with ONNX yet. This is taken
+from notebook :ref:`numpyapionnxcclrst`.
+
+.. runpython::
+    :showcode:
+
+    import numpy
+    from pandas import DataFrame
+    from sklearn.base import ClassifierMixin, BaseEstimator
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import train_test_split
+    from sklearn.datasets import make_classification
+
+    X, y = make_classification(200, n_classes=2, n_features=2, n_informative=2,
+                               n_redundant=0, n_clusters_per_class=2, hypercube=False)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y)
+
+    class TwoLogisticRegression(ClassifierMixin, BaseEstimator):
+
+        def __init__(self):
+            ClassifierMixin.__init__(self)
+            BaseEstimator.__init__(self)
+
+        def fit(self, X, y, sample_weights=None):
+            if sample_weights is not None:
+                raise NotImplementedError("weighted sample not implemented in this example.")
+
+            # Barycenters
+            self.weights_ = numpy.array([(y==0).sum(), (y==1).sum()])
+            p1 = X[y==0].sum(axis=0) / self.weights_[0]
+            p2 = X[y==1].sum(axis=0) / self.weights_[1]
+            self.centers_ = numpy.vstack([p1, p2])
+            self.classes_ = numpy.array([0, 1])
+
+            # A vector orthogonal
+            v = p2 - p1
+            v /= numpy.linalg.norm(v)
+            x = numpy.random.randn(X.shape[1])
+            x -= x.dot(v) * v
+            x /= numpy.linalg.norm(x)
+            self.hyperplan_ = x.reshape((-1, 1))
+
+            # sign
+            sign = ((X - p1) @ self.hyperplan_ >= 0).astype(numpy.int64).ravel()
+
+            # Trains models
+            self.lr0_ = LogisticRegression().fit(X[sign == 0], y[sign == 0])
+            self.lr1_ = LogisticRegression().fit(X[sign == 1], y[sign == 1])
+
+            return self
+
+        def predict_proba(self, X):
+            sign = self.predict_side(X).reshape((-1, 1))
+            prob0 = self.lr0_.predict_proba(X)
+            prob1 = self.lr1_.predict_proba(X)
+            prob = prob1 * sign - prob0 * (sign - 1)
+            return prob
+
+        def predict(self, X):
+            prob = self.predict_proba(X)
+            return prob.argmax(axis=1)
+
+        def predict_side(self, X):
+            return ((X - self.centers_[0]) @ self.hyperplan_ >= 0).astype(numpy.int64).ravel()
+
+    model = TwoLogisticRegression()
+    model.fit(X_train, y_train)
+    print(model.predict(X_test[:5]), model.predict_proba(X_test[:5]))
+
+Next step is to converter this classifier into ONNX. Instead of writing
+a converter, the strategy is to implement methods *predict*
+and *predict_proba* with ONNX instead of numpy. That's where
+the numpy API for ONNX becomes handy, with some decorators
+to simplifies manythings. Among them, the types. Python does
+not really care about signed arguments but ONNX does.
+As a result, if the predict method is used with `float32` and
+`float64`, two ONNX graphs are created and executed with a runtime.
+When method *predict* is called, the input type is detected and an ONNX
+graph is generated. If the second call uses the same type, the same graph
+is used. Let's see how to do it.
+
+.. runpython::
+    :showcode:
+
+    import numpy
+    from pandas import DataFrame
+    from sklearn.base import ClassifierMixin, BaseEstimator
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import train_test_split
+    from sklearn.datasets import make_classification
+    from mlprodict.npy import onnxsklearn_class
+    from mlprodict.npy.onnx_variable import MultiOnnxVar
+    from mlprodict.onnx_conv import to_onnx
+    import mlprodict.npy.numpy_onnx_impl as nxnp
+    import mlprodict.npy.numpy_onnx_impl_skl as nxnpskl
+
+    X, y = make_classification(200, n_classes=2, n_features=2, n_informative=2,
+                               n_redundant=0, n_clusters_per_class=2, hypercube=False)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y)
+
+    @onnxsklearn_class('onnx_graph', op_version=13)
+    class TwoLogisticRegressionOnnx(ClassifierMixin, BaseEstimator):
+
+        def __init__(self):
+            ClassifierMixin.__init__(self)
+            BaseEstimator.__init__(self)
+
+        def fit(self, X, y, sample_weights=None):
+            if sample_weights is not None:
+                raise NotImplementedError("weighted sample not implemented in this example.")
+
+            # Barycenters
+            self.weights_ = numpy.array([(y==0).sum(), (y==1).sum()])
+            p1 = X[y==0].sum(axis=0) / self.weights_[0]
+            p2 = X[y==1].sum(axis=0) / self.weights_[1]
+            self.centers_ = numpy.vstack([p1, p2])
+            self.classes_ = numpy.array([0, 1])
+
+            # A vector orthogonal
+            v = p2 - p1
+            v /= numpy.linalg.norm(v)
+            x = numpy.random.randn(X.shape[1])
+            x -= x.dot(v) * v
+            x /= numpy.linalg.norm(x)
+            self.hyperplan_ = x.reshape((-1, 1))
+
+            # sign
+            sign = ((X - p1) @ self.hyperplan_ >= 0).astype(numpy.int64).ravel()
+
+            # Trains models
+            self.lr0_ = LogisticRegression().fit(X[sign == 0], y[sign == 0])
+            self.lr1_ = LogisticRegression().fit(X[sign == 1], y[sign == 1])
+
+            return self
+
+        def onnx_graph(self, X):
+            h = self.hyperplan_.astype(X.dtype)
+            c = self.centers_.astype(X.dtype)
+
+            sign = ((X - c[0]) @ h) >= numpy.array([0], dtype=X.dtype)
+            cast = sign.astype(X.dtype).reshape((-1, 1))
+
+            # Function logistic_regression is not a numpy function.
+            # It calls the converter for a LogisticRegression
+            # implemented in sklearn-onnx.
+            prob0 = nxnpskl.logistic_regression(X, model=self.lr0_)[1]
+            prob1 = nxnpskl.logistic_regression(X, model=self.lr1_)[1]
+            prob = prob1 * cast - prob0 * (cast - numpy.array([1], dtype=X.dtype))
+            label = nxnp.argmax(prob, axis=1)
+            return MultiOnnxVar(label, prob)
+
+    model = TwoLogisticRegressionOnnx()
+    model.fit(X_train, y_train)
+    print(model.predict(X_test[:5]), model.predict_proba(X_test[:5]))
+
+    onx = to_onnx(model, X_test[:5], target_opset=13)
+    # print(onx)  # too long to be displayed
+
+The decorator ``@onnxsklearn_class('onnx_graph')``
+(see :func:`onnxsklearn_class <mlprodict.npy.onnx_sklearn_wrapper.onnxsklearn_class>`)
+declares method *onnx_graph* as the method which creates
+the ONNX graph. In a classifier case,
+it returns two outputs, label and probabilites assembled within an instance of
+:class:`MultiOnnxVar <mlprodict.npy.onnx_variable.MultiOnnxVar>`. The decorator
+detects the class is a classifier (`ClassifierMixin`) and linked the
+two outputs to the two methods *predict* and *predict_proba*, in that order.
+When one of them is called, it follows the steps:
+
+* Detects input type,
+* Detects if an ONNX graph was generated for this type
+* Generates the ONNX graph if it does not exist
+* Create an instance with a runtime if it does not exist
+* Returns the output of the runtime
+
+The instruction ``to_onnx(model, X_test[:5], target_opset=13)`` creates
+an ONNX graph by calling method *onnx_graph* registered as a converter
+in *skl2onnx*. It is equivalent to something like
+``model.onnx_graph(X_test[:5]).to_algebra()[0].to_onnx({'X': X})``.
+
+The implementation of method *onnx_graph* relies on numpy function
+implemented with ONNX operator from submodule :ref:`f-numpyonnximpl`
+and converters for scikit-learn models wrapped into functions
+from submodule :ref:`f-numpyonnximplskl`.
+
+Custom Transformer
+^^^^^^^^^^^^^^^^^^
+
+The syntax is the same. The decorator
+``@onnxsklearn_class("onnx_transform", op_version=13)`` detects
+the class is a transformer and automatically adds method
+*transform*.
+
+.. runpython::
+    :showcode:
+
+    import numpy
+    from pandas import DataFrame
+    from sklearn.base import TransformerMixin, BaseEstimator
+    from sklearn.decomposition import PCA
+    from sklearn.model_selection import train_test_split
+    from sklearn.datasets import make_classification
+    from mlprodict.npy import onnxsklearn_class
+    from mlprodict.onnx_conv import to_onnx
+    import mlprodict.npy.numpy_onnx_impl as nxnp
+    import mlprodict.npy.numpy_onnx_impl_skl as nxnpskl
+
+    X, y = make_classification(200, n_classes=2, n_features=2, n_informative=2,
+                               n_redundant=0, n_clusters_per_class=2, hypercube=False)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y)
+
+    @onnxsklearn_class("onnx_transform", op_version=13)
+    class DecorrelateTransformerOnnx(TransformerMixin, BaseEstimator):
+        def __init__(self, alpha=0.):
+            BaseEstimator.__init__(self)
+            TransformerMixin.__init__(self)
+            self.alpha = alpha
+
+        def fit(self, X, y=None, sample_weights=None):
+            self.pca_ = PCA(X.shape[1])  # pylint: disable=W0201
+            self.pca_.fit(X)
+            return self
+
+        def onnx_transform(self, X):
+            if X.dtype is None:
+                raise AssertionError("X.dtype cannot be None.")
+            mean = self.pca_.mean_.astype(X.dtype)
+            cmp = self.pca_.components_.T.astype(X.dtype)
+            return (X - mean) @ cmp
+
+    model = DecorrelateTransformerOnnx()
+    model.fit(X_train)
+    print(model.transform(X_test[:5]))
+
+    onx = to_onnx(model, X_test[:5], target_opset=13)
+    print(onx)
 
 More options
 ++++++++++++

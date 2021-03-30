@@ -18,7 +18,7 @@ from .op_asin import Asin
 from .op_asinh import Asinh
 from .op_atan import Atan
 from .op_atanh import Atanh
-from .op_batch_normalization import BatchNormalization
+from .op_batch_normalization import BatchNormalization, BatchNormalization_14
 from .op_binarizer import Binarizer
 from .op_cast import Cast
 from .op_cdist import CDist

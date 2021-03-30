@@ -9,6 +9,7 @@ graphs by using functions very similar to what numpy implements.
 This page only makes a list of the available
 functions. A tutorial is available at
 :ref:`l-numpy-api-for-onnx`.
+This API was first added to *mlprodict* in version 0.6.
 
 .. contents::
     :local:
@@ -94,6 +95,9 @@ OnnxNumpyCompiler
 +++++++++++++++++
 
 .. autosignature:: mlprodict.npy.onnx_numpy_compiler.OnnxNumpyCompiler
+    :members:
+
+.. autosignature:: mlprodict.npy.onnx_version import FctVersion
     :members:
 
 OnnxVar
