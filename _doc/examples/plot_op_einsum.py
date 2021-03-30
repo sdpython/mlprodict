@@ -256,4 +256,10 @@ piv.T
 # The implementation of Einsum in onnxruntime could be improved
 # for this specific case. pytorch is better.
 
+merged = pandas.concat(dfs)
+name = "einsum"
+merged.to_csv("plot_%s.csv" % name, index=False)
+merged.to_excel("plot_%s.xlsx" % name, index=False)
+plt.savefig("plot_%s.png" % name)
+
 plt.show()
