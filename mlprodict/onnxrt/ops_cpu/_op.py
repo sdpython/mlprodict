@@ -5,6 +5,7 @@
 """
 import pprint
 import numpy
+import onnx
 import onnx.defs
 from ..shape_object import ShapeObject
 from ._new_ops import OperatorSchema
@@ -65,7 +66,14 @@ class OpRun:
         self.inplaces = {}
 
         if '_' in self.__class__.__name__:
-            self._schema = _schemas[self.__class__.__name__]
+            self._schema = _schemas.get(self.__class__.__name__, None)
+            if self._schema is None:
+                raise RuntimeError(  # pragma: no cover
+                    "Unable to find class name '{}' in available schemas:"
+                    "(onnx.__version__='{}')\n{}".format(
+                        self.__class__.__name__,
+                        onnx.__version__,
+                        "\n".join(sorted(_schemas))))
         elif onnx_node.op_type in _schemas:
             self._schema = _schemas[onnx_node.op_type]
         else:
