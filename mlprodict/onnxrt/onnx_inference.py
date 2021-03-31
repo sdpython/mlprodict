@@ -1164,7 +1164,7 @@ class OnnxInference:
         if hasattr(self, '_whole'):
             prof = self._whole.get_profiling()
         if prof is None:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "profiling is only implemented for runtime 'onnxruntime1'.")
         if as_df:
             import pandas

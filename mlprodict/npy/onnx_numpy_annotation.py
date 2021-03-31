@@ -294,7 +294,7 @@ class _NDArrayAlias:
         else:
             optional = len(self.dtypes) - len(version.args)
             if optional > self.n_optional:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unexpected number of optional parameters %d, at most "
                     "%d are expected, version=%s, args=%s, dtypes=%s." % (
                         optional, self.n_optional, version, args, self.dtypes))
@@ -351,7 +351,7 @@ class _NDArrayAlias:
                 "Returned: inputs=%s new_kwargs=%s.\n" % (
                     version, args, kwargs, inputs, new_kwargs))
         if not self.n_variables and len(inputs) > len(self.dtypes):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Mismatch number of inputs for version=%s.\n"
                 "Given: args=%s.\n"
                 "Expected: dtypes=%s\n"

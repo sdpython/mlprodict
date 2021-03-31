@@ -165,12 +165,12 @@ def _common_converter_int_t(scope, operator, container):
     onx = inst.to_algebra(op_version=opv)
     if isinstance(onx, TupleOnnxAny):
         if len(operator.outputs) != len(onx):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Mismatched number of outputs expected %d, got %d." % (
                     len(operator.outputs), len(onx)))
         for out, ox in zip(operator.outputs, onx):
             if not hasattr(ox, 'add_to'):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unexpected type for onnx graph %r, inst=%r." % (
                         type(ox), type(inst)))
             final = OnnxIdentity(ox, op_version=opv,
@@ -249,7 +249,7 @@ def update_registered_converter_npy(
         # type is wrapper_onnxnumpy or wrapper_onnxnumpy_np
         obj = convert_fct
     else:
-        raise AttributeError(
+        raise AttributeError(  # pragma: no cover
             "Class %r must have attribute 'compiled' or 'signed_compiled' "
             "(object=%r)." % (type(convert_fct), convert_fct))
 
@@ -466,11 +466,11 @@ def _internal_method_decorator(register_class, method, op_version=None,
             "empty." % (", ".join(map(lambda s: s.__name__, _default_cvt))))
 
     if method_names is None:
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Methods to overwrite are not known for class %r and "
             "method %r." % (register_class, method))
     if signature is None:
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Methods to overwrite are not known for class %r and "
             "method %r." % (register_class, method))
 
@@ -499,7 +499,7 @@ def _internal_method_decorator(register_class, method, op_version=None,
     if len(method_names) == 1:
         name = method_names[0]
         if hasattr(register_class, name):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Cannot overwrite method %r because it already exists in "
                 "class %r." % (name, register_class))
         m = lambda self, X: res(X, op_=self)
@@ -511,7 +511,7 @@ def _internal_method_decorator(register_class, method, op_version=None,
         setattr(register_class, method.__name__ + "_", m)
         for iname, name in enumerate(method_names):
             if hasattr(register_class, name):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Cannot overwrite method %r because it already exists in "
                     "class %r." % (name, register_class))
             m = lambda self, X, index_output=iname: res(X, op_=self)[

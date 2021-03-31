@@ -32,7 +32,7 @@ class XGBConverter:
         try:
             if "objective" not in params:
                 raise AttributeError('ojective')
-        except AttributeError as e:
+        except AttributeError as e:  # pragma: no cover
             raise RuntimeError('Missing attribute in XGBoost model.') from e
 
     @staticmethod

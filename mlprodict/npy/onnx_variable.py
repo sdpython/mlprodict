@@ -65,11 +65,11 @@ class OnnxVar:
         self.alg_ = None
         self.onnx_op_kwargs = kwargs
         if dtype is not None and (op is not None or len(inputs) != 1):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "dtype can only be used if op is None or len(inputs) == 1.")
         for i, inp in enumerate(self.inputs):
             if isinstance(inp, type):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unexpected type for input %d - %r." % (i, inp))
         self.dtype = self._guess_dtype(dtype)
 
@@ -406,7 +406,7 @@ class OnnxVar:
         A copy should be made (Identity node or copy method).
         """
         if self.onnx_op is not None and self.onnx_op is not OnnxIdentity:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "A copy should be made before setting new values on a matrix. "
                 "Method copy() would do that.")
 
@@ -441,7 +441,7 @@ class OnnxVar:
             sl[1] = sl[0] + value.size
         if sl[1] is None:
             if sl[2] is not None and sl[2] != 1:
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     "If the length is not known, step must be 1 not %d." % sl[2])
             value = make_tensor(
                 "value", guess_proto_dtype(value.dtype), (1, ), [value])  # pylint: disable=E1101
@@ -494,7 +494,7 @@ class TupleOnnxAny:
 
     def __init__(self, first, *args):
         if isinstance(first, (list, tuple)):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected type for first %r." % type(first))
         if len(args) > 0:
             self.values = (first,) + args

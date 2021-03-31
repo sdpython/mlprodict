@@ -170,7 +170,7 @@ def get_inputs_from_data(X, schema=None):
             return X.astype(numpy.str)
         if isinstance(ct, Int64TensorType):
             return X.astype(numpy.int64)
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unexpected column type {} for type {}."
             "".format(ct, type(X)))
 
@@ -189,7 +189,7 @@ def get_inputs_from_data(X, schema=None):
         return {sch[0]: _cast_data(X[c].values, sch[1]).reshape((-1, 1))
                 for sch, c in zip(schema, X.columns)}
     else:
-        raise TypeError(
+        raise TypeError(  # pragma: no cover
             "Unexpected type {}, expecting an array or a dataframe."
             "".format(type(X)))
 

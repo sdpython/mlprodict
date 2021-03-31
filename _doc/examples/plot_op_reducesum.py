@@ -22,7 +22,7 @@ import pandas
 import matplotlib.pyplot as plt
 from onnxruntime import InferenceSession
 from skl2onnx.common.data_types import FloatTensorType
-from skl2onnx.algebra.onnx_ops import OnnxReduceSum_11
+from skl2onnx.algebra.onnx_ops import OnnxReduceSumApi11
 from mlprodict.tools import measure_time
 from tqdm import tqdm
 from mlprodict.testing.experimental_c import code_optimisation
@@ -43,9 +43,9 @@ except ImportError:
     torch_sum = None
 
 
-def build_ort_reducesum(axes, op_version=12):
-    node = OnnxReduceSum_11('x', axes=axes, op_version=op_version,
-                            output_names=['z'])
+def build_ort_reducesum(axes, op_version=13):
+    node = OnnxReduceSumApi11('x', axes=axes, op_version=op_version,
+                              output_names=['z'])
     onx = node.to_onnx(inputs=[('x', FloatTensorType())],
                        target_opset=op_version)
     sess = InferenceSession(onx.SerializeToString())
@@ -158,8 +158,44 @@ def benchmark_op(axes, repeat=5, number=5, name="reducesum", shape_fct=None):
 dfs = []
 
 ###################################
-# Reduction on a particular case
-# ++++++++++++++++++++++++++++++
+# Reduction on a particular case KR
+# +++++++++++++++++++++++++++++++++
+#
+# Consecutive axis not reduced and consecutive reduced
+# axis are merged.
+# KRK means kept axis - reduced axis - kept axis,
+#
+# (8, 24, 48, N), axis=(3, )
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+axes = (3, )
+df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24, 48, dim))
+dfs.append(df)
+df.pivot("fct", "N", "average")
+
+###################################
+# Reduction on a particular case RK
+# +++++++++++++++++++++++++++++++++
+#
+# Consecutive axis not reduced and consecutive reduced
+# axis are merged.
+# KRK means kept axis - reduced axis - kept axis,
+#
+# (8, 24, 48, N), axis=(0, )
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+axes = (3, )
+df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24, 48, dim))
+dfs.append(df)
+df.pivot("fct", "N", "average")
+
+###################################
+# Reduction on a particular case KRK
+# ++++++++++++++++++++++++++++++++++
+#
+# Consecutive axis not reduced and consecutive reduced
+# axis are merged.
+# KRK means kept axis - reduced axis - kept axis,
 #
 # (8, 24, 48, N), axis=(1, 2)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -208,11 +244,6 @@ df, piv, ax = benchmark_op(axes)
 dfs.append(df)
 df.pivot("fct", "N", "average")
 
-####################################
-# Ratios
-piv.T
-
-
 ###################################
 # last dimension
 # ^^^^^^^^^^^^^^
@@ -221,10 +252,6 @@ axes = (4, )
 df, piv, ax = benchmark_op(axes)
 dfs.append(df)
 df.pivot("fct", "N", "average")
-
-####################################
-# Ratios
-piv.T
 
 ###################################
 # Reduction on two dimensions
@@ -238,10 +265,6 @@ df, piv, ax = benchmark_op(axes)
 dfs.append(df)
 df.pivot("fct", "N", "average")
 
-####################################
-# Ratios
-piv.T
-
 ###################################
 # (2, 4)
 # ^^^^^^
@@ -250,11 +273,6 @@ axes = (2, 4)
 df, piv, ax = benchmark_op(axes)
 dfs.append(df)
 df.pivot("fct", "N", "average")
-
-####################################
-# Ratios
-piv.T
-
 
 ###################################
 # (1, 4)
@@ -265,11 +283,6 @@ df, piv, ax = benchmark_op(axes)
 dfs.append(df)
 df.pivot("fct", "N", "average")
 
-####################################
-# Ratios
-piv.T
-
-
 ###################################
 # (2, 3)
 # ^^^^^^
@@ -278,11 +291,6 @@ axes = (2, 3)
 df, piv, ax = benchmark_op(axes)
 dfs.append(df)
 df.pivot("fct", "N", "average")
-
-####################################
-# Ratios
-piv.T
-
 
 ###################################
 # .. _l-reducesum-problem1:
@@ -295,10 +303,6 @@ df, piv, ax = benchmark_op(axes)
 dfs.append(df)
 df.pivot("fct", "N", "average")
 
-####################################
-# Ratios
-piv.T
-
 ###################################
 # (0, 3)
 # ^^^^^^
@@ -307,11 +311,6 @@ axes = (0, 3)
 df, piv, ax = benchmark_op(axes)
 dfs.append(df)
 df.pivot("fct", "N", "average")
-
-####################################
-# Ratios
-piv.T
-
 
 ####################################
 # Conclusion

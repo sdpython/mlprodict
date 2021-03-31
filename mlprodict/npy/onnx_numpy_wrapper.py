@@ -176,7 +176,7 @@ class wrapper_onnxnumpy_np:
             others = None
         else:
             others = tuple(kwargs.get(k, self.kwargs[k]) for k in self.kwargs)
-        key = FctVersion(
+        key = FctVersion(  # pragma: no cover
             tuple(a if (a is None or hasattr(a, 'fit'))
                   else a.dtype.type for a in args),
             others)

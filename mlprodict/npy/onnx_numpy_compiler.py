@@ -340,7 +340,7 @@ class OnnxNumpyCompiler:
                 raise RuntimeError(  # pragma: no cover
                     "Unexpected str type %r." % onx_algebra)
             if isinstance(onx_algebra, tuple):
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     "Not implemented when the function returns multiple results.")
             if hasattr(onx_algebra, 'to_onnx'):
                 # skl2onnx algebra
