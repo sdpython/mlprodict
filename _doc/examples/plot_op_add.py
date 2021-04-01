@@ -147,11 +147,11 @@ def benchmark_op(repeat=5, number=2, name="add", shape_fcts=None):
     fig, ax = plt.subplots(1, 2, figsize=(12, 4))
     piv.plot(logx=True, logy=True, ax=ax[0],
              title="%s benchmark\n%s + %s"
-                   "\nlower better" % (name, shape1_name, shape2_name))
+                   " lower better" % (name, shape1_name, shape2_name))
     ax[0].legend(prop={"size": 9})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="%s Speedup, baseline=numpy\n%s + %s"
-                  "\nhigher better" % (name, shape1_name, shape2_name))
+                  " higher better" % (name, shape1_name, shape2_name))
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
     ax[1].legend(prop={"size": 9})

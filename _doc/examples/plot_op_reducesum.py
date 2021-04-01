@@ -144,11 +144,11 @@ def benchmark_op(axes, repeat=5, number=5, name="reducesum", shape_fct=None):
     fig, ax = plt.subplots(1, 2, figsize=(12, 4))
     piv.plot(logx=True, logy=True, ax=ax[0],
              title="%s benchmark\n%r - %r"
-                   "\nlower better" % (name, shape_name, axes))
+                   " lower better" % (name, shape_name, axes))
     ax[0].legend(prop={"size": 9})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="%s Speedup, baseline=numpy\n%r - %r"
-                  "\nhigher better" % (name, shape_name, axes))
+                  " higher better" % (name, shape_name, axes))
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
     ax[1].legend(prop={"size": 9})
@@ -184,7 +184,7 @@ df.pivot("fct", "N", "average")
 # (8, 24, 48, N), axis=(0, )
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-axes = (3, )
+axes = (0, )
 df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24, 48, dim))
 dfs.append(df)
 df.pivot("fct", "N", "average")
