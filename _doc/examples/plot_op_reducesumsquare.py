@@ -43,7 +43,7 @@ except ImportError:
     torch_sum = None
 
 
-def build_ort_reducesum(axes, op_version=13):
+def build_ort_reducesumsquare(axes, op_version=13):
     node = OnnxReduceSumSquare('x', axes=axes, op_version=op_version,
                                output_names=['z'])
     onx = node.to_onnx(inputs=[('x', FloatTensorType())],
@@ -61,7 +61,7 @@ def benchmark_op(axes, repeat=2, number=5, name="ReduceSumSquare", shape_fct=Non
     if shape_fct is None:
         def shape_fct(dim):
             return (3, dim, 1, 128, 64)
-    ort_fct = build_ort_reducesum(axes)
+    ort_fct = build_ort_reducesumsquare(axes)
     res = []
     for dim in tqdm([8, 16, 32, 64, 100, 128, 200,
                      256, 400, 512, 1024]):

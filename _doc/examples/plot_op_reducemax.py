@@ -43,7 +43,7 @@ except ImportError:
     torch_max = None
 
 
-def build_ort_reducesum(axes, op_version=13):
+def build_ort_reducemax(axes, op_version=13):
     node = OnnxReduceMax('x', axes=axes, op_version=op_version,
                          output_names=['z'])
     onx = node.to_onnx(inputs=[('x', FloatTensorType())],
@@ -61,7 +61,7 @@ def benchmark_op(axes, repeat=2, number=5, name="ReduceMax", shape_fct=None):
     if shape_fct is None:
         def shape_fct(dim):
             return (3, dim, 1, 128, 64)
-    ort_fct = build_ort_reducesum(axes)
+    ort_fct = build_ort_reducemax(axes)
     res = []
     for dim in tqdm([8, 16, 32, 64, 100, 128, 200,
                      256, 400, 512, 1024]):
@@ -76,7 +76,7 @@ def benchmark_op(axes, repeat=2, number=5, name="ReduceMax", shape_fct=None):
         # numpy
         ctx = dict(
             xs=xs, ys=ys,
-            fct=lambda x, y: numpy.sum(x ** 2, *y),
+            fct=lambda x, y: numpy.max(x, *y),
             loop_fct=loop_fct)
         obs = measure_time(
             "loop_fct(fct, xs, ys)",

@@ -1,10 +1,10 @@
 """
-.. _l-b-reducesum:
+.. _l-b-reducesummax:
 
-Compares implementations of ReduceSum
-=====================================
+Compares implementations of ReduceMean
+======================================
 
-This example compares the :epkg:`numpy:sum` from numpy,
+This example compares the *numpy* for the operator *ReduceMean*
 to :epkg:`onnxruntime` implementation.
 If available, :epkg:`tensorflow` and :epkg:`pytorch` are included as well.
 
@@ -22,30 +22,30 @@ import pandas
 import matplotlib.pyplot as plt
 from onnxruntime import InferenceSession
 from skl2onnx.common.data_types import FloatTensorType
-from skl2onnx.algebra.onnx_ops import OnnxReduceSumApi11
+from skl2onnx.algebra.onnx_ops import OnnxReduceMean
 from mlprodict.tools import measure_time
 from tqdm import tqdm
 from mlprodict.testing.experimental_c import code_optimisation
 print(code_optimisation())
 
 ###################################
-# ReduceSum implementations
+# ReduceMean implementations
 # +++++++++++++++++++++++++
 
 try:
-    from tensorflow.math import reduce_sum as tf_reduce_sum
+    from tensorflow.math import reduce_mean as tf_reduce_mean
     from tensorflow import convert_to_tensor
 except ImportError:
-    tf_reduce_sum = None
+    tf_reduce_mean = None
 try:
-    from torch import sum as torch_sum, from_numpy
+    from torch import mean as torch_mean, from_numpy
 except ImportError:
-    torch_sum = None
+    torch_mean = None
 
 
-def build_ort_reducesum(axes, op_version=13):
-    node = OnnxReduceSumApi11('x', axes=axes, op_version=op_version,
-                              output_names=['z'])
+def build_ort_reducemean(axes, op_version=13):
+    node = OnnxReduceMean('x', axes=axes, op_version=op_version,
+                         output_names=['z'])
     onx = node.to_onnx(inputs=[('x', FloatTensorType())],
                        target_opset=op_version)
     sess = InferenceSession(onx.SerializeToString())
@@ -57,11 +57,11 @@ def loop_fct(fct, xs, ys):
         fct(x, y)
 
 
-def benchmark_op(axes, repeat=5, number=5, name="ReduceSum", shape_fct=None):
+def benchmark_op(axes, repeat=2, number=5, name="ReduceMean", shape_fct=None):
     if shape_fct is None:
         def shape_fct(dim):
             return (3, dim, 1, 128, 64)
-    ort_fct = build_ort_reducesum(axes)
+    ort_fct = build_ort_reducemean(axes)
     res = []
     for dim in tqdm([8, 16, 32, 64, 100, 128, 200,
                      256, 400, 512, 1024]):
@@ -76,7 +76,7 @@ def benchmark_op(axes, repeat=5, number=5, name="ReduceSum", shape_fct=None):
         # numpy
         ctx = dict(
             xs=xs, ys=ys,
-            fct=lambda x, y: numpy.sum(x, *y),
+            fct=lambda x, y: numpy.mean(x, *y),
             loop_fct=loop_fct)
         obs = measure_time(
             "loop_fct(fct, xs, ys)",
@@ -96,9 +96,9 @@ def benchmark_op(axes, repeat=5, number=5, name="ReduceSum", shape_fct=None):
         obs.update(info)
         res.append(obs)
 
-        if tf_reduce_sum is not None:
+        if tf_reduce_mean is not None:
             # tensorflow
-            ctx['fct'] = tf_reduce_sum
+            ctx['fct'] = tf_reduce_mean
             ctx['xs'] = [convert_to_tensor(x) for x in xs]
             ctx['ys'] = ys
             obs = measure_time(
@@ -109,15 +109,15 @@ def benchmark_op(axes, repeat=5, number=5, name="ReduceSum", shape_fct=None):
             obs.update(info)
             res.append(obs)
 
-        if torch_sum is not None:
-            def torch_sum1(x, y):
-                return torch_sum(x, y[0])
+        if torch_mean is not None:
+            def torch_mean1(x, y):
+                return torch_mean(x, y[0])
 
-            def torch_sum2(x, y):
-                return torch_sum(torch_sum(x, y[1]), y[0])
+            def torch_mean2(x, y):
+                return torch_mean(torch_mean(x, y[1]), y[0])
 
             # torch
-            ctx['fct'] = torch_sum1 if len(axes) == 1 else torch_sum2
+            ctx['fct'] = torch_mean1 if len(axes) == 1 else torch_mean2
             ctx['xs'] = [from_numpy(x) for x in xs]
             ctx['ys'] = ys  # [from_numpy(y) for y in ys]
             obs = measure_time(
@@ -235,7 +235,7 @@ df.pivot("fct", "N", "average")
 # in one dimension seems to be lazy.
 
 merged = pandas.concat(dfs)
-name = "reducesum"
+name = "reducemax"
 merged.to_csv("plot_%s.csv" % name, index=False)
 merged.to_excel("plot_%s.xlsx" % name, index=False)
 plt.savefig("plot_%s.png" % name)
