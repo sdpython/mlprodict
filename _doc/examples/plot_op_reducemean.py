@@ -244,7 +244,7 @@ df.pivot("fct", "N", "average")
 # in one dimension seems to be lazy.
 
 merged = pandas.concat(dfs)
-name = "reducemax"
+name = "reducemean"
 merged.to_csv("plot_%s.csv" % name, index=False)
 merged.to_excel("plot_%s.xlsx" % name, index=False)
 plt.savefig("plot_%s.png" % name)
