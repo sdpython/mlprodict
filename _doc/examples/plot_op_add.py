@@ -1,5 +1,5 @@
 """
-.. _l-b-transpose:
+.. _l-b-add:
 
 Compares implementations of Add
 ===============================

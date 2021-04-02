@@ -1,10 +1,10 @@
 """
-.. _l-b-reducesum:
+.. _l-b-reducesumsquare:
 
-Compares implementations of ReduceSum
-=====================================
+Compares implementations of ReduceSumSquare
+===========================================
 
-This example compares the :epkg:`numpy:sum` from numpy,
+This example compares the *numpy* for the operator *ReduceSumSquare*
 to :epkg:`onnxruntime` implementation.
 If available, :epkg:`tensorflow` and :epkg:`pytorch` are included as well.
 
@@ -22,7 +22,7 @@ import pandas
 import matplotlib.pyplot as plt
 from onnxruntime import InferenceSession
 from skl2onnx.common.data_types import FloatTensorType
-from skl2onnx.algebra.onnx_ops import OnnxReduceSumApi11
+from skl2onnx.algebra.onnx_ops import OnnxReduceSumSquare
 from mlprodict.tools import measure_time
 from tqdm import tqdm
 from mlprodict.testing.experimental_c import code_optimisation
@@ -44,7 +44,7 @@ except ImportError:
 
 
 def build_ort_reducesum(axes, op_version=13):
-    node = OnnxReduceSumApi11('x', axes=axes, op_version=op_version,
+    node = OnnxReduceSumSquare('x', axes=axes, op_version=op_version,
                               output_names=['z'])
     onx = node.to_onnx(inputs=[('x', FloatTensorType())],
                        target_opset=op_version)
@@ -57,7 +57,7 @@ def loop_fct(fct, xs, ys):
         fct(x, y)
 
 
-def benchmark_op(axes, repeat=5, number=5, name="reducesum", shape_fct=None):
+def benchmark_op(axes, repeat=2, number=5, name="reducesum", shape_fct=None):
     if shape_fct is None:
         def shape_fct(dim):
             return (3, dim, 1, 128, 64)
@@ -76,7 +76,7 @@ def benchmark_op(axes, repeat=5, number=5, name="reducesum", shape_fct=None):
         # numpy
         ctx = dict(
             xs=xs, ys=ys,
-            fct=lambda x, y: numpy.sum(x, *y),
+            fct=lambda x, y: numpy.sum(x ** 2, *y),
             loop_fct=loop_fct)
         obs = measure_time(
             "loop_fct(fct, xs, ys)",
@@ -98,7 +98,7 @@ def benchmark_op(axes, repeat=5, number=5, name="reducesum", shape_fct=None):
 
         if tf_reduce_sum is not None:
             # tensorflow
-            ctx['fct'] = tf_reduce_sum
+            ctx['fct'] = lambda x, y: tf_reduce_sum(x ** 2, y)
             ctx['xs'] = [convert_to_tensor(x) for x in xs]
             ctx['ys'] = ys
             obs = measure_time(
@@ -111,10 +111,10 @@ def benchmark_op(axes, repeat=5, number=5, name="reducesum", shape_fct=None):
 
         if torch_sum is not None:
             def torch_sum1(x, y):
-                return torch_sum(x, y[0])
+                return torch_sum(x ** 2, y[0])
 
             def torch_sum2(x, y):
-                return torch_sum(torch_sum(x, y[1]), y[0])
+                return torch_sum(torch_sum(x ** 2, y[1]), y[0])
 
             # torch
             ctx['fct'] = torch_sum1 if len(axes) == 1 else torch_sum2
@@ -220,95 +220,6 @@ df.pivot("fct", "N", "average")
 
 axes = (2, )
 df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24 * 48, dim))
-dfs.append(df)
-df.pivot("fct", "N", "average")
-
-###################################
-# Reduction on one axis
-# +++++++++++++++++++++
-#
-# (1, )
-# ^^^^^
-
-axes = (2, )
-df, piv, ax = benchmark_op(axes)
-dfs.append(df)
-df.pivot("fct", "N", "average")
-
-###################################
-# (2, )
-# ^^^^^
-
-axes = (2, )
-df, piv, ax = benchmark_op(axes)
-dfs.append(df)
-df.pivot("fct", "N", "average")
-
-###################################
-# last dimension
-# ^^^^^^^^^^^^^^
-
-axes = (4, )
-df, piv, ax = benchmark_op(axes)
-dfs.append(df)
-df.pivot("fct", "N", "average")
-
-###################################
-# Reduction on two dimensions
-# +++++++++++++++++++++++++++
-#
-# (3, 4)
-# ^^^^^^
-
-axes = (3, 4)
-df, piv, ax = benchmark_op(axes)
-dfs.append(df)
-df.pivot("fct", "N", "average")
-
-###################################
-# (2, 4)
-# ^^^^^^
-
-axes = (2, 4)
-df, piv, ax = benchmark_op(axes)
-dfs.append(df)
-df.pivot("fct", "N", "average")
-
-###################################
-# (1, 4)
-# ^^^^^^
-
-axes = (1, 4)
-df, piv, ax = benchmark_op(axes)
-dfs.append(df)
-df.pivot("fct", "N", "average")
-
-###################################
-# (2, 3)
-# ^^^^^^
-
-axes = (2, 3)
-df, piv, ax = benchmark_op(axes)
-dfs.append(df)
-df.pivot("fct", "N", "average")
-
-###################################
-# .. _l-reducesum-problem1:
-#
-# (1, 3)
-# ^^^^^^
-
-axes = (1, 3)
-df, piv, ax = benchmark_op(axes)
-dfs.append(df)
-df.pivot("fct", "N", "average")
-
-###################################
-# (0, 3)
-# ^^^^^^
-
-axes = (0, 3)
-df, piv, ax = benchmark_op(axes)
 dfs.append(df)
 df.pivot("fct", "N", "average")
 
