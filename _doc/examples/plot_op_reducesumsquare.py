@@ -29,8 +29,8 @@ from mlprodict.testing.experimental_c import code_optimisation
 print(code_optimisation())
 
 ###################################
-# ReduceSum implementations
-# +++++++++++++++++++++++++
+# ReduceSumSquare implementations
+# +++++++++++++++++++++++++++++++
 
 try:
     from tensorflow.math import reduce_sum as tf_reduce_sum
@@ -45,7 +45,7 @@ except ImportError:
 
 def build_ort_reducesum(axes, op_version=13):
     node = OnnxReduceSumSquare('x', axes=axes, op_version=op_version,
-                              output_names=['z'])
+                               output_names=['z'])
     onx = node.to_onnx(inputs=[('x', FloatTensorType())],
                        target_opset=op_version)
     sess = InferenceSession(onx.SerializeToString())
@@ -57,7 +57,7 @@ def loop_fct(fct, xs, ys):
         fct(x, y)
 
 
-def benchmark_op(axes, repeat=2, number=5, name="reducesum", shape_fct=None):
+def benchmark_op(axes, repeat=2, number=5, name="ReduceSumSquare", shape_fct=None):
     if shape_fct is None:
         def shape_fct(dim):
             return (3, dim, 1, 128, 64)
@@ -215,11 +215,14 @@ dfs.append(df)
 df.pivot("fct", "N", "average")
 
 ###################################
-# (8, 24 * 48, N), axis=2
-# ^^^^^^^^^^^^^^^^^^^^^^^
+# Reduction on a particular case RKRK
+# +++++++++++++++++++++++++++++++++++
+#
+# (8, 24, 48, N), axis=(0, 2)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-axes = (2, )
-df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24 * 48, dim))
+axes = (0, 2)
+df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24, 48, dim))
 dfs.append(df)
 df.pivot("fct", "N", "average")
 
@@ -232,7 +235,7 @@ df.pivot("fct", "N", "average")
 # in one dimension seems to be lazy.
 
 merged = pandas.concat(dfs)
-name = "reducesum"
+name = "reducesumsquare"
 merged.to_csv("plot_%s.csv" % name, index=False)
 merged.to_excel("plot_%s.xlsx" % name, index=False)
 plt.savefig("plot_%s.png" % name)

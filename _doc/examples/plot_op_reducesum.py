@@ -36,7 +36,7 @@ try:
     from tensorflow.math import reduce_sum as tf_reduce_sum
     from tensorflow import convert_to_tensor
 except ImportError:
-    reduce_sum = None
+    tf_reduce_sum = None
 try:
     from torch import sum as torch_sum, from_numpy
 except ImportError:
@@ -57,7 +57,7 @@ def loop_fct(fct, xs, ys):
         fct(x, y)
 
 
-def benchmark_op(axes, repeat=5, number=5, name="reducesum", shape_fct=None):
+def benchmark_op(axes, repeat=5, number=5, name="ReduceSum", shape_fct=None):
     if shape_fct is None:
         def shape_fct(dim):
             return (3, dim, 1, 128, 64)
@@ -215,11 +215,14 @@ dfs.append(df)
 df.pivot("fct", "N", "average")
 
 ###################################
-# (8, 24 * 48, N), axis=2
-# ^^^^^^^^^^^^^^^^^^^^^^^
+# Reduction on a particular case RKRK
+# +++++++++++++++++++++++++++++++++++
+#
+# (8, 24, 48, N), axis=(0, 2)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-axes = (2, )
-df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24 * 48, dim))
+axes = (0, 2)
+df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24, 48, dim))
 dfs.append(df)
 df.pivot("fct", "N", "average")
 

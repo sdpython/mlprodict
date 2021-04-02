@@ -180,10 +180,10 @@ def benchmark_equation():
     # Graphs.
     fig, ax = plt.subplots(1, 2, figsize=(12, 4))
     piv.plot(logx=True, logy=True, ax=ax[0],
-             title="where benchmark -- (N, N)\nlower better")
+             title="Where benchmark -- (N, N)\nlower better")
     ax[0].legend(prop={"size": 9})
     rs.plot(logx=True, logy=True, ax=ax[1],
-            title="where Speedup, baseline=numpy -- (N, N)\nhigher better")
+            title="Where Speedup, baseline=numpy -- (N, N)\nhigher better")
     ax[1].plot([min(rs.index), max(rs.index)], [0.5, 0.5], 'g--')
     ax[1].plot([min(rs.index), max(rs.index)], [2., 2.], 'g--')
     ax[1].legend(prop={"size": 9})

@@ -37,11 +37,11 @@ try:
     from tensorflow.math import add as tf_add
     from tensorflow import convert_to_tensor
 except ImportError:
-    reduce_sum = None
+    tf_add = None
 try:
     from torch import add as torch_add, from_numpy
 except ImportError:
-    torch_sum = None
+    torch_add = None
 
 
 def build_ort_add(op_version=12):
@@ -60,7 +60,7 @@ def loop_fct(fct, xs, ys):
         fct(x, y)
 
 
-def benchmark_op(repeat=5, number=2, name="add", shape_fcts=None):
+def benchmark_op(repeat=5, number=2, name="Add", shape_fcts=None):
     if shape_fcts is None:
         def shape_fct(dim):
             return (5, dim, dim)
