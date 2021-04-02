@@ -76,7 +76,7 @@ def benchmark_op(axes, repeat=2, number=5, name="ReduceMax", shape_fct=None):
         # numpy
         ctx = dict(
             xs=xs, ys=ys,
-            fct=lambda x, y: numpy.max(x, *y),
+            fct=lambda x, y: numpy.amax(x, tuple(y)),
             loop_fct=loop_fct)
         obs = measure_time(
             "loop_fct(fct, xs, ys)",
@@ -211,6 +211,15 @@ df.pivot("fct", "N", "average")
 
 axes = (1, )
 df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24 * 48, dim))
+dfs.append(df)
+df.pivot("fct", "N", "average")
+
+###################################
+# (2, 8, 12, 24, 2, N), axis=(2, 3)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+axes = (2, 3)
+df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (2, 8, 12, 24, 2, dim))
 dfs.append(df)
 df.pivot("fct", "N", "average")
 

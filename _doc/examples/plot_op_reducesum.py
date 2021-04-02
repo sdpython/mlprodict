@@ -215,6 +215,15 @@ dfs.append(df)
 df.pivot("fct", "N", "average")
 
 ###################################
+# (2, 8, 12, 24, 2, N), axis=(2, 3)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+axes = (2, 3)
+df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (2, 8, 12, 24, 2, dim))
+dfs.append(df)
+df.pivot("fct", "N", "average")
+
+###################################
 # Reduction on a particular case RKRK
 # +++++++++++++++++++++++++++++++++++
 #
