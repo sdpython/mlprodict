@@ -86,9 +86,17 @@ class TestOnnxConvKNN(ExtTestCase):
                         numpy.float32).reshape((4, 2))
                     cop = OnnxAdd('input', 'input',
                                   op_version=opv)
-                    cop2 = OnnxIdentity(onnx_cdist(cop, x2, dtype=numpy.float32,
-                                                   metric=metric, op_version=opv),
-                                        output_names=['cdist'], op_version=opv)
+
+                    if metric == "minkowski":
+                        cop2 = OnnxIdentity(
+                            onnx_cdist(cop, x2, dtype=numpy.float32,
+                                       metric=metric, op_version=opv, p=2),
+                            output_names=['cdist'], op_version=opv)
+                    else:
+                        cop2 = OnnxIdentity(
+                            onnx_cdist(cop, x2, dtype=numpy.float32,
+                                       metric=metric, op_version=opv),
+                            output_names=['cdist'], op_version=opv)
 
                     model_def = cop2.to_onnx(
                         inputs=[('input', FloatTensorType([None, None]))],

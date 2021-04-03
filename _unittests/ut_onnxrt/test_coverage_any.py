@@ -35,7 +35,8 @@ class TestCoverageAny(ExtTestCase):
         a = numpy.array([[0, 1], [1, 0]], dtype=numpy.float32)
         b = numpy.array([0, 1], dtype=numpy.float32)
         self.assertEqualArray(a @ b, _numpy_dot_inplace_right(a, b))
-        self.assertEqualArray(b @ a, _numpy_dot_inplace_right(b, a))
+        self.assertEqualArray(  # pylint: disable=W1114
+            b @ a, _numpy_dot_inplace_right(b, a))  # pylint: disable=W1114
 
     def test_find_suitable_problem(self):
         res = find_suitable_problem(LogisticRegression)

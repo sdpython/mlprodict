@@ -109,9 +109,13 @@ class TestGrammarSklearnLinear(ExtTestCase):
             fLOG=myprint, suffix='B')
         self.assertGreater(len(rows), 2)
         xdf = pandas.DataFrame(X)
-        check_model_representation(
-            LinearRegression, xdf, y.tolist(), verbose=True,
-            fLOG=myprint, suffix='B')
+        try:
+            check_model_representation(
+                LinearRegression, xdf, y.tolist(), verbose=True,
+                fLOG=myprint, suffix='B')
+        except TypeError as e:
+            self.assertIn("value is not a numpy.array but", str(e))
+            return
         self.assertGreater(len(rows), 2)
 
 
