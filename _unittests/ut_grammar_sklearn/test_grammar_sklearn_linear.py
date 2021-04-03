@@ -4,7 +4,10 @@
 import unittest
 import platform
 import numpy
+import pandas
 from pyquickhelper.pycode import ExtTestCase
+from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.datasets import load_iris
 from mlprodict.testing import iris_data, check_model_representation
 from mlprodict.grammar_sklearn import sklearn2graph, identify_interpreter
 from mlprodict.grammar_sklearn.cc import compile_c_function
@@ -13,14 +16,11 @@ from mlprodict.grammar_sklearn.cc import compile_c_function
 class TestGrammarSklearnLinear(ExtTestCase):
 
     def test_sklearn_lr(self):
-        from sklearn.linear_model import LogisticRegression
         lr = LogisticRegression()
         gr = identify_interpreter(lr)
         self.assertCallable(gr)
 
     def test_sklearn_train_lr(self):
-        from sklearn.linear_model import LogisticRegression
-        from sklearn.datasets import load_iris
         iris = load_iris()
         X = iris.data[:, :2]
         y = iris.target
@@ -46,8 +46,6 @@ class TestGrammarSklearnLinear(ExtTestCase):
     @unittest.skipIf(platform.system().lower() == "darwin",
                      reason="compilation issue with CFFI")
     def test_sklearn_train_lr_into_c_float(self):
-        from sklearn.linear_model import LogisticRegression
-        from sklearn.datasets import load_iris
         iris = load_iris()
         X = iris.data[:, :2]
         y = iris.target
@@ -73,8 +71,6 @@ class TestGrammarSklearnLinear(ExtTestCase):
     @unittest.skipIf(platform.system().lower() == "darwin",
                      reason="compilation issue with CFFI")
     def test_sklearn_train_lr_into_c_double(self):
-        from sklearn.linear_model import LogisticRegression
-        from sklearn.datasets import load_iris
         iris = load_iris()
         X = iris.data[:, :2]
         y = iris.target
@@ -100,7 +96,6 @@ class TestGrammarSklearnLinear(ExtTestCase):
 
     @unittest.skipIf(platform.system().lower() == "darwin", reason="compilation issue with CFFI")
     def test_sklearn_linear_regression_verbose(self):
-        from sklearn.linear_model import LinearRegression
         X, y = iris_data()
         rows = []
 
@@ -112,6 +107,15 @@ class TestGrammarSklearnLinear(ExtTestCase):
         check_model_representation(
             LinearRegression, X.tolist(), y.tolist(), verbose=True,
             fLOG=myprint, suffix='B')
+        self.assertGreater(len(rows), 2)
+        xdf = pandas.DataFrame(X)
+        try:
+            check_model_representation(
+                LinearRegression, xdf, y.tolist(), verbose=True,
+                fLOG=myprint, suffix='B')
+        except TypeError as e:
+            self.assertIn("value is not a numpy.array but", str(e))
+            return
         self.assertGreater(len(rows), 2)
 
 

@@ -95,7 +95,8 @@ def check_model_representation(model, X, y=None, convs=None,
 
     # sklearn
     if not hasattr(model.__class__, "fit"):
-        # It is a class object and not an instance. We use the default values.
+        # It is a class object and not an instance.
+        # We use the default values.
         model = model()
 
     model.fit(X, y)

@@ -19,7 +19,7 @@ def find_node_name(model, name):
     for node in model.graph.node:
         if node.name == name:
             return node
-    return None
+    return None  # pragma: no cover
 
 
 def find_node_input_name(node, name):

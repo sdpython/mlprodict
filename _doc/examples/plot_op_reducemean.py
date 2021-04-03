@@ -45,7 +45,7 @@ except ImportError:
 
 def build_ort_reducemean(axes, op_version=13):
     node = OnnxReduceMean('x', axes=axes, op_version=op_version,
-                         output_names=['z'])
+                          output_names=['z'])
     onx = node.to_onnx(inputs=[('x', FloatTensorType())],
                        target_opset=op_version)
     sess = InferenceSession(onx.SerializeToString())

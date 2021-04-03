@@ -80,7 +80,7 @@ def _reduce_infos(infos):
         else:
             try:
                 un = set(values)
-            except TypeError:
+            except TypeError:  # pragma: no cover
                 un = set()
             if len(un) == 1:
                 info[k] = list(un)[0]

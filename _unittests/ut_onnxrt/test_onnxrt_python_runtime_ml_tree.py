@@ -22,7 +22,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_DecisionTreeClassifier(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -44,7 +44,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_DecisionTreeClassifier_plusten(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -67,7 +67,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_GradientBoostingClassifier2(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -90,7 +90,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=3)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_GradientBoostingClassifier3(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -112,7 +112,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=3)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_DecisionTreeClassifier_mlabel(self):
         iris = load_iris()
         X, y_ = iris.data, iris.target
@@ -139,7 +139,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         lexp = clr.predict(X_test)
         self.assertEqualArray(lexp, y['output_label'])
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_DecisionTreeRegressor(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -172,7 +172,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqual(lexp.shape, y['variable'].shape)
         self.assertEqualArray(lexp, y['variable'])
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_DecisionTreeRegressor2(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -191,7 +191,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqual(lexp.shape, y['variable'].shape)
         self.assertEqualArray(lexp, y['variable'])
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_DecisionTreeRegressor64(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -241,7 +241,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                                    y64['variable'].astype(numpy.float64)))
         self.assertLesser(diff, 1e-5)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_GradientBoostingRegressor64(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -321,7 +321,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                                    y64['variable'].astype(numpy.float64)))
         self.assertLesser(diff, 1e-5)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_DecisionTree_depth2(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -343,7 +343,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_RandomForestClassifer5(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -366,7 +366,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_openmp_compilation(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_ import RuntimeTreeEnsembleRegressorFloat  # pylint: disable=E0611,E0401
         ru = RuntimeTreeEnsembleRegressorFloat()
@@ -382,7 +382,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         nb2 = ru.omp_get_max_threads()
         self.assertEqual(nb2, nb)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_openmp_compilation_p(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import RuntimeTreeEnsembleRegressorPFloat  # pylint: disable=E0611,E0401
         ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, False, False)
@@ -398,7 +398,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         nb2 = ru.omp_get_max_threads()
         self.assertEqual(nb2, nb)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_openmp_compilation_p_true(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import RuntimeTreeEnsembleRegressorPFloat  # pylint: disable=E0611,E0401
         ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, True, False)
@@ -414,7 +414,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         nb2 = ru.omp_get_max_threads()
         self.assertEqual(nb2, nb)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_average(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import (  # pylint: disable=E0611,E0401
             test_tree_regressor_multitarget_average)
@@ -433,7 +433,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                     test_tree_regressor_multitarget_average(
                         *(conf + [b, True]))
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_average_true(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import (  # pylint: disable=E0611,E0401
             test_tree_regressor_multitarget_average)
@@ -452,7 +452,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                     test_tree_regressor_multitarget_average(
                         *(conf + [b, True]))
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_sum(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_sum  # pylint: disable=E0611,E0401
         confs = [[100, 100, False, False, True],
@@ -470,7 +470,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                     test_tree_regressor_multitarget_sum(
                         *(conf + [b, True]))
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_sum_true(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_sum  # pylint: disable=E0611,E0401
         confs = [[100, 100, True, False, True],
@@ -488,7 +488,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                     test_tree_regressor_multitarget_sum(
                         *(conf + [b, True]))
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_min(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_min  # pylint: disable=E0611,E0401
         confs = [[100, 100, False, False, True],
@@ -504,7 +504,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                 for b in [False, True]:
                     test_tree_regressor_multitarget_min(*(conf + [b, True]))
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_min_true(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_min  # pylint: disable=E0611,E0401
         confs = [[100, 100, True, False, True],
@@ -520,7 +520,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                 for b in [False, True]:
                     test_tree_regressor_multitarget_min(*(conf + [b, True]))
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_max(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_max  # pylint: disable=E0611,E0401
         confs = [[100, 100, False, False, True],
@@ -536,7 +536,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                 for b in [False, True]:
                     test_tree_regressor_multitarget_max(*(conf + [b, True]))
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_max_true(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_max  # pylint: disable=E0611,E0401
         confs = [[100, 100, True, False, True],
@@ -595,22 +595,22 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                     dtype, 40),
                 ValueError)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_tree_ensemble_runtime_version_float(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(
             numpy.float32)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_tree_ensemble_runtime_version_double(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(
             numpy.float64)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_tree_ensemble_runtime_version_float_multi(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(
             numpy.float32, True)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_tree_ensemble_runtime_version_double_multi(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version(
             numpy.float64, True)
@@ -688,37 +688,37 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                     dtype, 40),
                 ValueError)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_tree_ensemble_runtime_version_float_cls(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float32)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_tree_ensemble_runtime_version_double_cls(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float64)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_tree_ensemble_runtime_version_float_cls_multi(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float32, True)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_tree_ensemble_runtime_version_double_cls_multi(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float64, True)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_tree_ensemble_runtime_version_float_cls_single(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float32, False, True)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_onnxrt_python_tree_ensemble_runtime_version_double_cls_single(self):
         self.common_test_onnxrt_python_tree_ensemble_runtime_version_cls(
             numpy.float64, False, True)
 
-    @ignore_warnings(DeprecationWarning)
+    @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_random_forest_with_only_one_class(self):
         rnd = numpy.random.RandomState(4)  # pylint: disable=E1101
         ntrain = 10000

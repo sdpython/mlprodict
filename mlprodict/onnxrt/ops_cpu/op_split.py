@@ -97,7 +97,7 @@ class Split_13(CommonSplit):
 
 if onnx_opset_version() >= 13:
     Split = Split_13
-elif onnx_opset_version() >= 11:
+elif onnx_opset_version() >= 11:  # pragma: no cover
     Split = Split_11
-else:
+else:  # pragma: no cover
     Split = Split_2

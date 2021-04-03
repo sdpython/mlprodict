@@ -14,8 +14,7 @@ from pyquickhelper.loghelper import fLOG
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from pyquickhelper.ipythonhelper import test_notebook_execution_coverage
 from pyquickhelper.pycode import (
-    add_missing_development_version, ExtTestCase
-)
+    add_missing_development_version, ExtTestCase)
 from skl2onnx import __version__ as skl2onnx_version
 import mlprodict
 

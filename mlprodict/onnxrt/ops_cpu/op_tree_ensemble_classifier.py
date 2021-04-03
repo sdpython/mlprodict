@@ -74,7 +74,8 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
                 raise ValueError(  # pragma: no cover
                     "Unknown version '{}'.".format(version))
         else:
-            raise RuntimeTypeError("Unsupported dtype={}.".format(dtype))
+            raise RuntimeTypeError(  # pragma: no cover
+                "Unsupported dtype={}.".format(dtype))
         atts = [self._get_typed_attributes(k)
                 for k in self.__class__.atts]
         self.rt_.init(*atts)

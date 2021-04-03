@@ -220,7 +220,7 @@ def exp(x):
 def expand_dims(x, axis):
     "See :epkg:`numpy:expand_dims`."
     if not isinstance(axis, int):
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "This function only allows integer for axis not %r." % type(axis))
     return OnnxVar(x, numpy.array([axis], dtype=numpy.int64),
                    op=OnnxUnsqueeze)

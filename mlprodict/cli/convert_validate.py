@@ -157,7 +157,8 @@ def convert_validate(pkl, data=None, schema=None,
         if schema is None:
             schema = guess_schema_from_data(df, tensor_type)
         if schema is None:
-            schema = [('X', tensor_type([None, df.shape[1]]))]
+            schema = [  # pragma: no cover
+                ('X', tensor_type([None, df.shape[1]]))]
         if len(schema) == 1:
             df = df.values
         if verbose > 0:

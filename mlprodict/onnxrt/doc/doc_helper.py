@@ -284,7 +284,7 @@ def debug_onnx_object(obj, depth=3):
             try:
                 val = getattr(obj, k)
                 sval = str(val).replace("\n", " ")
-            except (AttributeError, ValueError) as e:
+            except (AttributeError, ValueError) as e:  # pragma: no cover
                 sval = "ERRROR-" + str(e)
                 val = None
 

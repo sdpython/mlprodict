@@ -89,7 +89,7 @@ class OnnxInferenceExport:
             for reg in [clean_label_reg1, clean_label_reg2]:
                 fall = reg.findall(text)
                 for f in fall:
-                    text = text.replace(f, "_")
+                    text = text.replace(f, "_")  # pragma: no cover
             return text
 
         options = {

@@ -15,7 +15,7 @@ from mlprodict.npy.onnx_sklearn_wrapper import (
     _common_converter_t, _common_converter_int_t)
 from mlprodict.npy.onnx_numpy_annotation import (
     NDArrayType, NDArrayTypeSameShape,
-    NDArraySameTypeSameShape)
+    NDArraySameTypeSameShape, NDArraySameType)
 
 
 class operator_dummy:
@@ -32,6 +32,11 @@ class container_dummy:
 
 
 class TestWrappers(ExtTestCase):
+
+    def test_repr(self):
+        dt = NDArraySameType(numpy.float32)
+        r = repr(dt)
+        self.assertEqual(r, "NDArraySameType(((<class 'numpy.float32'>,),))")
 
     def test_shape_calculator(self):
         model = LinearRegression()

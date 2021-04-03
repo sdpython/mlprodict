@@ -46,7 +46,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         nb = ru.omp_get_max_threads()
         self.assertGreater(nb, 0)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVR(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -64,7 +64,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqual(lexp.shape, y['variable'].shape)
         self.assertEqualArray(lexp, y['variable'], decimal=5)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVR_double(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -82,7 +82,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqual(lexp.shape, y['variable'].shape)
         self.assertEqualArray(lexp, y['variable'], decimal=5)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVR_20(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -101,7 +101,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqual(lexp.shape, y['variable'].shape)
         self.assertEqualArray(lexp, y['variable'], decimal=5)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVR_double_20(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -120,7 +120,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqual(lexp.shape, y['variable'].shape)
         self.assertEqualArray(lexp, y['variable'], decimal=5)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVC_proba(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -143,7 +143,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'], decimal=5)
         self.assertEqualArray(lprob, got, decimal=5)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVC_proba_20(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -167,7 +167,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'], decimal=5)
         self.assertEqualArray(lprob, got, decimal=5)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVC_proba_double_20(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -191,7 +191,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'], decimal=5)
         self.assertEqualArray(lprob, got, decimal=5)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVC_proba_linear(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -212,7 +212,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqualArray(lexp, y['label'], decimal=5)
         self.assertEqualArray(lprob, y['probabilities'], decimal=5)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_SVC_proba_bin(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -236,7 +236,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
         self.assertEqualArray(lexp, y['output_label'], decimal=5)
         self.assertEqualArray(lprob, got, decimal=5)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(FutureWarning, UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_onnxrt_python_one_class_svm(self):
         X = numpy.array([[0, 1, 2], [44, 36, 18],
                          [-4, -7, -5]], dtype=numpy.float32)

@@ -37,7 +37,7 @@ class Conv(OpRun):
 
     def _run(self, X, W, B=None):  # pylint: disable=W0221
         if X is None:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "X cannot be None for operator %r, ONNX=%r" % (
                     type(self), self.onnx_node))
         if X.dtype == numpy.float32:
