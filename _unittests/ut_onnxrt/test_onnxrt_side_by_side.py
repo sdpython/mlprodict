@@ -17,7 +17,7 @@ except ImportError:
     convert_kernel = None
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.side_by_side import (
-    side_by_side_by_values, merge_results
+    side_by_side_by_values, merge_results, _side_by_side_by_values_inputs
 )
 from mlprodict.tools import (
     get_ir_version_from_onnx, get_opset_number_from_onnx)
@@ -46,6 +46,11 @@ class TestOnnxrtSideBySide(ExtTestCase):
     def setUp(self):
         logger = getLogger('skl2onnx')
         logger.disabled = True
+
+    def test__side_by_side_by_values_inputs(self):
+        a, b = _side_by_side_by_values_inputs('B', ['AA'], 0)
+        self.assertEqual(a, 'B')
+        self.assertEqual(b, 'AA')
 
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
     @ignore_warnings(DeprecationWarning)

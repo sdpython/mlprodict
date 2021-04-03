@@ -152,8 +152,8 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
                     row['max_time'] /= number
                     row['min_time'] /= number
                 else:
-                    row['max_time'] = row['time']
-                    row['min_time'] = row['time']
+                    row['max_time'] = row['time']  # pragma: no cover
+                    row['min_time'] = row['time']  # pragma: no cover
             res[N] = main
         else:
             res[N] = measure_time(fct, x, repeat=repeat,

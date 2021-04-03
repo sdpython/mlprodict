@@ -36,7 +36,7 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
         raise NotImplementedError(  # pragma: no cover
             "Loop version is not implemented.")
     if output_names is None:
-        output_names = ['Prediction', 'Score']
+        output_names = ['Prediction', 'Score']  # pragma: no cover
     if input_names is None:
         input_names = 'Features'
 

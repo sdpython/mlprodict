@@ -11,9 +11,31 @@ from mlprodict.onnxrt.validate.validate_problems import (
     find_suitable_problem, _problem_for_clnoproba_binary,
     _problem_for_numerical_scoring, _problem_for_predictor_multi_regression,
     _problem_for_predictor_regression)
+from mlprodict.onnxrt.ops_cpu._op_numpy_helper import (
+    _numpy_dot_inplace_right)
+from mlprodict.onnxrt.ops_cpu.op_argmax import _argmax_use_numpy_select_last_index
+from mlprodict.onnxrt.ops_cpu.op_argmin import _argmin_use_numpy_select_last_index
 
 
 class TestCoverageAny(ExtTestCase):
+
+    def test__argmax_use_numpy_select_last_index(self):
+        data = numpy.array([[0, 1], [1, 0]], dtype=numpy.float32)
+        res = _argmax_use_numpy_select_last_index(data, axis=1)
+        self.assertEqualArray(
+            res, numpy.array([[1], [0]], dtype=numpy.float32))
+
+    def test__argmin_use_numpy_select_last_index(self):
+        data = numpy.array([[0, 1], [1, 0]], dtype=numpy.float32)
+        res = _argmin_use_numpy_select_last_index(data, axis=1)
+        self.assertEqualArray(
+            res, numpy.array([[0], [1]], dtype=numpy.float32))
+
+    def test__numpy_dot_inplace(self):
+        a = numpy.array([[0, 1], [1, 0]], dtype=numpy.float32)
+        b = numpy.array([0, 1], dtype=numpy.float32)
+        self.assertEqualArray(a @ b, _numpy_dot_inplace_right(a, b))
+        self.assertEqualArray(b @ a, _numpy_dot_inplace_right(b, a))
 
     def test_find_suitable_problem(self):
         res = find_suitable_problem(LogisticRegression)

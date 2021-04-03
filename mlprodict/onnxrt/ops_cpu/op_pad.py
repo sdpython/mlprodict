@@ -43,9 +43,10 @@ def onnx_pad(data, pads, constant_value=None, mode='constant'):
     :param mode: Supported modes: `constant`(default), `reflect`, `edge`
     :return: tensor after padding
     """
-    if constant_value is None:
-        constant_value = numpy.array([0], dtype=data.dtype.type)
-    return _pad_impl(data, pads, mode=mode, constant_values=constant_value)
+    return _pad_impl(
+        data, pads, mode=mode,
+        constant_values=constant_value or numpy.array(
+            [0], dtype=data.dtype.type))
 
 
 class Pad(OpRun):

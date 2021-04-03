@@ -131,7 +131,7 @@ def download_model_data(name, model=None, cache=None, verbose=False):
     # downloads
     last_name = model.split('/')[-1]
     if cache is None:
-        cache = os.path.abspath('.')
+        cache = os.path.abspath('.')  # pragma: no cover
     dest = os.path.join(cache, last_name)
     if not os.path.exists(dest):
         _download_url(model, dest, name, verbose=verbose)

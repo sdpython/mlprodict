@@ -21,9 +21,9 @@ def _dropout(X, drop_probability=0.5, seed=0,
     rnd = RandomState(seed)
     mask = rnd.uniform(0, 1.0, X.shape) >= drop_probability
     scale = (1. / (1. - drop_probability))
-    if return_mask:
-        return mask * X * scale, mask.astype(bool)
-    return (mask * X * scale, )
+    return (
+        (mask * X * scale, mask.astype(bool))
+        if return_mask else (mask * X * scale, ))
 
 
 class DropoutBase(OpRun):

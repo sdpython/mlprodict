@@ -156,7 +156,7 @@ class wrapper_onnxnumpy_np:
         :return: instance of @see cl wrapper_onnxnumpy
         """
         if not isinstance(dtype, FctVersion):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "dtype must be of type 'FctVersion' not %s: %s." % (
                     type(dtype), dtype))
         if dtype not in self.signed_compiled:

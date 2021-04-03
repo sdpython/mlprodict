@@ -1,5 +1,5 @@
 """
-@brief      test log(time=4s)
+@brief      test log(time=5s)
 """
 import unittest
 from logging import getLogger
@@ -8,16 +8,12 @@ import numpy
 from pandas import DataFrame
 from scipy.spatial.distance import cdist as scipy_cdist
 from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument as OrtInvalidArgument  # pylint: disable=E0611
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings as igw
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.datasets import load_iris, make_regression
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import (
     KNeighborsRegressor, KNeighborsClassifier, NearestNeighbors)
-try:
-    from sklearn.utils._testing import ignore_warnings
-except ImportError:
-    from sklearn.utils.testing import ignore_warnings
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxIdentity)
@@ -60,6 +56,7 @@ class TestOnnxConvKNN(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_topk_sorted_implementation(self):
         X = numpy.array([[0, 1, 0, 2],
                          [1, 0, 4, 5],
@@ -77,54 +74,59 @@ class TestOnnxConvKNN(ExtTestCase):
         self.assertEqualArray(vals, vals2)
         self.assertEqualArray(inds, inds2)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_example_cdist_in_euclidean(self):
-        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
-            numpy.float32).reshape((3, 2))
-        x2 = numpy.array([1.1, 2.1, 4.01, 5.01, 5.001, 4.001, 0, 0]).astype(
-            numpy.float32).reshape((4, 2))
-        cop = OnnxAdd('input', 'input',
-                      op_version=get_opset_number_from_onnx())
-        cop2 = OnnxIdentity(onnx_cdist(cop, x2, dtype=numpy.float32,
-                                       metric='euclidean',
-                                       op_version=get_opset_number_from_onnx()),
-                            output_names=['cdist'], op_version=get_opset_number_from_onnx())
+        for metric in ['euclidean', 'minkowski']:
+            for opv in [11, get_opset_number_from_onnx()]:
+                with self.subTest(metric=metric, opv=opv):
+                    x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+                        numpy.float32).reshape((3, 2))
+                    x2 = numpy.array([1.1, 2.1, 4.01, 5.01,
+                                      5.001, 4.001, 0, 0]).astype(
+                        numpy.float32).reshape((4, 2))
+                    cop = OnnxAdd('input', 'input',
+                                  op_version=opv)
+                    cop2 = OnnxIdentity(onnx_cdist(cop, x2, dtype=numpy.float32,
+                                                   metric=metric, op_version=opv),
+                                        output_names=['cdist'], op_version=opv)
 
-        model_def = cop2.to_onnx(
-            inputs=[('input', FloatTensorType([None, None]))],
-            outputs=[('cdist', FloatTensorType())],
-            target_opset=get_opset_number_from_onnx())
+                    model_def = cop2.to_onnx(
+                        inputs=[('input', FloatTensorType([None, None]))],
+                        outputs=[('cdist', FloatTensorType())],
+                        target_opset=opv)
 
-        sess = OnnxInference(model_def)
-        res = sess.run({'input': x})['cdist']
-        exp = scipy_cdist(x * 2, x2, metric="euclidean")
-        self.assertEqualArray(exp, res, decimal=5)
+                    sess = OnnxInference(model_def)
+                    res = sess.run({'input': x})['cdist']
+                    exp = scipy_cdist(x * 2, x2, metric=metric)
+                    self.assertEqualArray(exp, res, decimal=5)
 
-        x = numpy.array(
-            [[6.1, 2.8, 4.7, 1.2],
-             [5.7, 3.8, 1.7, 0.3],
-             [7.7, 2.6, 6.9, 2.3],
-             [6.0, 2.9, 4.5, 1.5],
-             [6.8, 2.8, 4.8, 1.4],
-             [5.4, 3.4, 1.5, 0.4],
-             [5.6, 2.9, 3.6, 1.3],
-             [6.9, 3.1, 5.1, 2.3]], dtype=numpy.float32)
-        cop = OnnxAdd('input', 'input',
-                      op_version=get_opset_number_from_onnx())
-        cop2 = OnnxIdentity(onnx_cdist(cop, x, dtype=numpy.float32,
-                                       op_version=get_opset_number_from_onnx()),
-                            output_names=['cdist'],
-                            op_version=get_opset_number_from_onnx())
+                    if metric == "minkowski":
+                        continue
+                    x = numpy.array(
+                        [[6.1, 2.8, 4.7, 1.2],
+                         [5.7, 3.8, 1.7, 0.3],
+                         [7.7, 2.6, 6.9, 2.3],
+                         [6.0, 2.9, 4.5, 1.5],
+                         [6.8, 2.8, 4.8, 1.4],
+                         [5.4, 3.4, 1.5, 0.4],
+                         [5.6, 2.9, 3.6, 1.3],
+                         [6.9, 3.1, 5.1, 2.3]], dtype=numpy.float32)
+                    cop = OnnxAdd('input', 'input', op_version=opv)
+                    cop2 = OnnxIdentity(onnx_cdist(cop, x, dtype=numpy.float32,
+                                                   op_version=opv),
+                                        output_names=['cdist'], op_version=opv)
 
-        model_def = cop2.to_onnx(
-            inputs=[('input', FloatTensorType([None, None]))],
-            outputs=[('cdist', FloatTensorType())],
-            target_opset=get_opset_number_from_onnx())
+                    model_def = cop2.to_onnx(
+                        inputs=[('input', FloatTensorType([None, None]))],
+                        outputs=[('cdist', FloatTensorType())],
+                        target_opset=opv)
 
-        sess = OnnxInference(model_def)
-        res = sess.run({'input': x})['cdist']
-        exp = scipy_cdist(x * 2, x, metric="sqeuclidean")
-        self.assertEqualArray(exp, res, decimal=4)
+                    sess = OnnxInference(model_def)
+                    res = sess.run({'input': x})['cdist']
+                    exp = scipy_cdist(x * 2, x, metric="sqeuclidean")
+                    self.assertEqualArray(exp, res, decimal=4)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_example_cdist_in_minkowski(self):
         x = numpy.array([1, 2, 1, 3, 2, 2, 2, 3]).astype(
             numpy.float32).reshape((4, 2))
@@ -179,6 +181,7 @@ class TestOnnxConvKNN(ExtTestCase):
             exp = scipy_cdist(x * 2, x, metric="minkowski", p=3)
             self.assertEqualArray(exp, res, decimal=4)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_register_converters(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", ResourceWarning)
@@ -293,20 +296,25 @@ class TestOnnxConvKNN(ExtTestCase):
                         lprob, DataFrame(y['output_probability']).values,
                         decimal=5)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32(self):
         self.onnx_test_knn_single_classreg(numpy.float32)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_cdist(self):
         self.onnx_test_knn_single_classreg(numpy.float32, optim='cdist')
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_op10(self):
         self.onnx_test_knn_single_classreg(
             numpy.float32, target_opset=10, debug=False)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_onnxruntime1(self):
         self.onnx_test_knn_single_classreg(
             numpy.float32, runtime="onnxruntime1", target_opset=10)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_onnxruntime2(self):
         try:
             self.onnx_test_knn_single_classreg(
@@ -319,50 +327,61 @@ class TestOnnxConvKNN(ExtTestCase):
                 return
             raise e
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_balltree(self):
         self.onnx_test_knn_single_classreg(
             numpy.float32, algorithm='ball_tree')
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_kd_tree(self):
         self.onnx_test_knn_single_classreg(numpy.float32, algorithm='kd_tree')
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_brute(self):
         self.onnx_test_knn_single_classreg(numpy.float32, algorithm='brute')
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg64(self):
         self.onnx_test_knn_single_classreg(numpy.float64)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_target2(self):
         self.onnx_test_knn_single_classreg(numpy.float32, n_targets=2)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_target2_onnxruntime(self):
         self.onnx_test_knn_single_classreg(
             numpy.float32, n_targets=2, runtime="onnxruntime1")
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_k1(self):
         self.onnx_test_knn_single_classreg(numpy.float32, n_neighbors=1)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_k1_target2(self):
         self.onnx_test_knn_single_classreg(
             numpy.float32, n_neighbors=1, n_targets=2)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_minkowski(self):
         self.onnx_test_knn_single_classreg(numpy.float32, metric='minkowski')
 
-    @ignore_warnings(category=(SyntaxWarning, ))
+    @igw(SyntaxWarning)
     def test_onnx_test_knn_single_reg32_minkowski_p1(self):
         self.onnx_test_knn_single_classreg(numpy.float32, metric='minkowski',
                                            metric_params={'p': 1}, add_noise=True)
 
-    @ignore_warnings(category=(SyntaxWarning, ))
+    @igw(SyntaxWarning)
     def test_onnx_test_knn_single_reg32_minkowski_p21(self):
         self.onnx_test_knn_single_classreg(numpy.float32, metric='minkowski',
                                            algorithm='brute', metric_params={'p': 2.1})
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_distance(self):
         self.onnx_test_knn_single_classreg(numpy.float32, weights='distance',
                                            largest0=False)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg_equal(self):
         # We would like to make scikit-learn and the runtime handles the
         # ex aequo the same way but that's difficult.
@@ -385,49 +404,61 @@ class TestOnnxConvKNN(ExtTestCase):
 
     # classification
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_bin32(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='bin')
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_bin32_onnxruntime(self):
         self.onnx_test_knn_single_classreg(
             numpy.float32, kind='bin', runtime="onnxruntime1")
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_bin32_cdist(self):
         self.onnx_test_knn_single_classreg(
             numpy.float32, kind='bin', optim='cdist')
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_mcl32(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='mcl')
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_weights_bin32(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='bin',
                                            weights='distance', largest0=False)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_weights_bin32_cdist(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='bin',
                                            weights='distance', optim='cdist',
                                            largest0=False)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_weights_mcl32(self):
         self.onnx_test_knn_single_classreg(numpy.float32, kind='mcl',
                                            weights='distance', largest0=False)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_bin64(self):
         self.onnx_test_knn_single_classreg(numpy.float64, kind='bin')
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_mcl64(self):
         self.onnx_test_knn_single_classreg(numpy.float64, kind='mcl')
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_weights_bin64(self):
         self.onnx_test_knn_single_classreg(numpy.float64, kind='bin',
                                            weights='distance', largest0=False)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_weights_mcl64(self):
         self.onnx_test_knn_single_classreg(numpy.float64, kind='mcl',
                                            weights='distance', largest0=False)
 
     # transform
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_transform(self):
         iris = load_iris()
         X, _ = iris.data, iris.target
@@ -460,6 +491,7 @@ class TestOnnxConvKNN(ExtTestCase):
 
     # calibrated
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_model_calibrated_classifier_cv_isotonic_binary_knn(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -478,6 +510,7 @@ class TestOnnxConvKNN(ExtTestCase):
         self.assertEqual(pred, y['output_label'])
         self.assertEqual(probs, DataFrame(y['output_probability']).values)
 
+    @igw((DeprecationWarning, FutureWarning))
     def test_model_knn_regressor_equal____(self):
         X, y = make_regression(  # pylint: disable=W0632
             n_samples=1000, n_features=100, random_state=42)

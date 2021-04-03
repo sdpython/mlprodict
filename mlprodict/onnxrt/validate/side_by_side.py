@@ -6,6 +6,18 @@ import copy
 from .validate_difference import measure_relative_difference
 
 
+def _side_by_side_by_values_inputs(sess, inputs, i):
+    if isinstance(sess, tuple) and inputs is None:
+        new_sess, new_inputs = sess
+    elif isinstance(inputs, list):
+        new_sess = sess
+        new_inputs = inputs[i]
+    else:
+        new_sess = sess
+        new_inputs = copy.deepcopy(inputs)
+    return new_sess, new_inputs
+
+
 def side_by_side_by_values(sessions, *args, inputs=None, **kwargs):
     """
     Compares the execution of two sessions.
@@ -39,14 +51,7 @@ def side_by_side_by_values(sessions, *args, inputs=None, **kwargs):
     # run
     results = []
     for i, sess in enumerate(sessions):
-        if isinstance(sess, tuple) and inputs is None:
-            new_sess, new_inputs = sess
-        elif isinstance(inputs, list):
-            new_sess = sess
-            new_inputs = inputs[i]
-        else:
-            new_sess = sess
-            new_inputs = copy.deepcopy(inputs)
+        new_sess, new_inputs = _side_by_side_by_values_inputs(sess, inputs, i)
         if verbose > 0 and fLOG:
             fLOG(  # pragma: no cover
                 '[side_by_side_by_values] run session {}/{}'.format(

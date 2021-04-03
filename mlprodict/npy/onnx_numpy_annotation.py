@@ -426,7 +426,7 @@ class NDArraySameType(NDArrayType):
         if isinstance(dtypes, tuple):
             raise ValueError(  # pragma: no cover
                 "dtypes must be a single type.")
-        NDArrayType.__init__(self, dtypes=dtypes)
+        NDArrayType.__init__(self, dtypes=(dtypes, ))
 
     def __repr__(self):
         "usual"

@@ -5,7 +5,7 @@
 import numpy
 try:
     from onnxconverter_common.data_types import Float16TensorType
-except ImportError:
+except ImportError:  # pragma: no cover
     Float16TensorType = None
 from skl2onnx.common.data_types import (
     DataType,
