@@ -158,7 +158,7 @@ class TestCustomEmbeddedModels(ExtTestCase):
         self.common_test_function_classifier_embedded(numpy.float64)
 
     def common_test_function_regressor_embedded(self, dtype):
-        X = numpy.random.randn(20, 2).astype(dtype)
+        X = numpy.random.randn(40, 2).astype(dtype)
         y = (X.sum(axis=1) + numpy.random.randn(
              X.shape[0])).astype(numpy.float32)
         dec = TwoLinearRegressionOnnx()
