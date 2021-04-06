@@ -74,7 +74,8 @@ class TestScorers(ExtTestCase):
                             score_cdist_sum, metric=metric,
                             greater_is_better=False)
                     self.assertRaise(
-                        lambda: to_onnx(scorer, X, target_opset=opset),  # pylint: disable=W0640
+                        lambda: to_onnx(
+                            scorer, X, target_opset=opset),  # pylint: disable=W0640
                         ValueError)
 
                     monx1 = to_onnx(scorer, init_types, target_opset=opset)

@@ -129,6 +129,14 @@ def _elem_type_as_str(elem_type):
         return 'int64'
     if elem_type == onnx_proto.TensorProto.INT32:  # pylint: disable=E1101
         return 'int32'
+    if elem_type == onnx_proto.TensorProto.UINT32:  # pylint: disable=E1101
+        return 'uint32'
+    if elem_type == onnx_proto.TensorProto.UINT64:  # pylint: disable=E1101
+        return 'uint64'
+    if elem_type == onnx_proto.TensorProto.INT16:  # pylint: disable=E1101
+        return 'int16'
+    if elem_type == onnx_proto.TensorProto.UINT16:  # pylint: disable=E1101
+        return 'uint16'
     if elem_type == onnx_proto.TensorProto.UINT8:  # pylint: disable=E1101
         return 'uint8'
     if elem_type == onnx_proto.TensorProto.INT8:  # pylint: disable=E1101
@@ -400,7 +408,23 @@ def guess_proto_dtype(dtype):
         return TensorProto.INT64  # pylint: disable=E1101
     if dtype == numpy.int32:
         return TensorProto.INT32  # pylint: disable=E1101
-    if dtype in (numpy.bool, bool):
+    if dtype == numpy.int16:
+        return TensorProto.INT16  # pylint: disable=E1101
+    if dtype == numpy.int8:
+        return TensorProto.INT8  # pylint: disable=E1101
+    if dtype == numpy.uint64:
+        return TensorProto.UINT64  # pylint: disable=E1101
+    if dtype == numpy.uint32:
+        return TensorProto.UINT32  # pylint: disable=E1101
+    if dtype == numpy.uint16:
+        return TensorProto.UINT16  # pylint: disable=E1101
+    if dtype == numpy.uint8:
+        return TensorProto.UINT8  # pylint: disable=E1101
+    if dtype == numpy.float16:
+        return TensorProto.FLOAT16  # pylint: disable=E1101
+    if dtype in (numpy.bool, bool, numpy.bool_):
         return TensorProto.BOOL  # pylint: disable=E1101
+    if dtype in (numpy.str, str, numpy.str_):
+        return TensorProto.STRING  # pylint: disable=E1101
     raise RuntimeError(
         "Unable to guess type for dtype={}.".format(dtype))  # pragma: no cover

@@ -44,6 +44,18 @@ def proto2dtype(proto_type):
         return numpy.int64
     if proto_type == TensorProto.INT32:  # pylint: disable=E1101
         return numpy.int32
+    if proto_type == TensorProto.INT8:  # pylint: disable=E1101
+        return numpy.int8
+    if proto_type == TensorProto.INT16:  # pylint: disable=E1101
+        return numpy.int16
+    if proto_type == TensorProto.UINT64:  # pylint: disable=E1101
+        return numpy.uint64
+    if proto_type == TensorProto.UINT32:  # pylint: disable=E1101
+        return numpy.uint32
+    if proto_type == TensorProto.UINT8:  # pylint: disable=E1101
+        return numpy.uint8
+    if proto_type == TensorProto.UINT16:  # pylint: disable=E1101
+        return numpy.uint16
     if proto_type == TensorProto.FLOAT16:  # pylint: disable=E1101
         return numpy.float16
     raise ValueError(

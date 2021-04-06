@@ -28,7 +28,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxArgMin_11, OnnxArgMin,
     OnnxBatchNormalization,
     OnnxAcos, OnnxAcosh, OnnxAsin, OnnxAsinh, OnnxAtan, OnnxAtanh,
-    OnnxCeil, OnnxClip,
+    OnnxCast, OnnxCeil, OnnxClip,
     OnnxCompress,
     OnnxConcat, OnnxConv, OnnxConvTranspose,
     OnnxConstant, OnnxConstant_9, OnnxConstant_11,
@@ -72,8 +72,6 @@ try:
     from skl2onnx.algebra.onnx_ops import OnnxBatchNormalization_14
 except ImportError:
     OnnxBatchNormalization_14 = None
-from skl2onnx.common.data_types import (
-    FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType)
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import (
@@ -91,6 +89,14 @@ from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 from mlprodict.onnxrt.ops_cpu.op_pad import _pad_impl
 from mlprodict.onnxrt.ops_cpu.op_max_pool import _pool_get_output_shape, _pool_impl
 from mlprodict.onnxrt.ops_cpu.op_dropout import _dropout
+from mlprodict.onnxrt.ops_cpu._op_helper import proto2dtype
+from mlprodict.tools.onnx2py_helper import (
+    guess_proto_dtype, _elem_type_as_str)
+from mlprodict.tools.data_types import (
+    FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType,
+    Int32TensorType, BooleanTensorType, UInt8TensorType,
+    Int16TensorType, Int8TensorType, UInt16TensorType,
+    UInt32TensorType, UInt64TensorType, Float16TensorType)
 
 
 try:
@@ -347,7 +353,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self.assertEqualArray(numpy.argmax(
                     X, axis=0), got['Y'], decimal=6)
 
-                python_tested.append(OnnxArgMax)
                 if br:
                     continue
 
@@ -391,8 +396,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 got = oinf.run({'X': X})
                 self.assertEqual(list(sorted(got)), ['Y'])
                 self.assertEqualArray(exp, got['Y'], decimal=6)
-                sparse_support.append(('UnOp', None, OnnxArgMax.__name__))
                 X = numpy.array([[2, 1], [0, 1]], dtype=float)
+
+        sparse_support.append(('UnOp', None, OnnxArgMax.__name__))
+        python_tested.append(OnnxArgMax)
 
     @unittest.skipIf(onnx_opset_version() < 12, reason="needs onnx 1.7.0")
     @wraplog()
@@ -437,7 +444,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 if br:
                     continue
 
-                python_tested.append(OnnxArgMin)
                 oinfpy = OnnxInference(
                     model_def, runtime="python", inplace=True)
                 validate_python_inference(
@@ -477,7 +483,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 got = oinf.run({'X': X})
                 self.assertEqual(list(sorted(got)), ['Y'])
                 self.assertEqualArray(exp, got['Y'], decimal=6)
-                sparse_support.append(('UnOp', None, OnnxArgMin.__name__))
+
+        sparse_support.append(('UnOp', None, OnnxArgMin.__name__))
+        python_tested.append(OnnxArgMin)
 
     @unittest.skipIf(onnx_opset_version() < 12, reason="needs onnx 1.7.0")
     @wraplog()
@@ -641,6 +649,89 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         # self.assertEqualArray(y, got['Y'])
         self.assertNotEmpty(y)
         self.assertNotEmpty(var)
+
+    @wraplog()
+    def test_onnxt_runtime_cast_out(self):
+        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(numpy.float32)  # pylint: disable=E1101
+        dest = [(TensorProto.FLOAT, numpy.float32, FloatTensorType),  # pylint: disable=E1101
+                (TensorProto.DOUBLE, numpy.float64, DoubleTensorType),  # pylint: disable=E1101
+                (TensorProto.INT32, numpy.int32, Int32TensorType),  # pylint: disable=E1101
+                (TensorProto.INT64, numpy.int64, Int64TensorType),  # pylint: disable=E1101
+                (TensorProto.INT8, numpy.int8, Int8TensorType),  # pylint: disable=E1101
+                (TensorProto.INT16, numpy.int16, Int16TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT8, numpy.uint8, UInt8TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT32, numpy.uint32, UInt32TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT16, numpy.uint16, UInt16TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT64, numpy.uint64, UInt64TensorType),  # pylint: disable=E1101
+                (TensorProto.FLOAT16, numpy.float16, Float16TensorType),  # pylint: disable=E1101
+                (TensorProto.BOOL, numpy.bool_, BooleanTensorType),  # pylint: disable=E1101
+                (TensorProto.STRING, numpy.str_, StringTensorType), ]  # pylint: disable=E1101
+
+        for opset in range(9, get_opset_number_from_onnx() + 1):
+            for to, nptp, outp in dest:
+                if nptp == numpy.bool_:
+                    self.assertIn(proto2dtype(to), (nptp, bool))
+                elif nptp == numpy.str_:
+                    self.assertIn(proto2dtype(to), (nptp, str))
+                else:
+                    self.assertEqual(proto2dtype(to), nptp)
+                self.assertEqual(to, guess_proto_dtype(nptp))
+                self.assertNotEmpty(_elem_type_as_str(to))
+                with self.subTest(opset=opset, to=to):
+                    onx = OnnxCast('X', to=to, output_names=['Y'],
+                                   op_version=opset)
+                    model_def = onx.to_onnx(
+                        {'X': x}, outputs=[('Y', outp())],
+                        target_opset=opset)
+                    got = OnnxInference(model_def).run({'X': x})
+                    if nptp == numpy.str_:
+                        self.assertEqual(
+                            x.astype(nptp).tolist(), got['Y'].tolist())
+                    else:
+                        self.assertEqualArray(x.astype(nptp), got['Y'])
+
+        python_tested.append(OnnxCast)
+
+    @wraplog()
+    def test_onnxt_runtime_cast_in(self):
+        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(numpy.float32)  # pylint: disable=E1101
+        dest = [(TensorProto.FLOAT, numpy.float32, FloatTensorType),  # pylint: disable=E1101
+                (TensorProto.DOUBLE, numpy.float64, DoubleTensorType),  # pylint: disable=E1101
+                (TensorProto.INT32, numpy.int32, Int32TensorType),  # pylint: disable=E1101
+                (TensorProto.INT64, numpy.int64, Int64TensorType),  # pylint: disable=E1101
+                (TensorProto.INT8, numpy.int8, Int8TensorType),  # pylint: disable=E1101
+                (TensorProto.INT16, numpy.int16, Int16TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT8, numpy.uint8, UInt8TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT32, numpy.uint32, UInt32TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT16, numpy.uint16, UInt16TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT64, numpy.uint64, UInt64TensorType),  # pylint: disable=E1101
+                (TensorProto.FLOAT16, numpy.float16, Float16TensorType),  # pylint: disable=E1101
+                (TensorProto.BOOL, numpy.bool_, BooleanTensorType),  # pylint: disable=E1101
+                (TensorProto.STRING, numpy.str_, StringTensorType), ]  # pylint: disable=E1101
+
+        for opset in range(9, get_opset_number_from_onnx() + 1):
+            for to, nptp, _ in dest:
+                if nptp == numpy.bool_:
+                    self.assertIn(proto2dtype(to), (nptp, bool))
+                elif nptp == numpy.str_:
+                    self.assertIn(proto2dtype(to), (nptp, str))
+                else:
+                    self.assertEqual(proto2dtype(to), nptp)
+                self.assertEqual(to, guess_proto_dtype(nptp))
+                self.assertNotEmpty(_elem_type_as_str(to))
+                with self.subTest(opset=opset, to=to):
+                    xi = x.astype(nptp)
+                    onx = OnnxCast('X', to=TensorProto.STRING,  # pylint: disable=E1101
+                                   output_names=['Y'],
+                                   op_version=opset)
+                    model_def = onx.to_onnx(
+                        {'X': xi}, outputs=[('Y', StringTensorType())],
+                        target_opset=opset)
+                    got = OnnxInference(model_def).run({'X': xi})
+                    self.assertEqual(
+                        xi.astype(str).tolist(), got['Y'].tolist())
+
+        python_tested.append(OnnxCast)
 
     @wraplog()
     def test_onnxt_runtime_ceil(self):
@@ -3315,5 +3406,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_pad()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_cast_in()
     unittest.main()
