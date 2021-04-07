@@ -1,5 +1,5 @@
 """
-.. _l-b-reducesummax:
+.. _l-b-reducesummean:
 
 Compares implementations of ReduceMean
 ======================================
