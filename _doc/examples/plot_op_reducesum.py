@@ -25,7 +25,8 @@ from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import OnnxReduceSumApi11
 from mlprodict.tools import measure_time
 from tqdm import tqdm
-from mlprodict.testing.experimental_c import code_optimisation
+from mlprodict.testing.experimental_c import (
+    code_optimisation, custom_reducesum_rk_float)
 print(code_optimisation())
 
 ###################################
@@ -57,7 +58,8 @@ def loop_fct(fct, xs, ys):
         fct(x, y)
 
 
-def benchmark_op(axes, repeat=5, number=5, name="ReduceSum", shape_fct=None):
+def benchmark_op(axes, repeat=5, number=5, name="ReduceSum", shape_fct=None,
+                 custom_impl=False):
     if shape_fct is None:
         def shape_fct(dim):
             return (3, dim, 1, 128, 64)
@@ -95,6 +97,20 @@ def benchmark_op(axes, repeat=5, number=5, name="ReduceSum", shape_fct=None):
         obs['fct'] = 'ort'
         obs.update(info)
         res.append(obs)
+
+        if custom_impl:
+            if axes != (0, ):
+                raise RuntimeError(
+                    "Unexpected axes=%r." % axes)
+            ctx['fct'] = lambda x, y: custom_reducesum_rk_float(x)
+            ctx['xs'] = [x.reshape((x.shape[0], -1)).copy() for x in xs]
+            obs = measure_time(
+                "loop_fct(fct, xs, ys)",
+                div_by_number=True, context=ctx, repeat=repeat, number=number)
+            obs['dim'] = dim
+            obs['fct'] = 'custom'
+            obs.update(info)
+            res.append(obs)
 
         if tf_reduce_sum is not None:
             # tensorflow
@@ -163,7 +179,7 @@ dfs = []
 #
 # Consecutive axis not reduced and consecutive reduced
 # axis are merged.
-# KRK means kept axis - reduced axis - kept axis,
+# KR means kept axis - reduced axis
 #
 # (8, 24, 48, N), axis=(3, )
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -179,13 +195,14 @@ df.pivot("fct", "N", "average")
 #
 # Consecutive axis not reduced and consecutive reduced
 # axis are merged.
-# KRK means kept axis - reduced axis - kept axis,
+# RK means reduced axis - kept axis
 #
 # (8, 24, 48, N), axis=(0, )
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 axes = (0, )
-df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24, 48, dim))
+df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24, 48, dim),
+                           custom_impl=True)
 dfs.append(df)
 df.pivot("fct", "N", "average")
 

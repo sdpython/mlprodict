@@ -9,7 +9,8 @@ from pyquickhelper.pycode import ExtTestCase, is_travis_or_appveyor
 from mlprodict.testing.experimental import custom_pad, custom_einsum
 from mlprodict.testing.experimental_c import (  # pylint: disable=E0611,E0401
     custom_einsum_double, custom_einsum_int64, custom_einsum_float,
-    code_optimisation)
+    code_optimisation, custom_reducesum_rk_double,
+    custom_reducesum_rk_float)
 from mlprodict.tools import get_opset_number_from_onnx
 
 
@@ -281,7 +282,30 @@ class TestExperimental(ExtTestCase):
         res = code_optimisation()
         self.assertIn("=", res)
 
+    def test_inplace_reduce_sum_rk_double(self):
+        for i in [1, 2, 3, 4, 5, 6, 7, 11, 15, 23, 56, 99, 101, 128, 256]:
+            with self.subTest(dim=i):
+                mat = numpy.random.randn(i, i).astype(numpy.float64) * 100
+                exp = mat.sum(axis=0).astype(numpy.float64)
+                got = custom_reducesum_rk_double(mat)
+                self.assertEqualArray(exp, got)
+
+    def test_inplace_reduce_sum_rk_float(self):
+        for i in [1, 2, 3, 4, 5, 6, 7, 11, 15, 23, 56, 99, 101, 128, 256]:
+            with self.subTest(dim=i):
+                mat = numpy.random.randn(i, i).astype(numpy.float32) * 100
+                exp = mat.sum(axis=0).astype(numpy.float32)
+                got = custom_reducesum_rk_float(mat, 1)
+                self.assertEqualArray(exp, got)
+
+    def test_inplace_reduce_sum_rk2(self):
+        shape = (8, 4, 5)
+        rnd = numpy.random.randn(*shape).astype(numpy.float64)
+        mat = rnd.reshape((shape[0], -1))
+        exp = mat.sum(axis=0).astype(numpy.float64)
+        got = custom_reducesum_rk_double(mat)
+        self.assertEqualArray(exp, got)
+
 
 if __name__ == "__main__":
-    # TestExperimental().test_code_optimisation()
     unittest.main()

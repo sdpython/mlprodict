@@ -416,9 +416,8 @@ py::array_t<NTYPE> custom_einsum(const std::string& equation,
             h = full_size;
             N = 1;
         }
-        #ifdef USE_OPENMP
+
         #pragma omp parallel for
-        #endif
         for(int i = 0; i < N; ++i) {
             int64_t begin = h * i;
             int64_t end = (i == N-1) ? full_size : begin + h;
@@ -489,6 +488,125 @@ py::array_t<int32_t> custom_einsum_int32(
 //////////////
 
 
+////////////////
+// begin: reduce
+////////////////
+
+template <typename NTYPE>
+void vector_add_pointer(NTYPE *acc, const NTYPE *x, size_t size) {
+	for (; size != 0; ++acc, ++x, --size)
+		*acc += *x;
+}
+
+
+template <>
+void vector_add_pointer(float *acc, const float *x, size_t size) {
+    // _mm_store_ps fails if acc not aligned.
+    // _mm_storeu_ps does not need alignment.
+    #if defined(__AVX__)
+    if (size > 8) {
+        for (; size > 8; acc += 8, x += 8, size -= 8) {
+            _mm256_storeu_ps(acc, _mm256_add_ps(_mm256_loadu_ps(acc), _mm256_loadu_ps(x)));
+        }
+    }
+    #else
+    if (size > 4) {
+        for (; size > 4; acc += 4, x += 4, size -= 4) {
+            _mm_storeu_ps(acc, _mm_add_ps(_mm_loadu_ps(acc), _mm_loadu_ps(x)));
+        }
+    }
+    #endif
+	for (; size != 0; ++acc, ++x, --size)
+		*acc += *x;
+}
+
+
+// This function assumes x is a 2D matrix to be reduced on the first axis.
+template<typename NTYPE>
+py::array_t<NTYPE> custom_reducesum_rk(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> x,
+                                       int nthread) {
+    std::vector<int64_t> x_shape;
+    arrayshape2vector(x_shape, x);
+    if (x_shape.size() != 2)
+        throw std::runtime_error("Input array must have two dimensions.");
+    if (flattened_dimension(x_shape) == 0)
+        throw std::runtime_error("Input array must not be empty.");
+
+    int64_t N = x_shape[1];
+    std::vector<NTYPE> y_vector(N);
+    int64_t Nred = x_shape[0];
+    const NTYPE* x_data = x.data();
+    const NTYPE* x_data_end = x_data + x_shape[0] * x_shape[1]; 
+    NTYPE* y_data = y_vector.data();
+
+    #if USE_OPENMP
+    if (nthread == 1 || N <= nthread * 2) {
+    #endif
+        int64_t n_rows = x_shape[0];
+        NTYPE *y_data_end = y_data + N;
+        memcpy(y_data, x_data, N * sizeof(NTYPE));
+        for(int64_t row = 1; row < n_rows; ++row) {
+            vector_add_pointer(y_data, x_data + row * N, N);
+        }
+    #if USE_OPENMP
+    }    
+    else {
+        if (nthread > 1)
+            omp_set_num_threads(nthread);
+        else
+            nthread = omp_get_num_procs();
+
+        int64_t batch_size = N / nthread / 2;
+        int64_t n_rows = x_shape[0];
+        batch_size = batch_size < 4 ? 4 : batch_size;
+        batch_size = batch_size > 1024 ? 1024 : batch_size;
+        int64_t batch = N / batch_size + (N % batch_size > 0 ? 1 : 0);
+        memcpy(y_data, x_data, N * sizeof(NTYPE));
+
+        #pragma omp parallel for
+        for (int64_t b = 0; b < batch; ++b) {
+            int64_t begin = batch_size * b;
+            int64_t end = begin + batch_size < N ? begin + batch_size : N;
+            for(int64_t row = 1; row < n_rows; ++row) {
+                vector_add_pointer(y_data + begin, x_data + row * N + begin, end - begin);
+            }
+        }
+    }
+    #endif
+    
+    std::vector<int64_t> y_shape{N};
+    std::vector<ssize_t> strides;
+    shape2strides(y_shape, strides, (NTYPE)0);
+
+    return py::array_t<NTYPE>(
+        py::buffer_info(
+            &y_vector[0],
+            sizeof(NTYPE),
+            py::format_descriptor<NTYPE>::format(),
+            y_shape.size(),
+            y_shape,        /* shape of the matrix       */
+            strides         /* strides for each axis     */
+        ));        
+}
+
+
+py::array_t<float> custom_reducesum_rk_float(py::array_t<float, py::array::c_style | py::array::forcecast> x,
+                                             int nthread) {
+    return custom_reducesum_rk(x, nthread);
+}
+
+
+py::array_t<double> custom_reducesum_rk_double(py::array_t<double, py::array::c_style | py::array::forcecast> x,
+                                               int nthread) {
+    return custom_reducesum_rk(x, nthread);
+}
+
+
+/////////////////
+// end: reducesum
+/////////////////
+
+
 #ifndef SKIP_PYTHON
 
 PYBIND11_MODULE(experimental_c, m) {
@@ -505,7 +623,7 @@ PYBIND11_MODULE(experimental_c, m) {
 
     m.def("custom_einsum_float",
             &custom_einsum_float,
-            py::arg("equation"), py::arg("x"), py::arg("y"), py::arg("nthread") = 1,
+            py::arg("equation"), py::arg("x"), py::arg("y"), py::arg("nthread") = 0,
             R"pbdoc(Custom C++ implementation of operator *einsum* with float. 
 The function only works with contiguous arrays. 
 It does not any explicit transposes. It does not support
@@ -515,7 +633,7 @@ See python's version :func:`custom_einsum <mlprodict.testing.experimental.custom
 
     m.def("custom_einsum_double",
             &custom_einsum_double,
-            py::arg("equation"), py::arg("x"), py::arg("y"), py::arg("nthread") = 1,
+            py::arg("equation"), py::arg("x"), py::arg("y"), py::arg("nthread") = 0,
             R"pbdoc(Custom C++ implementation of operator *einsum* with double. 
 The function only works with contiguous arrays. 
 It does not any explicit transposes. It does not support
@@ -525,7 +643,7 @@ See python's version :func:`custom_einsum <mlprodict.testing.experimental.custom
 
     m.def("custom_einsum_int32",
             &custom_einsum_int32,
-            py::arg("equation"), py::arg("x"), py::arg("y"), py::arg("nthread") = 1,
+            py::arg("equation"), py::arg("x"), py::arg("y"), py::arg("nthread") = 0,
             R"pbdoc(Custom C++ implementation of operator *einsum* with int32. 
 The function only works with contiguous arrays. 
 It does not any explicit transposes. It does not support
@@ -535,12 +653,30 @@ See python's version :func:`custom_einsum <mlprodict.testing.experimental.custom
 
     m.def("custom_einsum_int64",
             &custom_einsum_int64,
-            py::arg("equation"), py::arg("x"), py::arg("y"), py::arg("nthread") = 1,
+            py::arg("equation"), py::arg("x"), py::arg("y"), py::arg("nthread") = 0,
             R"pbdoc(Custom C++ implementation of operator *einsum* with int64. 
 The function only works with contiguous arrays. 
 It does not any explicit transposes. It does not support
 diagonal operator (repetition of the same letter).
 See python's version :func:`custom_einsum <mlprodict.testing.experimental.custom_einsum>`.
+)pbdoc");
+
+    m.def("custom_reducesum_rk_float",
+            &custom_reducesum_rk_float,
+            py::arg("x"), py::arg("nthread") = 0,
+            R"pbdoc(Custom C++ implementation of operator *ReduceSum* with float
+when the reduced matrix has two dimensions and the reduced axis is the first one.
+*x* is the reduced matrix. *nthread* specifies the number of threads used
+to distribute. Negative means OMP default values.
+)pbdoc");
+
+    m.def("custom_reducesum_rk_double",
+            &custom_reducesum_rk_double,
+            py::arg("x"), py::arg("nthread") = 0,
+            R"pbdoc(Custom C++ implementation of operator *ReduceSum* with double
+when the reduced matrix has two dimensions and the reduced axis is the first one.
+*x* is the reduced matrix. *nthread* specifies the number of threads used
+to distribute. Negative means OMP default values.
 )pbdoc");
 }
 
