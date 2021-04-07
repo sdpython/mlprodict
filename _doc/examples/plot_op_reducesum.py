@@ -198,7 +198,7 @@ df.pivot("fct", "N", "average")
 # RK means reduced axis - kept axis
 #
 # (8, 24, 48, N), axis=(0, )
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 axes = (0, )
 df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (8, 24, 48, dim),
