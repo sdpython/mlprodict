@@ -163,7 +163,7 @@ dfs = []
 #
 # Consecutive axis not reduced and consecutive reduced
 # axis are merged.
-# KRK means kept axis - reduced axis - kept axis,
+# KR means kept axis - reduced axis
 #
 # (8, 24, 48, N), axis=(3, )
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -179,7 +179,7 @@ df.pivot("fct", "N", "average")
 #
 # Consecutive axis not reduced and consecutive reduced
 # axis are merged.
-# KRK means kept axis - reduced axis - kept axis,
+# RK means reduced axis - kept axis
 #
 # (8, 24, 48, N), axis=(0, )
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
