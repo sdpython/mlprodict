@@ -511,6 +511,14 @@ class ShapeObject(BaseDimensionShape):
             self._dtype = numpy.int8
         elif self._dtype in (numpy.uint8, 'uint8', ):
             self._dtype = numpy.uint8
+        elif self._dtype in (numpy.int16, 'int16', ):
+            self._dtype = numpy.int16
+        elif self._dtype in (numpy.uint16, 'uint16', ):
+            self._dtype = numpy.uint16
+        elif self._dtype in (numpy.uint32, 'uint32', ):
+            self._dtype = numpy.uint32
+        elif self._dtype in (numpy.uint64, 'uint64', ):
+            self._dtype = numpy.uint64
         elif self._dtype not in {
                 numpy.float32, numpy.float64, numpy.int32, numpy.int64,
                 numpy.str, numpy.bool, numpy.float16, None,
