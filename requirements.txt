@@ -46,5 +46,6 @@ xgboost
 
 # onnx
 onnx>=1.8.0
+onnxruntime>=1.7.0
 git+https://github.com/xadupre/onnxconverter-common.git@jenkins
 git+https://github.com/xadupre/sklearn-onnx.git@jenkins
