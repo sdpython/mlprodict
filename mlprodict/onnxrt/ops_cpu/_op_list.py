@@ -80,6 +80,7 @@ from .op_pow import Pow
 from .op_quantize_linear import QuantizeLinear
 from .op_reciprocal import Reciprocal
 from .op_reduce_log_sum_exp import ReduceLogSumExp
+from .op_reduce_l2 import ReduceL2
 from .op_reduce_min import ReduceMin
 from .op_reduce_max import ReduceMax
 from .op_reduce_mean import ReduceMean

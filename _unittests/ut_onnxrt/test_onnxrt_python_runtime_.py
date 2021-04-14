@@ -49,6 +49,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxPad, OnnxPow,
     OnnxQuantizeLinear,
     OnnxReciprocal,
+    OnnxReduceL2,
     OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
     OnnxReduceProd,
     OnnxReduceSum, OnnxReduceSumApi11, OnnxReduceSum_11, OnnxReduceSum_1,
@@ -652,19 +653,31 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_cast_out(self):
-        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(numpy.float32)  # pylint: disable=E1101
+        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
+            numpy.float32)  # pylint: disable=E1101
         dest = [(TensorProto.FLOAT, numpy.float32, FloatTensorType),  # pylint: disable=E1101
-                (TensorProto.DOUBLE, numpy.float64, DoubleTensorType),  # pylint: disable=E1101
-                (TensorProto.INT32, numpy.int32, Int32TensorType),  # pylint: disable=E1101
-                (TensorProto.INT64, numpy.int64, Int64TensorType),  # pylint: disable=E1101
-                (TensorProto.INT8, numpy.int8, Int8TensorType),  # pylint: disable=E1101
-                (TensorProto.INT16, numpy.int16, Int16TensorType),  # pylint: disable=E1101
-                (TensorProto.UINT8, numpy.uint8, UInt8TensorType),  # pylint: disable=E1101
-                (TensorProto.UINT32, numpy.uint32, UInt32TensorType),  # pylint: disable=E1101
-                (TensorProto.UINT16, numpy.uint16, UInt16TensorType),  # pylint: disable=E1101
-                (TensorProto.UINT64, numpy.uint64, UInt64TensorType),  # pylint: disable=E1101
-                (TensorProto.FLOAT16, numpy.float16, Float16TensorType),  # pylint: disable=E1101
-                (TensorProto.BOOL, numpy.bool_, BooleanTensorType),  # pylint: disable=E1101
+                (TensorProto.DOUBLE, numpy.float64,  # pylint: disable=E1101
+                 DoubleTensorType),  # pylint: disable=E1101
+                (TensorProto.INT32, numpy.int32,  # pylint: disable=E1101
+                 Int32TensorType),  # pylint: disable=E1101
+                (TensorProto.INT64, numpy.int64,  # pylint: disable=E1101
+                 Int64TensorType),  # pylint: disable=E1101
+                (TensorProto.INT8, numpy.int8,  # pylint: disable=E1101
+                 Int8TensorType),  # pylint: disable=E1101
+                (TensorProto.INT16, numpy.int16,  # pylint: disable=E1101
+                 Int16TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT8, numpy.uint8,  # pylint: disable=E1101
+                 UInt8TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT32, numpy.uint32,  # pylint: disable=E1101
+                 UInt32TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT16, numpy.uint16,  # pylint: disable=E1101
+                 UInt16TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT64, numpy.uint64,  # pylint: disable=E1101
+                 UInt64TensorType),  # pylint: disable=E1101
+                (TensorProto.FLOAT16, numpy.float16,  # pylint: disable=E1101
+                 Float16TensorType),  # pylint: disable=E1101
+                (TensorProto.BOOL, numpy.bool_,  # pylint: disable=E1101
+                 BooleanTensorType),  # pylint: disable=E1101
                 (TensorProto.STRING, numpy.str_, StringTensorType), ]  # pylint: disable=E1101
 
         for opset in range(9, get_opset_number_from_onnx() + 1):
@@ -694,19 +707,31 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_cast_in(self):
-        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(numpy.float32)  # pylint: disable=E1101
+        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
+            numpy.float32)  # pylint: disable=E1101
         dest = [(TensorProto.FLOAT, numpy.float32, FloatTensorType),  # pylint: disable=E1101
-                (TensorProto.DOUBLE, numpy.float64, DoubleTensorType),  # pylint: disable=E1101
-                (TensorProto.INT32, numpy.int32, Int32TensorType),  # pylint: disable=E1101
-                (TensorProto.INT64, numpy.int64, Int64TensorType),  # pylint: disable=E1101
-                (TensorProto.INT8, numpy.int8, Int8TensorType),  # pylint: disable=E1101
-                (TensorProto.INT16, numpy.int16, Int16TensorType),  # pylint: disable=E1101
-                (TensorProto.UINT8, numpy.uint8, UInt8TensorType),  # pylint: disable=E1101
-                (TensorProto.UINT32, numpy.uint32, UInt32TensorType),  # pylint: disable=E1101
-                (TensorProto.UINT16, numpy.uint16, UInt16TensorType),  # pylint: disable=E1101
-                (TensorProto.UINT64, numpy.uint64, UInt64TensorType),  # pylint: disable=E1101
-                (TensorProto.FLOAT16, numpy.float16, Float16TensorType),  # pylint: disable=E1101
-                (TensorProto.BOOL, numpy.bool_, BooleanTensorType),  # pylint: disable=E1101
+                (TensorProto.DOUBLE, numpy.float64,  # pylint: disable=E1101
+                 DoubleTensorType),  # pylint: disable=E1101
+                (TensorProto.INT32, numpy.int32,  # pylint: disable=E1101
+                 Int32TensorType),  # pylint: disable=E1101
+                (TensorProto.INT64, numpy.int64,  # pylint: disable=E1101
+                 Int64TensorType),  # pylint: disable=E1101
+                (TensorProto.INT8, numpy.int8,  # pylint: disable=E1101
+                 Int8TensorType),  # pylint: disable=E1101
+                (TensorProto.INT16, numpy.int16,  # pylint: disable=E1101
+                 Int16TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT8, numpy.uint8,  # pylint: disable=E1101
+                 UInt8TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT32, numpy.uint32,  # pylint: disable=E1101
+                 UInt32TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT16, numpy.uint16,  # pylint: disable=E1101
+                 UInt16TensorType),  # pylint: disable=E1101
+                (TensorProto.UINT64, numpy.uint64,  # pylint: disable=E1101
+                 UInt64TensorType),  # pylint: disable=E1101
+                (TensorProto.FLOAT16, numpy.float16,  # pylint: disable=E1101
+                 Float16TensorType),  # pylint: disable=E1101
+                (TensorProto.BOOL, numpy.bool_,  # pylint: disable=E1101
+                 BooleanTensorType),  # pylint: disable=E1101
                 (TensorProto.STRING, numpy.str_, StringTensorType), ]  # pylint: disable=E1101
 
         for opset in range(9, get_opset_number_from_onnx() + 1):
@@ -2263,6 +2288,44 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_reciprocal(self):
         self.common_test_onnxt_runtime_unary(OnnxReciprocal, numpy.reciprocal)
+
+    @wraplog()
+    def test_onnxt_runtime_reduce_l1(self):
+        def reduce_l2(x, axis, keepdims):
+            return numpy.sqrt(numpy.sum(x ** 2, axis=axis, keepdims=keepdims))
+
+        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+
+        onx = OnnxReduceL2('X', output_names=['Y'], keepdims=0, axes=[1],
+                           op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(reduce_l2(X, axis=1, keepdims=0),
+                              got['Y'], decimal=6)
+
+        onx = OnnxReduceL2('X', output_names=['Y'], axes=1,
+                           op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(reduce_l2(X, axis=1, keepdims=1).ravel(),
+                              got['Y'].ravel())
+
+        onx = OnnxReduceL2('X', output_names=['Y'], axes=1, keepdims=1,
+                           op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(reduce_l2(X, axis=1, keepdims=1).ravel(),
+                              got['Y'].ravel())
+        python_tested.append(OnnxReduceL2)
 
     @wraplog()
     def test_onnxt_runtime_reduce_log_sum_exp(self):

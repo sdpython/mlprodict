@@ -29,7 +29,10 @@ class Einsum(OpRun):
         return (numpy.einsum(self.equation, *args), )
 
     def _infer_shapes(self, *args):  # pylint: disable=W0221
-        return (ShapeObject.einsum_shape(self.equation, *args), )
+        try:
+            return (ShapeObject.einsum_shape(self.equation, *args), )
+        except RuntimeError:
+            return (ShapeObject(None, dtype=args[0].dtype), )
 
     def _infer_type(self, *args):
         return ShapeObject._infer_merged_type(*args)
