@@ -104,15 +104,6 @@ jobs:
             . venv/bin/activate
             pip install -r requirements.txt
 
-      - run:
-          name: install onnxruntime
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip freeze | grep onnx
-            pip install onnxruntime>=1.6.0 --verbose
-            pip show onnxruntime
-
       - save_cache:
           paths:
             - ./venv
