@@ -4,6 +4,7 @@ import os
 import platform
 import warnings
 from setuptools import setup, Extension, find_packages
+from pyquicksetup import read_version, read_readme, default_cmdclass
 
 #########
 # settings
@@ -42,36 +43,6 @@ package_data = {
     project_var_name + ".testing": ["*.cpp", "*.hpp"],
 }
 
-############
-# functions
-############
-
-
-def ask_help():
-    return "--help" in sys.argv or "--help-commands" in sys.argv
-
-
-def is_local():
-    file = os.path.abspath(__file__).replace("\\", "/").lower()
-    try:
-        from pyquickhelper.pycode.setup_helper import available_commands_list
-    except ImportError:
-        return False
-    return available_commands_list(sys.argv)
-
-
-def verbose():
-    print("---------------------------------")
-    print("package_dir =", package_dir)
-    print("packages    =", packages)
-    print("package_data=", package_data)
-    print("current     =", os.path.abspath(os.getcwd()))
-    print("---------------------------------")
-
-########
-# pybind11
-########
-
 
 class get_pybind_include(object):
     """
@@ -89,111 +60,8 @@ class get_pybind_include(object):
         import pybind11
         return pybind11.get_include(self.user)
 
-##########
-# version
-##########
 
-
-if is_local() and not ask_help():
-    def write_version():
-        from pyquickhelper.pycode import write_version_for_setup
-        return write_version_for_setup(__file__)
-
-    try:
-        write_version()
-        subversion = None
-    except Exception:
-        subversion = ""
-
-    if subversion is None:
-        versiontxt = os.path.join(os.path.dirname(__file__), "version.txt")
-        if os.path.exists(versiontxt):
-            with open(versiontxt, "r") as f:
-                lines = f.readlines()
-            subversion = "." + lines[0].strip("\r\n ")
-            if subversion == ".0":
-                raise Exception(
-                    "Git version is wrong: '{0}'.".format(subversion))
-        else:
-            subversion = ""
-else:
-    # when the module is installed, no commit number is displayed
-    subversion = ""
-
-if "upload" in sys.argv and not subversion and not ask_help():
-    # avoid uploading with a wrong subversion number
-    raise Exception(
-        "Git version is empty, cannot upload, is_local()={0}".format(is_local()))
-
-##############
-# common part
-##############
-
-if os.path.exists(readme):
-    with open(readme, "r", encoding='utf-8-sig') as f:
-        long_description = f.read()
-else:
-    long_description = ""
-if os.path.exists(history):
-    with open(history, "r", encoding='utf-8-sig') as f:
-        long_description += f.read()
-
-if "--verbose" in sys.argv:
-    verbose()
-
-if is_local():
-    import pyquickhelper
-    logging_function = pyquickhelper.get_fLOG()
-    logging_function(OutputPrint=True)
-    must_build, run_build_ext = pyquickhelper.get_insetup_functions()
-
-    if must_build():
-        out = run_build_ext(__file__)
-        print(out)
-
-    if "build_sphinx" in sys.argv and not sys.platform.startswith("win"):
-        # There is an issue with matplotlib and notebook gallery on linux
-        # _tkinter.TclError: no display name and no $DISPLAY environment variable
-        import matplotlib
-        matplotlib.use('agg')
-
-    from pyquickhelper.pycode import process_standard_options_for_setup
-    r = process_standard_options_for_setup(
-        sys.argv, __file__, project_var_name,
-        unittest_modules=["pyquickhelper"],
-        additional_notebook_path=["pyquickhelper", "jyquickhelper"],
-        additional_local_path=["pyquickhelper", "jyquickhelper"],
-        requirements=["pyquickhelper", "jyquickhelper"],
-        layout=["html"], github_owner="sdpython",
-        add_htmlhelp=sys.platform.startswith("win"),
-        coverage_options=dict(omit=["*exclude*.py"]),
-        fLOG=logging_function, covtoken=(
-            "f2a30eb6-439e-4a94-97e4-1eb48e40d3aa", "'_UT_39_std' in outfile"),
-        skip_issues=[36])
-    if not r and not ({"bdist_msi", "sdist",
-                       "bdist_wheel", "publish", "publish_doc", "register",
-                       "upload_docs", "bdist_wininst", "build_ext"} & set(sys.argv)):
-        raise Exception("unable to interpret command line: " + str(sys.argv))
-else:
-    r = False
-
-if ask_help():
-    from pyquickhelper.pycode import process_standard_options_for_setup_help
-    process_standard_options_for_setup_help(sys.argv)
-
-if not r:
-    if len(sys.argv) in (1, 2) and sys.argv[-1] in ("--help-commands",):
-        from pyquickhelper.pycode import process_standard_options_for_setup_help
-        process_standard_options_for_setup_help(sys.argv)
-    try:
-        from pyquickhelper.pycode import clean_readme
-    except ImportError:
-        clean_readme = None
-    long_description = clean_readme(
-        long_description) if clean_readme is not None else long_description
-    from mlprodict import __version__ as sversion
-    root = os.path.abspath(os.path.dirname(__file__))
-
+def get_compile_args():
     if sys.platform.startswith("win"):
         libraries_thread = ['kernel32']
         extra_compile_args = ['/EHsc', '/O2', '/Gy', '/openmp']
@@ -214,273 +82,278 @@ if not r:
         define_macros = [('USE_OPENMP', None)]
         if "Ubuntu" in platform.version() and "16.04" in platform.version():
             extra_compile_args.append('-std=c++11')
+    return (libraries_thread, extra_compile_args,
+            extra_link_args, define_macros)
 
-    # extensions
 
-    def get_extensions():
-        ext_max_pool = Extension(
-            'mlprodict.onnxrt.ops_cpu.op_max_pool_',
-            [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_max_pool_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
-            ],
-            define_macros=define_macros,
-            language='c++')
+def get_extensions():
+    root = os.path.abspath(os.path.dirname(__file__))
+    (libraries_thread, extra_compile_args,
+     extra_link_args, define_macros) = get_compile_args()
+    ext_max_pool = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_max_pool_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_max_pool_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        ext_gather = Extension(
-            'mlprodict.onnxrt.ops_cpu.op_gather_',
-            [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_gather_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
-            ],
-            define_macros=define_macros,
-            language='c++')
+    ext_gather = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_gather_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_gather_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        ext_tree_ensemble_classifier = Extension(
-            'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_',
-            [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_classifier_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
-            ],
-            define_macros=define_macros,
-            language='c++')
+    ext_tree_ensemble_classifier = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_classifier_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        ext_tree_ensemble_regressor = Extension(
-            'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_',
-            [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_regressor_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
-            ],
-            define_macros=define_macros,
-            language='c++')
+    ext_tree_ensemble_regressor = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_regressor_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        ext_tree_ensemble_regressor_p = Extension(
-            'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_',
-            [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_regressor_p_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
-            ],
-            define_macros=define_macros,
-            language='c++')
+    ext_tree_ensemble_regressor_p = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_regressor_p_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        ext_svm_regressor = Extension(
-            'mlprodict.onnxrt.ops_cpu.op_svm_regressor_',
-            [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_svm_regressor_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
-            ],
-            define_macros=define_macros,
-            language='c++')
+    ext_svm_regressor = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_svm_regressor_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_svm_regressor_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        ext_tfidfvectorizer = Extension(
-            'mlprodict.onnxrt.ops_cpu.op_tfidfvectorizer_',
-            [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tfidfvectorizer_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
-            ],
-            define_macros=define_macros,
-            language='c++')
+    ext_tfidfvectorizer = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_tfidfvectorizer_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tfidfvectorizer_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        ext_tree_ensemble_classifier_p = Extension(
-            'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_p_',
-            [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_classifier_p_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
-            ],
-            define_macros=define_macros,
-            language='c++')
+    ext_tree_ensemble_classifier_p = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_p_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_tree_ensemble_classifier_p_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        ext_svm_classifier = Extension(
-            'mlprodict.onnxrt.ops_cpu.op_svm_classifier_',
-            [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_svm_classifier_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
-            ],
-            define_macros=define_macros,
-            language='c++')
+    ext_svm_classifier = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_svm_classifier_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_svm_classifier_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        op_onnx_numpy = Extension(
-            'mlprodict.onnxrt.ops_cpu._op_onnx_numpy',
-            [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/_op_onnx_numpy.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
-            ],
-            define_macros=define_macros,
-            language='c++')
+    op_onnx_numpy = Extension(
+        'mlprodict.onnxrt.ops_cpu._op_onnx_numpy',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/_op_onnx_numpy.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        ext_conv = Extension(
-            'mlprodict.onnxrt.ops_cpu.op_conv_',
-            [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
-            ],
-            define_macros=define_macros,
-            language='c++')
+    ext_conv = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_conv_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        ext_conv_transpose = Extension(
-            'mlprodict.onnxrt.ops_cpu.op_conv_transpose_',
-            [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_transpose_.cpp'),
-             os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
-            ],
-            define_macros=define_macros,
-            language='c++')
+    ext_conv_transpose = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_conv_transpose_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_transpose_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        ext_experimental_c = Extension(
-            'mlprodict.testing.experimental_c',
-            [os.path.join(root, 'mlprodict/testing/experimental_c.cpp')],
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args,
-            include_dirs=[
-                # Path to pybind11 headers
-                get_pybind_include(),
-                get_pybind_include(user=True),
-                os.path.join(root, 'mlprodict/testing')
-            ],
-            define_macros=define_macros,
-            language='c++')
+    ext_experimental_c = Extension(
+        'mlprodict.testing.experimental_c',
+        [os.path.join(root, 'mlprodict/testing/experimental_c.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/testing')
+        ],
+        define_macros=define_macros,
+        language='c++')
 
-        ext_modules = [
-            ext_conv,
-            ext_conv_transpose,
-            ext_experimental_c,
-            ext_gather,
-            ext_max_pool,
-            ext_svm_classifier,
-            ext_svm_regressor,
-            ext_tfidfvectorizer,
-            ext_tree_ensemble_classifier,
-            ext_tree_ensemble_classifier_p,
-            ext_tree_ensemble_regressor,
-            ext_tree_ensemble_regressor_p,
-            op_onnx_numpy,
-        ]
-        return ext_modules
+    ext_modules = [
+        ext_conv,
+        ext_conv_transpose,
+        ext_experimental_c,
+        ext_gather,
+        ext_max_pool,
+        ext_svm_classifier,
+        ext_svm_regressor,
+        ext_tfidfvectorizer,
+        ext_tree_ensemble_classifier,
+        ext_tree_ensemble_classifier_p,
+        ext_tree_ensemble_regressor,
+        ext_tree_ensemble_regressor_p,
+        op_onnx_numpy,
+    ]
+    return ext_modules
 
-    try:
-        ext_modules = get_extensions()
-    except ImportError as e:
-        warnings.warn(
-            "Unable to build C++ extension with missing dependencies %r." % e)
-        ext_modules = None
+try:
+    ext_modules = get_extensions()
+except ImportError as e:
+    warnings.warn(
+        "Unable to build C++ extension with missing dependencies %r." % e)
+    ext_modules = None
 
-    # setup
+# setup
 
-    setup(
-        name=project_var_name,
-        ext_modules=ext_modules,
-        version=sversion,
-        author='Xavier Dupré',
-        author_email='xavier.dupre@gmail.com',
-        license="MIT",
-        url="http://www.xavierdupre.fr/app/%s/helpsphinx/index.html" % project_var_name,
-        download_url="https://github.com/sdpython/%s/" % project_var_name,
-        description=DESCRIPTION,
-        long_description=long_description,
-        keywords=KEYWORDS,
-        classifiers=CLASSIFIERS,
-        packages=packages,
-        package_dir=package_dir,
-        package_data=package_data,
-        setup_requires=["pybind11", "numpy", "onnx>=1.7", "scikit-learn>=0.23",
-                        "jinja2", 'cython'],
-        install_requires=["pybind11", "numpy>=1.17", "onnx>=1.7", 'scipy>=1.0.0',
-                          'jinja2', 'cython'],
-        extras_require={
-            'npy': ['scikit-learn>=0.23', 'skl2onnx>=1.8'],
-            'onnx_conv': ['scikit-learn>=0.23', 'skl2onnx>=1.8',
-                          'joblib', 'threadpoolctl', 'mlinsights>=0.3',
-                          'lightgbm', 'xgboost'],
-            'onnx_val': ['scikit-learn>=0.23', 'skl2onnx>=1.8',
-                         'onnxconverter-common>=1.8',
-                         'onnxruntime>=1.6.0', 'joblib', 'threadpoolctl'],
-            'sklapi': ['scikit-learn>=0.23', 'joblib', 'threadpoolctl'],
-            'all': ['scikit-learn>=0.23', 'skl2onnx>=1.8',
-                    'onnxconverter-common>=1.7',
-                    'onnxruntime>=1.7.0', 'scipy' 'joblib', 'pandas',
-                    'threadpoolctl', 'mlinsights>=0.3',
-                    'lightgbm', 'xgboost'],
-        },
-    )
+setup(
+    name=project_var_name,
+    ext_modules=ext_modules,
+    version=read_version(__file__, project_var_name),
+    author='Xavier Dupré',
+    author_email='xavier.dupre@gmail.com',
+    license="MIT",
+    url="http://www.xavierdupre.fr/app/%s/helpsphinx/index.html" % project_var_name,
+    download_url="https://github.com/sdpython/%s/" % project_var_name,
+    description=DESCRIPTION,
+    long_description=read_readme(__file__),
+    cmdclass=default_cmdclass(),
+    keywords=KEYWORDS,
+    classifiers=CLASSIFIERS,
+    packages=packages,
+    package_dir=package_dir,
+    package_data=package_data,
+    setup_requires=["pybind11", "numpy", "onnx>=1.7", "scikit-learn>=0.23",
+                    "jinja2", 'cython', 'pyquicksetup'],
+    install_requires=["pybind11", "numpy>=1.17", "onnx>=1.7", 'scipy>=1.0.0',
+                      'jinja2', 'cython'],
+    extras_require={
+        'npy': ['scikit-learn>=0.23', 'skl2onnx>=1.8'],
+        'onnx_conv': ['scikit-learn>=0.23', 'skl2onnx>=1.8',
+                      'joblib', 'threadpoolctl', 'mlinsights>=0.3',
+                      'lightgbm', 'xgboost'],
+        'onnx_val': ['scikit-learn>=0.23', 'skl2onnx>=1.8',
+                     'onnxconverter-common>=1.8',
+                     'onnxruntime>=1.6.0', 'joblib', 'threadpoolctl'],
+        'sklapi': ['scikit-learn>=0.23', 'joblib', 'threadpoolctl'],
+        'all': ['scikit-learn>=0.23', 'skl2onnx>=1.8',
+                'onnxconverter-common>=1.7',
+                'onnxruntime>=1.7.0', 'scipy' 'joblib', 'pandas',
+                'threadpoolctl', 'mlinsights>=0.3',
+                'lightgbm', 'xgboost'],
+    },
+)
