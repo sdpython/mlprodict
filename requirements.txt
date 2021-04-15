@@ -37,6 +37,7 @@ py-cpuinfo
 pyinstrument
 pylint>=2.6.0
 pyquickhelper>=1.10
+pyquicksetup
 sphinx
 sphinxcontrib.blockdiag
 sphinx_gallery
