@@ -45,13 +45,29 @@ def classifier(x, *, model=None):
 
     :param x: array, variable name, instance of :class:`OnnxVar
         <mlprodict.npy.onnx_variable.OnnxVar>`
-    :param model: instance of :epkg:`sklearn:linear_model:LinearRegression`
+    :param model: instance of a classifier
     :return: instance of :class:`MultiOnnxVar
         <mlprodict.npy.onnx_variable.MultiOnnxVar>`, first
         output is labels, second one is the probabilities
     """
     return MultiOnnxVar(model, x, op=OnnxSubEstimator,
                         options={'zipmap': False})
+
+
+def cluster(x, *, model=None):
+    """
+    Returns any cluster from :epkg:`scikit-learn`
+    converted into ONNX assuming a converter is registered
+    with :epkg:`sklearn-onnx`. Option *zipmap* is set to false.
+
+    :param x: array, variable name, instance of :class:`OnnxVar
+        <mlprodict.npy.onnx_variable.OnnxVar>`
+    :param model: instance of a cluster
+    :return: instance of :class:`MultiOnnxVar
+        <mlprodict.npy.onnx_variable.MultiOnnxVar>`, first
+        output is labels, second one is the probabilities
+    """
+    return MultiOnnxVar(model, x, op=OnnxSubEstimator)
 
 
 def regressor(x, *, model=None):
@@ -62,7 +78,22 @@ def regressor(x, *, model=None):
 
     :param x: array, variable name, instance of :class:`OnnxVar
         <mlprodict.npy.onnx_variable.OnnxVar>`
-    :param model: instance of :epkg:`sklearn:linear_model:LinearRegression`
+    :param model: instance of a regressor
+    :return: instance of :class:`OnnxVar
+        <mlprodict.npy.onnx_variable.OnnxVar>`
+    """
+    return OnnxVar(model, x, op=OnnxSubEstimator)
+
+
+def transformer(x, *, model=None):
+    """
+    Returns any transformer from :epkg:`scikit-learn`
+    converted into ONNX assuming a converter is registered
+    with :epkg:`sklearn-onnx`.
+
+    :param x: array, variable name, instance of :class:`OnnxVar
+        <mlprodict.npy.onnx_variable.OnnxVar>`
+    :param model: instance of a transformer
     :return: instance of :class:`OnnxVar
         <mlprodict.npy.onnx_variable.OnnxVar>`
     """

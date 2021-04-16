@@ -840,3 +840,62 @@ converter after the call. Another way is to call function
 :func:`register_rewritten_operators
 <mlprodict.onnx_conv.register_rewritten_converters.register_rewritten_operators>`
 but changes are permanent.
+
+Issue when an estimator is called by another one
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A new class is created and the method *transform* is implemented
+with the numpy API for ONNX. This function must produce an ONNX
+graph including the embedded the embedded model. It must call
+the converter for this estimator to get that graph.
+That what instruction ``nxnpskl.transformer(X, model=self.estimator_)``
+does. However it produces the following error.
+
+
+.. runpython::
+    :showcode:
+
+    import numpy
+    from sklearn.base import TransformerMixin, BaseEstimator
+    from sklearn.preprocessing import StandardScaler
+    from mlprodict.onnx_conv import to_onnx
+    from mlprodict.onnxrt import OnnxInference
+    from mlprodict.npy import onnxsklearn_class
+    import mlprodict.npy.numpy_onnx_impl_skl as nxnpskl
+
+
+    @onnxsklearn_class("onnx_graph")
+    class CustomTransformerOnnx(TransformerMixin, BaseEstimator):
+
+        def __init__(self, base_estimator):
+            TransformerMixin.__init__(self)
+            BaseEstimator.__init__(self)
+            self.base_estimator = base_estimator
+
+        def fit(self, X, y, sample_weights=None):
+            if sample_weights is not None:
+                raise NotImplementedError(
+                    "weighted sample not implemented in this example.")
+
+            self.estimator_ = self.base_estimator.fit(  # pylint: disable=W0201
+                X, y, sample_weights)
+            return self
+
+        def onnx_graph(self, X):
+            return nxnpskl.transformer(X, model=self.estimator_)
+
+
+    X = numpy.random.randn(20, 2).astype(numpy.float32)
+    y = ((X.sum(axis=1) + numpy.random.randn(
+         X.shape[0]).astype(numpy.float32)) >= 0).astype(numpy.int64)
+    dec = CustomTransformerOnnx(StandardScaler())
+    dec.fit(X, y)
+    onx = to_onnx(dec, X.astype(numpy.float32))
+    oinf = OnnxInference(onx)
+    tr = dec.transform(X)  # pylint: disable=E1101
+    got = oinf.run({'X': X})
+    print(got)
+
+To fix it, instruction ``return nxnpskl.transformer(X, model=self.estimator_)``
+should be replaced by
+``return nxnpskl.transformer(X, model=self.estimator_).copy()``.
