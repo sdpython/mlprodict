@@ -12,7 +12,7 @@ from mlprodict.onnx_conv import to_onnx, register_rewritten_operators
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy import onnxsklearn_class
 from mlprodict.npy.onnx_variable import MultiOnnxVar
-import mlprodict.npy.numpy_onnx_impl as nxnp
+# import mlprodict.npy.numpy_onnx_impl as nxnp
 import mlprodict.npy.numpy_onnx_impl_skl as nxnpskl
 
 
@@ -29,7 +29,8 @@ class CustomClassifierOnnx(ClassifierMixin, BaseEstimator):
             raise NotImplementedError(
                 "weighted sample not implemented in this example.")
 
-        self.estimator_ = self.base_estimator.fit(X, y, sample_weights)
+        self.estimator_ = self.base_estimator.fit(  # pylint: disable=W0201
+            X, y, sample_weights)
         self.classes_ = self.estimator_.classes_  # pylint: disable=W0201
         return self
 
@@ -53,7 +54,8 @@ class CustomRegressorOnnx(RegressorMixin, BaseEstimator):
             raise NotImplementedError(
                 "weighted sample not implemented in this example.")
 
-        self.estimator_ = self.base_estimator.fit(X, y, sample_weights)
+        self.estimator_ = self.base_estimator.fit(  # pylint: disable=W0201
+            X, y, sample_weights)
         return self
 
     def onnx_graph(self, X):
