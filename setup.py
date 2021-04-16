@@ -311,6 +311,7 @@ def get_extensions():
     ]
     return ext_modules
 
+
 try:
     ext_modules = get_extensions()
 except ImportError as e:

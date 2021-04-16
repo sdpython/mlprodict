@@ -18,7 +18,6 @@ class ReduceL1(OpRunReduceNumpy):
                                   **options)
 
     def _run(self, data):  # pylint: disable=W0221
-        return (
-                numpy.sum(
-                    numpy.abs(data), axis=self.axes,
-                    keepdims=self.keepdims).astype(dtype=data.dtype), )
+        return (numpy.sum(
+            numpy.abs(data), axis=self.axes,
+            keepdims=self.keepdims).astype(dtype=data.dtype), )
