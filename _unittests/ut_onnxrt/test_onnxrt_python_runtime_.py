@@ -2327,7 +2327,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                               got['Y'].ravel())
         python_tested.append(OnnxReduceL2)
 
-
     @wraplog()
     def test_onnxt_runtime_reduce_l2(self):
         def reduce_l2(x, axis, keepdims):
