@@ -49,7 +49,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxPad, OnnxPow,
     OnnxQuantizeLinear,
     OnnxReciprocal,
-    OnnxReduceL2,
+    OnnxReduceL1, OnnxReduceL2,
     OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
     OnnxReduceProd,
     OnnxReduceSum, OnnxReduceSumApi11, OnnxReduceSum_11, OnnxReduceSum_1,
@@ -2291,6 +2291,45 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_reduce_l1(self):
+        def reduce_l1(x, axis, keepdims):
+            return numpy.sum(numpy.abs(x), axis=axis, keepdims=keepdims)
+
+        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+
+        onx = OnnxReduceL1('X', output_names=['Y'], keepdims=0, axes=[1],
+                           op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(reduce_l1(X, axis=1, keepdims=0),
+                              got['Y'], decimal=6)
+
+        onx = OnnxReduceL1('X', output_names=['Y'], axes=1,
+                           op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(reduce_l1(X, axis=1, keepdims=1).ravel(),
+                              got['Y'].ravel())
+
+        onx = OnnxReduceL1('X', output_names=['Y'], axes=1, keepdims=1,
+                           op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(reduce_l1(X, axis=1, keepdims=1).ravel(),
+                              got['Y'].ravel())
+        python_tested.append(OnnxReduceL2)
+
+
+    @wraplog()
+    def test_onnxt_runtime_reduce_l2(self):
         def reduce_l2(x, axis, keepdims):
             return numpy.sqrt(numpy.sum(x ** 2, axis=axis, keepdims=keepdims))
 

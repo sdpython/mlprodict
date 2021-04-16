@@ -45,6 +45,55 @@ jobs:
     displayName: 'Build package inplace'
   - script: python -u setup.py unittests -g ".*((LONG)|(SKIP)|(notebooks)).*"
     displayName: 'Runs Unit Tests'
+  - script: python -u setup.py bdist_wheel
+    displayName: 'Build wheel'
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'wheel-linux-$(python.version)'
+      targetPath: 'dist'
+
+- job: 'TestManyLinux'
+  pool:
+    vmImage: 'ubuntu-latest'
+  strategy:
+    matrix:
+      Python38-Linux:
+        python.version: '3.8'
+    maxParallel: 3
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+      architecture: 'x64'
+  - script: sudo apt-get update
+    displayName: 'AptGet Update'
+  - script: sudo apt-get install -y inkscape
+    displayName: 'Install Inkscape'
+  - script: sudo apt-get install -y pandoc
+    displayName: 'Install Pandoc'
+  # - script: sudo apt-get install -y texlive texlive-latex-extra texlive-xetex dvipng
+  #   displayName: 'Install Latex'
+  - script: sudo apt-get install -y libomp-8-dev
+    displayName: 'Install omp'
+  - script: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 10
+          ls /usr/bin/llvm*
+          export LLVM_CONFIG=/usr/bin/llvm-config-10
+    displayName: 'Install llvmlite'
+  - script: sudo apt-get install -y p7zip-full
+    displayName: 'Install 7z, rar'
+  - script: sudo apt-get install -y graphviz
+    displayName: 'Install Graphviz'
+  - script: pip install --upgrade pip setuptools wheel
+    displayName: 'Install tools'
+  - script: pip install numpy
+    displayName: 'Install numpy'
+  - script: |
+          export LLVM_CONFIG=/usr/bin/llvm-config-10
+          pip install -r requirements.txt
+    displayName: 'Install Requirements'
   - script: |
       python -m pip install cibuildwheel
       export CIBW_BEFORE_BUILD=pip install .
@@ -55,7 +104,7 @@ jobs:
     displayName: 'Build Package many'
   - task: PublishPipelineArtifact@0
     inputs:
-      artifactName: 'wheel-linux-$(python.version)'
+      artifactName: 'wheel-manylinux-$(python.version)'
       targetPath: 'dist'
 
 - job: 'TestMac'
