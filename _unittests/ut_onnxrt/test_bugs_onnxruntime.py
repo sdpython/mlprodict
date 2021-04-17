@@ -15,6 +15,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from skl2onnx import convert_sklearn
+from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.common.data_types import FloatTensorType, StringTensorType
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.data import load_audit
@@ -83,7 +84,9 @@ class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
         try:
             model_onnx = convert_sklearn(predictor, model_name, inputs)
         except Exception as e:
-            raise e
+            raise AssertionError(
+                "Unable to convert model %r (version=%r)." % (
+                    predictor, skl2onnx_version)) from e
 
         data = {col[0]: x_test[col[0]].values.reshape(x_test.shape[0], 1)
                 for col in inputs}

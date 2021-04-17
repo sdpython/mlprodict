@@ -127,7 +127,7 @@ class TwoLinearRegressionOnnx(RegressorMixin, BaseEstimator):
         return pred
 
 
-class TestCustomEmbeddedModels(ExtTestCase):
+class TestCustomEmbeddedLinearModels(ExtTestCase):
 
     def setUp(self):
         logger = getLogger('skl2onnx')
