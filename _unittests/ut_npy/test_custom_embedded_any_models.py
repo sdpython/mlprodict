@@ -21,7 +21,7 @@ import mlprodict.npy.numpy_onnx_impl_skl as nxnpskl
 
 
 @onnxsklearn_class("onnx_graph")
-class CustomClassifierOnnx(ClassifierMixin, BaseEstimator):
+class AnyCustomClassifierOnnx(ClassifierMixin, BaseEstimator):
 
     def __init__(self, base_estimator):
         ClassifierMixin.__init__(self)
@@ -46,7 +46,7 @@ class CustomClassifierOnnx(ClassifierMixin, BaseEstimator):
 
 
 @onnxsklearn_class("onnx_graph")
-class CustomRegressorOnnx(RegressorMixin, BaseEstimator):
+class AnyCustomRegressorOnnx(RegressorMixin, BaseEstimator):
 
     def __init__(self, base_estimator):
         RegressorMixin.__init__(self)
@@ -67,7 +67,7 @@ class CustomRegressorOnnx(RegressorMixin, BaseEstimator):
 
 
 @onnxsklearn_class("onnx_graph")
-class CustomClusterOnnx(ClusterMixin, BaseEstimator):
+class AnyCustomClusterOnnx(ClusterMixin, BaseEstimator):
 
     def __init__(self, base_estimator):
         ClusterMixin.__init__(self)
@@ -91,7 +91,7 @@ class CustomClusterOnnx(ClusterMixin, BaseEstimator):
 
 
 @onnxsklearn_class("onnx_graph")
-class CustomTransformerOnnx(TransformerMixin, BaseEstimator):
+class AnyCustomTransformerOnnx(TransformerMixin, BaseEstimator):
 
     def __init__(self, base_estimator):
         TransformerMixin.__init__(self)
@@ -122,7 +122,7 @@ class TestCustomEmbeddedModels(ExtTestCase):
         X = numpy.random.randn(20, 2).astype(dtype)
         y = ((X.sum(axis=1) + numpy.random.randn(
              X.shape[0]).astype(numpy.float32)) >= 0).astype(numpy.int64)
-        dec = CustomClassifierOnnx(est)
+        dec = AnyCustomClassifierOnnx(est)
         dec.fit(X, y)
         onx = to_onnx(dec, X.astype(dtype),
                       options={id(dec): {'zipmap': False}})
@@ -148,7 +148,7 @@ class TestCustomEmbeddedModels(ExtTestCase):
         X = numpy.random.randn(40, 2).astype(dtype)
         y = (X.sum(axis=1) + numpy.random.randn(
              X.shape[0])).astype(numpy.float32)
-        dec = CustomRegressorOnnx(est)
+        dec = AnyCustomRegressorOnnx(est)
         dec.fit(X, y)
         onx = to_onnx(dec, X.astype(dtype))
         oinf = OnnxInference(onx)
@@ -171,7 +171,7 @@ class TestCustomEmbeddedModels(ExtTestCase):
         X = numpy.random.randn(20, 2).astype(dtype)
         y = ((X.sum(axis=1) + numpy.random.randn(
              X.shape[0]).astype(numpy.float32)) >= 0).astype(numpy.int64)
-        dec = CustomClusterOnnx(est)
+        dec = AnyCustomClusterOnnx(est)
         dec.fit(X, y)
         onx = to_onnx(dec, X.astype(dtype))
         oinf = OnnxInference(onx)
@@ -196,7 +196,7 @@ class TestCustomEmbeddedModels(ExtTestCase):
         X = numpy.random.randn(20, 2).astype(dtype)
         y = ((X.sum(axis=1) + numpy.random.randn(
              X.shape[0]).astype(numpy.float32)) >= 0).astype(numpy.int64)
-        dec = CustomTransformerOnnx(est)
+        dec = AnyCustomTransformerOnnx(est)
         dec.fit(X, y)
         onx = to_onnx(dec, X.astype(dtype))
         oinf = OnnxInference(onx)
