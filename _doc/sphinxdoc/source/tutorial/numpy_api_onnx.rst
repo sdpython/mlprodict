@@ -851,7 +851,6 @@ the converter for this estimator to get that graph.
 That what instruction ``nxnpskl.transformer(X, model=self.estimator_)``
 does. However it produces the following error.
 
-
 .. runpython::
     :showcode:
 
@@ -862,7 +861,6 @@ does. However it produces the following error.
     from mlprodict.onnxrt import OnnxInference
     from mlprodict.npy import onnxsklearn_class
     import mlprodict.npy.numpy_onnx_impl_skl as nxnpskl
-
 
     @onnxsklearn_class("onnx_graph")
     class CustomTransformerOnnx(TransformerMixin, BaseEstimator):
@@ -883,7 +881,6 @@ does. However it produces the following error.
 
         def onnx_graph(self, X):
             return nxnpskl.transformer(X, model=self.estimator_)
-
 
     X = numpy.random.randn(20, 2).astype(numpy.float32)
     y = ((X.sum(axis=1) + numpy.random.randn(

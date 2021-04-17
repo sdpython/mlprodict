@@ -5,19 +5,25 @@
 History
 =======
 
-current - 2021-03-31 - 0.00Mb
+current - 2021-04-17 - 0.00Mb
 =============================
 
-* `247`: Introduces FctVersion to fix issue with optional arguments (2021-03-29)
+* `255`: Supports any embedded estimator with numpy API (2021-04-17)
+* `254`: Adds python runtime for operator ReduceL1 (2021-04-16)
+* `253`: Adds runtime for operator ReduceL2 (2021-04-14)
+* `252`: Implements an experimental version of reducesum for the case RK (2021-04-07)
+* `251`: Increases code coverage (2021-04-07)
+* `250`: Increases code coverage of unit tests (2021-04-03)
 * `248`: Adds implementation of BatchNormalization opset 14 (2021-03-29)
+* `247`: Introduces FctVersion to fix issue with optional arguments (2021-03-29)
 * `246`: Extends example on ReduceSum benchmark (2021-03-26)
 * `244`: Supports embedded models, complete tutorial on numpy API for ONNX (2021-03-26)
 * `243`: Add decorator to wrap converter for clustering (numpy API) (2021-03-17)
 * `242`: Add decorator to wrap converter for classifier (numpy API) (2021-03-17)
 * `241`: Add decorator to register scikit-learn classes with numpy API for ONNX (2021-03-14)
 * `240`: Add decorator to wrap converter for regressor (numpy API) (2021-03-14)
-* `238`: Use numpy API for ONNX to write custom converters (2021-03-13)
 * `239`: Add runtime empty (2021-03-13)
+* `238`: Use numpy API for ONNX to write custom converters (2021-03-13)
 * `237`: Add a unit test to check an exception (2021-03-10)
 * `236`: Implements __setitem__ for one dimension array (2021-03-08)
 * `235`: Supports profiling for runtime onnxruntime1 (2021-03-04)
