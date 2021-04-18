@@ -853,6 +853,9 @@ does. However it produces the following error.
 
 .. runpython::
     :showcode:
+    :exception:
+    :warningout: DeprecationWarning
+    :process:
 
     import numpy
     from sklearn.base import TransformerMixin, BaseEstimator
