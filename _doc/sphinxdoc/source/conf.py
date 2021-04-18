@@ -4,14 +4,19 @@ import os
 import alabaster
 from pyquickhelper.helpgen.default_conf import set_sphinx_variables, get_default_stylesheet
 from sklearn.experimental import enable_hist_gradient_boosting
-from mlprodict.onnx_conv import register_converters, register_rewritten_operators
+try:
+    from mlprodict.onnx_conv import register_converters, register_rewritten_operators
+except ImportError as e:
+    raise ImportError(
+        "Unable to import mlprodict. paths:\n{}".format(
+            "\n".join(sys.path))) from e
 register_converters()
 try:
     register_rewritten_operators()
 except KeyError:
     import warnings
     warnings.warn("converter for HistGradientBoosting* not not exist. "
-                  "Upgrade sklearn-onnx")
+                  "Upgrade sklearn-onnx.")
 
 try:
     import generate_visual_graphs
