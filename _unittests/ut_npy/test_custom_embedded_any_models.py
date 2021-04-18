@@ -266,7 +266,8 @@ class TestCustomEmbeddedModels(ExtTestCase):
         self.assertEqualArray(exp, got['label'].ravel())
         self.assertEqualArray(prob, got['scores'])
         self.assertRaise(
-            lambda: dec.predict(X.astype(numpy.int64)), ValueError)
+            lambda: dec.predict(  # pylint: disable=E1101
+                X.astype(numpy.int64)), ValueError)
 
 
 if __name__ == "__main__":
