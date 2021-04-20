@@ -427,6 +427,12 @@ def onnxsklearn_cluster(op_version=None, runtime=None, signature=None,
     return decorator_fct
 
 
+def _call_validate(self, X):
+    if hasattr(self, "_validate_onnx_data"):
+        return self._validate_onnx_data(X)
+    return X
+
+
 def _internal_method_decorator(register_class, method, op_version=None,
                                runtime=None, signature=None,
                                method_names=None, overwrite=True,
@@ -502,20 +508,20 @@ def _internal_method_decorator(register_class, method, op_version=None,
             raise RuntimeError(  # pragma: no cover
                 "Cannot overwrite method %r because it already exists in "
                 "class %r." % (name, register_class))
-        m = lambda self, X: res(X, op_=self)
+        m = lambda self, X: res(_call_validate(self, X), op_=self)
         setattr(register_class, name, m)
     elif len(method_names) == 0:
         raise RuntimeError("No available method.")  # pragma: no cover
     else:
-        m = lambda self, X: res(X, op_=self)
+        m = lambda self, X: res(_call_validate(self, X), op_=self)
         setattr(register_class, method.__name__ + "_", m)
         for iname, name in enumerate(method_names):
             if hasattr(register_class, name):
                 raise RuntimeError(  # pragma: no cover
                     "Cannot overwrite method %r because it already exists in "
                     "class %r." % (name, register_class))
-            m = lambda self, X, index_output=iname: res(X, op_=self)[
-                index_output]
+            m = (lambda self, X, index_output=iname:
+                 res(_call_validate(self, X), op_=self)[index_output])
             setattr(register_class, name, m)
 
     update_registered_converter_npy(

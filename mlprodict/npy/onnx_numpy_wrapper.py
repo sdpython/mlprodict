@@ -199,6 +199,9 @@ class wrapper_onnxnumpy_np:
 
         self.signed_compiled[version] = newclass(compiled)
 
+    def _validate_onnx_data(self, X):
+        return X
+
 
 def onnxnumpy_np(op_version=None, runtime=None, signature=None):
     """
