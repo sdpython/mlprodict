@@ -182,6 +182,6 @@ class TestEinsum(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestEinsum().test_decompose_einsum_equation()
+    # TestEinsum().test_decompose_einsum_equation()
     # stop
     unittest.main()
