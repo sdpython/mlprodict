@@ -56,39 +56,73 @@ class TestEinsum(ExtTestCase):
         m2 = numpy.arange(0, 4).astype(numpy.float32).reshape((2, 2))
         exp = numpy.einsum("bac,ch->ah", m1, m2)
 
-        f = io.StringIO()
-        with redirect_stdout(f):
+        def fct():
+            print("########################## DECOMPOSE")
             seq = decompose_einsum_equation(
                 "bac,ch->ah", (2, 2, 2), (2, 2), verbose=True)
+            print("########################## APPLY")
+            dot = seq.to_dot()
+            print(dot)
+            red = dot.split('red')
+            self.assertEqual(len(red), 4)
             res = apply_sequence(seq, m1, m2, verbose=True)
-            import pprint
-            pprint.pprint(seq)
+            print("########################## END")
+            return res
+
+        f = io.StringIO()
+        try:
+            with redirect_stdout(f):
+                res = fct()
+        except Exception as e:
+            raise AssertionError("Issue. Logs =\n%s" % f.getvalue()) from e
 
         out = f.getvalue()
-        print(out)
+        self.assertIn("numpy_extended_dot", out)
         self.assertEqual(exp, res)
 
     def test_einsum_sub_op(self):
-        self.assertRaise(lambda: EinsumSubOp("er", (2, 2)), ValueError)
-        self.assertRaise(lambda: EinsumSubOp("reshape"), RuntimeError)
-        self.assertRaise(lambda: EinsumSubOp("gemm", (2, 2)), RuntimeError)
-        self.assertRaise(lambda: EinsumSubOp("id", (2, 2)), TypeError)
+        self.assertRaise(lambda: EinsumSubOp(2, "er", (2, 2)), ValueError)
+        self.assertRaise(lambda: EinsumSubOp(2, "expand_dims"), RuntimeError)
+        self.assertRaise(lambda: EinsumSubOp(
+            2, "matmul", (2, 2)), RuntimeError)
+        self.assertRaise(lambda: EinsumSubOp(2, "id", (2, 2)), TypeError)
 
     # Taken from https://github.com/numpy/numpy/blob/main/numpy/
     # core/tests/test_einsum.py.
 
-    def _test_hadamard_like_products(self):
+    def optimize_compare(self, equation, verbose=False):
+        eqs = equation.split("->")[0].split(",")
+        inputs = []
+        for eq in eqs:
+            i = numpy.arange(2 ** len(eq)).reshape(
+                (2,) * len(eq)).astype(numpy.float32)
+            inputs.append(i + numpy.array([10], dtype=numpy.float32))
+
+        exp = numpy.einsum(equation, *inputs)
+        if verbose:
+            print("###### equation", equation)
+            path = numpy.einsum_path(equation, *inputs, optimize=False)
+            print(path[1])
+            path = numpy.einsum_path(equation, *inputs)
+            print(path[1])
+
+        shapes = [m.shape for m in inputs]
+        seq = decompose_einsum_equation(equation, *shapes, verbose=verbose)
+        got = apply_sequence(seq, *inputs, verbose=verbose)
+        self.assertEqualArray(exp, got)
+
+    def test_numpy_test_hadamard_like_products(self):
         # Hadamard outer products
         self.optimize_compare('a,ab,abc->abc')
         self.optimize_compare('a,b,ab->ab')
 
-    def _test_index_transformations(self):
+    def np_test_index_transformations(self):
         # Simple index transformation cases
         self.optimize_compare('ea,fb,gc,hd,abcd->efgh')
         self.optimize_compare('ea,fb,abcd,gc,hd->efgh')
         self.optimize_compare('abcd,ea,fb,gc,hd->efgh')
 
-    def _test_complex(self):
+    def np_test_complex(self):
         # Long test cases
         self.optimize_compare('acdf,jbje,gihb,hfac,gfac,gifabc,hfac')
         self.optimize_compare('acdf,jbje,gihb,hfac,gfac,gifabc,hfac')
@@ -99,16 +133,16 @@ class TestEinsum(ExtTestCase):
         self.optimize_compare('chd,bde,agbc,hiad,bdi,cgh,agdb')
         self.optimize_compare('bdhe,acad,hiab,agac,hibd')
 
-    def _test_collapse(self):
+    def np_test_np_test_collapse(self):
         # Inner products
-        self.optimize_compare('ab,ab,c->')
-        self.optimize_compare('ab,ab,c->c')
-        self.optimize_compare('ab,ab,cd,cd->')
+        self.optimize_compare('ab,ab,c->c', verbose=True)
         self.optimize_compare('ab,ab,cd,cd->ac')
         self.optimize_compare('ab,ab,cd,cd->cd')
+        self.optimize_compare('ab,ab,c->')
+        self.optimize_compare('ab,ab,cd,cd->')
         self.optimize_compare('ab,ab,cd,cd,ef,ef->')
 
-    def _test_expand(self):
+    def np_test_expand(self):
         # Outer products
         self.optimize_compare('ab,cd,ef->abcdef')
         self.optimize_compare('ab,cd,ef->acdf')
@@ -117,7 +151,7 @@ class TestEinsum(ExtTestCase):
         self.optimize_compare('ab,bcd,cd->abcd')
         self.optimize_compare('ab,bcd,cd->abd')
 
-    def _test_edge_cases(self):
+    def np_test_edge_cases(self):
         # Difficult edge cases for optimization
         self.optimize_compare('eb,cb,fb->cef')
         self.optimize_compare('dd,fb,be,cdb->cef')
@@ -132,7 +166,7 @@ class TestEinsum(ExtTestCase):
         self.optimize_compare('efc,dbc,acf,fd->abe')
         self.optimize_compare('ba,ac,da->bcd')
 
-    def _test_inner_product(self):
+    def np_test_inner_product(self):
         # Inner products
         self.optimize_compare('ab,ab')
         self.optimize_compare('ab,ba')
@@ -140,7 +174,7 @@ class TestEinsum(ExtTestCase):
         self.optimize_compare('abc,bac')
         self.optimize_compare('abc,cba')
 
-    def _test_random_cases(self):
+    def np_test_random_cases(self):
         # Randomly built test cases
         self.optimize_compare('aab,fa,df,ecc->bde')
         self.optimize_compare('ecb,fef,bad,ed->ac')
@@ -154,13 +188,13 @@ class TestEinsum(ExtTestCase):
         self.optimize_compare('dba,ead,cad->bce')
         self.optimize_compare('aef,fbc,dca->bde')
 
-    def _test_combined_views_mapping(self):
+    def np_test_combined_views_mapping(self):
         # gh-10792
         a = numpy.arange(9).reshape(1, 1, 3, 1, 3)
         b = numpy.einsum('bbcdc->d', a)
         assert_equal(b, [12])
 
-    def _test_broadcasting_dot_cases(self):
+    def np_test_broadcasting_dot_cases(self):
         # Ensures broadcasting cases are not mistaken for GEMM
 
         a = numpy.random.rand(1, 5, 4)
@@ -183,5 +217,4 @@ class TestEinsum(ExtTestCase):
 
 if __name__ == "__main__":
     # TestEinsum().test_decompose_einsum_equation()
-    # stop
     unittest.main()
