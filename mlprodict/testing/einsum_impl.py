@@ -20,6 +20,9 @@ def numpy_extended_dot(m1, m2, axes, left, right, verbose=False):
     :param right: right axes
     :param verbose: display intermediate information
     :return: output
+
+    The current implementation still uses :epkg:`numpy:einsum`
+    but this should be replaced.
     """
     if len(m1.shape) != len(m2.shape):
         raise RuntimeError(
@@ -63,7 +66,17 @@ def analyse_einsum_equation(equation):
     Analyses an einsum equation.
 
     :param equation: :epkg:`numpy:einsum` equation
-    :return:
+    :return: three results, list of letters,
+        a matrix (see below), lengths of each components
+
+    The returned a matrix is defined as follows:
+
+    .. math::
+
+        m_{ij}=\\left\\{\\begin{array}{ll}-1 &
+        \\text{if letter j is involved in input i} \\\\
+        p & \\text{p is position of letter j in equation i}
+        \\end{array}\\right.
     """
     spl = equation.strip(' ,').split("->")
     if len(spl) != 2 or len(spl[1]) == 0 or len(spl[0]) == 0:
@@ -120,7 +133,30 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple", verbose=Fals
     * `'simple'`: align all dimensions in the alphabetical order
 
     Available operations: *expand_dims*, *transpose*, *matmul*, *reduce_sum*,
-    *id*, *squeeze*.
+    *id*, *squeeze*. It analyses an equation and produces a graph
+    where node are instance of class @see cl EinsumSubOp.
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.testing.einsum_impl import decompose_einsum_equation
+        seq = decompose_einsum_equation(
+            "bac,cd,def->ebc", (2, 2, 2), (2, 2), (2, 2, 2))
+        for op in seq:
+            print(op)
+
+    It can be better displayed as the following.
+
+    .. gdot::
+        :script: DOT-SECTION
+        :process:
+
+        from mlprodict.testing.einsum_impl import decompose_einsum_equation
+        seq = decompose_einsum_equation(
+            "bac,cd,def->ebc", (2, 2, 2), (2, 2), (2, 2, 2))
+        print("DOT-SECTION", seq.to_dot())
+
+    See notebook :ref:`einsumdecompositionrst`.
     """
     if len(shapes) == 0:
         raise ValueError("No input shapes.")
@@ -133,13 +169,32 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple", verbose=Fals
     raise ValueError("Unknown strategy %r." % strategy)
 
 
-def apply_sequence(seq, *inputs, verbose=False):
+def apply_einsum_sequence(seq, *inputs, verbose=False):
     """
     Applies a sequence of operations on a list of inputs.
+    The sequence of operations is produced by function
+    @see fn decompose_einsum_equation.
 
     :param seq: sequence of operations
     :param inputs: inputs:
     :return: output
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.testing.einsum_impl import (
+            decompose_einsum_equation, apply_einsum_sequence)
+
+        m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
+        m2 = numpy.arange(4).reshape((2, 2)) + 100
+        m3 = numpy.arange(2 * 2).reshape((2, 2)) + 1000
+
+        seq = decompose_einsum_equation(
+            "bac,cd,def->ebc", (2, 2, 2), (2, 2), (2, 2, 2))
+        res = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
+        print(res)
+
+    See notebook :ref:`einsumdecompositionrst`.
     """
     return seq.apply_sequence(*inputs, verbose=verbose)
 
@@ -188,6 +243,16 @@ class EinsumSubOp:
                 raise TypeError(
                     "Input %d has type %r, int or EinsumSubOp is expected."
                     "" % (i, type(inp)))
+        self._check_()
+
+    def _check_(self):
+        if self.name == 'transpose':
+            self._check_arg_('perm', tuple)
+            perm = self.kwargs['perm']
+            if len(perm) != len(set(perm)):
+                raise RuntimeError(
+                    "perm has duplicated values %r (name=%r)."
+                    "" % (perm, self.name))
 
     def __repr__(self):
         inps = ", ".join(map(str, self.inputs))
@@ -213,10 +278,6 @@ class EinsumSubOp:
             if inp:
                 print()
             print('<-' if inp else '->', self.name, row, self.kwargs)
-        if not inp or self.name != 'id':
-            if row.max() == -1:
-                raise RuntimeError(  # pragma: no cover
-                    "Shape is empty %r." % row)
 
     def compute_output_row(self, row, row2=None, verbose=False):
         """
@@ -439,7 +500,7 @@ class GraphEinsumSubOp:
             self._ops.append(op)
             self.last_added_op = op
             return op
-        raise TypeError("Unexpected type %r." % type(i))
+        raise TypeError("Unexpected type %r." % type(op))
 
     def mark(self, i, op):
         """
@@ -465,22 +526,10 @@ class GraphEinsumSubOp:
         for op in self._ops:
             yield op
 
-    def to_graph(self, layout='ascii'):
-        """
-        Draws a graph.
-
-        :param layout: ascii (relies on package :epkg:`graphscii`
-        :return: string
-        """
-        if layout == 'ascii':
-            pass
-
-        raise NotImplementedError("Unexpected layout %r." % layout)
-
     def to_dot(self, **kwargs):
         """
         Produces a graph in :epkg:`dot`.
-        
+
         :param kwargs: additional graph option
         :return: string
         """
@@ -494,7 +543,7 @@ class GraphEinsumSubOp:
             'node': '[shape=record]',
         }
         options.update(kwargs)
-        
+
         def d2s(d):
             it = []
             for k, v in sorted(d.items()):
@@ -503,21 +552,28 @@ class GraphEinsumSubOp:
 
         rows = ["digraph{"]
         for k, v in options.items():
-            if "[" in v:
+            if isinstance(v, str) and "[" in v:
                 rows.append("{} {};".format(k, v))
             else:
                 rows.append("{}={};".format(k, v))
         for k, v in self._nodes.items():
             if isinstance(v, int):
-                lab = "input %d\\\\n%s" % (v, str(self.metadata['mat0'][v]))
+                let = [(r, self.metadata['letters'][i])
+                       for i, r in enumerate(self.metadata['mat0'][v])
+                       if r != -1]
+                let.sort()
+                letters = "".join(_[1] for _ in let)
+                lab = "input %d\\\\n%s\\\\n%s" % (
+                    v, letters, str(self.metadata['mat0'][v]))
                 sk = v
             else:
                 lab = "%s\\\\n%s" % (v.name, d2s(v.kwargs))
                 sk = id(v)
             if sk in self._mark and isinstance(self._mark[sk], int):
                 la = self._mark[sk]
-                s = ('%d [label="%s - I%d" style=filled '
-                     'fillcolor=red];' % (k, lab, la))
+                lab = lab.replace("\\\\n", " - I%d\\\\n" % la)
+                s = ('%d [label="%s" style=filled '
+                     'fillcolor=red];' % (k, lab))
             else:
                 s = '%d [label="%s"];' % (k, lab)
             rows.append(s)
@@ -559,43 +615,45 @@ def _apply_transpose_reshape(op, row):
     for i, r in enumerate(row):
         if r == -1:
             axes.append((p, i))
-            perm.append(-1)
         else:
             p += 1
-            perm.append(r)
+            perm.append((r, i))
     for a in reversed(axes):
         op = EinsumSubOp(len(row), 'expand_dims', op, axis=a)
         yield op
-    dec = [0]
-    for i in range(1, len(perm)):
-        if perm[i - 1] == -1:
-            dec.append(dec[-1] + 1)
-        else:
-            dec.append(dec[-1])
-    for i in range(0, len(perm)):  # pragma: disable=C0200
-        if perm[i] == -1:
-            perm[i] = i
-        else:
-            perm[i] = perm[i] + dec[i]
-    op = EinsumSubOp(len(row), 'transpose', op, perm=tuple(perm))
+    perm.sort()
+    p = 0
+    new_perm = numpy.arange(len(row))
+    for i, r in enumerate(row):
+        if r == -1:
+            continue
+        new_perm[perm[p][1]] = i
+        p += 1
+    op = EinsumSubOp(len(row), 'transpose', op, perm=tuple(new_perm))
     yield op
 
 
 def _apply_squeeze_transpose(op, row_last, row_output):
     """
-    Put output dimension in the expected order.
+    Puts output dimension in the expected order.
     """
-
     perm = []
     sq = []
     for i, d in enumerate(row_output):
         if d == -1:
-            perm.append((i, i))
             sq.append(i)
         else:
             perm.append((d, i))
+    perm.sort()
+    new_perm = numpy.arange(len(row_last))
+    p = 0
+    for i, d in enumerate(row_output):
+        if d == -1:
+            continue
+        new_perm[i] = perm[p][1]
+        p += 1
     perm = [p[1] for p in perm]
-    op = EinsumSubOp(len(row_last), 'transpose', op, perm=tuple(perm))
+    op = EinsumSubOp(len(row_last), 'transpose', op, perm=tuple(new_perm))
     yield op
     if len(sq) > 0:
         op = EinsumSubOp(len(row_last), 'squeeze', op, axes=tuple(sq))
@@ -612,13 +670,14 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False):
             "Unexpected number of letters %r, shape=%r." % (
                 letters, mat.shape))
     _basic_verification(lengths, shapes, equation)
-    ops = []
+
     # last_row, current_row (row = shape)
     rows = numpy.full((2, mat.shape[1]), -1)
     graph = GraphEinsumSubOp(letters, mat, lengths)
     fd = mat.shape[1]
     if verbose:
         print("EQUATION=%r" % equation)
+        print("LETTERS=%r" % letters, "LENGTHS=%r" % lengths)
 
     for i, sh in enumerate(shapes):
         if verbose:
@@ -694,8 +753,8 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False):
                 red.append(d)
             elif rows[0, d] == -1 and rows[1, d] >= 0:
                 raise RuntimeError(
-                    "Issue in equation %r, last_result is %r, "
-                    "output is %r." % (equation, rows[0, :], rows[1, :]))
+                    "Issue in equation %r, variable %d, last_result is %r, "
+                    "output is %r." % (equation, d, rows[0, :], rows[1, :]))
         if len(red) > 0:
             if verbose:
                 print("-- REDUCE2 axes=%r" % red)
