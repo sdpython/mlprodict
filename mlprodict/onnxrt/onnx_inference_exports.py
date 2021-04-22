@@ -47,6 +47,7 @@ class OnnxInferenceExport:
                 'nodesep': '0.05',
                 'width': '0.5',
                 'height': '0.1',
+                'size': '5',
             }
 
         One example:
@@ -98,6 +99,7 @@ class OnnxInferenceExport:
             'nodesep': '0.05',
             'width': '0.5',
             'height': '0.1',
+            'size': '5',
         }
         options.update(params)
 
@@ -114,7 +116,7 @@ class OnnxInferenceExport:
 
         inter_vars = {}
         exp = ["digraph{"]
-        for opt in {'orientation', 'pad', 'nodesep', 'ranksep'}:
+        for opt in {'orientation', 'pad', 'nodesep', 'ranksep', 'size'}:
             if opt in options:
                 exp.append("  {}={};".format(opt, options[opt]))
         fontsize = 10

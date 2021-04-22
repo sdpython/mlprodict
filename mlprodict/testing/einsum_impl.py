@@ -408,12 +408,15 @@ class GraphEinsumSubOp:
     operators.
     """
 
-    def __init__(self):
+    def __init__(self, letters, mat, lengths):
         self._nodes = {}
         self._mark = {}
         self._ops = []
         self.last_op = None
         self.last_added_op = None
+        self.metadata = dict(
+            letters=letters, mat=mat, lengths=lengths,
+            mat0=mat.copy())
 
     def append(self, op):
         """
@@ -452,6 +455,7 @@ class GraphEinsumSubOp:
                 raise RuntimeError(
                     "Key %d not found, op=%r." % (id(op), op))
             self._mark[i] = op
+            self._mark[id(op)] = i
             self.last_op = op
         else:
             raise TypeError("Unexpected type %r." % type(i))
@@ -473,11 +477,24 @@ class GraphEinsumSubOp:
 
         raise NotImplementedError("Unexpected layout %r." % layout)
 
-    def to_dot(self):
+    def to_dot(self, **kwargs):
         """
         Produces a graph in :epkg:`dot`.
+        
+        :param kwargs: additional graph option
         :return: string
         """
+        options = {
+            'orientation': 'portrait',
+            'ranksep': '0.25',
+            'nodesep': '0.05',
+            'width': '0.5',
+            'height': '0.1',
+            'size': '5',
+            'node': '[shape=record]',
+        }
+        options.update(kwargs)
+        
         def d2s(d):
             it = []
             for k, v in sorted(d.items()):
@@ -485,15 +502,22 @@ class GraphEinsumSubOp:
             return " ".join(it)
 
         rows = ["digraph{"]
+        for k, v in options.items():
+            if "[" in v:
+                rows.append("{} {};".format(k, v))
+            else:
+                rows.append("{}={};".format(k, v))
         for k, v in self._nodes.items():
             if isinstance(v, int):
-                lab = str(v)
+                lab = "input %d\\\\n%s" % (v, str(self.metadata['mat0'][v]))
                 sk = v
             else:
-                lab = "%s\\n%s" % (v.name, d2s(v.kwargs))
+                lab = "%s\\\\n%s" % (v.name, d2s(v.kwargs))
                 sk = id(v)
-            if sk in self._mark:
-                s = '%d [label="%s" fillcolor=red];' % (k, lab)
+            if sk in self._mark and isinstance(self._mark[sk], int):
+                la = self._mark[sk]
+                s = ('%d [label="%s - I%d" style=filled '
+                     'fillcolor=red];' % (k, lab, la))
             else:
                 s = '%d [label="%s"];' % (k, lab)
             rows.append(s)
@@ -591,7 +615,7 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False):
     ops = []
     # last_row, current_row (row = shape)
     rows = numpy.full((2, mat.shape[1]), -1)
-    graph = GraphEinsumSubOp()
+    graph = GraphEinsumSubOp(letters, mat, lengths)
     fd = mat.shape[1]
     if verbose:
         print("EQUATION=%r" % equation)
