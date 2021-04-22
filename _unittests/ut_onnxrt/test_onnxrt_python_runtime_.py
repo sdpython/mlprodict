@@ -1632,7 +1632,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_einsum(self):
         X = numpy.random.randn(5, 2, 3).astype(numpy.float32)
         Y = numpy.random.randn(5, 3, 4).astype(numpy.float32)
-        equation = 'bij, bjk -> bik'
+        equation = 'bij,bjk->bik'
         onx = OnnxEinsum(
             'X', 'Y', equation=equation, output_names=['Z'],
             op_version=get_opset_number_from_onnx())

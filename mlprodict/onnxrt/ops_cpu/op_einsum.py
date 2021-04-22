@@ -26,7 +26,10 @@ class Einsum(OpRun):
             raise TypeError("equation is empty.")  # pragma: no cover
 
     def _run(self, *args):  # pylint: disable=W0221
-        return (numpy.einsum(self.equation, *args, optimize=True), )
+        try:
+            return (numpy.einsum(self.equation, *args, optimize=True), )
+        except TypeError as e:
+            return (numpy.einsum(self.equation, *args), )
 
     def _infer_shapes(self, *args):  # pylint: disable=W0221
         try:
@@ -39,4 +42,4 @@ class Einsum(OpRun):
 
     def to_python(self, inputs):
         return ("import numpy",
-                "return numpy.einsum(equation, *inputs, optimize=True)")
+                "return numpy.einsum(equation, *inputs)")
