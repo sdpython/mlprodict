@@ -28,7 +28,7 @@ class Einsum(OpRun):
     def _run(self, *args):  # pylint: disable=W0221
         try:
             return (numpy.einsum(self.equation, *args, optimize=True), )
-        except TypeError as e:
+        except TypeError:
             return (numpy.einsum(self.equation, *args), )
 
     def _infer_shapes(self, *args):  # pylint: disable=W0221

@@ -9,10 +9,27 @@ import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing.einsum_impl import (
     analyse_einsum_equation, decompose_einsum_equation, EinsumSubOp,
-    apply_einsum_sequence)
+    apply_einsum_sequence, numpy_diagonal)
 
 
 class TestEinsum(ExtTestCase):
+
+    def test_numpy_diagonal(self):
+        mat = numpy.arange(8).reshape((2, 2, 2))
+        diag = numpy_diagonal(mat, 1, [1, 2])
+        self.assertEqualArray(diag, numpy.array([[0, 3], [4, 7]]))
+        diag = numpy_diagonal(mat, 2, [1, 2])
+        self.assertEqualArray(diag, numpy.array([[0, 3], [4, 7]]))
+
+        diag = numpy_diagonal(mat, 0, [0, 1])
+        self.assertEqualArray(diag, numpy.array([[0, 1], [6, 7]]))
+        diag = numpy_diagonal(mat, 1, [0, 1])
+        self.assertEqualArray(diag, numpy.array([[0, 1], [6, 7]]))
+
+        diag = numpy_diagonal(mat, 0, [0, 2])
+        self.assertEqualArray(diag, numpy.array([[0, 2], [5, 7]]))
+        diag = numpy_diagonal(mat, 2, [0, 2])
+        self.assertEqualArray(diag, numpy.array([[0, 2], [5, 7]]).T)
 
     def test_analyse_einsum_equation(self):
         self.assertRaise(lambda: analyse_einsum_equation("abc"),
@@ -22,14 +39,29 @@ class TestEinsum(ExtTestCase):
         self.assertRaise(lambda: analyse_einsum_equation("abc,ch->a0"),
                          ValueError)
         res = analyse_einsum_equation("abc,ch->ah")
-        self.assertEqual(len(res), 3)
-        letters, mat, lengths = res
+        self.assertEqual(len(res), 4)
+        letters, mat, lengths, duplicates = res
         self.assertEqual(letters, "abch")
         self.assertEqualArray(lengths, numpy.array([3, 2, 2]))
         self.assertEqualArray(
             mat, numpy.array([[0, 1, 2, -1],
                               [-1, -1, 0, 1],
                               [0, -1, -1, 1]]))
+        self.assertEqual(duplicates, [None, None, None])
+
+    def test_analyse_einsum_equation_duplicates(self):
+        res = analyse_einsum_equation("aac,ca->aa")
+        self.assertEqual(len(res), 4)
+        letters, mat, lengths, duplicates = res
+        self.assertEqual(letters, "ac")
+        self.assertEqualArray(lengths, numpy.array([3, 2, 2]))
+        self.assertEqual(duplicates, [{'a': [0, 1], 'c': [2]},
+                                      None,
+                                      {'a': [0, 1]}])
+        self.assertEqualArray(
+            mat, numpy.array([[1, 2],
+                              [1, 0],
+                              [1, -1]]))
 
     def test_decompose_einsum_equation_exc(self):
         self.assertRaise(
@@ -48,9 +80,6 @@ class TestEinsum(ExtTestCase):
         self.assertRaise(
             lambda: decompose_einsum_equation("abc,ch->ah", (2, 2), (2, 2)),
             ValueError)
-        self.assertRaise(
-            lambda: decompose_einsum_equation("aac,ch->ah", (2, 2), (2, 2)),
-            NotImplementedError)
 
     def test_decompose_einsum_equation(self):
         m1 = numpy.arange(0, 8).astype(numpy.float32).reshape((2, 2, 2))
@@ -87,6 +116,26 @@ class TestEinsum(ExtTestCase):
         self.assertRaise(lambda: EinsumSubOp(
             2, "matmul", (2, 2)), RuntimeError)
         self.assertRaise(lambda: EinsumSubOp(2, "id", (2, 2)), TypeError)
+
+    def test_case_1_iii_ii_i(self):
+        verbose = False
+        equation = 'ii->i'
+        m1 = numpy.arange(2 * 2).reshape((2, 2)) + 10
+        exp = numpy.einsum(equation, m1)
+        seq = decompose_einsum_equation(
+            equation, m1.shape, verbose=verbose)
+        res = apply_einsum_sequence(seq, m1, verbose=verbose)
+        self.assertEqualArray(exp, res)
+
+    def test_case_1_iii_ii_i_j(self):
+        verbose = False
+        equation = 'iij->ij'
+        m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
+        exp = numpy.einsum(equation, m1)
+        seq = decompose_einsum_equation(
+            equation, m1.shape, verbose=verbose)
+        res = apply_einsum_sequence(seq, m1, verbose=verbose)
+        self.assertEqualArray(exp, res)
 
     def common_test_case_2(self, equation, verbose=False):
         m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
@@ -225,21 +274,16 @@ class TestEinsum(ExtTestCase):
         self.optimize_compare('efc,dbc,acf,fd->abe')
         self.optimize_compare('ba,ac,da->bcd')
 
-    def np_test_random_cases(self):
+    def test_np_test_random_cases(self):
         # Randomly built test cases
         self.optimize_compare('aab,fa,df,ecc->bde')
-        self.optimize_compare('ecb,fef,bad,ed->ac')
-        self.optimize_compare('bcf,bbb,fbf,fc->')
         self.optimize_compare('bb,ff,be->e')
-        self.optimize_compare('bcb,bb,fc,fff->')
-        self.optimize_compare('fbb,dfd,fc,fc->')
         self.optimize_compare('afd,ba,cc,dc->bf')
-        self.optimize_compare('adb,bc,fa,cfc->d')
         self.optimize_compare('bbd,bda,fc,db->acf')
         self.optimize_compare('dba,ead,cad->bce')
         self.optimize_compare('aef,fbc,dca->bde')
 
-    def np_test_combined_views_mapping(self):
+    def test_np_test_combined_views_mapping(self):
         # gh-10792
         a = numpy.arange(9).reshape(1, 1, 3, 1, 3)
         b = numpy.einsum('bbcdc->d', a)
@@ -285,17 +329,22 @@ class TestEinsum(ExtTestCase):
         self.optimize_compare('abc,bac')
         self.optimize_compare('abc,cba')
 
-    def np_test_edge_cases_duplicate_indices(self):
+    def test_np_test_random_cases_difficult(self):
+        self.optimize_compare('adb,bc,fa,cfc->d')
+        self.optimize_compare('ecb,fef,bad,ed->ac')
+        self.optimize_compare('fdf,cdd,ccd,afe->ae')
+
+    def test_np_test_edge_cases_duplicate_indices(self):
         # Difficult edge cases for optimization
-        self.optimize_compare('bca,cdb,dbf,afc->')
+        # self.optimize_compare('bca,cdb,dbf,afc->')
         self.optimize_compare('dd,fb,be,cdb->cef')
         self.optimize_compare('dcc,fce,ea,dbf->ab')
-        self.optimize_compare('fdf,cdd,ccd,afe->ae')
-        self.optimize_compare('abcd,ad')
+        # self.optimize_compare('abcd,ad')
         self.optimize_compare('ed,fcd,ff,bcf->be')
         self.optimize_compare('baa,dcf,af,cde->be')
         self.optimize_compare('fff,fae,bef,def->abd')
 
 
 if __name__ == "__main__":
+    # TestEinsum().test_case_1_iii_ii_i_j()
     unittest.main()

@@ -61,13 +61,44 @@ def numpy_extended_dot(m1, m2, axes, left, right, verbose=False):
     return output.reshape(tuple(new_shape))
 
 
+def numpy_diagonal(m, axis, axes):
+    """
+    Extracts diagonal coefficients from an array.
+
+    :param m: input array
+    :param axis: kept axis among the diagonal ones
+    :param axes: diagonal axes (axis must be one of them)
+    :return: output
+    """
+    if axis not in axes:
+        raise RuntimeError(
+            "axis %r must be in axes %r." % (axis, axes))
+    shape = []
+    out_axis = None
+    for i, s in enumerate(m.shape):
+        if i not in axes or i == axis:
+            if i == axis:
+                out_axis = len(shape)
+            shape.append(s)
+    output = numpy.empty(tuple(shape), dtype=m.dtype)
+    index_in = [slice(s) for s in m.shape]
+    index_out = [slice(s) for s in shape]
+    for i in range(0, shape[axis]):
+        for a in axes:
+            index_in[a] = i
+        index_out[out_axis] = i
+        output[tuple(index_out)] = m[tuple(index_in)]
+    return output
+
+
 def analyse_einsum_equation(equation):
     """
     Analyses an einsum equation.
 
     :param equation: :epkg:`numpy:einsum` equation
     :return: three results, list of letters,
-        a matrix (see below), lengths of each components
+        a matrix (see below), lengths of each components,
+        duplicates
 
     The returned a matrix is defined as follows:
 
@@ -84,13 +115,10 @@ def analyse_einsum_equation(equation):
             "The function only implements the case when there are "
             "two sides in the equation: %r." % equation)
     inputs = list(map(lambda s: s.strip(), spl[0].split(',')))
-    for inp in inputs:
-        if len(inp) != len(set(inp)):
-            raise NotImplementedError(
-                "One input uses more than once the same indice %r in "
-                "equation %r." % (inp, equation))
     output = spl[1]
     all_letters = set(inputs[0])
+
+    # Set of letters
     for inp in inputs[1:]:
         all_letters |= set(inp)
     letters = list(sorted(all_letters))
@@ -99,6 +127,7 @@ def analyse_einsum_equation(equation):
             raise ValueError(
                 "Equation %r must only contain lower or upper letters "
                 "but %r is not." % (equation, c))
+
     rev = {c: i for i, c in enumerate(letters)}
     for c in output:
         if c not in letters:
@@ -113,7 +142,23 @@ def analyse_einsum_equation(equation):
         mat[len(inputs), rev[c]] = k
     lengths = [len(inp) for inp in inputs]
     lengths.append(len(output))
-    return "".join(letters), mat, lengths
+
+    # Look for duplicates
+    duplicates = []
+    for inp in inputs + [output]:
+        if len(inp) == len(set(inp)):
+            duplicates.append(None)
+            continue
+        # There is some duplicates.
+        counts = {}
+        for i, c in enumerate(inp):
+            if c in counts:
+                counts[c].append(i)
+            else:
+                counts[c] = [i]
+        duplicates.append(counts)
+
+    return "".join(letters), mat, lengths, duplicates
 
 
 def decompose_einsum_equation(equation, *shapes, strategy="simple", verbose=False):
@@ -133,7 +178,7 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple", verbose=Fals
     * `'simple'`: align all dimensions in the alphabetical order
 
     Available operations: *expand_dims*, *transpose*, *matmul*, *reduce_sum*,
-    *id*, *squeeze*. It analyses an equation and produces a graph
+    *id*, *squeeze*, *diagonal*. It analyses an equation and produces a graph
     where node are instance of class @see cl EinsumSubOp.
 
     .. runpython::
@@ -220,7 +265,7 @@ class EinsumSubOp:
     :param kwargs: arguments
     """
     _allowed = {'expand_dims', 'transpose', 'reduce_sum', 'matmul', 'id',
-                'squeeze'}
+                'squeeze', 'diagonal'}
 
     def __init__(self, full_dim, name, *inputs, **kwargs):
         self.full_dim = full_dim
@@ -344,6 +389,30 @@ class EinsumSubOp:
             self._check_row_(row, verbose=verbose)
             return
 
+        if self.name == "diagonal":
+            self._check_arg_('diag', list)
+            to_remove = []
+            for choice, choices in self.kwargs['diag']:
+                for ch in choices:
+                    if ch != choice:
+                        to_remove.append(ch)
+                for i in range(len(row)):  # pylint: disable=C0200
+                    if row[i] in choices:
+                        if row[i] != choice:
+                            row[i] = choice
+            to_remove.sort()
+            for r in to_remove:
+                for i in range(len(row)):  # pylint: disable=C0200
+                    if row[i] == r:
+                        raise RuntimeError(
+                            "Unexpected result r=%r row=%r to_remove=%r "
+                            "diag=%r." % (
+                                r, row, to_remove, self.kwargs['diag']))
+                    if row[i] > r:
+                        row[i] -= 1
+            self._check_row_(row, verbose=verbose)
+            return
+
         raise NotImplementedError(
             "compute_output_row not implemented for %r." % self.name)
 
@@ -383,10 +452,27 @@ class EinsumSubOp:
         """
         if verbose:
             print()
+            print("apply %r." % self.name)
+
         if self.name == 'id':
             self._check_inputs_(1)
             inp = self.inputs[0]
             output = self._get_data(data, inp)
+
+        elif self.name == 'diagonal':
+            self._check_inputs_(1)
+            inp = self.inputs[0]
+            m = self._get_data(data, inp)
+            if verbose:
+                print("- %s, shape=%r diag=%r" % (
+                    self.name, m.shape, self.kwargs['diag']))
+            diag = self.kwargs['diag']
+            if len(diag) != 1:
+                raise NotImplementedError(
+                    "Not implemented with more than one duplicated indice "
+                    "%r." % diag)
+            diag0 = diag[0]
+            output = numpy_diagonal(m, axis=diag0[0], axes=diag0[1])
 
         elif self.name == 'expand_dims':
             self._check_inputs_(1)
@@ -664,7 +750,7 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False):
     """
     Applies strategy simple of function @see fct decompose_einsum_equation.
     """
-    letters, mat, lengths = analyse_einsum_equation(equation)
+    letters, mat, lengths, duplicates = analyse_einsum_equation(equation)
     if len(letters) != mat.shape[1]:
         raise RuntimeError(  # pragma: no cover
             "Unexpected number of letters %r, shape=%r." % (
@@ -678,6 +764,7 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False):
     if verbose:
         print("EQUATION=%r" % equation)
         print("LETTERS=%r" % letters, "LENGTHS=%r" % lengths)
+        print("DUPLICATES=%r" % duplicates)
 
     for i, sh in enumerate(shapes):
         if verbose:
@@ -689,6 +776,18 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False):
         op = EinsumSubOp(fd, 'id', i)
         op.compute_output_row(rows[1, :], mat[i, :], verbose=verbose)
         marked = graph.append(op)
+
+        duplicate = duplicates[i]
+        if duplicate is not None:
+            # Diagonal
+            diag = []
+            for _, v in duplicate.items():
+                if len(v) == 1:
+                    continue
+                diag.append((v[0], tuple(v)))
+            op = EinsumSubOp(fd, 'diagonal', op, diag=diag)
+            op.compute_output_row(rows[1, :], mat[i, :], verbose=verbose)
+            marked = graph.append(op)
 
         for op in _apply_transpose_reshape(op, mat[i]):
             op.compute_output_row(rows[1, :], verbose=verbose)
