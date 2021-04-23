@@ -3,7 +3,9 @@
 @brief Function to dig into Einsum computation.
 """
 import numpy
-from .einsum_impl_ext import numpy_extended_dot, numpy_diagonal
+from .einsum_impl_ext import (
+    numpy_extended_dot, numpy_diagonal,
+    _numpy_extended_dot_equation)
 
 
 class EinsumSubOp:
@@ -56,6 +58,20 @@ class EinsumSubOp:
             self.__class__.__name__, self.name, inps, kw)
         return m
 
+    def dot_label(self):
+        """
+        Displays some informations useful to understand the operator.
+        """
+        if self.name == "matmul":
+            ndim = self.kwargs['ndim']
+            axes = self.kwargs['axes']
+            left = self.kwargs['left']
+            right = self.kwargs['right']
+            eq = _numpy_extended_dot_equation(ndim, ndim, axes, left, right)
+            eq = eq.replace(">", "\\\\>")
+            return "~" + eq
+        return None
+
     def _check_arg_(self, name, typ):
         if name not in self.kwargs:
             raise RuntimeError(
@@ -74,97 +90,97 @@ class EinsumSubOp:
                 print()
             print('<-' if inp else '->', self.name, row, self.kwargs)
 
+    def _compute_output_row_id(self, row, row2=None, verbose=False):
+        row[:] = row2[:]
+        self._check_row_(row, verbose=verbose)
+
+    def _compute_output_row_transpose(self, row, row2=None, verbose=False):
+        self._check_arg_('perm', tuple)
+        if len(self.kwargs['perm']) != len(row):
+            raise RuntimeError(
+                "Unexpected permutation %r (row=%r)."
+                "" % (self.kwargs['perm'], row))
+        cpy = row.copy()
+        for i, p in enumerate(self.kwargs['perm']):
+            row[i] = cpy[p]
+        self._check_row_(row, verbose=verbose)
+
+    def _compute_output_row_expand_dims(self, row, row2=None, verbose=False):
+        self._check_arg_('axis', tuple)
+        if row[self.kwargs['axis'][1]] != -1:
+            raise RuntimeError(
+                "Dimension should be -1 in row %r axis=%r." % (
+                    row, self.kwargs['axis']))
+        self._check_row_(row, verbose=verbose)
+
+    def _compute_output_row_reduce_sum(self, row, row2=None, verbose=False):
+        self._check_arg_('axes', tuple)
+        for a in self.kwargs['axes']:
+            row[a] = -1
+        self._check_row_(row, verbose=verbose)
+
+    def _compute_output_row_matmul(self, row, row2=None, verbose=False):
+        self._check_arg_('axes', tuple)
+        self._check_arg_('left', tuple)
+        self._check_arg_('right', tuple)
+        self._check_arg_('ndim', int)
+        if row2 is None:
+            raise RuntimeError("matmul expects two inputs.")
+        if verbose:
+            ndim = self.kwargs['ndim']
+            axes = self.kwargs['axes']
+            left = self.kwargs['left']
+            right = self.kwargs['right']
+            print("    MATMUL %r @ %r axes=%r left=%r right=%r - eq=%s" % (
+                row, row2, axes, left, right,
+                _numpy_extended_dot_equation(ndim, ndim, axes, left, right)))
+        row2[:] = numpy.maximum(row, row2)
+        for a in self.kwargs['axes']:
+            if a not in self.kwargs['right']:
+                row2[a] = -1
+        self._check_row_(row2, verbose=verbose)
+
+    def _compute_output_row_squeeze(self, row, row2=None, verbose=False):
+        self._check_arg_('axes', tuple)
+        for a in self.kwargs['axes']:
+            row[a] = -1
+        self._check_row_(row, verbose=verbose)
+
+    def _compute_output_row_diagonal(self, row, row2=None, verbose=False):
+        self._check_arg_('diag', list)
+        to_remove = []
+        for choice, choices in self.kwargs['diag']:
+            for ch in choices:
+                if ch != choice:
+                    to_remove.append(ch)
+            for i in range(len(row)):  # pylint: disable=C0200
+                if row[i] in choices:
+                    if row[i] != choice:
+                        row[i] = choice
+        to_remove.sort()
+        for r in to_remove:
+            for i in range(len(row)):  # pylint: disable=C0200
+                if row[i] == r:
+                    raise RuntimeError(
+                        "Unexpected result r=%r row=%r to_remove=%r "
+                        "diag=%r." % (
+                            r, row, to_remove, self.kwargs['diag']))
+                if row[i] > r:
+                    row[i] -= 1
+        self._check_row_(row, verbose=verbose)
+
     def compute_output_row(self, row, row2=None, verbose=False):
         """
         Updates *row* based on the operator.
         """
         self._check_row_(row, True, verbose=verbose)
 
-        if self.name == "id":
-            row[:] = row2[:]
-            self._check_row_(row, verbose=verbose)
-            return
-
-        if self.name == "transpose":
-            self._check_arg_('perm', tuple)
-            if len(self.kwargs['perm']) != len(row):
-                raise RuntimeError(
-                    "Unexpected permutation %r (row=%r)."
-                    "" % (self.kwargs['perm'], row))
-            cpy = row.copy()
-            for i, p in enumerate(self.kwargs['perm']):
-                row[i] = cpy[p]
-            self._check_row_(row, verbose=verbose)
-            return
-
-        if self.name == "expand_dims":
-            self._check_arg_('axis', tuple)
-            if row[self.kwargs['axis'][1]] != -1:
-                raise RuntimeError(
-                    "Dimension should be -1 in row %r axis=%r." % (
-                        row, self.kwargs['axis']))
-            self._check_row_(row, verbose=verbose)
-            return
-
-        if self.name == "reduce_sum":
-            self._check_arg_('axes', tuple)
-            for a in self.kwargs['axes']:
-                row[a] = -1
-            self._check_row_(row, verbose=verbose)
-            return
-
-        if self.name == "matmul":
-            self._check_arg_('axes', tuple)
-            self._check_arg_('left', tuple)
-            self._check_arg_('right', tuple)
-            if row2 is None:
-                raise RuntimeError("matmul expects two inputs.")
-            if verbose:
-                axes = self.kwargs['axes']
-                left = self.kwargs['left']
-                right = self.kwargs['right']
-                print("    MATMUL %r @ %r axes=%r left=%r right=%r" % (
-                    row, row2, axes, left, right))
-            row2[:] = numpy.maximum(row, row2)
-            for a in self.kwargs['axes']:
-                if a not in self.kwargs['right']:
-                    row2[a] = -1
-            self._check_row_(row2, verbose=verbose)
-            return
-
-        if self.name == "squeeze":
-            self._check_arg_('axes', tuple)
-            for a in self.kwargs['axes']:
-                row[a] = -1
-            self._check_row_(row, verbose=verbose)
-            return
-
-        if self.name == "diagonal":
-            self._check_arg_('diag', list)
-            to_remove = []
-            for choice, choices in self.kwargs['diag']:
-                for ch in choices:
-                    if ch != choice:
-                        to_remove.append(ch)
-                for i in range(len(row)):  # pylint: disable=C0200
-                    if row[i] in choices:
-                        if row[i] != choice:
-                            row[i] = choice
-            to_remove.sort()
-            for r in to_remove:
-                for i in range(len(row)):  # pylint: disable=C0200
-                    if row[i] == r:
-                        raise RuntimeError(
-                            "Unexpected result r=%r row=%r to_remove=%r "
-                            "diag=%r." % (
-                                r, row, to_remove, self.kwargs['diag']))
-                    if row[i] > r:
-                        row[i] -= 1
-            self._check_row_(row, verbose=verbose)
-            return
-
-        raise NotImplementedError(
-            "compute_output_row not implemented for %r." % self.name)
+        method_name = "_compute_output_row_%s" % self.name
+        meth = getattr(self, method_name, None)
+        if meth is None:
+            raise NotImplementedError(
+                "compute_output_row not implemented for %r." % self.name)
+        meth(row, row2=row2, verbose=verbose)
 
     def _check_inputs_(self, n_expected, check_dim=False):
         if len(self.inputs) != n_expected:
@@ -194,6 +210,97 @@ class EinsumSubOp:
         raise TypeError(
             "Unexpected input type %r." % type(key))
 
+    def _apply_id(self, data, verbose=False):
+        self._check_inputs_(1)
+        inp = self.inputs[0]
+        output = self._get_data(data, inp)
+        return output
+
+    def _apply_diagonal(self, data, verbose=False):
+        self._check_inputs_(1)
+        inp = self.inputs[0]
+        m = self._get_data(data, inp)
+        if verbose:
+            print("- %s, shape=%r diag=%r" % (
+                self.name, m.shape, self.kwargs['diag']))
+        diag = self.kwargs['diag']
+        if len(diag) != 1:
+            raise NotImplementedError(
+                "Not implemented with more than one duplicated indice "
+                "%r." % diag)
+        diag0 = diag[0]
+        output = numpy_diagonal(m, axis=diag0[0], axes=diag0[1])
+        return output
+
+    def _apply_expand_dims(self, data, verbose=False):
+        self._check_inputs_(1)
+        inp = self.inputs[0]
+        m = self._get_data(data, inp)
+        if verbose:
+            print("- %s, shape=%r axis=%r" % (
+                self.name, m.shape, self.kwargs['axis']))
+        output = numpy.expand_dims(m, self.kwargs['axis'][0])
+        return output
+
+    def _apply_transpose(self, data, verbose=False):
+        self._check_inputs_(1, True)
+        inp = self.inputs[0]
+        m = self._get_data(data, inp)
+        self._check_shape_(m)
+        if verbose:
+            print("- %s, shape=%r perm=%r" % (
+                self.name, m.shape, self.kwargs['perm']))
+        output = numpy.transpose(m, self.kwargs['perm'])
+        self._check_shape_(output)
+        return output
+
+    def _apply_matmul(self, data, verbose=False):
+        self._check_inputs_(2)
+        inp1 = self.inputs[0]
+        inp2 = self.inputs[1]
+        m1 = self._get_data(data, inp1)
+        m2 = self._get_data(data, inp2)
+        self._check_shape_(m1)
+        self._check_shape_(m2)
+        axes = self.kwargs['axes']
+        left = self.kwargs['left']
+        right = self.kwargs['right']
+
+        if verbose:
+            print("- %s, shapes=%r @ %r axes=%r left=%r right=%r" % (
+                self.name, m1.shape, m2.shape, axes, left, right))
+
+        output = numpy_extended_dot(m1, m2, axes, left, right,
+                                    verbose=verbose)
+        self._check_shape_(output)
+        return output
+
+    def _apply_reduce_sum(self, data, verbose=False):
+        self._check_inputs_(1)
+        inp = self.inputs[0]
+        m = self._get_data(data, inp)
+        self._check_shape_(m)
+        axes = self.kwargs['axes']
+        if verbose:
+            print("- %s, shape=%r axes=%r" % (
+                self.name, m.shape, self.kwargs['axes']))
+        output = numpy.sum(m, axis=axes, keepdims=True)
+        self._check_shape_(output)
+        return output
+
+    def _apply_squeeze(self, data, verbose=False):
+        self._check_inputs_(1)
+        inp = self.inputs[0]
+        m = self._get_data(data, inp)
+        axes = self.kwargs['axes']
+        if verbose:
+            print("- %s, shape=%r axes=%r" % (
+                self.name, m.shape, self.kwargs['axes']))
+        output = m
+        for a in axes[::-1]:
+            output = numpy.squeeze(output, axis=a)
+        return output
+
     def apply(self, data, verbose=False):
         """
         Applies one operator on the data.
@@ -204,94 +311,12 @@ class EinsumSubOp:
             print()
             print("apply %r." % self.name)
 
-        if self.name == 'id':
-            self._check_inputs_(1)
-            inp = self.inputs[0]
-            output = self._get_data(data, inp)
-
-        elif self.name == 'diagonal':
-            self._check_inputs_(1)
-            inp = self.inputs[0]
-            m = self._get_data(data, inp)
-            if verbose:
-                print("- %s, shape=%r diag=%r" % (
-                    self.name, m.shape, self.kwargs['diag']))
-            diag = self.kwargs['diag']
-            if len(diag) != 1:
-                raise NotImplementedError(
-                    "Not implemented with more than one duplicated indice "
-                    "%r." % diag)
-            diag0 = diag[0]
-            output = numpy_diagonal(m, axis=diag0[0], axes=diag0[1])
-
-        elif self.name == 'expand_dims':
-            self._check_inputs_(1)
-            inp = self.inputs[0]
-            m = self._get_data(data, inp)
-            if verbose:
-                print("- %s, shape=%r axis=%r" % (
-                    self.name, m.shape, self.kwargs['axis']))
-            output = numpy.expand_dims(m, self.kwargs['axis'][0])
-
-        elif self.name == 'transpose':
-            self._check_inputs_(1, True)
-            inp = self.inputs[0]
-            m = self._get_data(data, inp)
-            self._check_shape_(m)
-            if verbose:
-                print("- %s, shape=%r perm=%r" % (
-                    self.name, m.shape, self.kwargs['perm']))
-            output = numpy.transpose(m, self.kwargs['perm'])
-            self._check_shape_(output)
-
-        elif self.name == 'matmul':
-            self._check_inputs_(2)
-            inp1 = self.inputs[0]
-            inp2 = self.inputs[1]
-            m1 = self._get_data(data, inp1)
-            m2 = self._get_data(data, inp2)
-            self._check_shape_(m1)
-            self._check_shape_(m2)
-            axes = self.kwargs['axes']
-            left = self.kwargs['left']
-            right = self.kwargs['right']
-
-            if verbose:
-                print("- %s, shapes=%r @ %r axes=%r left=%r right=%r" % (
-                    self.name, m1.shape, m2.shape, axes, left, right))
-
-            output = numpy_extended_dot(m1, m2, axes, left, right,
-                                        verbose=verbose)
-            self._check_shape_(output)
-
-        elif self.name == 'reduce_sum':
-            self._check_inputs_(1)
-            inp = self.inputs[0]
-            m = self._get_data(data, inp)
-            self._check_shape_(m)
-            axes = self.kwargs['axes']
-            if verbose:
-                print("- %s, shape=%r axes=%r" % (
-                    self.name, m.shape, self.kwargs['axes']))
-            output = numpy.sum(m, axis=axes, keepdims=True)
-            self._check_shape_(output)
-
-        elif self.name == 'squeeze':
-            self._check_inputs_(1)
-            inp = self.inputs[0]
-            m = self._get_data(data, inp)
-            axes = self.kwargs['axes']
-            if verbose:
-                print("- %s, shape=%r axes=%r" % (
-                    self.name, m.shape, self.kwargs['axes']))
-            output = m
-            for a in axes[::-1]:
-                output = numpy.squeeze(output, axis=a)
-            return output
-
-        else:
+        method_name = "_apply_%s" % self.name
+        meth = getattr(self, method_name, None)
+        if meth is None:
             raise NotImplementedError(
                 "apply not implemented for %r." % self.name)
+        output = meth(data, verbose)
 
         data[id(self)] = output
         if verbose:
@@ -414,16 +439,21 @@ class GraphEinsumSubOp:
                 lab = "input %d\\\\n%s\\\\n%s%s" % (
                     v, letters, str(self.metadata['mat0'][v]), dup)
                 sk = v
+                extended_lab = ""
             else:
                 lab = "%s\\\\n%s" % (v.name, d2s(v.kwargs))
                 sk = id(v)
+                extended_lab = v.dot_label()
+                if extended_lab:
+                    extended_lab = "\\\\n" + extended_lab
+
             if sk in self._mark and isinstance(self._mark[sk], int):
                 la = self._mark[sk]
                 lab = lab.replace("\\\\n", " - I%d\\\\n" % la)
-                s = ('%d [label="%s" style=filled '
-                     'fillcolor=red];' % (k, lab))
+                s = ('%d [label="%s%s" style=filled '
+                     'fillcolor=red];' % (k, lab, extended_lab))
             else:
-                s = '%d [label="%s"];' % (k, lab)
+                s = '%d [label="%s%s"];' % (k, lab, extended_lab)
             rows.append(s)
             if not hasattr(v, 'inputs'):
                 continue
