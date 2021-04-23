@@ -3,12 +3,13 @@
 @brief Function to dig into Einsum computation.
 """
 import numpy
+from .einsum_impl_classes import EinsumSubOp, GraphEinsumSubOp
 
 
 def numpy_extended_dot(m1, m2, axes, left, right, verbose=False):
     """
-    Extended version of a matrix multiplication
-    with two matrices *m1*, *m2* of the same dimension.
+    Extended version of a matrix multiplication (:epkg:`numpy:dot`)
+    with two matrices *m1*, *m2* of the same dimensions.
     Loops over *left* axes for *m1* and *right* axes for *m2*,
     summation is done over *axes*.
     Other axes must be empty.
@@ -21,6 +22,77 @@ def numpy_extended_dot(m1, m2, axes, left, right, verbose=False):
     :param verbose: display intermediate information
     :return: output
 
+    The dot product is equivalent to:
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from mlprodict.testing.einsum_impl import numpy_diagonal
+
+        m1 = numpy.arange(4).reshape((2, 2))
+        m2 = m1 + 10
+        print("dot product")
+        print(m1 @ m2)
+
+        dm1 = m1.reshape((2, 2, 1))
+        dm2 = m2.reshape((1, 2, 2))
+        dot = numpy_extended_dot(dm1, dm2, axes=[1], left=[0], right=[2],
+                                 verbose=True)
+        print("extended dot product")
+        print(dot)
+
+    Empty axes should be squeezed to get identical results.
+    Dot product when the second matrix is transposed.
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from mlprodict.testing.einsum_impl import numpy_diagonal
+
+        m1 = numpy.arange(4).reshape((2, 2))
+        m2 = m1 + 10
+        print("dot product")
+        print(m1 @ m2.T)
+
+        dm1 = m1.reshape((2, 1, 2))
+        dm2 = m2.reshape((1, 2, 2))
+        dot = numpy_extended_dot(dm1, dm2, axes=[2], left=[0], right=[1],
+                                 verbose=True)
+        print("extended dot product")
+        print(dot)
+
+    An example when right axes include the summation axis.
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from mlprodict.testing.einsum_impl import numpy_diagonal
+
+        m1 = numpy.arange(4).reshape((2, 2))
+        m2 = m1 + 10
+        dm1 = m1.reshape((2, 2, 1))
+        dm2 = m2.reshape((1, 2, 2))
+        dot = numpy_extended_dot(dm1, dm2, axes=[2], left=[0], right=[1, 2],
+                                 verbose=True)
+        print(dot)
+
+    Example in higher dimension:
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from mlprodict.testing.einsum_impl import numpy_diagonal
+
+        m1 = numpy.arange(8).reshape((2, 2, 2))
+        m2 = m1 + 10
+
+        dot = numpy_extended_dot(m1, m2, [1], [0], [2], verbose=True))
+        print(dot)
+
     The current implementation still uses :epkg:`numpy:einsum`
     but this should be replaced.
     """
@@ -28,6 +100,17 @@ def numpy_extended_dot(m1, m2, axes, left, right, verbose=False):
         raise RuntimeError(
             "Matrices m1 and m2 must have the same dimension, "
             "m1=%r, m2=%r." % (m1.shape, m2.shape))
+
+    def _check_(axs, n):
+        for a in axs:
+            if a < 0 or a >= n:
+                raise ValueError(
+                    "One axis %d (in %r) is negative or above the maximum "
+                    "dimension %d." % (a, axs, n))
+    _check_(axes, len(m1.shape))
+    _check_(left, len(m1.shape))
+    _check_(right, len(m1.shape))
+
     # This implementation should not use einsum.
     # Temporary solution.
     l1 = [chr(i + 97) for i in range(len(m1.shape))]
@@ -69,26 +152,46 @@ def numpy_diagonal(m, axis, axes):
     :param axis: kept axis among the diagonal ones
     :param axes: diagonal axes (axis must be one of them)
     :return: output
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from mlprodict.testing.einsum_impl import numpy_diagonal
+
+        mat = numpy.arange(8).reshape((2, 2, 2))
+        print(mat)
+        diag = numpy_diagonal(mat, 1, [1, 2])
+        print(diag)
     """
     if axis not in axes:
         raise RuntimeError(
             "axis %r must be in axes %r." % (axis, axes))
     shape = []
-    out_axis = None
+    new_shape = []
     for i, s in enumerate(m.shape):
-        if i not in axes or i == axis:
+        if i in axes:
             if i == axis:
-                out_axis = len(shape)
+                shape.append(s)
+                new_shape.append(s)
+            else:
+                shape.append(1)
+        else:
             shape.append(s)
+            new_shape.append(s)
+
+    # Extracts coefficients.
     output = numpy.empty(tuple(shape), dtype=m.dtype)
     index_in = [slice(s) for s in m.shape]
-    index_out = [slice(s) for s in shape]
+    index_out = [slice(s) for s in m.shape]
     for i in range(0, shape[axis]):
         for a in axes:
             index_in[a] = i
-        index_out[out_axis] = i
+            index_out[a] = i if a == axis else 0
         output[tuple(index_out)] = m[tuple(index_in)]
-    return output
+
+    # Removes axis.
+    return output.reshape(tuple(new_shape))
 
 
 def analyse_einsum_equation(equation):
@@ -256,444 +359,13 @@ def _basic_verification(lengths, shapes, equation):
                 " in equation %r." % (i, le, sh, len(sh), equation))
 
 
-class EinsumSubOp:
-    """
-    Defines a sub operation used in Einsum decomposition.
-
-    :param name: name (reshape, transpose, reduce_sum, matmul, id)
-    :param inputs: inputs
-    :param kwargs: arguments
-    """
-    _allowed = {'expand_dims', 'transpose', 'reduce_sum', 'matmul', 'id',
-                'squeeze', 'diagonal'}
-
-    def __init__(self, full_dim, name, *inputs, **kwargs):
-        self.full_dim = full_dim
-        self.name = name
-        self.inputs = inputs
-        self.kwargs = kwargs
-        if name not in EinsumSubOp._allowed:
-            raise ValueError(
-                "Unexpected name %r. It should be in %r."
-                "" % (name, EinsumSubOp._allowed))
-        if len(inputs) not in (1, 2):
-            raise RuntimeError(
-                "Inputs must contains 1 or 2 inputs not %d." % len(inputs))
-        if name == 'matmul' and len(inputs) != 2:
-            raise RuntimeError(
-                "Inputs must contains 2 inputs not %d for operator 'matmul'."
-                "" % len(inputs))
-        for i, inp in enumerate(inputs):
-            if not isinstance(inp, (int, EinsumSubOp)):
-                raise TypeError(
-                    "Input %d has type %r, int or EinsumSubOp is expected."
-                    "" % (i, type(inp)))
-        self._check_()
-
-    def _check_(self):
-        if self.name == 'transpose':
-            self._check_arg_('perm', tuple)
-            perm = self.kwargs['perm']
-            if len(perm) != len(set(perm)):
-                raise RuntimeError(
-                    "perm has duplicated values %r (name=%r)."
-                    "" % (perm, self.name))
-
-    def __repr__(self):
-        inps = ", ".join(map(str, self.inputs))
-        kw = ", ".join("%s=%r" % (k, w) for k, w in self.kwargs.items())
-        m = "%s(%r, %s, %s)" % (
-            self.__class__.__name__, self.name, inps, kw)
-        return m
-
-    def _check_arg_(self, name, typ):
-        if name not in self.kwargs:
-            raise RuntimeError(
-                "Parameter %r not found for operator %r." % (name, self.name))
-        if not isinstance(self.kwargs[name], typ):
-            raise TypeError(
-                "Unexpected type %r for parameter %r and parameter %r."
-                "" % (type(self.kwargs[name]), name, self.name))
-
-    def _check_row_(self, row, inp=False, verbose=False):
-        """
-        Checks input or output is valid.
-        """
-        if verbose:
-            if inp:
-                print()
-            print('<-' if inp else '->', self.name, row, self.kwargs)
-
-    def compute_output_row(self, row, row2=None, verbose=False):
-        """
-        Updates *row* based on the operator.
-        """
-        self._check_row_(row, True, verbose=verbose)
-
-        if self.name == "id":
-            row[:] = row2[:]
-            self._check_row_(row, verbose=verbose)
-            return
-
-        if self.name == "transpose":
-            self._check_arg_('perm', tuple)
-            if len(self.kwargs['perm']) != len(row):
-                raise RuntimeError(
-                    "Unexpected permutation %r (row=%r)."
-                    "" % (self.kwargs['perm'], row))
-            cpy = row.copy()
-            for i, p in enumerate(self.kwargs['perm']):
-                row[i] = cpy[p]
-            self._check_row_(row, verbose=verbose)
-            return
-
-        if self.name == "expand_dims":
-            self._check_arg_('axis', tuple)
-            if row[self.kwargs['axis'][1]] != -1:
-                raise RuntimeError(
-                    "Dimension should be -1 in row %r axis=%r." % (
-                        row, self.kwargs['axis']))
-            self._check_row_(row, verbose=verbose)
-            return
-
-        if self.name == "reduce_sum":
-            self._check_arg_('axes', tuple)
-            for a in self.kwargs['axes']:
-                row[a] = -1
-            self._check_row_(row, verbose=verbose)
-            return
-
-        if self.name == "matmul":
-            self._check_arg_('axes', tuple)
-            self._check_arg_('left', tuple)
-            self._check_arg_('right', tuple)
-            if row2 is None:
-                raise RuntimeError("matmul expects two inputs.")
-            if verbose:
-                axes = self.kwargs['axes']
-                left = self.kwargs['left']
-                right = self.kwargs['right']
-                print("    MATMUL %r @ %r axes=%r left=%r right=%r" % (
-                    row, row2, axes, left, right))
-            row2[:] = numpy.maximum(row, row2)
-            for a in self.kwargs['axes']:
-                if a not in self.kwargs['right']:
-                    row2[a] = -1
-            self._check_row_(row2, verbose=verbose)
-            return
-
-        if self.name == "squeeze":
-            self._check_arg_('axes', tuple)
-            for a in self.kwargs['axes']:
-                row[a] = -1
-            self._check_row_(row, verbose=verbose)
-            return
-
-        if self.name == "diagonal":
-            self._check_arg_('diag', list)
-            to_remove = []
-            for choice, choices in self.kwargs['diag']:
-                for ch in choices:
-                    if ch != choice:
-                        to_remove.append(ch)
-                for i in range(len(row)):  # pylint: disable=C0200
-                    if row[i] in choices:
-                        if row[i] != choice:
-                            row[i] = choice
-            to_remove.sort()
-            for r in to_remove:
-                for i in range(len(row)):  # pylint: disable=C0200
-                    if row[i] == r:
-                        raise RuntimeError(
-                            "Unexpected result r=%r row=%r to_remove=%r "
-                            "diag=%r." % (
-                                r, row, to_remove, self.kwargs['diag']))
-                    if row[i] > r:
-                        row[i] -= 1
-            self._check_row_(row, verbose=verbose)
-            return
-
-        raise NotImplementedError(
-            "compute_output_row not implemented for %r." % self.name)
-
-    def _check_inputs_(self, n_expected, check_dim=False):
-        if len(self.inputs) != n_expected:
-            raise RuntimeError(
-                "Number of inputs must be %d not %d for operator %r."
-                "" % (n_expected, len(self.inputs), self.name))
-
-    def _check_shape_(self, m):
-        if len(m.shape) != self.full_dim:
-            raise RuntimeError(
-                "Number of dimensions %r is different from expected value "
-                "%d." % (m.shape, self.full_dim))
-
-    def _get_data(self, data, key):
-        if isinstance(key, int):
-            if key not in data:
-                raise RuntimeError(
-                    "Unable to find key %d in %r." % (
-                        key, list(sorted(data))))
-            return data[key]
-        if isinstance(key, EinsumSubOp):
-            if id(key) not in data:
-                raise RuntimeError(
-                    "Unable to find key %d in %r." % (
-                        id(key), list(sorted(data))))
-            return data[id(key)]
-        raise TypeError(
-            "Unexpected input type %r." % type(key))
-
-    def apply(self, data, verbose=False):
-        """
-        Applies one operator on the data.
-
-        :param data: dictionary storing the results
-        """
-        if verbose:
-            print()
-            print("apply %r." % self.name)
-
-        if self.name == 'id':
-            self._check_inputs_(1)
-            inp = self.inputs[0]
-            output = self._get_data(data, inp)
-
-        elif self.name == 'diagonal':
-            self._check_inputs_(1)
-            inp = self.inputs[0]
-            m = self._get_data(data, inp)
-            if verbose:
-                print("- %s, shape=%r diag=%r" % (
-                    self.name, m.shape, self.kwargs['diag']))
-            diag = self.kwargs['diag']
-            if len(diag) != 1:
-                raise NotImplementedError(
-                    "Not implemented with more than one duplicated indice "
-                    "%r." % diag)
-            diag0 = diag[0]
-            output = numpy_diagonal(m, axis=diag0[0], axes=diag0[1])
-
-        elif self.name == 'expand_dims':
-            self._check_inputs_(1)
-            inp = self.inputs[0]
-            m = self._get_data(data, inp)
-            if verbose:
-                print("- %s, shape=%r axis=%r" % (
-                    self.name, m.shape, self.kwargs['axis']))
-            output = numpy.expand_dims(m, self.kwargs['axis'][0])
-
-        elif self.name == 'transpose':
-            self._check_inputs_(1, True)
-            inp = self.inputs[0]
-            m = self._get_data(data, inp)
-            self._check_shape_(m)
-            if verbose:
-                print("- %s, shape=%r perm=%r" % (
-                    self.name, m.shape, self.kwargs['perm']))
-            output = numpy.transpose(m, self.kwargs['perm'])
-            self._check_shape_(output)
-
-        elif self.name == 'matmul':
-            self._check_inputs_(2)
-            inp1 = self.inputs[0]
-            inp2 = self.inputs[1]
-            m1 = self._get_data(data, inp1)
-            m2 = self._get_data(data, inp2)
-            self._check_shape_(m1)
-            self._check_shape_(m2)
-            axes = self.kwargs['axes']
-            left = self.kwargs['left']
-            right = self.kwargs['right']
-
-            if verbose:
-                print("- %s, shapes=%r @ %r axes=%r left=%r right=%r" % (
-                    self.name, m1.shape, m2.shape, axes, left, right))
-
-            output = numpy_extended_dot(m1, m2, axes, left, right,
-                                        verbose=verbose)
-            self._check_shape_(output)
-
-        elif self.name == 'reduce_sum':
-            self._check_inputs_(1)
-            inp = self.inputs[0]
-            m = self._get_data(data, inp)
-            self._check_shape_(m)
-            axes = self.kwargs['axes']
-            if verbose:
-                print("- %s, shape=%r axes=%r" % (
-                    self.name, m.shape, self.kwargs['axes']))
-            output = numpy.sum(m, axis=axes, keepdims=True)
-            self._check_shape_(output)
-
-        elif self.name == 'squeeze':
-            self._check_inputs_(1)
-            inp = self.inputs[0]
-            m = self._get_data(data, inp)
-            axes = self.kwargs['axes']
-            if verbose:
-                print("- %s, shape=%r axes=%r" % (
-                    self.name, m.shape, self.kwargs['axes']))
-            output = m
-            for a in axes[::-1]:
-                output = numpy.squeeze(output, axis=a)
-            return output
-
-        else:
-            raise NotImplementedError(
-                "apply not implemented for %r." % self.name)
-
-        data[id(self)] = output
-        if verbose:
-            print("+ %s, shape=%r -- %d" % (self.name, output.shape, id(self)))
-        return output
-
-
-class GraphEinsumSubOp:
-    """
-    Class gathering all nodes produced to explicit einsum
-    operators.
-    """
-
-    def __init__(self, letters, mat, lengths):
-        self._nodes = {}
-        self._mark = {}
-        self._ops = []
-        self.last_op = None
-        self.last_added_op = None
-        self.metadata = dict(
-            letters=letters, mat=mat, lengths=lengths,
-            mat0=mat.copy())
-
-    def append(self, op):
-        """
-        Adds one input or result.
-
-        :param op: integer (an input) or an instance of @see cl EinsumSubOp.
-        :return: op or None if op is an integer
-        """
-        if isinstance(op, int):
-            if op in self._nodes:
-                raise RuntimeError("Key %d already added." % op)
-            self._nodes[op] = op
-            self.last_added_op = op
-            return None
-        if isinstance(op, EinsumSubOp):
-            if op in self._nodes:
-                raise RuntimeError(
-                    "Key %d already added, op=%r." % (id(op), op))
-            self._nodes[id(op)] = op
-            self._ops.append(op)
-            self.last_added_op = op
-            return op
-        raise TypeError("Unexpected type %r." % type(op))
-
-    def mark(self, i, op):
-        """
-        Marks one input or result as an intermediate result
-        after a full einsum step.
-
-        :param op: integer (an input) or an instance of @see cl EinsumSubOp.
-        """
-        if not isinstance(i, int):
-            raise TypeError("i must an integer not %r." % type(i))
-        if isinstance(op, EinsumSubOp):
-            if id(op) not in self._nodes:
-                raise RuntimeError(
-                    "Key %d not found, op=%r." % (id(op), op))
-            self._mark[i] = op
-            self._mark[id(op)] = i
-            self.last_op = op
-        else:
-            raise TypeError("Unexpected type %r." % type(i))
-
-    def __iter__(self):
-        "Iterates on nodes."
-        for op in self._ops:
-            yield op
-
-    def to_dot(self, **kwargs):
-        """
-        Produces a graph in :epkg:`dot`.
-
-        :param kwargs: additional graph option
-        :return: string
-        """
-        options = {
-            'orientation': 'portrait',
-            'ranksep': '0.25',
-            'nodesep': '0.05',
-            'width': '0.5',
-            'height': '0.1',
-            'size': '5',
-            'node': '[shape=record]',
-        }
-        options.update(kwargs)
-
-        def d2s(d):
-            it = []
-            for k, v in sorted(d.items()):
-                it.append("%s=%s" % (k, v))
-            return " ".join(it)
-
-        rows = ["digraph{"]
-        for k, v in options.items():
-            if isinstance(v, str) and "[" in v:
-                rows.append("{} {};".format(k, v))
-            else:
-                rows.append("{}={};".format(k, v))
-        for k, v in self._nodes.items():
-            if isinstance(v, int):
-                let = [(r, self.metadata['letters'][i])
-                       for i, r in enumerate(self.metadata['mat0'][v])
-                       if r != -1]
-                let.sort()
-                letters = "".join(_[1] for _ in let)
-                lab = "input %d\\\\n%s\\\\n%s" % (
-                    v, letters, str(self.metadata['mat0'][v]))
-                sk = v
-            else:
-                lab = "%s\\\\n%s" % (v.name, d2s(v.kwargs))
-                sk = id(v)
-            if sk in self._mark and isinstance(self._mark[sk], int):
-                la = self._mark[sk]
-                lab = lab.replace("\\\\n", " - I%d\\\\n" % la)
-                s = ('%d [label="%s" style=filled '
-                     'fillcolor=red];' % (k, lab))
-            else:
-                s = '%d [label="%s"];' % (k, lab)
-            rows.append(s)
-            if not hasattr(v, 'inputs'):
-                continue
-            for i in v.inputs:
-                vid = i if isinstance(i, int) else id(i)
-                s = "%d -> %d;" % (vid, k)
-                rows.append(s)
-        rows.append("}")
-        return "\n".join(rows)
-
-    def apply_sequence(self, *inputs, verbose=False):
-        """
-        Applies a sequence of operations on a list of inputs.
-
-        :param inputs: inputs:
-        :return: output
-        """
-        if verbose:
-            print('######### apply_sequence')
-        data = {i: inp for i, inp in enumerate(inputs)}
-        last = None
-        for op in self:
-            last = op.apply(data, verbose=verbose)
-        if last is None:
-            raise RuntimeError(
-                "Sequence of operations is empty.")
-        return last
-
-
 def _apply_transpose_reshape(op, row):
     """
     Put all dimensions in the same order.
+
+    :param op: integer (for one input) or an operator
+    :param row: letter involved in this input (as a vector of binaries)
+    :return: last created operator
     """
     axes = []
     p = 0
@@ -759,7 +431,7 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False):
 
     # last_row, current_row (row = shape)
     rows = numpy.full((2, mat.shape[1]), -1)
-    graph = GraphEinsumSubOp(letters, mat, lengths)
+    graph = GraphEinsumSubOp(letters, mat, lengths, duplicates)
     fd = mat.shape[1]
     if verbose:
         print("EQUATION=%r" % equation)
@@ -787,9 +459,13 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False):
                 diag.append((v[0], tuple(v)))
             op = EinsumSubOp(fd, 'diagonal', op, diag=diag)
             op.compute_output_row(rows[1, :], mat[i, :], verbose=verbose)
+            tr_row = rows[1, :]
             marked = graph.append(op)
+        else:
+            diag = None
+            tr_row = mat[i]
 
-        for op in _apply_transpose_reshape(op, mat[i]):
+        for op in _apply_transpose_reshape(op, tr_row):
             op.compute_output_row(rows[1, :], verbose=verbose)
             marked = graph.append(op)
 

@@ -7,9 +7,11 @@ from contextlib import redirect_stdout
 import itertools
 import numpy
 from pyquickhelper.pycode import ExtTestCase
+from mlprodict.testing.einsum_impl_ext import (
+    numpy_diagonal, numpy_extended_dot)
 from mlprodict.testing.einsum_impl import (
     analyse_einsum_equation, decompose_einsum_equation, EinsumSubOp,
-    apply_einsum_sequence, numpy_diagonal)
+    apply_einsum_sequence)
 
 
 class TestEinsum(ExtTestCase):
@@ -30,6 +32,47 @@ class TestEinsum(ExtTestCase):
         self.assertEqualArray(diag, numpy.array([[0, 2], [5, 7]]))
         diag = numpy_diagonal(mat, 2, [0, 2])
         self.assertEqualArray(diag, numpy.array([[0, 2], [5, 7]]).T)
+
+    def test_numpy_extended_dot_2(self):
+        m1 = numpy.arange(4).reshape((2, 2))
+        m2 = m1 + 10
+
+        self.assertRaise(lambda: numpy_extended_dot(m1, m2.T, [0], [1], [2]),
+                         ValueError)
+        dm1 = m1.reshape((2, 2, 1))
+        dm2 = m2.reshape((1, 2, 2))
+        dot = numpy_extended_dot(dm1, dm2, axes=[1], left=[0], right=[2])
+        exp = m1 @ m2
+        self.assertEqual(exp, numpy.squeeze(dot))
+
+        dm1 = m1.reshape((2, 1, 2))
+        dm2 = m2.reshape((1, 2, 2))
+        dot = numpy_extended_dot(dm1, dm2, axes=[2], left=[0], right=[1])
+        exp = m1 @ m2.T
+        self.assertEqual(exp, numpy.squeeze(dot))
+
+        dm1 = m1.reshape((2, 2, 1))
+        dm2 = m2.reshape((1, 2, 2))
+        dot = numpy_extended_dot(dm1, dm2, axes=[2], left=[0], right=[1, 2])
+        exp = numpy.array([[[10, 11], [12, 13]], [[50, 55], [60, 65]]])
+        self.assertEqual(exp, numpy.squeeze(dot))
+
+    def test_numpy_extended_dot_3(self):
+        m1 = numpy.arange(8).reshape((2, 2, 2))
+        m2 = m1 + 10
+
+        dot = numpy_extended_dot(m1, m2, [1], [0], [2])
+        exp = numpy.array([[[164, 176]], [[580, 624]]])
+        self.assertEqual(exp, dot)
+
+        dot = numpy_extended_dot(m1, m2, [1], [2], [0])
+        exp = numpy.array([[[284, 376]], [[380, 504]]])
+        self.assertEqual(exp, dot)
+
+        dot = numpy_extended_dot(m1, m2, [1], [2], [0, 1])
+        exp = numpy.array([[[84, 126], [200, 250]],
+                           [[116, 174], [264, 330]]])
+        self.assertEqual(exp, dot)
 
     def test_analyse_einsum_equation(self):
         self.assertRaise(lambda: analyse_einsum_equation("abc"),
@@ -134,6 +177,8 @@ class TestEinsum(ExtTestCase):
         exp = numpy.einsum(equation, m1)
         seq = decompose_einsum_equation(
             equation, m1.shape, verbose=verbose)
+        dot = seq.to_dot()
+        self.assertIn("i=0,1", dot)
         res = apply_einsum_sequence(seq, m1, verbose=verbose)
         self.assertEqualArray(exp, res)
 
@@ -330,9 +375,18 @@ class TestEinsum(ExtTestCase):
         self.optimize_compare('abc,cba')
 
     def test_np_test_random_cases_difficult(self):
+        self.optimize_compare('cac,c,h->h')
+        self.optimize_compare('cfc,c,h->h')
+        self.optimize_compare('cfc,c,d->d')
+        self.optimize_compare('c,cfc,d->d')
+        self.optimize_compare('d,c,cfc->d')
+        self.optimize_compare('d,bc,cfc->d')
+        self.optimize_compare('db,bc,cfc->d')
+        self.optimize_compare('adb,bc,cfc->d')
         self.optimize_compare('adb,bc,fa,cfc->d')
         self.optimize_compare('ecb,fef,bad,ed->ac')
         self.optimize_compare('fdf,cdd,ccd,afe->ae')
+        self.optimize_compare('adb,cfc->d')
 
     def test_np_test_edge_cases_duplicate_indices(self):
         # Difficult edge cases for optimization
@@ -346,5 +400,5 @@ class TestEinsum(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestEinsum().test_case_1_iii_ii_i_j()
+    # TestEinsum().test_np_test_random_cases_difficult()
     unittest.main()
