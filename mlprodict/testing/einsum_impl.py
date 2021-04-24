@@ -129,14 +129,18 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple", verbose=Fals
     raise ValueError("Unknown strategy %r." % strategy)
 
 
-def apply_einsum_sequence(seq, *inputs, verbose=False):
+def apply_einsum_sequence(seq, *inputs, verbose=False, **kwargs):
     """
     Applies a sequence of operations on a list of inputs.
     The sequence of operations is produced by function
     @see fn decompose_einsum_equation.
 
     :param seq: sequence of operations
-    :param inputs: inputs:
+    :param inputs: inputs
+    :param kwargs: additional parameters,
+        see :meth:`apply_sequence
+        <mlprodict.testing.einsum_impl_classes.
+        GraphEinsumSubOp.apply_sequence>`.
     :return: output
 
     .. runpython::
@@ -156,7 +160,7 @@ def apply_einsum_sequence(seq, *inputs, verbose=False):
 
     See notebook :ref:`einsumdecompositionrst`.
     """
-    return seq.apply_sequence(*inputs, verbose=verbose)
+    return seq.apply_sequence(*inputs, verbose=verbose, **kwargs)
 
 
 def _basic_verification(lengths, shapes, equation):

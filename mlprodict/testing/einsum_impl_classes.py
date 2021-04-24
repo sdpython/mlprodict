@@ -5,7 +5,8 @@
 import numpy
 from .einsum_impl_ext import (
     numpy_extended_dot, numpy_diagonal,
-    _numpy_extended_dot_equation)
+    _numpy_extended_dot_equation,
+    numpy_extended_dot_python)
 
 
 class EinsumSubOp:
@@ -222,13 +223,13 @@ class EinsumSubOp:
         raise TypeError(
             "Unexpected input type %r." % type(key))
 
-    def _apply_id(self, data, verbose=False):
+    def _apply_id(self, data, verbose=False, **kwargs):
         self._check_inputs_(1)
         inp = self.inputs[0]
         output = self._get_data(data, inp)
         return output
 
-    def _apply_diagonal(self, data, verbose=False):
+    def _apply_diagonal(self, data, verbose=False, **kwargs):
         self._check_inputs_(1)
         inp = self.inputs[0]
         m = self._get_data(data, inp)
@@ -244,7 +245,7 @@ class EinsumSubOp:
         output = numpy_diagonal(m, axis=diag0[0], axes=diag0[1])
         return output
 
-    def _apply_expand_dims(self, data, verbose=False):
+    def _apply_expand_dims(self, data, verbose=False, **kwargs):
         self._check_inputs_(1)
         inp = self.inputs[0]
         m = self._get_data(data, inp)
@@ -254,7 +255,7 @@ class EinsumSubOp:
         output = numpy.expand_dims(m, self.kwargs['axis'][0])
         return output
 
-    def _apply_transpose(self, data, verbose=False):
+    def _apply_transpose(self, data, verbose=False, **kwargs):
         self._check_inputs_(1, True)
         inp = self.inputs[0]
         m = self._get_data(data, inp)
@@ -266,7 +267,7 @@ class EinsumSubOp:
         self._check_shape_(output)
         return output
 
-    def _apply_matmul(self, data, verbose=False):
+    def _apply_matmul(self, data, verbose=False, **kwargs):
         self._check_inputs_(2)
         inp1 = self.inputs[0]
         inp2 = self.inputs[1]
@@ -282,12 +283,16 @@ class EinsumSubOp:
             print("- %s, shapes=%r @ %r axes=%r left=%r right=%r" % (
                 self.name, m1.shape, m2.shape, axes, left, right))
 
-        output = numpy_extended_dot(m1, m2, axes, left, right,
-                                    verbose=verbose)
+        if kwargs.get('matmul_impl', None) == 'py':
+            output = numpy_extended_dot_python(m1, m2, axes, left, right,
+                                               verbose=verbose)
+        else:
+            output = numpy_extended_dot(m1, m2, axes, left, right,
+                                        verbose=verbose)
         self._check_shape_(output)
         return output
 
-    def _apply_reduce_sum(self, data, verbose=False):
+    def _apply_reduce_sum(self, data, verbose=False, **kwargs):
         self._check_inputs_(1)
         inp = self.inputs[0]
         m = self._get_data(data, inp)
@@ -300,7 +305,7 @@ class EinsumSubOp:
         self._check_shape_(output)
         return output
 
-    def _apply_squeeze(self, data, verbose=False):
+    def _apply_squeeze(self, data, verbose=False, **kwargs):
         self._check_inputs_(1)
         inp = self.inputs[0]
         m = self._get_data(data, inp)
@@ -313,11 +318,20 @@ class EinsumSubOp:
             output = numpy.squeeze(output, axis=a)
         return output
 
-    def apply(self, data, verbose=False):
+    def apply(self, data, verbose=False, **kwargs):
         """
         Applies one operator on the data.
 
         :param data: dictionary storing the results
+        :param verbose: prints out intermediate results
+        :param kwargs: additional parameters, see
+            methods `_apply*`
+        :return: output
+
+        Known additional paramaters:
+        * 'matmul_impl': if None calls :epkg:`numpy:einsum` through
+          @see fn numpy_extended_dot (default) or 'py' to call
+          @see fn numpy_extended_dot_python instead.
         """
         if verbose:
             print()
@@ -328,7 +342,7 @@ class EinsumSubOp:
         if meth is None:
             raise NotImplementedError(
                 "apply not implemented for %r." % self.name)
-        output = meth(data, verbose)
+        output = meth(data, verbose, **kwargs)
 
         data[id(self)] = output
         if verbose:
@@ -476,11 +490,15 @@ class GraphEinsumSubOp:
         rows.append("}")
         return "\n".join(rows)
 
-    def apply_sequence(self, *inputs, verbose=False):
+    def apply_sequence(self, *inputs, verbose=False, **kwargs):
         """
         Applies a sequence of operations on a list of inputs.
 
         :param inputs: inputs:
+        :param verbose: prints out intermediate results
+        :param kwargs: additional parameters,
+            see :meth:`apply
+            <mlprodict.testing.einsum_impl_classes.EinsumSubOp.apply>`.
         :return: output
         """
         if verbose:
@@ -488,7 +506,7 @@ class GraphEinsumSubOp:
         data = {i: inp for i, inp in enumerate(inputs)}
         last = None
         for op in self:
-            last = op.apply(data, verbose=verbose)
+            last = op.apply(data, verbose=verbose, **kwargs)
         if last is None:
             raise RuntimeError(
                 "Sequence of operations is empty.")

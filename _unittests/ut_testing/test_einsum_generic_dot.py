@@ -1404,7 +1404,7 @@ class TestEinsumGenericdot(ExtTestCase):
         m1 = numpy.empty(sh1).ravel()
         m1 = numpy.arange(len(m1)).reshape(sh1).astype(numpy.float64) + 10
         m2 = numpy.empty(sh2).ravel()
-        m2 = numpy.arange(len(m2)).reshape(sh2).astype(numpy.float64) + 10000
+        m2 = numpy.arange(len(m2)).reshape(sh2).astype(numpy.float64) + 1000
 
         try:
             exp = numpy_extended_dot(m1, m2, axes, left, right)
@@ -1432,7 +1432,7 @@ class TestEinsumGenericdot(ExtTestCase):
         try:
             self.assertEqualArray(exp, dot)
         except AssertionError:
-            raise AssertionError(
+            raise AssertionError(  # pylint: disable=W0707
                 "shape1=%r shape2=%r\naxes=%r left=%r right=%r\n"
                 "m1=%r\nm2=%r\nexp=\n%r\ndot=\n%r"
                 "\n-----\n%s" % (m1.shape, m2.shape, axes, left, right,

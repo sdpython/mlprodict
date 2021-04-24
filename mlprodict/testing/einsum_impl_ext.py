@@ -233,6 +233,9 @@ def numpy_extended_dot_python(m1, m2, axes, left, right, verbose=False):
     This implementation is not efficient but shows how to
     implement this operation without :epkg:`numpy:einsum`.
     """
+    def dispb(c):
+        return "".join("o" if b else "." for b in c)
+
     if m1.dtype != m2.dtype:
         raise TypeError(
             "Both matrices should share the same dtype %r != %r."
@@ -309,18 +312,34 @@ def numpy_extended_dot_python(m1, m2, axes, left, right, verbose=False):
     names, kind, cols, common, broadcast, pos = intermediate(l1, l2, l3)
 
     if any(broadcast):
+        if verbose:
+            print("GENERICDOT: before broadcast %s,%s->%s      or %s" % (
+                "".join(l1), "".join(l2), "".join(l3),
+                _numpy_extended_dot_equation(
+                    len(m1.shape), len(m1.shape), axes, left, right)))
+            print("GENERICDOT: names=%s kind=%r common=%s broadcast=%s" % (
+                "".join(names), kind.tolist(),
+                dispb(common), dispb(broadcast)))
+
         for i in range(len(broadcast)):  # pylint: disable=C0200
             if broadcast[i] and not (kind[i] & 3) == 3:
                 raise RuntimeError(
                     "Broadcast should only happen on common axes, "
                     "axes=%r left=%r right=%r shape1=%r shape2=%r."
                     "" % (axes, left, right, m1.shape, m2.shape))
+            if not broadcast[i]:
+                continue
             # We split letters.
             p = cols[names[i]]
             dim = (m1.shape[p], m2.shape[p])
             let = [l1[p], l2[p], l3[p]]
             inp = 1 if dim[0] == 1 else 0
+            if verbose:
+                print("GENERICDOT: name=%s dim=%r let=%r inp=%r p=%r" % (
+                    names[i], dim, let, inp, p))
+                print("    B0 l1=%r, l2=%r l3=%r" % (l1, l2, l3))
             if (kind[i] & 4) > 0:
+                # Summation axis is part of the output.
                 if let[inp].lower() == let[inp]:
                     let[inp] = let[inp].upper()
                 else:
@@ -330,28 +349,40 @@ def numpy_extended_dot_python(m1, m2, axes, left, right, verbose=False):
                     l2[p] = let[inp]
                 else:
                     l1[p] = let[inp]
+                if verbose:
+                    print("    B1 l1=%r, l2=%r l3=%r" % (l1, l2, l3))
             else:
-                raise NotImplementedError()
+                # Summation axis is not part of the output.
+                if let[inp].lower() == let[inp]:
+                    let[inp] = let[inp].upper()
+                else:
+                    let[inp] = let[inp].lower()
+                if inp == 1:
+                    l2[p] = let[inp]
+                else:
+                    l1[p] = let[inp]
+                if verbose:
+                    print("    B2 l1=%r, l2=%r l3=%r" % (l1, l2, l3))
 
         names, kind, cols, common, broadcast, pos = intermediate(l1, l2, l3)
 
-    indices = [0 for n in names]
-    pl1 = [names.index(c) for c in l1]
-    pl2 = [names.index(c) for c in l2]
-    limits = [m1.shape[pos[n]] if (kind[n] & 1) == 1 else m2.shape[pos[n]]
-              for n in range(len(names))]
-    plo = [-1 if c not in names else names.index(c) for c in l3]
+    indices = numpy.array([0 for n in names], dtype=numpy.int64)
+    pl1 = numpy.array([names.index(c) for c in l1], dtype=numpy.int64)
+    pl2 = numpy.array([names.index(c) for c in l2], dtype=numpy.int64)
+    limits = numpy.array(
+        [m1.shape[pos[n]] if (kind[n] & 1) == 1 else m2.shape[pos[n]]
+         for n in range(len(names))], dtype=numpy.int64)
+    plo = numpy.array(
+        [-1 if c not in names else names.index(c) for c in l3], dtype=numpy.int64)
 
     if verbose:
-        def dispb(c):
-            return "".join("o" if b else "." for b in c)
-
         print("GENERICDOT: %s,%s->%s      or %s" % (
             "".join(l1), "".join(l2), "".join(l3),
             _numpy_extended_dot_equation(
                 len(m1.shape), len(m1.shape), axes, left, right)))
         print("GENERICDOT: shape1=%r shape2=%r shape=%r" % (
             m1.shape, m2.shape, res.shape))
+        print("GENERICDOT: axes=%r left=%r right=%r" % (axes, left, right))
         print("GENERICDOT: pl1=%r pl2=%r plo=%r" % (pl1, pl2, plo))
         print("GENERICDOT: names=%s kind=%r common=%s broadcast=%s" % (
             "".join(names), kind.tolist(),
@@ -362,15 +393,17 @@ def numpy_extended_dot_python(m1, m2, axes, left, right, verbose=False):
 
     while indices[0] < limits[0]:
 
+        # The function spends most of its time is these three lines.
         t1 = tuple(indices[n] for n in pl1)
         t2 = tuple(indices[n] for n in pl2)
         to = tuple(0 if n == -1 else indices[n] for n in plo)
-        c = m1[tuple(t1)] * m2[tuple(t2)]
+
+        c = m1[t1] * m2[t2]
 
         if verbose:
             print(" %r x %r -> %r v=%r I=%r" % (t1, t2, to, c, indices))
 
-        res[tuple(to)] += c
+        res[to] += c
 
         last = len(indices) - 1
         indices[last] += 1

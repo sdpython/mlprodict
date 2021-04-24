@@ -29,7 +29,9 @@ class TestOnnxProfiling(ExtTestCase):
         node_def2 = helper.make_node('Add', ['X', 'Zt'], ['Z'], name='Z')
         graph_def = helper.make_graph(
             [node_def, node_def2], 'test-model', [X, Y], [Z])
-        model_def = helper.make_model(graph_def, producer_name='onnx-example')
+        model_def = helper.make_model(
+            graph_def, producer_name='onnx-example',
+            ir_version=6, producer_version='0.1')
         model_def = insert_node(
             model_def, node='Z', op_type='Cast', to=TensorProto.INT64,  # pylint: disable=E1101
             name='castop')

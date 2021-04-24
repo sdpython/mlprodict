@@ -176,6 +176,15 @@ class TestEinsum(ExtTestCase):
         self.assertIn("numpy_extended_dot", out)
         self.assertEqualArray(exp, res)
 
+    def test_decompose_einsum_equation_py(self):
+        m1 = numpy.arange(0, 8).astype(numpy.float32).reshape((2, 2, 2))
+        m2 = numpy.arange(0, 4).astype(numpy.float32).reshape((2, 2))
+        seq = decompose_einsum_equation(
+            "bac,ch->ah", (2, 2, 2), (2, 2))
+        res1 = apply_einsum_sequence(seq, m1, m2)
+        res2 = apply_einsum_sequence(seq, m1, m2, matmul_impl='py')
+        self.assertEqualArray(res1, res2)
+
     def test_einsum_sub_op(self):
         self.assertRaise(lambda: EinsumSubOp(2, "er", (2, 2)), ValueError)
         self.assertRaise(lambda: EinsumSubOp(2, "expand_dims"), RuntimeError)
