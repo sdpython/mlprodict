@@ -305,10 +305,11 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False):
             right = []
             for d in range(0, mat.shape[1]):
                 if rows[:, d].min() >= 0:
-                    common_dims.append(d)
                     if mat[i + 1:, d].max() >= 0:
                         left.append(d)
                         right.append(d)
+                    else:
+                        common_dims.append(d)
                 else:
                     if rows[0, d] >= 0:
                         left.append(d)

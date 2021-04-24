@@ -5,6 +5,56 @@
 import numpy
 
 
+def numpy_diagonal(m, axis, axes):
+    """
+    Extracts diagonal coefficients from an array.
+
+    :param m: input array
+    :param axis: kept axis among the diagonal ones
+    :param axes: diagonal axes (axis must be one of them)
+    :return: output
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from mlprodict.testing.einsum_impl_ext import numpy_diagonal
+
+        mat = numpy.arange(8).reshape((2, 2, 2))
+        print(mat)
+        diag = numpy_diagonal(mat, 1, [1, 2])
+        print(diag)
+    """
+    if axis not in axes:
+        raise RuntimeError(
+            "axis %r must be in axes %r." % (axis, axes))
+    shape = []
+    new_shape = []
+    for i, s in enumerate(m.shape):
+        if i in axes:
+            if i == axis:
+                shape.append(s)
+                new_shape.append(s)
+            else:
+                shape.append(1)
+        else:
+            shape.append(s)
+            new_shape.append(s)
+
+    # Extracts coefficients.
+    output = numpy.empty(tuple(shape), dtype=m.dtype)
+    index_in = [slice(s) for s in m.shape]
+    index_out = [slice(s) for s in m.shape]
+    for i in range(0, shape[axis]):
+        for a in axes:
+            index_in[a] = i
+            index_out[a] = i if a == axis else 0
+        output[tuple(index_out)] = m[tuple(index_in)]
+
+    # Removes axis.
+    return output.reshape(tuple(new_shape))
+
+
 def _numpy_extended_dot_equation(m1_dim, m2_dim, axes, left, right):
     """
     Returns the equation equivalent to an extended version
@@ -38,6 +88,12 @@ def _numpy_extended_dot_equation(m1_dim, m2_dim, axes, left, right):
     _check_(axes, m1_dim)
     _check_(left, m1_dim)
     _check_(right, m1_dim)
+
+    for a in axes:
+        if a in left and a in right:
+            raise RuntimeError(
+                "One axis belongs to every set (axes, left, right). "
+                "axes=%r, left=%r, right=%r." % (axes, left, right))
 
     l1 = [chr(i + 97) for i in range(m1_dim)]
     l2 = [chr(i + 97) for i in range(m1_dim)]
@@ -198,170 +254,131 @@ def numpy_extended_dot_python(m1, m2, axes, left, right, verbose=False):
     for i in left:
         new_shape[i] = m1.shape[i]
     for i in right:
-        if i in left and m1.shape[i] != m2.shape[i]:
+        if (i in left and m1.shape[i] != m2.shape[i] and
+                m1.shape[i] != 1 and m2.shape[i] != 1):
             raise RuntimeError(
                 "Matrices should the same dimension for dimension %d, "
                 "shapes=%r @ %r." % (i, m1.shape, m2.shape))
         new_shape[i] = m2.shape[i]
 
-    t_left = 1
-    d_left = []
-    for n in left:
-        t_left *= m1.shape[n]
-        d_left.append(n)
+    # output shapes
+    res = numpy.full(tuple(new_shape), 0, dtype=m1.dtype)
 
-    t_right = 1
-    d_right = []
-    d_common = []
-    for n in right:
-        if n not in left:
-            t_right *= m2.shape[n]
-            d_right.append(n)
+    # indices
+    l1 = [chr(i + 97) for i in range(m1_dim)]
+    l2 = [chr(i + 97) for i in range(m1_dim)]
+    l3 = [chr(i + 97) for i in range(m1_dim)]
+    for a in left:
+        l1[a] = l1[a].upper()
+        l3[a] = l3[a].upper()
+    for a in right:
+        l2[a] = l2[a].upper()
+        l3[a] = l3[a].upper()
+    for a in axes:
+        l1[a] = l1[a].lower()
+        l2[a] = l2[a].lower()
+        if a not in right:
+            l3[a] = "-"
         else:
-            d_common.append(n)
+            l3[a] = l3[a].lower()
 
-    t_axes = 1
-    d_axes = []
-    d_common_axes_right = []
-    for n in axes:
-        if n not in left and n not in right:
-            t_axes *= m2.shape[n]
-            d_axes.append(n)
-        elif n in right and n not in left:
-            d_common_axes_right.append(n)
-        else:
-            raise NotImplementedError()
+    def intermediate(l1, l2, l3):
+        names = list(sorted(set(l1 + l2)))
+        kind = numpy.zeros(len(names), dtype=numpy.int64)
+        cols = {}
 
-    if len(d_common_axes_right) == 0:
-        res = numpy.full(tuple(new_shape), numpy.nan, dtype=m1.dtype)
-    else:
-        res = numpy.zeros(tuple(new_shape), dtype=m1.dtype)
+        for i, n in enumerate(names):
+            if n in l1:
+                kind[i] += 1
+                cols[n] = l1.index(n)
+            if n in l2:
+                kind[i] += 2
+                cols[n] = l2.index(n)
+            if n in l3:
+                kind[i] += 4
 
-    i_left = [0 for i in m1.shape]
-    i_right = [0 for i in m1.shape]
-    i_out = [0 for i in m1.shape]
+        pos = numpy.zeros(len(names), dtype=numpy.int64)
+        for j in range(0, pos.shape[0]):
+            pos[j] = cols[names[j]]
+        common = [(kind[i] & 3) == 3 for i in range(len(kind))]
+        broadcast = [common[i] and m1.shape[pos[i]] != m2.shape[pos[i]]
+                     for i in range(len(common))]
 
-    for i in range(t_left):
+        return names, kind, cols, common, broadcast, pos
 
-        for j in range(t_right):  # pylint: disable=W0612
+    names, kind, cols, common, broadcast, pos = intermediate(l1, l2, l3)
 
-            if len(d_common_axes_right) == 0:
-                for d in d_common:
-                    i_left[d] = i_right[d]
-                add = 0
-                for s in range(t_axes):  # pylint: disable=W0612
-
-                    add += m1[tuple(i_left)] * m2[tuple(i_right)]
-
-                    p = len(d_axes) - 1
-                    i_left[d_axes[p]] += 1
-                    i_right[d_axes[p]] += 1
-                    while i_left[d_axes[p]] >= m1.shape[d_axes[p]]:
-                        i_left[d_axes[p]] = 0
-                        i_right[d_axes[p]] = 0
-                        p -= 1
-                        if p < 0:
-                            break
-                        i_left[d_axes[p]] += 1
-                        i_right[d_axes[p]] += 1
-
-                res[tuple(i_out)] = add
-            elif len(d_axes) == 0:
-                for s in range(t_axes):
-
-                    for d in d_common_axes_right:
-                        i_out[d] = i_right[d]
-
-                    res[tuple(i_out)] += m1[tuple(i_left)] * m2[tuple(i_right)]
-
-                    p = len(d_common_axes_right) - 1
-                    i_right[d_common_axes_right[p]] += 1
-                    while (i_left[d_common_axes_right[p]] >=
-                            m1.shape[d_common_axes_right[p]]):
-                        i_right[d_common_axes_right[p]] = 0
-                        p -= 1
-                        if p < 0:
-                            break
-                        i_right[d_common_axes_right[p]] += 1
-                    for d in d_common_axes_right:
-                        i_out[d] = i_right[d]
-                    for d in d_common:
-                        i_left[d] = i_right[d]
+    if any(broadcast):
+        for i in range(len(broadcast)):  # pylint: disable=C0200
+            if broadcast[i] and not (kind[i] & 3) == 3:
+                raise RuntimeError(
+                    "Broadcast should only happen on common axes, "
+                    "axes=%r left=%r right=%r shape1=%r shape2=%r."
+                    "" % (axes, left, right, m1.shape, m2.shape))
+            # We split letters.
+            p = cols[names[i]]
+            dim = (m1.shape[p], m2.shape[p])
+            let = [l1[p], l2[p], l3[p]]
+            inp = 1 if dim[0] == 1 else 0
+            if (kind[i] & 4) > 0:
+                if let[inp].lower() == let[inp]:
+                    let[inp] = let[inp].upper()
+                else:
+                    let[inp] = let[inp].lower()
+                l3[p] = let[inp]
+                if inp == 1:
+                    l2[p] = let[inp]
+                else:
+                    l1[p] = let[inp]
             else:
                 raise NotImplementedError()
 
-            p = len(d_right) - 1
-            i_right[d_right[p]] += 1
-            i_out[d_right[p]] += 1
-            while i_right[d_right[p]] >= m2.shape[d_right[p]]:
-                i_right[d_right[p]] = 0
-                i_out[d_right[p]] = 0
-                p -= 1
-                if p < 0:
-                    break
-                i_right[d_right[p]] += 1
-                i_out[d_right[p]] += 1
+        names, kind, cols, common, broadcast, pos = intermediate(l1, l2, l3)
 
-        p = len(d_left) - 1
-        i_left[d_left[p]] += 1
-        i_out[d_left[p]] += 1
-        while i_left[left[p]] >= m1.shape[d_left[p]]:
-            i_left[d_left[p]] = 0
-            i_out[d_left[p]] = 0
-            p -= 1
-            if p < 0:
+    indices = [0 for n in names]
+    pl1 = [names.index(c) for c in l1]
+    pl2 = [names.index(c) for c in l2]
+    limits = [m1.shape[pos[n]] if (kind[n] & 1) == 1 else m2.shape[pos[n]]
+              for n in range(len(names))]
+    plo = [-1 if c not in names else names.index(c) for c in l3]
+
+    if verbose:
+        def dispb(c):
+            return "".join("o" if b else "." for b in c)
+
+        print("GENERICDOT: %s,%s->%s      or %s" % (
+            "".join(l1), "".join(l2), "".join(l3),
+            _numpy_extended_dot_equation(
+                len(m1.shape), len(m1.shape), axes, left, right)))
+        print("GENERICDOT: shape1=%r shape2=%r shape=%r" % (
+            m1.shape, m2.shape, res.shape))
+        print("GENERICDOT: pl1=%r pl2=%r plo=%r" % (pl1, pl2, plo))
+        print("GENERICDOT: names=%s kind=%r common=%s broadcast=%s" % (
+            "".join(names), kind.tolist(),
+            dispb(common), dispb(broadcast)))
+        print("GENERICDOT: pos=%r" % pos.tolist())
+        print("GENERICDOT: cols=%r" % cols)
+        print("GENERICDOT: limits=%r" % limits)
+
+    while indices[0] < limits[0]:
+
+        t1 = tuple(indices[n] for n in pl1)
+        t2 = tuple(indices[n] for n in pl2)
+        to = tuple(0 if n == -1 else indices[n] for n in plo)
+        c = m1[tuple(t1)] * m2[tuple(t2)]
+
+        if verbose:
+            print(" %r x %r -> %r v=%r I=%r" % (t1, t2, to, c, indices))
+
+        res[tuple(to)] += c
+
+        last = len(indices) - 1
+        indices[last] += 1
+        for i in range(last, 0, -1):
+            if indices[i] < limits[i]:
                 break
-            i_left[d_left[p]] += 1
-            i_out[d_left[p]] += 1
+            indices[i] = 0
+            if i > 0:
+                indices[i - 1] += 1
 
     return res
-
-
-def numpy_diagonal(m, axis, axes):
-    """
-    Extracts diagonal coefficients from an array.
-
-    :param m: input array
-    :param axis: kept axis among the diagonal ones
-    :param axes: diagonal axes (axis must be one of them)
-    :return: output
-
-    .. runpython::
-        :showcode:
-
-        import numpy
-        from mlprodict.testing.einsum_impl_ext import numpy_diagonal
-
-        mat = numpy.arange(8).reshape((2, 2, 2))
-        print(mat)
-        diag = numpy_diagonal(mat, 1, [1, 2])
-        print(diag)
-    """
-    if axis not in axes:
-        raise RuntimeError(
-            "axis %r must be in axes %r." % (axis, axes))
-    shape = []
-    new_shape = []
-    for i, s in enumerate(m.shape):
-        if i in axes:
-            if i == axis:
-                shape.append(s)
-                new_shape.append(s)
-            else:
-                shape.append(1)
-        else:
-            shape.append(s)
-            new_shape.append(s)
-
-    # Extracts coefficients.
-    output = numpy.empty(tuple(shape), dtype=m.dtype)
-    index_in = [slice(s) for s in m.shape]
-    index_out = [slice(s) for s in m.shape]
-    for i in range(0, shape[axis]):
-        for a in axes:
-            index_in[a] = i
-            index_out[a] = i if a == axis else 0
-        output[tuple(index_out)] = m[tuple(index_in)]
-
-    # Removes axis.
-    return output.reshape(tuple(new_shape))

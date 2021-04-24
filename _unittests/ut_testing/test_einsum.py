@@ -34,8 +34,8 @@ class TestEinsum(ExtTestCase):
         self.assertEqualArray(diag, numpy.array([[0, 2], [5, 7]]).T)
 
     def test_numpy_extended_dot_2_a(self):
-        m1 = numpy.arange(4).reshape((2, 2)).astype(numpy.float32)
-        m2 = m1 + 10
+        m1 = numpy.arange(4).reshape((2, 2)).astype(numpy.float32) + 10
+        m2 = m1 + 90
 
         self.assertRaise(lambda: numpy_extended_dot(m1, m2.T, [0], [1], [2]),
                          ValueError)
@@ -58,33 +58,44 @@ class TestEinsum(ExtTestCase):
         self.assertEqualArray(exp, numpy.squeeze(dot2))
 
     def test_numpy_extended_dot_2_b(self):
-        m1 = numpy.arange(4).reshape((2, 2)).astype(numpy.float32)
-        m2 = m1 + 10
+        m1 = numpy.arange(4).reshape((2, 2)).astype(numpy.float32) + 10
+        m2 = m1 + 90
         dm1 = m1.reshape((2, 2, 1))
         dm2 = m2.reshape((1, 2, 2))
-        exp = numpy_extended_dot(dm1, dm2, axes=[2], left=[0], right=[1, 2])
-        dot = numpy_extended_dot_python(
+        dot = numpy_extended_dot(dm1, dm2, axes=[2], left=[0], right=[1, 2])
+        dot2 = numpy_extended_dot_python(
             dm1, dm2, axes=[2], left=[0], right=[1, 2])
-        self.assertNotEmpty(dot)
-        self.assertNotEmpty(exp)
-        # self.assertEqualArray(exp, numpy.squeeze(dot))
+        self.assertEqualArray(dot, numpy.squeeze(dot2))
+
+    def test_numpy_extended_dot_2_b2(self):
+        m1 = numpy.arange(4).reshape((2, 2)).astype(numpy.float32) + 10
+        m2 = m1 + 90
+        dm1 = m1.reshape((2, 2, 1))
+        dm2 = m2.reshape((1, 2, 2))
+        dot = numpy_extended_dot(dm1, dm2, axes=[2], left=[0, 1], right=[2])
+        dot2 = numpy_extended_dot_python(
+            dm1, dm2, axes=[2], left=[0, 1], right=[2])
+        self.assertEqualArray(dot, numpy.squeeze(dot2))
 
     def test_numpy_extended_dot_3(self):
-        m1 = numpy.arange(8).reshape((2, 2, 2))
-        m2 = m1 + 10
+        m1 = numpy.arange(8).reshape((2, 2, 2)) + 10
+        m2 = m1 + 90
 
         dot = numpy_extended_dot(m1, m2, [1], [0], [2])
-        exp = numpy.array([[[164, 176]], [[580, 624]]])
-        self.assertEqualArray(exp, dot)
+        dot2 = numpy_extended_dot_python(m1, m2, [1], [0], [2])
+        self.assertEqualArray(dot, dot2)
 
         dot = numpy_extended_dot(m1, m2, [1], [2], [0])
-        exp = numpy.array([[[284, 376]], [[380, 504]]])
-        self.assertEqualArray(exp, dot)
+        dot2 = numpy_extended_dot_python(m1, m2, [1], [2], [0])
+        self.assertEqualArray(dot, dot2)
+
+    def test_numpy_extended_dot_3b(self):
+        m1 = numpy.arange(8).reshape((2, 2, 2)) + 10
+        m2 = m1 + 90
 
         dot = numpy_extended_dot(m1, m2, [1], [2], [0, 1])
-        exp = numpy.array([[[84, 126], [200, 250]],
-                           [[116, 174], [264, 330]]])
-        self.assertEqualArray(exp, dot)
+        dot2 = numpy_extended_dot_python(m1, m2, [1], [2], [0, 1])
+        self.assertEqualArray(dot, dot2)
 
     def test_analyse_einsum_equation(self):
         self.assertRaise(lambda: analyse_einsum_equation("abc"),
@@ -198,6 +209,7 @@ class TestEinsum(ExtTestCase):
         m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
         m2 = numpy.arange(4).reshape((2, 2)) + 100
         exp = numpy.einsum(equation, m1, m2)
+
         seq = decompose_einsum_equation(
             equation, m1.shape, m2.shape, verbose=verbose)
         res = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
@@ -274,10 +286,10 @@ class TestEinsum(ExtTestCase):
         else:
             eqs = equation.split("->")[0].split(",")
             inputs = []
-            for eq in eqs:
+            for d, eq in enumerate(eqs):
                 i = numpy.arange(2 ** len(eq)).reshape(
                     (2,) * len(eq)).astype(numpy.float32)
-                inputs.append(i + numpy.array([10], dtype=numpy.float32))
+                inputs.append(i + numpy.array([3 ** d], dtype=numpy.float32))
 
         exp = numpy.einsum(equation, *inputs)
         if verbose:
@@ -288,9 +300,10 @@ class TestEinsum(ExtTestCase):
             print(path[1])
 
         shapes = [m.shape for m in inputs]
+
         seq = decompose_einsum_equation(equation, *shapes, verbose=verbose)
         got = apply_einsum_sequence(seq, *inputs, verbose=verbose)
-        self.assertEqualArray(exp, got)
+        self.assertEqualArray(exp, got, decimal=6)
 
     def test_numpy_test_hadamard_like_products(self):
         # Hadamard outer products
@@ -321,15 +334,20 @@ class TestEinsum(ExtTestCase):
         self.optimize_compare('ab,bcd,cd->abcd')
         self.optimize_compare('ab,bcd,cd->abd')
 
-    def test_np_test_edge_cases(self):
+    def test_np_test_edge_cases1(self):
         # Difficult edge cases for optimization
         self.optimize_compare(
             'eac->ace', operands=[numpy.arange(24).reshape((2, 3, 4))])
         self.optimize_compare('eac->ace')
         self.optimize_compare('bd,db,eac->ace')
-        self.optimize_compare('eb,cb,fb->cef')
         self.optimize_compare('efc,dbc,acf,fd->abe')
         self.optimize_compare('ba,ac,da->bcd')
+
+    def test_np_test_edge_cases2(self):
+        # Difficult edge cases for optimization
+        self.optimize_compare(
+            'eac->ace', operands=[numpy.arange(24).reshape((2, 3, 4))])
+        self.optimize_compare('eb,cb,fb->cef')
 
     def test_np_test_random_cases(self):
         # Randomly built test cases
@@ -354,12 +372,10 @@ class TestEinsum(ExtTestCase):
         c = numpy.random.rand(5, 6)
         d = numpy.random.rand(10)
 
-        # self.optimize_compare('ijk,kl,jl', operands=[a, b, c])
         self.optimize_compare('ijk,kl,jl,i->i', operands=[a, b, c, d])
 
         e = numpy.random.rand(1, 1, 5, 4)
         f = numpy.random.rand(7, 7)
-        # self.optimize_compare('abjk,kl,jl', operands=[e, b, c])
         self.optimize_compare('abjk,kl,jl,ab->ab', operands=[e, b, c, f])
 
     def test_np_test_broadcasting_dot_cases2(self):
@@ -412,6 +428,4 @@ class TestEinsum(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestEinsum().test_numpy_extended_dot_2_b()
-    TestEinsum().test_numpy_extended_dot_3()
     unittest.main()

@@ -50,6 +50,18 @@ class EinsumSubOp:
                 raise RuntimeError(
                     "perm has duplicated values %r (name=%r)."
                     "" % (perm, self.name))
+        elif self.name == 'matmul':
+            self._check_arg_('axes', tuple)
+            self._check_arg_('left', tuple)
+            self._check_arg_('right', tuple)
+            axes = self.kwargs['axes']
+            left = self.kwargs['left']
+            right = self.kwargs['right']
+            for a in axes:
+                if a in left and a in right:
+                    raise RuntimeError(
+                        "One axis belongs to every set (axes, left, right). "
+                        "axes=%r, left=%r, right=%r." % (axes, left, right))
 
     def __repr__(self):
         inps = ", ".join(map(str, self.inputs))
