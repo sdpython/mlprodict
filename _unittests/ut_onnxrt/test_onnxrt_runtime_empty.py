@@ -54,7 +54,8 @@ class TestOnnxrtRuntimeEmpty(ExtTestCase):
             'AddUnknown', ['X', 'Zt'], ['Z'], name='Z')
         graph_def = helper.make_graph(
             [node_def, node_def2], 'test-model', [X, Y], [Z])
-        model_def = helper.make_model(graph_def, producer_name='onnx-example')
+        model_def = helper.make_model(
+            graph_def, producer_name='mlprodict', ir_version=6, producer_version='0.1')
         oinf = OnnxInference(model_def, runtime='empty')
         self.assertNotEmpty(oinf)
         dot = oinf.to_dot()

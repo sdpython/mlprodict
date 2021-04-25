@@ -389,7 +389,8 @@ class TestOnnxrtSimple(ExtTestCase):
             [make_tensor_value_info("X", TensorProto.FLOAT16, [3]),  # pylint: disable=E1101
              make_tensor_value_info("Y", TensorProto.FLOAT16, [3])],  # pylint: disable=E1101
             [make_tensor_value_info("Z", TensorProto.FLOAT16, [3])])  # pylint: disable=E1101
-        model_proto = make_model(graph)
+        model_proto = make_model(
+            graph, producer_name='mlprodict', ir_version=6, producer_version='0.1')
 
         oinf = OnnxInference(model_proto)
         x_val = [1, 2, -3]

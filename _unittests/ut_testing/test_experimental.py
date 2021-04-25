@@ -27,7 +27,8 @@ class TestExperimental(ExtTestCase):
         npads = numpy.array(pads, dtype=numpy.int64)
         op = helper.make_node('Pad', ['X', 'P'], ['Y'])
         graph = helper.make_graph([op], 'graph', [X, P], [Y])
-        model = helper.make_model(graph, producer_name='model')
+        model = helper.make_model(
+            graph, producer_name='mlprodict', ir_version=6, producer_version='0.1')
         op_set = model.opset_import[0]  # pylint: disable=E1101
         op_set.version = get_opset_number_from_onnx()
         sess = InferenceSession(model.SerializeToString())
