@@ -177,12 +177,31 @@ class TestEinsum(ExtTestCase):
         self.assertEqualArray(exp, res)
 
     def test_decompose_einsum_equation_py(self):
+        m1 = numpy.arange(0, 24).astype(numpy.float32).reshape((2, 3, 4))
+        m2 = numpy.arange(0, 20).astype(numpy.float32).reshape((4, 5))
+        verbose = False
+        for strat in ['numpy', 'simple']:
+            with self.subTest(strategy=strat):
+                seq = decompose_einsum_equation(
+                    "bac,ch->ah", (2, 3, 4), (4, 5), strategy=strat,
+                    verbose=verbose)
+                res1 = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
+                res2 = apply_einsum_sequence(
+                    seq, m1, m2, matmul_impl='py', verbose=verbose)
+                if strat == 'simple':
+                    self.assertRaise(
+                        lambda: apply_einsum_sequence(
+                            seq, m1, m2, matmul_impl='py2'),  # pylint: disable=W0640
+                        ValueError)
+                self.assertEqualArray(res1, res2)
+
+    def test_decompose_einsum_equation_pyf(self):
         m1 = numpy.arange(0, 8).astype(numpy.float32).reshape((2, 2, 2))
         m2 = numpy.arange(0, 4).astype(numpy.float32).reshape((2, 2))
         seq = decompose_einsum_equation(
             "bac,ch->ah", (2, 2, 2), (2, 2))
         res1 = apply_einsum_sequence(seq, m1, m2)
-        res2 = apply_einsum_sequence(seq, m1, m2, matmul_impl='py')
+        res2 = apply_einsum_sequence(seq, m1, m2, matmul_impl='pyf')
         self.assertEqualArray(res1, res2)
 
     def test_einsum_sub_op(self):
@@ -214,18 +233,20 @@ class TestEinsum(ExtTestCase):
         res = apply_einsum_sequence(seq, m1, verbose=verbose)
         self.assertEqualArray(exp, res)
 
-    def common_test_case_2(self, equation, verbose=False):
+    def common_test_case_2(self, equation, verbose=False, strategy='simple'):
         m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
         m2 = numpy.arange(4).reshape((2, 2)) + 100
         exp = numpy.einsum(equation, m1, m2)
 
         seq = decompose_einsum_equation(
-            equation, m1.shape, m2.shape, verbose=verbose)
+            equation, m1.shape, m2.shape, verbose=verbose, strategy=strategy)
         res = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
         self.assertEqualArray(exp, res)
 
     def test_case_2_A(self):
-        self.common_test_case_2('abc,cd->abc')
+        for strat in ['simple', 'numpy']:
+            with self.subTest(strategy=strat):
+                self.common_test_case_2('abc,cd->abc', strategy=strat)
 
     def test_many_2(self):
         m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
@@ -310,9 +331,16 @@ class TestEinsum(ExtTestCase):
 
         shapes = [m.shape for m in inputs]
 
-        seq = decompose_einsum_equation(equation, *shapes, verbose=verbose)
-        got = apply_einsum_sequence(seq, *inputs, verbose=verbose)
-        self.assertEqualArray(exp, got, decimal=6)
+        with self.subTest(strategy='numpy'):
+            seq = decompose_einsum_equation(
+                equation, *shapes, verbose=verbose, strategy='numpy')
+            got = apply_einsum_sequence(seq, *inputs, verbose=verbose)
+            self.assertEqualArray(exp, got, decimal=6)
+        with self.subTest(strategy='simple'):
+            seq = decompose_einsum_equation(
+                equation, *shapes, verbose=verbose)
+            got = apply_einsum_sequence(seq, *inputs, verbose=verbose)
+            self.assertEqualArray(exp, got, decimal=6)
 
     def test_numpy_test_hadamard_like_products(self):
         # Hadamard outer products
@@ -345,11 +373,11 @@ class TestEinsum(ExtTestCase):
 
     def test_np_test_edge_cases1(self):
         # Difficult edge cases for optimization
+        self.optimize_compare('efc,dbc,acf,fd->abe', verbose=False)
         self.optimize_compare(
             'eac->ace', operands=[numpy.arange(24).reshape((2, 3, 4))])
         self.optimize_compare('eac->ace')
         self.optimize_compare('bd,db,eac->ace')
-        self.optimize_compare('efc,dbc,acf,fd->abe')
         self.optimize_compare('ba,ac,da->bcd')
 
     def test_np_test_edge_cases2(self):
@@ -412,13 +440,13 @@ class TestEinsum(ExtTestCase):
         self.optimize_compare('abc,cba')
 
     def test_np_test_random_cases_difficult(self):
+        self.optimize_compare('db,bc,cfc->d', verbose=False)
         self.optimize_compare('cac,c,h->h')
         self.optimize_compare('cfc,c,h->h')
         self.optimize_compare('cfc,c,d->d')
         self.optimize_compare('c,cfc,d->d')
         self.optimize_compare('d,c,cfc->d')
         self.optimize_compare('d,bc,cfc->d')
-        self.optimize_compare('db,bc,cfc->d')
         self.optimize_compare('adb,bc,cfc->d')
         self.optimize_compare('adb,bc,fa,cfc->d')
         self.optimize_compare('ecb,fef,bad,ed->ac')
@@ -437,4 +465,5 @@ class TestEinsum(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestEinsum().test_np_test_random_cases_difficult()
     unittest.main()

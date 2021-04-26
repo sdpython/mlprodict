@@ -7,7 +7,8 @@ from contextlib import redirect_stdout
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing.einsum_impl_ext import (
-    numpy_extended_dot, numpy_extended_dot_python)
+    numpy_extended_dot, numpy_extended_dot_python,
+    numpy_extended_dot_matrix)
 
 
 confs = [
@@ -1390,16 +1391,27 @@ confs = [
 
 class TestEinsumGenericdot(ExtTestCase):
 
-    def test_generic_dot(self):
+    def test_generic_dot_python(self):
 
         for i, conf in enumerate(confs):
-            with self.subTest(i=i, conf=conf):
+            with self.subTest(i=i, total=len(confs), conf=conf):
                 r = self.common_test(conf["shape1"], conf["shape2"],
-                                     conf["axes"], conf["left"], conf["right"])
+                                     conf["axes"], conf["left"], conf["right"],
+                                     numpy_extended_dot_python)
                 if not r:
                     print(i, conf)
 
-    def common_test(self, sh1, sh2, axes, left, right):
+    def test_generic_dot_matrix(self):
+
+        for i, conf in enumerate(confs):
+            with self.subTest(i=i, total=len(confs), conf=conf):
+                r = self.common_test(conf["shape1"], conf["shape2"],
+                                     conf["axes"], conf["left"], conf["right"],
+                                     numpy_extended_dot_matrix)
+                if not r:
+                    print(i, conf)
+
+    def common_test(self, sh1, sh2, axes, left, right, fct):
 
         m1 = numpy.empty(sh1).ravel()
         m1 = numpy.arange(len(m1)).reshape(sh1).astype(numpy.float64) + 10
@@ -1411,10 +1423,9 @@ class TestEinsumGenericdot(ExtTestCase):
         except ValueError:
             return False
         try:
-            dot = numpy_extended_dot_python(m1, m2, axes, left, right)
+            dot = fct(m1, m2, axes, left, right)
         except (IndexError, NotImplementedError, ValueError):
-            dot = numpy_extended_dot_python(
-                m1, m2, axes, left, right, verbose=True)
+            dot = fct(m1, m2, axes, left, right, verbose=True)
 
         try:
             self.assertEqualArray(exp, dot)
@@ -1427,8 +1438,7 @@ class TestEinsumGenericdot(ExtTestCase):
         f = io.StringIO()
         with redirect_stdout(f):
             exp = numpy_extended_dot(m1, m2, axes, left, right)
-            dot = numpy_extended_dot_python(
-                m1, m2, axes, left, right, verbose=True)
+            dot = fct(m1, m2, axes, left, right, verbose=True)
         try:
             self.assertEqualArray(exp, dot)
         except AssertionError:
@@ -1442,5 +1452,5 @@ class TestEinsumGenericdot(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestEinsumGenericdot().test_generic_dot()
+    # TestEinsumGenericdot().test_generic_dot_matrix()
     unittest.main()

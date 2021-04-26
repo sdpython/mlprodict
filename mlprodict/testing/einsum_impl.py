@@ -124,8 +124,9 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple", verbose=Fals
         if not isinstance(sh, tuple):
             raise TypeError(
                 "All shapes must be tuples for %r is not." % sh)
-    if strategy == "simple":
-        return _decompose_einsum_equation_simple(equation, *shapes, verbose=verbose)
+    if strategy in ("simple", "numpy"):
+        return _decompose_einsum_equation_simple(
+            equation, *shapes, verbose=verbose, keep_matmul=strategy == 'simple')
     raise ValueError("Unknown strategy %r." % strategy)
 
 
@@ -234,9 +235,92 @@ def _apply_squeeze_transpose(op, row_last, row_output):
         yield op
 
 
-def _decompose_einsum_equation_simple(equation, *shapes, verbose=False):
+def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
+                         keep_matmul, verbose=False):
+    """
+    Decomposes the generic matrix multiplication into numpy operations
+    if *keep_matmul* is False.
+    """
+    if keep_matmul:
+        if verbose:
+            print("  -- MATMUL -> matmul axes=%r left=%r right=%r"
+                  "" % (axes, left, right))
+        yield EinsumSubOp(fd, 'matmul', op1, op2,
+                          axes=axes, left=left, right=right, ndim=ndim)
+
+    elif len(axes) == 0:
+        if verbose:
+            print("  -- MATMUL -> mul axes=%r left=%r right=%r"
+                  "" % (axes, left, right))
+        yield EinsumSubOp(fd, 'mul', op1, op2)
+
+    elif (len(set(axes) & set(left)) == 0 and
+            len(set(axes) & set(right)) == 0):
+
+        # No intersection between axes and right: matrix multiplication
+        if verbose:
+            print("  -- MATMUL -> batch_dot axes=%r left=%r right=%r"
+                  "" % (axes, left, right))
+
+        all_axes = set(left) | set(right) | set(axes)
+        common_axes = list(set(left) & set(right))
+        for i in range(ndim):
+            if i not in all_axes:
+                common_axes.append(i)
+        common_axes.sort()
+
+        # Transpose
+        i_axes = [(-1 if i in common_axes
+                   else (1 if i in axes else 0), i)
+                  for i in range(ndim)]
+        i_axes.sort()
+        perm = [_[1] for _ in i_axes]
+        perm_left = [i for i in range(len(perm)) if perm[i] in left]
+        perm_right = [i for i in range(len(perm)) if perm[i] in right]
+        op1 = EinsumSubOp(fd, 'transpose_mm', op1, op2, perm=tuple(perm))
+        yield op1
+        op2 = EinsumSubOp(fd, 'transpose', op2, perm=tuple(perm))
+        yield op2
+
+        # Reshape
+        all_axes = list(range(0, ndim))
+        new_axes = all_axes[-len(axes):]
+        new_common_axes = all_axes[:len(common_axes)]
+        not_in_both = []
+        for i in range(0, ndim):
+            if i not in left and i not in right and i not in common_axes:
+                not_in_both.append(i)
+
+        op = EinsumSubOp(fd, 'batch_dot', op1, op2,
+                         batch_axes=tuple(new_common_axes),
+                         keep_axes=None, sum_axes=tuple(new_axes),
+                         left=tuple(perm_left), right=tuple(perm_right),
+                         ndim=ndim)
+        yield op
+
+        # Transpose again, reverse perm
+        rev_perm = perm.copy()
+        for i, p in enumerate(perm):
+            rev_perm[p] = i
+        op_unused = EinsumSubOp(fd, 'transpose_mm', op1,
+                                op, perm=tuple(rev_perm))
+        yield op_unused
+        op = EinsumSubOp(fd, 'transpose', op, perm=tuple(rev_perm))
+        yield op
+    else:
+        raise NotImplementedError(
+            "axes and right or left have axes in common, "
+            "axes=%r left=%r right=%r ndim=%r." % (
+                axes, left, right, ndim))
+
+
+def _decompose_einsum_equation_simple(equation, *shapes, verbose=False,
+                                      keep_matmul=True):
     """
     Applies strategy simple of function @see fn decompose_einsum_equation.
+
+    :param keep_matmul: break matmul operator into numpy operations
+        or keep is it is
     """
     letters, mat, lengths, duplicates = analyse_einsum_equation(equation)
     if len(letters) != mat.shape[1]:
@@ -322,12 +406,16 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False):
             if verbose:
                 print("  -- MATMUL common_dims=%r" % common_dims)
                 print(rows)
-            op = EinsumSubOp(fd, 'matmul', graph.last_op, op,
-                             axes=tuple(common_dims),
-                             left=tuple(left), right=tuple(right),
-                             ndim=rows.shape[1])
-            op.compute_output_row(rows[0, :], rows[1, :], verbose=verbose)
-            marked = graph.append(op)
+            for iop in _apply_einsum_matmul(fd, graph.last_op, op,
+                                            axes=tuple(common_dims),
+                                            left=tuple(left),
+                                            right=tuple(right),
+                                            ndim=rows.shape[1],
+                                            keep_matmul=keep_matmul,
+                                            verbose=verbose):
+                op = iop
+                op.compute_output_row(rows[0, :], rows[1, :], verbose=verbose)
+                marked = graph.append(op)
 
         # End
         graph.mark(i, marked)

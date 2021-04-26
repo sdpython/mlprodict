@@ -6,19 +6,22 @@ import numpy
 from .einsum_impl_ext import (
     numpy_extended_dot, numpy_diagonal,
     _numpy_extended_dot_equation,
-    numpy_extended_dot_python)
+    numpy_extended_dot_python,
+    numpy_extended_dot_matrix)
 
 
 class EinsumSubOp:
     """
     Defines a sub operation used in Einsum decomposition.
 
-    :param name: name (reshape, transpose, reduce_sum, matmul, id)
+    :param name: name (reshape, transpose, reduce_sum, matmul, id,
+        squeeze, diagonal, mul, batch_dot)
     :param inputs: inputs
     :param kwargs: arguments
     """
     _allowed = {'expand_dims', 'transpose', 'reduce_sum', 'matmul', 'id',
-                'squeeze', 'diagonal'}
+                'squeeze', 'diagonal', 'mul', 'batch_dot',
+                'transpose_mm'}
 
     def __init__(self, full_dim, name, *inputs, **kwargs):
         self.full_dim = full_dim
@@ -85,10 +88,12 @@ class EinsumSubOp:
             return "~" + eq
         return None
 
-    def _check_arg_(self, name, typ):
+    def _check_arg_(self, name, typ, empty=False):
         if name not in self.kwargs:
             raise RuntimeError(
                 "Parameter %r not found for operator %r." % (name, self.name))
+        if empty and self.kwargs[name] is None:
+            return
         if not isinstance(self.kwargs[name], typ):
             raise TypeError(
                 "Unexpected type %r for parameter %r and parameter %r."
@@ -117,6 +122,11 @@ class EinsumSubOp:
         for i, p in enumerate(self.kwargs['perm']):
             row[i] = cpy[p]
         self._check_row_(row, verbose=verbose)
+
+    def _compute_output_row_transpose_mm(self, row, row2=None, verbose=False):
+        if row2 is None:
+            raise RuntimeError("transpose_mm expects a second input.")
+        self._compute_output_row_transpose(row2, row2=None, verbose=verbose)
 
     def _compute_output_row_expand_dims(self, row, row2=None, verbose=False):
         self._check_arg_('axis', tuple)
@@ -151,6 +161,40 @@ class EinsumSubOp:
         for a in self.kwargs['axes']:
             if a not in self.kwargs['right']:
                 row2[a] = -1
+        self._check_row_(row2, verbose=verbose)
+
+    def _compute_output_row_batch_dot(self, row, row2=None, verbose=False):
+        self._check_arg_('batch_axes', tuple)
+        self._check_arg_('keep_axes', tuple, empty=True)
+        self._check_arg_('sum_axes', tuple)
+        self._check_arg_('left', tuple)
+        self._check_arg_('right', tuple)
+        self._check_arg_('ndim', int)
+        if row2 is None:
+            raise RuntimeError("batch_dot expects two inputs.")
+        if verbose:
+            batch_axes = self.kwargs['batch_axes']
+            keep_axes = self.kwargs['keep_axes']
+            sum_axes = self.kwargs['sum_axes']
+            left = self.kwargs['left']
+            right = self.kwargs['right']
+            ndim = self.kwargs['ndim']
+            print("    BATCH_DOT %r @ %r batch_axes=%r keep_axes=%r sum_axes=%r "
+                  "left=%r right=%r eq=%r" % (
+                      row, row2, batch_axes, keep_axes, sum_axes, left, right,
+                      _numpy_extended_dot_equation(ndim, ndim, sum_axes, left, right)))
+        row2[:] = numpy.maximum(row, row2)
+        for a in self.kwargs['sum_axes']:
+            if a not in self.kwargs['right']:
+                row2[a] = -1
+        self._check_row_(row2, verbose=verbose)
+
+    def _compute_output_row_mul(self, row, row2=None, verbose=False):
+        if row2 is None:
+            raise RuntimeError("mul expects two inputs.")
+        if verbose:
+            print("    MUL %r @ %r" % (row, row2))
+        row2[:] = numpy.maximum(row, row2)
         self._check_row_(row2, verbose=verbose)
 
     def _compute_output_row_squeeze(self, row, row2=None, verbose=False):
@@ -267,6 +311,18 @@ class EinsumSubOp:
         self._check_shape_(output)
         return output
 
+    def _apply_transpose_mm(self, data, verbose=False, **kwargs):
+        self._check_inputs_(2, True)
+        inp = self.inputs[0]
+        m = self._get_data(data, inp)
+        self._check_shape_(m)
+        if verbose:
+            print("- %s, shape=%r perm=%r" % (
+                self.name, m.shape, self.kwargs['perm']))
+        output = numpy.transpose(m, self.kwargs['perm'])
+        self._check_shape_(output)
+        return output
+
     def _apply_matmul(self, data, verbose=False, **kwargs):
         self._check_inputs_(2)
         inp1 = self.inputs[0]
@@ -283,12 +339,88 @@ class EinsumSubOp:
             print("- %s, shapes=%r @ %r axes=%r left=%r right=%r" % (
                 self.name, m1.shape, m2.shape, axes, left, right))
 
-        if kwargs.get('matmul_impl', None) == 'py':
+        impl = kwargs.get('matmul_impl', None)
+        if impl == 'pyf':
+            output = numpy_extended_dot_matrix(m1, m2, axes, left, right,
+                                               verbose=verbose)
+        elif impl == 'py':
             output = numpy_extended_dot_python(m1, m2, axes, left, right,
                                                verbose=verbose)
-        else:
+        elif impl is None:
             output = numpy_extended_dot(m1, m2, axes, left, right,
                                         verbose=verbose)
+        else:
+            raise ValueError(
+                "Unknown implementation of numpy_extended_dot ({}).".format(impl))
+        self._check_shape_(output)
+        return output
+
+    def _apply_mul(self, data, verbose=False, **kwargs):
+        self._check_inputs_(2)
+        inp1 = self.inputs[0]
+        inp2 = self.inputs[1]
+        m1 = self._get_data(data, inp1)
+        m2 = self._get_data(data, inp2)
+        self._check_shape_(m1)
+        self._check_shape_(m2)
+
+        if verbose:
+            print("- %s, shapes=%r @ %r" % (self.name, m1.shape, m2.shape))
+
+        output = m1 * m2
+        self._check_shape_(output)
+        return output
+
+    def _apply_batch_dot(self, data, verbose=False, **kwargs):
+        self._check_inputs_(2)
+        inp1 = self.inputs[0]
+        inp2 = self.inputs[1]
+        m1 = self._get_data(data, inp1)
+        m2 = self._get_data(data, inp2)
+        self._check_shape_(m1)
+        self._check_shape_(m2)
+        batch_axes = self.kwargs['batch_axes']
+        keep_axes = self.kwargs['keep_axes']
+        sum_axes = self.kwargs['sum_axes']
+        left = self.kwargs['left']
+        right = self.kwargs['right']
+
+        if verbose:
+            print("- %s, shapes=%r @ %r batch_axes=%r keep_axes=%r "
+                  "sum_axes=%r" % (
+                      self.name, m1.shape, m2.shape, batch_axes, keep_axes, sum_axes))
+
+        if len(m1.shape) != len(m2.shape):
+            raise RuntimeError(
+                "batch_dot only work with two tensors with the same number "
+                "of dimensions not %r @ %r." % (m1.shape, m2.shape))
+
+        dim0 = int(numpy.prod([m1.shape[i] for i in batch_axes]))
+        dimb = int(-1 if keep_axes is None else numpy.prod(
+            [m1.shape[i] for i in keep_axes]))
+        dim1 = int(numpy.prod([m1.shape[i] for i in sum_axes]))
+        dim2 = int(numpy.prod([m2.shape[i] for i in sum_axes]))
+
+        m1sh = m1.reshape((dim0, dimb, dim1))
+        m2sh = m2.reshape((dim0, dimb, dim2))
+        dot = m1sh @ numpy.transpose(m2sh, (0, 2, 1))
+
+        # new shape
+        taken = set(batch_axes) | set(sum_axes)
+        ax = [i for i in range(len(m1.shape)) if i not in taken]
+        new_shape = ([m1.shape[i] for i in batch_axes] +
+                     [m1.shape[i] for i in left] +
+                     [m2.shape[i] for i in right])
+        while len(new_shape) < len(m1.shape):
+            new_shape.append(1)
+
+        if verbose:
+            print("- %s, shapes=%r @ %r -> %r" % (
+                self.name, m1sh.shape, m2sh.shape, dot.shape))
+            print("- %s, batch_axes=%r ax=%r new_shape=%r left=%r right=%r" % (
+                self.name, batch_axes, ax, new_shape, left, right))
+
+        output = dot.reshape(tuple(new_shape))
         self._check_shape_(output)
         return output
 
@@ -335,7 +467,8 @@ class EinsumSubOp:
         """
         if verbose:
             print()
-            print("apply %r." % self.name)
+            print("apply %r  (%s)." % (
+                self.name, ", ".join(map(lambda s: str(id(s)), self.inputs))))
 
         method_name = "_apply_%s" % self.name
         meth = getattr(self, method_name, None)
