@@ -18,10 +18,14 @@ class EinsumSubOp:
         squeeze, diagonal, mul, batch_dot)
     :param inputs: inputs
     :param kwargs: arguments
+
+    Operator suffixed by `_mm` (*transpose_mm*, *reduce_sum_mm*)
+    are equivalent to the same operator without the suffix
+    but takes two inputs and only changes the first one.
     """
     _allowed = {'expand_dims', 'transpose', 'reduce_sum', 'matmul', 'id',
                 'squeeze', 'diagonal', 'mul', 'batch_dot',
-                'transpose_mm'}
+                'transpose_mm', 'reduce_sum_mm'}
 
     def __init__(self, full_dim, name, *inputs, **kwargs):
         self.full_dim = full_dim
@@ -141,6 +145,11 @@ class EinsumSubOp:
         for a in self.kwargs['axes']:
             row[a] = -1
         self._check_row_(row, verbose=verbose)
+
+    def _compute_output_row_reduce_sum_mm(self, row, row2=None, verbose=False):
+        if row2 is None:
+            raise RuntimeError("reduce_sum_mm expects a second input.")
+        self._compute_output_row_reduce_sum(row2, row2=None, verbose=verbose)
 
     def _compute_output_row_matmul(self, row, row2=None, verbose=False):
         self._check_arg_('axes', tuple)
@@ -434,6 +443,18 @@ class EinsumSubOp:
             print("- %s, shape=%r axes=%r" % (
                 self.name, m.shape, self.kwargs['axes']))
         output = numpy.sum(m, axis=axes, keepdims=True)
+        self._check_shape_(output)
+        return output
+
+    def _apply_reduce_sum_mm(self, data, verbose=False, **kwargs):
+        self._check_inputs_(2, True)
+        inp = self.inputs[0]
+        m = self._get_data(data, inp)
+        self._check_shape_(m)
+        if verbose:
+            print("- %s, shape=%r axes=%r" % (
+                self.name, m.shape, self.kwargs['axes']))
+        output = numpy.sum(m, self.kwargs['axes'])
         self._check_shape_(output)
         return output
 

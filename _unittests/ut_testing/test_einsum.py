@@ -244,9 +244,10 @@ class TestEinsum(ExtTestCase):
         self.assertEqualArray(exp, res)
 
     def test_case_2_A(self):
-        for strat in ['simple', 'numpy']:
+        for strat in ['numpy', 'simple']:
             with self.subTest(strategy=strat):
-                self.common_test_case_2('abc,cd->abc', strategy=strat)
+                self.common_test_case_2(
+                    'abc,cd->abc', strategy=strat, verbose=True)
 
     def test_many_2(self):
         m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
@@ -465,5 +466,5 @@ class TestEinsum(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestEinsum().test_np_test_random_cases_difficult()
+    # TestEinsum().test_case_2_A()
     unittest.main()

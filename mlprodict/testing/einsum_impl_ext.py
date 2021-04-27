@@ -89,12 +89,6 @@ def _numpy_extended_dot_equation(m1_dim, m2_dim, axes, left, right):
     _check_(left, m1_dim)
     _check_(right, m1_dim)
 
-    for a in axes:
-        if a in left and a in right:
-            raise RuntimeError(
-                "One axis belongs to every set (axes, left, right). "
-                "axes=%r, left=%r, right=%r." % (axes, left, right))
-
     l1 = [chr(i + 97) for i in range(m1_dim)]
     l2 = [chr(i + 97) for i in range(m1_dim)]
     l3 = [chr(i + 97) for i in range(m1_dim)]
@@ -262,7 +256,7 @@ def numpy_extended_dot_ouput_shape(m1, m2, axes, left, right):
         if (i in left and m1.shape[i] != m2.shape[i] and
                 m1.shape[i] != 1 and m2.shape[i] != 1):
             raise RuntimeError(
-                "Matrices should the same dimension for dimension %d, "
+                "Matrices should have the same dimension for dimension %d, "
                 "shapes=%r @ %r." % (i, m1.shape, m2.shape))
         new_shape[i] = m2.shape[i]
     return new_shape
@@ -321,11 +315,11 @@ def _numpy_extended_dot_python_update_broadcast(
         return "".join("o" if b else "." for b in c)
 
     if verbose:
-        print("GENERICDOT: before broadcast %s,%s->%s      or %s" % (
+        print("[GENERICDOT] before broadcast %s,%s->%s      or %s" % (
             "".join(l1), "".join(l2), "".join(l3),
             _numpy_extended_dot_equation(
                 len(m1.shape), len(m1.shape), axes, left, right)))
-        print("GENERICDOT: names=%s kind=%r common=%s broadcast=%s" % (
+        print("[GENERICDOT] names=%s kind=%r common=%s broadcast=%s" % (
             "".join(names), kind.tolist(),
             dispb(common), dispb(broadcast)))
 
@@ -343,7 +337,7 @@ def _numpy_extended_dot_python_update_broadcast(
         let = [l1[p], l2[p], l3[p]]
         inp = 1 if dim[0] == 1 else 0
         if verbose:
-            print("GENERICDOT: name=%s dim=%r let=%r inp=%r p=%r" % (
+            print("[GENERICDOT] name=%s dim=%r let=%r inp=%r p=%r" % (
                 names[i], dim, let, inp, p))
             print("    B0 l1=%r, l2=%r l3=%r" % (l1, l2, l3))
         if (kind[i] & 4) > 0:
@@ -415,20 +409,20 @@ def numpy_extended_dot_python(m1, m2, axes, left, right, verbose=False):
         [-1 if c not in names else names.index(c) for c in l3], dtype=numpy.int64)
 
     if verbose:
-        print("GENERICDOT: %s,%s->%s      or %s" % (
+        print("[GENERICDOT] %s,%s->%s      or %s" % (
             "".join(l1), "".join(l2), "".join(l3),
             _numpy_extended_dot_equation(
                 len(m1.shape), len(m1.shape), axes, left, right)))
-        print("GENERICDOT: shape1=%r shape2=%r shape=%r" % (
+        print("[GENERICDOT] shape1=%r shape2=%r shape=%r" % (
             m1.shape, m2.shape, res.shape))
-        print("GENERICDOT: axes=%r left=%r right=%r" % (axes, left, right))
-        print("GENERICDOT: pl1=%r pl2=%r plo=%r" % (pl1, pl2, plo))
-        print("GENERICDOT: names=%s kind=%r common=%s broadcast=%s" % (
+        print("[GENERICDOT] axes=%r left=%r right=%r" % (axes, left, right))
+        print("[GENERICDOT] pl1=%r pl2=%r plo=%r" % (pl1, pl2, plo))
+        print("[GENERICDOT] names=%s kind=%r common=%s broadcast=%s" % (
             "".join(names), kind.tolist(),
             dispb(common), dispb(broadcast)))
-        print("GENERICDOT: pos=%r" % pos.tolist())
-        print("GENERICDOT: cols=%r" % cols)
-        print("GENERICDOT: limits=%r" % limits)
+        print("[GENERICDOT] pos=%r" % pos.tolist())
+        print("[GENERICDOT] cols=%r" % cols)
+        print("[GENERICDOT] limits=%r" % limits)
 
     while indices[0] < limits[0]:
 
@@ -458,57 +452,95 @@ def numpy_extended_dot_python(m1, m2, axes, left, right, verbose=False):
 
 def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
     """
-    Implementation of @see fn numpy_extended_dot using dot product
-    and not a custom python implementation like
+    Implementation of @see fn numpy_extended_dot using dot product,
+    multiplication, transpose and reduction
+    but not a custom python implementation like
     @see fn numpy_extended_dot_python.
     """
     _common_check_numpy_extended_dot(m1, m2, axes, left, right)
 
-    if len(axes) == 0:
+    if verbose:
+        print("[GENERICDOT] shape1=%r shape2=%r axes=%r "
+              "left=%r right=%r -- %s" % (
+            m1.shape, m2.shape, axes, left, right,
+            _numpy_extended_dot_equation(
+                len(m1.shape), len(m1.shape), axes, left, right)))
+
+    if len(axes) == 0 and len(set(left) & set(right)) == 0:
         # Simple multiplication
-        if verbose:
-            print("GENERICDOT: Mul %r @ %r" % (m1.shape, m2.shape))
         res = m1 * m2
+        if verbose:
+            print("[GENERICDOT] Mul %r @ %r -> %r" % (
+                m1.shape, m2.shape, res.shape))
         return res
 
     if (len(set(axes) & set(left)) == 0 and
             len(set(axes) & set(right)) == 0):
 
         # No intersection between axes and right: matrix multiplication
+        # ReduceSum
+        right_no_left = set(right) - (set(right) & (set(left) | set(axes)))
+        if right_no_left:
+            red1 = m1.sum(axis=tuple(sorted(right_no_left)), keepdims=True)
+            if verbose:
+                print("[GENERICDOT] reducesumL=%r, %r -> %r" % (
+                    right_no_left, m1.shape, red1.shape))
+        else:
+            red1 = m1
 
-        common_axes = sorted(set(left) & set(right))
+        left_no_right = set(left) - (set(left) & (set(right) | set(axes)))
+        if left_no_right:
+            red2 = m2.sum(axis=tuple(sorted(left_no_right)), keepdims=True)
+            if verbose:
+                print("[GENERICDOT] reducesumR=%r, %r -> %r" % (
+                    left_no_right, m2.shape, red2.shape))
+        else:
+            red2 = m2
 
         # Transpose
+        common_axes = sorted(set(left) & set(right))
         i_axes = [(-1 if i in common_axes
                    else (1 if i in axes else 0), i)
                   for i in range(len(m1.shape))]
         i_axes.sort()
         perm = [_[1] for _ in i_axes]
-        trm1 = numpy.transpose(m1, axes=perm)
-        trm2 = numpy.transpose(m2, axes=perm)
-        all_axes = list(range(0, len(m1.shape)))
-        new_axes = all_axes[-len(axes):]
-        new_common_axes = all_axes[:len(common_axes)]
+        trm1 = numpy.transpose(red1, axes=perm)
+        trm2 = numpy.transpose(red2, axes=perm)
+        if verbose:
+            print("[GENERICDOT] transposeL=%r, %r -> %r" % (
+                perm, red1.shape, trm1.shape))
+            print("[GENERICDOT] transposeR=%r, %r -> %r" % (
+                perm, red2.shape, trm2.shape))
         final_shape = numpy_extended_dot_ouput_shape(m1, m2, axes, left, right)
+        perm_left = [i for i in range(len(perm)) if perm[i] in left]
+        perm_right = [i for i in range(len(perm)) if perm[i] in right]
 
         if verbose:
-            print("GENERICDOT: MatMul %r @ %r -> %r  --  %s" % (
+            print("[GENERICDOT] MatMul %r @ %r -> %r  --  %s" % (
                 m1.shape, m2.shape, final_shape,
                 _numpy_extended_dot_equation(
                     len(m1.shape), len(m1.shape), axes, left, right)))
-            print("GENERICDOT: axes=%r left=%r right=%r" % (axes, left, right))
-            print("GENERICDOT: perm=%r common_axes=%r" % (perm, common_axes))
+            print("[GENERICDOT] axes=%r left=%r right=%r" %
+                  (axes, left, right))
+            print("[GENERICDOT] perm=%r perm_left=%r "
+                  "perm_right=%r" % (
+                  perm, perm_left, perm_right))
 
         # Reshape
-        dim0 = int(numpy.prod([trm1.shape[i] for i in new_common_axes]))
-        dim0b = int(numpy.prod([trm2.shape[i] for i in new_common_axes]))
+        dim0 = int(numpy.prod([trm1.shape[i] for i in perm_left]))
+        dim0b = int(numpy.prod([trm2.shape[i] for i in perm_right]))
+        all_axes = list(range(0, len(m1.shape)))
+        new_axes = all_axes[-len(axes):]        
         dim1 = numpy.prod([trm1.shape[i] for i in new_axes])
         dim2 = numpy.prod([trm2.shape[i] for i in new_axes])
         if dim1 != dim2:
             raise RuntimeError(
                 "Summation axis do not have the same length %d != %d, "
-                "shape1=%r shape2=%r axes=%r left=%r right=%r." % (
-                    dim1, dim2, m1.shape, m2.shape, axes, left, right))
+                "shape1=%r shape2=%r trshape1=%r trshape2=%r "
+                "axes=%r left=%r right=%r (new_axes=%r)"
+                "." % (dim1, dim2, m1.shape, m2.shape,
+                       trm1.shape, trm2.shape,
+                       axes, left, right, new_axes))
         if dim0 != dim0b:
             raise RuntimeError(
                 "Looping axis do not have the same length %d != %d, "
@@ -519,14 +551,14 @@ def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
         shm2 = trm2.reshape((dim0, -1, dim2))
 
         if verbose:
-            print("GENERICDOT: Reshape %r @ %r -> %r @ %r" % (
+            print("[GENERICDOT] Reshape %r @ %r -> %r @ %r" % (
                 (dim0, -1, dim1), (dim0, -1, dim2), shm1.shape, shm2.shape))
 
         # Multiplication (this should be done in a different way.
         res = shm1 @ numpy.transpose(shm2, axes=(0, 2, 1))
 
         if verbose:
-            print("GENERICDOT: Shape after multiplication %s" % (res.shape, ))
+            print("[GENERICDOT] Shape after multiplication %s" % (res.shape, ))
 
         # Transpose again
         not_in_both = []
@@ -543,7 +575,7 @@ def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
                          [1 for i in not_in_both])
 
         if verbose:
-            print("GENERICDOT: current_shape=%r final_shape=%r" % (
+            print("[GENERICDOT] current_shape=%r final_shape=%r" % (
                 current_shape, final_shape))
 
         if len(current_shape) != len(final_shape):
@@ -560,14 +592,30 @@ def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
         perm = [p[1] for p in perm]
 
         if verbose:
-            print("GENERICDOT: ordered_axes=%r perm=%r" % (
+            print("[GENERICDOT] ordered_axes=%r perm=%r" % (
                 ordered_axes, perm))
 
         return numpy.transpose(res, axes=perm)
 
     else:
+        # Multiplication and Matrix multiplication at the same time.
+        l_axes = set(left) & set(axes)
+        r_axes = set(right) & set(axes)
+        if r_axes and not l_axes:
+            new_axes = list(a for a in axes if a not in right)
+            new_left = list(sorted(set(left) | r_axes))
+            if verbose:
+                eq1 = _numpy_extended_dot_equation(
+                    len(m1.shape), len(m1.shape), axes, left, right)
+                eq2 = _numpy_extended_dot_equation(
+                    len(m1.shape), len(m1.shape), new_axes, new_left, right)
+                print("[GENERICDOT] replace left %r by %r axes %r by %r, "
+                      "eq %r by %r" % (
+                          left, new_left, axes, new_axes, eq1, eq2))
+            return numpy_extended_dot_matrix(m1, m2, new_axes, new_left, right,
+                                             verbose=verbose)
         raise RuntimeError(
-            "shape1=%r shape2=%r axes=%r left=%r right=%r final_shape=%r eq=%s." % (
-                m1.shape, m2.shape, axes, left, right, final_shape,
+            "shape1=%r shape2=%r axes=%r left=%r right=%r eq=%s." % (
+                m1.shape, m2.shape, axes, left, right,
                 _numpy_extended_dot_equation(
                     len(m1.shape), len(m1.shape), axes, left, right)))

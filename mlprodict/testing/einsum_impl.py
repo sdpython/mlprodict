@@ -236,7 +236,7 @@ def _apply_squeeze_transpose(op, row_last, row_output):
 
 
 def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
-                         keep_matmul, verbose=False):
+                         keep_matmul, row1, row2, verbose=False):
     """
     Decomposes the generic matrix multiplication into numpy operations
     if *keep_matmul* is False.
@@ -248,7 +248,7 @@ def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
         yield EinsumSubOp(fd, 'matmul', op1, op2,
                           axes=axes, left=left, right=right, ndim=ndim)
 
-    elif len(axes) == 0:
+    elif len(axes) == 0 and len(set(left) & set(right)) == 0:
         if verbose:
             print("  -- MATMUL -> mul axes=%r left=%r right=%r"
                   "" % (axes, left, right))
@@ -268,6 +268,26 @@ def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
             if i not in all_axes:
                 common_axes.append(i)
         common_axes.sort()
+
+        # ReduceSum*
+        has_dim = set(i for i in range(len(row1)) if row1[i] >= 0)
+        right_no_left = (set(right) & has_dim) - (set(right) & (set(left) | set(axes)))
+        if right_no_left:
+            if verbose:
+                print('  -- MATMUL reduce1 has_dim=%r axes=%r' % (has_dim, right_no_left))
+            op1 = EinsumSubOp(fd, 'reduce_sum_mm', op1, op2,
+                              axes=tuple(sorted(right_no_left)))
+            yield op1
+
+        has_dim = set(i for i in range(len(row2)) if row2[i] >= 0)
+        left_no_right = (set(left) & has_dim) - (set(left) & (set(right) | set(axes)))
+        if left_no_right:
+            if verbose:
+                print('  -- MATMUL reduce2 has_dim=%r axes=%r' % (has_dim, left_no_right))
+            op2 = EinsumSubOp(fd, 'reduce_sum', op2,
+                              axes=tuple(sorted(left_no_right)))
+            yield op2
+        
 
         # Transpose
         i_axes = [(-1 if i in common_axes
@@ -406,13 +426,11 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False,
             if verbose:
                 print("  -- MATMUL common_dims=%r" % common_dims)
                 print(rows)
-            for iop in _apply_einsum_matmul(fd, graph.last_op, op,
-                                            axes=tuple(common_dims),
-                                            left=tuple(left),
-                                            right=tuple(right),
-                                            ndim=rows.shape[1],
-                                            keep_matmul=keep_matmul,
-                                            verbose=verbose):
+            for iop in _apply_einsum_matmul(
+                    fd, graph.last_op, op, axes=tuple(common_dims),
+                    left=tuple(left), right=tuple(right),
+                    ndim=rows.shape[1], keep_matmul=keep_matmul,
+                    row1=rows[0, :], row2=rows[1, :], verbose=verbose):
                 op = iop
                 op.compute_output_row(rows[0, :], rows[1, :], verbose=verbose)
                 marked = graph.append(op)

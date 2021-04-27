@@ -1386,6 +1386,8 @@ confs = [
          axes=(), left=(0, 1), right=(0, 1, 2)),
     dict(shape1=(2, 1), shape2=(1, 2), axes=(), left=(0,), right=(1,)),
     dict(shape1=(2, 2), shape2=(2, 2), axes=(), left=(0, 1), right=(0, 1)),
+    dict(shape1=(2, 2, 1), shape2=(1, 2, 2),
+         axes=[], left=[0, 2], right=[1, 2]),
 ]
 
 
@@ -1411,7 +1413,55 @@ class TestEinsumGenericdot(ExtTestCase):
                 if not r:
                     print(i, conf)
 
-    def common_test(self, sh1, sh2, axes, left, right, fct):
+    def test_generic_dot_matrix_conf1(self):
+
+        conf = dict(shape1=(2, 2, 1), shape2=(1, 2, 2),
+                    axes=[2], left=[0], right=[1, 2])
+        self.common_test(conf["shape1"], conf["shape2"],
+                         conf["axes"], conf["left"], conf["right"],
+                         numpy_extended_dot_python)
+        self.common_test(conf["shape1"], conf["shape2"],
+                         conf["axes"], conf["left"], conf["right"],
+                         numpy_extended_dot_matrix,
+                         verbose=False)
+
+    def test_generic_dot_matrix_conf2(self):
+
+        conf = dict(shape1=(2, 2, 1), shape2=(1, 2, 2),
+                    axes=[], left=[0, 2], right=[1, 2])
+        self.common_test(conf["shape1"], conf["shape2"],
+                         conf["axes"], conf["left"], conf["right"],
+                         numpy_extended_dot_python)
+        self.common_test(conf["shape1"], conf["shape2"],
+                         conf["axes"], conf["left"], conf["right"],
+                         numpy_extended_dot_matrix,
+                         verbose=False)
+
+    def test_generic_dot_matrix_conf3(self):
+
+        conf = dict(shape1=(2, 2, 2), shape2=(2, 2, 2),
+                    axes=[2], left=[0], right=[1])
+        self.common_test(conf["shape1"], conf["shape2"],
+                         conf["axes"], conf["left"], conf["right"],
+                         numpy_extended_dot_python)
+        self.common_test(conf["shape1"], conf["shape2"],
+                         conf["axes"], conf["left"], conf["right"],
+                         numpy_extended_dot_matrix,
+                         verbose=False)
+
+    def test_generic_dot_matrix_conf0(self):
+
+        conf = dict(shape1=(1, 5, 4, 1), shape2=(1, 1, 4, 6),
+                    axes=(2,), left=(0, 1), right=(3,))
+        self.common_test(conf["shape1"], conf["shape2"],
+                         conf["axes"], conf["left"], conf["right"],
+                         numpy_extended_dot_python)
+        self.common_test(conf["shape1"], conf["shape2"],
+                         conf["axes"], conf["left"], conf["right"],
+                         numpy_extended_dot_matrix,
+                         verbose=False)
+
+    def common_test(self, sh1, sh2, axes, left, right, fct, verbose=False):
 
         m1 = numpy.empty(sh1).ravel()
         m1 = numpy.arange(len(m1)).reshape(sh1).astype(numpy.float64) + 10
@@ -1419,11 +1469,12 @@ class TestEinsumGenericdot(ExtTestCase):
         m2 = numpy.arange(len(m2)).reshape(sh2).astype(numpy.float64) + 1000
 
         try:
-            exp = numpy_extended_dot(m1, m2, axes, left, right)
+            exp = numpy_extended_dot(
+                m1, m2, axes, left, right, verbose=verbose)
         except ValueError:
             return False
         try:
-            dot = fct(m1, m2, axes, left, right)
+            dot = fct(m1, m2, axes, left, right, verbose=verbose)
         except (IndexError, NotImplementedError, ValueError):
             dot = fct(m1, m2, axes, left, right, verbose=True)
 
@@ -1437,7 +1488,8 @@ class TestEinsumGenericdot(ExtTestCase):
 
         f = io.StringIO()
         with redirect_stdout(f):
-            exp = numpy_extended_dot(m1, m2, axes, left, right)
+            exp = numpy_extended_dot(
+                m1, m2, axes, left, right, verbose=verbose)
             dot = fct(m1, m2, axes, left, right, verbose=True)
         try:
             self.assertEqualArray(exp, dot)
@@ -1452,5 +1504,5 @@ class TestEinsumGenericdot(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestEinsumGenericdot().test_generic_dot_matrix()
+    # TestEinsumGenericdot().test_generic_dot_matrix_conf2()
     unittest.main()
