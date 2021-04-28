@@ -1476,7 +1476,7 @@ class TestEinsumGenericdot(ExtTestCase):
         try:
             dot = fct(m1, m2, axes, left, right, verbose=verbose)
         except (IndexError, NotImplementedError, ValueError):
-            dot = fct(m1, m2, axes, left, right, verbose=True)
+            dot = fct(m1, m2, axes, left, right, verbose=not verbose)
 
         try:
             self.assertEqualArray(exp, dot)
@@ -1504,5 +1504,4 @@ class TestEinsumGenericdot(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestEinsumGenericdot().test_generic_dot_matrix_conf2()
     unittest.main()

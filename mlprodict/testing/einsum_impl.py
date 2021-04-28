@@ -271,23 +271,26 @@ def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
 
         # ReduceSum*
         has_dim = set(i for i in range(len(row1)) if row1[i] >= 0)
-        right_no_left = (set(right) & has_dim) - (set(right) & (set(left) | set(axes)))
+        right_no_left = (set(right) & has_dim) - \
+            (set(right) & (set(left) | set(axes)))
         if right_no_left:
             if verbose:
-                print('  -- MATMUL reduce1 has_dim=%r axes=%r' % (has_dim, right_no_left))
+                print('  -- MATMUL reduce1 has_dim=%r axes=%r' %
+                      (has_dim, right_no_left))
             op1 = EinsumSubOp(fd, 'reduce_sum_mm', op1, op2,
                               axes=tuple(sorted(right_no_left)))
             yield op1
 
         has_dim = set(i for i in range(len(row2)) if row2[i] >= 0)
-        left_no_right = (set(left) & has_dim) - (set(left) & (set(right) | set(axes)))
+        left_no_right = (set(left) & has_dim) - \
+            (set(left) & (set(right) | set(axes)))
         if left_no_right:
             if verbose:
-                print('  -- MATMUL reduce2 has_dim=%r axes=%r' % (has_dim, left_no_right))
+                print('  -- MATMUL reduce2 has_dim=%r axes=%r' %
+                      (has_dim, left_no_right))
             op2 = EinsumSubOp(fd, 'reduce_sum', op2,
                               axes=tuple(sorted(left_no_right)))
             yield op2
-        
 
         # Transpose
         i_axes = [(-1 if i in common_axes
