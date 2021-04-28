@@ -109,14 +109,22 @@ class EinsumSubOp:
         """
         if verbose:
             if inp:
-                print()
-            print('<-' if inp else '->', self.name, row, self.kwargs)
+                print('<<' if inp else '>>', self.name, row, self.kwargs)
+            else:
+                print('<<' if inp else '>>', self.name, row)
 
-    def _compute_output_row_id(self, row, row2=None, verbose=False):
+    def _compute_output_row_id(self, row, row2=None, ab=False, verbose=False):
+        if ab:
+            raise RuntimeError("ab option not allowed.")
+        self._check_row_(row, True, verbose=verbose)
         row[:] = row2[:]
         self._check_row_(row, verbose=verbose)
 
-    def _compute_output_row_transpose(self, row, row2=None, verbose=False):
+    def _compute_output_row_transpose(self, row, row2=None, ab=False, verbose=False):
+        if ab:
+            self._compute_output_row_transpose(row2, verbose=verbose)
+            return
+        self._check_row_(row, True, verbose=verbose)
         self._check_arg_('perm', tuple)
         if len(self.kwargs['perm']) != len(row):
             raise RuntimeError(
@@ -127,12 +135,18 @@ class EinsumSubOp:
             row[i] = cpy[p]
         self._check_row_(row, verbose=verbose)
 
-    def _compute_output_row_transpose_mm(self, row, row2=None, verbose=False):
+    def _compute_output_row_transpose_mm(self, row, row2=None, ab=False, verbose=False):
+        if not ab:
+            raise RuntimeError("ab must be True.")
+        self._check_row_(row, True, verbose=verbose)
         if row2 is None:
             raise RuntimeError("transpose_mm expects a second input.")
-        self._compute_output_row_transpose(row2, row2=None, verbose=verbose)
+        self._compute_output_row_transpose(row, row2=None, verbose=verbose)
 
-    def _compute_output_row_expand_dims(self, row, row2=None, verbose=False):
+    def _compute_output_row_expand_dims(self, row, row2=None, ab=False, verbose=False):
+        if ab:
+            raise RuntimeError("ab option not allowed.")
+        self._check_row_(row, True, verbose=verbose)
         self._check_arg_('axis', tuple)
         if row[self.kwargs['axis'][1]] != -1:
             raise RuntimeError(
@@ -140,79 +154,36 @@ class EinsumSubOp:
                     row, self.kwargs['axis']))
         self._check_row_(row, verbose=verbose)
 
-    def _compute_output_row_reduce_sum(self, row, row2=None, verbose=False):
+    def _compute_output_row_reduce_sum(self, row, row2=None, ab=False, verbose=False):
+        if ab:
+            raise RuntimeError("ab option not allowed.")
+        self._check_row_(row, True, verbose=verbose)
         self._check_arg_('axes', tuple)
         for a in self.kwargs['axes']:
             row[a] = -1
         self._check_row_(row, verbose=verbose)
 
-    def _compute_output_row_reduce_sum_mm(self, row, row2=None, verbose=False):
+    def _compute_output_row_reduce_sum_mm(self, row, row2=None, ab=False, verbose=False):
+        if not ab:
+            raise RuntimeError("ab must be true.")
+        self._check_row_(row2, True, verbose=verbose)
         if row2 is None:
             raise RuntimeError("reduce_sum_mm expects a second input.")
         self._compute_output_row_reduce_sum(row2, row2=None, verbose=verbose)
 
-    def _compute_output_row_matmul(self, row, row2=None, verbose=False):
-        self._check_arg_('axes', tuple)
-        self._check_arg_('left', tuple)
-        self._check_arg_('right', tuple)
-        self._check_arg_('ndim', int)
-        if row2 is None:
-            raise RuntimeError("matmul expects two inputs.")
-        if verbose:
-            ndim = self.kwargs['ndim']
-            axes = self.kwargs['axes']
-            left = self.kwargs['left']
-            right = self.kwargs['right']
-            print("    MATMUL %r @ %r axes=%r left=%r right=%r - eq=%s" % (
-                row, row2, axes, left, right,
-                _numpy_extended_dot_equation(ndim, ndim, axes, left, right)))
-        row2[:] = numpy.maximum(row, row2)
-        for a in self.kwargs['axes']:
-            if a not in self.kwargs['right']:
-                row2[a] = -1
-        self._check_row_(row2, verbose=verbose)
-
-    def _compute_output_row_batch_dot(self, row, row2=None, verbose=False):
-        self._check_arg_('batch_axes', tuple)
-        self._check_arg_('keep_axes', tuple, empty=True)
-        self._check_arg_('sum_axes', tuple)
-        self._check_arg_('left', tuple)
-        self._check_arg_('right', tuple)
-        self._check_arg_('ndim', int)
-        if row2 is None:
-            raise RuntimeError("batch_dot expects two inputs.")
-        if verbose:
-            batch_axes = self.kwargs['batch_axes']
-            keep_axes = self.kwargs['keep_axes']
-            sum_axes = self.kwargs['sum_axes']
-            left = self.kwargs['left']
-            right = self.kwargs['right']
-            ndim = self.kwargs['ndim']
-            print("    BATCH_DOT %r @ %r batch_axes=%r keep_axes=%r sum_axes=%r "
-                  "left=%r right=%r eq=%r" % (
-                      row, row2, batch_axes, keep_axes, sum_axes, left, right,
-                      _numpy_extended_dot_equation(ndim, ndim, sum_axes, left, right)))
-        row2[:] = numpy.maximum(row, row2)
-        for a in self.kwargs['sum_axes']:
-            if a not in self.kwargs['right']:
-                row2[a] = -1
-        self._check_row_(row2, verbose=verbose)
-
-    def _compute_output_row_mul(self, row, row2=None, verbose=False):
-        if row2 is None:
-            raise RuntimeError("mul expects two inputs.")
-        if verbose:
-            print("    MUL %r @ %r" % (row, row2))
-        row2[:] = numpy.maximum(row, row2)
-        self._check_row_(row2, verbose=verbose)
-
-    def _compute_output_row_squeeze(self, row, row2=None, verbose=False):
+    def _compute_output_row_squeeze(self, row, row2=None, ab=False, verbose=False):
+        if ab:
+            raise RuntimeError("ab option not allowed.")
+        self._check_row_(row, True, verbose=verbose)
         self._check_arg_('axes', tuple)
         for a in self.kwargs['axes']:
             row[a] = -1
         self._check_row_(row, verbose=verbose)
 
-    def _compute_output_row_diagonal(self, row, row2=None, verbose=False):
+    def _compute_output_row_diagonal(self, row, row2=None, ab=False, verbose=False):
+        if ab:
+            raise RuntimeError("ab option not allowed.")
+        self._check_row_(row, True, verbose=verbose)
         self._check_arg_('diag', list)
         to_remove = []
         for choice, choices in self.kwargs['diag']:
@@ -235,18 +206,85 @@ class EinsumSubOp:
                     row[i] -= 1
         self._check_row_(row, verbose=verbose)
 
-    def compute_output_row(self, row, row2=None, verbose=False):
+    def _compute_output_row_matmul(self, row, row2=None, ab=False, verbose=False):
+        if not ab:
+            raise RuntimeError("ab must be True.")
+        self._check_row_(row, True, verbose=verbose)
+        self._check_row_(row2, True, verbose=verbose)
+        self._check_arg_('axes', tuple)
+        self._check_arg_('left', tuple)
+        self._check_arg_('right', tuple)
+        self._check_arg_('ndim', int)
+        if row2 is None:
+            raise RuntimeError("matmul expects two inputs.")
+        if verbose:
+            ndim = self.kwargs['ndim']
+            axes = self.kwargs['axes']
+            left = self.kwargs['left']
+            right = self.kwargs['right']
+            print("    MATMUL %r @ %r axes=%r left=%r right=%r - eq=%s" % (
+                row, row2, axes, left, right,
+                _numpy_extended_dot_equation(ndim, ndim, axes, left, right)))
+        row2[:] = numpy.maximum(row, row2)
+        for a in self.kwargs['axes']:
+            if a not in self.kwargs['right']:
+                row2[a] = -1
+        self._check_row_(row2, verbose=verbose)
+
+    def _compute_output_row_batch_dot(self, row, row2=None, ab=False, verbose=False):
+        if not ab:
+            raise RuntimeError("ab must be True.")
+        self._check_row_(row, True, verbose=verbose)
+        self._check_row_(row2, True, verbose=verbose)
+        self._check_arg_('batch_axes', tuple)
+        self._check_arg_('keep_axes', tuple, empty=True)
+        self._check_arg_('sum_axes', tuple)
+        self._check_arg_('left', tuple)
+        self._check_arg_('right', tuple)
+        self._check_arg_('ndim', int)
+        if row2 is None:
+            raise RuntimeError("batch_dot expects two inputs.")
+        if verbose:
+            batch_axes = self.kwargs['batch_axes']
+            keep_axes = self.kwargs['keep_axes']
+            sum_axes = self.kwargs['sum_axes']
+            left = self.kwargs['left']
+            right = self.kwargs['right']
+            ndim = self.kwargs['ndim']
+            print("    BATCH_DOT batch_axes=%r keep_axes=%r sum_axes=%r "
+                  "left=%r right=%r eq=%r" % (
+                      batch_axes, keep_axes, sum_axes, left, right,
+                      _numpy_extended_dot_equation(ndim, ndim, sum_axes, left, right)))
+        row2[:] = numpy.maximum(row, row2)
+        for a in self.kwargs['sum_axes']:
+            if a not in self.kwargs['right']:
+                row2[a] = -1
+        self._check_row_(row2, verbose=verbose)
+
+    def _compute_output_row_mul(self, row, row2=None, ab=False, verbose=False):
+        if not ab:
+            raise RuntimeError("ab must be True.")
+        self._check_row_(row, True, verbose=verbose)
+        self._check_row_(row2, True, verbose=verbose)
+        if row2 is None:
+            raise RuntimeError("mul expects two inputs.")
+        if verbose:
+            print("    MUL %r @ %r" % (row, row2))
+        row2[:] = numpy.maximum(row, row2)
+        self._check_row_(row2, verbose=verbose)
+
+    def compute_output_row(self, row, row2=None, ab=False, verbose=False):
         """
         Updates *row* based on the operator.
         """
-        self._check_row_(row, True, verbose=verbose)
-
         method_name = "_compute_output_row_%s" % self.name
         meth = getattr(self, method_name, None)
         if meth is None:
             raise NotImplementedError(
                 "compute_output_row not implemented for %r." % self.name)
-        meth(row, row2=row2, verbose=verbose)
+        if verbose and ab:
+            print("  -- called as a binary operator")
+        meth(row, row2=row2, ab=ab, verbose=verbose)
 
     def _check_inputs_(self, n_expected, check_dim=False):
         if len(self.inputs) != n_expected:
@@ -405,21 +443,22 @@ class EinsumSubOp:
                 "of dimensions not %r @ %r." % (m1.shape, m2.shape))
 
         dim0 = int(numpy.prod([m1.shape[i] for i in batch_axes]))
+        dim0b = int(numpy.prod([m2.shape[i] for i in batch_axes]))
         dimb = int(-1 if keep_axes is None else numpy.prod(
             [m1.shape[i] for i in keep_axes]))
         dim1 = int(numpy.prod([m1.shape[i] for i in sum_axes]))
         dim2 = int(numpy.prod([m2.shape[i] for i in sum_axes]))
 
         m1sh = m1.reshape((dim0, dimb, dim1))
-        m2sh = m2.reshape((dim0, dimb, dim2))
+        m2sh = m2.reshape((dim0b, dimb, dim2))
         dot = m1sh @ numpy.transpose(m2sh, (0, 2, 1))
 
         # new shape
         taken = set(batch_axes) | set(sum_axes)
         ax = [i for i in range(len(m1.shape)) if i not in taken]
-        new_shape = ([m1.shape[i] for i in batch_axes] +
-                     [m1.shape[i] for i in left] +
-                     [m2.shape[i] for i in right])
+        new_shape = ([max(m1.shape[i], m2.shape[i]) for i in batch_axes] +
+                     [m1.shape[i] for i in left if i not in batch_axes] +
+                     [m2.shape[i] for i in right if i not in batch_axes])
         while len(new_shape) < len(m1.shape):
             new_shape.append(1)
 

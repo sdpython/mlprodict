@@ -247,7 +247,7 @@ class TestEinsum(ExtTestCase):
         for strat in ['numpy', 'simple']:
             with self.subTest(strategy=strat):
                 self.common_test_case_2(
-                    'abc,cd->abc', strategy=strat, verbose=True)
+                    'abc,cd->abc', strategy=strat, verbose=False)
 
     def test_many_2(self):
         m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
@@ -312,36 +312,38 @@ class TestEinsum(ExtTestCase):
     # core/tests/test_einsum.py.
 
     def optimize_compare(self, equation, operands=None, verbose=False):
-        if operands is not None:
-            inputs = operands
-        else:
-            eqs = equation.split("->")[0].split(",")
-            inputs = []
-            for d, eq in enumerate(eqs):
-                i = numpy.arange(2 ** len(eq)).reshape(
-                    (2,) * len(eq)).astype(numpy.float32)
-                inputs.append(i + numpy.array([3 ** d], dtype=numpy.float32))
+        with self.subTest(equation=equation):
+            if operands is not None:
+                inputs = operands
+            else:
+                eqs = equation.split("->")[0].split(",")
+                inputs = []
+                for d, eq in enumerate(eqs):
+                    i = numpy.arange(2 ** len(eq)).reshape(
+                        (2,) * len(eq)).astype(numpy.float32)
+                    inputs.append(
+                        i + numpy.array([3 ** d], dtype=numpy.float32))
 
-        exp = numpy.einsum(equation, *inputs)
-        if verbose:
-            print("###### equation", equation)
-            path = numpy.einsum_path(equation, *inputs, optimize=False)
-            print(path[1])
-            path = numpy.einsum_path(equation, *inputs)
-            print(path[1])
+            exp = numpy.einsum(equation, *inputs)
+            if verbose:
+                print("###### equation", equation)
+                path = numpy.einsum_path(equation, *inputs, optimize=False)
+                print(path[1])
+                path = numpy.einsum_path(equation, *inputs)
+                print(path[1])
 
-        shapes = [m.shape for m in inputs]
+            shapes = [m.shape for m in inputs]
 
-        with self.subTest(strategy='numpy'):
-            seq = decompose_einsum_equation(
-                equation, *shapes, verbose=verbose, strategy='numpy')
-            got = apply_einsum_sequence(seq, *inputs, verbose=verbose)
-            self.assertEqualArray(exp, got, decimal=6)
-        with self.subTest(strategy='simple'):
-            seq = decompose_einsum_equation(
-                equation, *shapes, verbose=verbose)
-            got = apply_einsum_sequence(seq, *inputs, verbose=verbose)
-            self.assertEqualArray(exp, got, decimal=6)
+            with self.subTest(strategy='numpy'):
+                seq = decompose_einsum_equation(
+                    equation, *shapes, verbose=verbose, strategy='numpy')
+                got = apply_einsum_sequence(seq, *inputs, verbose=verbose)
+                self.assertEqualArray(exp, got, decimal=6)
+            with self.subTest(strategy='simple'):
+                seq = decompose_einsum_equation(
+                    equation, *shapes, verbose=verbose)
+                got = apply_einsum_sequence(seq, *inputs, verbose=verbose)
+                self.assertEqualArray(exp, got, decimal=6)
 
     def test_numpy_test_hadamard_like_products(self):
         # Hadamard outer products
@@ -350,8 +352,8 @@ class TestEinsum(ExtTestCase):
 
     def test_np_test_np_test_collapse(self):
         # Inner products
-        self.optimize_compare('ab,ab,c->c')
         self.optimize_compare('ab,ab,cd,cd->ac')
+        self.optimize_compare('ab,ab,c->c')
         self.optimize_compare('ab,ab,cd,cd->cd')
         # self.optimize_compare('ab,ab,c->')
         # self.optimize_compare('ab,ab,cd,cd->')
@@ -404,12 +406,10 @@ class TestEinsum(ExtTestCase):
 
     def test_np_test_broadcasting_dot_cases1(self):
         # Ensures broadcasting cases are not mistaken for GEMM
-
         a = numpy.random.rand(1, 5, 4)
         b = numpy.random.rand(4, 6)
         c = numpy.random.rand(5, 6)
         d = numpy.random.rand(10)
-
         self.optimize_compare('ijk,kl,jl,i->i', operands=[a, b, c, d])
 
         e = numpy.random.rand(1, 1, 5, 4)
@@ -418,8 +418,9 @@ class TestEinsum(ExtTestCase):
 
     def test_np_test_broadcasting_dot_cases2(self):
         # Edge case found in gh-11308
-        g = numpy.arange(64).reshape(2, 4, 8)
-        self.optimize_compare('obk,ijk->ioj', operands=[g, g])
+        f = numpy.arange(7 * 55).reshape(7, 11, 5)
+        g = numpy.arange(30).reshape(2, 3, 5)
+        self.optimize_compare('obk,ijk->ioj', operands=[f, g])
 
     def np_test_complex(self):
         # Long test cases
@@ -466,5 +467,5 @@ class TestEinsum(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestEinsum().test_case_2_A()
+    # TestEinsum().test_np_test_broadcasting_dot_cases1()
     unittest.main()

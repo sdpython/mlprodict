@@ -307,7 +307,7 @@ def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
 
         # Reshape
         all_axes = list(range(0, ndim))
-        new_axes = all_axes[-len(axes):]
+        new_axes = all_axes[-len(axes):] if len(axes) > 0 else []
         new_common_axes = all_axes[:len(common_axes)]
         not_in_both = []
         for i in range(0, ndim):
@@ -321,10 +321,15 @@ def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
                          ndim=ndim)
         yield op
 
-        # Transpose again, reverse perm
-        rev_perm = perm.copy()
-        for i, p in enumerate(perm):
-            rev_perm[p] = i
+        # Transpose again
+        ordered_axes = (common_axes +
+                        list(i for i in left if i not in right) +
+                        list(i for i in right if i not in left) +
+                        not_in_both)
+        rev_perm = [(a, i) for i, a in enumerate(ordered_axes)]
+        rev_perm.sort()
+        rev_perm = [p[1] for p in rev_perm]
+
         op_unused = EinsumSubOp(fd, 'transpose_mm', op1,
                                 op, perm=tuple(rev_perm))
         yield op_unused
@@ -435,7 +440,8 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False,
                     ndim=rows.shape[1], keep_matmul=keep_matmul,
                     row1=rows[0, :], row2=rows[1, :], verbose=verbose):
                 op = iop
-                op.compute_output_row(rows[0, :], rows[1, :], verbose=verbose)
+                op.compute_output_row(rows[0, :], rows[1, :],
+                                      ab=True, verbose=verbose)
                 marked = graph.append(op)
 
         # End
