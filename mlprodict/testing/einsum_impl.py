@@ -164,6 +164,16 @@ def apply_einsum_sequence(seq, *inputs, verbose=False, **kwargs):
     return seq.apply_sequence(*inputs, verbose=verbose, **kwargs)
 
 
+def is_transpose_identity(perm):
+    """
+    Tells if the permutation *perm* does nothing (itentity).
+
+    :param perm: permutation
+    :return: boolean
+    """
+    return list(perm) == list(range(len(perm)))
+
+
 def _basic_verification(lengths, shapes, equation):
     if len(lengths) - 1 != len(shapes):
         raise ValueError(
@@ -204,8 +214,9 @@ def _apply_transpose_reshape(op, row):
             continue
         new_perm[perm[p][1]] = i
         p += 1
-    op = EinsumSubOp(len(row), 'transpose', op, perm=tuple(new_perm))
-    yield op
+    if not is_transpose_identity(new_perm):
+        op = EinsumSubOp(len(row), 'transpose', op, perm=tuple(new_perm))
+        yield op
 
 
 def _apply_squeeze_transpose(op, row_last, row_output):
@@ -228,8 +239,10 @@ def _apply_squeeze_transpose(op, row_last, row_output):
         new_perm[i] = perm[p][1]
         p += 1
     perm = [p[1] for p in perm]
-    op = EinsumSubOp(len(row_last), 'transpose', op, perm=tuple(new_perm))
-    yield op
+    if not is_transpose_identity(new_perm):
+        op = EinsumSubOp(len(row_last), 'transpose', op,
+                         perm=tuple(new_perm))
+        yield op
     if len(sq) > 0:
         op = EinsumSubOp(len(row_last), 'squeeze', op, axes=tuple(sq))
         yield op
@@ -300,10 +313,11 @@ def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
         perm = [_[1] for _ in i_axes]
         perm_left = [i for i in range(len(perm)) if perm[i] in left]
         perm_right = [i for i in range(len(perm)) if perm[i] in right]
-        op1 = EinsumSubOp(fd, 'transpose_mm', op1, op2, perm=tuple(perm))
-        yield op1
-        op2 = EinsumSubOp(fd, 'transpose', op2, perm=tuple(perm))
-        yield op2
+        if not is_transpose_identity(perm):
+            op1 = EinsumSubOp(fd, 'transpose_mm', op1, op2, perm=tuple(perm))
+            yield op1
+            op2 = EinsumSubOp(fd, 'transpose', op2, perm=tuple(perm))
+            yield op2
 
         # Reshape
         all_axes = list(range(0, ndim))
@@ -330,11 +344,12 @@ def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
         rev_perm.sort()
         rev_perm = [p[1] for p in rev_perm]
 
-        op_unused = EinsumSubOp(fd, 'transpose_mm', op1,
-                                op, perm=tuple(rev_perm))
-        yield op_unused
-        op = EinsumSubOp(fd, 'transpose', op, perm=tuple(rev_perm))
-        yield op
+        if not is_transpose_identity(rev_perm):
+            op_unused = EinsumSubOp(fd, 'transpose_mm', op1,
+                                    op, perm=tuple(rev_perm))
+            yield op_unused
+            op = EinsumSubOp(fd, 'transpose', op, perm=tuple(rev_perm))
+            yield op
     else:
         raise NotImplementedError(
             "axes and right or left have axes in common, "

@@ -58,6 +58,10 @@ class EinsumSubOp:
                 raise RuntimeError(
                     "perm has duplicated values %r (name=%r)."
                     "" % (perm, self.name))
+            if False and list(perm) == list(range(len(perm))):
+                raise ValueError(
+                    "Transpose = identity perm=%r. It must be removed."
+                    "" % perm)
         elif self.name == 'matmul':
             self._check_arg_('axes', tuple)
             self._check_arg_('left', tuple)
@@ -130,8 +134,9 @@ class EinsumSubOp:
             raise RuntimeError(
                 "Unexpected permutation %r (row=%r)."
                 "" % (self.kwargs['perm'], row))
+        perm = self.kwargs['perm']
         cpy = row.copy()
-        for i, p in enumerate(self.kwargs['perm']):
+        for i, p in enumerate(perm):
             row[i] = cpy[p]
         self._check_row_(row, verbose=verbose)
 

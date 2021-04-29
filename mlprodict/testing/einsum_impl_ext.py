@@ -87,7 +87,7 @@ def _numpy_extended_dot_equation(m1_dim, m2_dim, axes, left, right):
             len(a.shape), len(a.shape), axes=(0, ), left=(1,), right=(2,)))
 
         # Same einsum computation written in a different way.
-        print(numpy.einsum('kix,kxj->xij', a, b))    
+        print(numpy.einsum('kix,kxj->xij', a, b))
     """
     if m1_dim != m2_dim:
         raise RuntimeError(
@@ -447,7 +447,8 @@ def numpy_extended_dot_python(m1, m2, axes, left, right, verbose=False):
         [m1.shape[pos[n]] if (kind[n] & 1) == 1 else m2.shape[pos[n]]
          for n in range(len(names))], dtype=numpy.int64)
     plo = numpy.array(
-        [-1 if c not in names else names.index(c) for c in l3], dtype=numpy.int64)
+        [-1 if c not in names else names.index(c) for c in l3],
+        dtype=numpy.int64)
 
     if verbose:
         print("[GENERICDOT] %s,%s->%s      or %s" % (
@@ -613,7 +614,8 @@ def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
 
             if verbose:
                 print("[GENERICDOT] Reshape %r @ %r -> %r @ %r" % (
-                    (dim0, -1, dim1), (dim0, -1, dim2), shm1.shape, shm2.shape))
+                    (dim0, -1, dim1), (dim0, -1, dim2),
+                    shm1.shape, shm2.shape))
                 print("[GENERICDOT] matmul")
 
             # Multiplication (this should be done in a different way.
@@ -636,8 +638,10 @@ def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
                             if perm[i] in not_in_both]
         current_shape = ([max(trm1.shape[i], trm2.shape[i])
                           for i in sorted(perm_common_axes)] +
-                         [trm1.shape[i] for i in sorted(perm_left) if i not in perm_common_axes] +
-                         [trm2.shape[i] for i in sorted(perm_right) if i not in perm_common_axes] +
+                         [trm1.shape[i] for i in sorted(perm_left)
+                          if i not in perm_common_axes] +
+                         [trm2.shape[i] for i in sorted(perm_right)
+                          if i not in perm_common_axes] +
                          [1 for i in perm_not_in_both])
 
         if verbose:
