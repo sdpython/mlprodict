@@ -58,7 +58,8 @@ def numpy_diagonal(m, axis, axes):
 def _numpy_extended_dot_equation(m1_dim, m2_dim, axes, left, right):
     """
     Returns the equation equivalent to an extended version
-    of a matrix multiplication (see @see fn numpy_extended_dot).
+    of an aligned matrix multiplication
+    (see @see fn numpy_extended_dot).
 
     :param m1: number of dimensions of the first matrix
     :param m2: number of dimensions of the second matrix
@@ -67,6 +68,26 @@ def _numpy_extended_dot_equation(m1_dim, m2_dim, axes, left, right):
     :param left: left axes
     :param right: right axes
     :return: equation
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from mlprodict.testing.einsum_impl_ext import (
+            numpy_extended_dot_python, _numpy_extended_dot_equation)
+
+        a = numpy.arange(6).reshape((3, 2, 1))
+        b = numpy.arange(12).reshape((3, 1, 4))
+
+        print(numpy_extended_dot_python(
+            a, b, axes=(0, ), left=(1,), right=(2,)))
+
+        # Equivalent einsum equation
+        print('equation', _numpy_extended_dot_equation(
+            len(a.shape), len(a.shape), axes=(0, ), left=(1,), right=(2,)))
+
+        # Same einsum computation written in a different way.
+        print(numpy.einsum('kix,kxj->xij', a, b))    
     """
     if m1_dim != m2_dim:
         raise RuntimeError(
@@ -374,6 +395,26 @@ def numpy_extended_dot_python(m1, m2, axes, left, right, verbose=False):
     Implementation of @see fn numpy_extended_dot in pure python.
     This implementation is not efficient but shows how to
     implement this operation without :epkg:`numpy:einsum`.
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from mlprodict.testing.einsum_impl_ext import (
+            numpy_extended_dot_python, _numpy_extended_dot_equation)
+
+        a = numpy.arange(6).reshape((3, 2, 1))
+        b = numpy.arange(12).reshape((3, 1, 4))
+
+        print(numpy_extended_dot_python(
+            a, b, axes=(0, ), left=(1,), right=(2,)))
+
+        # Equivalent einsum equation
+        print('equation', _numpy_extended_dot_equation(
+            len(a.shape), len(a.shape), axes=(0, ), left=(1,), right=(2,)))
+
+        # Same einsum computation written in a different way.
+        print(numpy.einsum('kix,kxj->xij', a, b))
     """
     def dispb(c):
         return "".join("o" if b else "." for b in c)
@@ -456,6 +497,26 @@ def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
     multiplication, transpose and reduction
     but not a custom python implementation like
     @see fn numpy_extended_dot_python.
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from mlprodict.testing.einsum_impl_ext import (
+            numpy_extended_dot_matrix, _numpy_extended_dot_equation)
+
+        a = numpy.arange(6).reshape((3, 2, 1))
+        b = numpy.arange(12).reshape((3, 1, 4))
+
+        print(numpy_extended_dot_matrix(
+            a, b, axes=(0, ), left=(1,), right=(2,)))
+
+        # Equivalent einsum equation
+        print('equation', _numpy_extended_dot_equation(
+            len(a.shape), len(a.shape), axes=(0, ), left=(1,), right=(2,)))
+
+        # Same einsum computation written in a different way.
+        print(numpy.einsum('kix,kxj->xij', a, b))
     """
     _common_check_numpy_extended_dot(m1, m2, axes, left, right)
 

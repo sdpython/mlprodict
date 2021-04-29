@@ -28,6 +28,16 @@ Einsum
 
 .. autosignature:: mlprodict.testing.experimental_c.custom_einsum_double
 
+.. autosignature:: mlprodict.testing.einsum_impl_ext.numpy_diagonal
+
+.. autosignature:: mlprodict.testing.einsum_impl_ext.numpy_extended_dot
+
+.. autosignature:: mlprodict.testing.einsum_impl_ext.numpy_extended_dot_python
+
+.. autosignature:: mlprodict.testing.einsum_impl_ext.numpy_extended_dot_matrix
+
+.. autosignature:: mlprodict.testing.einsum_impl_ext.numpy_extended_dot_ouput_shape
+
 Pad
 ^^^
 
