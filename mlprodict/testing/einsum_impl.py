@@ -1,6 +1,7 @@
 """
 @file
-@brief Function to dig into Einsum computation.
+@brief Main functions decomposing einsum computation into
+more simple functions.
 """
 import numpy
 from .einsum_impl_classes import EinsumSubOp, GraphEinsumSubOp
@@ -76,7 +77,8 @@ def analyse_einsum_equation(equation):
     return "".join(letters), mat, lengths, duplicates
 
 
-def decompose_einsum_equation(equation, *shapes, strategy="simple", verbose=False):
+def decompose_einsum_equation(equation, *shapes, strategy="simple",
+                              clean=False, verbose=False):
     """
     Decomposes an equation used in :epkg:`numpy:einsum` knowing
     the input shapes. It returns a sequence of operations
@@ -86,6 +88,7 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple", verbose=Fals
     :param shapes: sequence of input shapes
     :param strategy: there are different way to decompose the equation,
         this parameters defines the way to do it (see below)
+    :param clean: clean the unnecessary node in the graph
     :param verbose: verbosity
     :return: instance of @see cl GraphEinsumSubOp
 
@@ -125,9 +128,17 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple", verbose=Fals
             raise TypeError(
                 "All shapes must be tuples for %r is not." % sh)
     if strategy in ("simple", "numpy"):
-        return _decompose_einsum_equation_simple(
+        graph = _decompose_einsum_equation_simple(
             equation, *shapes, verbose=verbose, keep_matmul=strategy == 'simple')
-    raise ValueError("Unknown strategy %r." % strategy)
+    else:
+        raise ValueError("Unknown strategy %r." % strategy)
+
+    # Last step: clean unused nodes.
+    graph.mark_last_node()
+    if clean:
+        graph.simplify_mm_nodes(verbose=verbose)
+        graph.clean_unused_nodes(verbose=verbose)
+    return graph
 
 
 def apply_einsum_sequence(seq, *inputs, verbose=False, **kwargs):

@@ -1,6 +1,7 @@
 """
 @file
-@brief Function to dig into Einsum computation.
+@brief Functions implemented einsum computation for two
+matrices having the same dimensions.
 """
 import numpy
 

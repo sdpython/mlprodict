@@ -1,6 +1,7 @@
 """
 @file
-@brief Function to dig into Einsum computation.
+@brief Classes representing the sequence of matrix operations to
+implement einsum computation.
 """
 import numpy
 from .einsum_impl_ext import (
@@ -180,7 +181,7 @@ class EinsumSubOp:
         self._check_row_(row2, True, verbose=verbose)
         if row2 is None:
             raise RuntimeError("reduce_sum_mm expects a second input.")
-        self._compute_output_row_reduce_sum(row2, row2=None, verbose=verbose)
+        self._compute_output_row_reduce_sum(row, row2=None, verbose=verbose)
 
     def _compute_output_row_squeeze(self, row, row2=None, ab=False, verbose=False):
         if ab:
@@ -566,6 +567,7 @@ class GraphEinsumSubOp:
         self._nodes = {}
         self._mark = {}
         self._ops = []
+        self._inputs = {}
         self.last_op = None
         self.last_added_op = None
         self.metadata = dict(
@@ -584,6 +586,7 @@ class GraphEinsumSubOp:
                 raise RuntimeError("Key %d already added." % op)
             self._nodes[op] = op
             self.last_added_op = op
+            self._inputs[op] = op
             return None
         if isinstance(op, EinsumSubOp):
             if op in self._nodes:
@@ -595,6 +598,14 @@ class GraphEinsumSubOp:
             return op
         raise TypeError("Unexpected type %r." % type(op))
 
+    def mark_last_node(self):
+        """
+        Marks the last node as the final output.
+        """
+        if self.last_added_op is None:
+            raise RuntimeError("last_added_op is None.")
+        self.mark(-1, self.last_added_op)
+
     def mark(self, i, op):
         """
         Marks one input or result as an intermediate result
@@ -604,6 +615,9 @@ class GraphEinsumSubOp:
         """
         if not isinstance(i, int):
             raise TypeError("i must an integer not %r." % type(i))
+        if i != -1 and i not in self._inputs:
+            raise RuntimeError(
+                "Input %d was not registered in %r." % (i, self._inputs))
         if isinstance(op, EinsumSubOp):
             if id(op) not in self._nodes:
                 raise RuntimeError(
@@ -717,3 +731,75 @@ class GraphEinsumSubOp:
             raise RuntimeError(
                 "Sequence of operations is empty.")
         return last
+
+    def clean_unused_nodes(self, verbose=False):
+        """
+        Cleans nodes with unused outputs.
+
+        :param verbose: display intermediate information
+        """
+
+        def iteration(it):
+            # Walks through all nodes.
+            is_used = {}
+            for node in self._ops:
+                if not isinstance(node, EinsumSubOp):
+                    continue
+                if id(node) not in is_used:
+                    is_used[id(node)] = []
+                for inp in node.inputs:
+                    if not isinstance(inp, EinsumSubOp):
+                        continue
+                    idn = id(inp)
+                    if idn not in is_used:
+                        is_used[idn] = []
+                    is_used[idn].append(id(node))
+
+            # Remove unused nodes.
+            removed = []
+            for k, v in is_used.items():
+                if len(v) == 0:
+                    removed.append(k)
+            removed = set(removed)
+            i_rem = []
+            for i, op in enumerate(self._ops):
+                if not isinstance(op, EinsumSubOp):
+                    continue
+                if id(op) in removed and id(op) not in self._mark:
+                    i_rem.append((i, id(op)))
+            for i, idn in reversed(i_rem):
+                if verbose:
+                    print("[GraphEinsumSubOp.clean_nodes] remove node "
+                          "i=%d: %d - id=%d" % (it, i, idn))
+                del self._ops[i]
+                del self._nodes[idn]
+            return len(i_rem) > 0
+
+        it = 1
+        while iteration(it):
+            it += 1
+
+        self.last_op = None
+        self.last_added_op = None
+
+    def simplify_mm_nodes(self, verbose=False):
+        """
+        Node name suffixed by `mm` are an artifact to keep
+        the graph consistent while building it. They can
+        now be replaced by the equivalent node without suffix `mm`.
+
+        :param verbose: display intermediate information
+        """
+        for op in self:
+            if not isinstance(op, EinsumSubOp):
+                continue
+            if op.name.endswith('_mm'):
+                if verbose:
+                    print("[GraphEinsumSubOp.simplify_mm_nodes] node %r"
+                          " - id=%d" % (op.name, id(op)))
+                if len(op.inputs) != 2:
+                    raise RuntimeError(
+                        "Expecting 2 inputs for node %r not %r id=%r." % (
+                            op.name, len(op.inputs), id(op)))
+                op.name = op.name[:-3]
+                op.inputs = op.inputs[:1]

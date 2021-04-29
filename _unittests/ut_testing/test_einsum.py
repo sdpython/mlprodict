@@ -160,7 +160,7 @@ class TestEinsum(ExtTestCase):
             dot = seq.to_dot()
             print(dot)
             red = dot.split('red')
-            self.assertEqual(len(red), 4)
+            self.assertEqual(len(red), 5)
             res = apply_einsum_sequence(seq, m1, m2, verbose=True)
             print("########################## END")
             return res
@@ -312,38 +312,42 @@ class TestEinsum(ExtTestCase):
     # core/tests/test_einsum.py.
 
     def optimize_compare(self, equation, operands=None, verbose=False):
-        with self.subTest(equation=equation):
-            if operands is not None:
-                inputs = operands
-            else:
-                eqs = equation.split("->")[0].split(",")
-                inputs = []
-                for d, eq in enumerate(eqs):
-                    i = numpy.arange(2 ** len(eq)).reshape(
-                        (2,) * len(eq)).astype(numpy.float32)
-                    inputs.append(
-                        i + numpy.array([3 ** d], dtype=numpy.float32))
+        for clean in [False, True]:
+            with self.subTest(equation=equation):
+                if operands is not None:
+                    inputs = operands
+                else:
+                    eqs = equation.split("->")[0].split(",")
+                    inputs = []
+                    for d, eq in enumerate(eqs):
+                        i = numpy.arange(2 ** len(eq)).reshape(
+                            (2,) * len(eq)).astype(numpy.float32)
+                        inputs.append(
+                            i + numpy.array([3 ** d], dtype=numpy.float32))
 
-            exp = numpy.einsum(equation, *inputs)
-            if verbose:
-                print("###### equation", equation)
-                path = numpy.einsum_path(equation, *inputs, optimize=False)
-                print(path[1])
-                path = numpy.einsum_path(equation, *inputs)
-                print(path[1])
+                exp = numpy.einsum(equation, *inputs)
+                if verbose:
+                    print("###### equation", equation)
+                    path = numpy.einsum_path(equation, *inputs, optimize=False)
+                    print(path[1])
+                    path = numpy.einsum_path(equation, *inputs)
+                    print(path[1])
 
-            shapes = [m.shape for m in inputs]
+                shapes = [m.shape for m in inputs]
 
-            with self.subTest(strategy='numpy'):
-                seq = decompose_einsum_equation(
-                    equation, *shapes, verbose=verbose, strategy='numpy')
-                got = apply_einsum_sequence(seq, *inputs, verbose=verbose)
-                self.assertEqualArray(exp, got, decimal=6)
-            with self.subTest(strategy='simple'):
-                seq = decompose_einsum_equation(
-                    equation, *shapes, verbose=verbose)
-                got = apply_einsum_sequence(seq, *inputs, verbose=verbose)
-                self.assertEqualArray(exp, got, decimal=6)
+                with self.subTest(strategy='numpy'):
+                    seq = decompose_einsum_equation(
+                        equation, *shapes, verbose=verbose,
+                        strategy='numpy', clean=clean)
+                    got = apply_einsum_sequence(
+                        seq, *inputs, verbose=verbose)
+                    self.assertEqualArray(exp, got, decimal=6)
+                with self.subTest(strategy='simple'):
+                    seq = decompose_einsum_equation(
+                        equation, *shapes, clean=clean, verbose=verbose)
+                    got = apply_einsum_sequence(
+                        seq, *inputs, verbose=verbose)
+                    self.assertEqualArray(exp, got, decimal=6)
 
     def test_numpy_test_hadamard_like_products(self):
         # Hadamard outer products
