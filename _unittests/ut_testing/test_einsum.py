@@ -467,5 +467,5 @@ class TestEinsum(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestEinsum().test_np_test_broadcasting_dot_cases1()
+    # TestEinsum().test_case_2_A()
     unittest.main()

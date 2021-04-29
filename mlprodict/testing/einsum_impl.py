@@ -203,9 +203,8 @@ def _apply_transpose_reshape(op, row):
         else:
             p += 1
             perm.append((r, i))
-    for a in reversed(axes):
-        op = EinsumSubOp(len(row), 'expand_dims', op, axis=a)
-        yield op
+    op = EinsumSubOp(len(row), 'expand_dims', op, axes=tuple(axes))
+    yield op
     perm.sort()
     p = 0
     new_perm = numpy.arange(len(row))

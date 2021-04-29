@@ -58,7 +58,7 @@ class EinsumSubOp:
                 raise RuntimeError(
                     "perm has duplicated values %r (name=%r)."
                     "" % (perm, self.name))
-            if False and list(perm) == list(range(len(perm))):
+            if list(perm) == list(range(len(perm))):
                 raise ValueError(
                     "Transpose = identity perm=%r. It must be removed."
                     "" % perm)
@@ -152,11 +152,17 @@ class EinsumSubOp:
         if ab:
             raise RuntimeError("ab option not allowed.")
         self._check_row_(row, True, verbose=verbose)
-        self._check_arg_('axis', tuple)
-        if row[self.kwargs['axis'][1]] != -1:
-            raise RuntimeError(
-                "Dimension should be -1 in row %r axis=%r." % (
-                    row, self.kwargs['axis']))
+        self._check_arg_('axes', tuple)
+        axes = self.kwargs['axes']
+        for axis in axes:
+            if not isinstance(axis, tuple):
+                raise TypeError(
+                    "Parameter axes of expand_dims should be a tuple of "
+                    "tuple, axes=%r." % axes)
+            if row[axis[1]] != -1:
+                raise RuntimeError(
+                    "Dimension should be -1 in row %r axis=%r." % (
+                        row, self.kwargs['axis']))
         self._check_row_(row, verbose=verbose)
 
     def _compute_output_row_reduce_sum(self, row, row2=None, ab=False, verbose=False):
@@ -346,9 +352,11 @@ class EinsumSubOp:
         inp = self.inputs[0]
         m = self._get_data(data, inp)
         if verbose:
-            print("- %s, shape=%r axis=%r" % (
-                self.name, m.shape, self.kwargs['axis']))
-        output = numpy.expand_dims(m, self.kwargs['axis'][0])
+            print("- %s, shape=%r axes=%r" % (
+                self.name, m.shape, self.kwargs['axes']))
+        output = m
+        for axis in reversed(self.kwargs['axes']):
+            output = numpy.expand_dims(output, axis[0])
         return output
 
     def _apply_transpose(self, data, verbose=False, **kwargs):
