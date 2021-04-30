@@ -462,7 +462,7 @@ class TestEinsum(ExtTestCase):
                             inps = {n: v.astype(numpy.float32)
                                     for n, v in zip(inps, inputs)}
                             got = oinf.run(inps, verbose=vv, fLOG=print)['Y']
-                            self.assertEqualArray(exp, got, decimal=6)
+                            self.assertEqualArray(exp, got, decimal=5)
 
                 with self.subTest(strategy='simple'):
                     seq = decompose_einsum_equation(
