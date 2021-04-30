@@ -21,6 +21,10 @@ class Transpose(OpRunUnaryNum):
     def _run(self, data):  # pylint: disable=W0221
         if self.perm_ is None:
             return (numpy.transpose(data), )
+        if len(self.perm_) != len(data.shape):
+            raise RuntimeError(
+                "Inconsistent permutation %r with shape %r." % (
+                    self.perm_, data.shape))
         return (numpy.transpose(data, axes=self.perm_), )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221

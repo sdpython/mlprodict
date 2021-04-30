@@ -15,12 +15,37 @@ Implementation of ONNX operators
 
 Experimental implementations for algorithm.
 
-.. autosignature:: mlprodict.testing.experimental.custom_einsum_float
+Einsum
+^^^^^^
+
+.. autosignature:: mlprodict.testing.einsum_impl.analyse_einsum_equation
+
+.. autosignature:: mlprodict.testing.einsum_impl.apply_sequence
+
+.. autosignature:: mlprodict.testing.einsum_impl.decompose_einsum_equation
+
+.. autosignature:: mlprodict.testing.experimental_c.custom_einsum_float
 
 .. autosignature:: mlprodict.testing.experimental_c.custom_einsum_double
 
+.. autosignature:: mlprodict.testing.einsum_impl_ext.numpy_diagonal
+
+.. autosignature:: mlprodict.testing.einsum_impl_ext.numpy_extended_dot
+
+.. autosignature:: mlprodict.testing.einsum_impl_ext.numpy_extended_dot_python
+
+.. autosignature:: mlprodict.testing.einsum_impl_ext.numpy_extended_dot_matrix
+
+.. autosignature:: mlprodict.testing.einsum_impl_ext.numpy_extended_dot_ouput_shape
+
+Pad
+^^^
+
 .. autosignature:: mlprodict.testing.experimental.custom_pad
 
-.. autosignature:: mlprodict.testing.experimental.custom_reducesum_rk_double
+ReduceSum
+^^^^^^^^^
 
-.. autosignature:: mlprodict.testing.experimental.custom_reducesum_rk_float
+.. autosignature:: mlprodict.testing.experimental_c.custom_reducesum_rk_double
+
+.. autosignature:: mlprodict.testing.experimental_c.custom_reducesum_rk_float
