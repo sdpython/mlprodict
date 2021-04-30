@@ -81,11 +81,6 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
         res = oinf.switch_initializers_dtype(clr)
         last = res[-1]
         self.assertEqual(last[0], 'pass2')
-        _linv = 0
-        for a in enumerate_fitted_arrays(clr):
-            if "_K_inv" in a[-2]:
-                _linv += 1
-        self.assertEqual(_linv, 1)
         res = oinf.run({'X': X_test.astype(numpy.float64)})
         ym3, std3 = res['GPmean'], res['GPcovstd']
         self.assertEqualArray(ym3, ym2)
@@ -123,11 +118,6 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
         res = oinf.switch_initializers_dtype(clr)
         last = res[-1]
         self.assertEqual(last[0], 'pass2')
-        _linv = 0
-        for a in enumerate_fitted_arrays(clr):
-            if "_K_inv" in a[-2]:
-                _linv += 1
-        self.assertEqual(_linv, 1)
         res = oinf.run({'X': X_test.astype(numpy.float64)})
         ym3, std3 = res['GPmean'], res['GPcovstd']
         self.assertEqualArray(ym3, ym2)
@@ -166,11 +156,6 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
         res = oinf.switch_initializers_dtype(clr)
         last = res[-1]
         self.assertEqual(last[0], 'pass2')
-        _linv = 0
-        for a in enumerate_fitted_arrays(clr):
-            if "_K_inv" in a[-2]:
-                _linv += 1
-        self.assertEqual(_linv, 1)
         res = oinf.run({'X': X_test})
         ym3, std3 = res['GPmean'], res['GPcovstd']
         self.assertEqualArray(ym3, ym2, decimal=5)
