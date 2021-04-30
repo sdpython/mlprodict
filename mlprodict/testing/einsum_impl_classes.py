@@ -499,6 +499,11 @@ class EinsumSubOp:
         dim1 = int(numpy.prod([m1.shape[i] for i in sum_axes]))
         dim2 = int(numpy.prod([m2.shape[i] for i in sum_axes]))
 
+        if verbose:
+            print("- %s, reshape=%r into %r" % (
+                self.name, m1.shape, (dim0, dimb, dim1)))
+            print("- %s, reshape=%r into %r" % (
+                self.name, m2.shape, (dim0b, dimb, dim2)))
         m1sh = m1.reshape((dim0, dimb, dim1))
         m2sh = m2.reshape((dim0b, dimb, dim2))
         dot = m1sh @ numpy.transpose(m2sh, (0, 2, 1))
@@ -651,7 +656,15 @@ class EinsumSubOp:
         yield helper.make_node(
             'ReduceSum', [name, name_axes], [self._onnx_name()], keepdims=1)
 
-    def _to_onnx_batch_dot(self, names, opset, verbose=False, **kwargs):
+    def _to_onnx_mul(self, data, verbose=False, **kwargs):
+        self._check_inputs_(2)
+        inp1 = self.inputs[0]
+        inp2 = self.inputs[1]
+        m1 = self._get_data(data, inp1)
+        m2 = self._get_data(data, inp2)
+        yield helper.make_node('Mul', [m1, m2], [self._onnx_name()])
+
+    def _to_onnx_batch_dot(self, names, opset, verbose=False, **kwargs):  # pylint: disable=R0914
         self._check_inputs_(2)
         self._check_onnx_opset_(opset, 13)
         inp1, inp2 = self.inputs[:2]  # pylint: disable=W0632
@@ -665,69 +678,137 @@ class EinsumSubOp:
         right = self.kwargs['right']
         root = self._onnx_name()
 
+        name_one = root + "_1"
+        name_zero = root + "_0"
+        yield numpy_helper.from_array(
+            numpy.array([1], dtype=numpy.int64), name=name_one)
+        yield numpy_helper.from_array(
+            numpy.array([0], dtype=numpy.int64), name=name_zero)
+
         name_shape1 = root + "_shape1"
         name_shape2 = root + "_shape2"
+        concat_left = []
+        concat_right = []
         yield helper.make_node('Shape', [name1], [name_shape1])
         yield helper.make_node('Shape', [name2], [name_shape2])
 
-        name_batch_axes = root + "_batch_axes"
-        yield numpy_helper.from_array(
-            numpy.array(batch_axes, dtype=numpy.int64), name=name_batch_axes)
-        name_sum_axes = root + "_sum_axes"
-        yield numpy_helper.from_array(
-            numpy.array(sum_axes, dtype=numpy.int64), name=name_sum_axes)
+        if len(batch_axes) > 0:
+            name_batch_axes = root + "_batch_axes"
+            yield numpy_helper.from_array(
+                numpy.array(batch_axes, dtype=numpy.int64), name=name_batch_axes)
+
+        if len(sum_axes) > 0:
+            name_sum_axes = root + "_sum_axes"
+            yield numpy_helper.from_array(
+                numpy.array(sum_axes, dtype=numpy.int64), name=name_sum_axes)
 
         # dim0 = int(numpy.prod([m1.shape[i] for i in batch_axes]))
         # dim0b = int(numpy.prod([m2.shape[i] for i in batch_axes]))
-        name_dim0 = root + "_dim0"
-        yield helper.make_node(
-            'Gather', [name_shape1, name_batch_axes], [name_dim0 + 'g'])
-        name_dim0b = root + "_dim0b"
-        yield helper.make_node(
-            'Gather', [name_shape2, name_batch_axes], [name_dim0b + 'g'])
-
-        yield helper.make_node(
-            'ReduceProd', [name_dim0 + 'g'], [name_dim0], keepdims=1)
-        yield helper.make_node(
-            'ReduceProd', [name_dim0b + 'g'], [name_dim0b], keepdims=1)
+        if len(batch_axes) > 1:
+            name_dim0 = root + "_dim0"
+            name_dim0b = root + "_dim0b"
+            name_dim0g = name_dim0 + 'g'
+            name_dim0bg = name_dim0b + 'g'
+            concat_left.append(name_dim0)
+            concat_right.append(name_dim0b)
+            yield helper.make_node(
+                'Gather', [name_shape1, name_batch_axes], [name_dim0g])
+            yield helper.make_node(
+                'Gather', [name_shape2, name_batch_axes], [name_dim0bg])
+            yield helper.make_node(
+                'ReduceProd', [name_dim0g], [name_dim0], keepdims=1)
+            yield helper.make_node(
+                'ReduceProd', [name_dim0bg], [name_dim0b], keepdims=1)
+        elif len(batch_axes) == 1:
+            name_dim0g = root + "_dim0g"
+            name_dim0bg = root + "_dim0bg"
+            name_dim0 = name_dim0g
+            name_dim0b = name_dim0bg
+            concat_left.append(name_dim0)
+            concat_right.append(name_dim0b)
+            yield helper.make_node(
+                'Gather', [name_shape1, name_batch_axes], [name_dim0g])
+            yield helper.make_node(
+                'Gather', [name_shape2, name_batch_axes], [name_dim0bg])
+        else:
+            name_dim0 = name_one
+            name_dim0b = name_one
+            concat_left.append(name_dim0)
+            concat_right.append(name_dim0b)
 
         # dimb = int(-1 if keep_axes is None else numpy.prod(
         #     [m1.shape[i] for i in keep_axes]))
-        if keep_axes in (-1, None):
+        if keep_axes in (-1, None) or len(keep_axes) == 0:
             name_dimb = root + "__1"
+            concat_left.append(name_dimb)
+            concat_right.append(name_dimb)
             yield numpy_helper.from_array(
                 numpy.array([-1], dtype=numpy.int64), name=name_dimb)
-        else:
+        elif len(keep_axes) == 1:
             name_keep_axes = root + "_keep_axes"
             name_dimb = root + "_dimb"
+            name_dimbg = name_dimb
+            concat_left.append(name_dimb)
+            concat_right.append(name_dimb)
             yield numpy_helper.from_array(
                 numpy.array(keep_axes, dtype=numpy.int64), name=name_keep_axes)
             yield helper.make_node(
-                'Gather', [name_shape1, name_keep_axes], [name_dimb + 'g'])
+                'Gather', [name_shape1, name_keep_axes], [name_dimbg])
+        else:
+            name_keep_axes = root + "_keep_axes"
+            name_dimb = root + "_dimb"
+            name_dimbg = name_dimb + 'g'
+            concat_left.append(name_dimb)
+            concat_right.append(name_dimb)
+            yield numpy_helper.from_array(
+                numpy.array(keep_axes, dtype=numpy.int64), name=name_keep_axes)
             yield helper.make_node(
-                'ReduceProd', [name_dimb + 'g'], [name_dimb], keepdims=1)
+                'Gather', [name_shape1, name_keep_axes], [name_dimbg])
+            yield helper.make_node(
+                'ReduceProd', [name_dimbg], [name_dimb], keepdims=1)
 
         # dim1 = int(numpy.prod([m1.shape[i] for i in sum_axes]))
         # dim2 = int(numpy.prod([m2.shape[i] for i in sum_axes]))
-        name_dim1 = root + "_dim1"
-        yield helper.make_node(
-            'Gather', [name_shape1, name_sum_axes], [name_dim1 + 'g'])
-        name_dim2 = root + "_dim2"
-        yield helper.make_node(
-            'Gather', [name_shape2, name_sum_axes], [name_dim2 + 'g'])
 
-        yield helper.make_node(
-            'ReduceProd', [name_dim1 + 'g'], [name_dim1], keepdims=1)
-        yield helper.make_node(
-            'ReduceProd', [name_dim2 + 'g'], [name_dim2], keepdims=1)
+        if len(sum_axes) == 0:
+            name_dim1 = name_one
+            name_dim2 = name_one
+            concat_left.append(name_dim1)
+            concat_right.append(name_dim2)
+        elif len(sum_axes) == 1:
+            name_dim1 = root + "_dim1"
+            name_dim2 = root + "_dim2"
+            name_dim1g = name_dim1
+            name_dim2g = name_dim2
+            concat_left.append(name_dim1)
+            concat_right.append(name_dim2)
+            yield helper.make_node(
+                'Gather', [name_shape1, name_sum_axes], [name_dim1g])
+            yield helper.make_node(
+                'Gather', [name_shape2, name_sum_axes], [name_dim2g])
+        else:
+            name_dim1 = root + "_dim1"
+            name_dim2 = root + "_dim2"
+            name_dim1g = name_dim1 + 'g'
+            name_dim2g = name_dim2 + 'g'
+            concat_left.append(name_dim1)
+            concat_right.append(name_dim2)
+            yield helper.make_node(
+                'Gather', [name_shape1, name_sum_axes], [name_dim1g])
+            yield helper.make_node(
+                'Gather', [name_shape2, name_sum_axes], [name_dim2g])
+            yield helper.make_node(
+                'ReduceProd', [name_dim1g], [name_dim1], keepdims=1)
+            yield helper.make_node(
+                'ReduceProd', [name_dim2g], [name_dim2], keepdims=1)
 
         # *shape1, *shape2
         name_agg_shape1 = root + "_resh1"
         name_agg_shape2 = root + "_resh2"
-        yield helper.make_node('Concat', [name_dim0, name_dimb, name_dim1],
-                               [name_agg_shape1], axis=0)
-        yield helper.make_node('Concat', [name_dim0b, name_dimb, name_dim2],
-                               [name_agg_shape2], axis=0)
+        yield helper.make_node(
+            'Concat', concat_left, [name_agg_shape1], axis=0)
+        yield helper.make_node(
+            'Concat', concat_right, [name_agg_shape2], axis=0)
 
         # m1sh = m1.reshape((dim0, dimb, dim1))
         # m2sh = m2.reshape((dim0b, dimb, dim2))
@@ -740,6 +821,7 @@ class EinsumSubOp:
         name_agg2_tr = root + "_aresh2_tr"
         yield helper.make_node(
             'Transpose', [name_agg2], [name_agg2_tr], perm=[0, 2, 1])
+
         name_dot = root + "_dot"
         yield helper.make_node(
             'MatMul', [name_agg1, name_agg2_tr], [name_dot])
@@ -747,25 +829,32 @@ class EinsumSubOp:
         # new_shape = ([max(m1.shape[i], m2.shape[i]) for i in batch_axes] +
         #      [m1.shape[i] for i in left if i not in batch_axes] +
         #      [m2.shape[i] for i in right if i not in batch_axes])
-        name_max_dim = root + "_max_dim"
-        yield helper.make_node(
-            'Max', [name_dim0 + 'g', name_dim0b + 'g'], [name_max_dim])
+        concat_final = []
+        if len(batch_axes) > 0:
+            name_max_dim = root + "_max_dim"
+            concat_final.append(name_max_dim)
+            yield helper.make_node(
+                'Max', [name_dim0g, name_dim0bg], [name_max_dim])
 
         left_set = list(sorted(set(left) - (set(batch_axes) & set(left))))
-        name_left_set = root + "_left_set"
-        yield numpy_helper.from_array(
-            numpy.array(left_set, dtype=numpy.int64), name=name_left_set)
-        name_left_dim = root + "_left_dim"
-        yield helper.make_node(
-            'Gather', [name_shape1, name_left_set], [name_left_dim])
+        if len(left_set) > 0:
+            name_left_dim = root + "_left_dim"
+            name_left_set = root + "_left_set"
+            yield numpy_helper.from_array(
+                numpy.array(left_set, dtype=numpy.int64), name=name_left_set)
+            yield helper.make_node(
+                'Gather', [name_shape1, name_left_set], [name_left_dim])
+            concat_final.append(name_left_dim)
 
         right_set = list(sorted(set(right) - (set(batch_axes) & set(right))))
-        name_right_set = root + "_right_set"
-        yield numpy_helper.from_array(
-            numpy.array(right_set, dtype=numpy.int64), name=name_right_set)
-        name_right_dim = root + "_right_dim"
-        yield helper.make_node(
-            'Gather', [name_shape2, name_right_set], [name_right_dim])
+        if len(right_set) > 0:
+            name_right_dim = root + "_right_dim"
+            name_right_set = root + "_right_set"
+            yield numpy_helper.from_array(
+                numpy.array(right_set, dtype=numpy.int64), name=name_right_set)
+            yield helper.make_node(
+                'Gather', [name_shape2, name_right_set], [name_right_dim])
+            concat_final.append(name_right_dim)
 
         name_new_shape = root + '_new_shape'
         diff = (
@@ -776,14 +865,10 @@ class EinsumSubOp:
             yield numpy_helper.from_array(
                 numpy.array([1 for i in range(diff)], dtype=numpy.int64),
                 name=names_ones)
-            yield helper.make_node(
-                'Concat', [name_max_dim, name_left_dim,
-                           name_right_dim, names_ones],
-                [name_new_shape], axis=0)
-        else:
-            yield helper.make_node(
-                'Concat', [name_max_dim, name_left_dim, name_right_dim],
-                [name_new_shape], axis=0)
+            concat_final.append(names_ones)
+
+        yield helper.make_node(
+            'Concat', concat_final, [name_new_shape], axis=0)
 
         name_final = root + '_final'
         yield helper.make_node(

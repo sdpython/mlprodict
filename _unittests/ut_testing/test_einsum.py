@@ -1,5 +1,5 @@
 """
-@brief      test log(time=6s)
+@brief      test log(time=8s)
 """
 import unittest
 import io
@@ -241,12 +241,18 @@ class TestEinsum(ExtTestCase):
                     "bac,cd,def->ebc", (2, 3, 4), (4, 5), (5, 7, 11),
                     strategy=strat, verbose=verbose)
                 res1 = apply_einsum_sequence(seq, m1, m2, m3, verbose=verbose)
-                # verbose=verbose)
                 seq.simplify_mm_nodes()
                 seq.clean_unused_nodes()
                 onx = seq.to_onnx("Y", "X1", "X2", "X3", dtype=numpy.float32)
 
                 oinf = OnnxInference(onx)
+                oxres = oinf.run({'X1': m1.astype(numpy.float32),
+                                  'X2': m2.astype(numpy.float32),
+                                  'X3': m3.astype(numpy.float32)})
+                res2 = oxres['Y']
+                self.assertEqualArray(res1, res2)
+
+                oinf = OnnxInference(onx, runtime="onnxruntime2")
                 oxres = oinf.run({'X1': m1.astype(numpy.float32),
                                   'X2': m2.astype(numpy.float32),
                                   'X3': m3.astype(numpy.float32)})
@@ -340,10 +346,24 @@ class TestEinsum(ExtTestCase):
 
         for i, (eq, exp) in enumerate(res):
             with self.subTest(equation=eq, index=i, total=len(res)):
+                verbose = 12 if eq == ',abc,cd->abd' else 0
                 seq = decompose_einsum_equation(
                     eq, m1.shape, m2.shape)
                 res = apply_einsum_sequence(seq, m1, m2)
                 self.assertEqualArray(exp, res)
+
+                seq = decompose_einsum_equation(
+                    eq, m1.shape, m2.shape, strategy='numpy', clean=True)
+                if verbose:
+                    print("#########", eq)
+                res = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
+                self.assertEqualArray(exp, res)
+                onx = seq.to_onnx('Y', 'X1', 'X2', dtype=numpy.float32)
+                oinf = OnnxInference(onx)
+                res2 = oinf.run({'X1': m1.astype(numpy.float32),
+                                 'X2': m2.astype(numpy.float32)},
+                                verbose=verbose, fLOG=print)
+                self.assertEqualArray(exp, res2['Y'])
 
     def test_many_3(self):
         m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
@@ -370,10 +390,26 @@ class TestEinsum(ExtTestCase):
 
         for i, (eq, exp) in enumerate(res):
             with self.subTest(equation=eq, index=i, total=len(res)):
+                verbose = 12 if eq == ',abc,cd,def->abd' else 0
                 seq = decompose_einsum_equation(
                     eq, m1.shape, m2.shape, m3.shape)
                 res = apply_einsum_sequence(seq, m1, m2, m3)
                 self.assertEqualArray(exp, res)
+
+                if verbose:
+                    print("#########", eq)
+                seq = decompose_einsum_equation(
+                    eq, m1.shape, m2.shape, m3.shape,
+                    strategy='numpy', clean=True)
+                res = apply_einsum_sequence(seq, m1, m2, m3, verbose=verbose)
+                self.assertEqualArray(exp, res)
+                onx = seq.to_onnx('Y', 'X1', 'X2', 'X3', dtype=numpy.float32)
+                oinf = OnnxInference(onx)
+                res2 = oinf.run({'X1': m1.astype(numpy.float32),
+                                 'X2': m2.astype(numpy.float32),
+                                 'X3': m3.astype(numpy.float32)},
+                                verbose=verbose, fLOG=print)
+                self.assertEqualArray(exp, res2['Y'])
 
     # Taken from https://github.com/numpy/numpy/blob/main/numpy/
     # core/tests/test_einsum.py.
@@ -401,14 +437,33 @@ class TestEinsum(ExtTestCase):
                     print(path[1])
 
                 shapes = [m.shape for m in inputs]
+                vv = 12 if equation == ",a,ab,abc->abc" else verbose
 
                 with self.subTest(strategy='numpy'):
                     seq = decompose_einsum_equation(
                         equation, *shapes, verbose=verbose,
                         strategy='numpy', clean=clean)
                     got = apply_einsum_sequence(
-                        seq, *inputs, verbose=verbose)
+                        seq, *inputs, verbose=vv)
                     self.assertEqualArray(exp, got, decimal=6)
+
+                if clean:
+                    with self.subTest(strategy='onnx'):
+                        inps = ['X%d' % (i + 1) for i in range(len(inputs))]
+                        try:
+                            onx = seq.to_onnx('Y', *inps, dtype=numpy.float32)
+                        except NotImplementedError as e:
+                            if "diagonal" in str(e):
+                                onx = None
+                            else:
+                                raise e
+                        if onx is not None:
+                            oinf = OnnxInference(onx)
+                            inps = {n: v.astype(numpy.float32)
+                                    for n, v in zip(inps, inputs)}
+                            got = oinf.run(inps, verbose=vv, fLOG=print)['Y']
+                            self.assertEqualArray(exp, got, decimal=6)
+
                 with self.subTest(strategy='simple'):
                     seq = decompose_einsum_equation(
                         equation, *shapes, clean=clean, verbose=verbose)
@@ -538,5 +593,5 @@ class TestEinsum(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestEinsum().test_decompose_einsum_equation_onnx2()
+    # TestEinsum().test_many_3()
     unittest.main()
