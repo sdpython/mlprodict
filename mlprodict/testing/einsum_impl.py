@@ -93,7 +93,14 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple",
     :return: instance of @see cl GraphEinsumSubOp
 
     About *strategy*:
-    * `'simple'`: align all dimensions in the alphabetical order
+    * `'simple'`: align all dimensions in the alphabetical order,
+      some generic matrix multiplication remains implemented with
+      :epkg:`numpy:einsum` but only with two matrices aligned on
+      the same dimension (see @see fn numpy_extended_dot)
+    * `'numpy'`: same as `simple` but the decomposition does not use
+      :epkg:`numpy:einsum` anymore but only multiplication or
+      matrix multiplication merged into a single operator called
+      *batch_dot* (see @see fn numpy_extended_dot_matrix)
 
     Available operations: *expand_dims*, *transpose*, *matmul*, *reduce_sum*,
     *id*, *squeeze*, *diagonal*. It analyses an equation and produces a graph
@@ -128,8 +135,10 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple",
             raise TypeError(
                 "All shapes must be tuples for %r is not." % sh)
     if strategy in ("simple", "numpy"):
+        op_matmul = {'simple': 'matmul',
+                     'numpy': 'batch_dot'}
         graph = _decompose_einsum_equation_simple(
-            equation, *shapes, verbose=verbose, keep_matmul=strategy == 'simple')
+            equation, *shapes, verbose=verbose, op_matmul=op_matmul[strategy])
     else:
         raise ValueError("Unknown strategy %r." % strategy)
 
@@ -259,12 +268,17 @@ def _apply_squeeze_transpose(op, row_last, row_output):
 
 
 def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
-                         keep_matmul, row1, row2, verbose=False):
+                         op_matmul, row1, row2, verbose=False):
     """
     Decomposes the generic matrix multiplication into numpy operations
-    if *keep_matmul* is False.
+    depending on the operator to use for matrix multiplication
+    *op_matmul* (see @see fn decompose_einsum_equation).
     """
-    if keep_matmul:
+    allowed = {'matmul', 'batch_dot', 'dot'}
+    if op_matmul not in allowed:
+        raise ValueError(
+            "Unknown operator op_matmul=%r not in %r." % (op_matmul, allowed))
+    if op_matmul == 'matmul':
         if verbose:
             print("  -- MATMUL -> matmul axes=%r left=%r right=%r"
                   "" % (axes, left, right))
@@ -368,12 +382,14 @@ def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
 
 
 def _decompose_einsum_equation_simple(equation, *shapes, verbose=False,
-                                      keep_matmul=True):
+                                      op_matmul='matmul'):
     """
-    Applies strategy simple of function @see fn decompose_einsum_equation.
+    Applies strategy `simple`, `numpy`
+    defined in by function @see fn decompose_einsum_equation.
 
-    :param keep_matmul: break matmul operator into numpy operations
-        or keep is it is
+    :param op_matmul: which operator to use for matrix multiplication,
+        a single operator *matmul*, or *batch_dot* with *transposes*,
+        *reduce_sum*, or just *dot*
     """
     letters, mat, lengths, duplicates = analyse_einsum_equation(equation)
     if len(letters) != mat.shape[1]:
@@ -462,7 +478,7 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False,
             for iop in _apply_einsum_matmul(
                     fd, graph.last_op, op, axes=tuple(common_dims),
                     left=tuple(left), right=tuple(right),
-                    ndim=rows.shape[1], keep_matmul=keep_matmul,
+                    ndim=rows.shape[1], op_matmul=op_matmul,
                     row1=rows[0, :], row2=rows[1, :], verbose=verbose):
                 op = iop
                 op.compute_output_row(rows[0, :], rows[1, :],

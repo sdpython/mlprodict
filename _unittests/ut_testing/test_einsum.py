@@ -6,12 +6,15 @@ import io
 from contextlib import redirect_stdout
 import itertools
 import numpy
+from onnxruntime import (
+    InferenceSession, GraphOptimizationLevel, SessionOptions)
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing.einsum_impl_ext import (
     numpy_diagonal, numpy_extended_dot, numpy_extended_dot_python)
 from mlprodict.testing.einsum_impl import (
     analyse_einsum_equation, decompose_einsum_equation, EinsumSubOp,
     apply_einsum_sequence)
+from mlprodict.onnxrt import OnnxInference
 
 
 class TestEinsum(ExtTestCase):
@@ -180,11 +183,13 @@ class TestEinsum(ExtTestCase):
         m1 = numpy.arange(0, 24).astype(numpy.float32).reshape((2, 3, 4))
         m2 = numpy.arange(0, 20).astype(numpy.float32).reshape((4, 5))
         verbose = False
-        for strat in ['numpy', 'simple']:
+        for strat, opname in [('numpy', 'batch_dot'),
+                              ('simple', 'matmul')]:
             with self.subTest(strategy=strat):
                 seq = decompose_einsum_equation(
                     "bac,ch->ah", (2, 3, 4), (4, 5), strategy=strat,
                     verbose=verbose)
+                self.assertIn(opname, seq.to_dot())
                 res1 = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
                 res2 = apply_einsum_sequence(
                     seq, m1, m2, matmul_impl='py', verbose=verbose)
@@ -193,6 +198,68 @@ class TestEinsum(ExtTestCase):
                         lambda: apply_einsum_sequence(
                             seq, m1, m2, matmul_impl='py2'),  # pylint: disable=W0640
                         ValueError)
+                self.assertEqualArray(res1, res2)
+
+    def test_decompose_einsum_equation_onnx(self):
+        m1 = numpy.arange(0, 24).astype(numpy.float32).reshape((2, 3, 4))
+        m2 = numpy.arange(0, 20).astype(numpy.float32).reshape((4, 5))
+        verbose = False
+        for strat, opname in [('numpy', 'batch_dot')]:  # pylint: disable=W0612
+            with self.subTest(strategy=strat):
+                seq = decompose_einsum_equation(
+                    "bac,ch->ah", (2, 3, 4), (4, 5), strategy=strat,
+                    verbose=verbose)
+                res1 = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
+                self.assertRaise(
+                    lambda: seq.to_onnx(  # pylint: disable=W0640
+                        "Y", "X1", "X2", dtype=numpy.float32),
+                    NotImplementedError)
+                seq.simplify_mm_nodes()
+                seq.clean_unused_nodes()
+                onx = seq.to_onnx("Y", "X1", "X2", dtype=numpy.float32)
+
+                oinf = OnnxInference(onx)
+                oxres = oinf.run({'X1': m1.astype(numpy.float32),
+                                  'X2': m2.astype(numpy.float32)})
+                res2 = oxres['Y']
+                self.assertEqualArray(res1, res2)
+
+                oinf = OnnxInference(onx, runtime="onnxruntime1")
+                oxres = oinf.run({'X1': m1.astype(numpy.float32),
+                                  'X2': m2.astype(numpy.float32)})
+                res2 = oxres['Y']
+                self.assertEqualArray(res1, res2)
+
+    def test_decompose_einsum_equation_onnx2(self):
+        m1 = numpy.arange(0, 24).astype(numpy.float32).reshape((2, 3, 4))
+        m2 = numpy.arange(0, 20).astype(numpy.float32).reshape((4, 5))
+        m3 = numpy.arange(0, 77 * 5).astype(numpy.float32).reshape((5, 7, 11))
+        verbose = False
+        for strat, opname in [('numpy', 'batch_dot')]:  # pylint: disable=W0612
+            with self.subTest(strategy=strat):
+                seq = decompose_einsum_equation(
+                    "bac,cd,def->ebc", (2, 3, 4), (4, 5), (5, 7, 11),
+                    strategy=strat, verbose=verbose)
+                res1 = apply_einsum_sequence(seq, m1, m2, m3, verbose=verbose)
+                # verbose=verbose)
+                seq.simplify_mm_nodes()
+                seq.clean_unused_nodes()
+                onx = seq.to_onnx("Y", "X1", "X2", "X3", dtype=numpy.float32)
+
+                oinf = OnnxInference(onx)
+                oxres = oinf.run({'X1': m1.astype(numpy.float32),
+                                  'X2': m2.astype(numpy.float32),
+                                  'X3': m3.astype(numpy.float32)})
+                res2 = oxres['Y']
+                self.assertEqualArray(res1, res2)
+
+                so = SessionOptions()
+                so.graph_optimization_level = GraphOptimizationLevel.ORT_DISABLE_ALL
+                oinf = InferenceSession(onx.SerializeToString(), so)
+                oxres = oinf.run(None, {'X1': m1.astype(numpy.float32),
+                                        'X2': m2.astype(numpy.float32),
+                                        'X3': m3.astype(numpy.float32)})
+                res2 = oxres[0]
                 self.assertEqualArray(res1, res2)
 
     def test_decompose_einsum_equation_pyf(self):
@@ -471,5 +538,5 @@ class TestEinsum(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestEinsum().test_case_2_A()
+    # TestEinsum().test_decompose_einsum_equation_onnx2()
     unittest.main()

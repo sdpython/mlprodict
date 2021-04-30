@@ -1,14 +1,35 @@
+# pylint: disable=C0302
 """
 @file
 @brief Classes representing the sequence of matrix operations to
 implement einsum computation.
 """
 import numpy
+from onnx import helper, numpy_helper
+from ..tools.onnx2py_helper import guess_proto_dtype
+from ..tools.asv_options_helper import (
+    get_opset_number_from_onnx, get_ir_version_from_onnx)
 from .einsum_impl_ext import (
     numpy_extended_dot, numpy_diagonal,
     _numpy_extended_dot_equation,
     numpy_extended_dot_python,
     numpy_extended_dot_matrix)
+
+
+def single_axes(axes):
+    """
+    *axes* contains positive values, then it is the position
+    of this axis in the original matrix, otherwise it is -1
+    meaning this axis is an added single dimension to align
+    all the dimensions based on the einsum equation.
+
+    :param axes: axes described above
+    :return: list of integer in set `{1, 2}`, 1 for
+        a single axis, 2 otherwise
+    """
+    if axes is None:
+        return axes
+    return [(1 if a == -1 else 2) for a in axes]
 
 
 class EinsumSubOp:
@@ -33,6 +54,7 @@ class EinsumSubOp:
         self.name = name
         self.inputs = inputs
         self.kwargs = kwargs
+        self._info = {}
         if name not in EinsumSubOp._allowed:
             raise ValueError(
                 "Unexpected name %r. It should be in %r."
@@ -296,7 +318,21 @@ class EinsumSubOp:
                 "compute_output_row not implemented for %r." % self.name)
         if verbose and ab:
             print("  -- called as a binary operator")
+        self.add_info(i_row=single_axes(row), i_row2=single_axes(row2))
         meth(row, row2=row2, ab=ab, verbose=verbose)
+        self.add_info(o_row=single_axes(row), o_row2=single_axes(row2))
+
+    def add_info(self, **kwargs):
+        """
+        Adds information to the node.
+
+        :param kwargs: dictionary
+        """
+        for k, v in kwargs.items():
+            if k in self._info:
+                raise KeyError(
+                    "Key %r already added (operator %r)." % (k, self.name))
+            self._info[k] = v
 
     def _check_inputs_(self, n_expected, check_dim=False):
         if len(self.inputs) != n_expected:
@@ -468,8 +504,6 @@ class EinsumSubOp:
         dot = m1sh @ numpy.transpose(m2sh, (0, 2, 1))
 
         # new shape
-        taken = set(batch_axes) | set(sum_axes)
-        ax = [i for i in range(len(m1.shape)) if i not in taken]
         new_shape = ([max(m1.shape[i], m2.shape[i]) for i in batch_axes] +
                      [m1.shape[i] for i in left if i not in batch_axes] +
                      [m2.shape[i] for i in right if i not in batch_axes])
@@ -477,6 +511,8 @@ class EinsumSubOp:
             new_shape.append(1)
 
         if verbose:
+            taken = set(batch_axes) | set(sum_axes)
+            ax = [i for i in range(len(m1.shape)) if i not in taken]
             print("- %s, shapes=%r @ %r -> %r" % (
                 self.name, m1sh.shape, m2sh.shape, dot.shape))
             print("- %s, batch_axes=%r ax=%r new_shape=%r left=%r right=%r" % (
@@ -556,11 +592,256 @@ class EinsumSubOp:
             print("+ %s, shape=%r -- %d" % (self.name, output.shape, id(self)))
         return output
 
+    def _onnx_name(self):
+        return 'einsum%d_%s' % (id(self), self.name[:2])
+
+    def _check_onnx_opset_(self, opset, limit):
+        if opset is not None and opset < limit:
+            raise RuntimeError(
+                "Opset (%r) must be >= %r for operator %r."
+                "" % (opset, limit, self.name))
+
+    def _to_onnx_id(self, names, opset, verbose=False, **kwargs):
+        self._check_inputs_(1)
+        inp = self.inputs[0]
+        name = self._get_data(names, inp)
+        yield helper.make_node('Identity', [name], [self._onnx_name()])
+
+    def _to_onnx_expand_dims(self, names, opset, verbose=False, **kwargs):
+        self._check_inputs_(1)
+        self._check_onnx_opset_(opset, 11)
+        inp = self.inputs[0]
+        name = self._get_data(names, inp)
+        axes = self.kwargs['axes']
+        name_axes = name + '_axes'
+        yield numpy_helper.from_array(
+            numpy.array([a[1] for a in axes], dtype=numpy.int64), name=name_axes)
+        yield helper.make_node(
+            'Unsqueeze', [name, name_axes], [self._onnx_name()])
+
+    def _to_onnx_squeeze(self, names, opset, verbose=False, **kwargs):
+        self._check_inputs_(1)
+        self._check_onnx_opset_(opset, 11)
+        inp = self.inputs[0]
+        name = self._get_data(names, inp)
+        axes = self.kwargs['axes']
+        name_axes = name + '_axes'
+        yield numpy_helper.from_array(
+            numpy.array(axes, dtype=numpy.int64), name=name_axes)
+        yield helper.make_node(
+            'Squeeze', [name, name_axes], [self._onnx_name()])
+
+    def _to_onnx_transpose(self, names, opset, verbose=False, **kwargs):
+        self._check_inputs_(1)
+        inp = self.inputs[0]
+        name = self._get_data(names, inp)
+        perm = self.kwargs['perm']
+        yield helper.make_node(
+            'Transpose', [name], [self._onnx_name()], perm=perm)
+
+    def _to_onnx_reduce_sum(self, names, opset, verbose=False, **kwargs):
+        self._check_inputs_(1)
+        self._check_onnx_opset_(opset, 11)
+        inp = self.inputs[0]
+        name = self._get_data(names, inp)
+        axes = self.kwargs['axes']
+        name_axes = self._onnx_name() + '_axes'
+        yield numpy_helper.from_array(
+            numpy.array(axes, dtype=numpy.int64), name=name_axes)
+        yield helper.make_node(
+            'ReduceSum', [name, name_axes], [self._onnx_name()], keepdims=1)
+
+    def _to_onnx_batch_dot(self, names, opset, verbose=False, **kwargs):
+        self._check_inputs_(2)
+        self._check_onnx_opset_(opset, 13)
+        inp1, inp2 = self.inputs[:2]  # pylint: disable=W0632
+        name1 = self._get_data(names, inp1)
+        name2 = self._get_data(names, inp2)
+
+        batch_axes = self.kwargs['batch_axes']
+        keep_axes = self.kwargs['keep_axes']
+        sum_axes = self.kwargs['sum_axes']
+        left = self.kwargs['left']
+        right = self.kwargs['right']
+        root = self._onnx_name()
+
+        name_shape1 = root + "_shape1"
+        name_shape2 = root + "_shape2"
+        yield helper.make_node('Shape', [name1], [name_shape1])
+        yield helper.make_node('Shape', [name2], [name_shape2])
+
+        name_batch_axes = root + "_batch_axes"
+        yield numpy_helper.from_array(
+            numpy.array(batch_axes, dtype=numpy.int64), name=name_batch_axes)
+        name_sum_axes = root + "_sum_axes"
+        yield numpy_helper.from_array(
+            numpy.array(sum_axes, dtype=numpy.int64), name=name_sum_axes)
+
+        # dim0 = int(numpy.prod([m1.shape[i] for i in batch_axes]))
+        # dim0b = int(numpy.prod([m2.shape[i] for i in batch_axes]))
+        name_dim0 = root + "_dim0"
+        yield helper.make_node(
+            'Gather', [name_shape1, name_batch_axes], [name_dim0 + 'g'])
+        name_dim0b = root + "_dim0b"
+        yield helper.make_node(
+            'Gather', [name_shape2, name_batch_axes], [name_dim0b + 'g'])
+
+        yield helper.make_node(
+            'ReduceProd', [name_dim0 + 'g'], [name_dim0], keepdims=1)
+        yield helper.make_node(
+            'ReduceProd', [name_dim0b + 'g'], [name_dim0b], keepdims=1)
+
+        # dimb = int(-1 if keep_axes is None else numpy.prod(
+        #     [m1.shape[i] for i in keep_axes]))
+        if keep_axes in (-1, None):
+            name_dimb = root + "__1"
+            yield numpy_helper.from_array(
+                numpy.array([-1], dtype=numpy.int64), name=name_dimb)
+        else:
+            name_keep_axes = root + "_keep_axes"
+            name_dimb = root + "_dimb"
+            yield numpy_helper.from_array(
+                numpy.array(keep_axes, dtype=numpy.int64), name=name_keep_axes)
+            yield helper.make_node(
+                'Gather', [name_shape1, name_keep_axes], [name_dimb + 'g'])
+            yield helper.make_node(
+                'ReduceProd', [name_dimb + 'g'], [name_dimb], keepdims=1)
+
+        # dim1 = int(numpy.prod([m1.shape[i] for i in sum_axes]))
+        # dim2 = int(numpy.prod([m2.shape[i] for i in sum_axes]))
+        name_dim1 = root + "_dim1"
+        yield helper.make_node(
+            'Gather', [name_shape1, name_sum_axes], [name_dim1 + 'g'])
+        name_dim2 = root + "_dim2"
+        yield helper.make_node(
+            'Gather', [name_shape2, name_sum_axes], [name_dim2 + 'g'])
+
+        yield helper.make_node(
+            'ReduceProd', [name_dim1 + 'g'], [name_dim1], keepdims=1)
+        yield helper.make_node(
+            'ReduceProd', [name_dim2 + 'g'], [name_dim2], keepdims=1)
+
+        # *shape1, *shape2
+        name_agg_shape1 = root + "_resh1"
+        name_agg_shape2 = root + "_resh2"
+        yield helper.make_node('Concat', [name_dim0, name_dimb, name_dim1],
+                               [name_agg_shape1], axis=0)
+        yield helper.make_node('Concat', [name_dim0b, name_dimb, name_dim2],
+                               [name_agg_shape2], axis=0)
+
+        # m1sh = m1.reshape((dim0, dimb, dim1))
+        # m2sh = m2.reshape((dim0b, dimb, dim2))
+        name_agg1 = root + "_aresh1"
+        name_agg2 = root + "_aresh2"
+        yield helper.make_node('Reshape', [name1, name_agg_shape1], [name_agg1])
+        yield helper.make_node('Reshape', [name2, name_agg_shape2], [name_agg2])
+
+        # dot = m1sh @ numpy.transpose(m2sh, (0, 2, 1))
+        name_agg2_tr = root + "_aresh2_tr"
+        yield helper.make_node(
+            'Transpose', [name_agg2], [name_agg2_tr], perm=[0, 2, 1])
+        name_dot = root + "_dot"
+        yield helper.make_node(
+            'MatMul', [name_agg1, name_agg2_tr], [name_dot])
+
+        # new_shape = ([max(m1.shape[i], m2.shape[i]) for i in batch_axes] +
+        #      [m1.shape[i] for i in left if i not in batch_axes] +
+        #      [m2.shape[i] for i in right if i not in batch_axes])
+        name_max_dim = root + "_max_dim"
+        yield helper.make_node(
+            'Max', [name_dim0 + 'g', name_dim0b + 'g'], [name_max_dim])
+
+        left_set = list(sorted(set(left) - (set(batch_axes) & set(left))))
+        name_left_set = root + "_left_set"
+        yield numpy_helper.from_array(
+            numpy.array(left_set, dtype=numpy.int64), name=name_left_set)
+        name_left_dim = root + "_left_dim"
+        yield helper.make_node(
+            'Gather', [name_shape1, name_left_set], [name_left_dim])
+
+        right_set = list(sorted(set(right) - (set(batch_axes) & set(right))))
+        name_right_set = root + "_right_set"
+        yield numpy_helper.from_array(
+            numpy.array(right_set, dtype=numpy.int64), name=name_right_set)
+        name_right_dim = root + "_right_dim"
+        yield helper.make_node(
+            'Gather', [name_shape2, name_right_set], [name_right_dim])
+
+        name_new_shape = root + '_new_shape'
+        diff = (
+            self.full_dim -
+            (len(batch_axes) + len(left_set) + len(right_set)))
+        if diff > 0:
+            names_ones = root + "_ones"
+            yield numpy_helper.from_array(
+                numpy.array([1 for i in range(diff)], dtype=numpy.int64),
+                name=names_ones)
+            yield helper.make_node(
+                'Concat', [name_max_dim, name_left_dim,
+                           name_right_dim, names_ones],
+                [name_new_shape], axis=0)
+        else:
+            yield helper.make_node(
+                'Concat', [name_max_dim, name_left_dim, name_right_dim],
+                [name_new_shape], axis=0)
+
+        name_final = root + '_final'
+        yield helper.make_node(
+            'Reshape', [name_dot, name_new_shape], [name_final])
+
+    def to_onnx(self, names, opset=None, verbose=False, **kwargs):
+        """
+        Converts this node into ONNX. Enumerates all ONNX node
+        which participate to the conversion. The last one
+        is the final output.
+
+        :param names: dictionary where to find already converted name
+        :param opset: opset
+        :param verbose: prints out intermediate results
+        :param kwargs: additional parameter for the conversion
+        :return: output
+        """
+        if opset is None:
+            opset = get_opset_number_from_onnx()
+        if verbose:
+            print()
+            print("to_onnx %r  (%s) opset=%r." % (
+                self.name,
+                ", ".join(map(lambda s: str(id(s)), self.inputs)),
+                opset))
+
+        method_name = "_to_onnx_%s" % self.name
+        meth = getattr(self, method_name, None)
+        if meth is None:
+            if self.name.endswith("_mm"):
+                raise NotImplementedError(
+                    "to_onnx not implemented for %r."
+                    "You should call method simplify_mm_nodes "
+                    "to remove it." % self.name)
+            raise NotImplementedError(
+                "to_onnx not implemented for %r." % self.name)
+        for node in meth(names, verbose=verbose, opset=opset, **kwargs):
+            if hasattr(node, 'output'):
+                names[id(self)] = node.output[0]
+                if verbose:
+                    print("+ OP %r -- (%s - %d)" %
+                          (node.output[0], self.name, id(self)))
+            elif verbose:
+                # Initializer
+                print("+ CT %r -- (%s - %d)" %
+                      (node.name, self.name, id(self)))
+            yield node
+
 
 class GraphEinsumSubOp:
     """
     Class gathering all nodes produced to explicit einsum
     operators.
+
+    :param letters: list of distinct letters
+    :param mat: matrix, see @see fn analyse_einsum_equation
+    :param lengths: lengths of every input
+    :param duplicates: see @see fn analyse_einsum_equation
     """
 
     def __init__(self, letters, mat, lengths, duplicates):
@@ -803,3 +1084,63 @@ class GraphEinsumSubOp:
                             op.name, len(op.inputs), id(op)))
                 op.name = op.name[:-3]
                 op.inputs = op.inputs[:1]
+
+    def to_onnx(self, output, *inputs, dtype=None, verbose=False,
+                opset=None, **kwargs):
+        """
+        Converts the graph into ONNX.
+
+        :param output: output name
+        :param inputs: input names
+        :param dtype: type used for all operators
+        :param opset: desired opset, None for the last one
+        :param verbose: display intermediate operators
+        :param kwargs: additional parameter to use when building
+            the ONNX graph
+        :return: ONNX graph
+        """
+        # inputs
+        if opset is None:
+            opset = get_opset_number_from_onnx()
+        if verbose:
+            print("[GraphEinsumSubOp.to_onnx] %r -> %s opset=%r "
+                  "dtype=%r" % (inputs, output, opset, dtype))
+        onx_inputs = []
+        proto = guess_proto_dtype(
+            numpy.float32 if dtype is None else dtype)
+        lengths = self.metadata['lengths']
+        for inp, le in zip(inputs, lengths):
+            onx_inputs.append(helper.make_tensor_value_info(
+                inp, proto, [None for i in range(le)]))
+
+        # output
+        onx_output = helper.make_tensor_value_info(
+            output, proto, [None for i in range(lengths[-1])])
+
+        # nodes
+        names = {i: name for i, name in enumerate(inputs)}
+        nodes = []
+        inits = []
+        for op in self:
+            for onx_node in op.to_onnx(names, verbose=verbose, opset=opset):
+                if hasattr(onx_node, 'output'):
+                    nodes.append(onx_node)
+                else:
+                    inits.append(onx_node)
+
+        # last node
+        last_node = nodes[-1]
+        nodes.append(helper.make_node(
+            'Identity', [last_node.output[0]], [output]))
+
+        # Builds the graph
+        model = helper.make_model(
+            opset_imports=[helper.make_operatorsetid('', opset)],
+            ir_version=kwargs.get('ir_version', get_ir_version_from_onnx()),
+            producer_name=kwargs.get('producer_name', 'mlprodict'),
+            producer_version=kwargs.get('producer_version', "0.0.dev"),
+            graph=helper.make_graph(
+                name=kwargs.get('name', 'einsum'),
+                inputs=onx_inputs, outputs=[onx_output],
+                initializer=inits, nodes=nodes))
+        return model

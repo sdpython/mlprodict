@@ -47,7 +47,7 @@ class OnnxInferenceExport:
                 'nodesep': '0.05',
                 'width': '0.5',
                 'height': '0.1',
-                'size': '5',
+                'size': '7',
             }
 
         One example:
@@ -99,7 +99,7 @@ class OnnxInferenceExport:
             'nodesep': '0.05',
             'width': '0.5',
             'height': '0.1',
-            'size': '5',
+            'size': '7',
         }
         options.update(params)
 
@@ -201,6 +201,7 @@ class OnnxInferenceExport:
                     iname += 1
                 dobj['name'] = name
                 node.name = name
+                fill_names[name] = node
 
             atts = []
             if 'atts' in dobj:
