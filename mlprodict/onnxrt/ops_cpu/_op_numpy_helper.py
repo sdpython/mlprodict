@@ -3,6 +3,7 @@
 @brief numpy redundant functions.
 """
 import numpy
+from scipy.sparse.coo import coo_matrix
 
 
 def numpy_dot_inplace(inplaces, a, b):
@@ -56,6 +57,8 @@ def numpy_matmul_inplace(inplaces, a, b):
     """
     Implements a matmul product, deals with inplace information.
     """
+    if isinstance(a, coo_matrix) or isinstance(b, coo_matrix):
+        return numpy.dot(a, b)
     if inplaces.get(0, False) and hasattr(a, 'flags'):
         return _numpy_matmul_inplace_left(a, b)
     if inplaces.get(1, False) and hasattr(b, 'flags'):
