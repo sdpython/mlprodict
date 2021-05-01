@@ -181,24 +181,23 @@ def get_inputs_from_data(X, schema=None):
             raise RuntimeError(  # pragma: no cover
                 "More than one column but input is an array.")
         return {schema[0][0]: _cast_data(X, schema[0][1])}
-    elif isinstance(X, pandas.DataFrame):
+    if isinstance(X, pandas.DataFrame):
         if len(schema) != X.shape[1]:
             raise RuntimeError(  # pragma: no cover
                 "Mismatch between onnx columns {} and DataFrame columns {}"
                 "".format(len(schema), X.shape[1]))
         return {sch[0]: _cast_data(X[c].values, sch[1]).reshape((-1, 1))
                 for sch, c in zip(schema, X.columns)}
-    else:
-        raise TypeError(  # pragma: no cover
-            "Unexpected type {}, expecting an array or a dataframe."
-            "".format(type(X)))
+    raise TypeError(  # pragma: no cover
+        "Unexpected type {}, expecting an array or a dataframe."
+        "".format(type(X)))
 
 
 def guess_schema_from_model(model, tensor_type=None, schema=None):
     """
     Guesses initial types from a model.
 
-    @param      X               dataset (dataframe, array)
+    @param      model           model
     @param      tensor_type     if not None, replaces every
                                 *FloatTensorType* or *DoubleTensorType*
                                 by this one

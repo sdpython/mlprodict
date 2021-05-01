@@ -42,8 +42,8 @@ def verify_code(source, exc=True):
             issues.add(name[0])
     if exc and len(issues) > 0:
         raise ImperfectPythonCode(
-            "Unknown identifiers: {} in\n{}".format(
-                ",".join(issues), source))
+            "Unknown identifiers: {} in source\n{}".format(
+                issues, source))
     return issues, v
 
 
@@ -141,8 +141,8 @@ class CodeNodeVisitor(ast.NodeVisitor):
                 ("{0}{1}: {2}".format(
                     "    " *
                     r["indent"],
-                    r["type"],
-                    r["str"])))
+                    r.get("type", ''),
+                    r.get("str", ''))))
         return "\n".join(rows)
 
     @property
