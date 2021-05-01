@@ -277,7 +277,7 @@ def numpy_extended_dot_ouput_shape(m1, m2, axes, left, right):
     for i in right:
         if (i in left and m1.shape[i] != m2.shape[i] and
                 m1.shape[i] != 1 and m2.shape[i] != 1):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Matrices should have the same dimension for dimension %d, "
                 "shapes=%r @ %r." % (i, m1.shape, m2.shape))
         new_shape[i] = m2.shape[i]
@@ -347,7 +347,7 @@ def _numpy_extended_dot_python_update_broadcast(
 
     for i in range(len(broadcast)):  # pylint: disable=C0200
         if broadcast[i] and not (kind[i] & 3) == 3:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Broadcast should only happen on common axes, "
                 "axes=%r left=%r right=%r shape1=%r shape2=%r."
                 "" % (axes, left, right, m1.shape, m2.shape))
@@ -603,7 +603,7 @@ def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
         dim1 = int(numpy.prod([trm1.shape[i] for i in new_axes]))
         dim2 = int(numpy.prod([trm2.shape[i] for i in new_axes]))
         if dim1 != dim2:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Summation axis do not have the same length %d != %d, "
                 "trshape1=%r trshape2=%r "
                 "p_axes=%r p_left=%r p_right=%r p_common=%r"
@@ -685,7 +685,7 @@ def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
                           left, new_left, axes, new_axes, eq1, eq2))
             return numpy_extended_dot_matrix(m1, m2, new_axes, new_left, right,
                                              verbose=verbose)
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "shape1=%r shape2=%r axes=%r left=%r right=%r eq=%s." % (
                 m1.shape, m2.shape, axes, left, right,
                 _numpy_extended_dot_equation(
