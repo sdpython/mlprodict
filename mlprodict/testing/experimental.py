@@ -6,7 +6,7 @@ from collections import OrderedDict
 import numpy
 
 
-def custom_pad(arr, paddings, constant=0, debug=False):
+def custom_pad(arr, paddings, constant=0, verbose=False):
     """
     Implements function
     `pad <https://numpy.org/doc/stable/reference/
@@ -19,7 +19,7 @@ def custom_pad(arr, paddings, constant=0, debug=False):
     :return: padded array
     """
     if paddings.shape[0] != len(arr.shape):
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             "Input shape {} and paddings {} are inconsistent.".format(
                 arr.shape, paddings))
     if min(paddings.ravel()) < 0:
@@ -38,7 +38,7 @@ def custom_pad(arr, paddings, constant=0, debug=False):
         cumulative_input.insert(0, a * cumulative_input[0])
 
     input_arr = arr.ravel()
-    if debug:
+    if verbose:
         res = numpy.zeros(cumulative_copy[0], dtype=arr.dtype) - 1
     else:
         res = numpy.empty(cumulative_copy[0], dtype=arr.dtype)
@@ -83,7 +83,7 @@ def custom_pad(arr, paddings, constant=0, debug=False):
     return res.reshape(new_shape)
 
 
-def custom_einsum(equation, x, y, debug=False):
+def custom_einsum(equation, x, y, verbose=False):
     """
     Experimental implementation of operator Einsum
     when it does a matrix multiplication.
@@ -93,7 +93,7 @@ def custom_einsum(equation, x, y, debug=False):
     :param equation: equation
     :param x: first matrix
     :param y: second matrix
-    :param debug: display internal information
+    :param verbose: display internal information
     :return: result of *einsum*
 
     This implementation does not any transpose,
@@ -126,7 +126,7 @@ def custom_einsum(equation, x, y, debug=False):
             elif r in dy:
                 c_uni.append((None, r))
             else:
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "Unexpected letter %r in result %r." % (r, eqr))
         for c in dx:
             if c not in eqr:
@@ -134,13 +134,13 @@ def custom_einsum(equation, x, y, debug=False):
                     raise ValueError(
                         "Unable to guess what to do with column %r (left side)" % c)
                 if dx[c][0] != dy[c][0]:
-                    raise ValueError(
+                    raise ValueError(  # pragma: no cover
                         "Dimension mismatch for letter "
                         "%r dx=%r dy=%r." % (c, dx, dy))
                 c_sum.append(c)
         for c in dy:
             if c not in eqr and c not in dx:
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "Unable to guess what to do with column %r (right side)" % c)
         shape = OrderedDict()
         for i, r in enumerate(eqr):
@@ -155,7 +155,7 @@ def custom_einsum(equation, x, y, debug=False):
                         shape[r] = (dy[r][0], i)
                         break
         if len(shape) != len(eqr):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to compute the output shape "
                 "dx=%r dy=%r eqr=%r got shape=%r." % (dx, dy, eqr, shape))
         return shape, c_trp, c_uni, c_sum
@@ -223,7 +223,7 @@ def custom_einsum(equation, x, y, debug=False):
     left_incs = get_incs(cdx, shape)
     right_incs = get_incs(cdy, shape)
 
-    if debug:
+    if verbose:
         def MakeString(*args):
             return "".join(map(str, args))
 
@@ -254,7 +254,7 @@ def custom_einsum(equation, x, y, debug=False):
             i_right += inc_right
         zrav[i] = add
 
-        if debug:
+        if verbose:
             print(MakeString(
                 "  -- index=", index, " ii=", i,
                 " i_left_loop=", i_left_loop, " i_right_loop=", i_right_loop,

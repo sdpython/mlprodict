@@ -8,7 +8,9 @@ import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing.einsum_impl_ext import (
     numpy_extended_dot, numpy_extended_dot_python,
-    numpy_extended_dot_matrix)
+    numpy_extended_dot_matrix, numpy_diagonal,
+    _numpy_extended_dot_equation,
+    _common_check_numpy_extended_dot)
 
 
 confs = [
@@ -1501,6 +1503,44 @@ class TestEinsumGenericdot(ExtTestCase):
                                  m1.ravel(), m2.ravel(),
                                  exp.ravel(), dot.ravel(), f.getvalue()))
         return True
+
+    def test_exc(self):
+        self.assertRaise(
+            lambda: numpy_diagonal(None, 6, (8, 9)),
+            RuntimeError)
+        self.assertRaise(
+            lambda: _numpy_extended_dot_equation(4, 5, None, None, None),
+            RuntimeError)
+        self.assertRaise(
+            lambda: _numpy_extended_dot_equation(1, 1, (4, 5), (6, 7), (8, 9)),
+            ValueError)
+        self.assertRaise(
+            lambda: _numpy_extended_dot_equation(
+                10, 10, (-4, 5), (6, 7), (8, 9)),
+            ValueError)
+        self.assertRaise(
+            lambda: _common_check_numpy_extended_dot(
+                numpy.array([5], dtype=numpy.float32),
+                numpy.array([5], dtype=numpy.int64),
+                None, None, None),
+            TypeError)
+
+    def test_verbose(self):
+        conf = dict(shape1=(1, 5, 4, 1), shape2=(1, 1, 4, 6),
+                    axes=(2,), left=(0, 1), right=(3,))
+        sh1 = conf['shape1']
+        sh2 = conf['shape2']
+        axes = conf['axes']
+        left = conf['left']
+        right = conf['right']
+        m1 = numpy.empty(sh1).ravel()
+        m1 = numpy.arange(len(m1)).reshape(sh1).astype(numpy.float64) + 10
+        m2 = numpy.empty(sh2).ravel()
+        m2 = numpy.arange(len(m2)).reshape(sh2).astype(numpy.float64) + 1000
+        self.capture(
+            lambda: numpy_extended_dot_python(m1, m2, axes, left, right))
+        self.capture(
+            lambda: numpy_extended_dot_matrix(m1, m2, axes, left, right))
 
 
 if __name__ == "__main__":

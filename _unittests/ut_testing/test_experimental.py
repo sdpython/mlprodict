@@ -34,8 +34,8 @@ class TestExperimental(ExtTestCase):
         sess = InferenceSession(model.SerializeToString())
         return numpy.squeeze(sess.run(['Y'], {'X': x, 'P': npads}))
 
-    def fct_test(self, custom_fct, fct, *inputs):
-        got = custom_fct(*inputs, debug=True)
+    def fct_test(self, custom_fct, fct, *inputs, verbose=True):
+        got = custom_fct(*inputs, verbose=verbose)
         exp = fct(*inputs)
         try:
             self.assertEqualArray(exp, got)
@@ -48,33 +48,42 @@ class TestExperimental(ExtTestCase):
                 "MISMATCH {}\n{}".format(inputs, "\n".join(rows))) from e
 
     def test_experimental_pad_positive(self):
-        arr = numpy.arange(6) + 10
-        paddings = numpy.array([1, 1]).reshape((-1, 2)) * 2
-        self.fct_test(custom_pad, numpy.pad, arr, paddings)
+        for verbose in [True, False]:
+            with self.subTest(verbose=verbose):
+                arr = numpy.arange(6) + 10
+                paddings = numpy.array([1, 1]).reshape((-1, 2)) * 2
+                self.fct_test(custom_pad, numpy.pad, arr,
+                              paddings, verbose=verbose)
 
-        arr = numpy.arange(6) + 10
-        paddings = numpy.array([1, 1]).reshape((-1, 2))
-        self.fct_test(custom_pad, numpy.pad, arr, paddings)
+                arr = numpy.arange(6) + 10
+                paddings = numpy.array([1, 1]).reshape((-1, 2))
+                self.fct_test(custom_pad, numpy.pad, arr,
+                              paddings, verbose=verbose)
 
-        arr = numpy.arange(6).reshape((2, -1)) + 10
-        paddings = numpy.array([1, 1, 1, 1]).reshape((-1, 2)) * 2
-        self.fct_test(custom_pad, numpy.pad, arr, paddings)
+                arr = numpy.arange(6).reshape((2, -1)) + 10
+                paddings = numpy.array([1, 1, 1, 1]).reshape((-1, 2)) * 2
+                self.fct_test(custom_pad, numpy.pad, arr,
+                              paddings, verbose=verbose)
 
-        arr = numpy.arange(6).reshape((2, -1)) + 10
-        paddings = numpy.array([1, 1, 2, 2]).reshape((-1, 2))
-        self.fct_test(custom_pad, numpy.pad, arr, paddings)
+                arr = numpy.arange(6).reshape((2, -1)) + 10
+                paddings = numpy.array([1, 1, 2, 2]).reshape((-1, 2))
+                self.fct_test(custom_pad, numpy.pad, arr,
+                              paddings, verbose=verbose)
 
-        arr = numpy.arange(6).reshape((2, -1)) + 10
-        paddings = numpy.array([1, 1, 1, 1]).reshape((-1, 2))
-        self.fct_test(custom_pad, numpy.pad, arr, paddings)
+                arr = numpy.arange(6).reshape((2, -1)) + 10
+                paddings = numpy.array([1, 1, 1, 1]).reshape((-1, 2))
+                self.fct_test(custom_pad, numpy.pad, arr,
+                              paddings, verbose=verbose)
 
-        arr = numpy.arange(6).reshape((1, 2, -1)) + 10
-        paddings = numpy.array([1, 1, 1, 1, 1, 1]).reshape((-1, 2))
-        self.fct_test(custom_pad, numpy.pad, arr, paddings)
+                arr = numpy.arange(6).reshape((1, 2, -1)) + 10
+                paddings = numpy.array([1, 1, 1, 1, 1, 1]).reshape((-1, 2))
+                self.fct_test(custom_pad, numpy.pad, arr,
+                              paddings, verbose=verbose)
 
-        arr = numpy.arange(6).reshape((1, 2, -1)) + 10
-        paddings = numpy.array([1, 1, 1, 1, 1, 1]).reshape((-1, 2)) * 2
-        self.fct_test(custom_pad, numpy.pad, arr, paddings)
+                arr = numpy.arange(6).reshape((1, 2, -1)) + 10
+                paddings = numpy.array([1, 1, 1, 1, 1, 1]).reshape((-1, 2)) * 2
+                self.fct_test(custom_pad, numpy.pad, arr,
+                              paddings, verbose=verbose)
 
     def test_experimental_pad_552(self):
         arr = numpy.random.rand(2, 2, 2).astype(numpy.float32)
@@ -137,6 +146,8 @@ class TestExperimental(ExtTestCase):
         ein2 = custom_einsum(eq, x, y)
         self.assertEqual(ein.shape, ein2.shape)
         self.assertEqualArray(ein, ein2)
+
+        self.capture(lambda: custom_einsum(eq, x, y, verbose=True))
 
         x = numpy.random.rand(1, 8, 3, 5)
         y = numpy.random.rand(1, 8, 3, 5)

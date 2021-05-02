@@ -55,6 +55,26 @@ def fct(a, b):
     return a * b
 '''
 
+source3 = '''
+def fct(a, b):
+    return a {} b
+'''
+
+source4 = '''
+def fct(a, b):
+    return [0, 1, 2, 3][a: b]
+'''
+
+source5 = '''
+def fct(a, b):
+    return lambda x: x * 2
+'''
+
+source6 = '''
+def fct(a, b):
+    return [x for x in [1, 2]]
+'''
+
 
 class TestVerifyCode(ExtTestCase):
 
@@ -72,6 +92,81 @@ class TestVerifyCode(ExtTestCase):
         text = res.print_node(node)
         self.assertIn('body=', text)
 
+    def test_verify_code_ops(self):
+        for op in ['**', 'and', '*', '/', '-', '+', 'or']:
+            with self.subTest(op=op):
+                _, res = verify_code(source3.format(op))
+                self.assertIn('CodeNodeVisitor', str(res))
+                tree = res.print_tree()
+                if 'BinOp' not in tree and 'BoolOp' not in tree:
+                    raise AssertionError(
+                        "Unable to find %r in\n%r" % (op, str(tree)))
+                self.assertIn('\n', tree)
+                rows = res.Rows
+                node = rows[0]['node']
+                text = res.print_node(node)
+                self.assertIn('body=', text)
+
+    def test_verify_code_cmp(self):
+        for op in ['<', '>', '==', '!=', '>=', '<=']:
+            with self.subTest(op=op):
+                _, res = verify_code(source3.format(op))
+                self.assertIn('CodeNodeVisitor', str(res))
+                tree = res.print_tree()
+                self.assertIn('Compare', tree)
+                self.assertIn('\n', tree)
+                rows = res.Rows
+                node = rows[0]['node']
+                text = res.print_node(node)
+                self.assertIn('body=', text)
+
+    def test_verify_code_slice(self):
+        _, res = verify_code(source4)
+        self.assertIn('CodeNodeVisitor', str(res))
+        tree = res.print_tree()
+        self.assertIn('Slice', tree)
+        self.assertIn('\n', tree)
+        rows = res.Rows
+        node = rows[0]['node']
+        text = res.print_node(node)
+        self.assertIn('body=', text)
+
+    def test_verify_code_ops_in(self):
+        for op in ['in', 'not in']:
+            with self.subTest(op=op):
+                _, res = verify_code(source3.format(op))
+                self.assertIn('CodeNodeVisitor', str(res))
+                tree = res.print_tree()
+                self.assertIn('Compare', tree)
+                self.assertIn('\n', tree)
+                rows = res.Rows
+                node = rows[0]['node']
+                text = res.print_node(node)
+                self.assertIn('body=', text)
+
+    def test_verify_code_lambda(self):
+        _, res = verify_code(source5)
+        self.assertIn('CodeNodeVisitor', str(res))
+        tree = res.print_tree()
+        self.assertIn('Lambda', tree)
+        self.assertIn('\n', tree)
+        rows = res.Rows
+        node = rows[0]['node']
+        text = res.print_node(node)
+        self.assertIn('body=', text)
+
+    def test_verify_code_gen(self):
+        _, res = verify_code(source6, exc=False)
+        self.assertIn('CodeNodeVisitor', str(res))
+        tree = res.print_tree()
+        self.assertIn('comprehension', tree)
+        self.assertIn('\n', tree)
+        rows = res.Rows
+        node = rows[0]['node']
+        text = res.print_node(node)
+        self.assertIn('body=', text)
+
 
 if __name__ == "__main__":
+    TestVerifyCode().test_verify_code_gen()
     unittest.main()

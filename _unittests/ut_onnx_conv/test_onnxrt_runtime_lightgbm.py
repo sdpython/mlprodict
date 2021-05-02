@@ -15,6 +15,7 @@ from skl2onnx.common.data_types import (
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
 from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict.onnx_conv.parsers.parse_lightgbm import WrappedLightGbmBooster
 
 
 class TestOnnxrtRuntimeLightGbm(ExtTestCase):
@@ -23,6 +24,14 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
         register_converters()
+
+    def test_missing(self):
+        r = WrappedLightGbmBooster._generate_classes(  # pylint: disable=W0212
+            dict(num_class=1))
+        self.assertEqual(r.tolist(), [0, 1])
+        r = WrappedLightGbmBooster._generate_classes(  # pylint: disable=W0212
+            dict(num_class=3))
+        self.assertEqual(r.tolist(), [0, 1, 2])
 
     @skipif_circleci('stuck')
     @ignore_warnings((RuntimeWarning, UserWarning))

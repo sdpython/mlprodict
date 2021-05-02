@@ -35,7 +35,8 @@ class WrappedLightGbmBooster:
             # Here `gbdt` is chosen for no reason.
             self.boosting_type = 'gbdt'
 
-    def _generate_classes(self, model_dict):
+    @staticmethod
+    def _generate_classes(model_dict):
         if model_dict['num_class'] == 1:
             return numpy.asarray([0, 1])
         return numpy.arange(model_dict['num_class'])

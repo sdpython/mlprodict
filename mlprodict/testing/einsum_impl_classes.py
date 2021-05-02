@@ -78,13 +78,13 @@ class EinsumSubOp:
             self._check_arg_('perm', tuple)
             perm = self.kwargs['perm']
             if len(perm) != len(set(perm)):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "perm has duplicated values %r (name=%r)."
                     "" % (perm, self.name))
             if list(perm) == list(range(len(perm))):
-                raise ValueError(
-                    "Transpose = identity perm=%r. It must be removed."
-                    "" % perm)
+                raise ValueError(  # pragma: no cover
+                    "Transpose = identity perm={}. It must be removed."
+                    "".format(perm))
         elif self.name == 'matmul':
             self._check_arg_('axes', tuple)
             self._check_arg_('left', tuple)
@@ -94,7 +94,7 @@ class EinsumSubOp:
             right = self.kwargs['right']
             for a in axes:
                 if a in left and a in right:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "One axis belongs to every set (axes, left, right). "
                         "axes=%r, left=%r, right=%r." % (axes, left, right))
 
@@ -121,12 +121,12 @@ class EinsumSubOp:
 
     def _check_arg_(self, name, typ, empty=False):
         if name not in self.kwargs:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Parameter %r not found for operator %r." % (name, self.name))
         if empty and self.kwargs[name] is None:
             return
         if not isinstance(self.kwargs[name], typ):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected type %r for parameter %r and parameter %r."
                 "" % (type(self.kwargs[name]), name, self.name))
 
@@ -154,7 +154,7 @@ class EinsumSubOp:
         self._check_row_(row, True, verbose=verbose)
         self._check_arg_('perm', tuple)
         if len(self.kwargs['perm']) != len(row):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unexpected permutation %r (row=%r)."
                 "" % (self.kwargs['perm'], row))
         perm = self.kwargs['perm']
@@ -165,32 +165,33 @@ class EinsumSubOp:
 
     def _compute_output_row_transpose_mm(self, row, row2=None, ab=False, verbose=False):
         if not ab:
-            raise RuntimeError("ab must be True.")
+            raise RuntimeError("ab must be True.")  # pragma: no cover
         self._check_row_(row, True, verbose=verbose)
         if row2 is None:
-            raise RuntimeError("transpose_mm expects a second input.")
+            raise RuntimeError(  # pragma: no cover
+                "transpose_mm expects a second input.")
         self._compute_output_row_transpose(row, row2=None, verbose=verbose)
 
     def _compute_output_row_expand_dims(self, row, row2=None, ab=False, verbose=False):
         if ab:
-            raise RuntimeError("ab option not allowed.")
+            raise RuntimeError("ab option not allowed.")  # pragma: no cover
         self._check_row_(row, True, verbose=verbose)
         self._check_arg_('axes', tuple)
         axes = self.kwargs['axes']
         for axis in axes:
             if not isinstance(axis, tuple):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Parameter axes of expand_dims should be a tuple of "
                     "tuple, axes=%r." % axes)
             if row[axis[1]] != -1:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Dimension should be -1 in row %r axis=%r." % (
                         row, self.kwargs['axis']))
         self._check_row_(row, verbose=verbose)
 
     def _compute_output_row_reduce_sum(self, row, row2=None, ab=False, verbose=False):
         if ab:
-            raise RuntimeError("ab option not allowed.")
+            raise RuntimeError("ab option not allowed.")  # pragma: no cover
         self._check_row_(row, True, verbose=verbose)
         self._check_arg_('axes', tuple)
         for a in self.kwargs['axes']:
@@ -199,15 +200,16 @@ class EinsumSubOp:
 
     def _compute_output_row_reduce_sum_mm(self, row, row2=None, ab=False, verbose=False):
         if not ab:
-            raise RuntimeError("ab must be true.")
+            raise RuntimeError("ab must be true.")  # pragma: no cover
         self._check_row_(row2, True, verbose=verbose)
         if row2 is None:
-            raise RuntimeError("reduce_sum_mm expects a second input.")
+            raise RuntimeError(  # pragma: no cover
+                "reduce_sum_mm expects a second input.")
         self._compute_output_row_reduce_sum(row, row2=None, verbose=verbose)
 
     def _compute_output_row_squeeze(self, row, row2=None, ab=False, verbose=False):
         if ab:
-            raise RuntimeError("ab option not allowed.")
+            raise RuntimeError("ab option not allowed.")  # pragma: no cover
         self._check_row_(row, True, verbose=verbose)
         self._check_arg_('axes', tuple)
         for a in self.kwargs['axes']:
@@ -216,7 +218,7 @@ class EinsumSubOp:
 
     def _compute_output_row_diagonal(self, row, row2=None, ab=False, verbose=False):
         if ab:
-            raise RuntimeError("ab option not allowed.")
+            raise RuntimeError("ab option not allowed.")  # pragma: no cover
         self._check_row_(row, True, verbose=verbose)
         self._check_arg_('diag', list)
         to_remove = []
@@ -232,7 +234,7 @@ class EinsumSubOp:
         for r in to_remove:
             for i in range(len(row)):  # pylint: disable=C0200
                 if row[i] == r:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Unexpected result r=%r row=%r to_remove=%r "
                         "diag=%r." % (
                             r, row, to_remove, self.kwargs['diag']))
@@ -242,7 +244,7 @@ class EinsumSubOp:
 
     def _compute_output_row_matmul(self, row, row2=None, ab=False, verbose=False):
         if not ab:
-            raise RuntimeError("ab must be True.")
+            raise RuntimeError("ab must be True.")  # pragma: no cover
         self._check_row_(row, True, verbose=verbose)
         self._check_row_(row2, True, verbose=verbose)
         self._check_arg_('axes', tuple)
@@ -250,7 +252,8 @@ class EinsumSubOp:
         self._check_arg_('right', tuple)
         self._check_arg_('ndim', int)
         if row2 is None:
-            raise RuntimeError("matmul expects two inputs.")
+            raise RuntimeError(
+                "matmul expects two inputs.")  # pragma: no cover
         if verbose:
             ndim = self.kwargs['ndim']
             axes = self.kwargs['axes']
@@ -267,7 +270,7 @@ class EinsumSubOp:
 
     def _compute_output_row_batch_dot(self, row, row2=None, ab=False, verbose=False):
         if not ab:
-            raise RuntimeError("ab must be True.")
+            raise RuntimeError("ab must be True.")  # pragma: no cover
         self._check_row_(row, True, verbose=verbose)
         self._check_row_(row2, True, verbose=verbose)
         self._check_arg_('batch_axes', tuple)
@@ -277,7 +280,8 @@ class EinsumSubOp:
         self._check_arg_('right', tuple)
         self._check_arg_('ndim', int)
         if row2 is None:
-            raise RuntimeError("batch_dot expects two inputs.")
+            raise RuntimeError(
+                "batch_dot expects two inputs.")  # pragma: no cover
         if verbose:
             batch_axes = self.kwargs['batch_axes']
             keep_axes = self.kwargs['keep_axes']
@@ -297,11 +301,11 @@ class EinsumSubOp:
 
     def _compute_output_row_mul(self, row, row2=None, ab=False, verbose=False):
         if not ab:
-            raise RuntimeError("ab must be True.")
+            raise RuntimeError("ab must be True.")  # pragma: no cover
         self._check_row_(row, True, verbose=verbose)
         self._check_row_(row2, True, verbose=verbose)
         if row2 is None:
-            raise RuntimeError("mul expects two inputs.")
+            raise RuntimeError("mul expects two inputs.")  # pragma: no cover
         if verbose:
             print("    MUL %r @ %r" % (row, row2))
         row2[:] = numpy.maximum(row, row2)
@@ -314,7 +318,7 @@ class EinsumSubOp:
         method_name = "_compute_output_row_%s" % self.name
         meth = getattr(self, method_name, None)
         if meth is None:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "compute_output_row not implemented for %r." % self.name)
         if verbose and ab:
             print("  -- called as a binary operator")
@@ -336,30 +340,30 @@ class EinsumSubOp:
 
     def _check_inputs_(self, n_expected, check_dim=False):
         if len(self.inputs) != n_expected:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Number of inputs must be %d not %d for operator %r."
                 "" % (n_expected, len(self.inputs), self.name))
 
     def _check_shape_(self, m):
         if len(m.shape) != self.full_dim:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Number of dimensions %r is different from expected value "
                 "%d." % (m.shape, self.full_dim))
 
     def _get_data(self, data, key):
         if isinstance(key, int):
             if key not in data:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unable to find key %d in %r." % (
                         key, list(sorted(data))))
             return data[key]
         if isinstance(key, EinsumSubOp):
             if id(key) not in data:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unable to find key %d in %r." % (
                         id(key), list(sorted(data))))
             return data[id(key)]
-        raise TypeError(
+        raise TypeError(  # pragma: no cover
             "Unexpected input type %r." % type(key))
 
     def _apply_id(self, data, verbose=False, **kwargs):
@@ -377,7 +381,7 @@ class EinsumSubOp:
                 self.name, m.shape, self.kwargs['diag']))
         diag = self.kwargs['diag']
         if len(diag) != 1:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Not implemented with more than one duplicated indice "
                 "%r." % diag)
         diag0 = diag[0]
@@ -488,7 +492,7 @@ class EinsumSubOp:
                       self.name, m1.shape, m2.shape, batch_axes, keep_axes, sum_axes))
 
         if len(m1.shape) != len(m2.shape):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "batch_dot only work with two tensors with the same number "
                 "of dimensions not %r @ %r." % (m1.shape, m2.shape))
 
@@ -588,7 +592,7 @@ class EinsumSubOp:
         method_name = "_apply_%s" % self.name
         meth = getattr(self, method_name, None)
         if meth is None:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "apply not implemented for %r." % self.name)
         output = meth(data, verbose, **kwargs)
 
@@ -602,7 +606,7 @@ class EinsumSubOp:
 
     def _check_onnx_opset_(self, opset, limit):
         if opset is not None and opset < limit:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Opset (%r) must be >= %r for operator %r."
                 "" % (opset, limit, self.name))
 
@@ -949,27 +953,29 @@ class GraphEinsumSubOp:
         """
         if isinstance(op, int):
             if op in self._nodes:
-                raise RuntimeError("Key %d already added." % op)
+                raise RuntimeError(  # pragma: no cover
+                    "Key %d already added." % op)
             self._nodes[op] = op
             self.last_added_op = op
             self._inputs[op] = op
             return None
         if isinstance(op, EinsumSubOp):
             if op in self._nodes:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Key %d already added, op=%r." % (id(op), op))
             self._nodes[id(op)] = op
             self._ops.append(op)
             self.last_added_op = op
             return op
-        raise TypeError("Unexpected type %r." % type(op))
+        raise TypeError(  # pragma: no cover
+            "Unexpected type %r." % type(op))
 
     def mark_last_node(self):
         """
         Marks the last node as the final output.
         """
         if self.last_added_op is None:
-            raise RuntimeError("last_added_op is None.")
+            raise RuntimeError("last_added_op is None.")  # pragma: no cover
         self.mark(-1, self.last_added_op)
 
     def mark(self, i, op):
@@ -980,19 +986,21 @@ class GraphEinsumSubOp:
         :param op: integer (an input) or an instance of @see cl EinsumSubOp.
         """
         if not isinstance(i, int):
-            raise TypeError("i must an integer not %r." % type(i))
+            raise TypeError(  # pragma: no cover
+                "i must an integer not %r." % type(i))
         if i != -1 and i not in self._inputs:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Input %d was not registered in %r." % (i, self._inputs))
         if isinstance(op, EinsumSubOp):
             if id(op) not in self._nodes:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Key %d not found, op=%r." % (id(op), op))
             self._mark[i] = op
             self._mark[id(op)] = i
             self.last_op = op
         else:
-            raise TypeError("Unexpected type %r." % type(i))
+            raise TypeError(  # pragma: no cover
+                "Unexpected type %r." % type(i))
 
     def __iter__(self):
         "Iterates on nodes."
@@ -1094,7 +1102,7 @@ class GraphEinsumSubOp:
         for op in self:
             last = op.apply(data, verbose=verbose, **kwargs)
         if last is None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Sequence of operations is empty.")
         return last
 
@@ -1164,11 +1172,145 @@ class GraphEinsumSubOp:
                     print("[GraphEinsumSubOp.simplify_mm_nodes] node %r"
                           " - id=%d" % (op.name, id(op)))
                 if len(op.inputs) != 2:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Expecting 2 inputs for node %r not %r id=%r." % (
                             op.name, len(op.inputs), id(op)))
                 op.name = op.name[:-3]
                 op.inputs = op.inputs[:1]
+
+    def _get_forward_nodes(self):
+        """
+        Returns the forward nodes.
+        """
+        forward = {}
+        for op in self:
+            if isinstance(op, int):
+                continue
+            for inp in op.inputs:
+                key = inp if isinstance(inp, int) else id(inp)
+                if key in forward:
+                    forward[key].append(op)
+                else:
+                    forward[key] = [op]
+        return forward
+
+    def _replace_node_sequence(self, added, deleted):
+        """
+        Removes a sequence of nodes. The method does not check
+        that the graph remains consistent.
+        """
+        forward = self._get_forward_nodes()
+        key = id(deleted[-1])
+        if key not in forward:
+            raise RuntimeError(
+                "key %r missing in all forward nodes." % key)
+
+        # deletion
+        mark_input = None
+        for d in deleted:
+            del self._nodes[id(d)]
+            if id(d) in self._mark:
+                del self._mark[id(d)]
+                dels = []
+                for k, v in self._mark.items():
+                    if id(v) == id(d):
+                        mark_input = k
+                        dels.append(k)
+                if len(dels) != 1:
+                    raise RuntimeError(
+                        "Input %d has more than one marked operator "
+                        "(%r)." % (id(d), dels))
+                del self._mark[dels[0]]
+
+        dels = set(id(o) for o in deleted)
+        rem = []
+        for i, op in enumerate(self._ops):
+            if id(op) in dels:
+                rem.append(i)
+        if len(rem) != len(deleted):
+            raise RuntimeError(
+                "Mismatched length %r, %r, len=%r." % (
+                    rem, dels, len(deleted)))
+        for i in reversed(rem):
+            del self._ops[i]
+        self.last_add_op = None
+
+        # insertion
+        if added is not None:
+            self._ops.insert(rem[0], added)
+            self._nodes[id(added)] = added
+            for op in forward[key]:
+                new_inputs = list(op.inputs)
+                for i in range(len(op.inputs)):
+                    if id(op.inputs[i]) == key:
+                        new_inputs[i] = added
+                op.inputs = tuple(new_inputs)
+            if mark_input is not None:
+                self.mark(mark_input, added)
+        else:
+            inps = deleted[0].inputs
+            if len(inps) != 1:
+                raise RuntimeError(
+                    "More than one input. Call another method.")
+            inp = inps[0]
+            for op in forward[key]:
+                new_inputs = list(op.inputs)
+                for i in range(len(op.inputs)):
+                    if id(op.inputs[i]) == key:
+                        new_inputs[i] = inp
+                op.inputs = tuple(new_inputs)
+            if mark_input is not None:
+                self.mark(mark_input, inp)
+
+    def remove_duplicate_transpose(self, verbose=False):
+        """
+        Removes consecutive transpose by merging them.
+
+        :param verbose: display intermediate information
+        """
+        modif = 1
+        while modif > 0:
+            modif = 0
+            candidates = []
+            forward = self._get_forward_nodes()
+            for op in self:
+                if op.name == "transpose":
+                    inp = op.inputs[0]
+                    if (isinstance(inp, EinsumSubOp) and
+                            inp.name == 'transpose' and
+                            len(forward[id(inp)]) == 1):
+                        candidates.append(op)
+
+            if len(candidates) > 0:
+                modif = 1
+                # Not efficient to take the first one and to
+                # start again but the graph should not be too big.
+                cand = candidates[0]
+                op2 = cand
+                op1 = cand.inputs[0]
+                perm1 = op1.kwargs['perm']
+                perm2 = op2.kwargs['perm']
+                if len(perm1) != len(perm2):
+                    raise RuntimeError(
+                        "Transposition should have the same length "
+                        "%r, %r." % (perm1, perm2))
+                perm = list(perm1)
+                for i in range(len(perm)):  # pylint: disable=C0200
+                    perm[i] = perm1[perm2[i]]
+                if list(range(len(perm))) == perm:
+                    # identity, everything needs to be removed
+                    new_op = None
+                else:
+                    new_op = op2.__class__(
+                        op2.full_dim, op2.name, op1.inputs[0],
+                        perm=tuple(perm))
+                self._replace_node_sequence(new_op, [op1, op2])
+                if verbose:
+                    print("[GraphEinsumSubOp.remove_duplicate_transpose] remove nodes %r"
+                          " - id=%d,%d + %d perm1=%r perm2=%r -> perm=%r" % (
+                              op2.name, id(op1), id(op2),
+                              id(new_op) if new_op is not None else -1,
+                              perm1, perm2, perm))
 
     def to_onnx(self, output, *inputs, dtype=None, verbose=False,
                 opset=None, **kwargs):

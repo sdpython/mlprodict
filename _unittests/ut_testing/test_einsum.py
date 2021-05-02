@@ -138,8 +138,6 @@ class TestEinsum(ExtTestCase):
                                               strategy="donotexist"),
             ValueError)
         self.assertRaise(
-            lambda: decompose_einsum_equation("abc,ch->ah"), ValueError)
-        self.assertRaise(
             lambda: decompose_einsum_equation("abc,ch->ah", (2, 2, 2), (2, 2),
                                               "donotexist"),
             TypeError)
@@ -178,6 +176,26 @@ class TestEinsum(ExtTestCase):
         out = f.getvalue()
         self.assertIn("numpy_extended_dot", out)
         self.assertEqualArray(exp, res)
+
+    def test_decompose_einsum_equation_py_noshape(self):
+        m1 = numpy.arange(0, 24).astype(numpy.float32).reshape((2, 3, 4))
+        m2 = numpy.arange(0, 20).astype(numpy.float32).reshape((4, 5))
+        verbose = False
+        for strat, opname in [('numpy', 'batch_dot'),
+                              ('simple', 'matmul')]:
+            with self.subTest(strategy=strat):
+                seq = decompose_einsum_equation(
+                    "bac,ch->ah", strategy=strat, verbose=verbose)
+                self.assertIn(opname, seq.to_dot())
+                res1 = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
+                res2 = apply_einsum_sequence(
+                    seq, m1, m2, matmul_impl='py', verbose=verbose)
+                if strat == 'simple':
+                    self.assertRaise(
+                        lambda: apply_einsum_sequence(
+                            seq, m1, m2, matmul_impl='py2'),  # pylint: disable=W0640
+                        ValueError)
+                self.assertEqualArray(res1, res2)
 
     def test_decompose_einsum_equation_py(self):
         m1 = numpy.arange(0, 24).astype(numpy.float32).reshape((2, 3, 4))
@@ -346,16 +364,21 @@ class TestEinsum(ExtTestCase):
 
         for i, (eq, exp) in enumerate(res):
             with self.subTest(equation=eq, index=i, total=len(res)):
-                verbose = 12 if eq == ',abc,cd->abd' else 0
+                verbose = 12 if eq == ',abc,dc->acd' else 0
+                if verbose:
+                    print('\n########################################clean=False')
+                    print("#########0", eq)
                 seq = decompose_einsum_equation(
-                    eq, m1.shape, m2.shape)
-                res = apply_einsum_sequence(seq, m1, m2)
+                    eq, m1.shape, m2.shape, verbose=verbose)
+                res = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
                 self.assertEqualArray(exp, res)
 
-                seq = decompose_einsum_equation(
-                    eq, m1.shape, m2.shape, strategy='numpy', clean=True)
                 if verbose:
-                    print("#########", eq)
+                    print('\n########################################clean=True')
+                    print("#########1", eq)
+                seq = decompose_einsum_equation(
+                    eq, m1.shape, m2.shape, strategy='numpy',
+                    clean=True, verbose=verbose)
                 res = apply_einsum_sequence(seq, m1, m2, verbose=verbose)
                 self.assertEqualArray(exp, res)
                 onx = seq.to_onnx('Y', 'X1', 'X2', dtype=numpy.float32)
@@ -462,7 +485,7 @@ class TestEinsum(ExtTestCase):
                             inps = {n: v.astype(numpy.float32)
                                     for n, v in zip(inps, inputs)}
                             got = oinf.run(inps, verbose=vv, fLOG=print)['Y']
-                            self.assertEqualArray(exp, got, decimal=6)
+                            self.assertEqualArray(exp, got, decimal=5)
 
                 with self.subTest(strategy='simple'):
                     seq = decompose_einsum_equation(
@@ -591,7 +614,21 @@ class TestEinsum(ExtTestCase):
         self.optimize_compare('baa,dcf,af,cde->be')
         self.optimize_compare('fff,fae,bef,def->abd')
 
+    def test_exc(self):
+        self.assertRaise(
+            lambda: EinsumSubOp(2, 'transpose', 0, perm=(1, 1)),
+            RuntimeError)
+        self.assertRaise(
+            lambda: EinsumSubOp(2, 'transpose', 0, perm=(0, 1)),
+            ValueError)
+        self.assertRaise(
+            lambda: EinsumSubOp(2, 'matmul', 0, 1,
+                                axes=(0, 1), left=(0, 1), right=(0, 1)),
+            RuntimeError)
+        r = repr(EinsumSubOp(2, 'transpose', 0, perm=(1, 0)))
+        self.assertIn("EinsumSubOp('transpose', 0, perm=(1, 0))", r)
+
 
 if __name__ == "__main__":
-    # TestEinsum().test_many_3()
+    # TestEinsum().test_many_2()
     unittest.main()
