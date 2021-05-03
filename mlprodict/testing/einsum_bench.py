@@ -6,6 +6,7 @@ from itertools import permutations
 import numpy
 from onnx import helper, TensorProto
 from onnxruntime import InferenceSession
+from skl2onnx.common._topology import OPSET_TO_IR_VERSION
 from ..onnxrt import OnnxInference
 from .bench_helper import measure_time
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
@@ -16,6 +17,9 @@ def _make_einsum_model(equation, opset=13):
 
     model = helper.make_model(
         opset_imports=[helper.make_operatorsetid('', opset)],
+        ir_version=OPSET_TO_IR_VERSION.get(opset, 7),
+        producer_name='mlprodict',
+        producer_version='0.1',
         graph=helper.make_graph(
             name='einsum_test',
             inputs=[
