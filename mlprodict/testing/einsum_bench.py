@@ -127,8 +127,8 @@ def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
             else:
                 onx = seq.to_onnx('Y', *["X%d" % i for i in range(len(inputs))],
                                   opset=opset)
-            sess = InferenceSession(onx.SerializeToString())
-            fct = lambda *x, sess=sess: sess.run(
+            sess = InferenceSession(onx.SerializeToString())  # pylint: disable=W0612
+            fct = lambda *x, se=sess: se.run(
                 None, {"X%d" % i: v for i, v in enumerate(x)})
         elif rt == 'python':
             if dec == 'einsum':
@@ -136,8 +136,8 @@ def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
             else:
                 onx = seq.to_onnx('Y', *["X%d" % i for i in range(len(inputs))],
                                   opset=opset)
-            oinf = OnnxInference(onx)
-            fct = lambda *x, oinf=oinf: oinf.run(
+            oinf = OnnxInference(onx)  # pylint: disable=W0612
+            fct = lambda *x, oi=oinf: oi.run(
                 {"X%d" % i: v for i, v in enumerate(x)})
         else:
             raise ValueError("Unexpected runtime %r." % rt)
