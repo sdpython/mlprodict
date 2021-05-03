@@ -6,6 +6,7 @@ import io
 from contextlib import redirect_stdout
 import itertools
 import numpy
+from onnx import numpy_helper
 from onnxruntime import (
     InferenceSession, GraphOptimizationLevel, SessionOptions)
 from pyquickhelper.pycode import ExtTestCase
@@ -628,7 +629,38 @@ class TestEinsum(ExtTestCase):
         r = repr(EinsumSubOp(2, 'transpose', 0, perm=(1, 0)))
         self.assertIn("EinsumSubOp('transpose', 0, perm=(1, 0))", r)
 
+    def test_bid_nd_bin(self):
+
+        def local_test(inp1, inp2):
+            exp = numpy.einsum('bid,nd->bin', inp1, inp2)
+            seq = decompose_einsum_equation(
+                'bid,nd->bin', clean=True, strategy='numpy')
+            got = apply_einsum_sequence(seq, inp1, inp2)
+            self.assertEqualArray(exp, got, decimal=3)
+
+            onx = seq.to_onnx('Y', 'X1', 'X2')
+            oinf = OnnxInference(onx)
+            got = oinf.run({'X1': inp1, 'X2': inp2})['Y']
+            self.assertEqualArray(exp, got, decimal=3)
+
+            onx = seq.to_onnx(
+                'Y', 'X1', 'X2',
+                initializer=[numpy_helper.from_array(inp2, name="X2")])
+            oinf = OnnxInference(onx)
+            got = oinf.run({'X1': inp1})['Y']
+            self.assertEqualArray(exp, got, decimal=3)
+
+        inp1 = numpy.arange(2 * 3 * 5).reshape((2, 3, 5)).astype(numpy.float32)
+        inp2 = numpy.arange(5 * 7).reshape((5, 7)).astype(numpy.float32)
+        local_test(inp1, inp2.T)
+
+        inp1 = numpy.random.uniform(size=[4, 5, 7]).astype(numpy.float32)
+        inp2 = numpy.random.uniform(size=[7, 8]).astype(numpy.float32)
+        local_test(inp1, inp2.T)
+
+        self.optimize_compare('bid,nd->bin')
+
 
 if __name__ == "__main__":
-    # TestEinsum().test_many_2()
+    # TestEinsum().test_bid_nd_bin()
     unittest.main()
