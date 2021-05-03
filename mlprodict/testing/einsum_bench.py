@@ -6,13 +6,13 @@ from itertools import permutations
 import numpy
 from onnx import helper, TensorProto
 from onnxruntime import InferenceSession
-from skl2onnx.common._topology import OPSET_TO_IR_VERSION
 from ..onnxrt import OnnxInference
 from .bench_helper import measure_time
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
 
 
 def _make_einsum_model(equation, opset=13):
+    from skl2onnx.common._topology import OPSET_TO_IR_VERSION  # pylint: disable=E0611,E0001
     inputs = equation.split('->')[0].split(',')
 
     model = helper.make_model(
@@ -127,7 +127,7 @@ def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
             else:
                 onx = seq.to_onnx('Y', *["X%d" % i for i in range(len(inputs))],
                                   opset=opset)
-            sess = InferenceSession(onx.SerializeToString())  # pylint: disable=W0612
+            sess = InferenceSession(onx.SerializeToString())
             fct = lambda *x, sess=sess: sess.run(
                 None, {"X%d" % i: v for i, v in enumerate(x)})
         elif rt == 'python':
@@ -136,8 +136,8 @@ def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
             else:
                 onx = seq.to_onnx('Y', *["X%d" % i for i in range(len(inputs))],
                                   opset=opset)
-            sess = OnnxInference(onx)
-            fct = lambda *x, sess=sess: sess.run(
+            oinf = OnnxInference(onx)
+            fct = lambda *x, oinf=oinf: oinf.run(
                 {"X%d" % i: v for i, v in enumerate(x)})
         else:
             raise ValueError("Unexpected runtime %r." % rt)

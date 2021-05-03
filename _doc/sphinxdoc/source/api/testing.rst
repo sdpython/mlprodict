@@ -28,6 +28,8 @@ Einsum
 
 .. autosignature:: mlprodict.testing.experimental_c.custom_einsum_double
 
+.. autosignature:: mlprodict.testing.einsum_bench.einsum_benchmark
+
 .. autosignature:: mlprodict.testing.einsum_impl_ext.numpy_diagonal
 
 .. autosignature:: mlprodict.testing.einsum_impl_ext.numpy_extended_dot

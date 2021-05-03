@@ -1323,8 +1323,18 @@ class GraphEinsumSubOp:
         :param opset: desired opset, None for the last one
         :param verbose: display intermediate operators
         :param kwargs: additional parameter to use when building
-            the ONNX graph
+            the ONNX graph, list of supported parameters:
+            *name*, *ir_version*, *producer_name*,
+            *producer_version*, *initializer*
         :return: ONNX graph
+
+        Not all graphs can be converted into ONNX. Only graphs produced
+        with `strategy='numpy'` can be converted otherwise the following
+        error shows up:
+
+        ::
+
+            NotImplementedError: to_onnx not implemented for 'matmul'.
         """
         # inputs
         if opset is None:
@@ -1348,6 +1358,8 @@ class GraphEinsumSubOp:
         names = {i: name for i, name in enumerate(inputs)}
         nodes = []
         inits = []
+        if "initializer" in kwargs:
+            inits.extend(kwargs['initializer'])
         for op in self:
             for onx_node in op.to_onnx(names, verbose=verbose, opset=opset):
                 if hasattr(onx_node, 'output'):
