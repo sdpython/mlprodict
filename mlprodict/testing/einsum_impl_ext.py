@@ -241,7 +241,7 @@ def numpy_extended_dot(m1, m2, axes, left, right, verbose=False):
         m1 = numpy.arange(8).reshape((2, 2, 2))
         m2 = m1 + 10
 
-        dot = numpy_extended_dot(m1, m2, [1], [0], [2], verbose=True))
+        dot = numpy_extended_dot(m1, m2, [1], [0], [2], verbose=True)
         print(dot)
 
     The current implementation still uses :epkg:`numpy:einsum`
