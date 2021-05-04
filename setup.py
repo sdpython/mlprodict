@@ -87,6 +87,8 @@ def get_compile_args():
 
 
 def get_extensions():
+    import numpy
+
     root = os.path.abspath(os.path.dirname(__file__))
     (libraries_thread, extra_compile_args,
      extra_link_args, define_macros) = get_compile_args()
@@ -294,7 +296,14 @@ def get_extensions():
         define_macros=define_macros,
         language='c++')
 
+    cython_extensions = ["direct_blas_lapack"]
+    ext_blas = Extension("mlprodict.testing.direct_blas_lapack",
+                  ['mlprodict/testing/direct_blas_lapack.pyx'],
+                  include_dirs=[numpy.get_include()],
+                  language='c')
+
     ext_modules = [
+        ext_blas,
         ext_conv,
         ext_conv_transpose,
         ext_experimental_c,
