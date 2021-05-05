@@ -10,7 +10,7 @@ from pandas import read_csv
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from ..onnx_conv import to_onnx
 from ..onnxrt import OnnxInference
-from ..onnxrt.optim import onnx_optimisations
+from ..onnx_tools.optim import onnx_optimisations
 from ..onnxrt.validate.validate_difference import measure_relative_difference
 from ..onnx_conv import guess_schema_from_data, guess_schema_from_model
 

@@ -27,7 +27,7 @@ from mlprodict.onnx_conv import (
     to_onnx, register_rewritten_operators, register_converters)
 from mlprodict.onnxrt.validate.validate_benchmark import make_n_rows
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
-from mlprodict.onnxrt.optim import onnx_statistics
+from mlprodict.onnx_tools.optim import onnx_statistics
 from mlprodict.tools.asv_options_helper import (
     expand_onnx_options, get_opset_number_from_onnx,
     get_ir_version_from_onnx, version2number)

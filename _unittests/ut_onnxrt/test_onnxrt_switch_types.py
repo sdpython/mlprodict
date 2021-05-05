@@ -16,7 +16,7 @@ from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.optim.sklearn_helper import (
+from mlprodict.onnx_tools.optim.sklearn_helper import (
     enumerate_fitted_arrays, pairwise_array_distances)
 from mlprodict.tools import get_opset_number_from_onnx
 

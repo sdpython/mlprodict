@@ -13,9 +13,9 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.complex_functions import onnx_cdist
 from mlprodict.onnx_conv import to_onnx
-from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
+from mlprodict.onnx_tools.optim.onnx_helper import onnx_statistics
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.optim import onnx_remove_node_identity
+from mlprodict.onnx_tools.optim import onnx_remove_node_identity
 from mlprodict.tools import get_opset_number_from_onnx
 
 

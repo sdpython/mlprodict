@@ -20,7 +20,7 @@ def onnx_stats(name, optim=False):
 
         The command computes statistics on an ONNX model.
     """
-    from ..onnxrt.optim import onnx_statistics
+    from ..onnx_tools.optim import onnx_statistics
     if not os.path.exists(name):
         raise FileNotFoundError(  # pragma: no cover
             "Unable to find file '{}'.".format(name))
@@ -47,7 +47,7 @@ def onnx_optim(name, outfile=None, recursive=True, options=None, verbose=0, fLOG
 
         The command optimises an ONNX model.
     """
-    from ..onnxrt.optim import onnx_statistics, onnx_optimisations
+    from ..onnx_tools.optim import onnx_statistics, onnx_optimisations
     if not os.path.exists(name):
         raise FileNotFoundError(  # pragma: no cover
             "Unable to find file '{}'.".format(name))

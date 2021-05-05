@@ -6,9 +6,9 @@ import os
 import textwrap
 import hashlib
 try:
-    from ..onnxrt.optim.sklearn_helper import set_n_jobs
+    from ..onnx_tools.optim.sklearn_helper import set_n_jobs
 except (ValueError, ImportError):  # pragma: no cover
-    from mlprodict.onnxrt.optim.sklearn_helper import set_n_jobs
+    from mlprodict.onnx_tools.optim.sklearn_helper import set_n_jobs
 
 # exec function does not import models but potentially
 # requires all specific models used to defines scenarios
@@ -405,7 +405,7 @@ def add_model_import_init(
     # additional methods and imports
     if optimisation is not None:
         add_imports.append(
-            'from mlprodict.onnxrt.optim import onnx_optimisations')
+            'from mlprodict.onnx_tools.optim import onnx_optimisations')
         if optimisation == 'onnx':
             add_methods.append(textwrap.dedent('''
                 def _optimize_onnx(self, onx):

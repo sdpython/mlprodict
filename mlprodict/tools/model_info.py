@@ -192,7 +192,7 @@ def analyze_model(model, simplify=True):
     """
     if hasattr(model, 'SerializeToString'):
         # ONNX model
-        from ..onnxrt.optim.onnx_helper import onnx_statistics
+        from ..onnx_tools.optim.onnx_helper import onnx_statistics
         return onnx_statistics(model)
 
     if isinstance(model, numpy.ndarray):
