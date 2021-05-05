@@ -11,7 +11,6 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from pyquickhelper.loghelper import fLOG
-from pyquickhelper.texthelper.version_helper import compare_module_version
 from pyquickhelper.ipythonhelper import test_notebook_execution_coverage
 from pyquickhelper.pycode import (
     add_missing_development_version, ExtTestCase)
