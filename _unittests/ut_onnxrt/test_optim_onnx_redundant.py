@@ -8,9 +8,9 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxMul, OnnxSub, OnnxIdentity
 )
 from skl2onnx.common.data_types import FloatTensorType
-from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
+from mlprodict.onnx_tools.optim.onnx_helper import onnx_statistics
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.optim import (
+from mlprodict.onnx_tools.optim import (
     onnx_remove_node_redundant, onnx_remove_node, onnx_optimisations)
 from mlprodict.tools import get_opset_number_from_onnx
 

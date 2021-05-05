@@ -660,7 +660,32 @@ class TestEinsum(ExtTestCase):
 
         self.optimize_compare('bid,nd->bin')
 
+    def test_bdn_in_bdi(self):
+        equation = "bdn,in->bdi"
+        seq = decompose_einsum_equation(equation, strategy='numpy', clean=True)
+
+        inp1 = numpy.arange(2 * 3 * 5).reshape((2, 3, 5)).astype(numpy.float32)
+        inp2 = numpy.arange(5 * 7).reshape((7, 5)).astype(numpy.float32)
+        exp = numpy.einsum(equation, inp1, inp2)
+        got = apply_einsum_sequence(seq, inp1, inp2)
+        self.assertEqualArray(exp, got)
+
+        onx = seq.to_onnx("Y", "X1", "X2")
+        self.assertNotIn('Transpose', str(onx))
+        oinf = OnnxInference(onx)
+        res = oinf.run({'X1': inp1.astype(numpy.float32),
+                        'X2': inp2.astype(numpy.float32)})
+        oinf = OnnxInference(onx, runtime='onnxruntime1')
+        res = oinf.run({'X1': inp1.astype(numpy.float32),
+                        'X2': inp2.astype(numpy.float32)})
+        got = res['Y']
+        self.assertEqualArray(exp, got)
+        for op in seq:
+            if op.name == 'batch_dot':
+                kind = op.get_dot_kind()
+                self.assertEqual(kind, "11")
+
 
 if __name__ == "__main__":
-    # TestEinsum().test_bid_nd_bin()
+    # TestEinsum().test_np_test_broadcasting_dot_cases1()
     unittest.main()

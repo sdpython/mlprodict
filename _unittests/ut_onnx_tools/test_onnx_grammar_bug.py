@@ -6,7 +6,7 @@ import ast
 import inspect
 from textwrap import dedent
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.onnx_grammar import CodeNodeVisitor
+from mlprodict.onnx_tools.onnx_grammar import CodeNodeVisitor
 
 
 class TestOnnxGrammarBug(ExtTestCase):

@@ -7,8 +7,9 @@ import ast
 from textwrap import dedent
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.onnx_grammar import CodeNodeVisitor, translate_fct2onnx
-from mlprodict.onnx_grammar.onnx_translation import py_mul
+from mlprodict.onnx_tools.onnx_grammar import (
+    CodeNodeVisitor, translate_fct2onnx)
+from mlprodict.onnx_tools.onnx_grammar.onnx_translation import py_mul
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools import get_opset_number_from_onnx
 

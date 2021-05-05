@@ -1,6 +1,6 @@
 """
 @file
-@brief Shortcuts to *onnxrt.optim*.
+@brief Shortcuts to *onnx_tools.optim*.
 """
 from .onnx_helper import onnx_statistics
 from .onnx_optimisation_identity import onnx_remove_node_identity

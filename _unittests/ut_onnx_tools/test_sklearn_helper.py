@@ -21,9 +21,9 @@ from sklearn.tree import DecisionTreeClassifier
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxIdentity, OnnxAdd)
 from skl2onnx.common.data_types import FloatTensorType
-from mlprodict.onnxrt.optim.sklearn_helper import (
+from mlprodict.onnx_tools.optim.sklearn_helper import (
     enumerate_pipeline_models, inspect_sklearn_model, set_n_jobs)
-from mlprodict.onnxrt.optim.onnx_helper import onnx_statistics
+from mlprodict.onnx_tools.optim.onnx_helper import onnx_statistics
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.tools import get_opset_number_from_onnx
 

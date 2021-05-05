@@ -31,7 +31,7 @@ def enumerate_pipeline_models(pipe, coor=None, vs=None):
         from sklearn.linear_model import LogisticRegression
         from sklearn.pipeline import make_pipeline
         from sklearn.model_selection import train_test_split
-        from mlprodict.onnxrt.optim.sklearn_helper import enumerate_pipeline_models
+        from mlprodict.onnx_tools.optim.sklearn_helper import enumerate_pipeline_models
 
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -114,7 +114,7 @@ def enumerate_fitted_arrays(model):
         from sklearn.linear_model import LogisticRegression
         from sklearn.pipeline import make_pipeline
         from sklearn.model_selection import train_test_split
-        from mlprodict.onnxrt.optim.sklearn_helper import enumerate_fitted_arrays
+        from mlprodict.onnx_tools.optim.sklearn_helper import enumerate_fitted_arrays
 
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -224,7 +224,7 @@ def inspect_sklearn_model(model, recursive=True):
         from sklearn.ensemble import RandomForestClassifier
         from sklearn.linear_model import LogisticRegression
         from sklearn.datasets import load_iris
-        from mlprodict.onnxrt.optim.sklearn_helper import inspect_sklearn_model
+        from mlprodict.onnx_tools.optim.sklearn_helper import inspect_sklearn_model
 
         iris = load_iris()
         X = iris.data

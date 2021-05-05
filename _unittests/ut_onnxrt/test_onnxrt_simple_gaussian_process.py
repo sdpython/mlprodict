@@ -11,7 +11,7 @@ from pyquickhelper.pycode import ExtTestCase
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.optim import onnx_optimisations
+from mlprodict.onnx_tools.optim import onnx_optimisations
 
 
 class TestOnnxrtSimpleGaussianProcess(ExtTestCase):

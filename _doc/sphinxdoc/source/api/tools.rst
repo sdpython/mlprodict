@@ -23,9 +23,9 @@ Functions to help understand models.
 
 .. autosignature:: mlprodict.onnxrt.model_checker.onnx_shaker
 
-.. autosignature:: mlprodict.onnxrt.optimisation._main_onnx_optim.onnx_optimisations
+.. autosignature:: mlprodict.onnx_tools.optimisation._main_onnx_optim.onnx_optimisations
 
-.. autosignature:: mlprodict.onnxrt.optim.onnx_statistics
+.. autosignature:: mlprodict.onnx_tools.optim.onnx_statistics
 
 .. autosignature:: mlprodict.tools.onnx_manipulations.select_model_inputs_outputs
 
