@@ -7,11 +7,12 @@ from typing import Any
 import numpy
 from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase
+from skl2onnx.algebra.onnx_ops import OnnxAbs  # pylint: disable=E0611
+from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.npy import OnnxNumpyCompiler as ONC, NDArray
 from mlprodict.npy.onnx_variable import OnnxVar
 from mlprodict.npy.onnx_numpy_annotation import _NDArrayAlias
-from skl2onnx.algebra.onnx_ops import OnnxAbs  # pylint: disable=E0611
-from skl2onnx.common.data_types import FloatTensorType
+from mlprodict.npy.onnx_numpy_wrapper import wrapper_onnxnumpy_np
 
 
 class TestOnnxPy(ExtTestCase):
@@ -109,6 +110,15 @@ class TestOnnxPy(ExtTestCase):
                         lambda: cl(x.astype(numpy.float64)  # pylint: disable=W0640
                                    ),  # pylint: disable=W0640
                         (TypeError, InvalidArgument))
+
+    def test_wrapper_onnxnumpy_np(self):
+        
+        def fct(x):
+            return x
+
+        nb = wrapper_onnxnumpy_np(fct=fct, signature=None, fctsig=None)
+        state = nb.__getstate__()
+        nb.__setstate__(state)
 
 
 if __name__ == "__main__":

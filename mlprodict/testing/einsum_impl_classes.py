@@ -147,7 +147,7 @@ class EinsumSubOp:
 
     def _compute_output_row_id(self, row, row2=None, ab=False, verbose=False):
         if ab:
-            raise RuntimeError("ab option not allowed.")
+            raise RuntimeError("ab option not allowed.")  # pragma: no cover
         self._check_row_(row, True, verbose=verbose)
         row[:] = row2[:]
         self._check_row_(row, verbose=verbose)
@@ -339,7 +339,7 @@ class EinsumSubOp:
         """
         for k, v in kwargs.items():
             if k in self._info:
-                raise KeyError(
+                raise KeyError(  # pragma: no cover
                     "Key %r already added (operator %r)." % (k, self.name))
             self._info[k] = v
 
@@ -937,7 +937,7 @@ class EinsumSubOp:
         :return: output
         """
         if opset is None:
-            opset = get_opset_number_from_onnx()
+            opset = get_opset_number_from_onnx()  # pragma: no cover
         if verbose:
             print()
             print("to_onnx %r  (%s) opset=%r." % (
@@ -1273,7 +1273,7 @@ class GraphEinsumSubOp:
         forward = self._get_forward_nodes()
         key = id(deleted[-1])
         if key not in forward:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "key %r missing in all forward nodes." % key)
 
         # deletion
@@ -1288,7 +1288,7 @@ class GraphEinsumSubOp:
                         mark_input = k
                         dels.append(k)
                 if len(dels) != 1:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Input %d has more than one marked operator "
                         "(%r)." % (id(d), dels))
                 del self._mark[dels[0]]
@@ -1299,7 +1299,7 @@ class GraphEinsumSubOp:
             if id(op) in dels:
                 rem.append(i)
         if len(rem) != len(deleted):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Mismatched length %r, %r, len=%r." % (
                     rem, dels, len(deleted)))
         for i in reversed(rem):
@@ -1321,7 +1321,7 @@ class GraphEinsumSubOp:
         else:
             inps = deleted[0].inputs
             if len(inps) != 1:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "More than one input. Call another method.")
             inp = inps[0]
             for op in forward[key]:
@@ -1362,7 +1362,7 @@ class GraphEinsumSubOp:
                 perm1 = op1.kwargs['perm']
                 perm2 = op2.kwargs['perm']
                 if len(perm1) != len(perm2):
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Transposition should have the same length "
                         "%r, %r." % (perm1, perm2))
                 perm = list(perm1)

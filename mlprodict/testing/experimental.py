@@ -131,7 +131,7 @@ def custom_einsum(equation, x, y, verbose=False):
         for c in dx:
             if c not in eqr:
                 if c not in dy:
-                    raise ValueError(
+                    raise ValueError(  # pragma: no cover
                         "Unable to guess what to do with column %r (left side)" % c)
                 if dx[c][0] != dy[c][0]:
                     raise ValueError(  # pragma: no cover

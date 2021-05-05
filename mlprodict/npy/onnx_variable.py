@@ -105,7 +105,7 @@ class OnnxVar:
                 # scikit-learn model
                 continue
             else:
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unexpected type for input %i type=%r." % (i, type(inp)))
         dtypes = [_ for _ in dtypes if _ is not None]
         unique = set(dtypes)

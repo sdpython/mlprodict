@@ -21,7 +21,7 @@ Functions to help understand models.
 
 .. autosignature:: mlprodict.tools.code_helper.make_callable
 
-.. autosignature:: mlprodict.onnxrt.model_checker.onnx_shaker
+.. autosignature:: mlprodict.onnx_tools.model_checker.onnx_shaker
 
 .. autosignature:: mlprodict.onnx_tools.optimisation._main_onnx_optim.onnx_optimisations
 

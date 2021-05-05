@@ -120,7 +120,7 @@ class OnnxNumpyCompiler:
     def __init__(self, fct, op_version=None, runtime=None, signature=None,
                  version=None, fctsig=None):
         if version is not None and not isinstance(version, FctVersion):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "version must be of Type 'FctVersion' not %s - %s"
                 "." % (type(version), version))
         self.fctsig = fctsig
@@ -180,7 +180,7 @@ class OnnxNumpyCompiler:
             return "%s(%s)" % (self.__class__.__name__, repr(self.fct_))
         if self.onnx_ is not None:
             return "%s(%s)" % (self.__class__.__name__, "... ONNX ... ")
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "fct_ and onnx_ are empty.")
 
     def _to_onnx_shape(self, shape):

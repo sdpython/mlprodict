@@ -60,11 +60,13 @@ def _try_onnx(loc, model_name, args_name, **options):
     """
     from ..onnx_conv import to_onnx
     if model_name not in loc:
-        raise MissingVariableError("Unable to find model '{}' in {}".format(
-            model_name, ", ".join(sorted(loc))))
+        raise MissingVariableError(  # pragma: no cover
+            "Unable to find model '{}' in {}".format(
+                model_name, ", ".join(sorted(loc))))
     if args_name[0] not in loc:
-        raise MissingVariableError("Unable to find data '{}' in {}".format(
-            args_name[0], ", ".join(sorted(loc))))
+        raise MissingVariableError(  # pragma: no cover
+            "Unable to find data '{}' in {}".format(
+                args_name[0], ", ".join(sorted(loc))))
     model = loc[model_name]
     X = loc[args_name[0]]
     dtype = options.get('dtype', numpy.float32)
@@ -125,13 +127,13 @@ def verify_script(file_or_name, try_onnx=True, existing_loc=None,
     # onnx
     if try_onnx:
         if len(models_args) == 0:
-            raise MissingVariableError(
+            raise MissingVariableError(  # pragma: no cover
                 "No detected trained model in '{}'\n{}\n--LOCALS--\n{}".format(
                     filename, content, pprint.pformat(loc_fil)))
         for model_args in models_args:
             try:
                 onx, args = _try_onnx(loc_fil, *model_args, **options)
-            except MissingVariableError as e:
+            except MissingVariableError as e:  # pragma: no cover
                 raise MissingVariableError("Unable to find variable in '{}'\n{}".format(
                     filename, pprint.pformat(fits))) from e
             loc_fil[model_args[0] + "_onnx"] = onx

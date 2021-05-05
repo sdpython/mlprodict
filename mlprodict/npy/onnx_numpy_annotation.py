@@ -181,7 +181,7 @@ class _NDArrayAlias:
             if ":" in dtypes:
                 name, dtypes = dtypes.split(':')
                 if name in mapped_types and dtypes != mapped_types[name]:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Type name mismatch for '%s:%s' in %r." % (
                             name, dtypes, list(sorted(mapped_types))))
                 mapped_types[name] = (dtypes, index)
@@ -345,7 +345,7 @@ class _NDArrayAlias:
 
         if (not self.n_variables and
                 len(inputs) + len(new_kwargs) > len(version)):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Mismatch number of inputs and arguments for version=%s.\n"
                 "Given: args=%s kwargs=%s.\n"
                 "Returned: inputs=%s new_kwargs=%s.\n" % (

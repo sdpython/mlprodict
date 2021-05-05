@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from mlprodict.onnx_conv import to_onnx
-from mlprodict.onnxrt.model_checker import onnx_shaker, astype_range
+from mlprodict.onnx_tools.model_checker import onnx_shaker, astype_range
 from mlprodict.onnxrt import OnnxInference
 
 

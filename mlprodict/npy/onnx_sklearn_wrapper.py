@@ -269,7 +269,7 @@ def update_registered_converter_npy(
         defcl = None
 
     if shape_fct is not None:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Custom shape calculator are not implemented yet.")
 
     shc = _default_cvt[defcl][0]

@@ -85,7 +85,7 @@ def amin(x, axis=None, keepdims=0):
 def arange(start, stop, step=1):
     "See :epkg:`numpy:arange`, *start*, *stop* must be specified."
     if step != 1:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "The function is not implemented for step != 1 (step=%r)." % step)
     if isinstance(start, (int, numpy.int64)):
         start = numpy.array([start], dtype=numpy.int64)
@@ -109,7 +109,7 @@ def argmax(x, axis=0, keepdims=0):
         ONNX does not implement default value axis=None.
     """
     if axis is None:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "ONNX does not allow axis=None.")
     return OnnxVar(x, op=OnnxArgMax, axis=axis, keepdims=keepdims)
 
@@ -122,7 +122,7 @@ def argmin(x, axis=0, keepdims=0):
         ONNX does not implement default value axis=None.
     """
     if axis is None:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "ONNX does not allow axis=None.")
     return OnnxVar(x, op=OnnxArgMin, axis=axis, keepdims=keepdims)
 
@@ -327,7 +327,7 @@ def sqrt(x):
 def squeeze(x, axis=None):
     "See :epkg:`numpy:squeeze`."
     if axis is None:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "The case where all empty dimensions are removed is not "
             "implemented.")
     if isinstance(axis, int):
