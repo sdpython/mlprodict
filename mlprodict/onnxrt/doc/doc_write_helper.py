@@ -14,8 +14,8 @@ from sklearn import __all__ as sklearn__all__
 from ...tools.asv_options_helper import get_opset_number_from_onnx
 from ...tools.model_info import analyze_model
 from ..validate.validate import enumerate_validated_operator_opsets, sklearn_operators
-from ...onnx_tools.sklearn_helper import inspect_sklearn_model
-from ...onnx_tools.onnx_helper import onnx_statistics
+from ...onnx_tools.optim.sklearn_helper import inspect_sklearn_model
+from ...onnx_tools.optim.onnx_helper import onnx_statistics
 from ..onnx_inference import OnnxInference
 from ..validate.validate_summary import _clean_values_optim
 from .doc_helper import visual_rst_template
