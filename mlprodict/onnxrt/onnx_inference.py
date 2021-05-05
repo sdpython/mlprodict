@@ -842,7 +842,7 @@ class OnnxInference:
         @param      dtype_out   next type
         @return                 done operations
         """
-        from .optim.sklearn_helper import enumerate_fitted_arrays, pairwise_array_distances
+        from ..onnx_tools.optim.sklearn_helper import enumerate_fitted_arrays, pairwise_array_distances
 
         if self.runtime != 'python':  # pragma: no cover
             raise RuntimeError("Initializers can be casted only if the "

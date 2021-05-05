@@ -18,9 +18,9 @@ from ...tools.model_info import analyze_model, set_random_state
 from ...tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
 from ..onnx_inference import OnnxInference
-from ..optim.sklearn_helper import inspect_sklearn_model, set_n_jobs
-from ..optim.onnx_helper import onnx_statistics
-from ..optim import onnx_optimisations
+from ...onnx_tools.optim.sklearn_helper import inspect_sklearn_model, set_n_jobs
+from ...onnx_tools.optim.onnx_helper import onnx_statistics
+from ...onnx_tools.optim import onnx_optimisations
 from .validate_problems import find_suitable_problem
 from .validate_scenarios import _extra_parameters
 from .validate_difference import measure_relative_difference
