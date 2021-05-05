@@ -296,14 +296,21 @@ def get_extensions():
         define_macros=define_macros,
         language='c++')
 
-    cython_extensions = ["direct_blas_lapack"]
-    ext_blas = Extension("mlprodict.testing.direct_blas_lapack",
+    cython_ext = [
+        Extension("mlprodict.testing.direct_blas_lapack",
                   ['mlprodict/testing/direct_blas_lapack.pyx'],
                   include_dirs=[numpy.get_include()],
                   language='c')
+    ]
+
+    from Cython.Build import cythonize
+    opts = dict(boundscheck=False, cdivision=True,
+                wraparound=False, language_level=3,
+                cdivision_warnings=False, embedsignature=True,
+                initializedcheck=False)
+    cy_ext_blas = cythonize(cython_ext, compiler_directives=opts)
 
     ext_modules = [
-        ext_blas,
         ext_conv,
         ext_conv_transpose,
         ext_experimental_c,
@@ -318,6 +325,7 @@ def get_extensions():
         ext_tree_ensemble_regressor_p,
         op_onnx_numpy,
     ]
+    ext_modules.extend(cy_ext_blas)
     return ext_modules
 
 
