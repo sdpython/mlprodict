@@ -112,7 +112,7 @@ class TestOnnxPy(ExtTestCase):
                         (TypeError, InvalidArgument))
 
     def test_wrapper_onnxnumpy_np(self):
-        
+
         def fct(x):
             return x
 
