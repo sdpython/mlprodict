@@ -697,13 +697,12 @@ class EinsumSubOp:
         right = self.kwargs['right']
         root = self._onnx_name()
 
-        name_one = root + "_1"
-        name_zero = root + "_0"
-        yield numpy_helper.from_array(
-            numpy.array([1], dtype=numpy.int64), name=name_one)
-        yield numpy_helper.from_array(
-            numpy.array([0], dtype=numpy.int64), name=name_zero)
+        def return_name_one():
+            name_one = root + "_1"
+            return name_one, numpy_helper.from_array(
+                numpy.array([1], dtype=numpy.int64), name=name_one)
 
+        name_one = None
         name_shape1 = root + "_shape1"
         name_shape2 = root + "_shape2"
         concat_left = []
@@ -750,6 +749,9 @@ class EinsumSubOp:
             yield helper.make_node(
                 'Gather', [name_shape2, name_batch_axes], [name_dim0bg])
         else:
+            if name_one is None:
+                name_one, cst_init = return_name_one()
+                yield cst_init
             name_dim0 = name_one
             name_dim0b = name_one
             concat_left.append(name_dim0)
@@ -790,6 +792,9 @@ class EinsumSubOp:
         # dim2 = int(numpy.prod([m2.shape[i] for i in sum_axes]))
 
         if len(sum_axes) == 0:
+            if name_one is None:
+                name_one, cst_init = return_name_one()
+                yield cst_init
             name_dim1 = name_one
             name_dim2 = name_one
             concat_left.append(name_dim1)

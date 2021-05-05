@@ -18,9 +18,9 @@ from ..tools.code_helper import make_callable
 from ..tools.onnx2py_helper import _var_as_dict, numpy_min, numpy_max
 from ..tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs)
+from ..onnx_tools.optim import onnx_remove_node_unused
 from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_exports import OnnxInferenceExport
-from .optim import onnx_remove_node_unused
 from .shape_object import ShapeObject
 
 

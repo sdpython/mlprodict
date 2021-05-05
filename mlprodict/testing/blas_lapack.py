@@ -4,7 +4,7 @@
 """
 import numpy
 from scipy.linalg.blas import sgemm, dgemm  # pylint: disable=E0611
-from .direct_blas_lapack import (  # pylint: disable=E0401
+from .direct_blas_lapack import (  # pylint: disable=E0401,E0611
     dgemm_dot, sgemm_dot)
 
 

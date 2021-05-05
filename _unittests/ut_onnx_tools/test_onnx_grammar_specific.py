@@ -7,10 +7,11 @@ from pyquickhelper.pycode import ExtTestCase
 from sklearn.gaussian_process.kernels import ExpSineSquared, DotProduct, RationalQuadratic
 from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
-from mlprodict.onnx_grammar import translate_fct2onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnx_grammar.onnx_translation import get_default_context, get_default_context_cpl
-from mlprodict.onnx_grammar.onnx_translation import (
+from mlprodict.onnx_tools.onnx_grammar import translate_fct2onnx
+from mlprodict.onnx_tools.onnx_grammar.onnx_translation import (
+    get_default_context, get_default_context_cpl)
+from mlprodict.onnx_tools.onnx_grammar.onnx_translation import (
     py_make_float_array, py_pow, squareform_pdist, py_mul, py_opp)
 from mlprodict.tools import get_opset_number_from_onnx
 
