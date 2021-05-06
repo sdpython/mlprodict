@@ -46,8 +46,6 @@ Validation
 
 .. autosignature:: mlprodict.onnxrt.validate.validate_summary.summary_report
 
-.. autosignature:: mlprodict.onnx_tools.model_checker.onnx_shaker
-
 .. autosignature:: mlprodict.onnxrt.validate.validate_graph.plot_validate_benchmark
 
 C++ classes
@@ -114,21 +112,6 @@ C++ classes
 .. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_fetch_float
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_fetch_int64
-
-Optimisation
-++++++++++++
-
-The following functions reduce the number of ONNX operators in a graph
-while keeping the same results. The optimized graph
-is left unchanged.
-
-.. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation.onnx_remove_node
-
-.. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation_identity.onnx_remove_node_identity
-
-.. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation_redundant.onnx_remove_node_redundant
-
-.. autosignature:: mlprodict.onnx_tools.optim.onnx_remove_unused.onnx_remove_node_unused
 
 Shapes
 ++++++

@@ -18,6 +18,10 @@ Experimental implementations for algorithm.
 Einsum
 ^^^^^^
 
+.. autosignature:: mlprodict.testing.einsum.einsum_fct.einsum
+
+.. autosignature:: mlprodict.testing.einsum.einsum_fct.CachedEinsum
+
 .. autosignature:: mlprodict.testing.einsum.einsum_impl.analyse_einsum_equation
 
 .. autosignature:: mlprodict.testing.einsum.einsum_impl.apply_sequence

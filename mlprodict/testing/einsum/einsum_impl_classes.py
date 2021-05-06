@@ -1407,6 +1407,8 @@ class GraphEinsumSubOp:
 
             NotImplementedError: to_onnx not implemented for 'matmul'.
         """
+        from ...onnx_tools.optim import onnx_remove_node_unused
+
         # inputs
         if opset is None:
             opset = get_opset_number_from_onnx()
@@ -1453,4 +1455,5 @@ class GraphEinsumSubOp:
                 name=kwargs.get('name', 'einsum'),
                 inputs=onx_inputs, outputs=[onx_output],
                 initializer=inits, nodes=nodes))
-        return model
+
+        return onnx_remove_node_unused(model)
