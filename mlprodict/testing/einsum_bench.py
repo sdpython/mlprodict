@@ -103,8 +103,8 @@ def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
                 scenarios.append((equation, runtime, dec, sh))
 
     if use_tqdm:
-        from tqdm import tqdm
-        loop = tqdm(scenarios)
+        from tqdm import tqdm  # pragma: no cover
+        loop = tqdm(scenarios)  # pragma: no cover
     else:
         loop = scenarios
 

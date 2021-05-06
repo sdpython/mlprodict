@@ -7,7 +7,7 @@ import numpy
 from onnx import helper, TensorProto
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.onnx_tools import insert_node
+from mlprodict.onnx_tools.onnx_tools import insert_node
 from mlprodict.onnxrt.ops_cpu._op import RuntimeTypeError
 
 
