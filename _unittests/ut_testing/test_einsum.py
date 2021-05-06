@@ -10,9 +10,9 @@ from onnx import numpy_helper
 from onnxruntime import (
     InferenceSession, GraphOptimizationLevel, SessionOptions)
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.testing.einsum_impl_ext import (
+from mlprodict.testing.einsum.einsum_impl_ext import (
     numpy_diagonal, numpy_extended_dot, numpy_extended_dot_python)
-from mlprodict.testing.einsum_impl import (
+from mlprodict.testing.einsum.einsum_impl import (
     analyse_einsum_equation, decompose_einsum_equation, EinsumSubOp,
     apply_einsum_sequence)
 from mlprodict.onnxrt import OnnxInference

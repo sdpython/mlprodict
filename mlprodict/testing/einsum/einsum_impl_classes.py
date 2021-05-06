@@ -6,8 +6,8 @@ implement einsum computation.
 """
 import numpy
 from onnx import helper, numpy_helper
-from ..tools.onnx2py_helper import guess_proto_dtype
-from ..tools.asv_options_helper import (
+from ...tools.onnx2py_helper import guess_proto_dtype
+from ...tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
 from .blas_lapack import gemm_dot
 from .einsum_impl_ext import (
@@ -1163,7 +1163,7 @@ class GraphEinsumSubOp:
         :param verbose: prints out intermediate results
         :param kwargs: additional parameters,
             see :meth:`apply
-            <mlprodict.testing.einsum_impl_classes.EinsumSubOp.apply>`.
+            <mlprodict.testing.einsum.einsum_impl_classes.EinsumSubOp.apply>`.
         :return: output
         """
         if verbose:

@@ -37,7 +37,7 @@ def einsum_test(equation="abc,cd->abd", shape="30", perm=False,
 
             python -m mlprodict einsum_test --equation="abc,cd->abd" --output=res.csv
     """
-    from ..testing.einsum_bench import einsum_benchmark  # pylint: disable=E0402
+    from ..testing.einsum.einsum_bench import einsum_benchmark  # pylint: disable=E0402
 
     perm = perm in ('True', '1', 1, True)
     if "(" not in shape:

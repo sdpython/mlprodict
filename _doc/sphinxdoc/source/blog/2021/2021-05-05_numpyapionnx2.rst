@@ -28,6 +28,7 @@
 
     .. runpython::
         :showcode:
+        :process:
 
         import numpy
         from pandas import DataFrame

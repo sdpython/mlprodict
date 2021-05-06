@@ -109,7 +109,7 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple",
     .. runpython::
         :showcode:
 
-        from mlprodict.testing.einsum_impl import decompose_einsum_equation
+        from mlprodict.testing.einsum import decompose_einsum_equation
         seq = decompose_einsum_equation("bac,cd,def->ebc")
         for op in seq:
             print(op)
@@ -120,7 +120,7 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple",
         :script: DOT-SECTION
         :process:
 
-        from mlprodict.testing.einsum_impl import decompose_einsum_equation
+        from mlprodict.testing.einsum import decompose_einsum_equation
         seq = decompose_einsum_equation(
             "bac,cd,def->ebc", (2, 2, 2), (2, 2), (2, 2, 2))
         print("DOT-SECTION", seq.to_dot())
@@ -159,7 +159,7 @@ def apply_einsum_sequence(seq, *inputs, verbose=False, **kwargs):
     :param inputs: inputs
     :param kwargs: additional parameters,
         see :meth:`apply_sequence
-        <mlprodict.testing.einsum_impl_classes.
+        <mlprodict.testing.einsum.einsum_impl_classes.
         GraphEinsumSubOp.apply_sequence>`.
     :return: output
 
@@ -167,7 +167,7 @@ def apply_einsum_sequence(seq, *inputs, verbose=False, **kwargs):
         :showcode:
 
         import numpy
-        from mlprodict.testing.einsum_impl import (
+        from mlprodict.testing.einsum import (
             decompose_einsum_equation, apply_einsum_sequence)
 
         m1 = numpy.arange(2 * 2 * 2).reshape((2, 2, 2)) + 10
