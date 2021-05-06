@@ -5,7 +5,7 @@ import unittest
 import numpy
 from scipy.linalg.blas import sgemm  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.testing.blas_lapack import gemm_dot, pygemm
+from mlprodict.testing.einsum.blas_lapack import gemm_dot, pygemm
 
 
 class TestBlasLapack(ExtTestCase):
