@@ -19,7 +19,7 @@ def numpy_diagonal(m, axis, axes):
         :showcode:
 
         import numpy
-        from mlprodict.testing.einsum_impl_ext import numpy_diagonal
+        from mlprodict.testing.einsum import numpy_diagonal
 
         mat = numpy.arange(8).reshape((2, 2, 2))
         print(mat)
@@ -74,7 +74,7 @@ def _numpy_extended_dot_equation(m1_dim, m2_dim, axes, left, right):
         :showcode:
 
         import numpy
-        from mlprodict.testing.einsum_impl_ext import (
+        from mlprodict.testing.einsum.einsum_impl_ext import (
             numpy_extended_dot_python, _numpy_extended_dot_equation)
 
         a = numpy.arange(6).reshape((3, 2, 1))
@@ -179,7 +179,7 @@ def numpy_extended_dot(m1, m2, axes, left, right, verbose=False):
         :showcode:
 
         import numpy
-        from mlprodict.testing.einsum_impl_ext import numpy_extended_dot
+        from mlprodict.testing.einsum import numpy_extended_dot
 
         m1 = numpy.arange(4).reshape((2, 2))
         m2 = m1 + 10
@@ -200,7 +200,7 @@ def numpy_extended_dot(m1, m2, axes, left, right, verbose=False):
         :showcode:
 
         import numpy
-        from mlprodict.testing.einsum_impl_ext import numpy_extended_dot
+        from mlprodict.testing.einsum import numpy_extended_dot
 
         m1 = numpy.arange(4).reshape((2, 2))
         m2 = m1 + 10
@@ -220,7 +220,7 @@ def numpy_extended_dot(m1, m2, axes, left, right, verbose=False):
         :showcode:
 
         import numpy
-        from mlprodict.testing.einsum_impl_ext import numpy_extended_dot
+        from mlprodict.testing.einsum import numpy_extended_dot
 
         m1 = numpy.arange(4).reshape((2, 2))
         m2 = m1 + 10
@@ -236,7 +236,7 @@ def numpy_extended_dot(m1, m2, axes, left, right, verbose=False):
         :showcode:
 
         import numpy
-        from mlprodict.testing.einsum_impl_ext import numpy_extended_dot
+        from mlprodict.testing.einsum import numpy_extended_dot
 
         m1 = numpy.arange(8).reshape((2, 2, 2))
         m2 = m1 + 10
@@ -401,7 +401,7 @@ def numpy_extended_dot_python(m1, m2, axes, left, right, verbose=False):
         :showcode:
 
         import numpy
-        from mlprodict.testing.einsum_impl_ext import (
+        from mlprodict.testing.einsum import (
             numpy_extended_dot_python, _numpy_extended_dot_equation)
 
         a = numpy.arange(6).reshape((3, 2, 1))
@@ -504,7 +504,7 @@ def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
         :showcode:
 
         import numpy
-        from mlprodict.testing.einsum_impl_ext import (
+        from mlprodict.testing.einsum import (
             numpy_extended_dot_matrix, _numpy_extended_dot_equation)
 
         a = numpy.arange(6).reshape((3, 2, 1))

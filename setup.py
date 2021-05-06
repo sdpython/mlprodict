@@ -297,8 +297,8 @@ def get_extensions():
         language='c++')
 
     cython_ext = [
-        Extension("mlprodict.testing.direct_blas_lapack",
-                  ['mlprodict/testing/direct_blas_lapack.pyx'],
+        Extension("mlprodict.testing.einsum.direct_blas_lapack",
+                  ['mlprodict/testing/einsum/direct_blas_lapack.pyx'],
                   include_dirs=[numpy.get_include()],
                   language='c')
     ]

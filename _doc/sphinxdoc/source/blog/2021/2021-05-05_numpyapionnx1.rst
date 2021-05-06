@@ -67,6 +67,7 @@
 
     .. runpython::
         :showcode:
+        :process:
 
         from typing import Any
         import numpy as np
@@ -103,6 +104,7 @@
 
     .. runpython::
         :showcode:
+        :process:
 
         from typing import Any
         import numpy as np

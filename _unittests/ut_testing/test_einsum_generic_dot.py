@@ -6,7 +6,7 @@ import io
 from contextlib import redirect_stdout
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.testing.einsum_impl_ext import (
+from mlprodict.testing.einsum.einsum_impl_ext import (
     numpy_extended_dot, numpy_extended_dot_python,
     numpy_extended_dot_matrix, numpy_diagonal,
     _numpy_extended_dot_equation,

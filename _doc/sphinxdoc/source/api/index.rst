@@ -30,6 +30,7 @@ This is a summary of functions this modules provides.
     asv
     validation
     tools
+    onnx_tools
 
 **Outside ONNX world**
 
