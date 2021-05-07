@@ -66,7 +66,7 @@ into ONNX to obtain an equivalent ONNX graph.
 
 *mlprodict* implements function
 :func:`translate_fct2onnx
-<mlprodict.onnx_grammar.onnx_translation.translate_fct2onnx>`
+<mlprodict.onnx_tools.onnx_grammar.onnx_translation.translate_fct2onnx>`
 which converts the code
 of a function written with :epkg:`numpy` and :epkg:`scipy`
 into an :epkg:`ONNX` graph.
@@ -88,8 +88,8 @@ produces the :epkg:`ONNX` graph.
     import numpy
     from scipy.spatial.distance import squareform, pdist
     from sklearn.gaussian_process.kernels import ExpSineSquared
-    from mlprodict.onnx_grammar import translate_fct2onnx
-    from mlprodict.onnx_grammar.onnx_translation import (
+    from mlprodict.onnx_tools.onnx_grammar import translate_fct2onnx
+    from mlprodict.onnx_tools.onnx_grammar.onnx_translation import (
         squareform_pdist, py_make_float_array)
     from mlprodict.onnxrt import OnnxInference
 
@@ -158,7 +158,7 @@ produces the :epkg:`ONNX` graph.
 
 The output of function
 :func:`translate_fct2onnx
-<mlprodict.onnx_grammar.onnx_translation.translate_fct2onnx>`
+<mlprodict.onnx_tools.onnx_grammar.onnx_translation.translate_fct2onnx>`
 is not an :epkg:`ONNX` graph but the code of a function which
 produces an :epkg:`ONNX` graph. That's why the function is called
 twice. The first call compiles the code and a returns a new

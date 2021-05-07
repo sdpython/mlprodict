@@ -23,7 +23,7 @@ on the following operators :ref:`l-onnx-runtime-operators`.
 Python to ONNX
 ++++++++++++++
 
-.. autosignature:: mlprodict.onnx_grammar.onnx_translation.translate_fct2onnx
+.. autosignature:: mlprodict.onnx_tools.onnx_grammar.onnx_translation.translate_fct2onnx
 
 ONNX Export
 +++++++++++

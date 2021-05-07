@@ -23,7 +23,7 @@ def py_make_float_array(cst, op_version=None):
         :showcode:
         :warningout: DeprecationWarning
 
-        from mlprodict.onnx_grammar.onnx_translation import py_make_float_array
+        from mlprodict.onnx_tools.onnx_grammar.onnx_translation import py_make_float_array
         print(py_make_float_array(5.5))
     """
     return numpy.array([cst], dtype=numpy.float32)
@@ -167,7 +167,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
             :store_in_file: fct2onnx2.py
 
             import numpy
-            from mlprodict.onnx_grammar import translate_fct2onnx
+            from mlprodict.onnx_tools.onnx_grammar import translate_fct2onnx
 
             def trs(x, y):
                 z = x + numpy.transpose(y, axes=[1, 0])
@@ -196,7 +196,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
             :store_in_file: fct2onnx3.py
 
             import numpy
-            from mlprodict.onnx_grammar import translate_fct2onnx
+            from mlprodict.onnx_tools.onnx_grammar import translate_fct2onnx
             from mlprodict.onnxrt import OnnxInference
             from skl2onnx.algebra.onnx_ops import (
                 OnnxAdd, OnnxTranspose, OnnxMul, OnnxIdentity

@@ -26,7 +26,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
             import ast
             import inspect
             from textwrap import dedent
-            from mlprodict.onnx_grammar import CodeNodeVisitor
+            from mlprodict.onnx_tools.onnx_grammar import CodeNodeVisitor
 
             def norm2(x, y):
                 delta = x - y
