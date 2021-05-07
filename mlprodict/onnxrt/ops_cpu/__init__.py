@@ -89,7 +89,9 @@ def load_op(onnx_node, desc=None, options=None):
             "Operator '{}' has no runtime yet. Available list:\n"
             "{}\n--- +\n{}".format(
                 name, "\n".join(sorted(_additional_ops)),
-                "\n".join(sorted(d_op_list))))
+                "\n".join(
+                    _ for _ in sorted(d_op_list)
+                    if "_" not in _ and _ not in {'cl', 'clo', 'name'})))
 
     if hasattr(cl, 'version_higher_than'):
         opv = min(current_opset, chosen_opset)
@@ -104,7 +106,9 @@ def load_op(onnx_node, desc=None, options=None):
                     "'{}'\n--ONNX--\n{}\n--AVAILABLE--\n{}".format(
                         cl.version_higher_than, opv, opset,
                         options['target_opset'], cl.__name__, onnx_node,
-                        "\n".join(sorted(d_op_list))))
+                        "\n".join(
+                            _ for _ in sorted(d_op_list)
+                            if "_" not in _ and _ not in {'cl', 'clo', 'name'})))
             options = options.copy()
             options['target_opset'] = current_opset
             return load_op(onnx_node, desc=desc, options=options)

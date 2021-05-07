@@ -130,6 +130,10 @@ from ..doc.doc_helper import get_rst_doc
 _op_list = []
 clo = locals().copy()
 for name, cl in clo.items():
+    if "_" in name:
+        continue
+    if name in {'cl', 'clo', 'name'}:
+        continue
     if not cl.__doc__ and issubclass(cl, OpRun):
         cl.__doc__ = get_rst_doc(cl.__name__)
         _op_list.append(cl)
