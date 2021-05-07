@@ -30,24 +30,24 @@ def fct_id(y):
 
 obj_classes = {
     'reg:logistic': (XGBClassifier, fct_cl2,
-                     make_classification(n_features=7, n_classes=2,
+                     make_classification(n_features=4, n_classes=2,
                                          n_clusters_per_class=1)),
     'binary:logistic': (XGBClassifier, fct_cl2,
-                        make_classification(n_features=7, n_classes=2,
+                        make_classification(n_features=4, n_classes=2,
                                             n_clusters_per_class=1)),
     'multi:softmax': (XGBClassifier, fct_id,
-                      make_classification(n_features=7, n_classes=3,
+                      make_classification(n_features=4, n_classes=3,
                                           n_clusters_per_class=1)),
     'multi:softmax2': (XGBClassifier, fct_cl3,
-                       make_classification(n_features=7, n_classes=3,
+                       make_classification(n_features=4, n_classes=3,
                                            n_clusters_per_class=1)),
     'multi:softprob': (XGBClassifier, fct_id,
-                       make_classification(n_features=7, n_classes=3,
+                       make_classification(n_features=4, n_classes=3,
                                            n_clusters_per_class=1)),
     'reg:squarederror': (XGBRegressor, fct_id,
-                         make_regression(n_features=7, n_targets=1)),
+                         make_regression(n_features=4, n_targets=1)),
     'reg:squarederror2': (XGBRegressor, fct_id,
-                          make_regression(n_features=7, n_targets=2)),
+                          make_regression(n_features=4, n_targets=2)),
 }
 
 
