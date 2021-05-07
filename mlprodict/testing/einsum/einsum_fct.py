@@ -240,6 +240,7 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
 
     .. runpython::
         :showcode:
+        :process:
 
         import timeit
         import numpy
