@@ -387,7 +387,7 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
             "All inputs do not have the same type (%r), "
             "all of them should be cast before called einsum."
             "" % dtypes)
-    cached = _einsum(equation, dtypes[0], optimize=optimize,
+    cached = _einsum(equation, inputs[0].dtype, optimize=optimize,
                      runtime=runtime, cache=cache, opset=opset,
                      verbose=verbose)
     return cached(*inputs)
