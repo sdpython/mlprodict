@@ -184,6 +184,24 @@ class CachedEinsum:
         return inst
 
 
+def _einsum(equation, dtype, optimize=False, runtime="batch_dot",
+            cache=True, opset=None, verbose=None):
+    global _einsum_cache  # pylint: disable=W0603
+    cached = None
+    if cache:
+        key = equation, runtime, opset, optimize, dtype
+        cached = _einsum_cache.get(key, None)
+    if cached is None:
+        cached = CachedEinsum.build_einsum(
+            equation, runtime, opset, optimize,
+            dtype, verbose=verbose)
+    else:
+        cache = False
+    if cache:
+        _einsum_cache[key] = cached
+    return cached
+
+
 def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
            cache=True, opset=None, verbose=None):
     """
@@ -307,7 +325,7 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
 
         def clean(txt):
             txt = txt.replace(root, "mlprodict")
-            return "\n".join(txt.split("\n")[:30])
+            return "\\n".join(txt.split("\\n")[:30])
 
         def fct1():
             for i in range(100):
@@ -361,7 +379,6 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
         print(root)
         print(clean(res[1]))
     """
-    global _einsum_cache  # pylint: disable=W0603
     if len(inputs) == 0:
         raise ValueError("No inputs found.")
     dtypes = set(i.dtype for i in inputs)
@@ -370,16 +387,7 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
             "All inputs do not have the same type (%r), "
             "all of them should be cast before called einsum."
             "" % dtypes)
-    cached = None
-    if cache:
-        key = equation, runtime, opset, optimize, inputs[0].dtype
-        cached = _einsum_cache.get(key, None)
-    if cached is None:
-        cached = CachedEinsum.build_einsum(
-            equation, runtime, opset, optimize,
-            inputs[0].dtype, verbose=verbose)
-    else:
-        cache = False
-    if cache:
-        _einsum_cache[key] = cached
+    cached = _einsum(equation, dtypes[0], optimize=optimize,
+                     runtime=runtime, cache=cache, opset=opset,
+                     verbose=verbose)
     return cached(*inputs)

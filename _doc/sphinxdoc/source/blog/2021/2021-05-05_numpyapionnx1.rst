@@ -85,7 +85,7 @@
     `onnx_log_1` is not a function but an instance
     of a class which defines operator `__call__` and that class
     has a hold on the ONNX graph and all the necessary information
-    to have :epkg:`skl2onnx` convert any pipeline using it after
+    to have :epkg:`sklearn-onnx` convert any pipeline using it after
     a new converter for `FunctionTransformer
     <https://scikit-learn.org/stable/modules/generated/
     sklearn.preprocessing.FunctionTransformer.html>`_ is registered
@@ -117,7 +117,7 @@
         from mlprodict.npy import onnxnumpy_default, NDArray
         from mlprodict.onnxrt import OnnxInference
 
-        form skl2onnx import to_onnx
+        from skl2onnx import to_onnx
         from mlprodict.onnx_conv import register_rewritten_operators
         register_rewritten_operators()
 

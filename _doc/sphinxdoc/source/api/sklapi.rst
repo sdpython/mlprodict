@@ -1,6 +1,6 @@
 
-scikit-learn API
-================
+scikit-learn API and ONNX graph in pipelines
+============================================
 
 This is the main class which makes it easy to insert
 to use the prediction from an :epkg:`ONNX` files into a :epkg:`scikit-learn`

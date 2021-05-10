@@ -1,6 +1,6 @@
 
-Experiments
-===========
+Formet Experiments
+==================
 
 .. contents::
     :local:

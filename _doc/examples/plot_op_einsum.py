@@ -11,7 +11,8 @@ If available, :epkg:`tensorflow` and :epkg:`pytorch` are included as well.
 The custom implementation does not do any transpose.
 It uses parallelisation and SIMD optimization when the summation
 happens on the last axis of both matrices. It only implements
-matrix multiplication.
+matrix multiplication. We also measure the improvment made with
+function :func:`einsum <mlprodict.testing.einsum.einsum_fct.einsum>`.
 
 .. contents::
     :local:
@@ -32,9 +33,9 @@ from skl2onnx.algebra.onnx_ops import OnnxEinsum
 from mlprodict.tools import measure_time
 from tqdm import tqdm
 from opt_einsum import contract
-from mlprodict.testing.experimental_c import custom_einsum_float
-
-from mlprodict.testing.experimental_c import code_optimisation
+from mlprodict.testing.experimental_c import (
+    custom_einsum_float, code_optimisation)
+from mlprodict.testing.einsum.einsum_fct import _einsum
 print(code_optimisation())
 
 ###################################
@@ -51,7 +52,7 @@ except ImportError:
     torch_einsum = None
 
 
-def build_ort_einsum(equation, op_version=12):
+def build_ort_einsum(equation, op_version=13):
     node = OnnxEinsum('x', 'y', equation=equation,
                       op_version=op_version,
                       output_names=['z'])
@@ -60,6 +61,15 @@ def build_ort_einsum(equation, op_version=12):
                        target_opset=op_version)
     sess = InferenceSession(onx.SerializeToString())
     return lambda x, y: sess.run(None, {'x': x, 'y': y})
+
+
+def build_ort_decomposed(equation, op_version=13):
+    cache = _einsum(equation, numpy.float32, opset=op_version,
+                    optimize=True, verbose=True, runtime="python")
+    if not hasattr(cache, 'onnx_'):
+        cache.build()
+    sess = InferenceSession(cache.onnx_.SerializeToString())
+    return lambda x, y: sess.run(None, {'X0': x, 'X1': y})
 
 
 def loop_einsum_eq(fct, equation, xs, ys):
@@ -92,6 +102,7 @@ def custom_einsum_float_tr(eq, x, y):
 def benchmark_equation(equation):
     # equations
     ort_einsum = build_ort_einsum(equation)
+    ort_einsum_decomposed = build_ort_decomposed(equation)
     res = []
     for dim in tqdm([8, 16, 32, 64, 100, 128, 200,
                      256, 500, 512]):
@@ -121,12 +132,21 @@ def benchmark_equation(equation):
         res.append(obs)
 
         # onnxruntime
-        ctx['einsum'] = ort_einsum
+        ctx['einsum'] = ort_einsum_decomposed
         obs = measure_time(
             "loop_einsum(einsum, xs, ys)",
             div_by_number=True, context=ctx, repeat=5, number=1)
         obs['dim'] = dim
         obs['fct'] = 'ort_einsum'
+        res.append(obs)
+
+        # onnxruntime decomposed
+        ctx['einsum'] = ort_einsum_decomposed
+        obs = measure_time(
+            "loop_einsum(einsum, xs, ys)",
+            div_by_number=True, context=ctx, repeat=5, number=1)
+        obs['dim'] = dim
+        obs['fct'] = 'ort_dec'
         res.append(obs)
 
         # custom implementation
@@ -188,7 +208,7 @@ def benchmark_equation(equation):
     rs['numpy.einsum'] = 1.
 
     # Graphs.
-    fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+    fig, ax = plt.subplots(1, 2, figsize=(14, 5))
     piv.plot(logx=True, logy=True, ax=ax[0],
              title="Einsum benchmark\n%s -- (2, N, 12, 64)"
                    " lower better" % equation)

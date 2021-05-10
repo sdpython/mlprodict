@@ -178,6 +178,38 @@ class TestEinsum(ExtTestCase):
         self.assertIn("numpy_extended_dot", out)
         self.assertEqualArray(exp, res)
 
+    def test_decompose_einsum_equation_mm(self):
+        m1 = numpy.arange(0, 8).astype(numpy.float32).reshape((2, 2, 2))
+        m2 = numpy.arange(0, 8).astype(numpy.float32).reshape((2, 2, 2)) + 10
+        exp = numpy.einsum("bac,chg->ah", m1, m2)
+
+        def fct():
+            print("########################## DECOMPOSE")
+            seq = decompose_einsum_equation(
+                "bac,chg->ah", (2, 2, 2), (2, 2, 2), verbose=True,
+                clean=True, strategy='numpy')
+            print("########################## APPLY")
+            dot = seq.to_dot()
+            print(dot)
+            red = dot.split('red')
+            self.assertEqual(len(red), 6)
+            res = apply_einsum_sequence(seq, m1, m2, verbose=True)
+            print("########################## END")
+            onx = seq.to_onnx('Y', 'X1', 'X2', verbose=True)
+            self.assertNotEmpty(onx)
+            return res
+
+        f = io.StringIO()
+        try:
+            with redirect_stdout(f):
+                res = fct()
+        except Exception as e:
+            raise AssertionError("Issue. Logs =\n%s" % f.getvalue()) from e
+
+        out = f.getvalue()
+        self.assertIn("batch_dot", out)
+        self.assertEqualArray(exp, res)
+
     def test_decompose_einsum_equation_py_noshape(self):
         m1 = numpy.arange(0, 24).astype(numpy.float32).reshape((2, 3, 4))
         m2 = numpy.arange(0, 20).astype(numpy.float32).reshape((4, 5))

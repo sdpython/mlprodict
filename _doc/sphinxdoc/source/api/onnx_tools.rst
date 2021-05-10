@@ -1,6 +1,6 @@
 
-Tools to play with ONNX graphs
-==============================
+Tools for ONNX
+==============
 
 .. contents::
     :local:

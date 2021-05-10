@@ -144,7 +144,7 @@ def _common_check_numpy_extended_dot(m1, m2, axes, left, right):
     m1_dim = len(m1.shape)
     m2_dim = len(m2.shape)
     if m1_dim != m2_dim:
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Matrices m1 and m2 must have the same number of dimensions, "
             "m1=%r, m2=%r." % (m1_dim, m2_dim))
     total = set(axes) | set(left) | set(right)
@@ -266,7 +266,10 @@ def numpy_extended_dot(m1, m2, axes, left, right, verbose=False):
 def numpy_extended_dot_ouput_shape(m1, m2, axes, left, right):
     """
     Computes the output shape of results produced by function
-    @see fn numpy_extended_dot or @see fn numpy_extended_dot_python.
+    :func:`numpy_extended_dot
+    <mlprodict.testing.einsum_impl_ext.numpy_extended_dot>` or
+    :func:`numpy_extended_dot_python
+    <mlprodict.testing.einsum_impl_ext.numpy_extended_dot_python>`.
     """
     _common_check_numpy_extended_dot(m1, m2, axes, left, right)
     m1_dim = len(m1.shape)

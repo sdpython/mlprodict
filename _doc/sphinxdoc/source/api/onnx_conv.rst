@@ -1,6 +1,6 @@
 
-ONNX Converters
-===============
+Additional ONNX Converters
+==========================
 
 This packages implements or rewrites some of the
 existing converters. They can be registered and uses by
