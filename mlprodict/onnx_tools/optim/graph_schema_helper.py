@@ -73,7 +73,7 @@ def get_defined_inputs(input_names, variables=None, dtype=None,
         # Inputs. Let's assume it is a vector of floats.
         return DoubleTensorType() if dtype == numpy.float64 else FloatTensorType()
 
-    if schema is None:
+    if schema is None or len(schema) < len(input_names):
         inputs = [(name, guess_type_variable(name, None))
                   for name in input_names]
     else:

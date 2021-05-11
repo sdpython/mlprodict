@@ -37,7 +37,7 @@ class OnnxWholeSession:
             onnx_data = onnx_data.SerializeToString()
         session_options = (
             None if runtime_options is None
-            else runtime_options.pop('session_options', None))
+            else runtime_options.get('session_options', None))
         self.runtime = runtime
         sess_options = session_options or SessionOptions()
         self.run_options = RunOptions()

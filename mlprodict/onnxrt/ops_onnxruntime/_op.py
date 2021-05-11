@@ -248,9 +248,17 @@ class OpRunOnnxRuntime:
             self.sess_ = InferenceSession(
                 self.onnx_.SerializeToString(), sess_options=sess_options)
         except (RuntimeError, OrtNotImplemented, OrtInvalidGraph, OrtFail) as e:
-            raise RuntimeError("Unable to load node '{}' (output type was {})\n{}".format(
-                self.onnx_node.op_type, "guessed" if forced else "inferred",
-                self.onnx_)) from e
+            raise RuntimeError(
+                "Unable to load node '{}' (output type was {}) inputs={} "
+                "self.inputs={} self.onnx_node.input={} "
+                "variables={} mapping={} "
+                "expected_inputs={}\n{}".format(
+                    self.onnx_node.op_type,
+                    "guessed" if forced else "inferred",
+                    inputs, self.inputs, self.onnx_node.input,
+                    variables, self.mapping,
+                    self.alg_class.expected_inputs,
+                    self.onnx_)) from e
         self.typed_outputs_ = outputs
 
     def run(self, *args, **kwargs):

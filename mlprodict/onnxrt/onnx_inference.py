@@ -724,7 +724,7 @@ class OnnxInference:
                                           ", ".join(sorted(values)))) from e
         return (res, mtime) if node_time else res
 
-    def build_intermediate(self, outputs=None):
+    def build_intermediate(self, outputs=None, verbose=0, fLOG=None):
         """
         Builds every possible :epkg:`ONNX` file
         which computes one specific intermediate output
@@ -732,6 +732,8 @@ class OnnxInference:
 
         :param outputs: subsets of outputs to get,
             None to get all outputs,
+        :param verbose: displays intermediate information
+        :param fLOG: logging function
         :return: :epkg:`*py:collections:OrderedDict`
 
         .. versionchanged: 0.6
@@ -745,10 +747,14 @@ class OnnxInference:
         for output in enumerate_model_node_outputs(self.obj):
             if outputs is not None and output not in outputs:
                 continue
-            subonx = select_model_inputs_outputs(self.obj, output)
+            subonx = select_model_inputs_outputs(
+                self.obj, outputs=output, infer_shapes=True)
             subonx = onnx_remove_node_unused(subonx)
+            if verbose > 0:
+                fLOG('[build_intermediate] + {}'.format(output))
             ord[output] = OnnxInference(subonx, runtime=self.runtime,
-                                        skip_run=self.skip_run)
+                                        skip_run=self.skip_run,
+                                        runtime_options=self.runtime_options)
         return ord
 
     def _run_whole_runtime(self, inputs, clean_right_away=False,
@@ -764,7 +770,7 @@ class OnnxInference:
             else:
                 if verbose > 0:
                     fLOG("-- OnnxInference: build intermediate")
-                inter_run = self.build_intermediate()
+                inter_run = self.build_intermediate(verbose=verbose, fLOG=fLOG)
                 self.intermediate_onnx_inference_ = inter_run
                 graph = self.to_sequence()
                 self.inits_ = graph['inits']
