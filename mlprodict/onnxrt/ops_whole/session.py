@@ -35,7 +35,9 @@ class OnnxWholeSession:
                 "runtime '{}' is not implemented.".format(runtime))
         if hasattr(onnx_data, 'SerializeToString'):
             onnx_data = onnx_data.SerializeToString()
-        session_options = runtime_options.pop('session_options', None)
+        session_options = (
+            None if runtime_options is None
+            else runtime_options.pop('session_options', None))
         self.runtime = runtime
         sess_options = session_options or SessionOptions()
         self.run_options = RunOptions()
