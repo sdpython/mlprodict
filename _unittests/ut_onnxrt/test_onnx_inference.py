@@ -4,8 +4,8 @@
 import unittest
 from logging import getLogger
 import numpy
-from onnx import helper
-from onnx import TensorProto
+from onnx import helper, TensorProto
+from onnxruntime import SessionOptions
 from sklearn.datasets import load_iris
 from sklearn.cluster import KMeans
 from sklearn.model_selection import train_test_split
@@ -44,6 +44,35 @@ class TestOnnxInference(ExtTestCase):
         res = oinf.run({'X': X, 'Y': Y})
         got = res['Z']
         self.assertEqualArray(exp, got, decimal=6)
+
+    def test_onnx_inference_so(self):
+        X = helper.make_tensor_value_info(
+            'X', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
+        Y = helper.make_tensor_value_info(
+            'Y', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
+        Z = helper.make_tensor_value_info(
+            'Z', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
+        node_def = helper.make_node('Add', ['X', 'Y'], ['Zt'], name='Zt')
+        node_def2 = helper.make_node('Add', ['X', 'Zt'], ['Z'], name='Z')
+        graph_def = helper.make_graph(
+            [node_def, node_def2], 'test-model', [X, Y], [Z])
+        model_def = helper.make_model(
+            graph_def, producer_name='mlprodict', ir_version=6, producer_version='0.1')
+
+        for rt in ['onnxruntime1', 'onnxruntime2']:
+            with self.subTest(runtime=rt):
+                so = SessionOptions()
+                oinf = OnnxInference(
+                    model_def, runtime_options={'session_options': so},
+                    runtime=rt)
+                X = numpy.random.randn(4, 2).astype(  # pylint: disable=E1101
+                    numpy.float32)  # pylint: disable=E1101
+                Y = numpy.random.randn(4, 2).astype(  # pylint: disable=E1101
+                    numpy.float32)  # pylint: disable=E1101
+                exp = (X * 2 + Y).astype(numpy.float32)
+                res = oinf.run({'X': X, 'Y': Y})
+                got = res['Z']
+                self.assertEqualArray(exp, got, decimal=6)
 
     def test_onnx_inference_name_confusion_input(self):
         X = helper.make_tensor_value_info(

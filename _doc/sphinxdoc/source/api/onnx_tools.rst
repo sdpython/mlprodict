@@ -33,4 +33,3 @@ Validation
 ++++++++++
 
 .. autosignature:: mlprodict.onnx_tools.model_checker.onnx_shaker
-

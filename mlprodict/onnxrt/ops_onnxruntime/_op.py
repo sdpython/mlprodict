@@ -83,23 +83,31 @@ class OpRunOnnxRuntime:
         """
         Initializes the node.
 
-        @param      variables               registered variables created by previous operators
+        :param variables: registered variables created by previous operators
 
         The current implementation for operator *Scan*
         only works for matrices.
         """
-        try:
-            self.alg_class = getattr(alg2, 'Onnx' + self.onnx_node.op_type)
-        except AttributeError:
-            self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
+        custom_nodes = self.options.get('nodes', None)
+        if (custom_nodes is not None and
+                self.onnx_node.op_type in custom_nodes):
+            self.alg_class = custom_nodes[self.onnx_node.op_type]
+        else:
+            try:
+                self.alg_class = getattr(alg2, 'Onnx' + self.onnx_node.op_type)
+            except AttributeError:
+                self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
+
         inputs = list(self.onnx_node.input)
         self.mapping, self.inputs = self._name_mapping(inputs)
         self.outputs = list(self.onnx_node.output)
 
         options = self.options.copy()
+        options.pop('nodes', None)
         target_opset = options.pop('target_opset', None)
         domain = options.pop('domain', None)
         disable_optimisation = options.pop('disable_optimisation', False)
+        session_options = options.pop('session_options', False)
         ir_version = options.pop('ir_version', None)
 
         if domain == '' and target_opset < 9:
@@ -160,7 +168,8 @@ class OpRunOnnxRuntime:
                                         op_version=target_opset, domain=domain,
                                         **options)
             inputs = get_defined_inputs(
-                self.inputs, variables, dtype=self.dtype)
+                self.inputs, variables, dtype=self.dtype,
+                schema=self.alg_class.expected_inputs)
 
             try:
                 self.onnx_ = self.inst_.to_onnx(
@@ -175,10 +184,16 @@ class OpRunOnnxRuntime:
                 forced = True
                 outputs = get_defined_outputs(
                     self.outputs, self.onnx_node, inputs, variables,
-                    dtype=self.dtype)
-                self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
-                                                target_opset=target_opset,
-                                                domain=domain)
+                    dtype=self.dtype, schema=self.alg_class.expected_outputs)
+                try:
+                    self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
+                                                    target_opset=target_opset,
+                                                    domain=domain)
+                except NotImplementedError as e:
+                    raise NotImplementedError(
+                        "Unable to instantiate node {} inputs={} ."
+                        "outputs={}".format(
+                            self.alg_class, inputs, outputs)) from e
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(  # pragma: no cover
                         "Probable issue as one dimension is null.\n--\n{}".format(
@@ -189,7 +204,7 @@ class OpRunOnnxRuntime:
             forced = True
             outputs = get_defined_outputs(
                 self.outputs, self.onnx_node, inputs, variables,
-                dtype=self.dtype)
+                dtype=self.dtype, schema=self.alg_class.expected_outputs)
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                             target_opset=target_opset,
                                             domain=domain)
@@ -201,26 +216,32 @@ class OpRunOnnxRuntime:
             lo = list(self.onnx_.graph.output)
             outputs = proto2vars(lo)
 
-        sess_options = SessionOptions()
+        sess_options = session_options or SessionOptions()
         self.run_options = RunOptions()
 
-        try:
-            sess_options.session_log_severity_level = 3
-            # sess_options.sessions_log_verbosity_level = 0
-        except AttributeError:
-            # onnxruntime not recent enough.
-            pass
-        try:
-            self.run_options.run_log_severity_level = 3
-            # self.run_options.run_log_verbosity_level = 0
-        except AttributeError:
-            # onnxruntime not recent enough.
-            pass
+        if session_options is None:
+            try:
+                sess_options.session_log_severity_level = 3
+                # sess_options.sessions_log_verbosity_level = 0
+            except AttributeError:
+                # onnxruntime not recent enough.
+                pass
+            try:
+                self.run_options.run_log_severity_level = 3
+                # self.run_options.run_log_verbosity_level = 0
+            except AttributeError:
+                # onnxruntime not recent enough.
+                pass
+            if disable_optimisation:
+                sess_options.graph_optimization_level = (  # pragma: no cover
+                    GraphOptimizationLevel.ORT_DISABLE_ALL)
+        elif disable_optimisation:
+            raise RuntimeError(  # pragma: no cover
+                "session_options and disable_optimisation cannot be defined "
+                "at the same time.")
+
         if ir_version is not None:
             self.onnx_.ir_version = ir_version
-        if disable_optimisation:
-            sess_options.graph_optimization_level = (  # pragma: no cover
-                GraphOptimizationLevel.ORT_DISABLE_ALL)
         try:
             self.sess_ = InferenceSession(
                 self.onnx_.SerializeToString(), sess_options=sess_options)

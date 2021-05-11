@@ -41,27 +41,31 @@ class OnnxInference:
     * ``'onnxruntime2'``: this mode is mostly used to debug as
       python handles calling every operator but :epkg:`onnxruntime`
       is called for every of them
+
+    :param onnx_or_bytes_or_stream: :epkg:`onnx` object,
+        bytes, or filename or stream
+    :param runtime: runtime options
+    :param skip_run: do not build the runtime
+    :param inplace: use inplace computation as much as possible
+    :param input_inplace: the computation is allowed
+        to overwrite the input, see :meth:`_guess_inplace
+        <mlprodict.onnxrt.onnx_inference.OnnxInference._guess_inplace>`
+    :param ir_version: if not None, overwrite the default version
+    :param target_opset: used to overwrite *target_opset*
+    :param runtime_options: specific options for the runtime
+
+    Among the possible runtime_options, there are:
+    * *enable_profiling*: enables profiling for :epkg:`onnxruntime`
+    * *session_options*: an instance of *SessionOptions* from
+        :epkg:`onnxruntime`
+    * *ir_version*: change ir_version
     """
 
     def __init__(self, onnx_or_bytes_or_stream, runtime=None,
                  skip_run=False, inplace=True,
                  input_inplace=False, ir_version=None,
-                 target_opset=None, runtime_options=None):
-        """
-        @param      onnx_or_bytes_or_stream :epkg:`onnx` object,
-                                            bytes, or filename or stream
-        @param      runtime                 runtime options
-        @param      skip_run                do not build the runtime
-        @param      inplace                 use inplace computation
-                                            as much as possible
-        @param      input_inplace           the computation is allowed
-                                            to overwrite the input,
-                                            see :meth:`_guess_inplace
-                                            <mlprodict.onnxrt.onnx_inference.OnnxInference._guess_inplace>`
-        @param      ir_version              if not None, overwrite the default version
-        @param      target_opset            used to overwrite *target_opset*
-        @param      runtime_options         specific options for the runtime
-        """
+                 target_opset=None, runtime_options=None,
+                 session_options=None):
         if isinstance(onnx_or_bytes_or_stream, bytes):
             self.obj = load_model(BytesIO(onnx_or_bytes_or_stream))
         elif isinstance(onnx_or_bytes_or_stream, BytesIO):
