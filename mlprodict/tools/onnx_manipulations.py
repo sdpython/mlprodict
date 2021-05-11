@@ -3,7 +3,6 @@
 @brief Implements a class able to compute the predictions
 from on an :epkg:`ONNX` model.
 """
-import pprint
 from onnx import helper, shape_inference
 from .onnx2py_helper import guess_proto_dtype
 
