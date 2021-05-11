@@ -53,10 +53,6 @@ def enumerate_model_node_outputs(model, add_node=False, order=False):
                         modif += 1
                         order[0, data_name] = order[1, node_name] + 1
 
-        if max(order.values()) < len(model.graph.node):
-            raise RuntimeError(
-                "Wrong order, edges are missing.\nEDGES\n{}\nORDER\n{}".format(
-                    pprint.pformat(edges), pprint.pformat(order)))
         orders = [(v, k) for k, v in order.items()]
         orders.sort()
 

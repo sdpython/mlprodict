@@ -13,6 +13,7 @@ from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.loghelper import BufferedPrint
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.testing.test_utils import TARGET_OPSET
 
 
 class TestOnnxInference(ExtTestCase):
@@ -33,7 +34,8 @@ class TestOnnxInference(ExtTestCase):
         graph_def = helper.make_graph(
             [node_def, node_def2], 'test-model', [X, Y], [Z])
         model_def = helper.make_model(
-            graph_def, producer_name='mlprodict', ir_version=6, producer_version='0.1')
+            graph_def, producer_name='mlprodict', ir_version=6, producer_version='0.1',
+            opset_imports=[helper.make_operatorsetid('', TARGET_OPSET)])
 
         oinf = OnnxInference(model_def)
         X = numpy.random.randn(4, 2).astype(  # pylint: disable=E1101
@@ -57,7 +59,8 @@ class TestOnnxInference(ExtTestCase):
         graph_def = helper.make_graph(
             [node_def, node_def2], 'test-model', [X, Y], [Z])
         model_def = helper.make_model(
-            graph_def, producer_name='mlprodict', ir_version=6, producer_version='0.1')
+            graph_def, producer_name='mlprodict', ir_version=6, producer_version='0.1',
+            opset_imports=[helper.make_operatorsetid('', TARGET_OPSET)])
 
         for rt in ['onnxruntime1', 'onnxruntime2']:
             with self.subTest(runtime=rt):
@@ -86,7 +89,8 @@ class TestOnnxInference(ExtTestCase):
         graph_def = helper.make_graph(
             [node_def, node_def2], 'test-model', [X, Y], [Z])
         model_def = helper.make_model(
-            graph_def, producer_name='mlprodict', ir_version=6, producer_version='0.1')
+            graph_def, producer_name='mlprodict', ir_version=6, producer_version='0.1',
+            opset_imports=[helper.make_operatorsetid('', TARGET_OPSET)])
 
         oinf = OnnxInference(model_def)
         X = numpy.random.randn(4, 2).astype(  # pylint: disable=E1101
