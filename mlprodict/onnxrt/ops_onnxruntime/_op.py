@@ -191,9 +191,11 @@ class OpRunOnnxRuntime:
                                                     domain=domain)
                 except NotImplementedError as e:
                     raise NotImplementedError(
-                        "Unable to instantiate node {} inputs={} ."
-                        "outputs={}".format(
-                            self.alg_class, inputs, outputs)) from e
+                        "Unable to instantiate node {} inputs={} "
+                        "self.inputs={} outputs={} variables={} "
+                        "dtype={}".format(
+                            self.alg_class, inputs, self.inputs,
+                            outputs, variables, self.dtype)) from e
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(  # pragma: no cover
                         "Probable issue as one dimension is null.\n--\n{}".format(

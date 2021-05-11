@@ -67,7 +67,9 @@ def get_defined_inputs(input_names, variables=None, dtype=None,
                 "Unable to guess type for '{}' form '{}'.".format(
                     name, variables[name]))
         if isinstance(schema, (DataType, tuple)):
-            return schema if isinstance(schema, DataType) else schema[1]
+            sch = schema if isinstance(schema, DataType) else schema[1]
+            if not isinstance(sch, str):
+                return sch
         # Inputs. Let's assume it is a vector of floats.
         return DoubleTensorType() if dtype == numpy.float64 else FloatTensorType()
 
