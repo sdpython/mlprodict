@@ -40,7 +40,11 @@ class OnnxInference:
     * ``'onnxruntime1'``: uses :epkg:`onnxruntime`
     * ``'onnxruntime2'``: this mode is mostly used to debug as
       python handles calling every operator but :epkg:`onnxruntime`
-      is called for every of them
+      is called for every of them, this process may fail due to
+      wrong inference type specially of the graph includes
+      custom nodes, in that case, it is better to compute the output
+      of intermediates nodes. It is much slower as fo every output, every
+      node is computed but more robust.
 
     :param onnx_or_bytes_or_stream: :epkg:`onnx` object,
         bytes, or filename or stream
@@ -503,21 +507,24 @@ class OnnxInference:
 
     def run(self, inputs, clean_right_away=False,
             intermediate=False, verbose=0, node_time=False,
-            fLOG=None):
+            overwrite_types=None, fLOG=None):
         """
         Computes the predictions for this :epkg:`onnx` graph.
 
-        @param      inputs              inputs as dictionary or a dataframe
-        @param      clean_right_away    clean the intermediate outputs
-                                        as soon as they are not needed
-        @param      intermediate        returns a dictionary of intermediate
-                                        variables instead of the results only
-        @param      verbose             display information while predicting
-        @param      node_time           measure time of each node
-        @param      fLOG                logging function if *verbose > 0*
-        @return                         outputs as dictionary
-                                        and a second dictionary of the time spent
-                                        in each node if *node_time* is True
+        :param inputs: inputs as dictionary or a dataframe
+        :param clean_right_away: clean the intermediate outputs
+                as soon as they are not needed
+        :param intermediate: returns a dictionary of intermediate
+            variables instead of the results only
+        :param verbose: display information while predicting
+        :param node_time: measure time of each node
+        :param overwrite_types: shape inference does not work all the time,
+            this allows to force types when building intermediate
+            results, see @see fn select_model_inputs_outputs
+        :param fLOG: logging function if *verbose > 0*
+        :return: outputs as dictionary
+            and a second dictionary of the time spent
+            in each node if *node_time* is True
 
         .. exref::
             :title: Computes predictions with any runtime
@@ -571,9 +578,19 @@ class OnnxInference:
             inputs = OrderedDict((
                 name, retype(numpy.expand_dims(inputs[name].values, axis=1)))
                 for name in inputs.columns)
+        if intermediate:
+            return self._run(inputs, clean_right_away=False,
+                             intermediate=intermediate,
+                             verbose=verbose, node_time=node_time,
+                             overwrite_types=overwrite_types,
+                             fLOG=fLOG)
+        if overwrite_types is not None:
+            raise RuntimeError(
+                "overwrite_types is not used if intermediate is False.")
         return self._run(inputs, clean_right_away=False,
                          intermediate=intermediate,
-                         verbose=verbose, node_time=node_time, fLOG=fLOG)
+                         verbose=verbose, node_time=node_time,
+                         fLOG=fLOG)
 
     def display_sequence(self, verbose=1):
         """
@@ -588,7 +605,10 @@ class OnnxInference:
 
     def _run_sequence_runtime(self, inputs, clean_right_away=False,
                               intermediate=False, verbose=0, node_time=False,
-                              fLOG=None):
+                              overwrite_types=None, fLOG=None):
+        if overwrite_types is not None:
+            raise NotImplementedError(  # pragma: no cover
+                "overwrite_types != None not implemented.")
         if clean_right_away:
             raise NotImplementedError(  # pragma: no cover
                 "clean_right_away=true not implemented.")
@@ -724,7 +744,8 @@ class OnnxInference:
                                           ", ".join(sorted(values)))) from e
         return (res, mtime) if node_time else res
 
-    def build_intermediate(self, outputs=None, verbose=0, fLOG=None):
+    def build_intermediate(self, outputs=None, verbose=0, overwrite_types=None,
+                           fLOG=None):
         """
         Builds every possible :epkg:`ONNX` file
         which computes one specific intermediate output
@@ -732,34 +753,42 @@ class OnnxInference:
 
         :param outputs: subsets of outputs to get,
             None to get all outputs,
+        :param overwrite_types: shape inference does not work all the time,
+            this allows to force types when building intermediate
+            results, see @see fn select_model_inputs_outputs
         :param verbose: displays intermediate information
         :param fLOG: logging function
         :return: :epkg:`*py:collections:OrderedDict`
 
         .. versionchanged: 0.6
         """
+        if verbose > 0:
+            fLOG('[build_intermediate] BEGIN.')
         if outputs is not None:
             if isinstance(outputs, str):
                 outputs = [outputs]
             if not isinstance(outputs, set):
                 outputs = set(outputs)
         ord = OrderedDict()
-        for output in enumerate_model_node_outputs(self.obj):
+        for output in enumerate_model_node_outputs(self.obj, order=True):
             if outputs is not None and output not in outputs:
                 continue
             subonx = select_model_inputs_outputs(
-                self.obj, outputs=output, infer_shapes=True)
+                self.obj, outputs=output, infer_shapes=True,
+                overwrite=overwrite_types)
             subonx = onnx_remove_node_unused(subonx)
             if verbose > 0:
                 fLOG('[build_intermediate] + {}'.format(output))
             ord[output] = OnnxInference(subonx, runtime=self.runtime,
                                         skip_run=self.skip_run,
                                         runtime_options=self.runtime_options)
+        if verbose > 0:
+            fLOG('[build_intermediate] END.')
         return ord
 
     def _run_whole_runtime(self, inputs, clean_right_away=False,
                            intermediate=False, verbose=0, node_time=False,
-                           fLOG=None):
+                           overwrite_types=None, fLOG=None):
         # node_time is unused
         if clean_right_away:
             raise RuntimeError(  # pragma: no cover
@@ -770,7 +799,8 @@ class OnnxInference:
             else:
                 if verbose > 0:
                     fLOG("-- OnnxInference: build intermediate")
-                inter_run = self.build_intermediate(verbose=verbose, fLOG=fLOG)
+                inter_run = self.build_intermediate(
+                    verbose=verbose, fLOG=fLOG, overwrite_types=overwrite_types)
                 self.intermediate_onnx_inference_ = inter_run
                 graph = self.to_sequence()
                 self.inits_ = graph['inits']
@@ -786,19 +816,31 @@ class OnnxInference:
                     fLOG("-k='{}' shape={} dtype={}".format(
                         k, values[k].shape, values[k].dtype))
             for node, oinf in self.intermediate_onnx_inference_.items():
-                if verbose >= 1:
-                    fLOG(node)
-                    if verbose >= 2:  # pragma: no cover
+                if verbose >= 4:
+                    fLOG('[intermediate] %r' % node)
+                    if verbose >= 5:  # pragma: no cover
                         fLOG(oinf.obj)
                 output = oinf.run(inputs)[node]
                 values[node] = output
                 if verbose >= 1:
+                    if verbose >= 4:
+                        for k, v in inputs.items():
+                            if isinstance(output, numpy.ndarray):
+                                fLOG("-i='{}': {} (dtype={}) {}".format(
+                                    k, v.shape, v.dtype, v.ravel().tolist()))
+                            else:
+                                fLOG("-i='{}': {} (dtype={}) - ?".format(
+                                    k, v.shape, v.dtype))
                     if isinstance(output, numpy.ndarray):
                         fLOG("+k='{}': {} (dtype={})".format(
-                            k, output.shape, output.dtype))
+                            node, output.shape, output.dtype))
+                        if verbose >= 2:
+                            fLOG(output)
                     else:
                         fLOG("+k='{}': {}".format(  # pragma: no cover
-                            k, type(output)))
+                            node, type(output)))
+                        if verbose >= 2:
+                            fLOG(output)
             return values
 
         if verbose != 0:
