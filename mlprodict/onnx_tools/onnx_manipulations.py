@@ -98,7 +98,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
         ::
 
             import onnx
-            from mlprodict.tools.onnx_manipulations import select_model_inputs_outputs
+            from mlprodict.onnx_tools.onnx_manipulations import select_model_inputs_outputs
 
             onx = onnx.load(path)
             onx2 = select_model_inputs_outputs(

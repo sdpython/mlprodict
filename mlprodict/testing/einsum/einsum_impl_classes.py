@@ -6,7 +6,7 @@ implement einsum computation.
 """
 import numpy
 from onnx import helper, numpy_helper
-from ...tools.onnx2py_helper import guess_proto_dtype
+from ...onnx_tools.onnx2py_helper import guess_proto_dtype
 from ...tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
 from .blas_lapack import gemm_dot

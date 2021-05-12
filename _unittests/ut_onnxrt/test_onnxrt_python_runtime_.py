@@ -91,7 +91,7 @@ from mlprodict.onnxrt.ops_cpu.op_pad import _pad_impl
 from mlprodict.onnxrt.ops_cpu.op_max_pool import _pool_get_output_shape, _pool_impl
 from mlprodict.onnxrt.ops_cpu.op_dropout import _dropout
 from mlprodict.onnxrt.ops_cpu._op_helper import proto2dtype
-from mlprodict.tools.onnx2py_helper import (
+from mlprodict.onnx_tools.onnx2py_helper import (
     guess_proto_dtype, _elem_type_as_str)
 from mlprodict.tools.data_types import (
     FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType,

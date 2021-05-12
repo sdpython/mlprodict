@@ -12,7 +12,7 @@ try:
 except ImportError:  # pragma: no cover
     # older version of skl2onnx
     alg2 = alg
-from ...tools.onnx2py_helper import guess_proto_dtype
+from ...onnx_tools.onnx2py_helper import guess_proto_dtype
 from ...onnx_tools.optim.graph_schema_helper import (
     get_defined_inputs, get_defined_outputs, proto2vars)
 
