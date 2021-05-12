@@ -7,23 +7,65 @@ from onnx import helper, shape_inference
 from .onnx2py_helper import guess_proto_dtype
 
 
-def enumerate_model_node_outputs(model, add_node=False):
+def enumerate_model_node_outputs(model, add_node=False, order=False):
     """
     Enumerates all the nodes of a model.
 
-    @param      model       :epkg:`ONNX` graph
-    @param      add_node    if False, the function enumerates
-                            all output names from every node, otherwise, it
-                            enumerates tuple (output name, node)
-    @return                 enumerator
+    :param model: :epkg:`ONNX` graph
+    :param add_node: if False, the function enumerates
+        all output names from every node, otherwise, it
+        enumerates tuple (output name, node)
+    :param order: goes through outputs following the graph order
+    :return: enumerator
     """
     if not hasattr(model, "graph"):
         raise TypeError(  # pragma: no cover
             "Parameter model is not an ONNX model but "
             "{}".format(type(model)))
-    for node in model.graph.node:
-        for out in node.output:
-            yield (out, node) if add_node else out
+    if order:
+        edges = []
+        order = {}
+        node_names = {}
+        for inp in model.graph.input:
+            order[0, inp.name] = 0
+        for node in model.graph.node:
+            order[1, node.name] = 0
+            for i in node.input:
+                edges.append(('in', i, node.name))
+            for o in node.output:
+                edges.append(('out', o, node.name))
+                node_names[o] = node
+                order[0, o] = 0
+
+        modif = 1
+        while modif > 0:
+            modif = 0
+            for kind, data_name, node_name in edges:
+                if kind == 'in':
+                    if (0, data_name) not in order:
+                        continue
+                    if order[0, data_name] + 1 > order[1, node_name]:
+                        modif += 1
+                        order[1, node_name] = order[0, data_name] + 1
+                else:
+                    if order[1, node_name] + 1 > order[0, data_name]:
+                        modif += 1
+                        order[0, data_name] = order[1, node_name] + 1
+
+        orders = [(v, k) for k, v in order.items()]
+        orders.sort()
+
+        for _, k in orders:
+            if k[0] == 1:
+                continue
+            out = k[1]
+            if out not in node_names:
+                continue
+            yield (out, node_names[out]) if add_node else out
+    else:
+        for node in model.graph.node:
+            for out in node.output:
+                yield (out, node) if add_node else out
 
 
 def select_model_inputs_outputs(model, outputs=None, inputs=None,

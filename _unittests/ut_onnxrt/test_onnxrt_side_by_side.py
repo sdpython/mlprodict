@@ -130,7 +130,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
     @unittest.skipIf(compare_module_version(ort_version, threshold) <= 0,
                      reason="Node:Scan1 Field 'shape' of type is required but missing.")
     @ignore_warnings(DeprecationWarning)
-    def test_kernel_ker2_def_ort1(self):
+    def test_kernel_ker2_def_python(self):
         ker = Sum(
             CK(0.1, (1e-3, 1e3)) * RBF(length_scale=10,
                                        length_scale_bounds=(1e-3, 1e3)),
@@ -145,7 +145,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
             target_opset=get_opset_number_from_onnx())
         model_onnx.ir_version = get_ir_version_from_onnx()
         sess = OnnxInference(model_onnx.SerializeToString(),
-                             runtime="onnxruntime1")
+                             runtime="python")
 
         rows = []
 

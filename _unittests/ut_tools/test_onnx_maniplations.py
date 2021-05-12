@@ -10,7 +10,7 @@ from mlprodict.onnx_tools.optim.onnx_helper import onnx_statistics
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.tools.onnx_manipulations import (
-    select_model_inputs_outputs)
+    select_model_inputs_outputs, enumerate_model_node_outputs)
 from mlprodict.tools import get_opset_number_from_onnx
 
 
@@ -136,6 +136,28 @@ class TestOptimOnnxUnused(ExtTestCase):
         self.assertNotIn('inter', y1)
         self.assertNotIn('inter', y2)
         self.assertEqualArray(y1['final'], y2['final'])
+
+    def test_enumerate_model_node_outputs(self):
+        dtype = numpy.float32
+        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((3, 2))
+        cop = OnnxAdd('X', numpy.array([1], dtype=dtype),
+                      op_version=get_opset_number_from_onnx())
+        cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
+                       op_version=get_opset_number_from_onnx())
+        cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
+                       op_version=get_opset_number_from_onnx(),
+                       output_names=['inter'])
+        cop4 = OnnxSub(
+            OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
+            cop2, output_names=['final'],
+            op_version=get_opset_number_from_onnx())
+        model_def = cop4.to_onnx({'X': x})
+        nodes1 = list(enumerate_model_node_outputs(model_def))
+        nodes2 = list(enumerate_model_node_outputs(model_def, order=True))
+        self.assertEqual(list(sorted(nodes1)), list(sorted(nodes2)))
+        expected = ['Ad_Addcst2', 'Ad_C0', 'inter', 'Ad_C01', 'Mu_C0', 'final']
+        self.assertEqual(nodes2, expected)
 
 
 if __name__ == "__main__":

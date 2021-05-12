@@ -22,7 +22,7 @@ This is a summary of functions this modules provides.
     onnxrt_ops
     testing
 
-**ONNX validation, benchmark**
+**ONNX validation, benchmark, tools**
 
 .. toctree::
     :maxdepth: 1
@@ -30,7 +30,6 @@ This is a summary of functions this modules provides.
     asv
     validation
     tools
-    onnx_tools
 
 **Outside ONNX world**
 

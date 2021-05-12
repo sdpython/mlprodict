@@ -24,7 +24,8 @@ def _guess_type(var):
     return skl2onnx__guess_type(var)
 
 
-def get_defined_inputs(input_names, variables=None, dtype=None):
+def get_defined_inputs(input_names, variables=None, dtype=None,
+                       schema=None):
     """
     Retrieves defined inputs in already declared variables
     bsed on their names.
@@ -33,14 +34,18 @@ def get_defined_inputs(input_names, variables=None, dtype=None):
     @param      variables       registered variables created
                                 by previous operators
     @param      dtype           float computational type
+    @param      schema          defined inputs by schema (*expected_inputs*)
     @return                     typed inputs
                                 as ``tuple(name, type)``
     """
-    def guess_type_variable(name):
+    def guess_type_variable(name, schema):
         if variables is None:
-            return (  # pragma: no cover
-                DoubleTensorType() if dtype == numpy.float64 else FloatTensorType())
-        elif name in variables:
+            if (schema is None or
+                    not isinstance(schema, (DataType, tuple))):
+                return (  # pragma: no cover
+                    DoubleTensorType() if dtype == numpy.float64 else FloatTensorType())
+            return schema if isinstance(schema, DataType) else schema[1]
+        if name in variables:
             ty = variables[name]
             if isinstance(ty, DataType):
                 shape = ty.shape
@@ -61,15 +66,24 @@ def get_defined_inputs(input_names, variables=None, dtype=None):
             raise NotImplementedError(  # pragma: no cover
                 "Unable to guess type for '{}' form '{}'.".format(
                     name, variables[name]))
-        else:
-            # Inputs. Let's assume it is a vector of floats.
-            return DoubleTensorType() if dtype == numpy.float64 else FloatTensorType()
+        if isinstance(schema, (DataType, tuple)):
+            sch = schema if isinstance(schema, DataType) else schema[1]
+            if not isinstance(sch, str):
+                return sch
+        # Inputs. Let's assume it is a vector of floats.
+        return DoubleTensorType() if dtype == numpy.float64 else FloatTensorType()
 
-    inputs = [(name, guess_type_variable(name)) for name in input_names]
+    if schema is None or len(schema) < len(input_names):
+        inputs = [(name, guess_type_variable(name, None))
+                  for name in input_names]
+    else:
+        inputs = [(name, guess_type_variable(name, schema=sch))
+                  for name, sch in zip(input_names, schema)]
     return inputs
 
 
-def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None, dtype=None):
+def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
+                        dtype=None, schema=None):
     """
     Gets types of predefined outputs when they cannot be inferred.
     Some part of it should be automated based
@@ -82,10 +96,20 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None, d
     @param      variables       registered variables created
                                 by previous operators
     @param      dtype           float computational type
+    @param      schema          defined outputs by schema (*expected_outputs*)
     @return                     typed outputs
                                 as ``tuple(name, type)``
     """
-    ft = DoubleTensorType if dtype == numpy.float64 else FloatTensorType
+    if schema is None:
+        ft = DoubleTensorType if dtype == numpy.float64 else FloatTensorType
+    elif len(schema) != 1:
+        raise ValueError(
+            "schema should only contain one output not {}.".format(schema))
+    else:
+        if isinstance(schema, DataType):
+            ft = schema[0].__class__
+        else:
+            ft = schema[0][1].__class__
 
     # ZipMap
     if onnx_node.op_type == "ZipMap":
@@ -93,10 +117,12 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None, d
             Int64Type(), ft()))
         outputs = [(name, otype) for name in outputs]
     # ArgMin, ArgMax, Shape
-    elif onnx_node.op_type in ("ArgMin", "ArgMax", 'Shape') and len(outputs) == 1:
+    elif (onnx_node.op_type in ("ArgMin", "ArgMax", 'Shape') and
+            len(outputs) == 1):
         outputs = [(outputs[0], Int64TensorType())]
     # Greater, Less, Equal
-    elif onnx_node.op_type in ("Greater", "Less", 'Equal') and len(outputs) == 1:
+    elif (onnx_node.op_type in ("Greater", "Less", 'Equal') and
+            len(outputs) == 1):
         outputs = [(outputs[0], BooleanTensorType())]
     # TopK
     elif onnx_node.op_type == "TopK" and len(outputs) == 2:
