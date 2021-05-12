@@ -9,7 +9,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from mlprodict.onnx_tools.optim.onnx_helper import onnx_statistics
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
-from mlprodict.tools.onnx_manipulations import (
+from mlprodict.onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs)
 from mlprodict.tools import get_opset_number_from_onnx
 

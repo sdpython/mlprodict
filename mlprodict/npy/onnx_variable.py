@@ -28,7 +28,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 )
 from skl2onnx.algebra.onnx_operator import OnnxOperatorItem
 from skl2onnx.common.data_types import _guess_numpy_type
-from ..tools.onnx2py_helper import guess_proto_dtype
+from ..onnx_tools.onnx2py_helper import guess_proto_dtype
 
 
 try:

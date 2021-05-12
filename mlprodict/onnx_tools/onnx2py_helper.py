@@ -28,7 +28,7 @@ def to_bytes(val):
             :warningout: DeprecationWarning
 
             import numpy
-            from mlprodict.tools.onnx2py_helper import to_bytes
+            from mlprodict.onnx_tools.onnx2py_helper import to_bytes
 
             data = numpy.array([[0, 1], [2, 3], [4, 5]], dtype=numpy.float32)
             pb = to_bytes(data)
@@ -58,7 +58,7 @@ def from_bytes(b):
             :warningout: DeprecationWarning
 
             import numpy
-            from mlprodict.tools.onnx2py_helper import to_bytes, from_bytes
+            from mlprodict.onnx_tools.onnx2py_helper import to_bytes, from_bytes
 
             data = numpy.array([[0, 1], [2, 3], [4, 5]], dtype=numpy.float32)
             pb = to_bytes(data)

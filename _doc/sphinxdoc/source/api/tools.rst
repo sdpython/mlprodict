@@ -25,7 +25,7 @@ Functions to help understand models.
 
 .. autosignature:: mlprodict.tools.model_info.analyze_model
 
-.. autosignature:: mlprodict.tools.onnx_manipulations.enumerate_model_node_outputs
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.enumerate_model_node_outputs
 
 .. autosignature:: mlprodict.tools.code_helper.make_callable
 
@@ -35,7 +35,7 @@ Functions to help understand models.
 
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_statistics
 
-.. autosignature:: mlprodict.tools.onnx_manipulations.select_model_inputs_outputs
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.select_model_inputs_outputs
 
 .. autosignature:: mlprodict.testing.verify_code.verify_code
 
@@ -59,9 +59,9 @@ is left unchanged.
 Serialization
 +++++++++++++
 
-.. autosignature:: mlprodict.tools.onnx2py_helper.from_bytes
+.. autosignature:: mlprodict.onnx_tools.onnx2py_helper.from_bytes
 
-.. autosignature:: mlprodict.tools.onnx2py_helper.to_bytes
+.. autosignature:: mlprodict.onnx_tools.onnx2py_helper.to_bytes
 
 Validation
 ++++++++++
