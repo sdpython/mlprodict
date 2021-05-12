@@ -132,7 +132,7 @@ def benchmark_equation(equation):
         res.append(obs)
 
         # onnxruntime
-        ctx['einsum'] = ort_einsum_decomposed
+        ctx['einsum'] = ort_einsum
         obs = measure_time(
             "loop_einsum(einsum, xs, ys)",
             div_by_number=True, context=ctx, repeat=5, number=1)
