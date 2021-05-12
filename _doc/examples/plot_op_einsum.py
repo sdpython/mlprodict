@@ -198,6 +198,7 @@ def benchmark_equation(equation):
     rs = piv.copy()
     rs['c_einsum'] = rs['numpy.einsum'] / rs['c_einsum']
     rs['ort_einsum'] = rs['numpy.einsum'] / rs['ort_einsum']
+    rs['ort_dec'] = rs['numpy.einsum'] / rs['ort_dec']
     rs['opt-einsum'] = rs['numpy.einsum'] / rs['opt-einsum']
     if 'c_einsum_tr' in rs.columns:
         rs['c_einsum_tr'] = rs['numpy.einsum'] / rs['c_einsum_tr']
@@ -226,6 +227,17 @@ def benchmark_equation(equation):
 ###################################
 # First equation: bsnh,btnh->bnts
 # +++++++++++++++++++++++++++++++
+#
+# The decomposition of this equation without einsum function gives
+# the following.
+#
+#  .. gdot::
+#       :script:
+#
+#       from mlprodict.testing.einsum import decompose_einsum_equation
+#       dec = decompose_einsum_equation(
+#           'bsnh,btnh->bnts', strategy='numpy', clean=True)
+#       print(dec.to_dot())
 
 dfs = []
 equation = "bsnh,btnh->bnts"
@@ -240,6 +252,16 @@ dfs.append(df)
 # The summation does not happen on the last axis but
 # on the previous one.
 # Is it worth transposing before doing the summation...
+# The decomposition of this equation without einsum function gives
+# the following.
+#
+#  .. gdot::
+#       :script:
+#
+#       from mlprodict.testing.einsum import decompose_einsum_equation
+#       dec = decompose_einsum_equation(
+#           'bshn,bthn->bnts', strategy='numpy', clean=True)
+#       print(dec.to_dot())
 
 equation = "bshn,bthn->bnts"
 df, piv, ax = benchmark_equation(equation)
@@ -252,6 +274,16 @@ dfs.append(df)
 #
 # The summation does not happen on the last axis but
 # on the second one. It is worth transposing before multiplying.
+# The decomposition of this equation without einsum function gives
+# the following.
+#
+#  .. gdot::
+#       :script:
+#
+#       from mlprodict.testing.einsum import decompose_einsum_equation
+#       dec = decompose_einsum_equation(
+#           'bhsn,bhtn->bnts', strategy='numpy', clean=True)
+#       print(dec.to_dot())
 
 equation = "bhsn,bhtn->bnts"
 df, piv, ax = benchmark_equation(equation)
