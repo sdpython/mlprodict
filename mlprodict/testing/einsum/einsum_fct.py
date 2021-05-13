@@ -7,6 +7,10 @@ from itertools import permutations
 import time
 import math
 import numpy
+from onnx import helper
+from ...onnx_tools.onnx2py_helper import guess_proto_dtype
+from ...tools.asv_options_helper import (
+    get_opset_number_from_onnx, get_ir_version_from_onnx)
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
 
 
@@ -33,6 +37,8 @@ class CachedEinsum:
     :param opset: ONNX opset
     :param optimize: finds the best letter permutation
     :param dtype: dtype
+    :param decompose: to decompose Einsum operator or to keep it as is
+    :param key: key used to cache this class
     :param verbose: displays progress information
 
     The class creates the following attributes:
@@ -45,13 +51,16 @@ class CachedEinsum:
     """
 
     def __init__(self, equation, runtime='batch_dot', opset=None,
-                 optimize=False, dtype=numpy.float64, verbose=None):
+                 optimize=False, dtype=numpy.float64, decompose=True,
+                 verbose=None, key=None):
         self.equation = equation
         self.runtime = runtime
         self.opset = opset
         self.optimize = optimize
         self.dtype = dtype
+        self.decompose = decompose
         self.verbose = verbose
+        self.key = key
 
     def __repr__(self):
         "usual"
@@ -103,6 +112,7 @@ class CachedEinsum:
             else:
                 subset = possible
             best = []
+            confs = []
             very_best = None
             inputs = None
             for perm in subset:
@@ -112,7 +122,8 @@ class CachedEinsum:
                     eq = eq.replace(k, v.upper())
                 eq = eq.lower()
                 inst = CachedEinsum(eq, runtime=self.runtime, opset=self.opset,
-                                    optimize=False, dtype=self.dtype)
+                                    optimize=False, dtype=self.dtype,
+                                    decompose=self.decompose)
                 inst.build()
                 if inputs is None:
                     inputs = inst.default_inputs()
@@ -121,6 +132,7 @@ class CachedEinsum:
                 for _ in range(0, 10):
                     inst(*inputs)
                 delta = time.perf_counter() - ts
+                confs.append((delta, eq))
                 if len(best) < 10:
                     best.append((delta, eq))
                     best.sort()
@@ -132,36 +144,79 @@ class CachedEinsum:
                     very_best = best[0][0]
                     subset.set_description("%1.2g best=%r" % best[0])
             self.optimized_ = best
+            self.timed_permutations_ = confs
             self.equation_ = best[0][1]
         self.build_runtime()
+
+    def build_onnx_einsum(self, input_names):
+        """
+        Builds an ONNX graph with a single einsum operator.
+        """
+        opset = (self.opset if self.opset is not None
+                 else get_opset_number_from_onnx())
+        ir_version = get_ir_version_from_onnx()
+        proto_type = guess_proto_dtype(
+            numpy.float32 if self.dtype is None else self.dtype)
+
+        model = helper.make_model(
+            opset_imports=[helper.make_operatorsetid('', opset)],
+            ir_version=ir_version,
+            producer_name='mlprodict',
+            producer_version='0.0.1',
+            graph=helper.make_graph(
+                name='einsum',
+                inputs=[helper.make_tensor_value_info(n, proto_type, None)
+                        for n in input_names],
+                outputs=[helper.make_tensor_value_info("Y", proto_type, None)],
+                nodes=[
+                    helper.make_node(
+                        'Einsum', input_names, ["Y"], equation=self.equation_)]))
+        return model
 
     def build_runtime(self):
         """
         Builds the runtime associated to the
         equation `self.equation_`.
         """
-        self.graph_ = decompose_einsum_equation(
-            self.equation_, strategy='numpy', clean=True)
-        if self.runtime == 'batch_dot':
-            self.runtime_ = lambda *inputs: apply_einsum_sequence(
-                self.graph_, *inputs)
-        elif self.runtime in ('python', 'onnxruntime1'):
-            from ...onnxrt import OnnxInference
-            n_inputs = len(self.graph_.metadata['lengths']) - 1
-            input_names = ['X%d' % i for i in range(n_inputs)]
-            self.onnx_names_ = input_names
-            onx = self.graph_.to_onnx(
-                'Y', *input_names, opset=self.opset, dtype=self.dtype)
-            self.onnx_ = onx
-            rt = ('python_compiled'
-                  if self.runtime == 'python'
-                  else self.runtime)
-            self.oinf_ = OnnxInference(onx, runtime=rt)
-            self.runtime_ = lambda *inputs: self.oinf_.run(
-                {i: v for i, v in zip(self.onnx_names_, inputs)})['Y']
+        if self.decompose:
+            self.graph_ = decompose_einsum_equation(
+                self.equation_, strategy='numpy', clean=True)
+            if self.runtime == 'batch_dot':
+                self.runtime_ = lambda *inputs: apply_einsum_sequence(
+                    self.graph_, *inputs)
+            elif self.runtime in ('python', 'onnxruntime1'):
+                from ...onnxrt import OnnxInference
+                n_inputs = len(self.graph_.metadata['lengths']) - 1
+                input_names = ['X%d' % i for i in range(n_inputs)]
+                self.onnx_names_ = input_names
+                onx = self.graph_.to_onnx(
+                    'Y', *input_names, opset=self.opset, dtype=self.dtype)
+                self.onnx_ = onx
+                rt = ('python_compiled'
+                      if self.runtime == 'python'
+                      else self.runtime)
+                self.oinf_ = OnnxInference(self.onnx_, runtime=rt)
+                self.runtime_ = lambda *inputs: self.oinf_.run(
+                    {i: v for i, v in zip(self.onnx_names_, inputs)})['Y']
+            else:
+                raise ValueError(
+                    "Unexpected runtime %r." % self.runtime)
         else:
-            raise ValueError(
-                "Unexpected runtime %r." % self.runtime)
+            if self.runtime in ('python', 'onnxruntime1'):
+                from ...onnxrt import OnnxInference
+                n_inputs = len(self.equation.split('->')[0].split(','))
+                input_names = ['X%d' % i for i in range(n_inputs)]
+                self.onnx_ = self.build_onnx_einsum(input_names)
+                self.onnx_names_ = input_names
+                rt = ('python_compiled'
+                      if self.runtime == 'python'
+                      else self.runtime)
+                self.oinf_ = OnnxInference(self.onnx_, runtime=rt)
+                self.runtime_ = lambda *inputs: self.oinf_.run(
+                    {i: v for i, v in zip(self.onnx_names_, inputs)})['Y']
+            else:
+                raise ValueError(
+                    "Unexpected runtime %r." % self.runtime)
 
     def __call__(self, *inputs):
         """
@@ -174,27 +229,30 @@ class CachedEinsum:
 
     @staticmethod
     def build_einsum(equation, runtime, opset, optimize,
-                     dtype, verbose=None):
+                     dtype, decompose=True, verbose=None,
+                     key=None):
         """
         Creates an instance of *CachedEinsum*.
         """
         inst = CachedEinsum(equation, runtime=runtime, opset=opset,
-                            optimize=optimize, dtype=dtype, verbose=verbose)
+                            optimize=optimize, dtype=dtype,
+                            decompose=decompose, verbose=verbose, key=key)
         inst.build()
         return inst
 
 
 def _einsum(equation, dtype, optimize=False, runtime="batch_dot",
-            cache=True, opset=None, verbose=None):
+            cache=True, opset=None, decompose=True, verbose=None):
     global _einsum_cache  # pylint: disable=W0603
     cached = None
     if cache:
-        key = equation, runtime, opset, optimize, dtype
+        key = equation, runtime, opset, optimize, dtype, decompose
         cached = _einsum_cache.get(key, None)
     if cached is None:
         cached = CachedEinsum.build_einsum(
             equation, runtime, opset, optimize,
-            dtype, verbose=verbose)
+            dtype, decompose=decompose, verbose=verbose,
+            key=key)
     else:
         cache = False
     if cache:
@@ -203,7 +261,7 @@ def _einsum(equation, dtype, optimize=False, runtime="batch_dot",
 
 
 def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
-           cache=True, opset=None, verbose=None):
+           cache=True, opset=None, decompose=True, verbose=None):
     """
     Proposes a new implementatino of :epkg:`numpy:einsum`.
     It does not allow expresion using `...` and expects
@@ -219,6 +277,9 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
         done for a specific equation, the second call with the same
         equation is much faster
     :param opset: ONNX opset to use for some runtimes
+    :param decompose: by default, the function decomposes
+        the equation into more simple operators but it can keep
+        the original ONNX einsum operator.
     :param verbose: display progress if optimize is True
     :return: einsum result
 
@@ -389,5 +450,5 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
             "" % dtypes)
     cached = _einsum(equation, inputs[0].dtype, optimize=optimize,
                      runtime=runtime, cache=cache, opset=opset,
-                     verbose=verbose)
+                     decompose=decompose, verbose=verbose)
     return cached(*inputs)
