@@ -64,9 +64,10 @@ class CachedEinsum:
 
     def __repr__(self):
         "usual"
-        return "%s(%r, %r, %r, %r, %r)" % (
+        return "%s(%r, %r, %r, %r, %r, %r, key=%r)" % (
             self.__class__.__name__, self.equation, self.runtime,
-            self.opset, self.optimize, self.dtype)
+            self.opset, self.optimize, self.dtype, self.decompose,
+            self.key)
 
     def default_inputs(self, N=None):
         """
