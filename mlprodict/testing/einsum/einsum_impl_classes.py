@@ -640,8 +640,10 @@ class EinsumSubOp:
         name_axes = name + '_axes'
         yield numpy_helper.from_array(
             numpy.array([a[1] for a in axes], dtype=numpy.int64), name=name_axes)
+        s_axes = "".join(map(str, [a[1] for a in axes]))
         yield helper.make_node(
-            'Unsqueeze', [name, name_axes], [self._onnx_name()])
+            'Unsqueeze', [name, name_axes], [self._onnx_name()],
+            name='Unsqueeze%s_%d' % (s_axes, id(self)))
 
     def _to_onnx_squeeze(self, names, opset, verbose=False, **kwargs):
         self._check_inputs_(1)
@@ -652,16 +654,20 @@ class EinsumSubOp:
         name_axes = name + '_axes'
         yield numpy_helper.from_array(
             numpy.array(axes, dtype=numpy.int64), name=name_axes)
+        s_axes = "".join(map(str, axes))
         yield helper.make_node(
-            'Squeeze', [name, name_axes], [self._onnx_name()])
+            'Squeeze', [name, name_axes], [self._onnx_name()],
+            name='Squeeze%s_%d' % (s_axes, id(self)))
 
     def _to_onnx_transpose(self, names, opset, verbose=False, **kwargs):
         self._check_inputs_(1)
         inp = self.inputs[0]
         name = self._get_data(names, inp)
         perm = self.kwargs['perm']
+        s_perm = "".join(map(str, perm))
         yield helper.make_node(
-            'Transpose', [name], [self._onnx_name()], perm=perm)
+            'Transpose', [name], [self._onnx_name()], perm=perm,
+            name='Transpose%s_%d' % (s_perm, id(self)))
 
     def _to_onnx_reduce_sum(self, names, opset, verbose=False, **kwargs):
         self._check_inputs_(1)
@@ -672,8 +678,10 @@ class EinsumSubOp:
         name_axes = self._onnx_name() + '_axes'
         yield numpy_helper.from_array(
             numpy.array(axes, dtype=numpy.int64), name=name_axes)
+        s_axes = "".join(map(str, axes))
         yield helper.make_node(
-            'ReduceSum', [name, name_axes], [self._onnx_name()], keepdims=1)
+            'ReduceSum', [name, name_axes], [self._onnx_name()], keepdims=1,
+            name='ReduceSum%s_%d' % (s_axes, id(self)))
 
     def _to_onnx_mul(self, data, verbose=False, **kwargs):
         self._check_inputs_(2)
@@ -870,7 +878,8 @@ class EinsumSubOp:
             # dot = m1sh @ numpy.transpose(m2sh, (0, 2, 1))
             name_agg2_tr = root + "_aresh2_tr"
             yield helper.make_node(
-                'Transpose', [name_agg2], [name_agg2_tr], perm=[0, 2, 1])
+                'Transpose', [name_agg2], [name_agg2_tr], perm=[0, 2, 1],
+                name="Transpose021_%s" % id(self))
 
             name_dot = root + "_dot"
             yield helper.make_node(

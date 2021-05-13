@@ -12,7 +12,7 @@ from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 class TestEinsumEinsum(ExtTestCase):
 
     def common_test(self, equation, runtime=None, opset=None, N=5,
-                    optimize=False):
+                    optimize=False, decompose=True):
         if opset is None:
             opset = get_opset_number_from_onnx()
         inps = equation.split('->')[0].split(',')
@@ -20,7 +20,10 @@ class TestEinsumEinsum(ExtTestCase):
         inputs = [numpy.random.randn(N ** d).reshape((N,) * d)
                   for d in lens]
         if runtime is None:
-            runtime = ['batch_dot', 'python', 'onnxruntime1']
+            if decompose:
+                runtime = ['batch_dot', 'python', 'onnxruntime1']
+            else:
+                runtime = ['python', 'onnxruntime1']
         elif isinstance(runtime, str):
             runtime = [runtime]
         for rt in runtime:
@@ -28,9 +31,11 @@ class TestEinsumEinsum(ExtTestCase):
                 decimal = 5 if dtype == numpy.float32 else 8
                 with self.subTest(dt=dtype, rt=rt,
                                   eq=equation, opset=opset,
-                                  opt=optimize):
+                                  opt=optimize,
+                                  decompose=decompose):
                     typed = [i.astype(dtype) for i in inputs]
-                    kwargs = dict(runtime=rt, opset=opset, optimize=optimize)
+                    kwargs = dict(runtime=rt, opset=opset, optimize=optimize,
+                                  decompose=decompose)
                     if __name__ == "__main__":
                         kwargs["verbose"] = 1
                     exp = numpy.einsum(equation, *typed)
@@ -48,6 +53,9 @@ class TestEinsumEinsum(ExtTestCase):
 
     def test_einsum_optimize(self):
         self.common_test("abc,cd->abd", optimize=True)
+
+    def test_einsum_optimize_no(self):
+        self.common_test("abc,cd->abd", optimize=True, decompose=False)
 
 
 if __name__ == "__main__":
