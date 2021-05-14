@@ -5,7 +5,6 @@ import unittest
 from logging import getLogger
 import numpy
 from onnx import helper, TensorProto
-from onnxruntime import SessionOptions
 from sklearn.datasets import load_iris
 from sklearn.cluster import KMeans
 from sklearn.model_selection import train_test_split
@@ -14,6 +13,7 @@ from pyquickhelper.loghelper import BufferedPrint
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.testing.test_utils import TARGET_OPSET
+from mlprodict.tools.ort_wrapper import SessionOptions
 
 
 class TestOnnxInference(ExtTestCase):

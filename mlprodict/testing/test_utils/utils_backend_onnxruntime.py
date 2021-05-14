@@ -2,10 +2,10 @@
 @file
 @brief Inspired from skl2onnx, handles two backends.
 """
-from onnxruntime import (
-    InferenceSession, GraphOptimizationLevel, SessionOptions)
 from pyquickhelper.pycode import is_travis_or_appveyor
 from .utils_backend_common_compare import compare_runtime_session
+from ...tools.ort_wrapper import (
+    InferenceSession, GraphOptimizationLevel, SessionOptions)
 
 
 def _capture_output(fct, kind):

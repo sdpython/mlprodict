@@ -10,10 +10,10 @@ from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.helpers.onnx_helper import (
     load_onnx_model, save_onnx_model, select_model_inputs_outputs,
-    enumerate_model_node_outputs
-)
+    enumerate_model_node_outputs)
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict.tools.ort_wrapper import InferenceSession
 
 
 class TestOnnxHelper(ExtTestCase):
@@ -23,14 +23,6 @@ class TestOnnxHelper(ExtTestCase):
         logger.disabled = True
 
     def get_model(self, model):
-        try:
-            import onnxruntime
-            assert onnxruntime is not None
-        except ImportError:
-            return None
-
-        from onnxruntime import InferenceSession
-
         session = InferenceSession(save_onnx_model(model))
         return lambda X: session.run(None, {'input': X})[0]
 

@@ -4,7 +4,6 @@
 """
 import os
 import unittest
-from onnxruntime import __version__ as ort_version
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings

@@ -4,7 +4,6 @@
 import unittest
 import numpy
 from onnx import TensorProto
-from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase, skipif_appveyor
 from sklearn.datasets import load_iris
 from sklearn.cluster import KMeans
@@ -15,6 +14,7 @@ from mlprodict.onnx_tools.onnx2py_helper import (
     _numpy_array)
 from mlprodict.onnxrt.ops_cpu._op_helper import proto2dtype
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.tools.ort_wrapper import OrtInvalidArgument
 
 
 class TestOnnxHelper(ExtTestCase):
@@ -60,7 +60,7 @@ class TestOnnxHelper(ExtTestCase):
 
         oinf = OnnxInference(new_model, runtime='onnxruntime1')
         self.assertRaise(lambda: oinf.run({'X': X.astype(numpy.float32)}),
-                         InvalidArgument)
+                         OrtInvalidArgument)
         res0 = oinf0.run({'X': X[:2].astype(numpy.float32)})
         res = oinf.run({'X': X[:2].astype(numpy.float32)})
         for k, v in res.items():

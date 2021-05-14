@@ -6,14 +6,11 @@
 import json
 from io import BytesIO
 import onnx
-from onnxruntime import (
-    InferenceSession, SessionOptions, RunOptions, GraphOptimizationLevel)
-from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
-    Fail as OrtFail,
-    InvalidGraph as OrtInvalidGraph,
-    InvalidArgument as OrtInvalidArgument,
-    NotImplemented as OrtNotImplemented,
-    RuntimeException as OrtRuntimeException)
+from ...tools.ort_wrapper import (
+    InferenceSession, SessionOptions, RunOptions,
+    GraphOptimizationLevel, OrtFail,
+    OrtInvalidGraph, OrtInvalidArgument,
+    OrtNotImplemented, OrtRuntimeException)
 from ...tools.asv_options_helper import display_onnx
 
 

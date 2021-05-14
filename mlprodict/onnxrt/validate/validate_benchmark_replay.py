@@ -4,8 +4,8 @@
 """
 import pickle
 import os
-from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail  # pylint: disable=E0611
 import sklearn
+from ...tools.ort_wrapper import InferenceSession, OrtFail
 from .. import OnnxInference
 from .validate_helper import default_time_kwargs, measure_time, _multiply_time_kwargs
 from .validate_benchmark import make_n_rows
@@ -15,7 +15,6 @@ class SimplifiedOnnxInference:
     "Simple wrapper around InferenceSession which imitates OnnxInference."
 
     def __init__(self, ort):
-        from onnxruntime import InferenceSession
         self.sess = InferenceSession(ort)
 
     @property

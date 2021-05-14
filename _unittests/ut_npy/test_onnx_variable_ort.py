@@ -5,8 +5,8 @@
 import unittest
 from typing import Any
 import numpy
-from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
+from mlprodict.tools.ort_wrapper import OrtInvalidArgument
 from mlprodict.npy import onnxnumpy, onnxnumpy_np
 import mlprodict.npy.numpy_onnx_impl as nxnp
 from mlprodict.npy import (
@@ -425,14 +425,14 @@ class TestOnnxVariableOrt(ExtTestCase):
         y = test_abs_div(x)
         self.assertEqualArray(y, numpy.abs(x) / x)
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.int64)
-        self.assertRaise(lambda: test_abs_div(x), InvalidArgument)
+        self.assertRaise(lambda: test_abs_div(x), OrtInvalidArgument)
 
     def test_ort_abs_idiv(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_idiv(x)
         self.assertEqualArray(y, numpy.abs(x) // x)
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.int64)
-        self.assertRaise(lambda: test_abs_idiv(x), InvalidArgument)
+        self.assertRaise(lambda: test_abs_idiv(x), OrtInvalidArgument)
 
     @ignore_warnings(DeprecationWarning)
     def test_ort_abs_equal(self):

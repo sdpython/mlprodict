@@ -3,7 +3,6 @@
 """
 import unittest
 import numpy
-import onnxruntime
 from sklearn.compose import ColumnTransformer
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -13,6 +12,7 @@ from sklearn.mixture import GaussianMixture
 from sklearn.tree import DecisionTreeRegressor
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlinsights.mlmodel import TransferTransformer
+from mlprodict.tools.ort_wrapper import InferenceSession
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnx_conv.register import _register_converters_mlinsights
 from mlprodict.onnxrt import OnnxInference
@@ -165,7 +165,7 @@ class TestOnnxPipeline(ExtTestCase):
                             options={id(pipe): {'zipmap': False}})
         sess = OnnxInference(model_def, runtime="python_compiled")
         self.assertIn("'probabilities': probabilities,", str(sess))
-        sess = onnxruntime.InferenceSession(model_def.SerializeToString())
+        sess = InferenceSession(model_def.SerializeToString())
         r = sess.run(None, {'X': X})
         self.assertEqual(len(r), 2)
         sess = OnnxInference(model_def)

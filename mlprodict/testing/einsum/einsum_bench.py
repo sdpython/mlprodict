@@ -5,7 +5,7 @@
 from itertools import permutations
 import numpy
 from onnx import helper, TensorProto
-from onnxruntime import InferenceSession
+from ...tools.ort_wrapper import InferenceSession
 from ...onnxrt import OnnxInference
 from ..bench_helper import measure_time
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence

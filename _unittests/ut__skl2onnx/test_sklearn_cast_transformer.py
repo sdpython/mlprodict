@@ -4,7 +4,6 @@
 import unittest
 import math
 import numpy
-from onnxruntime import InferenceSession
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
@@ -15,6 +14,7 @@ from skl2onnx import convert_sklearn, to_onnx
 from skl2onnx.common.data_types import (
     Int64TensorType, FloatTensorType, DoubleTensorType)
 from mlprodict.testing.test_utils import dump_data_and_model, TARGET_OPSET
+from mlprodict.tools.ort_wrapper import InferenceSession
 
 
 class TestSklearnCastTransformerConverter(unittest.TestCase):

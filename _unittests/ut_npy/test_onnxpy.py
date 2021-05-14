@@ -5,10 +5,10 @@
 import unittest
 from typing import Any
 import numpy
-from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import OnnxAbs  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
+from mlprodict.tools.ort_wrapper import OrtInvalidArgument
 from mlprodict.npy import OnnxNumpyCompiler as ONC, NDArray
 from mlprodict.npy.onnx_variable import OnnxVar
 from mlprodict.npy.onnx_numpy_annotation import _NDArrayAlias
@@ -109,7 +109,7 @@ class TestOnnxPy(ExtTestCase):
                     self.assertRaise(
                         lambda: cl(x.astype(numpy.float64)  # pylint: disable=W0640
                                    ),  # pylint: disable=W0640
-                        (TypeError, InvalidArgument))
+                        (TypeError, OrtInvalidArgument))
 
     def test_wrapper_onnxnumpy_np(self):
 

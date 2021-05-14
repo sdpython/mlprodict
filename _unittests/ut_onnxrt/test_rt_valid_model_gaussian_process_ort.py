@@ -4,7 +4,6 @@
 import unittest
 from logging import getLogger
 import numpy
-from onnxruntime import __version__ as ort_version
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from pyquickhelper.texthelper.version_helper import compare_module_version
@@ -20,6 +19,7 @@ from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict.tools.ort_wrapper import onnxrt_version as ort_version
 
 
 threshold = "0.4.0"

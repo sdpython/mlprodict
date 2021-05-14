@@ -3,16 +3,17 @@
 """
 import unittest
 import numpy as np
-from onnxruntime import InferenceSession
-from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail  # pylint: disable=E0611
+from pyquickhelper.pycode import ignore_warnings, ExtTestCase
 from sklearn.datasets import load_iris
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from skl2onnx import convert_sklearn, to_onnx
 from skl2onnx.common.data_types import FloatTensorType
+from mlprodict.tools.ort_wrapper import OrtFail
+from mlprodict.tools.ort_wrapper import InferenceSession
 from mlprodict.testing.test_utils import dump_data_and_model, TARGET_OPSET
 
 
-class TestGaussianMixtureConverter(unittest.TestCase):
+class TestGaussianMixtureConverter(ExtTestCase):
 
     def _fit_model_binary_classification(self, model, data, **kwargs):
         X = data.data
@@ -49,6 +50,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
         np.testing.assert_almost_equal(
             exp.ravel(), got[2].ravel(), decimal=decimal)
 
+    @ignore_warnings(DeprecationWarning)
     def test_model_gaussian_mixture_binary_classification(self):
         model, X = self._fit_model_binary_classification(
             GaussianMixture(), load_iris())
@@ -64,6 +66,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
                     basename="SklearnBinGaussianMixture")
                 self.common_test_score(model, X, tg)
 
+    @ignore_warnings(DeprecationWarning)
     @unittest.skipIf(True, reason="Not implemented yet.")
     def test_model_bayesian_mixture_binary_classification(self):
         for cov in ["full", "tied", "diag", "spherical"]:
@@ -81,6 +84,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
                     basename="SklearnBinBayesianGaussianMixture")
                 self.common_test_score(model, X, TARGET_OPSET)
 
+    @ignore_warnings(DeprecationWarning)
     def test_model_gaussian_mixture_multiclass(self):
         model, X = self._fit_model_multiclass_classification(
             GaussianMixture(), load_iris())
@@ -94,6 +98,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
             basename="SklearnMclGaussianMixture")
         self.common_test_score(model, X, TARGET_OPSET)
 
+    @ignore_warnings(DeprecationWarning)
     def test_gaussian_mixture_comp2(self):
         data = load_iris()
         X = data.data
@@ -108,6 +113,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
             basename="GaussianMixtureC2", intermediate_steps=True)
         self.common_test_score(model, X, TARGET_OPSET)
 
+    @ignore_warnings(DeprecationWarning)
     def test_gaussian_mixture_full(self):
         data = load_iris()
         X = data.data
@@ -122,6 +128,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
             basename="GaussianMixtureC2Full", intermediate_steps=True)
         self.common_test_score(model, X, TARGET_OPSET)
 
+    @ignore_warnings(DeprecationWarning)
     def test_gaussian_mixture_tied(self):
         data = load_iris()
         X = data.data
@@ -136,6 +143,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
             basename="GaussianMixtureC2Tied", intermediate_steps=True)
         self.common_test_score(model, X, TARGET_OPSET)
 
+    @ignore_warnings(DeprecationWarning)
     def test_gaussian_mixture_diag(self):
         data = load_iris()
         X = data.data
@@ -152,6 +160,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
             intermediate_steps=True)
         self.common_test_score(model, X, TARGET_OPSET, decimal=4)
 
+    @ignore_warnings(DeprecationWarning)
     def test_gaussian_mixture_spherical(self):
         data = load_iris()
         X = data.data
@@ -166,6 +175,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
             basename="GaussianMixtureC2Spherical", intermediate_steps=True)
         self.common_test_score(model, X, TARGET_OPSET, decimal=4)
 
+    @ignore_warnings(DeprecationWarning)
     def test_gaussian_mixture_full_black_op(self):
         data = load_iris()
         X = data.data
@@ -185,6 +195,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
             basename="GaussianMixtureC2FullBL", intermediate_steps=True)
         self.common_test_score(model, X, TARGET_OPSET)
 
+    @ignore_warnings(DeprecationWarning)
     def test_gaussian_mixture_full_black_op_noargmax(self):
         data = load_iris()
         X = data.data
@@ -205,6 +216,7 @@ class TestGaussianMixtureConverter(unittest.TestCase):
             basename="GaussianMixtureC2FullBLNM", intermediate_steps=True)
         self.common_test_score(model, X, TARGET_OPSET)
 
+    @ignore_warnings(DeprecationWarning)
     def test_gaussian_mixture_full_black_op_noargmax_inf(self):
         data = load_iris()
         X = data.data

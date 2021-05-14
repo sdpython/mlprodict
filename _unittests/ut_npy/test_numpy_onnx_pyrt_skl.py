@@ -10,7 +10,6 @@ from sklearn.linear_model import LogisticRegression
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.onnx_version import FctVersion
 import mlprodict.npy.numpy_onnx_pyrt_skl as nxnpyskl
-from onnxruntime import __version__ as ort_version
 
 
 class TestNumpyOnnxFunctionSkl(ExtTestCase):
