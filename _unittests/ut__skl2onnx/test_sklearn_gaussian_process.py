@@ -7,7 +7,6 @@ from io import StringIO
 import numpy as np
 import pandas as pd
 from numpy.testing import assert_almost_equal
-from onnxruntime import __version__ as ort_version
 from sklearn.datasets import load_iris
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import (

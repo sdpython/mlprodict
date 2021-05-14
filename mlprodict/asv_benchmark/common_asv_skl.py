@@ -32,6 +32,7 @@ from mlprodict.tools.asv_options_helper import (
     expand_onnx_options, get_opset_number_from_onnx,
     get_ir_version_from_onnx, version2number)
 from mlprodict.tools.model_info import set_random_state
+from mlprodict.tools.ort_wrapper import onnxrt_version
 
 
 class _CommonAsvSklBenchmark:
@@ -233,11 +234,7 @@ class _CommonAsvSklBenchmark:
 
     def track_vort(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
-        try:
-            from onnxruntime import __version__
-            return version2number(__version__)
-        except ImportError:  # pragma: no cover
-            return 0
+        return version2number(onnxrt_version)
 
     def check_method_name(self, method_name):
         "Does some verifications. Fails if inconsistencies."

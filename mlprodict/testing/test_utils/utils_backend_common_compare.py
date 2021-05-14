@@ -5,8 +5,7 @@
 import numpy
 import onnx
 import pandas
-from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
-    InvalidArgument as OrtInvalidArgument)
+from ...tools.ort_wrapper import OrtInvalidArgument
 from .utils_backend_common import (
     load_data_and_model, extract_options,
     ExpectedAssertionError, OnnxBackendAssertionError,

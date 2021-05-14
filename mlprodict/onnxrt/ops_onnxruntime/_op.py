@@ -6,19 +6,16 @@
 import numpy
 import onnx.defs
 from onnx.helper import make_tensor
-from onnxruntime import (
-    InferenceSession, SessionOptions, RunOptions, GraphOptimizationLevel)
-from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
-    InvalidArgument as OrtInvalidArgument,
-    NotImplemented as OrtNotImplemented,
-    InvalidGraph as OrtInvalidGraph,
-    Fail as OrtFail)
 import skl2onnx.algebra.onnx_ops as alg
 try:
     import skl2onnx.algebra.custom_ops as alg2
 except ImportError:  # pragma: no cover
     # older version of skl2onnx
     alg2 = alg
+from ...tools.ort_wrapper import (
+    InferenceSession, SessionOptions, RunOptions,
+    GraphOptimizationLevel, OrtInvalidArgument,
+    OrtNotImplemented, OrtInvalidGraph, OrtFail)
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
 from ...onnx_tools.optim.graph_schema_helper import (
     get_defined_inputs, get_defined_outputs, proto2vars)

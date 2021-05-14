@@ -4,7 +4,6 @@
 """
 import os
 import unittest
-from onnxruntime import __version__ as ort_version
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -17,6 +16,7 @@ from pyquickhelper.pycode import (
     add_missing_development_version, ExtTestCase)
 from skl2onnx import __version__ as skl2onnx_version
 import mlprodict
+from mlprodict.tools.ort_wrapper import onnxrt_version as ort_version
 
 
 class TestNotebookNumpyOnnx(ExtTestCase):

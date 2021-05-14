@@ -6,7 +6,6 @@ import unittest
 from logging import getLogger
 import numpy
 import pandas
-from onnxruntime import __version__ as ort_version
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as CK, Sum
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper.version_helper import compare_module_version
@@ -22,6 +21,7 @@ from mlprodict.onnxrt.validate.side_by_side import (
 from mlprodict.tools import (
     get_ir_version_from_onnx, get_opset_number_from_onnx)
 from mlprodict.testing.test_utils import _capture_output
+from mlprodict.tools.ort_wrapper import onnxrt_version as ort_version
 
 
 Xtest_ = pandas.read_csv(StringIO("""

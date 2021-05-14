@@ -10,7 +10,7 @@ from pyquickhelper.texthelper import compare_module_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_pad import onnx_pad
 from mlprodict.npy.onnx_version import FctVersion
-from onnxruntime import __version__ as ort_version
+from mlprodict.tools.ort_wrapper import onnxrt_version as ort_version
 import mlprodict.npy.numpy_onnx_pyrt as nxnpy
 
 

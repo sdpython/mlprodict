@@ -9,6 +9,7 @@ from typing import Any
 import numpy
 from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx import __max_supported_opset__
+from ..tools.ort_wrapper import InferenceSession
 from ..onnxrt import OnnxInference
 from .onnx_version import FctVersion
 from .onnx_numpy_annotation import get_args_kwargs
@@ -377,7 +378,6 @@ class OnnxNumpyCompiler:
                 self, rt, inputs=inputs, outputs=outputs,
                 n_optional=n_optional, n_variables=n_variables)
         else:
-            from onnxruntime import InferenceSession
             rt = InferenceSession(onx.SerializeToString())
             self.rt_fct_ = OnnxNumpyFunctionInferenceSession(
                 self, rt, inputs=inputs, outputs=outputs,

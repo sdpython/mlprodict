@@ -4,7 +4,6 @@
 import unittest
 import numpy
 from onnx import helper, TensorProto
-from onnxruntime import InferenceSession
 from pyquickhelper.pycode import ExtTestCase, is_travis_or_appveyor
 from mlprodict.testing.experimental import custom_pad, custom_einsum
 from mlprodict.testing.experimental_c import (  # pylint: disable=E0611,E0401
@@ -12,6 +11,7 @@ from mlprodict.testing.experimental_c import (  # pylint: disable=E0611,E0401
     code_optimisation, custom_reducesum_rk_double,
     custom_reducesum_rk_float)
 from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict.tools.ort_wrapper import InferenceSession
 
 
 class TestExperimental(ExtTestCase):

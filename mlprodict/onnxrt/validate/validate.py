@@ -14,6 +14,7 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils._testing import ignore_warnings
 from ... import __version__ as ort_version
 from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
+from ...tools.ort_wrapper import onnxrt_version
 from ...tools.model_info import analyze_model, set_random_state
 from ...tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
@@ -752,7 +753,6 @@ def _enumerate_validated_operator_opsets_version(runtime):
                     'v_scipy': scipy_version, 'v_skl2onnx': skl2onnx_version,
                     'v_sklearn': sklearn_version, 'v_onnxruntime': ort_version}
     if "onnxruntime" in runtime:
-        from onnxruntime import __version__ as onnxrt_version
         add_versions['v_onnxruntime'] = onnxrt_version
     return add_versions
 
