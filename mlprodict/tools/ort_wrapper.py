@@ -91,7 +91,9 @@ def prepare_c_profiling(model_onnx, inputs, dest=None):
     """
     Prepares model and data to be profiled with tool `perftest
     <https://github.com/microsoft/onnxruntime/tree/
-    master/onnxruntime/test/perftest>`_ (onnxruntime).
+    master/onnxruntime/test/perftest>`_ (onnxruntime) or
+    `onnx_test_runner <https://github.com/microsoft/
+    onnxruntime/blob/master/docs/Model_Test.md>`_.
     It saves the model in folder
     *dest* and dumps the inputs in a subfolder.
 
@@ -121,7 +123,7 @@ def prepare_c_profiling(model_onnx, inputs, dest=None):
     if not os.path.exists(sub):
         os.makedirs(sub)
     for i, v in enumerate(inputs):
-        n = os.path.join(sub, "input_%d" % i)
+        n = os.path.join(sub, "input_%d.pb" % i)
         pr = numpy_helper.from_array(v)
         with open(n, "wb") as f:
             f.write(pr.SerializeToString())
@@ -131,5 +133,5 @@ def prepare_c_profiling(model_onnx, inputs, dest=None):
         with open(n, "wb") as f:
             f.write(pr.SerializeToString())
 
-    cmd = 'onnxruntime_perf_test -e cpu -r 100 -c 1 "%s"' % dest
+    cmd = 'onnx_test_runner -e cpu -r 100 -c 1 "%s"' % dest
     return cmd
