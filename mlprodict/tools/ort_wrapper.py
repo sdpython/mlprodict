@@ -105,7 +105,7 @@ def prepare_c_profiling(model_onnx, inputs, dest=None):
     if not os.path.exists(dest):
         os.makedirs(dest)
     dest = os.path.abspath(dest)
-    name = "model_onnx"
+    name = "model.onnx"
     model_bytes = model_onnx.SerializeToString()
     with open(os.path.join(dest, name), "wb") as f:
         f.write(model_bytes)
