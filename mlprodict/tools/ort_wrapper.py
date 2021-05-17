@@ -4,6 +4,9 @@
 
 .. versionadded:: 0.6
 """
+import os
+from onnx import numpy_helper
+
 try:
     from onnxruntime import (  # pylint: disable=W0611
         SessionOptions, RunOptions,
@@ -82,3 +85,51 @@ class InferenceSession:  # pylint: disable=E0102
     def end_profiling(self):
         "Ends profiling."
         return self.sess.end_profiling()
+
+
+def prepare_c_profiling(model_onnx, inputs, dest=None):
+    """
+    Prepares model and data to be profiled with tool `perftest
+    <https://github.com/microsoft/onnxruntime/tree/
+    master/onnxruntime/test/perftest>`_ (onnxruntime).
+    It saves the model in folder
+    *dest* and dumps the inputs in a subfolder.
+
+    :param model_onnx: onnx model
+    :param inputs: inputs as a list of a dictionary
+    :param dest: destination folder, None means the current folder
+    :return: command line to use
+    """
+    if dest is None:
+        dest = "."
+    if not os.path.exists(dest):
+        os.makedirs(dest)
+    dest = os.path.abspath(dest)
+    name = "model_onnx"
+    model_bytes = model_onnx.SerializeToString()
+    with open(os.path.join(dest, name), "wb") as f:
+        f.write(model_bytes)
+    sess = InferenceSession(model_bytes)
+    input_names = [_.name for _ in sess.get_inputs()]
+    if isinstance(inputs, list):
+        dict_inputs = dict(zip(input_names, inputs))
+    else:
+        dict_inputs = inputs
+        inputs = [dict_inputs[n] for n in input_names]
+    outputs = sess.run(None, dict_inputs)
+    sub = os.path.join(dest, "test_data_set_0")
+    if not os.path.exists(sub):
+        os.makedirs(sub)
+    for i, v in enumerate(inputs):
+        n = os.path.join(sub, "input_%d" % i)
+        pr = numpy_helper.from_array(v)
+        with open(n, "wb") as f:
+            f.write(pr.SerializeToString())
+    for i, v in enumerate(outputs):
+        n = os.path.join(sub, "output_%d" % i)
+        pr = numpy_helper.from_array(v)
+        with open(n, "wb") as f:
+            f.write(pr.SerializeToString())
+
+    cmd = 'onnxruntime_perf_test -e cpu -r 100 -c 1 "%s"' % dest
+    return cmd
