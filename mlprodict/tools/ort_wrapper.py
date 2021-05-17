@@ -128,7 +128,7 @@ def prepare_c_profiling(model_onnx, inputs, dest=None):
         with open(n, "wb") as f:
             f.write(pr.SerializeToString())
     for i, v in enumerate(outputs):
-        n = os.path.join(sub, "output_%d" % i)
+        n = os.path.join(sub, "output_%d.pb" % i)
         pr = numpy_helper.from_array(v)
         with open(n, "wb") as f:
             f.write(pr.SerializeToString())

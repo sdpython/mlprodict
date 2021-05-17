@@ -27,9 +27,10 @@ class TestOrt(ExtTestCase):
 
         temp = get_temp_folder(__file__, "temp_prepare_c_profiling")
         cmd = prepare_c_profiling(model_def, [x], dest=temp)
-        self.assertStartsWith("onnxruntime_perf_test", cmd)
-        self.assertExists(os.path.join(temp, "test_data_set_0", "input_0"))
-        self.assertExists(os.path.join(temp, "test_data_set_0", "output_0"))
+        self.assertStartsWith("onnx", cmd)
+        self.assertExists(os.path.join(temp, "model.onnx"))
+        self.assertExists(os.path.join(temp, "test_data_set_0", "input_0.pb"))
+        self.assertExists(os.path.join(temp, "test_data_set_0", "output_0.pb"))
 
 
 if __name__ == "__main__":
