@@ -78,6 +78,7 @@ from .op_or import Or
 from .op_pad import Pad
 from .op_pow import Pow
 from .op_quantize_linear import QuantizeLinear
+from .op_qlinear_conv import QLinearConv
 from .op_reciprocal import Reciprocal
 from .op_reduce_log_sum_exp import ReduceLogSumExp
 from .op_reduce_l1 import ReduceL1
