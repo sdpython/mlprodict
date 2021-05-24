@@ -892,7 +892,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         validate_python_inference(oinfpy, {'X': x})
 
     @wraplog()
-    def test_onnxt_runtime_conv0(self):            
+    def test_onnxt_runtime_conv0(self):
         x = numpy.array([[[[0., 1., 2., 3., 4.],  # (1, 1, 5, 5) input tensor
                            [5., 6., 7., 8., 9.],
                            [10., 11., 12., 13., 14.],
@@ -2253,7 +2253,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_binary(OnnxPow, numpy.power)
 
     @wraplog()
-    def test_onnxt_runtime_qlinear_conv(self):        
+    def test_onnxt_runtime_qlinear_conv(self):
         x = numpy.array(
             [[255, 174, 162, 25, 203, 168, 58],
              [15, 59, 237, 95, 129, 0, 64],
@@ -3554,5 +3554,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 
 if __name__ == "__main__":
-    TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv()
     unittest.main()

@@ -23,18 +23,12 @@ namespace py = pybind11;
 
 
 template <typename T>
-class MaxPool : ConvPoolCommon<T> {
+class MaxPool : ConvPoolCommon {
     
     private:
         
-        AutoPadType auto_pad_;
         int64_t ceil_mode_;
         int64_t storage_order_;
-        std::vector<int64_t> pads_;
-        std::vector<int64_t> strides_;
-        std::vector<int64_t> kernel_shape_;
-        std::vector<int64_t> dilations_;
-    
         bool global_pooling_;
     
     public:
@@ -91,7 +85,7 @@ class MaxPool : ConvPoolCommon<T> {
 
 
 template<typename T>
-MaxPool<T>::MaxPool() : ConvPoolCommon<T>() {
+MaxPool<T>::MaxPool() : ConvPoolCommon() {
     global_pooling_ = false;
 }
 
@@ -104,16 +98,10 @@ void MaxPool<T>::init(
             int64_t storage_order,
             py::array_t<int64_t> kernel_shape,
             py::array_t<int64_t> pads,
-            py::array_t<int64_t> strides
-    ) {
-    auto_pad_ = to_AutoPadType(auto_pad);
-    array2vector(dilations_, dilations, int64_t);
+            py::array_t<int64_t> strides) {
+    ConvPoolCommon::init(auto_pad, dilations, 0, kernel_shape, pads, strides);
     ceil_mode_ = ceil_mode;        
     storage_order_ = storage_order;        
-    array2vector(dilations_, dilations, int64_t);
-    array2vector(pads_, pads, int64_t);
-    array2vector(strides_, strides, int64_t);
-    array2vector(kernel_shape_, kernel_shape, int64_t);
 }
 
 

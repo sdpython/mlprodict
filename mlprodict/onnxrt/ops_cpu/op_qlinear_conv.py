@@ -6,8 +6,8 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObjectFct
-# from .op_qlinear_conv_ import QLinearConvInt8, QLinearConvUInt8  # pylint: disable=E0611,E0401
+from ..shape_object import ShapeObject
+from .op_qlinear_conv_ import QLinearConvInt8, QLinearConvUInt8  # pylint: disable=E0611,E0401
 
 
 class QLinearConv(OpRun):

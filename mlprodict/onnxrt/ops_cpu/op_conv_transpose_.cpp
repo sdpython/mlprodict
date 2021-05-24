@@ -23,16 +23,10 @@ namespace py = pybind11;
 
 
 template <typename T>
-class ConvTranspose : ConvPoolCommon<T> {
+class ConvTranspose : ConvPoolCommon {
     
-    private:
+    protected:
         
-        AutoPadType auto_pad_;    
-        std::vector<int64_t> dilations_;
-        int64_t group_;
-        std::vector<int64_t> kernel_shape_;
-        std::vector<int64_t> pads_;
-        std::vector<int64_t> strides_;
         std::vector<int64_t> output_padding_;
         std::vector<int64_t> output_shape_;
     
@@ -83,7 +77,7 @@ class ConvTranspose : ConvPoolCommon<T> {
 };
 
 template<typename T>
-ConvTranspose<T>::ConvTranspose() : ConvPoolCommon<T>() {
+ConvTranspose<T>::ConvTranspose() : ConvPoolCommon() {
 }
 
 
@@ -96,14 +90,8 @@ void ConvTranspose<T>::init(
             py::array_t<int64_t> pads,
             py::array_t<int64_t> strides,
             py::array_t<int64_t> output_padding,
-            py::array_t<int64_t> output_shape
-    ) {
-    auto_pad_ = to_AutoPadType(auto_pad);
-    array2vector(dilations_, dilations, int64_t);
-    group_ = group;        
-    array2vector(dilations_, dilations, int64_t);
-    array2vector(pads_, pads, int64_t);
-    array2vector(strides_, strides, int64_t);
+            py::array_t<int64_t> output_shape) {
+    ConvPoolCommon::init(auto_pad, dilations, group, kernel_shape, pads, strides);
     array2vector(output_padding_, output_padding, int64_t);
     array2vector(output_shape_, output_shape, int64_t);
 }
