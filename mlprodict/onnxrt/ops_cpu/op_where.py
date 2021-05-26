@@ -19,7 +19,7 @@ class Where(OpRun):
             raise RuntimeError(  # pragma: no cover
                 "x and y should share the same dtype {} != {}".format(
                     x.dtype, y.dtype))
-        if x.shape != y.shape:
+        if x.shape != y.shape and x.shape != (1, ) and y.shape != (1, ):
             raise RuntimeError(  # pragma: no cover
                 "x and y should share the same shape {} != {}".format(
                     x.shape, y.shape))
