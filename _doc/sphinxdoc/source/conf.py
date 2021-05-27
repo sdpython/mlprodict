@@ -2,7 +2,7 @@
 import sys
 import os
 import alabaster
-from pyquickhelper.helpgen.default_conf import set_sphinx_variables, get_default_stylesheet
+from pyquickhelper.helpgen.default_conf import set_sphinx_variables
 from sklearn.experimental import enable_hist_gradient_boosting
 try:
     from mlprodict.onnx_conv import register_converters, register_rewritten_operators
@@ -47,10 +47,7 @@ extensions.extend([
     'generate_visual_graphs',
 ])
 
-html_context = {
-    'css_files': get_default_stylesheet([
-        '_static/my-styles.css', '_static/gallery.css']),
-}
+html_css_files = ['my-styles.css']
 
 html_logo = "phdoc_static/project_ico.png"
 
