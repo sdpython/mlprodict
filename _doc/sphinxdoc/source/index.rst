@@ -13,8 +13,8 @@ mlprodict
 :ref:`l-README`,
 :ref:`blog <ap-main-0>`
 
-.. image:: https://travis-ci.org/sdpython/mlprodict.svg?branch=master
-    :target: https://travis-ci.org/sdpython/mlprodict
+.. image:: https://travis-ci.com/sdpython/mlprodict.svg?branch=master
+    :target: https://travis-ci.com/sdpython/mlprodict
     :alt: Build status
 
 .. image:: https://ci.appveyor.com/api/projects/status/g8chk1ufyk1m8uep?svg=true
