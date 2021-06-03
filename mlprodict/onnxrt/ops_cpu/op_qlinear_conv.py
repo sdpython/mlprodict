@@ -24,6 +24,8 @@ class QLinearConv(OpRun):
                        expected_attributes=QLinearConv.atts,
                        **options)
         self._init()
+        self._cstu8 = numpy.array([], dtype=numpy.uint8)
+        self._csti8 = numpy.array([], dtype=numpy.int8)
 
     def _init(self):
         self.rtu8_ = QLinearConvUInt8()
@@ -45,10 +47,10 @@ class QLinearConv(OpRun):
         if X.dtype == numpy.uint8:
             return (self.rtu8_.compute(
                 X, x_scale, x_zero_point, w, w_scale, w_zero_point,  # pylint: disable=W0221
-                y_scale, y_zero_point, B), )
+                y_scale, y_zero_point, B or self._cstu8), )
         return (self.rti8_.compute(
             X, x_scale, x_zero_point, w, w_scale, w_zero_point,  # pylint: disable=W0221
-            y_scale, y_zero_point, B), )
+            y_scale, y_zero_point, B or self._csti8), )
 
     def _infer_shapes(self, X, x_scale, x_zero_point, w, w_scale,  # pylint: disable=W0221
                       w_zero_point, y_scale, y_zero_point, B=None):
