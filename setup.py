@@ -95,6 +95,7 @@ def get_extensions():
     ext_max_pool = Extension(
         'mlprodict.onnxrt.ops_cpu.op_max_pool_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_max_pool_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_matrices_.cpp'),
          os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
          os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
         extra_compile_args=extra_compile_args,
@@ -255,7 +256,25 @@ def get_extensions():
     ext_conv = Extension(
         'mlprodict.onnxrt.ops_cpu.op_conv_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_matrices_.cpp'),
          os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
+    ext_qlinearconv = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_qlinear_conv_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_qlinear_conv_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_matrices_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')
+         ],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
         include_dirs=[
@@ -270,6 +289,7 @@ def get_extensions():
     ext_conv_transpose = Extension(
         'mlprodict.onnxrt.ops_cpu.op_conv_transpose_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_transpose_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_matrices_.cpp'),
          os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
@@ -316,6 +336,7 @@ def get_extensions():
         ext_experimental_c,
         ext_gather,
         ext_max_pool,
+        ext_qlinearconv,
         ext_svm_classifier,
         ext_svm_regressor,
         ext_tfidfvectorizer,

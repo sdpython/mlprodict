@@ -47,7 +47,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxNeg, OnnxNot,
     OnnxOr,
     OnnxPad, OnnxPow,
-    OnnxQuantizeLinear,
+    OnnxQLinearConv, OnnxQuantizeLinear,
     OnnxReciprocal,
     OnnxReduceL1, OnnxReduceL2,
     OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
@@ -2253,6 +2253,53 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_binary(OnnxPow, numpy.power)
 
     @wraplog()
+    def test_onnxt_runtime_qlinear_conv(self):
+        x = numpy.array(
+            [[255, 174, 162, 25, 203, 168, 58],
+             [15, 59, 237, 95, 129, 0, 64],
+             [56, 242, 153, 221, 168, 12, 166],
+             [232, 178, 186, 195, 237, 162, 237],
+             [188, 39, 124, 77, 80, 102, 43],
+             [127, 230, 21, 83, 41, 40, 134],
+             [255, 154, 92, 141, 42, 148, 247], ],
+            dtype=numpy.uint8).reshape((1, 1, 7, 7))
+
+        x_scale = numpy.float32(0.00369204697)
+        x_zero_point = numpy.uint8(132)
+
+        w = numpy.array([0], dtype=numpy.uint8).reshape((1, 1, 1, 1))
+
+        w_scale = numpy.array([0.00172794575], dtype=numpy.float32)
+        w_zero_point = numpy.array([255], dtype=numpy.uint8)
+
+        y_scale = numpy.float32(0.00162681262)
+        y_zero_point = numpy.uint8(123)
+
+        output = numpy.array(
+            [[0, 81, 93, 230, 52, 87, 197],
+             [240, 196, 18, 160, 126, 255, 191],
+             [199, 13, 102, 34, 87, 243, 89],
+             [23, 77, 69, 60, 18, 93, 18],
+             [67, 216, 131, 178, 175, 153, 212],
+             [128, 25, 234, 172, 214, 215, 121],
+             [0, 101, 163, 114, 213, 107, 8], ],
+            dtype=numpy.uint8).reshape((1, 1, 7, 7))
+
+        node = OnnxQLinearConv('x', 'x_scale', 'x_zero_point', 'w',
+                               'w_scale', 'w_zero_point', 'y_scale',
+                               'y_zero_point', output_names=['y'],
+                               op_version=get_opset_number_from_onnx())
+        inputs = {'x': x, 'x_scale': x_scale, 'x_zero_point': x_zero_point,
+                  'w': w, 'w_scale': w_scale, 'w_zero_point': w_zero_point,
+                  'y_scale': y_scale, 'y_zero_point': y_zero_point}
+        model_def = node.to_onnx(inputs,
+                                 target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run(inputs)['y']
+        self.assertEqualArray(output, got)
+        python_tested.append(OnnxQLinearConv)
+
+    @wraplog()
     def test_onnxt_runtime_quantize_linear(self):
         X = numpy.array([[[[-162, 10], [-100, 232], [-20, -50]],
                           [[-76, 0], [0, 252], [32, -44]],
@@ -3507,5 +3554,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_cast_in()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv()
     unittest.main()

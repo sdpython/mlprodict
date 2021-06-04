@@ -23,35 +23,17 @@ namespace py = pybind11;
 
 
 template <typename T>
-class Conv : ConvPoolCommon<T> {
-    
-    private:
-        
-        AutoPadType auto_pad_;    
-        std::vector<int64_t> dilations_;
-        int64_t group_;
-        std::vector<int64_t> kernel_shape_;
-        std::vector<int64_t> pads_;
-        std::vector<int64_t> strides_;
+class Conv : public ConvPoolCommon {
     
     public:
 
         Conv();
-        void init(const std::string &auto_pad,
-                  py::array_t<int64_t> dilations,
-                  int64_t group,
-                  py::array_t<int64_t> kernel_shape,
-                  py::array_t<int64_t> pads,
-                  py::array_t<int64_t> strides);
 
         py::array_t<T> compute(py::array_t<T, py::array::c_style | py::array::forcecast> X,
                                py::array_t<T, py::array::c_style | py::array::forcecast> W,
                                py::array_t<T, py::array::c_style | py::array::forcecast> B) const;
     
-    private:
-
-        void compute_kernel_shape(const std::vector<int64_t>& weight_shape,
-                                  std::vector<int64_t>& kernel_shape) const;
+    protected:
 
         void compute_gil_free(py::array_t<T> X, py::array_t<T> W,
                               py::array_t<T> B, py::array_t<T>& Y,
@@ -64,57 +46,10 @@ class Conv : ConvPoolCommon<T> {
                               const std::vector<int64_t>& x_dims,
                               const std::vector<int64_t>& y_dims,
                               const std::vector<int64_t>& w_dims) const;
-
-        void infer_output_shape(const std::vector<int64_t>& input_shape,
-                      const std::vector<int64_t>& kernel_shape,
-                      const std::vector<int64_t>& strides_p,
-                      const std::vector<int64_t>& dilations_p,
-                      std::vector<int64_t>& pads_p,
-                      std::vector<int64_t>& output_shape,
-                      bool ForceSymmetricAutoPadding = false) const;
 };
 
 template<typename T>
-Conv<T>::Conv() : ConvPoolCommon<T>() {
-}
-
-
-template<typename T>
-void Conv<T>::init(
-            const std::string &auto_pad,
-            py::array_t<int64_t> dilations,
-            int64_t group,
-            py::array_t<int64_t> kernel_shape,
-            py::array_t<int64_t> pads,
-            py::array_t<int64_t> strides
-    ) {
-    auto_pad_ = to_AutoPadType(auto_pad);
-    array2vector(dilations_, dilations, int64_t);
-    group_ = group;        
-    array2vector(dilations_, dilations, int64_t);
-    array2vector(pads_, pads, int64_t);
-    array2vector(strides_, strides, int64_t);
-}
-
-
-template<typename T>
-void Conv<T>::compute_kernel_shape(const std::vector<int64_t>& weight_shape,
-                                   std::vector<int64_t>& kernel_shape) const {
-    if (kernel_shape_.size() > 0) {
-        kernel_shape = kernel_shape_;
-        if (kernel_shape.size() + 2 != weight_shape.size())
-            throw std::runtime_error(
-                "kernel_shape num_dims is not compatible with W num_dims (1).");
-
-        for (size_t i = 0; i < kernel_shape.size(); ++i)
-            if (kernel_shape[i] != weight_shape[i + 2])
-                throw std::runtime_error(
-                    "kernel_shape num_dims is not compatible with W num_dims (2).");
-    }
-    else {
-        auto& weight_dims = weight_shape;
-        kernel_shape = std::vector<int64_t>(weight_dims.begin() + 2, weight_dims.end());
-    }
+Conv<T>::Conv() : ConvPoolCommon() {
 }
 
 
@@ -150,7 +85,7 @@ py::array_t<T> Conv<T>::compute(py::array_t<T, py::array::c_style | py::array::f
     std::vector<int64_t> y_dims;
     y_dims.insert(y_dims.begin(), {N, M});
     std::vector<int64_t> input_shape(x_dims.begin() + 2, x_dims.end());
-    infer_output_shape(input_shape, kernel_shape, strides, dilations, pads, y_dims);
+    infer_output_shape(input_shape, kernel_shape, strides, dilations, pads, y_dims, false);
     std::vector<int64_t> output_shape(y_dims.begin() + 2, y_dims.end());
 
     // py::array::ShapeContainer shape(y_dims);
@@ -164,38 +99,6 @@ py::array_t<T> Conv<T>::compute(py::array_t<T, py::array::c_style | py::array::f
                          x_dims, y_dims, w_dims);
     }
     return Y;
-}
-
-
-template<typename T>
-void Conv<T>::infer_output_shape(
-                    const std::vector<int64_t>& input_shape,
-                    const std::vector<int64_t>& kernel_shape,
-                    const std::vector<int64_t>& strides_p,
-                    const std::vector<int64_t>& dilations_p,
-                    std::vector<int64_t>& pads_p,
-                    std::vector<int64_t>& output_shape,
-                    bool ForceSymmetricAutoPadding) const {
-
-    size_t rank = input_shape.size();
-    int64_t dim_size;
-
-    for (size_t dim = 0; dim < rank; ++dim) {
-        if (dim >= strides_p.size() || dim >= kernel_shape.size() ||
-                dim >= dilations_p.size() || dim >= pads_p.size() ||
-                rank + dim >= pads_p.size())
-            throw std::runtime_error("Failure in infer_output_shape.");
-
-        dim_size = 0;
-        ComputePadAndOutputShape<T>(
-            input_shape[dim], strides_p[dim], kernel_shape[dim],
-            dilations_p[dim], auto_pad_, &pads_p.at(dim),
-            &pads_p.at(input_shape.size() + dim),
-            &dim_size, ForceSymmetricAutoPadding);
-        if (dim_size <= 0)
-            throw std::runtime_error("Invalid argument in infer_output_shape.");
-        output_shape.push_back(dim_size);
-    }
 }
 
 
