@@ -98,6 +98,8 @@ from mlprodict.tools.data_types import (
     Int32TensorType, BooleanTensorType, UInt8TensorType,
     Int16TensorType, Int8TensorType, UInt16TensorType,
     UInt32TensorType, UInt64TensorType, Float16TensorType)
+from mlprodict.testing.test_utils.quantized_tensor import (
+    QuantizedTensor, test_qlinear_conv)
 
 
 try:
@@ -2300,6 +2302,42 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         python_tested.append(OnnxQLinearConv)
 
     @wraplog()
+    def test_onnxt_runtime_qlinear_conv_test0(self):
+        x_scale = numpy.float32(0.00369204697)
+        x_zero_point = numpy.uint8(132)
+        x = numpy.array(
+            [[255, 174, 162, 25, 203, 168, 58],
+             [15, 59, 237, 95, 129, 0, 64],
+             [56, 242, 153, 221, 168, 12, 166],
+             [232, 178, 186, 195, 237, 162, 237],
+             [188, 39, 124, 77, 80, 102, 43],
+             [127, 230, 21, 83, 41, 40, 134],
+             [255, 154, 92, 141, 42, 148, 247], ],
+            dtype=numpy.uint8).reshape((1, 1, 7, 7))
+
+        w_scale = numpy.array([0.00172794575], dtype=numpy.float32)
+        w_zero_point = numpy.array([255], dtype=numpy.uint8)
+        w = numpy.array([0], dtype=numpy.uint8).reshape((1, 1, 1, 1))
+
+        y_scale = numpy.float32(0.00162681262)
+        y_zero_point = numpy.uint8(123)
+        y = numpy.array(
+            [[0, 81, 93, 230, 52, 87, 197],
+             [240, 196, 18, 160, 126, 255, 191],
+             [199, 13, 102, 34, 87, 243, 89],
+             [23, 77, 69, 60, 18, 93, 18],
+             [67, 216, 131, 178, 175, 153, 212],
+             [128, 25, 234, 172, 214, 215, 121],
+             [0, 101, 163, 114, 213, 107, 8], ],
+            dtype=numpy.uint8).reshape((1, 1, 7, 7))
+
+        test_qlinear_conv(
+            QuantizedTensor(x, x_scale, x_zero_point), (1, 1, 7, 7),
+            QuantizedTensor(w, w_scale, w_zero_point), (1, 1, 1, 1),
+            None,
+            QuantizedTensor(y, y_scale, y_zero_point), (1, 1, 7, 7))
+
+    @wraplog()
     def test_onnxt_runtime_quantize_linear(self):
         X = numpy.array([[[[-162, 10], [-100, 232], [-20, -50]],
                           [[-76, 0], [0, 252], [32, -44]],
@@ -3554,5 +3592,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_test0()
     unittest.main()
