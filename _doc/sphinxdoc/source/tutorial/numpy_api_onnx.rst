@@ -322,7 +322,7 @@ is used. Let's see how to do it.
 
     X_train, X_test, y_train, y_test = train_test_split(X, y)
 
-    @onnxsklearn_class('onnx_graph', op_version=13)
+    @onnxsklearn_class('onnx_graph', op_version=14)  # opset=13, 14, ...
     class TwoLogisticRegressionOnnx(ClassifierMixin, BaseEstimator):
 
         def __init__(self):
@@ -377,7 +377,7 @@ is used. Let's see how to do it.
     model.fit(X_train, y_train)
     print(model.predict(X_test[:5]), model.predict_proba(X_test[:5]))
 
-    onx = to_onnx(model, X_test[:5], target_opset=13)
+    onx = to_onnx(model, X_test[:5], target_opset=14)  # opset=13, 14, ...
     # print(onx)  # too long to be displayed
 
 The decorator ``@onnxsklearn_class('onnx_graph')``
@@ -396,7 +396,7 @@ When one of them is called, it follows the steps:
 * Create an instance with a runtime if it does not exist
 * Returns the output of the runtime
 
-The instruction ``to_onnx(model, X_test[:5], target_opset=13)`` creates
+The instruction ``to_onnx(model, X_test[:5], target_opset=?)`` creates
 an ONNX graph by calling method *onnx_graph* registered as a converter
 in *skl2onnx*. It is equivalent to something like
 ``model.onnx_graph(X_test[:5]).to_algebra()[0].to_onnx({'X': X})``.
@@ -410,7 +410,7 @@ Custom Transformer
 ^^^^^^^^^^^^^^^^^^
 
 The syntax is the same. The decorator
-``@onnxsklearn_class("onnx_transform", op_version=13)`` detects
+``@onnxsklearn_class("onnx_transform", op_version=?)`` detects
 the class is a transformer and automatically adds method
 *transform*.
 
@@ -434,7 +434,7 @@ the class is a transformer and automatically adds method
 
     X_train, X_test, y_train, y_test = train_test_split(X, y)
 
-    @onnxsklearn_class("onnx_transform", op_version=13)
+    @onnxsklearn_class("onnx_transform", op_version=14)  # opset=13, 14, ...
     class DecorrelateTransformerOnnx(TransformerMixin, BaseEstimator):
         def __init__(self, alpha=0.):
             BaseEstimator.__init__(self)
@@ -457,7 +457,7 @@ the class is a transformer and automatically adds method
     model.fit(X_train)
     print(model.transform(X_test[:5]))
 
-    onx = to_onnx(model, X_test[:5], target_opset=13)
+    onx = to_onnx(model, X_test[:5], target_opset=14)  # opset=13, 14, ...
     print(onx)
 
 More options

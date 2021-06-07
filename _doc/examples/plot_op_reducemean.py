@@ -43,7 +43,7 @@ except ImportError:
     torch_mean = None
 
 
-def build_ort_reducemean(axes, op_version=13):
+def build_ort_reducemean(axes, op_version=14):  # opset=13, 14, ...
     node = OnnxReduceMean('x', axes=axes, op_version=op_version,
                           output_names=['z'])
     onx = node.to_onnx(inputs=[('x', FloatTensorType())],

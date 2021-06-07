@@ -46,7 +46,7 @@
 
         X_train, X_test, y_train, y_test = train_test_split(X, y)
 
-        @onnxsklearn_class("onnx_transform", op_version=13)
+        @onnxsklearn_class("onnx_transform", op_version=14)  # opset=13, 14, ...
         class DecorrelateTransformerOnnx(TransformerMixin, BaseEstimator):
             def __init__(self, alpha=0.):
                 BaseEstimator.__init__(self)
@@ -69,7 +69,7 @@
         model.fit(X_train)
         print(model.transform(X_test[:5]))
 
-        onx = to_onnx(model, X_test[:5], target_opset=13)
+        onx = to_onnx(model, X_test[:5], target_opset=14)  # opset=13, 14, ...
         print(onx)
 
     The tutorial :ref:`l-numpy-api-for-onnx` extends this example

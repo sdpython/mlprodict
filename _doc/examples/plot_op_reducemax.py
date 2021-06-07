@@ -43,7 +43,7 @@ except ImportError:
     torch_max = None
 
 
-def build_ort_reducemax(axes, op_version=13):
+def build_ort_reducemax(axes, op_version=14):  # opset=13, 14, ...
     node = OnnxReduceMax('x', axes=axes, op_version=op_version,
                          output_names=['z'])
     onx = node.to_onnx(inputs=[('x', FloatTensorType())],
