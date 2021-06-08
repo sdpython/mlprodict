@@ -12,7 +12,7 @@
 #include <map>
 
 
-class RuntimeTesterQLinearConv :public RuntimeTester {
+class RuntimeTesterQLinearConv : public RuntimeTester {
 public:
 	RuntimeTesterQLinearConv(const char* op_name, int opset = 13) : RuntimeTester(op_name, opset) {}
 
@@ -397,19 +397,42 @@ void test_qliner_conv_Conv1D_U8S8() {
 }
 
 
-
 #ifndef SKIP_PYTHON
 
 
-class QLinearConvInt8 : public QLinearConv<int8_t, int8_t> {
+class QLinearConvInt8 : public QLinearConv<
+	int8_t, int8_t, int8_t, int32_t,
+	py_array_t<int8_t, py_array_style>,
+	py_array_t<int8_t, py_array_style>,
+	py_array_t<int8_t, py_array_style>,
+	py_array_t<int32_t, py_array_style>,
+	py_array_t<float, py_array_style>> {
 public:
-	QLinearConvInt8() : QLinearConv<int8_t, int8_t>() {}
+	QLinearConvInt8() : QLinearConv<
+		int8_t, int8_t, int8_t, int32_t,
+		py_array_t<int8_t, py_array_style>,
+		py_array_t<int8_t, py_array_style>,
+		py_array_t<int8_t, py_array_style>,
+		py_array_t<int32_t, py_array_style>,
+		py_array_t<float, py_array_style>>() {}
 };
 
 
-class QLinearConvUInt8 : public QLinearConv<uint8_t, uint8_t> {
+class QLinearConvUInt8 : public QLinearConv<
+	uint8_t, uint8_t, uint8_t, int32_t,
+	py_array_t<uint8_t, py_array_style>,
+	py_array_t<uint8_t, py_array_style>,
+	py_array_t<uint8_t, py_array_style>,
+	py_array_t<int32_t, py_array_style>,
+	py_array_t<float, py_array_style>> {
 public:
-	QLinearConvUInt8() : QLinearConv<uint8_t, uint8_t>() {}
+	QLinearConvUInt8() : QLinearConv<
+		uint8_t, uint8_t, uint8_t, int32_t,
+		py_array_t<uint8_t, py_array_style>,
+		py_array_t<uint8_t, py_array_style>,
+		py_array_t<uint8_t, py_array_style>,
+		py_array_t<int32_t, py_array_style>,
+		py_array_t<float, py_array_style>> () {}
 };
 
 PYBIND11_MODULE(op_qlinear_conv_, m) {

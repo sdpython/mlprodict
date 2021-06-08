@@ -242,7 +242,6 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 			}
 		}
 
-
 		void compute_gil_free(
 			AT1 X, AT2 W, AT4 B, AT3& Y,
 			const std::vector<int64_t>& input_shape,
