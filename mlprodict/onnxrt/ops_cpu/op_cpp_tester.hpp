@@ -1,3 +1,5 @@
+#pragma once
+
 // Inspired from 
 // https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_classifier.cc.
 
@@ -10,84 +12,107 @@
 #include <random>
 #include <map>
 
-class RuntimeTesterIO {
+namespace detail {
+
+	class RuntimeTesterIO {
+	public:
+		int type_;
+		std::string name_;
+		std::vector<int64_t> shape_;
+		std::vector<float> values_float_;  // 1
+		std::vector<int64_t> values_int64_t_;  // 2
+		std::vector<uint8_t> values_uint8_t_;  // 3
+		std::vector<int8_t> values_int8_t_;  // 4
+		std::vector<int32_t> values_int32_t_;  // 5
+	public:
+		RuntimeTesterIO() : type_(0), name_(), shape_() {}
+		RuntimeTesterIO(const RuntimeTesterIO& copy) : type_(copy.type_), name_(copy.name_), shape_(copy.shape_),
+			values_float_(copy.values_float_), values_int64_t_(copy.values_int64_t_),
+			values_uint8_t_(copy.values_uint8_t_), values_int8_t_(copy.values_int8_t_),
+			values_int32_t_(copy.values_int32_t_) {}
+		RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<float>& values) : name_(name), shape_(shape), values_float_(values) { type_ = 1; }
+		RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<int64_t>& values) : name_(name), shape_(shape), values_int64_t_(values) { type_ = 2; }
+		RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<uint8_t>& values) : name_(name), shape_(shape), values_uint8_t_(values) { type_ = 3; }
+		RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<int8_t>& values) : name_(name), shape_(shape), values_int8_t_(values) { type_ = 4; }
+		RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<int32_t>& values) : name_(name), shape_(shape), values_int32_t_(values) { type_ = 5; }
+		RuntimeTesterIO(const char* name, const int64_t& value) : name_(name), shape_(), values_int64_t_() {
+			type_ = 2;
+			values_int64_t_.push_back(value);
+		}
+	};
+
+	template <typename T>
+	inline T GetValue(const RuntimeTesterIO& io) {
+		throw std::runtime_error(MakeString("Unable to get value (type=", io.type_, ")."));
+	}
+
+	template <>
+	inline int64_t GetValue<int64_t>(const RuntimeTesterIO& io) {
+		if (io.type_ != 2 || io.values_int8_t_.size() != 1 || io.shape_.size() != 0)
+			throw std::runtime_error("Unexpected error.");
+		return io.values_int64_t_[0];
+	}
+
+	template <typename T>
+	inline std::vector<T> GetVectorValue(const RuntimeTesterIO& io) {
+		throw std::runtime_error(MakeString("Unable to get vector value (type=", io.type_, ")."));
+	}
+
+	template <>
+	inline std::vector<float> GetVectorValue<float>(const RuntimeTesterIO& io) {
+		if (io.type_ != 1)
+			throw std::runtime_error("Unexpected error.");
+		return io.values_float_;
+	}
+
+	template <>
+	inline std::vector<int64_t> GetVectorValue<int64_t>(const RuntimeTesterIO& io) {
+		if (io.type_ != 2)
+			throw std::runtime_error("Unexpected error.");
+		return io.values_int64_t_;
+	}
+
+	template <>
+	inline  std::vector<uint8_t> GetVectorValue<uint8_t>(const RuntimeTesterIO& io) {
+		if (io.type_ != 3)
+			throw std::runtime_error("Unexpected error.");
+		return io.values_uint8_t_;
+	}
+
+	template <>
+	inline std::vector<int8_t> GetVectorValue<int8_t>(const RuntimeTesterIO& io) {
+		if (io.type_ != 4)
+			throw std::runtime_error("Unexpected error.");
+		return io.values_int8_t_;
+	}
+
+	template <>
+	inline std::vector<int32_t> GetVectorValue<int32_t>(const RuntimeTesterIO& io) {
+		if (io.type_ != 5)
+			throw std::runtime_error("Unexpected error.");
+		return io.values_int32_t_;
+	}
+}
+
+class RuntimeTesterIO : public detail::RuntimeTesterIO {
 public:
-	int type_;
-	std::string name_;
-	std::vector<int64_t> shape_;
-	std::vector<float> values_float_;  // 1
-	std::vector<int64_t> values_int64_t_;  // 2
-	std::vector<uint8_t> values_uint8_t_;  // 3
-	std::vector<int8_t> values_int8_t_;  // 4
-	std::vector<int32_t> values_int32_t_;  // 5
-public:
-	RuntimeTesterIO() : type_(0), name_(), shape_() {}
-	RuntimeTesterIO(const RuntimeTesterIO& copy) : type_(copy.type_), name_(copy.name_), shape_(copy.shape_),
-		values_float_(copy.values_float_), values_int64_t_(copy.values_int64_t_),
-		values_uint8_t_(copy.values_uint8_t_), values_int8_t_(copy.values_int8_t_),
-		values_int32_t_(copy.values_int32_t_) {}
-	RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<float>& values) : name_(name), shape_(shape), values_float_(values) { type_ = 1; }
-	RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<int64_t>& values) : name_(name), shape_(shape), values_int64_t_(values) { type_ = 2; }
-	RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<uint8_t>& values) : name_(name), shape_(shape), values_uint8_t_(values) { type_ = 3; }
-	RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<int8_t>& values) : name_(name), shape_(shape), values_int8_t_(values) { type_ = 4; }
-	RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<int32_t>& values) : name_(name), shape_(shape), values_int32_t_(values) { type_ = 5; }
-	RuntimeTesterIO(const char* name, const int64_t& value) : name_(name), shape_(), values_int64_t_() {
-		type_ = 2;
-		values_int64_t_.push_back(value);
-	}
+	RuntimeTesterIO() : detail::RuntimeTesterIO() {}
+	RuntimeTesterIO(const RuntimeTesterIO& copy) : detail::RuntimeTesterIO(copy) {}
+	RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<float>& values) : detail::RuntimeTesterIO(name, shape, values) {}
+	RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<int64_t>& values) : detail::RuntimeTesterIO(name, shape, values) {}
+	RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<uint8_t>& values) : detail::RuntimeTesterIO(name, shape, values) {}
+	RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<int8_t>& values) : detail::RuntimeTesterIO(name, shape, values) {}
+	RuntimeTesterIO(const char* name, const std::vector<int64_t>& shape, const std::vector<int32_t>& values) : detail::RuntimeTesterIO(name, shape, values) {}
+	RuntimeTesterIO(const char* name, const int64_t& value) : detail::RuntimeTesterIO(name, value) {}
 
 	template <typename T>
-	T GetValue() const { throw std::runtime_error(MakeString("Unable to get value (type=", type_, ").")); }
-
-	template <>
-	int64_t GetValue<int64_t>() const {
-		if (type_ != 2 || values_int8_t_.size() != 1 || shape_.size() != 0)
-			throw std::runtime_error("Unexpected error.");
-		return values_int64_t_[0];
-	}
+	T GetValue() const { return detail::GetValue<T>(*this); }
 
 	template <typename T>
-	std::vector<T> GetVectorValue() const { throw std::runtime_error(MakeString("Unable to get vector value (type=", type_, ").")); }
-
-	template <>
-	std::vector<float> GetVectorValue<float>() const {
-		if (type_ != 1)
-			throw std::runtime_error("Unexpected error.");
-		return values_float_;
-	}
-
-	template <>
-	std::vector<int64_t> GetVectorValue<int64_t>() const {
-		if (type_ != 2)
-			throw std::runtime_error("Unexpected error.");
-		return values_int64_t_;
-	}
-
-	template <>
-	std::vector<uint8_t> GetVectorValue<uint8_t>() const {
-		if (type_ != 3)
-			throw std::runtime_error("Unexpected error.");
-		return values_uint8_t_;
-	}
-
-	template <>
-	std::vector<int8_t> GetVectorValue<int8_t>() const {
-		if (type_ != 4)
-			throw std::runtime_error("Unexpected error.");
-		return values_int8_t_;
-	}
-
-	template <>
-	std::vector<int32_t> GetVectorValue<int32_t>() const {
-		if (type_ != 5)
-			throw std::runtime_error("Unexpected error.");
-		return values_int32_t_;
-	}
+	std::vector<T> GetVectorValue() const { return detail::GetVectorValue<T>(*this); }
 
 	template <typename T>
-	shaped_array_t<T> GetArrayValue() const {
-		return shaped_array_t<T>(GetVectorValue<T>(), shape_);
-	}
+	shaped_array_t<T> GetArrayValue() const { return shaped_array_t<T>(GetVectorValue<T>(), shape_); }
 };
 
 class RuntimeTesterO : public RuntimeTesterIO {
@@ -128,6 +153,7 @@ public:
 		RuntimeTesterIO io(name, shape, input);
 		inputs_.push_back(io);
 	}
+
 	template<typename T>
 	void AddOutput(
 		const char* name, const std::vector<int64_t>& shape, const std::vector<T>& output,
@@ -135,6 +161,7 @@ public:
 		RuntimeTesterO io(name, shape, output, check_output, error);
 		outputs_.push_back(io);
 	}
+
 	template<typename T>
 	void AddAttribute(const char* name, const std::vector<T>& output) {
 		std::vector<int64_t> shape{ (int64_t)output.size() };
@@ -155,8 +182,7 @@ public:
 		return it->second.GetValue<T>();
 	}
 
-	template <>
-	std::string GetAttribute<std::string>(const std::string& name, const std::string& default_value) {
+	std::string GetAttributeString(const std::string& name, const std::string& default_value) {
 		auto it = attributes_.find(name);
 		if (it == attributes_.end())
 			return default_value;
