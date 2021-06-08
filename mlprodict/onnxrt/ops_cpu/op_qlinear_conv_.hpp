@@ -157,9 +157,9 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 
 			const int64_t N = x_dims[0];
 			const int64_t M = w_dims[0];
-			const auto& W_shape = M > 0 ? w_dims : W_shape_;
-			const bool is_W_signed = is_W_signed_;
-			//const Tensor* W = is_W_packed_ ? nullptr : context->Input<Tensor>(3);
+			// const auto& W_shape = M > 0 ? w_dims : W_shape_;
+			// const bool is_W_signed = is_W_signed_;
+			// const Tensor* W = is_W_packed_ ? nullptr : context->Input<Tensor>(3);
 
 			std::vector<float> output_scales;
 			std::vector<int64_t> W_scale_shape;
@@ -183,7 +183,7 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 			if (strides.empty())
 				strides.resize(kernel_rank, 1);
 
-			const int64_t C = x_dims[channels_last_ ? 1 + kernel_rank : 1];
+			// const int64_t C = x_dims[channels_last_ ? 1 + kernel_rank : 1];
 			const size_t spatial_dim_start = channels_last_ ? 1 : 2;
 			const size_t spatial_dim_end = spatial_dim_start + kernel_rank;
 			std::vector<int64_t> y_dims({ N });
@@ -312,7 +312,7 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 			// Use an intermediate int32_t buffer for the GEMM computation before
 			// requantizing to the output type.
 			int32_t* gemm_output_data = new int32_t[Y_offset];
-			int32_t* gemm_output_buffer = gemm_output_data;
+			// int32_t* gemm_output_buffer = gemm_output_data;
 			int32_t* gemm_output = gemm_output_data;
 
 			const T1* Xdata = X.data();
@@ -356,7 +356,6 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 			const double complexity = static_cast<double>(output_image_size) *
 				static_cast<double>(group_output_channels) *
 				static_cast<double>(kernel_dim);
-
 
 			// OMP
 #if false //USE_OPENMP

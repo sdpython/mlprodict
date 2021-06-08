@@ -246,7 +246,7 @@ void ConvTranspose<T>::compute_gil_free(
     const int64_t C = x_dims[1];
     // const int64_t num_input_channels = C;
     const int64_t num_output_channels = w_dims[1] * group_;
-    const int64_t M = w_dims[0];
+    // const int64_t M = w_dims[0];
 
     const int64_t input_shape_size = flattened_dimension(input_shape);
     const int64_t output_image_size = flattened_dimension(y_dims, 2);

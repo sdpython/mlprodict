@@ -372,7 +372,7 @@ public:
 		}
 
 		float abs_error = 0.0f;
-		test.AddOutput<uint8_t>("y", Y_shape, Y_data, true, 0.0f);
+		test.AddOutput<uint8_t>("y", Y_shape, Y_data, true, abs_error);
 
 		if (!pads_.empty())
 			test.AddAttribute("pads", pads_);

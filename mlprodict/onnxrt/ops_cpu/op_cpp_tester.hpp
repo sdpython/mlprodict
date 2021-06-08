@@ -157,7 +157,7 @@ public:
 	template<typename T>
 	void AddOutput(
 		const char* name, const std::vector<int64_t>& shape, const std::vector<T>& output,
-		bool check_output = true, float error = 0f) {
+		bool check_output = true, float error = 0) {
 		RuntimeTesterO io(name, shape, output, check_output, error);
 		outputs_.push_back(io);
 	}
