@@ -131,7 +131,6 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
                   'w_scale': w.scale_, 'w_zero_point': w.zero_point_,
                   'y_scale': y.scale_, 'y_zero_point': y.zero_point_,
                   'b': b.quantized_}
-        
 
     node = OnnxQLinearConv(*inputs_list, output_names=['y'],
                            op_version=opset, **kwargs)
