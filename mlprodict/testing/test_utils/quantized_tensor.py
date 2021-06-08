@@ -26,31 +26,33 @@ class QuantizedTensor:
             if scale is None or zero_point is None:
                 raise ValueError("scale and zero_point must be specified.")
             self.quantized_ = data
-            self.scale_ = scale
-            self.zero_point_ = zero_point
+            self.scale_ = numpy.float32(scale)
+            self.zero_point_ = numpy.uint8(zero_point)
 
     def _init(self, data):
         "Initialization when dtype is float32."
         rav = data.flatten().astype(numpy.float32)
-        mini = rav.min()
-        maxi = rav.max()
-        mini = min(mini, numpy.float32(0))
-        maxi = max(maxi, numpy.float32(0))
+        mini = min(rav.min(), numpy.float32(0))
+        maxi = max(rav.max(), numpy.float32(0))
 
         info = numpy.iinfo(numpy.uint8)
         qmin = numpy.float32(info.min)
         qmax = numpy.float32(info.max)
 
         self.scale_ = (maxi - mini) / (qmax - qmin)
-        initial_zero_point = qmin - min / self.scale_
+        initial_zero_point = qmin - mini / self.scale_
         self.zero_point_ = numpy.uint8(numpy.round(
             max(qmin, min(qmax, initial_zero_point))))
 
-        self.quantized_ = numpy.empty(data.size(), dtype=numpy.uint8)
-        for i in range(0, data.size()):
+        self.quantized_ = numpy.empty(data.size, dtype=numpy.uint8)
+        for i in range(0, data.size):
             clamped_val = numpy.float32(
                 max(qmin, min(qmax, numpy.round(data[i] / self.scale_) + self.zero_point_)))
             self.quantized_[i] = numpy.uint8(clamped_val)
+
+        if self.quantized_.dtype != numpy.uint8:
+            raise TypeError(
+                "dtype={} not uint8".format(self.quantized_.dtype))
 
 
 class QuantizedBiasTensor:
@@ -66,7 +68,7 @@ class QuantizedBiasTensor:
     def __init__(self, data, X_or_scale, W: QuantizedTensor = None):
         if W is None:
             self.quantized_ = data
-            self.scale_ = X_or_scale
+            self.scale_ = numpy.float32(X_or_scale)
         else:
             self.scale_ = X_or_scale.scale_ * W.scale_
 
@@ -74,13 +76,17 @@ class QuantizedBiasTensor:
             for i in range(0, data.size()):
                 self.quantized_[i] = numpy.int32(
                     numpy.floor(data[i] / (X_or_scale.scale_ * W.scale_)))
+        if self.quantized_.dtype != numpy.int32:
+            raise TypeError(
+                "dtype={} not int32".format(self.quantized_.dtype))
 
 
 def test_qlinear_conv(x: QuantizedTensor, x_shape,
                       w: QuantizedTensor, w_shape,
                       b: QuantizedBiasTensor,
                       y: QuantizedTensor, y_shape,
-                      opset=None, runtime='python'):
+                      opset=None, runtime='python',
+                      pads=None, strides=None):
     """
     Checks a runtime for operator `QLinearConv`.
 
@@ -93,23 +99,42 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
     :param y_shape: shape of Y
     :param opset: desired onnx opset
     :param runtime: runtime for @see cl OnnxInference
+    :param pads: optional parameter for operator `QLinearConv`
+    :param strides: optional parameter for operator `QLinearConv`
     """
     if opset is None:
         from ...tools.asv_options_helper import get_opset_number_from_onnx
         opset = get_opset_number_from_onnx()
 
-    if b is not None:
-        raise NotImplementedError()
+    kwargs = {}
+    if pads is not None:
+        kwargs['pads'] = pads
+    if strides is not None:
+        kwargs['strides'] = strides
 
-    node = OnnxQLinearConv('x', 'x_scale', 'x_zero_point', 'w',
-                           'w_scale', 'w_zero_point', 'y_scale',
-                           'y_zero_point', output_names=['y'],
-                           op_version=opset)
-    inputs = {'x': x.quantized_.reshape(x_shape),
-              'x_scale': x.scale_, 'x_zero_point': x.zero_point_,
-              'w': w.quantized_.reshape(w_shape),
-              'w_scale': w.scale_, 'w_zero_point': w.zero_point_,
-              'y_scale': y.scale_, 'y_zero_point': y.zero_point_}
+    if b is None:
+        inputs_list = [
+            'x', 'x_scale', 'x_zero_point', 'w', 'w_scale', 'w_zero_point',
+            'y_scale', 'y_zero_point']
+        inputs = {'x': x.quantized_.reshape(x_shape),
+                  'x_scale': x.scale_, 'x_zero_point': x.zero_point_,
+                  'w': w.quantized_.reshape(w_shape),
+                  'w_scale': w.scale_, 'w_zero_point': w.zero_point_,
+                  'y_scale': y.scale_, 'y_zero_point': y.zero_point_}
+    else:
+        inputs_list = [
+            'x', 'x_scale', 'x_zero_point', 'w', 'w_scale', 'w_zero_point',
+            'y_scale', 'y_zero_point', 'b']
+        inputs = {'x': x.quantized_.reshape(x_shape),
+                  'x_scale': x.scale_, 'x_zero_point': x.zero_point_,
+                  'w': w.quantized_.reshape(w_shape),
+                  'w_scale': w.scale_, 'w_zero_point': w.zero_point_,
+                  'y_scale': y.scale_, 'y_zero_point': y.zero_point_,
+                  'b': b.quantized_}
+        
+
+    node = OnnxQLinearConv(*inputs_list, output_names=['y'],
+                           op_version=opset, **kwargs)
     model_def = node.to_onnx(inputs, target_opset=opset)
 
     oinf = OnnxInference(model_def, runtime=runtime)

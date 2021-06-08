@@ -41,6 +41,10 @@ namespace py = pybind11;
 
 #define py_array_style int
 #define py_gil_scoped_release int
+#define py_array_t shaped_array_t
+
+#endif
+
 
 template <typename T>
 bool cmp_vector(const std::vector<T>& v1, const std::vector<T>& v2) {
@@ -53,19 +57,19 @@ bool cmp_vector(const std::vector<T>& v1, const std::vector<T>& v2) {
 }
 
 template <typename T, typename cst = int>
-class py_array_t : public std::vector<T> {
+class shaped_array_t : public std::vector<T> {
 	std::vector<int64_t> shape_;
 public:
-	py_array_t() : std::vector<T>(), shape_() {}
-	py_array_t(const std::vector<int64_t>& shape) : std::vector<T>(), shape_(shape) {
+	shaped_array_t() : std::vector<T>(), shape_() {}
+	shaped_array_t(const std::vector<int64_t>& shape) : std::vector<T>(), shape_(shape) {
 		int64_t s = 1;
 		for (auto it : shape)
 			s *= it;
 		this->resize(s);
 	}
-	py_array_t(const std::vector<T>& values, const std::vector<int64_t>& shape) :
+	shaped_array_t(const std::vector<T>& values, const std::vector<int64_t>& shape) :
 		std::vector<T>(values), shape_(shape) {
-		if (shape.empty() && !!values.empty()) {
+		if (shape.empty() && !values.empty()) {
 			shape_.resize(1);
 			shape_[0] = values.size();
 		}
@@ -73,7 +77,7 @@ public:
 	const T* data(int64_t p = 0) const { return &((*this)[p]); }
 	int64_t ndim() const { return shape_.size(); }
 	int64_t shape(size_t i) const { return shape_[i]; }
-	bool equal(const py_array_t& value) {
+	bool equal(const shaped_array_t& value) {
 		return cmp_vector(shape_, value.shape_) && cmp_vector(*this, value);
 	}
 	bool operator == (T* ptr) {
@@ -82,8 +86,6 @@ public:
 		throw std::runtime_error("not implemented when ptr != nullptr");
 	}
 };
-
-#endif
 
 
 template <typename T>
@@ -97,8 +99,8 @@ void TensorTranspose(const T* input, T* output, size_t M, size_t N) {
 }
 
 
-template <typename T, typename TI = int32_t>
-void QConvDepthwise(const T** Input, TI InputZeroPoint, const T* Filter,
+template <typename T, typename TF, typename TI = int32_t>
+void QConvDepthwise(const T** Input, TI InputZeroPoint, const TF* Filter,
 	TI FilterZeroPoint, bool FilterIsSigned, TI* Output,
 	size_t Channels, size_t OutputCount, size_t KernelSize) {
 	// Signed version.
@@ -196,13 +198,13 @@ void gemm(bool transA, bool transB,
 
 
 // NTYPE is uint8_t or int8_t
-template <typename NTYPE>
+template <typename TA, typename TB, typename TOUT = int32_t>
 void QGemm(bool transA, bool transB,
-	size_t M, size_t N, size_t K, NTYPE alpha,
-	const NTYPE* A, const NTYPE* B, NTYPE beta,
-	int32_t* C, size_t lda, size_t ldb, size_t ldc,
-	NTYPE ZeroPointA = 0,
-	const NTYPE* ZeroPointB = nullptr,
+	size_t M, size_t N, size_t K, TOUT alpha,
+	const TA* A, const TB* B, TOUT beta,
+	TOUT* C, size_t lda, size_t ldb, size_t ldc,
+	TA ZeroPointA = 0,
+	const TB* ZeroPointB = nullptr,
 	bool BIsPacked = false,
 	bool PerColumnZeroPoints = false) {
 
@@ -240,10 +242,11 @@ void QGemm(bool transA, bool transB,
 		else {
 			// a A B + b C, dimension = M * N
 			int32_t* begin;
-			NTYPE val;
-			NTYPE val0;
+			TOUT val;
+			TOUT val0;
 			size_t i, j, k, maxc = 0;
-			const NTYPE* pA, * pB;
+			const TA* pA;
+			const TB* pB;
 			for (i = 0, begin = C; i < M; ++i) {
 				for (j = 0; j < N; ++j, ++begin) {
 					val0 = *begin; /* * beta;*/
@@ -521,7 +524,6 @@ void Im2col_NCHW(const T* data_im,
 }
 
 
-
 template <typename T>
 void Im2col_NHWC(const T* data_im,
 	int64_t input_channels,
@@ -534,7 +536,7 @@ void Im2col_NHWC(const T* data_im,
 	ptrdiff_t rank,
 	int64_t output_start,
 	int64_t output_count,
-	T const ** data_indirection,
+	T const** data_indirection,
 	const T* padding_ptr) {
 	if (rank == 1) {
 		int64_t stride_w = stride[0];
@@ -717,6 +719,7 @@ void ComputePadAndOutputShape(
 	int64_t* pad_tail, int64_t* out_dim,
 	bool ForceSymmetricAutoPadding);
 
+
 template <typename T>
 void ComputeTransposePadAndOutputShape(
 	int64_t in_size, int64_t stride,
@@ -772,9 +775,10 @@ protected:
 
 public:
 
-	ConvPoolCommonShape() {}
+	ConvPoolCommonShape() { auto_pad_ = AutoPadType::NOTSET; }
 
 	void init(const std::string& auto_pad, py_array_t<int64_t> kernel_shape);
+	void initcpp(const std::string& auto_pad, std::vector<int64_t> kernel_shape);
 	void compute_kernel_shape(const std::vector<int64_t>& weight_shape, std::vector<int64_t>& kernel_shape) const;
 
 	void infer_output_shape(
@@ -786,6 +790,7 @@ public:
 		std::vector<int64_t>& output_shape,
 		bool ForceSymmetricAutoPadding) const;
 };
+
 
 class ConvPoolCommon : public ConvPoolCommonShape {
 
@@ -804,5 +809,12 @@ public:
 		py_array_t<int64_t> kernel_shape,
 		py_array_t<int64_t> pads,
 		py_array_t<int64_t> strides);
+
+	void initcpp(const std::string& auto_pad,
+		std::vector<int64_t> dilations,
+		int64_t group,
+		std::vector<int64_t> kernel_shape,
+		std::vector<int64_t> pads,
+		std::vector<int64_t> strides);
 };
 

@@ -54,6 +54,14 @@ void ConvPoolCommonShape::init(
 }
 
 
+void ConvPoolCommonShape::initcpp(
+	const std::string& auto_pad,
+	std::vector<int64_t> kernel_shape) {
+	auto_pad_ = to_AutoPadType(auto_pad);
+	kernel_shape_ = kernel_shape;
+}
+
+
 void ConvPoolCommonShape::compute_kernel_shape(
 	const std::vector<int64_t>& weight_shape,
 	std::vector<int64_t>& kernel_shape) const {
@@ -117,4 +125,19 @@ void ConvPoolCommon::init(
 	group_ = group;
 	array2vector(pads_, pads, int64_t);
 	array2vector(strides_, strides, int64_t);
+}
+
+
+void ConvPoolCommon::initcpp(
+	const std::string& auto_pad,
+	std::vector<int64_t> dilations,
+	int64_t group,
+	std::vector<int64_t> kernel_shape,
+	std::vector<int64_t> pads,
+	std::vector<int64_t> strides) {
+	ConvPoolCommonShape::initcpp(auto_pad, kernel_shape);
+	dilations_ = dilations;
+	group_ = group;
+	pads_ = pads;
+	strides_ = strides;
 }

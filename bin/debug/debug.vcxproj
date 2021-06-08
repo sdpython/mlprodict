@@ -141,6 +141,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="debug.cpp" />
+    <ClCompile Include="../../mlprodict/onnxrt/ops_cpu/op_cpp_tester.hpp" />
     <ClCompile Include="../../mlprodict/onnxrt/ops_cpu/op_qlinear_conv_.cpp" />
     <ClCompile Include="../../mlprodict/onnxrt/ops_cpu/op_qlinear_conv_.hpp" />
     <ClCompile Include="../../mlprodict/onnxrt/ops_cpu/op_conv_matrices_.cpp" />
