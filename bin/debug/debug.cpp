@@ -3,6 +3,8 @@
 
 #include "op_conv_matrices_.hpp"
 #include "op_qlinear_conv_.hpp"
+#include "op_qlinear_cpp_qgemm_tester_.hpp"
+#include "op_qlinear_cpp_tester_.hpp"
 
 
 void test_qlinear_conv1() {
@@ -55,13 +57,20 @@ void test_qlinear_conv1() {
 		throw std::runtime_error("failed");
 }
 
-void test_qlinear_conv2() {
-	test_qliner_conv_Conv1D_U8S8();
+void test_qlinear_qgemm() {
+	test_qlinear_qgemm_ii();
+	test_qlinear_qgemm_ui();
+	test_qlinear_qgemm_if();
+	test_qlinear_qgemm_uf();
 }
 
+void test_qlinear_conv2(bool random) {
+	test_qlinear_conv_Conv1D_U8S8(random);
+}
 
 int main() {
-	test_qlinear_conv2();
-
+	test_qlinear_conv2(false);
+	test_qlinear_conv2(true);
 	test_qlinear_conv1();
+	test_qlinear_qgemm();
 }

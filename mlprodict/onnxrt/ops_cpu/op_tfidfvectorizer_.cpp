@@ -286,7 +286,7 @@ py::array_t<float> RuntimeTfIdfVectorizer::OutputResult(
         } break;
         case kNone:  // fall-through
         default:
-            throw std::runtime_error("Unexpected weighting_criteria.");
+            throw std::invalid_argument("Unexpected weighting_criteria.");
     }
     return Y;
 }
@@ -352,7 +352,7 @@ py::array_t<float> RuntimeTfIdfVectorizer::Compute(py::array_t<int64_t> X) const
         num_rows = 1;
         C = 1;
         if (total_items != 1)
-            throw std::runtime_error("Unexpected total of items.");
+            throw std::invalid_argument("Unexpected total of items.");
     }
     else if (input_dims.size() == 1) {
         num_rows = 1;
@@ -363,15 +363,15 @@ py::array_t<float> RuntimeTfIdfVectorizer::Compute(py::array_t<int64_t> X) const
         C = input_dims[1];
         num_rows = static_cast<int32_t>(B);
         if (B < 1)
-            throw std::runtime_error(
+            throw std::invalid_argument(
                 "Input shape must have either [C] or [B,C] dimensions with B > 0.");
     }
     else
-        throw std::runtime_error(
+        throw std::invalid_argument(
                   "Input shape must have either [C] or [B,C] dimensions with B > 0.");
 
     if (num_rows * C != total_items)
-        throw std::runtime_error("Unexpected total of items.");
+        throw std::invalid_argument("Unexpected total of items.");
     // Frequency holder allocate [B..output_size_]
     // and init all to zero
     std::vector<uint32_t> frequencies;

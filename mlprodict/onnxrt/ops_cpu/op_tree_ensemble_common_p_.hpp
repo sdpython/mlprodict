@@ -17,7 +17,7 @@
 
 #if 0
 #define DEBUGPRINT(s) std::cout << MakeString(s, "\n");
-#define ASSERTTREE(cond, msg) if(!(cond)) throw std::runtime_error(MakeString(msg, " - failed: ", #cond));
+#define ASSERTTREE(cond, msg) if(!(cond)) throw std::exception(MakeString(msg, " - failed: ", #cond));
 #else
 #define DEBUGPRINT(s)
 #define ASSERTTREE(cond, msg)
@@ -318,7 +318,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
             char buffer[1000];
             sprintf(buffer, "Node %d in tree %d is already there.",
                     (int)node->id.node_id, (int)node->id.tree_id);
-            throw std::runtime_error(buffer);
+            throw std::invalid_argument(buffer);
         }
         idi.insert(std::pair<TreeNodeElementId, TreeNodeElement<NTYPE>*>(node->id, node));
         sizeof_ += node->get_sizeof();
@@ -338,7 +338,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
             char buffer[1000];
             sprintf(buffer, "Unable to find node %d-%d (truenode).",
                     (int)coor.tree_id, (int)coor.node_id);
-            throw std::runtime_error(buffer);
+            throw std::invalid_argument(buffer);
         }
         if (coor.node_id >= 0 && coor.node_id < n_nodes_) {
             it->truenode = found->second;
@@ -350,7 +350,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
                     "truenode [%d] is pointing either to itself [node id=%d], either to another tree [%d!=%d-%d].",
                     (int)i, (int)it->id.node_id, (int)it->id.tree_id,
                     (int)it->truenode->id.tree_id, (int)it->truenode->id.tree_id);
-                throw std::runtime_error(buffer);
+                throw std::invalid_argument(buffer);
             }
         }
         else it->truenode = nullptr;
@@ -361,18 +361,18 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
             char buffer[1000];
             sprintf(buffer, "Unable to find node %d-%d (falsenode).",
                     (int)coor.tree_id, (int)coor.node_id);
-            throw std::runtime_error(buffer);
+            throw std::invalid_argument(buffer);
         }
         if (coor.node_id >= 0 && coor.node_id < n_nodes_) {
             it->falsenode = found->second;
             if ((it->falsenode->id.tree_id != it->id.tree_id) ||
                 (it->falsenode->id.node_id == it->id.node_id )) {
-                throw std::runtime_error("One falsenode is pointing either to itself, either to another tree.");
+                throw std::invalid_argument("One falsenode is pointing either to itself, either to another tree.");
                 char buffer[1000];
                 sprintf(buffer, "falsenode [%d] is pointing either to itself [node id=%d], either to another tree [%d!=%d-%d].",
                     (int)i, (int)it->id.node_id, (int)it->id.tree_id,
                     (int)it->falsenode->id.tree_id, (int)it->falsenode->id.tree_id);
-                throw std::runtime_error(buffer);
+                throw std::invalid_argument(buffer);
             }
         }
         else it->falsenode = nullptr;
@@ -393,7 +393,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
         if (idi.find(ind) == idi.end()) {
             char buffer[1000];
             sprintf(buffer, "Unable to find node %d-%d (weights).", (int)coor.tree_id, (int)coor.node_id);
-            throw std::runtime_error(buffer);
+            throw std::invalid_argument(buffer);
         }
         w.i = target_class_ids[i];
         w.value = target_class_weights[i];
@@ -416,7 +416,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
     if (array_structure_)
         switch_to_array_structure();
     else if (para_tree_)
-        throw std::runtime_error("array_structure must be enabled for para_tree.");
+        throw std::invalid_argument("array_structure must be enabled for para_tree.");
 }
 
 
@@ -460,7 +460,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::switch_to_array_structure() {
 
     for(int64_t i = 0; i < n_nodes_; ++i) {        
         if (nodes_[i].is_not_leaf() != array_nodes_.is_not_leaf(i))
-            throw std::runtime_error(MakeString(
+            throw std::invalid_argument(MakeString(
                 "Inconsistent results for is_node_leaf ", i, " true: ",
                 array_nodes_.truenode[i], " false:", array_nodes_.falsenode[i],
                 " leaf: ", nodes_[i].is_not_leaf() ? 1 : 0));
@@ -489,7 +489,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_agg(py::array_t<NT
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
-        throw std::runtime_error("X must have 2 dimensions.");
+        throw std::invalid_argument("X must have 2 dimensions.");
 
     // Does not handle 3D tensors
     bool xdims1 = x_dims.size() == 1;
@@ -515,7 +515,7 @@ py::tuple RuntimeTreeEnsembleCommonP<NTYPE>::compute_cl_agg(
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
-        throw std::runtime_error("X must have 2 dimensions.");
+        throw std::invalid_argument("X must have 2 dimensions.");
 
     // Does not handle 3D tensors
     bool xdims1 = x_dims.size() == 1;
@@ -668,7 +668,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
             }
         
             if (nth <= 0)
-                throw std::runtime_error("nth must strictly positive.");
+                throw std::invalid_argument("nth must strictly positive.");
             for (size_t th = 1; th < (size_t)nth; ++th) {
                 agg.MergePrediction(n_targets_or_classes_,
                     scores.data(), has_scores.data(),
@@ -900,7 +900,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
         else if (para_tree_ && (omp_get_max_threads() > 1) && (n_trees_ > omp_tree_)) { DEBUGPRINT("T")
             auto nth = omp_get_max_threads();
             if (nth <= 0)
-                throw std::runtime_error("nth must strictly positive.");
+                throw std::invalid_argument("nth must strictly positive.");
             
             auto size_obs = N * n_targets_or_classes_;
             std::vector<NTYPE> local_scores(nth * size_obs, 0);
@@ -1050,7 +1050,7 @@ TreeNodeElement<NTYPE> *
             default: {
                 std::ostringstream err_msg;
                 err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(root->mode);
-                throw std::runtime_error(err_msg.str());
+                throw std::invalid_argument(err_msg.str());
             }
         }
     }
@@ -1094,7 +1094,7 @@ TreeNodeElement<NTYPE> *
                     std::ostringstream err_msg;
                     err_msg << "Invalid mode of value: "
                             << static_cast<std::underlying_type<NODE_MODE>::type>(root->mode);
-                    throw std::runtime_error(err_msg.str());
+                    throw std::invalid_argument(err_msg.str());
                 }
             }
         }      
@@ -1170,7 +1170,7 @@ size_t RuntimeTreeEnsembleCommonP<NTYPE>::ProcessTreeNodeLeave(
                 std::ostringstream err_msg;
                 err_msg << "Invalid mode of value(2): "
                         << static_cast<std::underlying_type<NODE_MODE>::type>(array_nodes_.mode[root_id]);
-                throw std::runtime_error(err_msg.str());
+                throw std::invalid_argument(err_msg.str());
             }
         }
     }
@@ -1215,7 +1215,7 @@ size_t RuntimeTreeEnsembleCommonP<NTYPE>::ProcessTreeNodeLeave(
                     std::ostringstream err_msg;
                     err_msg << "Invalid mode of value: "
                             << static_cast<std::underlying_type<NODE_MODE>::type>(array_nodes_.mode[root_id]);
-                    throw std::runtime_error(err_msg.str());
+                    throw std::invalid_argument(err_msg.str());
                 }
             }
         }      
@@ -1228,7 +1228,7 @@ template<typename NTYPE>
 py::array_t<int> RuntimeTreeEnsembleCommonP<NTYPE>::debug_threshold(
         py::array_t<NTYPE> values) const {
     if (array_structure_)
-        throw std::runtime_error("debug_threshold not implemented if array_structure is true.");
+        throw std::invalid_argument("debug_threshold not implemented if array_structure is true.");
     std::vector<int> result(values.size() * n_nodes_);
     const NTYPE* x_data = values.data(0);
     const NTYPE* end = x_data + values.size();
@@ -1256,12 +1256,12 @@ py::array_t<int> RuntimeTreeEnsembleCommonP<NTYPE>::debug_threshold(
 template<typename NTYPE> template<typename AGG>
 py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_tree_outputs_agg(py::array_t<NTYPE> X, const AGG &agg) const {
     if (array_structure_)
-        throw std::runtime_error("compute_tree_outputs_agg not implemented if array_structure is true.");
+        throw std::invalid_argument("compute_tree_outputs_agg not implemented if array_structure is true.");
     
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
-        throw std::runtime_error("X must have 2 dimensions.");
+        throw std::invalid_argument("X must have 2 dimensions.");
 
     int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];  
     int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];

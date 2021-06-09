@@ -5,11 +5,20 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
+
 #include "op_qlinear_conv_.hpp"
-#include "op_cpp_tester.hpp"
-#include <numeric>
+#include "op_qlinear_cpp_tester_.hpp"
+#include "op_qlinear_cpp_qgemm_tester_.hpp"
 #include <random>
 #include <map>
+
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
 
 
 class RuntimeTesterQLinearConv : public RuntimeTester {
@@ -21,7 +30,7 @@ public:
 			RunQLinearConv(expect_success);
 			return;
 		}
-		throw std::runtime_error(MakeString("Not implemented for ',", op_name_, "'."));
+		throw std::invalid_argument(MakeString("Not implemented for ',", op_name_, "'."));
 	}
 
 	void RunQLinearConv(bool expect_success) {
@@ -37,7 +46,7 @@ public:
 				RunTypedQLinearConv<uint8_t, int8_t>(expect_success);
 				break;
 			default:
-				throw std::runtime_error(MakeString("Not Implemented for type ", t2));
+				throw std::invalid_argument(MakeString("Not Implemented for type ", t2));
 			}
 			break;
 		case 4:
@@ -49,11 +58,11 @@ public:
 				RunTypedQLinearConv<int8_t, int8_t>(expect_success);
 				break;
 			default:
-				throw std::runtime_error(MakeString("Not Implemented for type ", t2));
+				throw std::invalid_argument(MakeString("Not Implemented for type ", t2));
 			}
 			break;
 		default:
-			throw std::runtime_error(MakeString("Not Implemented for type ", t1));
+			throw std::invalid_argument(MakeString("Not Implemented for type ", t1));
 		}
 	}
 
@@ -131,12 +140,15 @@ protected:
 	template <typename T>
 	void GenerateRandom(
 		QuantizedTensor<T>& tensor, const std::vector<int64_t>& shape,
-		float scale, T zero_point, int32_t min_value, int32_t max_value) {
+		float scale, T zero_point, int32_t min_value, int32_t max_value,
+		bool random) {
 		std::uniform_int_distribution<int32_t> distribution(min_value, max_value);
 		size_t shape_size = ShapeSize(shape);
 		tensor.data_.resize(shape_size);
 		for (size_t n = 0; n < shape_size; n++) {
-			tensor.data_[n] = static_cast<T>(distribution(generator_));
+			tensor.data_[n] = static_cast<T>(random
+				? distribution(generator_)
+				: (n % (max_value - min_value) + min_value));
 		}
 		tensor.shape_ = shape;
 		tensor.scale_ = { scale };
@@ -177,7 +189,7 @@ protected:
 		for (int64_t d_i = N - 1; d_i >= 0; --d_i) {
 			int64_t d_max = shape[d_i];
 			if (dims[d_i] >= d_max)
-				throw std::runtime_error("unexpected error");
+				throw std::exception("Unexpected error");
 			if (dims[d_i] == d_max - 1) {
 				dims[d_i] = 0;
 			}
@@ -192,9 +204,9 @@ protected:
 
 	void ComputeExpectedOutput(std::vector<T1>& Y_data, std::vector<int64_t>& Y_shape) {
 		if (W_.shape_.size() <= 2)
-			throw std::runtime_error("Unexpected error.");
+			throw std::exception("Unexpected error.");
 		if (X_.shape_.size() != W_.shape_.size())
-			throw std::runtime_error("Unexpected error.");
+			throw std::exception("Unexpected error.");
 
 		const size_t kernel_rank = W_.shape_.size() - 2;
 		const int64_t batch_count = X_.shape_[0];
@@ -205,9 +217,9 @@ protected:
 		const int64_t group_output_channels = output_channels / group_count;
 
 		if (input_channels != group_input_channels * group_count)
-			throw std::runtime_error("Unexpected error.");
+			throw std::exception("Unexpected error.");
 		if (output_channels != group_output_channels * group_count)
-			throw std::runtime_error("Unexpected error.");
+			throw std::exception("Unexpected error.");
 
 		const int64_t* input_shape = X_.shape_.data() + 2;
 		const int64_t* kernel_shape = W_.shape_.data() + 2;
@@ -301,29 +313,29 @@ protected:
 public:
 	QLinearConvOpTester() { }
 
-	void GenerateRandomInput(const std::vector<int64_t>& shape, float scale, T1 zero_point) {
-		GenerateRandom(X_, shape, scale, zero_point, 0, 63);
+	void GenerateRandomInput(const std::vector<int64_t>& shape, float scale, T1 zero_point, bool random) {
+		GenerateRandom(X_, shape, scale, zero_point, 0, 63, random);
 	}
 
-	void GenerateRandomWeights(const std::vector<int64_t>& shape, float scale, T2 zero_point) {
+	void GenerateRandomWeights(const std::vector<int64_t>& shape, float scale, T2 zero_point, bool random) {
 		if (std::is_signed<T2>::value)
-			GenerateRandom(W_, shape, scale, zero_point, -63, 63);
+			GenerateRandom(W_, shape, scale, zero_point, -63, 63, random);
 		else
-			GenerateRandom(W_, shape, scale, zero_point, 0, 255);
+			GenerateRandom(W_, shape, scale, zero_point, 0, 255, random);
 	}
 
 	void SetWeightScales(const std::vector<float>& scales) {
 		W_.scale_ = scales;
 	}
 
-	void GenerateRandomBias() {
+	void GenerateRandomBias(bool random) {
 		if (W_.shape_.size() < 1)
-			throw std::runtime_error("Unexpected error.");
+			throw std::exception("Unexpected error.");
 		const size_t output_channels = static_cast<size_t>(W_.shape_[0]);
 		B_.resize(output_channels);
 		std::uniform_int_distribution<int32_t> distribution(-423, 423);
 		for (size_t n = 0; n < output_channels; n++)
-			B_[n] = distribution(generator_);
+			B_[n] = random ? distribution(generator_) : (n % (423 + 423) - 423);
 	}
 
 	void SetPads(const std::vector<int64_t>& pads) {
@@ -386,15 +398,44 @@ public:
 	}
 };
 
-void test_qliner_conv_Conv1D_U8S8() {
+///////////////////////////////////////////////////////////////////////////////
+
+void test_qlinear_qgemm_ii() {
+	QgemmU8X8Test<int8_t, int32_t> test;
+	test.ExecuteShort();
+	test.ExecuteLong();
+}
+
+void test_qlinear_qgemm_ui() {
+	QgemmU8X8Test<uint8_t, int32_t> test;
+	test.ExecuteShort();
+	test.ExecuteLong();
+}
+
+void test_qlinear_qgemm_if() {
+	QgemmU8X8Test<int8_t, float> test;
+	test.ExecuteShort();
+	test.ExecuteLong();
+}
+
+void test_qlinear_qgemm_uf() {
+	QgemmU8X8Test<uint8_t, float> test;
+	test.ExecuteShort();
+	test.ExecuteLong();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void test_qlinear_conv_Conv1D_U8S8(bool random) {
 	QLinearConvOpTester<uint8_t, int8_t> test;
-	test.GenerateRandomInput({ 3, 24, 15 }, .05f, 4);
-	test.GenerateRandomWeights({ 32, 24, 3 }, .125f, 0);
-	test.GenerateRandomBias();
+	test.GenerateRandomInput({ 3, 24, 15 }, .05f, 4, random);
+	test.GenerateRandomWeights({ 32, 24, 3 }, .125f, 0, random);
+	test.GenerateRandomBias(random);
 	test.SetPads({ 1, 1 });
 	test.SetOutputScaleAndZeroPoint(.55f, 54);
 	test.Run();
 }
+
 
 
 #ifndef SKIP_PYTHON
@@ -446,7 +487,11 @@ in :epkg:`onnxruntime`.)pbdoc"
 #endif
 ;
 
-	m.def("test_qliner_conv_Conv1D_U8S8", &test_qliner_conv_Conv1D_U8S8, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv1D_U8S8", &test_qlinear_conv_Conv1D_U8S8, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_qgemm_ii", &test_qlinear_qgemm_ii, R"pbdoc(Unit test for operator QGemm.)pbdoc");
+	m.def("test_qlinear_qgemm_ui", &test_qlinear_qgemm_ui, R"pbdoc(Unit test for operator QGemm.)pbdoc");
+	m.def("test_qlinear_qgemm_if", &test_qlinear_qgemm_if, R"pbdoc(Unit test for operator QGemm.)pbdoc");
+	m.def("test_qlinear_qgemm_uf", &test_qlinear_qgemm_uf, R"pbdoc(Unit test for operator QGemm.)pbdoc");
 
 	py::class_<QLinearConvUInt8> clf(m, "QLinearConvUInt8",
 		R"pbdoc(Implements uint8 runtime for operator QLinearConvUInt8. The code is inspired from

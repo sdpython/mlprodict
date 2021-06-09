@@ -33,6 +33,14 @@ inline bool _isnan_(float x) { return _isnan_((double)x); }
 
 #endif
 
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
 
 enum class POST_EVAL_TRANSFORM {
 	NONE,

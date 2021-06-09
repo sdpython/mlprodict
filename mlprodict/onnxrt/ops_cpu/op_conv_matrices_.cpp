@@ -24,7 +24,7 @@ void ComputePadAndOutputShape(
 		case AutoPadType::SAME_UPPER:
 		case AutoPadType::SAME_LOWER: {
 			if (dilation != 1)
-				throw std::runtime_error(
+				throw std::invalid_argument(
 					"Dilation not supported for AutoPadType::SAME_UPPER or AutoPadType::SAME_LOWER.");
 			int64_t legacy_target_size = (in_dim + stride - 1) / stride;
 			int64_t pad_needed = (legacy_target_size - 1) * stride + kernel - in_dim;
@@ -40,7 +40,7 @@ void ComputePadAndOutputShape(
 			*pad_tail = pad_needed - *pad_head;
 		} break;
 		default:
-			throw std::runtime_error("Invalid argument in ComputePadAndOutputShape.");
+			throw std::invalid_argument("Invalid argument in ComputePadAndOutputShape.");
 		}
 	}
 }
@@ -68,12 +68,12 @@ void ConvPoolCommonShape::compute_kernel_shape(
 	if (kernel_shape_.size() > 0) {
 		kernel_shape = kernel_shape_;
 		if (kernel_shape.size() + 2 != weight_shape.size())
-			throw std::runtime_error(
+			throw std::invalid_argument(
 				"kernel_shape num_dims is not compatible with W num_dims (1).");
 
 		for (size_t i = 0; i < kernel_shape.size(); ++i)
 			if (kernel_shape[i] != weight_shape[i + 2])
-				throw std::runtime_error(
+				throw std::invalid_argument(
 					"kernel_shape num_dims is not compatible with W num_dims (2).");
 	}
 	else {
@@ -98,7 +98,7 @@ void ConvPoolCommonShape::infer_output_shape(const std::vector<int64_t>& input_s
 		if (dim >= strides_p.size() || dim >= kernel_shape.size() ||
 			dim >= dilations_p.size() || dim >= pads_p.size() ||
 			rank + dim >= pads_p.size())
-			throw std::runtime_error("Failure in infer_output_shape.");
+			throw std::invalid_argument("Failure in infer_output_shape.");
 
 		dim_size = 0;
 		ComputePadAndOutputShape(
@@ -107,7 +107,7 @@ void ConvPoolCommonShape::infer_output_shape(const std::vector<int64_t>& input_s
 			&pads_p.at(input_shape.size() + dim),
 			&dim_size, ForceSymmetricAutoPadding);
 		if (dim_size <= 0)
-			throw std::runtime_error("Invalid argument in infer_output_shape.");
+			throw std::invalid_argument("Invalid argument in infer_output_shape.");
 		output_shape.push_back(dim_size);
 	}
 }

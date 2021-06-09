@@ -100,9 +100,10 @@ from mlprodict.tools.data_types import (
     UInt32TensorType, UInt64TensorType, Float16TensorType)
 from mlprodict.testing.test_utils.quantized_tensor import (
     QuantizedTensor, QuantizedBiasTensor, test_qlinear_conv)
-import mlprodict.onnxrt.ops_cpu.op_qlinear_conv_
-from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import test_qliner_conv_Conv1D_U8S8
-
+from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import (  # pylint: disable=E0611,E0401
+    test_qlinear_qgemm_ii, test_qlinear_qgemm_ui,
+    test_qlinear_qgemm_if, test_qlinear_qgemm_uf,
+    test_qlinear_conv_Conv1D_U8S8)
 
 try:
     numpy_str = numpy.str
@@ -2304,8 +2305,19 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         python_tested.append(OnnxQLinearConv)
 
     @wraplog()
+    def test_onnxt_runtime_qlinear_qgemm_cpp(self):
+        with self.subTest(fct="test_qlinear_qgemm_ii"):
+            test_qlinear_qgemm_ii()
+        with self.subTest(fct="test_qlinear_qgemm_if"):
+            test_qlinear_qgemm_if()
+        with self.subTest(fct="test_qlinear_qgemm_ui"):
+            test_qlinear_qgemm_ui()
+        with self.subTest(fct="test_qlinear_qgemm_uf"):
+            test_qlinear_qgemm_uf()
+
+    @wraplog()
     def test_onnxt_runtime_qlinear_conv_cpp(self):
-        test_qliner_conv_Conv1D_U8S8()
+        test_qlinear_conv_Conv1D_U8S8()
 
     @wraplog()
     def test_onnxt_runtime_qlinear_conv_test0(self):

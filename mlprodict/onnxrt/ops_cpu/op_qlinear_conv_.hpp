@@ -131,7 +131,7 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 			std::vector<int64_t> pads,
 			std::vector<int64_t> strides) {
 			ConvPoolCommon::initcpp(auto_pad, dilations, group, kernel_shape, pads, strides);
-			is_W_signed_ = is_signed<T1>();
+			is_W_signed_ = is_signed<T2>();
 			channels_last_ = false;
 			reordered_W_buffer_ = nullptr;
 			packed_W_buffer_ = nullptr;
@@ -515,24 +515,43 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 							const T2* ptrB;
 							bool BIsPacked = false;
 							if (packed_W_buffer_) {
-								ptrB = static_cast<const T2*>(packed_W_buffer_) + group_id * packed_W_size_,
-									BIsPacked = true;
+								ptrB = static_cast<const T2*>(packed_W_buffer_) + group_id * packed_W_size_;
+								BIsPacked = true;
 							}
 							else {
-								ptrB = reordered_W + group_id * group_output_channels,
-									ldb = static_cast<size_t>(M);
+								ptrB = reordered_W + group_id * group_output_channels;
+								ldb = static_cast<size_t>(M);
 							}
+
+							std::cout << MakeString(
+								"M=", output_count, " N=", group_output_channels,
+								" K=", kernel_dim, " signed=", is_W_signed_, "\n");
+							std::cout << MakeString(
+								"lda=", kernel_dim, " ZeroPointA=", (int)x_zero_point, " ldb=", ldb,
+								" ldc=", M, " BIsPacked=", BIsPacked,
+								" PerColumnZeroPoints=", (int)false, "\n");
+
+							for (size_t i = 0; i < 10; ++i)
+								std::cout << MakeString((int)worker_gemm_input[i], " ");
+							std::cout << "\n-------\n";
+							auto* ptr = worker_gemm_output + group_id * group_output_channels;
+							for (size_t i = 0; i < 10; ++i)
+								std::cout << MakeString((int)ptr[i], " ");
+							std::cout << "\n----------\n";
 
 							QGemm<T1, T2>(
 								false, false,
 								static_cast<size_t>(output_count),  // M
 								static_cast<size_t>(group_output_channels),  // N
 								static_cast<size_t>(kernel_dim), 1,  // K, alpha
-								worker_gemm_input, ptrB, 1,  // A, B, beta
+								worker_gemm_input, ptrB, 0,  // A, B, beta
 								worker_gemm_output + group_id * group_output_channels,  // C
 								static_cast<size_t>(kernel_dim), ldb, static_cast<size_t>(M),  // lda, ldb, ldc
 								x_zero_point, &w_zero_point,  // ZeroPointA, ZeroPointB
 								BIsPacked, false);  // BIsPacked, PerColumnZeroPoints
+
+							for (size_t i = 0; i < 10; ++i)
+								std::cout << (int)ptr[i] << " ";
 						}
 					}
 
@@ -574,4 +593,8 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 
 // unit tests
 
-void test_qliner_conv_Conv1D_U8S8();
+void test_qlinear_conv_Conv1D_U8S8(bool random);
+void test_qlinear_qgemm_ii();
+void test_qlinear_qgemm_ui();
+void test_qlinear_qgemm_if();
+void test_qlinear_qgemm_uf();

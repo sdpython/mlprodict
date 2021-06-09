@@ -103,12 +103,12 @@ void ConvTranspose<T>::compute_kernel_shape(const std::vector<int64_t>& weight_s
     if (kernel_shape_.size() > 0) {
         kernel_shape = kernel_shape_;
         if (kernel_shape.size() + 2 != weight_shape.size())
-            throw std::runtime_error(
+            throw std::invalid_argument(
                 "kernel_shape num_dims is not compatible with W num_dims (1).");
 
         for (size_t i = 0; i < kernel_shape.size(); ++i)
             if (kernel_shape[i] != weight_shape[i + 2])
-                throw std::runtime_error(
+                throw std::invalid_argument(
                     "kernel_shape num_dims is not compatible with W num_dims (2).");
     }
     else {
@@ -191,15 +191,15 @@ void ConvTranspose<T>::infer_output_shape(
 
     size_t rank = input_shape.size();
     if (rank > strides_p.size())
-        throw std::runtime_error("rank out of 'strides_p' boundary.");
+        throw std::out_of_range("rank out of 'strides_p' boundary.");
     if (rank > kernel_shape.size())
-        throw std::runtime_error("rank out of 'kernel_shape' boundary.");
+        throw std::out_of_range("rank out of 'kernel_shape' boundary.");
     if (rank > dilations_p.size())
-        throw std::runtime_error("rank out of 'dilations_p' boundary.");
+        throw std::out_of_range("rank out of 'dilations_p' boundary.");
     if (rank > output_padding.size())
-        throw std::runtime_error("rank out of 'output_padding' boundary.");
+        throw std::out_of_range("rank out of 'output_padding' boundary.");
     if (rank > pads_p.size())
-        throw std::runtime_error("rank out of 'pads_p' boundary.");
+        throw std::out_of_range("rank out of 'pads_p' boundary.");
 
     for (size_t dim = 0; dim < rank; ++dim) {
         int64_t dim_size = -1;
@@ -219,7 +219,7 @@ void ConvTranspose<T>::infer_output_shape(
             &dim_size);
 
         if (dim_size <= 0)
-            throw std::runtime_error("Invalid argument in infer_output_shape.");
+            throw std::invalid_argument("Invalid argument in infer_output_shape.");
         output_shape.push_back(dim_size);
     }
 }

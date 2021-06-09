@@ -83,7 +83,7 @@ public:
 	bool operator == (T* ptr) {
 		if (ptr == nullptr)
 			return this->empty();
-		throw std::runtime_error("not implemented when ptr != nullptr");
+		throw std::exception("Not implemented when ptr != nullptr");
 	}
 };
 
@@ -136,8 +136,7 @@ void QConvDepthwise(const T** Input, TI InputZeroPoint, const TF* Filter,
 template <typename NTYPE>
 void gemm(bool transA, bool transB,
 	size_t M, size_t N, size_t K, NTYPE alpha,
-	const NTYPE* A, const NTYPE* B, NTYPE beta,
-	NTYPE* C) {
+	const NTYPE* A, const NTYPE* B, NTYPE beta, NTYPE* C) {
 
 	if (transA) {
 		if (transB) {
@@ -160,7 +159,7 @@ void gemm(bool transA, bool transB,
 					*begin = val0 + val * alpha;
 					maxc = maxc > (size_t)(begin - C) ? maxc : (size_t)(begin - C);
 					if (maxc > M * N)
-						throw std::runtime_error("gemm10: maxc > M * N");
+						throw std::invalid_argument("gemm10: maxc > M * N");
 				}
 			}
 			return;
@@ -187,13 +186,13 @@ void gemm(bool transA, bool transB,
 					*begin = val0 + val * alpha;
 					maxc = maxc > (size_t)(begin - C) ? maxc : (size_t)(begin - C);
 					if (maxc > M * N)
-						throw std::runtime_error("gemm00: maxc > M * N");
+						throw std::invalid_argument("gemm00: maxc > M * N");
 				}
 			}
 			return;
 		}
 	}
-	throw std::runtime_error("Not implemented for transposed matrices (Gemm<T>).");
+	throw std::exception("Not implemented for transposed matrices (Gemm<T>).");
 }
 
 
@@ -227,9 +226,9 @@ void QGemm(bool transA, bool transB,
 		size_t          ldc                 = 0};
 	*/
 	if (alpha != 1)
-		throw std::runtime_error("Not implemented for alpha != 1 (QGemm<T>).");
-	if (beta != 1)
-		throw std::runtime_error("Not implemented for beta != 1 (QGemm<T>).");
+		throw std::exception("Not implemented for alpha != 1 (QGemm<T>).");
+	if (beta != 0)
+		throw std::exception("Not implemented for beta != 0 (QGemm<T>).");
 	if (transA) {
 		if (transB) {
 		}
@@ -244,27 +243,29 @@ void QGemm(bool transA, bool transB,
 			int32_t* begin;
 			TOUT val;
 			TOUT val0;
+			TB zero_point_b;
 			size_t i, j, k, maxc = 0;
 			const TA* pA;
 			const TB* pB;
 			for (i = 0, begin = C; i < M; ++i) {
 				for (j = 0; j < N; ++j, ++begin) {
-					val0 = *begin; /* * beta;*/
+					val0 = *begin * beta;
 					val = 0;
 					pA = A + i * K;
 					pB = B + j;
+					zero_point_b = PerColumnZeroPoints ? ZeroPointB[j] : ZeroPointB[0];
 					for (k = K; k > 0; --k, ++pA, pB += N)
-						val += *pA * *pB;
+						val += (int32_t(*pA) - ZeroPointA) * (int32_t(*pB) - zero_point_b);
 					*begin = val0 + val; /* * alpha;*/
 					maxc = maxc > (size_t)(begin - C) ? maxc : (size_t)(begin - C);
 					if (maxc > M * N)
-						throw std::runtime_error("qgemm00: maxc > M * N");
+						throw std::invalid_argument("qgemm00: maxc > M * N");
 				}
 			}
 			return;
 		}
 	}
-	throw std::runtime_error("Not implemented for transposed matrices (QGemm<T>).");
+	throw std::exception("Not implemented for transposed matrices (QGemm<T>).");
 }
 
 
@@ -755,7 +756,7 @@ void ComputeTransposePadAndOutputShape(
 			*out_size = (in_size - 1) * stride + adj + (kernel - 1) * dilation + 1;
 			break;
 		default:
-			throw std::runtime_error("pad type not supported");
+			throw std::invalid_argument("pad type not supported");
 		}
 	}
 	else {

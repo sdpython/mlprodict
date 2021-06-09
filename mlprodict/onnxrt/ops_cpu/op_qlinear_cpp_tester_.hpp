@@ -43,53 +43,53 @@ namespace detail {
 
 	template <typename T>
 	inline T GetValue(const RuntimeTesterIO& io) {
-		throw std::runtime_error(MakeString("Unable to get value (type=", io.type_, ")."));
+		throw std::invalid_argument(MakeString("Unable to get value (type=", io.type_, ")."));
 	}
 
 	template <>
 	inline int64_t GetValue<int64_t>(const RuntimeTesterIO& io) {
 		if (io.type_ != 2 || io.values_int8_t_.size() != 1 || io.shape_.size() != 0)
-			throw std::runtime_error("Unexpected error.");
+			throw std::exception("Unexpected error.");
 		return io.values_int64_t_[0];
 	}
 
 	template <typename T>
 	inline std::vector<T> GetVectorValue(const RuntimeTesterIO& io) {
-		throw std::runtime_error(MakeString("Unable to get vector value (type=", io.type_, ")."));
+		throw std::exception(MakeString("Unable to get vector value (type=", io.type_, ")."));
 	}
 
 	template <>
 	inline std::vector<float> GetVectorValue<float>(const RuntimeTesterIO& io) {
 		if (io.type_ != 1)
-			throw std::runtime_error("Unexpected error.");
+			throw std::exception("Unexpected error.");
 		return io.values_float_;
 	}
 
 	template <>
 	inline std::vector<int64_t> GetVectorValue<int64_t>(const RuntimeTesterIO& io) {
 		if (io.type_ != 2)
-			throw std::runtime_error("Unexpected error.");
+			throw std::exception("Unexpected error.");
 		return io.values_int64_t_;
 	}
 
 	template <>
 	inline  std::vector<uint8_t> GetVectorValue<uint8_t>(const RuntimeTesterIO& io) {
 		if (io.type_ != 3)
-			throw std::runtime_error("Unexpected error.");
+			throw std::exception("Unexpected error.");
 		return io.values_uint8_t_;
 	}
 
 	template <>
 	inline std::vector<int8_t> GetVectorValue<int8_t>(const RuntimeTesterIO& io) {
 		if (io.type_ != 4)
-			throw std::runtime_error("Unexpected error.");
+			throw std::exception("Unexpected error.");
 		return io.values_int8_t_;
 	}
 
 	template <>
 	inline std::vector<int32_t> GetVectorValue<int32_t>(const RuntimeTesterIO& io) {
 		if (io.type_ != 5)
-			throw std::runtime_error("Unexpected error.");
+			throw std::exception("Unexpected error.");
 		return io.values_int32_t_;
 	}
 }
@@ -209,14 +209,14 @@ public:
 	template <typename T>
 	void CheckSameType(const std::vector<shaped_array_t<T>>& res) {
 		if (res.size() != outputs_.size())
-			throw std::runtime_error(MakeString(res.size(), " outputs but ", outputs_.size(), " are expected."));
+			throw std::invalid_argument(MakeString(res.size(), " outputs but ", outputs_.size(), " are expected."));
 		for (size_t i = 0; i < res.size(); ++i) {
 			if (!outputs_[i].Check(res[0]))
-				throw std::runtime_error(MakeString("output ", i, " is different."));
+				throw std::invalid_argument(MakeString("output ", i, " is different."));
 		}
 	}
 
 	virtual void Run(bool expect_success, const char* ignored = NULL) {
-		throw std::runtime_error(MakeString("Not implemented for ',", op_name_, "'."));
+		throw std::invalid_argument(MakeString("Not implemented for ',", op_name_, "'."));
 	}
 };
