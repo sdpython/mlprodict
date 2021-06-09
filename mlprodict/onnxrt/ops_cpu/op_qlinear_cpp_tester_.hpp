@@ -48,7 +48,7 @@ namespace detail {
 
 	template <>
 	inline int64_t GetValue<int64_t>(const RuntimeTesterIO& io) {
-		if (io.type_ != 2 || io.values_int8_t_.size() != 1 || io.shape_.size() != 0)
+		if (io.type_ != 2 || io.values_int64_t_.size() != 1 || io.shape_.size() != 0)
 			throw std::exception("Unexpected error.");
 		return io.values_int64_t_[0];
 	}

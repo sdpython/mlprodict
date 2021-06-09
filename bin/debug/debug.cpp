@@ -65,7 +65,35 @@ void test_qlinear_qgemm() {
 }
 
 void test_qlinear_conv2(bool random) {
+	test_qlinear_conv_Conv1D_U8S8_Groups(random);
+
 	test_qlinear_conv_Conv1D_U8S8(random);
+	test_qlinear_conv_Conv2D_U8S8(random);
+	test_qlinear_conv_Conv3D_U8S8(random);
+	test_qlinear_conv_Conv1D_U8S8_Pointwise(random);
+	test_qlinear_conv_Conv2D_U8S8_Pointwise(random);
+	test_qlinear_conv_Conv2D_U8U8_Pointwise(random);
+	test_qlinear_conv_Conv3D_U8S8_Pointwise(random);
+	test_qlinear_conv_Conv1D_U8S8_Dilations(random);
+	test_qlinear_conv_Conv2D_U8S8_Dilations(random);
+	test_qlinear_conv_Conv3D_U8S8_Dilations(random);
+	test_qlinear_conv_Conv1D_U8S8_Strides(random);
+	test_qlinear_conv_Conv2D_U8S8_Strides(random);
+	test_qlinear_conv_Conv3D_U8S8_Strides(random);
+	test_qlinear_conv_Conv1D_U8S8_Depthwise(random);
+	test_qlinear_conv_Conv2D_U8S8_Depthwise(random);
+	test_qlinear_conv_Conv2D_U8U8_Depthwise(random);
+	test_qlinear_conv_Conv2D_U8S8_DepthwisePointwise(random);
+	test_qlinear_conv_Conv3D_U8S8_Depthwise(random);
+	test_qlinear_conv_Conv2D_U8S8_Requantize_NoBias(random);
+	test_qlinear_conv_Conv2D_U8S8_Requantize_Bias(random);
+	test_qlinear_conv_Conv2D_U8S8_Requantize_Bias_PerChannel(random);
+	test_qlinear_conv_Conv2D_U8S8_Groups_Pointwise(random);
+	test_qlinear_conv_Conv3D_U8S8_Groups_Pointwise(random);
+	test_qlinear_conv_Conv2D_U8S8_Groups(random);
+	test_qlinear_conv_Conv3D_U8S8_Groups(random);
+	test_qlinear_conv_Conv1D_U8S8_Groups(random);
+	test_qlinear_conv_Conv2D_U8S8_Groups_PerChannel(random);
 }
 
 int main() {

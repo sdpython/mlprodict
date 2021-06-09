@@ -523,21 +523,7 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 								ldb = static_cast<size_t>(M);
 							}
 
-							std::cout << MakeString(
-								"M=", output_count, " N=", group_output_channels,
-								" K=", kernel_dim, " signed=", is_W_signed_, "\n");
-							std::cout << MakeString(
-								"lda=", kernel_dim, " ZeroPointA=", (int)x_zero_point, " ldb=", ldb,
-								" ldc=", M, " BIsPacked=", BIsPacked,
-								" PerColumnZeroPoints=", (int)false, "\n");
-
-							for (size_t i = 0; i < 10; ++i)
-								std::cout << MakeString((int)worker_gemm_input[i], " ");
-							std::cout << "\n-------\n";
 							auto* ptr = worker_gemm_output + group_id * group_output_channels;
-							for (size_t i = 0; i < 10; ++i)
-								std::cout << MakeString((int)ptr[i], " ");
-							std::cout << "\n----------\n";
 
 							QGemm<T1, T2>(
 								false, false,
@@ -549,9 +535,6 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 								static_cast<size_t>(kernel_dim), ldb, static_cast<size_t>(M),  // lda, ldb, ldc
 								x_zero_point, &w_zero_point,  // ZeroPointA, ZeroPointB
 								BIsPacked, false);  // BIsPacked, PerColumnZeroPoints
-
-							for (size_t i = 0; i < 10; ++i)
-								std::cout << (int)ptr[i] << " ";
 						}
 					}
 
@@ -594,6 +577,33 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 // unit tests
 
 void test_qlinear_conv_Conv1D_U8S8(bool random);
+void test_qlinear_conv_Conv2D_U8S8(bool random);
+void test_qlinear_conv_Conv3D_U8S8(bool random);
+void test_qlinear_conv_Conv1D_U8S8_Pointwise(bool random);
+void test_qlinear_conv_Conv2D_U8S8_Pointwise(bool random);
+void test_qlinear_conv_Conv2D_U8U8_Pointwise(bool random);
+void test_qlinear_conv_Conv3D_U8S8_Pointwise(bool random);
+void test_qlinear_conv_Conv1D_U8S8_Dilations(bool random);
+void test_qlinear_conv_Conv2D_U8S8_Dilations(bool random);
+void test_qlinear_conv_Conv3D_U8S8_Dilations(bool random);
+void test_qlinear_conv_Conv1D_U8S8_Strides(bool random);
+void test_qlinear_conv_Conv2D_U8S8_Strides(bool random);
+void test_qlinear_conv_Conv3D_U8S8_Strides(bool random);
+void test_qlinear_conv_Conv1D_U8S8_Groups(bool random);
+void test_qlinear_conv_Conv2D_U8S8_Groups(bool random);
+void test_qlinear_conv_Conv3D_U8S8_Groups(bool random);
+void test_qlinear_conv_Conv2D_U8S8_Groups_PerChannel(bool random);
+void test_qlinear_conv_Conv2D_U8S8_Groups_Pointwise(bool random);
+void test_qlinear_conv_Conv3D_U8S8_Groups_Pointwise(bool random);
+void test_qlinear_conv_Conv1D_U8S8_Depthwise(bool random);
+void test_qlinear_conv_Conv2D_U8S8_Depthwise(bool random);
+void test_qlinear_conv_Conv2D_U8U8_Depthwise(bool random);
+void test_qlinear_conv_Conv2D_U8S8_DepthwisePointwise(bool random);
+void test_qlinear_conv_Conv3D_U8S8_Depthwise(bool random);
+void test_qlinear_conv_Conv2D_U8S8_Requantize_NoBias(bool random);
+void test_qlinear_conv_Conv2D_U8S8_Requantize_Bias(bool random);
+void test_qlinear_conv_Conv2D_U8S8_Requantize_Bias_PerChannel(bool random);
+
 void test_qlinear_qgemm_ii();
 void test_qlinear_qgemm_ui();
 void test_qlinear_qgemm_if();

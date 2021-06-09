@@ -2317,7 +2317,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_qlinear_conv_cpp(self):
-        test_qlinear_conv_Conv1D_U8S8()
+        test_qlinear_conv_Conv1D_U8S8(False)
+        test_qlinear_conv_Conv1D_U8S8(True)
 
     @wraplog()
     def test_onnxt_runtime_qlinear_conv_test0(self):
