@@ -3754,14 +3754,18 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 
 if __name__ == "__main__":
+    # Working
     # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv()
     # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_test0()
     # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_2dtest()
     # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_3dtest()
-
     # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_2dtest_with_bias()
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_2dtest_with_group()
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_2dtest_with_group()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_qgemm_cpp()
+
+    # Still failing
     # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_cpp()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_2dtest_with_group()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_2dtest_with_group()
+
     # stop
     unittest.main()
