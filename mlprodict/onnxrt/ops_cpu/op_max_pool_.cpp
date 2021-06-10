@@ -534,7 +534,7 @@ void MaxPool<T>::compute_gil_free(
         }
         
         default:
-            throw std::exception("MaxPool: not implemented error.");
+            throw std::invalid_argument("MaxPool: not implemented error.");
     }
 }
 
