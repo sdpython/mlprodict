@@ -477,7 +477,7 @@ public:
 					printf("count=%d a %zd/%zd b %zd/%zd M %zd\n", count, a, _countof(zero_points), b, _countof(zero_points), M);
 #endif
 					if (count == 0)
-						throw std::exception("No test were run.");
+						throw std::length_error("No test were run.");
 				}
 			}
 		}
