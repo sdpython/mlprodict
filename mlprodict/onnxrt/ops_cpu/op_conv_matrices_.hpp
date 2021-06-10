@@ -192,7 +192,7 @@ void gemm(bool transA, bool transB,
 			return;
 		}
 	}
-	throw std::exception("Not implemented for transposed matrices (Gemm<T>).");
+	throw std::invalid_argument("Not implemented for transposed matrices (Gemm<T>).");
 }
 
 

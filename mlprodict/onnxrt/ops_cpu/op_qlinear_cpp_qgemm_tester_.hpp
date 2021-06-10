@@ -37,28 +37,20 @@ public:
 		_ElementsAllocated = 0;
 	}
 
-	~MatrixGuardBuffer(void) {
-		ReleaseBuffer();
-	}
+	~MatrixGuardBuffer(void) { ReleaseBuffer(); }
 
 	T* GetBuffer(size_t Elements, bool ZeroFill = false) {
-		//
 		// Check if the internal buffer needs to be reallocated.
-		//
 
 		if (Elements > _ElementsAllocated) {
 			ReleaseBuffer();
 
-			//
 			// Reserve a virtual address range for the allocation plus an unmapped
 			// guard region.
-			//
 
 			constexpr size_t BufferAlignment = 64 * 1024;
 			constexpr size_t GuardPadding = 256 * 1024;
-
 			size_t BytesToAllocate = ((Elements * sizeof(T)) + BufferAlignment - 1) & ~(BufferAlignment - 1);
-
 			_BaseBufferSize = BytesToAllocate + GuardPadding;
 
 #if defined(_WIN32)
@@ -67,25 +59,19 @@ public:
 			_BaseBuffer = mmap(0, _BaseBufferSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 #endif
 
-			if (_BaseBuffer == nullptr) {
+			if (_BaseBuffer == nullptr)
 				abort();
-			}
 
-			//
 			// Commit the number of bytes for the allocation leaving the upper
 			// guard region as unmapped.
-			//
 
 #if defined(_WIN32)
-			if (VirtualAlloc(_BaseBuffer, BytesToAllocate, MEM_COMMIT, PAGE_READWRITE) == nullptr) {
+			if (VirtualAlloc(_BaseBuffer, BytesToAllocate, MEM_COMMIT, PAGE_READWRITE) == nullptr)
 				throw std::bad_alloc();
-			}
 #else
-			if (mprotect(_BaseBuffer, BytesToAllocate, PROT_READ | PROT_WRITE) != 0) {
+			if (mprotect(_BaseBuffer, BytesToAllocate, PROT_READ | PROT_WRITE) != 0)
 				abort();
-			}
 #endif
-
 			_ElementsAllocated = BytesToAllocate / sizeof(T);
 			_GuardAddress = (T*)((unsigned char*)_BaseBuffer + BytesToAllocate);
 		}
@@ -99,23 +85,18 @@ public:
 
 		if (ZeroFill) {
 			std::fill_n(buffer, Elements, T(0));
-
 		}
 		else {
 			const int MinimumFillValue = -23;
 			const int MaximumFillValue = 23;
-
 			int FillValue = MinimumFillValue;
 			T* FillAddress = buffer;
 
 			while (FillAddress < GuardAddress) {
 				*FillAddress++ = (T)FillValue;
-
 				FillValue++;
-
-				if (FillValue > MaximumFillValue) {
+				if (FillValue > MaximumFillValue)
 					FillValue = MinimumFillValue;
-				}
 			}
 		}
 
@@ -129,7 +110,6 @@ public:
 #else
 			munmap(_BaseBuffer, _BaseBufferSize);
 #endif
-
 			_BaseBuffer = nullptr;
 			_BaseBufferSize = 0;
 		}
@@ -146,19 +126,11 @@ private:
 
 
 void TestLocalGemm(
-	bool TransA,
-	bool TransB,
-	size_t M,
-	size_t N,
-	size_t K,
-	float alpha,
-	const float* A,
-	size_t lda,
-	const float* B,
-	size_t ldb,
-	float beta,
-	float* C,
-	size_t ldc);
+	bool TransA, bool TransB,
+	size_t M, size_t N, size_t K,
+	float alpha, const float* A, size_t lda,
+	const float* B, size_t ldb, float beta,
+	float* C, size_t ldc);
 
 
 struct GEMM_U8X8_SHAPE_PARAMS {
@@ -218,19 +190,11 @@ class QgemmU8X8U8X8TestBase : public QgemmTestBase {
 protected:
 	QgemmU8X8U8X8TestBase() {}
 
-	void TestGemm(size_t M,
-		size_t N,
-		size_t K,
-		size_t BatchSize,
-		const uint8_t* A,
-		size_t lda,
-		uint8_t offa,
-		const uint8_t* B,
-		size_t ldb,
-		uint8_t offb,
-		bool BIsSigned,
-		int32_t* C,
-		size_t ldc) {
+	void TestGemm(
+		size_t M, size_t N, size_t K, size_t BatchSize,
+		const uint8_t* A, size_t lda, uint8_t offa,
+		const uint8_t* B, size_t ldb, uint8_t offb,
+		bool BIsSigned, int32_t* C, size_t ldc) {
 		GEMM_U8X8_SHAPE_PARAMS GemmShape;
 		GemmShape.M = M;
 		GemmShape.N = N;
@@ -250,23 +214,14 @@ protected:
 			params.B = B + (K * N * i);
 			params.ldb = ldb;
 		}
-
 		TestQGemmBatch<T>(GemmShape, GemmParameters.data(), BatchSize);
 	}
 
-	void TestGemm(size_t M,
-		size_t N,
-		size_t K,
-		size_t BatchSize,
-		const uint8_t* A,
-		size_t lda,
-		uint8_t offa,
-		const uint8_t* B,
-		size_t ldb,
-		const uint8_t* offb,
-		bool BIsSigned,
-		int32_t* C,
-		size_t ldc) {
+	void TestGemm(
+		size_t M, size_t N, size_t K, size_t BatchSize,
+		const uint8_t* A, size_t lda, uint8_t offa,
+		const uint8_t* B, size_t ldb, const uint8_t* offb,
+		bool BIsSigned, int32_t* C, size_t ldc) {
 		GEMM_U8X8_SHAPE_PARAMS GemmShape;
 		GemmShape.M = M;
 		GemmShape.N = N;
@@ -287,7 +242,6 @@ protected:
 			params.B = B + K * N * i;
 			params.ldb = ldb;
 		}
-
 		TestQGemmBatch<T>(GemmShape, GemmParameters.data(), BatchSize);
 	}
 };
@@ -315,19 +269,11 @@ public:
 		Test(M, N, K, BatchSize, A, K, offa, B, N, ZeroPointB, C, CReference, N);
 	}
 
-	void Test(size_t M,
-		size_t N,
-		size_t K,
-		size_t BatchSize,
-		const uint8_t* A,
-		size_t lda,
-		uint8_t offa,
-		const uint8_t* B,
-		size_t ldb,
-		uint8_t offb,
-		int32_t* C,
-		int32_t* CReference,
-		size_t ldc) {
+	void Test(
+		size_t M, size_t N, size_t K, size_t BatchSize,
+		const uint8_t* A, size_t lda, uint8_t offa,
+		const uint8_t* B, size_t ldb, uint8_t offb,
+		int32_t* C, int32_t* CReference, size_t ldc) {
 		std::fill_n(C, M * N * BatchSize, -1);
 		std::fill_n(CReference, M * N * BatchSize, -1);
 
@@ -340,27 +286,19 @@ public:
 				for (size_t n = 0; n < N; n++, f++) {
 					if (C[f] != CReference[f])
 						throw std::invalid_argument(MakeString(
-							C[f], "!=", CReference[f], "@[", batch, "x", m, "x", n, "], "
-							, "Batch=", BatchSize, "M=", M, ", N=", N, ", K=", K
-							, ", offa=", int(offa), ", offb=", int(offb)));
+							C[f], "!=", CReference[f], "@[", batch, "x", m, "x", n, "], ",
+							"Batch=", BatchSize, "M=", M, ", N=", N, ", K=", K,
+							", offa=", int(offa), ", offb=", int(offb)));
 				}
 			}
 		}
 	}
 
-	void Test(size_t M,
-		size_t N,
-		size_t K,
-		size_t BatchSize,
-		const uint8_t* A,
-		size_t lda,
-		uint8_t offa,
-		const uint8_t* B,
-		size_t ldb,
-		const uint8_t* offb,
-		int32_t* C,
-		int32_t* CReference,
-		size_t ldc) {
+	void Test(
+		size_t M, size_t N, size_t K, size_t BatchSize,
+		const uint8_t* A, size_t lda, uint8_t offa,
+		const uint8_t* B, size_t ldb, const uint8_t* offb,
+		int32_t* C, int32_t* CReference, size_t ldc) {
 		std::fill_n(C, M * N * BatchSize, -1);
 		std::fill_n(CReference, M * N * BatchSize, -1);
 

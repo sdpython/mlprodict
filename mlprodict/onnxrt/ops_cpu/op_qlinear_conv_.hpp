@@ -49,22 +49,14 @@ inline uint32_t BitsOfFp32(float FloatValue) {
 */
 template <typename T>
 void RequantizeOutput(
-	const int32_t* Input,
-	T* Output,
-	const int32_t* Bias,
-	size_t M,
-	size_t N,
-	const float* Scale,
-	bool PerColumnScale,
-	T ZeroPoint) {
+	const int32_t* Input, T* Output, const int32_t* Bias,
+	size_t M, size_t N,
+	const float* Scale, bool PerColumnScale, T ZeroPoint) {
 	const float PerMatrixScaleValue = PerColumnScale ? 0.0f : *Scale;
 	const float MinimumValue = float(0 - ZeroPoint);
 	const float MaximumValue = float(255 - ZeroPoint);
 
-	//
 	// Step through each row of the output matrix.
-	//
-
 	while (M-- > 0) {
 
 		const int32_t* bias = Bias;
@@ -85,13 +77,11 @@ void RequantizeOutput(
 			FloatValue = std::max(FloatValue, MinimumValue);
 			FloatValue = std::min(FloatValue, MaximumValue);
 
-			//
 			// Use the fast rounding trick adapted from XNNPACK: bias the floating
 			// point value by the first floating point value that has no
 			// fractional bits. The add operation performs the "round to nearest
 			// even". Extract the mantissa bits from this floating point value to
 			// obtain the rounded integer value.
-			//
 
 			IntegerValue = int32_t(BitsOfFp32(FloatValue + ROUNDING_BIAS_MAGIC)) - ROUNDING_BIAS_MAGIC_BITS;
 			*Output++ = T(IntegerValue + ZeroPoint);
@@ -124,12 +114,8 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 		QLinearConv() : ConvPoolCommon() {}
 
 		void init(
-			const std::string& auto_pad,
-			std::vector<int64_t> dilations,
-			int64_t group,
-			std::vector<int64_t> kernel_shape,
-			std::vector<int64_t> pads,
-			std::vector<int64_t> strides) {
+			const std::string& auto_pad, std::vector<int64_t> dilations, int64_t group,
+			std::vector<int64_t> kernel_shape, std::vector<int64_t> pads, std::vector<int64_t> strides) {
 			ConvPoolCommon::initcpp(auto_pad, dilations, group, kernel_shape, pads, strides);
 			is_W_signed_ = is_signed<T2>();
 			channels_last_ = false;
@@ -282,7 +268,8 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 					// Weight tensor was not constant or prepacking is disabled.
 					reordered_W = new T2[flattened_dimension(w_dims)];
 					reordered_W_buffer = reordered_W;
-					ReorderFilter(W.data(),
+					ReorderFilter(
+						W.data(),
 						reordered_W,
 						static_cast<size_t>(M),
 						static_cast<size_t>(w_dims[1]),
@@ -453,15 +440,17 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 							static_cast<size_t>(kernel_size));
 					}
 					else {
+						size_t lda;
 						for (int64_t group_id = 0; group_id < group_count; ++group_id) {
 							// Prepare the im2col transformation or use the input buffer directly for
 							// pointwise convolutions.
 							const T1* worker_gemm_input;
+							const auto* group_input_data = input_data + group_id * group_input_channels;
 							if (col_buffer) {
 								T1* worker_col_buffer = ((T1*)col_buffer) + output_start * kernel_dim;
 								if (kernel_rank == 2) {
 									Im2col_NHWC<T1>(
-										input_data + group_id * group_input_channels,
+										group_input_data,
 										group_input_channels,
 										C,
 										input_shape[0],
@@ -482,7 +471,7 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 								}
 								else if (kernel_rank == 1) {
 									Im2col_NHWC<T1>(
-										input_data + group_id * group_input_channels,
+										group_input_data,
 										group_input_channels,
 										C,
 										1,
@@ -506,9 +495,11 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 									worker_col_buffer += group_id * col_buffer_size;
 								}
 								worker_gemm_input = worker_col_buffer;
+								lda = kernel_dim;
 							}
 							else {
-								worker_gemm_input = input_data + output_start * kernel_dim;
+								worker_gemm_input = group_input_data + output_start * C;
+								lda = C;
 							}
 
 							size_t ldb = 0;
@@ -523,8 +514,6 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 								ldb = static_cast<size_t>(M);
 							}
 
-							auto* ptr = worker_gemm_output + group_id * group_output_channels;
-
 							QGemm<T1, T2>(
 								false, false,
 								static_cast<size_t>(output_count),  // M
@@ -532,7 +521,7 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 								static_cast<size_t>(kernel_dim), 1,  // K, alpha
 								worker_gemm_input, ptrB, 0,  // A, B, beta
 								worker_gemm_output + group_id * group_output_channels,  // C
-								static_cast<size_t>(kernel_dim), ldb, static_cast<size_t>(M),  // lda, ldb, ldc
+								lda, ldb, static_cast<size_t>(M),  // lda, ldb, ldc
 								x_zero_point, &w_zero_point,  // ZeroPointA, ZeroPointB
 								BIsPacked, false);  // BIsPacked, PerColumnZeroPoints
 						}
@@ -560,7 +549,6 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
 
 				Xdata += X_offset;
 				Ydata += Y_offset;
-
 			}
 
 			if (transpose_input != nullptr)

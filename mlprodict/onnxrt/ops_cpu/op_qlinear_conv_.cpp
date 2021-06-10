@@ -111,6 +111,38 @@ public:
 	}
 };
 
+
+template <typename T>
+struct RequantizeValues {
+	RequantizeValues(int32_t zero_point) {
+		min_value_ = static_cast<float>(static_cast<int32_t>(std::numeric_limits<T>::min()) - zero_point);
+		max_value_ = static_cast<float>(static_cast<int32_t>(std::numeric_limits<T>::max()) - zero_point);
+		zero_point_ = static_cast<float>(zero_point);
+	}
+	float min_value_;
+	float max_value_;
+	float zero_point_;
+};
+
+
+inline float RoundHalfToEven(float input) {
+	if (!std::isfinite(input)) {
+		return input;
+	}
+	// std::remainder returns x - n, where n is the integral value nearest to x. When |x - n| = 0.5, n is chosen to be even
+	return input - std::remainderf(input, 1.f);
+}
+
+
+template <typename T>
+T RequantizeOutput(int32_t sum, float scale, RequantizeValues<T>& requantize_values) {
+	float f = static_cast<float>(sum) * scale;
+	f = std::min(f, requantize_values.max_value_);
+	f = std::max(f, requantize_values.min_value_);
+	return static_cast<T>(RoundHalfToEven(f) + requantize_values.zero_point_);
+}
+
+
 template <typename T1, typename T2>
 class QLinearConvOpTester {
 protected:
@@ -140,8 +172,7 @@ protected:
 	template <typename T>
 	void GenerateRandom(
 		QuantizedTensor<T>& tensor, const std::vector<int64_t>& shape,
-		float scale, T zero_point, int32_t min_value, int32_t max_value,
-		bool random) {
+		float scale, T zero_point, int32_t min_value, int32_t max_value, bool random) {
 		std::uniform_int_distribution<int32_t> distribution(min_value, max_value);
 		size_t shape_size = ShapeSize(shape);
 		tensor.data_.resize(shape_size);
@@ -153,34 +184,6 @@ protected:
 		tensor.shape_ = shape;
 		tensor.scale_ = { scale };
 		tensor.zero_point_ = { zero_point };
-	}
-
-	template <typename T>
-	struct RequantizeValues {
-		RequantizeValues(int32_t zero_point) {
-			min_value_ = static_cast<float>(static_cast<int32_t>(std::numeric_limits<T>::min()) - zero_point);
-			max_value_ = static_cast<float>(static_cast<int32_t>(std::numeric_limits<T>::max()) - zero_point);
-			zero_point_ = static_cast<float>(zero_point);
-		}
-		float min_value_;
-		float max_value_;
-		float zero_point_;
-	};
-
-	inline float RoundHalfToEven(float input) {
-		if (!std::isfinite(input)) {
-			return input;
-		}
-		// std::remainder returns x - n, where n is the integral value nearest to x. When |x - n| = 0.5, n is chosen to be even
-		return input - std::remainderf(input, 1.f);
-	}
-
-	template <typename T>
-	T RequantizeOutput(int32_t sum, float scale, RequantizeValues<T>& requantize_values) {
-		float f = static_cast<float>(sum) * scale;
-		f = std::min(f, requantize_values.max_value_);
-		f = std::max(f, requantize_values.min_value_);
-		return static_cast<T>(RoundHalfToEven(f) + requantize_values.zero_point_);
 	}
 
 	static bool NextPosition(int64_t N, const int64_t* shape, int64_t* dims) {
@@ -203,6 +206,17 @@ protected:
 	}
 
 	void ComputeExpectedOutput(std::vector<T1>& Y_data, std::vector<int64_t>& Y_shape) {
+		StaticComputeExpectedOutput(
+			X_, W_, B_, pads_, strides_, dilations_, groups_,
+			output_scale_, output_zero_point_, Y_data, Y_shape);
+	}
+
+	static void StaticComputeExpectedOutput(
+		const QuantizedTensor<T1>& X_, const QuantizedTensor<T2>& W_,
+		const std::vector<int32_t>& B_, const std::vector<int64_t>& pads_,
+		const std::vector<int64_t>& strides_, const std::vector<int64_t>& dilations_,
+		int64_t groups_, float output_scale_, T1 output_zero_point_,
+		std::vector<T1>& Y_data, std::vector<int64_t>& Y_shape) {
 		if (W_.shape_.size() <= 2)
 			throw std::exception("Unexpected error.");
 		if (X_.shape_.size() != W_.shape_.size())
@@ -762,11 +776,12 @@ in :epkg:`onnxruntime`.)pbdoc"
 #endif
 ;
 
-	m.def("test_qlinear_conv_Conv1D_U8S8", &test_qlinear_conv_Conv1D_U8S8, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
 	m.def("test_qlinear_qgemm_ii", &test_qlinear_qgemm_ii, R"pbdoc(Unit test for operator QGemm.)pbdoc");
 	m.def("test_qlinear_qgemm_ui", &test_qlinear_qgemm_ui, R"pbdoc(Unit test for operator QGemm.)pbdoc");
 	m.def("test_qlinear_qgemm_if", &test_qlinear_qgemm_if, R"pbdoc(Unit test for operator QGemm.)pbdoc");
 	m.def("test_qlinear_qgemm_uf", &test_qlinear_qgemm_uf, R"pbdoc(Unit test for operator QGemm.)pbdoc");
+
+	m.def("test_qlinear_conv_Conv1D_U8S8", &test_qlinear_conv_Conv1D_U8S8, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
 
 	py::class_<QLinearConvUInt8> clf(m, "QLinearConvUInt8",
 		R"pbdoc(Implements uint8 runtime for operator QLinearConvUInt8. The code is inspired from

@@ -94,6 +94,7 @@ namespace detail {
 	}
 }
 
+
 class RuntimeTesterIO : public detail::RuntimeTesterIO {
 public:
 	RuntimeTesterIO() : detail::RuntimeTesterIO() {}
@@ -115,6 +116,7 @@ public:
 	shaped_array_t<T> GetArrayValue() const { return shaped_array_t<T>(GetVectorValue<T>(), shape_); }
 };
 
+
 class RuntimeTesterO : public RuntimeTesterIO {
 public:
 	bool check_;
@@ -135,6 +137,7 @@ public:
 		return GetArrayValue<T>().equal(got);
 	}
 };
+
 
 class RuntimeTester {
 protected:
