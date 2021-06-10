@@ -103,7 +103,33 @@ from mlprodict.testing.test_utils.quantized_tensor import (
 from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import (  # pylint: disable=E0611,E0401
     test_qlinear_qgemm_ii, test_qlinear_qgemm_ui,
     test_qlinear_qgemm_if, test_qlinear_qgemm_uf,
-    test_qlinear_conv_Conv1D_U8S8)
+    test_qlinear_conv_Conv1D_U8S8,
+    test_qlinear_conv_Conv2D_U8S8,
+    test_qlinear_conv_Conv3D_U8S8,
+    test_qlinear_conv_Conv1D_U8S8_Pointwise,
+    test_qlinear_conv_Conv2D_U8S8_Pointwise,
+    test_qlinear_conv_Conv2D_U8U8_Pointwise,
+    test_qlinear_conv_Conv3D_U8S8_Pointwise,
+    test_qlinear_conv_Conv1D_U8S8_Dilations,
+    test_qlinear_conv_Conv2D_U8S8_Dilations,
+    test_qlinear_conv_Conv3D_U8S8_Dilations,
+    test_qlinear_conv_Conv1D_U8S8_Strides,
+    test_qlinear_conv_Conv2D_U8S8_Strides,
+    test_qlinear_conv_Conv3D_U8S8_Strides,
+    test_qlinear_conv_Conv1D_U8S8_Depthwise,
+    test_qlinear_conv_Conv2D_U8S8_Depthwise,
+    test_qlinear_conv_Conv2D_U8U8_Depthwise,
+    test_qlinear_conv_Conv2D_U8S8_DepthwisePointwise,
+    test_qlinear_conv_Conv3D_U8S8_Depthwise,
+    test_qlinear_conv_Conv2D_U8S8_Requantize_NoBias,
+    test_qlinear_conv_Conv2D_U8S8_Requantize_Bias,
+    test_qlinear_conv_Conv2D_U8S8_Requantize_Bias_PerChannel,
+    test_qlinear_conv_Conv2D_U8S8_Groups_Pointwise,
+    test_qlinear_conv_Conv3D_U8S8_Groups_Pointwise,
+    test_qlinear_conv_Conv2D_U8S8_Groups,
+    test_qlinear_conv_Conv3D_U8S8_Groups,
+    test_qlinear_conv_Conv1D_U8S8_Groups,
+    test_qlinear_conv_Conv2D_U8S8_Groups_PerChannel)
 
 try:
     numpy_str = numpy.str
@@ -2317,8 +2343,41 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_qlinear_conv_cpp(self):
-        test_qlinear_conv_Conv1D_U8S8(False)
-        test_qlinear_conv_Conv1D_U8S8(True)
+        fcts = [
+            test_qlinear_conv_Conv1D_U8S8,
+            test_qlinear_conv_Conv2D_U8S8,
+            test_qlinear_conv_Conv3D_U8S8,
+            test_qlinear_conv_Conv1D_U8S8_Pointwise,
+            test_qlinear_conv_Conv2D_U8S8_Pointwise,
+            test_qlinear_conv_Conv2D_U8U8_Pointwise,
+            test_qlinear_conv_Conv3D_U8S8_Pointwise,
+            test_qlinear_conv_Conv1D_U8S8_Dilations,
+            test_qlinear_conv_Conv2D_U8S8_Dilations,
+            test_qlinear_conv_Conv3D_U8S8_Dilations,
+            test_qlinear_conv_Conv1D_U8S8_Strides,
+            test_qlinear_conv_Conv2D_U8S8_Strides,
+            test_qlinear_conv_Conv3D_U8S8_Strides,
+            test_qlinear_conv_Conv1D_U8S8_Depthwise,
+            test_qlinear_conv_Conv2D_U8S8_Depthwise,
+            test_qlinear_conv_Conv2D_U8U8_Depthwise,
+            test_qlinear_conv_Conv2D_U8S8_DepthwisePointwise,
+            test_qlinear_conv_Conv3D_U8S8_Depthwise,
+            test_qlinear_conv_Conv2D_U8S8_Requantize_NoBias,
+            test_qlinear_conv_Conv2D_U8S8_Requantize_Bias,
+            test_qlinear_conv_Conv2D_U8S8_Requantize_Bias_PerChannel,
+            test_qlinear_conv_Conv2D_U8S8_Groups_Pointwise,
+            test_qlinear_conv_Conv3D_U8S8_Groups_Pointwise,
+            test_qlinear_conv_Conv2D_U8S8_Groups,
+            test_qlinear_conv_Conv3D_U8S8_Groups,
+            test_qlinear_conv_Conv1D_U8S8_Groups,
+            test_qlinear_conv_Conv2D_U8S8_Groups_PerChannel,
+        ]
+
+        for rnd in [False, True]:
+            for fct in fcts:
+                with self.subTest(fct=fct.__name__, rnd=rnd):
+                    print(dict(fct=fct.__name__, rnd=rnd))
+                    fct(rnd)
 
     @wraplog()
     def test_onnxt_runtime_qlinear_conv_test0(self):

@@ -782,6 +782,32 @@ in :epkg:`onnxruntime`.)pbdoc"
 	m.def("test_qlinear_qgemm_uf", &test_qlinear_qgemm_uf, R"pbdoc(Unit test for operator QGemm.)pbdoc");
 
 	m.def("test_qlinear_conv_Conv1D_U8S8", &test_qlinear_conv_Conv1D_U8S8, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8S8", &test_qlinear_conv_Conv2D_U8S8, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv3D_U8S8", &test_qlinear_conv_Conv3D_U8S8, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv1D_U8S8_Pointwise", &test_qlinear_conv_Conv1D_U8S8_Pointwise, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8S8_Pointwise", &test_qlinear_conv_Conv2D_U8S8_Pointwise, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8U8_Pointwise", &test_qlinear_conv_Conv2D_U8U8_Pointwise, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv3D_U8S8_Pointwise", &test_qlinear_conv_Conv3D_U8S8_Pointwise, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv1D_U8S8_Dilations", &test_qlinear_conv_Conv1D_U8S8_Dilations, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8S8_Dilations", &test_qlinear_conv_Conv2D_U8S8_Dilations, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv3D_U8S8_Dilations", &test_qlinear_conv_Conv3D_U8S8_Dilations, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv1D_U8S8_Strides", &test_qlinear_conv_Conv1D_U8S8_Strides, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8S8_Strides", &test_qlinear_conv_Conv2D_U8S8_Strides, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv3D_U8S8_Strides", &test_qlinear_conv_Conv3D_U8S8_Strides, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv1D_U8S8_Depthwise", &test_qlinear_conv_Conv1D_U8S8_Depthwise, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8S8_Depthwise", &test_qlinear_conv_Conv2D_U8S8_Depthwise, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8U8_Depthwise", &test_qlinear_conv_Conv2D_U8U8_Depthwise, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8S8_DepthwisePointwise", &test_qlinear_conv_Conv2D_U8S8_DepthwisePointwise, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv3D_U8S8_Depthwise", &test_qlinear_conv_Conv3D_U8S8_Depthwise, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8S8_Requantize_NoBias", &test_qlinear_conv_Conv2D_U8S8_Requantize_NoBias, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8S8_Requantize_Bias", &test_qlinear_conv_Conv2D_U8S8_Requantize_Bias, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8S8_Requantize_Bias_PerChannel", &test_qlinear_conv_Conv2D_U8S8_Requantize_Bias_PerChannel, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8S8_Groups_Pointwise", &test_qlinear_conv_Conv2D_U8S8_Groups_Pointwise, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv3D_U8S8_Groups_Pointwise", &test_qlinear_conv_Conv3D_U8S8_Groups_Pointwise, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8S8_Groups", &test_qlinear_conv_Conv2D_U8S8_Groups, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv3D_U8S8_Groups", &test_qlinear_conv_Conv3D_U8S8_Groups, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv1D_U8S8_Groups", &test_qlinear_conv_Conv1D_U8S8_Groups, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
+	m.def("test_qlinear_conv_Conv2D_U8S8_Groups_PerChannel", &test_qlinear_conv_Conv2D_U8S8_Groups_PerChannel, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");
 
 	py::class_<QLinearConvUInt8> clf(m, "QLinearConvUInt8",
 		R"pbdoc(Implements uint8 runtime for operator QLinearConvUInt8. The code is inspired from

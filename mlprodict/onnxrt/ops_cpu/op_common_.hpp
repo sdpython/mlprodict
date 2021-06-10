@@ -7,7 +7,6 @@
 #include <iterator>
 #include <iostream> // cout
 #include <sstream>
-#include <exception>
 #include <math.h>
 
 #if defined(_WIN32) || defined(WIN32)
