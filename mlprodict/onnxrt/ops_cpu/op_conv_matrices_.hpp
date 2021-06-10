@@ -83,7 +83,7 @@ public:
 	bool operator == (T* ptr) {
 		if (ptr == nullptr)
 			return this->empty();
-		throw std::exception("Not implemented when ptr != nullptr");
+		throw std::invalid_argument("Not implemented when ptr != nullptr");
 	}
 };
 
@@ -226,9 +226,9 @@ void QGemm(bool transA, bool transB,
 		size_t          ldc                 = 0};
 	*/
 	if (alpha != 1)
-		throw std::exception("Not implemented for alpha != 1 (QGemm<T>).");
+		throw std::invalid_argument("Not implemented for alpha != 1 (QGemm<T>).");
 	if (beta != 0)
-		throw std::exception("Not implemented for beta != 0 (QGemm<T>).");
+		throw std::invalid_argument("Not implemented for beta != 0 (QGemm<T>).");
 	if (transA) {
 		if (transB) {
 		}

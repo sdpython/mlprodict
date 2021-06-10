@@ -13,5 +13,5 @@ void TestLocalGemm(
 	float alpha, const float* A, size_t lda,
 	const float* B, size_t ldb, float beta,
 	float* C, size_t ldc) {
-	throw std::exception("Not implemented error.");
+	throw std::invalid_argument("Not implemented error.");
 }

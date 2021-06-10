@@ -49,47 +49,47 @@ namespace detail {
 	template <>
 	inline int64_t GetValue<int64_t>(const RuntimeTesterIO& io) {
 		if (io.type_ != 2 || io.values_int64_t_.size() != 1 || io.shape_.size() != 0)
-			throw std::exception("Unexpected error.");
+			throw std::invalid_argument("Unexpected error.");
 		return io.values_int64_t_[0];
 	}
 
 	template <typename T>
 	inline std::vector<T> GetVectorValue(const RuntimeTesterIO& io) {
-		throw std::exception(MakeString("Unable to get vector value (type=", io.type_, ")."));
+		throw std::invalid_argument(MakeString("Unable to get vector value (type=", io.type_, ")."));
 	}
 
 	template <>
 	inline std::vector<float> GetVectorValue<float>(const RuntimeTesterIO& io) {
 		if (io.type_ != 1)
-			throw std::exception("Unexpected error.");
+			throw std::invalid_argument("Unexpected error.");
 		return io.values_float_;
 	}
 
 	template <>
 	inline std::vector<int64_t> GetVectorValue<int64_t>(const RuntimeTesterIO& io) {
 		if (io.type_ != 2)
-			throw std::exception("Unexpected error.");
+			throw std::invalid_argument("Unexpected error.");
 		return io.values_int64_t_;
 	}
 
 	template <>
 	inline  std::vector<uint8_t> GetVectorValue<uint8_t>(const RuntimeTesterIO& io) {
 		if (io.type_ != 3)
-			throw std::exception("Unexpected error.");
+			throw std::invalid_argument("Unexpected error.");
 		return io.values_uint8_t_;
 	}
 
 	template <>
 	inline std::vector<int8_t> GetVectorValue<int8_t>(const RuntimeTesterIO& io) {
 		if (io.type_ != 4)
-			throw std::exception("Unexpected error.");
+			throw std::invalid_argument("Unexpected error.");
 		return io.values_int8_t_;
 	}
 
 	template <>
 	inline std::vector<int32_t> GetVectorValue<int32_t>(const RuntimeTesterIO& io) {
 		if (io.type_ != 5)
-			throw std::exception("Unexpected error.");
+			throw std::invalid_argument("Unexpected error.");
 		return io.values_int32_t_;
 	}
 }

@@ -192,7 +192,7 @@ protected:
 		for (int64_t d_i = N - 1; d_i >= 0; --d_i) {
 			int64_t d_max = shape[d_i];
 			if (dims[d_i] >= d_max)
-				throw std::exception("Unexpected error");
+				throw std::invalid_argument("Unexpected error");
 			if (dims[d_i] == d_max - 1) {
 				dims[d_i] = 0;
 			}
@@ -218,9 +218,9 @@ protected:
 		int64_t groups_, float output_scale_, T1 output_zero_point_,
 		std::vector<T1>& Y_data, std::vector<int64_t>& Y_shape) {
 		if (W_.shape_.size() <= 2)
-			throw std::exception("Unexpected error.");
+			throw std::invalid_argument("Unexpected error.");
 		if (X_.shape_.size() != W_.shape_.size())
-			throw std::exception("Unexpected error.");
+			throw std::invalid_argument("Unexpected error.");
 
 		const size_t kernel_rank = W_.shape_.size() - 2;
 		const int64_t batch_count = X_.shape_[0];
@@ -231,9 +231,9 @@ protected:
 		const int64_t group_output_channels = output_channels / group_count;
 
 		if (input_channels != group_input_channels * group_count)
-			throw std::exception("Unexpected error.");
+			throw std::invalid_argument("Unexpected error.");
 		if (output_channels != group_output_channels * group_count)
-			throw std::exception("Unexpected error.");
+			throw std::invalid_argument("Unexpected error.");
 
 		const int64_t* input_shape = X_.shape_.data() + 2;
 		const int64_t* kernel_shape = W_.shape_.data() + 2;
@@ -343,7 +343,7 @@ public:
 
 	void GenerateRandomBias(bool random) {
 		if (W_.shape_.size() < 1)
-			throw std::exception("Unexpected error.");
+			throw std::invalid_argument("Unexpected error.");
 		const size_t output_channels = static_cast<size_t>(W_.shape_[0]);
 		B_.resize(output_channels);
 		std::uniform_int_distribution<int32_t> distribution(-423, 423);

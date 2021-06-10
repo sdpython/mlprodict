@@ -17,7 +17,7 @@
 
 #if 0
 #define DEBUGPRINT(s) std::cout << MakeString(s, "\n");
-#define ASSERTTREE(cond, msg) if(!(cond)) throw std::exception(MakeString(msg, " - failed: ", #cond));
+#define ASSERTTREE(cond, msg) if(!(cond)) throw std::invalid_argument(MakeString(msg, " - failed: ", #cond));
 #else
 #define DEBUGPRINT(s)
 #define ASSERTTREE(cond, msg)
