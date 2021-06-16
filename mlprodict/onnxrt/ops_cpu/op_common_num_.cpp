@@ -23,8 +23,7 @@
 //         works: gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -g -fstack-protector --param=ssp-buffer-size=4 -Wformat -Werror=format-security -fPIC -fopenmp
 // does not work: gcc -pthread -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -fopenmp
 #endif
-float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t size)
-{
+float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t size) {
     float sum = 0;
     size_t i = 0;
 #if 0
@@ -61,8 +60,7 @@ float vector_dot_product_pointer16_sse(const float *p1, const float *p2, size_t 
 //#pragma GCC push_options
 //#pragma GCC optimize ("O0")
 #endif
-double vector_dot_product_pointer16_sse(const double *p1, const double *p2, size_t size)
-{
+double vector_dot_product_pointer16_sse(const double *p1, const double *p2, size_t size) {
     double sum = 0;
     size_t i = 0;
 #if 0
@@ -91,14 +89,12 @@ double vector_dot_product_pointer16_sse(const double *p1, const double *p2, size
 
 
 template <>
-float vector_dot_product_pointer_sse(const float *p1, const float *p2, size_t size)
-{
+float vector_dot_product_pointer_sse(const float *p1, const float *p2, size_t size) {
     return vector_dot_product_pointer16_sse(p1, p2, size);
 }
 
 template <>
-double vector_dot_product_pointer_sse(const double *p1, const double *p2, size_t size)
-{
+double vector_dot_product_pointer_sse(const double *p1, const double *p2, size_t size) {
     return vector_dot_product_pointer16_sse(p1, p2, size);
 }
 

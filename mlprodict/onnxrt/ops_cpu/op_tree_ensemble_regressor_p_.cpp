@@ -96,7 +96,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute(py::array_t<NTY
                         this->roots_.size(), this->n_targets_or_classes_,
                         this->post_transform_, &(this->base_values_)));
     }        
-    throw std::runtime_error("Unknown aggregation function in TreeEnsemble.");
+    throw std::invalid_argument("Unknown aggregation function in TreeEnsemble.");
 }
 
 
@@ -120,7 +120,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute_tree_outputs(py
                         this->roots_.size(), this->n_targets_or_classes_,
                         this->post_transform_, &(this->base_values_)));
     }        
-    throw std::runtime_error("Unknown aggregation function in TreeEnsemble.");
+    throw std::invalid_argument("Unknown aggregation function in TreeEnsemble.");
 }
 
 
@@ -193,7 +193,7 @@ void test_tree_ensemble_regressor(int omp_tree, int omp_N, bool array_structure,
                 char buffer[1000];
                 sprintf(buffer, "Empty ouput (got) %d, ended up with %d, %d.",
                     (int)X.size(), (int)(X.size() / 3), 3);
-                throw std::runtime_error(buffer);
+                throw std::invalid_argument(buffer);
             }
             arr.resize({(size_t)(X.size() / 3), (size_t)3});
             auto res = tree.compute(arr);
@@ -205,7 +205,7 @@ void test_tree_ensemble_regressor(int omp_tree, int omp_N, bool array_structure,
                 char buffer[1000];
                 sprintf(buffer, "Size mismatch (got) %d != %d (expected).",
                     (int)cres.size(), (int)n_exp);
-                throw std::runtime_error(buffer);
+                throw std::invalid_argument(buffer);
             }
             for(size_t i = 0; i < cres.size(); ++i) {
                 if (cres[i] != results[i]) {
@@ -234,7 +234,7 @@ void test_tree_ensemble_regressor(int omp_tree, int omp_N, bool array_structure,
                         sprintf(buffer2, "%s\n%f,%f\n----\n%f,%f",
                                 buffer, results[0], results[1], cres[0], cres[1]);
                     }
-                    throw std::runtime_error(buffer2);
+                    throw std::invalid_argument(buffer2);
                 }
             }
         }

@@ -90,7 +90,7 @@ py::array_t<NTYPE> RuntimeSVMRegressor<NTYPE>::compute(py::array_t<NTYPE> X) con
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
-        throw std::runtime_error("X must have 2 dimensions.");
+        throw std::invalid_argument("X must have 2 dimensions.");
     // Does not handle 3D tensors
     int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];  
     int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];

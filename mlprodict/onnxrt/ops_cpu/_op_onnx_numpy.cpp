@@ -47,18 +47,18 @@ py::array_t<NTYPE> array_feature_extractor(py::array_t<NTYPE, py::array::c_style
     const int64_t* indices = indices_.data();
 
     if (x_num_dims == 0)
-        throw std::runtime_error("data cannot be empty.");
+        throw std::invalid_argument("data cannot be empty.");
 
     arrayshape2vector(y_shape, indices_);
     ssize_t stride = x_shape[x_num_dims - 1];
     ssize_t num_indices = flattened_dimension(y_shape);
 
     if (num_indices == 0)
-        throw std::runtime_error("indices cannot be empty.");
+        throw std::invalid_argument("indices cannot be empty.");
 
     for (ssize_t i = 0; i < num_indices; ++i)
         if (indices[i] >= (int64_t)stride)
-            throw std::runtime_error(
+            throw std::invalid_argument(
                 "Invalid Y argument: index is out of range");
 
     std::vector<ssize_t> z_shape;
@@ -392,12 +392,9 @@ py::array_t<int64_t> topk_element_fetch_int64(
 }
 
 
-
 /////////////////////////////////////////////
 // end: topk
 /////////////////////////////////////////////
-
-
 
 
 #ifndef SKIP_PYTHON

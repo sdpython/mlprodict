@@ -86,7 +86,7 @@ void RuntimeSVMClassifier<NTYPE>::init(
     array2vector(probb_, prob_b, NTYPE);
     array2vector(vectors_per_class_, vectors_per_class, int64_t);
     if (classlabels_strings.size() > 0)
-        throw std::runtime_error("This runtime only handles integers.");
+        throw std::invalid_argument("This runtime only handles integers.");
     // classlabels_strings_ = classlabels_strings;
     array2vector(classlabels_ints_, classlabels_int64s, int64_t);
     
@@ -161,7 +161,7 @@ py::tuple RuntimeSVMClassifier<NTYPE>::compute(py::array_t<NTYPE> X) const {
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
-        throw std::runtime_error("X must have 2 dimensions.");
+        throw std::invalid_argument("X must have 2 dimensions.");
     // Does not handle 3D tensors
     int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];  
     int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];
@@ -271,7 +271,7 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
     } 
     else {
         if (this->vector_count_ == 0)
-            throw std::runtime_error("No support vectors.");
+            throw std::invalid_argument("No support vectors.");
         int evals = 0;
        
         kernels.resize(this->vector_count_);
