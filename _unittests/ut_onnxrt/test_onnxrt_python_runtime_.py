@@ -101,7 +101,6 @@ from mlprodict.tools.data_types import (
     Int32TensorType, BooleanTensorType, UInt8TensorType,
     Int16TensorType, Int8TensorType, UInt16TensorType,
     UInt32TensorType, UInt64TensorType, Float16TensorType)
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 
 
 try:
