@@ -2376,7 +2376,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         for rnd in [False, True]:
             for fct in fcts:
                 with self.subTest(fct=fct.__name__, rnd=rnd):
-                    print(dict(fct=fct.__name__, rnd=rnd))
                     fct(rnd)
 
     @wraplog()
