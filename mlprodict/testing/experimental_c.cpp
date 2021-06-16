@@ -534,16 +534,16 @@ py::array_t<NTYPE> custom_reducesum_rk(py::array_t<NTYPE, py::array::c_style | p
 
     int64_t N = x_shape[1];
     std::vector<NTYPE> y_vector(N);
-    int64_t Nred = x_shape[0];
+    // int64_t Nred = x_shape[0];
     const NTYPE* x_data = x.data();
-    const NTYPE* x_data_end = x_data + x_shape[0] * x_shape[1]; 
+    // const NTYPE* x_data_end = x_data + x_shape[0] * x_shape[1]; 
     NTYPE* y_data = y_vector.data();
 
     #if USE_OPENMP
     if (nthread == 1 || N <= nthread * 2) {
     #endif
         int64_t n_rows = x_shape[0];
-        NTYPE *y_data_end = y_data + N;
+        // NTYPE *y_data_end = y_data + N;
         memcpy(y_data, x_data, N * sizeof(NTYPE));
         for(int64_t row = 1; row < n_rows; ++row) {
             vector_add_pointer(y_data, x_data + row * N, N);

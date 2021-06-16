@@ -179,7 +179,7 @@ void MaxPool<T>::ComputeSizePadDilations(const int64_t in_size,
                 break;
             }
             default:
-                throw std::runtime_error("ComputeSizePadDilations: unexpected AutoPadType.");
+                throw std::invalid_argument("ComputeSizePadDilations: unexpected AutoPadType.");
         }
     }
     else {
@@ -210,12 +210,12 @@ py::tuple MaxPool<T>::compute(py::array_t<T, py::array::c_style | py::array::for
     arrayshape2vector(x_dims, X);
 
     if (x_dims.size() < 3)
-        throw std::runtime_error("Number of dimensions for input should be >= 3.");
+        throw std::invalid_argument("Number of dimensions for input should be >= 3.");
     if (kernel_shape_.size() != x_dims.size() - 2) {
         char buffer[1000];
         sprintf(buffer, "Dimension mismatch between kernel_shape (%d) and input dimensions (%d) - 2.",
                 (int)kernel_shape_.size(), (int)x_dims.size());
-        throw std::runtime_error(buffer);
+        throw std::invalid_argument(buffer);
     }
 
     std::vector<int64_t> dilations = dilations_;
@@ -534,7 +534,7 @@ void MaxPool<T>::compute_gil_free(
         }
         
         default:
-            throw std::runtime_error("MaxPool: not implemented error.");
+            throw std::invalid_argument("MaxPool: not implemented error.");
     }
 }
 

@@ -45,9 +45,13 @@ class QLinearConv(OpRun):
                 "X cannot be None for operator %r, ONNX=%r" % (
                     type(self), self.onnx_node))
         if X.dtype == numpy.uint8:
+            if B is None:
+                b = self._cstu8
+            else:
+                b = B
             return (self.rtu8_.compute(
                 X, x_scale, x_zero_point, w, w_scale, w_zero_point,  # pylint: disable=W0221
-                y_scale, y_zero_point, B or self._cstu8), )
+                y_scale, y_zero_point, b), )
         return (self.rti8_.compute(
             X, x_scale, x_zero_point, w, w_scale, w_zero_point,  # pylint: disable=W0221
             y_scale, y_zero_point, B or self._csti8), )

@@ -273,6 +273,8 @@ def get_extensions():
         'mlprodict.onnxrt.ops_cpu.op_qlinear_conv_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_qlinear_conv_.cpp'),
          os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_matrices_.cpp'),
+         os.path.join(
+             root, 'mlprodict/onnxrt/ops_cpu/op_qlinear_cpp_qgemm_tester_.cpp'),
          os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')
          ],
         extra_compile_args=extra_compile_args,

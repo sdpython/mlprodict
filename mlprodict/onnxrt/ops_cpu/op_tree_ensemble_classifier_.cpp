@@ -178,7 +178,7 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::init(
     array2vector(class_weights_, class_weights, NTYPE);
     array2vector(base_values_, base_values, NTYPE);
     if (classlabels_strings.size() > 0)
-        throw std::runtime_error("This runtime only handles integers for class labels.");
+        throw std::invalid_argument("This runtime only handles integers for class labels.");
     // classlabels_strings_ = classlabels_strings;
     array2vector(classlabels_int64s_, classlabels_int64s, int64_t);
     post_transform_ = to_POST_EVAL_TRANSFORM(post_transform);
@@ -377,7 +377,7 @@ py::tuple RuntimeTreeEnsembleClassifier<NTYPE>::compute(py::array_t<NTYPE> X) co
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
-        throw std::runtime_error("X must have 2 dimensions.");
+        throw std::invalid_argument("X must have 2 dimensions.");
 
     // Does not handle 3D tensors
     int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];  
@@ -545,7 +545,7 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
         {
           std::ostringstream err_msg;
           err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(mode);
-          throw std::runtime_error(err_msg.str());
+          throw std::invalid_argument(err_msg.str());
         }
       }
   }
@@ -591,7 +591,7 @@ void RuntimeTreeEnsembleClassifier<NTYPE>::ProcessTreeNode(
         default: {
           std::ostringstream err_msg;
           err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(mode);
-          throw std::runtime_error(err_msg.str());
+          throw std::invalid_argument(err_msg.str());
         }
       }
       treeindex = treeindex + root;

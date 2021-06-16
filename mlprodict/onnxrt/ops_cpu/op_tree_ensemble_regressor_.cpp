@@ -320,7 +320,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute(py::array_t<NTYP
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
-        throw std::runtime_error("X must have 2 dimensions.");
+        throw std::invalid_argument("X must have 2 dimensions.");
 
     // Does not handle 3D tensors
     bool xdims1 = x_dims.size() == 1;
@@ -546,7 +546,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
         {
           std::ostringstream err_msg;
           err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(mode);
-          throw std::runtime_error(err_msg.str());
+          throw std::invalid_argument(err_msg.str());
         }
       }
   }
@@ -592,7 +592,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
         default: {
           std::ostringstream err_msg;
           err_msg << "Invalid mode of value: " << static_cast<std::underlying_type<NODE_MODE>::type>(mode);
-          throw std::runtime_error(err_msg.str());
+          throw std::invalid_argument(err_msg.str());
         }
       }
       treeindex += root;
@@ -692,7 +692,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute_tree_outputs(py:
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
-        throw std::runtime_error("X must have 2 dimensions.");
+        throw std::invalid_argument("X must have 2 dimensions.");
 
     int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];  
     int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];
