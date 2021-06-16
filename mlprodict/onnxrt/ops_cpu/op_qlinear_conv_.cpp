@@ -898,6 +898,7 @@ in :epkg:`onnxruntime`.)pbdoc"
     m.def("test_qlinear_qgemm_ui", &test_qlinear_qgemm_ui, R"pbdoc(Unit test for operator QGemm.)pbdoc");
     m.def("test_qlinear_qgemm_if", &test_qlinear_qgemm_if, R"pbdoc(Unit test for operator QGemm.)pbdoc");
     m.def("test_qlinear_qgemm_uf", &test_qlinear_qgemm_uf, R"pbdoc(Unit test for operator QGemm.)pbdoc");
+    m.def("test_qgemm0", &TestQGemm0, R"pbdoc(Unit test for operator QGemm.)pbdoc");
     m.def("test_qgemm1", &TestQGemm1, R"pbdoc(Unit test for operator QGemm.)pbdoc");
 
     m.def("test_qlinear_conv_Conv1D_U8S8", &test_qlinear_conv_Conv1D_U8S8, R"pbdoc(Unit test for operator QLinearConv.)pbdoc");

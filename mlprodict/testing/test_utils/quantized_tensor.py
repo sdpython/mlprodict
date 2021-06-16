@@ -86,7 +86,7 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
                       b: QuantizedBiasTensor,
                       y: QuantizedTensor, y_shape,
                       opset=None, runtime='python',
-                      pads=None, strides=None):
+                      pads=None, strides=None, group=None):
     """
     Checks a runtime for operator `QLinearConv`.
 
@@ -101,6 +101,7 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
     :param runtime: runtime for @see cl OnnxInference
     :param pads: optional parameter for operator `QLinearConv`
     :param strides: optional parameter for operator `QLinearConv`
+    :param group: optional paramerer for operator `QLinearConv`
     """
     if opset is None:
         from ...tools.asv_options_helper import get_opset_number_from_onnx
@@ -111,6 +112,8 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
         kwargs['pads'] = pads
     if strides is not None:
         kwargs['strides'] = strides
+    if group is not None:
+        kwargs['group'] = group
 
     if b is None:
         inputs_list = [
@@ -131,6 +134,11 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
                   'w_scale': w.scale_, 'w_zero_point': w.zero_point_,
                   'y_scale': y.scale_, 'y_zero_point': y.zero_point_,
                   'b': b.quantized_}
+
+    for k in inputs:
+        v = inputs[k]
+        if len(v.shape) == 0:
+            inputs[k] = numpy.array([v], dtype=v.dtype)
 
     node = OnnxQLinearConv(*inputs_list, output_names=['y'],
                            op_version=opset, **kwargs)

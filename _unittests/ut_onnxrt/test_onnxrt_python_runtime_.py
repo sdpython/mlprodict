@@ -100,9 +100,10 @@ from mlprodict.tools.data_types import (
     UInt32TensorType, UInt64TensorType, Float16TensorType)
 from mlprodict.testing.test_utils.quantized_tensor import (
     QuantizedTensor, QuantizedBiasTensor, test_qlinear_conv)
-from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import (  # pylint: disable=E0611,E0401
+from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import (  # pylint: disable=W0611,E0611,E0401
     test_qlinear_qgemm_ii, test_qlinear_qgemm_ui,
     test_qlinear_qgemm_if, test_qlinear_qgemm_uf,
+    test_qgemm0, test_qgemm1,
     test_qlinear_conv_Conv1D_U8S8,
     test_qlinear_conv_Conv2D_U8S8,
     test_qlinear_conv_Conv3D_U8S8,
@@ -2556,6 +2557,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                           b, y, (1, 6, 2, 3),
                           opset=10,
                           pads=[0, 0, 1, 1],
+                          group=3,
                           strides=[2, 2])
 
     @wraplog()
@@ -3815,16 +3817,4 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 if __name__ == "__main__":
     # Working
     # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv()
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_test0()
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_2dtest()
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_3dtest()
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_2dtest_with_bias()
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_qgemm_cpp()
-
-    # Still failing
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_cpp()
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_2dtest_with_group()
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_qlinear_conv_2dtest_with_group()
-
-    # stop
     unittest.main()
