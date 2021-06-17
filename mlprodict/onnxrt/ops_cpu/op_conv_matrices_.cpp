@@ -1,3 +1,6 @@
+// Inspired from 
+// https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/qlinearconv.cc.
+
 #include "op_conv_matrices_.hpp"
 
 

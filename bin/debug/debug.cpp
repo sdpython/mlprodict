@@ -101,9 +101,9 @@ void test_qlinear_conv2(bool random) {
 }
 
 int main() {
+    experimental_ut_add();
     experimental_ut_einsum();
     experimental_ut_reduce();
-    experimental_ut_add();
     TestQGemm0();
     TestQGemm1();
     test_qlinear_conv2(false);

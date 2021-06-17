@@ -1,5 +1,80 @@
 #include "experimental_c_helper.h"
 
+
+template <typename T, typename N>
+TensorShape<T, N>::TensorShape(N n) {
+    n_dims = n;
+    p_dims = new T[n_dims];
+    del = true;
+}
+
+template <typename T, typename N>
+TensorShape<T, N>::TensorShape(N n, T* buffer) {
+    n_dims = n;
+    p_dims = buffer;
+    del = false;
+}
+
+template <typename T, typename N>
+TensorShape<T, N>::~TensorShape() {
+    if (del)
+        delete[] p_dims;
+}
+
+template <typename T, typename N>
+T* TensorShape<T, N>::begin() const {
+    return p_dims;
+}
+
+template <typename T, typename N>
+T* TensorShape<T, N>::end() const {
+    return p_dims + n_dims;
+}
+
+template <typename T, typename N>
+N TensorShape<T, N>::Size() const {
+    T* p = begin();
+    T* p_end = end();
+    T s = 1;
+    for (; p != p_end; ++p)
+        s *= *p;
+    return s;
+}
+
+template <typename T, typename N>
+bool TensorShape<T, N>::right_broadcast(const TensorShape<T, N>* shape) const {
+    if (shape->n_dims > n_dims)
+        return false;
+    T* p = shape->begin();
+    T* p_end = shape->end();
+    T* here = begin();
+    for (; p != p_end; ++p, ++here) {
+        if (*p != *here && *p != 1)
+            return false;
+    }
+    return true;
+}
+
+template <typename T, typename TS, typename N>
+Tensor<T, TS, N>::Tensor(const TensorShape<TS, N>* shape) {
+    p_shape = shape;
+    p_values = new T[p_shape->Size()];
+    del = true;
+}
+
+template <typename T, typename TS, typename N>
+Tensor<T, TS, N>::Tensor(const TensorShape<TS, N>* shape, T* buffer) {
+    p_shape = shape;
+    p_values = buffer;
+    del = false;
+}
+
+template <typename T, typename TS, typename N>
+Tensor<T, TS, N>::~Tensor() {
+    if (del)
+        delete[] p_values;
+}
+
 template <typename T>
 inline void MakeStringInternal(std::ostringstream& ss, const T& t) noexcept {
     ss << t;

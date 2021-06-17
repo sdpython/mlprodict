@@ -2874,7 +2874,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_reduce_sum(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
-        for opset in (10, 11, 12, 13, 14, get_opset_number_from_onnx()):  # opset=13, 14, ...
+        # opset=13, 14, ...
+        for opset in (10, 11, 12, 13, 14, get_opset_number_from_onnx()):
             if onnx_opset_version() < opset:
                 continue
             if opset < 13:
@@ -2977,7 +2978,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_reduce_sum_noop(self):
         X = numpy.array([], dtype=float).reshape((2, 0))
 
-        for opset in (13, 14, get_opset_number_from_onnx()):  # opset=13, 14, ...
+        # opset=13, 14, ...
+        for opset in (13, 14, get_opset_number_from_onnx()):
             if onnx_opset_version() < opset:
                 continue
             cl = OnnxReduceSum
@@ -3191,7 +3193,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_slice_step_none(self):
-        for opset in [13, 14, get_opset_number_from_onnx()]:  # opset=13, 14, ...
+        # opset=13, 14, ...
+        for opset in [13, 14, get_opset_number_from_onnx()]:
             if opset > get_opset_number_from_onnx():
                 continue
             with self.subTest(opset=opset):
@@ -3211,7 +3214,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_split(self):
-        for opset in [10, 11, 12, 13, 14, get_opset_number_from_onnx()]:  # opset=13, 14, ...
+        # opset=13, 14, ...
+        for opset in [10, 11, 12, 13, 14, get_opset_number_from_onnx()]:
             if opset > get_opset_number_from_onnx():
                 continue
             with self.subTest(opset=opset):
@@ -3259,7 +3263,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_squeeze(self):
-        for opset in [10, 11, 12, 13, 14, get_opset_number_from_onnx()]:  # opset=13, 14, ...
+        # opset=13, 14, ...
+        for opset in [10, 11, 12, 13, 14, get_opset_number_from_onnx()]:
             if opset > get_opset_number_from_onnx():
                 continue
             with self.subTest(opset=opset):
@@ -3444,7 +3449,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_unsqueeze(self):
-        for opset in [10, 11, 12, 13, 14, get_opset_number_from_onnx()]:  # opset=13, 14, ...
+        # opset=13, 14, ...
+        for opset in [10, 11, 12, 13, 14, get_opset_number_from_onnx()]:
             if opset > get_opset_number_from_onnx():
                 continue
             with self.subTest(opset=opset):

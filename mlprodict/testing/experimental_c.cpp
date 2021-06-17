@@ -20,6 +20,42 @@ void experimental_ut_reduce() {
 }
 
 void experimental_ut_add() {
+    TensorShape<int8_t> shape1(4);
+    shape1.p_dims[0] = 1;
+    shape1.p_dims[1] = 2;
+    shape1.p_dims[2] = 5;
+    shape1.p_dims[3] = 3;
+
+    TensorShape<int8_t> shape2(3);
+    shape2.p_dims[0] = 1;
+    shape2.p_dims[1] = 1;
+    shape2.p_dims[2] = 5;
+
+    if (!shape1.right_broadcast(&shape2))
+        throw std::invalid_argument("experimental_ut_add 1");
+    if (shape2.right_broadcast(&shape1))
+        throw std::invalid_argument("experimental_ut_add 2");
+
+    Tensor<uint32_t, int8_t> t1(&shape1);
+    Tensor<uint16_t, int8_t> t2(&shape2);
+    Tensor<uint32_t, int8_t>::type_index n = shape1.Size();
+    for (Tensor<uint16_t, int8_t>::type_index i = 0; i < n; ++i)
+        t1.p_values[i] = static_cast<Tensor<uint32_t, int8_t>::type_value>(i + 1);
+    n = shape2.Size();
+    for (Tensor<uint16_t, int8_t>::type_index i = 0; i < n; ++i)
+        t2.p_values[i] = static_cast<Tensor<uint16_t, int8_t>::type_value>(1);
+
+    BroadcastMatrixAddLeftInplace(&t1, &t2);
+    n = shape1.Size();
+    for (Tensor<uint32_t, int8_t>::type_index i = 0; i < n; ++i)
+        std::cout << t1.p_values[i] << ", ";
+    for (Tensor<uint16_t, int8_t>::type_index i = 0; i < n; ++i) {
+        if (t1.p_values[i] != static_cast<Tensor<uint32_t, int8_t>::type_value>(i + 2))
+            throw std::invalid_argument(MakeString("discrepency:", t1.p_values[i], "!=", i + 2));
+    }
+
+    TensorShape<int8_t> sh1(3, shape1.p_dims);
+    Tensor<uint32_t, int8_t> v1(&sh1, t1.p_values);
 }
 
 #ifndef SKIP_PYTHON
@@ -36,6 +72,13 @@ PYBIND11_MODULE(experimental_c, m) {
     m.def("experimental_ut_reduce", &experimental_ut_reduce, R"pbdoc(C++ unit test for reduce)pbdoc");
     m.def("experimental_ut_add", &experimental_ut_add, R"pbdoc(C++ unit test for add)pbdoc");
     m.def("experimental_ut_einsum", &experimental_ut_einsum, R"pbdoc(C++ unit test for einsum)pbdoc");
+
+    m.def("BroadcastMatrixAddLeftInplaceInt64", &BroadcastMatrixAddLeftInplaceInt64,
+        R"pbdoc(Inplace addition, does X += Y. The function only allows broadcast in one way.)pbdoc");
+    m.def("BroadcastMatrixAddLeftInplaceFloat", &BroadcastMatrixAddLeftInplaceFloat,
+        R"pbdoc(Inplace addition, does X += Y. The function only allows broadcast in one way.)pbdoc");
+    m.def("BroadcastMatrixAddLeftInplaceDouble", &BroadcastMatrixAddLeftInplaceDouble,
+        R"pbdoc(Inplace addition, does X += Y. The function only allows broadcast in one way.)pbdoc");
 
     m.def("code_optimisation", &code_optimisation,
         R"pbdoc(Returns a string giving some insights about optimisations.)pbdoc");
