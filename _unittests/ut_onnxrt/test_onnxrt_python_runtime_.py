@@ -15,6 +15,7 @@ from scipy.spatial.distance import cdist
 from onnx import TensorProto, __version__ as onnx_version
 from onnx.helper import make_sparse_tensor, make_tensor
 from onnx.defs import onnx_opset_version
+from onnx.numpy_helper import from_array
 from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper import compare_module_version
 from sklearn.utils.extmath import softmax
@@ -73,7 +74,7 @@ try:
     from skl2onnx.algebra.onnx_ops import OnnxBatchNormalization_14
 except ImportError:
     OnnxBatchNormalization_14 = None
-from skl2onnx import __version__ as skl2onnx_version
+from skl2onnx import __version__ as skl2onnx_version, __max_supported_opset__
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
@@ -82,13 +83,15 @@ from mlprodict.onnxrt.ops_cpu.op_batch_normalization import (
     _batchnorm_test_mode, _batchnorm_training_mode)
 from mlprodict.onnxrt.ops_cpu.op_global_average_pool import _global_average_pool
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611,E0401
-    topk_element_min_double, topk_element_max_double, topk_element_fetch_double,
+    topk_element_min_double, topk_element_max_double,
+    topk_element_fetch_double,
     topk_element_min_float, topk_element_max_float, topk_element_fetch_float,
     topk_element_min_int64, topk_element_max_int64, topk_element_fetch_int64)
 from mlprodict.onnxrt.ops_cpu.op_celu import _vcelu1, pycelu
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 from mlprodict.onnxrt.ops_cpu.op_pad import _pad_impl
-from mlprodict.onnxrt.ops_cpu.op_max_pool import _pool_get_output_shape, _pool_impl
+from mlprodict.onnxrt.ops_cpu.op_max_pool import (
+    _pool_get_output_shape, _pool_impl)
 from mlprodict.onnxrt.ops_cpu.op_dropout import _dropout
 from mlprodict.onnxrt.ops_cpu._op_helper import proto2dtype
 from mlprodict.onnx_tools.onnx2py_helper import (
@@ -189,6 +192,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def setUp(self):
         logger = getLogger('skl2onnx')
         logger.disabled = True
+
+    def test_opset_skl2onnx(self):
+        opset_mlprodict = get_opset_number_from_onnx()
+        opset_skl2onnx = __max_supported_opset__
+        self.assertGreater(opset_skl2onnx, opset_mlprodict)
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning,
                                SparseEfficiencyWarning, PendingDeprecationWarning))
@@ -2866,7 +2874,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_reduce_sum(self):
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
-        for opset in (10, 11, 12, 13, get_opset_number_from_onnx()):
+        for opset in (10, 11, 12, 13, 14, get_opset_number_from_onnx()):  # opset=13, 14, ...
             if onnx_opset_version() < opset:
                 continue
             if opset < 13:
@@ -2902,7 +2910,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             else:
                 self.assertEqual(name, 'ReduceSum_1')
 
-        for opset in (11, 12, 13):
+        for opset in (11, 12, 13, 14):  # opset=13, 14, ...
             if onnx_opset_version() < opset:
                 continue
             onx = OnnxReduceSumApi11('X', output_names=['Y'], axes=1, keepdims=1,
@@ -2969,7 +2977,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_reduce_sum_noop(self):
         X = numpy.array([], dtype=float).reshape((2, 0))
 
-        for opset in (13, get_opset_number_from_onnx()):
+        for opset in (13, 14, get_opset_number_from_onnx()):  # opset=13, 14, ...
             if onnx_opset_version() < opset:
                 continue
             cl = OnnxReduceSum
@@ -3183,7 +3191,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_slice_step_none(self):
-        for opset in [13, get_opset_number_from_onnx()]:
+        for opset in [13, 14, get_opset_number_from_onnx()]:  # opset=13, 14, ...
             if opset > get_opset_number_from_onnx():
                 continue
             with self.subTest(opset=opset):
@@ -3203,7 +3211,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_split(self):
-        for opset in [10, 11, 12, 13, get_opset_number_from_onnx()]:
+        for opset in [10, 11, 12, 13, 14, get_opset_number_from_onnx()]:  # opset=13, 14, ...
             if opset > get_opset_number_from_onnx():
                 continue
             with self.subTest(opset=opset):
@@ -3251,7 +3259,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_squeeze(self):
-        for opset in [10, 11, 12, 13, get_opset_number_from_onnx()]:
+        for opset in [10, 11, 12, 13, 14, get_opset_number_from_onnx()]:  # opset=13, 14, ...
             if opset > get_opset_number_from_onnx():
                 continue
             with self.subTest(opset=opset):
@@ -3436,7 +3444,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_unsqueeze(self):
-        for opset in [10, 11, 12, 13, get_opset_number_from_onnx()]:
+        for opset in [10, 11, 12, 13, 14, get_opset_number_from_onnx()]:  # opset=13, 14, ...
             if opset > get_opset_number_from_onnx():
                 continue
             with self.subTest(opset=opset):
@@ -3749,7 +3757,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                         def bprint(*args):
                             rows.append(str(args))  # pylint: disable=W0640
                         try:
-                            oinf.run({'X': X.astype(nty)},
+                            oinf.run({'X': X.astype(nty)},  # opset=13, 14, ...
                                      verbose=13, fLOG=bprint)
                         except Exception:  # pylint: disable=W0703
                             pass
@@ -3812,6 +3820,20 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 else:
                     self.assertEqual(list(sorted(got)), ['Ad_C0'])
                     self.assertEqualArray(exp, got['Ad_C0'])
+
+    def test_op_constant(self):
+        for opv in [9, 10, 11, 12, 13, 14]:  # opset=13, 14, ...
+            for dtype in [numpy.float32, numpy.float64,
+                          numpy.int32, numpy.int64]:
+                with self.subTest(opv=opv, dtype=dtype):
+                    X = numpy.array([1], dtype=dtype)
+                    pX = from_array(X)
+                    op = OnnxAdd('X', OnnxConstant(op_version=opv, value=pX),
+                                 output_names=['Y'], op_version=opv)
+                    onx = op.to_onnx({'X': X})
+                    oinf = OnnxInference(onx)
+                    res = oinf.run({'X': X})
+                    self.assertEqualArray(res['Y'], X + X)
 
 
 if __name__ == "__main__":

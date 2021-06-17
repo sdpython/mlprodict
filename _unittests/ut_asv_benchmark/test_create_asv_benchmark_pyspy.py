@@ -56,6 +56,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
         self.assertNotEmpty(created)
 
         verif = False
+        target_opset = get_opset_number_from_onnx()
         allnames = []
         for path, _, files in os.walk(os.path.join(temp, 'pyspy')):
             for zoo in files:
@@ -67,7 +68,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
                     content = f.read()
                 if (zoo.endswith(
                         "bench_KNNClas_default_k3_b_cl_64_algorithmbrute_n_neighbors3"
-                        "_10000_20_13_double_optcdist-zm0.py") and
+                        "_10000_20_%d_double_optcdist-zm0.py" % target_opset) and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "setup_profile" not in content:
                         raise AssertionError(content)

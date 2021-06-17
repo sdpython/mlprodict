@@ -52,7 +52,7 @@ except ImportError:
     torch_einsum = None
 
 
-def build_ort_einsum(equation, op_version=13):
+def build_ort_einsum(equation, op_version=14):  # opset=13, 14, ...
     node = OnnxEinsum('x', 'y', equation=equation,
                       op_version=op_version,
                       output_names=['z'])
@@ -63,7 +63,7 @@ def build_ort_einsum(equation, op_version=13):
     return lambda x, y: sess.run(None, {'x': x, 'y': y})
 
 
-def build_ort_decomposed(equation, op_version=13):
+def build_ort_decomposed(equation, op_version=14):  # opset=13, 14, ...
     cache = _einsum(equation, numpy.float32, opset=op_version,
                     optimize=True, verbose=True, runtime="python")
     if not hasattr(cache, 'onnx_'):
