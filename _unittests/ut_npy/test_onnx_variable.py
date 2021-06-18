@@ -381,6 +381,25 @@ def test_abs_set1g(x: NDArray[Any, numpy.float32],
     return temp
 
 
+@onnxnumpy_default
+def test_abs_set1h(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy set"
+    cp = x.copy()
+    cp[x < numpy.float32(0)] = numpy.array([-1], dtype=numpy.float32)
+    return cp
+
+
+@onnxnumpy_default
+def test_abs_set1i(x: NDArray[Any, numpy.float32],
+                   ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy set"
+    cp = x.copy()
+    z = x < numpy.float32(0)
+    cp[z] = -x
+    return cp
+
+
 class TestOnnxVariable(ExtTestCase):
 
     def test_py_abs(self):
@@ -694,6 +713,23 @@ class TestOnnxVariable(ExtTestCase):
         temp = numpy.abs(x)
         temp[3:] = -1.5
         self.assertEqualArray(y, temp)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_set1h(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
+                        dtype=numpy.float32)
+        y = test_abs_set1h(x)
+        temp = x.copy()
+        temp[x < 0] = -1
+        self.assertEqualArray(temp, y)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_set1i(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
+                        dtype=numpy.float32)
+        y = test_abs_set1i(x)
+        temp = numpy.abs(x)
+        self.assertEqualArray(temp, y)
 
 
 if __name__ == "__main__":

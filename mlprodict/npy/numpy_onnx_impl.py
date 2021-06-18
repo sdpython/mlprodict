@@ -45,7 +45,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSqueeze,
     OnnxTan, OnnxTanh, OnnxTopK,
     OnnxUnsqueeze,
-)
+    OnnxWhere)
 from .onnx_variable import OnnxVar, MultiOnnxVar as xtuple
 
 
@@ -368,3 +368,8 @@ def unsqueeze(x, axes):
 def vstack(*x):
     "See :epkg:`numpy:vstack`."
     return OnnxVar(*x, op=OnnxConcat, axis=0)
+
+
+def where(cond, x, y):
+    "See :epkg:`numpy:where`."
+    return OnnxVar(cond, x, y, op=OnnxWhere)

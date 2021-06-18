@@ -415,7 +415,15 @@ class TestNumpyOnnxFunction(ExtTestCase):
         self.common_testn((x, x), npc, nxnpy.vstack,  # pylint: disable=E1101
                           (numpy.float32, numpy.float32))
 
+    def test_where_float32(self):
+        npc = lambda cond, x, y: numpy.where(cond, x, y)
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
+        y = numpy.array([-1000], dtype=numpy.float32)
+        cond = x < 0
+        self.common_testn((cond, x, y), npc, nxnpy.where,  # pylint: disable=E1101
+                          (numpy.bool_, numpy.float32, numpy.float32))
+
 
 if __name__ == "__main__":
-    # TestNumpyOnnxFunction().test_einsum_float32()
+    TestNumpyOnnxFunction().test_where_float32()
     unittest.main()

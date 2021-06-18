@@ -60,6 +60,7 @@ from .numpy_onnx_impl import (
     topk as nx_topk,
     unsqueeze as nx_unsqueeze,
     vstack as nx_vstack,
+    where as nx_where,
 )
 from .onnx_numpy_wrapper import onnxnumpy_np
 
@@ -351,3 +352,9 @@ def unsqueeze(x, axes):
 def vstack(*x):
     "vstack"
     return nx_vstack(*x)
+
+
+@onnxnumpy_np(signature=NDArrayType(("bool", "T:all", "T"), ("T", )))
+def where(cond, x, y):
+    "where"
+    return nx_where(cond, x, y)
