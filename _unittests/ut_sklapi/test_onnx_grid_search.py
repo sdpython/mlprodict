@@ -57,7 +57,7 @@ class TestInferenceSessionSklearnGridSearch(ExtTestCase):
 
         param_grid = [{'logisticregression__penalty': ['l2', 'l1']}]
 
-        clf = GridSearchCV(pipe, param_grid, cv=3)
+        clf = GridSearchCV(pipe, param_grid, cv=3, n_jobs=1)
         clf.fit(X_train, y_train)
         bp = clf.best_params_
         self.assertIn(bp, ({'logisticregression__penalty': 'l1'},
@@ -96,7 +96,7 @@ class TestInferenceSessionSklearnGridSearch(ExtTestCase):
         param_grid = [{'onnxtransformer__onnx_bytes':
                        [onx_bytes2, onx_bytes3]}]
 
-        clf = GridSearchCV(pipe, param_grid, cv=3)
+        clf = GridSearchCV(pipe, param_grid, cv=3, n_jobs=1)
         clf.fit(X_train, y_train)
         bp = clf.best_params_
         self.assertIn("onnxtransformer__onnx_bytes", bp)
