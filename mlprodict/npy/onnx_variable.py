@@ -24,8 +24,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSum, OnnxReshape,
     OnnxScatterElements, OnnxShape, OnnxSize, OnnxSlice,
     OnnxSqueeze, OnnxSub,
-    OnnxTopK, OnnxTranspose
-)
+    OnnxTopK, OnnxTranspose,
+    OnnxWhere)
 from skl2onnx.algebra.onnx_operator import OnnxOperatorItem
 from skl2onnx.common.data_types import _guess_numpy_type
 from ..onnx_tools.onnx2py_helper import guess_proto_dtype
@@ -411,11 +411,15 @@ class OnnxVar:
                 "Method copy() would do that.")
 
         if isinstance(index, OnnxVar):
-            # scenario 2
-            raise NotImplementedError()  # pragma: no cover
-
-        if not isinstance(index, tuple):
+            # scenario 2, example: cp[x < 0] = -1
+            return self._setitem2i_(index, value)
+        elif not isinstance(index, tuple):
             index = (index, )
+
+        for i in index:
+            if isinstance(i, OnnxVar):
+                raise NotImplementedError(  # pragma: no cover
+                    "Unable to handle case such as cp[0, x < 0] = -1.")
 
         # scenario 1
         if len(index) == 1:
@@ -463,6 +467,11 @@ class OnnxVar:
             add_step = OnnxVar(self.inputs[0], indices, values,
                                op=OnnxScatterElements, axis=0)
 
+        self.inputs = [add_step]
+        return self
+
+    def _setitem2i_(self, index, value):
+        add_step = OnnxVar(index, value, self.inputs[0], op=OnnxWhere)
         self.inputs = [add_step]
         return self
 

@@ -143,15 +143,16 @@ def build_custom_scenarios():
         GridSearchCV: [
             ('cl', {
                 'estimator': LogisticRegression(solver='liblinear'),
+                'n_jobs': 1,
                 'param_grid': {'fit_intercept': [False, True]}},
              {'conv_options': [{GridSearchCV: {'zipmap': False}}],
               'subset_problems': ['b-cl', 'm-cl', '~b-cl-64']}),
             ('reg', {
-                'estimator': LinearRegression(),
+                'estimator': LinearRegression(), 'n_jobs': 1,
                 'param_grid': {'fit_intercept': [False, True]},
             }, ['b-reg', 'm-reg', '~b-reg-64']),
             ('reg', {
-                'estimator': KMeans(),
+                'estimator': KMeans(), 'n_jobs': 1,
                 'param_grid': {'n_clusters': [2, 3]},
             }, ['cluster']),
         ],
