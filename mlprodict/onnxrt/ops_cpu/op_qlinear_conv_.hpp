@@ -1,7 +1,7 @@
 #pragma once
 
 // Inspired from 
-// https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_classifier.cc.
+// https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/qlinearconv.cc.
 
 #if !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
@@ -49,8 +49,7 @@ inline uint32_t BitsOfFp32(float FloatValue) {
 */
 template <typename T>
 void RequantizeOutput(
-    const int32_t* Input, T* Output, const int32_t* Bias,
-    size_t M, size_t N,
+    const int32_t* Input, T* Output, const int32_t* Bias, size_t M, size_t N,
     const float* Scale, bool PerColumnScale, T ZeroPoint) {
     const float PerMatrixScaleValue = PerColumnScale ? 0.0f : *Scale;
     const float MinimumValue = float(0 - ZeroPoint);

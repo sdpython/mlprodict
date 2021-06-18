@@ -1,5 +1,5 @@
 // Inspired from 
-// https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_classifier.cc.
+// https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/test/providers/cpu/nn/qlinearconv_op_test.cc.
 
 #if !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS

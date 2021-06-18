@@ -116,7 +116,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);SKIP_PYTHON</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>../../mlprodict/onnxrt/ops_cpu</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../mlprodict/onnxrt/ops_cpu;../../mlprodict/testing</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -150,6 +150,16 @@
     <ClCompile Include="../../mlprodict/onnxrt/ops_cpu/op_conv_matrices_.hpp" />
     <ClCompile Include="../../mlprodict/onnxrt/ops_cpu/op_common_.cpp" />
     <ClCompile Include="../../mlprodict/onnxrt/ops_cpu/op_common_.hpp" />
+    <ClCompile Include="../../mlprodict/testing/experimental_c_helper.h" />
+    <ClCompile Include="../../mlprodict/testing/experimental_c_helper.hpp" />
+    <ClCompile Include="../../mlprodict/testing/experimental_c_add.h" />
+    <ClCompile Include="../../mlprodict/testing/experimental_c_add.hpp" />
+    <ClCompile Include="../../mlprodict/testing/experimental_c_einsum.h" />
+    <ClCompile Include="../../mlprodict/testing/experimental_c_einsum.hpp" />
+    <ClCompile Include="../../mlprodict/testing/experimental_c_reduce.h" />
+    <ClCompile Include="../../mlprodict/testing/experimental_c_reduce.hpp" />
+    <ClCompile Include="../../mlprodict/testing/experimental_c.cpp" />
+    <ClCompile Include="../../mlprodict/testing/experimental_c.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
