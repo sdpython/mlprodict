@@ -5,7 +5,7 @@ import unittest
 import warnings
 from logging import getLogger
 import numpy
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from sklearn.neighbors import RadiusNeighborsRegressor
 from sklearn.datasets import make_regression
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
@@ -22,6 +22,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_runtime_add(self):
         idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
@@ -45,6 +46,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Ad_Addcst', 'X', 'Y'])
         self.assertEqualArray(idi + X, got['Y'], decimal=6)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_runtime_add_raise(self):
         idi = numpy.identity(2)
         onx = OnnxAdd('X', idi, output_names=['Y'],
@@ -53,6 +55,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         self.assertRaise(lambda: OnnxInference(model_def, runtime='onnxruntime-1'),
                          ValueError)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_runtime_add1(self):
         idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
@@ -65,6 +68,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(idi + X, got['Y'], decimal=6)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxruntime_bug(self):
         rnd = numpy.random.randn(2, 20, 20).astype(numpy.float32)
         bni = (numpy.random.random((20, 20)).astype(  # pylint: disable=E1101
@@ -82,6 +86,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
                 y = oinf.run({'X': rnd})['Y']
                 self.assertEqualArray(mul, y)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxruntime_knn_radius(self):
         def _get_reg_data(self, n, n_features, n_targets, n_informative=10):
             X, y = make_regression(  # pylint: disable=W0632

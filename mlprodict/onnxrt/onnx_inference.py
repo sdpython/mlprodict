@@ -130,6 +130,17 @@ class OnnxInference:
                 "No runnable nodes was found in the ONNX graph.")
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
+
+        for ino in [self.obj.graph.input, self.obj.graph.output]:
+            for xy in ino:
+                shape = xy.type.tensor_type.shape
+                for d in shape.dim:
+                    if d.dim_value == 0 and "0" in str(d):
+                        # d.dim_value returns 0 whether is is 0 or empty.
+                        raise RuntimeError(
+                            "Wrong ONNX file, one input or output has an empty shape: "
+                            "{}.".format(xy))
+
         self.target_opset_ = self.graph_['targets']
         if self.force_target_opset is not None:
             if isinstance(self.force_target_opset, dict):
