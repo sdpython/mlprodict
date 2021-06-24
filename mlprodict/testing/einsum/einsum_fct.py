@@ -196,12 +196,12 @@ class CachedEinsum:
             onx = inst.graph_.to_onnx('Y', *inits, opset=self.opset)
             shapes = shape_inference.infer_shapes(onx)
             transposes = {}
-            for node in shapes.graph.node:
+            for node in shapes.graph.node:  # pylint: disable=E1101
                 if node.op_type == 'Transpose':
                     transposes[node.input[0]] = [
                         None, list(node.attribute[0].ints)]
             mx = 5
-            for val in shapes.graph.value_info:
+            for val in shapes.graph.value_info:  # pylint: disable=E1101
                 name = val.name
                 if name not in transposes:
                     continue

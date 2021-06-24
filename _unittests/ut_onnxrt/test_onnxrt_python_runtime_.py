@@ -1,5 +1,5 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=70s)
 """
 import unittest
 import warnings
@@ -8,6 +8,7 @@ from logging import getLogger
 from contextlib import redirect_stdout
 from io import StringIO
 import numpy
+import onnx
 from scipy.sparse import coo_matrix, csr_matrix, SparseEfficiencyWarning
 from scipy.special import (  # pylint: disable=E0611
     expit as logistic_sigmoid, erf)
@@ -2982,11 +2983,22 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         for opset in (13, 14, get_opset_number_from_onnx()):
             if onnx_opset_version() < opset:
                 continue
-            cl = OnnxReduceSum
-            onx = cl('X', output_names=['Y'], keepdims=0,
-                     op_version=opset, noop_with_empty_axes=0)
-            model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                    target_opset=opset)
+
+            node = onnx.helper.make_node(
+                'ReduceSum', inputs=['X'], outputs=['Y'],
+                keepdims=0, noop_with_empty_axes=0)
+            oX = onnx.helper.make_tensor_value_info(
+                'X', onnx.TensorProto.FLOAT, [None, None])  # pylint: disable=E1101
+            oY = onnx.helper.make_tensor_value_info(
+                'Y', onnx.TensorProto.FLOAT, [None, None])  # pylint: disable=E1101
+
+            graph_def = onnx.helper.make_graph(
+                [node], 'test-model', [oX], [oY])
+            model_def = onnx.helper.make_model(
+                graph_def, producer_name='mlprodict', ir_version=7,
+                producer_version='0.1',
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)])
+
             oinf = OnnxInference(model_def)
             got = oinf.run({'X': X})
             self.assertEqual(list(sorted(got)), ['Y'])

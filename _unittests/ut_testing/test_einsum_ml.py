@@ -3,7 +3,6 @@
 """
 import unittest
 from itertools import permutations
-import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing.einsum.einsum_ml import (
     predict_transposition_cost, compute_transposition_features)
@@ -15,10 +14,10 @@ class TestEinsumMl(ExtTestCase):
         res = compute_transposition_features((3, 5, 7), (0, 1, 2))
         self.assertIsInstance(res, dict)
         self.assertEqual(res["edit"], 0)
-        self.assertEqual(res["rot"], 0)
+        self.assertEqual(res["rot"], -1)
         res = compute_transposition_features((3, 5, 7), (2, 1, 0))
         self.assertEqual(res["edit"], 2)
-        self.assertEqual(res["rot"], 1)
+        self.assertEqual(res["rot"], 0)
         self.assertEqual(res["rev"], 1)
 
     def test_cost(self):
