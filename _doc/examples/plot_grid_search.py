@@ -71,7 +71,7 @@ param_grid = [{'onnxtransformer__onnx_bytes': onx_bytes,
 
 @ignore_warnings(category=ConvergenceWarning)
 def fit(pipe, param_grid, cv=3):
-    clf = GridSearchCV(pipe, param_grid, cv=3)
+    clf = GridSearchCV(pipe, param_grid, cv=3, n_jobs=1)
     clf.fit(X_train, y_train)
     return clf
 

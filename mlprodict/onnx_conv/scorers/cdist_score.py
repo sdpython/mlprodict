@@ -22,7 +22,10 @@ def score_cdist_sum(expected_values, predictions,
     @param      p                   see function :epkg:`cdist`
     @return                         some of the pairwise distances
     """
-    dist = cdist(expected_values, predictions, metric=metric, p=p)
+    if p is None:
+        dist = cdist(expected_values, predictions, metric=metric)
+    else:
+        dist = cdist(expected_values, predictions, metric=metric, p=p)
     return numpy.sum(dist, axis=1)
 
 
