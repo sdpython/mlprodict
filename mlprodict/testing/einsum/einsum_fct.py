@@ -7,9 +7,10 @@ from itertools import permutations
 import time
 import math
 import numpy
-from onnx import helper, shape_inference
+from onnx import helper
 from skl2onnx.common.data_types import FloatTensorType
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
+from ...tools.onnx_micro_runtime import OnnxMicroRuntime
 from ...tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
@@ -191,32 +192,28 @@ class CachedEinsum:
             inst.build()
             if inputs is None:
                 inputs = inst.default_inputs()
-            inits = [('X%d' % i, FloatTensorType(list(inputs[i].shape)))
-                     for i in range(len(inputs))]
-            onx = inst.graph_.to_onnx('Y', *inits, opset=self.opset)
-            shapes = shape_inference.infer_shapes(onx)
-            transposes = {}
-            for node in shapes.graph.node:  # pylint: disable=E1101
-                if node.op_type == 'Transpose':
-                    transposes[node.input[0]] = [
-                        None, list(node.attribute[0].ints)]
-            mx = 5
-            for val in shapes.graph.value_info:  # pylint: disable=E1101
-                name = val.name
-                if name not in transposes:
-                    continue
-                shape = [(d.dim_value * 10 if d.dim_value > 1 else 1)
-                         for d in val.type.tensor_type.shape.dim]
-                if len(shape) == 0:
-                    shape = [mx for i in range(len(transposes[name][1]))]
-                else:
-                    # todo: compute intermediate results.
-                    mx = max(mx, max(shape))
+            if hasattr(inst, 'onnx_'):
+                onx = inst.onnx_
+            else:
+                inits = [
+                    ('X%d' % i, FloatTensorType(list(inputs[i].shape)))
+                    for i in range(len(inputs))]
+                onx = inst.graph_.to_onnx('Y', *inits, opset=self.opset)
 
-                transposes[name][0] = shape
+            rt = OnnxMicroRuntime(onx)
+            dict_inputs = {'X%d' % i: inp for i, inp in enumerate(inputs)}
+            out = rt.run(dict_inputs)
+
+            transposes = []
+            for node in onx.graph.node:  # pylint: disable=E1101
+                if node.op_type == 'Transpose':
+                    shape = [(d * 10 if d > 1 else d)
+                             for d in out[node.input[0]].shape]
+                    transposes.append(
+                        [shape, list(node.attribute[0].ints)])
 
             delta = sum(predict_transposition_cost(*v)
-                        for v in transposes.values())
+                        for v in transposes)
 
             confs.append((delta, eq))
             if len(best) < 10:

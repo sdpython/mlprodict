@@ -402,7 +402,8 @@ class OnnxInference:
                 for k, v in atts.items():
                     if not isinstance(v, dict) or 'value' not in v:
                         raise RuntimeError(  # pragma: no cover
-                            "A parameter has no (sparse) value '{}' for node '{}'\nv={}\ndobj=[{}]".format(
+                            "A parameter has no (sparse) value '{}' "
+                            "for node '{}'\nv={}\ndobj=[{}]".format(
                                 k, node.name, v, node))
             if node.name in nodes:  # pragma: no cover
                 i = 2
@@ -888,8 +889,9 @@ class OnnxInference:
             if att.name == att_name:
                 return att
 
-        raise IndexError("Unable to find attribute '{}' from node '{}'.".format(  # pragma: no cover
-            att_name, node_name))
+        raise IndexError(  # pragma: no cover
+            "Unable to find attribute '{}' from node "
+            "'{}'.".format(att_name, node_name))
 
     def switch_initializers_dtype(self, model=None,
                                   dtype_in=numpy.float32,

@@ -102,7 +102,7 @@ def compute_transposition_features(shape, perm):
             compute_transposition_features((3, 5, 7), (2, 1, 0)))
     """
     total = numpy.prod(numpy.array(shape, dtype=numpy.int64))
-    
+
     begin = 1
     dbegin = 0
     for i, p in enumerate(perm):
@@ -110,42 +110,42 @@ def compute_transposition_features(shape, perm):
             break
         dbegin += 1
         begin *= shape[i]
-        
+
     end = 1
     dend = 0
-    for i in range(len(perm)-1, -1, -1):
+    for i in range(len(perm) - 1, -1, -1):
         if perm[i] != i:
             break
         dend += 1
         end *= shape[i]
-    
+
     dis_cont = 0
     for i in range(1, len(shape)):
-        if perm[i] != perm[i-1] + 1:
+        if perm[i] != perm[i - 1] + 1:
             dis_cont += 1
-    
+
     middle = max(1, int(total / (end * begin)))
     feat = dict(size=total, begin=begin, end=end, middle=middle,
                 dim=len(shape), discont=dis_cont)
 
     for c in [16, 32]:
         feat["end%d" % c] = _relu(end, c)
-    
+
     keys = list(feat)
     for k in keys:
         if k in {'dim', 'cpu', 'size'}:
             continue
         feat['r%s' % k] = float(feat[k] / total)
-    
+
     for c in [2, 4, 8, 16, 32, 64]:
         feat["iend%d" % c] = float(end >= c)
         feat["ibegin%d" % c] = float(begin >= c)
-    
+
     # feat['CST'] = 1
     feat['CST_'] = -1
     feat['dbegin'] = - dbegin
     feat['dend'] = - dend
-    
+
     keys = list(feat)
     for k in keys:
         if k.startswith('end') or k.startswith('begin'):
@@ -163,7 +163,6 @@ def compute_transposition_features(shape, perm):
     feat["edit"] = _edit_distance(idp, perm)
     feat["redit"] = feat["edit"] / len(idp)
     return feat
-
 
 
 def predict_transposition_cost(shape, perm, coefs=None):

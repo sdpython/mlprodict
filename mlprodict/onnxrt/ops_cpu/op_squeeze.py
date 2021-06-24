@@ -54,9 +54,10 @@ class Squeeze_13(OpRun):
 
     def _run(self, data, axes=None):  # pylint: disable=W0221
         if axes is not None:
-            sq = data
-            for a in reversed(sorted(axes)):
-                sq = numpy.squeeze(sq, axis=a)
+            if hasattr(axes, '__iter__'):
+                sq = numpy.squeeze(data, axis=tuple(axes))
+            else:
+                sq = numpy.squeeze(data, axis=axes)
         else:
             sq = numpy.squeeze(data)
         return (sq, )
