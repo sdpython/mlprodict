@@ -7,11 +7,13 @@ from itertools import permutations
 import time
 import math
 import numpy
-from onnx import helper
+from onnx import helper, shape_inference
+from skl2onnx.common.data_types import FloatTensorType
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
 from ...tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
+from .einsum_ml import predict_transposition_cost
 
 
 _einsum_cache = {}
@@ -39,6 +41,7 @@ class CachedEinsum:
     :param dtype: dtype
     :param decompose: to decompose Einsum operator or to keep it as is
     :param key: key used to cache this class
+    :param strategy: optimization strategy
     :param verbose: displays progress information
 
     The class creates the following attributes:
@@ -52,22 +55,23 @@ class CachedEinsum:
 
     def __init__(self, equation, runtime='batch_dot', opset=None,
                  optimize=False, dtype=numpy.float64, decompose=True,
-                 verbose=None, key=None):
+                 strategy=None, verbose=None, key=None):
         self.equation = equation
         self.runtime = runtime
         self.opset = opset
         self.optimize = optimize
         self.dtype = dtype
         self.decompose = decompose
+        self.strategy = strategy
         self.verbose = verbose
         self.key = key
 
     def __repr__(self):
         "usual"
-        return "%s(%r, %r, %r, %r, %r, %r, key=%r)" % (
+        return "%s(%r, %r, %r, %r, %r, %r, %r, key=%r)" % (
             self.__class__.__name__, self.equation, self.runtime,
             self.opset, self.optimize, self.dtype, self.decompose,
-            self.key)
+            self.strategy, self.key)
 
     def default_inputs(self, N=None):
         """
@@ -98,56 +102,136 @@ class CachedEinsum:
         """
         if not self.optimize and not hasattr(self, 'equation_'):
             self.equation_ = self.equation
+        elif self.strategy is None:
+            self.equation_ = self._build_optimize()
+        elif self.strategy == 'ml':
+            self.equation_ = self._build_optimize_ml()
         else:
-            # loops over all permutations
-            if self.equation.lower() != self.equation:
-                raise RuntimeError(
-                    "Only lower equation can be optimized, %r is not." % self.equation)
-            letters = list(
-                sorted(set(c for c in self.equation if "a" <= c <= "z")))
-            possible = list(permutations(letters))
-            possible.insert(0, letters)
-            if self.verbose:
-                from tqdm import tqdm
-                subset = tqdm(possible)
-            else:
-                subset = possible
-            best = []
-            confs = []
-            very_best = None
-            inputs = None
-            for perm in subset:
-                replace = {d: c for c, d in zip(letters, perm)}
-                eq = self.equation
-                for k, v in replace.items():
-                    eq = eq.replace(k, v.upper())
-                eq = eq.lower()
-                inst = CachedEinsum(eq, runtime=self.runtime, opset=self.opset,
-                                    optimize=False, dtype=self.dtype,
-                                    decompose=self.decompose)
-                inst.build()
-                if inputs is None:
-                    inputs = inst.default_inputs()
-                    inst(*inputs)
-                ts = time.perf_counter()
-                for _ in range(0, 10):
-                    inst(*inputs)
-                delta = time.perf_counter() - ts
-                confs.append((delta, eq))
-                if len(best) < 10:
-                    best.append((delta, eq))
-                    best.sort()
-                elif delta < best[-1][0]:
-                    best[-1] = (delta, eq)
-                    best.sort()
-                if self.verbose and (
-                        very_best is None or very_best != best[0][0]):
-                    very_best = best[0][0]
-                    subset.set_description("%1.2g best=%r" % best[0])
-            self.optimized_ = best
-            self.timed_permutations_ = confs
-            self.equation_ = best[0][1]
+            raise ValueError(  # pragma error
+                "Unknown strategy %r." % self.strategy)
         self.build_runtime()
+
+    def _build_optimize(self):
+        # loops over all permutations
+        if self.equation.lower() != self.equation:
+            raise RuntimeError(
+                "Only lower equation can be optimized, %r is not." % self.equation)
+        letters = list(
+            sorted(set(c for c in self.equation if "a" <= c <= "z")))
+        possible = list(permutations(letters))
+        possible.insert(0, letters)
+        if self.verbose:
+            from tqdm import tqdm
+            subset = tqdm(possible)
+        else:
+            subset = possible
+        best = []
+        confs = []
+        very_best = None
+        inputs = None
+        for perm in subset:
+            replace = {d: c for c, d in zip(letters, perm)}
+            eq = self.equation
+            for k, v in replace.items():
+                eq = eq.replace(k, v.upper())
+            eq = eq.lower()
+            inst = CachedEinsum(eq, runtime=self.runtime, opset=self.opset,
+                                optimize=False, dtype=self.dtype,
+                                decompose=self.decompose)
+            inst.build()
+            if inputs is None:
+                inputs = inst.default_inputs()
+                inst(*inputs)
+            ts = time.perf_counter()
+            for _ in range(0, 10):
+                inst(*inputs)
+            delta = time.perf_counter() - ts
+            confs.append((delta, eq))
+            if len(best) < 10:
+                best.append((delta, eq))
+                best.sort()
+            elif delta < best[-1][0]:
+                best[-1] = (delta, eq)
+                best.sort()
+            if self.verbose and (
+                    very_best is None or very_best != best[0][0]):
+                very_best = best[0][0]
+                subset.set_description("%1.2g rtbest=%r" % best[0])
+        self.optimized_ = best
+        self.timed_permutations_ = confs
+        return best[0][1]
+
+    def _build_optimize_ml(self):
+        # loops over all permutations
+        if self.equation.lower() != self.equation:
+            raise RuntimeError(
+                "Only lower equation can be optimized, %r is not." % self.equation)
+        letters = list(
+            sorted(set(c for c in self.equation if "a" <= c <= "z")))
+        possible = list(permutations(letters))
+        possible.insert(0, letters)
+        if self.verbose:
+            from tqdm import tqdm
+            subset = tqdm(possible)
+        else:
+            subset = possible
+        best = []
+        confs = []
+        very_best = None
+        inputs = None
+        for perm in subset:
+            replace = {d: c for c, d in zip(letters, perm)}
+            eq = self.equation
+            for k, v in replace.items():
+                eq = eq.replace(k, v.upper())
+            eq = eq.lower()
+            inst = CachedEinsum(eq, runtime=self.runtime, opset=self.opset,
+                                optimize=False, dtype=self.dtype,
+                                decompose=self.decompose)
+            inst.build()
+            if inputs is None:
+                inputs = inst.default_inputs()
+            inits = [('X%d' % i, FloatTensorType(list(inputs[i].shape)))
+                     for i in range(len(inputs))]
+            onx = inst.graph_.to_onnx('Y', *inits, opset=self.opset)
+            shapes = shape_inference.infer_shapes(onx)
+            transposes = {}
+            for node in shapes.graph.node:
+                if node.op_type == 'Transpose':
+                    transposes[node.input[0]] = [
+                        None, list(node.attribute[0].ints)]
+            mx = 5
+            for val in shapes.graph.value_info:
+                name = val.name
+                if name not in transposes:
+                    continue
+                shape = [d.dim_value *
+                         10 for d in val.type.tensor_type.shape.dim]
+                if len(shape) == 0:
+                    shape = [mx for i in range(len(transposes[name][1]))]
+                else:
+                    # todo: compute intermediate results.
+                    mx = max(mx, max(shape))
+
+                transposes[name][0] = shape
+
+            delta = sum(predict_transposition_cost(*v)
+                        for v in transposes.values())
+
+            confs.append((delta, eq))
+            if len(best) < 10:
+                best.append((delta, eq))
+                best.sort()
+            elif delta < best[-1][0]:
+                best[-1] = (delta, eq)
+                best.sort()
+            if self.verbose and (
+                    very_best is None or very_best != best[0][0]):
+                very_best = best[0][0]
+                subset.set_description("%1.2g mlbest=%r" % best[0])
+        self.optimized_ = best
+        self.timed_permutations_ = confs
+        return best[0][1]
 
     def build_onnx_einsum(self, input_names):
         """
@@ -230,30 +314,32 @@ class CachedEinsum:
 
     @staticmethod
     def build_einsum(equation, runtime, opset, optimize,
-                     dtype, decompose=True, verbose=None,
-                     key=None):
+                     dtype, decompose=True, strategy=None,
+                     verbose=None, key=None):
         """
         Creates an instance of *CachedEinsum*.
         """
         inst = CachedEinsum(equation, runtime=runtime, opset=opset,
                             optimize=optimize, dtype=dtype,
-                            decompose=decompose, verbose=verbose, key=key)
+                            decompose=decompose, strategy=strategy,
+                            verbose=verbose, key=key)
         inst.build()
         return inst
 
 
 def _einsum(equation, dtype, optimize=False, runtime="batch_dot",
-            cache=True, opset=None, decompose=True, verbose=None):
+            cache=True, opset=None, decompose=True, strategy=None,
+            verbose=None):
     global _einsum_cache  # pylint: disable=W0603
     cached = None
     if cache:
-        key = equation, runtime, opset, optimize, dtype, decompose
+        key = equation, runtime, opset, optimize, dtype, decompose, strategy
         cached = _einsum_cache.get(key, None)
     if cached is None:
         cached = CachedEinsum.build_einsum(
             equation, runtime, opset, optimize,
-            dtype, decompose=decompose, verbose=verbose,
-            key=key)
+            dtype, decompose=decompose, strategy=strategy,
+            verbose=verbose, key=key)
     else:
         cache = False
     if cache:
@@ -262,7 +348,8 @@ def _einsum(equation, dtype, optimize=False, runtime="batch_dot",
 
 
 def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
-           cache=True, opset=None, decompose=True, verbose=None):
+           cache=True, opset=None, decompose=True,
+           strategy=None, verbose=None):
     """
     Proposes a new implementatino of :epkg:`numpy:einsum`.
     It does not allow expresion using `...` and expects
@@ -281,6 +368,7 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
     :param decompose: by default, the function decomposes
         the equation into more simple operators but it can keep
         the original ONNX einsum operator.
+    :param strategy: optimisation strategy (see below)
     :param verbose: display progress if optimize is True
     :return: einsum result
 
@@ -288,6 +376,12 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
     * `batch_dot`: the runtime is @see fn apply_einsum_sequence,
     * `python`: one ONNX graph executed with a python runtime,
     * `onnxruntime1`: one ONNX graph executed with :epkg:`onnxruntime`.
+
+    The optimisation strategy can be:
+    * `None`: the same runtime is used to find the best permutation of letters
+    * `'ml'`: a machine learned model is used to predict the
+        best permutation of letters, this model comes from
+        notebook :ref:`onnxoperatorcostrst`.
 
     The function works in two steps:
     * first step analyses the equation to produce a computation graph,
@@ -451,5 +545,5 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
             "" % dtypes)
     cached = _einsum(equation, inputs[0].dtype, optimize=optimize,
                      runtime=runtime, cache=cache, opset=opset,
-                     decompose=decompose, verbose=verbose)
+                     decompose=decompose, strategy=strategy, verbose=verbose)
     return cached(*inputs)
