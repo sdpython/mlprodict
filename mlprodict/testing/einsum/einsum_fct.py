@@ -205,8 +205,8 @@ class CachedEinsum:
                 name = val.name
                 if name not in transposes:
                     continue
-                shape = [d.dim_value *
-                         10 for d in val.type.tensor_type.shape.dim]
+                shape = [(d.dim_value * 10 if d.dim_value > 1 else 1)
+                         for d in val.type.tensor_type.shape.dim]
                 if len(shape) == 0:
                     shape = [mx for i in range(len(transposes[name][1]))]
                 else:
