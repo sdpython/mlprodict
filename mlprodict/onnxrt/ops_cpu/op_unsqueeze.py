@@ -55,9 +55,10 @@ class Unsqueeze_13(OpRun):
 
     def _run(self, data, axes=None):  # pylint: disable=W0221
         if axes is not None:
-            sq = data
-            for a in axes:
-                sq = numpy.expand_dims(sq, axis=a)
+            if hasattr(axes, '__iter__'):
+                sq = numpy.expand_dims(data, axis=tuple(axes))
+            else:
+                sq = numpy.expand_dims(data, axis=axes)
         else:
             raise RuntimeError(  # pragma: no cover
                 "axes cannot be None for operator Unsqueeze (Unsqueeze_13).")

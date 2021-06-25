@@ -130,6 +130,17 @@ class OnnxInference:
                 "No runnable nodes was found in the ONNX graph.")
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
+
+        for ino in [self.obj.graph.input, self.obj.graph.output]:
+            for xy in ino:
+                shape = xy.type.tensor_type.shape
+                for d in shape.dim:
+                    if d.dim_value == 0 and "0" in str(d):
+                        # d.dim_value returns 0 whether is is 0 or empty.
+                        raise RuntimeError(
+                            "Wrong ONNX file, one input or output has an empty shape: "
+                            "{}.".format(xy))
+
         self.target_opset_ = self.graph_['targets']
         if self.force_target_opset is not None:
             if isinstance(self.force_target_opset, dict):
@@ -391,7 +402,8 @@ class OnnxInference:
                 for k, v in atts.items():
                     if not isinstance(v, dict) or 'value' not in v:
                         raise RuntimeError(  # pragma: no cover
-                            "A parameter has no (sparse) value '{}' for node '{}'\nv={}\ndobj=[{}]".format(
+                            "A parameter has no (sparse) value '{}' "
+                            "for node '{}'\nv={}\ndobj=[{}]".format(
                                 k, node.name, v, node))
             if node.name in nodes:  # pragma: no cover
                 i = 2
@@ -877,8 +889,9 @@ class OnnxInference:
             if att.name == att_name:
                 return att
 
-        raise IndexError("Unable to find attribute '{}' from node '{}'.".format(  # pragma: no cover
-            att_name, node_name))
+        raise IndexError(  # pragma: no cover
+            "Unable to find attribute '{}' from node "
+            "'{}'.".format(att_name, node_name))
 
     def switch_initializers_dtype(self, model=None,
                                   dtype_in=numpy.float32,

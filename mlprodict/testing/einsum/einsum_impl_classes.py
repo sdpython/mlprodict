@@ -6,6 +6,7 @@ implement einsum computation.
 """
 import numpy
 from onnx import helper, numpy_helper
+from skl2onnx.common.data_types import guess_proto_type
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
 from ...tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
@@ -1428,16 +1429,28 @@ class GraphEinsumSubOp:
         proto = guess_proto_dtype(
             numpy.float32 if dtype is None else dtype)
         lengths = self.metadata['lengths']
+        names = {}
         for inp, le in zip(inputs, lengths):
-            onx_inputs.append(helper.make_tensor_value_info(
-                inp, proto, [None for i in range(le)]))
+            if isinstance(inp, tuple):
+                name, typ = inp
+                if le != len(typ.shape):
+                    raise ValueError(  # pragma: no cover
+                        "Irreconcialable shapes for input %r: "
+                        "%r != len(%r)." % (name, le, typ.shape))
+                proto = guess_proto_type(typ)
+                onx_inputs.append(helper.make_tensor_value_info(
+                    name, proto, typ.shape))
+                names[len(names)] = name
+            else:
+                onx_inputs.append(helper.make_tensor_value_info(
+                    inp, proto, [None for i in range(le)]))
+                names[len(names)] = inp
 
         # output
         onx_output = helper.make_tensor_value_info(
             output, proto, [None for i in range(lengths[-1])])
 
         # nodes
-        names = {i: name for i, name in enumerate(inputs)}
         nodes = []
         inits = []
         if "initializer" in kwargs:
