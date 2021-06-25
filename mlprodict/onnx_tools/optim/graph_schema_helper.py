@@ -83,22 +83,20 @@ def get_defined_inputs(input_names, variables=None, dtype=None,
 
 
 def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
-                        dtype=None, schema=None):
+                        dtype=None, schema=None, schema_inputs=None):
     """
     Gets types of predefined outputs when they cannot be inferred.
     Some part of it should be automated based
     on type constraints.
 
-    @param      outputs         requested outputs
-    @param      onnx_node       :epkg:`ONNX` node definition
-    @param      typed_inputs    known typed inputs of the node
-                                as ``tuple(name, type)``
-    @param      variables       registered variables created
-                                by previous operators
-    @param      dtype           float computational type
-    @param      schema          defined outputs by schema (*expected_outputs*)
-    @return                     typed outputs
-                                as ``tuple(name, type)``
+    :param outputs: requested outputs
+    :param onnx_node: :epkg:`ONNX` node definition
+    :param typed_inputs: known typed inputs of the node as `tuple(name, type)`
+    :param variables: registered variables created by previous operators
+    :param dtype: float computational type
+    :param schema: defined outputs by schema (*expected_outputs*)
+    :param schema_inputs: defined inputs by schema (*expected_inputs*)
+    :return: typed outputs as ``tuple(name, type)``
     """
     if schema is None:
         ft = DoubleTensorType if dtype == numpy.float64 else FloatTensorType
@@ -111,63 +109,110 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
         else:
             ft = schema[0][1].__class__
 
-    # ZipMap
-    if onnx_node.op_type == "ZipMap":
-        otype = SequenceType(DictionaryType(
-            Int64Type(), ft()))
-        outputs = [(name, otype) for name in outputs]
-    # ArgMin, ArgMax, Shape
-    elif (onnx_node.op_type in ("ArgMin", "ArgMax", 'Shape') and
-            len(outputs) == 1):
-        outputs = [(outputs[0], Int64TensorType())]
-    # Greater, Less, Equal
-    elif (onnx_node.op_type in ("Greater", "Less", 'Equal') and
-            len(outputs) == 1):
-        outputs = [(outputs[0], BooleanTensorType())]
-    # TopK
-    elif onnx_node.op_type == "TopK" and len(outputs) == 2:
-        if len(typed_inputs) != 2:
-            raise RuntimeError(  # pragma: no cover
-                "Wrong typed_inputs, got {}.".format(typed_inputs))
-        outputs = [(outputs[0], typed_inputs[0][1]),
-                   (outputs[1], Int64TensorType())]
-    # Cast
-    elif onnx_node.op_type == "Cast" and len(outputs) == 1:
-        ttyp = _guess_type_proto(onnx_node.attribute[0].i, dims=None)
-        outputs = [(outputs[0], ttyp)]
-    # ArrayFeatureExtractor
-    elif onnx_node.op_type == "ArrayFeatureExtractor":
-        if len(typed_inputs) != 2:
-            raise RuntimeError(  # pragma: no cover
-                "Wrong typed_inputs, got {}.".format(typed_inputs))
-        outputs = [(outputs[0], typed_inputs[0][1])]
+    if onnx_node.op_type in {'ZipMap', 'ArgMin', 'ArgMax', 'Shape',
+                             'Greater', 'Less', 'Equal', 'TopK',
+                             'Cast', 'ArrayFeatureExtractor',
+                             'Reshape', 'Transpose', 'Scan',
+                             'ConstantOfShape'}:
+        if onnx_node.op_type == "ZipMap":
+            # ZipMap
+            otype = SequenceType(DictionaryType(
+                Int64Type(), ft()))
+            outputs = [(name, otype) for name in outputs]
+        elif (onnx_node.op_type in ("ArgMin", "ArgMax", 'Shape') and
+                len(outputs) == 1):
+            # ArgMin, ArgMax, Shape
+            outputs = [(outputs[0], Int64TensorType())]
+        elif (onnx_node.op_type in ("Greater", "Less", 'Equal') and
+                len(outputs) == 1):
+            # Greater, Less, Equal
+            outputs = [(outputs[0], BooleanTensorType())]
+        elif onnx_node.op_type == "TopK" and len(outputs) == 2:
+            # TopK
+            if len(typed_inputs) != 2:
+                raise RuntimeError(  # pragma: no cover
+                    "Wrong typed_inputs, got {}.".format(typed_inputs))
+            outputs = [(outputs[0], typed_inputs[0][1]),
+                       (outputs[1], Int64TensorType())]
+        elif onnx_node.op_type == "Cast" and len(outputs) == 1:
+            # Cast
+            ttyp = _guess_type_proto(onnx_node.attribute[0].i, dims=None)
+            outputs = [(outputs[0], ttyp)]
+        elif onnx_node.op_type == "ArrayFeatureExtractor":
+            # ArrayFeatureExtractor
+            if len(typed_inputs) != 2:
+                raise RuntimeError(  # pragma: no cover
+                    "Wrong typed_inputs, got {}.".format(typed_inputs))
+            outputs = [(outputs[0], typed_inputs[0][1])]
+        elif onnx_node.op_type in ('Reshape', 'Transpose'):
+            # Reshape
+            outputs = [(outputs[0], typed_inputs[0][1].__class__())]
+        elif onnx_node.op_type == 'Scan':
+            # Scan
+            if len(outputs) != len(typed_inputs):
+                raise RuntimeError(  # pragma: no cover
+                    "Dimension mismatch, operator Scan should have "
+                    "the same number of inputs and outputs {} != {}"
+                    ".".format(len(outputs), len(typed_inputs)))
+            outputs = [(o, t[1].__class__())
+                       for o, t in zip(outputs, typed_inputs)]
+        elif onnx_node.op_type == "ConstantOfShape":
+            # ConstantOfShape
+            outputs = [(outputs[0], ft())]
     elif 'Classifier' in onnx_node.op_type:
         # Good chance that's a classifier.
         outputs = [(outputs[0], Int64TensorType()),
                    (outputs[1], ft())]
-    # Reshape
-    elif onnx_node.op_type in ('Reshape', 'Transpose'):
-        outputs = [(outputs[0], typed_inputs[0][1].__class__())]
-    # Scan
-    elif onnx_node.op_type == 'Scan':
-        if len(outputs) != len(typed_inputs):
-            raise RuntimeError(  # pragma: no cover
-                "Dimension mismatch, operator Scan should have "
-                "the same number of inputs and outputs {} != {}"
-                ".".format(len(outputs), len(typed_inputs)))
-        outputs = [(o, t[1].__class__())
-                   for o, t in zip(outputs, typed_inputs)]
-    # ConstantOfShape
-    elif onnx_node.op_type == "ConstantOfShape":
-        outputs = [(outputs[0], ft())]
-
-    # Default case
-    # Assuming the only output is the same as the only input.
-    elif len(typed_inputs) == 1 and len(outputs) == 1:
-        outputs = [(outputs[0], typed_inputs[0][1])]
-    # Default
     else:
-        outputs = [(name, ft()) for name in outputs]
+        if schema_inputs is not None and schema is not None:
+            dt = {}
+            for got, exp in zip(typed_inputs, schema_inputs):
+                if isinstance(exp[1], str):
+                    dt[exp[1]] = got
+            out = []
+            for i in range(len(outputs)):
+                o = outputs[i]
+                if isinstance(o[i], str):
+                    exp = schema[i]
+                    if exp[1] in dt:
+                        out.append((o, dt[exp[1]][1].__class__()))
+                    else:
+                        raise NotImplementedError(  # pragma: no cover
+                            "Undefined output %r (outputs=%r, typed_inputs=%r, "
+                            "dtype=%r, schema=%r, schema_inputs=%r, onnx_node=%r, "
+                            "variables=%r)." % (
+                                i, outputs, typed_inputs, dtype,
+                                schema, schema_inputs, onnx_node, variables))
+                elif isinstance(o, tuple) and (isinstance(o[1], str) or o[1] is None):
+                    exp = schema[i]
+                    if exp[1] in dt:
+                        out.append((o[0], dt[exp[1]][1].__class__()))
+                    else:
+                        raise NotImplementedError(  # pragma: no cover
+                            "Undefined output %r (outputs=%r, typed_inputs=%r, "
+                            "dtype=%r, schema=%r, schema_inputs=%r, onnx_node=%r, "
+                            "variables=%r)." % (
+                                i, outputs, typed_inputs, dtype,
+                                schema, schema_inputs, onnx_node, variables))
+                else:
+                    out.append(o)
+            outputs = out
+        elif len(typed_inputs) == 1 and len(outputs) == 1:
+            # Default case
+            # Assuming the only output is the same as the only input.
+            outputs = [(outputs[0], typed_inputs[0][1])]
+        else:
+            # Default
+            outputs = [(name, ft()) for name in outputs]
+
+    for name, typ in outputs:
+        if typ in ('T', None, '', 'I'):
+            raise NotImplementedError(  # pragma: no cover
+                "Undefined output type: %r (outputs=%r, typed_inputs=%r, "
+                "dtype=%r, schema=%r, schema_inputs=%r, onnx_node=%r, "
+                "variables=%r)." % (
+                    typ, outputs, typed_inputs, dtype,
+                    schema, schema_inputs, onnx_node, variables))
     return outputs
 
 

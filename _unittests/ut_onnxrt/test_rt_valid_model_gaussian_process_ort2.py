@@ -36,7 +36,7 @@ class TestRtValidateGaussianProcessOrt2(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        debug = False
+        debug = True
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"GaussianProcessRegressor"},
             fLOG=myprint,
