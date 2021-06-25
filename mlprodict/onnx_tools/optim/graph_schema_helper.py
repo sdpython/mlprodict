@@ -171,7 +171,7 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
                 if isinstance(exp[1], str):
                     dt[exp[1]] = got
             out = []
-            for i in range(len(outputs)):
+            for i in range(len(outputs)):  #pylint: disable=C0200
                 o = outputs[i]
                 if isinstance(o, str):
                     exp = schema[i]
@@ -201,6 +201,13 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
 
     for name, typ in outputs:
         if typ in ('T', None, '', 'I'):
+            raise NotImplementedError(  # pragma: no cover
+                "Undefined output type: %r (outputs=%r, typed_inputs=%r, "
+                "dtype=%r, schema=%r, schema_inputs=%r, onnx_node=%r, "
+                "variables=%r)." % (
+                    typ, outputs, typed_inputs, dtype,
+                    schema, schema_inputs, onnx_node, variables))
+        if not isinstance(name, str):
             raise NotImplementedError(  # pragma: no cover
                 "Undefined output type: %r (outputs=%r, typed_inputs=%r, "
                 "dtype=%r, schema=%r, schema_inputs=%r, onnx_node=%r, "
