@@ -125,6 +125,24 @@ class OnnxMicroRuntime:
         "Runtime for operator :epkg:`Op:MatMul`."
         return (numpy.matmul(x, y), )
 
+    def _op_max(self, *inps):
+        "Runtime for operator :epkg:`Op:Max`."
+        return (numpy.maximum(*inps), )
+
+    def _op_reducesum(self, data, axes, keepdims=None,
+                      noop_with_empty_axes=None):
+        "Runtime for operator :epkg:`Op:ReduceSum`."
+        if axes is None and noop_with_empty_axes:
+            return (data, )
+        if axes is not None and not isinstance(axes, int):
+            if isinstance(axes, numpy.ndarray) and len(axes.shape) == 0:
+                axes = int(axes)
+            else:
+                axes = tuple(axes) if len(axes) > 0 else None
+        return (numpy.sum(data, axis=axes,
+                          keepdims=keepdims,
+                          dtype=data.dtype), )
+
     def _op_reshape(self, x, shape):
         "Runtime for operator :epkg:`Op:Reshape`."
         return (x.reshape(shape), )

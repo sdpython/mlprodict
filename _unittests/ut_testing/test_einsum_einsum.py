@@ -57,10 +57,13 @@ class TestEinsumEinsum(ExtTestCase):
     def test_einsum_optimize_ml(self):
         self.common_test("abc,cd->abd", optimize=True, strategy='ml')
 
+    def test_einsum_optimize_ml_merge(self):
+        self.common_test("abce,cd->abd", optimize=True, strategy='ml')
+
     def test_einsum_optimize_no(self):
         self.common_test("abc,cd->abd", optimize=True, decompose=False)
 
 
 if __name__ == "__main__":
-    # TestEinsumEinsum().test_einsum_optimize_ml()
+    # TestEinsumEinsum().test_einsum_optimize_ml_merge()
     unittest.main()
