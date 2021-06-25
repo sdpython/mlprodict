@@ -13,7 +13,8 @@ from skl2onnx.common.data_types import (
     Int64Type, Int64TensorType, BooleanTensorType,
     Int32TensorType, DoubleTensorType, FloatType,
     StringTensorType)
-from skl2onnx.common.data_types import _guess_type_proto
+from skl2onnx.common.data_types import (
+    _guess_type_proto, _guess_type_proto_str)
 from skl2onnx.algebra.type_helper import _guess_type as skl2onnx__guess_type
 from skl2onnx.proto import TensorProto
 
@@ -172,28 +173,21 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
             out = []
             for i in range(len(outputs)):
                 o = outputs[i]
-                if isinstance(o[i], str):
+                if isinstance(o, str):
                     exp = schema[i]
                     if exp[1] in dt:
                         out.append((o, dt[exp[1]][1].__class__()))
                     else:
-                        raise NotImplementedError(  # pragma: no cover
-                            "Undefined output %r (outputs=%r, typed_inputs=%r, "
-                            "dtype=%r, schema=%r, schema_inputs=%r, onnx_node=%r, "
-                            "variables=%r)." % (
-                                i, outputs, typed_inputs, dtype,
-                                schema, schema_inputs, onnx_node, variables))
-                elif isinstance(o, tuple) and (isinstance(o[1], str) or o[1] is None):
+                        nt = _guess_type_proto_str(exp[1], None)
+                        out.append((o, nt))
+                elif (isinstance(o, tuple) and
+                        (isinstance(o[1], str) or o[1] is None)):
                     exp = schema[i]
                     if exp[1] in dt:
                         out.append((o[0], dt[exp[1]][1].__class__()))
                     else:
-                        raise NotImplementedError(  # pragma: no cover
-                            "Undefined output %r (outputs=%r, typed_inputs=%r, "
-                            "dtype=%r, schema=%r, schema_inputs=%r, onnx_node=%r, "
-                            "variables=%r)." % (
-                                i, outputs, typed_inputs, dtype,
-                                schema, schema_inputs, onnx_node, variables))
+                        nt = _guess_type_proto_str(exp[1], None)
+                        out.append((o[0], nt))
                 else:
                     out.append(o)
             outputs = out
