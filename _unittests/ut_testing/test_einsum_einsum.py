@@ -1,5 +1,5 @@
 """
-@brief      test log(time=8s)
+@brief      test log(time=12s)
 """
 import unittest
 import numpy
@@ -12,7 +12,7 @@ from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 class TestEinsumEinsum(ExtTestCase):
 
     def common_test(self, equation, runtime=None, opset=None, N=5,
-                    optimize=False, decompose=True):
+                    optimize=False, decompose=True, strategy=None):
         if opset is None:
             opset = get_opset_number_from_onnx()
         inps = equation.split('->')[0].split(',')
@@ -35,7 +35,7 @@ class TestEinsumEinsum(ExtTestCase):
                                   decompose=decompose):
                     typed = [i.astype(dtype) for i in inputs]
                     kwargs = dict(runtime=rt, opset=opset, optimize=optimize,
-                                  decompose=decompose)
+                                  decompose=decompose, strategy=strategy)
                     if __name__ == "__main__":
                         kwargs["verbose"] = 1
                     exp = numpy.einsum(equation, *typed)
@@ -54,9 +54,13 @@ class TestEinsumEinsum(ExtTestCase):
     def test_einsum_optimize(self):
         self.common_test("abc,cd->abd", optimize=True)
 
+    def test_einsum_optimize_ml(self):
+        self.common_test("abc,cd->abd", optimize=True, strategy='ml')
+
     def test_einsum_optimize_no(self):
         self.common_test("abc,cd->abd", optimize=True, decompose=False)
 
 
 if __name__ == "__main__":
+    # TestEinsumEinsum().test_einsum_optimize_ml()
     unittest.main()

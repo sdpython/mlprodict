@@ -18,13 +18,13 @@ class TestOrt(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('X', numpy.array([1], dtype=dtype), op_version=opset)
-        cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype), op_version=13)
-        cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype), op_version=13,
+        cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype), op_version=opset)
+        cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype), op_version=opset,
                        output_names=['inter'])
         cop4 = OnnxSub(
-            OnnxMul(cop, cop3, op_version=13), cop2, output_names=['final'],
+            OnnxMul(cop, cop3, op_version=opset), cop2, output_names=['final'],
             op_version=13)
-        model_def = cop4.to_onnx({'X': x})
+        model_def = cop4.to_onnx({'X': x}, target_opset=opset)
 
         temp = get_temp_folder(__file__, "temp_prepare_c_profiling")
         cmd = prepare_c_profiling(model_def, [x], dest=temp)

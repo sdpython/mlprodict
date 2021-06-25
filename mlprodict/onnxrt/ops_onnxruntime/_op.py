@@ -181,7 +181,8 @@ class OpRunOnnxRuntime:
                 forced = True
                 outputs = get_defined_outputs(
                     self.outputs, self.onnx_node, inputs, variables,
-                    dtype=self.dtype, schema=self.alg_class.expected_outputs)
+                    dtype=self.dtype, schema=self.alg_class.expected_outputs,
+                    schema_inputs=self.alg_class.expected_inputs)
                 try:
                     self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                                     target_opset=target_opset,

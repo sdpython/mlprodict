@@ -56,6 +56,11 @@ is left unchanged.
 
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_remove_unused.onnx_remove_node_unused
 
+Profiling
++++++++++
+
+.. autosignature:: mlprodict.tools.ort_wrapper.prepare_c_profiling
+
 Serialization
 +++++++++++++
 
@@ -67,6 +72,11 @@ Validation
 ++++++++++
 
 .. autosignature:: mlprodict.onnx_tools.model_checker.onnx_shaker
+
+Runtime
+=======
+
+.. autosignature:: mlprodict.tools.onnx_micro_runtime.OnnxMicroRuntime
 
 Others
 ======
