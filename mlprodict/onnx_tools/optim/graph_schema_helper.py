@@ -171,7 +171,7 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
                 if isinstance(exp[1], str):
                     dt[exp[1]] = got
             out = []
-            for i in range(len(outputs)):  #pylint: disable=C0200
+            for i in range(len(outputs)):  # pylint: disable=C0200
                 o = outputs[i]
                 if isinstance(o, str):
                     exp = schema[i]
