@@ -344,7 +344,7 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
                 static_cast<double>(kernel_dim);
 
             // OMP
-#if false //USE_OPENMP
+            #if USE_OPENMP
             int32_t thread_count = maximum_thread_count;
             if (complexity < thread_complexity * maximum_thread_count)
                 thread_count = static_cast<int32_t>(complexity / thread_complexity) + 1;
@@ -352,9 +352,9 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
             if (thread_count > output_image_size)
                 thread_count = static_cast<int32_t>(output_image_size);
             thread_count = std::min(thread_count, ::omp_get_max_threads());
-#else
+            #else
             int32_t thread_count = 1;
-#endif
+            #endif
 
             for (int64_t image_id = 0; image_id < N; ++image_id) {
                 const T1* input_data = Xdata;
@@ -391,9 +391,9 @@ template <typename T1, typename T2, typename T3 = T1, typename T4 = int32_t,
                     }
                 }
 
-#if false // USE_OPENMP
-#pragma omp parallel for
-#endif
+                #if USE_OPENMP
+                #pragma omp parallel for
+                #endif
                 for (int32_t batch_idx = 0; batch_idx < thread_count; ++batch_idx) {
                     int64_t output_start, output_end;
                     std::ptrdiff_t work_per_batch = output_image_size / thread_count;
