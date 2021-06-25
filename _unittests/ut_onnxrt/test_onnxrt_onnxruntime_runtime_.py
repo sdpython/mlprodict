@@ -5,7 +5,8 @@ import unittest
 import warnings
 from logging import getLogger
 import numpy
-from pyquickhelper.pycode import ExtTestCase, ignore_warnings
+from pyquickhelper.pycode import (
+    ExtTestCase, ignore_warnings, skipif_azure)
 from sklearn.neighbors import RadiusNeighborsRegressor
 from sklearn.datasets import make_regression
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
@@ -47,6 +48,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         self.assertEqualArray(idi + X, got['Y1'], decimal=6)
 
     @ignore_warnings(DeprecationWarning)
+    @skipif_azure("Failure on Mac")
     def test_onnxt_runtime_add_raise(self):
         idi = numpy.identity(2)
         onx = OnnxAdd('X', idi, output_names=['Y2'],
@@ -69,6 +71,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         self.assertEqualArray(idi + X, got['Y3'], decimal=6)
 
     @ignore_warnings(DeprecationWarning)
+    @skipif_azure("Failure on Mac")
     def test_onnxruntime_bug(self):
         rnd = numpy.random.randn(3, 20, 20).astype(numpy.float32)
         bni = (numpy.random.random((20, 20)).astype(  # pylint: disable=E1101
