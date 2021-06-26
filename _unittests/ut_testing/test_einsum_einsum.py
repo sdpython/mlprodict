@@ -1,5 +1,5 @@
 """
-@brief      test log(time=21s)
+@brief      test log(time=15s)
 """
 import unittest
 import numpy
@@ -68,7 +68,8 @@ class TestEinsumEinsum(ExtTestCase):
                          double=False)
 
     def test_einsum_optimize_ml_mul(self):
-        self.common_test("ab,b->ab", optimize=True, strategy='ml', double=False)
+        self.common_test("ab,b->ab", optimize=True,
+                         strategy='ml', double=False)
         self.common_test("ab,b->a", optimize=True, strategy='ml')
         self.common_test("ab,a->a", optimize=True, strategy='ml', double=False)
         self.common_test("ab,b->b", optimize=True, strategy='ml', double=False)

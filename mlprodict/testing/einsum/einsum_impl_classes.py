@@ -1275,6 +1275,15 @@ class GraphEinsumSubOp:
                     forward[key] = [op]
         return forward
 
+    def _pprint_forward(self):
+        rows = []
+        for op in self:
+            line = "%r <- %s(%s)" % (
+                id(op), op.name,
+                ", ".join(map(str, [id(_) for _ in op.inputs])))
+            rows.append(line)
+        return "\n".join(rows)
+
     def _replace_node_sequence(self, added, deleted):
         """
         Removes a sequence of nodes. The method does not check
@@ -1284,7 +1293,10 @@ class GraphEinsumSubOp:
         key = id(deleted[-1])
         if key not in forward:
             raise RuntimeError(  # pragma: no cover
-                "key %r missing in all forward nodes." % key)
+                "Key {} missing in all forward nodes (other keys {}), "
+                "all keys:\n{}".format(
+                    key, [id(_) for _ in deleted],
+                    self._pprint_forward()))
 
         # deletion
         mark_input = None

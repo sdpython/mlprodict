@@ -141,11 +141,15 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple",
         raise ValueError("Unknown strategy %r." % strategy)
 
     # Last step: clean unused nodes.
-    graph.mark_last_node()
     if clean:
+        last_node = graph.last_added_op
+        graph.append(EinsumSubOp(last_node.full_dim, 'id', last_node))
+        graph.mark_last_node()
         graph.simplify_mm_nodes(verbose=verbose)
         graph.remove_duplicate_transpose(verbose=verbose)
         graph.clean_unused_nodes(verbose=verbose)
+    else:
+        graph.mark_last_node()
     return graph
 
 
