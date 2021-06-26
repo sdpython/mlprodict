@@ -212,7 +212,7 @@ class CachedEinsum:
                     transposes.append(
                         [shape, list(node.attribute[0].ints)])
 
-            delta = sum(predict_transposition_cost(*v)
+            delta = sum(max(0, predict_transposition_cost(*v))
                         for v in transposes)
 
             confs.append((delta, eq))
