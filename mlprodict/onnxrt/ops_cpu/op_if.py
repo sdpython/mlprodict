@@ -67,3 +67,7 @@ class If(OpRun):
     def _infer_shapes(self, cond, named_inputs=None):  # pylint: disable=W0221
         res = self.then_branch._set_shape_inference_runtime()
         return tuple([res[name] for name in self.then_branch.output_names])
+
+    def _infer_types(self, cond, named_inputs=None):  # pylint: disable=W0221
+        res = self.then_branch._set_type_inference_runtime()
+        return tuple([res[name] for name in self.then_branch.output_names])

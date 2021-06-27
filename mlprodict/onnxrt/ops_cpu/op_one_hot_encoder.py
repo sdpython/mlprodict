@@ -76,3 +76,6 @@ class OneHotEncoder(OpRun):
         new_shape._dtype = numpy.float32
         new_shape.name = self.onnx_node.name
         return (new_shape, )
+
+    def _infer_types(self, x):  # pylint: disable=W0221
+        return (numpy.float32, )

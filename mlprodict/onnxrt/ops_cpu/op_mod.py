@@ -21,9 +21,9 @@ class Mod(OpRun):
         return (numpy.nan_to_num(numpy.mod(a, b)), )
 
     def _infer_shapes(self, x, b):  # pylint: disable=W0221
-        """
-        Returns the same shape by default.
-        """
+        return (x, )
+
+    def _infer_types(self, x, b):  # pylint: disable=W0221
         return (x, )
 
     def to_python(self, inputs):

@@ -28,9 +28,3 @@ class Scaler(OpRunUnary):
         x -= self.offset
         x *= self.scale
         return (x, )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        """
-        Returns the same shape by default.
-        """
-        return (x, )

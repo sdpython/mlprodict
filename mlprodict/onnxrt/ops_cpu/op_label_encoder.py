@@ -85,3 +85,6 @@ class LabelEncoder(OpRun):
         nb = len(self.classes_.values())
         return (ShapeObject((x[0], nb), dtype=self.dtype_,
                             name="{}-1".format(self.__class__.__name__)), )
+
+    def _infer_types(self, x):  # pylint: disable=W0221
+        return (self.dtype_, )

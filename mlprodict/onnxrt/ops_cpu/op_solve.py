@@ -32,9 +32,9 @@ class Solve(OpRunBinaryNum):
         return (solve(a, b, lower=self.lower, transposed=self.transposed), )
 
     def _infer_shapes(self, a, b):  # pylint: disable=W0221
-        """
-        Returns the shapes.
-        """
+        return (b, )
+
+    def _infer_types(self, a, b):  # pylint: disable=W0221
         return (b, )
 
     def to_python(self, inputs):

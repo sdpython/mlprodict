@@ -37,7 +37,7 @@ class Gather(OpRun):
             return (numpy.take(x, indices, axis=self.axis), )
 
     def _infer_shapes(self, x, indices):  # pylint: disable=E0202,W0221
-        """
-        Returns the same shape by default.
-        """
         return (ShapeObject.gather_shape(x, indices, self.axis), )
+
+    def _infer_types(self, data, indices):  # pylint: disable=W0221
+        return (data, )

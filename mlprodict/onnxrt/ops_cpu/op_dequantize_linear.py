@@ -51,3 +51,6 @@ class DequantizeLinear(OpRun):
 
     def _infer_shapes(self, *args):  # pylint: disable=W0221
         return (ShapeObject(args[0].shape, dtype=numpy.float32), )
+
+    def _infer_types(self, *args):  # pylint: disable=W0221
+        return (numpy.float32, )

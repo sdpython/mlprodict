@@ -31,6 +31,9 @@ class CommonReshape(OpRun):
     def _infer_shapes(self, data, shape):  # pylint: disable=W0221
         return (ShapeObject(None, dtype=data.dtype), )
 
+    def _infer_types(self, data, shape):  # pylint: disable=W0221
+        return (data, )
+
 
 class Reshape_5(CommonReshape):
 

@@ -29,3 +29,6 @@ class Mean(OpRun):
 
     def _infer_shapes(self, *args):  # pylint: disable=W0221
         return (args[0], )
+
+    def _infer_types(self, *args):  # pylint: disable=W0221
+        return (args[0], )

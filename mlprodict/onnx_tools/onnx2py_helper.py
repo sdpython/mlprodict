@@ -116,6 +116,59 @@ def _sparse_array(shape, data, indices, dtype=None, copy=True):
     return res
 
 
+def guess_numpy_type_from_string(name):
+    """
+    Converts a string (such as `'float'`) into a
+    numpy dtype.
+    """
+    if name in ('float', 'float32'):
+        return numpy.float32
+    if name in ('double', 'float64'):
+        return numpy.float64
+    if name == 'float16':
+        return numpy.float16
+    if name == 'int64':
+        return numpy.int64
+    if name == 'int8':
+        return numpy.int8
+    if name == 'uint8':
+        return numpy.uint8
+    if name == 'int32':
+        return numpy.int32
+    if name == 'int16':
+        return numpy.int32
+    if name == 'bool':
+        return numpy.bool_
+    if name == 'str':
+        return numpy.str_
+    raise ValueError(
+        "Unable to guess numpy dtype from %r." % name)
+
+
+def guess_numpy_type_from_dtype(dt):
+    """
+    Converts a string (such as `'dtype(float32)'`) into a
+    numpy dtype.
+    """
+    if dt in {numpy.int8, numpy.uint8, numpy.float16, numpy.float32,
+              numpy.float64, numpy.int32, numpy.int64, numpy.int16,
+              numpy.uint16, numpy.uint32, numpy.bool_, numpy.str_,
+              numpy.uint64, bool, str, }:
+        return dt
+    if dt == numpy.dtype('float32'):
+        return numpy.float32
+    if dt == numpy.dtype('floa64'):
+        return numpy.floa64
+    if dt == numpy.dtype('int64'):
+        return numpy.int64
+    if dt == numpy.dtype('int8'):
+        return numpy.int8
+    if dt == numpy.dtype('uint8'):
+        return numpy.uint8
+    raise ValueError(
+        "Unable to guess numpy dtype from %r." % name)
+
+
 def _elem_type_as_str(elem_type):
     if elem_type == onnx_proto.TensorProto.FLOAT:  # pylint: disable=E1101
         return 'float'

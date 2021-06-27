@@ -22,11 +22,11 @@ class Det(OpRun):
         return (res, )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
-        """
-        Returns the same for the labels and the probabilities.
-        """
         return (ShapeObject(None, dtype=x.dtype,
                             name=self.__class__.__name__), )
+
+    def _infer_types(self, x):  # pylint: disable=W0221
+        return (x, )
 
     def to_python(self, inputs):
         return ('from numpy.linalg import det as npy_det',

@@ -17,9 +17,9 @@ class Pow(OpRun):
         return (numpy.power(a, b).astype(a.dtype), )
 
     def _infer_shapes(self, x, b):  # pylint: disable=W0221
-        """
-        Returns the same shape by default.
-        """
+        return (x, )
+
+    def _infer_types(self, x, b):  # pylint: disable=W0221
         return (x, )
 
     def to_python(self, inputs):

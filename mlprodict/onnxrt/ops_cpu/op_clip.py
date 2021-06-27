@@ -82,6 +82,13 @@ class Clip_11(OpRunUnaryNum):
             raise TypeError("Issues with types {} (operator {}).".format(
                 x.dtype, self.__class__.__name__)) from e
 
+    def infer_types(self, x, *minmax):  # pylint: disable=E0202,W0221
+        try:
+            return self._infer_types(x)
+        except TypeError as e:
+            raise TypeError("Issues with types {} (operator {}).".format(
+                x.dtype, self.__class__.__name__)) from e
+
     def to_python(self, inputs):
         return ("import numpy",
                 "return numpy.clip(%s, min_, max_)" % inputs[0])

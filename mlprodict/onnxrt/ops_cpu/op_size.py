@@ -18,7 +18,7 @@ class Size(OpRun):
         return (numpy.array(data.size, dtype=numpy.int64), )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
-        """
-        Returns the same shape by default.
-        """
         return (ShapeObject((1, ), dtype=numpy.int64), )
+
+    def _infer_types(self, x):  # pylint: disable=W0221
+        return (numpy.int64, )

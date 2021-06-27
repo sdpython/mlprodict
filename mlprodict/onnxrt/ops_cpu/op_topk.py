@@ -152,6 +152,9 @@ class _CommonTopK(OpRun):
         shi = sh.copy(dtype=numpy.int64)
         return (sh, shi)
 
+    def _infer_types(self, x, ink):  # pylint: disable=E0202,W0221
+        return (x, numpy.int64)
+
 
 class TopK_1(_CommonTopK):
 
@@ -179,6 +182,9 @@ class TopK_1(_CommonTopK):
 
     def _infer_shapes(self, data):  # pylint: disable=W0221
         return _CommonTopK._infer_shapes(self, data, [self.k])
+
+    def _infer_types(self, data):  # pylint: disable=W0221
+        return (data, )
 
 
 class TopK_10(_CommonTopK):

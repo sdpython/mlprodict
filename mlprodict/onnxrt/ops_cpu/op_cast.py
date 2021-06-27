@@ -66,3 +66,6 @@ class Cast(OpRun):
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
         return (x.copy(dtype=self._dtype), )
+
+    def _infer_types(self, x):  # pylint: disable=W0221
+        return (self._dtype, )

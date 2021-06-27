@@ -187,15 +187,14 @@ class OpRun:
 
     def infer_shapes(self, *args, **kwargs):
         """
-        Infer shapes of the output given the shapes
-        of the input. It works the same way as method
-        *run*.
+        Infer shapes of the outputs given the shapes
+        of the inputs. It works the same way as method *run*.
         """
         try:
             res = self._infer_shapes(*args, **kwargs)
         except TypeError as e:
             raise TypeError(
-                "Issues with (operator {}) and shapes\n{}"
+                "Issues with (operator '{}') and shapes\n{}"
                 "\n----args\n{}\n------kwargs\n{}".format(
                     self.__class__.__name__,
                     "\n".join(str(_) for _ in args),
@@ -213,6 +212,43 @@ class OpRun:
         return res
 
     def _infer_shapes(self, *args, **kwargs):
+        """
+        Should be overwritten.
+        """
+        raise NotImplementedError(
+            "This method should be overwritten for operator '{}'.".format(
+                self.__class__.__name__))  # pragma: no cover
+
+    def infer_types(self, *args, **kwargs):
+        """
+        Infer types of the output givens the types
+        of the inputs. It works the same way as method *run*.
+        """
+        try:
+            res = self._infer_types(*args, **kwargs)
+        except TypeError as e:
+            raise TypeError(
+                "Issues with (operator '{}') and types\n{}"
+                "\n----args\n{}\n------kwargs\n{}".format(
+                    self.__class__.__name__,
+                    "\n".join(str(_) for _ in args),
+                    pprint.pformat(args),
+                    pprint.pformat(kwargs))) from e
+        if not isinstance(res, tuple):
+            raise TypeError(  # pragma: no cover
+                "res must be tuple not {} (operator '{}')".format(
+                    type(res), self.__class__.__name__))
+        for a in res:
+            if a not in {numpy.int8, numpy.uint8, numpy.float16, numpy.float32,
+                         numpy.float64, numpy.int32, numpy.int64, numpy.int16,
+                         numpy.uint16, numpy.uint32, numpy.bool_, numpy.str_,
+                         numpy.uint64, bool, str, }:
+                raise TypeError(  # pragma: no cover
+                    "Type ({}, {}) is not a numpy type (operator '{}')".format(
+                        a, type(a), self.__class__.__name__))
+        return res
+
+    def _infer_types(self, *args, **kwargs):
         """
         Should be overwritten.
         """
@@ -340,6 +376,20 @@ class OpRunUnary(OpRun):
         """
         return (x, )
 
+    def infer_types(self, x):  # pylint: disable=E0202,W0221
+        try:
+            return self._infer_types(x)
+        except TypeError as e:  # pragma: no cover
+            raise TypeError(
+                "Issues with types {} (operator {}).".format(
+                    x, self.__class__.__name__)) from e
+
+    def _infer_types(self, x):  # pylint: disable=E0202,W0221
+        """
+        Returns the same type by default.
+        """
+        return (x, )
+
 
 class OpRunArg(OpRunUnary):
     """
@@ -374,12 +424,12 @@ class OpRunArg(OpRunUnary):
         return res
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
-        """
-        Returns the same shape by default.
-        """
         sh = x.reduce(self.axis, self.keepdims,  # pylint: disable=E1101
                       dtype=numpy.int64)  # pylint: disable=E1101
         return (sh, )
+
+    def _infer_types(self, x):  # pylint: disable=W0221
+        return (numpy.int64, )
 
     def _run_no_checks_(self, x):  # pylint: disable=W0221
         return OpRunUnary.run(self, x)
@@ -409,12 +459,6 @@ class OpRunUnaryNum(OpRunUnary):
                 "(operator '{}')".format(
                     x.dtype, res[0].dtype, self.__class__.__name__))
         return res
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        """
-        Returns the same shape by default.
-        """
-        return (x, )
 
     def _run_no_checks_(self, x):  # pylint: disable=W0221
         return OpRunUnary.run(self, x)
@@ -463,6 +507,12 @@ class OpRunClassifierProb(OpRunUnary):
                             name="{}-0".format(self.__class__.__name__)),
                 ShapeObject((x[0], self.nb_classes), dtype=x.dtype,
                             name="{}-1".format(self.__class__.__name__)))
+
+    def _infer_types(self, x):  # pylint: disable=W0221
+        """
+        Returns the type of the labels and the probabilities.
+        """
+        return (numpy.int64, x.dtype)
 
 
 class OpRunBinary(OpRun):
@@ -530,6 +580,28 @@ class OpRunBinary(OpRun):
                 self.__class__.__name__, add)), )
         return (res.copy(name="{}-{}{}".format(
             res.name, self.__class__.__name__, add)), )
+
+    def _infer_types(self, x, y):  # pylint: disable=W0221
+        """
+        Returns the boolean type.
+        """
+        return (x, )
+
+
+class OpRunBinaryComparison(OpRunBinary):
+    """
+    Ancestor to all binary operators in this subfolder
+    comparing tensors.
+    """
+
+    def __init__(self, onnx_node, desc=None, expected_attributes=None,
+                 **options):
+        OpRunBinary.__init__(self, onnx_node, desc=desc,
+                             expected_attributes=expected_attributes,
+                             **options)
+
+    def _infer_types(self, x, y):  # pylint: disable=W0221
+        return (numpy.bool_, )
 
 
 class OpRunBinaryNum(OpRunBinary):

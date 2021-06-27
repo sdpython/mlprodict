@@ -56,3 +56,7 @@ class Loop(OpRun):
     def _infer_shapes(self, M, cond, v_initial, *args):  # pylint: disable=W0221
         res = self.body._set_shape_inference_runtime()
         return tuple([res[name] for name in self.body.output_names[1:]])
+
+    def _infer_types(self, M, cond, v_initial, *args):  # pylint: disable=W0221
+        res = self.body._set_type_inference_runtime()
+        return tuple([res[name] for name in self.body.output_names[1:]])

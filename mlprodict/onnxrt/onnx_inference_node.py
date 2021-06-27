@@ -234,6 +234,35 @@ class OnnxInferenceNode:
             values[name] = value
         return values
 
+    def _set_type_inference_runtime(self, values):
+        """
+        Updates *values* which types of the outputs.
+
+        @param      values      container for shapes
+        """
+        args = [values[k] for k in self.inputs]
+        try:
+            res = self.ops_.infer_types(*args)
+        except (TypeError, ValueError) as e:
+            raise TypeError(
+                "Unable to call infer_types with {} arguments for class"
+                " '{}' ({})".format(len(args), self.ops_.__class__.__name__,
+                                    self.ops_.infer_types)) from e
+        if not isinstance(res, tuple):
+            raise RuntimeError(  # pragma: no cover
+                "Results of an operator should be a tuple for operator '{}'"
+                ".".format(type(self.ops_)))
+        if len(self.outputs) != len(res):
+            raise RuntimeError(  # pragma: no cover
+                "Mismatch number of outputs got {} != {} for names {} (node='{}')."
+                "\n{}".format(
+                    len(res), len(self.outputs), list(self.outputs),
+                    self.ops_.__class__.__name__,
+                    pprint.pformat(self.desc, depth=2)))
+        for name, value in zip(self.outputs, res):
+            values[name] = value
+        return values
+
     def enable_inplace_compute(self, name):
         """
         Let the node know that one input can be overwritten.

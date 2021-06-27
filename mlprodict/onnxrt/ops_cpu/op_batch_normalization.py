@@ -51,6 +51,9 @@ class BatchNormalization_9(OpRun):
     def _infer_shapes(self, x, scale, bias, mean, var):  # pylint: disable=W0221
         return (x, )
 
+    def _infer_types(self, x, scale, bias, mean, var):  # pylint: disable=W0221
+        return (x, )
+
 
 class BatchNormalization_14(OpRun):
 
@@ -72,6 +75,11 @@ class BatchNormalization_14(OpRun):
         return res, saved_mean, saved_var, output_mean, output_var
 
     def _infer_shapes(self, x, scale, bias, mean, var):  # pylint: disable=W0221
+        if self.training_mode == 0:
+            return (x, )
+        return (x, scale, bias, mean, var)
+
+    def _infer_types(self, x, scale, bias, mean, var):  # pylint: disable=W0221
         if self.training_mode == 0:
             return (x, )
         return (x, scale, bias, mean, var)

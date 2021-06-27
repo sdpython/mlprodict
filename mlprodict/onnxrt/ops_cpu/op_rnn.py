@@ -117,6 +117,9 @@ class CommonRNN(OpRun):
                                 dtype=X.dtype)
         return (y_shape, y_h_shape)
 
+    def _infer_types(self, X, W, R, B=None, sequence_lens=None, initial_h=None):  # pylint: disable=W0221
+        return (X, X)
+
 
 class RNN_7(CommonRNN):
 

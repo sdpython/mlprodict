@@ -60,3 +60,8 @@ class QLinearConv(OpRun):
                       w_zero_point, y_scale, y_zero_point, B=None):
 
         return (ShapeObject(None, dtype=X.dtype), )
+
+    def _infer_types(self, X, x_scale, x_zero_point, w, w_scale,  # pylint: disable=W0221
+                     w_zero_point, y_scale, y_zero_point, B=None):
+
+        return (X, )

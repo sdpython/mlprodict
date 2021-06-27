@@ -81,7 +81,7 @@ class ArrayFeatureExtractor(OpRun):
 
     def _infer_shapes(self, data, indices):  # pylint: disable=W0221
         """
-        Should be overwritten.
+        Infer the shapes for the output.
         """
         add = indices.product()
 
@@ -91,3 +91,9 @@ class ArrayFeatureExtractor(OpRun):
             dim = data.copy()
             dim.append(add)
         return (dim, )
+
+    def _infer_types(self, data, indices):  # pylint: disable=W0221
+        """
+        Returns the type of the output.
+        """
+        return (data, )

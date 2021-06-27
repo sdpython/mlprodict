@@ -40,6 +40,9 @@ class SliceCommon(OpRun):
         shape = ["nslice%s_%d" % (pref, i) for i in range(len(data.shape))]
         return (ShapeObject(shape, data.dtype), )
 
+    def _infer_types(self, data, starts, ends, axes=None, steps=None):  # pylint: disable=W0221
+        return (data, )
+
 
 class Slice_10(SliceCommon):
     def __init__(self, onnx_node, desc=None, **options):
@@ -68,6 +71,9 @@ class Slice_1(SliceCommon):
     def _infer_shapes(self, data):  # pylint: disable=W0221
         return SliceCommon._infer_shapes(
             self, data, self.starts, self.ends, self.axes)
+
+    def _infer_types(self, data):  # pylint: disable=W0221
+        return (data, )
 
 
 if onnx_opset_version() >= 10:

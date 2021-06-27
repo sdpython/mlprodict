@@ -56,3 +56,6 @@ class Conv(OpRun):
 
         return (ShapeObjectFct(
             compute_shape, X, W, B, name="Conv", dtype=X.dtype), )
+
+    def _infer_types(self, X, W, B=None):  # pylint: disable=W0221
+        return (X, )
