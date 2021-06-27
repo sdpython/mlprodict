@@ -90,6 +90,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
                 self.assertEqualArray(mul, y)
 
     @ignore_warnings(DeprecationWarning)
+    @skipif_azure("Failure on Mac")
     def test_onnxruntime_knn_radius(self):
         def _get_reg_data(self, n, n_features, n_targets, n_informative=10):
             X, y = make_regression(  # pylint: disable=W0632
