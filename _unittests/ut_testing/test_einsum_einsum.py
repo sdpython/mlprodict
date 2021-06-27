@@ -1,5 +1,5 @@
 """
-@brief      test log(time=12s)
+@brief      test log(time=15s)
 """
 import unittest
 import numpy
@@ -12,7 +12,8 @@ from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 class TestEinsumEinsum(ExtTestCase):
 
     def common_test(self, equation, runtime=None, opset=None, N=5,
-                    optimize=False, decompose=True, strategy=None):
+                    optimize=False, decompose=True, strategy=None,
+                    double=True):
         if opset is None:
             opset = get_opset_number_from_onnx()
         inps = equation.split('->')[0].split(',')
@@ -28,6 +29,8 @@ class TestEinsumEinsum(ExtTestCase):
             runtime = [runtime]
         for rt in runtime:
             for dtype in [numpy.float32, numpy.float64]:
+                if not double and dtype == numpy.float64:
+                    continue
                 decimal = 5 if dtype == numpy.float32 else 8
                 with self.subTest(dt=dtype, rt=rt,
                                   eq=equation, opset=opset,
@@ -57,10 +60,36 @@ class TestEinsumEinsum(ExtTestCase):
     def test_einsum_optimize_ml(self):
         self.common_test("abc,cd->abd", optimize=True, strategy='ml')
 
+    def test_einsum_optimize_ml_merge(self):
+        self.common_test("abce,cd->abd", optimize=True, strategy='ml')
+
+    def test_einsum_optimize_ml_reduceprod(self):
+        self.common_test("ab,ab->ab", optimize=True, strategy='ml',
+                         double=False)
+
+    def test_einsum_optimize_ml_mul(self):
+        self.common_test("ab,b->ab", optimize=True,
+                         strategy='ml', double=False)
+        self.common_test("ab,b->a", optimize=True, strategy='ml')
+        self.common_test("ab,a->a", optimize=True, strategy='ml', double=False)
+        self.common_test("ab,b->b", optimize=True, strategy='ml', double=False)
+        self.common_test("ab,a->b", optimize=True, strategy='ml')
+
+    def test_einsum_optimize_ml_mul2(self):
+        self.common_test("ba,b->ba", optimize=False, double=False)
+
     def test_einsum_optimize_no(self):
         self.common_test("abc,cd->abd", optimize=True, decompose=False)
 
+    def test_einsum_optimize_ml_cases(self):
+        self.common_test("ab,cd->abcd", optimize=True, strategy='ml')
+        # self.common_test("ab,cd,ef->acdf", optimize=True, strategy='ml')
+        # self.common_test("ab,cd,de->abcde", optimize=True, strategy='ml')
+        # self.common_test("ab,cd,de->be", optimize=True, strategy='ml')
+        # self.common_test("ab,bcd,cd->abcd", optimize=True, strategy='ml')
+        # self.common_test("ab,bcd,cd->abd", optimize=True, strategy='ml')
+
 
 if __name__ == "__main__":
-    # TestEinsumEinsum().test_einsum_optimize_ml()
+    # TestEinsumEinsum().test_einsum_optimize_ml_mul2()
     unittest.main()
