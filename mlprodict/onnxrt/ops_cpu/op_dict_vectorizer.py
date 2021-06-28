@@ -53,5 +53,5 @@ class DictVectorizer(OpRun):
         pref = str(hex(id(self))[2:])
         return (ShapeObject(["ndv%s_0" % pref, "N%s_1" % pref], dtype=x.dtype), )
 
-    def _infer_types(self, x):
+    def _infer_types(self, x):  # pylint: disable=W0221
         return (x, )

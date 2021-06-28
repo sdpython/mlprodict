@@ -166,7 +166,7 @@ def guess_numpy_type_from_dtype(dt):
     if dt == numpy.dtype('uint8'):
         return numpy.uint8
     raise ValueError(
-        "Unable to guess numpy dtype from %r." % name)
+        "Unable to guess numpy dtype from %r." % dt)
 
 
 def _elem_type_as_str(elem_type):

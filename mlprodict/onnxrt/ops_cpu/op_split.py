@@ -50,7 +50,7 @@ class CommonSplit(OpRun):
             res.append(shape)
         return tuple(res)
 
-    def _infer_types(self, data, split):
+    def _infer_types(self, data, split):  # pylint: disable=W0221
         if split is None:
             return tuple([data for o in range(self.nb_outputs)])
         return tuple(data for _ in split)
