@@ -3,7 +3,6 @@
 """
 import unittest
 import warnings
-import sys
 from logging import getLogger
 from pyquickhelper.pycode import ExtTestCase
 
