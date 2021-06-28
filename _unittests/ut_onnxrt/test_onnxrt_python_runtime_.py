@@ -106,36 +106,7 @@ from mlprodict.tools.data_types import (
 from mlprodict.testing.test_utils.quantized_tensor import (
     QuantizedTensor, QuantizedBiasTensor, test_qlinear_conv)
 from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import (  # pylint: disable=W0611,E0611,E0401
-    test_qlinear_qgemm_ii, test_qlinear_qgemm_ui,
-    test_qlinear_qgemm_if, test_qlinear_qgemm_uf,
-    test_qgemm0, test_qgemm1,
-    test_qlinear_conv_Conv1D_U8S8,
-    test_qlinear_conv_Conv2D_U8S8,
-    test_qlinear_conv_Conv3D_U8S8,
-    test_qlinear_conv_Conv1D_U8S8_Pointwise,
-    test_qlinear_conv_Conv2D_U8S8_Pointwise,
-    test_qlinear_conv_Conv2D_U8U8_Pointwise,
-    test_qlinear_conv_Conv3D_U8S8_Pointwise,
-    test_qlinear_conv_Conv1D_U8S8_Dilations,
-    test_qlinear_conv_Conv2D_U8S8_Dilations,
-    test_qlinear_conv_Conv3D_U8S8_Dilations,
-    test_qlinear_conv_Conv1D_U8S8_Strides,
-    test_qlinear_conv_Conv2D_U8S8_Strides,
-    test_qlinear_conv_Conv3D_U8S8_Strides,
-    test_qlinear_conv_Conv1D_U8S8_Depthwise,
-    test_qlinear_conv_Conv2D_U8S8_Depthwise,
-    test_qlinear_conv_Conv2D_U8U8_Depthwise,
-    test_qlinear_conv_Conv2D_U8S8_DepthwisePointwise,
-    test_qlinear_conv_Conv3D_U8S8_Depthwise,
-    test_qlinear_conv_Conv2D_U8S8_Requantize_NoBias,
-    test_qlinear_conv_Conv2D_U8S8_Requantize_Bias,
-    test_qlinear_conv_Conv2D_U8S8_Requantize_Bias_PerChannel,
-    test_qlinear_conv_Conv2D_U8S8_Groups_Pointwise,
-    test_qlinear_conv_Conv3D_U8S8_Groups_Pointwise,
-    test_qlinear_conv_Conv2D_U8S8_Groups,
-    test_qlinear_conv_Conv3D_U8S8_Groups,
-    test_qlinear_conv_Conv1D_U8S8_Groups,
-    test_qlinear_conv_Conv2D_U8S8_Groups_PerChannel)
+    test_qgemm0, test_qgemm1)
 
 try:
     numpy_str = numpy.str_
@@ -161,13 +132,15 @@ def make_coo_matrix(*args, **kwargs):
 
 
 def wraplog():
+    # from datetime import datetime
     def wrapper(fct):
         def call_f(self):
+            # no = datetime.now()
             # print('BEGIN %s' % fct.__name__)
             with warnings.catch_warnings(record=True):
                 warnings.simplefilter("always", DeprecationWarning)
                 fct(self)
-            # print('DONE %s' % fct.__name__)
+            # print('DONE %s - %r' % (fct.__name__, datetime.now() - no))
         return call_f
     return wrapper
 
@@ -200,7 +173,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         opset_skl2onnx = __max_supported_opset__
         self.assertGreater(opset_skl2onnx, opset_mlprodict)
 
-    def common_expected_shapes_types(self, oinf, got, onnx_cl, model_def):
+    def common_expected_shapes_types(self, oinf, got, onnx_cl, model_def,
+                                     raise_shape=False):
         expected_types = oinf.infer_types()
         self.assertEqual(set(got) & set(expected_types), set(got))
         for k, v in got.items():
@@ -259,7 +233,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         else:
             got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.common_expected_shapes_types(oinf, got, onnx_cl, model_def)
+        self.common_expected_shapes_types(oinf, got, onnx_cl, model_def,
+                                          raise_shape=raise_shape)
 
         try:
             self.assertEqualArray(np_fct(X), got['Y'], decimal=6)
@@ -322,7 +297,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                SparseEfficiencyWarning, PendingDeprecationWarning))
     def common_test_onnxt_runtime_binary(self, onnx_cl, np_fct,
                                          dtype=numpy.float32,
-                                         op_version=None, debug=False):
+                                         op_version=None, debug=False,
+                                         raise_shape=False):
         if op_version is None:
             op_version = get_opset_number_from_onnx()
         idi = numpy.identity(2, dtype=dtype)
@@ -336,7 +312,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         else:
             got = oinf.run({'X': X.astype(dtype)})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.common_expected_shapes_types(oinf, got, onnx_cl, model_def)
+        self.common_expected_shapes_types(oinf, got, onnx_cl, model_def,
+                                          raise_shape=raise_shape)
         exp = np_fct(X, idi)
         self.assertEqualArray(exp, got['Y'], decimal=6)
 
@@ -2423,54 +2400,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_expected_shapes_types(
             oinf, got, OnnxQLinearConv, model_def)
         python_tested.append(OnnxQLinearConv)
-
-    @wraplog()
-    def test_onnxt_runtime_qlinear_qgemm_cpp(self):
-        with self.subTest(fct="test_qlinear_qgemm_ii"):
-            test_qlinear_qgemm_ii()
-        with self.subTest(fct="test_qlinear_qgemm_if"):
-            test_qlinear_qgemm_if()
-        with self.subTest(fct="test_qlinear_qgemm_ui"):
-            test_qlinear_qgemm_ui()
-        with self.subTest(fct="test_qlinear_qgemm_uf"):
-            test_qlinear_qgemm_uf()
-
-    @wraplog()
-    def test_onnxt_runtime_qlinear_conv_cpp(self):
-        fcts = [
-            test_qlinear_conv_Conv1D_U8S8,
-            test_qlinear_conv_Conv2D_U8S8,
-            test_qlinear_conv_Conv3D_U8S8,
-            test_qlinear_conv_Conv1D_U8S8_Pointwise,
-            test_qlinear_conv_Conv2D_U8S8_Pointwise,
-            test_qlinear_conv_Conv2D_U8U8_Pointwise,
-            test_qlinear_conv_Conv3D_U8S8_Pointwise,
-            test_qlinear_conv_Conv1D_U8S8_Dilations,
-            test_qlinear_conv_Conv2D_U8S8_Dilations,
-            test_qlinear_conv_Conv3D_U8S8_Dilations,
-            test_qlinear_conv_Conv1D_U8S8_Strides,
-            test_qlinear_conv_Conv2D_U8S8_Strides,
-            test_qlinear_conv_Conv3D_U8S8_Strides,
-            test_qlinear_conv_Conv1D_U8S8_Depthwise,
-            test_qlinear_conv_Conv2D_U8S8_Depthwise,
-            test_qlinear_conv_Conv2D_U8U8_Depthwise,
-            test_qlinear_conv_Conv2D_U8S8_DepthwisePointwise,
-            test_qlinear_conv_Conv3D_U8S8_Depthwise,
-            test_qlinear_conv_Conv2D_U8S8_Requantize_NoBias,
-            test_qlinear_conv_Conv2D_U8S8_Requantize_Bias,
-            test_qlinear_conv_Conv2D_U8S8_Requantize_Bias_PerChannel,
-            test_qlinear_conv_Conv2D_U8S8_Groups_Pointwise,
-            test_qlinear_conv_Conv3D_U8S8_Groups_Pointwise,
-            test_qlinear_conv_Conv2D_U8S8_Groups,
-            test_qlinear_conv_Conv3D_U8S8_Groups,
-            test_qlinear_conv_Conv1D_U8S8_Groups,
-            test_qlinear_conv_Conv2D_U8S8_Groups_PerChannel,
-        ]
-
-        for rnd in [False, True]:
-            for fct in fcts:
-                with self.subTest(fct=fct.__name__, rnd=rnd):
-                    fct(rnd)
 
     @wraplog()
     def test_onnxt_runtime_qlinear_conv_test0(self):

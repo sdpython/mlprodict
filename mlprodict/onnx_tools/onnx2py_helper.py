@@ -157,7 +157,7 @@ def guess_numpy_type_from_dtype(dt):
         return dt
     if dt == numpy.dtype('float32'):
         return numpy.float32
-    if dt == numpy.dtype('floa64'):
+    if dt == numpy.dtype('float64'):
         return numpy.floa64
     if dt == numpy.dtype('int64'):
         return numpy.int64
