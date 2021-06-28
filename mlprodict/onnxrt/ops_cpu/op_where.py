@@ -26,7 +26,7 @@ class Where(OpRun):
         return (numpy.where(condition, x, y).astype(x.dtype), )
 
     def _infer_shapes(self, condition, x, y):  # pylint: disable=W0221
-        """
-        Returns the same shape by default.
-        """
+        return (x, )
+
+    def _infer_types(self, condition, x, y):  # pylint: disable=W0221
         return (x, )

@@ -26,6 +26,9 @@ class EyeLike(OpRun):
     def _infer_shapes(self, shape):  # pylint: disable=W0221
         return (ShapeObject(None, dtype=self.dtype_), )
 
+    def _infer_types(self, shape):  # pylint: disable=W0221
+        return (self.dtype_, )
+
     def to_python(self, inputs):
         return (
             "import numpy",

@@ -112,3 +112,8 @@ class MaxPool(OpRun):
             return (ShapeObjectFct(compute_shape1, X, name="MaxPool", dtype=X.dtype), )
         return (ShapeObjectFct(compute_shape1, X, name="MaxPool", dtype=X.dtype),
                 ShapeObjectFct(compute_shape2, X, name="MaxPool", dtype=X.dtype))
+
+    def _infer_types(self, X):  # pylint: disable=W0221
+        if self.nb_outputs == 1:
+            return (X, )
+        return (X, X)

@@ -5,13 +5,14 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRunBinary
+from ._op import OpRunBinaryComparison
 
 
-class Less(OpRunBinary):
+class Less(OpRunBinaryComparison):
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRunBinary.__init__(self, onnx_node, desc=desc, **options)
+        OpRunBinaryComparison.__init__(
+            self, onnx_node, desc=desc, **options)
 
     def _run(self, a, b):  # pylint: disable=W0221
         return (numpy.less(a, b), )
@@ -20,10 +21,11 @@ class Less(OpRunBinary):
         return self._to_python_numpy(inputs, self.__class__.__name__.lower())
 
 
-class LessOrEqual(OpRunBinary):
+class LessOrEqual(OpRunBinaryComparison):
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRunBinary.__init__(self, onnx_node, desc=desc, **options)
+        OpRunBinaryComparison.__init__(
+            self, onnx_node, desc=desc, **options)
 
     def _run(self, a, b):  # pylint: disable=W0221
         return (numpy.less_equal(a, b), )

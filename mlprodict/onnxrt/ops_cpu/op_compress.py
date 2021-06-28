@@ -26,6 +26,9 @@ class Compress(OpRun):
     def _infer_shapes(self, x, condition):  # pylint: disable=W0221
         return (ShapeObject(None, dtype=x.dtype), )
 
+    def _infer_types(self, x, condition):  # pylint: disable=W0221
+        return (x, )
+
     def to_python(self, inputs):
         if self.axis is None:
             return "import numpy\nreturn numpy.compress(%s, %s)" % tuple(inputs)

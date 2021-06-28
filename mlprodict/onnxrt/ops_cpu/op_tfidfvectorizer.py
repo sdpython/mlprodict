@@ -62,9 +62,6 @@ class TfIdfVectorizer(OpRunUnary):
             return (res.reshape((x.shape[0], -1)), )
 
     def _infer_shapes(self, x):  # pylint: disable=E0202,W0221
-        """
-        Returns the same shape by default.
-        """
         if x.shape is None:
             return (x, )
         if len(x) == 1:
@@ -75,3 +72,6 @@ class TfIdfVectorizer(OpRunUnary):
                                 name=self.__class__.__name__), )
         raise RuntimeTypeError(
             "Only two dimension are allowed, got {}.".format(x))
+
+    def _infer_types(self, x):  # pylint: disable=E0202,W0221
+        return (x, )

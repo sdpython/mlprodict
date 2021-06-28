@@ -33,3 +33,6 @@ class GlobalAveragePool(OpRun):
             return (ShapeObject(None, dtype=x.dtype), )
         shape = x.shape[:2] + (1, ) * (len(x.shape) - 2)
         return (ShapeObject(shape, dtype=x.dtype), )
+
+    def _infer_types(self, x):  # pylint: disable=W0221
+        return (x, )

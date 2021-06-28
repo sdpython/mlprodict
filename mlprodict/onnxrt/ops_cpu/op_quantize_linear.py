@@ -5,6 +5,7 @@
 @brief Runtime operator.
 """
 import numpy
+from ...onnx_tools.onnx2py_helper import guess_numpy_type_from_dtype
 from ._op import OpRun
 from ..shape_object import ShapeObject
 
@@ -59,3 +60,12 @@ class QuantizeLinear(OpRun):
         else:
             dtype = numpy.uint8
         return (ShapeObject(args[0].shape, dtype=dtype), )
+
+    def _infer_types(self, *args):  # pylint: disable=W0221
+        if len(args) > 2:
+            if isinstance(args[2], numpy.ndarray):
+                dtype = args[2].dtype
+            dtype = guess_numpy_type_from_dtype(args[2])
+        else:
+            dtype = numpy.uint8
+        return (dtype, )

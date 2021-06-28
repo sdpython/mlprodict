@@ -5,13 +5,14 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRunBinary
+from ._op import OpRunBinaryComparison
 
 
-class Equal(OpRunBinary):
+class Equal(OpRunBinaryComparison):
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRunBinary.__init__(self, onnx_node, desc=desc, **options)
+        OpRunBinaryComparison.__init__(
+            self, onnx_node, desc=desc, **options)
 
     def _run(self, a, b):  # pylint: disable=W0221
         return (numpy.equal(a, b), )

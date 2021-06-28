@@ -37,8 +37,8 @@ class Einsum(OpRun):
         except RuntimeError:
             return (ShapeObject(None, dtype=args[0].dtype), )
 
-    def _infer_type(self, *args):
-        return ShapeObject._infer_merged_type(*args)
+    def _infer_types(self, *args):  # pylint: disable=W0221
+        return (args[0], )
 
     def to_python(self, inputs):
         return ("import numpy",

@@ -111,7 +111,4 @@ class StringNormalizer(OpRunUnary):
             return s
 
     def _infer_shapes(self, x):  # pylint: disable=E0202,W0221
-        """
-        Returns the same shape by default.
-        """
         return (x, )

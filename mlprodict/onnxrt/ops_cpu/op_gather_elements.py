@@ -6,6 +6,7 @@
 """
 import numpy
 from ._op import OpRun
+from ..shape_object import ShapeObject
 
 
 def gather_numpy_2(self, dim, index):
@@ -71,7 +72,10 @@ class GatherElements(OpRun):
         return (y, )
 
     def _infer_shapes(self, data, indices):  # pylint: disable=W0221
-        return (indices, )
+        return (ShapeObject(None, data.dtype), )
+
+    def _infer_types(self, data, indices):  # pylint: disable=W0221
+        return (data, )
 
     def to_python(self, inputs):
         lines = ['data_swaped = numpy.swapaxes(%s, 0, axis)' % inputs[0],

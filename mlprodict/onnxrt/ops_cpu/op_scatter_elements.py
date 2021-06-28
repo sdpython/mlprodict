@@ -75,3 +75,6 @@ class ScatterElements(OpRun):
 
     def _infer_shapes(self, data, indices, updates):  # pylint: disable=W0221
         return (ShapeObject(data.shape, dtype=data.dtype), )
+
+    def _infer_types(self, data, indices, updates):  # pylint: disable=W0221
+        return (data, )

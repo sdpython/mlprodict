@@ -66,7 +66,7 @@ class Pad(OpRun):
                           constant_values=constant_value), )
 
     def _infer_shapes(self, data, pads, constant_value=None):  # pylint: disable=E0202,W0221
-        """
-        Returns an empty shape by default.
-        """
         return (ShapeObject(None, data.dtype), )
+
+    def _infer_types(self, data, pads, constant_value=None):  # pylint: disable=E0202,W0221
+        return (data, )

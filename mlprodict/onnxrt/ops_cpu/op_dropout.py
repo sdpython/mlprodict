@@ -47,6 +47,15 @@ class DropoutBase(OpRun):
         raise RuntimeError(  # pragma: no cover
             "Unexpected numbers of output {} > 2.".format(self.nb_outputs))
 
+    def _infer_types(self, *inputs):  # pylint: disable=W0221
+        X = inputs[0]
+        if self.nb_outputs == 1:
+            return (X, )
+        if self.nb_outputs == 2:
+            return (X, X)
+        raise RuntimeError(  # pragma: no cover
+            "Unexpected numbers of output {} > 2.".format(self.nb_outputs))
+
 
 class Dropout_7(DropoutBase):
 

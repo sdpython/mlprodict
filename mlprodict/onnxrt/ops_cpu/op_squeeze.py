@@ -37,6 +37,9 @@ class Squeeze_1(OpRunUnaryNum):
     def _infer_shapes(self, x):  # pylint: disable=W0221
         return (x.squeeze(axis=self.axes), )
 
+    def _infer_types(self, x):  # pylint: disable=W0221
+        return (x, )
+
 
 class Squeeze_11(Squeeze_1):
     pass
@@ -64,6 +67,9 @@ class Squeeze_13(OpRun):
 
     def _infer_shapes(self, x, axes=None):  # pylint: disable=W0221
         return (ShapeObject(None, dtype=x.dtype), )
+
+    def _infer_types(self, x, axes=None):  # pylint: disable=W0221
+        return (x, )
 
 
 if onnx_opset_version() >= 13:

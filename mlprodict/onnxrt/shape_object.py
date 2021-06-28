@@ -499,11 +499,11 @@ class ShapeObject(BaseDimensionShape):
             self._dtype = numpy.int32
         elif self._dtype in (int, 'int', 'int64'):
             self._dtype = numpy.int64
-        elif self._dtype in (str, 'str'):
+        elif self._dtype in (str, 'str', numpy.str_):
             self._dtype = numpy.str
         elif (hasattr(self._dtype, 'type') and self._dtype.type is numpy.string_):
             pass
-        elif self._dtype in (bool, 'bool'):
+        elif self._dtype in (bool, 'bool', numpy.bool_):
             self._dtype = numpy.bool
         elif self._dtype in (object, numpy.object_):
             pass
@@ -845,8 +845,11 @@ class ShapeObject(BaseDimensionShape):
                            name="broadcast-{}-{}".format(self.name, a.name))
 
     @staticmethod
-    def _infer_merged_type(*args):
-        tys = set(a.dtype for a in args)
+    def _infer_merged_type(*args, use_dtype=True):
+        if use_dtype:
+            tys = set(a.dtype for a in args)
+        else:
+            tys = set(args)
         if len(tys) == 1:
             return list(tys)[0]
         if any(tys & {numpy.float64, numpy.int64,
@@ -854,7 +857,8 @@ class ShapeObject(BaseDimensionShape):
                       numpy.float16}):
             return numpy.float64
         raise RuntimeError(  # pragma: no cover
-            "Unable to infer types based on {}.".format(tys))
+            "Unable to infer types based on {} ({}).".format(
+                tys, len(tys)))
 
     def concat_columns(self, axis, *shapes):
         """

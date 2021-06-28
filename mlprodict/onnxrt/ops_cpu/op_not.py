@@ -18,7 +18,10 @@ class Not(OpRunUnary):
         return (numpy.logical_not(x), )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
-        return (x.copy(dtype=numpy.bool), )
+        return (x.copy(dtype=numpy.bool_), )
+
+    def _infer_types(self, x):  # pylint: disable=W0221
+        return (numpy.bool_, )
 
     def to_python(self, inputs):
         return self._to_python_numpy(inputs, 'logical_not')

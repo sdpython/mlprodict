@@ -18,7 +18,7 @@ class Shape(OpRun):
         return (numpy.array(data.shape, dtype=numpy.int64), )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
-        """
-        Returns the same shape by default.
-        """
         return (ShapeObject((len(x), ), dtype=numpy.int64), )
+
+    def _infer_types(self, x):  # pylint: disable=W0221
+        return (numpy.int64, )
