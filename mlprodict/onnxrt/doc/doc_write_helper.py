@@ -88,6 +88,8 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
             continue  # pragma: no cover
         done.add(title)
         link = "-".join([name, problem, scenario, clean_optim, opset])
+        link = link.replace(" ", "").replace(
+            "{", "").replace("}", "").replace("'", "")
 
         optim_param = ("Model was converted with additional parameter: ``{}``.".format(optim)
                        if optim else "")

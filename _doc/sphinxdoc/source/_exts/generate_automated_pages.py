@@ -151,6 +151,8 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
         scenario = row['scenario']
         optim = _clean_values_optim(
             str(row.get('optim', '')).replace("nan", ""))
+        optim = optim.replace(" ", "").replace(
+            "{", "").replace("}", "").replace("'", "")
         opset = _make_opset(row)
         return link.format(name=name, problem=problem,
                            scenario=scenario, optim=optim,
@@ -172,7 +174,7 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     print("[mlprodict-sphinx] write '{}'".format(whe))
 
     with open(whe, 'w', encoding='utf-8') as f:
-        title = "Available of scikit-learn model for runtime {0}".format(
+        title = "Availability of scikit-learn model for runtime {0}".format(
             runtime)
         f.write(dedent('''
         .. _l-onnx-bench-{0}:
