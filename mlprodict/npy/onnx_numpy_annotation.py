@@ -80,7 +80,7 @@ class NDArray(numpy.ndarray, Generic[Shape, DType]):
         def __init__(self, params):
             self.__args__ = params
 
-    def __class_getitem__(cls, params):  # pylint: disable=W0221
+    def __class_getitem__(cls, params):  # pylint: disable=W0221,W0237
         "Overwrites this method."
         if not isinstance(params, tuple):
             params = (params,)  # pragma: no cover

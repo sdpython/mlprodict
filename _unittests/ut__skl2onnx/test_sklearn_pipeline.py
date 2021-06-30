@@ -219,7 +219,7 @@ class TestSklearnPipeline(ExtTestCase):
             warnings.warn("Connectivity issue for '{}'.".format(titanic_url))
             return
         X = data.drop("survived", axis=1)
-        y = data["survived"]
+        y = data["survived"]  # pylint: disable=E1136
 
         # SimpleImputer on string is not available for string
         # in ONNX-ML specifications.
@@ -379,7 +379,8 @@ class TestSklearnPipeline(ExtTestCase):
         X_train = pandas.read_csv(StringIO(text))
         for c in X_train.columns:
             if c != 'color':
-                X_train[c] = X_train[c].astype(numpy.float32)
+                X_train[c] = X_train[c].astype(  # pylint: disable=E1136,E1137
+                    numpy.float32)
         numeric_features = [c for c in X_train if c != 'color']
 
         pipe = Pipeline([
@@ -414,7 +415,8 @@ class TestSklearnPipeline(ExtTestCase):
         oinf = InferenceSession(model_onnx.SerializeToString())
 
         pred = pipe.transform(X_train)
-        inputs = {c: X_train[c].values for c in X_train.columns}
+        inputs = {
+            c: X_train[c].values for c in X_train.columns}  # pylint: disable=E1101,E1136
         inputs = {c: v.reshape((v.shape[0], 1)) for c, v in inputs.items()}
         onxp = oinf.run(None, inputs)
         got = onxp[0]

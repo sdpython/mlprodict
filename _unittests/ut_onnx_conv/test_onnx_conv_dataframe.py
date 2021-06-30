@@ -48,7 +48,8 @@ class TestOnnxConvDataframe(ExtTestCase):
         X_train = pandas.read_csv(StringIO(text))
         for c in X_train.columns:
             if c != 'color':
-                X_train[c] = X_train[c].astype(numpy.float32)
+                X_train[c] = X_train[c].astype(  # pylint: disable=E1136,E1137
+                    numpy.float32)
         numeric_features = [c for c in X_train if c != 'color']
 
         if case == 1:
@@ -94,12 +95,13 @@ class TestOnnxConvDataframe(ExtTestCase):
             raise NotImplementedError()
 
         if cat:
-            X_train['color'] = X_train['color'].astype('category')
+            X_train['color'] = X_train['color'].astype(  # pylint: disable=E1136,E1137
+                'category')
         schema = guess_schema_from_data(X_train)
         if isinstance(schema[-1][-1], Int64TensorType):
             raise AssertionError(
                 "Issue with type of last column %r: %r." % (
-                    schema[-1], X_train.dtypes[-1]))
+                    schema[-1], X_train.dtypes[-1]))  # pylint: disable=E1101
 
         pipe.fit(X_train)
         model_onnx = to_onnx(pipe, X_train)

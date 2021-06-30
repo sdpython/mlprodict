@@ -56,7 +56,7 @@ class TestOnnxrtValidateType(ExtTestCase):
 
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        subname = str(dtype).split('.')[-1].strip("'><")
+        subname = str(dtype).rsplit('.', maxsplit=1)[-1].strip("'><")
         temp = get_temp_folder(
             __file__, "temp_validate_sklearn_operators_" + subname)
         nb = 60

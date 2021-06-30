@@ -2,6 +2,7 @@
 @brief      test log(time=2s)
 """
 import unittest
+import warnings
 from logging import getLogger
 import numpy
 import pandas

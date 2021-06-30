@@ -35,7 +35,7 @@ class CDist(OpRunBinaryNum):
         raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
-    def _infer_shapes(self, a, b):  # pylint: disable=W0221
+    def _infer_shapes(self, a, b):  # pylint: disable=W0221,W0237
         """
         Returns the same for the labels and the probabilities.
         """

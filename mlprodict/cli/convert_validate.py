@@ -160,7 +160,7 @@ def convert_validate(pkl, data=None, schema=None,
             schema = [  # pragma: no cover
                 ('X', tensor_type([None, df.shape[1]]))]
         if len(schema) == 1:
-            df = df.values
+            df = df.values  # pylint: disable=E1101
         if verbose > 0:
             fLOG("[convert_validate] data schema={}".format(schema))
 

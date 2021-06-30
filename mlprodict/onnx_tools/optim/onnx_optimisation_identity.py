@@ -27,10 +27,11 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
     @return                     new onnx _model
     """
     if debug_info is None:
-        debug_info = [str(type(onnx_model)).split('.')[-1].strip("'>")]
+        debug_info = [str(type(onnx_model)).rsplit(
+            '.', maxsplit=1)[-1].strip("'>")]
     else:
-        debug_info = debug_info + \
-            [str(type(onnx_model)).split('.')[-1].strip("'>")]
+        debug_info = (debug_info +
+                      [str(type(onnx_model)).rsplit('.', maxsplit=1)[-1].strip("'>")])
 
     if hasattr(onnx_model, 'graph'):
         return _apply_optimisation_on_graph(

@@ -169,7 +169,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
             if len(self.inputs_) == 1:
                 rt_inputs[self.inputs_[0]] = numpy.array(X)
             else:
-                for i in range(len(self.inputs_)):
+                for i in range(len(self.inputs_)):  # pylint: disable=C0200
                     rt_inputs[self.inputs_[i]] = [row[i] for row in X]
 
         for k, v in inputs.items():
