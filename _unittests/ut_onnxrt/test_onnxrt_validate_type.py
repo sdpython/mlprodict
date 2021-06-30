@@ -87,7 +87,7 @@ class TestOnnxrtValidateType(ExtTestCase):
             row["odtypes"] = dtypes
 
             for dt in dtypes:
-                if dt in (dtype, numpy.int32, numpy.int64, numpy.str):
+                if dt in (dtype, numpy.int32, numpy.int64, numpy.str_):
                     continue
                 raise AssertionError(
                     'Issue with one model {}-{}-{} ({})\n----\n{}\n---\n{}'.format(

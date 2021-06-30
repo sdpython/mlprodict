@@ -15,7 +15,7 @@ from mlprodict.npy import NDArray
 @ignore_warnings(DeprecationWarning)
 def get_bool(unused):
     try:
-        return numpy.bool
+        return numpy.bool_
     except AttributeError:
         return bool
 

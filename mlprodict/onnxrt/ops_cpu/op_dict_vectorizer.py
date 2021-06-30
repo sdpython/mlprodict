@@ -13,7 +13,7 @@ from ..shape_object import ShapeObject
 class DictVectorizer(OpRun):
 
     atts = {'int64_vocabulary': numpy.empty(0, dtype=numpy.int64),
-            'string_vocabulary': numpy.empty(0, dtype=numpy.str)}
+            'string_vocabulary': numpy.empty(0, dtype=numpy.str_)}
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,

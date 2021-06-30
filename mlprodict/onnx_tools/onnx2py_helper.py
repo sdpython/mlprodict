@@ -475,9 +475,9 @@ def guess_proto_dtype(dtype):
         return TensorProto.UINT8  # pylint: disable=E1101
     if dtype == numpy.float16:
         return TensorProto.FLOAT16  # pylint: disable=E1101
-    if dtype in (numpy.bool, bool, numpy.bool_):
+    if dtype in (bool, numpy.bool_):
         return TensorProto.BOOL  # pylint: disable=E1101
-    if dtype in (numpy.str, str, numpy.str_):
+    if dtype in (str, numpy.str_):
         return TensorProto.STRING  # pylint: disable=E1101
     raise RuntimeError(
         "Unable to guess type for dtype={}.".format(dtype))  # pragma: no cover

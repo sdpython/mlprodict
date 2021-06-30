@@ -298,9 +298,9 @@ class TestSklearnPipeline(ExtTestCase):
         data_types = {
             'pclass': numpy.int64,
             'age': numpy.float32,
-            'sex': numpy.str,
+            'sex': numpy.str_,
             'fare': numpy.float32,
-            'embarked': numpy.str,
+            'embarked': numpy.str_,
         }
         inputs = {k: data[k].values.astype(data_types[k]).reshape(-1, 1)
                   for k in data.columns}

@@ -173,7 +173,7 @@ class MLNumTypeBool(MLNumTypeSingle):
     """
 
     def __init__(self):
-        MLNumTypeSingle.__init__(self, numpy.bool, 'BL', 'bool', 'bool')
+        MLNumTypeSingle.__init__(self, numpy.bool_, 'BL', 'bool', 'bool')
 
 
 class MLTensor(MLType):

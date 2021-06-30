@@ -16,7 +16,7 @@ except AttributeError:  # pragma: no cover
     numpy_bool = bool
 
 try:
-    numpy_str = numpy.str
+    numpy_str = numpy.str_
 except AttributeError:  # pragma: no cover
     numpy_str = str
 
@@ -222,7 +222,7 @@ class _NDArrayAlias:
     def _to_onnx_dtype(self, dtype, shape):
         from skl2onnx.common.data_types import _guess_numpy_type
         if dtype == numpy.bool_:
-            dtype = numpy.bool
+            dtype = numpy.bool_
         return _guess_numpy_type(dtype, shape)
 
     def _get_output_types(self, key):

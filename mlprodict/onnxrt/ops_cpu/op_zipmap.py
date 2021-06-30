@@ -145,6 +145,10 @@ class ArrayZipMapDictionary(list):
         self._rev_keys = rev_keys
         self._mat = mat
 
+    @property
+    def dtype(self):
+        return self._mat.dtype
+
     def __len__(self):
         return self._mat.shape[0]
 

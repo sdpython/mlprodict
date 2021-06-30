@@ -29,7 +29,7 @@ class _ClassifierCommon:
                                                  dtype=numpy.int64))
             self._classlabels_int64s_string = self.classlabels_strings  # pylint: disable=E0203
             self.classlabels_strings = numpy.empty(
-                shape=(0, ), dtype=numpy.str)
+                shape=(0, ), dtype=numpy.str_)
         else:
             self._classlabels_int64s_string = None
 

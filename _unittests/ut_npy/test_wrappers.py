@@ -138,7 +138,7 @@ class TestWrappers(ExtTestCase):
         # sig, args, kwargs, version
         f32 = numpy.float32
         i64 = numpy.int64
-        bbb = numpy.bool
+        bbb = numpy.bool_
         sigs = [
             # 0
             (NDArraySameTypeSameShape("all"), ['X'], {},

@@ -35,11 +35,11 @@ def proto2dtype(proto_type):
     if proto_type == TensorProto.FLOAT:  # pylint: disable=E1101
         return numpy.float32
     if proto_type == TensorProto.BOOL:  # pylint: disable=E1101
-        return numpy.bool
+        return numpy.bool_
     if proto_type == TensorProto.DOUBLE:  # pylint: disable=E1101
         return numpy.float64
     if proto_type == TensorProto.STRING:  # pylint: disable=E1101
-        return numpy.str
+        return numpy.str_
     if proto_type == TensorProto.INT64:  # pylint: disable=E1101
         return numpy.int64
     if proto_type == TensorProto.INT32:  # pylint: disable=E1101
@@ -77,9 +77,9 @@ def dtype_name(dtype):
         return "int32"
     if dtype == numpy.int64:
         return "int64"
-    if dtype == numpy.str:
+    if dtype == numpy.str_:
         return "str"
-    if dtype == numpy.bool:
+    if dtype == numpy.bool_:
         return "bool"
     raise ValueError(
         "Unexpected dtype {}.".format(dtype))

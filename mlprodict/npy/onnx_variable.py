@@ -36,7 +36,7 @@ try:
 except AttributeError:  # pragma: no cover
     numpy_bool = bool
 try:
-    numpy_str = numpy.str
+    numpy_str = numpy.str_
 except AttributeError:  # pragma: no cover
     numpy_str = str
 

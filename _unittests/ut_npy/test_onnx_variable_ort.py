@@ -16,7 +16,7 @@ from mlprodict.npy import (
 @ignore_warnings(DeprecationWarning)
 def get_bool(unused):
     try:
-        return numpy.bool
+        return numpy.bool_
     except AttributeError:
         return bool
 
@@ -245,7 +245,7 @@ def test_abs_neg(x: NDArray[Any, numpy.float32],
 
 @onnxnumpy(runtime='onnxruntime1')
 def test_abs_not(x: NDArray[Any, numpy.float32],
-                 ) -> NDArray[Any, numpy.bool]:
+                 ) -> NDArray[Any, numpy.bool_]:
     "onnx numpy not"
     temp = nxnp.abs(x) > numpy.float32(0)
     return temp.not_()
