@@ -1334,7 +1334,7 @@ class GraphEinsumSubOp:
             self._nodes[id(added)] = added
             for op in forward[key]:
                 new_inputs = list(op.inputs)
-                for i in range(len(op.inputs)):
+                for i in range(len(op.inputs)):  # pylint: disable=C0200
                     if id(op.inputs[i]) == key:
                         new_inputs[i] = added
                 op.inputs = tuple(new_inputs)
@@ -1348,7 +1348,7 @@ class GraphEinsumSubOp:
             inp = inps[0]
             for op in forward[key]:
                 new_inputs = list(op.inputs)
-                for i in range(len(op.inputs)):
+                for i in range(len(op.inputs)):  # pylint: disable=C0200
                     if id(op.inputs[i]) == key:
                         new_inputs[i] = inp
                 op.inputs = tuple(new_inputs)

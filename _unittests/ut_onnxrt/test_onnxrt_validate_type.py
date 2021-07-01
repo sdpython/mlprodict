@@ -56,7 +56,7 @@ class TestOnnxrtValidateType(ExtTestCase):
 
         logger = getLogger('skl2onnx')
         logger.disabled = True
-        subname = str(dtype).split('.')[-1].strip("'><")
+        subname = str(dtype).rsplit('.', maxsplit=1)[-1].strip("'><")
         temp = get_temp_folder(
             __file__, "temp_validate_sklearn_operators_" + subname)
         nb = 60
@@ -87,7 +87,7 @@ class TestOnnxrtValidateType(ExtTestCase):
             row["odtypes"] = dtypes
 
             for dt in dtypes:
-                if dt in (dtype, numpy.int32, numpy.int64, numpy.str):
+                if dt in (dtype, numpy.int32, numpy.int64, numpy.str_):
                     continue
                 raise AssertionError(
                     'Issue with one model {}-{}-{} ({})\n----\n{}\n---\n{}'.format(

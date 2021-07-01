@@ -135,7 +135,7 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
                   'y_scale': y.scale_, 'y_zero_point': y.zero_point_,
                   'b': b.quantized_}
 
-    for k in inputs:
+    for k in inputs:  # pylint: disable=C0206
         v = inputs[k]
         if len(v.shape) == 0:
             inputs[k] = numpy.array([v], dtype=v.dtype)

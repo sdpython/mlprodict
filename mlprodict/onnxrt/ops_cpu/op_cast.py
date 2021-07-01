@@ -39,9 +39,9 @@ class Cast(OpRun):
         elif self.to == TensorProto.UINT64:  # pylint: disable=E1101
             self._dtype = numpy.uint64
         elif self.to == TensorProto.BOOL:  # pylint: disable=E1101
-            self._dtype = numpy.bool
+            self._dtype = numpy.bool_
         elif self.to == TensorProto.STRING:  # pylint: disable=E1101
-            self._dtype = numpy.str
+            self._dtype = numpy.str_
         elif self.to == TensorProto.FLOAT16:  # pylint: disable=E1101
             self._dtype = numpy.float16
         elif self.to == TensorProto.COMPLEX64:  # pylint: disable=E1101

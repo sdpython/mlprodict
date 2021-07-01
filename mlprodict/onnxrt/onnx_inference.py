@@ -726,7 +726,8 @@ class OnnxInference:
                     if k not in keys and k not in printed:
                         printed.add(k)
                         name = list(
-                            name for name in self._global_index if self._global_index[name] == k)
+                            name for name in self._global_index  # pylint: disable=C0206
+                            if self._global_index[name] == k)
                         if isinstance(values[k], (numpy.ndarray, coo_matrix)):
                             name = name[0]
                             mini = numpy_min(values[k])

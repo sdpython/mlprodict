@@ -61,7 +61,7 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
     @skipif_circleci('stuck')
     def test_onnxrt_python_xgbregressor(self):
         nb_tests = 0
-        for objective in obj_classes:
+        for objective in obj_classes:  # pylint: disable=C0206
             for n_estimators in [1, 2]:
                 with self.subTest(objective=objective, n_estimators=n_estimators):
                     probs = []

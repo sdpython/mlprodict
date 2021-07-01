@@ -15,10 +15,10 @@ class LabelEncoder(OpRun):
             'default_string': b'',
             'keys_floats': numpy.empty(0, dtype=numpy.float32),
             'keys_int64s': numpy.empty(0, dtype=numpy.int64),
-            'keys_strings': numpy.empty(0, dtype=numpy.str),
+            'keys_strings': numpy.empty(0, dtype=numpy.str_),
             'values_floats': numpy.empty(0, dtype=numpy.float32),
             'values_int64s': numpy.empty(0, dtype=numpy.int64),
-            'values_strings': numpy.empty(0, dtype=numpy.str),
+            'values_strings': numpy.empty(0, dtype=numpy.str_),
             }
 
     def __init__(self, onnx_node, desc=None, **options):

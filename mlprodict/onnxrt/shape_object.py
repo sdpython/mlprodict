@@ -500,11 +500,11 @@ class ShapeObject(BaseDimensionShape):
         elif self._dtype in (int, 'int', 'int64'):
             self._dtype = numpy.int64
         elif self._dtype in (str, 'str', numpy.str_):
-            self._dtype = numpy.str
+            self._dtype = numpy.str_
         elif (hasattr(self._dtype, 'type') and self._dtype.type is numpy.string_):
             pass
         elif self._dtype in (bool, 'bool', numpy.bool_):
-            self._dtype = numpy.bool
+            self._dtype = numpy.bool_
         elif self._dtype in (object, numpy.object_):
             pass
         elif self._dtype in (numpy.int8, 'int8', ):
@@ -521,7 +521,7 @@ class ShapeObject(BaseDimensionShape):
             self._dtype = numpy.uint64
         elif self._dtype not in {
                 numpy.float32, numpy.float64, numpy.int32, numpy.int64,
-                numpy.str, numpy.bool, numpy.float16, None,
+                numpy.str_, numpy.bool_, numpy.float16, None,
                 numpy.complex64, numpy.complex128,
                 'map'}:
             raise ValueError(  # pragma: no cover

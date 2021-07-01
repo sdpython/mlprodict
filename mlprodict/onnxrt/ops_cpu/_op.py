@@ -152,13 +152,34 @@ class OpRun:
         """
         Calls method ``_run``.
         """
+        for ar in args:
+            a = ar.dtype
+            if not isinstance(a, numpy.dtype) and a not in {
+                    numpy.int8, numpy.uint8, numpy.float16, numpy.float32,
+                    numpy.float64, numpy.int32, numpy.int64, numpy.int16,
+                    numpy.uint16, numpy.uint32, numpy.bool_, numpy.str_,
+                    numpy.uint64, bool, str, }:
+                raise TypeError(  # pragma: no cover
+                    "Type ({}, {}) is not a numpy type (operator '{}')".format(
+                        a, type(a), self.__class__.__name__))
         try:
-            return self._run(*args, **kwargs)
+            res = self._run(*args, **kwargs)
         except TypeError as e:
             raise TypeError(  # pragma: no cover
                 "Issues with types {} (operator {}).".format(
                     ", ".join(str(type(_)) for _ in args),
                     self.__class__.__name__)) from e
+        for ar in res:
+            a = ar.dtype
+            if not isinstance(a, numpy.dtype) and a not in {
+                    numpy.int8, numpy.uint8, numpy.float16, numpy.float32,
+                    numpy.float64, numpy.int32, numpy.int64, numpy.int16,
+                    numpy.uint16, numpy.uint32, numpy.bool_, numpy.str_,
+                    numpy.uint64, bool, str, }:
+                raise TypeError(  # pragma: no cover
+                    "Type ({}, {}) is not a numpy type (operator '{}')".format(
+                        a, type(a), self.__class__.__name__))
+        return res
 
     def switch_initializers_dtype(self, dtype_in=numpy.float32,
                                   dtype_out=numpy.float64):
@@ -239,10 +260,11 @@ class OpRun:
                 "res must be tuple not {} (operator '{}')".format(
                     type(res), self.__class__.__name__))
         for a in res:
-            if a not in {numpy.int8, numpy.uint8, numpy.float16, numpy.float32,
-                         numpy.float64, numpy.int32, numpy.int64, numpy.int16,
-                         numpy.uint16, numpy.uint32, numpy.bool_, numpy.str_,
-                         numpy.uint64, bool, str, }:
+            if not isinstance(a, numpy.dtype) and a not in {
+                    numpy.int8, numpy.uint8, numpy.float16, numpy.float32,
+                    numpy.float64, numpy.int32, numpy.int64, numpy.int16,
+                    numpy.uint16, numpy.uint32, numpy.bool_, numpy.str_,
+                    numpy.uint64, bool, str, }:
                 raise TypeError(  # pragma: no cover
                     "Type ({}, {}) is not a numpy type (operator '{}')".format(
                         a, type(a), self.__class__.__name__))

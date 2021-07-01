@@ -460,7 +460,8 @@ def add_model_import_init(
     content = "\n".join(lines)
 
     # _create_model
-    content = content.split('def _create_model(self):')[0].strip(' \n')
+    content = content.split('def _create_model(self):',
+                            maxsplit=1)[0].strip(' \n')
     lines = [content, "", "    def _create_model(self):"]
     if extra is not None and len(extra) > 0:
         lines.append("        return {}(".format(model.__name__))

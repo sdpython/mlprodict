@@ -177,7 +177,7 @@ def compare_outputs(expected, output, verbose=False, **kwargs):
         if len(output.shape) == 3 and output.shape[0] == 1 and len(
                 expected.shape) == 2:
             output = output.reshape(output.shape[1:])
-        if expected.dtype in (numpy.str, numpy.dtype("<U1"),
+        if expected.dtype in (numpy.str_, numpy.dtype("<U1"),
                               numpy.dtype("<U3")):
             try:
                 assert_array_equal(expected, output, verbose=verbose)
@@ -281,7 +281,7 @@ def _create_column(values, dtype):
     if str(dtype) in ("tensor(double)", "tensor(float64)"):
         return numpy.array(values, dtype=numpy.float64)
     if str(dtype) in ("tensor(string)", "tensor(str)"):
-        return numpy.array(values, dtype=numpy.str)
+        return numpy.array(values, dtype=numpy.str_)
     raise OnnxBackendAssertionError(
         "Unable to create one column from dtype '{0}'".format(dtype))
 
@@ -356,7 +356,7 @@ def _compare_expected(expected, output, sess, onnx_model,
                 "output must be an array for onnx '{0}' not {1}".format(
                     onnx_model, type(output)))
         if (classes is not None and (
-                expected.dtype == numpy.str or expected.dtype.char == 'U')):
+                expected.dtype == numpy.str_ or expected.dtype.char == 'U')):
             try:
                 output = numpy.array([classes[cl] for cl in output])
             except IndexError as e:  # pragma no cover

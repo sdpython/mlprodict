@@ -2,6 +2,7 @@
 @brief      test log(time=2s)
 """
 import unittest
+import warnings
 from logging import getLogger
 import numpy
 import pandas
@@ -13,7 +14,7 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler, Binarizer
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import (
     FloatTensorType, StringTensorType, DictionaryType)
@@ -28,6 +29,30 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    def common_expected_shapes_types(self, oinf, got, model_def,
+                                     raise_shape=False):
+        expected_types = oinf.infer_types()
+        self.assertEqual(set(got) & set(expected_types), set(got))
+        for k, v in got.items():
+            if expected_types[k] in (str, numpy.str_):
+                # Type mismatch: dtype('<U32') != <class 'str'>
+                continue
+            if v.dtype != expected_types[k]:
+                raise AssertionError(
+                    "Type mismatch: %r != %r\nexpected_types=%r\ngot=%r"
+                    "\n----\n%r" % (
+                        v.dtype, expected_types[k], expected_types, got,
+                        model_def))
+
+        try:
+            expected_shapes = oinf.infer_shapes()
+            self.assertEqual(set(got) & set(expected_shapes), set(got))
+        except RuntimeError as e:
+            if raise_shape:
+                raise e
+            warnings.warn("infer_shapes fails.")
+
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_KMeans(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -39,11 +64,13 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X_test.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['label', 'scores'])
+        self.common_expected_shapes_types(oinf, got, model_def)
         exp = clr.predict(X_test)
         self.assertEqualArray(exp, got['label'])
         exp = clr.transform(X_test)
         self.assertEqualArray(exp, got['scores'], decimal=4)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_KMeans_verbose(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -67,6 +94,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         self.assertEqualArray(exp, got['scores'], decimal=4)
         self.assertGreater(len(rows), 2)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_KNeighborsClassifier(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -87,6 +115,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
             got = pandas.DataFrame(list(y['output_probability'])).values
             self.assertEqualArray(exp, got, decimal=5)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_KNeighborsRegressor_simple_k1(self):
         X = numpy.array([[0, 1], [0.2, 1.2], [1, 2], [
                         1.2, 2.2]], dtype=numpy.float32)
@@ -108,6 +137,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
             self.assertEqualArray(
                 exp.ravel(), y['variable'].ravel(), decimal=6)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_KNeighborsRegressor_simple_k2(self):
         X = numpy.array([[0, 1], [0.2, 1.2], [1, 2], [
                         1.2, 2.2]], dtype=numpy.float32)
@@ -129,6 +159,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
             self.assertEqualArray(
                 exp.ravel(), y['variable'].ravel(), decimal=6)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_KNeighborsRegressor(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -154,6 +185,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
                 raise AssertionError(
                     "Something is wrong with i={}".format(i)) from e
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_LinearRegression(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -173,6 +205,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         self.assertIn('op_type=LinearRegressor', text)
         self.assertIn("post_transform=b'NONE'", text)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_LogisticRegression_binary(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -193,6 +226,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_LogisticRegression_multi(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -212,6 +246,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_StandardScaler(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -226,6 +261,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         exp = clr.transform(X_test)
         self.assertEqualArray(exp, got['variable'], decimal=6)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_Binarizer(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -240,6 +276,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         exp = clr.transform(X_test)
         self.assertEqualArray(exp, got['variable'], decimal=6)
 
+    @ignore_warnings(DeprecationWarning)
     def test_dict_vectorizer(self):
         model = DictVectorizer()
         data = [{"amy": 1.0, "chin": 200.0}, {"nice": 3.0, "amy": 1.0}]
@@ -253,6 +290,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['variable'])
         self.assertEqualArray(exp.todense(), got['variable'].todense())
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_SimpleImputer(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -270,6 +308,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         self.assertEqualArray(exp, got['variable'], decimal=6)
         self.assertRaise(lambda: oinf.run({'X': X_test[0]}), RuntimeError)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_SimpleImputer_int(self):
         iris = load_iris()
         X, y = iris.data, iris.target

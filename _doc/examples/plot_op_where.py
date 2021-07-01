@@ -92,7 +92,7 @@ def benchmark_equation():
         repeat = 5
         number = 10
 
-        conds = [(numpy.random.rand(dim, dim) < 0.5).astype(numpy.bool)
+        conds = [(numpy.random.rand(dim, dim) < 0.5).astype(numpy.bool_)
                  for _ in range(repeat)]
         xs = [numpy.random.rand(dim, dim).astype(numpy.float32)
               for _ in range(repeat)]

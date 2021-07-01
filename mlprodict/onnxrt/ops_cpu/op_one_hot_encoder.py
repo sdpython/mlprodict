@@ -17,7 +17,7 @@ class OneHotEncoder(OpRun):
     """
 
     atts = {'cats_int64s': numpy.empty(0, dtype=numpy.int64),
-            'cats_strings': numpy.empty(0, dtype=numpy.str),
+            'cats_strings': numpy.empty(0, dtype=numpy.str_),
             'zeros': 1,
             }
 

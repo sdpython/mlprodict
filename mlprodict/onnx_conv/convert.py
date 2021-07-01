@@ -102,7 +102,7 @@ def guess_initial_types(X, initial_types):
         if isinstance(X, pandas.DataFrame):
             initial_types = []
             for c in X.columns:
-                if isinstance(X[c].values[0], (str, numpy.str)):
+                if isinstance(X[c].values[0], (str, numpy.str_)):
                     g = StringTensorType()
                 else:
                     g = _guess_type(X[c].values)
@@ -167,7 +167,7 @@ def get_inputs_from_data(X, schema=None):
         if isinstance(ct, DoubleTensorType):
             return X.astype(numpy.float64)
         if isinstance(ct, StringTensorType):
-            return X.astype(numpy.str)
+            return X.astype(numpy.str_)
         if isinstance(ct, Int64TensorType):
             return X.astype(numpy.int64)
         raise RuntimeError(  # pragma: no cover

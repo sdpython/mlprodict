@@ -10,6 +10,18 @@ from ._op import OpRun
 from ..shape_object import ShapeObject
 
 
+def _check_dtype(val):
+    a = val.dtype
+    if not isinstance(a, numpy.dtype) and a not in {
+            numpy.int8, numpy.uint8, numpy.float16, numpy.float32,
+            numpy.float64, numpy.int32, numpy.int64, numpy.int16,
+            numpy.uint16, numpy.uint32, numpy.bool_, numpy.str_,
+            numpy.uint64, bool, str, }:
+        raise TypeError(  # pragma: no cover
+            "Type ({}, {}) is not a numpy type (operator 'Constant')".format(
+                a, type(a)))
+
+
 class Constant_9(OpRun):
 
     atts = {'value': numpy.array([0], dtype=numpy.float32)}
@@ -19,6 +31,7 @@ class Constant_9(OpRun):
                        expected_attributes=Constant.atts,
                        **options)
         self.cst = self.value
+        _check_dtype(self.cst)
 
     def _run(self):  # pylint: disable=W0221
         return (self.cst, )
@@ -45,6 +58,7 @@ class Constant_11(OpRun):
             self.cst = self.sparse_value
         else:
             self.cst = self.value
+        _check_dtype(self.cst)
 
     def _run(self):  # pylint: disable=W0221
         return (self.cst, )
@@ -93,6 +107,7 @@ class Constant_12(OpRun):
         else:
             raise AttributeError(
                 "No constant is defined for operator 'Constant'.")
+        _check_dtype(self.cst)
 
     def _run(self):  # pylint: disable=W0221
         return (self.cst, )
