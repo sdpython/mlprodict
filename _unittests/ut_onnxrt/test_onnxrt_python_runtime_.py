@@ -173,7 +173,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         opset_skl2onnx = __max_supported_opset__
         self.assertGreater(opset_skl2onnx, opset_mlprodict)
 
-    def common_expected_shapes_types(self, oinf, got, onnx_cl, model_def,
+    def common_expected_shapes_types(self, oinf, inputs, got, onnx_cl, model_def,
                                      raise_shape=False):
         expected_types = oinf.infer_types()
         self.assertEqual(set(got) & set(expected_types), set(got))
@@ -195,6 +195,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             if raise_shape:
                 raise e
             warnings.warn("infer_shapes fails for operator %r." % onnx_cl)
+
+        res = oinf.infer_sizes(inputs)
+        self.assertIsInstance(res, dict)
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning,
                                SparseEfficiencyWarning, PendingDeprecationWarning))
@@ -233,8 +236,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         else:
             got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.common_expected_shapes_types(oinf, got, onnx_cl, model_def,
-                                          raise_shape=raise_shape)
+        self.common_expected_shapes_types(
+            oinf, {'X': X.astype(numpy.float32)}, got, onnx_cl,
+            model_def, raise_shape=raise_shape)
 
         try:
             self.assertEqualArray(np_fct(X), got['Y'], decimal=5)
@@ -312,8 +316,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         else:
             got = oinf.run({'X': X.astype(dtype)})
         self.assertEqual(list(sorted(got)), ['Y'])
-        self.common_expected_shapes_types(oinf, got, onnx_cl, model_def,
-                                          raise_shape=raise_shape)
+        self.common_expected_shapes_types(
+            oinf, {'X': X.astype(dtype)}, got, onnx_cl, model_def,
+            raise_shape=raise_shape)
         exp = np_fct(X, idi)
         self.assertEqualArray(exp, got['Y'], decimal=5)
 
@@ -399,7 +404,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self.assertEqual(list(sorted(got)), ['Y'])
                 self.assertEqualArray(numpy.argmax(
                     X, axis=0), got['Y'], decimal=5)
-                self.common_expected_shapes_types(oinf, got, clarg, model_def)
+                self.common_expected_shapes_types(
+                    oinf, {'X': X}, got, clarg, model_def)
 
                 if br:
                     continue
@@ -464,7 +470,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.array([1, 2], dtype=numpy.int64),
                               got['Y'], decimal=5)
-        self.common_expected_shapes_types(oinf, got, OnnxArgMax_12, model_def)
+        self.common_expected_shapes_types(
+            oinf, {'X': X}, got, OnnxArgMax_12, model_def)
 
     @wraplog()
     def test_onnxt_runtime_argmin(self):
@@ -498,7 +505,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 validate_python_inference(
                     oinfpy, {'X': X.astype(numpy.float32)})
                 self.common_expected_shapes_types(
-                    oinfpy, got, clarg, model_def)
+                    oinfpy, {'X': X.astype(numpy.float32)},
+                    got, clarg, model_def)
 
                 onx = OnnxArgMin('X', output_names=['Y'], axis=1, keepdims=0,
                                  op_version=opset)
@@ -553,7 +561,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.array([2, 1], dtype=numpy.int64),
                               got['Y'], decimal=5)
-        self.common_expected_shapes_types(oinf, got, OnnxArgMin_12, model_def)
+        self.common_expected_shapes_types(
+            oinf, {'X': X}, got, OnnxArgMin_12, model_def)
 
     @wraplog()
     def test_onnxt_runtime_acos(self):
@@ -621,7 +630,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(y, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxBatchNormalization, model_def)
+            oinf, {'X': x}, got, OnnxBatchNormalization, model_def)
 
         # input size: (2, 3, 4, 5)
         x = numpy.random.randn(2, 3, 4, 5).astype(numpy.float32)
@@ -757,7 +766,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     else:
                         self.assertEqualArray(x.astype(nptp), got['Y'])
                     self.common_expected_shapes_types(
-                        oinf, got, OnnxCast, model_def)
+                        oinf, {'X': x}, got, OnnxCast, model_def)
 
         python_tested.append(OnnxCast)
 
@@ -876,7 +885,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': x, 'cond': cond})
         self.assertEqualArray(exp, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxCompress, model_def)
+            oinf, {'X': x, 'cond': cond}, got, OnnxCompress, model_def)
 
         python_tested.append(OnnxCompress)
 
@@ -928,7 +937,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         exp = numpy.vstack([X, Y, cst])
         self.assertEqualArray(exp, got['Z'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxConcat, model_def)
+            oinf, {'X': X.astype(numpy.float32),
+                   'Y': Y.astype(numpy.float32)},
+            got, OnnxConcat, model_def)
 
         python_tested.append(OnnxConstantOfShape)
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
@@ -950,7 +961,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': x.astype(numpy.int64)})
         self.assertEqualArray(y, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxConstantOfShape, model_def)
+            oinf, {'X': x.astype(numpy.int64)}, got,
+            OnnxConstantOfShape, model_def)
 
         python_tested.append(OnnxConstantOfShape)
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
@@ -1006,11 +1018,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self.assertEqualArray(y_without_padding, got['Y'])
                 if rt == 'python':
                     self.common_expected_shapes_types(
-                        oinf, got, OnnxConv, model_def)
+                        oinf, {'X': x}, got, OnnxConv, model_def)
                 else:
                     self.assertRaise(
                         lambda: self.common_expected_shapes_types(
-                            oinf, got, OnnxConv, model_def),
+                            oinf, {'X': x}, got, OnnxConv, model_def),
                         RuntimeError)
 
         # test 3
@@ -1471,7 +1483,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                         'axis': axis})
         self.assertEqualArray(exp, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxCumSum, model_def)
+            oinf, {'X': x.astype(numpy.float64),
+                   'axis': axis},
+            got, OnnxCumSum, model_def)
 
         python_tested.append(OnnxCumSum)
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
@@ -1608,7 +1622,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxDequantizeLinear, model_def)
+            oinf, {'X': X}, got, OnnxDequantizeLinear, model_def)
 
         X = numpy.array([0, 3, 128, 255]).astype(numpy.uint8)
         x_scale = numpy.array([2], dtype=numpy.float32)
@@ -1642,7 +1656,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(got['Y'].shape, X.shape)
         self.assertEqualArray(got['Y'], _dropout(X, seed=seed)[0])
         self.common_expected_shapes_types(
-            oinf, got, OnnxDropout_7, model_def)
+            oinf, {'X': X}, got, OnnxDropout_7, model_def)
         python_tested.append(OnnxDropout)
 
     @wraplog()
@@ -1661,7 +1675,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(got['Y'].shape, X.shape)
         self.assertEqualArray(got['Y'], _dropout(X, seed=seed)[0])
         self.common_expected_shapes_types(
-            oinf, got, OnnxDropout, model_def)
+            oinf, {'X': X}, got, OnnxDropout, model_def)
 
         onx = OnnxDropout('X', output_names=['Y', 'Z'], seed=seed,
                           op_version=get_opset_number_from_onnx())
@@ -1726,7 +1740,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         exp = numpy.einsum(equation, X, Y)
         self.assertEqualArray(exp, got['Z'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxEinsum, model_def)
+            oinf, {'X': X, 'Y': Y}, got, OnnxEinsum, model_def)
         python_tested.append(OnnxEinsum)
 
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
@@ -1746,7 +1760,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         exp = numpy.eye(*X, k=0)
         self.assertEqualArray(exp, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxEyeLike, model_def)
+            oinf, {'X': X}, got, OnnxEyeLike, model_def)
 
         oinfpy = OnnxInference(model_def, runtime="python")
         validate_python_inference(oinfpy, {'X': X.astype(numpy.int64)})
@@ -1783,7 +1797,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             exp = numpy.reshape(x, new_shape)
             self.assertEqualArray(exp, got['Y'])
             self.common_expected_shapes_types(
-                oinf, got, OnnxFlatten, model_def)
+                oinf, {'X': x}, got, OnnxFlatten, model_def)
 
             python_tested.append(OnnxFlatten)
             oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
@@ -1810,7 +1824,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': data, 'Y': indices})
         self.assertEqual(got['Z'].size, 0)
         self.common_expected_shapes_types(
-            oinf, got, OnnxGatherElements, model_def)
+            oinf, {'X': data, 'Y': indices}, got,
+            OnnxGatherElements, model_def)
 
     @wraplog()
     def test_onnxt_runtime_gather_elements0_fortran(self):
@@ -1979,7 +1994,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(y, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxGlobalAveragePool, model_def)
+            oinf, {'X': x}, got, OnnxGlobalAveragePool, model_def)
 
         x = numpy.array([[[
             [1, 2, 3],
@@ -2041,7 +2056,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            [0.6, -0.8]], dtype=numpy.float32)
         self.assertEqualArray(got['Y'], exp)
         self.common_expected_shapes_types(
-            oinf, got, OnnxLpNormalization, model_def)
+            oinf, {'X': X}, got, OnnxLpNormalization, model_def)
 
         onx = OnnxLpNormalization('X', output_names=['Y'], p=2, axis=0,
                                   op_version=get_opset_number_from_onnx())
@@ -2083,7 +2098,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(exp, got['Y'])
         self.assertEqual(got['Y'].dtype, X.dtype)
         self.common_expected_shapes_types(
-            oinf, got, OnnxMaxPool, model_def)
+            oinf, {'X': X}, got, OnnxMaxPool, model_def)
 
     @wraplog()
     def test_onnxt_runtime_max_pool_1d_default_64(self):
@@ -2235,7 +2250,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray((idi + X) / 2, got['Y'], decimal=5)
         self.common_expected_shapes_types(
-            oinf, got, OnnxMean, model_def)
+            oinf, {'X': X.astype(numpy.float32)}, got,
+            OnnxMean, model_def)
         python_tested.append(OnnxMean)
 
     @wraplog()
@@ -2284,7 +2300,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'data': data, 'pads': pads})
         self.assertEqualArray(exp, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxPad, model_def)
+            oinf, {'data': data, 'pads': pads}, got,
+            OnnxPad, model_def)
 
         data = numpy.array([[1.0, 1.2], [2.3, 3.4], [4.5, 5.7]],
                            dtype=numpy.float32)
@@ -2398,7 +2415,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run(inputs)
         self.assertEqualArray(output, got['y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxQLinearConv, model_def)
+            oinf, inputs, got, OnnxQLinearConv, model_def)
         python_tested.append(OnnxQLinearConv)
 
     @wraplog()
@@ -2601,7 +2618,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxQuantizeLinear, model_def)
+            oinf, {'X': X}, got, OnnxQuantizeLinear, model_def)
 
         X = numpy.array([0, 2, 4, 1000, -254, -1000]).astype(numpy.float32)
         y_scale = numpy.array([2], dtype=numpy.float32)
@@ -2638,7 +2655,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(reduce_l1(X, axis=1, keepdims=0),
                               got['Y'], decimal=5)
         self.common_expected_shapes_types(
-            oinf, got, OnnxReduceL1, model_def)
+            oinf, {'X': X.astype(numpy.float32)}, got,
+            OnnxReduceL1, model_def)
 
         onx = OnnxReduceL1('X', output_names=['Y'], axes=1,
                            op_version=get_opset_number_from_onnx())
@@ -2678,7 +2696,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(reduce_l2(X, axis=1, keepdims=0),
                               got['Y'], decimal=5)
         self.common_expected_shapes_types(
-            oinf, got, OnnxReduceL2, model_def)
+            oinf, {'X': X.astype(numpy.float32)}, got, OnnxReduceL2,
+            model_def)
 
         onx = OnnxReduceL2('X', output_names=['Y'], axes=1,
                            op_version=get_opset_number_from_onnx())
@@ -2715,7 +2734,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         res = numpy.log(numpy.sum(numpy.exp(X)))
         self.assertEqualArray(res, got['Y'], decimal=5)
         self.common_expected_shapes_types(
-            oinf, got, OnnxReduceLogSumExp, model_def)
+            oinf, {'X': X.astype(numpy.float32)}, got,
+            OnnxReduceLogSumExp, model_def)
 
         onx = OnnxReduceLogSumExp('X', output_names=['Y'], axes=[1],
                                   op_version=get_opset_number_from_onnx())
@@ -2768,7 +2788,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(numpy.maximum.reduce(X, keepdims=False, axis=None),  # pylint: disable=E1101,E1123
                               got['Y'], decimal=5)
         self.common_expected_shapes_types(
-            oinf, got, OnnxReduceMax, model_def)
+            oinf, {'X': X.astype(numpy.float32)}, got,
+            OnnxReduceMax, model_def)
 
         onx = OnnxReduceMax('X', output_names=['Y'], axes=[1],
                             op_version=get_opset_number_from_onnx())
@@ -2804,7 +2825,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.mean(X), got['Y'], decimal=5)
         self.common_expected_shapes_types(
-            oinf, got, OnnxReduceMean, model_def)
+            oinf, {'X': X.astype(numpy.float32)}, got,
+            OnnxReduceMean, model_def)
 
         onx = OnnxReduceMean('X', output_names=['Y'], axes=1,
                              op_version=get_opset_number_from_onnx())
@@ -2841,7 +2863,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(numpy.minimum.reduce(X, keepdims=False, axis=None),  # pylint: disable=E1101,E1123
                               got['Y'], decimal=5)
         self.common_expected_shapes_types(
-            oinf, got, OnnxReduceMin, model_def)
+            oinf, {'X': X.astype(numpy.float32)}, got,
+            OnnxReduceMin, model_def)
 
         onx = OnnxReduceMin('X', output_names=['Y'], axes=[1],
                             op_version=get_opset_number_from_onnx())
@@ -2887,7 +2910,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(numpy.prod(X, axis=1).ravel(),
                               got['Y'].ravel())
         self.common_expected_shapes_types(
-            oinf, got, OnnxReduceProd, model_def)
+            oinf, {'X': X}, got, OnnxReduceProd, model_def)
 
         onx = OnnxReduceProd('X', output_names=['Y'], axes=1, keepdims=1,
                              op_version=get_opset_number_from_onnx())
@@ -2924,7 +2947,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 else:
                     self.assertEqual(name, 'ReduceSum_11')
                 self.common_expected_shapes_types(
-                    oinf, got, OnnxReduceSum, model_def)
+                    oinf, {'X': X.astype(numpy.float32)}, got,
+                    OnnxReduceSum, model_def)
 
             onx = OnnxReduceSumApi11('X', output_names=['Y'], axes=1,
                                      op_version=opset)
@@ -2985,7 +3009,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.sum(numpy.square(X)), got['Y'], decimal=5)
         self.common_expected_shapes_types(
-            oinf, got, OnnxReduceSumSquare, model_def)
+            oinf, {'X': X.astype(numpy.float32)}, got,
+            OnnxReduceSumSquare, model_def)
 
         onx = OnnxReduceSumSquare('X', output_names=['Y'], axes=1,
                                   op_version=get_opset_number_from_onnx())
@@ -3062,7 +3087,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         exp = X.reshape(sh.tolist())
         self.assertEqualArray(exp, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxReshape, model_def)
+            oinf, {'X': X.astype(numpy.float32)}, got,
+            OnnxReshape, model_def)
         python_tested.append(OnnxReshape)
 
     @wraplog()
@@ -3087,7 +3113,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 got = oinf.run({'X': data})
                 self.assertEqualArray(output, got['Y'])
                 self.common_expected_shapes_types(
-                    oinf, got, OnnxScatterElements, model_def)
+                    oinf, {'X': data}, got, OnnxScatterElements, model_def)
 
                 onx = OnnxScatterElements(
                     'X', indices, updates, axis=-1,
@@ -3135,7 +3161,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': x})
         self.assertEqualArray(y, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxShape, model_def)
+            oinf, {'X': x}, got, OnnxShape, model_def)
         python_tested.append(OnnxShape)
 
     @wraplog()
@@ -3167,7 +3193,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': x})
         self.assertEqualArray(y, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxSize, model_def)
+            oinf, {'X': x}, got, OnnxSize, model_def)
         python_tested.append(OnnxSize)
 
     @wraplog()
@@ -3197,7 +3223,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 got = oinf.run({'X': x})
                 self.assertEqualArray(y, got['Y'])
                 self.common_expected_shapes_types(
-                    oinf, got, OnnxSlice, model_def)
+                    oinf, {'X': x}, got, OnnxSlice, model_def)
 
                 # other
                 x = numpy.random.randn(20, 10, 5).astype(  # pylint: disable=E1101
@@ -3293,7 +3319,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self.assertEqualArray(y[1], got['Y2'])
                 self.assertEqualArray(y[2], got['Y3'])
                 self.common_expected_shapes_types(
-                    oinf, got, OnnxSplit, model_def)
+                    oinf, {'X': x}, got, OnnxSplit, model_def)
 
                 onx = OnnxSplitApi11(
                     'X', axis=0, output_names=['Y1', 'Y2', 'Y3'],
@@ -3341,7 +3367,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 got = oinf.run({'X': x})
                 self.assertEqualArray(y, got['Y'])
                 self.common_expected_shapes_types(
-                    oinf, got, OnnxSqueeze, model_def)
+                    oinf, {'X': x}, got, OnnxSqueeze, model_def)
 
                 x = numpy.random.randn(1, 20).astype(  # pylint: disable=E1101
                     numpy.float32)  # pylint: disable=E1101
@@ -3395,7 +3421,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(got['Y'].size, 0)
         self.assertEqual(got['Yi'].size, 0)
         self.common_expected_shapes_types(
-            oinf, got, OnnxTopK, model_def)
+            oinf, {'X': X}, got, OnnxTopK, model_def)
 
     @wraplog()
     def test_onnxt_runtime_topk(self):
@@ -3499,7 +3525,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(X, got['Y'])
         self.common_expected_shapes_types(
-            oinf, got, OnnxTranspose, model_def)
+            oinf, {'X': X}, got, OnnxTranspose, model_def)
 
         X = numpy.array([[0, 1, 2, 3, 4],
                          [1, -1, -2, 4, 5],
@@ -3533,7 +3559,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 got = oinf.run({'X': x})
                 self.assertEqualArray(y, got['Y'])
                 self.common_expected_shapes_types(
-                    oinf, got, OnnxUnsqueeze, model_def)
+                    oinf, {'X': x}, got, OnnxUnsqueeze, model_def)
 
                 x = numpy.random.randn(3, 4, 5).astype(numpy.float32)
                 y = numpy.expand_dims(x, axis=2)
@@ -3916,5 +3942,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_and()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_abs()
     unittest.main()

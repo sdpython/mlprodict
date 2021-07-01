@@ -28,6 +28,10 @@ class Det(OpRun):
     def _infer_types(self, x):  # pylint: disable=W0221
         return (x, )
 
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
+
     def to_python(self, inputs):
         return ('from numpy.linalg import det as npy_det',
                 "\n".join([

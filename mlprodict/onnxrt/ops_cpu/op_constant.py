@@ -44,6 +44,10 @@ class Constant_9(OpRun):
         # pref = str(hex(id(self))[2:])
         return (self.cst.dtype, )
 
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
+
 
 class Constant_11(OpRun):
 
@@ -70,6 +74,10 @@ class Constant_11(OpRun):
     def _infer_types(self):  # pylint: disable=W0221
         # pref = str(hex(id(self))[2:])
         return (self.cst.dtype, )
+
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
 
 
 class Constant_12(OpRun):
@@ -119,6 +127,10 @@ class Constant_12(OpRun):
     def _infer_types(self):  # pylint: disable=W0221
         # pref = str(hex(id(self))[2:])
         return (self.cst.dtype, )
+
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
 
 
 if onnx_opset_version() >= 12:

@@ -21,5 +21,9 @@ class Sum(OpRun):
     def _infer_types(self, *args):  # pylint: disable=W0221
         return (args[0], )
 
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
+
     def to_python(self, inputs):
         return None, "return sum([%s])" % ", ".join(inputs)

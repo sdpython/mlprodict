@@ -38,5 +38,9 @@ class Concat(OpRun):
         res = (ShapeObject._infer_merged_type(*args, use_dtype=False), )
         return res
 
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
+
     def to_python(self, inputs):
         return "import numpy", "return numpy.concatenate(inputs, axis=axis)"
