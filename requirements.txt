@@ -11,7 +11,7 @@ numba
 numpy>=1.19.0
 pandas
 pillow
-scikit-learn>=0.23
+scikit-learn>=0.24
 scipy
 Sphinx
 wheel
@@ -19,7 +19,6 @@ wheel
 # pip
 autopep8
 asv
-# git+https://github.com/sdpython/asv.git@jenkins
 chardet
 coverage>=5.0
 flatbuffers
@@ -46,7 +45,6 @@ wheel
 xgboost
 
 # onnx
-onnx>=1.8.0
-onnxruntime>=1.7.0
-git+https://github.com/xadupre/onnxconverter-common.git@jenkins
-git+https://github.com/xadupre/sklearn-onnx.git@jenkins
+onnx>=1.9.0
+onnxruntime>=1.8.0
+skl2onnx>=1.9.0
