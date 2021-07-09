@@ -43,7 +43,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSin, OnnxSinh,
     OnnxSqrt,
     OnnxSqueeze,
-    OnnxTan, OnnxTanh, OnnxTopK,
+    OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose,
     OnnxUnsqueeze,
     OnnxWhere)
 from .onnx_variable import OnnxVar, MultiOnnxVar as xtuple
@@ -358,6 +358,11 @@ def topk(x, k, axis=-1, largest=1, sorted=1):
     "See :epkg:`numpy:argsort`."
     return xtuple(x, k, op=OnnxTopK, axis=axis, largest=largest,
                   sorted=sorted)
+
+
+def transpose(x, perm=(1, 0)):
+    "See :epkg:`numpy:transpose`."
+    return OnnxVar(x, op=OnnxTranspose, perm=list(perm))
 
 
 def unsqueeze(x, axes):

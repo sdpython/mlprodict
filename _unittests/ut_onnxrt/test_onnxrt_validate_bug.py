@@ -60,7 +60,8 @@ class TestOnnxrtValidateBug(ExtTestCase):
 
         x = {k: numpy.float32(v) for k, v in x.items()}
         oinf = OnnxInference(model_onnx, runtime='python')
-        res3 = oinf.run({input_name: numpy.array([x])})  # , verbose=10, fLOG=print)
+        # , verbose=10, fLOG=print)
+        res3 = oinf.run({input_name: numpy.array([x])})
 
         self.assertEqualFloat(res[0][0, 0], res2["variable1"][0, 0])
         self.assertEqualFloat(res[0][0, 0], res3["variable1"][0])

@@ -58,6 +58,7 @@ from .numpy_onnx_impl import (
     tan as nx_tan,
     tanh as nx_tanh,
     topk as nx_topk,
+    transpose as nx_transpose,
     unsqueeze as nx_unsqueeze,
     vstack as nx_vstack,
     where as nx_where,
@@ -340,6 +341,12 @@ def tanh(x):
 def topk(x, k, axis=-1, largest=1, sorted=1):
     "topk"
     return nx_topk(x, k, axis=axis, largest=largest, sorted=sorted)
+
+
+@onnxnumpy_np(signature=NDArraySameType("all"))
+def transpose(x, perm=(1, 0)):
+    "transpose"
+    return nx_transpose(x, perm=perm)
 
 
 @onnxnumpy_np(signature=NDArrayType(("all", numpy.int64)))
