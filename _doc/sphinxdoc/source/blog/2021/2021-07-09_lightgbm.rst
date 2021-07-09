@@ -1,0 +1,32 @@
+
+.. blogpost::
+    :title: Convert a Lightgbm dump
+    :keywords: ONNX, lightgbm, onnxmltools
+    :date: 2021-07-09
+    :categories: converters
+
+    This example shows how to convert a :epkg:`lightgbm` model
+    dumped as a text file. It uses :epkg:`lightgbm` to restore
+    the model, converts it and checks the discrepencies.
+
+    ::
+
+        import numpy
+        from numpy.testing import assert_almost_equal
+        import lightgbm
+        from onnxruntime import InferenceSession
+        from onnxmltools import convert_lightgbm
+        from skl2onnx.common.data_types import FloatTensorType
+
+        booster = lightgbm.Booster(model_file="model.txt")
+        n = booster.num_feature()
+
+        onx = convert_lightgbm(booster, initial_types=[('input', FloatTensorType([None, n]))])
+
+        sess = InferenceSession(onx.SerializeToString())
+        rnd = numpy.random.random((1, n)).astype(numpy.float32)
+
+        expected = booster.predict(rnd)
+        got = sess.run(None, {'input': rnd})[0]
+
+        assert_almost_equal(expected, got.ravel(), decimal=4)

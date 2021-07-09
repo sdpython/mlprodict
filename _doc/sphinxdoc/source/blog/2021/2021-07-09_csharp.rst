@@ -1,0 +1,63 @@
+
+.. blogpost::
+    :title: ONNX from C#
+    :keywords: ONNX, C#
+    :date: 2021-07-09
+    :categories: runtime
+
+    This example shows how to compute the predictions of a model
+    using C#.
+
+    ::
+
+        using System.Collections.Generic;
+        using Microsoft.ML.OnnxRuntime;
+        using Microsoft.ML.OnnxRuntime.Tensors;
+
+        namespace ConsoleAppOnnx
+        {
+            class Program
+            {
+                static void Main(string[] args)
+                {
+                    // Loads the model.
+                    var opts = new SessionOptions();
+                    string model_path = "model.onnx";
+                    var session = new InferenceSession(model_path, opts);
+
+                    // Creating an input tensor (assuming there is only one).
+                    // Get the name of the input and the number of features.
+                    string name = string.Empty;
+                    int n_features = -1;
+                    foreach (var inp in session.InputMetadata)
+                    {
+                        name = inp.Key;
+                        n_features = inp.Value.Dimensions[1];
+                        break;
+                    }
+
+                    // Creates an empty input.
+                    var dims = new int[] { 1, n_features };
+                    var t = new DenseTensor<float>(dims);
+                    for (int i = 0; i < dims[1]; ++i)
+                        t.SetValue(i, 1.0f / (dims[1] + 1));
+                    var tensor = NamedOnnxValue.CreateFromTensor(name, t);
+
+                    // Runs the inference.
+                    var inputs = new List<NamedOnnxValue>() { tensor };
+                    using (var outputs = session.Run(inputs))
+                    {
+                        foreach (var o in outputs)
+                        {
+                            DenseTensor<float> to = o.AsTensor<float>().ToDenseTensor();
+                            var values = new float[to.Length];
+                            to.Buffer.CopyTo(values);
+                            // values contains the results.
+                            foreach (var i in values)
+                                System.Console.Write(string.Format("{0}, ", i));
+                            System.Console.WriteLine();
+                        }
+                    }
+                }
+            }
+        }
