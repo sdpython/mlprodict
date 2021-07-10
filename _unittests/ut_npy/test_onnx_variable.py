@@ -250,6 +250,27 @@ def test_abs_slice23(x: NDArray[Any, numpy.float32],
 
 
 @onnxnumpy_default
+def test_abs_slice_end(x: NDArray[Any, numpy.float32],
+                       ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy slice end"
+    return nxnp.abs(x)[1:, :3]
+
+
+@onnxnumpy_default
+def test_abs_gather(x: NDArray[Any, numpy.float32],
+                    ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy gather"
+    return nxnp.abs(x)[1]
+
+
+@onnxnumpy_default
+def test_abs_gather2(x: NDArray[Any, numpy.float32],
+                     ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy gather"
+    return nxnp.abs(x)[:, 1]
+
+
+@onnxnumpy_default
 def test_abs_neg(x: NDArray[Any, numpy.float32],
                  ) -> NDArray[Any, numpy.float32]:
     "onnx numpy neg"
@@ -592,6 +613,24 @@ class TestOnnxVariable(ExtTestCase):
         x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
         y = test_abs_slice23(x)
         self.assertEqualArray(y, numpy.abs(x)[::2, ::3])
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_slice_end(self):
+        x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
+        y = test_abs_slice_end(x)
+        self.assertEqualArray(y, numpy.abs(x)[1:, :3])
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_gather(self):
+        x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
+        y = test_abs_gather(x)
+        self.assertEqualArray(y, numpy.abs(x)[1])
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_gather2(self):
+        x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
+        y = test_abs_gather2(x)
+        self.assertEqualArray(y, numpy.abs(x)[:, 1])
 
     @ignore_warnings(DeprecationWarning)
     def test_py_abs_neg(self):

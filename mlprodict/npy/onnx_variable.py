@@ -10,7 +10,7 @@ from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx.common._topology import Variable  # pylint: disable=E0611,E0001
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxAnd,
-    OnnxCast, OnnxConstantOfShape,
+    OnnxCast, OnnxConcat, OnnxConstantOfShape,
     OnnxDiv,
     OnnxEqual,
     OnnxFlatten,
@@ -346,8 +346,38 @@ class OnnxVar:
             # scenario 2
             return OnnxVar(self, index, op='filter')
 
+        if isinstance(index, int):
+            # Use Gather instead.
+            return OnnxVar(
+                self, numpy.array(index, dtype=numpy.int64),
+                axis=0, op=OnnxGather)
+
         if not isinstance(index, tuple):
             index = (index, )
+
+        # only one integer?
+        ni = None
+        ax = None
+        for i, a in enumerate(index):
+            if isinstance(a, int):
+                if ni is None:
+                    ni = i
+                    ax = a
+                else:
+                    ax = None
+                    ni = None
+                    break
+            if (isinstance(a, slice) and a.start is None and
+                    a.stop is None and a.step is None):
+                continue
+            ax = None
+            ni = None
+            break
+        if ni is not None and ax is not None:
+            # Use Gather instead.
+            return OnnxVar(
+                self, numpy.array(ni, dtype=numpy.int64),
+                axis=ax, op=OnnxGather)
 
         # scenario 1
         starts = []
@@ -355,6 +385,7 @@ class OnnxVar:
         axes = []
         steps = []
         axis_squeeze = []
+        needs_shape = []
         for i, ind in enumerate(index):
             if isinstance(ind, int):
                 starts.append(ind)
@@ -367,22 +398,37 @@ class OnnxVar:
                 if ind.start is None and ind.stop is None and ind.step is None:
                     continue
                 start = 0 if ind.start is None else ind.start
-                end = -1 if ind.stop is None else ind.stop
+                end = (None, i) if ind.stop is None else ind.stop
                 step = 1 if ind.step is None else ind.step
                 starts.append(start)
                 ends.append(end)
                 axes.append(i)
                 steps.append(step)
+                if isinstance(end, tuple):
+                    needs_shape.append(len(ends) - 1)
                 continue
             raise NotImplementedError(  # pragma: no cover
                 "Not implemented for type %r." % type(ind))
+
         if max(steps) == min(steps) == 1:
             steps = None
         else:
             steps = numpy.array(steps, dtype=numpy.int64)
+
         starts = numpy.array(starts, dtype=numpy.int64)
-        ends = numpy.array(ends, dtype=numpy.int64)
         axes = numpy.array(axes, dtype=numpy.int64)
+
+        if len(needs_shape) > 0:
+            shape = self.shape
+            conc = []
+            for e in ends:
+                if isinstance(e, tuple):
+                    conc.append(shape[e[1]])
+                else:
+                    conc.append(numpy.array([e], dtype=numpy.int64))
+            ends = OnnxVar(*conc, op=OnnxConcat, axis=0)
+        else:
+            ends = numpy.array(ends, dtype=numpy.int64)
         if steps is None:
             sliced = OnnxVar(self, starts, ends, axes, op=OnnxSlice)
         else:
