@@ -10,6 +10,7 @@ import numpy
 from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx import __max_supported_opset__
 from ..tools.ort_wrapper import InferenceSession
+from ..onnx_tools.optim._main_onnx_optim import onnx_optimisations
 from ..onnxrt import OnnxInference
 from .onnx_version import FctVersion
 from .onnx_numpy_annotation import get_args_kwargs
@@ -349,7 +350,9 @@ class OnnxNumpyCompiler:
                 onx = onx_algebra.to_onnx(inputs=inputs,
                                           target_opset=op_version,
                                           outputs=outputs)
-                self.onnx_ = onx
+                # optimisation
+                onx_optimized = onnx_optimisations(onx)
+                self.onnx_ = onx_optimized
 
         if self.onnx_ is None:
             raise RuntimeError(  # pragma: no cover
