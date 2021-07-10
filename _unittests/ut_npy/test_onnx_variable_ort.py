@@ -237,6 +237,27 @@ def test_abs_slice23(x: NDArray[Any, numpy.float32],
 
 
 @onnxnumpy(runtime='onnxruntime1')
+def test_abs_slice_end(x: NDArray[Any, numpy.float32],
+                       ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy slice end"
+    return nxnp.abs(x)[1:, :3]
+
+
+@onnxnumpy(runtime='onnxruntime1')
+def test_abs_gather(x: NDArray[Any, numpy.float32],
+                    ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy gather"
+    return nxnp.abs(x)[1]
+
+
+@onnxnumpy(runtime='onnxruntime1')
+def test_abs_gather2(x: NDArray[Any, numpy.float32],
+                     ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy gather"
+    return nxnp.abs(x)[:, 1]
+
+
+@onnxnumpy(runtime='onnxruntime1')
 def test_abs_neg(x: NDArray[Any, numpy.float32],
                  ) -> NDArray[Any, numpy.float32]:
     "onnx numpy neg"
@@ -529,6 +550,21 @@ class TestOnnxVariableOrt(ExtTestCase):
         x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
         y = test_abs_slice23(x)
         self.assertEqualArray(y, numpy.abs(x)[::2, ::3])
+
+    def test_ort_abs_slice_end(self):
+        x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
+        y = test_abs_slice_end(x)
+        self.assertEqualArray(y, numpy.abs(x)[1:, :3])
+
+    def test_ort_abs_gather(self):
+        x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
+        y = test_abs_gather(x)
+        self.assertEqualArray(y, numpy.abs(x)[1])
+
+    def test_ort_abs_gather2(self):
+        x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
+        y = test_abs_gather2(x)
+        self.assertEqualArray(y, numpy.abs(x)[:, 1])
 
     def test_ort_abs_neg(self):
         x = numpy.arange(0, 36).reshape((6, 6)).astype(numpy.float32)
