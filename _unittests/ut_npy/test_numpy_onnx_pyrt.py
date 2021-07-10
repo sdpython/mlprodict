@@ -401,6 +401,14 @@ class TestNumpyOnnxFunction(ExtTestCase):
         doc = nxnpy.tanh.__doc__
         self.assertIn('tanh', doc)
 
+    def test_transpose_float32(self):
+        np_tr = lambda x, perm=None: numpy.transpose(x, perm)
+        x = numpy.array([[0.5, 0.1], [-0.5, -0.1], [1, 1]],
+                        dtype=numpy.float32)
+        self.common_test1(
+            x, np_tr, nxnpy.transpose,  # pylint: disable=E1101
+            FctVersion((numpy.float32, ), ((1, 0), )), perm=(1, 0))
+
     def test_unsqueeze_float32(self):
         x = numpy.array([[0.5, 0.1], [-0.5, -0.1]], dtype=numpy.float32)
         axes = numpy.array([0], dtype=numpy.int64)
@@ -425,5 +433,5 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyOnnxFunction().test_where_float32()
+    # TestNumpyOnnxFunction().test_where_float32()
     unittest.main()

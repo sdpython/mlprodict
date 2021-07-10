@@ -536,6 +536,11 @@ class ShapeObject(BaseDimensionShape):
                 sh = self._shape[0] if self._shape else None
                 if isinstance(sh, DimensionObject) and sh._dim is None:
                     sh._dim = 'n'
+        if self._shape is not None:
+            for s in self._shape:
+                if isinstance(s, int):
+                    raise TypeError(  # pragma: no cover
+                        "Unexpected type int in shape %r." % self)
 
     def reshape(self, shape):
         """
@@ -867,9 +872,14 @@ class ShapeObject(BaseDimensionShape):
         """
         args = [self] + list(shapes)
         dtype = self._infer_merged_type(*args)
-        dim_axis = args[0][axis]
+        dim_axis = self[axis]
+        if isinstance(dim_axis, int):
+            dim_axis = DimensionObject(dim_axis)
         if dim_axis is None:
             return ShapeObject(None, dtype=dtype)
+        if isinstance(dim_axis, int):
+            raise TypeError(  # pragma: no cover
+                "Unexpected type for shape %r." % self)
         for a in shapes:
             if a[axis] is None:
                 return ShapeObject(None, dtype=dtype)
