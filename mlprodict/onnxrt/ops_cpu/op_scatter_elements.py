@@ -78,3 +78,7 @@ class ScatterElements(OpRun):
 
     def _infer_types(self, data, indices, updates):  # pylint: disable=W0221
         return (data, )
+
+    def _infer_sizes(self, *args):  # pylint: disable=W0221
+        res = self.run(*args)
+        return (dict(temp=0), ) + res

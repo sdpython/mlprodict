@@ -34,3 +34,7 @@ class Compress(OpRun):
             return "import numpy\nreturn numpy.compress(%s, %s)" % tuple(inputs)
         return "import numpy\nreturn numpy.compress(%s, %s, axis=%d)" % (
             tuple(inputs) + (self.axis, ))
+
+    def _infer_sizes(self, x, condition):  # pylint: disable=W0221
+        res = self.run(x, condition)
+        return (dict(temp=0), ) + res

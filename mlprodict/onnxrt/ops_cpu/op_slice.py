@@ -43,6 +43,10 @@ class SliceCommon(OpRun):
     def _infer_types(self, data, starts, ends, axes=None, steps=None):  # pylint: disable=W0221
         return (data, )
 
+    def _infer_sizes(self, *args, **kwargs):  # pylint: disable=W0221
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
+
 
 class Slice_10(SliceCommon):
     def __init__(self, onnx_node, desc=None, **options):

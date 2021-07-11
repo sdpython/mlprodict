@@ -54,3 +54,7 @@ class DequantizeLinear(OpRun):
 
     def _infer_types(self, *args):  # pylint: disable=W0221
         return (numpy.float32, )
+
+    def _infer_sizes(self, *args):  # pylint: disable=W0221
+        res = self.run(*args)
+        return (dict(temp=0), ) + res

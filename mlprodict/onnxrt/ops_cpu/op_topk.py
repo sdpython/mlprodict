@@ -186,6 +186,11 @@ class TopK_1(_CommonTopK):
     def _infer_types(self, data):  # pylint: disable=W0221
         return (data, )
 
+    def _infer_sizes(self, *args):  # pylint: disable=W0221
+        res = self.run(*args)
+        x = args[0]
+        return (dict(temp=x.dtype.itemsize * self.k * 2), ) + res
+
 
 class TopK_10(_CommonTopK):
 
@@ -210,6 +215,10 @@ class TopK_10(_CommonTopK):
             <https://github.com/Microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/math/top_k.cc#L63>`_.
         """
         return _CommonTopK._common_run(self, data, ink)
+
+    def _infer_sizes(self, data, ink):  # pylint: disable=W0221
+        res = self.run(data, ink)
+        return (dict(temp=data.dtype.itemsize * ink[0] * 2), ) + res
 
 
 class TopK_11(_CommonTopK):
@@ -238,6 +247,10 @@ class TopK_11(_CommonTopK):
             <https://github.com/Microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/math/top_k.cc#L63>`_.
         """
         return _CommonTopK._common_run(self, data, ink, self.largest)
+
+    def _infer_sizes(self, data, ink):  # pylint: disable=W0221
+        res = self.run(data, ink)
+        return (dict(temp=data.dtype.itemsize * ink[0] * 2), ) + res
 
 
 if onnx_opset_version() >= 11:

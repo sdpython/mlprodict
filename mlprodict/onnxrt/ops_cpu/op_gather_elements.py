@@ -14,8 +14,7 @@ def gather_numpy_2(self, dim, index):
     for a, b in zip(self, index):
         res.append(a[b[0]])
     res = numpy.array(
-        res, dtype=self.dtype).reshape(
-            index.shape)
+        res, dtype=self.dtype).reshape(index.shape)
     return res
 
 
@@ -76,6 +75,10 @@ class GatherElements(OpRun):
 
     def _infer_types(self, data, indices):  # pylint: disable=W0221
         return (data, )
+
+    def _infer_sizes(self, *args):  # pylint: disable=W0221
+        res = self.run(*args)
+        return (dict(temp=sum(a.size * a.dtype.itemsize for a in args)), ) + res
 
     def to_python(self, inputs):
         lines = ['data_swaped = numpy.swapaxes(%s, 0, axis)' % inputs[0],

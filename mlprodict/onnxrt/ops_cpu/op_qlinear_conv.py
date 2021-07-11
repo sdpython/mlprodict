@@ -65,3 +65,16 @@ class QLinearConv(OpRun):
                      w_zero_point, y_scale, y_zero_point, B=None):
 
         return (X, )
+
+    def _infer_sizes(self, *args, **kwargs):  # pylint: disable=W0221
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
+
+    def _infer_sizes(self, *args, **kwargs):  # pylint: disable=W0221
+        res = self.run(*args, **kwargs)
+        X = args[0]
+        C = X.shape[1]
+        kernel_size = numpy.prod(self.kernel_shape)
+        kernel_dim = C / self.group * kernel_size
+        temp = kernel_dim * res[0].size
+        return (dict(temp=temp * X.dtype.itemsize), ) + res

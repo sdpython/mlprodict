@@ -54,6 +54,10 @@ class BatchNormalization_9(OpRun):
     def _infer_types(self, x, scale, bias, mean, var):  # pylint: disable=W0221
         return (x, )
 
+    def _infer_sizes(self, x, scale, bias, mean, var):  # pylint: disable=W0221
+        res = self.run(x, scale, bias, mean, var)
+        return (dict(temp=x.size * x.dtype.itemsize * 2), ) + res
+
 
 class BatchNormalization_14(OpRun):
 
@@ -83,6 +87,13 @@ class BatchNormalization_14(OpRun):
         if self.training_mode == 0:
             return (x, )
         return (x, scale, bias, mean, var)
+
+    def _infer_sizes(self, x, scale, bias, mean, var):  # pylint: disable=W0221
+        if self.training_mode == 0:
+            res = self.run(x, scale, bias, mean, var)
+            return (dict(temp=x.size * x.dtype.itemsize * 2), ) + res
+        res = self.run(x, scale, bias, mean, var)
+        return (dict(temp=x.size * x.dtype.itemsize * 4), ) + res
 
 
 if onnx_opset_version() >= 14:
