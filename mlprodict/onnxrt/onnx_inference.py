@@ -1036,7 +1036,7 @@ class OnnxInference:
                         rows.append("{}: {}".format(k, v))
                 for k in range(i + 1):
                     rows.append("{} --> {}".format(k, self.sequence_[k]))
-                raise RuntimeError("Unable to infer shape of node {}\n{}".format(
+                raise RuntimeError("Unable to infer type of node {}\n{}".format(
                     i, '\n'.join(rows))) from e
         return values
 
@@ -1047,6 +1047,48 @@ class OnnxInference:
         :return: dictionary of types
         """
         return self._set_type_inference_runtime()
+
+    def _set_size_inference_runtime(self, inputs):
+        """
+        Set sizes allocated during inference
+        relying on the runtime.
+        The values are stored in every node.
+        """
+        if not hasattr(self, 'sequence_') or not hasattr(self, 'inputs_'):
+            raise RuntimeError(  # pragma: no cover
+                "This method only works if the runtime is 'python' not "
+                "'{}'.".format(self.runtime))
+        values = OrderedDict()
+        for k, v in self.inits_.items():
+            values[k] = v['value']
+        for k, v in self.inputs_.items():
+            if k in inputs:
+                values[k] = inputs[k]
+        last = None
+        for i, node in enumerate(self.sequence_):
+            try:
+                s = node._set_size_inference_runtime(values)
+                last = s
+            except IndexError as e:  # pragma: no cover
+                rows = []
+                if last is not None:
+                    for k, v in last.items():
+                        rows.append("{}: {}".format(k, v))
+                for k in range(i + 1):
+                    rows.append("{} --> {}".format(k, self.sequence_[k]))
+                raise RuntimeError("Unable to infer size of node {}\n{}".format(
+                    i, '\n'.join(rows))) from e
+        return values
+
+    def infer_sizes(self, inputs):
+        """
+        Computes expected sizes.
+
+        :param inputs: inputs as a dictionary
+        :return: dictionary of dictionary of sizes
+        """
+        res = self._set_size_inference_runtime(inputs)
+        return {k: v for k, v in res.items() if k.startswith('#')}
 
     def _guess_inplace(self, input_inplace=False):
         """

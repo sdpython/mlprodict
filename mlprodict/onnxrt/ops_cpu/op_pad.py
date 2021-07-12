@@ -70,3 +70,7 @@ class Pad(OpRun):
 
     def _infer_types(self, data, pads, constant_value=None):  # pylint: disable=E0202,W0221
         return (data, )
+
+    def _infer_sizes(self, *args):  # pylint: disable=W0221
+        res = self.run(*args)
+        return (dict(temp=0), ) + res

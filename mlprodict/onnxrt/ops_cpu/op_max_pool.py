@@ -117,3 +117,7 @@ class MaxPool(OpRun):
         if self.nb_outputs == 1:
             return (X, )
         return (X, X)
+
+    def _infer_sizes(self, *args):  # pylint: disable=W0221
+        res = self.run(*args)
+        return (dict(temp=0), ) + res

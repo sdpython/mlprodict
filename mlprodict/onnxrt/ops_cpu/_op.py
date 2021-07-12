@@ -242,7 +242,7 @@ class OpRun:
 
     def infer_types(self, *args, **kwargs):
         """
-        Infer types of the output givens the types
+        Infer types of the outputs given the types
         of the inputs. It works the same way as method *run*.
         """
         try:
@@ -271,6 +271,35 @@ class OpRun:
         return res
 
     def _infer_types(self, *args, **kwargs):
+        """
+        Should be overwritten.
+        """
+        raise NotImplementedError(
+            "This method should be overwritten for operator '{}'.".format(
+                self.__class__.__name__))  # pragma: no cover
+
+    def infer_sizes(self, *args, **kwargs):
+        """
+        Infer sizes required for computation.
+        It works the same way as method *run*.
+        """
+        try:
+            res = self._infer_sizes(*args, **kwargs)
+        except TypeError as e:
+            raise TypeError(
+                "Issues with (operator '{}') and types\n{}"
+                "\n----args\n{}\n------kwargs\n{}".format(
+                    self.__class__.__name__,
+                    "\n".join(str(_) for _ in args),
+                    pprint.pformat(args),
+                    pprint.pformat(kwargs))) from e
+        if not isinstance(res, tuple):
+            raise TypeError(  # pragma: no cover
+                "res must be dict not {} (operator '{}')".format(
+                    type(res), self.__class__.__name__))
+        return res
+
+    def _infer_sizes(self, *args, **kwargs):
         """
         Should be overwritten.
         """
@@ -411,6 +440,10 @@ class OpRunUnary(OpRun):
         Returns the same type by default.
         """
         return (x, )
+
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
 
 
 class OpRunArg(OpRunUnary):
@@ -608,6 +641,10 @@ class OpRunBinary(OpRun):
         Returns the boolean type.
         """
         return (x, )
+
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
 
 
 class OpRunBinaryComparison(OpRunBinary):

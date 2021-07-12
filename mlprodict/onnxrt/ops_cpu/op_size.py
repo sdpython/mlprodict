@@ -22,3 +22,7 @@ class Size(OpRun):
 
     def _infer_types(self, x):  # pylint: disable=W0221
         return (numpy.int64, )
+
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res

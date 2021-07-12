@@ -69,3 +69,7 @@ class QuantizeLinear(OpRun):
         else:
             dtype = numpy.uint8
         return (dtype, )
+
+    def _infer_sizes(self, *args):  # pylint: disable=W0221
+        res = self.run(*args)
+        return (dict(temp=0), ) + res

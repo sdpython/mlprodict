@@ -40,6 +40,11 @@ class Einsum(OpRun):
     def _infer_types(self, *args):  # pylint: disable=W0221
         return (args[0], )
 
+    def _infer_sizes(self, *args):  # pylint: disable=W0221
+        res = self.run(*args)
+        maxi = max(a.size for a in args)
+        return (dict(temp=maxi * 3 * args[0].dtype.itemsize), ) + res
+
     def to_python(self, inputs):
         return ("import numpy",
                 "return numpy.einsum(equation, *inputs)")

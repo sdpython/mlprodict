@@ -56,6 +56,12 @@ class DropoutBase(OpRun):
         raise RuntimeError(  # pragma: no cover
             "Unexpected numbers of output {} > 2.".format(self.nb_outputs))
 
+    def _infer_sizes(self, *inputs):  # pylint: disable=W0221
+        res = self.run(*inputs)
+        x = inputs[0]
+        return (dict(temp=x.size * (
+            x.dtype.itemsize + numpy.bool_(True).itemsize)), ) + res
+
 
 class Dropout_7(DropoutBase):
 

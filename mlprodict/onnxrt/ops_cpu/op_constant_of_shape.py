@@ -40,6 +40,10 @@ class ConstantOfShape(OpRun):
             return (self.cst.dtype, )
         return (type(self.cst), )
 
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
+
     def to_python(self, inputs):
         lines = ['cst = value[0] if isinstance(value, numpy.ndarray) else value',
                  'return numpy.full(tuple(%s), cst)' % inputs[0]]

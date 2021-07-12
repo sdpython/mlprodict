@@ -209,7 +209,7 @@ class OnnxInferenceNode:
         """
         Updates *values* which shapes of the outputs.
 
-        @param      values      container for shapes
+        :param values: container for shapes
         """
         args = [values[k] for k in self.inputs]
         try:
@@ -238,7 +238,7 @@ class OnnxInferenceNode:
         """
         Updates *values* which types of the outputs.
 
-        @param      values      container for shapes
+        :param values: container for types
         """
         args = [values[k] for k in self.inputs]
         try:
@@ -261,6 +261,36 @@ class OnnxInferenceNode:
                     pprint.pformat(self.desc, depth=2)))
         for name, value in zip(self.outputs, res):
             values[name] = value
+        return values
+
+    def _set_size_inference_runtime(self, values):
+        """
+        Updates *values* which types of the outputs.
+
+        :param values: container for sizes
+        """
+        args = [values[k] for k in self.inputs]
+        try:
+            res = self.ops_.infer_sizes(*args)
+        except (TypeError, ValueError) as e:
+            raise TypeError(
+                "Unable to call infer_sizes with {} arguments for class"
+                " '{}' ({})".format(len(args), self.ops_.__class__.__name__,
+                                    self.ops_.infer_types)) from e
+        if not isinstance(res, tuple):
+            raise RuntimeError(  # pragma: no cover
+                "Results of an operator should be a tuple for operator '{}'"
+                ".".format(type(self.ops_)))
+        if len(self.outputs) + 1 != len(res):
+            raise RuntimeError(  # pragma: no cover
+                "Mismatch number of outputs got {} != {} + 1 for names {} "
+                "(node='{}').\n{}".format(
+                    len(res), len(self.outputs), list(self.outputs),
+                    self.ops_.__class__.__name__,
+                    pprint.pformat(self.desc, depth=2)))
+        for name, value in zip(self.outputs, res[1:]):
+            values[name] = value
+        values['#' + self.onnx_node.name] = res[0]
         return values
 
     def enable_inplace_compute(self, name):

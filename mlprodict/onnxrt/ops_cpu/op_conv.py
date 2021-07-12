@@ -59,3 +59,11 @@ class Conv(OpRun):
 
     def _infer_types(self, X, W, B=None):  # pylint: disable=W0221
         return (X, )
+
+    def _infer_sizes(self, X, W, B=None):  # pylint: disable=W0221
+        res = self.run(X, W, B=None)
+        C = X.shape[1]
+        kernel_size = numpy.prod(self.kernel_shape)
+        kernel_dim = C / self.group * kernel_size
+        temp = kernel_dim * res[0].size
+        return (dict(temp=temp * X.dtype.itemsize), ) + res

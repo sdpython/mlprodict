@@ -40,6 +40,10 @@ class Squeeze_1(OpRunUnaryNum):
     def _infer_types(self, x):  # pylint: disable=W0221
         return (x, )
 
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
+
 
 class Squeeze_11(Squeeze_1):
     pass
@@ -70,6 +74,10 @@ class Squeeze_13(OpRun):
 
     def _infer_types(self, x, axes=None):  # pylint: disable=W0221
         return (x, )
+
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
 
 
 if onnx_opset_version() >= 13:

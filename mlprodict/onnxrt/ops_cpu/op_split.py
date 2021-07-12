@@ -55,6 +55,10 @@ class CommonSplit(OpRun):
             return tuple([data for o in range(self.nb_outputs)])
         return tuple(data for _ in split)
 
+    def _infer_sizes(self, *args, **kwargs):  # pylint: disable=W0221
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
+
 
 class Split_2(CommonSplit):
     """
