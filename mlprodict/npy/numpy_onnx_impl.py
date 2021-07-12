@@ -93,8 +93,8 @@ def arange(start, stop, step=1):
         stop = numpy.array([stop], dtype=numpy.int64)
     value = make_tensor(
         "value", onnx_proto.TensorProto.INT64, (1, ), [step])  # pylint: disable=E1101
-    cst = OnnxVar(stop - start, op=OnnxConstantOfShape, value=value)
-    cs = OnnxVar(cst,
+    _cst = OnnxVar(stop - start, op=OnnxConstantOfShape, value=value)
+    cs = OnnxVar(_cst,
                  numpy.array([0], dtype=numpy.int64),
                  op=OnnxCumSum)
     diff = start - numpy.array([step], dtype=numpy.int64)
@@ -190,6 +190,29 @@ def concat(*x, axis=0):
 def cumsum(x, axis):
     "See :epkg:`numpy:cumsum`."
     return OnnxVar(x, axis, op=OnnxCumSum)
+
+
+def cst(x):
+    """
+    Creates a constant. `log(x) + numpy.float32(1)` works
+    but `numpy.float32(32) + log(x)` fails because Python
+    calls `numpy.float32.__add__` instead of
+    `OnnxVar.__add__`. With this function, expression
+    `cst(1.) + log(x)` is valid.
+    """
+    if isinstance(x, float):
+        return OnnxVar(numpy.array([x], dtype=numpy.float32),
+                       op=OnnxIdentity)
+    if isinstance(x, int):
+        return OnnxVar(numpy.array([x], dtype=numpy.int64),
+                       op=OnnxIdentity)
+    if isinstance(x, numpy.ndarray):
+        return OnnxVar(x, op=OnnxIdentity)
+    if hasattr(x, 'dtype'):
+        return OnnxVar(numpy.array([x], dtype=x.dtype),
+                       op=OnnxIdentity)
+    raise NotImplementedError(
+        "Unable to convert type %r into a constant." % type(x))
 
 
 def det(x):

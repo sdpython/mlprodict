@@ -899,3 +899,83 @@ does. However it produces the following error.
 To fix it, instruction ``return nxnpskl.transformer(X, model=self.estimator_)``
 should be replaced by
 ``return nxnpskl.transformer(X, model=self.estimator_).copy()``.
+
+TypeError: unsupported operand type(s) for ** or pow(): 'float' and 'OnnxVar'
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following example works because operator ``__radd__`` was overwritten
+in class @see cl OnnxVar.
+
+.. runpython::
+    :showcode:
+    :warningout: DeprecationWarning
+    :process:
+
+    from typing import Any
+    import numpy as np
+    import mlprodict.npy.numpy_onnx_impl as npnx
+    from mlprodict.npy import onnxnumpy_default, NDArray
+
+
+    def np_fct(x):
+        return np.log(1 + x)
+
+
+    @onnxnumpy_default
+    def onnx_fct(x: NDArray[Any, np.float32]) -> NDArray[Any, np.float32]:
+        return npnx.log(1. + x)
+
+    x = np.random.rand(2, 1).astype(np.float32)
+    print(np_fct(x), onnx_fct(x))
+    
+But it is not the case for all operators.
+
+.. runpython::
+    :showcode:
+    :exception:
+    :warningout: DeprecationWarning
+    :process:
+
+    from typing import Any
+    import numpy as np
+    import mlprodict.npy.numpy_onnx_impl as npnx
+    from mlprodict.npy import onnxnumpy_default, NDArray
+
+
+    def np_fct(x):
+        return np.log(2 ** x)
+
+
+    @onnxnumpy_default
+    def onnx_fct(x: NDArray[Any, np.float32]) -> NDArray[Any, np.float32]:
+        return npnx.log(2. ** x)
+
+    x = np.random.rand(2, 1).astype(np.float32)
+    print(np_fct(x), onnx_fct(x))
+
+Python calls the operator ``float.__pow__`` and not ``OnnxVar.__pow__``.
+That explains the error. Function @see fct cst can be used to
+convert a constant into an @see cl OnnxVar. The right operator
+is called.
+
+.. runpython::
+    :showcode:
+    :warningout: DeprecationWarning
+    :process:
+
+    from typing import Any
+    import numpy as np
+    import mlprodict.npy.numpy_onnx_impl as npnx
+    from mlprodict.npy import onnxnumpy_default, NDArray
+
+
+    def np_fct(x):
+        return np.log(2 ** x)
+
+
+    @onnxnumpy_default
+    def onnx_fct(x: NDArray[Any, np.float32]) -> NDArray[Any, np.float32]:
+        return npnx.log(2. ** x)
+
+    x = np.random.rand(2, 1).astype(np.float32)
+    print(np_fct(x), onnx_fct(x))
