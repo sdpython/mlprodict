@@ -239,10 +239,16 @@ class OnnxVar:
 
     def _make_array(self, y):
         """Converts *y* into an array if not."""
-        if hasattr(y, 'dtype') and not isinstance(y, (numpy.ndarray, OnnxVar)):
+        if isinstance(y, (numpy.ndarray, OnnxVar)):
+            return y
+        if hasattr(y, 'dtype'):
             return numpy.full((1, ), y, dtype=y.dtype)
-        if isinstance(y, (float, int, str)):
+        if isinstance(y, str):
             return numpy.array([y])
+        if isinstance(y, float):
+            return numpy.array([y], dtype=numpy.float32)
+        if isinstance(y, int):
+            return numpy.array([y], dtype=numpy.int64)
         return y
 
     def __add__(self, y):
@@ -250,15 +256,36 @@ class OnnxVar:
         y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxAdd)
 
+    def __radd__(self, y):
+        "Right Addition."
+        if isinstance(y, OnnxVar):
+            return OnnxVar(y, self, op=OnnxAdd)
+        y = self._make_array(y)
+        return OnnxVar(OnnxVar(y, op=OnnxIdentity), self, op=OnnxAdd)
+
     def __sub__(self, y):
         "Subtraction."
         y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxSub)
 
+    def __rsub__(self, y):
+        "Right subtraction."
+        if isinstance(y, OnnxVar):
+            return OnnxVar(y, self, op=OnnxAdd)
+        y = self._make_array(y)
+        return OnnxVar(OnnxVar(y, op=OnnxIdentity), self, op=OnnxSub)
+
     def __mul__(self, y):
         "Multiplication."
         y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxMul)
+
+    def __rmul__(self, y):
+        "Right multiplication."
+        if isinstance(y, OnnxVar):
+            return OnnxVar(y, self, op=OnnxAdd)
+        y = self._make_array(y)
+        return OnnxVar(OnnxVar(y, op=OnnxIdentity), self, op=OnnxMul)
 
     def __pow__(self, y):
         "Power."
@@ -279,6 +306,13 @@ class OnnxVar:
         "Division, no difference between `/` and `//`."
         y = self._make_array(y)
         return OnnxVar(self, y, op=OnnxDiv)
+
+    def __rtruediv__(self, y):
+        "Division, no difference between `/` and `//`."
+        if isinstance(y, OnnxVar):
+            return OnnxVar(y, self, op=OnnxAdd)
+        y = self._make_array(y)
+        return OnnxVar(OnnxVar(y, op=OnnxIdentity), self, op=OnnxDiv)
 
     def __floordiv__(self, y):
         "Division, no difference between `/` and `//`."

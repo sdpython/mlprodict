@@ -194,7 +194,11 @@ def cumsum(x, axis):
 
 def cst(x):
     """
-    Creates a constant.
+    Creates a constant. `log(x) + numpy.float32(1)` works
+    but `numpy.float32(32) + log(x)` fails because Python
+    calls `numpy.float32.__add__` instead of
+    `OnnxVar.__add__`. With this function, expression
+    `cst(1.) + log(x)` is valid.
     """
     if isinstance(x, float):
         return OnnxVar(numpy.array([x], dtype=numpy.float32),
@@ -209,6 +213,7 @@ def cst(x):
                        op=OnnxIdentity)
     raise NotImplementedError(
         "Unable to convert type %r into a constant." % type(x))
+
 
 def det(x):
     "See :epkg:`numpy:linalg:det`."

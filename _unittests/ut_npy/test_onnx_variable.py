@@ -427,8 +427,28 @@ def onnx_log_1(x: NDArray[Any, numpy.float32]) -> NDArray[Any, numpy.float32]:
 
 
 @onnxnumpy_default
+def onnx_log_1r(x: NDArray[Any, numpy.float32]) -> NDArray[Any, numpy.float32]:
+    return nxnp.log(numpy.float32(1) + x)
+
+
+@onnxnumpy_default
 def onnx_log_11(x: NDArray[Any, numpy.float32]) -> NDArray[Any, numpy.float32]:
     return nxnp.log(nxnp.cst(1.) + x)
+
+
+@onnxnumpy_default
+def onnx_exp_1r_sub(x: NDArray[Any, numpy.float32]) -> NDArray[Any, numpy.float32]:
+    return nxnp.exp(numpy.float32(1) - x)
+
+
+@onnxnumpy_default
+def onnx_log_1r_div(x: NDArray[Any, numpy.float32]) -> NDArray[Any, numpy.float32]:
+    return nxnp.log(numpy.float32(2) / x)
+
+
+@onnxnumpy_default
+def onnx_log_1r_mul(x: NDArray[Any, numpy.float32]) -> NDArray[Any, numpy.float32]:
+    return nxnp.log(numpy.float32(2) * x)
 
 
 class TestOnnxVariable(ExtTestCase):
@@ -790,6 +810,15 @@ class TestOnnxVariable(ExtTestCase):
         self.assertEqualArray(temp, y)
 
     @ignore_warnings(DeprecationWarning)
+    def test_py_log_1r(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
+                        dtype=numpy.float32)
+        x = numpy.abs(x)
+        y = onnx_log_1r(x)
+        temp = numpy.log(1 + x)
+        self.assertEqualArray(temp, y)
+
+    @ignore_warnings(DeprecationWarning)
     def test_py_log_11(self):
         x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
                         dtype=numpy.float32)
@@ -804,6 +833,33 @@ class TestOnnxVariable(ExtTestCase):
                         dtype=numpy.float64)
         x = numpy.abs(x)
         self.assertRaise(lambda: onnx_log_11(x), RuntimeError)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_exp_1r_sub(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
+                        dtype=numpy.float32)
+        x = numpy.abs(x)
+        y = onnx_exp_1r_sub(x)
+        temp = numpy.exp(1 - x)
+        self.assertEqualArray(temp, y)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_log_1r_div(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
+                        dtype=numpy.float32)
+        x = numpy.abs(x)
+        y = onnx_log_1r_div(x)
+        temp = numpy.log(2 / x)
+        self.assertEqualArray(temp, y)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_exp_1r_mul(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
+                        dtype=numpy.float32)
+        x = numpy.abs(x)
+        y = onnx_log_1r_mul(x)
+        temp = numpy.log(2 * x)
+        self.assertEqualArray(temp, y)
 
 
 if __name__ == "__main__":
