@@ -421,6 +421,16 @@ def test_abs_set1i(x: NDArray[Any, numpy.float32],
     return cp
 
 
+@onnxnumpy_default
+def onnx_log_1(x: NDArray[Any, numpy.float32]) -> NDArray[Any, numpy.float32]:
+    return nxnp.log(nxnp.cst(numpy.float32(1)) + x)
+
+
+@onnxnumpy_default
+def onnx_log_11(x: NDArray[Any, numpy.float32]) -> NDArray[Any, numpy.float32]:
+    return nxnp.log(nxnp.cst(1.) + x)
+
+
 class TestOnnxVariable(ExtTestCase):
 
     def test_py_abs(self):
@@ -769,6 +779,31 @@ class TestOnnxVariable(ExtTestCase):
         y = test_abs_set1i(x)
         temp = numpy.abs(x)
         self.assertEqualArray(temp, y)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_log_1(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
+                        dtype=numpy.float32)
+        x = numpy.abs(x)
+        y = onnx_log_1(x)
+        temp = numpy.log(1 + x)
+        self.assertEqualArray(temp, y)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_log_11(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
+                        dtype=numpy.float32)
+        x = numpy.abs(x)
+        y = onnx_log_11(x)
+        temp = numpy.log(1 + x)
+        self.assertEqualArray(temp, y)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_log_11_wrong_type(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
+                        dtype=numpy.float64)
+        x = numpy.abs(x)
+        self.assertRaise(lambda: onnx_log_11(x), RuntimeError)
 
 
 if __name__ == "__main__":

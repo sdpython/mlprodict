@@ -192,6 +192,24 @@ def cumsum(x, axis):
     return OnnxVar(x, axis, op=OnnxCumSum)
 
 
+def cst(x):
+    """
+    Creates a constant.
+    """
+    if isinstance(x, float):
+        return OnnxVar(numpy.array([x], dtype=numpy.float32),
+                       op=OnnxIdentity)
+    if isinstance(x, int):
+        return OnnxVar(numpy.array([x], dtype=numpy.int64),
+                       op=OnnxIdentity)
+    if isinstance(x, numpy.ndarray):
+        return OnnxVar(x, op=OnnxIdentity)
+    if hasattr(x, 'dtype'):
+        return OnnxVar(numpy.array([x], dtype=x.dtype),
+                       op=OnnxIdentity)
+    raise NotImplementedError(
+        "Unable to convert type %r into a constant." % type(x))
+
 def det(x):
     "See :epkg:`numpy:linalg:det`."
     return OnnxVar(x, op=OnnxDet)
