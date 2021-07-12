@@ -93,8 +93,8 @@ def arange(start, stop, step=1):
         stop = numpy.array([stop], dtype=numpy.int64)
     value = make_tensor(
         "value", onnx_proto.TensorProto.INT64, (1, ), [step])  # pylint: disable=E1101
-    cst = OnnxVar(stop - start, op=OnnxConstantOfShape, value=value)
-    cs = OnnxVar(cst,
+    _cst = OnnxVar(stop - start, op=OnnxConstantOfShape, value=value)
+    cs = OnnxVar(_cst,
                  numpy.array([0], dtype=numpy.int64),
                  op=OnnxCumSum)
     diff = start - numpy.array([step], dtype=numpy.int64)
