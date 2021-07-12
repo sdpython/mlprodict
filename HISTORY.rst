@@ -8,6 +8,8 @@ History
 current - 2021-07-12 - 0.00Mb
 =============================
 
+* `285`: Adds function cst to create constant with numpy API for ONNX (2021-07-12)
+* `283`: Commutative property (2021-07-12)
 * `281`: Infers temporary allocation needed while computing the outputs (2021-07-12)
 * `284`: Adds function transpose to numpy API for ONNX (2021-07-10)
 * `282`: Upgrade requirements to skl2onnx>=1.9.0 (2021-07-02)
@@ -22,7 +24,7 @@ current - 2021-07-12 - 0.00Mb
 * `272`: Explore custom implementation of operator add (2021-06-18)
 * `271`: Updates default opset from 13 to 14 (2021-06-17)
 * `270`: Adds more tests for QLinearConv runtime (2021-06-16)
-* `269`: Adds runtime for operator QLinearConv  (2021-06-04)
+* `269`: Adds runtime for operator QLinearConv (2021-06-04)
 * `268`: Adds function to prepare data for onnxruntime_perf_test (2021-05-17)
 * `267`: Moves onnxruntime code inside a wrapper to reduce logs (2021-05-14)
 * `266`: Optimizes einsum even if not decomposed (2021-05-13)
@@ -34,8 +36,8 @@ current - 2021-07-12 - 0.00Mb
 * `260`: New command line to benchmark einsum decomposition (2021-05-03)
 * `259`: Minor changes to Einsum decomposition (2021-05-02)
 * `258`: Decomposes Einsum into simple matrix operations (2021-04-30)
-* `256`: Add virtual method to validate input before predictions in numpy API for ONNX (2021-04-20)
 * `257`: Fixes #256, add method to validate input data in numpy API for ONNX (2021-04-20)
+* `256`: Add virtual method to validate input before predictions in numpy API for ONNX (2021-04-20)
 
 0.5.1447 - 2021-04-17 - 0.38Mb
 ==============================

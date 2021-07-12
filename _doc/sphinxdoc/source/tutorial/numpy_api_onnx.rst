@@ -916,10 +916,8 @@ in class @see cl OnnxVar.
     import mlprodict.npy.numpy_onnx_impl as npnx
     from mlprodict.npy import onnxnumpy_default, NDArray
 
-
     def np_fct(x):
         return np.log(1 + x)
-
 
     @onnxnumpy_default
     def onnx_fct(x: NDArray[Any, np.float32]) -> NDArray[Any, np.float32]:
@@ -927,7 +925,7 @@ in class @see cl OnnxVar.
 
     x = np.random.rand(2, 1).astype(np.float32)
     print(np_fct(x), onnx_fct(x))
-    
+
 But it is not the case for all operators.
 
 .. runpython::
@@ -941,10 +939,8 @@ But it is not the case for all operators.
     import mlprodict.npy.numpy_onnx_impl as npnx
     from mlprodict.npy import onnxnumpy_default, NDArray
 
-
     def np_fct(x):
         return np.log(2 ** x)
-
 
     @onnxnumpy_default
     def onnx_fct(x: NDArray[Any, np.float32]) -> NDArray[Any, np.float32]:
@@ -968,10 +964,8 @@ is called.
     import mlprodict.npy.numpy_onnx_impl as npnx
     from mlprodict.npy import onnxnumpy_default, NDArray
 
-
     def np_fct(x):
         return np.log(2 ** x)
-
 
     @onnxnumpy_default
     def onnx_fct(x: NDArray[Any, np.float32]) -> NDArray[Any, np.float32]:
