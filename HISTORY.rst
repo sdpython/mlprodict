@@ -5,8 +5,40 @@
 History
 =======
 
-current - 2021-04-17 - 0.00Mb
+current - 2021-07-12 - 0.00Mb
 =============================
+
+* `281`: Infers temporary allocation needed while computing the outputs (2021-07-12)
+* `284`: Adds function transpose to numpy API for ONNX (2021-07-10)
+* `282`: Upgrade requirements to skl2onnx>=1.9.0 (2021-07-02)
+* `280`: More robustness for the python runtime (2021-07-01)
+* `279`: Implements method infer_types in OnnxInference (2021-06-28)
+* `278`: Adds operators ReduceSum, Max to OnnxMicroRuntime (2021-06-27)
+* `277`: Switch to python 3.9 in CI (2021-06-25)
+* `276`: Use openmp to parallelize QLinearConv (2021-06-25)
+* `275`: Adds new strategy to pick up the best einsum equation based on ML (2021-06-25)
+* `274`: Fixes issue raised with scipy 1.7.0 (2021-06-22)
+* `273`: Adds operator where, improves numpy api (x[x<0]= 2) (2021-06-18)
+* `272`: Explore custom implementation of operator add (2021-06-18)
+* `271`: Updates default opset from 13 to 14 (2021-06-17)
+* `270`: Adds more tests for QLinearConv runtime (2021-06-16)
+* `269`: Adds runtime for operator QLinearConv  (2021-06-04)
+* `268`: Adds function to prepare data for onnxruntime_perf_test (2021-05-17)
+* `267`: Moves onnxruntime code inside a wrapper to reduce logs (2021-05-14)
+* `266`: Optimizes einsum even if not decomposed (2021-05-13)
+* `265`: Refactoring, moves files to onnx_tools (2021-05-12)
+* `264`: Support SessionOptions for runtime onnxruntime2 (2021-05-12)
+* `263`: Refactor einsum files (2021-05-06)
+* `262`: Refactoring, moving files into onnx_tools (2021-05-06)
+* `261`: Improves einsum decomposition by using gemm and removing a transpose (2021-05-05)
+* `260`: New command line to benchmark einsum decomposition (2021-05-03)
+* `259`: Minor changes to Einsum decomposition (2021-05-02)
+* `258`: Decomposes Einsum into simple matrix operations (2021-04-30)
+* `256`: Add virtual method to validate input before predictions in numpy API for ONNX (2021-04-20)
+* `257`: Fixes #256, add method to validate input data in numpy API for ONNX (2021-04-20)
+
+0.5.1447 - 2021-04-17 - 0.38Mb
+==============================
 
 * `255`: Supports any embedded estimator with numpy API (2021-04-17)
 * `254`: Adds python runtime for operator ReduceL1 (2021-04-16)
