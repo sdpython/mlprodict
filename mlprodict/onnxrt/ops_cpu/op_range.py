@@ -30,4 +30,3 @@ class Range(OpRun):
     def _infer_sizes(self, *args, **kwargs):  # pylint: disable=W0221
         res = self.run(*args, **kwargs)
         return (dict(temp=0), ) + res
-
