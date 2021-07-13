@@ -110,13 +110,6 @@ jobs:
           key: v2-dependencies-{{ checksum "requirements.txt" }}
         
       - run:
-          name: install sklearn-onnx, onnxconverter-common
-          command: |
-            . venv/bin/activate
-            pip install git+https://github.com/xadupre/onnxconverter-common.git@jenkins --upgrade
-            pip install git+https://github.com/xadupre/sklearn-onnx.git@jenkins --upgrade
-
-      - run:
           name: check list of dependencies
           command: |
             python -m venv venv

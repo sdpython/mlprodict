@@ -51,6 +51,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxOr,
     OnnxPad, OnnxPow,
     OnnxQLinearConv, OnnxQuantizeLinear,
+    OnnxRange,
     OnnxReciprocal,
     OnnxReduceL1, OnnxReduceL2,
     OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
@@ -2632,6 +2633,24 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['Y'])
+        python_tested.append(OnnxQuantizeLinear)
+
+    @wraplog()
+    def test_onnxt_runtime_range(self):
+        starts = numpy.array([0], dtype=numpy.float32)
+        ends = numpy.array([10], dtype=numpy.float32)
+        steps = numpy.array([4], dtype=numpy.float32)
+        onx = OnnxRange(
+            'starts', 'ends', steps, output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'starts': starts, 'ends': ends},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        exp = numpy.array([0, 4, 8], dtype=numpy.float32)
+        got = oinf.run({'starts': starts, 'ends': ends})
+        self.assertEqualArray(exp, got['Y'])
+        self.common_expected_shapes_types(
+            oinf, {'starts': starts, 'ends': ends}, got, OnnxRange, model_def)
         python_tested.append(OnnxQuantizeLinear)
 
     @wraplog()
