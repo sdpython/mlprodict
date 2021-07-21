@@ -78,7 +78,6 @@ class OnnxVar:
                 raise TypeError("Unexpected type for input %d: %r, %r."
                                 "" % (i, type(inp), inp.ravel()[0]))
         self.dtype = self._guess_dtype(dtype)
-        
 
     def _guess_dtype(self, dtype):
         "Guesses dtype when not specified."
@@ -175,9 +174,12 @@ class OnnxVar:
                             numpy.int64, numpy.float32, numpy.float64,
                             numpy_bool, numpy_str, numpy.int8, numpy.uint8,
                             numpy.int16, numpy.uint16, numpy.uint32, numpy.uint64)):
-                        if inp.size > 0 and isinstance(inp.ravel()[0], (numpy.ndarray, OnnxVar)):
+                        if (inp.size > 0 and
+                                isinstance(
+                                    inp.ravel()[0],  # pylint: disable=E1101
+                                    (numpy.ndarray, OnnxVar))):
                             raise TypeError("Unexpected type for an input %r, %r."
-                                            "" % (type(inp), inp.ravel()[0]))
+                                            "" % (type(inp), inp.ravel()[0]))  # pylint: disable=E1101
                         new_inputs.append(inp)
                     else:
                         new_inputs.append(
