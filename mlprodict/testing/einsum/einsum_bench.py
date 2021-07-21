@@ -48,7 +48,7 @@ def _make_inputs(equation, shapes):
         shapes = [(N, ) * le for le in dims]
     else:
         if len(shapes) != len(inputs):
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Unexpected number of shapes %r with equation %r."
                 "" % (shapes, equation))
     inputs = [numpy.random.randn(*sh) for sh in shapes]

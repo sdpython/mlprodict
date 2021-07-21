@@ -48,8 +48,8 @@ def test_abs_add(x: NDArray[Any, numpy.float32],
 def test_abs_add4(x: NDArray[Any, numpy.float32],
                   ) -> NDArray[Any, numpy.float32]:
     "onnx numpy addition"
-    x2 = x * x
-    return x2 * x2
+    x2 = x + x
+    return x2 + x2
 
 
 @onnxnumpy_default
@@ -447,6 +447,11 @@ def onnx_log_1r_div(x: NDArray[Any, numpy.float32]) -> NDArray[Any, numpy.float3
 
 
 @onnxnumpy_default
+def onnx_log_1r_mul3(x: NDArray[Any, numpy.float32]) -> NDArray[Any, numpy.float32]:
+    return nxnp.log(nxnp.cst(numpy.array([2], dtype=numpy.float32)) * x)
+
+
+@onnxnumpy_default
 def onnx_log_1r_mul(x: NDArray[Any, numpy.float32]) -> NDArray[Any, numpy.float32]:
     return nxnp.log(numpy.float32(2) * x)
 
@@ -481,9 +486,9 @@ class TestOnnxVariable(ExtTestCase):
     def test_py_abs_add4(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_add4(x)
-        text = str(test_abs_add4.compiled.onnx_).split('op_type: "Mul"')
+        text = str(test_abs_add4.compiled.onnx_).split('op_type: "Add"')
         self.assertEqual(len(text), 3)
-        self.assertEqualArray(y, (x * x) * (x * x))
+        self.assertEqualArray(y, (x + x) + (x + x))
 
     def test_py_abs_sub(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
@@ -858,6 +863,15 @@ class TestOnnxVariable(ExtTestCase):
                         dtype=numpy.float32)
         x = numpy.abs(x)
         y = onnx_log_1r_mul(x)
+        temp = numpy.log(2 * x)
+        self.assertEqualArray(temp, y)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_exp_1r_mul3(self):
+        x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0, -6.],
+                        dtype=numpy.float32)
+        x = numpy.abs(x)
+        y = onnx_log_1r_mul3(x)
         temp = numpy.log(2 * x)
         self.assertEqualArray(temp, y)
 

@@ -1538,9 +1538,11 @@ class TestEinsumGenericdot(ExtTestCase):
         m2 = numpy.empty(sh2).ravel()
         m2 = numpy.arange(len(m2)).reshape(sh2).astype(numpy.float64) + 1000
         self.capture(
-            lambda: numpy_extended_dot_python(m1, m2, axes, left, right))
+            lambda: numpy_extended_dot_python(
+                m1, m2, axes, left, right, verbose=True))
         self.capture(
-            lambda: numpy_extended_dot_matrix(m1, m2, axes, left, right))
+            lambda: numpy_extended_dot_matrix(
+                m1, m2, axes, left, right, verbose=True))
 
 
 if __name__ == "__main__":

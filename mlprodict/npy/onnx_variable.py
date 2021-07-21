@@ -72,7 +72,13 @@ class OnnxVar:
             if isinstance(inp, type):
                 raise TypeError(  # pragma: no cover
                     "Unexpected type for input %d - %r." % (i, inp))
+            if not isinstance(inp, numpy.ndarray):
+                continue
+            if inp.size > 0 and isinstance(inp.ravel()[0], (numpy.ndarray, OnnxVar)):
+                raise TypeError("Unexpected type for input %d: %r, %r."
+                                "" % (i, type(inp), inp.ravel()[0]))
         self.dtype = self._guess_dtype(dtype)
+        
 
     def _guess_dtype(self, dtype):
         "Guesses dtype when not specified."
@@ -169,6 +175,9 @@ class OnnxVar:
                             numpy.int64, numpy.float32, numpy.float64,
                             numpy_bool, numpy_str, numpy.int8, numpy.uint8,
                             numpy.int16, numpy.uint16, numpy.uint32, numpy.uint64)):
+                        if inp.size > 0 and isinstance(inp.ravel()[0], (numpy.ndarray, OnnxVar)):
+                            raise TypeError("Unexpected type for an input %r, %r."
+                                            "" % (type(inp), inp.ravel()[0]))
                         new_inputs.append(inp)
                     else:
                         new_inputs.append(
@@ -258,8 +267,6 @@ class OnnxVar:
 
     def __radd__(self, y):
         "Right Addition."
-        if isinstance(y, OnnxVar):
-            return OnnxVar(y, self, op=OnnxAdd)
         y = self._make_array(y)
         return OnnxVar(OnnxVar(y, op=OnnxIdentity), self, op=OnnxAdd)
 
@@ -270,8 +277,6 @@ class OnnxVar:
 
     def __rsub__(self, y):
         "Right subtraction."
-        if isinstance(y, OnnxVar):
-            return OnnxVar(y, self, op=OnnxAdd)
         y = self._make_array(y)
         return OnnxVar(OnnxVar(y, op=OnnxIdentity), self, op=OnnxSub)
 
@@ -282,10 +287,8 @@ class OnnxVar:
 
     def __rmul__(self, y):
         "Right multiplication."
-        if isinstance(y, OnnxVar):
-            return OnnxVar(y, self, op=OnnxAdd)
         y = self._make_array(y)
-        return OnnxVar(OnnxVar(y, op=OnnxIdentity), self, op=OnnxMul)
+        return OnnxVar(y, op=OnnxIdentity) * self
 
     def __pow__(self, y):
         "Power."
@@ -309,8 +312,6 @@ class OnnxVar:
 
     def __rtruediv__(self, y):
         "Division, no difference between `/` and `//`."
-        if isinstance(y, OnnxVar):
-            return OnnxVar(y, self, op=OnnxAdd)
         y = self._make_array(y)
         return OnnxVar(OnnxVar(y, op=OnnxIdentity), self, op=OnnxDiv)
 
