@@ -469,6 +469,9 @@ class ShapeObject(BaseDimensionShape):
             elif tshape['kind'] == 'map':
                 self._shape = []
                 self._dtype = 'map'
+            elif tshape['kind'] == 'sequence':
+                self._shape = []
+                self._dtype = 'sequence'
             else:
                 raise ValueError(  # pragma: no cover
                     "Wrong shape value {}".format(shape))
@@ -523,7 +526,7 @@ class ShapeObject(BaseDimensionShape):
                 numpy.float32, numpy.float64, numpy.int32, numpy.int64,
                 numpy.str_, numpy.bool_, numpy.float16, None,
                 numpy.complex64, numpy.complex128,
-                'map'}:
+                'map', 'sequence'}:
             raise ValueError(  # pragma: no cover
                 "dtype has an unexpected value: '{}'.".format(self._dtype))
         if self._shape is not None:

@@ -27,6 +27,7 @@ from .op_celu import Celu
 from .op_clip import Clip_6, Clip_11, Clip
 from .op_compress import Compress
 from .op_concat import Concat
+from .op_concat_from_sequence import ConcatFromSequence
 from .op_conv import Conv
 from .op_conv_transpose import ConvTranspose
 from .op_constant import Constant
@@ -98,6 +99,7 @@ from .op_rnn import RNN
 from .op_scaler import Scaler
 from .op_scan import Scan
 from .op_scatter_elements import ScatterElements
+from .op_sequence_insert import SequenceInsert
 from .op_shape import Shape
 from .op_sigmoid import Sigmoid
 from .op_sign import Sign
