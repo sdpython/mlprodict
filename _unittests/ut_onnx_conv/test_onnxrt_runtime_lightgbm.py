@@ -1,11 +1,11 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=3s)
 """
+import sys
 import unittest
 from logging import getLogger
 import numpy
 import pandas
-from lightgbm import LGBMClassifier, Dataset, train as lgb_train
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, ignore_warnings
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
@@ -34,8 +34,10 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         self.assertEqual(r.tolist(), [0, 1, 2])
 
     @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_onnxrt_python_lightgbm_categorical(self):
+        from lightgbm import LGBMClassifier
 
         X = pandas.DataFrame({"A": numpy.random.permutation(['a', 'b', 'c', 'd'] * 75),  # str
                               # int
@@ -85,8 +87,10 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         # self.assertEqualArray(exp, df.values, decimal=6)
 
     @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_onnxrt_python_lightgbm_categorical3(self):
+        from lightgbm import LGBMClassifier
 
         X = pandas.DataFrame({"A": numpy.random.permutation(['a', 'b', 'c', 'd'] * 75),  # str
                               # int
@@ -136,8 +140,11 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         # self.assertEqualArray(exp, df.values, decimal=6)
 
     @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_onnxrt_python_lightgbm_categorical_iris(self):
+        from lightgbm import LGBMClassifier, Dataset, train as lgb_train
+
         iris = load_iris()
         X, y = iris.data, iris.target
         X = (X * 10).astype(numpy.int32)
@@ -192,8 +199,11 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         self.assertEqualArray(exp, values[:, 1], decimal=5)
 
     @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_onnxrt_python_lightgbm_categorical_iris_dataframe(self):
+        from lightgbm import Dataset, train as lgb_train
+
         iris = load_iris()
         X, y = iris.data, iris.target
         X = (X * 10).astype(numpy.int32)
@@ -262,6 +272,8 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         self.assertEqualArray(exp, values[:, 1], decimal=5)
 
     def test_lightgbm_booster_classifier(self):
+        from lightgbm import Dataset, train as lgb_train
+
         X = numpy.array([[0, 1], [1, 1], [2, 0], [1, 2]], dtype=numpy.float32)
         y = [0, 1, 0, 1]
         data = Dataset(X, label=y)
