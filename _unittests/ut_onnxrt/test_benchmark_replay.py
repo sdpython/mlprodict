@@ -1,16 +1,17 @@
 """
 @brief      test log(time=2s)
 """
+import sys
 import unittest
 import pandas
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.onnxrt.validate import (
-    enumerate_benchmark_replay, enumerate_validated_operator_opsets
-)
+    enumerate_benchmark_replay, enumerate_validated_operator_opsets)
 
 
 class TestBenchmarkReplay(ExtTestCase):
 
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_benchmark_replay(self):
         temp = get_temp_folder(__file__, "temp_bct")
         self.assertRaise(lambda: list(
@@ -31,6 +32,7 @@ class TestBenchmarkReplay(ExtTestCase):
         self.assertIn('1000-skl-details', df.columns)
         self.assertIn('1000-skl', df.columns)
 
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_benchmark_replay_onnxruntime(self):
         temp = get_temp_folder(__file__, "temp_bct_ort")
         self.assertRaise(lambda: list(
