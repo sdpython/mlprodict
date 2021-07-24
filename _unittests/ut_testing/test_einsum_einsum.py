@@ -1,6 +1,7 @@
 """
-@brief      test log(time=15s)
+@brief      test log(time=22s)
 """
+import sys
 import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
@@ -27,6 +28,8 @@ class TestEinsumEinsum(ExtTestCase):
                 runtime = ['python', 'onnxruntime1']
         elif isinstance(runtime, str):
             runtime = [runtime]
+        if sys.platform == 'darwin':
+            runtime = [_ for _ in runtime if _ != 'onnxruntime1']
         for rt in runtime:
             for dtype in [numpy.float32, numpy.float64]:
                 if not double and dtype == numpy.float64:
