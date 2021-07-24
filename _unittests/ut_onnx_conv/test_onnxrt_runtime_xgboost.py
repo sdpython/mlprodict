@@ -9,7 +9,6 @@ from pandas import DataFrame
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_regression, make_classification
-from xgboost import XGBRegressor, XGBClassifier  # pylint: disable=C0411
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, ignore_warnings
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
@@ -29,29 +28,6 @@ def fct_id(y):
     return y
 
 
-obj_classes = {
-    'reg:logistic': (XGBClassifier, fct_cl2,
-                     make_classification(n_features=4, n_classes=2,
-                                         n_clusters_per_class=1)),
-    'binary:logistic': (XGBClassifier, fct_cl2,
-                        make_classification(n_features=4, n_classes=2,
-                                            n_clusters_per_class=1)),
-    'multi:softmax': (XGBClassifier, fct_id,
-                      make_classification(n_features=4, n_classes=3,
-                                          n_clusters_per_class=1)),
-    'multi:softmax2': (XGBClassifier, fct_cl3,
-                       make_classification(n_features=4, n_classes=3,
-                                           n_clusters_per_class=1)),
-    'multi:softprob': (XGBClassifier, fct_id,
-                       make_classification(n_features=4, n_classes=3,
-                                           n_clusters_per_class=1)),
-    'reg:squarederror': (XGBRegressor, fct_id,
-                         make_regression(n_features=4, n_targets=1)),
-    'reg:squarederror2': (XGBRegressor, fct_id,
-                          make_regression(n_features=4, n_targets=2)),
-}
-
-
 class TestOnnxrtRuntimeXGBoost(ExtTestCase):
 
     def setUp(self):
@@ -63,6 +39,28 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
     @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     @ignore_warnings(UserWarning)
     def test_onnxrt_python_xgbregressor(self):
+        from xgboost import XGBRegressor, XGBClassifier  # pylint: disable=C0411
+        obj_classes = {
+            'reg:logistic': (XGBClassifier, fct_cl2,
+                             make_classification(n_features=4, n_classes=2,
+                                                 n_clusters_per_class=1)),
+            'binary:logistic': (XGBClassifier, fct_cl2,
+                                make_classification(n_features=4, n_classes=2,
+                                                    n_clusters_per_class=1)),
+            'multi:softmax': (XGBClassifier, fct_id,
+                              make_classification(n_features=4, n_classes=3,
+                                                  n_clusters_per_class=1)),
+            'multi:softmax2': (XGBClassifier, fct_cl3,
+                               make_classification(n_features=4, n_classes=3,
+                                                   n_clusters_per_class=1)),
+            'multi:softprob': (XGBClassifier, fct_id,
+                               make_classification(n_features=4, n_classes=3,
+                                                   n_clusters_per_class=1)),
+            'reg:squarederror': (XGBRegressor, fct_id,
+                                 make_regression(n_features=4, n_targets=1)),
+            'reg:squarederror2': (XGBRegressor, fct_id,
+                                  make_regression(n_features=4, n_targets=2)),
+        }
         nb_tests = 0
         for objective in obj_classes:  # pylint: disable=C0206
             for n_estimators in [1, 2]:
@@ -113,7 +111,9 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
         self.assertGreater(nb_tests, 8)
 
     @ignore_warnings(UserWarning)
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_xgboost_classifier_i5450(self):
+        from xgboost import XGBClassifier  # pylint: disable=C0411
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, y_test = train_test_split(
