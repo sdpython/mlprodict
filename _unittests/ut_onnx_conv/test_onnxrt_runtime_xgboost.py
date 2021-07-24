@@ -1,6 +1,7 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=5s)
 """
+import sys
 import unittest
 from logging import getLogger
 import numpy
@@ -9,7 +10,7 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_regression, make_classification
 from xgboost import XGBRegressor, XGBClassifier  # pylint: disable=C0411
-from pyquickhelper.pycode import ExtTestCase, skipif_circleci
+from pyquickhelper.pycode import ExtTestCase, skipif_circleci, ignore_warnings
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
 
@@ -59,6 +60,8 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
         register_converters()
 
     @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
+    @ignore_warnings(UserWarning)
     def test_onnxrt_python_xgbregressor(self):
         nb_tests = 0
         for objective in obj_classes:  # pylint: disable=C0206
@@ -109,6 +112,7 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
 
         self.assertGreater(nb_tests, 8)
 
+    @ignore_warnings(UserWarning)
     def test_xgboost_classifier_i5450(self):
         iris = load_iris()
         X, y = iris.data, iris.target
