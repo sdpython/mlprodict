@@ -1,6 +1,7 @@
 """
 @brief      test tree node (time=20s)
 """
+import sys
 import unittest
 import inspect
 from io import StringIO
@@ -78,6 +79,12 @@ Ytest_ = pd.read_csv(StringIO("""
 
 class TestSklearnGaussianProcess(ExtTestCase):
 
+    backend = (
+        ('python', )
+        if sys.platform == 'darwin'
+        else ('python', 'onnxruntime')
+    )
+
     def remove_dim1(self, arr):
         new_shape = tuple(v for v in arr.shape if v != 1)
         if new_shape != arr.shape:
@@ -114,7 +121,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
             assert_almost_equal(np.squeeze(exp),
                                 np.squeeze(got), decimal=decimal)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_rbf_unfitted(self):
 
         se = (C(1.0, (1e-3, 1e3)) *
@@ -132,7 +139,8 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(Xtest_.astype(np.float32), gp, model_onnx,
                             verbose=False,
-                            basename="SklearnGaussianProcessRBFUnfitted")
+                            basename="SklearnGaussianProcessRBFUnfitted",
+                            backend=TestSklearnGaussianProcess.backend)
 
         # return_cov=True, return_std=True
         options = {GaussianProcessRegressor: {"return_std": True,
@@ -165,6 +173,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
 
     @unittest.skipIf(compare_module_version(skl2_vers, '1.7.1099') <= 0,
                      reason="shape issue")
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_rbf_fitted_true(self):
 
         gp = GaussianProcessRegressor(
@@ -179,9 +188,10 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(X, gp, model_onnx, verbose=False,
                             basename="SklearnGaussianProcessRBFT",
-                            check_error="misses a kernel")
+                            check_error="misses a kernel",
+                            backend=TestSklearnGaussianProcess.backend)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_rbf_fitted_false(self):
 
         gp = GaussianProcessRegressor(
@@ -194,9 +204,10 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(Xtest_.astype(np.float32), gp, model_onnx,
                             verbose=False,
-                            basename="SklearnGaussianProcessRBF-Dec4")
+                            basename="SklearnGaussianProcessRBF-Dec4",
+                            backend=TestSklearnGaussianProcess.backend)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_rbf_fitted_return_std_true(self):
         gp = GaussianProcessRegressor(
             alpha=1e-7, n_restarts_optimizer=15, normalize_y=True)
@@ -223,9 +234,10 @@ class TestSklearnGaussianProcess(ExtTestCase):
                             verbose=False,
                             basename="SklearnGaussianProcessRBFStd-Out0",
                             check_error="misses a kernel",
-                            disable_optimisation=True)
+                            disable_optimisation=True,
+                            backend=TestSklearnGaussianProcess.backend)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_rbf_fitted_return_std_exp_sine_squared_true(self):
 
         gp = GaussianProcessRegressor(
@@ -244,12 +256,13 @@ class TestSklearnGaussianProcess(ExtTestCase):
             Xtest_.astype(np.float64), gp, model_onnx,
             verbose=False,
             basename="SklearnGaussianProcessExpSineSquaredStdT-Out0-Dec3",
-            check_error="misses a kernel", disable_optimisation=True)
+            check_error="misses a kernel", disable_optimisation=True,
+            backend=TestSklearnGaussianProcess.backend)
         self.check_outputs(gp, model_onnx, Xtest_.astype(np.float64),
                            predict_attributes=options[GaussianProcessRegressor],
                            decimal=4, disable_optimisation=True)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_rbf_fitted_return_std_exp_sine_squared_false(self):
 
         gp = GaussianProcessRegressor(
@@ -267,13 +280,14 @@ class TestSklearnGaussianProcess(ExtTestCase):
         dump_data_and_model(
             Xtest_.astype(np.float64), gp, model_onnx,
             verbose=False,
-            basename="SklearnGaussianProcessExpSineSquaredStdF-Out0-Dec3")
+            basename="SklearnGaussianProcessExpSineSquaredStdF-Out0-Dec3",
+            backend=TestSklearnGaussianProcess.backend)
         self.check_outputs(gp, model_onnx, Xtest_.astype(np.float64),
                            predict_attributes=options[
             GaussianProcessRegressor],
             decimal=4)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_rbf_fitted_return_std_exp_sine_squared_double_true(self):
 
         gp = GaussianProcessRegressor(
@@ -291,13 +305,14 @@ class TestSklearnGaussianProcess(ExtTestCase):
         dump_data_and_model(
             Xtest_.astype(np.float64), gp, model_onnx,
             basename="SklearnGaussianProcessExpSineSquaredStdDouble-Out0-Dec4",
-            check_error="misses a kernel", disable_optimisation=True)
+            check_error="misses a kernel", disable_optimisation=True,
+            backend=TestSklearnGaussianProcess.backend)
         self.check_outputs(
             gp, model_onnx, Xtest_.astype(np.float64),
             predict_attributes=options[GaussianProcessRegressor],
             decimal=4, disable_optimisation=True)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_rbf_fitted_return_std_dot_product_true(self):
 
         gp = GaussianProcessRegressor(
@@ -315,13 +330,14 @@ class TestSklearnGaussianProcess(ExtTestCase):
         dump_data_and_model(
             Xtest_.astype(np.float64), gp, model_onnx,
             basename="SklearnGaussianProcessDotProductStdDouble-Out0-Dec3",
-            check_error="misses a kernel", disable_optimisation=True)
+            check_error="misses a kernel", disable_optimisation=True,
+            backend=TestSklearnGaussianProcess.backend)
         self.check_outputs(
             gp, model_onnx, Xtest_.astype(np.float64),
             predict_attributes=options[GaussianProcessRegressor],
             decimal=3, disable_optimisation=True)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_rbf_fitted_return_std_rational_quadratic_true(self):
 
         gp = GaussianProcessRegressor(
@@ -339,13 +355,14 @@ class TestSklearnGaussianProcess(ExtTestCase):
         dump_data_and_model(
             Xtest_.astype(np.float64), gp, model_onnx,
             basename="SklearnGaussianProcessRationalQuadraticStdDouble-Out0",
-            check_error="misses a kernel", disable_optimisation=True)
+            check_error="misses a kernel", disable_optimisation=True,
+            backend=TestSklearnGaussianProcess.backend)
         self.check_outputs(
             gp, model_onnx, Xtest_.astype(np.float64),
             predict_attributes=options[GaussianProcessRegressor],
             disable_optimisation=True)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_fitted_shapes(self):
         data = load_iris()
         X = data.data.astype(np.float32)
@@ -360,7 +377,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         self.check_outputs(gp, model_onnx, X_test, {}, skip_if_float32=True)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_fitted_partial_float64(self):
         data = load_iris()
         X = data.data
@@ -382,7 +399,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         self.check_outputs(gp, model_onnx, X_test, {})
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_fitted_partial_float64_operator_cdist_rbf(self):
         data = load_iris()
         X = data.data
@@ -419,7 +436,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         self.check_outputs(gp, model_onnx, X_test, {})
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_fitted_partial_float64_operator_cdist_sine(self):
         data = load_iris()
         X = data.data
@@ -459,7 +476,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.assertTrue(model_onnx is not None)
         self.check_outputs(gp, model_onnx, X_test, {})
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, UserWarning))
     def test_gpr_fitted_partial_float64_operator_cdist_quad(self):
         data = load_iris()
         X = data.data
