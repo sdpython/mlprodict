@@ -15,7 +15,6 @@ from skl2onnx.common.data_types import (
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
 from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
-from mlprodict.onnx_conv.parsers.parse_lightgbm import WrappedLightGbmBooster
 
 
 class TestOnnxrtRuntimeLightGbm(ExtTestCase):
@@ -25,7 +24,10 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         logger.disabled = True
         register_converters()
 
+    @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_missing(self):
+        from mlprodict.onnx_conv.parsers.parse_lightgbm import WrappedLightGbmBooster
+
         r = WrappedLightGbmBooster._generate_classes(  # pylint: disable=W0212
             dict(num_class=1))
         self.assertEqual(r.tolist(), [0, 1])
@@ -271,6 +273,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         values = pandas.DataFrame(got['output_probability']).values
         self.assertEqualArray(exp, values[:, 1], decimal=5)
 
+    @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_lightgbm_booster_classifier(self):
         from lightgbm import Dataset, train as lgb_train
 
