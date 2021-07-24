@@ -122,6 +122,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
                                 np.squeeze(got), decimal=decimal)
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_rbf_unfitted(self):
 
         se = (C(1.0, (1e-3, 1e3)) *
@@ -174,6 +175,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
     @unittest.skipIf(compare_module_version(skl2_vers, '1.7.1099') <= 0,
                      reason="shape issue")
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_rbf_fitted_true(self):
 
         gp = GaussianProcessRegressor(
@@ -192,6 +194,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
                             backend=TestSklearnGaussianProcess.backend)
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_rbf_fitted_false(self):
 
         gp = GaussianProcessRegressor(
@@ -208,6 +211,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
                             backend=TestSklearnGaussianProcess.backend)
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_rbf_fitted_return_std_true(self):
         gp = GaussianProcessRegressor(
             alpha=1e-7, n_restarts_optimizer=15, normalize_y=True)
@@ -238,6 +242,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
                             backend=TestSklearnGaussianProcess.backend)
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_rbf_fitted_return_std_exp_sine_squared_true(self):
 
         gp = GaussianProcessRegressor(
@@ -263,6 +268,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
                            decimal=4, disable_optimisation=True)
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_rbf_fitted_return_std_exp_sine_squared_false(self):
 
         gp = GaussianProcessRegressor(
@@ -288,6 +294,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
             decimal=4)
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_rbf_fitted_return_std_exp_sine_squared_double_true(self):
 
         gp = GaussianProcessRegressor(
@@ -313,6 +320,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
             decimal=4, disable_optimisation=True)
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_rbf_fitted_return_std_dot_product_true(self):
 
         gp = GaussianProcessRegressor(
@@ -338,6 +346,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
             decimal=3, disable_optimisation=True)
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_rbf_fitted_return_std_rational_quadratic_true(self):
 
         gp = GaussianProcessRegressor(
@@ -363,6 +372,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
             disable_optimisation=True)
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_fitted_shapes(self):
         data = load_iris()
         X = data.data.astype(np.float32)
@@ -378,6 +388,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.check_outputs(gp, model_onnx, X_test, {}, skip_if_float32=True)
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_fitted_partial_float64(self):
         data = load_iris()
         X = data.data
@@ -400,6 +411,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.check_outputs(gp, model_onnx, X_test, {})
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_fitted_partial_float64_operator_cdist_rbf(self):
         data = load_iris()
         X = data.data
@@ -437,6 +449,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.check_outputs(gp, model_onnx, X_test, {})
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_fitted_partial_float64_operator_cdist_sine(self):
         data = load_iris()
         X = data.data
@@ -477,6 +490,7 @@ class TestSklearnGaussianProcess(ExtTestCase):
         self.check_outputs(gp, model_onnx, X_test, {})
 
     @ignore_warnings((ConvergenceWarning, UserWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_gpr_fitted_partial_float64_operator_cdist_quad(self):
         data = load_iris()
         X = data.data
