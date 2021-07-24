@@ -1,6 +1,7 @@
 """
 @brief      test log(time=3s)
 """
+import sys
 import unittest
 import json
 from logging import getLogger
@@ -13,6 +14,7 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 class TestRtValidateLightGbm(ExtTestCase):
 
     @skipif_circleci("too long")
+    @unittest.skipIf(sys.platform == 'darwin', reason="stuck")
     def test_rt_lightgbm_regressor(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -38,6 +40,7 @@ class TestRtValidateLightGbm(ExtTestCase):
         self.assertGreater(len(buffer), 1 if debug else 0)
 
     @skipif_circleci("too long")
+    @unittest.skipIf(sys.platform == 'darwin', reason="stuck")
     def test_rt_lightgbm_regressor64(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -63,6 +66,7 @@ class TestRtValidateLightGbm(ExtTestCase):
         self.assertGreater(len(buffer), 1 if debug else 0)
 
     @skipif_circleci("too long")
+    @unittest.skipIf(sys.platform == 'darwin', reason="stuck")
     def test_rt_lightgbm_classifier64(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -88,6 +92,7 @@ class TestRtValidateLightGbm(ExtTestCase):
         self.assertGreater(len(buffer), 1 if debug else 0)
 
     @skipif_circleci("too long")
+    @unittest.skipIf(sys.platform == 'darwin', reason="stuck")
     def test_rt_lightgbm_classifier(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')

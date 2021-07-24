@@ -1,6 +1,7 @@
 """
 @brief      test log(time=3s)
 """
+import sys
 import unittest
 import json
 from logging import getLogger
@@ -17,6 +18,7 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 class TestRtValidateXGBoost(ExtTestCase):
 
     @skipif_circleci("no end")
+    @unittest.skipIf(sys.platform == 'darwin', reason="stuck")
     def test_rt_xgboost_regressor(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -43,6 +45,7 @@ class TestRtValidateXGBoost(ExtTestCase):
         self.assertGreater(len(buffer), 1 if debug else 0)
 
     @skipif_circleci("no end")
+    @unittest.skipIf(sys.platform == 'darwin', reason="stuck")
     def test_rt_xgboost_regressor64(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -68,6 +71,7 @@ class TestRtValidateXGBoost(ExtTestCase):
         self.assertGreater(len(buffer), 1 if debug else 0)
 
     @skipif_circleci("no end")
+    @unittest.skipIf(sys.platform == 'darwin', reason="stuck")
     def test_rt_xgboost_classifier(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
