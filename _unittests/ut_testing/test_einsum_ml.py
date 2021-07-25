@@ -5,7 +5,8 @@ import unittest
 from itertools import permutations
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing.einsum.einsum_ml import (
-    predict_transposition_cost, compute_transposition_features)
+    predict_transposition_cost, compute_transposition_features,
+    _edit_distance)
 
 
 class TestEinsumMl(ExtTestCase):
@@ -30,6 +31,14 @@ class TestEinsumMl(ExtTestCase):
                 cost = predict_transposition_cost(shape, p)
                 if p[-1] == 2:
                     self.assertEqual(cost, 0)
+
+    def test_edit_distance(self):
+        r = _edit_distance("", "a")
+        self.assertEqual(r, 1)
+        r = _edit_distance("a", "")
+        self.assertEqual(r, 1)
+        r = _edit_distance("a", "ab")
+        self.assertEqual(r, 1)
 
 
 if __name__ == "__main__":

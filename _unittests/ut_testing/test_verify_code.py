@@ -75,6 +75,21 @@ def fct(a, b):
     return [x for x in [1, 2]]
 '''
 
+source7 = '''
+def fct(a, b):
+    return lambda x: {} x
+'''
+
+source8 = '''
+def fct(a):
+    return ([0, 1, 2, 3])[a]
+'''
+
+source9 = '''
+def fct(a):
+    return sum(el for el in a)
+'''
+
 
 class TestVerifyCode(ExtTestCase):
 
@@ -93,7 +108,7 @@ class TestVerifyCode(ExtTestCase):
         self.assertIn('body=', text)
 
     def test_verify_code_ops(self):
-        for op in ['**', 'and', '*', '/', '-', '+', 'or']:
+        for op in ['**', 'and', '*', '/', '-', '+', 'or', '&', '|']:
             with self.subTest(op=op):
                 _, res = verify_code(source3.format(op))
                 self.assertIn('CodeNodeVisitor', str(res))
@@ -108,7 +123,7 @@ class TestVerifyCode(ExtTestCase):
                 self.assertIn('body=', text)
 
     def test_verify_code_cmp(self):
-        for op in ['<', '>', '==', '!=', '>=', '<=']:
+        for op in ['<', '>', '==', '!=', '>=', '<=', 'is', 'is not']:
             with self.subTest(op=op):
                 _, res = verify_code(source3.format(op))
                 self.assertIn('CodeNodeVisitor', str(res))
@@ -120,11 +135,35 @@ class TestVerifyCode(ExtTestCase):
                 text = res.print_node(node)
                 self.assertIn('body=', text)
 
+    def test_verify_code_not(self):
+        for op in ['not', '-', '+']:
+            with self.subTest(op=op):
+                _, res = verify_code(source7.format(op))
+                self.assertIn('CodeNodeVisitor', str(res))
+                tree = res.print_tree()
+                self.assertIn('UnaryOp', tree)
+                self.assertIn('\n', tree)
+                rows = res.Rows
+                node = rows[0]['node']
+                text = res.print_node(node)
+                self.assertIn('body=', text)
+
     def test_verify_code_slice(self):
         _, res = verify_code(source4)
         self.assertIn('CodeNodeVisitor', str(res))
         tree = res.print_tree()
         self.assertIn('Slice', tree)
+        self.assertIn('\n', tree)
+        rows = res.Rows
+        node = rows[0]['node']
+        text = res.print_node(node)
+        self.assertIn('body=', text)
+
+    def test_verify_code_index(self):
+        _, res = verify_code(source8)
+        self.assertIn('CodeNodeVisitor', str(res))
+        tree = res.print_tree()
+        self.assertIn('Subscript', tree)
         self.assertIn('\n', tree)
         rows = res.Rows
         node = rows[0]['node']
@@ -157,6 +196,17 @@ class TestVerifyCode(ExtTestCase):
 
     def test_verify_code_gen(self):
         _, res = verify_code(source6, exc=False)
+        self.assertIn('CodeNodeVisitor', str(res))
+        tree = res.print_tree()
+        self.assertIn('comprehension', tree)
+        self.assertIn('\n', tree)
+        rows = res.Rows
+        node = rows[0]['node']
+        text = res.print_node(node)
+        self.assertIn('body=', text)
+
+    def test_verify_code_gen2(self):
+        _, res = verify_code(source9, exc=False)
         self.assertIn('CodeNodeVisitor', str(res))
         tree = res.print_tree()
         self.assertIn('comprehension', tree)

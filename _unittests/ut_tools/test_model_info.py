@@ -1,11 +1,10 @@
 """
 @brief      test log(time=16s)
 """
+import sys
 import inspect
 import unittest
 import numpy
-from lightgbm import LGBMClassifier, LGBMRegressor  # pylint: disable=C0411
-from xgboost import XGBClassifier, XGBRegressor  # pylint: disable=C0411
 from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression, LinearRegression
@@ -101,7 +100,9 @@ class TestModelInfo(ExtTestCase):
         self.assertGreater(info['_predictors.max|tree_.max_depth'], 3)
 
     @skipif_circleci('issue, too long')
+    @unittest.skipIf(sys.platform == 'darwin', reason='too long')
     def test_lgbmc(self):
+        from lightgbm import LGBMClassifier  # pylint: disable=C0411
         model = self.fit(LGBMClassifier())
         info = analyze_model(model)
         self.assertEqual(info['n_classes'], 3)
@@ -113,7 +114,9 @@ class TestModelInfo(ExtTestCase):
         self.assertGreater(info['node_count'], 100)
 
     @skipif_circleci('issue, too long')
+    @unittest.skipIf(sys.platform == 'darwin', reason='too long')
     def test_lgbmr(self):
+        from lightgbm import LGBMRegressor  # pylint: disable=C0411
         model = self.fit(LGBMRegressor())
         info = analyze_model(model)
         self.assertGreater(info['ntrees'], 10)
@@ -124,7 +127,9 @@ class TestModelInfo(ExtTestCase):
         self.assertGreater(info['node_count'], 100)
 
     @skipif_circleci('issue, too long')
+    @unittest.skipIf(sys.platform == 'darwin', reason='too long')
     def test_xgbc(self):
+        from xgboost import XGBClassifier  # pylint: disable=C0411
         model = self.fit(XGBClassifier())
         info = analyze_model(model)
         self.assertEqual(info['classes_.shape'], 3)
@@ -136,7 +141,9 @@ class TestModelInfo(ExtTestCase):
         self.assertGreater(info['node_count'], 100)
 
     @skipif_circleci('issue, too long')
+    @unittest.skipIf(sys.platform == 'darwin', reason='too long')
     def test_xgbr(self):
+        from xgboost import XGBRegressor  # pylint: disable=C0411
         model = self.fit(XGBRegressor())
         info = analyze_model(model)
         self.assertGreater(info['ntrees'], 10)

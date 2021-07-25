@@ -465,7 +465,7 @@ def _internal_method_decorator(register_class, method, op_version=None,
                 ("T:all", ), dtypes_out=((numpy.int64, ), 'T'))
         if method_names is None:
             method_names = ("predict", "transform")
-    elif method_names is None:
+    elif method_names is None:  # pragma: no cover
         raise RuntimeError(
             "No obvious API was detected (one among %s), "
             "then 'method_names' must be specified and not left "

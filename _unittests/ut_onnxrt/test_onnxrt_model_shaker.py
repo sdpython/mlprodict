@@ -1,6 +1,7 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=3s)
 """
+import sys
 import unittest
 import numpy
 from sklearn.datasets import load_iris
@@ -15,12 +16,10 @@ from mlprodict.onnxrt import OnnxInference
 class TestOnnxrtModelChecker(ExtTestCase):
 
     def test_onnxt_model_checker(self):
-        arr = numpy.array([1.111111111111111,
-                           -1.11111111111111111,
-                           1,
-                           1 + 1e-6,
-                           2.222222222222222222,
-                           -2.22222222222222222])
+        arr = numpy.array(
+            [1.111111111111111, -1.11111111111111111,
+             1, 1 + 1e-6, 2.222222222222222222,
+             -2.22222222222222222])
         conv = arr.astype(numpy.float32)
         delta = numpy.abs(arr - conv)
         pos = numpy.sum(delta > 0)
@@ -31,6 +30,7 @@ class TestOnnxrtModelChecker(ExtTestCase):
         self.assertGreater(float(mx), 1e-10)
 
     @skipif_circleci('too long')
+    @unittest.skipIf(sys.platform == 'darwin', reason='too long')
     def test_onnx_shaker(self):
         iris = load_iris()
         X, y = iris.data, iris.target
