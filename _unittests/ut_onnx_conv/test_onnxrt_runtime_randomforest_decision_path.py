@@ -1,13 +1,14 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=3s)
 """
+import sys
 import unittest
 from logging import getLogger
 import numpy
 from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
 from mlprodict.testing.test_utils import binary_array_to_string
@@ -52,6 +53,8 @@ class TestOnnxrtRuntimeRandomForestDecisionPath(ExtTestCase):
         exp = binary_array_to_string(dec.todense())
         self.assertEqual(exp, res['decision_path'].ravel().tolist())
 
+    @ignore_warnings(FutureWarning)
+    @unittest.skipIf(sys.platform == 'darwin', reason='too long')
     def test_randomforestregressor_decision_path(self):
         model = RandomForestRegressor(max_depth=2, n_estimators=2)
         X, y = make_classification(10, n_features=4, random_state=42)
@@ -68,6 +71,8 @@ class TestOnnxrtRuntimeRandomForestDecisionPath(ExtTestCase):
         got = numpy.array([''.join(row) for row in res['decision_path']])
         self.assertEqual(exp, got.tolist())
 
+    @ignore_warnings(FutureWarning)
+    @unittest.skipIf(sys.platform == 'darwin', reason='too long')
     def test_randomforestclassifier_decision_path(self):
         model = RandomForestClassifier(max_depth=2, n_estimators=2)
         X, y = make_classification(10, n_features=4, random_state=42)

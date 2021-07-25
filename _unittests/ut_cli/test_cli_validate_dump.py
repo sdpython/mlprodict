@@ -1,6 +1,7 @@
 """
 @brief      test tree node (time=30s)
 """
+import sys
 import os
 import unittest
 import pickle
@@ -13,6 +14,7 @@ from mlprodict.__main__ import main
 class TestCliValidateDump(ExtTestCase):
 
     @skipif_circleci('too long')
+    @unittest.skipIf(sys.platform == 'darwin', reason='too long')
     def test_cli_validate_model_dump(self):
         fLOG(OutputPrint=__name__ == "__main__")
         temp = get_temp_folder(__file__, "temp_validate_model_dump")

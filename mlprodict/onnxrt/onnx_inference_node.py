@@ -158,7 +158,7 @@ class OnnxInferenceNode:
         try:
             res = self.ops_.run(*args)
         except TypeError as e:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to run operator %r." % type(self.ops_)) from e
 
         if not isinstance(res, tuple):
@@ -214,7 +214,7 @@ class OnnxInferenceNode:
         args = [values[k] for k in self.inputs]
         try:
             res = self.ops_.infer_shapes(*args)
-        except (TypeError, ValueError) as e:
+        except (TypeError, ValueError) as e:  # pragma: no cover
             raise TypeError(
                 "Unable to call infer_shapes with {} arguments for class"
                 " '{}' ({})".format(len(args), self.ops_.__class__.__name__,
@@ -243,7 +243,7 @@ class OnnxInferenceNode:
         args = [values[k] for k in self.inputs]
         try:
             res = self.ops_.infer_types(*args)
-        except (TypeError, ValueError) as e:
+        except (TypeError, ValueError) as e:  # pragma: no cover
             raise TypeError(
                 "Unable to call infer_types with {} arguments for class"
                 " '{}' ({})".format(len(args), self.ops_.__class__.__name__,

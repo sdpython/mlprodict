@@ -1,6 +1,7 @@
 """
-@brief      test log(time=9s)
+@brief      test log(time=3s)
 """
+import sys
 import unittest
 from logging import getLogger
 from pyquickhelper.loghelper import fLOG
@@ -18,6 +19,7 @@ class TestRtValidateLightGbm(ExtTestCase):
 
     @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason="stuck")
     def test_rt_LGBMClassifier_onnxruntime1(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')

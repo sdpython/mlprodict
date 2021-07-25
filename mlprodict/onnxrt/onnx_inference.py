@@ -138,7 +138,7 @@ class OnnxInference:
                 for d in shape.dim:
                     if d.dim_value == 0 and "0" in str(d):
                         # d.dim_value returns 0 whether is is 0 or empty.
-                        raise RuntimeError(
+                        raise RuntimeError(  # pragma: no cover
                             "Wrong ONNX file, one input or output has an empty shape: "
                             "{}.".format(xy))
 
@@ -598,7 +598,7 @@ class OnnxInference:
                              overwrite_types=overwrite_types,
                              fLOG=fLOG)
         if overwrite_types is not None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "overwrite_types is not used if intermediate is False.")
         return self._run(inputs, clean_right_away=False,
                          intermediate=intermediate,
