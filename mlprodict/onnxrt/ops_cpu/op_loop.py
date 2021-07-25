@@ -28,25 +28,26 @@ class Loop(OpRun):
 
     def _run(self, M, cond, v_initial, *args):  # pylint: disable=W0221
         inputs = {name: None for name in self.body.input_names}
-        inputs[self.body.input_names[0]] = cond
-        inputs[self.body.input_names[1]] = v_initial
-        cond_name = self.body.output_names[0]
+        inputs[self.body.input_names[2]] = v_initial
+        cond_name = self.body.output_names[1]
         if len(args) > 0:
             begin = len(self.body.input_names) - len(args)
             for name, val in zip(self.body.input_names[begin:], args):
                 inputs[name] = val
         it = 0
         while cond and it < M:
-            outputs = self._run_meth_then(inputs)
+            inputs[self.body.input_names[0]] = numpy.array(it, dtype=M.dtype)
+            inputs[self.body.input_names[1]] = cond
+            outputs = self._run_meth(inputs)
             cond = outputs[cond_name]
             for i, o in zip(self.body.input_names[2:],
-                            self.body.output_names[2:]):
+                            self.body.output_names[1:]):
                 inputs[i] = outputs[o]
             it += 1
         if it == 0:
             outputs = {self.body.output_names[1]: cond}
             for i, o in zip(self.body.input_names[2:],
-                            self.body.output_names[2:]):
+                            self.body.output_names[1:]):
                 outputs[o] = inputs[i]
         for o in self.body.output_names:
             if o not in outputs:
