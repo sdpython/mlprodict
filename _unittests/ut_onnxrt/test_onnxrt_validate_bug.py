@@ -1,6 +1,7 @@
 """
-@brief      test log(time=40s)
+@brief      test log(time=3s)
 """
+import sys
 import os
 import unittest
 import numpy
@@ -34,6 +35,7 @@ class TestOnnxrtValidateBug(ExtTestCase):
         ort_pred = oinf.run({'X': X_test.astype(numpy.float64)})['Y']
         self.assertEqualArray(ort_pred, numpy.array([245.19907295849504]))
 
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_dict_vectorizer_rfr(self):
         this = os.path.abspath(os.path.dirname(__file__))
         data = os.path.join(this, "data", "pipeline_vectorize.onnx")

@@ -1,6 +1,7 @@
 """
 @brief      test log(time=65s)
 """
+import sys
 import os
 import unittest
 from logging import getLogger
@@ -51,6 +52,7 @@ class TestOnnxrtValidateBenchmark(ExtTestCase):
     @skipif_circleci('too long')
     @skipif_appveyor('crashes')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_validate_sklearn_operators_benchmark_all(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
