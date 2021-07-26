@@ -116,7 +116,7 @@ class OpRun:
 
         if onnx_node.op_type not in _at_least_one:
             for k, v in self._schema.attributes.items():
-                if not hasattr(self, k):
+                if not hasattr(self, k) and getattr(v, 'required', True):
                     raise RuntimeError(  # pragma: no cover
                         "Attribute '{}' is expected based on ONNX specifications "
                         "for node '{}' and options {}.".format(
