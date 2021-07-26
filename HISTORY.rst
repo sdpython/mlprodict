@@ -5,8 +5,16 @@
 History
 =======
 
-current - 2021-07-12 - 0.00Mb
+current - 2021-07-26 - 0.00Mb
 =============================
+
+* `289`: Avoids raising an exception when an optional parameter is not specified (2021-07-26)
+* `287`: Adds python runtime for operator Loop, SequenceInsert, ConcatFromSequence (2021-07-25)
+* `288`: Extends code coverage (2021-07-25)
+* `286`: Adds runtime for operator Range (2021-07-13)
+
+0.6.1447 - 2021-07-12 - 2.56Mb
+==============================
 
 * `285`: Adds function cst to create constant with numpy API for ONNX (2021-07-12)
 * `283`: Commutative property (2021-07-12)
@@ -322,10 +330,6 @@ current - 2021-07-12 - 0.00Mb
 * `19`: Enables support for SVM operators in python runtime (ONNX). (2019-07-28)
 * `16`: fix documentation, visual graph are not being rendered in notebooks (2019-07-23)
 * `18`: implements python runtime for SVM (2019-07-20)
-
-0.2.272 - 2019-07-15 - 0.09Mb
-=============================
-
 * `17`: add a mechanism to use ONNX with double computation (2019-07-15)
 * `13`: add automated benchmark of every scikit-learn operator in the documentation (2019-07-05)
 * `12`: implements a way to measure time for each node of the ONNX graph (2019-07-05)
