@@ -11,6 +11,7 @@ from onnx.helper import (
 from onnx import TensorProto
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt.type_object import SequenceType
 from mlprodict.tools import get_opset_number_from_onnx
 
 
@@ -122,10 +123,22 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
         for rt in ['onnxruntime1', 'python']:
             with self.subTest(rt=rt):
                 oinf = OnnxInference(model_def, runtime=rt)
-                got = oinf.run({
+                inputs = {
                     'trip_count': trip_count, 'cond': cond,
-                    'seq_empty': seq_empty})
+                    'seq_empty': seq_empty}
+                got = oinf.run(inputs)
                 self.assertEqualArray(expected, got['res'])
+                if rt == 'python':
+                    siz = oinf.infer_sizes(inputs)
+                    self.assertIsInstance(siz, dict)
+                    typ = oinf.infer_types()
+                    self.assertEqual(typ["trip_count"], numpy.int64)
+                    if 'cond' in typ:
+                        self.assertEqual(typ["cond"], numpy.bool_)
+                    for k, v in typ.items():
+                        if k in {'trip_count', 'cond'}:
+                            continue
+                        self.assertIsInstance(v, SequenceType)
 
     def sequence_insert_reference_implementation(
             self, sequence, tensor, position=None):

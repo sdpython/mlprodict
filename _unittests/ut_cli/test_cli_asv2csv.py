@@ -34,6 +34,7 @@ class TestCliAsvBench(ExtTestCase):
         self.assertEqual(df.shape, (168, 66))
         out = os.path.join(temp, "data<date>.csv")
         main(args=["asv2csv", "-f", data, "-o", out], fLOG=st.fprint)
+        main(args=["asv2csv", "-f", data], fLOG=st.fprint)
 
 
 if __name__ == "__main__":

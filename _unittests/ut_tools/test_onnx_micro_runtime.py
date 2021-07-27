@@ -5,7 +5,8 @@ import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAdd, OnnxTranspose, OnnxShape, OnnxPow, OnnxMatMul)
+    OnnxAdd, OnnxTranspose, OnnxShape, OnnxPow, OnnxMatMul, OnnxGemm,
+    OnnxSqueeze, OnnxUnsqueeze)
 from mlprodict.tools.onnx_micro_runtime import OnnxMicroRuntime
 
 
@@ -74,6 +75,44 @@ class TestOnnxMicroRuntime(ExtTestCase):
         rt = OnnxMicroRuntime(model_def)
         out = rt.run({'X': x})
         self.assertEqual(numpy.matmul(x, x), out['Y'])
+
+    def test_onnx_micro_runtime_squeeze(self):
+        opset = 14  # opset=13, 14, ...
+        x = numpy.array([1, 2, 4, 5]).astype(
+            numpy.float32).reshape((2, 2, 1))
+        cop = OnnxSqueeze('X', numpy.array([2], dtype=numpy.int64),
+                          op_version=opset, output_names=['Y'])
+        model_def = cop.to_onnx({'X': x}, target_opset=opset)
+        rt = OnnxMicroRuntime(model_def)
+        out = rt.run({'X': x})
+        self.assertEqual(numpy.squeeze(x), out['Y'])
+
+    def test_onnx_micro_runtime_unsqueeze(self):
+        opset = 14  # opset=13, 14, ...
+        x = numpy.array([1, 2, 4, 5]).astype(
+            numpy.float32).reshape((2, 2))
+        cop = OnnxUnsqueeze('X', numpy.array([2], dtype=numpy.int64),
+                            op_version=opset, output_names=['Y'])
+        model_def = cop.to_onnx({'X': x}, target_opset=opset)
+        rt = OnnxMicroRuntime(model_def)
+        out = rt.run({'X': x})
+        self.assertEqual(x.reshape(2, 2, 1), out['Y'])
+
+    def test_onnx_micro_runtime_gemm(self):
+        opset = 14  # opset=13, 14, ...
+        x = numpy.array([1, 2, 4, 5]).astype(
+            numpy.float32).reshape((2, 2))
+        for ta in [0, 1]:
+            for tb in [0, 1]:
+                cop = OnnxGemm(
+                    'X', 'X', 'X', op_version=opset, alpha=1., beta=1.,
+                    output_names=['Y'], transA=ta, transB=tb)
+                model_def = cop.to_onnx({'X': x}, target_opset=opset)
+                rt = OnnxMicroRuntime(model_def)
+                out = rt.run({'X': x})
+                xa = x.T if ta else x
+                xb = x.T if tb else x
+                self.assertEqual(numpy.matmul(xa, xb) + x, out['Y'])
 
 
 if __name__ == "__main__":

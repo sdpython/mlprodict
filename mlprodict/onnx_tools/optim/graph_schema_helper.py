@@ -102,7 +102,7 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
     if schema is None:
         ft = DoubleTensorType if dtype == numpy.float64 else FloatTensorType
     elif len(schema) != 1:
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             "schema should only contain one output not {}.".format(schema))
     else:
         if isinstance(schema, DataType):

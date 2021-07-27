@@ -19,14 +19,15 @@ class Loop(OpRun):
                        expected_attributes=Loop.atts,
                        **options)
         if not hasattr(self.body, 'run'):
-            raise RuntimeError("Parameter 'body' must have a method 'run', "
-                               "type {}.".format(type(self.body)))
+            raise RuntimeError(  # pragma: no cover
+                "Parameter 'body' must have a method 'run', "
+                "type {}.".format(type(self.body)))
 
         self._run_meth = (self.body.run_in_scan
                           if hasattr(self.body, 'run_in_scan')
                           else self.body.run)
 
-    def _run(self, M, cond, v_initial, *args):  # pylint: disable=W0221
+    def _run(self, M, cond, v_initial, *args, callback=None):  # pylint: disable=W0221
         inputs = {name: None for name in self.body.input_names}
         inputs[self.body.input_names[2]] = v_initial
         cond_name = self.body.output_names[1]
@@ -43,6 +44,8 @@ class Loop(OpRun):
             for i, o in zip(self.body.input_names[2:],
                             self.body.output_names[1:]):
                 inputs[i] = outputs[o]
+            if callback is not None:
+                callback(inputs)
             it += 1
         if it == 0:
             outputs = {self.body.output_names[1]: cond}
@@ -61,3 +64,17 @@ class Loop(OpRun):
     def _infer_types(self, M, cond, v_initial, *args):  # pylint: disable=W0221
         res = self.body._set_type_inference_runtime()
         return tuple([res[name] for name in self.body.output_names[1:]])
+
+    def _infer_sizes(self, M, cond, v_initial, *args):  # pylint: disable=W0221
+        store = []
+
+        def callback_(inputs):
+            res = self.body.infer_sizes(inputs)
+            store.append(res)
+
+        res = self._run(M, cond, v_initial, *args, callback=callback_)
+        temp = 0
+        for v in store:
+            for vv in v.values():
+                temp += sum(vv.values())
+        return (dict(temp=temp), ) + res

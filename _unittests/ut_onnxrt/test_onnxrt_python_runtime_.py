@@ -34,6 +34,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxCompress,
     OnnxConcat, OnnxConv, OnnxConvTranspose,
     OnnxConstant, OnnxConstant_9, OnnxConstant_11,
+    OnnxConstant_12, OnnxConstant_13,
     OnnxConstantOfShape,
     OnnxCos, OnnxCosh,
     OnnxCumSum,
@@ -108,6 +109,7 @@ from mlprodict.testing.test_utils.quantized_tensor import (
     QuantizedTensor, QuantizedBiasTensor, test_qlinear_conv)
 from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import (  # pylint: disable=W0611,E0611,E0401
     test_qgemm0, test_qgemm1)
+from mlprodict.onnxrt.ops_cpu.op_constant import Constant_12, Constant_11, Constant_9
 
 try:
     numpy_str = numpy.str_
@@ -3908,7 +3910,13 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
         opset_tests = [
             (get_opset_number_from_onnx(), OnnxConstant),
-            (11, OnnxConstant_11)]
+            (13, OnnxConstant_13),
+            (12, OnnxConstant_12),
+            (11, OnnxConstant_11),
+            (9, OnnxConstant_9)]
+
+        expected_type = {14: Constant_12, 12: Constant_12, 13: Constant_12,
+                         11: Constant_11, 9: Constant_9}
 
         if (not sys.platform.startswith('win') or
                 compare_module_version(onnx_version, (1, 8, 0)) != 0):
@@ -3935,6 +3943,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 except RuntimeError as e:
                     raise AssertionError(
                         "Unable to load the model:\n{}".format(model_def)) from e
+                ope = oinf.sequence_[0].ops_
+                self.assertIsInstance(ope, expected_type[opset])
                 got = oinf.run({'X': X})
                 if opset >= 11:
                     self.assertEqual(list(sorted(got)), [

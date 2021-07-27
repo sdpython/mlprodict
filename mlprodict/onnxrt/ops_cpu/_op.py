@@ -8,6 +8,7 @@ import numpy
 import onnx
 import onnx.defs
 from ..shape_object import ShapeObject
+from ..type_object import SequenceType
 from ._new_ops import OperatorSchema
 
 
@@ -240,13 +241,14 @@ class OpRun:
                 "res must be tuple not {} (operator '{}')".format(
                     type(res), self.__class__.__name__))
         for a in res:
-            if not isinstance(a, numpy.dtype) and a not in {
+            if not isinstance(a, (numpy.dtype, SequenceType)) and a not in {
                     numpy.int8, numpy.uint8, numpy.float16, numpy.float32,
                     numpy.float64, numpy.int32, numpy.int64, numpy.int16,
                     numpy.uint16, numpy.uint32, numpy.bool_, numpy.str_,
-                    numpy.uint64, bool, str, }:
+                    numpy.uint64, bool, str}:
                 raise TypeError(  # pragma: no cover
-                    "Type ({}, {}) is not a numpy type (operator '{}')".format(
+                    "Type ({}, {}) is not a numpy type or a sequence type "
+                    "(operator '{}')".format(
                         a, type(a), self.__class__.__name__))
         return res
 
