@@ -10,4 +10,3 @@ class SequenceType:
     Used in @see methd infer_types.
     """
     pass
-

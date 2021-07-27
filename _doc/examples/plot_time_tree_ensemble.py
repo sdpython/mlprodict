@@ -203,7 +203,8 @@ piv
 ###########################################
 # Graphs.
 ax = piv.T.plot(kind="bar")
-ax.set_title("Comparison for %d observations and %d features" % X_test.shape)
+ax.set_title("Computation time ratio for %d observations and %d features\n"
+             "lower is better for onnx runtimes" % X_test.shape)
 plt.savefig('%s.png' % name)
 
 ###########################################

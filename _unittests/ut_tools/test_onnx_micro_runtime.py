@@ -96,7 +96,7 @@ class TestOnnxMicroRuntime(ExtTestCase):
         model_def = cop.to_onnx({'X': x}, target_opset=opset)
         rt = OnnxMicroRuntime(model_def)
         out = rt.run({'X': x})
-        self.assertEqual(x.reshape(2, 2, 1), out['Y'])
+        self.assertEqual(x.reshape((2, 2, 1)), out['Y'])
 
     def test_onnx_micro_runtime_gemm(self):
         opset = 14  # opset=13, 14, ...
