@@ -3971,5 +3971,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_abs()
+    # TestOnnxrtPythonRuntime().test_make_constant()
     unittest.main()

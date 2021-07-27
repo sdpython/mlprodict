@@ -30,7 +30,7 @@ from .op_concat import Concat
 from .op_concat_from_sequence import ConcatFromSequence
 from .op_conv import Conv
 from .op_conv_transpose import ConvTranspose
-from .op_constant import Constant
+from .op_constant import Constant, Constant_12, Constant_11, Constant_9
 from .op_constant_of_shape import ConstantOfShape
 from .op_cos import Cos
 from .op_cosh import Cosh

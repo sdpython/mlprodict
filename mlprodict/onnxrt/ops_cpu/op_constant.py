@@ -28,7 +28,7 @@ class Constant_9(OpRun):
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=Constant.atts,
+                       expected_attributes=Constant_9.atts,
                        **options)
         self.cst = self.value
         _check_dtype(self.cst)
@@ -56,9 +56,9 @@ class Constant_11(OpRun):
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=Constant.atts,
+                       expected_attributes=Constant_11.atts,
                        **options)
-        if self.sparse_value is not None:
+        if getattr(self, 'sparse_value', None) is not None:
             self.cst = self.sparse_value
         else:
             self.cst = self.value
@@ -94,7 +94,7 @@ class Constant_12(OpRun):
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=Constant.atts,
+                       expected_attributes=Constant_12.atts,
                        **options)
         if hasattr(self, 'sparse_value') and self.sparse_value is not None:
             self.cst = self.sparse_value
