@@ -2,6 +2,7 @@
 @brief      test tree node (time=15s)
 """
 import os
+import sys
 import unittest
 from pyquickhelper.loghelper import BufferedPrint
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder, skipif_circleci
@@ -84,6 +85,7 @@ class TestCliValidate(ExtTestCase):
         self.assertNotExists(out2)
 
     @skipif_circleci('too long')
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
     def test_cli_validate_model_lightgbm(self):
         temp = get_temp_folder(__file__, "temp_validate_model_lgbm_csv")
         out1 = os.path.join(temp, "raw.csv")

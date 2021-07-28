@@ -61,6 +61,11 @@ class LabelEncoder(OpRun):
                 self.keys_floats, self.values_strings)}
             self.default_ = self.default_string
             self.dtype_ = numpy.array(self.classes_.values).dtype
+        elif len(self.keys_int64s) > 0 and len(self.values_strings) > 0:
+            self.classes_ = {k: v.decode('utf-8') for k, v in zip(
+                self.keys_int64s, self.values_strings)}
+            self.default_ = self.default_string
+            self.dtype_ = numpy.array(self.classes_.values).dtype
         elif hasattr(self, 'classes_strings'):
             raise RuntimeError(  # pragma: no cover
                 "This runtime does not implement version 1 of "

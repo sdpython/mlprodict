@@ -13,7 +13,7 @@ try:
         InferenceSession as OrtInferenceSession,
         __version__ as onnxrt_version,
         GraphOptimizationLevel)
-except ImportError:
+except ImportError:  # pragma: no cover
     SessionOptions = None
     RunOptions = None
     OrtInferenceSession = None
@@ -27,7 +27,7 @@ try:
         InvalidArgument as OrtInvalidArgument,
         InvalidGraph as OrtInvalidGraph,
         RuntimeException as OrtRuntimeException)
-except ImportError:
+except ImportError:  # pragma: no cover
     SessionOptions = None
     RunOptions = None
     InferenceSession = None
@@ -105,7 +105,7 @@ def prepare_c_profiling(model_onnx, inputs, dest=None):
     if dest is None:
         dest = "."
     if not os.path.exists(dest):
-        os.makedirs(dest)
+        os.makedirs(dest)  # pragma: no cover
     dest = os.path.abspath(dest)
     name = "model.onnx"
     model_bytes = model_onnx.SerializeToString()

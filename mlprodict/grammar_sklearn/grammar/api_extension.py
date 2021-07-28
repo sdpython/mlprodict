@@ -88,10 +88,10 @@ class AutoType:
         if hasattr(self, name):
             try:
                 return getattr(self, name)(value, hook=hook)
-            except TypeError as e:  # pragma: no cover
+            except TypeError as e:
                 raise TypeError(
                     "Singature of '{0}' is wrong for type '{1}'".format(name, type(self))) from e
         else:
-            raise NotImplementedError(  # pragma: no cover
+            raise NotImplementedError(
                 "No formatting is implemented for lang='{0}' and type='{1}'".format(
                     lang, type(self)))

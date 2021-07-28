@@ -23,6 +23,7 @@ from ..onnx_tools.optim import onnx_remove_node_unused
 from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_exports import OnnxInferenceExport
 from .shape_object import ShapeObject
+from .type_object import SequenceType
 
 
 class OnnxInference:
@@ -1021,7 +1022,11 @@ class OnnxInference:
         for k, v in self.inputs_.items():
             # The function assumes the first dimension is unknown
             # and is the batch size.
-            values[k] = guess_numpy_type_from_string(v['type']['elem'])
+            if isinstance(v['type']['elem'], dict):
+                # sequence
+                values[k] = SequenceType()
+            else:
+                values[k] = guess_numpy_type_from_string(v['type']['elem'])
         for k, v in self.inits_.items():
             values[k] = v['value'].dtype
         last = None
