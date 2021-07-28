@@ -15,7 +15,7 @@ class Where(OpRun):
                        **options)
 
     def _run(self, condition, x, y):  # pylint: disable=W0221
-        if x.dtype != y.dtype:
+        if x.dtype != y.dtype and x.dtype not in (numpy.object_, ):
             raise RuntimeError(  # pragma: no cover
                 "x and y should share the same dtype {} != {}".format(
                     x.dtype, y.dtype))
