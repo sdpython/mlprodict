@@ -702,7 +702,7 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
             try:
                 self.numpy_fct(a, b, out=a)
                 return (a, )
-            except ValueError:
+            except (ValueError, TypeError):
                 return (self.numpy_fct(a, b), )
         if self.inplaces.get(1, False) and a.size <= b.size:
             if len(b.shape) == 1 and a.shape == (1, 1):
@@ -710,7 +710,7 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
             try:
                 self.numpy_fct(a, b, out=b)
                 return (b, )
-            except ValueError:
+            except (ValueError, TypeError):
                 return (self.numpy_fct(a, b), )
         return (self.numpy_fct(a, b), )
 

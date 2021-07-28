@@ -33,7 +33,7 @@ class Gather(OpRun):
             return (numpy.empty((0, ), dtype=x.dtype), )
         try:
             return (self.rt_[str(x.dtype)].compute(x, indices), )
-        except KeyError:
+        except (KeyError, ValueError):
             return (numpy.take(x, indices, axis=self.axis), )
 
     def _infer_shapes(self, x, indices):  # pylint: disable=E0202,W0221

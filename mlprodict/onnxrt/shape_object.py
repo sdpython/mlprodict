@@ -492,17 +492,17 @@ class ShapeObject(BaseDimensionShape):
             raise ValueError(
                 "dtype cannot be None, shape type is {}\n{}".format(
                     type(shape), shape))
-        if self._dtype in (float, 'double'):
+        if self._dtype in (float, 'double', 'tensor(double)'):
             self._dtype = numpy.float64
-        elif self._dtype in ('float32', 'float'):
+        elif self._dtype in ('float32', 'float', 'tensor(float)'):
             self._dtype = numpy.float32
-        elif self._dtype in (numpy.float16, 'float16'):
+        elif self._dtype in (numpy.float16, 'float16', 'tensor(float16)'):
             self._dtype = numpy.float16
-        elif self._dtype in ('int32', ):
+        elif self._dtype in ('int32', 'tensor(int32)'):
             self._dtype = numpy.int32
-        elif self._dtype in (int, 'int', 'int64'):
+        elif self._dtype in (int, 'int', 'int64', 'tensor(int64)'):
             self._dtype = numpy.int64
-        elif self._dtype in (str, 'str', numpy.str_):
+        elif self._dtype in (str, 'str', numpy.str_, 'tensor(str)'):
             self._dtype = numpy.str_
         elif (hasattr(self._dtype, 'type') and self._dtype.type is numpy.string_):
             pass

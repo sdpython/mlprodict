@@ -3,9 +3,12 @@
 """
 @file
 @brief Runtime operator.
+
+.. versionadded:: 0.7
 """
 import numpy
 from ._op import OpRun
+from ..shape_object import ShapeObject
 
 
 class Loop(OpRun):
@@ -59,7 +62,16 @@ class Loop(OpRun):
 
     def _infer_shapes(self, M, cond, v_initial, *args):  # pylint: disable=W0221
         res = self.body._set_shape_inference_runtime()
-        return tuple([res[name] for name in self.body.output_names[1:]])
+        outputs = {k[0]: k[1:] for k in self.body.output_names_shapes_types}
+        
+        ret = []
+        for name in self.body.output_names[1:]:
+            if name in res:
+                ret.append(res[name])
+            else:
+                find = outputs[name]
+                ret.append(ShapeObject(find[0], dtype=find[1]))
+        return tuple(ret)
 
     def _infer_types(self, M, cond, v_initial, *args):  # pylint: disable=W0221
         res = self.body._set_type_inference_runtime()

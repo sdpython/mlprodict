@@ -13,8 +13,16 @@ from ..shape_object import ShapeObject
 def reshape_reference_implementation(data, shape):
     new_shape = numpy.copy(shape)
     zeros_index = numpy.where(shape == 0)
-    new_shape[zeros_index] = numpy.array(data.shape)[zeros_index]
-    reshaped = numpy.reshape(data, new_shape)
+    if len(data.shape) == 1 and data.shape[0] == 0:
+        reshaped = numpy.reshape(data, shape)
+    else:
+        try:
+            new_shape[zeros_index] = numpy.array(data.shape)[zeros_index]
+        except IndexError as e:
+            raise RuntimeError(
+                "Unable to reshape from shape %r to shape %r (or %r)."
+                "" % (data.shape, shape, new_shape))
+        reshaped = numpy.reshape(data, new_shape)
     return reshaped
 
 

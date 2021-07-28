@@ -3,6 +3,8 @@
 """
 @file
 @brief Runtime operator.
+
+.. versionadded:: 0.7
 """
 from ._op import OpRun
 

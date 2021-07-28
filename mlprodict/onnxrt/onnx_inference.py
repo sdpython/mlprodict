@@ -59,6 +59,9 @@ class OnnxInference:
     :param ir_version: if not None, overwrite the default version
     :param target_opset: used to overwrite *target_opset*
     :param runtime_options: specific options for the runtime
+    :param inside_loop: tells the runtime the graph is meant to
+        be repeated multiple times (in that case, inputs and
+        outputs may share the same name)
 
     Among the possible runtime_options, there are:
     * *enable_profiling*: enables profiling for :epkg:`onnxruntime`
@@ -71,7 +74,7 @@ class OnnxInference:
                  skip_run=False, inplace=True,
                  input_inplace=False, ir_version=None,
                  target_opset=None, runtime_options=None,
-                 session_options=None):
+                 session_options=None, inside_loop=False):
         if isinstance(onnx_or_bytes_or_stream, bytes):
             self.obj = load_model(BytesIO(onnx_or_bytes_or_stream))
         elif isinstance(onnx_or_bytes_or_stream, BytesIO):
@@ -94,6 +97,7 @@ class OnnxInference:
         self.inplace = inplace
         self.force_target_opset = target_opset
         self.runtime_options = runtime_options
+        self.inside_loop = inside_loop
         self._init()
 
     def __getstate__(self):
@@ -137,8 +141,9 @@ class OnnxInference:
             for xy in ino:
                 shape = xy.type.tensor_type.shape
                 for d in shape.dim:
-                    if d.dim_value == 0 and "0" in str(d):
+                    if d.dim_value == 0 and "0" in str(d) and 'dim_param' not in str(d):
                         # d.dim_value returns 0 whether is is 0 or empty.
+                        # it may be a parameter as well
                         raise RuntimeError(  # pragma: no cover
                             "Wrong ONNX file, one input or output has an empty shape: "
                             "{}.".format(xy))
@@ -309,6 +314,20 @@ class OnnxInference:
         return [(_.name, _var_as_dict(_)['type'].get('shape', None))
                 for _ in self.obj.graph.output]
 
+    @property
+    def output_names_shapes_types(self):
+        """
+        Returns the names, shapes, types of all outputs.
+        This method assumes all inputs are tensors.
+        It does not include the optional outputs.
+
+        .. versionadd:: 0.7
+        """
+        names = set(self.output_names)
+        return [(_.name, _var_as_dict(_)['type']['shape'],
+                 'tensor(%s)' % _var_as_dict(_)['type']['elem'])
+                for _ in self.obj.graph.output if _.name in names]
+
     def global_index(self, name):
         """
         Maps every name to one integer to avoid using dictionaries
@@ -437,9 +456,10 @@ class OnnxInference:
             names[k, 0] = ('I', v)
         for k, v in outputs.items():
             if (k, 0) in names and self.runtime != 'empty':
-                raise RuntimeError(  # pragma: no cover
-                    "Output '{}' already exists (tag='{}').".format(
-                        k, names[k, 0][0]))
+                if not self.inside_loop:
+                    raise RuntimeError(  # pragma: no cover
+                        "Output '{}' already exists (tag='{}').".format(
+                            k, names[k, 0][0]))
             names[k, 0] = ('O', v)
         for k, v in nodes.items():
             if (k, 1) in names:

@@ -131,14 +131,21 @@ class OnnxInferenceNode:
         """
         if 'atts' not in self.desc:
             return  # pragma: no cover
+        inside_loop = self.onnx_node.op_type in {'Loop'}
         for _, v in self.desc['atts'].items():
             if 'value' not in v:
                 continue  # pragma: no cover
             value = v['value']
             if isinstance(value, onnx_proto.GraphProto):
-                sess = rt_class(v['value'], runtime=runtime,
-                                ir_version=ir_version,
-                                target_opset=target_opset)
+                try:
+                    sess = rt_class(v['value'], runtime=runtime,
+                                    ir_version=ir_version,
+                                    target_opset=target_opset,
+                                    inside_loop=inside_loop)
+                except RuntimeError as e:  # pragma: no cover
+                    raise RuntimeError(
+                        "Unable to instantiate a node of type %r and name %r."
+                        "" % (self.onnx_node.op_type, self.onnx_node.name)) from e
                 v['value_rt'] = sess
 
     def run(self, values):

@@ -158,6 +158,8 @@ class TestOnnxInference(ExtTestCase):
                 self.assertIsInstance(inp, list)
                 out = oinf.output_names_shapes
                 self.assertIsInstance(out, list)
+                out = oinf.output_names_shapes_types
+                self.assertIsInstance(out, list)
 
 
 if __name__ == "__main__":
