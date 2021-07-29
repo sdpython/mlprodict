@@ -20,6 +20,13 @@ def _get_pad_shape(auto_pad, input_spatial_shape, kernel_spatial_shape,
                 kernel_spatial_shape[i] - input_spatial_shape[i])
     elif auto_pad == 'VALID':
         pass
+    if len(pad_shape) == 0:
+        raise RuntimeError(  # pragma: no cover
+            "Unable to compute pad shape, auto_pad=%r, "
+            "input_spatial_shape=%r, kernel_spatial_shape=%r, "
+            "strides_spatial=%r." % (
+                auto_pad, input_spatial_shape, kernel_spatial_shape,
+                strides_spatial))
     return pad_shape
 
 
@@ -39,6 +46,20 @@ def _get_output_shape(auto_pad, input_spatial_shape, kernel_spatial_shape,
                     float(input_spatial_shape[i] -
                           (kernel_spatial_shape[i] - 1)) /
                     float(strides_spatial[i])))
+    if len(out_shape) == 0:
+        raise RuntimeError(  # pragma: no cover
+            "Unable to compute output shape, auto_pad=%r, "
+            "input_spatial_shape=%r, kernel_spatial_shape=%r, "
+            "strides_spatial=%r." % (
+                auto_pad, input_spatial_shape, kernel_spatial_shape,
+                strides_spatial))
+    if min(out_shape) <= 0:
+        raise RuntimeError(  # pragma: no cover
+            "output shape cannot be null or negative, out_shape=%r, "
+            "auto_pad=%r, input_spatial_shape=%r, "
+            "kernel_spatial_shape=%r, strides_spatial=%r." % (
+                out_shape, auto_pad, input_spatial_shape,
+                kernel_spatial_shape, strides_spatial))
     return out_shape
 
 
@@ -64,7 +85,7 @@ def _pool(padded, x_shape, kernel_shape, strides_shape,
         elif pooling_type == 'MAX':
             f = numpy.max
         else:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 'Pooling type {} does not support. Should be AVG, MAX.'
                 ''.format(pooling_type))
 
@@ -77,7 +98,7 @@ def _pool(padded, x_shape, kernel_shape, strides_shape,
 
 class AveragePool(OpRun):
 
-    atts = {'auto_pad': 'NOTSET',
+    atts = {'auto_pad': b'NOTSET',
             'ceil_mode': 0,
             'count_include_pad': 0,
             'kernel_shape': [],
@@ -90,21 +111,62 @@ class AveragePool(OpRun):
                        **options)
 
     def _run(self, x):  # pylint: disable=W0221
+        if self.ceil_mode != 0:
+            raise RuntimeError(
+                "ceil_mode != 0, runtime not implemented yet.")
         if len(self.strides) == 0:
             strides = [1] * (len(x.shape) - 2)
         else:
             strides = self.strides
         kernel_shape = list(self.kernel_shape)
-        auto_pad = 'VALID' if self.auto_pad == 'NOTSET' else self.auto_pad
-        out_shape = _get_output_shape(
-            auto_pad, x.shape[2:], kernel_shape, strides)
+        auto_pad = (
+            'VALID' if self.auto_pad == b'NOTSET'
+            else self.auto_pad.decode('ascii'))
+
         if len(self.pads) == 0:
             pad_shape = [0] * (len(x.shape) - 2)
+            x_shape = x.shape[2:]
+            padded = x
+        elif len(self.pads) == 4:
+            pad_top, pad_bottom, pad_left, pad_right = self.pads
+            pad_shape = [pad_top + pad_bottom, pad_left + pad_right]
+            x_shape = numpy.array(x.shape[2:]) + numpy.array(pad_shape)
+            const = numpy.nan if self.count_include_pad == 0 else 0
+            padded = numpy.pad(
+                x, ((0, 0), (0, 0),
+                    (pad_top, pad_bottom), (pad_left, pad_right)),
+                mode='constant', constant_values=const)
         else:
             pad_shape = self.pads
+            x_shape = x.shape[2:]
+            padded = x
+
+        if auto_pad in ('SAME_LOWER', 'SAME_UPPER'):
+            const = numpy.nan if self.count_include_pad == 0 else 0
+            out_shape = _get_output_shape(
+                auto_pad, x_shape, kernel_shape, strides)
+            pad_shape = _get_pad_shape(
+                auto_pad, x_shape, kernel_shape, strides, out_shape)
+            if auto_pad == 'SAME_LOWER':
+                pad_bottom = pad_shape[0] // 2
+                pad_top = pad_shape[0] - pad_bottom
+                pad_right = pad_shape[1] // 2
+                pad_left = pad_shape[1] - pad_right
+            else:
+                pad_top = pad_shape[0] // 2
+                pad_bottom = pad_shape[0] - pad_top
+                pad_left = pad_shape[1] // 2
+                pad_right = pad_shape[1] - pad_left
+            padded = numpy.pad(
+                padded, ((0, 0), (0, 0), (pad_top, pad_bottom),
+                         (pad_left, pad_right)),
+                mode='constant', constant_values=const)
+        else:
+            out_shape = _get_output_shape(
+                auto_pad, x_shape, kernel_shape, strides)
 
         pooling_type = 'AVG'
-        res = _pool(x, x.shape, kernel_shape, strides,
+        res = _pool(padded, x.shape, kernel_shape, strides,
                     out_shape, pad_shape, pooling_type,
                     count_include_pad=self.count_include_pad)
         return (res, )
