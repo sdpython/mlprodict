@@ -30,6 +30,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxArgMin_11, OnnxArgMin,
     OnnxBatchNormalization,
     OnnxAcos, OnnxAcosh, OnnxAsin, OnnxAsinh, OnnxAtan, OnnxAtanh,
+    OnnxAveragePool,
     OnnxCast, OnnxCeil, OnnxClip,
     OnnxCompress,
     OnnxConcat, OnnxConv, OnnxConvTranspose,
@@ -85,6 +86,7 @@ from mlprodict.tools.asv_options_helper import (
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
 from mlprodict.onnxrt.ops_cpu.op_batch_normalization import (
     _batchnorm_test_mode, _batchnorm_training_mode)
+from mlprodict.onnxrt.ops_cpu.op_average_pool import _get_output_shape, _pool
 from mlprodict.onnxrt.ops_cpu.op_global_average_pool import _global_average_pool
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611,E0401
     topk_element_min_double, topk_element_max_double,
@@ -375,6 +377,14 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 OnnxAbs, numpy.abs, debug=True)
 
     @wraplog()
+    def test_onnxt_runtime_acos(self):
+        self.common_test_onnxt_runtime_unary(OnnxAcos, numpy.arccos)
+
+    @wraplog()
+    def test_onnxt_runtime_acosh(self):
+        self.common_test_onnxt_runtime_unary(OnnxAcosh, numpy.arccosh)
+
+    @wraplog()
     def test_onnxt_runtime_add(self):
         self.common_test_onnxt_runtime_binary(OnnxAdd, numpy.add)
 
@@ -568,14 +578,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf, {'X': X}, got, OnnxArgMin_12, model_def)
 
     @wraplog()
-    def test_onnxt_runtime_acos(self):
-        self.common_test_onnxt_runtime_unary(OnnxAcos, numpy.arccos)
-
-    @wraplog()
-    def test_onnxt_runtime_acosh(self):
-        self.common_test_onnxt_runtime_unary(OnnxAcosh, numpy.arccosh)
-
-    @wraplog()
     def test_onnxt_runtime_asin(self):
         self.common_test_onnxt_runtime_unary(OnnxAsin, numpy.arcsin)
 
@@ -612,6 +614,45 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
         self.assertEqualArray(
             numpy.arctan2(y_val, x_val), atan2(y_val, x_val), decimal=5)
+
+    def _expect_average_pool(self, node, inputs, outputs, opset=None):
+        if opset is None:
+            opset = get_opset_number_from_onnx()
+        ginputs = [
+            onnx.helper.make_tensor_value_info(
+                node.input[0], TensorProto.FLOAT, []),  # pylint: disable=E1101,
+        ]
+        goutputs = [
+            onnx.helper.make_tensor_value_info(
+                node.output[0], TensorProto.FLOAT, []),  # pylint: disable=E1101,
+        ]
+        model_def = onnx.helper.make_model(
+            opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+            graph=onnx.helper.make_graph(
+                name='test_average_pool', inputs=ginputs, outputs=goutputs,
+                nodes=[node]))
+        oinf = OnnxInference(model_def)
+        got = oinf.run({n: v for n, v in zip(node.input, inputs)})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(outputs[0], got['y'])
+
+    @wraplog()
+    def test_onnxt_runtime_average_pool(self):
+        node = onnx.helper.make_node(
+            'AveragePool', inputs=['x'], outputs=['y'],
+            kernel_shape=[2])
+        x = numpy.random.randn(1, 3, 32).astype(numpy.float32)
+        x_shape = numpy.shape(x)
+        kernel_shape = [2]
+        strides = [1]
+        out_shape = _get_output_shape(
+            'VALID', x_shape[2:], kernel_shape, strides)
+        padded = x
+        y = _pool(padded, x_shape, kernel_shape,
+                  strides, out_shape, [0], 'AVG')
+        self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+        python_tested.append(OnnxAveragePool)
 
     @wraplog()
     def test_onnxt_runtime_batch_normalization(self):
