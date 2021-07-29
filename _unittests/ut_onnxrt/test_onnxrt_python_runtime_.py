@@ -30,6 +30,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxArgMin_11, OnnxArgMin,
     OnnxBatchNormalization,
     OnnxAcos, OnnxAcosh, OnnxAsin, OnnxAsinh, OnnxAtan, OnnxAtanh,
+    OnnxAveragePool,
     OnnxCast, OnnxCeil, OnnxClip,
     OnnxCompress,
     OnnxConcat, OnnxConv, OnnxConvTranspose,
@@ -85,6 +86,8 @@ from mlprodict.tools.asv_options_helper import (
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
 from mlprodict.onnxrt.ops_cpu.op_batch_normalization import (
     _batchnorm_test_mode, _batchnorm_training_mode)
+from mlprodict.onnxrt.ops_cpu.op_average_pool import (
+    _get_output_shape, _pool, _get_pad_shape)
 from mlprodict.onnxrt.ops_cpu.op_global_average_pool import _global_average_pool
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611,E0401
     topk_element_min_double, topk_element_max_double,
@@ -375,6 +378,14 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 OnnxAbs, numpy.abs, debug=True)
 
     @wraplog()
+    def test_onnxt_runtime_acos(self):
+        self.common_test_onnxt_runtime_unary(OnnxAcos, numpy.arccos)
+
+    @wraplog()
+    def test_onnxt_runtime_acosh(self):
+        self.common_test_onnxt_runtime_unary(OnnxAcosh, numpy.arccosh)
+
+    @wraplog()
     def test_onnxt_runtime_add(self):
         self.common_test_onnxt_runtime_binary(OnnxAdd, numpy.add)
 
@@ -568,14 +579,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf, {'X': X}, got, OnnxArgMin_12, model_def)
 
     @wraplog()
-    def test_onnxt_runtime_acos(self):
-        self.common_test_onnxt_runtime_unary(OnnxAcos, numpy.arccos)
-
-    @wraplog()
-    def test_onnxt_runtime_acosh(self):
-        self.common_test_onnxt_runtime_unary(OnnxAcosh, numpy.arccosh)
-
-    @wraplog()
     def test_onnxt_runtime_asin(self):
         self.common_test_onnxt_runtime_unary(OnnxAsin, numpy.arcsin)
 
@@ -612,6 +615,256 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
         self.assertEqualArray(
             numpy.arctan2(y_val, x_val), atan2(y_val, x_val), decimal=5)
+
+    def _expect_average_pool(self, node, inputs, outputs, opset=None):
+        if opset is None:
+            opset = get_opset_number_from_onnx()
+        ginputs = [
+            onnx.helper.make_tensor_value_info(
+                node.input[0], TensorProto.FLOAT, []),  # pylint: disable=E1101,
+        ]
+        goutputs = [
+            onnx.helper.make_tensor_value_info(
+                node.output[0], TensorProto.FLOAT, []),  # pylint: disable=E1101,
+        ]
+        model_def = onnx.helper.make_model(
+            opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+            graph=onnx.helper.make_graph(
+                name='test_average_pool', inputs=ginputs, outputs=goutputs,
+                nodes=[node]))
+        oinf = OnnxInference(model_def)
+        got = oinf.run({n: v for n, v in zip(node.input, inputs)})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(outputs[0], got['y'])
+
+    @wraplog()
+    def test_onnxt_runtime_average_pool(self):
+        node = onnx.helper.make_node(
+            'AveragePool', inputs=['x'], outputs=['y'],
+            kernel_shape=[2, 2], auto_pad='SAME_UPPER')
+        x = numpy.random.randn(1, 3, 32, 32).astype(numpy.float32)
+        x_shape = numpy.shape(x)
+        kernel_shape = (2, 2)
+        strides = (1, 1)
+        out_shape = _get_output_shape(
+            'SAME_UPPER', x_shape[2:], kernel_shape, strides)
+        pad_shape = _get_pad_shape(
+            'SAME_UPPER', x_shape[2:], kernel_shape, strides, out_shape)
+        pad_top = pad_shape[0] // 2
+        pad_bottom = pad_shape[0] - pad_top
+        pad_left = pad_shape[1] // 2
+        pad_right = pad_shape[1] - pad_left
+        padded = numpy.pad(
+            x, ((0, 0), (0, 0), (pad_top, pad_bottom), (pad_left, pad_right)),
+            mode='constant', constant_values=numpy.nan)
+        y = _pool(
+            padded, x_shape, kernel_shape, strides, out_shape, pad_shape, 'AVG')
+        self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+        node = onnx.helper.make_node(
+            'AveragePool', inputs=['x'], outputs=['y'],
+            kernel_shape=[3, 3], pads=[2, 2, 2, 2],
+            count_include_pad=1)
+        x = numpy.random.randn(1, 3, 28, 28).astype(numpy.float32)
+        x_shape = numpy.shape(x)
+        kernel_shape = (3, 3)
+        strides = (1, 1)
+        pad_bottom = 2
+        pad_top = 2
+        pad_right = 2
+        pad_left = 2
+        pad_shape = [pad_top + pad_bottom, pad_left + pad_right]
+        out_shape = _get_output_shape(
+            'VALID', numpy.add(x_shape[2:], pad_shape), kernel_shape, strides)
+        padded = numpy.pad(
+            x, ((0, 0), (0, 0), (pad_top, pad_bottom), (pad_left, pad_right)),
+            mode='constant', constant_values=0)
+        y = _pool(
+            padded, x_shape, kernel_shape, strides, out_shape,
+            pad_shape, 'AVG', count_include_pad=1)
+        self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+        node = onnx.helper.make_node(
+            'AveragePool', inputs=['x'], outputs=['y'],
+            kernel_shape=[2, 2], auto_pad='SAME_LOWER')
+        x = numpy.random.randn(1, 3, 32, 32).astype(numpy.float32)
+        x_shape = numpy.shape(x)
+        kernel_shape = (2, 2)
+        strides = (1, 1)
+        out_shape = _get_output_shape(
+            'SAME_LOWER', x_shape[2:], kernel_shape, strides)
+        pad_shape = _get_pad_shape(
+            'SAME_LOWER', x_shape[2:], kernel_shape, strides, out_shape)
+        pad_bottom = pad_shape[0] // 2
+        pad_top = pad_shape[0] - pad_bottom
+        pad_right = pad_shape[1] // 2
+        pad_left = pad_shape[1] - pad_right
+        padded = numpy.pad(
+            x, ((0, 0), (0, 0), (pad_top, pad_bottom), (pad_left, pad_right)),
+            mode='constant', constant_values=numpy.nan)
+        y = _pool(
+            padded, x_shape, kernel_shape, strides, out_shape, pad_shape, 'AVG')
+        self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+        node = onnx.helper.make_node(
+            'AveragePool', inputs=['x'], outputs=['y'],
+            kernel_shape=[3, 3], pads=[2, 2, 2, 2])
+        x = numpy.random.randn(1, 3, 28, 28).astype(numpy.float32)
+        x_shape = numpy.shape(x)
+        kernel_shape = (3, 3)
+        strides = (1, 1)
+        pad_bottom = 2
+        pad_top = 2
+        pad_right = 2
+        pad_left = 2
+        pad_shape = [pad_top + pad_bottom, pad_left + pad_right]
+        out_shape = _get_output_shape(
+            'VALID', numpy.add(x_shape[2:], pad_shape), kernel_shape, strides)
+        padded = numpy.pad(
+            x, ((0, 0), (0, 0), (pad_top, pad_bottom), (pad_left, pad_right)),
+            mode='constant', constant_values=numpy.nan)
+        y = _pool(
+            padded, x_shape, kernel_shape, strides, out_shape, pad_shape, 'AVG')
+        self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+        node = onnx.helper.make_node(
+            'AveragePool', inputs=['x'], outputs=['y'],
+            kernel_shape=[2])
+        x = numpy.random.randn(1, 3, 32).astype(numpy.float32)
+        x_shape = numpy.shape(x)
+        kernel_shape = [2]
+        strides = [1]
+        out_shape = _get_output_shape(
+            'VALID', x_shape[2:], kernel_shape, strides)
+        padded = x
+        y = _pool(padded, x_shape, kernel_shape,
+                  strides, out_shape, [0], 'AVG')
+        self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+        node = onnx.helper.make_node(
+            'AveragePool', inputs=['x'], outputs=['y'],
+            kernel_shape=[2, 2])
+        x = numpy.random.randn(1, 3, 32, 32).astype(numpy.float32)
+        x_shape = numpy.shape(x)
+        kernel_shape = (2, 2)
+        strides = (1, 1)
+        out_shape = _get_output_shape(
+            'VALID', x_shape[2:], kernel_shape, strides)
+        padded = x
+        y = _pool(
+            padded, x_shape, kernel_shape, strides, out_shape, (0, 0), 'AVG')
+        self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+        node = onnx.helper.make_node(
+            'AveragePool', inputs=['x'], outputs=['y'],
+            kernel_shape=[5, 5], strides=[3, 3])
+        x = numpy.random.randn(1, 3, 32, 32).astype(numpy.float32)
+        x_shape = numpy.shape(x)
+        kernel_shape = (5, 5)
+        strides = (3, 3)
+        out_shape = _get_output_shape(
+            'VALID', x_shape[2:], kernel_shape, strides)
+        padded = x
+        y = _pool(
+            padded, x_shape, kernel_shape, strides, out_shape, (0, 0), 'AVG')
+        self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+        node = onnx.helper.make_node(
+            'AveragePool', inputs=['x'], outputs=['y'],
+            kernel_shape=[2, 2, 2])
+        x = numpy.random.randn(1, 3, 32, 32, 32).astype(numpy.float32)
+        x_shape = numpy.shape(x)
+        kernel_shape = [2, 2, 2]
+        strides = [1, 1, 1]
+        out_shape = _get_output_shape(
+            'VALID', x_shape[2:], kernel_shape, strides)
+        padded = x
+        y = _pool(
+            padded, x_shape, kernel_shape, strides, out_shape, [0, 0, 0], 'AVG')
+        self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+        python_tested.append(OnnxAveragePool)
+
+    @wraplog()
+    @unittest.skipIf(True, "not implemented yet")
+    def test_onnxt_runtime_average_pool_ceil(self):
+        node = onnx.helper.make_node(
+            'AveragePool', inputs=['x'], outputs=['y'],
+            kernel_shape=[3, 3], strides=[2, 2], ceil_mode=True)
+        x = numpy.array([[[
+            [1, 2, 3, 4],
+            [5, 6, 7, 8],
+            [9, 10, 11, 12],
+            [13, 14, 15, 16]]]]).astype(numpy.float32)
+        y = numpy.array([[[
+            [6, 7.5], [12, 13.5]]]]).astype(numpy.float32)
+        self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+    @wraplog()
+    def test_onnxt_runtime_average_pool_big(self):
+
+        with self.subTest(name='test_averagepool_2d_precomputed_pads'):
+            node = onnx.helper.make_node(
+                'AveragePool', inputs=['x'], outputs=['y'],
+                kernel_shape=[5, 5], pads=[2, 2, 2, 2])
+            x = numpy.array([[[
+                [1, 2, 3, 4, 5],
+                [6, 7, 8, 9, 10],
+                [11, 12, 13, 14, 15],
+                [16, 17, 18, 19, 20],
+                [21, 22, 23, 24, 25]]]]).astype(numpy.float32)
+            y = numpy.array([[[[7, 7.5, 8, 8.5, 9],
+                            [9.5, 10, 10.5, 11, 11.5],
+                            [12, 12.5, 13, 13.5, 14],
+                            [14.5, 15, 15.5, 16, 16.5],
+                            [17, 17.5, 18, 18.5, 19]]]]).astype(numpy.float32)
+            self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+        with self.subTest(name='test_averagepool_2d_precomputed_pads_count_include_pad'):
+            node = onnx.helper.make_node(
+                'AveragePool', inputs=['x'], outputs=['y'],
+                kernel_shape=[5, 5], pads=[2, 2, 2, 2], count_include_pad=1)
+            x = numpy.array([[[
+                [1, 2, 3, 4, 5],
+                [6, 7, 8, 9, 10],
+                [11, 12, 13, 14, 15],
+                [16, 17, 18, 19, 20],
+                [21, 22, 23, 24, 25]]]]).astype(numpy.float32)
+            y = numpy.array([[[[2.5200, 3.6000, 4.8000, 4.0800, 3.2400],
+                            [4.5600, 6.4000, 8.4000, 7.0400, 5.5200],
+                            [7.2000, 10.0000, 13.0000, 10.8000, 8.4000],
+                            [6.9600, 9.6000, 12.4000, 10.2400, 7.9200],
+                            [6.1200, 8.4000, 10.8000, 8.8800, 6.8400]]]]).astype(numpy.float32)
+            self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+        with self.subTest(name='test_averagepool_2d_precomputed_same_upper'):
+            node = onnx.helper.make_node(
+                'AveragePool', inputs=['x'], outputs=['y'],
+                kernel_shape=[3, 3], strides=[2, 2], auto_pad='SAME_UPPER')
+            x = numpy.array([[[
+                [1, 2, 3, 4, 5],
+                [6, 7, 8, 9, 10],
+                [11, 12, 13, 14, 15],
+                [16, 17, 18, 19, 20],
+                [21, 22, 23, 24, 25]]]]).astype(numpy.float32)
+            y = numpy.array([[[[4, 5.5, 7],
+                            [11.5, 13, 14.5],
+                            [19, 20.5, 22]]]]).astype(numpy.float32)
+            self._expect_average_pool(node, inputs=[x], outputs=[y])
+
+        with self.subTest(name='test_averagepool_2d_precomputed_strides'):
+            node = onnx.helper.make_node(
+                'AveragePool', inputs=['x'], outputs=['y'],
+                kernel_shape=[2, 2], strides=[2, 2])
+            x = numpy.array([[[
+                [1, 2, 3, 4, 5],
+                [6, 7, 8, 9, 10],
+                [11, 12, 13, 14, 15],
+                [16, 17, 18, 19, 20],
+                [21, 22, 23, 24, 25]]]]).astype(numpy.float32)
+            y = numpy.array([[[[4, 6],
+                            [14, 16]]]]).astype(numpy.float32)
+            self._expect_average_pool(node, inputs=[x], outputs=[y])
 
     @wraplog()
     def test_onnxt_runtime_batch_normalization(self):
@@ -3971,5 +4224,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_make_constant()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_average_pool()
     unittest.main()

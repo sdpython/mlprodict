@@ -7,17 +7,18 @@
 
 from ._op import OpRun
 from .op_abs import Abs
+from .op_acos import Acos
+from .op_acosh import Acosh
 from .op_add import Add
 from .op_and import And
 from .op_argmax import ArgMax
 from .op_argmin import ArgMin
 from .op_array_feature_extractor import ArrayFeatureExtractor
-from .op_acos import Acos
-from .op_acosh import Acosh
 from .op_asin import Asin
 from .op_asinh import Asinh
 from .op_atan import Atan
 from .op_atanh import Atanh
+from .op_average_pool import AveragePool
 from .op_batch_normalization import BatchNormalization, BatchNormalization_14
 from .op_binarizer import Binarizer
 from .op_cast import Cast
