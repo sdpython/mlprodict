@@ -313,12 +313,17 @@ class OnnxInferenceNode:
         """
         args = [values[k] for k in self.inputs]
         try:
-            res = self.ops_.infer_sizes(*args)
+            if self.ops_.need_context():
+                context = {n: values[n]
+                           for n in self.ops_.additional_inputs}
+                res = self.ops_.infer_sizes(*args, context=context)
+            else:
+                res = self.ops_.infer_sizes(*args)            
         except (TypeError, ValueError) as e:
             raise TypeError(
                 "Unable to call infer_sizes with {} arguments for class"
                 " '{}' ({})".format(len(args), self.ops_.__class__.__name__,
-                                    self.ops_.infer_types)) from e
+                                    self.ops_.infer_sizes)) from e
         if not isinstance(res, tuple):
             raise RuntimeError(  # pragma: no cover
                 "Results of an operator should be a tuple for operator '{}'"

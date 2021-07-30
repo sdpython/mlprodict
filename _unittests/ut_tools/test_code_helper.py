@@ -9,7 +9,8 @@ import numpy
 from scipy.sparse import csr_matrix
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.tools.code_helper import (
-    debug_print, debug_dump, numpy_min, numpy_max, make_callable)
+    debug_print, debug_dump, numpy_min, numpy_max, make_callable,
+    print_code)
 
 
 class TestCodeHelper(ExtTestCase):
@@ -83,6 +84,11 @@ class TestCodeHelper(ExtTestCase):
             "fctf", fcts_obj[0], code, context, False)
         self.assertTrue(fct(True))  # pylint: disable=E1102
         self.assertFalse(fct(False))  # pylint: disable=E1102
+
+    def test_print_code(self):
+        code = "a=1\nb=2"
+        cc = print_code(code)
+        self.assertEqual(cc, "001 a=1\n002 b=2")
 
 
 if __name__ == "__main__":

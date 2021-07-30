@@ -14,7 +14,7 @@ from scipy.sparse import coo_matrix
 from onnx import load, load_model, checker, shape_inference
 from onnx import onnx_pb as onnx_proto
 from onnx.helper import make_model
-from ..tools.code_helper import make_callable
+from ..tools.code_helper import make_callable, print_code
 from ..onnx_tools.onnx2py_helper import (
     _var_as_dict, numpy_min, numpy_max, guess_numpy_type_from_string)
 from ..onnx_tools.onnx_manipulations import (
@@ -222,7 +222,12 @@ class OnnxInference:
         Every parameter with a default value is ignored.
         Switch to ``runtime='python'`` to enable those.
         """
-        return self._run_compiled(inputs)  # pylint: disable=E1101
+        try:
+            return self._run_compiled(inputs)  # pylint: disable=E1101
+        except NameError as e:
+            raise RuntimeError(  # pragma: no cover
+                "Unable to compute prediction due to %r. Code:\n%s"
+                "" % (e, print_code(self._run_compiled_code))) from e
 
     def _guess_input_dtype(self):
         for _, v in self.graph_['inputs'].items():
@@ -762,8 +767,9 @@ class OnnxInference:
                                 ' (sparse)' if isinstance(obj, coo_matrix) else ''))
                         elif (isinstance(obj, list) and len(obj) > 0 and
                                 not isinstance(obj[0], dict)):  # pragma: no cover
-                            fLOG("-kv='{}' list len={} min={} max={}".format(
-                                k, len(obj), min(obj), max(obj)))
+                            fLOG("-kv='{}' list len={}".format(k, len(obj)))
+                            if verbose >= 3 and len(obj) > 0:
+                                fLOG("first={} last={}".format(obj[0], obj[-1]))
                         else:  # pragma: no cover
                             fLOG("-kv='{}' type={}".format(k, type(obj)))
 
@@ -1069,7 +1075,7 @@ class OnnxInference:
             try:
                 s = node._set_shape_inference_runtime(values)
                 last = s
-            except (IndexError, TypeError) as e:  # pragma: no cover
+            except (IndexError, TypeError, KeyError) as e:  # pragma: no cover
                 rows = []
                 if last is not None:
                     for k, v in last.items():
@@ -1174,14 +1180,14 @@ class OnnxInference:
                     i, '\n'.join(rows))) from e
         return values
 
-    def infer_sizes(self, inputs):
+    def infer_sizes(self, inputs, context=None):
         """
         Computes expected sizes.
 
         :param inputs: inputs as a dictionary
         :return: dictionary of dictionary of sizes
         """
-        res = self._set_size_inference_runtime(inputs)
+        res = self._set_size_inference_runtime(inputs, context=context)
         return {k: v for k, v in res.items() if k.startswith('#')}
 
     def _guess_inplace(self, input_inplace=False):
@@ -1215,6 +1221,8 @@ class OnnxInference:
         """
         forbid = {}
         values = OrderedDict()
+        for k in self.statics_:
+            values[k] = dict(inplace=False, to=[], fr=[])
         for k in self.inputs_:
             values[k] = dict(inplace=input_inplace, to=[], fr=[])
         for k in self.inits_:
@@ -1311,8 +1319,21 @@ class OnnxInference:
         code = ['def compiled_run(dict_inputs):']
         if debug:
             code.append("    printed = {}")
+
         context = {}
-        for k, v in self.inits_.items():
+        
+        # static variables
+        for k in sorted(self.statics_):
+            code.append("    # static: {0}".format(k))
+            code.append("    {0} = dict_inputs['{1}']".format(
+                clean_name(k), k))
+            if debug:
+                code.append(
+                    "    debug_print('i.{0}', {1}, printed)".format(
+                        clean_name(k), k))
+
+        # initializers
+        for k, v in sorted(self.inits_.items()):
             if k.startswith("_OPT_"):
                 raise RuntimeError(  # pragma: no cover
                     "The runtime cannot handle any constant name "
@@ -1350,10 +1371,20 @@ class OnnxInference:
         for i, node in enumerate(self.sequence_):
             name = "n{}_{}".format(i, node.ops_.__class__.__name__.lower())
             context[name] = node.ops_._run
-            code.append('    ({1}, ) = {2}({0})'.format(
-                ', '.join(map(clean_name, node.inputs)),
-                ', '.join(map(clean_name, node.outputs)),
-                name))
+            if (node.ops_.__class__.__name__ == 'Loop' and
+                    node.ops_.need_context()):
+                # Adding context.
+                ctx = "{%s}" % ", ".join(
+                    "'%s': %s" % (n, n) for n in node.ops_.additional_inputs)
+                code.append('    ({1}, ) = {2}({0}, context={3})'.format(
+                    ', '.join(map(clean_name, node.inputs)),
+                    ', '.join(map(clean_name, node.outputs)),
+                    name, ctx))
+            else:
+                code.append('    ({1}, ) = {2}({0})'.format(
+                    ', '.join(map(clean_name, node.inputs)),
+                    ', '.join(map(clean_name, node.outputs)),
+                    name))
             if debug:
                 code.append("    print('''# {}''')".format(code[-1][4:]))
                 for o in node.outputs:
