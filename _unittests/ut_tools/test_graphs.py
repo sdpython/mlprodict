@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@brief      test log(time=10s)
+@brief      test log(time=3s)
 """
 import unittest
 import numpy
@@ -9,7 +9,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 from pyquickhelper.pycode import ExtTestCase
+from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxSub  # pylint: disable=E0611
 from mlprodict.onnx_conv import to_onnx
+from mlprodict.tools import get_opset_number_from_onnx
 from mlprodict.tools.graphs import onnx2bigraph, BiGraph
 
 
@@ -59,6 +61,30 @@ class TestGraphs(ExtTestCase):
             self.assertIsInstance(bigraph[k], BiGraph.A)
         ed = list(bigraph.edges)[0]
         self.assertIsInstance(bigraph[ed], BiGraph.A)
+
+    def test_pipe_graph_display(self):
+        model = self.fit(
+            make_pipeline(StandardScaler(), LogisticRegression()))
+        onx = to_onnx(model, numpy.zeros((3, 4), dtype=numpy.float64))
+        bigraph = onnx2bigraph(onx)
+        graph = bigraph.display_structure()
+        text = str(graph)
+        self.assertIn("AdjacencyGraphDisplay(", text)
+        self.assertIn("Action(", text)
+
+    def test_pipe_graph_display_text(self):
+        idi = numpy.identity(2)
+        opv = get_opset_number_from_onnx()
+        A = OnnxAdd('X', idi, op_version=opv)
+        B = OnnxSub(A, 'W', output_names=['Y'], op_version=opv)
+        onx = B.to_onnx({'X': idi.astype(numpy.float32),
+                         'W': idi.astype(numpy.float32)})
+        bigraph = onnx2bigraph(onx)
+        graph = bigraph.display_structure()
+        text = graph.to_text()
+        for c in ['Input-1', 'Input-0', 'Output-0', 'W', 'W', 'I0', 'I1',
+                  'inout', 'O0 I0', 'A  S']:
+            self.assertIn(c, text)
 
 
 if __name__ == "__main__":
