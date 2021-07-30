@@ -33,23 +33,39 @@ class Loop(OpRun):
     def _run(self, M, cond, v_initial, *args, callback=None):  # pylint: disable=W0221
         inputs = {name: None for name in self.body.input_names}
         inputs[self.body.input_names[2]] = v_initial
-        cond_name = self.body.output_names[1]
+        cond_name = self.body.output_names[0]
         if len(args) > 0:
             begin = len(self.body.input_names) - len(args)
             for name, val in zip(self.body.input_names[begin:], args):
                 inputs[name] = val
+
+        print("IO", self.body.input_names)
+        print("IO", self.body.output_names)
+
         it = 0
         while cond and it < M:
+            print("****", it, M, cond, [cond_name])
             inputs[self.body.input_names[0]] = numpy.array(it, dtype=M.dtype)
             inputs[self.body.input_names[1]] = cond
             outputs = self._run_meth(inputs)
             cond = outputs[cond_name]
+            print("cond:", [cond_name, cond])
+            import pprint
+            pprint.pprint(outputs)
+            print(self.body.obj)
+            if cond is None:
+                raise RuntimeError(
+                    "condition %r returned by the subgraph cannot be None."
+                    "" % cond_name)
             for i, o in zip(self.body.input_names[2:],
                             self.body.output_names[1:]):
                 inputs[i] = outputs[o]
             if callback is not None:
                 callback(inputs)
             it += 1
+            if it > 5:
+                stop
+
         if it == 0:
             outputs = {self.body.output_names[1]: cond}
             for i, o in zip(self.body.input_names[2:],

@@ -166,7 +166,12 @@ class OnnxInferenceNode:
             res = self.ops_.run(*args)
         except TypeError as e:
             raise RuntimeError(  # pragma: no cover
-                "Unable to run operator %r." % type(self.ops_)) from e
+                "Unable to run operator %r, inputs=%r."
+                "" % (type(self.ops_), self.inputs)) from e
+        except OverflowError as e:
+            raise RuntimeError(  # pragma: no cover
+                "Unable to run operator %r, inputs=%r."
+                "" % (type(self.ops_), self.inputs)) from e
 
         if not isinstance(res, tuple):
             raise RuntimeError(  # pragma: no cover

@@ -283,6 +283,17 @@ class OnnxInference:
         return [(_.name, _var_as_dict(_)['type']['shape'])
                 for _ in self.obj.graph.input if _.name in names]
 
+    @staticmethod
+    def _get_type_property(info, prop):
+        if prop in info:
+            return info[prop]
+        if 'kind' in info and info['kind'] == 'sequence':
+            if prop == 'shape':
+                return ('?', )
+        raise NotImplementedError(
+            "Unable to retrieve property %r from %r."
+            "" % (prop, info))
+
     @property
     def input_names_shapes_types(self):
         """
@@ -293,9 +304,10 @@ class OnnxInference:
         .. versionchanged:: 0.6
             The list does not include optional inputs anymore.
         """
+        f = OnnxInference._get_type_property
         names = set(self.input_names)
-        return [(_.name, _var_as_dict(_)['type']['shape'],
-                 'tensor(%s)' % _var_as_dict(_)['type']['elem'])
+        return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
+                 'tensor(%s)' % f(_var_as_dict(_)['type'], 'elem'))
                 for _ in self.obj.graph.input if _.name in names]
 
     @property
@@ -311,7 +323,8 @@ class OnnxInference:
         Returns the names and shapes of all outputs.
         This method assumes all inputs are tensors.
         """
-        return [(_.name, _var_as_dict(_)['type'].get('shape', None))
+        f = OnnxInference._get_type_property
+        return [(_.name, f(_var_as_dict(_)['type'], 'shape'))
                 for _ in self.obj.graph.output]
 
     @property
@@ -324,8 +337,9 @@ class OnnxInference:
         .. versionadd:: 0.7
         """
         names = set(self.output_names)
-        return [(_.name, _var_as_dict(_)['type']['shape'],
-                 'tensor(%s)' % _var_as_dict(_)['type']['elem'])
+        f = OnnxInference._get_type_property
+        return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
+                 'tensor(%s)' % f(_var_as_dict(_)['type'], 'elem'))
                 for _ in self.obj.graph.output if _.name in names]
 
     def global_index(self, name):
