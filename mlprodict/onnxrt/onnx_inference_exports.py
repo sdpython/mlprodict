@@ -10,6 +10,7 @@ import pickle
 import textwrap
 from onnx import numpy_helper
 from ..onnx_tools.onnx2py_helper import _var_as_dict, _type_to_string
+from ..tools.graphs import onnx2bigraph
 
 
 class OnnxInferenceExport:
@@ -583,3 +584,15 @@ class OnnxInferenceExport:
                     raise NotImplementedError(  # pragma: no cover
                         "Unknown extension for file '{}'.".format(k))
         return file_data
+
+    def to_text(self, recursive=False):
+        """
+        It calls function @see fn onnx2bigraph to return
+        the ONNX graph as text.
+
+        :param recursive: dig into subgraphs too
+        :return: text
+        """
+        bigraph = onnx2bigraph(self.oinf.obj, recursive=recursive)
+        graph = bigraph.display_structure()
+        return graph.to_text()
