@@ -193,6 +193,7 @@ class OnnxInference:
         self.to_json = self.exporters_.to_json
         self.to_dot = self.exporters_.to_dot
         self.to_python = self.exporters_.to_python
+        self.to_text = self.exporters_.to_text
 
         if self.runtime in ('python_compiled', 'python_compiled_debug'):
             # switch the inference method to the compiled one
