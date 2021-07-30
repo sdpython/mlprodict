@@ -28,31 +28,54 @@ class Loop(OpRun):
 
         self._run_meth = (self.body.run_in_scan
                           if hasattr(self.body, 'run_in_scan')
-                          else self.body.run)
+                          else self.body.run)   
+        self.additional_inputs = self.body.static_inputs
 
-    def _run(self, M, cond, v_initial, *args, callback=None):  # pylint: disable=W0221
-        inputs = {name: None for name in self.body.input_names}
-        inputs[self.body.input_names[2]] = v_initial
+    def need_context(self):
+        """
+        The operator Loop needs to know all results produced
+        so far as the loop may silently access one of them.
+        Some information are not always referred in the list of inputs
+        (kind of static variables).
+        """
+        return True
+
+    def _run(self, M, cond, v_initial, *args, callback=None, context=None):  # pylint: disable=W0221
+        loop_inputs = self.body.input_names
+        inputs = {name: None for name in loop_inputs}
+        inputs[loop_inputs[2]] = v_initial
         cond_name = self.body.output_names[0]
         if len(args) > 0:
-            begin = len(self.body.input_names) - len(args)
-            for name, val in zip(self.body.input_names[begin:], args):
+            begin = len(loop_inputs) - len(args)
+            all_inputs = loop_inputs[begin:]
+            for name, val in zip(all_inputs, args):
                 inputs[name] = val
+        if len(self.additional_inputs) > 0:
+            if context is None:
+                raise RuntimeError(
+                    "Additional inputs %r are missing and context is None."
+                    "" % (self.additional_inputs, ))
+            for a in self.additional_inputs:
+                if a in context:
+                    inputs[a] = context[a]
+                else:
+                    raise RuntimeError(
+                        "Additional inputs %r not found in context\n%s." % (
+                            a, "\n".join(sorted(map(str, context)))))
 
-        print("IO", self.body.input_names)
-        print("IO", self.body.output_names)
+        # import pprint
+        # pprint.pprint(self.body.sequence_)
 
         it = 0
         while cond and it < M:
-            print("****", it, M, cond, [cond_name])
+            # print("****", it, M, cond, [cond_name])
             inputs[self.body.input_names[0]] = numpy.array(it, dtype=M.dtype)
             inputs[self.body.input_names[1]] = cond
             outputs = self._run_meth(inputs)
             cond = outputs[cond_name]
-            print("cond:", [cond_name, cond])
-            import pprint
-            pprint.pprint(outputs)
-            print(self.body.obj)
+            # print("cond:", [cond_name, cond])
+            # import pprint
+            # pprint.pprint(outputs)
             if cond is None:
                 raise RuntimeError(
                     "condition %r returned by the subgraph cannot be None."
@@ -74,12 +97,15 @@ class Loop(OpRun):
         for o in self.body.output_names:
             if o not in outputs:
                 outputs[o] = numpy.empty(shape=tuple())
-        return tuple([outputs[name] for name in self.body.output_names[1:]])
+        res = tuple([outputs[name] for name in self.body.output_names[1:]])
+        if None in res:
+            raise TypeError(  # pragma: no cover
+                "Operator Loop produces a None value.")
+        return res
 
     def _infer_shapes(self, M, cond, v_initial, *args):  # pylint: disable=W0221
         res = self.body._set_shape_inference_runtime()
         outputs = {k[0]: k[1:] for k in self.body.output_names_shapes_types}
-        
         ret = []
         for name in self.body.output_names[1:]:
             if name in res:

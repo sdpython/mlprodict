@@ -2,6 +2,7 @@
 """
 @brief      test log(time=3s)
 """
+import os
 import unittest
 import numpy
 from sklearn.datasets import load_iris
@@ -11,6 +12,7 @@ from sklearn.pipeline import make_pipeline
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxSub  # pylint: disable=E0611
 from mlprodict.onnx_conv import to_onnx
+from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools import get_opset_number_from_onnx
 from mlprodict.tools.graphs import onnx2bigraph, BiGraph
 
@@ -85,6 +87,15 @@ class TestGraphs(ExtTestCase):
         for c in ['Input-1', 'Input-0', 'Output-0', 'W', 'W', 'I0', 'I1',
                   'inout', 'O0 I0', 'A  S']:
             self.assertIn(c, text)
+
+    def test_bug_graph(self):
+        this = os.path.abspath(os.path.dirname(__file__))
+        data = os.path.join(this, "data", "bug_graph.onnx")
+        oinf = OnnxInference(data, inside_loop=True)
+        text = oinf.to_text(distance=8)
+        self.assertIn(
+            "cond___pcen/simple_rnn/while/Identity_graph_outputs_Identity__4:0",
+            text)
 
 
 if __name__ == "__main__":

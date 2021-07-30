@@ -123,6 +123,15 @@ class OpRun:
                         "for node '{}' and options {}.".format(
                             k, onnx_node.op_type, pprint.pformat(options)))
 
+    def need_context(self):
+        """
+        Tells the runtime if this node needs the context
+        (all the results produced so far) as it may silently access
+        one of them (operator Loop).
+        The default answer is `False`.
+        """
+        return False
+
     def _find_custom_operator_schema(self, op_name):
         raise NotImplementedError(  # pragma: no cover
             "This method should be overwritten for operator "

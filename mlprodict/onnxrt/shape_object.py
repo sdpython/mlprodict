@@ -486,64 +486,72 @@ class ShapeObject(BaseDimensionShape):
             self._dtype = dtype
         else:
             raise TypeError(  # pragma: no cover
-                "Unexpected type for shape: {}".format(type(shape)))
-
-        if self._dtype is None:
-            raise ValueError(
-                "dtype cannot be None, shape type is {}\n{}".format(
+                "Unexpected type for shape: {}, shape={}".format(
                     type(shape), shape))
-        if self._dtype in (float, 'double', 'tensor(double)'):
-            self._dtype = numpy.float64
-        elif self._dtype in ('float32', 'float', 'tensor(float)'):
-            self._dtype = numpy.float32
-        elif self._dtype in (numpy.float16, 'float16', 'tensor(float16)'):
-            self._dtype = numpy.float16
-        elif self._dtype in ('int32', 'tensor(int32)'):
-            self._dtype = numpy.int32
-        elif self._dtype in (int, 'int', 'int64', 'tensor(int64)'):
-            self._dtype = numpy.int64
-        elif self._dtype in (str, 'str', numpy.str_, 'tensor(str)'):
-            self._dtype = numpy.str_
-        elif (hasattr(self._dtype, 'type') and self._dtype.type is numpy.string_):
-            pass
-        elif self._dtype in (bool, 'bool', numpy.bool_):
-            self._dtype = numpy.bool_
-        elif self._dtype in (object, numpy.object_):
-            pass
-        elif self._dtype in (numpy.int8, 'int8', ):
-            self._dtype = numpy.int8
-        elif self._dtype in (numpy.uint8, 'uint8', ):
-            self._dtype = numpy.uint8
-        elif self._dtype in (numpy.int16, 'int16', ):
-            self._dtype = numpy.int16
-        elif self._dtype in (numpy.uint16, 'uint16', ):
-            self._dtype = numpy.uint16
-        elif self._dtype in (numpy.uint32, 'uint32', ):
-            self._dtype = numpy.uint32
-        elif self._dtype in (numpy.uint64, 'uint64', ):
-            self._dtype = numpy.uint64
-        elif self._dtype not in {
-                numpy.float32, numpy.float64, numpy.int32, numpy.int64,
-                numpy.str_, numpy.bool_, numpy.float16, None,
-                numpy.complex64, numpy.complex128,
-                'map', 'sequence'}:
-            raise ValueError(  # pragma: no cover
-                "dtype has an unexpected value: '{}'.".format(self._dtype))
-        if self._shape is not None:
-            for i, a in enumerate(self._shape):
-                if not isinstance(a, DimensionObject):
-                    raise TypeError(  # pragma: no cover
-                        'Dimension {} has a wrong type {}'.format(
-                            i, type(a)))
-            if use_n1:
-                sh = self._shape[0] if self._shape else None
-                if isinstance(sh, DimensionObject) and sh._dim is None:
-                    sh._dim = 'n'
-        if self._shape is not None:
-            for s in self._shape:
-                if isinstance(s, int):
-                    raise TypeError(  # pragma: no cover
-                        "Unexpected type int in shape %r." % self)
+
+        def _dtype_again():
+            if self._dtype is None:
+                raise ValueError(
+                    "dtype cannot be None, shape type is {}\n{}".format(
+                        type(shape), shape))
+            if self._dtype in (float, 'double', 'tensor(double)'):
+                self._dtype = numpy.float64
+            elif self._dtype in ('float32', 'float', 'tensor(float)'):
+                self._dtype = numpy.float32
+            elif self._dtype in (numpy.float16, 'float16', 'tensor(float16)'):
+                self._dtype = numpy.float16
+            elif self._dtype in ('int32', 'tensor(int32)'):
+                self._dtype = numpy.int32
+            elif self._dtype in (int, 'int', 'int64', 'tensor(int64)'):
+                self._dtype = numpy.int64
+            elif self._dtype in (str, 'str', numpy.str_, 'tensor(str)'):
+                self._dtype = numpy.str_
+            elif (hasattr(self._dtype, 'type') and self._dtype.type is numpy.string_):
+                pass
+            elif self._dtype in (bool, 'bool', numpy.bool_):
+                self._dtype = numpy.bool_
+            elif self._dtype in (object, numpy.object_):
+                pass
+            elif self._dtype in (numpy.int8, 'int8', ):
+                self._dtype = numpy.int8
+            elif self._dtype in (numpy.uint8, 'uint8', ):
+                self._dtype = numpy.uint8
+            elif self._dtype in (numpy.int16, 'int16', ):
+                self._dtype = numpy.int16
+            elif self._dtype in (numpy.uint16, 'uint16', ):
+                self._dtype = numpy.uint16
+            elif self._dtype in (numpy.uint32, 'uint32', ):
+                self._dtype = numpy.uint32
+            elif self._dtype in (numpy.uint64, 'uint64', ):
+                self._dtype = numpy.uint64
+            elif self._dtype == "tensor({'kind': 'tensor', 'elem': 'float', 'shape': })":
+                self._dtype = numpy.float32
+            elif self._dtype not in {
+                    numpy.float32, numpy.float64, numpy.int32, numpy.int64,
+                    numpy.str_, numpy.bool_, numpy.float16, None,
+                    numpy.complex64, numpy.complex128,
+                    'map', 'sequence'}:
+                raise ValueError(  # pragma: no cover
+                    "dtype has an unexpected value: '{}'.".format(self._dtype))
+        _dtype_again()
+        
+        def _shape_again():
+            if self._shape is not None:
+                for i, a in enumerate(self._shape):
+                    if not isinstance(a, DimensionObject):
+                        raise TypeError(  # pragma: no cover
+                            'Dimension {} has a wrong type {}'.format(
+                                i, type(a)))
+                if use_n1:
+                    sh = self._shape[0] if self._shape else None
+                    if isinstance(sh, DimensionObject) and sh._dim is None:
+                        sh._dim = 'n'
+            if self._shape is not None:
+                for s in self._shape:
+                    if isinstance(s, int):
+                        raise TypeError(  # pragma: no cover
+                            "Unexpected type int in shape %r." % self)
+        _shape_again()
 
     def reshape(self, shape):
         """

@@ -46,6 +46,7 @@ class OnnxInferenceNode:
         self.inplaces = []
         self.inputs_indices = [global_index(name) for name in self.inputs]
         self.outputs_indices = [global_index(name) for name in self.outputs]
+        self._global_index = global_index
 
     def set_order(self, order):
         """
@@ -115,6 +116,29 @@ class OnnxInferenceNode:
                                 options=options if options else None,
                                 variables=variables)
 
+    @staticmethod
+    def _find_static_inputs(body):
+        """
+        Determines the loop inputs. It is any defined inputs
+        by the subgraphs + any results used as a constant
+        in the subgraphs.
+        """
+        inputs_set = set(i.name for i in body.input)
+        for init in body.initializer:
+            inputs_set.add(init.name)
+        for node in body.node:
+            for i in node.output:
+                inputs_set.add(i)
+        add_inputs = []
+        for node in body.node:
+            for i in node.input:
+                if i not in inputs_set:
+                    #  no graph input or output node matches
+                    # it must be a constant from the below graph
+                    add_inputs.append(i)
+                    inputs_set.add(i)
+        return add_inputs
+        
     def preprocess_parameters(self, runtime, rt_class, ir_version=None,
                               target_opset=None):
         """
@@ -137,11 +161,13 @@ class OnnxInferenceNode:
                 continue  # pragma: no cover
             value = v['value']
             if isinstance(value, onnx_proto.GraphProto):
+                static_inputs = OnnxInferenceNode._find_static_inputs(value)
                 try:
                     sess = rt_class(v['value'], runtime=runtime,
                                     ir_version=ir_version,
                                     target_opset=target_opset,
-                                    inside_loop=inside_loop)
+                                    inside_loop=inside_loop,
+                                    static_inputs=static_inputs)
                 except RuntimeError as e:  # pragma: no cover
                     raise RuntimeError(
                         "Unable to instantiate a node of type %r and name %r."
@@ -161,9 +187,13 @@ class OnnxInferenceNode:
             args = list(values[k] for k in self.inputs)
         else:
             args = list(values[k] for k in self.inputs_indices)
-
         try:
-            res = self.ops_.run(*args)
+            if self.ops_.need_context():
+                context = {n: values[self._global_index(n)]
+                           for n in self.ops_.additional_inputs}
+                res = self.ops_.run(*args, context=context)
+            else:
+                res = self.ops_.run(*args)
         except TypeError as e:
             raise RuntimeError(  # pragma: no cover
                 "Unable to run operator %r, inputs=%r."

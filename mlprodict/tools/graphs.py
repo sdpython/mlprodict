@@ -167,6 +167,11 @@ class BiGraph:
                 continue
             if a in v1 and b in v0:
                 continue
+            if b in v1:
+                # One operator is missing one input.
+                # We add one.
+                self.v0[a] = BiGraph.A('ERROR')
+                continue
             raise ValueError(
                 "Edges (%r, %r) not found among the vertices." % (a, b))
 
@@ -250,19 +255,20 @@ class BiGraph:
                 matrix[row_id[b], col_id[a]] = 1
         return matrix, row, col
 
-    def display_structure(self, grid=5):
+    def display_structure(self, grid=5, distance=5):
         """
         Creates a display structure which contains
         all the necessary steps to display a graph.
 
         :param grid: align text to this grid
+        :param distance: distance to the text
         :return: instance of @see cl AdjacencyGraphDisplay
         """
         def adjust(c, way):
             if way == 1:
-                d = grid * ((c + grid * 2 - (grid // 2 + 1)) // grid)
+                d = grid * ((c + distance * 2 - (grid // 2 + 1)) // grid)
             else:
-                d = -grid * ((-c + grid * 2 - (grid // 2 + 1)) // grid)
+                d = -grid * ((-c + distance * 2 - (grid // 2 + 1)) // grid)
             return d
 
         matrix, row, col = self.adjacency_matrix()
