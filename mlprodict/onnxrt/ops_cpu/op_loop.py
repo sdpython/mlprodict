@@ -38,7 +38,7 @@ class Loop(OpRun):
         Some information are not always referred in the list of inputs
         (kind of static variables).
         """
-        return True
+        return len(self.additional_inputs) > 0
 
     def _run(self, M, cond, v_initial, *args, callback=None, context=None):  # pylint: disable=W0221
         loop_inputs = self.body.input_names
@@ -63,19 +63,12 @@ class Loop(OpRun):
                         "Additional inputs %r not found in context\n%s." % (
                             a, "\n".join(sorted(map(str, context)))))
 
-        # import pprint
-        # pprint.pprint(self.body.sequence_)
-
         it = 0
         while cond and it < M:
-            # print("****", it, M, cond, [cond_name])
             inputs[self.body.input_names[0]] = numpy.array(it, dtype=M.dtype)
             inputs[self.body.input_names[1]] = cond
             outputs = self._run_meth(inputs)
             cond = outputs[cond_name]
-            # print("cond:", [cond_name, cond])
-            # import pprint
-            # pprint.pprint(outputs)
             if cond is None:
                 raise RuntimeError(
                     "condition %r returned by the subgraph cannot be None."
@@ -84,7 +77,7 @@ class Loop(OpRun):
                             self.body.output_names[1:]):
                 inputs[i] = outputs[o]
             if callback is not None:
-                callback(inputs)
+                callback(inputs, context=context)
             it += 1
 
         if it == 0:
@@ -117,14 +110,16 @@ class Loop(OpRun):
         res = self.body._set_type_inference_runtime()
         return tuple([res[name] for name in self.body.output_names[1:]])
 
-    def _infer_sizes(self, M, cond, v_initial, *args):  # pylint: disable=W0221
+    def _infer_sizes(self, M, cond, v_initial, *args, context=None):  # pylint: disable=W0221
         store = []
 
-        def callback_(inputs):
-            res = self.body.infer_sizes(inputs)
+        def callback_(inputs, context=None):
+            res = self.body.infer_sizes(inputs, context=context)
             store.append(res)
 
-        res = self._run(M, cond, v_initial, *args, callback=callback_)
+        res = self._run(M, cond, v_initial, *args, callback=callback_,
+                        context=context)
+
         temp = 0
         for v in store:
             for vv in v.values():

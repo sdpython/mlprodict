@@ -97,6 +97,13 @@ class TestGraphs(ExtTestCase):
             "cond___pcen/simple_rnn/while/Identity_graph_outputs_Identity__4:0",
             text)
 
+    def test_bug_graph_infinite(self):
+        this = os.path.abspath(os.path.dirname(__file__))
+        data = os.path.join(this, "data", "bug_graph_infinite.onnx")
+        oinf = OnnxInference(data, inside_loop=True)
+        text = oinf.to_text(distance=8)
+        self.assertIn("slice_end", text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -227,7 +227,8 @@ class OnnxInference:
         except NameError as e:
             raise RuntimeError(  # pragma: no cover
                 "Unable to compute prediction due to %r. Code:\n%s"
-                "" % (e, print_code(self._run_compiled_code))) from e
+                "" % (e, print_code(
+                    self._run_compiled_code))) from e  # pylint: disable=E1101
 
     def _guess_input_dtype(self):
         for _, v in self.graph_['inputs'].items():
@@ -769,7 +770,8 @@ class OnnxInference:
                                 not isinstance(obj[0], dict)):  # pragma: no cover
                             fLOG("-kv='{}' list len={}".format(k, len(obj)))
                             if verbose >= 3 and len(obj) > 0:
-                                fLOG("first={} last={}".format(obj[0], obj[-1]))
+                                fLOG("first={} last={}".format(
+                                    obj[0], obj[-1]))
                         else:  # pragma: no cover
                             fLOG("-kv='{}' type={}".format(k, type(obj)))
 
@@ -1321,7 +1323,7 @@ class OnnxInference:
             code.append("    printed = {}")
 
         context = {}
-        
+
         # static variables
         for k in sorted(self.statics_):
             code.append("    # static: {0}".format(k))

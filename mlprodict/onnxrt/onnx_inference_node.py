@@ -318,7 +318,7 @@ class OnnxInferenceNode:
                            for n in self.ops_.additional_inputs}
                 res = self.ops_.infer_sizes(*args, context=context)
             else:
-                res = self.ops_.infer_sizes(*args)            
+                res = self.ops_.infer_sizes(*args)
         except (TypeError, ValueError) as e:
             raise TypeError(
                 "Unable to call infer_sizes with {} arguments for class"
