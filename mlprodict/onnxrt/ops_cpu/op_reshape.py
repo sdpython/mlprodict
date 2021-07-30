@@ -21,7 +21,7 @@ def reshape_reference_implementation(data, shape):
         except IndexError as e:
             raise RuntimeError(
                 "Unable to reshape from shape %r to shape %r (or %r)."
-                "" % (data.shape, shape, new_shape))
+                "" % (data.shape, shape, new_shape)) from e
         reshaped = numpy.reshape(data, new_shape)
     return reshaped
 

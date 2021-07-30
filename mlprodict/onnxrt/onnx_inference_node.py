@@ -138,7 +138,7 @@ class OnnxInferenceNode:
                     add_inputs.append(i)
                     inputs_set.add(i)
         return add_inputs
-        
+
     def preprocess_parameters(self, runtime, rt_class, ir_version=None,
                               target_opset=None):
         """

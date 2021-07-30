@@ -28,7 +28,7 @@ class Loop(OpRun):
 
         self._run_meth = (self.body.run_in_scan
                           if hasattr(self.body, 'run_in_scan')
-                          else self.body.run)   
+                          else self.body.run)
         self.additional_inputs = self.body.static_inputs
 
     def need_context(self):
@@ -86,8 +86,6 @@ class Loop(OpRun):
             if callback is not None:
                 callback(inputs)
             it += 1
-            if it > 5:
-                stop
 
         if it == 0:
             outputs = {self.body.output_names[1]: cond}
