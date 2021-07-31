@@ -200,3 +200,12 @@ class OpRunOnnxEmpty:
         # inputs = {name: val for name, val in zip(self.inputs, args)}
         raise RuntimeError(  # pragma: no cover
             "This runtime does nothing. Running it is useless.")
+
+    def need_context(self):
+        """
+        Tells the runtime if this node needs the context
+        (all the results produced so far) as it may silently access
+        one of them (operator Loop).
+        The default answer is `False`.
+        """
+        return False

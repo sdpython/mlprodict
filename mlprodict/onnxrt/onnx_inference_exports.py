@@ -585,14 +585,16 @@ class OnnxInferenceExport:
                         "Unknown extension for file '{}'.".format(k))
         return file_data
 
-    def to_text(self, recursive=False):
+    def to_text(self, recursive=False, grid=5, distance=5):
         """
         It calls function @see fn onnx2bigraph to return
         the ONNX graph as text.
 
         :param recursive: dig into subgraphs too
+        :param grid: align text to this grid
+        :param distance: distance to the text
         :return: text
         """
         bigraph = onnx2bigraph(self.oinf.obj, recursive=recursive)
-        graph = bigraph.display_structure()
+        graph = bigraph.display_structure(grid=grid, distance=distance)
         return graph.to_text()

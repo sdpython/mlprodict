@@ -4,6 +4,7 @@
 
 .. versionadded:: 0.7
 """
+import pprint
 import numpy
 
 
@@ -167,6 +168,11 @@ class BiGraph:
                 continue
             if a in v1 and b in v0:
                 continue
+            if b in v1:
+                # One operator is missing one input.
+                # We add one.
+                self.v0[a] = BiGraph.A('ERROR')
+                continue
             raise ValueError(
                 "Edges (%r, %r) not found among the vertices." % (a, b))
 
@@ -219,12 +225,20 @@ class BiGraph:
         for v in self.v1:
             order[v] = 0
         modif = 1
+        n_iter = 0
         while modif > 0:
             modif = 0
             for a, b in self.edges:
                 if order[b] <= order[a]:
                     order[b] = order[a] + 1
                     modif += 1
+            n_iter += 1
+            if n_iter > len(order):
+                break
+        if modif > 0:
+            raise RuntimeError(
+                "The graph has a cycle.\n%s" % pprint.pformat(
+                    self.edges))
         return order
 
     def adjacency_matrix(self):
@@ -250,19 +264,20 @@ class BiGraph:
                 matrix[row_id[b], col_id[a]] = 1
         return matrix, row, col
 
-    def display_structure(self, grid=5):
+    def display_structure(self, grid=5, distance=5):
         """
         Creates a display structure which contains
         all the necessary steps to display a graph.
 
         :param grid: align text to this grid
+        :param distance: distance to the text
         :return: instance of @see cl AdjacencyGraphDisplay
         """
         def adjust(c, way):
             if way == 1:
-                d = grid * ((c + grid * 2 - (grid // 2 + 1)) // grid)
+                d = grid * ((c + distance * 2 - (grid // 2 + 1)) // grid)
             else:
-                d = -grid * ((-c + grid * 2 - (grid // 2 + 1)) // grid)
+                d = -grid * ((-c + distance * 2 - (grid // 2 + 1)) // grid)
             return d
 
         matrix, row, col = self.adjacency_matrix()
@@ -366,14 +381,17 @@ def onnx2bigraph(model_onnx, recursive=False):
     for o in model_onnx.graph.initializer:
         v0[o.name] = BiGraph.A('Init')
     for n in model_onnx.graph.node:
-        v1[n.name] = BiGraph.A(n.op_type)
+        nname = n.name if len(n.name) > 0 else "id%d" % id(n)
+        v1[nname] = BiGraph.A(n.op_type)
         for i, o in enumerate(n.input):
             c = str(i) if i < 10 else "+"
-            edges[o, n.name] = BiGraph.A('I%s' % c)
+            nname = n.name if len(n.name) > 0 else "id%d" % id(n)
+            edges[o, nname] = BiGraph.A('I%s' % c)
         for i, o in enumerate(n.output):
             c = str(i) if i < 10 else "+"
             if o not in v0:
                 v0[o] = BiGraph.A('inout')
-            edges[n.name, o] = BiGraph.A('O%s' % c)
+            nname = n.name if len(n.name) > 0 else "id%d" % id(n)
+            edges[nname, o] = BiGraph.A('O%s' % c)
 
     return BiGraph(v0, v1, edges)

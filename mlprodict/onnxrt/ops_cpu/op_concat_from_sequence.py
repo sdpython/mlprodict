@@ -19,6 +19,9 @@ class ConcatFromSequence(OpRun):
                        **options)
 
     def _run(self, seq):  # pylint: disable=W0221
+        if seq is None:
+            raise RuntimeError(  # pragma: no cover
+                "A sequence cannot be null.")
         if self.new_axis == 1:
             seq2 = [s[..., numpy.newaxis] for s in seq]
             res = numpy.concatenate(seq2, axis=-1)

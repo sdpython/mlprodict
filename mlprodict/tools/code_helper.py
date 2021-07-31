@@ -204,3 +204,12 @@ def make_callable(fct, obj, code, gl, debug):
             "{}\n{}\n----\n{}".format(
                 fct, res.__defaults__, defs, "\n".join(lines), code))  # pylint: disable=E1101
     return res
+
+
+def print_code(code, begin=1):
+    """
+    Returns the code with line number.
+    """
+    rows = code.split("\n")
+    return "\n".join("%03d %s" % (i + begin, s)
+                     for i, s in enumerate(rows))
