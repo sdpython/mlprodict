@@ -91,7 +91,9 @@ class TestGraphs(ExtTestCase):
     def test_bug_graph(self):
         this = os.path.abspath(os.path.dirname(__file__))
         data = os.path.join(this, "data", "bug_graph.onnx")
-        oinf = OnnxInference(data, inside_loop=True)
+        oinf = OnnxInference(
+            data, inside_loop=True,
+            static_inputs=['StatefulPartitionedCall/Reshape:0'])
         text = oinf.to_text(distance=8)
         self.assertIn(
             "cond___pcen/simple_rnn/while/Identity_graph_outputs_Identity__4:0",
