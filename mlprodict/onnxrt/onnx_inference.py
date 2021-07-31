@@ -1360,17 +1360,21 @@ class OnnxInference:
                     "The runtime cannot handle any constant name "
                     "starting with '_OPT_': '{}'.".format(k))
             if k in inputs:
-                context["_OPT_" + k] = v['value']
-                code.append("    # init: _OPT_{0}".format(k))
+                context["_OPT_" + clean_name(k)] = v['value']
+                code.append("    # init: _OPT_{0} ({1})".format(
+                    clean_name(k), k))
                 if debug:
                     code.append(
-                        "    debug_print('c.[_OPT_{0}]', _OPT_{0}, printed)".format(k))
+                        "    debug_print('c.[_OPT_{0}]', _OPT_{1}, printed)".format(
+                            clean_name(k), k))
             else:
-                context[k] = v['value']
-                code.append("    # init: {0}".format(k))
+                context[clean_name(k)] = v['value']
+                code.append("    # init: {0} ({1})".format(
+                    clean_name(k), k))
                 if debug:
                     code.append(
-                        "    debug_print('c.[{0}]', {0}, printed)".format(k))
+                        "    debug_print('c.[{0}]', {1}, printed)".format(
+                            clean_name(k), k))
 
         # method signature
         code.append("    # inputs")
