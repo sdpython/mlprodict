@@ -89,7 +89,7 @@ class Loop(OpRun):
             if o not in outputs:
                 outputs[o] = numpy.empty(shape=tuple())
         res = tuple([outputs[name] for name in self.body.output_names[1:]])
-        if None in res:
+        if any(r is None for r in res):
             raise TypeError(  # pragma: no cover
                 "Operator Loop produces a None value.")
         return res

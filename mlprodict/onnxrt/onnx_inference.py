@@ -9,6 +9,7 @@ from io import BytesIO
 from time import perf_counter
 import warnings
 import textwrap
+import pprint
 import numpy
 from scipy.sparse import coo_matrix
 from onnx import load, load_model, checker, shape_inference
@@ -505,6 +506,10 @@ class OnnxInference:
                     raise RuntimeError(  # pragma: no cover
                         "Output '{}' already exists (tag='{}').".format(
                             k, names[k, 0][0]))
+                else:
+                    # For input, output sharing the same name, we marked the name
+                    # as an input.
+                    continue
             names[k, 0] = ('O', v)
         for k, v in nodes.items():
             if (k, 1) in names:
@@ -539,7 +544,8 @@ class OnnxInference:
                     for o in v[1].outputs:
                         if (o, 0) in order:
                             raise RuntimeError(  # pragma: no cover
-                                "Two nodes share the same output '{}' or an operator and an output "
+                                "Two nodes share the same output '{}' "
+                                "or an operator and an output "
                                 "share the same name. "
                                 "(node: {}).".format(o, v[1]))
                         # We add a data node.
@@ -581,10 +587,21 @@ class OnnxInference:
         for k, ord in last_used.items():
             sequence[ord].add_variable_to_clean(k)
 
-        return dict(inits=inits, inputs=variables, outputs=outputs,
-                    nodes=nodes, sequence=sequence, intermediate=intermediate,
-                    targets=targets, ir_version=self.obj.ir_version,
-                    statics=statics)
+        results = dict(inits=inits, inputs=variables, outputs=outputs,
+                       nodes=nodes, sequence=sequence,
+                       intermediate=intermediate,
+                       targets=targets, ir_version=self.obj.ir_version,
+                       statics=statics)
+        if len(sequence) < len(nodes):
+            # Not all node will be executed.
+            raise RuntimeError(
+                "Unable to run all nodes.\n--Nodes--\n%s\n--Sequence--\n%s"
+                "\n--Inputs--\n%s\n--Inits--\n%s\n--Statics\n%s"
+                "" % (pprint.pformat(nodes), pprint.pformat(sequence),
+                      pprint.pformat(list(variables)),
+                      pprint.pformat(list(inits)),
+                      pprint.pformat(list(statics))))
+        return results
 
     def run(self, inputs, clean_right_away=False,
             intermediate=False, verbose=0, node_time=False,
@@ -739,7 +756,7 @@ class OnnxInference:
                         threshold = 8
                     else:
                         threshold = min(
-                            50, min(50 // arr.shape[1], 8) * arr.shape[1])
+                            50, min(50 // max(arr.shape[1], 1), 8) * arr.shape[1])
                     if hasattr(arr, 'todense'):
                         fLOG(  # pragma: no cover
                             numpy.array2string(arr.todense(), max_line_width=120,
@@ -804,7 +821,8 @@ class OnnxInference:
                             name = name[0]
                             mini = numpy_min(values[k])
                             maxi = numpy_max(values[k])
-                            fLOG("+kr='{}': {} (dtype={} min={} max={}{})".format(
+                            fLOG("+kr{}'{}': {} (dtype={} min={} max={}{})".format(
+                                "=" if len(values[k].shape) == 0 or min(values[k].shape) > 0 else "*",
                                 name, values[k].shape, values[k].dtype,
                                 mini, maxi,
                                 ' sparse' if isinstance(values[k], coo_matrix) else ''))
@@ -1077,7 +1095,8 @@ class OnnxInference:
             try:
                 s = node._set_shape_inference_runtime(values)
                 last = s
-            except (IndexError, TypeError, KeyError) as e:  # pragma: no cover
+            except (IndexError, TypeError, KeyError,
+                    AttributeError) as e:  # pragma: no cover
                 rows = []
                 if last is not None:
                     for k, v in last.items():
