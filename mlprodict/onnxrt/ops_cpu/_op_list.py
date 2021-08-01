@@ -47,6 +47,7 @@ from .op_erf import Erf
 from .op_exp import Exp
 from .op_eyelike import EyeLike
 from .op_feature_vectorizer import FeatureVectorizer
+from .op_fft import FFT
 from .op_flatten import Flatten
 from .op_gather import Gather
 from .op_gather_elements import GatherElements

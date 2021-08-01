@@ -196,6 +196,10 @@ def _elem_type_as_str(elem_type):
         return 'int8'
     if elem_type == onnx_proto.TensorProto.FLOAT16:  # pylint: disable=E1101
         return 'float16'
+    if elem_type == onnx_proto.TensorProto.COMPLEX64:  # pylint: disable=E1101
+        return 'complex64'
+    if elem_type == onnx_proto.TensorProto.COMPLEX128:  # pylint: disable=E1101
+        return 'complex128'
     if elem_type == 0:  # pylint: disable=E1101
         return 'unk'
 
