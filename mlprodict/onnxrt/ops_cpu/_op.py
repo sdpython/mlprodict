@@ -332,8 +332,14 @@ class OpRun:
         inps = []
         for k, v in self.atts.items():  # pylint: disable=E1101
             val = getattr(self, k, None)
-            if val != v:
-                inps.append('%s=%r' % (k, val))
+            if isinstance(val, numpy.ndarray) and isinstance(v, list):
+                val = list(val)
+            try:
+                if val != v:
+                    inps.append('%s=%r' % (k, val))
+            except ValueError as e:
+                raise ValueError(  # pragma: no cover
+                    "Unexpected value for v=%r and val=%r." % (v, val)) from e
         return inps
 
     @property

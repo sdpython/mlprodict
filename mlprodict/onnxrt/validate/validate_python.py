@@ -69,6 +69,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
           '_argmax': _argmax, '_argmin': _argmin,
           '_vcelu1': _vcelu1, 'solve': solve,
           'fft': numpy.fft.fft, 'rfft': numpy.fft.rfft,
+          'fft2': numpy.fft.fft2,
           'npy_det': npy_det, 'ndarray': numpy.ndarray}
 
     for fct in pyrt_fcts:
@@ -83,7 +84,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
     loc = inputs
     try:
         exec(cp, gl, loc)  # pylint: disable=W0122
-    except (NameError, TypeError, SyntaxError) as e:  # pragma: no cover
+    except (NameError, TypeError, SyntaxError, IndexError) as e:  # pragma: no cover
         raise RuntimeError(
             "Unable to execute code\n-----\n{}".format(code)) from e
 
