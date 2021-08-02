@@ -96,6 +96,7 @@ from .op_reduce_sum import (
 from .op_reduce_sum_square import ReduceSumSquare
 from .op_relu import Relu
 from .op_reshape import Reshape, Reshape_5, Reshape_13, Reshape_14
+from .op_rfft import RFFT
 from .op_round import Round
 from .op_rnn import RNN
 from .op_scaler import Scaler

@@ -68,7 +68,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
           'expit': expit, 'erf': erf, 'cdist': cdist,
           '_argmax': _argmax, '_argmin': _argmin,
           '_vcelu1': _vcelu1, 'solve': solve,
-          'fft': numpy.fft.fft,
+          'fft': numpy.fft.fft, 'rfft': numpy.fft.rfft,
           'npy_det': npy_det, 'ndarray': numpy.ndarray}
 
     for fct in pyrt_fcts:

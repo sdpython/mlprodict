@@ -9,7 +9,7 @@ from scipy.spatial.distance import cdist
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.custom_ops import (  # pylint: disable=E0611
     OnnxCDist, OnnxSolve)
-from mlprodict.onnx_conv.onnx_ops import OnnxFFT
+from mlprodict.onnx_conv.onnx_ops import OnnxFFT, OnnxRFFT
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
@@ -99,9 +99,9 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     continue
                 with self.subTest(dim=dim, axis=axis):
                     if dim == 1:
-                        X =  numpy.arange(16).astype(numpy.float32)
+                        X = numpy.arange(16).astype(numpy.float32)
                     elif dim == 2:
-                        X =  numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
                     Y = numpy.fft.fft(X.astype(numpy.float32), axis=axis)
 
                     onx = OnnxFFT('X', output_names=['Y'],
@@ -146,6 +146,61 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     validate_python_inference(
                         oinfpy, {'X': X.astype(numpy.float32)})
         python_tested.append(OnnxFFT)
+
+    def test_onnxt_runtime_rfft(self):
+        for dim in [1, 2]:
+            for axis in [-1, 0, 1]:
+                if axis >= dim:
+                    continue
+                with self.subTest(dim=dim, axis=axis):
+                    if dim == 1:
+                        X = numpy.arange(16).astype(numpy.float32)
+                    elif dim == 2:
+                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                    Y = numpy.fft.rfft(X.astype(numpy.float32), axis=axis)
+
+                    onx = OnnxRFFT('X', output_names=['Y'],
+                                   axis=axis, op_version=get_opset_number_from_onnx())
+                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                            outputs={'Y': Y},
+                                            target_opset=get_opset_number_from_onnx())
+                    oinf = OnnxInference(model_def)
+                    got = oinf.run({'X': X})
+                    self.assertEqual(list(sorted(got)), ['Y'])
+                    self.assertEqualArray(Y, got['Y'], decimal=6)
+
+                    oinfpy = OnnxInference(
+                        model_def, runtime="python", inplace=True)
+                    validate_python_inference(
+                        oinfpy, {'X': X.astype(numpy.float32)})
+
+        for dim in [1, 2]:
+            for axis in [-1, 0, 1]:
+                if axis >= dim:
+                    continue
+                with self.subTest(dim=dim, axis=axis, length=8):
+                    if dim == 1:
+                        X = numpy.arange(16).astype(numpy.float32)
+                    elif dim == 2:
+                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                    Y = numpy.fft.rfft(X.astype(numpy.float32), 8, axis=axis)
+
+                    onx = OnnxRFFT('X', numpy.array([8], dtype=numpy.int64),
+                                  output_names=['Y'], axis=axis,
+                                  op_version=get_opset_number_from_onnx())
+                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                            outputs={'Y': Y},
+                                            target_opset=get_opset_number_from_onnx())
+                    oinf = OnnxInference(model_def)
+                    got = oinf.run({'X': X})
+                    self.assertEqual(list(sorted(got)), ['Y'])
+                    self.assertEqualArray(Y, got['Y'], decimal=6)
+
+                    oinfpy = OnnxInference(
+                        model_def, runtime="python", inplace=True)
+                    validate_python_inference(
+                        oinfpy, {'X': X.astype(numpy.float32)})
+        python_tested.append(OnnxRFFT)
 
 
 if __name__ == "__main__":
