@@ -70,9 +70,6 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
     def test_onnxt_runtime_complex_abs(self):
         for dtype in [numpy.complex64, numpy.complex128]:
             with self.subTest(dtype=dtype):
-                out_dtype = (
-                    numpy.float32
-                    if dtype == numpy.complex64 else numpy.complex128)
                 X = numpy.array([[2, 1j], [0, 1j]], dtype=dtype)
                 Z = numpy.absolute(X)
 
