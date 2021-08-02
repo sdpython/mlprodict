@@ -524,6 +524,10 @@ class ShapeObject(BaseDimensionShape):
                 self._dtype = numpy.uint32
             elif self._dtype in (numpy.uint64, 'uint64', ):
                 self._dtype = numpy.uint64
+            elif self._dtype in (numpy.complex64, 'complex64', ):
+                self._dtype = numpy.complex64
+            elif self._dtype in (numpy.complex128, 'complex128', ):
+                self._dtype = numpy.complex128
             elif self._dtype == "tensor({'kind': 'tensor', 'elem': 'float', 'shape': })":
                 self._dtype = numpy.float32
             elif self._dtype not in {

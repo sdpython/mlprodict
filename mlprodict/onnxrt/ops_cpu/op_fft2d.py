@@ -4,7 +4,9 @@
 @file
 @brief Runtime operator.
 """
+import numpy
 from numpy.fft import fft2
+from ..shape_object import ShapeObject
 from ._op import OpRun
 from ._new_ops import OperatorSchema
 
@@ -31,14 +33,31 @@ class FFT2D(OpRun):
 
     def _run(self, a, fft_length=None):  # pylint: disable=W0221
         if fft_length is None:
-            return (fft2(a, axes=self.axes), )
-        return (fft2(a, tuple(fft_length), axes=self.axes), )
+            y = fft2(a, axes=self.axes)
+        else:
+            y = fft2(a, tuple(fft_length), axes=self.axes)
+        if a.dtype in (numpy.float32, numpy.complex64):
+            return (y.astype(numpy.complex64), )
+        if a.dtype in (numpy.float64, numpy.complex128):
+            return (y.astype(numpy.complex128), )
+        raise TypeError(  # pragma: no cover
+            "Unexpected input type: %r." % a.dtype)
 
     def _infer_shapes(self, a, b=None):  # pylint: disable=W0221,W0237
-        return (a, )
+        if a.dtype in (numpy.float32, numpy.complex64):
+            return (ShapeObject(a.shape, dtype=numpy.complex64), )
+        if a.dtype in (numpy.float64, numpy.complex128):
+            return (ShapeObject(a.shape, dtype=numpy.complex128), )
+        raise TypeError(  # pragma: no cover
+            "Unexpected input type: %r." % a.dtype)
 
     def _infer_types(self, a, b=None):  # pylint: disable=W0221,W0237
-        return (a, )
+        if a.dtype in (numpy.float32, numpy.complex64):
+            return (numpy.complex64, )
+        if a.dtype in (numpy.float64, numpy.complex128):
+            return (numpy.complex128, )
+        raise TypeError(  # pragma: no cover
+            "Unexpected input type: %r." % a.dtype)
 
     def to_python(self, inputs):
         if self.axes is not None:

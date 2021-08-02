@@ -9,7 +9,9 @@ from scipy.spatial.distance import cdist
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.custom_ops import (  # pylint: disable=E0611
     OnnxCDist, OnnxSolve)
-from mlprodict.onnx_conv.onnx_ops import OnnxFFT, OnnxRFFT, OnnxFFT2D
+from mlprodict.onnx_conv.onnx_ops import (
+    OnnxFFT, OnnxRFFT, OnnxFFT2D,
+    OnnxComplexAbs)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
@@ -65,32 +67,30 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     tolerance=1e-6)
         python_tested.append(OnnxCDist)
 
-    def test_onnxt_runtime_solve(self):
-        for transposed in [False, True]:
-            with self.subTest(transposed=transposed):
-                A = numpy.array([[2, 1], [0, 1]], dtype=float)
-                Y = numpy.array([2, 1], dtype=float)
-                X = solve(A, Y, transposed=transposed)
+    def test_onnxt_runtime_complex_abs(self):
+        for dtype in [numpy.complex64, numpy.complex128]:
+            with self.subTest(dtype=dtype):
+                out_dtype = (
+                    numpy.float32
+                    if dtype == numpy.complex64 else numpy.complex128)
+                X = numpy.array([[2, 1j], [0, 1j]], dtype=dtype)
+                Z = numpy.absolute(X)
 
-                onx = OnnxSolve('A', 'Y', output_names=['X'],
-                                transposed=transposed,
-                                op_version=get_opset_number_from_onnx())
-                model_def = onx.to_onnx({'A': A.astype(numpy.float32),
-                                         'Y': Y.astype(numpy.float32)},
-                                        outputs={'X': X.astype(numpy.float32)},
+                onx = OnnxComplexAbs('X', output_names=['Z'],
+                                     op_version=get_opset_number_from_onnx())
+                model_def = onx.to_onnx({'X': X},
+                                        outputs={'Z': Z},
                                         target_opset=get_opset_number_from_onnx())
                 oinf = OnnxInference(model_def)
-                got = oinf.run({'A': A, 'Y': Y})
-                self.assertEqual(list(sorted(got)), ['X'])
-                self.assertEqualArray(X, got['X'], decimal=6)
+                got = oinf.run({'X': X})
+                self.assertEqual(list(sorted(got)), ['Z'])
+                self.assertEqualArray(Z, got['Z'], decimal=6)
 
-                python_tested.append(OnnxCDist)
                 oinfpy = OnnxInference(
                     model_def, runtime="python", inplace=True)
                 validate_python_inference(
-                    oinfpy, {'A': A.astype(numpy.float32),
-                             'Y': Y.astype(numpy.float32)})
-        python_tested.append(OnnxSolve)
+                    oinfpy, {'X': X}, tolerance=1e-6)
+                python_tested.append(OnnxComplexAbs)
 
     def test_onnxt_runtime_fft(self):
         for dim in [1, 2]:
@@ -117,7 +117,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     oinfpy = OnnxInference(
                         model_def, runtime="python", inplace=True)
                     validate_python_inference(
-                        oinfpy, {'X': X.astype(numpy.float32)})
+                        oinfpy, {'X': X.astype(numpy.float32)},
+                        tolerance=1e-6)
 
         for dim in [1, 2]:
             for axis in [-1, 0, 1]:
@@ -139,13 +140,14 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     oinf = OnnxInference(model_def)
                     got = oinf.run({'X': X})
                     self.assertEqual(list(sorted(got)), ['Y'])
-                    self.assertEqualArray(Y, got['Y'], decimal=6)
+                    self.assertEqualArray(Y, got['Y'], decimal=5)
 
                     oinfpy = OnnxInference(
                         model_def, runtime="python", inplace=True)
                     validate_python_inference(
-                        oinfpy, {'X': X.astype(numpy.float32)})
-        python_tested.append(OnnxFFT)
+                        oinfpy, {'X': X.astype(numpy.float32)},
+                        tolerance=1e-5)
+                    python_tested.append(OnnxFFT)
 
     def test_onnxt_runtime_rfft(self):
         for dim in [1, 2]:
@@ -172,7 +174,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     oinfpy = OnnxInference(
                         model_def, runtime="python", inplace=True)
                     validate_python_inference(
-                        oinfpy, {'X': X.astype(numpy.float32)})
+                        oinfpy, {'X': X.astype(numpy.float32)},
+                        tolerance=1e-6)
 
         for dim in [1, 2]:
             for axis in [-1, 0, 1]:
@@ -194,13 +197,14 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     oinf = OnnxInference(model_def)
                     got = oinf.run({'X': X})
                     self.assertEqual(list(sorted(got)), ['Y'])
-                    self.assertEqualArray(Y, got['Y'], decimal=6)
+                    self.assertEqualArray(Y, got['Y'], decimal=5)
 
                     oinfpy = OnnxInference(
                         model_def, runtime="python", inplace=True)
                     validate_python_inference(
-                        oinfpy, {'X': X.astype(numpy.float32)})
-        python_tested.append(OnnxRFFT)
+                        oinfpy, {'X': X.astype(numpy.float32)},
+                        tolerance=1e-5)
+                    python_tested.append(OnnxRFFT)
 
     def test_onnxt_runtime_fft2d(self):
         for dim in [2]:
@@ -224,12 +228,13 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     oinf = OnnxInference(model_def)
                     got = oinf.run({'X': X})
                     self.assertEqual(list(sorted(got)), ['Y'])
-                    self.assertEqualArray(Y, got['Y'], decimal=6)
+                    self.assertEqualArray(Y, got['Y'], decimal=5)
 
                     oinfpy = OnnxInference(
                         model_def, runtime="python", inplace=True)
                     validate_python_inference(
-                        oinfpy, {'X': X.astype(numpy.float32)})
+                        oinfpy, {'X': X.astype(numpy.float32)},
+                        tolerance=1e-5)
 
         for dim in [2]:
             for axis in [None, (-2, -1)]:
@@ -254,13 +259,41 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     oinf = OnnxInference(model_def)
                     got = oinf.run({'X': X})
                     self.assertEqual(list(sorted(got)), ['Y'])
-                    self.assertEqualArray(Y, got['Y'], decimal=6)
+                    self.assertEqualArray(Y, got['Y'], decimal=5)
 
                     oinfpy = OnnxInference(
                         model_def, runtime="python", inplace=True)
                     validate_python_inference(
-                        oinfpy, {'X': X.astype(numpy.float32)})
-        python_tested.append(OnnxRFFT)
+                        oinfpy, {'X': X.astype(numpy.float32)},
+                        tolerance=1e-5)
+                    python_tested.append(OnnxRFFT)
+
+    def test_onnxt_runtime_solve(self):
+        for transposed in [False, True]:
+            with self.subTest(transposed=transposed):
+                A = numpy.array([[2, 1], [0, 1]], dtype=float)
+                Y = numpy.array([2, 1], dtype=float)
+                X = solve(A, Y, transposed=transposed)
+
+                onx = OnnxSolve('A', 'Y', output_names=['X'],
+                                transposed=transposed,
+                                op_version=get_opset_number_from_onnx())
+                model_def = onx.to_onnx({'A': A.astype(numpy.float32),
+                                         'Y': Y.astype(numpy.float32)},
+                                        outputs={'X': X.astype(numpy.float32)},
+                                        target_opset=get_opset_number_from_onnx())
+                oinf = OnnxInference(model_def)
+                got = oinf.run({'A': A, 'Y': Y})
+                self.assertEqual(list(sorted(got)), ['X'])
+                self.assertEqualArray(X, got['X'], decimal=6)
+
+                python_tested.append(OnnxCDist)
+                oinfpy = OnnxInference(
+                    model_def, runtime="python", inplace=True)
+                validate_python_inference(
+                    oinfpy, {'A': A.astype(numpy.float32),
+                             'Y': Y.astype(numpy.float32)})
+                python_tested.append(OnnxSolve)
 
 
 if __name__ == "__main__":

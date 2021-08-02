@@ -4,7 +4,9 @@
 @file
 @brief Runtime operator.
 """
+import numpy
 from numpy.fft import rfft
+from ..shape_object import ShapeObject
 from ._op import OpRun
 from ._new_ops import OperatorSchema
 
@@ -27,13 +29,29 @@ class RFFT(OpRun):
     def _run(self, a, fft_length=None):  # pylint: disable=W0221
         if fft_length is not None:
             fft_length = fft_length[0]
-        return (rfft(a, fft_length, axis=self.axis), )
+        y = rfft(a, fft_length, axis=self.axis)
+        if a.dtype == numpy.float32:
+            return (y.astype(numpy.complex64), )
+        if a.dtype == numpy.float64:
+            return (y.astype(numpy.complex128), )
+        raise TypeError(  # pragma: no cover
+            "Unexpected input type: %r." % a.dtype)
 
     def _infer_shapes(self, a, b=None):  # pylint: disable=W0221,W0237
-        return (a, )
+        if a.dtype == numpy.float32:
+            return (ShapeObject(a.shape, dtype=numpy.complex64), )
+        if a.dtype == numpy.float64:
+            return (ShapeObject(a.shape, dtype=numpy.complex128), )
+        raise TypeError(  # pragma: no cover
+            "Unexpected input type: %r." % a.dtype)
 
     def _infer_types(self, a, b=None):  # pylint: disable=W0221,W0237
-        return (a, )
+        if a.dtype == numpy.float32:
+            return (numpy.complex64, )
+        if a.dtype == numpy.float64:
+            return (numpy.complex128, )
+        raise TypeError(  # pragma: no cover
+            "Unexpected input type: %r." % a.dtype)
 
     def to_python(self, inputs):
         if len(inputs) == 1:

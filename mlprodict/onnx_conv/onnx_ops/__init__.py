@@ -3,6 +3,7 @@
 @brief Shortcuts to *onnx_ops*.
 """
 
+from .onnx_complex import OnnxComplexAbs_1, OnnxComplexAbs
 from .onnx_fft import (
     OnnxFFT_1, OnnxFFT,
     OnnxRFFT_1, OnnxRFFT,
