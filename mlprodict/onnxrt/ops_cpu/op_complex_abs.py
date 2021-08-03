@@ -21,7 +21,7 @@ class ComplexAbs(OpRun):
         raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
-    def _run(self, x):  # pylint: disable=W0221        
+    def _run(self, x):  # pylint: disable=W0221
         y = numpy.absolute(x)
         if x.dtype == numpy.complex64:
             y = y.astype(numpy.float32)

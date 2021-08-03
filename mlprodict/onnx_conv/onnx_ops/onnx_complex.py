@@ -1,8 +1,7 @@
 """
 @file
-@brief Custom operators for FFT.
+@brief Custom operators for complex numbers.
 """
-import numpy
 from skl2onnx.algebra.onnx_operator import OnnxOperator
 
 
