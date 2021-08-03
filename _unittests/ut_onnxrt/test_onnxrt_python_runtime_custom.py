@@ -8,8 +8,10 @@ from scipy.linalg import solve
 from scipy.spatial.distance import cdist
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.custom_ops import (  # pylint: disable=E0611
-    OnnxCDist, OnnxSolve
-)
+    OnnxCDist, OnnxSolve)
+from mlprodict.onnx_conv.onnx_ops import (
+    OnnxFFT, OnnxRFFT, OnnxFFT2D,
+    OnnxComplexAbs)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
@@ -57,13 +59,211 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                 self.assertEqual(list(sorted(got)), ['Z'])
                 self.assertEqualArray(Z, got['Z'], decimal=6)
 
-                python_tested.append(OnnxCDist)
                 oinfpy = OnnxInference(
                     model_def, runtime="python", inplace=True)
                 validate_python_inference(
                     oinfpy, {'X': X.astype(numpy.float32),
                              'Y': Y.astype(numpy.float32)},
                     tolerance=1e-6)
+        python_tested.append(OnnxCDist)
+
+    def test_onnxt_runtime_complex_abs(self):
+        for dtype in [numpy.complex64, numpy.complex128]:
+            with self.subTest(dtype=dtype):
+                X = numpy.array([[2, 1j], [0, 1j]], dtype=dtype)
+                Z = numpy.absolute(X)
+
+                onx = OnnxComplexAbs('X', output_names=['Z'],
+                                     op_version=get_opset_number_from_onnx())
+                model_def = onx.to_onnx({'X': X},
+                                        outputs={'Z': Z},
+                                        target_opset=get_opset_number_from_onnx())
+                oinf = OnnxInference(model_def)
+                got = oinf.run({'X': X})
+                self.assertEqual(list(sorted(got)), ['Z'])
+                self.assertEqualArray(Z, got['Z'], decimal=6)
+
+                oinfpy = OnnxInference(
+                    model_def, runtime="python", inplace=True)
+                validate_python_inference(
+                    oinfpy, {'X': X}, tolerance=1e-6)
+                python_tested.append(OnnxComplexAbs)
+
+    def test_onnxt_runtime_fft(self):
+        for dim in [1, 2]:
+            for axis in [-1, 0, 1]:
+                if axis >= dim:
+                    continue
+                with self.subTest(dim=dim, axis=axis):
+                    if dim == 1:
+                        X = numpy.arange(16).astype(numpy.float32)
+                    elif dim == 2:
+                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                    Y = numpy.fft.fft(X.astype(numpy.float32), axis=axis)
+
+                    onx = OnnxFFT('X', output_names=['Y'],
+                                  axis=axis, op_version=get_opset_number_from_onnx())
+                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                            outputs={'Y': Y},
+                                            target_opset=get_opset_number_from_onnx())
+                    oinf = OnnxInference(model_def)
+                    got = oinf.run({'X': X})
+                    self.assertEqual(list(sorted(got)), ['Y'])
+                    self.assertEqualArray(Y, got['Y'], decimal=6)
+
+                    oinfpy = OnnxInference(
+                        model_def, runtime="python", inplace=True)
+                    validate_python_inference(
+                        oinfpy, {'X': X.astype(numpy.float32)},
+                        tolerance=1e-6)
+
+        for dim in [1, 2]:
+            for axis in [-1, 0, 1]:
+                if axis >= dim:
+                    continue
+                with self.subTest(dim=dim, axis=axis, length=8):
+                    if dim == 1:
+                        X = numpy.arange(16).astype(numpy.float32)
+                    elif dim == 2:
+                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                    Y = numpy.fft.fft(X.astype(numpy.float32), 8, axis=axis)
+
+                    onx = OnnxFFT('X', numpy.array([8], dtype=numpy.int64),
+                                  output_names=['Y'], axis=axis,
+                                  op_version=get_opset_number_from_onnx())
+                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                            outputs={'Y': Y},
+                                            target_opset=get_opset_number_from_onnx())
+                    oinf = OnnxInference(model_def)
+                    got = oinf.run({'X': X})
+                    self.assertEqual(list(sorted(got)), ['Y'])
+                    self.assertEqualArray(Y, got['Y'], decimal=5)
+
+                    oinfpy = OnnxInference(
+                        model_def, runtime="python", inplace=True)
+                    validate_python_inference(
+                        oinfpy, {'X': X.astype(numpy.float32)},
+                        tolerance=1e-5)
+                    python_tested.append(OnnxFFT)
+
+    def test_onnxt_runtime_rfft(self):
+        for dim in [1, 2]:
+            for axis in [-1, 0, 1]:
+                if axis >= dim:
+                    continue
+                with self.subTest(dim=dim, axis=axis):
+                    if dim == 1:
+                        X = numpy.arange(16).astype(numpy.float32)
+                    elif dim == 2:
+                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                    Y = numpy.fft.rfft(X.astype(numpy.float32), axis=axis)
+
+                    onx = OnnxRFFT('X', output_names=['Y'],
+                                   axis=axis, op_version=get_opset_number_from_onnx())
+                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                            outputs={'Y': Y},
+                                            target_opset=get_opset_number_from_onnx())
+                    oinf = OnnxInference(model_def)
+                    got = oinf.run({'X': X})
+                    self.assertEqual(list(sorted(got)), ['Y'])
+                    self.assertEqualArray(Y, got['Y'], decimal=6)
+
+                    oinfpy = OnnxInference(
+                        model_def, runtime="python", inplace=True)
+                    validate_python_inference(
+                        oinfpy, {'X': X.astype(numpy.float32)},
+                        tolerance=1e-6)
+
+        for dim in [1, 2]:
+            for axis in [-1, 0, 1]:
+                if axis >= dim:
+                    continue
+                with self.subTest(dim=dim, axis=axis, length=8):
+                    if dim == 1:
+                        X = numpy.arange(16).astype(numpy.float32)
+                    elif dim == 2:
+                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                    Y = numpy.fft.rfft(X.astype(numpy.float32), 8, axis=axis)
+
+                    onx = OnnxRFFT('X', numpy.array([8], dtype=numpy.int64),
+                                   output_names=['Y'], axis=axis,
+                                   op_version=get_opset_number_from_onnx())
+                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                            outputs={'Y': Y},
+                                            target_opset=get_opset_number_from_onnx())
+                    oinf = OnnxInference(model_def)
+                    got = oinf.run({'X': X})
+                    self.assertEqual(list(sorted(got)), ['Y'])
+                    self.assertEqualArray(Y, got['Y'], decimal=5)
+
+                    oinfpy = OnnxInference(
+                        model_def, runtime="python", inplace=True)
+                    validate_python_inference(
+                        oinfpy, {'X': X.astype(numpy.float32)},
+                        tolerance=1e-5)
+                    python_tested.append(OnnxRFFT)
+
+    def test_onnxt_runtime_fft2d(self):
+        for dim in [2]:
+            for axis in [None, (-2, -1)]:
+                with self.subTest(dim=dim, axis=axis):
+                    if dim == 1:
+                        X = numpy.arange(16).astype(numpy.float32)
+                    elif dim == 2:
+                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                    Y = numpy.fft.fft2(X.astype(numpy.float32), axes=axis)
+
+                    if axis is not None:
+                        onx = OnnxFFT2D('X', output_names=['Y'],
+                                        axes=axis, op_version=get_opset_number_from_onnx())
+                    else:
+                        onx = OnnxFFT2D('X', output_names=['Y'],
+                                        op_version=get_opset_number_from_onnx())
+                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                            outputs={'Y': Y},
+                                            target_opset=get_opset_number_from_onnx())
+                    oinf = OnnxInference(model_def)
+                    got = oinf.run({'X': X})
+                    self.assertEqual(list(sorted(got)), ['Y'])
+                    self.assertEqualArray(Y, got['Y'], decimal=5)
+
+                    oinfpy = OnnxInference(
+                        model_def, runtime="python", inplace=True)
+                    validate_python_inference(
+                        oinfpy, {'X': X.astype(numpy.float32)},
+                        tolerance=1e-5)
+
+        for dim in [2]:
+            for axis in [None, (-2, -1)]:
+                with self.subTest(dim=dim, axis=axis, length=(8, 8)):
+                    if dim == 1:
+                        X = numpy.arange(16).astype(numpy.float32)
+                    elif dim == 2:
+                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                    Y = numpy.fft.fft2(X.astype(numpy.float32), (8, 8), axes=axis)
+
+                    if axis is not None:
+                        onx = OnnxFFT2D('X', numpy.array([8, 8], dtype=numpy.int64),
+                                        output_names=['Y'], axes=axis,
+                                        op_version=get_opset_number_from_onnx())
+                    else:
+                        onx = OnnxFFT2D('X', numpy.array([8, 8], dtype=numpy.int64),
+                                        output_names=['Y'],
+                                        op_version=get_opset_number_from_onnx())
+                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                            outputs={'Y': Y},
+                                            target_opset=get_opset_number_from_onnx())
+                    oinf = OnnxInference(model_def)
+                    got = oinf.run({'X': X})
+                    self.assertEqual(list(sorted(got)), ['Y'])
+                    self.assertEqualArray(Y, got['Y'], decimal=5)
+
+                    oinfpy = OnnxInference(
+                        model_def, runtime="python", inplace=True)
+                    validate_python_inference(
+                        oinfpy, {'X': X.astype(numpy.float32)},
+                        tolerance=1e-5)
+                    python_tested.append(OnnxRFFT)
 
     def test_onnxt_runtime_solve(self):
         for transposed in [False, True]:

@@ -26,6 +26,7 @@ from .op_cdist import CDist
 from .op_ceil import Ceil
 from .op_celu import Celu
 from .op_clip import Clip_6, Clip_11, Clip
+from .op_complex_abs import ComplexAbs
 from .op_compress import Compress
 from .op_concat import Concat
 from .op_concat_from_sequence import ConcatFromSequence
@@ -47,6 +48,8 @@ from .op_erf import Erf
 from .op_exp import Exp
 from .op_eyelike import EyeLike
 from .op_feature_vectorizer import FeatureVectorizer
+from .op_fft import FFT
+from .op_fft2d import FFT2D
 from .op_flatten import Flatten
 from .op_gather import Gather
 from .op_gather_elements import GatherElements
@@ -95,6 +98,7 @@ from .op_reduce_sum import (
 from .op_reduce_sum_square import ReduceSumSquare
 from .op_relu import Relu
 from .op_reshape import Reshape, Reshape_5, Reshape_13, Reshape_14
+from .op_rfft import RFFT
 from .op_round import Round
 from .op_rnn import RNN
 from .op_scaler import Scaler

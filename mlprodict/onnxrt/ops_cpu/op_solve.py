@@ -46,7 +46,7 @@ class Solve(OpRunBinaryNum):
 class SolveSchema(OperatorSchema):
     """
     Defines a schema for operators added in this package
-    such as @see cl TreeEnsembleClassifierDouble.
+    such as @see cl Solve.
     """
 
     def __init__(self):
