@@ -23,7 +23,10 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_lightgbm_regressor(self):
         from lightgbm import LGBMRegressor
-        from onnxmltools.convert import convert_lightgbm
+        try:
+            from onnxmltools.convert import convert_lightgbm
+        except ImportError:
+            convert_lightgbm = None
 
         X = numpy.abs(numpy.random.randn(7, 227)).astype(numpy.float32)
         y = X.sum(axis=1) + numpy.random.randn(
@@ -35,10 +38,15 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
         expected = model.predict(X)
 
         model_onnx = to_onnx(model, X)
-        model_onnx2 = convert_lightgbm(
-            model, initial_types=[('X', FloatTensorType([None, 227]))])
+        if convert_lightgbm is not None:
+            model_onnx2 = convert_lightgbm(
+                model, initial_types=[('X', FloatTensorType([None, 227]))])
+        else:
+            model_onnx2 = None
 
         for i, mo in enumerate([model_onnx, model_onnx2]):
+            if mo is None:
+                continue
             for rt in ['python', 'onnxruntime1']:
                 with self.subTest(i=i, rt=rt):
                     oinf = OnnxInference(mo, runtime=rt)
@@ -51,7 +59,6 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_lightgbm_regressor_double(self):
         from lightgbm import LGBMRegressor
-        from onnxmltools.convert import convert_lightgbm
 
         X = numpy.abs(numpy.random.randn(7, 227)).astype(numpy.float32)
         y = X.sum(axis=1) + numpy.random.randn(
@@ -88,7 +95,10 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_xgboost_regressor(self):
         from xgboost import XGBRegressor
-        from onnxmltools.convert import convert_xgboost
+        try:
+            from onnxmltools.convert import convert_xgboost
+        except ImportError:
+            convert_xgboost = None
 
         X = numpy.abs(numpy.random.randn(7, 227)).astype(numpy.float32)
         y = X.sum(axis=1) + numpy.random.randn(
@@ -100,10 +110,15 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
         expected = model.predict(X)
 
         model_onnx = to_onnx(model, X)
-        model_onnx2 = convert_xgboost(
-            model, initial_types=[('X', FloatTensorType([None, 227]))])
+        if convert_xgboost is not None:
+            model_onnx2 = convert_xgboost(
+                model, initial_types=[('X', FloatTensorType([None, 227]))])
+        else:
+            model_onnx2 = None
 
         for i, mo in enumerate([model_onnx, model_onnx2]):
+            if mo is None:
+                continue
             for rt in ['python', 'onnxruntime1']:
                 with self.subTest(i=i, rt=rt):
                     oinf = OnnxInference(mo, runtime=rt)
