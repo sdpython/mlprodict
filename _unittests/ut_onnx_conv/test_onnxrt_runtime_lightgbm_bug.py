@@ -5,12 +5,10 @@ import sys
 import unittest
 from logging import getLogger
 import numpy
-import pandas
-from pyquickhelper.pycode import ExtTestCase, skipif_circleci, ignore_warnings
+from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
 
 
 class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
