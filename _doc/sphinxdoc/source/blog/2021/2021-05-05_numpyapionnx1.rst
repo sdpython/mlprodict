@@ -136,7 +136,7 @@
         pipe.fit(X_train, y_train)
         print(pipe.predict_proba(X_test[:2]))
 
-        onx = to_onnx(pipe, X_train[:1], rewrite_ops=True,
+        onx = to_onnx(pipe, X_train[:1],
                       options={LogisticRegression: {'zipmap': False}})
         oinf = OnnxInference(onx)
         print(oinf.run({'X': X_test[:2]})['probabilities'])
