@@ -3,10 +3,12 @@
 """
 import os
 import unittest
+import collections
+import inspect
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
-from onnx import numpy_helper
+from onnx import numpy_helper, helper
 from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
     make_tensor_value_info)
@@ -17,8 +19,8 @@ from mlprodict.onnxrt import OnnxInference
 
 
 class TestExportOnnx(ExtTestCase):
-    
-    def verify(self, content, existing_loc=None):
+
+    def verify(self, content):
         try:
             left, __ = verify_code(content, exc=False)
         except SyntaxError as e:
@@ -28,7 +30,7 @@ class TestExportOnnx(ExtTestCase):
                 "" % (e, content)) from e
 
         # execution
-        try:            
+        try:
             obj = compile(content, '<string>', 'exec')
         except SyntaxError as e:
             raise AssertionError(
@@ -39,21 +41,22 @@ class TestExportOnnx(ExtTestCase):
         loc = {'numpy_helper': numpy_helper,
                'make_model': make_model,
                'make_node': make_node,
-               'set_model_props': set_model_props, 
+               'set_model_props': set_model_props,
                'make_tensor': make_tensor,
                'make_graph': make_graph,
-               'make_tensor_value_info': make_tensor_value_info}
-        if existing_loc is not None:
-            loc.update(existing_loc)
-            glo.update(existing_loc)
+               'make_tensor_value_info': make_tensor_value_info,
+               'print': print, 'sorted': sorted,
+               'collections': collections, 'inspect': inspect}
         out = StringIO()
         err = StringIO()
-        self.assertLess(len(left), 5)
+        if len(left) >= 5:
+            raise AssertionError(
+                "Too many unknown symbols: %r." % left)
 
         with redirect_stdout(out):
             with redirect_stderr(err):
                 try:
-                    exec(obj, glo, loc)  # pylint: disable=W0122 
+                    exec(obj, glo, loc)  # pylint: disable=W0122
                 except Exception as e:
                     raise AssertionError(
                         "Unable to execute a script due to %r. "
@@ -72,23 +75,25 @@ class TestExportOnnx(ExtTestCase):
 
                 x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
                 y = oinf0.run({'x': x})
-                
-                new_onnx = export2onnx(os.path.join(folder, name))
-                glo, loc = self.verify(new_onnx)
-                model = loc['onnx_model']
-                oinf = OnnxInference(model)
-                y1 = oinf0.run({'x': x})
 
-                new_onnx = export2onnx(os.path.join(folder, name), verbose=False)
-                glo, loc = self.verify(new_onnx)
+                new_onnx = export2onnx(
+                    os.path.join(folder, name), name="FFT2D")
+                _, loc = self.verify(new_onnx)
                 model = loc['onnx_model']
                 oinf = OnnxInference(model)
-                y2 = oinf0.run({'x': x})
-                
+                y1 = oinf.run({'x': x})
+
+                new_onnx = export2onnx(
+                    os.path.join(folder, name), verbose=False)
+                _, loc = self.verify(new_onnx)
+                model = loc['onnx_model']
+                oinf = OnnxInference(model)
+                y2 = oinf.run({'x': x})
+
                 self.assertEqualArray(y['y'], y1['y'])
                 self.assertEqualArray(y['y'], y2['y'])
 
-    def verify_tf(self, content, existing_loc=None):
+    def verify_tf(self, content):
         try:
             left, __ = verify_code(content, exc=False)
         except SyntaxError as e:
@@ -98,7 +103,7 @@ class TestExportOnnx(ExtTestCase):
                 "" % (e, content)) from e
 
         # execution
-        try:            
+        try:
             obj = compile(content, '<string>', 'exec')
         except SyntaxError as e:
             raise AssertionError(
@@ -106,24 +111,21 @@ class TestExportOnnx(ExtTestCase):
                 "\n--CODE--\n%s"
                 "" % (e, content)) from e
         glo = globals().copy()
-        loc = {'numpy_helper': numpy_helper,
-               'make_model': make_model,
-               'make_node': make_node,
-               'set_model_props': set_model_props, 
-               'make_tensor': make_tensor,
-               'make_graph': make_graph,
-               'make_tensor_value_info': make_tensor_value_info}
-        if existing_loc is not None:
-            loc.update(existing_loc)
-            glo.update(existing_loc)
+        loc = {'numpy': numpy, 'print': print,
+               'dict': dict, 'sorted': sorted, 'list': list,
+               'print': print, 'sorted': sorted,
+               'collections': collections, 'inspect': inspect,
+               'helper': helper}
         out = StringIO()
         err = StringIO()
-        self.assertLess(len(left), 5)
+        if len(left) >= 14:
+            raise AssertionError(
+                "Too many unknown symbols: %r." % left)
 
         with redirect_stdout(out):
             with redirect_stderr(err):
                 try:
-                    exec(obj, glo, loc)  # pylint: disable=W0122 
+                    exec(obj, glo, loc)  # pylint: disable=W0122
                 except Exception as e:
                     raise AssertionError(
                         "Unable to execute a script due to %r. "
@@ -138,11 +140,12 @@ class TestExportOnnx(ExtTestCase):
         names = ["fft2d_any.onnx"]
         for name in names:
             with self.subTest(name=name):
-                new_onnx = export2tf2onnx(os.path.join(folder, name))
-                print(new_onnx)
-                self.verify_tf(new_onnx)
-
-
+                new_onnx = export2tf2onnx(
+                    os.path.join(folder, name), name="FFT2D")
+                _, loc = self.verify_tf(new_onnx)
+                model = loc['onnx_model']
+                self.assertIn('op_type: "FFT2D"', str(model))
+                # print(model)
 
 
 if __name__ == "__main__":

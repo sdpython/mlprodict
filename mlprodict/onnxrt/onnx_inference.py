@@ -822,7 +822,8 @@ class OnnxInference:
                             mini = numpy_min(values[k])
                             maxi = numpy_max(values[k])
                             fLOG("+kr{}'{}': {} (dtype={} min={} max={}{})".format(
-                                "=" if len(values[k].shape) == 0 or min(values[k].shape) > 0 else "*",
+                                "=" if len(values[k].shape) == 0 or min(
+                                    values[k].shape) > 0 else "*",
                                 name, values[k].shape, values[k].dtype,
                                 mini, maxi,
                                 ' sparse' if isinstance(values[k], coo_matrix) else ''))

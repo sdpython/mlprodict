@@ -4,6 +4,9 @@
 before finalizing the benchmark.
 """
 import ast
+import collections
+import inspect
+import numpy
 
 
 class ImperfectPythonCode(RuntimeError):
@@ -29,7 +32,11 @@ def verify_code(source, exc=True):
     imports = v._imports
     names = v._names
     args = v._args
-    known = {'super': None, 'ImportError': None}
+    known = {'super': None, 'ImportError': None, 'print': print,
+             'classmethod': classmethod, 'numpy': numpy,
+             'dict': dict, 'list': list, 'sorted': sorted, 'len': len,
+             'collections': collections, 'inspect': inspect, 'range': range,
+             'int': int, 'str': str, 'isinstance': isinstance}
     for kn in imports:
         known[kn[0]] = kn
     for kn in assign:
