@@ -273,6 +273,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         values = pandas.DataFrame(got['output_probability']).values
         self.assertEqualArray(exp, values[:, 1], decimal=5)
 
+    @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_lightgbm_booster_classifier(self):
         from lightgbm import Dataset, train as lgb_train

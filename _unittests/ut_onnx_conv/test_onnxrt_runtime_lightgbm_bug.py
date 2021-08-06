@@ -5,7 +5,7 @@ import sys
 import unittest
 from logging import getLogger
 import numpy
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
@@ -18,6 +18,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
         logger.disabled = True
         register_converters()
 
+    @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_lightgbm_regressor(self):
         from lightgbm import LGBMRegressor
@@ -54,6 +55,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
                         print("lgb", i, rt, diff)
                     self.assertLess(diff, 1e-3)
 
+    @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_lightgbm_regressor_double(self):
         from lightgbm import LGBMRegressor
@@ -90,6 +92,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
                     else:
                         self.assertLess(diff, 1e-3)
 
+    @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_xgboost_regressor(self):
         from xgboost import XGBRegressor
