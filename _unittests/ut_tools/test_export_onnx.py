@@ -27,7 +27,7 @@ class ConvertFFT2DOp:
     ]
 
     @classmethod
-    def any_version(cls, opset, ctx, node, **kwargs):  #pylint: disable=R0915
+    def any_version(cls, opset, ctx, node, **kwargs):  # pylint: disable=R0915
         '''
         Converter for ``FFT2D``.
 
