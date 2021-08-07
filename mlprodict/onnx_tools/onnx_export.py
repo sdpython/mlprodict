@@ -112,47 +112,12 @@ _tf2onnx_templates = dedent("""
     from onnx.helper import (
         make_model, make_node, set_model_props, make_tensor, make_graph,
         make_tensor_value_info)
-    try:
-        from utils import make_name
-    except ImportError:
-
-        _make_name_id = 0
-
-
-        def make_name(name):
-            global _make_name_id
-            name = "%s_%d" % (name, _make_name_id)
-            _make_name_id += 1
-            return name
-
-
-    class tf_op:
-        _OPSETS = collections.OrderedDict()
-
-        def __init__(self, name, domain='', **kwargs):
-            if not isinstance(name, list):
-                name = [name]
-            self.names = name
-            self.domain = domain
-            self.kwargs = kwargs
-
-        def __call__(self, func):
-            for ke, va in inspect.getmembers(func, inspect.ismethod):
-                if ke.startswith("version_"):
-                    version = int(ke.replace("version_", ""))
-                    self.register_handler(va, version, self.names, self.domain, self.kwargs)
-            return func
-
-        def register_handler(self, func, version, names, domain, kwargs):
-            opset = tf_op._OPSETS.get(domain)
-            if not opset:
-                opset = []
-                tf_op._OPSETS[domain] = opset
-            while version >= len(opset):
-                opset.append({})
-            opset_dict = opset[version]
-            for name in names:
-                opset_dict[name] = (func, kwargs)
+    # from utils import make_name, make_sure
+    from mlprodict.onnx_tools.exports.tf2onnx_helper import (
+        make_name, make_sure)
+    # from tf2onnx.handler import tf_op
+    from mlprodict.onnx_tools.exports.tf2onnx_helper import tf_op
+    from mlprodict.onnx_tools.exports.tf2onnx_helper import Tf2OnnxConvert
 
 
     @tf_op("{{ name }}")
@@ -177,12 +142,13 @@ _tf2onnx_templates = dedent("""
             oldnode = node
             input_name = node.input[0]
             onnx_dtype = ctx.get_dtype(input_name)
-            utils.make_sure(onnx_dtype in Convert{{ name }}Op.supported_dtypes, "Unsupported input type.")
+            make_sure(onnx_dtype in Convert{{ name }}Op.supported_dtypes, "Unsupported input type.")
             shape = ctx.get_shape(input_name)
-            vars = {}
+            varx = {x: x for x in node.input}
 
             # initializers
-            print('[initializers]')   # verbose
+            if getattr(ctx, 'verbose', False):
+                print('[initializers] %r' % cls)
             {% for name, value in initializers: %}
             {% if len(value.shape) == 0: %}
             value = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
@@ -191,32 +157,35 @@ _tf2onnx_templates = dedent("""
             value = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
             {% endif %}
             r_{{ name }} = ctx.make_const(name=make_name('init_{{ name }}'), np_val=value)
-            vars['{{ name }}'] = r_{{ name }}.name
+            varx['{{ name }}'] = r_{{ name }}.name
             {% endfor %}
 
             # nodes
-            print('[nodes]')   # verbose
+            if getattr(ctx, 'verbose', False):
+                print('[nodes] %r' % cls)
             {% for node in nodes: %}
             attr = dict(
                 {%- for name, value in node['attributes']: -%}
                 {{ name }}={{ value }},
                 {%- endfor -%})
-            inputs = [{% for name in node['inputs']: -%}vars['{{ name }}'], {%- endfor %}]
+            inputs = [{% for name in node['inputs']: -%}varx['{{ name }}'], {%- endfor %}]
             node = ctx.make_node(
                 '{{ node['op_type'] }}', inputs=inputs, attr=attr,{% if node['domain']: -%} domain='{{ node['domain'] }}', {% endif %}
                 name=make_name('{{ node['name'] }}'))
             {% for i, name in enumerate(node['outputs']): -%}
-            vars['{{ name }}'] = node.output[{{ i }}]
+            varx['{{ name }}'] = node.output[{{ i }}]
             {%- endfor %}
             {% endfor %}
 
             # finalize
+            if getattr(ctx, 'verbose', False):
+                print('[replace_all_inputs] %r' % cls)
             ctx.replace_all_inputs(oldnode.output[0], node.output[0])
             ctx.remove_node(oldnode.name)
 
-    @classmethod
-    def version_13(cls, ctx, node, **kwargs):
-        return cls.any_version(13, ctx, node, **kwargs)
+        @classmethod
+        def version_13(cls, ctx, node, **kwargs):
+            return cls.any_version(13, ctx, node, **kwargs)
 
 
     def create_model():
@@ -265,63 +234,8 @@ _tf2onnx_templates = dedent("""
         return onnx_model
 
 
-    class Rewrite:
-
-        def __init__(self, onnx_model, tf_op):
-            self._onnx_model = onnx_model        
-            self._nodes = list(onnx_model.graph.node)
-            self._tf_op = tf_op
-        
-        def make_node(self, op_type, inputs, attr=None, outputs=None,
-                      name=None, domain=''):
-            if attr is None:
-                attr = {}
-            if name is None:
-                name = make_name(op_type)
-
-            if outputs is None:
-                outputs = [name + ":" + str(i) for i in range(output_count)]
-
-            output_count = len(outputs)
-            raw_attr = {}
-            onnx_attrs = []
-            for a, v in attr.items():
-                if isinstance(v, AttributeProto):
-                    onnx_attrs.append(v)
-                else:
-                    raw_attr[a] = v
-
-            n = self.get_node_by_name(name)
-
-            for o in outputs:
-                n = self.get_node_by_output_in_current_graph(o)
-
-            onnx_node = make_node(
-                op_type, inputs, outputs, name=name, domain=domain, **raw_attr)
-
-            self._nodes.append(onnx_node)
-            return node
-
-        def rewrite(self):
-            print('[rewrite]')   # verbose
-            done = {}
-            modif = 1
-            while modif > 0:
-                modif = 0
-                for node in self._nodes:
-                    if done.get(node.name, False):
-                        continue
-                    domain = node.domain
-                    if domain not in self._tf_op._OPSETS:
-                        continue
-                    rews = self._tf_op._OPSETS[domain]
-                    # look for an opset
-                    # call the rewriter
-            
-        
-
-    onnx_model = create_model()
-    onnx_rewritten = Rewrite(onnx_model, tf_op).rewrite()
+    onnx_raw = create_model()
+    onnx_model = Tf2OnnxConvert(onnx_raw, tf_op).run()
 """)
 
 
@@ -425,6 +339,26 @@ def export2onnx(model_onnx, opset=None, verbose=True, name=None):
     :param verbose: inserts prints
     :param name: to overwrite onnx name
     :return: python code
+
+    The following example shows what a python code creating a graph
+    implementing the KMeans would look like.
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from sklearn.cluster import KMeans
+        from skl2onnx import to_onnx
+        from mlprodict.onnx_tools.onnx_export import export2onnx
+
+        X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
+        tr = KMeans(n_clusters=2)
+        tr.fit(X)
+
+        onx = to_onnx(tr, X, target_opset=14)
+        code = export2onnx(onx)
+
+        print(code)
     """
     if isinstance(model_onnx, str):
         model_onnx = onnx.load(model_onnx)
@@ -443,6 +377,23 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None):
     :param verbose: inserts prints
     :param name: to overwrite onnx name
     :return: python code
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from sklearn.cluster import KMeans
+        from skl2onnx import to_onnx
+        from mlprodict.onnx_tools.onnx_export import export2tf2onnx
+
+        X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
+        tr = KMeans(n_clusters=2)
+        tr.fit(X)
+
+        onx = to_onnx(tr, X, target_opset=14)
+        code = export2tf2onnx(onx)
+
+        print(code)
     """
     if isinstance(model_onnx, str):
         model_onnx = onnx.load(model_onnx)
