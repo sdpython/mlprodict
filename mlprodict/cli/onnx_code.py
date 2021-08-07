@@ -11,7 +11,7 @@ def onnx_code(filename, format="onnx", output=None, verbose=0, name=None,
     the same graph.
 
     :param filename: onnx file
-    :param format: format to export too (`onnx`, `tf2onnx`)
+    :param format: format to export too (`onnx`, `tf2onnx`, `numpy`)
     :param output: output file to produce or None to print it on stdout
     :param verbose: verbosity level
     :param name: rewrite the graph name
@@ -29,7 +29,8 @@ def onnx_code(filename, format="onnx", output=None, verbose=0, name=None,
 
             python -m mlprodict onnx_code --filename="something.onnx" --format=onnx
     """
-    from ..onnx_tools.onnx_export import export2onnx, export2tf2onnx  # pylint: disable=E0402
+    from ..onnx_tools.onnx_export import (  # pylint: disable=E0402
+        export2onnx, export2tf2onnx, export2numpy)
 
     if name == '':
         name = None
@@ -46,6 +47,9 @@ def onnx_code(filename, format="onnx", output=None, verbose=0, name=None,
     elif format == 'tf2onnx':
         code = export2tf2onnx(filename, verbose=verbose,
                               name=name, opset=opset)
+    elif format == 'numpy':
+        code = export2numpy(filename, verbose=verbose,
+                            name=name, opset=opset)
     else:
         raise ValueError(  # pragma: no cover
             "Unknown format %r." % format)

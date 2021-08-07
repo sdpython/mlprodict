@@ -44,6 +44,20 @@ class TestCliOnnxCode(ExtTestCase):
             content = f.read()
         self.assertIn("tf_op", content)
 
+    def test_cli_onnx_code_tf2onnx(self):
+        temp = get_temp_folder(__file__, "temp_cli_onnx_code_numpy")
+        name = os.path.join(
+            temp, "..", "..", "ut_tools", "data", "fft2d_any.onnx")
+        self.assertExists(name)
+        output = os.path.join(temp, "code_numpy.py")
+        st = BufferedPrint()
+        main(args=["onnx_code", "--filename", name, '--format', 'numpy',
+                   "--output", output, "--verbose", "1"], fLOG=st.fprint)
+        self.assertExists(output)
+        with open(output, "r", encoding='utf-8') as f:
+            content = f.read()
+        self.assertIn("def numpy_", content)
+
 
 if __name__ == "__main__":
     unittest.main()

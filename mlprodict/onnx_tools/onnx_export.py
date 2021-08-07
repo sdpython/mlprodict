@@ -23,6 +23,16 @@ _onnx_templates = dedent("""
 
 
     def create_model():
+        '''
+        Converted ``{{ name }}``.
+
+        * producer: {{ producer_name }}
+        * version: {{ model_version }}
+        * description: {{ doc_string }}
+        {%- for key, val in sorted(metadata.items()): -%}
+        * {{ key }}: {{ val }}
+        {%- endfor %}
+        '''
         # containers
         print('[containers]')   # verbose
         initializers = []
@@ -239,6 +249,128 @@ _tf2onnx_templates = dedent("""
 """)
 
 
+_numpy_templates = dedent("""
+    import numpy
+    from mlprodict.onnx_tools.exports.numpy_helper import make_slice
+
+
+    def numpy_{{name}}({{ inputs[0][0] }}{% for i in inputs[1:]: %}, {{ i[0] }}{% endfor %}):
+        '''
+        Numpy function for ``{{ name }}``.
+
+        * producer: {{ producer_name }}
+        * version: {{ model_version }}
+        * description: {{ doc_string }}
+        {%- for key, val in sorted(metadata.items()): -%}
+        * {{ key }}: {{ val }}
+        {%- endfor %}
+        '''
+        # initializers
+        {% for name, value in initializers: %}
+        {% if len(value.shape) == 0: %}
+        {{ name }} = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
+        {% else %}
+        list_value = {{ value.ravel().tolist() }}
+        {{ name }} = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+        {% endif %}
+        {% endfor %}
+
+        # nodes
+        {% for node in nodes: %}
+        {{ make_numpy_code(target_opset, **node) }}{% endfor %}
+
+        return {{ outputs[0][0] }}{% for o in outputs[1:]: %}, {{ o[0] }}{% endfor %}
+""")
+
+
+def make_numpy_code(opset, name=None, op_type=None, domain='',
+                    inputs=None, outputs=None, attributes=None):
+    """
+    Converts an ONNX operators into :epkg:`numpy` code.
+
+    :param name: node name
+    :param op_type: operator type
+    :param domain: domain
+    :param inputs: inputs
+    :param outputs: outputs
+    :param attributes: attributes:
+    :return: code as str
+    """
+    def make_sure_inputs(n):
+        if len(inputs) != n:
+            raise RuntimeError(  # pragma: no cover
+                "Expecting %d inputs for operator %r not %r." % (
+                    n, op_type, inputs))
+
+    def make_sure_opsets(mi, ma=None):
+        if mi is not None and opset < mi:
+            raise RuntimeError(  # pragma: no cover
+                "Cannot convert operator type %d, opset %d < %d." % (
+                    op_type, opset, mi))
+        if ma is not None and opset > ma:
+            raise RuntimeError(  # pragma: no cover
+                "Cannot convert operator type %d, opset %d > %d." % (
+                    op_type, opset, mi))
+
+    def getat(name, defval=None):
+        for n, val in attributes:
+            if name == n:
+                return val
+        return defval
+
+    if domain != '':
+        raise NotImplementedError(
+            "Unable to convert any operator from domain %r." % domain)
+
+    binary_ops = dict(Add='+', Sub='-', Div='/', Mul='*', MatMul='@',
+                      Pow='**')
+    unary_ops = dict(Neg='-')
+
+    outs = ", ".join(outputs)
+
+    if op_type in binary_ops:
+        make_sure_inputs(2)
+        return "%s = %s %s %s" % (outs, inputs[0], binary_ops[op_type], inputs[1])
+
+    if op_type in unary_ops:
+        make_sure_inputs(1)
+        return "%s = %s %s" % (outs, unary_ops[op_type], inputs[0])
+
+    if op_type == 'Concat':
+        axis = getat('axis', 0)
+        return "%s = numpy.concatenate([%s], %s)" % (outs, ", ".join(inputs), axis)
+
+    if op_type == 'Gather':
+        make_sure_opsets(11)
+        make_sure_inputs(2)
+        axis = getat('axis', 0)
+        return "%s = numpy.take(%s, %s, axis=%s)" % (outs, inputs[0], inputs[1], axis)
+
+    if op_type == 'Reshape':
+        make_sure_inputs(2)
+        return "%s = %s.reshape(tuple(%s))" % (outs, inputs[0], inputs[1])
+
+    if op_type == 'Shape':
+        make_sure_inputs(1)
+        return "%s = numpy.array(%s.shape, dtype=numpy.int64)" % (outs, inputs[0])
+
+    if op_type == 'Slice':
+        return "%s = make_slice(%s)" % (outs, ", ".join(inputs))
+
+    if op_type == 'Transpose':
+        make_sure_inputs(1)
+        perm = getat('perm', None)
+        return "%s = numpy.transpose(%s, axes=tuple(%s))" % (outs, inputs[0], perm)
+
+    if op_type == 'Unsqueeze':
+        make_sure_opsets(13)
+        make_sure_inputs(2)
+        return "%s = numpy.expand_dims(%s, axis=tuple(%s))" % ((outs, ) + tuple(inputs))
+
+    raise NotImplementedError(
+        "Unable to convert operator type %r name=%r." % (op_type, name))
+
+
 def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
     """
     Exports an ONNX model to the onnx syntax.
@@ -321,7 +453,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
     template = Template(templates)
     final = template.render(
         enumerate=enumerate, sorted=sorted, len=len,
-        **context)
+        make_numpy_code=make_numpy_code, **context)
 
     if not verbose:
         rows = final.split("\n")
@@ -369,7 +501,7 @@ def export2onnx(model_onnx, opset=None, verbose=True, name=None):
 
 def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None):
     """
-    Exports an ONNX model to the e:pkg:`tensorflow-onnx` syntax.
+    Exports an ONNX model to the :epkg:`tensorflow-onnx` syntax.
 
     :param model_onnx: string or ONNX graph
     :param opset: opset to export to
@@ -399,4 +531,40 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None):
         model_onnx = onnx.load(model_onnx)
 
     return export_template(model_onnx, templates=_tf2onnx_templates,
+                           opset=opset, verbose=verbose, name=name)
+
+
+def export2numpy(model_onnx, opset=None, verbose=True, name=None):
+    """
+    Exports an ONNX model to the :epkg:`numpy` syntax.
+    The exports does not work with all operators.
+
+    :param model_onnx: string or ONNX graph
+    :param opset: opset to export to
+        (None to select the one from the graph)
+    :param verbose: inserts prints
+    :param name: to overwrite onnx name
+    :return: python code
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from sklearn.cluster import KMeans
+        from skl2onnx import to_onnx
+        from mlprodict.onnx_tools.onnx_export import export2numpy
+
+        X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
+        tr = KMeans(n_clusters=2)
+        tr.fit(X)
+
+        onx = to_onnx(tr, X, target_opset=14)
+        code = export2numpy(onx)
+
+        print(code)
+    """
+    if isinstance(model_onnx, str):
+        model_onnx = onnx.load(model_onnx)
+
+    return export_template(model_onnx, templates=_numpy_templates,
                            opset=opset, verbose=verbose, name=name)
