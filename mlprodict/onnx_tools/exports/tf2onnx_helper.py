@@ -248,7 +248,7 @@ class Tf2OnnxConvert:
             if self.verbose:
                 print("[Tf2OnnxConvert.replace_all_inputs] add id node from %r to %r "
                       "with node %r." % (
-                          old_name, new_name, n.name))
+                          old_name, new_name, n.name))  # pylint: disable=E1101
         return res
 
     def remove_node(self, name):
