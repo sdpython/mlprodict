@@ -18,6 +18,13 @@ Accessor
 
 .. autosignature:: mlprodict.onnx_tools.onnx_tools.insert_node
 
+Export
+++++++
+
+.. autosignature:: mlprodict.onnx_tools.onnx_export.export2onnx
+
+.. autosignature:: mlprodict.onnx_tools.onnx_export.export2tf2onnx
+
 Graphs
 ++++++
 
@@ -48,6 +55,8 @@ The following functions reduce the number of ONNX operators in a graph
 while keeping the same results. The optimized graph
 is left unchanged.
 
+.. autosignature:: mlprodict.onnx_tools.onnx_tools.ensure_topological_order
+
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation.onnx_remove_node
 
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation_identity.onnx_remove_node_identity
@@ -68,15 +77,24 @@ Serialization
 
 .. autosignature:: mlprodict.onnx_tools.onnx2py_helper.to_bytes
 
+Runtime
+=======
+
+.. autosignature:: mlprodict.tools.onnx_micro_runtime.OnnxMicroRuntime
+
 Validation
 ++++++++++
 
 .. autosignature:: mlprodict.onnx_tools.model_checker.onnx_shaker
 
-Runtime
-=======
+Visualization
++++++++++++++
 
-.. autosignature:: mlprodict.tools.onnx_micro_runtime.OnnxMicroRuntime
+Many times I had to debug and I was thinking about a way to see
+a graph in a text editor. That's the goal of this function with
+the possibility later to only show a part of a graph.
+
+.. autosignature:: mlprodict.onnx_tools.graphs.onnx2bigraph
 
 Others
 ======
