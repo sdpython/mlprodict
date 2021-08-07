@@ -98,7 +98,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     if dim == 1:
                         X = numpy.arange(16).astype(numpy.float32)
                     elif dim == 2:
-                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                        X = numpy.arange(48).astype(
+                            numpy.float32).reshape((3, -1))
                     Y = numpy.fft.fft(X.astype(numpy.float32), axis=axis)
 
                     onx = OnnxFFT('X', output_names=['Y'],
@@ -125,7 +126,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     if dim == 1:
                         X = numpy.arange(16).astype(numpy.float32)
                     elif dim == 2:
-                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                        X = numpy.arange(48).astype(
+                            numpy.float32).reshape((3, -1))
                     Y = numpy.fft.fft(X.astype(numpy.float32), 8, axis=axis)
 
                     onx = OnnxFFT('X', numpy.array([8], dtype=numpy.int64),
@@ -155,7 +157,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     if dim == 1:
                         X = numpy.arange(16).astype(numpy.float32)
                     elif dim == 2:
-                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                        X = numpy.arange(48).astype(
+                            numpy.float32).reshape((3, -1))
                     Y = numpy.fft.rfft(X.astype(numpy.float32), axis=axis)
 
                     onx = OnnxRFFT('X', output_names=['Y'],
@@ -182,7 +185,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     if dim == 1:
                         X = numpy.arange(16).astype(numpy.float32)
                     elif dim == 2:
-                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                        X = numpy.arange(48).astype(
+                            numpy.float32).reshape((3, -1))
                     Y = numpy.fft.rfft(X.astype(numpy.float32), 8, axis=axis)
 
                     onx = OnnxRFFT('X', numpy.array([8], dtype=numpy.int64),
@@ -210,7 +214,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     if dim == 1:
                         X = numpy.arange(16).astype(numpy.float32)
                     elif dim == 2:
-                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
+                        X = numpy.arange(48).astype(
+                            numpy.float32).reshape((3, -1))
                     Y = numpy.fft.fft2(X.astype(numpy.float32), axes=axis)
 
                     if axis is not None:
@@ -239,8 +244,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     if dim == 1:
                         X = numpy.arange(16).astype(numpy.float32)
                     elif dim == 2:
-                        X = numpy.arange(48).astype(numpy.float32).reshape((3, -1))
-                    Y = numpy.fft.fft2(X.astype(numpy.float32), (8, 8), axes=axis)
+                        X = numpy.arange(48).astype(
+                            numpy.float32).reshape((3, -1))
+                    Y = numpy.fft.fft2(
+                        X.astype(numpy.float32), (8, 8), axes=axis)
 
                     if axis is not None:
                         onx = OnnxFFT2D('X', numpy.array([8, 8], dtype=numpy.int64),

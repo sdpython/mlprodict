@@ -76,6 +76,8 @@ def insert_node(model, op_type, node, input_index=0, new_name=None, **attrs):
     inode.input[input_index] = new_name
     keep_nodes = list(model.graph.node)
     keep_nodes.append(new_node)
+    keep_nodes = ensure_topological_order(
+        model.graph.input, model.graph.initializer, keep_nodes)
 
     graph = helper.make_graph(
         keep_nodes, model.graph.name, model.graph.input,
@@ -102,3 +104,88 @@ def insert_node(model, op_type, node, input_index=0, new_name=None, **attrs):
             "Input mismatch {} != {}".format(
                 len(onnx_model.input), len(model.input)))  # pylint: disable=E1101
     return onnx_model
+
+
+def ensure_topological_order(inputs, initializers, nodes):
+    """
+    Ensures and modifies the order of nodes to have
+    a topological order (every node in the list
+    can only be an input for a node later in this list).
+    The function raises an exception if a cycle is detected.
+
+    :param inputs: graph inputs:
+    :param initializers: graph initializers
+    :param nodes: graph nodes
+    :return: list ordered nodes
+    """
+    order = {}
+    for inp in inputs:
+        name = inp.name
+        order[name] = 0
+    for inp in initializers:
+        name = inp.name
+        order[name] = 0
+    n_iter = 0
+    while n_iter < len(nodes) * 2:
+        n_iter += 1
+        missing_names = set()
+        missing_ops = []
+        for node in nodes:
+            maxi = 0
+            for name in node.input:
+                if name in order:
+                    maxi = max(maxi, order[name])
+                else:
+                    maxi = None
+                    missing_names.add(name)
+                    break
+            if maxi is None:
+                missing_ops.append(node)
+                continue
+            key = id(node)
+            if key in order:
+                continue
+            maxi += 1
+            order[key] = maxi
+            maxi += 1
+            for name in node.output:
+                if name in order:
+                    raise RuntimeError(
+                        "Unable to sort a node (cycle). An output was "
+                        "already ordered %r (iteration=%r)." % (
+                            name, n_iter))
+                order[name] = maxi
+        if len(missing_names) == 0:
+            continue
+
+    if len(missing_ops) > 0:
+        def nstr(name):
+            if name in order:
+                return "%s#%d" % (name, order[name])
+            return name
+        rows = ["%s(%s) -> [%s]" % (
+            n.name or n.op_type,
+            ', '.join(map(nstr, n.input)),
+            ', '.join(n.output))
+            for n in missing_ops]
+        rows.insert(0, "")
+        rows.append("--")
+        rows.append("--all-nodes--")
+        rows.append("--")
+        rows.extend("%s(%s) -> [%s]" % (
+            n.name or n.op_type,
+            ', '.join(map(nstr, n.input)),
+            ', '.join(n.output))
+            for n in nodes)
+        raise RuntimeError(
+            "After %d iterations for %d nodes, still unable "
+            "to sort names %r. The graph may be disconnected. "
+            "List of operators: %s" % (
+                n_iter, len(nodes), missing_names,
+                "\n".join(rows)))
+
+    # Update order
+    topo = [(order[id(node)], str(id(node))) for node in nodes]
+    topo.sort()
+    map_nodes = {str(id(node)): node for node in nodes}
+    return [map_nodes[_[1]] for _ in topo]

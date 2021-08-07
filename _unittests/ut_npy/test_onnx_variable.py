@@ -103,6 +103,13 @@ def test_abs_matmul(x: NDArray[Any, numpy.float32],
 
 
 @onnxnumpy_default
+def test_abs_matmul2(x: NDArray[Any, numpy.float32],
+                     ) -> NDArray[Any, numpy.float32]:
+    "onnx numpy addition"
+    return nxnp.matmul(nxnp.abs(x), x)
+
+
+@onnxnumpy_default
 def test_abs_div(x: NDArray[Any, numpy.float32],
                  ) -> NDArray[Any, numpy.float32]:
     "onnx numpy division"
@@ -513,6 +520,11 @@ class TestOnnxVariable(ExtTestCase):
     def test_py_abs_matmul(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = test_abs_matmul(x)
+        self.assertEqualArray(y, numpy.abs(x) @ x)
+
+    def test_py_abs_matmul2(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = test_abs_matmul2(x)
         self.assertEqualArray(y, numpy.abs(x) @ x)
 
     def test_py_abs_div(self):

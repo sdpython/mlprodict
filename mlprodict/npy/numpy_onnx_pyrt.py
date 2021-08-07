@@ -42,6 +42,7 @@ from .numpy_onnx_impl import (
     hstack as nx_hstack,
     isnan as nx_isnan,
     log as nx_log,
+    matmul as nx_matmul,
     mean as nx_mean,
     pad as nx_pad,
     prod as nx_prod,
@@ -245,6 +246,12 @@ def isnan(x):
 def log(x):
     "log"
     return nx_log(x)
+
+
+@onnxnumpy_np(signature=NDArrayType(("T:all", "T")))
+def matmul(a, b):
+    "matmul"
+    return nx_matmul(a, b)
 
 
 @onnxnumpy_np(signature=NDArrayType(("T:all", numpy.int64, 'T'), n_optional=1))

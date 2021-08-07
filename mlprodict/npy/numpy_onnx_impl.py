@@ -3,7 +3,10 @@
 @brief :epkg:`numpy` functions implemented with :epkg:`onnx`.
 
 .. versionadded:: 0.6
+
+.. versionchanged:: 0.7
 """
+import warnings
 import numpy
 from onnx import onnx_pb as onnx_proto  # pylint: disable=E1101
 from onnx.helper import make_tensor
@@ -221,7 +224,15 @@ def det(x):
 
 
 def dot(a, b):
-    "See :epkg:`numpy:dot`."
+    "See :epkg:`numpy:dot`"
+    warnings.warn(
+        "npnx.dot is equivalent to npnx.matmul == numpy.matmul "
+        "!= numpy.dot with arrays with more than 3D dimensions.")
+    return OnnxVar(a, b, op=OnnxMatMul)
+
+
+def matmul(a, b):
+    "See :epkg:`numpy:matmul`."
     return OnnxVar(a, b, op=OnnxMatMul)
 
 

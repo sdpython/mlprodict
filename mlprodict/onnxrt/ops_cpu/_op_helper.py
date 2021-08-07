@@ -3,7 +3,6 @@
 @brief Runtime operator.
 """
 import numpy
-from onnx import TensorProto
 
 
 def _get_typed_class_attribute(self, k, atts):
@@ -32,35 +31,8 @@ def proto2dtype(proto_type):
     :param proto_type: example ``onnx.TensorProto.FLOAT``
     :return: :epkg:`numpy` dtype
     """
-    if proto_type == TensorProto.FLOAT:  # pylint: disable=E1101
-        return numpy.float32
-    if proto_type == TensorProto.BOOL:  # pylint: disable=E1101
-        return numpy.bool_
-    if proto_type == TensorProto.DOUBLE:  # pylint: disable=E1101
-        return numpy.float64
-    if proto_type == TensorProto.STRING:  # pylint: disable=E1101
-        return numpy.str_
-    if proto_type == TensorProto.INT64:  # pylint: disable=E1101
-        return numpy.int64
-    if proto_type == TensorProto.INT32:  # pylint: disable=E1101
-        return numpy.int32
-    if proto_type == TensorProto.INT8:  # pylint: disable=E1101
-        return numpy.int8
-    if proto_type == TensorProto.INT16:  # pylint: disable=E1101
-        return numpy.int16
-    if proto_type == TensorProto.UINT64:  # pylint: disable=E1101
-        return numpy.uint64
-    if proto_type == TensorProto.UINT32:  # pylint: disable=E1101
-        return numpy.uint32
-    if proto_type == TensorProto.UINT8:  # pylint: disable=E1101
-        return numpy.uint8
-    if proto_type == TensorProto.UINT16:  # pylint: disable=E1101
-        return numpy.uint16
-    if proto_type == TensorProto.FLOAT16:  # pylint: disable=E1101
-        return numpy.float16
-    raise ValueError(
-        "Unable to convert proto_type {} to numpy type.".format(
-            proto_type))
+    from ...onnx_tools.onnx2py_helper import guess_dtype
+    return guess_dtype(proto_type)
 
 
 def dtype_name(dtype):
