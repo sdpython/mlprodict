@@ -12,6 +12,7 @@ from onnx import numpy_helper, helper
 from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
     make_tensor_value_info)
+from sklearn.cluster import KMeans
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnx_tools.onnx_export import (
     export2onnx, export2tf2onnx, export2numpy)
@@ -20,6 +21,7 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.exports.tf2onnx_helper import make_sure, make_name
 from mlprodict.tools.code_helper import print_code
 from mlprodict.onnx_tools.exports.numpy_helper import make_slice
+from mlprodict.onnx_conv import to_onnx
 
 
 class ConvertFFT2DOp:
@@ -692,6 +694,23 @@ class TestExportOnnx(ExtTestCase):
                          "astype(numpy.float32)\ny = numpy_FFT2D(x)")
                 _, loc = self.verify_numpy(code)
                 self.assertEqualArray(y['y'], loc['y'])
+
+    def test_export2numpy_kmeans(self):
+        X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
+        tr = KMeans(n_clusters=2)
+        tr.fit(X)
+        onx = to_onnx(tr, X, target_opset=14)
+        code = export2numpy(onx)
+
+        oinf0 = OnnxInference(onx)
+        y = oinf0.run({'X': X})
+
+        code = export2numpy(
+            os.path.join(folder, name), name="FFT2D")
+        code += ("\nx = numpy.arange(20).reshape(10, 2).astype(numpy.float32)"
+                 "\ny = numpy_FFT2D(x)")
+        _, loc = self.verify_numpy(code)
+        self.assertEqualArray(y['y'], loc['y'])
 
 
 if __name__ == "__main__":
