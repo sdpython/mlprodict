@@ -267,18 +267,16 @@ _numpy_templates = dedent("""
         {%- endfor %}
         '''
         # initializers
-        {%- for name, value in initializers: -%}
+        {% for name, value in initializers: -%}
         {% if len(value.shape) == 0: -%}
         {{ name }} = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
-        {%- else %}
-        {% if value.size < 10: -%}
+        {%- else %}{% if value.size < 10: %}
         {{ name }} = numpy.array({{ value.ravel().tolist() }}, dtype=numpy.{{ value.dtype }})
-        {%- if len(value.shape) > 1: -%}.reshape({{ value.shape }}){%- endif -%}
-        {%- else %}
+        {%- if len(value.shape) > 1: -%}.reshape({{ value.shape }}){%- endif %}
+        {% else %}
         list_value = {{ value.ravel().tolist() }}
         {{ name }} = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
-        {%- endif %}
-        {% endif %}
+        {% endif %}{% endif %}
         {%- endfor %}
 
         # nodes
@@ -368,6 +366,9 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
         axis = getat('axis', 0)
         return "%s = numpy.concatenate([%s], %s)" % (outs, ", ".join(inputs), axis)
 
+    if op_type == 'Max':
+        return "%s = numpy.maximum(%s)" % (outs, ", ".join(inputs))
+
     if op_type == 'Gather':
         make_sure_opsets(11)
         make_sure_inputs(2)
@@ -377,10 +378,10 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
     if op_type == 'Gemm':
         make_sure_inputs(2, 3)
         alpha = getat('alpha', 0.)
-        transA = getat('transA', 0.)
-        transB = getat('transB', 0.)
-        ta = ".T" if transA else ""
-        tb = ".T" if transB else ""
+        transA = getat('transA', 0)
+        transB = getat('transB', 0)
+        ta = ".T" if transA in ('1', 1, True) else ""
+        tb = ".T" if transB in ('1', 1, True) else ""
         if len(inputs) == 2:
             return "%s = %s%s @ %s%s * %s" % (
                 outs, inputs[0], ta, inputs[1], tb, alpha)
@@ -388,9 +389,26 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
         return "%s = %s%s @ %s%s * %s + %s * %s" % (
             outs, inputs[0], ta, inputs[1], tb, alpha, inputs[2], beta)
 
+    if op_type == 'Identity':
+        return "%s = %s" % (outs, inputs[0])
+
+    if op_type == 'ReduceProd':
+        make_sure_inputs(1)
+        axes = getat('axes', "[0]")
+        keepdims = getat('keepdims', 0)
+        return "%s = %s.prod(axis=tuple(%s), keepdims=%s)" % (
+            outs, inputs[0], axes, keepdims)
+
+    if op_type == 'ReduceSum':
+        make_sure_opsets(11)
+        make_sure_inputs(2)
+        keepdims = getat('keepdims', 0)
+        return "%s = %s.sum(axis=tuple(%s), keepdims=%s)" % (
+            outs, inputs[0], inputs[1], keepdims)
+
     if op_type == 'ReduceSumSquare':
         make_sure_inputs(1)
-        axes = getat('axes', 0)
+        axes = getat('axes', "[0]")
         keepdims = getat('keepdims', 0)
         return "%s = (%s ** 2).sum(axis=tuple(%s), keepdims=%s)" % (
             outs, inputs[0], axes, keepdims)
@@ -405,6 +423,11 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
 
     if op_type == 'Slice':
         return "%s = make_slice(%s)" % (outs, ", ".join(inputs))
+
+    if op_type == 'Squeeze':
+        make_sure_opsets(13)
+        make_sure_inputs(2)
+        return "%s = numpy.squeeze(%s, axis=tuple(%s))" % ((outs, ) + tuple(inputs))
 
     if op_type == 'Transpose':
         make_sure_inputs(1)
@@ -610,6 +633,26 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None):
         onx = to_onnx(tr, X, target_opset=14)
         code = export2numpy(onx)
 
+        print(code)
+
+    This can be applied to the decomposition of an einsum
+    equation into simple matrix operations.
+    
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from mlprodict.testing.einsum import decompose_einsum_equation
+        from mlprodict.onnx_tools.onnx_export import export2numpy
+
+        x1 = numpy.arange(8).reshape(2, 2, 2).astype(numpy.float32)
+        x2 = numpy.arange(4).reshape(2, 2).astype(numpy.float32)
+        r = numpy.einsum("bac,cd->ad", x1, x2)
+
+        seq_clean = decompose_einsum_equation(
+            "bac,cd->ad", strategy='numpy', clean=True)
+        onx = seq_clean.to_onnx("Y", "X1", "X2", dtype=numpy.float32)
+        code = export2numpy(onx, name="einsum")
         print(code)
     """
     if isinstance(model_onnx, str):

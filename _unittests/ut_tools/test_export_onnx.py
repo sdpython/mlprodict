@@ -24,6 +24,7 @@ from mlprodict.onnx_tools.exports.numpy_helper import (
     argmin_use_numpy_select_last_index,
     make_slice)
 from mlprodict.onnx_conv import to_onnx
+from mlprodict.testing.einsum import decompose_einsum_equation
 
 
 class ConvertFFT2DOp:
@@ -714,6 +715,90 @@ class TestExportOnnx(ExtTestCase):
         _, loc = self.verify_numpy(code)
         self.assertEqualArray(y['scores'], loc['scores'])
         self.assertEqualArray(y['label'], loc['label'])
+
+    def verify_numpy_einsum(self, content):
+        try:
+            left, __ = verify_code(content, exc=False)
+        except SyntaxError as e:
+            raise AssertionError(
+                "Unable to analyse a script due to %r. "
+                "\n--CODE--\n%s"
+                "" % (e, content)) from e
+
+        # execution
+        try:
+            obj = compile(content, '<string>', 'exec')
+        except SyntaxError as e:
+            raise AssertionError(
+                "Unable to compile a script due to %r. "
+                "\n--CODE--\n%s"
+                "" % (e, print_code(content))) from e
+        glo = globals().copy()
+        loc = {
+            'numpy': numpy, 'dict': dict, 'list': list,
+            'print': print, 'sorted': sorted,
+            'collections': collections, 'inspect': inspect,
+            'helper': helper, "make_sure": make_sure,
+            'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
+            'argmin_use_numpy_select_last_index': argmin_use_numpy_select_last_index,
+            'make_slice': make_slice}
+        out = StringIO()
+        err = StringIO()
+        if len(left) > 14:
+            raise AssertionError(
+                "Too many unknown symbols: %r." % left)
+
+        with redirect_stdout(out):
+            with redirect_stderr(err):
+                try:
+                    exec(obj, glo, loc)  # pylint: disable=W0122
+                except Exception as e:
+                    raise AssertionError(
+                        "Unable to execute a script due to %r. "
+                        "\n--OUT--\n%s\n--ERR--\n%s\n--CODE--\n%s"
+                        "" % (e, out.getvalue(), err.getvalue(),
+                              print_code(content))) from e
+        return glo, loc
+
+    def test_export_einsum(self):
+        x1 = numpy.arange(8).reshape(2, 2, 2).astype(numpy.float32)
+        x2 = numpy.arange(4).reshape(2, 2).astype(numpy.float32)
+        x3 = numpy.arange(8).reshape(2, 2, 2).astype(numpy.float32)
+        r = numpy.einsum("bac,cd,def->ebc", x1, x2, x3)
+        seq_clean = decompose_einsum_equation(
+            "bac,cd,def->ebc", strategy='numpy', clean=True)
+        onx = seq_clean.to_onnx("Y", "X1", "X2", "X3", dtype=numpy.float32)
+        oinf = OnnxInference(onx)
+        rr = oinf.run({'X1': x1, 'X2': x2, 'X3': x3})
+        self.assertEqualArray(r, rr['Y'])
+        code = export2numpy(onx, name="einsum")
+        code += "\n".join([
+            "x1 = numpy.arange(8).reshape(2, 2, 2).astype(numpy.float32)",
+            "x2 = numpy.arange(4).reshape(2, 2).astype(numpy.float32)",
+            "x3 = numpy.arange(8).reshape(2, 2, 2).astype(numpy.float32)",
+            "r = numpy_einsum(x1, x2, x3)"
+        ])
+        _, loc = self.verify_numpy_einsum(code)
+        self.assertEqualArray(r, loc['r'])
+
+    def test_export_einsum2(self):
+        x1 = numpy.arange(8).reshape(2, 2, 2).astype(numpy.float32)
+        x2 = numpy.arange(4).reshape(2, 2).astype(numpy.float32)
+        r = numpy.einsum("bac,cd->ad", x1, x2)
+        seq_clean = decompose_einsum_equation(
+            "bac,cd->ad", strategy='numpy', clean=True)
+        onx = seq_clean.to_onnx("Y", "X1", "X2", dtype=numpy.float32)
+        oinf = OnnxInference(onx)
+        rr = oinf.run({'X1': x1, 'X2': x2})
+        self.assertEqualArray(r, rr['Y'])
+        code = export2numpy(onx, name="einsum")
+        code += "\n".join([
+            "x1 = numpy.arange(8).reshape(2, 2, 2).astype(numpy.float32)",
+            "x2 = numpy.arange(4).reshape(2, 2).astype(numpy.float32)",
+            "r = numpy_einsum(x1, x2)"
+        ])
+        _, loc = self.verify_numpy_einsum(code)
+        self.assertEqualArray(r, loc['r'])
 
 
 if __name__ == "__main__":
