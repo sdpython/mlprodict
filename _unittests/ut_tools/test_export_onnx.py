@@ -799,6 +799,7 @@ class TestExportOnnx(ExtTestCase):
         ])
         _, loc = self.verify_numpy_einsum(code)
         self.assertEqualArray(r, loc['r'])
+        self.assertIn(", axis=3)", code)
 
 
 if __name__ == "__main__":

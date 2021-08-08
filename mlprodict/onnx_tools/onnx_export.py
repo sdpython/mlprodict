@@ -268,6 +268,7 @@ _numpy_templates = dedent("""
         '''
         # initializers
         {% for name, value in initializers: -%}
+        {% if name not in skip_inits: -%}
         {% if len(value.shape) == 0: -%}
         {{ name }} = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
         {%- else %}{% if value.size < 10: %}
@@ -276,7 +277,7 @@ _numpy_templates = dedent("""
         {% else %}
         list_value = {{ value.ravel().tolist() }}
         {{ name }} = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
-        {% endif %}{% endif %}
+        {% endif %}{% endif %}{% endif %}
         {%- endfor %}
 
         # nodes
@@ -288,7 +289,8 @@ _numpy_templates = dedent("""
 
 
 def make_numpy_code(opset, name=None, op_type=None, domain='',
-                    inputs=None, outputs=None, attributes=None):
+                    inputs=None, outputs=None, attributes=None,
+                    used=None, context=None, mark_inits=None):
     """
     Converts an ONNX operators into :epkg:`numpy` code.
 
@@ -297,7 +299,11 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
     :param domain: domain
     :param inputs: inputs
     :param outputs: outputs
-    :param attributes: attributes:
+    :param attributes: attributes
+    :param used: dictionary `{k: v}`,
+        list of nodes taking *k* as input
+    :param context: whole context
+    :param mark_inits: marks initializer as replaced
     :return: code as str
     """
     def make_sure_inputs(n, m=None):
@@ -327,6 +333,46 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
             if name == n:
                 return val
         return defval
+
+    def simplify(name, kind):
+        value = None
+        if (used is not None and len(used[name]) == 1 and
+                context is not None):
+            inits = context['initializers_dict']
+            if name in inits:
+                v = inits[name]
+                if v.dtype == numpy.int64 and v.size < 10:
+                    value = v
+                    if name not in mark_inits:
+                        mark_inits[name] = []
+                    mark_inits[name].append(v)
+
+        if kind == 'tuple':
+            if value is None:
+                return "tuple(%s)" % name
+            if value.size == 1:
+                return str(tuple(value)[0])
+            return str(tuple(value))
+        elif kind == 'list':
+            if value is None:
+                return name
+            if len(value.shape) == 0:
+                return str(value)
+            return str(list(value))
+        raise NotImplementedError(
+            "Unknown scenario to simplify (%r)." % kind)
+
+    def make_tuple(val):
+        if isinstance(val, tuple):
+            return val
+        if isinstance(val, list):
+            return tuple(val)
+        if isinstance(val, int):
+            return val
+        if isinstance(val, str):
+            return tuple(map(int, val.strip('()[]').replace(" ", "").split(",")))
+        raise NotImplementedError(
+            "Unable to convert %r into tuple." % val)
 
     if domain != '':
         raise NotImplementedError(
@@ -373,7 +419,8 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
         make_sure_opsets(11)
         make_sure_inputs(2)
         axis = getat('axis', 0)
-        return "%s = numpy.take(%s, %s, axis=%s)" % (outs, inputs[0], inputs[1], axis)
+        return "%s = numpy.take(%s, %s, axis=%s)" % (
+            outs, inputs[0], simplify(inputs[1], 'list'), axis)
 
     if op_type == 'Gemm':
         make_sure_inputs(2, 3)
@@ -403,8 +450,8 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
         make_sure_opsets(11)
         make_sure_inputs(2)
         keepdims = getat('keepdims', 0)
-        return "%s = %s.sum(axis=tuple(%s), keepdims=%s)" % (
-            outs, inputs[0], inputs[1], keepdims)
+        return "%s = %s.sum(axis=%s, keepdims=%s)" % (
+            outs, inputs[0], simplify(inputs[1], 'tuple'), keepdims)
 
     if op_type == 'ReduceSumSquare':
         make_sure_inputs(1)
@@ -415,7 +462,8 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
 
     if op_type == 'Reshape':
         make_sure_inputs(2)
-        return "%s = %s.reshape(tuple(%s))" % (outs, inputs[0], inputs[1])
+        return "%s = %s.reshape(%s)" % (
+            outs, inputs[0], simplify(inputs[1], 'tuple'))
 
     if op_type == 'Shape':
         make_sure_inputs(1)
@@ -427,17 +475,20 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
     if op_type == 'Squeeze':
         make_sure_opsets(13)
         make_sure_inputs(2)
-        return "%s = numpy.squeeze(%s, axis=tuple(%s))" % ((outs, ) + tuple(inputs))
+        return "%s = numpy.squeeze(%s, axis=%s)" % (
+            outs, inputs[0], simplify(inputs[1], 'tuple'))
 
     if op_type == 'Transpose':
         make_sure_inputs(1)
         perm = getat('perm', None)
-        return "%s = numpy.transpose(%s, axes=tuple(%s))" % (outs, inputs[0], perm)
+        return "%s = numpy.transpose(%s, axes=%s)" % (
+            outs, inputs[0], make_tuple(perm))
 
     if op_type == 'Unsqueeze':
         make_sure_opsets(13)
         make_sure_inputs(2)
-        return "%s = numpy.expand_dims(%s, axis=tuple(%s))" % ((outs, ) + tuple(inputs))
+        return "%s = numpy.expand_dims(%s, axis=%s)" % (
+            outs, inputs[0], simplify(inputs[1], 'tuple'))
 
     raise NotImplementedError(
         "Unable to convert operator type %r name=%r." % (op_type, name))
@@ -457,6 +508,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
     """
     # containers
     context = {}
+    used = {}
 
     # opset
     opsets = {}
@@ -475,6 +527,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
         value = numpy_helper.to_array(init)
         initializers.append((init.name, value))
     context['initializers'] = initializers
+    context['initializers_dict'] = {k: v for k, v in initializers}
 
     # inputs
     inputs = []
@@ -495,6 +548,10 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
     # node
     nodes = []
     for node in model_onnx.graph.node:
+        for i in node.input:
+            if i not in used:
+                used[i] = []
+            used[i].append(node)
         attributes = []
         for at in node.attribute:
             temp = _var_as_dict(at)
@@ -520,12 +577,33 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
     context['model_version'] = model_onnx.model_version
     context['doc_string'] = model_onnx.doc_string
     context['metadata'] = {p.key: p.value for p in model_onnx.metadata_props}
+    context['skip_inits'] = {}
+    mark_inits = {}
 
     # final
     template = Template(templates)
     final = template.render(
         enumerate=enumerate, sorted=sorted, len=len,
-        make_numpy_code=make_numpy_code, **context)
+        make_numpy_code=lambda *args, **kwargs: make_numpy_code(
+            *args, context=context, used=used, mark_inits=mark_inits,
+            **kwargs),
+        **context)
+
+    skip_inits = set()
+    for k, v in mark_inits.items():
+        if len(v) == len(used[k]):
+            # One initializers was removed.
+            skip_inits.add(k)
+
+    if len(skip_inits) > 0:
+        context['skip_inits'] = skip_inits
+        # Again with skip_inits.
+        final = template.render(
+            enumerate=enumerate, sorted=sorted, len=len,
+            make_numpy_code=lambda *args, **kwargs: make_numpy_code(
+                *args, context=context, used=used, mark_inits=mark_inits,
+                **kwargs),
+            **context)
 
     if not verbose:
         rows = final.split("\n")
