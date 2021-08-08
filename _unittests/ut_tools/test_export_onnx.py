@@ -1,5 +1,5 @@
 """
-@brief      test log(time=5s)
+@brief      test log(time=7s)
 """
 import os
 import unittest
@@ -20,7 +20,9 @@ from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.exports.tf2onnx_helper import make_sure, make_name
 from mlprodict.tools.code_helper import print_code
-from mlprodict.onnx_tools.exports.numpy_helper import make_slice
+from mlprodict.onnx_tools.exports.numpy_helper import (
+    argmin_use_numpy_select_last_index,
+    make_slice)
 from mlprodict.onnx_conv import to_onnx
 
 
@@ -653,15 +655,17 @@ class TestExportOnnx(ExtTestCase):
                 "\n--CODE--\n%s"
                 "" % (e, print_code(content))) from e
         glo = globals().copy()
-        loc = {'numpy': numpy, 'dict': dict, 'list': list,
-               'print': print, 'sorted': sorted,
-               'collections': collections, 'inspect': inspect,
-               'helper': helper, "make_sure": make_sure,
-               'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
-               'make_slice': make_slice}
+        loc = {
+            'numpy': numpy, 'dict': dict, 'list': list,
+            'print': print, 'sorted': sorted,
+            'collections': collections, 'inspect': inspect,
+            'helper': helper, "make_sure": make_sure,
+            'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
+            'argmin_use_numpy_select_last_index': argmin_use_numpy_select_last_index,
+            'make_slice': make_slice}
         out = StringIO()
         err = StringIO()
-        if len(left) >= 14:
+        if len(left) > 14:
             raise AssertionError(
                 "Too many unknown symbols: %r." % left)
 
@@ -700,17 +704,16 @@ class TestExportOnnx(ExtTestCase):
         tr = KMeans(n_clusters=2)
         tr.fit(X)
         onx = to_onnx(tr, X, target_opset=14)
-        code = export2numpy(onx)
+        code = export2numpy(onx, name="kmeans")
 
         oinf0 = OnnxInference(onx)
         y = oinf0.run({'X': X})
 
-        code = export2numpy(
-            os.path.join(folder, name), name="FFT2D")
         code += ("\nx = numpy.arange(20).reshape(10, 2).astype(numpy.float32)"
-                 "\ny = numpy_FFT2D(x)")
+                 "\nlabel, scores = numpy_kmeans(x)")
         _, loc = self.verify_numpy(code)
-        self.assertEqualArray(y['y'], loc['y'])
+        self.assertEqualArray(y['scores'], loc['scores'])
+        self.assertEqualArray(y['label'], loc['label'])
 
 
 if __name__ == "__main__":

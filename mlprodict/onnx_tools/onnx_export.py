@@ -251,8 +251,9 @@ _tf2onnx_templates = dedent("""
 
 _numpy_templates = dedent("""
     import numpy
-    from mlprodict.onnx_tools.exports.numpy_helper import make_slice
-
+    from mlprodict.onnx_tools.exports.numpy_helper import (
+        argmin_use_numpy_select_last_index,
+        make_slice)
 
     def numpy_{{name}}({{ inputs[0][0] }}{% for i in inputs[1:]: %}, {{ i[0] }}{% endfor %}):
         '''
@@ -266,14 +267,19 @@ _numpy_templates = dedent("""
         {%- endfor %}
         '''
         # initializers
-        {% for name, value in initializers: %}
-        {% if len(value.shape) == 0: %}
+        {%- for name, value in initializers: -%}
+        {% if len(value.shape) == 0: -%}
         {{ name }} = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
-        {% else %}
+        {%- else %}
+        {% if value.size < 10: -%}
+        {{ name }} = numpy.array({{ value.ravel().tolist() }}, dtype=numpy.{{ value.dtype }})
+        {%- if len(value.shape) > 1: -%}.reshape({{ value.shape }}){%- endif -%}
+        {%- else %}
         list_value = {{ value.ravel().tolist() }}
         {{ name }} = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+        {%- endif %}
         {% endif %}
-        {% endfor %}
+        {%- endfor %}
 
         # nodes
         {% for node in nodes: %}
@@ -296,11 +302,17 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
     :param attributes: attributes:
     :return: code as str
     """
-    def make_sure_inputs(n):
-        if len(inputs) != n:
+    def make_sure_inputs(n, m=None):
+        if m is None:
+            m = n
+        if len(inputs) < n:
             raise RuntimeError(  # pragma: no cover
-                "Expecting %d inputs for operator %r not %r." % (
+                "Expecting at least %d inputs for operator %r not %r." % (
                     n, op_type, inputs))
+        if len(inputs) > m:
+            raise RuntimeError(  # pragma: no cover
+                "Expecting at most %d inputs for operator %r not %r." % (
+                    m, op_type, inputs))
 
     def make_sure_opsets(mi, ma=None):
         if mi is not None and opset < mi:
@@ -325,6 +337,7 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
     binary_ops = dict(Add='+', Sub='-', Div='/', Mul='*', MatMul='@',
                       Pow='**')
     unary_ops = dict(Neg='-')
+    unary_ops_ = dict(Sqrt='** 0.5')
 
     outs = ", ".join(outputs)
 
@@ -336,6 +349,21 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
         make_sure_inputs(1)
         return "%s = %s %s" % (outs, unary_ops[op_type], inputs[0])
 
+    if op_type in unary_ops_:
+        make_sure_inputs(1)
+        return "%s = %s %s" % (outs, inputs[0], unary_ops_[op_type])
+
+    if op_type == 'ArgMin':
+        make_sure_opsets(12)
+        make_sure_inputs(1)
+        axis = getat('axis', 0)
+        keepdims = getat('keepdims', 1)
+        select_last_index = getat('keepdims', 0)
+        return (
+            "%s = argmin_use_numpy_select_last_index("
+            "%s, axis=%s, keepdims=%s, select_last_index=%s)" % (
+                outs, inputs[0], axis, keepdims, select_last_index))
+
     if op_type == 'Concat':
         axis = getat('axis', 0)
         return "%s = numpy.concatenate([%s], %s)" % (outs, ", ".join(inputs), axis)
@@ -345,6 +373,27 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
         make_sure_inputs(2)
         axis = getat('axis', 0)
         return "%s = numpy.take(%s, %s, axis=%s)" % (outs, inputs[0], inputs[1], axis)
+
+    if op_type == 'Gemm':
+        make_sure_inputs(2, 3)
+        alpha = getat('alpha', 0.)
+        transA = getat('transA', 0.)
+        transB = getat('transB', 0.)
+        ta = ".T" if transA else ""
+        tb = ".T" if transB else ""
+        if len(inputs) == 2:
+            return "%s = %s%s @ %s%s * %s" % (
+                outs, inputs[0], ta, inputs[1], tb, alpha)
+        beta = getat('beta', 0.)
+        return "%s = %s%s @ %s%s * %s + %s * %s" % (
+            outs, inputs[0], ta, inputs[1], tb, alpha, inputs[2], beta)
+
+    if op_type == 'ReduceSumSquare':
+        make_sure_inputs(1)
+        axes = getat('axes', 0)
+        keepdims = getat('keepdims', 0)
+        return "%s = (%s ** 2).sum(axis=tuple(%s), keepdims=%s)" % (
+            outs, inputs[0], axes, keepdims)
 
     if op_type == 'Reshape':
         make_sure_inputs(2)

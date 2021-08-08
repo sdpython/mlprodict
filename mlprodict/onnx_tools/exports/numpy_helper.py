@@ -2,6 +2,7 @@
 @file
 @brief Numpy helpers for the conversion from onnx to numpy.
 """
+import numpy
 
 
 def make_slice(data, starts, ends, axes=None, steps=None):
@@ -24,3 +25,22 @@ def make_slice(data, starts, ends, axes=None, steps=None):
         else:
             slices[a] = slice(starts[i], ends[i], steps[i])
     return data[slices]
+
+
+def argmin_use_numpy_select_last_index(
+        data, axis=0, keepdims=True, select_last_index=False):
+    """
+    Needed or operator `ArgMin`.
+    """
+    if select_last_index:
+        result = numpy.argmin(data, axis=axis)
+        if keepdims and len(result.shape) < len(data.shape):
+            result = numpy.expand_dims(result, axis)
+        return result.astype(numpy.int64)
+
+    data = numpy.flip(data, axis)
+    result = numpy.argmin(data, axis=axis)
+    result = data.shape[axis] - result - 1
+    if keepdims:
+        result = numpy.expand_dims(result, axis)
+    return result.astype(numpy.int64)

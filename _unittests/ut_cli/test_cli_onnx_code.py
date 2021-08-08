@@ -44,7 +44,7 @@ class TestCliOnnxCode(ExtTestCase):
             content = f.read()
         self.assertIn("tf_op", content)
 
-    def test_cli_onnx_code_tf2onnx(self):
+    def test_cli_onnx_code_numpy(self):
         temp = get_temp_folder(__file__, "temp_cli_onnx_code_numpy")
         name = os.path.join(
             temp, "..", "..", "ut_tools", "data", "fft2d_any.onnx")
