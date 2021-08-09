@@ -471,7 +471,10 @@ class OnnxVar:
                     conc.append(e)
                 else:
                     conc.append(numpy.array([e], dtype=numpy.int64))
-            ends = OnnxVar(*conc, op=OnnxConcat, axis=0)
+            if len(conc) > 1:
+                ends = OnnxVar(*conc, op=OnnxConcat, axis=0)
+            else:
+                ends = conc[0]
         else:
             ends = numpy.array(ends, dtype=numpy.int64)
         if steps is None:
