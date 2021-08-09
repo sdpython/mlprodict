@@ -715,7 +715,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None):
 
     This can be applied to the decomposition of an einsum
     equation into simple matrix operations.
-    
+
     .. runpython::
         :showcode:
 

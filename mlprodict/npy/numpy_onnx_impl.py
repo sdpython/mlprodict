@@ -195,23 +195,28 @@ def cumsum(x, axis):
     return OnnxVar(x, axis, op=OnnxCumSum)
 
 
-def cst(x):
+def cst(x, dtype=None):
     """
     Creates a constant. `log(x) + numpy.float32(1)` works
     but `numpy.float32(32) + log(x)` fails because Python
     calls `numpy.float32.__add__` instead of
     `OnnxVar.__add__`. With this function, expression
-    `cst(1.) + log(x)` is valid.
+    `cst(1.) + log(x)` is valid. Parameter `dtype` is
+    used to overwrite the default dtype (`numpy.float32`
+    for floats and `numpy.int64` for ints.
     """
     if isinstance(x, float):
-        return OnnxVar(numpy.array([x], dtype=numpy.float32),
+        return OnnxVar(numpy.array([x], dtype=dtype or numpy.float32),
                        op=OnnxIdentity)
     if isinstance(x, int):
-        return OnnxVar(numpy.array([x], dtype=numpy.int64),
+        return OnnxVar(numpy.array([x], dtype=dtype or numpy.int64),
                        op=OnnxIdentity)
     if isinstance(x, numpy.ndarray):
         return OnnxVar(x, op=OnnxIdentity)
     if hasattr(x, 'dtype'):
+        if dtype is not None:
+            raise RuntimeError(
+                "dtype is not used because x is of type %r." % type(x))
         return OnnxVar(numpy.array([x], dtype=x.dtype),
                        op=OnnxIdentity)
     raise NotImplementedError(
@@ -401,6 +406,8 @@ def transpose(x, perm=(1, 0)):
 
 def unsqueeze(x, axes):
     "See :epkg:`numpy:expand_dims`."
+    if isinstance(axes, int):
+        axes = numpy.array([axes], dtype=numpy.int64)
     return OnnxVar(x, axes, op=OnnxUnsqueeze)
 
 

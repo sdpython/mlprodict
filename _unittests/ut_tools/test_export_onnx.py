@@ -7,6 +7,7 @@ import collections
 import inspect
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
+from typing import Any
 import numpy
 from onnx import numpy_helper, helper
 from onnx.helper import (
@@ -25,6 +26,9 @@ from mlprodict.onnx_tools.exports.numpy_helper import (
     make_slice)
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.testing.einsum import decompose_einsum_equation
+import mlprodict.npy.numpy_onnx_impl as npnx
+from mlprodict.npy import onnxnumpy_np
+from mlprodict.npy.onnx_numpy_annotation import NDArrayType
 
 
 class ConvertFFT2DOp:
@@ -801,6 +805,133 @@ class TestExportOnnx(ExtTestCase):
         self.assertEqualArray(r, loc['r'])
         self.assertIn(", axis=3)", code)
 
+    def test_onnx_dft_real_cst(self):
+
+        def dft_real_cst(N, fft_length):
+            n = numpy.arange(N)
+            k = n.reshape((N, 1)).astype(numpy.float64)
+            M = numpy.exp(-2j * numpy.pi * k * n / fft_length)
+            both = numpy.empty((2,) + M.shape)
+            both[0, :, :] = numpy.real(M)
+            both[1, :, :] = numpy.imag(M)
+            return both.astype(numpy.float32)
+
+        @onnxnumpy_np(signature=NDArrayType(("T:int64", "T"), dtypes_out=('T',)))
+        def onnx_dft_real_cst(x_shape, fft_length):
+            N = x_shape[-2]
+            n = npnx.arange(0, N).astype(numpy.float32)
+            new_shape = npnx.concat(N, numpy.array([1], dtype=numpy.int64))
+            k = n.reshape(new_shape).astype(numpy.float32)
+            kn = k * n / \
+                fft_length.astype(numpy.float32) * \
+                npnx.cst(-2 * numpy.pi, dtype=numpy.float32)
+            mcos = npnx.unsqueeze(npnx.cos(kn), axes=0)
+            msin = npnx.unsqueeze(npnx.sin(kn), axes=0)
+            return npnx.vstack(mcos, msin)
+
+        x_shape = numpy.array([3, 4], dtype=numpy.int64)
+        fft_length = numpy.array([2, 3], dtype=numpy.int64)
+        exp = dft_real_cst(x_shape[-2], fft_length[-1])
+        cus = onnx_dft_real_cst(x_shape, fft_length[-1])
+        self.assertEqualArray(exp, cus, decimal=5)
+
+        x_shape = numpy.array([3, 1, 4], dtype=numpy.int64)
+        fft_length = numpy.array([1, 4], dtype=numpy.int64)
+        exp = dft_real_cst(x_shape[-2], fft_length[-1])
+        cus = onnx_dft_real_cst(x_shape, fft_length[-1])
+        self.assertEqualArray(exp, cus, decimal=5)
+
+    def assert_almost_equal(self, a, b, error=1e-5):
+        """
+        The function compares two matrices, one may be complex. In that case,
+        this matrix is changed into a new matrix with a new first dimension,
+        [0,::] means real part, [1,::] means imaginary part.
+        """
+        if a.dtype in (numpy.complex64, numpy.complex128):
+            dtype = numpy.float64 if a.dtype == numpy.complex128 else numpy.float32
+            new_a = numpy.empty((2,) + a.shape).astype(dtype)
+            new_a[0] = numpy.real(a)
+            new_a[1] = numpy.imag(a)
+            self.assert_almost_equal(new_a, b, error)
+            return
+        if b.dtype in (numpy.complex64, numpy.complex128):
+            self.assert_almost_equal(b, a, error)
+            return
+        if a.shape != b.shape:
+            raise AssertionError("Shape mismatch %r != %r." %
+                                 (a.shape, b.shape))
+        diff = numpy.abs(a.ravel() - b.ravel()).max()
+        if diff > error:
+            raise AssertionError("Mismatch max diff=%r > %r." % (diff, error))
+
+    def test_einsum_numpy_full(self):
+
+        def onnx_dft_real_cst(N, fft_length):
+            n = npnx.arange(0, N).astype(numpy.float32)
+            new_shape = npnx.concat(N, numpy.array([1], dtype=numpy.int64))
+            k = n.reshape(new_shape).astype(numpy.float32)
+            kn = k * n / \
+                fft_length.astype(numpy.float32) * \
+                npnx.cst(-2 * numpy.pi, dtype=numpy.float32)
+            mcos = npnx.unsqueeze(npnx.cos(kn), axes=0)
+            msin = npnx.unsqueeze(npnx.sin(kn), axes=0)
+            return npnx.vstack(mcos, msin)
+
+        def onnx_rfft_3d_1d(x, fft_length, transpose=True):
+            if fft_length is None:
+                raise RuntimeError("fft_length must be specified.")
+
+            size = fft_length // 2 + 1
+            cst = onnx_dft_real_cst(fft_length, fft_length)
+            if transpose:
+                xt = npnx.transpose(x, (0, 2, 1))
+                a = cst[:, :, :fft_length]
+                b = xt[:, :fft_length, :]
+                a = npnx.expand_dims(a, 0)
+                b = npnx.expand_dims(b, 1)
+                res = npnx.matmul(a, b)
+                res2 = res[:, :size, :]
+                return npnx.transpose(res2, (1, 0, 3, 2))
+            else:
+                a = cst[:, :, :fft_length]
+                b = x[:, :fft_length, :]
+                a = npnx.expand_dims(a, 0)
+                b = npnx.expand_dims(b, 1)
+                res = npnx.matmul(a, b)
+                return npnx.transpose(res, (1, 0, 2, 3))
+
+        def onnx_rfft_3d_2d(x, fft_length):
+            mat = x[:, :fft_length[-2], :fft_length[-1]]
+
+            # first FFT
+            res = onnx_rfft_3d_1d(mat, fft_length[-1], transpose=True)
+
+            # second FFT decomposed on FFT on real part and imaginary part
+            res2_real = onnx_rfft_3d_1d(res[0], fft_length[0], transpose=False)
+            res2_imag = onnx_rfft_3d_1d(res[1], fft_length[0], transpose=False)
+            res2_imag2 = npnx.vstack(-res2_imag[1:2], res2_imag[:1])
+            res = res2_real + res2_imag2
+            size = fft_length[1] // 2 + 1
+            return res[:, :, :fft_length[-2], :size]
+
+        @onnxnumpy_np(signature=NDArrayType(("T:all", numpy.int64), dtypes_out=('T',)))
+        def onnx_rfft_2d_any_test(x, fft_length):
+            new_shape = npnx.concat(
+                numpy.array([-1], dtype=numpy.int64), x.shape[-2:], axis=0)
+            mat2 = x.reshape(new_shape)
+            f2 = onnx_rfft_3d_2d(mat2, fft_length)
+            new_shape = npnx.concat(
+                numpy.array([2], dtype=numpy.int64), x.shape[:-2], f2.shape[-2:])
+            return f2.reshape(new_shape)
+
+        shape = (3, 1, 4)
+        fft_length = numpy.array([1, 4], dtype=numpy.int64)
+        rnd = numpy.random.randn(*list(shape)).astype(numpy.float32)
+        fft2d_cus = numpy.fft.fft2(rnd, fft_length)
+        fft2d_onx = onnx_rfft_2d_any_test(rnd, fft_length)
+        self.almost_equal(fft2d_cus[..., :fft2d_onx.shape[-1]], fft2d_onx)
+
 
 if __name__ == "__main__":
+    # TestExportOnnx().test_einsum_numpy_full()
     unittest.main()

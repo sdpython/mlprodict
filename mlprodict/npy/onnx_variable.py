@@ -444,6 +444,8 @@ class OnnxVar:
                 steps.append(step)
                 if isinstance(end, tuple):
                     needs_shape.append(len(ends) - 1)
+                elif isinstance(end, OnnxVar):
+                    needs_shape.append(end)
                 continue
             raise NotImplementedError(  # pragma: no cover
                 "Not implemented for type %r." % type(ind))
@@ -465,6 +467,8 @@ class OnnxVar:
                         OnnxVar(shape[e[1]],
                                 numpy.array([0], dtype=numpy.int64),
                                 op=OnnxUnsqueeze))
+                elif isinstance(e, OnnxVar):
+                    conc.append(e)
                 else:
                     conc.append(numpy.array([e], dtype=numpy.int64))
             ends = OnnxVar(*conc, op=OnnxConcat, axis=0)

@@ -103,6 +103,12 @@ class OnnxMicroRuntime:
                 o += c * beta
             return o
 
+        if not isinstance(transA, (int, bool, numpy.int64)):
+            raise TypeError(  # pragma: no cover
+                "Unexpected type for transA: %r." % type(transA))
+        if not isinstance(transB, (int, bool, numpy.int64)):
+            raise TypeError(  # pragma: no cover
+                "Unexpected type for transA: %r." % type(transB))
         if transA:
             fct = _gemm11 if transB else _gemm10
         else:

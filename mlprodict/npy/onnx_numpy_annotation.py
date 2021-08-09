@@ -187,7 +187,7 @@ class _NDArrayAlias:
                 mapped_types[name] = (dtypes, index)
             if dtypes == "all":
                 dtypes = all_dtypes
-            elif dtypes == "int":
+            elif dtypes in ("int", "int64"):
                 dtypes = (numpy.int64, )
             elif dtypes == "bool":
                 dtypes = (numpy_bool, )
@@ -195,6 +195,12 @@ class _NDArrayAlias:
                 dtypes = (numpy.float32, numpy.float64)
             elif dtypes == "ints":
                 dtypes = (numpy.int32, numpy.int64)
+            elif dtypes == "int64":
+                dtypes = (numpy.int64, )
+            elif dtypes == "float32":
+                dtypes = (numpy.float32, )
+            elif dtypes == "float64":
+                dtypes = (numpy.float64, )
             elif dtypes not in mapped_types:
                 raise ValueError(  # pragma: no cover
                     "Unexpected shortcut for dtype %r." % dtypes)
