@@ -5,7 +5,9 @@
 .. versionadded:: 0.7
 """
 import pprint
+import hashlib
 import numpy
+import onnx
 
 
 class AdjacencyGraphDisplay:
@@ -395,3 +397,55 @@ def onnx2bigraph(model_onnx, recursive=False):
             edges[nname, o] = BiGraph.A('O%s' % c)
 
     return BiGraph(v0, v1, edges)
+
+
+def onnx_graph_distance(onx1, onx2):
+    """
+    Computes a distance between two ONNX graphs. They must not
+    be too big otherwise this function might take for ever.
+    The function relies on package :epkg:`mlstatpy`.
+    
+
+    :param onx1: first graph (ONNX graph or model file name)
+    :param onx2: second graph (ONNX graph or model file name)
+    :return: distance and differences
+
+    .. versionadded:: 0.7
+    """
+    from mlstatpy.graph.graph_distance import GraphDistance
+    
+    if isinstance(onx1, str):
+        onx1 = onnx.load(onx1)
+    if isinstance(onx2, str):
+        onx2 = onnx.load(onx2)
+
+    def make_hash(init):
+        m = hashlib.sha256()
+        m.update(init.raw_data)
+        return m.hexdigest()[:20]
+
+    def build_graph(onx):
+        edges = []
+        labels = {}
+        for node in onx.graph.node:
+            if len(node.name) == 0:
+                name = str(id(node))
+            else:
+                name = node.name
+            for i in node.input:
+                edges.append((i, name))
+            for p, i in enumerate(node.output):
+                edges.append((name, i))
+                labels[i] = "%s:%d" % (node.op_type, p)
+            labels[name] = node.op_type
+        for init in onx.graph.initializer:
+            labels[init.name] = make_hash(init)
+    
+        g = GraphDistance(edges, vertex_label=labels)
+        return g
+        
+    g1 = build_graph(onx1)
+    g2 = build_graph(onx2)
+    
+    dist, gdist = g1.distance_matching_graphs_paths(g2)
+    return dist, gdist

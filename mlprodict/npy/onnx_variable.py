@@ -466,9 +466,13 @@ class OnnxVar:
                     conc.append(
                         OnnxVar(shape[e[1]],
                                 numpy.array([0], dtype=numpy.int64),
-                                op=OnnxUnsqueeze))
+                                op=OnnxUnsqueeze).reshape(
+                                    numpy.array([-1], dtype=numpy.int64)))
                 elif isinstance(e, OnnxVar):
-                    conc.append(e)
+                    conc.append(
+                        OnnxVar(e, numpy.array([0], dtype=numpy.int64),
+                                op=OnnxUnsqueeze).reshape(
+                                    numpy.array([-1], dtype=numpy.int64)))
                 else:
                     conc.append(numpy.array([e], dtype=numpy.int64))
             if len(conc) > 1:
@@ -477,6 +481,7 @@ class OnnxVar:
                 ends = conc[0]
         else:
             ends = numpy.array(ends, dtype=numpy.int64)
+
         if steps is None:
             sliced = OnnxVar(self, starts, ends, axes, op=OnnxSlice)
         else:

@@ -26,6 +26,7 @@ jyquickhelper
 lightgbm
 memory_profiler
 mlinsights>=0.3
+mlstatpy
 nbconvert>=6.0.2
 openpyxl
 opt-einsum

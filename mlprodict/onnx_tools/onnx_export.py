@@ -534,6 +534,8 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
     for inp in model_onnx.graph.input:
         t = inp.type.tensor_type
         dims = tuple(t.shape.dim)
+        if len(dims) == 0:
+            dims = None
         inputs.append((inp.name, t.elem_type, dims))
     context['inputs'] = inputs
 
@@ -542,6 +544,8 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
     for inp in model_onnx.graph.output:
         t = inp.type.tensor_type
         dims = tuple(t.shape.dim)
+        if len(dims) == 0:
+            dims = None
         outputs.append((inp.name, t.elem_type, dims))
     context['outputs'] = outputs
 

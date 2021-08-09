@@ -1,5 +1,5 @@
 """
-@brief      test log(time=7s)
+@brief      test log(time=14s)
 """
 import os
 import unittest
@@ -544,29 +544,42 @@ class TestExportOnnx(ExtTestCase):
         this = os.path.dirname(__file__)
         folder = os.path.join(this, "data")
         names = ["fft2d_any.onnx"]
-        for name in names:
-            with self.subTest(name=name):
-                oinf0 = OnnxInference(os.path.join(folder, name))
+        for rt in ['python', 'onnxruntime1']:
+            for name in names:
+                with self.subTest(name=name, rt=rt):
+                    oinf0 = OnnxInference(os.path.join(folder, name), runtime=rt)
 
-                x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
-                y = oinf0.run({'x': x})
+                    x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
 
-                new_onnx = export2onnx(
-                    os.path.join(folder, name), name="FFT2D")
-                _, loc = self.verify(new_onnx)
-                model = loc['onnx_model']
-                oinf = OnnxInference(model)
-                y1 = oinf.run({'x': x})
+                    new_onnx = export2onnx(
+                        os.path.join(folder, name), name="FFT2D")
+                    _, loc = self.verify(new_onnx)
+                    model = loc['onnx_model']
 
-                new_onnx = export2onnx(
-                    os.path.join(folder, name), verbose=False)
-                _, loc = self.verify(new_onnx)
-                model = loc['onnx_model']
-                oinf = OnnxInference(model)
-                y2 = oinf.run({'x': x})
+                    oinf = OnnxInference(
+                        model, runtime=rt, new_outputs=['Sh_shape0'],
+                        new_opset=10)
+                    rr = oinf.run({'x': x})
+                    if rr['Sh_shape0'].shape != (3, ):
+                        self.assertEqual(rr['Sh_shape0'].shape, (3, ))
+                        
+                    oinf = OnnxInference(model, runtime=rt)
+                    if rt == 'python':
+                        y = oinf0.run({'x': x})
+                        y1 = oinf.run({'x': x})
+                    else:
+                        y = oinf0.run({'x': x})
+                        y1 = oinf.run({'x': x})
 
-                self.assertEqualArray(y['y'], y1['y'])
-                self.assertEqualArray(y['y'], y2['y'])
+                    new_onnx = export2onnx(
+                        os.path.join(folder, name), verbose=False)
+                    _, loc = self.verify(new_onnx)
+                    model = loc['onnx_model']
+                    oinf = OnnxInference(model, runtime=rt)
+                    y2 = oinf.run({'x': x})
+
+                    self.assertEqualArray(y['y'], y1['y'])
+                    self.assertEqualArray(y['y'], y2['y'])
 
     def verify_tf(self, content):
         try:
@@ -613,34 +626,35 @@ class TestExportOnnx(ExtTestCase):
         this = os.path.dirname(__file__)
         folder = os.path.join(this, "data")
         names = ["fft2d_any.onnx"]
-        for name in names:
-            with self.subTest(name=name):
-                oinf0 = OnnxInference(os.path.join(folder, name))
+        for rt in ['python', 'onnxruntime1']:
+            for name in names:
+                with self.subTest(name=name, rt=rt):
+                    oinf0 = OnnxInference(os.path.join(folder, name), runtime=rt)
 
-                x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
-                y = oinf0.run({'x': x})
+                    x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
+                    y = oinf0.run({'x': x})
 
-                new_onnx = export2tf2onnx(
-                    os.path.join(folder, name), name="FFT2D")
-                _, loc = self.verify_tf(new_onnx)
-                model = loc['onnx_raw']
-                self.assertIn('op_type: "FFT2D"', str(model))
-                model = loc['onnx_model']
-                self.assertNotIn('op_type: "FFT2D"', str(model))
+                    new_onnx = export2tf2onnx(
+                        os.path.join(folder, name), name="FFT2D")
+                    _, loc = self.verify_tf(new_onnx)
+                    model = loc['onnx_raw']
+                    self.assertIn('op_type: "FFT2D"', str(model))
+                    model = loc['onnx_model']
+                    self.assertNotIn('op_type: "FFT2D"', str(model))
 
-                oinf = OnnxInference(model)
-                y1 = oinf.run({'x': x})
+                    oinf = OnnxInference(model, runtime=rt)
+                    y1 = oinf.run({'x': x})
 
-                new_onnx = export2tf2onnx(
-                    os.path.join(folder, name), name="FFT2D")
-                _, loc = self.verify_tf(new_onnx)
-                model = loc['onnx_model']
-                self.assertNotIn('op_type: "FFT2D"', str(model))
-                oinf = OnnxInference(model)
-                y2 = oinf.run({'x': x})
+                    new_onnx = export2tf2onnx(
+                        os.path.join(folder, name), name="FFT2D")
+                    _, loc = self.verify_tf(new_onnx)
+                    model = loc['onnx_model']
+                    self.assertNotIn('op_type: "FFT2D"', str(model))
+                    oinf = OnnxInference(model, runtime=rt)
+                    y2 = oinf.run({'x': x})
 
-                self.assertEqualArray(y['y'], y1['y'])
-                self.assertEqualArray(y['y'], y2['y'])
+                    self.assertEqualArray(y['y'], y1['y'])
+                    self.assertEqualArray(y['y'], y2['y'])
 
     def verify_numpy(self, content):
         try:
@@ -772,9 +786,16 @@ class TestExportOnnx(ExtTestCase):
         seq_clean = decompose_einsum_equation(
             "bac,cd,def->ebc", strategy='numpy', clean=True)
         onx = seq_clean.to_onnx("Y", "X1", "X2", "X3", dtype=numpy.float32)
-        oinf = OnnxInference(onx)
-        rr = oinf.run({'X1': x1, 'X2': x2, 'X3': x3})
-        self.assertEqualArray(r, rr['Y'])
+
+        with self.subTest(rt='python'):
+            oinf = OnnxInference(onx)
+            rr = oinf.run({'X1': x1, 'X2': x2, 'X3': x3})
+            self.assertEqualArray(r, rr['Y'])
+        with self.subTest(rt='onnxruntime1'):
+            oinf = OnnxInference(onx, runtime='onnxruntime1')
+            rr = oinf.run({'X1': x1, 'X2': x2, 'X3': x3})
+            self.assertEqualArray(r, rr['Y'])
+
         code = export2numpy(onx, name="einsum")
         code += "\n".join([
             "x1 = numpy.arange(8).reshape(2, 2, 2).astype(numpy.float32)",
@@ -792,9 +813,16 @@ class TestExportOnnx(ExtTestCase):
         seq_clean = decompose_einsum_equation(
             "bac,cd->ad", strategy='numpy', clean=True)
         onx = seq_clean.to_onnx("Y", "X1", "X2", dtype=numpy.float32)
-        oinf = OnnxInference(onx)
-        rr = oinf.run({'X1': x1, 'X2': x2})
-        self.assertEqualArray(r, rr['Y'])
+
+        with self.subTest(rt='python'):
+            oinf = OnnxInference(onx)
+            rr = oinf.run({'X1': x1, 'X2': x2})
+            self.assertEqualArray(r, rr['Y'])
+        with self.subTest(rt='onnxruntime1'):
+            oinf = OnnxInference(onx, runtime='onnxruntime1')
+            rr = oinf.run({'X1': x1, 'X2': x2})
+            self.assertEqualArray(r, rr['Y'])
+
         code = export2numpy(onx, name="einsum")
         code += "\n".join([
             "x1 = numpy.arange(8).reshape(2, 2, 2).astype(numpy.float32)",
@@ -820,23 +848,18 @@ class TestExportOnnx(ExtTestCase):
         def onnx_dft_real_cst(x_shape, fft_length):
             N = x_shape[-2]
             n = npnx.arange(0, N).astype(numpy.float32)
-            new_shape = npnx.concat(N, numpy.array([1], dtype=numpy.int64))
+            new_shape = npnx.concat(npnx.expand_dims(N, axis=0),
+                                    numpy.array([1], dtype=numpy.int64))
             k = n.reshape(new_shape).astype(numpy.float32)
-            kn = k * n / \
-                fft_length.astype(numpy.float32) * \
-                npnx.cst(-2 * numpy.pi, dtype=numpy.float32)
+            kn = (k * n / 
+                  fft_length.astype(numpy.float32) *
+                  npnx.cst(-2 * numpy.pi, dtype=numpy.float32))
             mcos = npnx.unsqueeze(npnx.cos(kn), axes=0)
             msin = npnx.unsqueeze(npnx.sin(kn), axes=0)
             return npnx.vstack(mcos, msin)
 
         x_shape = numpy.array([3, 4], dtype=numpy.int64)
         fft_length = numpy.array([2, 3], dtype=numpy.int64)
-        exp = dft_real_cst(x_shape[-2], fft_length[-1])
-        cus = onnx_dft_real_cst(x_shape, fft_length[-1])
-        self.assertEqualArray(exp, cus, decimal=5)
-
-        x_shape = numpy.array([3, 1, 4], dtype=numpy.int64)
-        fft_length = numpy.array([1, 4], dtype=numpy.int64)
         exp = dft_real_cst(x_shape[-2], fft_length[-1])
         cus = onnx_dft_real_cst(x_shape, fft_length[-1])
         self.assertEqualArray(exp, cus, decimal=5)
@@ -868,11 +891,12 @@ class TestExportOnnx(ExtTestCase):
 
         def onnx_dft_real_cst(N, fft_length):
             n = npnx.arange(0, N).astype(numpy.float32)
-            new_shape = npnx.concat(N, numpy.array([1], dtype=numpy.int64))
+            new_shape = npnx.concat(npnx.expand_dims(N, axis=0),
+                                    numpy.array([1], dtype=numpy.int64))
             k = n.reshape(new_shape).astype(numpy.float32)
-            kn = k * n / \
-                fft_length.astype(numpy.float32) * \
-                npnx.cst(-2 * numpy.pi, dtype=numpy.float32)
+            kn = (k * n /
+                  fft_length.astype(numpy.float32) *
+                  npnx.cst(-2 * numpy.pi, dtype=numpy.float32))
             mcos = npnx.unsqueeze(npnx.cos(kn), axes=0)
             msin = npnx.unsqueeze(npnx.sin(kn), axes=0)
             return npnx.vstack(mcos, msin)
@@ -928,8 +952,31 @@ class TestExportOnnx(ExtTestCase):
         fft_length = numpy.array([1, 4], dtype=numpy.int64)
         rnd = numpy.random.randn(*list(shape)).astype(numpy.float32)
         fft2d_cus = numpy.fft.fft2(rnd, fft_length)
-        fft2d_onx = onnx_rfft_2d_any_test(rnd, fft_length)
-        self.almost_equal(fft2d_cus[..., :fft2d_onx.shape[-1]], fft2d_onx)
+        try:
+            fft2d_onx = onnx_rfft_2d_any_test(rnd, fft_length)
+        except RuntimeError:
+            key = list(onnx_rfft_2d_any_test.signed_compiled)[0]
+            onx = onnx_rfft_2d_any_test.signed_compiled[key].compiled.onnx_
+            with open("temp_fft2s_dynamic.onnx", "wb") as f:
+                f.write(onx.SerializeToString())
+            oinf = OnnxInference(onx)
+            res = oinf.run({'x': rnd, 'fft_length': fft_length}, verbose=1, fLOG=print)
+            raise
+            
+        self.assert_almost_equal(fft2d_cus[..., :fft2d_onx.shape[-1]], fft2d_onx)
+
+        key = list(onnx_rfft_2d_any_test.signed_compiled)[0]
+        onx = onnx_rfft_2d_any_test.signed_compiled[key].compiled.onnx_
+        for rt in ['python', 'onnxruntime1']:
+            with self.subTest(rt=rt):
+                oinf = OnnxInference(onx, runtime=rt)
+                res = oinf.run({'x': rnd, 'fft_length': fft_length})
+                self.assertEqualArray(fft2d_onx, res['y'], decimal=6)
+
+        with open("temp_fft2s_dynamic.onnx", "wb") as f:
+            f.write(onx.SerializeToString())
+        code = export2tf2onnx(onx, name="FFT2D")
+        self.assertIn("make_sure", code)
 
 
 if __name__ == "__main__":
