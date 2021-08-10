@@ -19,8 +19,10 @@ class TestGraphsDistance(ExtTestCase):
         from mlstatpy.graph.graphviz_helper import draw_graph_graphviz
 
         shape = None
-        X = helper.make_tensor_value_info('X', TensorProto.FLOAT, shape)  # pylint: disable=E1101
-        Z = helper.make_tensor_value_info('Z', TensorProto.INT64, shape)  # pylint: disable=E1101
+        X = helper.make_tensor_value_info(
+            'X', TensorProto.FLOAT, shape)  # pylint: disable=E1101
+        Z = helper.make_tensor_value_info(
+            'Z', TensorProto.INT64, shape)  # pylint: disable=E1101
         node_def = helper.make_node('Shape', ['X'], ['Z'], name='Zt')
         graph_def = helper.make_graph([node_def], 'test-model', [X], [Z])
         model_def = helper.make_model(
@@ -36,8 +38,10 @@ class TestGraphsDistance(ExtTestCase):
     def test_graph_distance_bigger(self):
         from mlstatpy.graph.graphviz_helper import draw_graph_graphviz
 
-        X = helper.make_tensor_value_info('X', TensorProto.FLOAT, None)  # pylint: disable=E1101
-        Z = helper.make_tensor_value_info('Z', TensorProto.FLOAT, None)  # pylint: disable=E1101
+        X = helper.make_tensor_value_info(
+            'X', TensorProto.FLOAT, None)  # pylint: disable=E1101
+        Z = helper.make_tensor_value_info(
+            'Z', TensorProto.FLOAT, None)  # pylint: disable=E1101
         node_def = helper.make_node('Neg', ['X'], ['Z'], name='A')
         graph_def = helper.make_graph([node_def], 'test-model', [X], [Z])
         model_def = helper.make_model(

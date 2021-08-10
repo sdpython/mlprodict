@@ -31,7 +31,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxFloor,
     OnnxIdentity, OnnxIsNaN,
     OnnxLog,
-    OnnxMatMul, OnnxMul,
+    OnnxMatMul,
     OnnxPad,
     OnnxReciprocal,
     OnnxReduceMax,
@@ -109,7 +109,8 @@ def arange(start, stop, step=1):
             shape = stop - start
         if isinstance(shape, OnnxVar):
             shape = OnnxVar(
-                OnnxVar(shape, numpy.array([0], dtype=numpy.int64), op=OnnxUnsqueeze),
+                OnnxVar(shape, numpy.array(
+                    [0], dtype=numpy.int64), op=OnnxUnsqueeze),
                 numpy.array([-1], dtype=numpy.int64),
                 op=OnnxReshape)
         _cst = OnnxVar(shape, op=OnnxConstantOfShape, value=value)
@@ -126,7 +127,8 @@ def arange(start, stop, step=1):
             shape = (stop - start) // step
         if isinstance(shape, OnnxVar):
             shape = OnnxVar(
-                OnnxVar(shape, numpy.array([0], dtype=numpy.int64), op=OnnxUnsqueeze),
+                OnnxVar(shape, numpy.array(
+                    [0], dtype=numpy.int64), op=OnnxUnsqueeze),
                 numpy.array([-1], dtype=numpy.int64),
                 op=OnnxReshape)
         _cst = OnnxVar(shape, op=OnnxConstantOfShape, value=value)

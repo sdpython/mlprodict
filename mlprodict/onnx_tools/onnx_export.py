@@ -163,12 +163,13 @@ _tf2onnx_templates = dedent("""
             {% for name, value in initializers: %}
             {% if len(value.shape) == 0: -%}
             value = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
-            {%- else -%}            
+            {%- else -%}
             {% if value.size > 5: -%}
             list_value = {{ value.ravel().tolist() }}
             value = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
             {%- else -%}
-            value = numpy.array({{ value.ravel().tolist() }}, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+            value = numpy.array({{ value.ravel().tolist() }},
+                dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
             {%- endif -%}{%- endif %}
             r_{{ name }} = ctx.make_const(name=make_name('init_{{ name }}'), np_val=value)
             varx['{{ name }}'] = r_{{ name }}.name
@@ -341,8 +342,8 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
 
     def simplify(name, kind):
         value = None
-        if (used is not None and len(used[name]) == 1 and
-                context is not None):
+        if (used is not None and name in used and
+                len(used[name]) == 1 and context is not None):
             inits = context['initializers_dict']
             if name in inits:
                 v = inits[name]
@@ -499,7 +500,8 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
         "Unable to convert operator type %r name=%r." % (op_type, name))
 
 
-def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
+def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
+                    rename=False):
     """
     Exports an ONNX model to the onnx syntax.
 
@@ -509,8 +511,38 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
         (None to select the one from the graph)
     :param verbose: insert prints
     :param name: to overwrite onnx name
+    :param rename: rename the names to get shorter names
     :return: python code
     """
+    def number2name(n):
+        n += 1
+        seq = []
+        while n >= 1:
+            r = n % 26
+            seq.append(r)
+            n = (n - r) // 26
+        return "".join(chr(65 + i) for i in reversed(seq))
+
+    def rename_name(name):
+        if len(name) == 0:
+            raise ValueError(  # pragma: no cover
+                "name is empty.")
+        if name in dict_names:
+            return dict_names[name]
+        if rename:
+            i = 0
+            new_name = number2name(i)
+            while new_name in dict_names:
+                i += 1
+                new_name = number2name(i)
+            if len(new_name) == 0:
+                raise ValueError(  # pragma: no cover
+                    "Unable to rename name=%r i=%d." % (name, i))
+            dict_names[name] = new_name
+            dict_names[new_name] = new_name
+            return new_name
+        return name
+
     # containers
     context = {}
     used = {}
@@ -526,11 +558,19 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
     context['opsets'] = opsets
     context['target_opset'] = opset
 
+    dict_names = {}
+    if rename:
+        for o in model_onnx.graph.input:
+            dict_names[o.name] = o.name
+        for o in model_onnx.graph.output:
+            dict_names[o.name] = o.name
+
     # inits
     initializers = []
     for init in model_onnx.graph.initializer:
+        init_name = rename_name(init.name)
         value = numpy_helper.to_array(init)
-        initializers.append((init.name, value))
+        initializers.append((init_name, value))
     context['initializers'] = initializers
     context['initializers_dict'] = {k: v for k, v in initializers}
 
@@ -573,8 +613,10 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
                 else:
                     attributes.append((at.name, repr(value)))
         d = dict(name=node.name, op_type=node.op_type,
-                 domain=node.domain, inputs=node.input,
-                 outputs=node.output, attributes=attributes)
+                 domain=node.domain,
+                 inputs=[rename_name(n) for n in node.input],
+                 outputs=[rename_name(n) for n in node.output],
+                 attributes=attributes)
         nodes.append(d)
     context['nodes'] = nodes
 
@@ -620,7 +662,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None):
     return autopep8.fix_code(final)
 
 
-def export2onnx(model_onnx, opset=None, verbose=True, name=None):
+def export2onnx(model_onnx, opset=None, verbose=True, name=None, rename=False):
     """
     Exports an ONNX model to the :epkg:`onnx` syntax.
 
@@ -629,6 +671,7 @@ def export2onnx(model_onnx, opset=None, verbose=True, name=None):
         (None to select the one from the graph)
     :param verbose: inserts prints
     :param name: to overwrite onnx name
+    :param rename: rename the names to get shorter names
     :return: python code
 
     The following example shows what a python code creating a graph
@@ -654,11 +697,14 @@ def export2onnx(model_onnx, opset=None, verbose=True, name=None):
     if isinstance(model_onnx, str):
         model_onnx = onnx.load(model_onnx)
 
-    return export_template(model_onnx, templates=_onnx_templates,
-                           opset=opset, verbose=verbose, name=name)
+    code = export_template(model_onnx, templates=_onnx_templates,
+                           opset=opset, verbose=verbose, name=name,
+                           rename=rename)
+    return code
 
 
-def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None):
+def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None,
+                   rename=False):
     """
     Exports an ONNX model to the :epkg:`tensorflow-onnx` syntax.
 
@@ -667,6 +713,7 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None):
         (None to select the one from the graph)
     :param verbose: inserts prints
     :param name: to overwrite onnx name
+    :param rename: rename the names to get shorter names
     :return: python code
 
     .. runpython::
@@ -690,10 +737,12 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None):
         model_onnx = onnx.load(model_onnx)
 
     return export_template(model_onnx, templates=_tf2onnx_templates,
-                           opset=opset, verbose=verbose, name=name)
+                           opset=opset, verbose=verbose, name=name,
+                           rename=rename)
 
 
-def export2numpy(model_onnx, opset=None, verbose=True, name=None):
+def export2numpy(model_onnx, opset=None, verbose=True, name=None,
+                 rename=False):
     """
     Exports an ONNX model to the :epkg:`numpy` syntax.
     The exports does not work with all operators.
@@ -703,6 +752,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None):
         (None to select the one from the graph)
     :param verbose: inserts prints
     :param name: to overwrite onnx name
+    :param rename: rename the names to get shorter names
     :return: python code
 
     .. runpython::
@@ -745,5 +795,10 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None):
     if isinstance(model_onnx, str):
         model_onnx = onnx.load(model_onnx)
 
-    return export_template(model_onnx, templates=_numpy_templates,
-                           opset=opset, verbose=verbose, name=name)
+    code = export_template(model_onnx, templates=_numpy_templates,
+                           opset=opset, verbose=verbose, name=name,
+                           rename=rename)
+    for i in range(0, 6):
+        code = code.replace("axis=tuple([%d])" % i, "axis=%d" % i)
+        code = code.replace("tuple([%d])" % i, "(%d, )" % i)
+    return code

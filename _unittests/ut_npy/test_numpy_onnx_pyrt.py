@@ -101,7 +101,8 @@ class TestNumpyOnnxFunction(ExtTestCase):
             with self.subTest(kw=kw):
                 begin = numpy.array([5], dtype=numpy.int64)
                 stop = numpy.array([20], dtype=numpy.int64)
-                sig = FctVersion((numpy.int64, numpy.int64), (kw.get('step', 1), ))
+                sig = FctVersion((numpy.int64, numpy.int64),
+                                 (kw.get('step', 1), ))
                 self.common_testn(
                     (begin, stop), numpy.arange, nxnpy.arange, sig, **kw)
 

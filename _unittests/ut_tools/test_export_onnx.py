@@ -684,7 +684,7 @@ class TestExportOnnx(ExtTestCase):
             'collections': collections, 'inspect': inspect,
             'helper': helper, "make_sure": make_sure,
             'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
-            'argmin_use_numpy_select_last_index': argmin_use_numpy_select_last_index,            
+            'argmin_use_numpy_select_last_index': argmin_use_numpy_select_last_index,
             'make_slice': make_slice}
         out = StringIO()
         err = StringIO()
@@ -728,12 +728,13 @@ class TestExportOnnx(ExtTestCase):
         tr = KMeans(n_clusters=2)
         tr.fit(X)
         onx = to_onnx(tr, X, target_opset=14)
-        code = export2numpy(onx, name="kmeans")
+        code = export2numpy(onx, name="kmeans", rename=True)
 
         oinf0 = OnnxInference(onx)
         y = oinf0.run({'X': X})
 
         code += ("\nx = numpy.arange(20).reshape(10, 2).astype(numpy.float32)"
+                 "\nx[:5] = - x[:5]"
                  "\nlabel, scores = numpy_kmeans(x)")
         _, loc = self.verify_numpy(code)
         self.assertEqualArray(y['scores'], loc['scores'])
@@ -801,7 +802,8 @@ class TestExportOnnx(ExtTestCase):
             rr = oinf.run({'X1': x1, 'X2': x2, 'X3': x3})
             self.assertEqualArray(r, rr['Y'])
 
-        code = export2numpy(onx, name="einsum")
+        code = export2numpy(onx, name="einsum", rename=True)
+        self.assertIn("BM =", code)
         code += "\n".join([
             "x1 = numpy.arange(8).reshape(2, 2, 2).astype(numpy.float32)",
             "x2 = numpy.arange(4).reshape(2, 2).astype(numpy.float32)",
@@ -989,12 +991,13 @@ class TestExportOnnx(ExtTestCase):
         if __name__ == "__main__":
             code = code.replace("make_sure(", "utils.make_sure(")
             code = code.replace("make_name(", "utils.make_name(")
-            code = code.replace("map_onnx_to_numpy_type(", "utils.map_onnx_to_numpy_type(")
+            code = code.replace("map_onnx_to_numpy_type(",
+                                "utils.map_onnx_to_numpy_type(")
             code = code.replace("numpy.", "np.")
             # print(code)
             self.assertNotIn("numpy.", code)
 
 
 if __name__ == "__main__":
-    # TestExportOnnx().test_einsum_numpy_full()
+    TestExportOnnx().test_export2numpy_kmeans()
     unittest.main()
