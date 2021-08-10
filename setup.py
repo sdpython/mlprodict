@@ -393,6 +393,6 @@ setup(
         'all': ['scikit-learn>=0.24', 'skl2onnx>=1.9',
                 'onnxruntime>=1.6.0', 'scipy' 'joblib', 'pandas',
                 'threadpoolctl', 'mlinsights>=0.3',
-                'lightgbm', 'xgboost'],
+                'lightgbm', 'xgboost', 'mlstatpy>=0.3.593'],
     },
 )
