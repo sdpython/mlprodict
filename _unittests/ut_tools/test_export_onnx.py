@@ -19,7 +19,8 @@ from mlprodict.onnx_tools.onnx_export import (
     export2onnx, export2tf2onnx, export2numpy)
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnx_tools.exports.tf2onnx_helper import make_sure, make_name
+from mlprodict.onnx_tools.exports.tf2onnx_helper import (
+    make_sure, make_name, map_onnx_to_numpy_type)
 from mlprodict.tools.code_helper import print_code
 from mlprodict.onnx_tools.exports.numpy_helper import (
     argmin_use_numpy_select_last_index,
@@ -604,7 +605,8 @@ class TestExportOnnx(ExtTestCase):
                'print': print, 'sorted': sorted,
                'collections': collections, 'inspect': inspect,
                'helper': helper, "make_sure": make_sure,
-               'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name}
+               'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
+               'map_onnx_to_numpy_type': map_onnx_to_numpy_type}
         out = StringIO()
         err = StringIO()
         if len(left) >= 14:
@@ -682,7 +684,7 @@ class TestExportOnnx(ExtTestCase):
             'collections': collections, 'inspect': inspect,
             'helper': helper, "make_sure": make_sure,
             'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
-            'argmin_use_numpy_select_last_index': argmin_use_numpy_select_last_index,
+            'argmin_use_numpy_select_last_index': argmin_use_numpy_select_last_index,            
             'make_slice': make_slice}
         out = StringIO()
         err = StringIO()
@@ -722,6 +724,7 @@ class TestExportOnnx(ExtTestCase):
 
     def test_export2numpy_kmeans(self):
         X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
+        X[:5] = - X[:5]
         tr = KMeans(n_clusters=2)
         tr.fit(X)
         onx = to_onnx(tr, X, target_opset=14)
@@ -761,7 +764,7 @@ class TestExportOnnx(ExtTestCase):
             'helper': helper, "make_sure": make_sure,
             'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
             'argmin_use_numpy_select_last_index': argmin_use_numpy_select_last_index,
-            'make_slice': make_slice}
+            'map_onnx_to_numpy_type': map_onnx_to_numpy_type, 'make_slice': make_slice}
         out = StringIO()
         err = StringIO()
         if len(left) > 14:
@@ -962,8 +965,10 @@ class TestExportOnnx(ExtTestCase):
             with open("temp_fft2s_dynamic.onnx", "wb") as f:
                 f.write(onx.SerializeToString())
             oinf = OnnxInference(onx)
+            print('--------------------- ERROR')
             res = oinf.run({'x': rnd, 'fft_length': fft_length},
                            verbose=1, fLOG=print)
+            print('--------------------- ERROR')
             raise
 
         self.assert_almost_equal(
@@ -981,6 +986,13 @@ class TestExportOnnx(ExtTestCase):
             f.write(onx.SerializeToString())
         code = export2tf2onnx(onx, name="FFT2D")
         self.assertIn("make_sure", code)
+        if __name__ == "__main__":
+            code = code.replace("make_sure(", "utils.make_sure(")
+            code = code.replace("make_name(", "utils.make_name(")
+            code = code.replace("map_onnx_to_numpy_type(", "utils.map_onnx_to_numpy_type(")
+            code = code.replace("numpy.", "np.")
+            # print(code)
+            self.assertNotIn("numpy.", code)
 
 
 if __name__ == "__main__":

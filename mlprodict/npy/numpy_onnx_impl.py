@@ -31,7 +31,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxFloor,
     OnnxIdentity, OnnxIsNaN,
     OnnxLog,
-    OnnxMatMul,
+    OnnxMatMul, OnnxMul,
     OnnxPad,
     OnnxReciprocal,
     OnnxReduceMax,
@@ -40,12 +40,14 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceProd,
     OnnxReduceSum,
     OnnxRelu,
+    OnnxReshape,
     OnnxRound,
     OnnxSigmoid,
     OnnxSign,
     OnnxSin, OnnxSinh,
     OnnxSqrt,
     OnnxSqueeze,
+    OnnxSub,
     OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose,
     OnnxUnsqueeze,
     OnnxWhere)
@@ -87,21 +89,56 @@ def amin(x, axis=None, keepdims=0):
 
 def arange(start, stop, step=1):
     "See :epkg:`numpy:arange`, *start*, *stop* must be specified."
-    if step != 1:
-        raise NotImplementedError(  # pragma: no cover
-            "The function is not implemented for step != 1 (step=%r)." % step)
-    if isinstance(start, (int, numpy.int64)):
+    if not isinstance(step, (int, numpy.int64)):
+        raise TypeError(  # pragma: no cover
+            "step must be an integer not %r." % type(step))
+    if isinstance(start, (int, numpy.int64, numpy.int32)):
         start = numpy.array([start], dtype=numpy.int64)
-    if isinstance(stop, (int, numpy.int64)):
+        zero = start == 0
+    else:
+        zero = False
+    if isinstance(stop, (int, numpy.int64, numpy.int32)):
         stop = numpy.array([stop], dtype=numpy.int64)
     value = make_tensor(
         "value", onnx_proto.TensorProto.INT64, (1, ), [step])  # pylint: disable=E1101
-    _cst = OnnxVar(stop - start, op=OnnxConstantOfShape, value=value)
-    cs = OnnxVar(_cst,
-                 numpy.array([0], dtype=numpy.int64),
+
+    if isinstance(step, (int, numpy.int64, numpy.int32)) and step == 1:
+        if zero:
+            shape = stop
+        else:
+            shape = stop - start
+        if isinstance(shape, OnnxVar):
+            shape = OnnxVar(
+                OnnxVar(shape, numpy.array([0], dtype=numpy.int64), op=OnnxUnsqueeze),
+                numpy.array([-1], dtype=numpy.int64),
+                op=OnnxReshape)
+        _cst = OnnxVar(shape, op=OnnxConstantOfShape, value=value)
+        cs = OnnxVar(_cst, numpy.array([0], dtype=numpy.int64),
+                     op=OnnxCumSum)
+        diff = start - numpy.array([step], dtype=numpy.int64)
+        return OnnxVar(cs, diff, op=OnnxAdd)
+
+    if isinstance(step, (int, numpy.int64, numpy.int32)):
+        step = numpy.array([step], dtype=numpy.int64)
+        if zero:
+            shape = stop // step
+        else:
+            shape = (stop - start) // step
+        if isinstance(shape, OnnxVar):
+            shape = OnnxVar(
+                OnnxVar(shape, numpy.array([0], dtype=numpy.int64), op=OnnxUnsqueeze),
+                numpy.array([-1], dtype=numpy.int64),
+                op=OnnxReshape)
+        _cst = OnnxVar(shape, op=OnnxConstantOfShape, value=value)
+    else:
+        # csm = OnnxVar(_cst, step, op=OnnxMul)
+        raise NotImplementedError(  # pragma: no cover
+            "Not yet implemented.")
+
+    cs = OnnxVar(_cst, numpy.array([0], dtype=numpy.int64),
                  op=OnnxCumSum)
-    diff = start - numpy.array([step], dtype=numpy.int64)
-    return OnnxVar(cs, diff, op=OnnxAdd)
+    add = OnnxVar(cs, start, op=OnnxAdd)
+    return OnnxVar(add, step, op=OnnxSub)
 
 
 def argmax(x, axis=0, keepdims=0):

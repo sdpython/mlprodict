@@ -124,7 +124,7 @@ _tf2onnx_templates = dedent("""
         make_tensor_value_info)
     # from utils import make_name, make_sure
     from mlprodict.onnx_tools.exports.tf2onnx_helper import (
-        make_name, make_sure)
+        make_name, make_sure, map_onnx_to_numpy_type)
     # from tf2onnx.handler import tf_op
     from mlprodict.onnx_tools.exports.tf2onnx_helper import tf_op
     from mlprodict.onnx_tools.exports.tf2onnx_helper import Tf2OnnxConvert
@@ -152,7 +152,8 @@ _tf2onnx_templates = dedent("""
             oldnode = node
             input_name = node.input[0]
             onnx_dtype = ctx.get_dtype(input_name)
-            make_sure(onnx_dtype in Convert{{ name }}Op.supported_dtypes, "Unsupported input type.")
+            np_dtype = map_onnx_to_numpy_type(onnx_dtype)
+            make_sure(np_dtype in Convert{{ name }}Op.supported_dtypes, "Unsupported input type.")
             shape = ctx.get_shape(input_name)
             varx = {x: x for x in node.input}
 
@@ -160,12 +161,15 @@ _tf2onnx_templates = dedent("""
             if getattr(ctx, 'verbose', False):
                 print('[initializers] %r' % cls)
             {% for name, value in initializers: %}
-            {% if len(value.shape) == 0: %}
+            {% if len(value.shape) == 0: -%}
             value = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
-            {% else %}
+            {%- else -%}            
+            {% if value.size > 5: -%}
             list_value = {{ value.ravel().tolist() }}
             value = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
-            {% endif %}
+            {%- else -%}
+            value = numpy.array({{ value.ravel().tolist() }}, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+            {%- endif -%}{%- endif %}
             r_{{ name }} = ctx.make_const(name=make_name('init_{{ name }}'), np_val=value)
             varx['{{ name }}'] = r_{{ name }}.name
             {% endfor %}
@@ -174,14 +178,15 @@ _tf2onnx_templates = dedent("""
             if getattr(ctx, 'verbose', False):
                 print('[nodes] %r' % cls)
             {% for node in nodes: %}
+            {% if len(node['attributes']) > 0 %}
             attr = dict(
                 {%- for name, value in node['attributes']: -%}
                 {{ name }}={{ value }},
-                {%- endfor -%})
+                {%- endfor -%}){% endif %}
             inputs = [{% for name in node['inputs']: -%}varx['{{ name }}'], {%- endfor %}]
             node = ctx.make_node(
-                '{{ node['op_type'] }}', inputs=inputs, attr=attr,{% if node['domain']: -%} domain='{{ node['domain'] }}', {% endif %}
-                name=make_name('{{ node['name'] }}'))
+                '{{ node['op_type'] }}', inputs=inputs, {% if len(node['attributes']) > 0 %}attr=attr,{%endif %}
+                {% if node['domain']: %}domain='{{ node['domain'] }}', {% endif %}name=make_name('{{ node['name'] }}'))
             {% for i, name in enumerate(node['outputs']): -%}
             varx['{{ name }}'] = node.output[{{ i }}]
             {%- endfor %}

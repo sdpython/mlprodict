@@ -31,6 +31,11 @@ def make_sure(cond, msg, *args):
         raise RuntimeError(msg % tuple(args))
 
 
+def map_onnx_to_numpy_type(onnx_dtype):
+    "Converts ONNX type into numpy type."
+    return guess_dtype(onnx_dtype)
+
+
 class tf_op:
     """
     Decorator to register any new converter.
@@ -215,7 +220,7 @@ class Tf2OnnxConvert:
         if input_name not in names:
             return None  # pragma: no cover
         ind = names.index(input_name)
-        return guess_dtype(inputs[ind].type.tensor_type.elem_type)
+        return inputs[ind].type.tensor_type.elem_type
 
     def replace_all_inputs(self, old_name, new_name):
         """

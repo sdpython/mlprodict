@@ -27,7 +27,12 @@ class ConstantOfShape(OpRun):
                 "cst must be a real not {}".format(type(self.cst)))
 
     def _run(self, data):  # pylint: disable=W0221
-        res = numpy.full(tuple(data), self.cst)
+        try:
+            res = numpy.full(tuple(data), self.cst)
+        except TypeError as e:
+            raise RuntimeError(  # pragma: no cover
+                "Unable to create a constant of shape %r with value %r "
+                "(raw value=%r)." % (data, self.cst, self.value)) from e
         return (res, )
 
     def _infer_shapes(self, data):  # pylint: disable=W0221
