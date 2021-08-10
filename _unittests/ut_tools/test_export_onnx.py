@@ -547,7 +547,8 @@ class TestExportOnnx(ExtTestCase):
         for rt in ['python', 'onnxruntime1']:
             for name in names:
                 with self.subTest(name=name, rt=rt):
-                    oinf0 = OnnxInference(os.path.join(folder, name), runtime=rt)
+                    oinf0 = OnnxInference(
+                        os.path.join(folder, name), runtime=rt)
 
                     x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
 
@@ -562,7 +563,7 @@ class TestExportOnnx(ExtTestCase):
                     rr = oinf.run({'x': x})
                     if rr['Sh_shape0'].shape != (3, ):
                         self.assertEqual(rr['Sh_shape0'].shape, (3, ))
-                        
+
                     oinf = OnnxInference(model, runtime=rt)
                     if rt == 'python':
                         y = oinf0.run({'x': x})
@@ -629,7 +630,8 @@ class TestExportOnnx(ExtTestCase):
         for rt in ['python', 'onnxruntime1']:
             for name in names:
                 with self.subTest(name=name, rt=rt):
-                    oinf0 = OnnxInference(os.path.join(folder, name), runtime=rt)
+                    oinf0 = OnnxInference(
+                        os.path.join(folder, name), runtime=rt)
 
                     x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
                     y = oinf0.run({'x': x})
@@ -851,7 +853,7 @@ class TestExportOnnx(ExtTestCase):
             new_shape = npnx.concat(npnx.expand_dims(N, axis=0),
                                     numpy.array([1], dtype=numpy.int64))
             k = n.reshape(new_shape).astype(numpy.float32)
-            kn = (k * n / 
+            kn = (k * n /
                   fft_length.astype(numpy.float32) *
                   npnx.cst(-2 * numpy.pi, dtype=numpy.float32))
             mcos = npnx.unsqueeze(npnx.cos(kn), axes=0)
@@ -878,7 +880,7 @@ class TestExportOnnx(ExtTestCase):
             self.assert_almost_equal(new_a, b, error)
             return
         if b.dtype in (numpy.complex64, numpy.complex128):
-            self.assert_almost_equal(b, a, error)
+            self.assert_almost_equal(b, a, error)  # pylint: disable=W1114
             return
         if a.shape != b.shape:
             raise AssertionError("Shape mismatch %r != %r." %
@@ -960,10 +962,12 @@ class TestExportOnnx(ExtTestCase):
             with open("temp_fft2s_dynamic.onnx", "wb") as f:
                 f.write(onx.SerializeToString())
             oinf = OnnxInference(onx)
-            res = oinf.run({'x': rnd, 'fft_length': fft_length}, verbose=1, fLOG=print)
+            res = oinf.run({'x': rnd, 'fft_length': fft_length},
+                           verbose=1, fLOG=print)
             raise
-            
-        self.assert_almost_equal(fft2d_cus[..., :fft2d_onx.shape[-1]], fft2d_onx)
+
+        self.assert_almost_equal(
+            fft2d_cus[..., :fft2d_onx.shape[-1]], fft2d_onx)
 
         key = list(onnx_rfft_2d_any_test.signed_compiled)[0]
         onx = onnx_rfft_2d_any_test.signed_compiled[key].compiled.onnx_

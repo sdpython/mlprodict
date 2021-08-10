@@ -71,7 +71,7 @@ class OnnxInference:
         be cut to have these new_outputs as the final outputs
     :param new_opset: overwrite the main opset and replaces
         by this new one
- 
+
     Among the possible runtime_options, there are:
     * *enable_profiling*: enables profiling for :epkg:`onnxruntime`
     * *session_options*: an instance of *SessionOptions* from
@@ -109,7 +109,7 @@ class OnnxInference:
                 self.obj, outputs=new_outputs, infer_shapes=True)
         if new_opset is not None:
             self.obj = overwrite_opset(self.obj, new_opset)
-            
+
         self.runtime = runtime
         self.skip_run = skip_run
         self.input_inplace = input_inplace

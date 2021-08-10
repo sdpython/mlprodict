@@ -189,7 +189,7 @@ def concat(*x, axis=0):
     """
     if len(x) <= 1:
         raise RuntimeError(  # pragma: no cover
-                "N=%d<=1 elements to concatenate." % len(x))
+            "N=%d<=1 elements to concatenate." % len(x))
     return OnnxVar(*x, op=OnnxConcat, axis=axis)
 
 
@@ -282,7 +282,7 @@ def hstack(*x):
     "See :epkg:`numpy:hstack`."
     if len(x) <= 1:
         raise RuntimeError(  # pragma: no cover
-                "N=%d<=1 elements to concatenate." % len(x))
+            "N=%d<=1 elements to concatenate." % len(x))
     return OnnxVar(*x, op=OnnxConcat, axis=-1)
 
 
@@ -421,7 +421,7 @@ def vstack(*x):
     "See :epkg:`numpy:vstack`."
     if len(x) <= 1:
         raise RuntimeError(  # pragma: no cover
-                "N=%d<=1 elements to concatenate." % len(x))
+            "N=%d<=1 elements to concatenate." % len(x))
     return OnnxVar(*x, op=OnnxConcat, axis=0)
 
 

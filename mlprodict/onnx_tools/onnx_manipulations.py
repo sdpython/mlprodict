@@ -292,4 +292,3 @@ def overwrite_opset(model, new_opset):
             op_set.domain = oimp.domain
             op_set.version = oimp.version
     return onnx_model
-    

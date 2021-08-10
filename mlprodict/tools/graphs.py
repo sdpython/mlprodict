@@ -399,21 +399,23 @@ def onnx2bigraph(model_onnx, recursive=False):
     return BiGraph(v0, v1, edges)
 
 
-def onnx_graph_distance(onx1, onx2):
+def onnx_graph_distance(onx1, onx2, verbose=0, fLOG=print):
     """
     Computes a distance between two ONNX graphs. They must not
     be too big otherwise this function might take for ever.
     The function relies on package :epkg:`mlstatpy`.
-    
+
 
     :param onx1: first graph (ONNX graph or model file name)
     :param onx2: second graph (ONNX graph or model file name)
+    :param verbose: verbosity
+    :param fLOG: logging function
     :return: distance and differences
 
     .. versionadded:: 0.7
     """
     from mlstatpy.graph.graph_distance import GraphDistance
-    
+
     if isinstance(onx1, str):
         onx1 = onnx.load(onx1)
     if isinstance(onx2, str):
@@ -440,12 +442,13 @@ def onnx_graph_distance(onx1, onx2):
             labels[name] = node.op_type
         for init in onx.graph.initializer:
             labels[init.name] = make_hash(init)
-    
+
         g = GraphDistance(edges, vertex_label=labels)
         return g
-        
+
     g1 = build_graph(onx1)
     g2 = build_graph(onx2)
-    
-    dist, gdist = g1.distance_matching_graphs_paths(g2)
+
+    dist, gdist = g1.distance_matching_graphs_paths(
+        g2, verbose=verbose, fLOG=fLOG, use_min=False)
     return dist, gdist

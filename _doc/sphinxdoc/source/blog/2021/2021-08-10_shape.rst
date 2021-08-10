@@ -18,7 +18,6 @@
         from onnx import helper, TensorProto
         from onnxruntime import InferenceSession
 
-
         def model(shape):
             X = helper.make_tensor_value_info('X', TensorProto.FLOAT, shape)
             Z = helper.make_tensor_value_info('Z', TensorProto.INT64, shape)
