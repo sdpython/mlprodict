@@ -98,6 +98,7 @@ class _NDArrayAlias:
         this is incompatible with parameter *n_optional*.
 
     *dtypes*, *dtypes_out* by default are a tuple of tuple:
+
     * first dimension: type of every input
     * second dimension: list of types for one input
 

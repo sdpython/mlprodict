@@ -93,6 +93,7 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple",
     :return: instance of @see cl GraphEinsumSubOp
 
     About *strategy*:
+
     * `'simple'`: align all dimensions in the alphabetical order,
       some generic matrix multiplication remains implemented with
       :epkg:`numpy:einsum` but only with two matrices aligned on

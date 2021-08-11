@@ -189,7 +189,8 @@ class BiGraph:
     def __iter__(self):
         """
         Iterates over all vertices and edges.
-        It produces 3-uples,
+        It produces 3-uples:
+
         * 0, name, A: vertices in *v0*
         * 1, name, A: vertices in *v1*
         * -1, name, A: edges

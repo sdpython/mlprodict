@@ -373,6 +373,7 @@ class OnnxVar:
     def __getitem__(self, index):
         """
         Deals with multiple scenarios.
+
         * *index* is an integer or a slice, a tuple of integers and slices,
           example: `[0, 1]`, `[:5, :6]`, `[::2]` (**scenario 1**)
         * *index* is an *ONNX* object (more precisely an instance of
@@ -495,6 +496,7 @@ class OnnxVar:
     def __setitem__(self, index, value):
         """
         Only supports vectors (1D tensor).
+
         * *index* is an integer or a slice, a tuple of integers and slices,
           example: `[0]`, `[:5]`, `[::2]` (**scenario 1**)
         * *index* is an *ONNX* object (more precisely an instance of

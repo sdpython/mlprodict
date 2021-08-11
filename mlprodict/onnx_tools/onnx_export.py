@@ -171,8 +171,7 @@ _tf2onnx_templates = dedent("""
             value = numpy.array({{ value.ravel().tolist() }},
                 dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
             {%- endif -%}{%- endif %}
-            r_{{ name }} = ctx.make_const(name=make_name('init_{{ name }}'), np_val=value)
-            varx['{{ name }}'] = r_{{ name }}.name
+            varx['{{ name }}'] =ctx.make_const(name=make_name('init_{{ name }}'), np_val=value).name
             {% endfor %}
 
             # nodes
