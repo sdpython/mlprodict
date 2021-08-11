@@ -956,52 +956,55 @@ class TestExportOnnx(ExtTestCase):
                 numpy.array([2], dtype=numpy.int64), x.shape[:-2], f2.shape[-2:])
             return f2.reshape(new_shape)
 
-        shape = (3, 1, 4)
-        fft_length = numpy.array([1, 4], dtype=numpy.int64)
-        rnd = numpy.random.randn(*list(shape)).astype(numpy.float32)
-        fft2d_cus = numpy.fft.fft2(rnd, fft_length)
-        try:
-            fft2d_onx = onnx_rfft_2d_any_test(rnd, fft_length)
-        except RuntimeError:
-            key = list(onnx_rfft_2d_any_test.signed_compiled)[0]
-            onx = onnx_rfft_2d_any_test.signed_compiled[key].compiled.onnx_
-            with open("temp_fft2s_dynamic.onnx", "wb") as f:
-                f.write(onx.SerializeToString())
-            oinf = OnnxInference(onx)
-            print('--------------------- ERROR')
-            res = oinf.run({'x': rnd, 'fft_length': fft_length},
-                           verbose=1, fLOG=print)
-            print('--------------------- ERROR')
-            raise
+        for shape, fft_length in [((3, 1, 4), (1, 4)),
+                                  ((5, 7), (5, 7))]:
+            with self.subTest(shape=shape, fft_length=fft_length):
+                fft_length = numpy.array(fft_length, dtype=numpy.int64)
+                rnd = numpy.random.randn(*list(shape)).astype(numpy.float32)
+                fft2d_cus = numpy.fft.fft2(rnd, fft_length)
+                try:
+                    fft2d_onx = onnx_rfft_2d_any_test(rnd, fft_length)
+                except RuntimeError:
+                    key = list(onnx_rfft_2d_any_test.signed_compiled)[0]
+                    onx = onnx_rfft_2d_any_test.signed_compiled[key].compiled.onnx_
+                    with open("temp_fft2s_dynamic.onnx", "wb") as f:
+                        f.write(onx.SerializeToString())
+                    oinf = OnnxInference(onx)
+                    print('--------------------- ERROR')
+                    res = oinf.run({'x': rnd, 'fft_length': fft_length},
+                                   verbose=1, fLOG=print)
+                    print('--------------------- ERROR')
+                    raise
 
-        self.assert_almost_equal(
-            fft2d_cus[..., :fft2d_onx.shape[-1]], fft2d_onx)
+                self.assert_almost_equal(
+                    fft2d_cus[..., :fft2d_onx.shape[-1]], fft2d_onx, error=1e-4)
 
-        key = list(onnx_rfft_2d_any_test.signed_compiled)[0]
-        onx = onnx_rfft_2d_any_test.signed_compiled[key].compiled.onnx_
-        for rt in ['python', 'onnxruntime1']:
-            with self.subTest(rt=rt):
-                oinf = OnnxInference(onx, runtime=rt)
-                res = oinf.run({'x': rnd, 'fft_length': fft_length})
-                self.assertEqualArray(fft2d_onx, res['y'], decimal=6)
+                key = list(onnx_rfft_2d_any_test.signed_compiled)[0]
+                self.assertEqual(len(list(onnx_rfft_2d_any_test.signed_compiled)), 1)
+                onx = onnx_rfft_2d_any_test.signed_compiled[key].compiled.onnx_
+                for rt in ['python', 'onnxruntime1']:
+                    with self.subTest(rt=rt):
+                        oinf = OnnxInference(onx, runtime=rt)
+                        res = oinf.run({'x': rnd, 'fft_length': fft_length})
+                        self.assertEqualArray(fft2d_onx, res['y'], decimal=6)
 
-        with open("temp_fft2s_dynamic.onnx", "wb") as f:
-            f.write(onx.SerializeToString())
-        code = export2tf2onnx(
-            onx, name="FFT2D", autopep_options={'max_line_length': 120})
-        self.assertIn("make_sure", code)
-        if __name__ == "__main__":
-            code = code.replace("make_sure(", "utils.make_sure(")
-            code = code.replace("make_name(", "utils.make_name(")
-            code = code.replace("map_onnx_to_numpy_type(",
-                                "utils.map_onnx_to_numpy_type(")
-            code = code.replace("numpy.", "np.")
-            code = code.replace("TensorProto.", "onnx_pb.TensorProto.")
-            code = autopep8.fix_code(code, options={'max_line_length': 120})
-            self.assertNotIn("numpy.", code)
-            print(code)
+                with open("temp_fft2s_dynamic.onnx", "wb") as f:
+                    f.write(onx.SerializeToString())
+                code = export2tf2onnx(
+                    onx, name="FFT2D", autopep_options={'max_line_length': 120})
+                self.assertIn("make_sure", code)
+                if __name__ == "__main__":
+                    code = code.replace("make_sure(", "utils.make_sure(")
+                    code = code.replace("make_name(", "utils.make_name(")
+                    code = code.replace("map_onnx_to_numpy_type(",
+                                        "utils.map_onnx_to_numpy_type(")
+                    code = code.replace("numpy.", "np.")
+                    code = code.replace("TensorProto.", "onnx_pb.TensorProto.")
+                    code = autopep8.fix_code(code, options={'max_line_length': 120})
+                    self.assertNotIn("numpy.", code)
+                    #print(code)
 
 
 if __name__ == "__main__":
-    TestExportOnnx().test_export2numpy_kmeans()
+    # TestExportOnnx().test_einsum_numpy_full()
     unittest.main()
