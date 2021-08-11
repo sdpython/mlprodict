@@ -11,12 +11,13 @@ from jinja2 import Template
 import autopep8
 import onnx
 from onnx import numpy_helper
-from .onnx2py_helper import _var_as_dict
+from .onnx2py_helper import (
+    _var_as_dict, guess_proto_dtype, guess_proto_dtype_name)
 
 
 _onnx_templates = dedent("""
     import numpy
-    from onnx import numpy_helper
+    from onnx import numpy_helper, TensorProto
     from onnx.helper import (
         make_model, make_node, set_model_props, make_tensor, make_graph,
         make_tensor_value_info)
@@ -118,7 +119,7 @@ _tf2onnx_templates = dedent("""
     import inspect
     import collections
     import numpy
-    from onnx import AttributeProto
+    from onnx import AttributeProto, TensorProto
     from onnx.helper import (
         make_model, make_node, set_model_props, make_tensor, make_graph,
         make_tensor_value_info)
@@ -168,10 +169,10 @@ _tf2onnx_templates = dedent("""
             list_value = {{ value.ravel().tolist() }}
             value = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
             {%- else -%}
-            value = numpy.array({{ value.ravel().tolist() }},
-                dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+            value = numpy.array({{ value.ravel().tolist() }}, dtype=numpy.{{ value.dtype }}){%-
+                if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
             {%- endif -%}{%- endif %}
-            varx['{{ name }}'] =ctx.make_const(name=make_name('init_{{ name }}'), np_val=value).name
+            varx['{{ name }}'] = ctx.make_const(name=make_name('init_{{ name }}'), np_val=value).name
             {% endfor %}
 
             # nodes
@@ -182,9 +183,9 @@ _tf2onnx_templates = dedent("""
             attr = dict({{ node['attributes_str'] }})
             {%- endif %}
             inputs = [{% for name in node['inputs']: -%}varx['{{ name }}'], {%- endfor %}]
-            node = ctx.make_node(
-                '{{ node['op_type'] }}', inputs=inputs, {% if len(node['attributes']) > 0 %}attr=attr,{%endif %}
-                {% if node['domain']: %}domain='{{ node['domain'] }}', {% endif %}name=make_name('{{ node['name'] }}'))
+            node = ctx.make_node('{{ node['op_type'] }}', inputs=inputs,{%-
+                if len(node['attributes']) > 0 %} attr=attr,{%endif %}{%-
+                if node['domain']: %} domain='{{ node['domain'] }}',{% endif %} name=make_name('{{ node['name'] }}'))
             {% for i, name in enumerate(node['outputs']): -%}
             varx['{{ name }}'] = node.output[{{ i }}]
             {%- endfor %}
@@ -499,7 +500,8 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
 
 
 def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
-                    rename=False):
+                    rename=False, use_onnx_tensor=False,
+                    autopep_options=None):
     """
     Exports an ONNX model to the onnx syntax.
 
@@ -510,6 +512,10 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
     :param verbose: insert prints
     :param name: to overwrite onnx name
     :param rename: rename the names to get shorter names
+    :param use_onnx_tensor: when an attribute is an array
+        and its name is `'value'`, it converts that array into an
+        ONNX tensor to avoid type mismatch, (operator *ConstantOfShape*, ...)
+    :param autopep_options: :epkg:`autopep8` options
     :return: python code
     """
     def number2name(n):
@@ -603,13 +609,28 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
         for at in node.attribute:
             temp = _var_as_dict(at)
             value = temp['value']
+            if use_onnx_tensor:
+                if node.op_type == 'Cast' and at.name == 'to':
+                    attributes.append(
+                        (at.name, guess_proto_dtype_name(int(value))))
+                    continue
             if isinstance(value, str):
                 attributes.append((at.name, "%r" % value))
             else:
                 if isinstance(value, numpy.ndarray):
-                    attributes.append((at.name, repr(value.tolist())))
+                    if use_onnx_tensor and at.name == 'value':
+                        onnx_dtype = guess_proto_dtype_name(
+                            guess_proto_dtype(value.dtype))
+                        value = (
+                            'helper.make_tensor("value", %s, dims=%r, vals=%r)'
+                            '' % (onnx_dtype, list(value.shape),
+                                  value.tolist()))
+                        attributes.append((at.name, value))
+                    else:
+                        attributes.append((at.name, repr(value.tolist())))
                 else:
                     attributes.append((at.name, repr(value)))
+
         attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
         d = dict(name=node.name, op_type=node.op_type,
                  domain=node.domain,
@@ -655,13 +676,15 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
                 **kwargs),
             **context)
 
+    final += "\n"
     if not verbose:
         rows = final.split("\n")
         final = "\n".join(_ for _ in rows if not _.endswith("#  verbose"))
-    return autopep8.fix_code(final)
+    return autopep8.fix_code(final, options=autopep_options)
 
 
-def export2onnx(model_onnx, opset=None, verbose=True, name=None, rename=False):
+def export2onnx(model_onnx, opset=None, verbose=True, name=None, rename=False,
+                autopep_options=None):
     """
     Exports an ONNX model to the :epkg:`onnx` syntax.
 
@@ -671,6 +694,7 @@ def export2onnx(model_onnx, opset=None, verbose=True, name=None, rename=False):
     :param verbose: inserts prints
     :param name: to overwrite onnx name
     :param rename: rename the names to get shorter names
+    :param autopep_options: :epkg:`autopep8` options
     :return: python code
 
     The following example shows what a python code creating a graph
@@ -698,12 +722,13 @@ def export2onnx(model_onnx, opset=None, verbose=True, name=None, rename=False):
 
     code = export_template(model_onnx, templates=_onnx_templates,
                            opset=opset, verbose=verbose, name=name,
-                           rename=rename)
+                           rename=rename, use_onnx_tensor=True,
+                           autopep_options=autopep_options)
     return code
 
 
 def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None,
-                   rename=False):
+                   rename=False, autopep_options=None):
     """
     Exports an ONNX model to the :epkg:`tensorflow-onnx` syntax.
 
@@ -713,6 +738,7 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None,
     :param verbose: inserts prints
     :param name: to overwrite onnx name
     :param rename: rename the names to get shorter names
+    :param autopep_options: :epkg:`autopep8` options
     :return: python code
 
     .. runpython::
@@ -737,13 +763,14 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None,
 
     code = export_template(model_onnx, templates=_tf2onnx_templates,
                            opset=opset, verbose=verbose, name=name,
-                           rename=rename)
+                           rename=rename, use_onnx_tensor=True,
+                           autopep_options=autopep_options)
     code = code.replace("], ]", "]]")
     return code
 
 
 def export2numpy(model_onnx, opset=None, verbose=True, name=None,
-                 rename=False):
+                 rename=False, autopep_options=None):
     """
     Exports an ONNX model to the :epkg:`numpy` syntax.
     The exports does not work with all operators.
@@ -754,6 +781,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
     :param verbose: inserts prints
     :param name: to overwrite onnx name
     :param rename: rename the names to get shorter names
+    :param autopep_options: :epkg:`autopep8` options
     :return: python code
 
     .. runpython::
@@ -798,7 +826,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
 
     code = export_template(model_onnx, templates=_numpy_templates,
                            opset=opset, verbose=verbose, name=name,
-                           rename=rename)
+                           rename=rename, autopep_options=autopep_options)
     for i in range(0, 6):
         code = code.replace("axis=tuple([%d])" % i, "axis=%d" % i)
         code = code.replace("tuple([%d])" % i, "(%d, )" % i)

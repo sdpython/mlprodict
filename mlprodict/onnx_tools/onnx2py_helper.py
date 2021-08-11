@@ -487,6 +487,35 @@ def guess_proto_dtype(dtype):
         "Unable to guess type for dtype={}.".format(dtype))  # pragma: no cover
 
 
+def guess_proto_dtype_name(onnx_dtype):
+    """
+    Returns a string equivalent to `onnx_dtype`.
+
+    :param dtype: onnx dtype
+    :return: proto type
+    """
+    if onnx_dtype == TensorProto.FLOAT:
+        return "TensorProto.FLOAT"
+    if onnx_dtype == TensorProto.DOUBLE:
+        return "TensorProto.DOUBLE"
+    if onnx_dtype == TensorProto.INT64:
+        return "TensorProto.INT64"
+    if onnx_dtype == TensorProto.INT32:
+        return "TensorProto.INT32"
+    if onnx_dtype == TensorProto.INT16:
+        return "TensorProto.INT16"
+    if onnx_dtype == TensorProto.UINT8:
+        return "TensorProto.UINT8"
+    if onnx_dtype == TensorProto.FLOAT16:
+        return "TensorProto.FLOAT16"
+    if onnx_dtype == TensorProto.BOOL:
+        return "TensorProto.BOOL"
+    if onnx_dtype == TensorProto.STRING:
+        return "TensorProto.STRING"
+    raise RuntimeError(
+        "Unable to guess type for dtype={}.".format(dtype))  # pragma: no cover
+
+
 def guess_dtype(proto_type):
     """
     Converts a proto type into a :epkg:`numpy` type.

@@ -987,7 +987,8 @@ class TestExportOnnx(ExtTestCase):
 
         with open("temp_fft2s_dynamic.onnx", "wb") as f:
             f.write(onx.SerializeToString())
-        code = export2tf2onnx(onx, name="FFT2D")
+        code = export2tf2onnx(
+            onx, name="FFT2D", autopep_options={'max_line_length': 120})
         self.assertIn("make_sure", code)
         if __name__ == "__main__":
             code = code.replace("make_sure(", "utils.make_sure(")
@@ -995,7 +996,8 @@ class TestExportOnnx(ExtTestCase):
             code = code.replace("map_onnx_to_numpy_type(",
                                 "utils.map_onnx_to_numpy_type(")
             code = code.replace("numpy.", "np.")
-            code =  autopep8.fix_code(code)
+            code = code.replace("TensorProto.", "onnx_pb.TensorProto.")
+            code = autopep8.fix_code(code, options={'max_line_length': 120})
             self.assertNotIn("numpy.", code)
             print(code)
 
