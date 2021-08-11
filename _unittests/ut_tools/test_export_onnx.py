@@ -14,6 +14,7 @@ from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
     make_tensor_value_info)
 from sklearn.cluster import KMeans
+import autopep8
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnx_tools.onnx_export import (
     export2onnx, export2tf2onnx, export2numpy)
@@ -994,8 +995,9 @@ class TestExportOnnx(ExtTestCase):
             code = code.replace("map_onnx_to_numpy_type(",
                                 "utils.map_onnx_to_numpy_type(")
             code = code.replace("numpy.", "np.")
-            # print(code)
+            code =  autopep8.fix_code(code)
             self.assertNotIn("numpy.", code)
+            print(code)
 
 
 if __name__ == "__main__":

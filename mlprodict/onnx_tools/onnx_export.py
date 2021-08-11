@@ -178,11 +178,9 @@ _tf2onnx_templates = dedent("""
             if getattr(ctx, 'verbose', False):
                 print('[nodes] %r' % cls)
             {% for node in nodes: %}
-            {% if len(node['attributes']) > 0 %}
-            attr = dict(
-                {%- for name, value in node['attributes']: -%}
-                {{ name }}={{ value }},
-                {%- endfor -%}){% endif %}
+            {% if len(node['attributes']) > 0 -%}
+            attr = dict({{ node['attributes_str'] }})
+            {%- endif %}
             inputs = [{% for name in node['inputs']: -%}varx['{{ name }}'], {%- endfor %}]
             node = ctx.make_node(
                 '{{ node['op_type'] }}', inputs=inputs, {% if len(node['attributes']) > 0 %}attr=attr,{%endif %}
@@ -295,7 +293,8 @@ _numpy_templates = dedent("""
 
 def make_numpy_code(opset, name=None, op_type=None, domain='',
                     inputs=None, outputs=None, attributes=None,
-                    used=None, context=None, mark_inits=None):
+                    used=None, context=None, mark_inits=None,
+                    **unused):
     """
     Converts an ONNX operators into :epkg:`numpy` code.
 
@@ -611,11 +610,12 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
                     attributes.append((at.name, repr(value.tolist())))
                 else:
                     attributes.append((at.name, repr(value)))
+        attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
         d = dict(name=node.name, op_type=node.op_type,
                  domain=node.domain,
                  inputs=[rename_name(n) for n in node.input],
                  outputs=[rename_name(n) for n in node.output],
-                 attributes=attributes)
+                 attributes=attributes, attributes_str=attributes_str)
         nodes.append(d)
     context['nodes'] = nodes
 
@@ -735,9 +735,11 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None,
     if isinstance(model_onnx, str):
         model_onnx = onnx.load(model_onnx)
 
-    return export_template(model_onnx, templates=_tf2onnx_templates,
+    code = export_template(model_onnx, templates=_tf2onnx_templates,
                            opset=opset, verbose=verbose, name=name,
                            rename=rename)
+    code = code.replace("], ]", "]]")
+    return code
 
 
 def export2numpy(model_onnx, opset=None, verbose=True, name=None,

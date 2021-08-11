@@ -156,7 +156,7 @@ class TestOptimOnnxUnused(ExtTestCase):
         nodes1 = list(enumerate_model_node_outputs(model_def))
         nodes2 = list(enumerate_model_node_outputs(model_def, order=True))
         self.assertEqual(list(sorted(nodes1)), list(sorted(nodes2)))
-        expected = ['Ad_Addcst2', 'Ad_C0', 'inter', 'Ad_C01', 'Mu_C0', 'final']
+        expected = ['Ad_Addcst2', 'Ad_C0', 'inter', 'Ad_C02', 'Mu_C0', 'final']
         self.assertEqual(nodes2, expected)
 
 
