@@ -827,7 +827,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
     code = export_template(model_onnx, templates=_numpy_templates,
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, autopep_options=autopep_options)
-    for i in range(0, 6):
+    for i in range(-6, 6):
         code = code.replace("axis=tuple([%d])" % i, "axis=%d" % i)
         code = code.replace("tuple([%d])" % i, "(%d, )" % i)
     return code

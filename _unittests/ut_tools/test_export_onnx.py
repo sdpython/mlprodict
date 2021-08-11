@@ -16,6 +16,9 @@ from onnx.helper import (
 from sklearn.cluster import KMeans
 import autopep8
 from pyquickhelper.pycode import ExtTestCase
+from skl2onnx.common.data_types import Int64TensorType
+from skl2onnx.algebra.onnx_ops import (
+    OnnxGather, OnnxIdentity, OnnxReshape, OnnxFlatten)
 from mlprodict.onnx_tools.onnx_export import (
     export2onnx, export2tf2onnx, export2numpy)
 from mlprodict.testing.verify_code import verify_code
@@ -993,7 +996,7 @@ class TestExportOnnx(ExtTestCase):
                 code = export2tf2onnx(
                     onx, name="FFT2D", autopep_options={'max_line_length': 120})
                 self.assertIn("make_sure", code)
-                if __name__ == "__main__":
+                if __name__ == "__main__" and shape == (3, 1, 4):
                     code = code.replace("make_sure(", "utils.make_sure(")
                     code = code.replace("make_name(", "utils.make_name(")
                     code = code.replace("map_onnx_to_numpy_type(",
@@ -1002,9 +1005,95 @@ class TestExportOnnx(ExtTestCase):
                     code = code.replace("TensorProto.", "onnx_pb.TensorProto.")
                     code = autopep8.fix_code(code, options={'max_line_length': 120})
                     self.assertNotIn("numpy.", code)
-                    #print(code)
+                    print(code)
 
+    def test_simple_configuration(self):
+        op_version = 13
+
+        def case1():
+            xi = OnnxGather('x', numpy.array([3], dtype=numpy.int64),
+                            op_version=op_version)
+            xis = OnnxReshape(xi, numpy.array([-1], dtype=numpy.int64),
+                              op_version=op_version)
+            node = OnnxIdentity(xis, output_names=['y'], op_version=op_version)
+            onx = node.to_onnx(inputs=[('x', Int64TensorType())],
+                               target_opset=op_version)
+
+            xi = OnnxGather('x', numpy.array([3], dtype=numpy.int64),
+                            op_version=op_version)
+            node = OnnxIdentity(xi, output_names=['y'], op_version=op_version)
+            onx2 = node.to_onnx(inputs=[('x', Int64TensorType())],
+                               target_opset=op_version)
+
+            x = numpy.arange(10).astype(numpy.int64)
+            for rt in ['python', 'onnxruntime1']:
+                oinf = OnnxInference(onx, runtime=rt)
+                y = oinf.run({'x': x})['y']
+                self.assertEqual(y[0], 3)
+                self.assertEqual(y.shape, (1, ))
+                oinf = OnnxInference(onx2, runtime=rt)
+                y = oinf.run({'x': x})['y']
+                self.assertEqual(y[0], 3)
+                self.assertEqual(y.shape, (1, ))
+
+        def case2():
+            # This proves that Reshape([-1], works on a number as well.
+            xi = OnnxGather('x', numpy.array(3, dtype=numpy.int64),
+                            op_version=op_version)
+            xis = OnnxReshape(xi, numpy.array([-1], dtype=numpy.int64),
+                              op_version=op_version)
+            node = OnnxIdentity(xis, output_names=['y'], op_version=op_version)
+            onx = node.to_onnx(inputs=[('x', Int64TensorType())],
+                               target_opset=op_version)
+
+            xi = OnnxGather('x', numpy.array(3, dtype=numpy.int64),
+                            op_version=op_version)
+            node = OnnxIdentity(xi, output_names=['y'], op_version=op_version)
+            onx2 = node.to_onnx(inputs=[('x', Int64TensorType())],
+                               target_opset=op_version)
+
+            x = numpy.arange(10).astype(numpy.int64)
+            for rt in ['python', 'onnxruntime1']:
+                oinf = OnnxInference(onx, runtime=rt)
+                y = oinf.run({'x': x})['y']
+                self.assertEqual(y[0], 3)
+                self.assertEqual(y.shape, (1, ))
+                oinf = OnnxInference(onx2, runtime=rt)
+                y = oinf.run({'x': x})['y']
+                self.assertEqual(y, 3)
+                self.assertEqual(y.shape, tuple())
+
+        def case3():
+            # This proves that Reshape([-1], works on a number as well.
+            xi = OnnxGather('x', numpy.array(3, dtype=numpy.int64),
+                            op_version=op_version)
+            xis = OnnxFlatten(xi, axis=0, op_version=op_version)
+            node = OnnxIdentity(xis, output_names=['y'], op_version=op_version)
+            onx = node.to_onnx(inputs=[('x', Int64TensorType())],
+                               target_opset=op_version)
+
+            xi = OnnxGather('x', numpy.array(3, dtype=numpy.int64),
+                            op_version=op_version)
+            node = OnnxIdentity(xi, output_names=['y'], op_version=op_version)
+            onx2 = node.to_onnx(inputs=[('x', Int64TensorType())],
+                               target_opset=op_version)
+
+            x = numpy.arange(10).astype(numpy.int64)
+            for rt in ['onnxruntime1', 'python']:
+                oinf = OnnxInference(onx, runtime=rt)
+                y = oinf.run({'x': x})['y']
+                self.assertEqual(y[0], 3)
+                self.assertEqual(y.shape, (1, 1))
+                oinf = OnnxInference(onx2, runtime=rt)
+                y = oinf.run({'x': x})['y']
+                self.assertEqual(y, 3)
+                self.assertEqual(y.shape, tuple())
+            
+        case1()
+        case2()
+        case3()
+        
 
 if __name__ == "__main__":
-    # TestExportOnnx().test_einsum_numpy_full()
+    # TestExportOnnx().test_simple_configuration()
     unittest.main()

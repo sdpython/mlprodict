@@ -465,15 +465,10 @@ class OnnxVar:
             for e in ends:
                 if isinstance(e, tuple):
                     conc.append(
-                        OnnxVar(shape[e[1]],
-                                numpy.array([0], dtype=numpy.int64),
-                                op=OnnxUnsqueeze).reshape(
-                                    numpy.array([-1], dtype=numpy.int64)))
+                        OnnxVar(shape, numpy.array([e[1]], numpy.int64),
+                                op=OnnxGather))
                 elif isinstance(e, OnnxVar):
-                    conc.append(
-                        OnnxVar(e, numpy.array([0], dtype=numpy.int64),
-                                op=OnnxUnsqueeze).reshape(
-                                    numpy.array([-1], dtype=numpy.int64)))
+                    conc.append(e.reshape(numpy.array([-1], dtype=numpy.int64)))
                 else:
                     conc.append(numpy.array([e], dtype=numpy.int64))
             if len(conc) > 1:
