@@ -122,11 +122,7 @@ def arange(start, stop, step=1):
         else:
             shape = (stop - start) // step
         if isinstance(shape, OnnxVar):
-            shape = OnnxVar(
-                OnnxVar(shape, numpy.array(
-                    [0], dtype=numpy.int64), op=OnnxUnsqueeze),
-                numpy.array([-1], dtype=numpy.int64),
-                op=OnnxReshape)
+            shape = shape.reshape(numpy.array([-1], dtype=numpy.int64))
         _cst = OnnxVar(shape, op=OnnxConstantOfShape, value=value)
     else:
         # csm = OnnxVar(_cst, step, op=OnnxMul)
