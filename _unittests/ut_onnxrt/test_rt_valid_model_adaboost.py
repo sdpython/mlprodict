@@ -52,7 +52,7 @@ class TestRtValidateAdaBoost(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"AdaBoostClassifier"},
             fLOG=myprint,
-            runtime='python', debug=True,
+            runtime='python', debug=False,
             filter_exp=lambda m, p: "-64" not in p))
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1)
