@@ -91,7 +91,7 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     oinfpy, {'X': X}, tolerance=1e-6)
                 python_tested.append(OnnxComplexAbs)
 
-    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") == 1,
+    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") == -1,
                      reason="Missing complex support.")
     def test_onnxt_runtime_fft(self):
         for dim in [1, 2]:
