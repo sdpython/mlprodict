@@ -25,7 +25,6 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxScatterElements, OnnxShape, OnnxSize, OnnxSlice,
     OnnxSqueeze, OnnxSub,
     OnnxTopK, OnnxTranspose,
-    OnnxUnsqueeze,
     OnnxWhere)
 from skl2onnx.algebra.onnx_operator import OnnxOperatorItem
 from skl2onnx.common.data_types import _guess_numpy_type
@@ -468,7 +467,8 @@ class OnnxVar:
                         OnnxVar(shape, numpy.array([e[1]], numpy.int64),
                                 op=OnnxGather))
                 elif isinstance(e, OnnxVar):
-                    conc.append(e.reshape(numpy.array([-1], dtype=numpy.int64)))
+                    conc.append(
+                        e.reshape(numpy.array([-1], dtype=numpy.int64)))
                 else:
                     conc.append(numpy.array([e], dtype=numpy.int64))
             if len(conc) > 1:

@@ -494,26 +494,26 @@ def guess_proto_dtype_name(onnx_dtype):
     :param dtype: onnx dtype
     :return: proto type
     """
-    if onnx_dtype == TensorProto.FLOAT:
+    if onnx_dtype == TensorProto.FLOAT:  # pylint: disable=E1101
         return "TensorProto.FLOAT"
-    if onnx_dtype == TensorProto.DOUBLE:
+    if onnx_dtype == TensorProto.DOUBLE:  # pylint: disable=E1101
         return "TensorProto.DOUBLE"
-    if onnx_dtype == TensorProto.INT64:
+    if onnx_dtype == TensorProto.INT64:  # pylint: disable=E1101
         return "TensorProto.INT64"
-    if onnx_dtype == TensorProto.INT32:
+    if onnx_dtype == TensorProto.INT32:  # pylint: disable=E1101
         return "TensorProto.INT32"
-    if onnx_dtype == TensorProto.INT16:
+    if onnx_dtype == TensorProto.INT16:  # pylint: disable=E1101
         return "TensorProto.INT16"
-    if onnx_dtype == TensorProto.UINT8:
+    if onnx_dtype == TensorProto.UINT8:  # pylint: disable=E1101
         return "TensorProto.UINT8"
-    if onnx_dtype == TensorProto.FLOAT16:
+    if onnx_dtype == TensorProto.FLOAT16:  # pylint: disable=E1101
         return "TensorProto.FLOAT16"
-    if onnx_dtype == TensorProto.BOOL:
+    if onnx_dtype == TensorProto.BOOL:  # pylint: disable=E1101
         return "TensorProto.BOOL"
-    if onnx_dtype == TensorProto.STRING:
+    if onnx_dtype == TensorProto.STRING:  # pylint: disable=E1101
         return "TensorProto.STRING"
-    raise RuntimeError(
-        "Unable to guess type for dtype={}.".format(dtype))  # pragma: no cover
+    raise RuntimeError(  # pragma: no cover
+        "Unable to guess type for dtype={}.".format(onnx_dtype))
 
 
 def guess_dtype(proto_type):

@@ -123,12 +123,13 @@ _tf2onnx_templates = dedent("""
     from onnx.helper import (
         make_model, make_node, set_model_props, make_tensor, make_graph,
         make_tensor_value_info)
-    # from utils import make_name, make_sure
+    # from tf2onnx.utils import make_name, make_sure, map_onnx_to_numpy_type
     from mlprodict.onnx_tools.exports.tf2onnx_helper import (
         make_name, make_sure, map_onnx_to_numpy_type)
     # from tf2onnx.handler import tf_op
-    from mlprodict.onnx_tools.exports.tf2onnx_helper import tf_op
-    from mlprodict.onnx_tools.exports.tf2onnx_helper import Tf2OnnxConvert
+    # from tf2onnx.graph_builder import GraphBuilder
+    from mlprodict.onnx_tools.exports.tf2onnx_helper import (
+        tf_op, Tf2OnnxConvert, GraphBuilder)
 
 
     @tf_op("{{ name }}")
@@ -179,16 +180,7 @@ _tf2onnx_templates = dedent("""
             if getattr(ctx, 'verbose', False):
                 print('[nodes] %r' % cls)
             {% for node in nodes: %}
-            {% if len(node['attributes']) > 0 -%}
-            attr = dict({{ node['attributes_str'] }})
-            {%- endif %}
-            inputs = [{% for name in node['inputs']: -%}varx['{{ name }}'], {%- endfor %}]
-            node = ctx.make_node('{{ node['op_type'] }}', inputs=inputs,{%-
-                if len(node['attributes']) > 0 %} attr=attr,{%endif %}{%-
-                if node['domain']: %} domain='{{ node['domain'] }}',{% endif %} name=make_name('{{ node['name'] }}'))
-            {% for i, name in enumerate(node['outputs']): -%}
-            varx['{{ name }}'] = node.output[{{ i }}]
-            {%- endfor %}
+            {{ make_tf2onnx_code(target_opset, **node) }}
             {% endfor %}
 
             # finalize
@@ -249,7 +241,7 @@ _tf2onnx_templates = dedent("""
 
 
     onnx_raw = create_model()
-    onnx_model = Tf2OnnxConvert(onnx_raw, tf_op).run()
+    onnx_model = Tf2OnnxConvert(onnx_raw, tf_op, target_opset={{ opsets }}).run()
 """)
 
 
@@ -292,6 +284,86 @@ _numpy_templates = dedent("""
 """)
 
 
+def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
+                      inputs=None, outputs=None, attributes=None,
+                      used=None, context=None, mark_inits=None, indent=8,
+                      **unused):
+    """
+    Converts an ONNX operators into :epkg:`tf2onnx` code.
+
+    :param opset: target opset for the conversion (usually unused)
+    :param name: node name
+    :param op_type: operator type
+    :param domain: domain
+    :param inputs: inputs
+    :param outputs: outputs
+    :param attributes: attributes
+    :param used: dictionary `{k: v}`,
+        list of nodes taking *k* as input
+    :param context: whole context
+    :param mark_inits: marks initializer as replaced
+    :param indent: number of spaces to add on the second
+        and following rows
+    :return: code as str
+    """
+    def simplify(name, kind, force=True):
+        value = None
+        if (used is not None and name in used and
+                len(used[name]) == 1 and context is not None):
+            inits = context['initializers_dict']
+            if name in inits:
+                v = inits[name]
+                if v.dtype == numpy.int64 and v.size < 10:
+                    value = v
+                    if name not in mark_inits:
+                        mark_inits[name] = []
+                    mark_inits[name].append(v)
+
+        if value is None and force:
+            inits = context['initializers_dict']
+            value = inits[name]
+        if kind == 'list':
+            if value is None:
+                return name
+            if len(value.shape) == 0:
+                return str(value)
+            return str(list(value))
+        raise NotImplementedError(
+            "Unknown scenario to simplify (%r)." % kind)
+
+    rows = []
+    if op_type == 'Unsqueeze':
+        if len(inputs) == 2:
+            rows.append(
+                "node = GraphBuilder(ctx).make_unsqueeze("
+                "{'data': varx[%r], 'axes': %s}, return_node=True)"
+                "" % (inputs[0], simplify(inputs[1], 'list')))
+        else:
+            raise NotImplementedError(  # pragma: no cover
+                "Unable to create code for operator %r (opset <= 12)"
+                "." % op_type)
+    else:
+        if len(attributes) > 0:
+            attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
+            attr = ", attr=dict(%s)" % attributes_str
+        else:
+            attr = ""
+        rows.append(
+            "inputs = [%s]" % ", ".join("varx[%r]" % n for n in inputs))
+        sdomain = '' if domain == '' else ("domain=%r, " % domain)
+        rows.append(
+            "node = ctx.make_node(%r, inputs=inputs%s, %s"
+            "name=make_name(%r))" % (
+                op_type, attr, sdomain, name))
+    for i, n in enumerate(outputs):
+        rows.append("varx[%r] = node.output[%d]" % (n, i))
+    if indent > 0:
+        sind = " " * indent
+        for i in range(1, len(rows)):
+            rows[i] = sind + rows[i]
+    return "\n".join(rows)
+
+
 def make_numpy_code(opset, name=None, op_type=None, domain='',
                     inputs=None, outputs=None, attributes=None,
                     used=None, context=None, mark_inits=None,
@@ -299,6 +371,7 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
     """
     Converts an ONNX operators into :epkg:`numpy` code.
 
+    :param opset: target opset for the conversion (usually unused)
     :param name: node name
     :param op_type: operator type
     :param domain: domain
@@ -622,7 +695,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
                         onnx_dtype = guess_proto_dtype_name(
                             guess_proto_dtype(value.dtype))
                         value = (
-                            'helper.make_tensor("value", %s, dims=%r, vals=%r)'
+                            'make_tensor("value", %s, dims=%r, vals=%r)'
                             '' % (onnx_dtype, list(value.shape),
                                   value.tolist()))
                         attributes.append((at.name, value))
@@ -658,6 +731,9 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
         make_numpy_code=lambda *args, **kwargs: make_numpy_code(
             *args, context=context, used=used, mark_inits=mark_inits,
             **kwargs),
+        make_tf2onnx_code=lambda *args, **kwargs: make_tf2onnx_code(
+            *args, context=context, used=used, mark_inits=mark_inits,
+            **kwargs),
         **context)
 
     skip_inits = set()
@@ -672,6 +748,9 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
         final = template.render(
             enumerate=enumerate, sorted=sorted, len=len,
             make_numpy_code=lambda *args, **kwargs: make_numpy_code(
+                *args, context=context, used=used, mark_inits=mark_inits,
+                **kwargs),
+            make_tf2onnx_code=lambda *args, **kwargs: make_tf2onnx_code(
                 *args, context=context, used=used, mark_inits=mark_inits,
                 **kwargs),
             **context)

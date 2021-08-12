@@ -109,6 +109,11 @@ class Tf2OnnxConvert:
             self._names[init.name] = init
         # _forbidden_new_names contains current names and deleted names.
         self._forbidden_new_names = set(self._names)
+        if '' in self.target_opsets:
+            self.opset = self.target_opsets['']
+        if not hasattr(self, 'opset'):
+            raise RuntimeError(  # pragma: no cover
+                "Attribute opset is missing, target_opset=%r." % target_opset)
 
     def get_node_by_name(self, name):
         """
@@ -367,3 +372,194 @@ class Tf2OnnxConvert:
             op_set.domain = dom
             op_set.version = value
         return onnx_model
+
+
+class GraphBuilder:
+    """
+    Helpers to build graph.
+    :param graph!
+    """
+
+    def __init__(self, graph):
+        self._g = graph
+
+    @property
+    def graph(self):
+        return self._g
+
+    def make_slice(self, kwargs, name=None, shapes=None, dtypes=None, return_node=False):
+        """
+        slice changes its schema at opset 10: it treats some attributes as dynamic input
+        so this function has to process inputs according to graph's opset version
+        to get "inputs" and "attr" to feed "make_node"
+        kwargs: key could be ["data", "starts", "ends", "axes", "steps", "outputs"].
+        """
+        outputs = kwargs.pop("outputs", None)
+
+        if self.graph.opset < 10:
+            # "data" is string
+            # "starts", "ends" and "axes" are attributes, and "axes" is optional.
+            data = kwargs.pop("data")
+            starts = self._convert_to_attribute(kwargs.pop("starts"))
+            ends = self._convert_to_attribute(kwargs.pop("ends"))
+            axes = self._convert_to_attribute(
+                kwargs.pop("axes", None), is_optional=True)
+            attr = {"starts": starts, "ends": ends, "axes": axes}
+            inputs = [data]
+        else:
+            # slice-10 has 3 required inputs "data", "starts", "ends"l
+            # and 2 optional inputs "axes", "steps"
+            # input sequence should be "data", "starts", "ends", "axes", "steps"
+            attr = {}
+            data = kwargs.pop("data")
+            starts = self._convert_to_input(kwargs.pop(
+                "starts"), "const_starts", dtype=numpy.int64)
+            ends = self._convert_to_input(kwargs.pop(
+                "ends"), "const_ends", dtype=numpy.int64)
+            axes = self._convert_to_input(kwargs.pop(
+                "axes", None), "const_axes", is_optional=True, dtype=numpy.int64)
+            steps = self._convert_to_input(kwargs.pop(
+                "steps", None), "const_steps", is_optional=True, dtype=numpy.int64)
+            inputs = [data, starts.name, ends.name, axes.name, steps.name]
+
+        # pro-process inputs and attr
+        make_sure(not kwargs, "kwargs contains un-used key")
+
+        new_attr = {}
+        for key, val in attr.items():
+            if val is not None:
+                new_attr[key] = val
+        attr = new_attr
+
+        for ind, val in enumerate(inputs):
+            if val is None:
+                inputs[ind] = ""  # empty string means no connection in ONNX
+        # remove tailing ""
+        while inputs[-1] == "":
+            inputs = inputs[:-1]
+
+        if self.graph.opset >= 10:
+            dtype = self.graph.get_dtype(inputs[1])
+            for input_data in inputs[1:]:
+                if input_data != "":
+                    make_sure(dtype == self.graph.get_dtype(
+                        input_data), "dtype should be same")
+
+        node = self.graph.make_node(op_type="Slice", inputs=inputs, attr=attr, name=name,
+                                    outputs=outputs, shapes=shapes, dtypes=dtypes)
+        if return_node:
+            return node
+        raise NotImplementedError("return_node must be True")
+
+    def make_squeeze(self, kwargs, name=None, shapes=None, dtypes=None, return_node=False, op_name_scope=None):
+        """
+        Squeeze changes its schema at opset 13: it treats axes as a dynamic input
+        kwargs: key could be ["data", "axes"].
+        """
+        outputs = kwargs.pop("outputs", None)
+
+        if self.graph.opset < 13:
+            data = kwargs.pop("data")
+            axes = self._convert_to_attribute(
+                kwargs.pop("axes", None), is_optional=True)
+            attr = {"axes": axes}
+            inputs = [data]
+        else:
+            data = kwargs.pop("data")
+            axes = self._convert_to_input(kwargs.pop(
+                "axes", None), "const_axes", is_optional=True, dtype=numpy.int64)
+            attr = {}
+            inputs = [data, axes.name]
+
+        make_sure(not kwargs, "kwargs contains un-used key")
+
+        new_attr = {}
+        for key, val in attr.items():
+            if val is not None:
+                new_attr[key] = val
+        attr = new_attr
+
+        for ind, val in enumerate(inputs):
+            if val is None:
+                inputs[ind] = ""  # empty string means no connection in ONNX
+        # remove tailing ""
+        while inputs[-1] == "":
+            inputs = inputs[:-1]
+
+        node = self.graph.make_node(op_type="Squeeze", inputs=inputs, attr=attr, name=name,
+                                    outputs=outputs)
+        if return_node:
+            return node
+        raise NotImplementedError("return_node must be True")
+
+    def make_unsqueeze(self, kwargs, name=None, shapes=None, dtypes=None, return_node=False, op_name_scope=None):
+        """
+        Unsqueeze changes its schema at opset 13: it treats axes as a dynamic input
+        kwargs: key could be ["data", "axes"].
+        """
+        outputs = kwargs.pop("outputs", None)
+
+        if self.graph.opset < 13:
+            data = kwargs.pop("data")
+            axes = self._convert_to_attribute(
+                kwargs.pop("axes", None), is_optional=True)
+            attr = {"axes": axes}
+            inputs = [data]
+        else:
+            data = kwargs.pop("data")
+            axes = self._convert_to_input(kwargs.pop(
+                "axes", None), "const_axes", is_optional=True, dtype=numpy.int64)
+            attr = {}
+            inputs = [data, axes.name]
+
+        make_sure(not kwargs, "kwargs contains un-used key")
+
+        new_attr = {}
+        for key, val in attr.items():
+            if val is not None:
+                new_attr[key] = val
+        attr = new_attr
+
+        for ind, val in enumerate(inputs):
+            if val is None:
+                inputs[ind] = ""  # empty string means no connection in ONNX
+        # remove tailing ""
+        while inputs[-1] == "":
+            inputs = inputs[:-1]
+
+        node = self.graph.make_node(op_type="Unsqueeze", inputs=inputs, attr=attr, name=name,
+                                    outputs=outputs)
+        if return_node:
+            return node
+        raise NotImplementedError("return_node must be True")
+
+    def _convert_to_input(self, tensor, const_name, is_optional=False, dtype=None):
+        """in ONNX, input shold come from node, so it must be a string"""
+        if is_optional and tensor is None:
+            return None
+
+        make_sure(tensor is not None,
+                  "input is required so it couldn't be None")
+
+        res = tensor
+        if isinstance(tensor, list):
+            res = self.graph.make_const(
+                make_name(const_name), numpy.array(tensor, dtype))
+        return res
+
+    def _convert_to_attribute(self, tensor, is_optional=False):
+        if is_optional and tensor is None:
+            return None
+
+        make_sure(tensor is not None,
+                  "input is required so it couldn't be None")
+
+        res = tensor
+        if isinstance(tensor, str):
+            const_node = self.graph.get_node_by_output(tensor)
+            res = const_node.get_tensor_value(as_list=True)
+
+        make_sure(isinstance(res, list),
+                  "input is an attr, so a list is needed")
+
+        return res

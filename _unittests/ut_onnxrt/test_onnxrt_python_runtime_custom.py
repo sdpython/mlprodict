@@ -7,6 +7,7 @@ import numpy
 from scipy.linalg import solve
 from scipy.spatial.distance import cdist
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper import compare_module_version
 import skl2onnx
 from skl2onnx.algebra.custom_ops import (  # pylint: disable=E0611
     OnnxCDist, OnnxSolve)
@@ -90,6 +91,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     oinfpy, {'X': X}, tolerance=1e-6)
                 python_tested.append(OnnxComplexAbs)
 
+    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") == 1,
+                     reason="Missing complex support.")
     def test_onnxt_runtime_fft(self):
         for dim in [1, 2]:
             for axis in [-1, 0, 1]:

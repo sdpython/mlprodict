@@ -40,7 +40,6 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceProd,
     OnnxReduceSum,
     OnnxRelu,
-    OnnxReshape,
     OnnxRound,
     OnnxSigmoid,
     OnnxSign,
