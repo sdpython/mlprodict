@@ -7,6 +7,7 @@ import numpy
 from scipy.linalg import solve
 from scipy.spatial.distance import cdist
 from pyquickhelper.pycode import ExtTestCase
+import skl2onnx
 from skl2onnx.algebra.custom_ops import (  # pylint: disable=E0611
     OnnxCDist, OnnxSolve)
 from mlprodict.onnx_conv.onnx_ops import (
@@ -192,9 +193,14 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     onx = OnnxRFFT('X', numpy.array([8], dtype=numpy.int64),
                                    output_names=['Y'], axis=axis,
                                    op_version=get_opset_number_from_onnx())
-                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                            outputs={'Y': Y},
-                                            target_opset=get_opset_number_from_onnx())
+                    try:
+                        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                                outputs={'Y': Y},
+                                                target_opset=get_opset_number_from_onnx())
+                    except NotImplementedError as e:
+                        raise AssertionError(
+                            "Unable to convert due to %r (version=%r)." % (
+                                e, skl2onnx.__version__)) from e
                     oinf = OnnxInference(model_def)
                     got = oinf.run({'X': X})
                     self.assertEqual(list(sorted(got)), ['Y'])
