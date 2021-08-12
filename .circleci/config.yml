@@ -77,7 +77,6 @@ jobs:
       - run:
           name: Install numba, llvmlite
           command: |
-            python -m venv venv
             . venv/bin/activate
             # export LLVM_CONFIG=/usr/local/opt/llvm/bin/llvm-config
             sudo ln -s /usr/bin/llvm-config-10 /usr/bin/llvm-config
@@ -100,7 +99,6 @@ jobs:
       - run:
           name: install dependencies (2)
           command: |
-            python3 -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
 
@@ -112,7 +110,6 @@ jobs:
       - run:
           name: check list of dependencies
           command: |
-            python -m venv venv
             . venv/bin/activate
             pip freeze
             apt list --installed
@@ -122,6 +119,12 @@ jobs:
           command: |
             . venv/bin/activate
             python setup.py build_ext --inplace
+
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            python -m pip freeze
 
       - run:
           name: run tests
