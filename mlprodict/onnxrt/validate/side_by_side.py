@@ -3,6 +3,7 @@
 @brief Helpers to compare executions.
 """
 import copy
+import numpy
 from .validate_difference import measure_relative_difference
 
 
@@ -18,28 +19,34 @@ def _side_by_side_by_values_inputs(sess, inputs, i):
     return new_sess, new_inputs
 
 
-def side_by_side_by_values(sessions, *args, inputs=None, **kwargs):
+def side_by_side_by_values(sessions, *args, inputs=None,
+                           return_results=False, **kwargs):
     """
     Compares the execution of two sessions.
     It calls method :meth:`OnnxInference.run
     <mlprodict.onnxrt.onnx_inference.OnnxInference.run>`
     with value ``intermediate=True`` and compares the results.
 
-    @param      sessions        list of class @see cl OnnxInference
-    @param      inputs          inputs
-    @param      args            additional parameters for
-                                :meth:`OnnxInference.run
-                                <mlprodict.onnxrt.onnx_inference.OnnxInference.run`
-    @param      kwargs          additional parameters for
-                                :meth:`OnnxInference.run
-                                <mlprodict.onnxrt.onnx_inference.OnnxInference.run`
-    @return                     list of dictionaries
+    :param sessions: list of class @see cl OnnxInference
+    :param inputs: inputs
+    :param args: additional parameters for
+        :meth:`OnnxInference.run
+        <mlprodict.onnxrt.onnx_inference.OnnxInference.run`
+    :param return_results: if True, returns the results as well.
+    :param kwargs: additional parameters for
+        :meth:`OnnxInference.run
+        <mlprodict.onnxrt.onnx_inference.OnnxInference.run`
+    :return: list of dictionaries
 
     The first session is considered as the baseline.
     See notebook :ref:`onnxsbsrst` for an example.
     If *inputs* is None, the function assumes
     *sessions* is a list of *tuple(sessions, inputs)*
     because sometimes inputs must be different.
+
+    .. versionchanged:: 0.7
+        Parameter *return_results* was added. The function
+        returns the execution order when available.
     """
     if not kwargs.get('intermediate', True):
         raise ValueError(  # pragma: no cover
@@ -50,14 +57,22 @@ def side_by_side_by_values(sessions, *args, inputs=None, **kwargs):
 
     # run
     results = []
+    orders = []
     for i, sess in enumerate(sessions):
+        if (hasattr(sess, 'runtime') and hasattr(sess, 'inplace') and
+                sess.runtime in (None, 'python') and sess.inplace):
+            raise ValueError(
+                "You must disable the inplace mechanism in order to get "
+                "true results. See OnnxInference constructor.")
         new_sess, new_inputs = _side_by_side_by_values_inputs(sess, inputs, i)
         if verbose > 0 and fLOG:
             fLOG(  # pragma: no cover
                 '[side_by_side_by_values] run session {}/{}'.format(
                     i + 1, len(sessions)))
         res = new_sess.run(new_inputs, *args, **kwargs)
+        order = new_sess.get_execution_order()
         results.append([(k, v) for k, v in res.items()])
+        orders.append(order)
 
     # same number of results?
     rows = []
@@ -73,38 +88,51 @@ def side_by_side_by_values(sessions, *args, inputs=None, **kwargs):
 
     # analysis
     for i in range(len(merged)):  # pylint: disable=C0200
-        row = {'step': i}
-        name, res_row = merged[i]
-        row['name'] = name
-        row['metric'] = 'abs-diff'
+        for metric in ('rel-diff', 'abs-diff'):
+            row = {'step': i}
+            name, res_row = merged[i]
+            row['name'] = name
+            row['metric'] = metric
 
-        vals = []
-        for j, r in enumerate(res_row):
-            row['value[%d]' % j] = r
-            if hasattr(r, 'shape'):
-                row['shape[%d]' % j] = r.shape
+            vals = []
+            for j, r in enumerate(res_row):
+                order = orders[j]
+                if order is not None:
+                    row['order[%d]' % j] = order.get(
+                        ('res', name), (numpy.nan, ))[0]
+                row['value[%d]' % j] = r
+                if hasattr(r, 'shape'):
+                    row['shape[%d]' % j] = r.shape
 
-            if j == 0:
-                row['v[%d]' % j] = 0
-            elif res_row[0] is not None and r is not None:
-                v = measure_relative_difference(res_row[0], r)
-                row['v[%d]' % j] = v
-                vals.append(v)
-        if len(vals) > 0:
-            diff = max(vals)
-            if diff < 1e-5:
-                row['cmp'] = 'OK'
-            elif diff < 0.0001:
-                row['cmp'] = 'e<0.0001'  # pragma: no cover
-            elif diff < 0.001:
-                row['cmp'] = 'e<0.001'  # pragma: no cover
-            elif diff < 0.01:
-                row['cmp'] = 'e<0.01'  # pragma: no cover
-            elif diff < 0.1:
-                row['cmp'] = 'e<0.1'  # pragma: no cover
-            else:
-                row['cmp'] = "ERROR->=%1.1f" % diff
+                if j == 0:
+                    row['v[%d]' % j] = 0
+                elif res_row[0] is not None and r is not None:
+                    if metric == 'rel-diff':
+                        v = measure_relative_difference(res_row[0], r)
+                    else:
+                        v = measure_relative_difference(
+                            res_row[0], r, abs_diff=True)
+                    row['v[%d]' % j] = v
+                    vals.append(v)
+
+            if len(vals) > 0:
+                diff = max(vals)
+                if diff < 1e-5:
+                    row['cmp'] = 'OK'
+                elif diff < 0.0001:
+                    row['cmp'] = 'e<0.0001'  # pragma: no cover
+                elif diff < 0.001:
+                    row['cmp'] = 'e<0.001'  # pragma: no cover
+                elif diff < 0.01:
+                    row['cmp'] = 'e<0.01'  # pragma: no cover
+                elif diff < 0.1:
+                    row['cmp'] = 'e<0.1'  # pragma: no cover
+                else:
+                    row['cmp'] = "ERROR->=%1.1f" % diff
+
         rows.append(row)
+    if return_results:
+        return rows, results
     return rows
 
 
@@ -112,6 +140,9 @@ def merge_results(results):
     """
     Merges results by name. The first ones
     are used to keep the order.
+
+    :param results: results of intermediate variables
+    :return: list of tuple
     """
     # matrix of names
     rows = [(k, []) for k, _ in results[0]]

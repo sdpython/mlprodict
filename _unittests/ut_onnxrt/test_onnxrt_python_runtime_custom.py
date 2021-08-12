@@ -69,6 +69,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     tolerance=1e-6)
         python_tested.append(OnnxCDist)
 
+    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") <= 0,
+                     reason="Missing complex support.")
     def test_onnxt_runtime_complex_abs(self):
         for dtype in [numpy.complex64, numpy.complex128]:
             with self.subTest(dtype=dtype):
@@ -91,7 +93,7 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     oinfpy, {'X': X}, tolerance=1e-6)
                 python_tested.append(OnnxComplexAbs)
 
-    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") == -1,
+    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") <= 0,
                      reason="Missing complex support.")
     def test_onnxt_runtime_fft(self):
         for dim in [1, 2]:
@@ -152,6 +154,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                         tolerance=1e-5)
                     python_tested.append(OnnxFFT)
 
+    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") <= 0,
+                     reason="Missing complex support.")
     def test_onnxt_runtime_rfft(self):
         for dim in [1, 2]:
             for axis in [-1, 0, 1]:

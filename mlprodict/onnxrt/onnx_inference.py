@@ -909,7 +909,9 @@ class OnnxInference:
                 fLOG('[build_intermediate] + {}'.format(output))
             ord[output] = OnnxInference(subonx, runtime=self.runtime,
                                         skip_run=self.skip_run,
-                                        runtime_options=self.runtime_options)
+                                        runtime_options=self.runtime_options,
+                                        inplace=self.inplace,
+                                        input_inplace=self.input_inplace)
         if verbose > 0:
             fLOG('[build_intermediate] END.')
         return ord
@@ -1500,3 +1502,38 @@ class OnnxInference:
             import pandas
             return pandas.DataFrame(prof)
         return prof
+
+    def get_execution_order(self):
+        """
+        This function returns a dictionary `{(kind, name): (order, op)}`,
+        *name* can be a node name or a result name. In that case,
+        it gets the execution order than the node which created it.
+        The function returns None if the order is not available
+        (the selected runtime does not return it). *kind* is either
+        `'node'` or `'node'`. If two nodes have the same name,
+        returned order is the last one. Initializers gets an execution
+        order equal to -1, inputs to 0, all others results are >= 1.
+
+        .. versionadded:: 0.7
+        """
+        if not hasattr(self, "sequence_"):
+            return None
+
+        res = {}
+        for k, v in self.inits_.items():
+            res['res', k] = (-1, v)
+        for name, shape in self.input_names_shapes:
+            res['res', name] = (0, shape)
+
+        for i, node in enumerate(self.sequence_):
+            key = ('node', node.onnx_node.name)
+            res[key] = (i + 1, node)
+            for out in node.onnx_node.output:
+                key = ('res', out)
+                if key in res:
+                    raise RuntimeError(
+                        "Output %r of node name %r already registered."
+                        "" % (out, node.onnx_node.name))
+                res[key] = (i + 1, None)
+
+        return res

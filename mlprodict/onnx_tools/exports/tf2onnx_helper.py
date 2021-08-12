@@ -385,6 +385,7 @@ class GraphBuilder:
 
     @property
     def graph(self):
+        "Returns the graph."
         return self._g
 
     def make_slice(self, kwargs, name=None, shapes=None, dtypes=None, return_node=False):

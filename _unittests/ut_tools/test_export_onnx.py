@@ -1077,7 +1077,7 @@ class TestExportOnnx(ExtTestCase):
                     with self.subTest(rt=rt):
                         oinf = OnnxInference(onx, runtime=rt)
                         res = oinf.run({'x': rnd, 'fft_length': fft_length})
-                        self.assertEqualArray(fft2d_onx, res['y'], decimal=6)
+                        self.assertEqualArray(fft2d_onx, res['y'], decimal=5)
 
                 with open("temp_fft2s_dynamic.onnx", "wb") as f:
                     f.write(onx.SerializeToString())

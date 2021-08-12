@@ -16,8 +16,8 @@ except ImportError:
     convert_kernel = None
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.side_by_side import (
-    side_by_side_by_values, merge_results, _side_by_side_by_values_inputs
-)
+    side_by_side_by_values, merge_results,
+    _side_by_side_by_values_inputs)
 from mlprodict.tools import (
     get_ir_version_from_onnx, get_opset_number_from_onnx)
 from mlprodict.testing.test_utils import _capture_output
@@ -145,7 +145,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
             target_opset=get_opset_number_from_onnx())
         model_onnx.ir_version = get_ir_version_from_onnx()
         sess = OnnxInference(model_onnx.SerializeToString(),
-                             runtime="python")
+                             runtime="python", inplace=False)
 
         rows = []
 
@@ -162,6 +162,11 @@ class TestOnnxrtSideBySide(ExtTestCase):
         # self.assertEqualArray(m1, m2, decimal=5)
 
         cpu = OnnxInference(model_onnx.SerializeToString())
+        self.assertRaise(
+            lambda: side_by_side_by_values(
+                [cpu, sess], inputs={'X': Xtest_.astype(numpy.float32)}),
+            ValueError)
+        cpu = OnnxInference(model_onnx.SerializeToString(), inplace=False)
         sbs = side_by_side_by_values(
             [cpu, sess], inputs={'X': Xtest_.astype(numpy.float32)})
         self.assertGreater(len(sbs), 2)
@@ -173,6 +178,8 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertIn('metric', sbs[1])
         self.assertIn('cmp', sbs[0])
         self.assertIn('cmp', sbs[1])
+        self.assertIn('order[0]', sbs[1])
+        self.assertEqual(sbs[1]['order[0]'], 0)
 
         sess3 = _capture_output(
             lambda: OnnxInference(model_onnx.SerializeToString(),
@@ -191,6 +198,14 @@ class TestOnnxrtSideBySide(ExtTestCase):
         sbs = side_by_side_by_values(
             [(cpu, inputs), (sess, inputs), (sess3, inputs)])
         self.assertNotEmpty(sbs)
+        sbs, res = side_by_side_by_values(
+            [(cpu, inputs), (sess, inputs), (sess3, inputs)], return_results=True)
+        self.assertNotEmpty(sbs)
+        self.assertNotEmpty(res)
+        self.assertIsInstance(res, list)
+        self.assertEqual(len(res), 3)
+        self.assertIsInstance(res[0], list)
+        self.assertIsInstance(res[0][0], tuple)
 
     @ignore_warnings(DeprecationWarning)
     def test_merge_results(self):

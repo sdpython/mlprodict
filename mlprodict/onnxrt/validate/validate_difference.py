@@ -8,7 +8,7 @@ import numpy
 import pandas
 
 
-def measure_relative_difference(skl_pred, ort_pred, batch=True):
+def measure_relative_difference(skl_pred, ort_pred, batch=True, abs_diff=True):
     """
     Measures the relative difference between predictions
     between two ways of computing them.
@@ -21,6 +21,7 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
     @param      batch           predictions are processed in a batch,
                                 *skl_pred* and *ort_pred* should be arrays
                                 or tuple or list of arrays
+    @param      abs_diff        return the absolute difference
     @return                     relative max difference
                                 or nan if it does not make any sense
 
@@ -131,6 +132,10 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
             ort_pred = ort_pred.A  # pragma: no cover
         r_skl_pred = skl_pred.ravel()
         r_ort_pred = ort_pred.ravel()
+
+        if abs_diff:
+            return numpy.abs(r_skl_pred - r_ort_pred).max()
+
         ab = numpy.abs(r_skl_pred)
         median = numpy.median(ab.ravel())
         mx = numpy.max(ab)
@@ -139,7 +144,8 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True):
         if median == 0:
             median = 1
         mx = numpy.maximum(ab, median)
-        d = (r_ort_pred - r_skl_pred) / mx
+        di = r_ort_pred - r_skl_pred
+        d = di / mx
         rel_sort = numpy.sort(numpy.abs(d))
         rel_diff = rel_sort[-4] if len(rel_sort) > 5 else rel_sort[-1]
 

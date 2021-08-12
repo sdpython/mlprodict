@@ -43,7 +43,7 @@ class TestZoo(ExtTestCase):
         except ConnectionError as e:
             warnings.warn("Unable to continue this test due to %r." % e)
             return
-        oinf2 = OnnxInference(link, runtime="python")
+        oinf2 = OnnxInference(link, runtime="python", inplace=False)
         oinf2 = oinf2.build_intermediate('474')['474']
         oinf1 = OnnxInference(link, runtime="onnxruntime1")
         oinf1 = oinf1.build_intermediate('474')['474']
@@ -51,9 +51,9 @@ class TestZoo(ExtTestCase):
         rows = side_by_side_by_values([oinf1, oinf2], inputs=inputs)
         for row in rows:
             keep = []
-            if row.get('name', '-') == '474':
-                v0 = row['value[0]']
-                v1 = row['value[1]']
+            if row.get('name', '-') == '474':  # pylint: disable=E1101
+                v0 = row['value[0]']  # pylint: disable=E1126
+                v1 = row['value[1]']  # pylint: disable=E1126
                 self.assertEqual(v0.shape, v1.shape)
                 for i, (a, b) in enumerate(zip(v0.ravel(), v1.ravel())):
                     if abs(a - b) > 5e-4:
