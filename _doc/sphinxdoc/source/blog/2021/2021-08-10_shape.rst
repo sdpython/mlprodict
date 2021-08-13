@@ -1,0 +1,34 @@
+
+.. blogpost::
+    :title: onnxruntime shape [] != None
+    :keywords: onnxruntime
+    :date: 2021-08-10
+    :categories: onnx
+
+    `None` is the undefined shape, `[]` is an empty shape.
+    And when shapes do not fit the results, the outputs can
+    be suprising. The following example shows what :epkg:`onnxruntime`
+    produces for the same graph except input and output shapes
+    when defined as `None` and `[]`.
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from onnx import helper, TensorProto
+        from onnxruntime import InferenceSession
+
+        def model(shape):
+            X = helper.make_tensor_value_info('X', TensorProto.FLOAT, shape)
+            Z = helper.make_tensor_value_info('Z', TensorProto.INT64, shape)
+            node_def = helper.make_node('Shape', ['X'], ['Z'], name='Zt')
+            graph_def = helper.make_graph([node_def], 'test-model', [X], [Z])
+            model_def = helper.make_model(
+                graph_def, producer_name='mlprodict', ir_version=7, producer_version='0.1',
+                opset_imports=[helper.make_operatorsetid('', 13)])
+            sess = InferenceSession(model_def.SerializeToString())
+            rnd = numpy.random.randn(12).astype(numpy.float32)
+            print(shape, sess.run(None, {"X": rnd}))
+
+        model(None)
+        model([])

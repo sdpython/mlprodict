@@ -19,7 +19,8 @@ from ..tools.code_helper import make_callable, print_code
 from ..onnx_tools.onnx2py_helper import (
     _var_as_dict, numpy_min, numpy_max, guess_numpy_type_from_string)
 from ..onnx_tools.onnx_manipulations import (
-    select_model_inputs_outputs, enumerate_model_node_outputs)
+    select_model_inputs_outputs, enumerate_model_node_outputs,
+    overwrite_opset)
 from ..onnx_tools.optim import onnx_remove_node_unused
 from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_exports import OnnxInferenceExport
@@ -65,12 +66,20 @@ class OnnxInference:
         outputs may share the same name)
     :param static_inputs: Loop can use static variables,
         variables from the graph which runs the loop
+    :param new_outputs: if the loading fails, it might worth
+        cutting the graph, if not None, the graph will
+        be cut to have these new_outputs as the final outputs
+    :param new_opset: overwrite the main opset and replaces
+        by this new one
 
     Among the possible runtime_options, there are:
     * *enable_profiling*: enables profiling for :epkg:`onnxruntime`
     * *session_options*: an instance of *SessionOptions* from
         :epkg:`onnxruntime`
     * *ir_version*: change ir_version
+
+    .. versionchanged:: 0.7
+        Parameters *new_outputs*, *new_opset* were added.
     """
 
     def __init__(self, onnx_or_bytes_or_stream, runtime=None,
@@ -78,7 +87,7 @@ class OnnxInference:
                  input_inplace=False, ir_version=None,
                  target_opset=None, runtime_options=None,
                  session_options=None, inside_loop=False,
-                 static_inputs=None):
+                 static_inputs=None, new_outputs=None, new_opset=None):
         if isinstance(onnx_or_bytes_or_stream, bytes):
             self.obj = load_model(BytesIO(onnx_or_bytes_or_stream))
         elif isinstance(onnx_or_bytes_or_stream, BytesIO):
@@ -95,6 +104,12 @@ class OnnxInference:
                 type(onnx_or_bytes_or_stream)))
         if ir_version is not None:
             self.obj.ir_version = ir_version
+        if new_outputs is not None:
+            self.obj = select_model_inputs_outputs(
+                self.obj, outputs=new_outputs, infer_shapes=True)
+        if new_opset is not None:
+            self.obj = overwrite_opset(self.obj, new_opset)
+
         self.runtime = runtime
         self.skip_run = skip_run
         self.input_inplace = input_inplace
@@ -723,9 +738,15 @@ class OnnxInference:
             if verbose >= 1 and fLOG is not None:
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
-                    fLOG("+ki='{}': {} (dtype={} min={} max={})".format(
-                        k, v['value'].shape, v['value'].dtype,
-                        numpy_min(v['value']), numpy_max(v['value'])))
+                    if verbose < 3:
+                        fLOG("+ki='{}': {} (dtype={} min={} max={})".format(
+                            k, v['value'].shape, v['value'].dtype,
+                            numpy_min(v['value']), numpy_max(v['value'])))
+                    else:
+                        fLOG("+ki='{}': {} (dtype={} min={} max={}\n{}".format(
+                            k, v['value'].shape, v['value'].dtype,
+                            numpy_min(v['value']), numpy_max(v['value']),
+                            v['value']))
                     printed.add(k)
             else:
                 for k, v in self.inits_.items():
@@ -888,7 +909,9 @@ class OnnxInference:
                 fLOG('[build_intermediate] + {}'.format(output))
             ord[output] = OnnxInference(subonx, runtime=self.runtime,
                                         skip_run=self.skip_run,
-                                        runtime_options=self.runtime_options)
+                                        runtime_options=self.runtime_options,
+                                        inplace=self.inplace,
+                                        input_inplace=self.input_inplace)
         if verbose > 0:
             fLOG('[build_intermediate] END.')
         return ord
@@ -1479,3 +1502,38 @@ class OnnxInference:
             import pandas
             return pandas.DataFrame(prof)
         return prof
+
+    def get_execution_order(self):
+        """
+        This function returns a dictionary `{(kind, name): (order, op)}`,
+        *name* can be a node name or a result name. In that case,
+        it gets the execution order than the node which created it.
+        The function returns None if the order is not available
+        (the selected runtime does not return it). *kind* is either
+        `'node'` or `'node'`. If two nodes have the same name,
+        returned order is the last one. Initializers gets an execution
+        order equal to -1, inputs to 0, all others results are >= 1.
+
+        .. versionadded:: 0.7
+        """
+        if not hasattr(self, "sequence_"):
+            return None
+
+        res = {}
+        for k, v in self.inits_.items():
+            res['res', k] = (-1, v)
+        for name, shape in self.input_names_shapes:
+            res['res', name] = (0, shape)
+
+        for i, node in enumerate(self.sequence_):
+            key = ('node', node.onnx_node.name)
+            res[key] = (i + 1, node)
+            for out in node.onnx_node.output:
+                key = ('res', out)
+                if key in res:
+                    raise RuntimeError(
+                        "Output %r of node name %r already registered."
+                        "" % (out, node.onnx_node.name))
+                res[key] = (i + 1, None)
+
+        return res

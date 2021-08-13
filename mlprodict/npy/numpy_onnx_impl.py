@@ -46,6 +46,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSin, OnnxSinh,
     OnnxSqrt,
     OnnxSqueeze,
+    OnnxSub,
     OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose,
     OnnxUnsqueeze,
     OnnxWhere)
@@ -87,21 +88,50 @@ def amin(x, axis=None, keepdims=0):
 
 def arange(start, stop, step=1):
     "See :epkg:`numpy:arange`, *start*, *stop* must be specified."
-    if step != 1:
-        raise NotImplementedError(  # pragma: no cover
-            "The function is not implemented for step != 1 (step=%r)." % step)
-    if isinstance(start, (int, numpy.int64)):
+    if not isinstance(step, (int, numpy.int64)):
+        raise TypeError(  # pragma: no cover
+            "step must be an integer not %r." % type(step))
+    if isinstance(start, (int, numpy.int64, numpy.int32)):
         start = numpy.array([start], dtype=numpy.int64)
-    if isinstance(stop, (int, numpy.int64)):
+        zero = start == 0
+    else:
+        zero = False
+    if isinstance(stop, (int, numpy.int64, numpy.int32)):
         stop = numpy.array([stop], dtype=numpy.int64)
     value = make_tensor(
         "value", onnx_proto.TensorProto.INT64, (1, ), [step])  # pylint: disable=E1101
-    _cst = OnnxVar(stop - start, op=OnnxConstantOfShape, value=value)
-    cs = OnnxVar(_cst,
-                 numpy.array([0], dtype=numpy.int64),
+
+    if isinstance(step, (int, numpy.int64, numpy.int32)) and step == 1:
+        if zero:
+            shape = stop
+        else:
+            shape = stop - start
+        if isinstance(shape, OnnxVar):
+            shape = shape.reshape(numpy.array([-1], dtype=numpy.int64))
+        _cst = OnnxVar(shape, op=OnnxConstantOfShape, value=value)
+        cs = OnnxVar(_cst, numpy.array([0], dtype=numpy.int64),
+                     op=OnnxCumSum)
+        diff = start - numpy.array([step], dtype=numpy.int64)
+        return OnnxVar(cs, diff, op=OnnxAdd)
+
+    if isinstance(step, (int, numpy.int64, numpy.int32)):
+        step = numpy.array([step], dtype=numpy.int64)
+        if zero:
+            shape = stop // step
+        else:
+            shape = (stop - start) // step
+        if isinstance(shape, OnnxVar):
+            shape = shape.reshape(numpy.array([-1], dtype=numpy.int64))
+        _cst = OnnxVar(shape, op=OnnxConstantOfShape, value=value)
+    else:
+        # csm = OnnxVar(_cst, step, op=OnnxMul)
+        raise NotImplementedError(  # pragma: no cover
+            "Not yet implemented.")
+
+    cs = OnnxVar(_cst, numpy.array([0], dtype=numpy.int64),
                  op=OnnxCumSum)
-    diff = start - numpy.array([step], dtype=numpy.int64)
-    return OnnxVar(cs, diff, op=OnnxAdd)
+    add = OnnxVar(cs, start, op=OnnxAdd)
+    return OnnxVar(add, step, op=OnnxSub)
 
 
 def argmax(x, axis=0, keepdims=0):
@@ -187,6 +217,9 @@ def concat(*x, axis=0):
     Operator concat, handle :epkg:`numpy:vstack` and
     :epkg:`numpy:hstack`.
     """
+    if len(x) <= 1:
+        raise RuntimeError(  # pragma: no cover
+            "N=%d<=1 elements to concatenate." % len(x))
     return OnnxVar(*x, op=OnnxConcat, axis=axis)
 
 
@@ -195,23 +228,28 @@ def cumsum(x, axis):
     return OnnxVar(x, axis, op=OnnxCumSum)
 
 
-def cst(x):
+def cst(x, dtype=None):
     """
     Creates a constant. `log(x) + numpy.float32(1)` works
     but `numpy.float32(32) + log(x)` fails because Python
     calls `numpy.float32.__add__` instead of
     `OnnxVar.__add__`. With this function, expression
-    `cst(1.) + log(x)` is valid.
+    `cst(1.) + log(x)` is valid. Parameter `dtype` is
+    used to overwrite the default dtype (`numpy.float32`
+    for floats and `numpy.int64` for ints.
     """
     if isinstance(x, float):
-        return OnnxVar(numpy.array([x], dtype=numpy.float32),
+        return OnnxVar(numpy.array([x], dtype=dtype or numpy.float32),
                        op=OnnxIdentity)
     if isinstance(x, int):
-        return OnnxVar(numpy.array([x], dtype=numpy.int64),
+        return OnnxVar(numpy.array([x], dtype=dtype or numpy.int64),
                        op=OnnxIdentity)
     if isinstance(x, numpy.ndarray):
         return OnnxVar(x, op=OnnxIdentity)
     if hasattr(x, 'dtype'):
+        if dtype is not None:
+            raise RuntimeError(
+                "dtype is not used because x is of type %r." % type(x))
         return OnnxVar(numpy.array([x], dtype=x.dtype),
                        op=OnnxIdentity)
     raise NotImplementedError(
@@ -272,6 +310,9 @@ def floor(x):
 
 def hstack(*x):
     "See :epkg:`numpy:hstack`."
+    if len(x) <= 1:
+        raise RuntimeError(  # pragma: no cover
+            "N=%d<=1 elements to concatenate." % len(x))
     return OnnxVar(*x, op=OnnxConcat, axis=-1)
 
 
@@ -401,11 +442,16 @@ def transpose(x, perm=(1, 0)):
 
 def unsqueeze(x, axes):
     "See :epkg:`numpy:expand_dims`."
+    if isinstance(axes, int):
+        axes = numpy.array([axes], dtype=numpy.int64)
     return OnnxVar(x, axes, op=OnnxUnsqueeze)
 
 
 def vstack(*x):
     "See :epkg:`numpy:vstack`."
+    if len(x) <= 1:
+        raise RuntimeError(  # pragma: no cover
+            "N=%d<=1 elements to concatenate." % len(x))
     return OnnxVar(*x, op=OnnxConcat, axis=0)
 
 

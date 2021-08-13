@@ -31,7 +31,11 @@ class SliceCommon(OpRun):
                 slices = [slice(0, a) for a in data.shape]
                 for s, e, a, d in zip(starts, ends, axes, steps):
                     slices[a] = slice(s, e, d)
-        return (data[tuple(slices)], )
+        try:
+            return (data[tuple(slices)], )
+        except TypeError as e:
+            raise TypeError(  # pragma: no cover
+                "Unable to extract slice %r for shape %r." % (slices, data.shape)) from e
 
     def _infer_shapes(self, data, starts, ends, axes=None, steps=None):  # pylint: disable=W0221
         pref = str(hex(id(self))[2:])

@@ -195,7 +195,10 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                 value_info.name = name
             else:
                 shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
-                shape = [None if s == 0 else s for s in shape]
+                if len(shape) == 0:
+                    shape = None
+                else:
+                    shape = [None if s == 0 else s for s in shape]
                 value_info = helper.make_tensor_value_info(
                     name, proto_dtype, shape)
         else:
@@ -218,7 +221,10 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                 value_info.name = name
             else:
                 shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
-                shape = [None if s == 0 else s for s in shape]
+                if len(shape) == 0:
+                    shape = None
+                else:
+                    shape = [None if s == 0 else s for s in shape]
                 value_info = helper.make_tensor_value_info(
                     name, proto_dtype, shape)
         else:
@@ -250,4 +256,39 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
         op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
         op_set.domain = oimp.domain
         op_set.version = oimp.version
+    return onnx_model
+
+
+def overwrite_opset(model, new_opset):
+    """
+    Overwrites the main opset in an ONNX file.
+    Does not change any node definition.
+
+    :param model: ONNX model
+    :param new_opset: new opset
+    :return: ONNX model
+    """
+    graph = helper.make_graph(
+        model.graph.node, model.graph.name, model.graph.input,
+        model.graph.output, model.graph.initializer)
+    onnx_model = helper.make_model(graph)
+    onnx_model.ir_version = model.ir_version
+    onnx_model.producer_name = model.producer_name
+    onnx_model.producer_version = model.producer_version
+    onnx_model.domain = model.domain
+    onnx_model.model_version = model.model_version
+    onnx_model.doc_string = model.doc_string
+    if len(model.metadata_props) > 0:  # pragma: no cover
+        values = {p.key: p.value for p in model.metadata_props}
+        helper.set_model_props(onnx_model, values)
+
+    del onnx_model.opset_import[:]  # pylint: disable=E1101
+    for oimp in model.opset_import:
+        op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
+        if oimp.domain == '':
+            op_set.domain = oimp.domain
+            op_set.version = new_opset
+        else:
+            op_set.domain = oimp.domain
+            op_set.version = oimp.version
     return onnx_model

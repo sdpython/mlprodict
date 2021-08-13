@@ -11,8 +11,8 @@ jobs:
 
       - restore_cache:
           keys:
-          - v2-dependencies-{{ checksum "requirements.txt" }}
-          - v2-dependencies-
+          - v3-dependencies-{{ checksum "requirements.txt" }}
+          - v3-dependencies-
 
 #       - run:
 #           name: Install omp
@@ -77,7 +77,6 @@ jobs:
       - run:
           name: Install numba, llvmlite
           command: |
-            python -m venv venv
             . venv/bin/activate
             # export LLVM_CONFIG=/usr/local/opt/llvm/bin/llvm-config
             sudo ln -s /usr/bin/llvm-config-10 /usr/bin/llvm-config
@@ -100,19 +99,17 @@ jobs:
       - run:
           name: install dependencies (2)
           command: |
-            python3 -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
 
       - save_cache:
           paths:
             - ./venv
-          key: v2-dependencies-{{ checksum "requirements.txt" }}
+          key: v3-dependencies-{{ checksum "requirements.txt" }}
         
       - run:
-          name: check list of dependencies
+          name: check list of dependencies + pip freeze
           command: |
-            python -m venv venv
             . venv/bin/activate
             pip freeze
             apt list --installed
@@ -127,6 +124,7 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
+            python -c "import skl2onnx;print('skl2onnx.__version__')"
             python setup.py unittests -d 15 -g ".*((LONG)|(SKIP)|(notebooks)).*"
           # Some tests take for ever, cutting the list.
 

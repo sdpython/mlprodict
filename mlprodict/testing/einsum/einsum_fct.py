@@ -46,6 +46,7 @@ class CachedEinsum:
     :param verbose: displays progress information
 
     The class creates the following attributes:
+
     * `equation_` corresponding to the best equivalent equation
     * `graph_`: the corresponding graph returned by function
         :func:`decompose_einsum_equation
@@ -344,11 +345,86 @@ def _einsum(equation, dtype, optimize=False, runtime="batch_dot",
     return cached
 
 
+def optimize_decompose_einsum_equation(
+        equation, dtype, optimize=False, runtime="batch_dot",
+        cache=True, opset=None, decompose=True, strategy=None,
+        verbose=None):
+    """
+    Proposes a new implementation of :epkg:`numpy:einsum`.
+    It does not allow expresion using `...` and expects
+    a right member.
+
+    :param equation: einsum equation
+    :param optimize: permutes all letters to find the best
+        permutation
+    :param runtime: runtime used to compute the results once the
+        computation graph is produced (see below)
+    :param cache: if True, the function stores the preprocessing
+        done for a specific equation, the second call with the same
+        equation is much faster
+    :param opset: ONNX opset to use for some runtimes
+    :param decompose: by default, the function decomposes
+        the equation into more simple operators but it can keep
+        the original ONNX einsum operator.
+    :param strategy: optimisation strategy (see below)
+    :param verbose: display progress if optimize is True
+    :return: einsum result
+
+    The available runtimes are:
+
+    * `batch_dot`: the runtime is @see fn apply_einsum_sequence,
+    * `python`: one ONNX graph executed with a python runtime,
+    * `onnxruntime1`: one ONNX graph executed with :epkg:`onnxruntime`.
+
+    The optimisation strategy can be:
+
+    * `None`: the same runtime is used to find the best permutation of letters
+    * `'ml'`: a machine learned model is used to predict the
+        best permutation of letters, this model comes from
+        notebook :ref:`onnxoperatorcostrst`.
+
+    The function works in two steps:
+
+    * first step analyses the equation to produce a computation graph,
+      this graph can also be converted into ONNX,
+    * second step runs the graph whatever the graph is.
+
+    The function returns an object of type @see cl CachedEinsum
+    which has the following members after optimization:
+
+    * `equation_` corresponding to the best equivalent equation
+    * `graph_`: the corresponding graph returned by function
+        :func:`decompose_einsum_equation
+        <mlprodict.testing.einsum.einsum_impl.decompose_einsum_equation> `
+    * `onnx_`: if a conversion to onnx is used, stores the onnx graph
+    * `runtime_`: a function used by `__call__`, calls the runtime
+    * `oinf_`: an object of type @see cl OnnxInference
+    * `timed_permutations_`: memorizes the results of the optimization
+
+    .. runpython::
+        :showcode:
+
+        import numpy
+        from mlprodict.testing.einsum import optimize_decompose_einsum_equation
+
+        seq_opt = optimize_decompose_einsum_equation(
+            "bsnh,btnh->bnts", numpy.float64, strategy='ml', verbose=1,
+            runtime="python", optimize=True)
+
+        print("best equation:", seq_opt.equation_)
+
+    """
+    res = _einsum(equation, dtype, optimize=optimize, runtime=runtime,
+                  cache=cache, opset=opset, decompose=decompose,
+                  strategy=strategy, verbose=verbose)
+    return res
+
+
 def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
            cache=True, opset=None, decompose=True,
            strategy=None, verbose=None):
     """
-    Proposes a new implementatino of :epkg:`numpy:einsum`.
+    Proposes a new implementation of :epkg:`numpy:einsum`.
     It does not allow expresion using `...` and expects
     a right member.
 
@@ -370,21 +446,26 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
     :return: einsum result
 
     The available runtimes are:
+
     * `batch_dot`: the runtime is @see fn apply_einsum_sequence,
     * `python`: one ONNX graph executed with a python runtime,
     * `onnxruntime1`: one ONNX graph executed with :epkg:`onnxruntime`.
 
     The optimisation strategy can be:
+
     * `None`: the same runtime is used to find the best permutation of letters
     * `'ml'`: a machine learned model is used to predict the
         best permutation of letters, this model comes from
         notebook :ref:`onnxoperatorcostrst`.
 
     The function works in two steps:
+
     * first step analyses the equation to produce a computation graph,
       this graph can also be converted into ONNX,
     * second step runs the graph whatever the graph is.
 
+    Further details are available in the documentation of function
+    @see fn optimize_decompose_einsum_equation.
     The function works the same way as :epkg:`numpy:einsum`:
 
     .. runpython::
@@ -540,7 +621,8 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
             "All inputs do not have the same type (%r), "
             "all of them should be cast before called einsum."
             "" % dtypes)
-    cached = _einsum(equation, inputs[0].dtype, optimize=optimize,
-                     runtime=runtime, cache=cache, opset=opset,
-                     decompose=decompose, strategy=strategy, verbose=verbose)
+    cached = optimize_decompose_einsum_equation(
+        equation, inputs[0].dtype, optimize=optimize,
+        runtime=runtime, cache=cache, opset=opset,
+        decompose=decompose, strategy=strategy, verbose=verbose)
     return cached(*inputs)

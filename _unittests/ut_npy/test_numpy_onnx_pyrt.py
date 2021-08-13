@@ -96,12 +96,13 @@ class TestNumpyOnnxFunction(ExtTestCase):
                 self.common_test1(x, numpy.amin, nxnpy.amin, sig, **kw)
 
     def test_arange_float32(self):
-        kwargs = [{}, {'step': 1}]
+        kwargs = [{}, {'step': 1}, {'step': 3}]
         for kw in kwargs:
             with self.subTest(kw=kw):
                 begin = numpy.array([5], dtype=numpy.int64)
-                stop = numpy.array([10 * kw.get('step', 1)], dtype=numpy.int64)
-                sig = FctVersion((numpy.int64, numpy.int64), (1, ))
+                stop = numpy.array([20], dtype=numpy.int64)
+                sig = FctVersion((numpy.int64, numpy.int64),
+                                 (kw.get('step', 1), ))
                 self.common_testn(
                     (begin, stop), numpy.arange, nxnpy.arange, sig, **kw)
 

@@ -21,6 +21,8 @@ Accessor
 Export
 ++++++
 
+.. autosignature:: mlprodict.onnx_tools.onnx_export.export2numpy
+
 .. autosignature:: mlprodict.onnx_tools.onnx_export.export2onnx
 
 .. autosignature:: mlprodict.onnx_tools.onnx_export.export2tf2onnx

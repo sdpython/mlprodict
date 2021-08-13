@@ -25,7 +25,6 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxScatterElements, OnnxShape, OnnxSize, OnnxSlice,
     OnnxSqueeze, OnnxSub,
     OnnxTopK, OnnxTranspose,
-    OnnxUnsqueeze,
     OnnxWhere)
 from skl2onnx.algebra.onnx_operator import OnnxOperatorItem
 from skl2onnx.common.data_types import _guess_numpy_type
@@ -373,6 +372,7 @@ class OnnxVar:
     def __getitem__(self, index):
         """
         Deals with multiple scenarios.
+
         * *index* is an integer or a slice, a tuple of integers and slices,
           example: `[0, 1]`, `[:5, :6]`, `[::2]` (**scenario 1**)
         * *index* is an *ONNX* object (more precisely an instance of
@@ -444,6 +444,8 @@ class OnnxVar:
                 steps.append(step)
                 if isinstance(end, tuple):
                     needs_shape.append(len(ends) - 1)
+                elif isinstance(end, OnnxVar):
+                    needs_shape.append(end)
                 continue
             raise NotImplementedError(  # pragma: no cover
                 "Not implemented for type %r." % type(ind))
@@ -462,14 +464,20 @@ class OnnxVar:
             for e in ends:
                 if isinstance(e, tuple):
                     conc.append(
-                        OnnxVar(shape[e[1]],
-                                numpy.array([0], dtype=numpy.int64),
-                                op=OnnxUnsqueeze))
+                        OnnxVar(shape, numpy.array([e[1]], numpy.int64),
+                                op=OnnxGather))
+                elif isinstance(e, OnnxVar):
+                    conc.append(
+                        e.reshape(numpy.array([-1], dtype=numpy.int64)))
                 else:
                     conc.append(numpy.array([e], dtype=numpy.int64))
-            ends = OnnxVar(*conc, op=OnnxConcat, axis=0)
+            if len(conc) > 1:
+                ends = OnnxVar(*conc, op=OnnxConcat, axis=0)
+            else:
+                ends = conc[0]
         else:
             ends = numpy.array(ends, dtype=numpy.int64)
+
         if steps is None:
             sliced = OnnxVar(self, starts, ends, axes, op=OnnxSlice)
         else:
@@ -483,6 +491,7 @@ class OnnxVar:
     def __setitem__(self, index, value):
         """
         Only supports vectors (1D tensor).
+
         * *index* is an integer or a slice, a tuple of integers and slices,
           example: `[0]`, `[:5]`, `[::2]` (**scenario 1**)
         * *index* is an *ONNX* object (more precisely an instance of

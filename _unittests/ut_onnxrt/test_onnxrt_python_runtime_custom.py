@@ -7,6 +7,8 @@ import numpy
 from scipy.linalg import solve
 from scipy.spatial.distance import cdist
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper import compare_module_version
+import skl2onnx
 from skl2onnx.algebra.custom_ops import (  # pylint: disable=E0611
     OnnxCDist, OnnxSolve)
 from mlprodict.onnx_conv.onnx_ops import (
@@ -67,6 +69,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     tolerance=1e-6)
         python_tested.append(OnnxCDist)
 
+    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") <= 0,
+                     reason="Missing complex support.")
     def test_onnxt_runtime_complex_abs(self):
         for dtype in [numpy.complex64, numpy.complex128]:
             with self.subTest(dtype=dtype):
@@ -89,6 +93,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     oinfpy, {'X': X}, tolerance=1e-6)
                 python_tested.append(OnnxComplexAbs)
 
+    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") <= 0,
+                     reason="Missing complex support.")
     def test_onnxt_runtime_fft(self):
         for dim in [1, 2]:
             for axis in [-1, 0, 1]:
@@ -148,6 +154,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                         tolerance=1e-5)
                     python_tested.append(OnnxFFT)
 
+    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") <= 0,
+                     reason="Missing complex support.")
     def test_onnxt_runtime_rfft(self):
         for dim in [1, 2]:
             for axis in [-1, 0, 1]:
@@ -192,9 +200,14 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     onx = OnnxRFFT('X', numpy.array([8], dtype=numpy.int64),
                                    output_names=['Y'], axis=axis,
                                    op_version=get_opset_number_from_onnx())
-                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                            outputs={'Y': Y},
-                                            target_opset=get_opset_number_from_onnx())
+                    try:
+                        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                                outputs={'Y': Y},
+                                                target_opset=get_opset_number_from_onnx())
+                    except NotImplementedError as e:
+                        raise AssertionError(
+                            "Unable to convert due to %r (version=%r)." % (
+                                e, skl2onnx.__version__)) from e
                     oinf = OnnxInference(model_def)
                     got = oinf.run({'X': X})
                     self.assertEqual(list(sorted(got)), ['Y'])
@@ -207,6 +220,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                         tolerance=1e-5)
                     python_tested.append(OnnxRFFT)
 
+    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") <= 0,
+                     reason="Missing complex support.")
     def test_onnxt_runtime_fft2d(self):
         for dim in [2]:
             for axis in [None, (-2, -1)]:

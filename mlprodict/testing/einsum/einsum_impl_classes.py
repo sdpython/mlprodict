@@ -596,6 +596,7 @@ class EinsumSubOp:
         :return: output
 
         Known additional paramaters:
+
         * 'matmul_impl': if None calls :epkg:`numpy:einsum` through
           @see fn numpy_extended_dot (default) or 'py' to call
           @see fn numpy_extended_dot_python instead.
@@ -980,6 +981,7 @@ class EinsumSubOp:
     def get_dot_kind(self):
         """
         Every matrix multiplication can be either:
+
         * a simple multiplication (`M`) (undetected)
         * a 2D matrix multiplication (`11`)
         * a broadcasted matrix multiplication (`N1` or `1N`)
