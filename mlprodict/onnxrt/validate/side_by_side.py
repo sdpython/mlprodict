@@ -107,11 +107,8 @@ def side_by_side_by_values(sessions, *args, inputs=None,
                 if j == 0:
                     row['v[%d]' % j] = 0
                 elif res_row[0] is not None and r is not None:
-                    if metric == 'rel-diff':
-                        v = measure_relative_difference(res_row[0], r)
-                    else:
-                        v = measure_relative_difference(
-                            res_row[0], r, abs_diff=True)
+                    v = measure_relative_difference(
+                        res_row[0], r, abs_diff=metric == 'abs-diff')
                     row['v[%d]' % j] = v
                     vals.append(v)
 

@@ -220,6 +220,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                         tolerance=1e-5)
                     python_tested.append(OnnxRFFT)
 
+    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") <= 0,
+                     reason="Missing complex support.")
     def test_onnxt_runtime_fft2d(self):
         for dim in [2]:
             for axis in [None, (-2, -1)]:

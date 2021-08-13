@@ -8,7 +8,7 @@ import numpy
 import pandas
 
 
-def measure_relative_difference(skl_pred, ort_pred, batch=True, abs_diff=True):
+def measure_relative_difference(skl_pred, ort_pred, batch=True, abs_diff=False):
     """
     Measures the relative difference between predictions
     between two ways of computing them.
