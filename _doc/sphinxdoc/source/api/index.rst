@@ -37,6 +37,11 @@ This was a first experiment to play with machine learning:
 convert a model into :epkg:`C` code. A similar way than
 :epkg:`ONNX` but far less advanced.
 
+.. toctree::
+    :maxdepth: 1
+
+    cc_grammar
+
 .. runpython::
     :showcode:
     :warningout: DeprecationWarning
@@ -59,9 +64,3 @@ convert a model into :epkg:`C` code. A similar way than
     ccode = gr.export(lang='c')
     # We print after a little bit of cleaning (remove all comments)
     print("\n".join(_ for _ in ccode['code'].split("\n") if "//" not in _))
-
-.. toctree::
-    :maxdepth: 1
-
-    cc_grammar
-    sklearn

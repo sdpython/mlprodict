@@ -8,7 +8,7 @@ Experimental implementations
 Helpers
 +++++++
 
-.. autosignature:: mlprodict.testing.experimental.code_optimisation
+.. autosignature:: mlprodict.testing.experimental_c.code_optimisation
 
 Implementation of ONNX operators
 ++++++++++++++++++++++++++++++++
@@ -21,6 +21,8 @@ Einsum
 .. autosignature:: mlprodict.testing.einsum.einsum_fct.einsum
 
 .. autosignature:: mlprodict.testing.einsum.einsum_fct.CachedEinsum
+
+.. autosignature:: mlprodict.testing.einsum.einsum_fct.optimize_decompose_einsum_equation
 
 .. autosignature:: mlprodict.testing.einsum.einsum_impl.analyse_einsum_equation
 

@@ -16,7 +16,8 @@ from ..tools.graphs import onnx2bigraph
 class OnnxInferenceExport:
     """
     Implements methods to export a instance of
-    @see cl OnnxInference into :epkg:`json` or :epkg:`dot`.
+    @see cl OnnxInference into :epkg:`json`, :epkg:`dot`,
+    *text*, *python*.
     """
 
     def __init__(self, oinf):

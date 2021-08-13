@@ -30,7 +30,7 @@ Export
 Graphs
 ++++++
 
-Functions to help understand models.
+Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.tools.model_info.analyze_model
 
@@ -82,12 +82,22 @@ Serialization
 Runtime
 =======
 
+.. autosignature:: mlprodict.onnxrt.onnx_inference.OnnxInference
+
 .. autosignature:: mlprodict.tools.onnx_micro_runtime.OnnxMicroRuntime
 
 Validation
 ++++++++++
 
+.. autosignature:: mlprodict.onnxrt.validate.validate.enumerate_validated_operator_opsets
+
 .. autosignature:: mlprodict.onnx_tools.model_checker.onnx_shaker
+
+.. autosignature:: mlprodict.onnxrt.validate.side_by_side.side_by_side_by_values
+
+.. autosignature:: mlprodict.onnxrt.validate.validate_summary.summary_report
+
+.. autosignature:: mlprodict.onnxrt.validate.validate_graph.plot_validate_benchmark
 
 Visualization
 +++++++++++++
@@ -97,6 +107,8 @@ a graph in a text editor. That's the goal of this function with
 the possibility later to only show a part of a graph.
 
 .. autosignature:: mlprodict.onnx_tools.graphs.onnx2bigraph
+
+:ref:`onnxview <l-NB2>`
 
 Others
 ======
@@ -114,6 +126,11 @@ Plotting
 .. autosignature:: mlprodict.onnxrt.doc.nb_helper.onnxview
 
 .. autosignature:: mlprodict.plotting.plotting_validate_graph.plot_validate_benchmark
+
+scikit-learn
+++++++++++++
+
+.. autosignature:: mlprodict.grammar_sklearn.g_sklearn_main.sklearn2graph
 
 Versions
 ++++++++

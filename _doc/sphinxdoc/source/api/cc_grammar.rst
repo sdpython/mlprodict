@@ -1,5 +1,5 @@
 
-Formet Experiments
+Former Experiments
 ==================
 
 .. contents::
