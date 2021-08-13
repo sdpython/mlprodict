@@ -16,6 +16,7 @@
 
     .. runpython::
         :showcode:
+        :process:
 
         import numpy
         from mlprodict.testing.einsum import decompose_einsum_equation
@@ -37,6 +38,7 @@
 
     .. runpython::
         :showcode:
+        :process:
 
         import numpy
         from mlprodict.onnx_tools.onnx_export import export2numpy
@@ -56,6 +58,7 @@
 
     .. runpython::
         :showcode:
+        :process:
 
         import pprint
         import numpy
