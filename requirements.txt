@@ -36,7 +36,7 @@ pyensae
 py-cpuinfo
 pyinstrument
 pylint>=2.6.0
-pyquickhelper>=1.10
+pyquickhelper>=1.10.3626
 pyquicksetup
 sphinx
 sphinxcontrib.blockdiag
