@@ -10,6 +10,16 @@ import numpy
 import onnx
 
 
+def make_hash_bytes(data, length=20):
+    """
+    Creates a hash of length *length*.
+    """
+    m = hashlib.sha256()
+    m.update(data)
+    res = m.hexdigest()[:length]
+    return res
+
+
 class AdjacencyGraphDisplay:
     """
     Structure which contains the necessary information to
@@ -145,6 +155,20 @@ class BiGraph:
 
         def __repr__(self):
             return "A(%r)" % self.kind
+
+    class B:
+        "Additional information for a vertex or an edge."
+
+        def __init__(self, name, content, onnx_name):
+            if not isinstance(content, str):
+                raise TypeError(  # pragma: no cover
+                    "content must be str not %r." % type(content))
+            self.name = name
+            self.content = content
+            self.onnx_name = onnx_name
+
+        def __repr__(self):
+            return "B(%r, %r, %r)" % (self.name, self.content, self.onnx_name)
 
     def __init__(self, v0, v1, edges):
         """
@@ -328,15 +352,227 @@ class BiGraph:
 
         return graph
 
+    def order(self):
+        """
+        Order nodes. Depth first.
+        Returns a sequence of keys of mixed *v1*, *v2*.
+        """
+        # Creates forwards nodes.
+        forwards = {}
+        backwards = {}
+        for k in self.v0:
+            forwards[k] = []
+            backwards[k] = []
+        for k in self.v1:
+            forwards[k] = []
+            backwards[k] = []
+        modif = True
+        while modif:
+            modif = False
+            for edge in self.edges:
+                a, b = edge
+                if b not in forwards[a]:
+                    forwards[a].append(b)
+                    modif = True
+                if a not in backwards[b]:
+                    backwards[b].append(a)
+                    modif = True
 
-def onnx2bigraph(model_onnx, recursive=False):
+        # roots
+        roots = [b for b, backs in backwards.items() if len(backs) == 0]
+        if len(roots) == 0:
+            raise RuntimeError(  # pragma: no cover
+                "This graph has cycles. Not allowed.")
+
+        # ordering
+        order = {}
+        stack = roots
+        while len(stack) > 0:
+            node = stack.pop()
+            order[node] = len(order)
+            w = forwards[node]
+            if len(w) == 0:
+                continue
+            last = w.pop()
+            stack.append(last)
+
+        return order
+
+    def summarize(self):
+        """
+        Creates a text summary of the graph.
+        """
+        order = self.order()
+        keys = [(o, k) for k, o in order.items()]
+        keys.sort()
+        
+        rows = []
+        for o, k in keys:
+            if k in self.v1:
+                rows.append(str(self.v1[k]))
+        return "\n".join(rows)
+        
+    @staticmethod
+    def _onnx2bigraph_basic(model_onnx, recursive=False):
+        """
+        Implements graph type `'basic'` for function
+        @see fn onnx2bigraph.
+        """
+
+        if recursive:
+            raise NotImplementedError(  # pragma: no cover
+                "Option recursive=True is not implemented yet.")
+        v0 = {}
+        v1 = {}
+        edges = {}
+
+        # inputs
+        for i, o in enumerate(model_onnx.graph.input):
+            v0[o.name] = BiGraph.A('Input-%d' % i)
+        for i, o in enumerate(model_onnx.graph.output):
+            v0[o.name] = BiGraph.A('Output-%d' % i)
+        for o in model_onnx.graph.initializer:
+            v0[o.name] = BiGraph.A('Init')
+        for n in model_onnx.graph.node:
+            nname = n.name if len(n.name) > 0 else "id%d" % id(n)
+            v1[nname] = BiGraph.A(n.op_type)
+            for i, o in enumerate(n.input):
+                c = str(i) if i < 10 else "+"
+                nname = n.name if len(n.name) > 0 else "id%d" % id(n)
+                edges[o, nname] = BiGraph.A('I%s' % c)
+            for i, o in enumerate(n.output):
+                c = str(i) if i < 10 else "+"
+                if o not in v0:
+                    v0[o] = BiGraph.A('inout')
+                nname = n.name if len(n.name) > 0 else "id%d" % id(n)
+                edges[nname, o] = BiGraph.A('O%s' % c)
+
+        return BiGraph(v0, v1, edges)
+
+    @staticmethod
+    def _onnx2bigraph_simplified(model_onnx, recursive=False):
+        """
+        Implements graph type `'simplified'` for function
+        @see fn onnx2bigraph.
+        """
+        if recursive:
+            raise NotImplementedError(  # pragma: no cover
+                "Option recursive=True is not implemented yet.")
+        v0 = {}
+        v1 = {}
+        edges = {}
+
+        # inputs
+        for i, o in enumerate(model_onnx.graph.input):
+            v0["I%d" % len(v0)] = BiGraph.B(
+                'In', make_hash_bytes(o.type.SerializeToString(), 2), o.name)
+        for i, o in enumerate(model_onnx.graph.output):
+            v0["O%d" % len(v0)] = BiGraph.B(
+                'Ou', make_hash_bytes(o.type.SerializeToString(), 2), o.name)
+        for o in model_onnx.graph.initializer:
+            v0["C%d" % len(v0)] = BiGraph.B(
+                'Cs', make_hash_bytes(o.raw_data, 10), o.name)
+
+        names_v0 = {v.onnx_name: k for k, v in v0.items()}
+
+        for n in model_onnx.graph.node:
+            key_node = "N%d" % len(v1)
+            if len(n.attribute) > 0:
+                ats = []
+                for at in n.attribute:
+                    ats.append(at.SerializeToString())
+                ct = make_hash_bytes(b"".join(ats), 10)
+            else:
+                ct = ""
+            v1[key_node] = BiGraph.B(
+                n.op_type, ct, n.name)
+            for i, o in enumerate(n.input):
+                key_in = names_v0[o]
+                edges[key_in, key_node] = BiGraph.A('I')
+            for i, o in enumerate(n.output):
+                if o not in names_v0:
+                    key = "R%d" % len(v0)
+                    v0[key] = BiGraph.B(
+                        'Re', n.op_type, o)
+                    names_v0[o] = key
+                edges[key_node, key] = BiGraph.A('O')
+
+        return BiGraph(v0, v1, edges)
+
+    @staticmethod
+    def onnx_graph_distance(onx1, onx2, verbose=0, fLOG=print):
+        """
+        Computes a distance between two ONNX graphs. They must not
+        be too big otherwise this function might take for ever.
+        The function relies on package :epkg:`mlstatpy`.
+
+        :param onx1: first graph (ONNX graph or model file name)
+        :param onx2: second graph (ONNX graph or model file name)
+        :param verbose: verbosity
+        :param fLOG: logging function
+        :return: distance and differences
+
+        .. warning::
+
+            This is very experimental and very slow.
+
+        .. versionadded:: 0.7
+        """
+        from mlstatpy.graph.graph_distance import GraphDistance
+
+        if isinstance(onx1, str):
+            onx1 = onnx.load(onx1)
+        if isinstance(onx2, str):
+            onx2 = onnx.load(onx2)
+
+        def make_hash(init):
+            return make_hash_bytes(init.raw_data)
+
+        def build_graph(onx):
+            edges = []
+            labels = {}
+            for node in onx.graph.node:
+                if len(node.name) == 0:
+                    name = str(id(node))
+                else:
+                    name = node.name
+                for i in node.input:
+                    edges.append((i, name))
+                for p, i in enumerate(node.output):
+                    edges.append((name, i))
+                    labels[i] = "%s:%d" % (node.op_type, p)
+                labels[name] = node.op_type
+            for init in onx.graph.initializer:
+                labels[init.name] = make_hash(init)
+
+            g = GraphDistance(edges, vertex_label=labels)
+            return g
+
+        g1 = build_graph(onx1)
+        g2 = build_graph(onx2)
+
+        dist, gdist = g1.distance_matching_graphs_paths(
+            g2, verbose=verbose, fLOG=fLOG, use_min=False)
+        return dist, gdist
+
+
+def onnx2bigraph(model_onnx, recursive=False, graph_type='basic'):
     """
     Converts an ONNX graph into a graph representation,
     edges, vertices.
 
     :param model_onnx: ONNX graph
     :param recursive: dig into subgraphs too
+    :param graph_type: kind of graph it creates
     :return: see @cl BiGraph
+
+    About *graph_type*:
+    
+    * `'basic'`: basic graph structure, it returns an instance
+        of type @see cl BiGraph. The structure keeps the original
+        names.
+    * `'simplified'`: simplifed graph structure, names are removed
+        as they could be prevent the algorithm to find any matching.
 
     .. exref::
         :title: Displays an ONNX graph as text
@@ -369,35 +605,14 @@ def onnx2bigraph(model_onnx, recursive=False):
 
     .. versionadded:: 0.7
     """
-    if recursive:
-        raise NotImplementedError(  # pragma: no cover
-            "Option recursive=True is not implemented yet.")
-    v0 = {}
-    v1 = {}
-    edges = {}
-
-    # inputs
-    for i, o in enumerate(model_onnx.graph.input):
-        v0[o.name] = BiGraph.A('Input-%d' % i)
-    for i, o in enumerate(model_onnx.graph.output):
-        v0[o.name] = BiGraph.A('Output-%d' % i)
-    for o in model_onnx.graph.initializer:
-        v0[o.name] = BiGraph.A('Init')
-    for n in model_onnx.graph.node:
-        nname = n.name if len(n.name) > 0 else "id%d" % id(n)
-        v1[nname] = BiGraph.A(n.op_type)
-        for i, o in enumerate(n.input):
-            c = str(i) if i < 10 else "+"
-            nname = n.name if len(n.name) > 0 else "id%d" % id(n)
-            edges[o, nname] = BiGraph.A('I%s' % c)
-        for i, o in enumerate(n.output):
-            c = str(i) if i < 10 else "+"
-            if o not in v0:
-                v0[o] = BiGraph.A('inout')
-            nname = n.name if len(n.name) > 0 else "id%d" % id(n)
-            edges[nname, o] = BiGraph.A('O%s' % c)
-
-    return BiGraph(v0, v1, edges)
+    if graph_type == 'basic':
+        return BiGraph._onnx2bigraph_basic(
+            model_onnx, recursive=recursive)
+    if graph_type == 'simplified':
+        return BiGraph._onnx2bigraph_simplified(
+            model_onnx, recursive=recursive)
+    raise ValueError(
+        "Unknown value for graph_type=%r." % graph_type)
 
 
 def onnx_graph_distance(onx1, onx2, verbose=0, fLOG=print):
@@ -406,50 +621,16 @@ def onnx_graph_distance(onx1, onx2, verbose=0, fLOG=print):
     be too big otherwise this function might take for ever.
     The function relies on package :epkg:`mlstatpy`.
 
-
     :param onx1: first graph (ONNX graph or model file name)
     :param onx2: second graph (ONNX graph or model file name)
     :param verbose: verbosity
     :param fLOG: logging function
     :return: distance and differences
 
+    .. warning::
+
+        This is very experimental and very slow.
+
     .. versionadded:: 0.7
     """
-    from mlstatpy.graph.graph_distance import GraphDistance
-
-    if isinstance(onx1, str):
-        onx1 = onnx.load(onx1)
-    if isinstance(onx2, str):
-        onx2 = onnx.load(onx2)
-
-    def make_hash(init):
-        m = hashlib.sha256()
-        m.update(init.raw_data)
-        return m.hexdigest()[:20]
-
-    def build_graph(onx):
-        edges = []
-        labels = {}
-        for node in onx.graph.node:
-            if len(node.name) == 0:
-                name = str(id(node))
-            else:
-                name = node.name
-            for i in node.input:
-                edges.append((i, name))
-            for p, i in enumerate(node.output):
-                edges.append((name, i))
-                labels[i] = "%s:%d" % (node.op_type, p)
-            labels[name] = node.op_type
-        for init in onx.graph.initializer:
-            labels[init.name] = make_hash(init)
-
-        g = GraphDistance(edges, vertex_label=labels)
-        return g
-
-    g1 = build_graph(onx1)
-    g2 = build_graph(onx2)
-
-    dist, gdist = g1.distance_matching_graphs_paths(
-        g2, verbose=verbose, fLOG=fLOG, use_min=False)
-    return dist, gdist
+    return BiGraph.onnx_graph_distance(onx1, onx2, verbose=verbose, fLOG=fLOG)

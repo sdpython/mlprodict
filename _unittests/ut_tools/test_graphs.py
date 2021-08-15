@@ -106,6 +106,17 @@ class TestGraphs(ExtTestCase):
         text = oinf.to_text(distance=8)
         self.assertIn("slice_end", text)
 
+    def test_pipe_graph_simplified(self):
+        model = self.fit(
+            make_pipeline(StandardScaler(), LogisticRegression()))
+        onx = to_onnx(model, numpy.zeros((3, 4), dtype=numpy.float64))
+        bigraph = onnx2bigraph(onx, graph_type='simplified')
+        text = str(bigraph)
+        self.assertEqual(text, "BiGraph(19 v., 12 v., 30 edges)")
+        disp = bigraph.summarize()
+        self.assertIn("B('Cast', '042434366f', 'Cast1')", disp)
+        self.assertIn("B('Div', '', 'Di_Div'", disp)
+
 
 if __name__ == "__main__":
     unittest.main()
