@@ -35,12 +35,12 @@ class MaxPool : ConvPoolCommon {
 
         MaxPool();
         void init(const std::string &auto_pad,
-                  py::array_t<int64_t> dilations,
+                  py::array_t<int64_t, py::array::c_style | py::array::forcecast> dilations,
                   int64_t ceil_mode,
                   int64_t storage_order,
-                  py::array_t<int64_t> kernel_shape,
-                  py::array_t<int64_t> pads,
-                  py::array_t<int64_t> strides);
+                  py::array_t<int64_t, py::array::c_style | py::array::forcecast> kernel_shape,
+                  py::array_t<int64_t, py::array::c_style | py::array::forcecast> pads,
+                  py::array_t<int64_t, py::array::c_style | py::array::forcecast> strides);
 
         py::tuple compute(py::array_t<T, py::array::c_style | py::array::forcecast> X) const;
     
@@ -74,7 +74,9 @@ class MaxPool : ConvPoolCommon {
                                   int64_t pad_needed,
                                   int64_t dilation) const;
 
-        void compute_gil_free(py::array_t<T> X, py::array_t<T>& Y, py::array_t<int64_t>* I,
+        void compute_gil_free(py::array_t<T, py::array::c_style | py::array::forcecast> X,
+                              py::array_t<T, py::array::c_style | py::array::forcecast>& Y,
+                              py::array_t<int64_t, py::array::c_style | py::array::forcecast>* I,
                               const std::vector<int64_t>& kernel_shape,
                               const std::vector<int64_t>& pads,
                               const std::vector<int64_t>& strides,
@@ -93,12 +95,12 @@ MaxPool<T>::MaxPool() : ConvPoolCommon() {
 template<typename T>
 void MaxPool<T>::init(
             const std::string &auto_pad,
-            py::array_t<int64_t> dilations,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> dilations,
             int64_t ceil_mode,
             int64_t storage_order,
-            py::array_t<int64_t> kernel_shape,
-            py::array_t<int64_t> pads,
-            py::array_t<int64_t> strides) {
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> kernel_shape,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> pads,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> strides) {
     ConvPoolCommon::init(auto_pad, dilations, 0, kernel_shape, pads, strides);
     ceil_mode_ = ceil_mode;        
     storage_order_ = storage_order;        
@@ -239,8 +241,8 @@ py::tuple MaxPool<T>::compute(py::array_t<T, py::array::c_style | py::array::for
     std::vector<int64_t> output_dims = SetOutputSize(x_dims, x_dims[1], &pads, &strides,
                                                      &kernel_shape, &dilations);
 
-    py::array_t<T> Y(output_dims);
-    py::array_t<int64_t> I(output_dims);
+    py::array_t<T, py::array::c_style | py::array::forcecast> Y(output_dims);
+    py::array_t<int64_t, py::array::c_style | py::array::forcecast> I(output_dims);
     {
         py::gil_scoped_release release;
         compute_gil_free(X, Y, &I, kernel_shape, pads, strides, dilations, x_dims, output_dims);
@@ -468,7 +470,9 @@ struct MaxPool3DTask {
 
 template<typename T>
 void MaxPool<T>::compute_gil_free(
-            py::array_t<T> X, py::array_t<T>& Y, py::array_t<int64_t>* I,
+            py::array_t<T, py::array::c_style | py::array::forcecast> X,
+            py::array_t<T, py::array::c_style | py::array::forcecast>& Y,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast>* I,
             const std::vector<int64_t>& kernel_shape,
             const std::vector<int64_t>& pads,
             const std::vector<int64_t>& strides,

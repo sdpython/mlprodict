@@ -19,27 +19,27 @@ class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE> 
         ~RuntimeTreeEnsembleClassifierP();
 
         void init(
-            py::array_t<NTYPE> base_values, // 0
-            py::array_t<int64_t> class_ids, // 1
-            py::array_t<int64_t> class_nodeids, // 2
-            py::array_t<int64_t> class_treeids, // 3
-            py::array_t<NTYPE> class_weights, // 4
-            py::array_t<int64_t> classlabels_int64s, // 5
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> base_values, // 0
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> class_ids, // 1
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> class_nodeids, // 2
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> class_treeids, // 3
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> class_weights, // 4
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> classlabels_int64s, // 5
             const std::vector<std::string>& classlabels_strings, // 6
-            py::array_t<int64_t> nodes_falsenodeids, // 7
-            py::array_t<int64_t> nodes_featureids, // 8
-            py::array_t<NTYPE> nodes_hitrates, // 9
-            py::array_t<int64_t> nodes_missing_value_tracks_true, // 10
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_falsenodeids, // 7
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_featureids, // 8
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_hitrates, // 9
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_missing_value_tracks_true, // 10
             const std::vector<std::string>& nodes_modes, // 11
-            py::array_t<int64_t> nodes_nodeids, // 12
-            py::array_t<int64_t> nodes_treeids, // 13
-            py::array_t<int64_t> nodes_truenodeids, // 14
-            py::array_t<NTYPE> nodes_values, // 15
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_nodeids, // 12
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_treeids, // 13
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_truenodeids, // 14
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_values, // 15
             const std::string& post_transform // 16
             );
 
-        py::tuple compute_cl(py::array_t<NTYPE> X);
-        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> X);
+        py::tuple compute_cl(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X);
+        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X);
 };
 
 
@@ -57,22 +57,22 @@ RuntimeTreeEnsembleClassifierP<NTYPE>::~RuntimeTreeEnsembleClassifierP() {
 
 template<typename NTYPE>
 void RuntimeTreeEnsembleClassifierP<NTYPE>::init(
-            py::array_t<NTYPE> base_values, // 0
-            py::array_t<int64_t> class_ids, // 1
-            py::array_t<int64_t> class_nodeids, // 2
-            py::array_t<int64_t> class_treeids, // 3
-            py::array_t<NTYPE> class_weights, // 4
-            py::array_t<int64_t> classlabels_int64s, // 5
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> base_values, // 0
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> class_ids, // 1
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> class_nodeids, // 2
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> class_treeids, // 3
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> class_weights, // 4
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> classlabels_int64s, // 5
             const std::vector<std::string>& classlabels_strings, // 6
-            py::array_t<int64_t> nodes_falsenodeids, // 7
-            py::array_t<int64_t> nodes_featureids, // 8
-            py::array_t<NTYPE> nodes_hitrates, // 9
-            py::array_t<int64_t> nodes_missing_value_tracks_true, // 10
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_falsenodeids, // 7
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_featureids, // 8
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_hitrates, // 9
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_missing_value_tracks_true, // 10
             const std::vector<std::string>& nodes_modes, // 11
-            py::array_t<int64_t> nodes_nodeids, // 12
-            py::array_t<int64_t> nodes_treeids, // 13
-            py::array_t<int64_t> nodes_truenodeids, // 14
-            py::array_t<NTYPE> nodes_values, // 15
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_nodeids, // 12
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_treeids, // 13
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_truenodeids, // 14
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_values, // 15
             const std::string& post_transform // 16
             ) {
     RuntimeTreeEnsembleCommonP<NTYPE>::init(
@@ -99,7 +99,7 @@ void RuntimeTreeEnsembleClassifierP<NTYPE>::init(
 
 
 template<typename NTYPE>
-py::tuple RuntimeTreeEnsembleClassifierP<NTYPE>::compute_cl(py::array_t<NTYPE> X) {
+py::tuple RuntimeTreeEnsembleClassifierP<NTYPE>::compute_cl(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) {
     return this->compute_cl_agg(X, _AggregatorClassifier<NTYPE>(
                                 this->roots_.size(), this->n_targets_or_classes_,
                                 this->post_transform_, &(this->base_values_),
@@ -109,7 +109,7 @@ py::tuple RuntimeTreeEnsembleClassifierP<NTYPE>::compute_cl(py::array_t<NTYPE> X
 
 
 template<typename NTYPE>
-py::array_t<NTYPE> RuntimeTreeEnsembleClassifierP<NTYPE>::compute_tree_outputs(py::array_t<NTYPE> X) {
+py::array_t<NTYPE> RuntimeTreeEnsembleClassifierP<NTYPE>::compute_tree_outputs(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) {
     return this->compute_tree_outputs_agg(X, _AggregatorClassifier<NTYPE>(
                                           this->roots_.size(), this->n_targets_or_classes_,
                                           this->post_transform_, &(this->base_values_),

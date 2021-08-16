@@ -405,13 +405,13 @@ class BiGraph:
         order = self.order()
         keys = [(o, k) for k, o in order.items()]
         keys.sort()
-        
+
         rows = []
         for o, k in keys:
             if k in self.v1:
                 rows.append(str(self.v1[k]))
         return "\n".join(rows)
-        
+
     @staticmethod
     def _onnx2bigraph_basic(model_onnx, recursive=False):
         """
@@ -463,10 +463,10 @@ class BiGraph:
         edges = {}
 
         # inputs
-        for i, o in enumerate(model_onnx.graph.input):
+        for o in model_onnx.graph.input:
             v0["I%d" % len(v0)] = BiGraph.B(
                 'In', make_hash_bytes(o.type.SerializeToString(), 2), o.name)
-        for i, o in enumerate(model_onnx.graph.output):
+        for o in model_onnx.graph.output:
             v0["O%d" % len(v0)] = BiGraph.B(
                 'Ou', make_hash_bytes(o.type.SerializeToString(), 2), o.name)
         for o in model_onnx.graph.initializer:
@@ -567,7 +567,7 @@ def onnx2bigraph(model_onnx, recursive=False, graph_type='basic'):
     :return: see @cl BiGraph
 
     About *graph_type*:
-    
+
     * `'basic'`: basic graph structure, it returns an instance
         of type @see cl BiGraph. The structure keeps the original
         names.

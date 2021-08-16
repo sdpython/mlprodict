@@ -17,24 +17,25 @@ class RuntimeSVMRegressor : public RuntimeSVMCommon<NTYPE>
         ~RuntimeSVMRegressor();
 
         void init(
-            py::array_t<NTYPE> coefficients,
-            py::array_t<NTYPE> kernel_params,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> coefficients,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> kernel_params,
             const std::string& kernel_type,
             int64_t n_supports,
             int64_t one_class,
             const std::string& post_transform,
-            py::array_t<NTYPE> rho,
-            py::array_t<NTYPE> support_vectors
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> rho,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> support_vectors
         );
         
-        py::array_t<NTYPE> compute(py::array_t<NTYPE> X) const;
+        py::array_t<NTYPE> compute(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) const;
 
     private:
 
         void Initialize();
 
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                              const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z) const;
+                              const py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& X,
+                              py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& Z) const;
 };
 
 
@@ -50,14 +51,14 @@ RuntimeSVMRegressor<NTYPE>::~RuntimeSVMRegressor() {
 
 template<typename NTYPE>
 void RuntimeSVMRegressor<NTYPE>::init(
-            py::array_t<NTYPE> coefficients,
-            py::array_t<NTYPE> kernel_params,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> coefficients,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> kernel_params,
             const std::string& kernel_type,
             int64_t n_supports,
             int64_t one_class,
             const std::string& post_transform,
-            py::array_t<NTYPE> rho,
-            py::array_t<NTYPE> support_vectors
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> rho,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> support_vectors
     ) {
     RuntimeSVMCommon<NTYPE>::init(
         coefficients, kernel_params, kernel_type,
@@ -84,7 +85,7 @@ void RuntimeSVMRegressor<NTYPE>::Initialize() {
 
 
 template<typename NTYPE>
-py::array_t<NTYPE> RuntimeSVMRegressor<NTYPE>::compute(py::array_t<NTYPE> X) const {
+py::array_t<NTYPE> RuntimeSVMRegressor<NTYPE>::compute(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) const {
     // const Tensor& X = *context->Input<Tensor>(0);
     // const TensorShape& x_shape = X.Shape();    
     std::vector<int64_t> x_dims;
@@ -95,7 +96,7 @@ py::array_t<NTYPE> RuntimeSVMRegressor<NTYPE>::compute(py::array_t<NTYPE> X) con
     int64_t stride = x_dims.size() == 1 ? x_dims[0] : x_dims[1];  
     int64_t N = x_dims.size() == 1 ? 1 : x_dims[0];
                         
-    py::array_t<NTYPE> Z(x_dims[0]); // one target only
+    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Z(x_dims[0]); // one target only
     {
         py::gil_scoped_release release;
         compute_gil_free(x_dims, N, stride, X, Z);
@@ -125,7 +126,8 @@ py::array_t<NTYPE> RuntimeSVMRegressor<NTYPE>::compute(py::array_t<NTYPE> X) con
 template<typename NTYPE>
 void RuntimeSVMRegressor<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z) const {
+                const py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& X,
+                py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& Z) const {
 
     auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
     const NTYPE* x_data = X.data(0);

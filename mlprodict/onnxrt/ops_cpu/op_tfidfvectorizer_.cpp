@@ -92,11 +92,11 @@ class RuntimeTfIdfVectorizer {
                   const std::vector<float>& weights);
         ~RuntimeTfIdfVectorizer() { }
 
-        py::array_t<float> Compute(py::array_t<int64_t> X) const;
+        py::array_t<float> Compute(py::array_t<int64_t, py::array::c_style | py::array::forcecast> X) const;
 
     private:
 
-        void ComputeImpl(const py::array_t<int64_t>& X, 
+        void ComputeImpl(const py::array_t<int64_t, py::array::c_style | py::array::forcecast>& X, 
                          ptrdiff_t row_num, size_t row_size,
                          std::vector<uint32_t>& frequencies) const;
 
@@ -225,12 +225,12 @@ void RuntimeTfIdfVectorizer::Init(
 }
 
 
-py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float>& Z) {
+py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float, py::array::c_style | py::array::forcecast>& Z) {
     return Z.mutable_unchecked<1>();
 }
 
 
-py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double>& Z) {
+py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double, py::array::c_style | py::array::forcecast>& Z) {
     return Z.mutable_unchecked<1>();
 }
 
@@ -250,7 +250,7 @@ py::array_t<float> RuntimeTfIdfVectorizer::OutputResult(
     const auto row_size = output_size_;
 
     auto total_dims = flattened_dimension(output_dims);
-    py::array_t<float> Y(total_dims);
+    py::array_t<float, py::array::c_style | py::array::forcecast> Y(total_dims);
     auto output_data_ = _mutable_unchecked1(Y);
     float* output_data = (float*)output_data_.data(0);
 
@@ -292,7 +292,8 @@ py::array_t<float> RuntimeTfIdfVectorizer::OutputResult(
 }
 
 void RuntimeTfIdfVectorizer::ComputeImpl(
-        const py::array_t<int64_t>& X, ptrdiff_t row_num, size_t row_size,
+        const py::array_t<int64_t, py::array::c_style | py::array::forcecast>& X,
+        ptrdiff_t row_num, size_t row_size,
         std::vector<uint32_t>& frequencies) const {
     const auto elem_size = sizeof(int64_t);
 
@@ -339,7 +340,7 @@ void RuntimeTfIdfVectorizer::ComputeImpl(
     }
 }
 
-py::array_t<float> RuntimeTfIdfVectorizer::Compute(py::array_t<int64_t> X) const {
+py::array_t<float> RuntimeTfIdfVectorizer::Compute(py::array_t<int64_t, py::array::c_style | py::array::forcecast> X) const {
     std::vector<int64_t> input_shape;
     arrayshape2vector(input_shape, X);
     const size_t total_items = flattened_dimension(input_shape);

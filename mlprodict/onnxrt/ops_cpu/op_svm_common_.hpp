@@ -52,12 +52,12 @@ class RuntimeSVMCommon
         RuntimeSVMCommon(int omp_N) { omp_N_ = omp_N; }
         ~RuntimeSVMCommon() { }
         
-        void init(py::array_t<NTYPE> coefficients,
-                  py::array_t<NTYPE> kernel_params,
+        void init(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> coefficients,
+                  py::array_t<NTYPE, py::array::c_style | py::array::forcecast> kernel_params,
                   const std::string& kernel_type,
                   const std::string& post_transform,
-                  py::array_t<NTYPE> rho,
-                  py::array_t<NTYPE> support_vectors);
+                  py::array_t<NTYPE, py::array::c_style | py::array::forcecast> rho,
+                  py::array_t<NTYPE, py::array::c_style | py::array::forcecast> support_vectors);
                     
 
         NTYPE kernel_dot_gil_free(
@@ -75,12 +75,12 @@ class RuntimeSVMCommon
 
 template<typename NTYPE>
 void RuntimeSVMCommon<NTYPE>::init(
-            py::array_t<NTYPE> coefficients,
-            py::array_t<NTYPE> kernel_params,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> coefficients,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> kernel_params,
             const std::string& kernel_type,
             const std::string& post_transform,
-            py::array_t<NTYPE> rho,
-            py::array_t<NTYPE> support_vectors
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> rho,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> support_vectors
     ) {
     kernel_type_ = to_KERNEL(kernel_type);
     array2vector(support_vectors_, support_vectors, NTYPE);
@@ -174,12 +174,12 @@ int RuntimeSVMCommon<NTYPE>::omp_get_max_threads() {
 #endif
 }
 
-py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float>& Z) {
+py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float, py::array::c_style | py::array::forcecast>& Z) {
     return Z.mutable_unchecked<1>();
 }
 
 
-py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double>& Z) {
+py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double, py::array::c_style | py::array::forcecast>& Z) {
     return Z.mutable_unchecked<1>();
 }
 
