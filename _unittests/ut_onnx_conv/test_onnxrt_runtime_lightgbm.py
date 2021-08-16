@@ -1,5 +1,5 @@
 """
-@brief      test log(time=3s)
+@brief      test log(time=6s)
 """
 import sys
 import unittest
@@ -199,6 +199,117 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         got = oif.run({'X': X_test})
         values = pandas.DataFrame(got['output_probability']).values
         self.assertEqualArray(exp, values[:, 1], decimal=5)
+
+    @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', 'stuck')
+    @ignore_warnings((RuntimeWarning, UserWarning))
+    def test_onnxrt_python_lightgbm_categorical_iris_booster3(self):
+        from lightgbm import LGBMClassifier, Dataset, train as lgb_train
+
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X = (X * 10).astype(numpy.int32)
+        X_train, X_test, y_train, _ = train_test_split(
+            X, y, random_state=11)
+        other_x = numpy.random.randint(
+            0, high=10, size=(1500, X_train.shape[1]))
+        X_train = numpy.vstack([X_train, other_x]).astype(dtype=numpy.int32)
+        y_train = numpy.hstack(
+            [y_train, numpy.zeros(500) + 3, numpy.zeros(500) + 4,
+             numpy.zeros(500) + 5]).astype(dtype=numpy.int32)
+        self.assertEqual(y_train.shape, (X_train.shape[0], ))
+
+        # Classic
+        gbm = LGBMClassifier()
+        gbm.fit(X_train, y_train)
+        exp = gbm.predict_proba(X_test)
+        onx = to_onnx(gbm, initial_types=[
+            ('X', Int64TensorType([None, X_train.shape[1]]))])
+        self.assertIn('ZipMap', str(onx))
+        oif = OnnxInference(onx)
+        got = oif.run({'X': X_test})
+        values = pandas.DataFrame(got['output_probability']).values
+        self.assertEqualArray(exp, values, decimal=5)
+
+        # categorical_feature=[0, 1]
+        train_data = Dataset(
+            X_train, label=y_train,
+            feature_name=['c1', 'c2', 'c3', 'c4'],
+            categorical_feature=['c1', 'c2'])
+
+        params = {
+            "boosting_type": "gbdt",
+            "learning_rate": 0.05,
+            "n_estimators": 2,
+            "objective": "binary",
+            "max_bin": 5,
+            "min_child_samples": 100,
+            'verbose': -1,
+        }
+
+        booster = lgb_train(params, train_data)
+        exp = booster.predict(X_test)
+
+        onx = to_onnx(booster, initial_types=[
+            ('X', Int64TensorType([None, X_train.shape[1]]))])
+        self.assertIn('ZipMap', str(onx))
+        oif = OnnxInference(onx)
+        got = oif.run({'X': X_test})
+        values = pandas.DataFrame(got['output_probability']).values
+        self.assertEqualArray(exp, values[:, 1], decimal=5)
+
+
+    @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', 'stuck')
+    @ignore_warnings((RuntimeWarning, UserWarning))
+    def test_onnxrt_python_lightgbm_categorical_iris_booster3_real(self):
+        from lightgbm import LGBMClassifier, Dataset, train as lgb_train
+
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X = (X * 10).astype(numpy.float32)
+        X_train, X_test, y_train, _ = train_test_split(
+            X, y, random_state=11)
+
+        # Classic
+        gbm = LGBMClassifier()
+        gbm.fit(X_train, y_train)
+        exp = gbm.predict_proba(X_test)
+        onx = to_onnx(gbm.booster_, initial_types=[
+            ('X', FloatTensorType([None, X_train.shape[1]]))])
+        self.assertIn('ZipMap', str(onx))
+        oif = OnnxInference(onx)
+        got = oif.run({'X': X_test})
+        values = pandas.DataFrame(got['output_probability']).values
+        self.assertEqualArray(exp, values, decimal=5)
+
+        # categorical_feature=[0, 1]
+        train_data = Dataset(
+            X_train, label=y_train,
+            feature_name=['c1', 'c2', 'c3', 'c4'],
+            categorical_feature=['c1', 'c2'])
+
+        params = {
+            "boosting_type": "gbdt",
+            "learning_rate": 0.05,
+            "n_estimators": 2,
+            "objective": "multiclass",
+            "max_bin": 5,
+            "min_child_samples": 100,
+            'verbose': -1,
+            'num_class': 3,
+        }
+
+        booster = lgb_train(params, train_data)
+        exp = booster.predict(X_test)
+
+        onx = to_onnx(booster, initial_types=[
+            ('X', FloatTensorType([None, X_train.shape[1]]))])
+        self.assertIn('ZipMap', str(onx))
+        oif = OnnxInference(onx)
+        got = oif.run({'X': X_test})
+        values = pandas.DataFrame(got['output_probability']).values
+        self.assertEqualArray(exp, values, decimal=5)
 
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')

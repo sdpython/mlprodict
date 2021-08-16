@@ -18,16 +18,19 @@ class WrappedLightGbmBooster:
 
     def __init__(self, booster):
         self.booster_ = booster
+        self.booster_.model_to_string()
         self._model_dict = self.booster_.dump_model()
         self.classes_ = self._generate_classes(self._model_dict)
         self.n_features_ = len(self._model_dict['feature_names'])
         if self._model_dict['objective'].startswith('binary'):
             self.operator_name = 'LgbmClassifier'
+        elif self._model_dict['objective'].startswith('multiclass'):
+            self.operator_name = 'LgbmClassifier'
         elif self._model_dict['objective'].startswith('regression'):  # pragma: no cover
             self.operator_name = 'LgbmRegressor'
         else:  # pragma: no cover
-            raise NotImplementedError('Unsupported LightGbm objective: {}'.format(
-                self._model_dict['objective']))
+            raise NotImplementedError(
+                'Unsupported LightGbm objective: %r.' % self._model_dict['objective'])
         if self._model_dict.get('average_output', False):
             self.boosting_type = 'rf'
         else:
@@ -79,6 +82,10 @@ def lightgbm_parser(scope, model, inputs, custom_parsers=None):
     if len(inputs) == 1:
         wrapped = WrappedLightGbmBooster(model)
         if wrapped._model_dict['objective'].startswith('binary'):
+            wrapped = WrappedLightGbmBoosterClassifier(wrapped)
+            return _parse_sklearn_classifier(
+                scope, wrapped, inputs, custom_parsers=custom_parsers)
+        if wrapped._model_dict['objective'].startswith('multiclass'):
             wrapped = WrappedLightGbmBoosterClassifier(wrapped)
             return _parse_sklearn_classifier(
                 scope, wrapped, inputs, custom_parsers=custom_parsers)

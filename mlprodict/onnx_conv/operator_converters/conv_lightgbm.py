@@ -203,7 +203,11 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
                             "\n{}".format(tree_structure['threshold'], text)) from e
     else:
         th = tree_structure['threshold']
-    th2 = sklearn_threshold(th, numpy.float32, mode)
+    if mode == 'BRANCH_LEQ':
+        th2 = sklearn_threshold(th, numpy.float32, mode)
+    else:
+        # other decision criteria are not implemented
+        th2 = th
     attrs['nodes_values'].append(th2)
 
     # Assume left is the true branch and right is the false branch
