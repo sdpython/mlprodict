@@ -132,7 +132,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
 
         X, y = self.data_X, self.data_y
 
-        for ne in [1, 2, 10, 50, 100, 200]:
+        for ne in [1, 2, 10, 50, 100, 200]:  # pylint: disable=R1702
             for mx in [1, 10]:
                 if __name__ != "__main__" and mx > 5:
                     break
