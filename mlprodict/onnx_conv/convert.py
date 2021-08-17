@@ -29,7 +29,8 @@ def convert_scorer(fct, initial_types, name=None,
                    custom_conversion_functions=None,
                    custom_shape_calculators=None,
                    custom_parsers=None, white_op=None,
-                   black_op=None, final_types=None):
+                   black_op=None, final_types=None,
+                   verbose=0):
     """
     Converts a scorer into :epkg:`ONNX` assuming
     there exists a converter associated to it.
@@ -37,36 +38,33 @@ def convert_scorer(fct, initial_types, name=None,
     transformer, then calls function *convert_sklearn*
     from :epkg:`sklearn-onnx`.
 
-    @param  fct                         function to convert (or a scorer from
-                                        :epkg:`scikit-learn`)
-    @param  initial_types               types information
-    @param  name                        name of the produced model
-    @param  target_opset                to do it with a different target opset
-    @param  options                     additional parameters for the conversion
-    @param  custom_conversion_functions a dictionary for specifying the user customized
-                                        conversion function, it takes precedence over
-                                        registered converters
-    @param  custom_shape_calculators    a dictionary for specifying the user
-                                        customized shape calculator
-                                        it takes precedence over registered
-                                        shape calculators.
-    @param  custom_parsers              parsers determine which outputs is expected
-                                        for which particular task, default parsers are
-                                        defined for classifiers, regressors, pipeline but
-                                        they can be rewritten, *custom_parsers* is a dictionary
-                                        ``{ type: fct_parser(scope, model, inputs,
-                                        custom_parsers=None) }``
-    @param      white_op                white list of ONNX nodes allowed
-                                        while converting a pipeline, if empty,
-                                        all are allowed
-    @param      black_op                black list of ONNX nodes allowed
-                                        while converting a pipeline, if empty,
-                                        none are blacklisted
-    @param      final_types             a python list. Works the same way as
-                                        initial_types but not mandatory, it is used
-                                        to overwrites the type (if type is not None)
-                                        and the name of every output.
-    @return                             :epkg:`ONNX` graph
+    :param fct: function to convert (or a scorer from :epkg:`scikit-learn`)
+    :param initial_types: types information
+    :param name: name of the produced model
+    :param target_opset: to do it with a different target opset
+    :param options: additional parameters for the conversion
+    :param custom_conversion_functions: a dictionary for specifying the user
+        customized conversion function, it takes precedence over
+        registered converters
+    :param custom_shape_calculators: a dictionary for specifying the user
+        customized shape calculator it takes precedence over registered
+        shape calculators.
+    :param custom_parsers: parsers determine which outputs is expected
+        for which particular task, default parsers are
+        defined for classifiers, regressors, pipeline but
+        they can be rewritten, *custom_parsers* is a dictionary
+        ``{ type: fct_parser(scope, model, inputs,
+        custom_parsers=None) }``
+    :param white_op: white list of ONNX nodes allowed
+        while converting a pipeline, if empty, all are allowed
+    :param black_op: black list of ONNX nodes allowed
+        while converting a pipeline, if empty, none are blacklisted
+    :param final_types: a python list. Works the same way as
+        initial_types but not mandatory, it is used
+        to overwrites the type (if type is not None)
+        and the name of every output.
+    :param verbose: displays information while converting
+    :return: :epkg:`ONNX` graph
     """
     if hasattr(fct, '_score_func'):
         kwargs = fct._kwargs
@@ -82,7 +80,8 @@ def convert_scorer(fct, initial_types, name=None,
         custom_conversion_functions=custom_conversion_functions,
         custom_shape_calculators=custom_shape_calculators,
         custom_parsers=custom_parsers, white_op=white_op,
-        black_op=black_op, final_types=final_types)
+        black_op=black_op, final_types=final_types,
+        verbose=verbose)
 
 
 def guess_initial_types(X, initial_types):
@@ -243,34 +242,35 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
 
 def to_onnx(model, X=None, name=None, initial_types=None,
             target_opset=None, options=None, rewrite_ops=False,
-            white_op=None, black_op=None, final_types=None):
+            white_op=None, black_op=None, final_types=None,
+            verbose=0):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
 
-    @param      model           model to convert or a function
-                                wrapped into :epkg:`_PredictScorer` with
-                                function :epkg:`make_scorer`
-    @param      X               training set (at least one row),
-                                can be None, it is used to infered the
-                                input types (*initial_types*)
-    @param      initial_types   if *X* is None, then *initial_types* must be
-                                defined
-    @param      name            name of the produced model
-    @param      target_opset    to do it with a different target opset
-    @param      options         additional parameters for the conversion
-    @param      rewrite_ops     rewrites some existing converters,
-                                the changes are permanent
-    @param      white_op        white list of ONNX nodes allowed
-                                while converting a pipeline, if empty,
-                                all are allowed
-    @param      black_op        black list of ONNX nodes allowed
-                                while converting a pipeline, if empty,
-                                none are blacklisted
-    @param      final_types     a python list. Works the same way as
-                                initial_types but not mandatory, it is used
-                                to overwrites the type (if type is not None)
-                                and the name of every output.
-    @return                     converted model
+    :param model: model to convert or a function
+        wrapped into :epkg:`_PredictScorer` with
+        function :epkg:`make_scorer`
+    :param X: training set (at least one row),
+        can be None, it is used to infered the
+        input types (*initial_types*)
+    :param initial_types: if *X* is None, then *initial_types*
+        must be defined
+    :param name: name of the produced model
+    :param target_opset: to do it with a different target opset
+    :param options: additional parameters for the conversion
+    :param rewrite_ops: rewrites some existing converters,
+        the changes are permanent
+    :param white_op: white list of ONNX nodes allowed
+        while converting a pipeline, if empty, all are allowed
+    :param black_op: black list of ONNX nodes allowed
+        while converting a pipeline, if empty,
+        none are blacklisted
+    :param final_types: a python list. Works the same way as
+        initial_types but not mandatory, it is used
+        to overwrites the type (if type is not None)
+        and the name of every output.
+    :param verbose: display information while converting the model
+    :return: converted model
 
     The function rewrites function *to_onnx* from :epkg:`sklearn-onnx`
     but may changes a few converters if *rewrite_ops* is True.
@@ -356,7 +356,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
                     type(model)))
         return model.to_onnx(
             X=X, name=name, options=options, black_op=black_op,
-            white_op=white_op, final_types=final_types)
+            white_op=white_op, final_types=final_types,
+            verbose=verbose)
 
     if rewrite_ops:
         old_values, old_shapes = register_rewritten_operators()
@@ -422,7 +423,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
         res = convert_scorer(model, initial_types, name=name,
                              target_opset=target_opset, options=options,
                              black_op=black_op, white_op=white_op,
-                             final_types=final_types)
+                             final_types=final_types, verbose=verbose)
     else:
         if name is None:
             name = "mlprodict_ONNX(%s)" % model.__class__.__name__
@@ -431,7 +432,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
         res = convert_sklearn(model, initial_types=initial_types, name=name,
                               target_opset=target_opset, options=options,
                               black_op=black_op, white_op=white_op,
-                              final_types=final_types)
+                              final_types=final_types, verbose=verbose)
 
     register_rewritten_operators(old_values, old_shapes)
     return res

@@ -258,7 +258,6 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         values = pandas.DataFrame(got['output_probability']).values
         self.assertEqualArray(exp, values[:, 1], decimal=5)
 
-
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     @ignore_warnings((RuntimeWarning, UserWarning))
@@ -397,9 +396,10 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
                            'subsample_freq': 1, 'bagging_fraction': 0.5,
                            'feature_fraction': 0.5},
                           data)
-        model_onnx = to_onnx(model, X)
+        model_onnx = to_onnx(model, X, verbose=2, rewrite_ops=True)
         self.assertNotEmpty(model_onnx)
 
 
 if __name__ == "__main__":
+    # TestOnnxrtRuntimeLightGbm().test_lightgbm_booster_classifier()
     unittest.main()

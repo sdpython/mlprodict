@@ -18,7 +18,7 @@ from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx.common.tree_ensemble import sklearn_threshold
 
 
-def modify_tree_for_rule_in_set(gbm, use_float=False):  # pylint: disable=R1710
+def modify_tree_for_rule_in_set(gbm, use_float=False, verbose=0, count=0):  # pylint: disable=R1710
     """
     LightGBM produces sometimes a tree with a node set
     to use rule ``==`` to a set of values (= in set),
@@ -54,24 +54,25 @@ def modify_tree_for_rule_in_set(gbm, use_float=False):  # pylint: disable=R1710
         pprint.pprint(tree)
     """
     if 'tree_info' in gbm:
-        for tree in gbm['tree_info']:
-            modify_tree_for_rule_in_set(tree, use_float=use_float)
-        return
+        if verbose >= 2:
+            from tqdm import tqdm
+            loop = tqdm(gbm['tree_info'])
+            for i, tree in enumerate(loop):
+                loop.set_description("rules tree %d c=%d" % (i, count))
+                count = modify_tree_for_rule_in_set(
+                    tree, use_float=use_float, count=count)
+        else:
+            for tree in gbm['tree_info']:
+                count = modify_tree_for_rule_in_set(
+                    tree, use_float=use_float, count=count)
+        return count
 
     if 'tree_structure' in gbm:
-        modify_tree_for_rule_in_set(gbm['tree_structure'], use_float=use_float)
-        return
+        return modify_tree_for_rule_in_set(
+            gbm['tree_structure'], use_float=use_float, count=count)
 
     if 'decision_type' not in gbm:
-        return
-
-    def recursive_call(this):
-        if 'left_child' in this:
-            modify_tree_for_rule_in_set(
-                this['left_child'], use_float=use_float)
-        if 'right_child' in this:
-            modify_tree_for_rule_in_set(
-                this['right_child'], use_float=use_float)
+        return count
 
     def str2number(val):
         if use_float:
@@ -82,26 +83,37 @@ def modify_tree_for_rule_in_set(gbm, use_float=False):  # pylint: disable=R1710
             except ValueError:  # pragma: no cover
                 return float(val)
 
-    dec = gbm['decision_type']
-    if dec != '==':
-        return recursive_call(gbm)
+    def recursive_call(this, c):
+        if 'left_child' in this:
+            c = process_node(this['left_child'], count=c)
+        if 'right_child' in this:
+            c = process_node(this['right_child'], count=c)
+        return c
 
-    th = gbm['threshold']
-    if not isinstance(th, str) or '||' not in th:
-        return recursive_call(gbm)
+    def process_node(node, count):
+        if 'decision_type' not in node:
+            return count
+        if node['decision_type'] != '==':
+            return recursive_call(node, count)
+        th = node['threshold']
+        if not isinstance(th, str):
+            return recursive_call(node, count)
+        pos = th.find('||')
+        if pos == -1:
+            return recursive_call(node, count)
+        th1 = str2number(th[:pos])
 
-    pos = th.index('||')
-    th1 = str2number(th[:pos])
+        rest = th[pos + 2:]
+        if '||' not in rest:
+            rest = str2number(rest)
 
-    rest = th[pos + 2:]
-    if '||' not in rest:
-        rest = str2number(rest)
+        node['threshold'] = th1
+        new_node = node.copy()
+        node['right_child'] = new_node
+        new_node['threshold'] = rest
+        return recursive_call(node, count + 1)
 
-    gbm['threshold'] = th1
-    new_node = gbm.copy()
-    gbm['right_child'] = new_node
-    new_node['threshold'] = rest
-    return recursive_call(gbm)
+    return process_node(gbm, count)
 
 
 def calculate_lightgbm_output_shapes(operator):
@@ -333,12 +345,17 @@ def convert_lightgbm(scope, operator, container):
     some modifications. It implements converters
     for models in :epkg:`lightgbm`.
     """
+    verbose = container.verbose
     gbm_model = operator.raw_operator
     if hasattr(gbm_model, '_model_dict'):
         gbm_text = gbm_model._model_dict
     else:
+        if verbose >= 2:
+            print("[convert_lightgbm] dump_model")
         gbm_text = gbm_model.booster_.dump_model()
-    modify_tree_for_rule_in_set(gbm_text, use_float=True)
+    if verbose >= 2:
+        print("[convert_lightgbm] modify_tree_for_rule_in_set")
+    modify_tree_for_rule_in_set(gbm_text, use_float=True, verbose=verbose)
 
     attrs = get_default_tree_classifier_attribute_pairs()
     attrs['name'] = operator.full_name
@@ -360,13 +377,22 @@ def convert_lightgbm(scope, operator, container):
                 gbm_text['objective']))
 
     # Use the same algorithm to parse the tree
-    for i, tree in enumerate(gbm_text['tree_info']):
+    if verbose >= 2:
+        from tqdm import tqdm
+        loop = tqdm(gbm_text['tree_info'])
+        loop.set_description("parse")
+    else:
+        loop = gbm_text['tree_info']
+    for i, tree in enumerate(loop):
         tree_id = i
         class_id = tree_id % n_classes
         # tree['shrinkage'] --> LightGbm provides figures with it already.
         learning_rate = 1.
         _parse_tree_structure(
             tree_id, class_id, learning_rate, tree['tree_structure'], attrs)
+
+    if verbose >= 2:
+        print("[convert_lightgbm] onnx")
 
     # Sort nodes_* attributes. For one tree, its node indexes should appear in an ascent order in nodes_nodeids. Nodes
     # from a tree with a smaller tree index should appear before trees with larger indexes in nodes_nodeids.
@@ -509,3 +535,6 @@ def convert_lightgbm(scope, operator, container):
             container.add_node('Identity', output_name,
                                operator.output_full_names,
                                name=scope.get_unique_operator_name('Identity'))
+
+    if verbose >= 2:
+        print("[convert_lightgbm] end")
