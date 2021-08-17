@@ -18,7 +18,9 @@ class WrappedLightGbmBooster:
 
     def __init__(self, booster):
         self.booster_ = booster
-        self.booster_.model_to_string()
+        # model_to_string is much faster than dump_model,
+        # would it be worth to use it instead?
+        # self.booster_.model_to_string()
         self._model_dict = self.booster_.dump_model()
         self.classes_ = self._generate_classes(self._model_dict)
         self.n_features_ = len(self._model_dict['feature_names'])

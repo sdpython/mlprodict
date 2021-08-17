@@ -334,7 +334,10 @@ def convert_lightgbm(scope, operator, container):
     for models in :epkg:`lightgbm`.
     """
     gbm_model = operator.raw_operator
-    gbm_text = gbm_model.booster_.dump_model()
+    if hasattr(gbm_model, '_model_dict'):
+        gbm_text = gbm_model._model_dict
+    else:
+        gbm_text = gbm_model.booster_.dump_model()
     modify_tree_for_rule_in_set(gbm_text, use_float=True)
 
     attrs = get_default_tree_classifier_attribute_pairs()
