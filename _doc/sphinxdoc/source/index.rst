@@ -34,10 +34,6 @@ mlprodict
     :alt: MIT License
     :target: http://opensource.org/licenses/MIT
 
-.. image:: https://requires.io/github/sdpython/mlprodict/requirements.svg?branch=master
-     :target: https://requires.io/github/sdpython/mlprodict/requirements/?branch=master
-     :alt: Requirements Status
-
 .. image:: https://codecov.io/github/sdpython/mlprodict/coverage.svg?branch=master
     :target: https://codecov.io/github/sdpython/mlprodict?branch=master
 
