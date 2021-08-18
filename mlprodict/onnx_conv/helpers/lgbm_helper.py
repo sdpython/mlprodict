@@ -2,9 +2,10 @@
 @file
 @brief Helpers to speed up the conversion of Lightgbm models or transform it.
 """
-import json
-import ctypes
 from collections import deque
+import ctypes
+import json
+import re
 
 
 def restore_lgbm_info(tree):
@@ -14,7 +15,9 @@ def restore_lgbm_info(tree):
     """
 
     def walk_through(t):
-        if 'tree_structure' in t:
+        if 'tree_info' in t:
+            yield None
+        elif 'tree_structure' in t:
             for w in walk_through(t['tree_structure']):
                 yield w
         else:
@@ -27,13 +30,21 @@ def restore_lgbm_info(tree):
                     yield w
 
     nodes = []
-    for node in walk_through(tree):
-        if 'right_child' in node or 'left_child' in node:
-            nodes.append(node)
+    if 'tree_info' in tree:
+        for node in walk_through(tree):
+            if node is None:
+                nodes.append([])
+            elif 'right_child' in node or 'left_child' in node:
+                nodes[-1].append(node)
+    else:
+        for node in walk_through(tree):
+            if 'right_child' in node or 'left_child' in node:
+                nodes.append(node)
     return nodes
 
 
-def dump_booster_model(self, num_iteration=None, start_iteration=0, importance_type='split'):
+def dump_booster_model(self, num_iteration=None, start_iteration=0,
+                       importance_type='split', verbose=0):
     """
     Dumps Booster to JSON format.
 
@@ -51,6 +62,7 @@ def dump_booster_model(self, num_iteration=None, start_iteration=0, importance_t
         What type of feature importance should be dumped.
         If "split", result contains numbers of times the feature is used in a model.
         If "gain", result contains total gains of splits which use the feature.
+    verbose: dispays progress (usefull for big trees)
 
     Returns
     -------
@@ -67,7 +79,7 @@ def dump_booster_model(self, num_iteration=None, start_iteration=0, importance_t
         `json.load` to fastly extract nodes.
     """
     if getattr(self, 'is_mock', False):
-        return self.dump_model()
+        return self.dump_model(), None
     from lightgbm.basic import (
         _LIB, FEATURE_IMPORTANCE_TYPE_MAPPER, _safe_call,
         json_default_with_numpy)
@@ -78,6 +90,8 @@ def dump_booster_model(self, num_iteration=None, start_iteration=0, importance_t
     tmp_out_len = ctypes.c_int64(0)
     string_buffer = ctypes.create_string_buffer(buffer_len)
     ptr_string_buffer = ctypes.c_char_p(*[ctypes.addressof(string_buffer)])
+    if verbose >= 2:
+        print("[dump_booster_model] call CAPI: LGBM_BoosterDumpModel")
     _safe_call(_LIB.LGBM_BoosterDumpModel(
         self.handle,
         ctypes.c_int(start_iteration),
@@ -100,22 +114,77 @@ def dump_booster_model(self, num_iteration=None, start_iteration=0, importance_t
             ctypes.c_int64(actual_len),
             ctypes.byref(tmp_out_len),
             ptr_string_buffer))
-    ret = json.loads(string_buffer.value.decode('utf-8'))
+
+    WHITESPACE = re.compile(r'[ \t\n\r]*', re.VERBOSE | re.MULTILINE | re.DOTALL)
+
+    class Hook(json.JSONDecoder):
+        def __init__(self, *args, info=None, n_trees=None, verbose=0,
+                     **kwargs):            
+            json.JSONDecoder.__init__(
+                self, object_hook=self.hook, *args, **kwargs)
+            self.nodes = []
+            self.buffer = []
+            self.info = info
+            self.n_trees = n_trees
+            self.verbose = verbose
+            self.stored = 0
+            if verbose >= 2 and n_trees is not None:
+                from tqdm import tqdm
+                self.loop = tqdm(total=n_trees)
+                self.loop.set_description("dump_booster")
+            else:
+                self.loop = None
+        def decode(self, s, _w=WHITESPACE.match):
+            return json.JSONDecoder.decode(self, s, _w=_w)
+        def raw_decode(self, s, idx=0):
+            return json.JSONDecoder.raw_decode(self, s, idx=idx)
+        def hook(self, obj):
+            # Every obj goes through this function from the leaves to the root.
+            if 'tree_info' in obj:
+                self.info['decision_nodes'] = self.nodes
+                if self.n_trees is not None and len(self.nodes) != self.n_trees:
+                    raise RuntimeError(
+                        "Unexpected number of trees %d (expecting %d)." % (
+                            len(self.nodes), self.n_trees))
+                self.nodes = []
+                if self.loop is not None:
+                    self.loop.close()
+            if 'tree_structure' in obj:
+                self.nodes.append(self.buffer)
+                if self.loop is not None:
+                    self.loop.update(len(self.nodes))
+                    if len(self.nodes) % 10 == 0:
+                        self.loop.set_description(
+                            "dump_booster: %d/%d trees, %d nodes" % (
+                                len(self.nodes), self.n_trees, self.stored))
+                self.buffer = []
+            if "decision_type" in obj:
+                self.buffer.append(obj)
+                self.stored += 1
+            return obj
+
+    if verbose >= 2:
+        print("[dump_booster_model] to_json")
+    info = {}
+    ret = json.loads(string_buffer.value.decode('utf-8'), cls=Hook,
+                     info=info, n_trees=self.num_trees(), verbose=verbose)
     ret['pandas_categorical'] = json.loads(
         json.dumps(self.pandas_categorical,
                    default=json_default_with_numpy))
-    return ret
+    if verbose >= 2:
+        print("[dump_booster_model] end.")
+    return ret, info
 
 
-def dump_lgbm_booster(booster):
+def dump_lgbm_booster(booster, verbose=0):
     """
     Dumps a Lightgbm booster into JSON.
 
     :param booster: Lightgbm booster
+    :param verbose: verbosity
     :return: json, dictionary with more information
     """
-    js = dump_booster_model(booster)
-    info = None
+    js, info = dump_booster_model(booster, verbose=verbose)
     return js, info
 
 
@@ -164,6 +233,10 @@ def modify_tree_for_rule_in_set(gbm, use_float=False, verbose=0, count=0,  # pyl
         pprint.pprint(tree)
     """
     if 'tree_info' in gbm:
+        if info is not None:
+            dec_nodes = info['decision_nodes']
+        else:
+            dec_nodes = None
         if verbose >= 2:
             from tqdm import tqdm
             loop = tqdm(gbm['tree_info'])
@@ -171,12 +244,12 @@ def modify_tree_for_rule_in_set(gbm, use_float=False, verbose=0, count=0,  # pyl
                 loop.set_description("rules tree %d c=%d" % (i, count))
                 count = modify_tree_for_rule_in_set(
                     tree, use_float=use_float, count=count,
-                    info=None if info is None else info[i])
+                    info=None if dec_nodes is None else dec_nodes[i])
         else:
             for i, tree in enumerate(gbm['tree_info']):
                 count = modify_tree_for_rule_in_set(
                     tree, use_float=use_float, count=count,
-                    info=None if info is None else info[i])
+                    info=None if dec_nodes is None else dec_nodes[i])
         return count
 
     if 'tree_structure' in gbm:
@@ -234,6 +307,23 @@ def modify_tree_for_rule_in_set(gbm, use_float=False, verbose=0, count=0,  # pyl
         return process_node(gbm, count)
 
     # when info is used
+
+    def split_node(node, th, pos):
+        th1 = str2number(th[:pos])
+
+        rest = th[pos + 2:]
+        if '||' not in rest:
+            rest = str2number(rest)
+            app = False
+        else:
+            app = True
+
+        node['threshold'] = th1
+        new_node = node.copy()
+        node['right_child'] = new_node
+        new_node['threshold'] = rest
+        return new_node, app
+
     stack = deque(info)
     while len(stack) > 0:
         node = stack.pop()
@@ -252,20 +342,9 @@ def modify_tree_for_rule_in_set(gbm, use_float=False, verbose=0, count=0,  # pyl
         if pos == -1:
             continue
 
-        th1 = str2number(th[:pos])
-
-        rest = th[pos + 2:]
-        if '||' not in rest:
-            rest = str2number(rest)
-            app = False
-        else:
-            app = True
-
-        node['threshold'] = th1
-        new_node = node.copy()
-        node['right_child'] = new_node
-        new_node['threshold'] = rest
+        new_node, app = split_node(node, th, pos)
         count += 1
         if app:
             stack.append(new_node)
+
     return count

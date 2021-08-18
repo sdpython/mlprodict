@@ -4,7 +4,7 @@
 `LightGbm.py <https://github.com/onnx/onnxmltools/blob/master/onnxmltools/convert/
 lightgbm/operator_converters/LightGbm.py>`_.
 """
-from collections import Counter, deque
+from collections import Counter
 import copy
 import numbers
 import numpy
@@ -261,7 +261,7 @@ def convert_lightgbm(scope, operator, container):
     else:
         if verbose >= 2:
             print("[convert_lightgbm] dump_model")
-        gbm_text, info = dump_lgbm_booster(gbm_model.booster_)
+        gbm_text, info = dump_lgbm_booster(gbm_model.booster_, verbose=verbose)
     if verbose >= 2:
         print("[convert_lightgbm] modify_tree_for_rule_in_set")
     modify_tree_for_rule_in_set(gbm_text, use_float=True, verbose=verbose,

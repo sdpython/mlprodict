@@ -5,7 +5,6 @@ with a python script. It relies on :epkg:`jinja2` and :epkg:`autopep8`.
 
 .. versionadded:: 0.7
 """
-from textwrap import dedent
 import numpy
 from jinja2 import Template
 import autopep8

@@ -489,11 +489,10 @@ class BiGraph:
             for o in n.input:
                 key_in = names_v0[o]
                 edges[key_in, key_node] = BiGraph.A('I')
-            for i, o in enumerate(n.output):
+            for o in n.output:
                 if o not in names_v0:
                     key = "R%d" % len(v0)
-                    v0[key] = BiGraph.B(
-                        'Re', n.op_type, o)
+                    v0[key] = BiGraph.B('Re', n.op_type, o)
                     names_v0[o] = key
                 edges[key_node, key] = BiGraph.A('O')
 

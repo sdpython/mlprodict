@@ -54,15 +54,14 @@ def clean_tree(tree):
                 yield w
 
     nodes = list(walk_through(tree3))
-    if True:
-        for node in nodes:
-            for k in ['split_gain', 'split_feature', 'split_index', 'leaf_count',
-                      'internal_value', 'internal_weight', 'internal_count', 'leaf_weight']:
-                if k in node:
-                    del node[k]
-            for k in ['leaf_value', 'leaf_value']:
-                if k in node:
-                    node[k] = 0
+    for node in nodes:
+        for k in ['split_gain', 'split_feature', 'split_index', 'leaf_count',
+                  'internal_value', 'internal_weight', 'internal_count', 'leaf_weight']:
+            if k in node:
+                del node[k]
+        for k in ['leaf_value', 'leaf_value']:
+            if k in node:
+                node[k] = 0
 
 
 tree2 = {'average_output': False,
@@ -332,7 +331,7 @@ class TestLightGbmTreeStructure(ExtTestCase):
         self.assertGreater(len(info), 1)
 
         def g():
-            for i in range(0, 100):
+            for _ in range(0, 100):
                 modify_tree_for_rule_in_set(tree, info=info)
         p2 = self.profile(g)[1]
         self.assertIn('cumtime', p2)
