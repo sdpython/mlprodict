@@ -62,22 +62,22 @@ class RuntimeTreeEnsembleCommonP {
 
         void init(
             const std::string &aggregate_function,
-            py::array_t<NTYPE> base_values,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> base_values,
             int64_t n_targets_or_classes,
-            py::array_t<int64_t> nodes_falsenodeids,
-            py::array_t<int64_t> nodes_featureids,
-            py::array_t<NTYPE> nodes_hitrates,
-            py::array_t<int64_t> nodes_missing_value_tracks_true,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_falsenodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_featureids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_hitrates,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_missing_value_tracks_true,
             const std::vector<std::string>& nodes_modes,
-            py::array_t<int64_t> nodes_nodeids,
-            py::array_t<int64_t> nodes_treeids,
-            py::array_t<int64_t> nodes_truenodeids,
-            py::array_t<NTYPE> nodes_values,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_treeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_truenodeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_values,
             const std::string& post_transform,
-            py::array_t<int64_t> target_class_ids,
-            py::array_t<int64_t> target_class_nodeids,
-            py::array_t<int64_t> target_class_treeids,
-            py::array_t<NTYPE> target_class_weights);
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_class_ids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_class_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_class_treeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> target_class_weights);
 
         void init_c(
             const std::string &aggregate_function,
@@ -109,30 +109,35 @@ class RuntimeTreeEnsembleCommonP {
         int64_t get_sizeof();
 
         template<typename AGG>
-        py::array_t<NTYPE> compute_tree_outputs_agg(py::array_t<NTYPE> X, const AGG &agg) const;
+        py::array_t<NTYPE> compute_tree_outputs_agg(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X, const AGG &agg) const;
         
-        py::array_t<int> debug_threshold(py::array_t<NTYPE> values) const;
+        py::array_t<int> debug_threshold(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> values) const;
 
         // The two following methods uses buffers to avoid
         // spending time allocating buffers. As a consequence,
         // These methods are not thread-safe.
         template<typename AGG>
-        py::array_t<NTYPE> compute_agg(py::array_t<NTYPE> X, const AGG &agg);
+        py::array_t<NTYPE> compute_agg(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X, const AGG &agg);
 
         template<typename AGG>
-        py::tuple compute_cl_agg(py::array_t<NTYPE> X, const AGG &agg);
+        py::tuple compute_cl_agg(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X, const AGG &agg);
 
     private:
 
         template<typename AGG>
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                              const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
-                              py::array_t<int64_t>* Y, const AGG &agg);
+                              const py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& X,
+                              py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& Z,
+                              py::array_t<int64_t, py::array::c_style | py::array::forcecast>* Y,
+                              const AGG &agg);
 
         template<typename AGG>
-        void compute_gil_free_array_structure(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                                              const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
-                                              py::array_t<int64_t>* Y, const AGG &agg);
+        void compute_gil_free_array_structure(const std::vector<int64_t>& x_dims,
+                                              int64_t N, int64_t stride,
+                                              const py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& X,
+                                              py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& Z,
+                                              py::array_t<int64_t, py::array::c_style | py::array::forcecast>* Y,
+                                              const AGG &agg);
 
         void switch_to_array_structure();
 };
@@ -185,22 +190,22 @@ int64_t RuntimeTreeEnsembleCommonP<NTYPE>::get_sizeof() {
 template<typename NTYPE>
 void RuntimeTreeEnsembleCommonP<NTYPE>::init(
             const std::string &aggregate_function,
-            py::array_t<NTYPE> base_values,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> base_values,
             int64_t n_targets_or_classes,
-            py::array_t<int64_t> nodes_falsenodeids,
-            py::array_t<int64_t> nodes_featureids,
-            py::array_t<NTYPE> nodes_hitrates,
-            py::array_t<int64_t> nodes_missing_value_tracks_true,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_falsenodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_featureids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_hitrates,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_missing_value_tracks_true,
             const std::vector<std::string>& nodes_modes,
-            py::array_t<int64_t> nodes_nodeids,
-            py::array_t<int64_t> nodes_treeids,
-            py::array_t<int64_t> nodes_truenodeids,
-            py::array_t<NTYPE> nodes_values,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_treeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_truenodeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_values,
             const std::string& post_transform,
-            py::array_t<int64_t> target_class_ids,
-            py::array_t<int64_t> target_class_nodeids,
-            py::array_t<int64_t> target_class_treeids,
-            py::array_t<NTYPE> target_class_weights) {
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_class_ids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_class_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_class_treeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> target_class_weights) {
 
     std::vector<NTYPE> cbasevalues;
     array2vector(cbasevalues, base_values, NTYPE);
@@ -485,7 +490,8 @@ std::vector<std::string> RuntimeTreeEnsembleCommonP<NTYPE>::get_nodes_modes() co
 
 
 template<typename NTYPE> template<typename AGG>
-py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_agg(py::array_t<NTYPE> X, const AGG &agg) {
+py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_agg(
+        py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X, const AGG &agg) {
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
@@ -496,7 +502,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_agg(py::array_t<NT
     int64_t stride = xdims1 ? x_dims[0] : x_dims[1];  
     int64_t N = xdims1 ? 1 : x_dims[0];
 
-    py::array_t<NTYPE> Z(x_dims[0] * n_targets_or_classes_);
+    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Z(x_dims[0] * n_targets_or_classes_);
 
     {
         py::gil_scoped_release release;
@@ -511,7 +517,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_agg(py::array_t<NT
 
 template<typename NTYPE> template<typename AGG>
 py::tuple RuntimeTreeEnsembleCommonP<NTYPE>::compute_cl_agg(
-        py::array_t<NTYPE> X, const AGG &agg) {
+        py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X, const AGG &agg) {
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
     if (x_dims.size() != 2)
@@ -524,8 +530,8 @@ py::tuple RuntimeTreeEnsembleCommonP<NTYPE>::compute_cl_agg(
 
     // Tensor* Y = context->Output(0, TensorShape({N}));
     // auto* Z = context->Output(1, TensorShape({N, class_count_}));
-    py::array_t<NTYPE> Z(x_dims[0] * n_targets_or_classes_);
-    py::array_t<int64_t> Y(x_dims[0]);
+    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Z(x_dims[0] * n_targets_or_classes_);
+    py::array_t<int64_t, py::array::c_style | py::array::forcecast> Y(x_dims[0]);
 
     {
         py::gil_scoped_release release;
@@ -538,17 +544,17 @@ py::tuple RuntimeTreeEnsembleCommonP<NTYPE>::compute_cl_agg(
 }
 
 
-py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float>& Z) {
+py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float, py::array::c_style | py::array::forcecast>& Z) {
     return Z.mutable_unchecked<1>();
 }
 
 
-py::detail::unchecked_mutable_reference<int64_t, 1> _mutable_unchecked1(py::array_t<int64_t>& Z) {
+py::detail::unchecked_mutable_reference<int64_t, 1> _mutable_unchecked1(py::array_t<int64_t, py::array::c_style | py::array::forcecast>& Z) {
     return Z.mutable_unchecked<1>();
 }
 
 
-py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double>& Z) {
+py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double, py::array::c_style | py::array::forcecast>& Z) {
     return Z.mutable_unchecked<1>();
 }
 
@@ -556,8 +562,10 @@ py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array
 template<typename NTYPE> template<typename AGG>
 void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
-                py::array_t<int64_t>* Y, const AGG &agg) {
+                const py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& X,
+                py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& Z,
+                py::array_t<int64_t, py::array::c_style | py::array::forcecast>* Y,
+                const AGG &agg) {
 
     // expected primary-expression before ')' token
     auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
@@ -731,8 +739,10 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
 template<typename NTYPE> template<typename AGG>
 void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z,
-                py::array_t<int64_t>* Y, const AGG &agg) {
+                const py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& X,
+                py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& Z,
+                py::array_t<int64_t, py::array::c_style | py::array::forcecast>* Y,
+                const AGG &agg) {
 
     // expected primary-expression before ')' token
     auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
@@ -1226,7 +1236,7 @@ size_t RuntimeTreeEnsembleCommonP<NTYPE>::ProcessTreeNodeLeave(
 
 template<typename NTYPE>
 py::array_t<int> RuntimeTreeEnsembleCommonP<NTYPE>::debug_threshold(
-        py::array_t<NTYPE> values) const {
+        py::array_t<NTYPE, py::array::c_style | py::array::forcecast> values) const {
     if (array_structure_)
         throw std::invalid_argument("debug_threshold not implemented if array_structure is true.");
     std::vector<int> result(values.size() * n_nodes_);
@@ -1254,7 +1264,8 @@ py::array_t<int> RuntimeTreeEnsembleCommonP<NTYPE>::debug_threshold(
 
 
 template<typename NTYPE> template<typename AGG>
-py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_tree_outputs_agg(py::array_t<NTYPE> X, const AGG &agg) const {
+py::array_t<NTYPE> RuntimeTreeEnsembleCommonP<NTYPE>::compute_tree_outputs_agg(
+        py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X, const AGG &agg) const {
     if (array_structure_)
         throw std::invalid_argument("compute_tree_outputs_agg not implemented if array_structure is true.");
     

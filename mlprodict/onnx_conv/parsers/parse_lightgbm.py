@@ -18,17 +18,21 @@ class WrappedLightGbmBooster:
 
     def __init__(self, booster):
         self.booster_ = booster
-        self._model_dict = self.booster_.dump_model()
-        self.classes_ = self._generate_classes(self._model_dict)
-        self.n_features_ = len(self._model_dict['feature_names'])
-        if self._model_dict['objective'].startswith('binary'):
+        self.n_features_ = self.booster_.feature_name()
+        self.objective_ = self.get_objective()
+        if self.objective_.startswith('binary'):
             self.operator_name = 'LgbmClassifier'
-        elif self._model_dict['objective'].startswith('regression'):  # pragma: no cover
+            self.classes_ = self._generate_classes(booster)
+        elif self.objective_.startswith('multiclass'):
+            self.operator_name = 'LgbmClassifier'
+            self.classes_ = self._generate_classes(booster)
+        elif self.objective_.startswith('regression'):  # pragma: no cover
             self.operator_name = 'LgbmRegressor'
         else:  # pragma: no cover
-            raise NotImplementedError('Unsupported LightGbm objective: {}'.format(
-                self._model_dict['objective']))
-        if self._model_dict.get('average_output', False):
+            raise NotImplementedError(
+                'Unsupported LightGbm objective: %r.' % self.objective_)
+        average_output = self.booster_.attr('average_output')
+        if average_output:
             self.boosting_type = 'rf'
         else:
             # Other than random forest, other boosting types do not affect later conversion.
@@ -36,10 +40,27 @@ class WrappedLightGbmBooster:
             self.boosting_type = 'gbdt'
 
     @staticmethod
-    def _generate_classes(model_dict):
-        if model_dict['num_class'] == 1:
+    def _generate_classes(booster):
+        if isinstance(booster, dict):
+            num_class = booster['num_class']
+        else:
+            num_class = booster.attr('num_class')
+        if num_class is None:
+            dp = booster.dump_model(num_iteration=1)
+            num_class = dp['num_class']
+        if num_class == 1:
             return numpy.asarray([0, 1])
-        return numpy.arange(model_dict['num_class'])
+        return numpy.arange(num_class)
+
+    def get_objective(self):
+        "Returns the objective."
+        if hasattr(self, 'objective_') and self.objective_ is not None:
+            return self.objective_
+        objective = self.booster_.attr('objective')
+        if objective is not None:
+            return objective
+        dp = self.booster_.dump_model(num_iteration=1)
+        return dp['objective']
 
 
 class WrappedLightGbmBoosterClassifier(ClassifierMixin):
@@ -48,9 +69,11 @@ class WrappedLightGbmBoosterClassifier(ClassifierMixin):
     """
 
     def __init__(self, wrapped):  # pylint: disable=W0231
-        for k in {'boosting_type', '_model_dict', 'operator_name',
-                  'classes_', 'booster_', 'n_features_'}:
-            setattr(self, k, getattr(wrapped, k))
+        for k in {'boosting_type', '_model_dict', '_model_dict_info',
+                  'operator_name', 'classes_', 'booster_', 'n_features_',
+                  'objective_', 'boosting_type', 'n_features_'}:
+            if hasattr(wrapped, k):
+                setattr(self, k, getattr(wrapped, k))
 
 
 class MockWrappedLightGbmBoosterClassifier(WrappedLightGbmBoosterClassifier):
@@ -60,11 +83,27 @@ class MockWrappedLightGbmBoosterClassifier(WrappedLightGbmBoosterClassifier):
 
     def __init__(self, tree):  # pylint: disable=W0231
         self.dumped_ = tree
+        self.is_mock = True
 
     def dump_model(self):
         "mock dump_model method"
         self.visited = True
         return self.dumped_
+
+    def feature_name(self):
+        "Returns binary features names."
+        return [0, 1]
+
+    def attr(self, key):
+        "Returns default values for common attributes."
+        if key == 'objective':
+            return "binary"
+        if key == 'num_class':
+            return 1
+        if key == 'average_output':
+            return None
+        raise KeyError(  # pragma: no cover
+            "No response for %r." % key)
 
 
 def lightgbm_parser(scope, model, inputs, custom_parsers=None):
@@ -78,16 +117,20 @@ def lightgbm_parser(scope, model, inputs, custom_parsers=None):
 
     if len(inputs) == 1:
         wrapped = WrappedLightGbmBooster(model)
-        if wrapped._model_dict['objective'].startswith('binary'):
+        objective = wrapped.get_objective()
+        if objective.startswith('binary'):
             wrapped = WrappedLightGbmBoosterClassifier(wrapped)
             return _parse_sklearn_classifier(
                 scope, wrapped, inputs, custom_parsers=custom_parsers)
-        if wrapped._model_dict['objective'].startswith('regression'):  # pragma: no cover
+        if objective.startswith('multiclass'):
+            wrapped = WrappedLightGbmBoosterClassifier(wrapped)
+            return _parse_sklearn_classifier(
+                scope, wrapped, inputs, custom_parsers=custom_parsers)
+        if objective.startswith('regression'):  # pragma: no cover
             return _parse_sklearn_simple_model(
                 scope, wrapped, inputs, custom_parsers=custom_parsers)
         raise NotImplementedError(  # pragma: no cover
-            "Objective '{}' is not implemented yet.".format(
-                wrapped._model_dict['objective']))
+            "Objective '{}' is not implemented yet.".format(objective))
 
     # Multiple columns
     this_operator = scope.declare_local_operator('LightGBMConcat')

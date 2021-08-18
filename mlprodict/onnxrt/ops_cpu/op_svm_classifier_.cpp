@@ -25,28 +25,30 @@ class RuntimeSVMClassifier : public RuntimeSVMCommon<NTYPE>
         ~RuntimeSVMClassifier();
 
         void init(
-            py::array_t<int64_t> classlabels_int64s,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> classlabels_int64s,
             const std::vector<std::string>& classlabels_strings,
-            py::array_t<NTYPE> coefficients,
-            py::array_t<NTYPE> kernel_params,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> coefficients,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> kernel_params,
             const std::string& kernel_type,
             const std::string& post_transform,
-            py::array_t<NTYPE> prob_a,
-            py::array_t<NTYPE> prob_b,
-            py::array_t<NTYPE> rho,
-            py::array_t<NTYPE> support_vectors,
-            py::array_t<int64_t> vectors_per_class
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> prob_a,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> prob_b,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> rho,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> support_vectors,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> vectors_per_class
         );
         
-        py::tuple compute(py::array_t<NTYPE> X) const;
+        py::tuple compute(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) const;
 
     private:
 
         void Initialize();
 
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                              const py::array_t<NTYPE>& X, py::array_t<int64_t>& Y,
-                              py::array_t<NTYPE>& Z, int64_t z_stride) const;
+                              const py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& X,
+                              py::array_t<int64_t, py::array::c_style | py::array::forcecast>& Y,
+                              py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& Z,
+                              int64_t z_stride) const;
 
         void compute_gil_free_loop(const NTYPE * x_data, 
                                    int64_t* y_data, NTYPE * z_data) const;
@@ -66,17 +68,17 @@ RuntimeSVMClassifier<NTYPE>::~RuntimeSVMClassifier() {
 
 template<typename NTYPE>
 void RuntimeSVMClassifier<NTYPE>::init(
-            py::array_t<int64_t> classlabels_int64s,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> classlabels_int64s,
             const std::vector<std::string>& classlabels_strings,
-            py::array_t<NTYPE> coefficients,
-            py::array_t<NTYPE> kernel_params,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> coefficients,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> kernel_params,
             const std::string& kernel_type,
             const std::string& post_transform,
-            py::array_t<NTYPE> prob_a,
-            py::array_t<NTYPE> prob_b,
-            py::array_t<NTYPE> rho,
-            py::array_t<NTYPE> support_vectors,
-            py::array_t<int64_t> vectors_per_class
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> prob_a,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> prob_b,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> rho,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> support_vectors,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> vectors_per_class
     ) {
     RuntimeSVMCommon<NTYPE>::init(
         coefficients, kernel_params, kernel_type,
@@ -155,7 +157,7 @@ int _set_score_svm(int64_t* output_data, NTYPE max_weight, const int64_t maxclas
 
 
 template<typename NTYPE>
-py::tuple RuntimeSVMClassifier<NTYPE>::compute(py::array_t<NTYPE> X) const {
+py::tuple RuntimeSVMClassifier<NTYPE>::compute(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) const {
     // const Tensor& X = *context->Input<Tensor>(0);
     // const TensorShape& x_shape = X.Shape();    
     std::vector<int64_t> x_dims;
@@ -175,8 +177,8 @@ py::tuple RuntimeSVMClassifier<NTYPE>::compute(py::array_t<NTYPE> X) const {
 
     std::vector<int64_t> dims{N, nb_columns};    
                         
-    py::array_t<int64_t> Y(N); // one target only
-    py::array_t<NTYPE> Z(N * nb_columns); // one target only
+    py::array_t<int64_t, py::array::c_style | py::array::forcecast> Y(N); // one target only
+    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Z(N * nb_columns); // one target only
     {
         py::gil_scoped_release release;
         compute_gil_free(x_dims, N, stride, X, Y, Z, nb_columns);
@@ -368,8 +370,9 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free_loop(
 template<typename NTYPE>
 void RuntimeSVMClassifier<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                const py::array_t<NTYPE>& X,
-                py::array_t<int64_t>& Y, py::array_t<NTYPE>& Z,
+                const py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& X,
+                py::array_t<int64_t, py::array::c_style | py::array::forcecast>& Y,
+                py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& Z,
                 int64_t z_stride) const {
     auto Y_ = Y.mutable_unchecked<1>();
     auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();

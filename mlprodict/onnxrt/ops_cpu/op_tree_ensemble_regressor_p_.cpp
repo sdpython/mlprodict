@@ -13,25 +13,25 @@ class RuntimeTreeEnsembleRegressorP : public RuntimeTreeEnsembleCommonP<NTYPE> {
 
         void init(
             const std::string &aggregate_function,
-            py::array_t<NTYPE> base_values,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> base_values,
             int64_t n_targets,
-            py::array_t<int64_t> nodes_falsenodeids,
-            py::array_t<int64_t> nodes_featureids,
-            py::array_t<NTYPE> nodes_hitrates,
-            py::array_t<int64_t> nodes_missing_value_tracks_true,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_falsenodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_featureids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_hitrates,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_missing_value_tracks_true,
             const std::vector<std::string>& nodes_modes,
-            py::array_t<int64_t> nodes_nodeids,
-            py::array_t<int64_t> nodes_treeids,
-            py::array_t<int64_t> nodes_truenodeids,
-            py::array_t<NTYPE> nodes_values,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_treeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_truenodeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_values,
             const std::string& post_transform,
-            py::array_t<int64_t> target_ids,
-            py::array_t<int64_t> target_nodeids,
-            py::array_t<int64_t> target_treeids,
-            py::array_t<NTYPE> target_weights);
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_ids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_treeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> target_weights);
         
-        py::array_t<NTYPE> compute(py::array_t<NTYPE> X);
-        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> X);
+        py::array_t<NTYPE> compute(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X);
+        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X);
 };
 
 
@@ -50,22 +50,22 @@ RuntimeTreeEnsembleRegressorP<NTYPE>::~RuntimeTreeEnsembleRegressorP() {
 template<typename NTYPE>
 void RuntimeTreeEnsembleRegressorP<NTYPE>::init(
             const std::string &aggregate_function,
-            py::array_t<NTYPE> base_values,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> base_values,
             int64_t n_targets,
-            py::array_t<int64_t> nodes_falsenodeids,
-            py::array_t<int64_t> nodes_featureids,
-            py::array_t<NTYPE> nodes_hitrates,
-            py::array_t<int64_t> nodes_missing_value_tracks_true,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_falsenodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_featureids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_hitrates,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_missing_value_tracks_true,
             const std::vector<std::string>& nodes_modes,
-            py::array_t<int64_t> nodes_nodeids,
-            py::array_t<int64_t> nodes_treeids,
-            py::array_t<int64_t> nodes_truenodeids,
-            py::array_t<NTYPE> nodes_values,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_treeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_truenodeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_values,
             const std::string& post_transform,
-            py::array_t<int64_t> target_ids,
-            py::array_t<int64_t> target_nodeids,
-            py::array_t<int64_t> target_treeids,
-            py::array_t<NTYPE> target_weights) {
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_ids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_treeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> target_weights) {
     RuntimeTreeEnsembleCommonP<NTYPE>::init(
             aggregate_function, base_values, n_targets,
             nodes_falsenodeids, nodes_featureids, nodes_hitrates,
@@ -77,7 +77,8 @@ void RuntimeTreeEnsembleRegressorP<NTYPE>::init(
 
 
 template<typename NTYPE>
-py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute(py::array_t<NTYPE> X) {
+py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute(
+        py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) {
     switch(this->aggregate_function_) {
         case AGGREGATE_FUNCTION::AVERAGE:
             return this->compute_agg(X, _AggregatorAverage<NTYPE>(
@@ -101,7 +102,8 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute(py::array_t<NTY
 
 
 template<typename NTYPE>
-py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute_tree_outputs(py::array_t<NTYPE> X) {
+py::array_t<NTYPE> RuntimeTreeEnsembleRegressorP<NTYPE>::compute_tree_outputs(
+        py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) {
     switch(this->aggregate_function_) {
         case AGGREGATE_FUNCTION::AVERAGE:
             return this->compute_tree_outputs_agg(X, _AggregatorAverage<NTYPE>(

@@ -4,12 +4,23 @@
 import unittest
 from logging import getLogger
 import copy
+import json
+import base64
+import lzma
 import numpy
 from pandas import DataFrame
 from pyquickhelper.pycode import ExtTestCase
+
+try:
+    from pyquickhelper.pycode.unittest_cst import decompress_cst
+except ImportError:
+    decompress_cst = lambda d: json.loads(
+        lzma.decompress(base64.b64decode(b"".join(d))))
+
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.datasets import load_iris
-from mlprodict.onnx_conv.operator_converters.conv_lightgbm import modify_tree_for_rule_in_set
+from mlprodict.onnx_conv.helpers.lgbm_helper import (
+    modify_tree_for_rule_in_set, restore_lgbm_info)
 from mlprodict.onnx_conv.parsers.parse_lightgbm import MockWrappedLightGbmBoosterClassifier
 from mlprodict.onnx_conv import register_converters, to_onnx
 from mlprodict.onnxrt import OnnxInference
@@ -28,6 +39,30 @@ def count_nodes(tree, done=None):
     if 'left_child' in tree:
         nb += count_nodes(tree['left_child'], done)
     return nb
+
+
+def clean_tree(tree):
+    def walk_through(tree):
+        if 'tree_structure' in tree:
+            for w in walk_through(tree['tree_structure']):
+                yield w
+        yield tree
+        if 'left_child' in tree:
+            for w in walk_through(tree['left_child']):
+                yield w
+        if 'right_child' in tree:
+            for w in walk_through(tree['right_child']):
+                yield w
+
+    nodes = list(walk_through(tree3))
+    for node in nodes:
+        for k in ['split_gain', 'split_feature', 'split_index', 'leaf_count',
+                  'internal_value', 'internal_weight', 'internal_count', 'leaf_weight']:
+            if k in node:
+                del node[k]
+        for k in ['leaf_value', 'leaf_value']:
+            if k in node:
+                node[k] = 0
 
 
 tree2 = {'average_output': False,
@@ -140,6 +175,29 @@ tree2 = {'average_output': False,
          'version': 'v2'}
 
 
+# This constant by built by appling function pyquickhelper.pycode.unittest_cst.compress_cst.
+
+tree3 = decompress_cst([
+    b'/Td6WFoAAATm1rRGAgAhARYAAAB0L+Wj4Ck9A2tdAD2IiodjqVNsvcJJI6C9h2Y0CbG5b7',
+    b'OaqsqxvLBzg7BltxogYoUzxj35qbUETbBAyJeMccezEDeIKOT1GB+I50txUuc8zkWDcp/n',
+    b'kx2YhORZxAyj55pXJF/xW5aySLknuTn/5cRfSL9AGF7dHdW9k8RqP5GONWx3YvvnP0tCW0',
+    b'lGKd5caxoNFaB5tg+je6f0s6N6QQo8wqrBPtjJ7bQf50vFrpYgkQNAEZIVutpzgE9c4o1L',
+    b'Uv/vJgnhQXOpk/4hOCV2q8VG+jD9oIjPINOOZ642k2QmsdWC+l3XagJnbN9dqT/4C9ehfM',
+    b'nf6Bw5XcRXD4rtmOyUq/ocuh1WfPinlKd/Jn0YOydq1FpH+VNSUjjPUGJbJal4Pa6jcx/Y',
+    b'9mcBjp9kP1pM5wkCJ52Kv12UQ/+2j+n0rUQbbqs10iFJo4h4KB/Ie/bugBLNItmNhNhDP4',
+    b'36Q6jCsLsXlu0gTiWZfGQapR+DJIsVKHh9GeagotXpHTwYX72KrTFwIdxgf9Y2X1EUqiJV',
+    b'wXdP7GprCs9QsIvCkqW59hPNStt2tyWtlSsXsnjU5e0Jn3USVHOcbwCBSpCtFlpg8tiS9m',
+    b'Zv1TIGj9cvEk1Ke9p6bZelvtXqHJRISJ8fCVjrqTnEjyUdPaG1wmqCyz7NFEkngrBinY7e',
+    b'ZMHmO1y6IhLI1zN0kq8zBHIQeqUruYgBatPI6jI585wQ6mYCobgQc7B6Ae6XlgOthATrr2',
+    b'oDdnIeAPeUKVMXPIq9NnwlwsyNEoTddI42NiMde8jVzVm4wwwnqrmbKlJsi5LJhRQlaEFX',
+    b'etzNn7llkCSwv88gYhcaDWP3Ewchse2iQDkJ0dPZhx0FB18X6wvEcwkt/H+dzTgAYOCSkr',
+    b'T3thNkPCvQ4keiRzHiWNzLc+NAhz5NX8BXsVQFkEyf4oUkKHjy053LBmXpHM75LBhdJmFH',
+    b'vqRENHF6QgiPLAjc/1NHatYLcY0VRetr55Bp2jWU+z75P2TrMkTHFnjbOEQ3p13USzVmnq',
+    b'3d0EUvp5Q5dUPDFAIhkH+oUkgK4lX2xlyEGh+23EqQtmkjOyKj7HPHoPZo2AjASlRTc78u',
+    b'1c9nWkTbwBGbZUsMmWzyjbDe/h2Yi2GvkSkIh8UKtYDlTzpT62G9Chf5N9HEfFjQWcdCEi',
+    b'7Y3Hx86ee03jpP42ssAADRqUIMvx3yYwABhwe+UgAA2u9V4LHEZ/sCAAAAAARZWg=='])
+
+
 class TestLightGbmTreeStructure(ExtTestCase):
 
     def setUp(self):
@@ -223,7 +281,6 @@ class TestLightGbmTreeStructure(ExtTestCase):
         self.assertEqual(nb2, 18)
 
     def test_mock_lightgbm(self):
-
         tree = copy.deepcopy(tree2)
         nb1 = sum(count_nodes(t['tree_structure']) for t in tree['tree_info'])
         model = MockWrappedLightGbmBoosterClassifier(tree)
@@ -257,6 +314,30 @@ class TestLightGbmTreeStructure(ExtTestCase):
                 self.assertEqual(label.shape, (row, ))
                 prob = DataFrame(pred["output_probability"]).values
                 self.assertEqual(prob.shape, (row, 2))
+
+    def test_mock_lightgbm_info(self):
+        tree = copy.deepcopy(tree3)
+        info = restore_lgbm_info(tree)
+        modify_tree_for_rule_in_set(tree, info=info)
+        expected = tree
+        tree = copy.deepcopy(tree3)
+        info = restore_lgbm_info(tree)
+        modify_tree_for_rule_in_set(tree, info=info)
+        self.assertEqual(expected, tree)
+
+    def test_mock_lightgbm_profile(self):
+        tree = copy.deepcopy(tree3)
+        info = restore_lgbm_info(tree)
+        self.assertIsInstance(info, list)
+        self.assertGreater(len(info), 1)
+
+        def g():
+            for _ in range(0, 100):
+                modify_tree_for_rule_in_set(tree, info=info)
+        p2 = self.profile(g)[1]
+        self.assertIn('cumtime', p2)
+        if __name__ == "__main__":
+            print(p2)
 
 
 if __name__ == "__main__":

@@ -15,6 +15,9 @@ from skl2onnx.common.shape_calculator import (
     calculate_linear_regressor_output_shapes,
     calculate_linear_classifier_output_shapes)
 from skl2onnx.common.data_types import guess_numpy_type
+from skl2onnx.common.tree_ensemble import sklearn_threshold
+from ..helpers.lgbm_helper import (
+    dump_lgbm_booster, modify_tree_for_rule_in_set)
 
 
 def calculate_lightgbm_output_shapes(operator):
@@ -25,8 +28,13 @@ def calculate_lightgbm_output_shapes(operator):
     op = operator.raw_operator
     if hasattr(op, "_model_dict"):
         objective = op._model_dict['objective']
-    else:
+    elif hasattr(op, 'objective_'):
         objective = op.objective_
+    else:
+        raise RuntimeError(  # pragma: no cover
+            "Unable to find attributes '_model_dict' or 'objective_' in "
+            "instance of type %r (list of attributes=%r)." % (
+                type(op), dir(op)))
     if objective.startswith('binary') or objective.startswith('multiclass'):
         return calculate_linear_classifier_output_shapes(operator)
     if objective.startswith('regression'):  # pragma: no cover
@@ -101,12 +109,12 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
     attrs['nodes_nodeids'].append(node_id)
 
     attrs['nodes_featureids'].append(tree_structure['split_feature'])
-    attrs['nodes_modes'].append(
-        _translate_split_criterion(tree_structure['decision_type']))
+    mode = _translate_split_criterion(tree_structure['decision_type'])
+    attrs['nodes_modes'].append(mode)
+
     if isinstance(tree_structure['threshold'], str):
         try:  # pragma: no cover
-            attrs['nodes_values'].append(  # pragma: no cover
-                float(tree_structure['threshold']))
+            th = float(tree_structure['threshold'])  # pragma: no cover
         except ValueError as e:  # pragma: no cover
             import pprint
             text = pprint.pformat(tree_structure)
@@ -115,13 +123,24 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
             raise TypeError("threshold must be a number not '{}'"
                             "\n{}".format(tree_structure['threshold'], text)) from e
     else:
-        attrs['nodes_values'].append(tree_structure['threshold'])
+        th = tree_structure['threshold']
+    if mode == 'BRANCH_LEQ':
+        th2 = sklearn_threshold(th, numpy.float32, mode)
+    else:
+        # other decision criteria are not implemented
+        th2 = th
+    attrs['nodes_values'].append(th2)
 
     # Assume left is the true branch and right is the false branch
     attrs['nodes_truenodeids'].append(left_id)
     attrs['nodes_falsenodeids'].append(right_id)
     if tree_structure['default_left']:
-        attrs['nodes_missing_value_tracks_true'].append(1)
+        # attrs['nodes_missing_value_tracks_true'].append(1)
+        if (tree_structure["missing_type"] in ('None', None) and
+                float(tree_structure['threshold']) < 0.0):
+            attrs['nodes_missing_value_tracks_true'].append(0)
+        else:
+            attrs['nodes_missing_value_tracks_true'].append(1)
     else:
         attrs['nodes_missing_value_tracks_true'].append(0)
     attrs['nodes_hitrates'].append(1.)
@@ -138,8 +157,8 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
     """
     Parses nodes.
     """
-    if (hasattr(node, 'left_child') and hasattr(node, 'right_child')) or \
-            ('left_child' in node and 'right_child' in node):
+    if ((hasattr(node, 'left_child') and hasattr(node, 'right_child')) or
+            ('left_child' in node and 'right_child' in node)):
 
         left_pyid = id(node['left_child'])
         right_pyid = id(node['right_child'])
@@ -184,7 +203,12 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
         attrs['nodes_truenodeids'].append(left_id)
         attrs['nodes_falsenodeids'].append(right_id)
         if node['default_left']:
-            attrs['nodes_missing_value_tracks_true'].append(1)
+            # attrs['nodes_missing_value_tracks_true'].append(1)
+            if (node['missing_type'] in ('None', None) and
+                    float(node['threshold']) < 0.0):
+                attrs['nodes_missing_value_tracks_true'].append(0)
+            else:
+                attrs['nodes_missing_value_tracks_true'].append(1)
         else:
             attrs['nodes_missing_value_tracks_true'].append(0)
         attrs['nodes_hitrates'].append(1.)
@@ -230,9 +254,18 @@ def convert_lightgbm(scope, operator, container):
     some modifications. It implements converters
     for models in :epkg:`lightgbm`.
     """
+    verbose = container.verbose
     gbm_model = operator.raw_operator
-    gbm_text = gbm_model.booster_.dump_model()
-    modify_tree_for_rule_in_set(gbm_text, use_float=True)
+    if hasattr(gbm_model, '_model_dict_info'):
+        gbm_text, info = gbm_model._model_dict_info
+    else:
+        if verbose >= 2:
+            print("[convert_lightgbm] dump_model")
+        gbm_text, info = dump_lgbm_booster(gbm_model.booster_, verbose=verbose)
+    if verbose >= 2:
+        print("[convert_lightgbm] modify_tree_for_rule_in_set")
+    modify_tree_for_rule_in_set(gbm_text, use_float=True, verbose=verbose,
+                                info=info)
 
     attrs = get_default_tree_classifier_attribute_pairs()
     attrs['name'] = operator.full_name
@@ -254,13 +287,22 @@ def convert_lightgbm(scope, operator, container):
                 gbm_text['objective']))
 
     # Use the same algorithm to parse the tree
-    for i, tree in enumerate(gbm_text['tree_info']):
+    if verbose >= 2:
+        from tqdm import tqdm
+        loop = tqdm(gbm_text['tree_info'])
+        loop.set_description("parse")
+    else:
+        loop = gbm_text['tree_info']
+    for i, tree in enumerate(loop):
         tree_id = i
         class_id = tree_id % n_classes
         # tree['shrinkage'] --> LightGbm provides figures with it already.
         learning_rate = 1.
         _parse_tree_structure(
             tree_id, class_id, learning_rate, tree['tree_structure'], attrs)
+
+    if verbose >= 2:
+        print("[convert_lightgbm] onnx")
 
     # Sort nodes_* attributes. For one tree, its node indexes should appear in an ascent order in nodes_nodeids. Nodes
     # from a tree with a smaller tree index should appear before trees with larger indexes in nodes_nodeids.
@@ -404,88 +446,5 @@ def convert_lightgbm(scope, operator, container):
                                operator.output_full_names,
                                name=scope.get_unique_operator_name('Identity'))
 
-
-def modify_tree_for_rule_in_set(gbm, use_float=False):  # pylint: disable=R1710
-    """
-    LightGBM produces sometimes a tree with a node set
-    to use rule ``==`` to a set of values (= in set),
-    the values are separated by ``||``.
-    This function unfold theses nodes. A child looks
-    like the following:
-
-    .. runpython::
-        :showcode:
-        :warningout: DeprecationWarning
-
-        import pprint
-        from mlprodict.onnx_conv.operator_converters.conv_lightgbm import modify_tree_for_rule_in_set
-
-        tree = {'decision_type': '==',
-                'default_left': True,
-                'internal_count': 6805,
-                'internal_value': 0.117558,
-                'left_child': {'leaf_count': 4293,
-                               'leaf_index': 18,
-                               'leaf_value': 0.003519117642745049},
-                'missing_type': 'None',
-                'right_child': {'leaf_count': 2512,
-                                'leaf_index': 25,
-                                'leaf_value': 0.012305307958365394},
-                'split_feature': 24,
-                'split_gain': 12.233599662780762,
-                'split_index': 24,
-                'threshold': '10||12||13'}
-
-        modify_tree_for_rule_in_set(tree)
-
-        pprint.pprint(tree)
-    """
-    if 'tree_info' in gbm:
-        for tree in gbm['tree_info']:
-            modify_tree_for_rule_in_set(tree, use_float=use_float)
-        return
-
-    if 'tree_structure' in gbm:
-        modify_tree_for_rule_in_set(gbm['tree_structure'], use_float=use_float)
-        return
-
-    if 'decision_type' not in gbm:
-        return
-
-    def recursive_call(this):
-        if 'left_child' in this:
-            modify_tree_for_rule_in_set(
-                this['left_child'], use_float=use_float)
-        if 'right_child' in this:
-            modify_tree_for_rule_in_set(
-                this['right_child'], use_float=use_float)
-
-    def str2number(val):
-        if use_float:
-            return float(val)
-        else:
-            try:
-                return int(val)
-            except ValueError:  # pragma: no cover
-                return float(val)
-
-    dec = gbm['decision_type']
-    if dec != '==':
-        return recursive_call(gbm)
-
-    th = gbm['threshold']
-    if not isinstance(th, str) or '||' not in th:
-        return recursive_call(gbm)
-
-    pos = th.index('||')
-    th1 = str2number(th[:pos])
-
-    rest = th[pos + 2:]
-    if '||' not in rest:
-        rest = str2number(rest)
-
-    gbm['threshold'] = th1
-    new_node = gbm.copy()
-    gbm['right_child'] = new_node
-    new_node['threshold'] = rest
-    return recursive_call(gbm)
+    if verbose >= 2:
+        print("[convert_lightgbm] end")

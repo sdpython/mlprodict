@@ -34,13 +34,13 @@ class ConvTranspose : ConvPoolCommon {
 
         ConvTranspose();
         void init(const std::string &auto_pad,
-                  py::array_t<int64_t> dilations,
+                  py::array_t<int64_t, py::array::c_style | py::array::forcecast> dilations,
                   int64_t group,
-                  py::array_t<int64_t> kernel_shape,
-                  py::array_t<int64_t> pads,
-                  py::array_t<int64_t> strides,
-                  py::array_t<int64_t> output_padding,
-                  py::array_t<int64_t> output_shape);
+                  py::array_t<int64_t, py::array::c_style | py::array::forcecast> kernel_shape,
+                  py::array_t<int64_t, py::array::c_style | py::array::forcecast> pads,
+                  py::array_t<int64_t, py::array::c_style | py::array::forcecast> strides,
+                  py::array_t<int64_t, py::array::c_style | py::array::forcecast> output_padding,
+                  py::array_t<int64_t, py::array::c_style | py::array::forcecast> output_shape);
 
         py::array_t<T> compute(py::array_t<T, py::array::c_style | py::array::forcecast> X,
                                py::array_t<T, py::array::c_style | py::array::forcecast> W,
@@ -51,8 +51,10 @@ class ConvTranspose : ConvPoolCommon {
         void compute_kernel_shape(const std::vector<int64_t>& weight_shape,
                                   std::vector<int64_t>& kernel_shape) const;
 
-        void compute_gil_free(py::array_t<T> X, py::array_t<T> W,
-                              py::array_t<T> B, py::array_t<T>& Y,
+        void compute_gil_free(py::array_t<T, py::array::c_style | py::array::forcecast> X,
+                              py::array_t<T, py::array::c_style | py::array::forcecast> W,
+                              py::array_t<T, py::array::c_style | py::array::forcecast> B,
+                              py::array_t<T, py::array::c_style | py::array::forcecast>& Y,
                               const std::vector<int64_t>& input_shape,
                               const std::vector<int64_t>& output_shape,
                               const std::vector<int64_t>& kernel_shape,
@@ -84,13 +86,13 @@ ConvTranspose<T>::ConvTranspose() : ConvPoolCommon() {
 template<typename T>
 void ConvTranspose<T>::init(
             const std::string &auto_pad,
-            py::array_t<int64_t> dilations,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> dilations,
             int64_t group,
-            py::array_t<int64_t> kernel_shape,
-            py::array_t<int64_t> pads,
-            py::array_t<int64_t> strides,
-            py::array_t<int64_t> output_padding,
-            py::array_t<int64_t> output_shape) {
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> kernel_shape,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> pads,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> strides,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> output_padding,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> output_shape) {
     ConvPoolCommon::init(auto_pad, dilations, group, kernel_shape, pads, strides);
     array2vector(output_padding_, output_padding, int64_t);
     array2vector(output_shape_, output_shape, int64_t);
@@ -160,7 +162,7 @@ py::array_t<T> ConvTranspose<T>::compute(py::array_t<T, py::array::c_style | py:
                        pads, y_dims, output_padding, auto_pad_);
     std::vector<int64_t> output_shape(y_dims.begin() + 2, y_dims.end());
 
-    py::array_t<T> Y(y_dims);
+    py::array_t<T, py::array::c_style | py::array::forcecast> Y(y_dims);
     {
         py::gil_scoped_release release;
         compute_gil_free(X, W, B, Y,
@@ -227,7 +229,10 @@ void ConvTranspose<T>::infer_output_shape(
 
 template<typename T>
 void ConvTranspose<T>::compute_gil_free(
-        py::array_t<T> X, py::array_t<T> W, py::array_t<T> B, py::array_t<T>& Y,
+        py::array_t<T, py::array::c_style | py::array::forcecast> X,
+        py::array_t<T, py::array::c_style | py::array::forcecast> W,
+        py::array_t<T, py::array::c_style | py::array::forcecast> B,
+        py::array_t<T, py::array::c_style | py::array::forcecast>& Y,
         const std::vector<int64_t>& input_shape,
         const std::vector<int64_t>& output_shape,
         const std::vector<int64_t>& kernel_shape,

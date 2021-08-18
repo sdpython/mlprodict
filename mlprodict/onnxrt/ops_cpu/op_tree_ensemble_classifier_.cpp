@@ -66,26 +66,26 @@ class RuntimeTreeEnsembleClassifier
         ~RuntimeTreeEnsembleClassifier();
 
         void init(
-            py::array_t<NTYPE> base_values, // 0
-            py::array_t<int64_t> class_ids, // 1
-            py::array_t<int64_t> class_nodeids, // 2
-            py::array_t<int64_t> class_treeids, // 3
-            py::array_t<NTYPE> class_weights, // 4
-            py::array_t<int64_t> classlabels_int64s, // 5
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> base_values, // 0
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> class_ids, // 1
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> class_nodeids, // 2
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> class_treeids, // 3
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> class_weights, // 4
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> classlabels_int64s, // 5
             const std::vector<std::string>& classlabels_strings, // 6
-            py::array_t<int64_t> nodes_falsenodeids, // 7
-            py::array_t<int64_t> nodes_featureids, // 8
-            py::array_t<NTYPE> nodes_hitrates, // 9
-            py::array_t<int64_t> nodes_missing_value_tracks_true, // 10
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_falsenodeids, // 7
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_featureids, // 8
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_hitrates, // 9
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_missing_value_tracks_true, // 10
             const std::vector<std::string>& nodes_modes, // 11
-            py::array_t<int64_t> nodes_nodeids, // 12
-            py::array_t<int64_t> nodes_treeids, // 13
-            py::array_t<int64_t> nodes_truenodeids, // 14
-            py::array_t<NTYPE> nodes_values, // 15
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_nodeids, // 12
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_treeids, // 13
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_truenodeids, // 14
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_values, // 15
             const std::string& post_transform // 16
         );
         
-        py::tuple compute(py::array_t<NTYPE> X) const;
+        py::tuple compute(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) const;
 
         void ProcessTreeNode(std::vector<NTYPE>& classes,
                              std::vector<bool>& filled,
@@ -102,8 +102,9 @@ class RuntimeTreeEnsembleClassifier
         void Initialize();
 
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                              const py::array_t<NTYPE>& X, py::array_t<int64_t>& Y,
-                              py::array_t<NTYPE>& Z) const;
+                              const py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& X,
+                              py::array_t<int64_t, py::array::c_style | py::array::forcecast>& Y,
+                              py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& Z) const;
     
         int64_t _set_score_binary(int64_t i,
                           int& write_additional_scores,
@@ -145,22 +146,22 @@ int RuntimeTreeEnsembleClassifier<NTYPE>::omp_get_max_threads() {
 
 template<typename NTYPE>
 void RuntimeTreeEnsembleClassifier<NTYPE>::init(
-            py::array_t<NTYPE> base_values,
-            py::array_t<int64_t> class_ids,
-            py::array_t<int64_t> class_nodeids,
-            py::array_t<int64_t> class_treeids,
-            py::array_t<NTYPE> class_weights,
-            py::array_t<int64_t> classlabels_int64s,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> base_values,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> class_ids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> class_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> class_treeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> class_weights,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> classlabels_int64s,
             const std::vector<std::string>& classlabels_strings,
-            py::array_t<int64_t> nodes_falsenodeids,
-            py::array_t<int64_t> nodes_featureids,
-            py::array_t<NTYPE> nodes_hitrates,
-            py::array_t<int64_t> nodes_missing_value_tracks_true,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_falsenodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_featureids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_hitrates,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_missing_value_tracks_true,
             const std::vector<std::string>& nodes_modes,
-            py::array_t<int64_t> nodes_nodeids,
-            py::array_t<int64_t> nodes_treeids,
-            py::array_t<int64_t> nodes_truenodeids,
-            py::array_t<NTYPE> nodes_values,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_treeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_truenodeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_values,
             const std::string& post_transform
     ) {
     array2vector(nodes_treeids_, nodes_treeids, int64_t);
@@ -371,7 +372,7 @@ int64_t RuntimeTreeEnsembleClassifier<NTYPE>::_set_score_binary(
 
 
 template<typename NTYPE>
-py::tuple RuntimeTreeEnsembleClassifier<NTYPE>::compute(py::array_t<NTYPE> X) const {
+py::tuple RuntimeTreeEnsembleClassifier<NTYPE>::compute(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) const {
     // const Tensor& X = *context->Input<Tensor>(0);
     // const TensorShape& x_shape = X.Shape();
     std::vector<int64_t> x_dims;
@@ -385,8 +386,8 @@ py::tuple RuntimeTreeEnsembleClassifier<NTYPE>::compute(py::array_t<NTYPE> X) co
 
     // Tensor* Y = context->Output(0, TensorShape({N}));
     // auto* Z = context->Output(1, TensorShape({N, class_count_}));
-    py::array_t<int64_t> Y(x_dims[0]);
-    py::array_t<NTYPE> Z(x_dims[0] * class_count_);
+    py::array_t<int64_t, py::array::c_style | py::array::forcecast> Y(x_dims[0]);
+    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Z(x_dims[0] * class_count_);
 
     {
         py::gil_scoped_release release;
@@ -396,12 +397,12 @@ py::tuple RuntimeTreeEnsembleClassifier<NTYPE>::compute(py::array_t<NTYPE> X) co
 }
 
 
-py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float>& Z) {
+py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float, py::array::c_style | py::array::forcecast>& Z) {
     return Z.mutable_unchecked<1>();
 }
 
 
-py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double>& Z) {
+py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double, py::array::c_style | py::array::forcecast>& Z) {
     return Z.mutable_unchecked<1>();
 }
 
@@ -409,7 +410,9 @@ py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array
 template<typename NTYPE>
 void RuntimeTreeEnsembleClassifier<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                const py::array_t<NTYPE>& X, py::array_t<int64_t>& Y, py::array_t<NTYPE>& Z) const {
+                const py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& X,
+                py::array_t<int64_t, py::array::c_style | py::array::forcecast>& Y,
+                py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& Z) const {
     auto Y_ = Y.mutable_unchecked<1>();
     auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
     const NTYPE* x_data = X.data(0);

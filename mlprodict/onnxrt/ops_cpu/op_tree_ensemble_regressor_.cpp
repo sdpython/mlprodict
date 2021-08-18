@@ -65,25 +65,25 @@ class RuntimeTreeEnsembleRegressor
 
         void init(
             const std::string &aggregate_function,
-            py::array_t<NTYPE> base_values,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> base_values,
             int64_t n_targets,
-            py::array_t<int64_t> nodes_falsenodeids,
-            py::array_t<int64_t> nodes_featureids,
-            py::array_t<NTYPE> nodes_hitrates,
-            py::array_t<int64_t> nodes_missing_value_tracks_true,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_falsenodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_featureids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_hitrates,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_missing_value_tracks_true,
             const std::vector<std::string>& nodes_modes,
-            py::array_t<int64_t> nodes_nodeids,
-            py::array_t<int64_t> nodes_treeids,
-            py::array_t<int64_t> nodes_truenodeids,
-            py::array_t<NTYPE> nodes_values,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_treeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_truenodeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_values,
             const std::string& post_transform,
-            py::array_t<int64_t> target_ids,
-            py::array_t<int64_t> target_nodeids,
-            py::array_t<int64_t> target_treeids,
-            py::array_t<NTYPE> target_weights
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_ids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_treeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> target_weights
         );
 
-        py::array_t<NTYPE> compute(py::array_t<NTYPE> X) const;
+        py::array_t<NTYPE> compute(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) const;
 
         void ProcessTreeNode(NTYPE* predictions, int64_t treeindex,
                              const NTYPE* x_data, int64_t feature_base,
@@ -93,16 +93,17 @@ class RuntimeTreeEnsembleRegressor
 
         int omp_get_max_threads();
 
-        py::array_t<int> debug_threshold(py::array_t<NTYPE> values) const;
+        py::array_t<int> debug_threshold(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> values) const;
 
-        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE> values) const;
+        py::array_t<NTYPE> compute_tree_outputs(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> values) const;
 
     private:
 
         void Initialize();
 
         void compute_gil_free(const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                              const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z) const;
+                              const py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& X,
+                              py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& Z) const;
 };
 
 
@@ -139,22 +140,22 @@ int RuntimeTreeEnsembleRegressor<NTYPE>::omp_get_max_threads() {
 template<typename NTYPE>
 void RuntimeTreeEnsembleRegressor<NTYPE>::init(
             const std::string &aggregate_function,
-            py::array_t<NTYPE> base_values,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> base_values,
             int64_t n_targets,
-            py::array_t<int64_t> nodes_falsenodeids,
-            py::array_t<int64_t> nodes_featureids,
-            py::array_t<NTYPE> nodes_hitrates,
-            py::array_t<int64_t> nodes_missing_value_tracks_true,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_falsenodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_featureids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_hitrates,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_missing_value_tracks_true,
             const std::vector<std::string>& nodes_modes,
-            py::array_t<int64_t> nodes_nodeids,
-            py::array_t<int64_t> nodes_treeids,
-            py::array_t<int64_t> nodes_truenodeids,
-            py::array_t<NTYPE> nodes_values,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_treeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> nodes_truenodeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> nodes_values,
             const std::string& post_transform,
-            py::array_t<int64_t> target_ids,
-            py::array_t<int64_t> target_nodeids,
-            py::array_t<int64_t> target_treeids,
-            py::array_t<NTYPE> target_weights
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_ids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_nodeids,
+            py::array_t<int64_t, py::array::c_style | py::array::forcecast> target_treeids,
+            py::array_t<NTYPE, py::array::c_style | py::array::forcecast> target_weights
     ) {
     aggregate_function_ = to_AGGREGATE_FUNCTION(aggregate_function);        
     array2vector(base_values_, base_values, NTYPE);
@@ -314,7 +315,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::Initialize() {
 
 
 template<typename NTYPE>
-py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute(py::array_t<NTYPE> X) const {
+py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) const {
     // const Tensor& X = *context->Input<Tensor>(0);
     // const TensorShape& x_shape = X.Shape();    
     std::vector<int64_t> x_dims;
@@ -329,7 +330,7 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute(py::array_t<NTYP
 
     // Tensor* Y = context->Output(0, TensorShape({N}));
     // auto* Z = context->Output(1, TensorShape({N, class_count_}));
-    py::array_t<NTYPE> Z(x_dims[0] * n_targets_);
+    py::array_t<NTYPE, py::array::c_style | py::array::forcecast> Z(x_dims[0] * n_targets_);
 
     {
         py::gil_scoped_release release;
@@ -339,12 +340,12 @@ py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute(py::array_t<NTYP
 }
 
 
-py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float>& Z) {
+py::detail::unchecked_mutable_reference<float, 1> _mutable_unchecked1(py::array_t<float, py::array::c_style | py::array::forcecast>& Z) {
     return Z.mutable_unchecked<1>();
 }
 
 
-py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double>& Z) {
+py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array_t<double, py::array::c_style | py::array::forcecast>& Z) {
     return Z.mutable_unchecked<1>();
 }
 
@@ -352,7 +353,8 @@ py::detail::unchecked_mutable_reference<double, 1> _mutable_unchecked1(py::array
 template<typename NTYPE>
 void RuntimeTreeEnsembleRegressor<NTYPE>::compute_gil_free(
                 const std::vector<int64_t>& x_dims, int64_t N, int64_t stride,
-                const py::array_t<NTYPE>& X, py::array_t<NTYPE>& Z) const {
+                const py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& X,
+                py::array_t<NTYPE, py::array::c_style | py::array::forcecast>& Z) const {
 
     // expected primary-expression before ')' token
     auto Z_ = _mutable_unchecked1(Z); // Z.mutable_unchecked<(size_t)1>();
@@ -662,7 +664,7 @@ void RuntimeTreeEnsembleRegressor<NTYPE>::ProcessTreeNode(
 
 
 template<typename NTYPE>
-py::array_t<int> RuntimeTreeEnsembleRegressor<NTYPE>::debug_threshold(py::array_t<NTYPE> values) const {
+py::array_t<int> RuntimeTreeEnsembleRegressor<NTYPE>::debug_threshold(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> values) const {
     std::vector<int> result(values.size() * nodes_values_.size());
     const NTYPE* x_data = values.data(0);
     const NTYPE* end = x_data + values.size();
@@ -687,7 +689,7 @@ py::array_t<int> RuntimeTreeEnsembleRegressor<NTYPE>::debug_threshold(py::array_
 
 
 template<typename NTYPE>
-py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute_tree_outputs(py::array_t<NTYPE> X) const {
+py::array_t<NTYPE> RuntimeTreeEnsembleRegressor<NTYPE>::compute_tree_outputs(py::array_t<NTYPE, py::array::c_style | py::array::forcecast> X) const {
     
     std::vector<int64_t> x_dims;
     arrayshape2vector(x_dims, X);
