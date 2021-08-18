@@ -14,7 +14,8 @@ from pyquickhelper.pycode import ExtTestCase
 try:
     from pyquickhelper.pycode.unittest_cst import decompress_cst
 except ImportError:
-    decompress_cst = lambda d: json.loads(lzma.decompress(base64.b64decode(b"".join(d))))
+    decompress_cst = lambda d: json.loads(
+        lzma.decompress(base64.b64decode(b"".join(d))))
 
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.datasets import load_iris

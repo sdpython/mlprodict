@@ -8,7 +8,6 @@ from skl2onnx._parse import _parse_sklearn_classifier, _parse_sklearn_simple_mod
 from skl2onnx.common._apply_operation import apply_concat, apply_cast
 from skl2onnx.common.data_types import guess_proto_type
 from skl2onnx.proto import onnx_proto
-from ..helpers.lgbm_helper import dump_lgbm_booster
 
 
 class WrappedLightGbmBooster:
@@ -59,6 +58,7 @@ class WrappedLightGbmBooster:
         return numpy.arange(num_class)
 
     def get_objective(self):
+        "Returns the objective."
         if hasattr(self, 'objective_') and self.objective_ is not None:
             return self.objective_
         objective = self.booster_.attr('objective')
@@ -96,9 +96,11 @@ class MockWrappedLightGbmBoosterClassifier(WrappedLightGbmBoosterClassifier):
         return self.dumped_
 
     def feature_name(self):
+        "Returns binary features names."
         return [0, 1]
 
     def attr(self, key):
+        "Returns default values for common attributes."
         if key == 'objective':
             return "binary"
         if key == 'num_class':

@@ -115,11 +115,17 @@ def dump_booster_model(self, num_iteration=None, start_iteration=0,
             ctypes.byref(tmp_out_len),
             ptr_string_buffer))
 
-    WHITESPACE = re.compile(r'[ \t\n\r]*', re.VERBOSE | re.MULTILINE | re.DOTALL)
+    WHITESPACE = re.compile(
+        r'[ \t\n\r]*', re.VERBOSE | re.MULTILINE | re.DOTALL)
 
     class Hook(json.JSONDecoder):
+        """
+        Keep track of the progress, stores a copy of all objects with
+        a decision into a different container in order to walk through
+        all nodes in a much faster way than going through the architecture.
+        """
         def __init__(self, *args, info=None, n_trees=None, verbose=0,
-                     **kwargs):            
+                     **kwargs):
             json.JSONDecoder.__init__(
                 self, object_hook=self.hook, *args, **kwargs)
             self.nodes = []
@@ -134,11 +140,19 @@ def dump_booster_model(self, num_iteration=None, start_iteration=0,
                 self.loop.set_description("dump_booster")
             else:
                 self.loop = None
+
         def decode(self, s, _w=WHITESPACE.match):
             return json.JSONDecoder.decode(self, s, _w=_w)
+
         def raw_decode(self, s, idx=0):
             return json.JSONDecoder.raw_decode(self, s, idx=idx)
+
         def hook(self, obj):
+            """
+            Hook called everytime a JSON object is created.
+            Keep track of the progress, stores a copy of all objects with
+            a decision into a different container.
+            """
             # Every obj goes through this function from the leaves to the root.
             if 'tree_info' in obj:
                 self.info['decision_nodes'] = self.nodes
