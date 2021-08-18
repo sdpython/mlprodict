@@ -124,6 +124,7 @@ def dump_booster_model(self, num_iteration=None, start_iteration=0,
         a decision into a different container in order to walk through
         all nodes in a much faster way than going through the architecture.
         """
+
         def __init__(self, *args, info=None, n_trees=None, verbose=0,
                      **kwargs):
             json.JSONDecoder.__init__(
@@ -208,8 +209,7 @@ def modify_tree_for_rule_in_set(gbm, use_float=False, verbose=0, count=0,  # pyl
     LightGBM produces sometimes a tree with a node set
     to use rule ``==`` to a set of values (= in set),
     the values are separated by ``||``.
-    This function unfold theses nodes. A child looks
-    like the following:
+    This function unfold theses nodes.
 
     :param gbm: a tree coming from lightgbm dump
     :param use_float: use float otherwise int first
@@ -218,6 +218,8 @@ def modify_tree_for_rule_in_set(gbm, use_float=False, verbose=0, count=0,  # pyl
     :param count: number of nodes already changed (origin) before this call
     :param info: addition information to speed up this search
     :return: number of changed nodes (include *count*)
+
+    A child looks like the following:
 
     .. runpython::
         :showcode:

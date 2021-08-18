@@ -18,11 +18,6 @@ class WrappedLightGbmBooster:
 
     def __init__(self, booster):
         self.booster_ = booster
-        # model_to_string is much faster than dump_model,
-        # would it be worth to use it instead?
-        # self.booster_.model_to_string()
-        # self._model_dict_info = dump_lgbm_booster(self.booster_)
-        # self._model_dict = self._model_dict_info[0]
         self.n_features_ = self.booster_.feature_name()
         self.objective_ = self.get_objective()
         if self.objective_.startswith('binary'):
