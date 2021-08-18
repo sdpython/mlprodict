@@ -4,7 +4,7 @@
 `LightGbm.py <https://github.com/onnx/onnxmltools/blob/master/onnxmltools/convert/
 lightgbm/operator_converters/LightGbm.py>`_.
 """
-from collections import Counter
+from collections import Counter, deque
 import copy
 import numbers
 import numpy
@@ -16,104 +16,8 @@ from skl2onnx.common.shape_calculator import (
     calculate_linear_classifier_output_shapes)
 from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx.common.tree_ensemble import sklearn_threshold
-
-
-def modify_tree_for_rule_in_set(gbm, use_float=False, verbose=0, count=0):  # pylint: disable=R1710
-    """
-    LightGBM produces sometimes a tree with a node set
-    to use rule ``==`` to a set of values (= in set),
-    the values are separated by ``||``.
-    This function unfold theses nodes. A child looks
-    like the following:
-
-    .. runpython::
-        :showcode:
-        :warningout: DeprecationWarning
-
-        import pprint
-        from mlprodict.onnx_conv.operator_converters.conv_lightgbm import modify_tree_for_rule_in_set
-
-        tree = {'decision_type': '==',
-                'default_left': True,
-                'internal_count': 6805,
-                'internal_value': 0.117558,
-                'left_child': {'leaf_count': 4293,
-                               'leaf_index': 18,
-                               'leaf_value': 0.003519117642745049},
-                'missing_type': 'None',
-                'right_child': {'leaf_count': 2512,
-                                'leaf_index': 25,
-                                'leaf_value': 0.012305307958365394},
-                'split_feature': 24,
-                'split_gain': 12.233599662780762,
-                'split_index': 24,
-                'threshold': '10||12||13'}
-
-        modify_tree_for_rule_in_set(tree)
-
-        pprint.pprint(tree)
-    """
-    if 'tree_info' in gbm:
-        if verbose >= 2:
-            from tqdm import tqdm
-            loop = tqdm(gbm['tree_info'])
-            for i, tree in enumerate(loop):
-                loop.set_description("rules tree %d c=%d" % (i, count))
-                count = modify_tree_for_rule_in_set(
-                    tree, use_float=use_float, count=count)
-        else:
-            for tree in gbm['tree_info']:
-                count = modify_tree_for_rule_in_set(
-                    tree, use_float=use_float, count=count)
-        return count
-
-    if 'tree_structure' in gbm:
-        return modify_tree_for_rule_in_set(
-            gbm['tree_structure'], use_float=use_float, count=count)
-
-    if 'decision_type' not in gbm:
-        return count
-
-    def str2number(val):
-        if use_float:
-            return float(val)
-        else:
-            try:
-                return int(val)
-            except ValueError:  # pragma: no cover
-                return float(val)
-
-    def recursive_call(this, c):
-        if 'left_child' in this:
-            c = process_node(this['left_child'], count=c)
-        if 'right_child' in this:
-            c = process_node(this['right_child'], count=c)
-        return c
-
-    def process_node(node, count):
-        if 'decision_type' not in node:
-            return count
-        if node['decision_type'] != '==':
-            return recursive_call(node, count)
-        th = node['threshold']
-        if not isinstance(th, str):
-            return recursive_call(node, count)
-        pos = th.find('||')
-        if pos == -1:
-            return recursive_call(node, count)
-        th1 = str2number(th[:pos])
-
-        rest = th[pos + 2:]
-        if '||' not in rest:
-            rest = str2number(rest)
-
-        node['threshold'] = th1
-        new_node = node.copy()
-        node['right_child'] = new_node
-        new_node['threshold'] = rest
-        return recursive_call(node, count + 1)
-
-    return process_node(gbm, count)
+from ..helpers.lgbm_helper import (
+    dump_lgbm_booster, modify_tree_for_rule_in_set)
 
 
 def calculate_lightgbm_output_shapes(operator):
@@ -124,8 +28,13 @@ def calculate_lightgbm_output_shapes(operator):
     op = operator.raw_operator
     if hasattr(op, "_model_dict"):
         objective = op._model_dict['objective']
-    else:
+    elif hasattr(op, 'objective_'):
         objective = op.objective_
+    else:
+        raise RuntimeError(  # pragma: no cover
+            "Unable to find attributes '_model_dict' or 'objective_' in "
+            "instance of type %r (list of attributes=%r)." % (
+                type(op), dir(op)))
     if objective.startswith('binary') or objective.startswith('multiclass'):
         return calculate_linear_classifier_output_shapes(operator)
     if objective.startswith('regression'):  # pragma: no cover
@@ -347,15 +256,16 @@ def convert_lightgbm(scope, operator, container):
     """
     verbose = container.verbose
     gbm_model = operator.raw_operator
-    if hasattr(gbm_model, '_model_dict'):
-        gbm_text = gbm_model._model_dict
+    if hasattr(gbm_model, '_model_dict_info'):
+        gbm_text, info = gbm_model._model_dict_info
     else:
         if verbose >= 2:
             print("[convert_lightgbm] dump_model")
-        gbm_text = gbm_model.booster_.dump_model()
+        gbm_text, info = dump_lgbm_booster(gbm_model.booster_)
     if verbose >= 2:
         print("[convert_lightgbm] modify_tree_for_rule_in_set")
-    modify_tree_for_rule_in_set(gbm_text, use_float=True, verbose=verbose)
+    modify_tree_for_rule_in_set(gbm_text, use_float=True, verbose=verbose,
+                                info=info)
 
     attrs = get_default_tree_classifier_attribute_pairs()
     attrs['name'] = operator.full_name

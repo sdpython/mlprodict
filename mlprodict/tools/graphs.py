@@ -407,7 +407,7 @@ class BiGraph:
         keys.sort()
 
         rows = []
-        for o, k in keys:
+        for _, k in keys:
             if k in self.v1:
                 rows.append(str(self.v1[k]))
         return "\n".join(rows)
@@ -486,7 +486,7 @@ class BiGraph:
                 ct = ""
             v1[key_node] = BiGraph.B(
                 n.op_type, ct, n.name)
-            for i, o in enumerate(n.input):
+            for o in n.input:
                 key_in = names_v0[o]
                 edges[key_in, key_node] = BiGraph.A('I')
             for i, o in enumerate(n.output):

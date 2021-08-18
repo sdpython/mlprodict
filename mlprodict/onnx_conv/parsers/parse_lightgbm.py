@@ -8,6 +8,7 @@ from skl2onnx._parse import _parse_sklearn_classifier, _parse_sklearn_simple_mod
 from skl2onnx.common._apply_operation import apply_concat, apply_cast
 from skl2onnx.common.data_types import guess_proto_type
 from skl2onnx.proto import onnx_proto
+from ..helpers.lgbm_helper import dump_lgbm_booster
 
 
 class WrappedLightGbmBooster:
@@ -21,7 +22,8 @@ class WrappedLightGbmBooster:
         # model_to_string is much faster than dump_model,
         # would it be worth to use it instead?
         # self.booster_.model_to_string()
-        self._model_dict = self.booster_.dump_model()
+        self._model_dict_info = dump_lgbm_booster(self.booster_)
+        self._model_dict = self._model_dict_info[0]
         self.classes_ = self._generate_classes(self._model_dict)
         self.n_features_ = len(self._model_dict['feature_names'])
         if self._model_dict['objective'].startswith('binary'):
@@ -65,6 +67,7 @@ class MockWrappedLightGbmBoosterClassifier(WrappedLightGbmBoosterClassifier):
 
     def __init__(self, tree):  # pylint: disable=W0231
         self.dumped_ = tree
+        self.is_mock = True
 
     def dump_model(self):
         "mock dump_model method"
