@@ -452,7 +452,9 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
         exc, execute=False, location_pyspy=None, patterns=None):
     """
     Creates a benchmark file based in the information received
-    through the argument. It uses template @see cl TemplateBenchmark.
+    through the argument. It uses one of the templates
+    like @see cl TemplateBenchmarkClassifier or
+    @see cl TemplateBenchmarkRegressor.
     """
     if patterns is None:
         raise ValueError("Patterns list is empty.")  # pragma: no cover

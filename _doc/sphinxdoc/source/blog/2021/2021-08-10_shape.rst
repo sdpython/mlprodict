@@ -28,7 +28,7 @@
                 opset_imports=[helper.make_operatorsetid('', 13)])
             sess = InferenceSession(model_def.SerializeToString())
             rnd = numpy.random.randn(12).astype(numpy.float32)
-            print(shape, sess.run(None, {"X": rnd}))
+            print("shape=%r results=%r" % (shape, sess.run(None, {"X": rnd})))
 
         model(None)
         model([])

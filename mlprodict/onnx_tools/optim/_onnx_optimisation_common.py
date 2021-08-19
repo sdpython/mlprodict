@@ -92,7 +92,7 @@ def _make_node(op_type, inputs, outputs, name=None, doc_string=None,
     :param domain: optional domain for NodeProto.
         If it's None, we will just use default domain (which is empty)
     :param attributes: the attributes of the node. The acceptable values
-        are documented in :func:`make_attribute`.
+        are documented in :epkg:`make_attribute`.
     :return: node
     """
     node = NodeProto()

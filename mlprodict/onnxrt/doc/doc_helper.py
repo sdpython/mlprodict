@@ -131,7 +131,7 @@ class NewOperatorSchema:
 def get_rst_doc(op_name):
     """
     Returns a documentation in RST format
-    for all :class:`OnnxOperator`.
+    for all :epkg:`OnnxOperator`.
 
     :param op_name: operator name of None for all
     :return: string
@@ -197,6 +197,7 @@ def get_rst_doc(op_name):
             '<tt>': '``',
             '</tt>': '``',
             '<br>': '\n',
+            '```': '``',
         }
         for k, v in rep.items():
             doc = doc.replace(k, v.format(main_docs_url))

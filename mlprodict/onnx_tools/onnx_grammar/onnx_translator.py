@@ -15,7 +15,8 @@ class CodeTranslator:
 
     def __init__(self, visitor):
         """
-        @param      visitor     @see cl CodeNodeVisitor
+        :param visitor: :class:`CodeNodeVisitor
+            <mlprodict.onnx_tools.onnx_grammar.node_visitor_translator>`
         """
         self._visitor = visitor
 
@@ -127,7 +128,8 @@ class OnnxTranslator(CodeTranslator):
 
     def __init__(self, visitor):
         """
-        @param      visitor     @see cl CodeNodeVisitor
+        :param visitor: :class:`CodeNodeVisitor
+            <mlprodict.onnx_tools.onnx_grammar.node_visitor_translator>`
         """
         CodeTranslator.__init__(self, visitor)
         self._stack = []

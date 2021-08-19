@@ -774,52 +774,54 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
     Tests all possible configurations for all possible
     operators and returns the results.
 
-    @param      verbose         integer 0, 1, 2
-    @param      opset_min       checks conversion starting from the opset, -1
-                                to get the last one
-    @param      opset_max       checks conversion up to this opset,
-                                None means @see fn get_opset_number_from_onnx.
-    @param      check_runtime   checks the python runtime
-    @param      models          only process a small list of operators,
-                                set of model names
-    @param      debug           stops whenever an exception
-                                is raised
-    @param      runtime         test a specific runtime, by default ``'python'``
-    @param      dump_folder     dump information to replicate in case of mismatch
-    @param      dump_all        dump all models not only the one which fail
-    @param      store_models    if True, the function
-                                also stores the fitted model and its conversion
-                                into :epkg:`ONNX`
-    @param      benchmark       if True, measures the time taken by each function
-                                to predict for different number of rows
-    @param      filter_exp      function which tells if the experiment must be run,
-                                None to run all, takes *model, problem* as an input
-    @param      filter_scenario second function which tells if the experiment must be run,
-                                None to run all, takes *model, problem, scenario, extra, options*
-                                as an input
-    @param      skip_models     models to skip
-    @param      assume_finite   See `config_context
-                                <https://scikit-learn.org/stable/modules/generated/
-                                sklearn.config_context.html>`_, If True, validation for finiteness
-                                will be skipped, saving time, but leading to potential crashes.
-                                If False, validation for finiteness will be performed, avoiding error.
-    @param      node_time       measure time execution for every node in the graph
-    @param      versions        add columns with versions of used packages,
-                                :epkg:`numpy`, :epkg:`scikit-learn`, :epkg:`onnx`,
-                                :epkg:`onnxruntime`, :epkg:`sklearn-onnx`
-    @param      extended_list   also check models this module implements a converter for
-    @param      time_kwargs     to define a more precise way to measure a model
-    @param      n_features      modifies the shorts datasets used to train the models
-                                to use exactly this number of features, it can also
-                                be a list to test multiple datasets
-    @param      skip_long_test  skips tests for high values of N if they seem too long
-    @param      fail_bad_results fails if the results are aligned with :epkg:`scikit-learn`
-    @param      time_kwargs_fact see :func:`_multiply_time_kwargs <mlprodict.onnxrt.validate.validate_helper._multiply_time_kwargs>`
-    @param      time_limit      to skip the rest of the test after this limit (in second)
-    @param      n_jobs          *n_jobs* is set to the number of CPU by default unless this
-                                value is changed
-    @param      fLOG            logging function
-    @return                     list of dictionaries
+    :param verbose: integer 0, 1, 2
+    :param opset_min: checks conversion starting from the opset, -1
+        to get the last one
+    :param opset_max: checks conversion up to this opset,
+        None means :func:`get_opset_number_from_onnx
+        <mlprodict.tools.asv_options_helper.get_opset_number_from_onnx>`
+    :param check_runtime: checks the python runtime
+    :param models: only process a small list of operators,
+        set of model names
+    :param debug: stops whenever an exception
+        is raised
+    :param runtime: test a specific runtime, by default ``'python'``
+    :param dump_folder: dump information to replicate in case of mismatch
+    :param dump_all: dump all models not only the one which fail
+    :param store_models: if True, the function
+        also stores the fitted model and its conversion
+        into :epkg:`ONNX`
+    :param benchmark: if True, measures the time taken by each function
+        to predict for different number of rows
+    :param filter_exp: function which tells if the experiment must be run,
+        None to run all, takes *model, problem* as an input
+    :param filter_scenario: second function which tells if the experiment must be run,
+        None to run all, takes *model, problem, scenario, extra, options*
+        as an input
+    :param skip_models: models to skip
+    :param assume_finite: See `config_context
+        <https://scikit-learn.org/stable/modules/generated/
+        sklearn.config_context.html>`_, If True, validation for finiteness
+        will be skipped, saving time, but leading to potential crashes.
+        If False, validation for finiteness will be performed, avoiding error.
+    :param node_time: measure time execution for every node in the graph
+    :param versions: add columns with versions of used packages,
+        :epkg:`numpy`, :epkg:`scikit-learn`, :epkg:`onnx`,
+        :epkg:`onnxruntime`, :epkg:`sklearn-onnx`
+    :param extended_list: also check models this module implements a converter for
+    :param time_kwargs: to define a more precise way to measure a model
+    :param n_features: modifies the shorts datasets used to train the models
+        to use exactly this number of features, it can also
+        be a list to test multiple datasets
+    :param skip_long_test: skips tests for high values of N if they seem too long
+    :param fail_bad_results: fails if the results are aligned with :epkg:`scikit-learn`
+    :param time_kwargs_fact: see :func:`_multiply_time_kwargs
+        <mlprodict.onnxrt.validate.validate_helper._multiply_time_kwargs>`
+    :param time_limit: to skip the rest of the test after this limit (in second)
+    :param n_jobs: *n_jobs* is set to the number of CPU by default unless this
+        value is changed
+    :param fLOG: logging function
+    :return: list of dictionaries
 
     The function is available through command line
     :ref:`validate_runtime <l-cmd-validate_runtime>`.

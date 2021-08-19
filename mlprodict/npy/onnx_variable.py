@@ -582,7 +582,7 @@ class OnnxVar:
         Flattens a matrix (see :epkg:`numpy:ndarray:flatten`).
 
         :param axis: only flatten from axis to the end.
-        :return: @see cl OnnxVariable
+        :return: @see cl OnnxVar.
         """
         fl = OnnxVar(self, op=OnnxFlatten, axis=axis)
         if axis == 0:

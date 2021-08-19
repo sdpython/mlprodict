@@ -20,10 +20,11 @@ def verify_code(source, exc=True):
     """
     Verifies :epkg:`python` code.
 
-    @param      source      source to look into
-    @param      exc         raise an exception or return the list of
-                            missing identifiers
-    @return                 tuple(missing identifiers, @see cl CodeNodeVisitor)
+    :param source: source to look into
+    :param exc: raise an exception or return the list of
+        missing identifiers
+    :return: tuple(missing identifiers, :class:`CodeNodeVisitor
+        <mlprodict.onnx_tools.onnx_grammar.node_visitor_translator>`)
     """
     node = ast.parse(source)
     v = CodeNodeVisitor()
