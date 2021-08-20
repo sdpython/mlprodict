@@ -13,7 +13,7 @@ from onnx import numpy_helper
 from .onnx2py_helper import (
     _var_as_dict, guess_proto_dtype, guess_proto_dtype_name)
 from .onnx_export_templates import (
-    _onnx_templates, _tf2onnx_templates, _numpy_templates)
+    get_onnx_template, get_tf2onnx_template, get_numpy_template)
 
 
 def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
@@ -531,7 +531,7 @@ def export2onnx(model_onnx, opset=None, verbose=True, name=None, rename=False,
     if isinstance(model_onnx, str):
         model_onnx = onnx.load(model_onnx)
 
-    code = export_template(model_onnx, templates=_onnx_templates,
+    code = export_template(model_onnx, templates=get_onnx_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,
                            autopep_options=autopep_options)
@@ -572,7 +572,7 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None,
     if isinstance(model_onnx, str):
         model_onnx = onnx.load(model_onnx)
 
-    code = export_template(model_onnx, templates=_tf2onnx_templates,
+    code = export_template(model_onnx, templates=get_tf2onnx_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,
                            autopep_options=autopep_options)
@@ -635,7 +635,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
     if isinstance(model_onnx, str):
         model_onnx = onnx.load(model_onnx)
 
-    code = export_template(model_onnx, templates=_numpy_templates,
+    code = export_template(model_onnx, templates=get_numpy_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, autopep_options=autopep_options)
     for i in range(-6, 6):
