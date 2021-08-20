@@ -537,7 +537,12 @@ class ShapeObject(BaseDimensionShape):
                     'map', 'sequence'}:
                 raise ValueError(  # pragma: no cover
                     "dtype has an unexpected value: '{}'.".format(self._dtype))
-        _dtype_again()
+        try:
+            _dtype_again()
+        except TypeError as e:
+            raise TypeError(  # pragma: no cover
+                "Unexpected error with %r of type %r." % (
+                    (self._dtype, type(self._dtype)))) from e
 
         def _shape_again():
             if self._shape is not None:
