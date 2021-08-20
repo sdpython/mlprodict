@@ -11,13 +11,6 @@ before_install:
     - sudo apt-get install libgeos-dev libproj-dev proj-data graphviz libblas-dev liblapack-dev
     - sudo apt-get install graphviz
     - sudo apt-get install protobuf-compiler libprotoc-dev cmake
-    - git clone -b master --single-branch https://github.com/onnx/onnx.git --recursive
-    - cd onnx
-    - export ONNX_ML=1
-    - export ONNX_BUILD_TESTS=1
-    - export ONNXIFI_DUMMY_BACKEND=1
-    - pip install -e .
-    - cd ..
 
 install:
   - pip install -r requirements.txt
