@@ -14,7 +14,7 @@ mlprodict
 :ref:`blog <ap-main-0>`
 
 .. image:: https://travis-ci.com/sdpython/mlprodict.svg?branch=master
-    :target: https://travis-ci.com/sdpython/mlprodict
+    :target: https://app.travis-ci.com/github/sdpython/mlprodict/
     :alt: Build status
 
 .. image:: https://ci.appveyor.com/api/projects/status/g8chk1ufyk1m8uep?svg=true

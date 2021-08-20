@@ -7,7 +7,6 @@ import collections
 import inspect
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
-from typing import Any
 import numpy
 from onnx import numpy_helper, helper
 from onnx.helper import (
