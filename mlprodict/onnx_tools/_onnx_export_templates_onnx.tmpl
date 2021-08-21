@@ -1,0 +1,96 @@
+import numpy
+from onnx import numpy_helper, TensorProto
+from onnx.helper import (
+    make_model, make_node, set_model_props, make_tensor, make_graph,
+    make_tensor_value_info)
+
+
+def create_model():
+    '''
+    Converted ``{{ name }}``.
+
+    * producer: {{ producer_name }}
+    * version: {{ model_version }}
+    * description: {{ doc_string }}
+    {%- for key, val in sorted(metadata.items()): -%}
+    * {{ key }}: {{ val }}
+    {%- endfor %}
+    '''
+    # containers
+    print('[containers]')   # verbose
+    initializers = []
+    nodes = []
+    inputs = []
+    outputs = []
+
+    # opsets
+    print('[opsets]')   # verbose
+    opsets = {{ opsets }}
+    target_opset = {{ target_opset }}
+
+    # initializers
+    print('[initializers]')   # verbose
+    {% for name, value in initializers: %}
+    {% if len(value.shape) == 0: %}
+    value = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
+    {% else %}
+    list_value = {{ value.ravel().tolist() }}
+    value = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+    {% endif %}
+    tensor = numpy_helper.from_array(value, name='{{ name }}')
+    initializers.append(tensor)
+    {% endfor %}
+
+    # inputs
+    print('[inputs]')   # verbose
+    {% for name, type, shape in inputs: %}
+    value = make_tensor_value_info('{{ name }}', {{ type }}, {{ shape }})
+    inputs.append(value)
+    {% endfor %}
+
+    # outputs
+    print('[outputs]')   # verbose
+    {% for name, type, shape in outputs: %}
+    value = make_tensor_value_info('{{ name }}', {{ type }}, {{ shape }})
+    outputs.append(value)
+    {% endfor %}
+
+    # nodes
+    print('[nodes]')   # verbose
+    {% for node in nodes: %}
+    node = make_node(
+        '{{ node['op_type'] }}',
+        {{ node['inputs'] }},
+        {{ node['outputs'] }},
+        {% if node['name']: %}name='{{ node['name'] }}',{% endif %}
+        {%- for name, value in node['attributes']: -%}
+        {{ name }}={{ value }},
+        {%- endfor -%}
+        domain='{{ node['domain'] }}')
+    nodes.append(node)
+    {% endfor %}
+
+    # graph
+    print('[graph]')   # verbose
+    graph = make_graph(nodes, '{{ name }}', inputs, outputs, initializers)
+    onnx_model = make_model(graph)
+    onnx_model.ir_version = {{ ir_version }}
+    onnx_model.producer_name = '{{ producer_name }}'
+    onnx_model.producer_version = '{{ producer_version }}'
+    onnx_model.domain = '{{ domain }}'
+    onnx_model.model_version = {{ model_version }}
+    onnx_model.doc_string = '{{ doc_string }}'
+    set_model_props(onnx_model, {{ metadata }})
+
+    # opsets
+    print('[opset]')   # verbose
+    del onnx_model.opset_import[:]  # pylint: disable=E1101
+    for dom, value in opsets.items():
+        op_set = onnx_model.opset_import.add()
+        op_set.domain = dom
+        op_set.version = value
+
+    return onnx_model
+
+
+onnx_model = create_model()

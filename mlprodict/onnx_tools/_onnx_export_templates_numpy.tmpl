@@ -1,0 +1,35 @@
+import numpy
+from mlprodict.onnx_tools.exports.numpy_helper import (
+    argmin_use_numpy_select_last_index,
+    make_slice)
+
+def numpy_{{name}}({{ inputs[0][0] }}{% for i in inputs[1:]: %}, {{ i[0] }}{% endfor %}):
+    '''
+    Numpy function for ``{{ name }}``.
+
+    * producer: {{ producer_name }}
+    * version: {{ model_version }}
+    * description: {{ doc_string }}
+    {%- for key, val in sorted(metadata.items()): -%}
+    * {{ key }}: {{ val }}
+    {%- endfor %}
+    '''
+    # initializers
+    {% for name, value in initializers: -%}
+    {% if name not in skip_inits: -%}
+    {% if len(value.shape) == 0: -%}
+    {{ name }} = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
+    {%- else %}{% if value.size < 10: %}
+    {{ name }} = numpy.array({{ value.ravel().tolist() }}, dtype=numpy.{{ value.dtype }})
+    {%- if len(value.shape) > 1: -%}.reshape({{ value.shape }}){%- endif %}
+    {% else %}
+    list_value = {{ value.ravel().tolist() }}
+    {{ name }} = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+    {% endif %}{% endif %}{% endif %}
+    {%- endfor %}
+
+    # nodes
+    {% for node in nodes: %}
+    {{ make_numpy_code(target_opset, **node) }}{% endfor %}
+
+    return {{ outputs[0][0] }}{% for o in outputs[1:]: %}, {{ o[0] }}{% endfor %}

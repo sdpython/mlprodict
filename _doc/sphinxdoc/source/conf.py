@@ -89,6 +89,7 @@ epkg_dictionary.update({
     'Minkowski distance': 'https://en.wikipedia.org/wiki/Minkowski_distance',
     'mlinsights': 'http://www.xavierdupre.fr/app/mlinsights/helpsphinx/index.html',
     'mlprodict': 'http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html',
+    'mlstatpy': 'http://www.xavierdupre.fr/app/mlstatpy/helpsphinx/index.html',
     'numpy': 'https://numpy.org/',
     'openmp': 'https://www.openmp.org/',
     'ONNX': 'https://onnx.ai/',
