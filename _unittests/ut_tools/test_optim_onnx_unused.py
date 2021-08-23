@@ -32,7 +32,8 @@ class TestOptimOnnxUnused(ExtTestCase):
             cop2, output_names=['final'],
             op_version=get_opset_number_from_onnx())
         model_def = cop4.to_onnx({'X': x})
-        model_def = select_model_inputs_outputs(model_def, "inter")
+        model_def = select_model_inputs_outputs(
+            model_def, "inter", remove_unused=False)
         stats = onnx_statistics(model_def, optim=True)
         c1 = model_def.SerializeToString()
         new_model = onnx_remove_node_unused(model_def)
