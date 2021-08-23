@@ -5,6 +5,7 @@ from on an :epkg:`ONNX` model.
 """
 from onnx import helper, shape_inference
 from .onnx2py_helper import guess_proto_dtype
+from .optim import onnx_remove_node_unused
 
 
 def enumerate_model_node_outputs(model, add_node=False, order=False):
@@ -70,6 +71,7 @@ def enumerate_model_node_outputs(model, add_node=False, order=False):
 
 def select_model_inputs_outputs(model, outputs=None, inputs=None,
                                 infer_shapes=False, overwrite=None,
+                                remove_unused=True,
                                 verbose=0, fLOG=None):
     """
     Takes a model and changes its outputs.
@@ -81,6 +83,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     :param overwrite: overwrite type and shapes for
         inputs or outputs, *overwrite* is a
         dictionary `{'name': (numpy dtype, shape)}`
+    :param remove_unused: remove unused nodes from the graph
     :param verbose: display information while converting
     :param fLOG: logging function
     :return: modified model
@@ -111,6 +114,9 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
 
     .. versionchanged:: 0.6
         Supports the case where inputs are changed.
+
+    .. versionchanged:: 0.7
+        Parameter *remove_unused* was added. Unused are removed by default.
     """
     if inputs is not None and not isinstance(inputs, list):
         inputs = [inputs]
@@ -256,6 +262,11 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
         op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
         op_set.domain = oimp.domain
         op_set.version = oimp.version
+
+    # remove unused nodes
+    if remove_unused:
+        onnx_model = onnx_remove_node_unused(onnx_model, recursive=False)
+
     return onnx_model
 
 
