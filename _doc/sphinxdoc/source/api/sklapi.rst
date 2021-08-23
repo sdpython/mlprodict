@@ -9,6 +9,12 @@ pipeline.
 .. contents::
     :local:
 
+OnnxSpeedUpTransformer
+++++++++++++++++++++++
+
+.. autosignature:: mlprodict.sklapi.onnx_transformer.OnnxSpeedUpTransformer
+    :members:
+
 OnnxTransformer
 +++++++++++++++
 
