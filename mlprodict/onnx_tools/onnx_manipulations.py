@@ -5,6 +5,7 @@ from on an :epkg:`ONNX` model.
 """
 from onnx import helper, shape_inference
 from .onnx2py_helper import guess_proto_dtype
+from .optim import onnx_remove_node_unused
 
 
 def enumerate_model_node_outputs(model, add_node=False, order=False):
@@ -264,8 +265,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
 
     # remove unused nodes
     if remove_unused:
-        onnx_model = onnx_remove_node_unused(
-            onnx_model, recursive=False, debug_info=False, **options)
+        onnx_model = onnx_remove_node_unused(onnx_model, recursive=False)
 
     return onnx_model
 
