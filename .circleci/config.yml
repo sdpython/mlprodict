@@ -22,50 +22,41 @@ jobs:
       - run:
           name: Install pandoc
           command: |
-                    sudo apt-get update 
-                    wget https://github.com/jgm/pandoc/releases/download/2.14.1/pandoc-2.14.1-1-amd64.deb
-                    sudo dpkg -i pandoc-2.14.1-1-amd64.deb
+            sudo apt-get update 
+            wget https://github.com/jgm/pandoc/releases/download/2.14.1/pandoc-2.14.1-1-amd64.deb
+            sudo dpkg -i pandoc-2.14.1-1-amd64.deb
 
       - run:
           name: Install tex
           command: |
-                    sudo apt-get install -y texlive
-                    sudo apt-get install -y texlive-latex-extra
-                    sudo apt-get install -y dvipng
+            sudo apt-get install -y texlive
+            sudo apt-get install -y texlive-latex-extra
+            sudo apt-get install -y dvipng
           
       - run:
           name: install language package for onnxruntime
           command: |
-                    sudo locale-gen
+            sudo locale-gen
 
       - run:
           name: Install 7z, unrar
           command: |
-                    sudo apt-get install -y p7zip-full
+            sudo apt-get install -y p7zip-full
           
       - run:
           name: Install InkScape
           command: |
-                    sudo apt-get install -y inkscape
+            sudo apt-get install -y inkscape
           
       - run:
           name: Install graphviz
           command: |
-                    sudo apt-get install -y graphviz
-
-      - run:
-          name: Install llvmlite
-          command: |
-            sudo apt-get install lsb-release wget software-properties-common
-            wget https://apt.llvm.org/llvm.sh
-            chmod +x llvm.sh
-            sudo ./llvm.sh 10
-            ls /usr/bin/llvm*
+            sudo apt-get install -y graphviz
 
       - run:
           name: Install protobuf-compiler cmake
           command: |
-            sudo apt-get install protobuf-compiler libprotoc-dev cmake
+            sudo apt-get install protobuf-compiler libprotoc-dev cmake llvmlite
 
       - run:
           name: Install standard libraries

@@ -18,7 +18,7 @@ def onnx_remove_node(onnx_model, recursive=True, debug_info=None, **options):
     @param      recursive       looks into subgraphs
     @param      debug_info      debug information (private)
     @param      options         additional options
-    @return                     new onnx _model
+    @return                     new onnx model
     """
     if debug_info is None:
         debug_info = [str(type(onnx_model)).rsplit(
