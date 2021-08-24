@@ -380,6 +380,19 @@ def _var_as_dict(var):
         "Unable to guess which object it is.\n{}\n---".format(var))
 
 
+def onnx_model_opsets(onnx_model):
+    """
+    Extracts opsets in a dictionary.
+
+    :param onnx_model: ONNX graph
+    :return: dictionary `{domain: version}`
+    """
+    res = {}
+    for oimp in onnx_model.opset_import:
+        res[oimp.domain] = oimp.version
+    return res
+
+
 def _type_to_string(dtype):
     """
     Converts a type into a readable string.

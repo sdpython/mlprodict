@@ -8,11 +8,12 @@
 import numpy
 from numpy.testing import assert_almost_equal
 from sklearn.base import BaseEstimator, TransformerMixin, clone
+from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from ..onnx_conv import to_onnx
 from .onnx_transformer import OnnxTransformer
 
 
-class _OnnxPipelineStepSpeedUp:
+class _OnnxPipelineStepSpeedUp(OnnxOperatorMixin):
     """
     Speeds up inference by replacing methods *transform* or
     *predict* by a runtime for :epkg:`ONNX`.
@@ -38,6 +39,10 @@ class _OnnxPipelineStepSpeedUp:
         self.enforce_float32 = enforce_float32
         self.target_opset = target_opset
         self.conv_options = conv_options
+
+    def _check_fitted_(self):
+        if not hasattr(self, 'onnxrt_'):
+            raise AttributeError("Object must be be fit.")
 
     def _to_onnx(self, fitted_estimator, inputs):
         """
@@ -81,8 +86,49 @@ class _OnnxPipelineStepSpeedUp:
         if self.enforce_float32:
             X = X.astype(numpy.float32)
         self.onnx_ = self._to_onnx(self.estimator_, X).SerializeToString()
-        self.rt_ = self._build_onnx_runtime(self.onnx_)
+        self.onnxrt_ = self._build_onnx_runtime(self.onnx_)
         return self
+
+    @property
+    def op_version(self):
+        """
+        Returns the opset version.
+        """
+        self._check_fitted_()
+        return self.onnxrt_.op_version
+
+    def onnx_parser(self, scope=None, inputs=None):
+        """
+        Returns a parser for this model.
+        """
+        self._check_fitted_()
+        return self.onnxrt_.onnx_parser(scope, inputs)
+
+    def onnx_shape_calculator(self):
+        """
+        Returns a shape calculator for this transform.
+        """
+        self._check_fitted_()
+        calc = self.onnxrt_.onnx_shape_calculator()
+
+        def shape_calculator(operator):
+            return calc(operator)
+
+        return shape_calculator
+
+    def onnx_converter(self):
+        """
+        Returns a converter for this transform.
+        """
+        self._check_fitted_()
+        conv = self.onnxrt_.onnx_converter()
+
+        def converter(scope, operator, container):
+            op = operator.raw_operator
+            onnx_model = op.onnxrt_.onnxrt_.obj
+            conv(scope, operator, container, onnx_model=onnx_model)
+
+        return converter
 
 
 class OnnxSpeedUpTransformer(BaseEstimator, TransformerMixin,
@@ -111,7 +157,7 @@ class OnnxSpeedUpTransformer(BaseEstimator, TransformerMixin,
             self, estimator, runtime=runtime, enforce_float32=enforce_float32,
             target_opset=target_opset, conv_options=conv_options)
 
-    def fit(self, X, y=None, sample_weight=None):
+    def fit(self, X, y=None, sample_weight=None):  # pylint: disable=W0221
         """
         Trains based estimator.
         """
@@ -129,7 +175,7 @@ class OnnxSpeedUpTransformer(BaseEstimator, TransformerMixin,
         :param X: features
         :return: transformed features
         """
-        return self.rt_.transform(X)
+        return self.onnxrt_.transform(X)
 
     def raw_transform(self, X):
         """

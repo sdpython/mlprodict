@@ -11,12 +11,13 @@ from onnx import helper
 from sklearn.base import BaseEstimator, TransformerMixin
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from skl2onnx.proto import TensorProto
-from skl2onnx.helpers.onnx_helper import load_onnx_model, enumerate_model_node_outputs
+from skl2onnx.helpers.onnx_helper import (
+    load_onnx_model, enumerate_model_node_outputs)
 from skl2onnx.helpers.onnx_helper import select_model_inputs_outputs
 from skl2onnx.common.data_types import (
     FloatTensorType, DoubleTensorType,
     Int64TensorType)
-from ..onnx_tools.onnx2py_helper import _var_as_dict
+from ..onnx_tools.onnx2py_helper import _var_as_dict, onnx_model_opsets
 from ..onnxrt import OnnxInference
 
 
@@ -83,6 +84,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         """
         from ..onnx_tools.optim.onnx_helper import change_input_first_dimension
         onx = onnx.load(BytesIO(self.onnx_bytes))
+        self.op_version = onnx_model_opsets(onx)
 
         output_names = set(
             o.name for o in onx.graph.output)  # pylint: disable=E1101
@@ -299,10 +301,11 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         def clean_initializer_name(name, scope):
             return scope.get_unique_variable_name(name)
 
-        def converter(scope, operator, container):
+        def converter(scope, operator, container, onnx_model=None):
             op = operator.raw_operator
 
-            graph = op.onnxrt_.obj.graph
+            onx = onnx_model or op.onnxrt_.obj
+            graph = onx.graph
             name_mapping = {}
             node_mapping = {}
             for node in graph.node:
@@ -350,7 +353,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                 container.initializers.append(tensor)
 
             # opset
-            for oimp in op.onnxrt_.obj.opset_import:
+            for oimp in onx.opset_import:
                 container.node_domain_version_pair_sets.add(
                     (oimp.domain, oimp.version))
 
