@@ -34,6 +34,7 @@ import matplotlib.pyplot as plt
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 from onnxruntime import InferenceSession
+from sklearn.experimental import enable_hist_gradient_boosting
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import make_classification
@@ -51,12 +52,12 @@ register_converters()
 # +++++++
 
 max_depth = 7
-n_classes = 5
-n_estimators = 100
-n_features = 10
+n_classes = 20
+n_estimators = 500
+n_features = 100
 REPEAT = 3
 NUMBER = 1
-train, test = 2000, 10000
+train, test = 1000, 10000
 
 print('dataset')
 X_, y_ = make_classification(n_samples=train + test, n_features=n_features,
@@ -168,7 +169,8 @@ compilation.extend(list(measure_onnx_runtime(hist, X_test)))
 # LightGBM
 # ++++++++
 
-lgb = LGBMClassifier(n_estimators=n_estimators, max_depth=max_depth)
+lgb = LGBMClassifier(n_estimators=n_estimators,
+                     max_depth=max_depth, pred_early_stop=False)
 print('train')
 lgb = train_cache(lgb, X_train, y_train, max_depth, n_estimators, n_classes)
 

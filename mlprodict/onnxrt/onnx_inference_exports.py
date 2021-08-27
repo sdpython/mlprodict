@@ -11,6 +11,7 @@ import textwrap
 from onnx import numpy_helper
 from ..onnx_tools.onnx2py_helper import _var_as_dict, _type_to_string
 from ..tools.graphs import onnx2bigraph
+from ..onnx_tools.onnx_export import export2onnx
 
 
 class OnnxInferenceExport:
@@ -599,3 +600,12 @@ class OnnxInferenceExport:
         bigraph = onnx2bigraph(self.oinf.obj, recursive=recursive)
         graph = bigraph.display_structure(grid=grid, distance=distance)
         return graph.to_text()
+
+    def to_onnx_code(self):
+        """
+        Exports the ONNX graph into an :epkg:`onnx` code
+        which replicates it.
+
+        :return: string
+        """
+        return export2onnx(self.oinf.obj)

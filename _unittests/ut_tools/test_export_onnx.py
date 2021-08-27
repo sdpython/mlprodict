@@ -672,6 +672,9 @@ class TestExportOnnx(ExtTestCase):
                     self.assertEqualArray(y['y'], y1['y'])
                     self.assertEqualArray(y['y'], y2['y'])
 
+                    code2 = oinf.to_onnx_code()
+                    self.assertEqual(new_onnx, code2)
+
     def verify_tf(self, content):
         try:
             left, __ = verify_code(content, exc=False)
@@ -1098,6 +1101,13 @@ class TestExportOnnx(ExtTestCase):
                         code, options={'max_line_length': 120})
                     self.assertNotIn("numpy.", code)
                     # print(code)
+
+    def test_sub_graph(self):
+        data = os.path.abspath(os.path.dirname(__file__))
+        debug = os.path.join(data, "data", "debug.onnx")
+        self.assertRaise(lambda: export2onnx(debug), NotImplementedError)
+        # new_onnx = export2onnx(debug)
+        # _, loc = self.verify(new_onnx)
 
 
 if __name__ == "__main__":

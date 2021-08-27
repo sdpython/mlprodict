@@ -314,3 +314,8 @@ _unittests/ut_tools/**/*.pb
 _unittests/ut_onnxrt/onnxruntime_profile*.json
 _doc/notebooks/onnxruntime_profile*.json
 _doc/sphinxdoc/source/phdoc_static/embed*.js
+cache-*.pickle
+*/*/*.pb
+onnxruntime*.json
+*net*.tar*
+_unittests/unittests.out

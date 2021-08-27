@@ -414,6 +414,10 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
         for at in node.attribute:
             temp = _var_as_dict(at)
             value = temp['value']
+            if node.op_type in {'Scan', 'Loop', 'If'}:
+                raise NotImplementedError(
+                    "Subgraph are not yet implemented (operator=%r)."
+                    "" % node.op_type)
             if use_onnx_tensor:
                 if node.op_type == 'Cast' and at.name == 'to':
                     attributes.append(
