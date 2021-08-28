@@ -517,6 +517,7 @@ def export2onnx(model_onnx, opset=None, verbose=True, name=None, rename=False,
 
     .. runpython::
         :showcode:
+        :process:
 
         import numpy
         from sklearn.cluster import KMeans
@@ -558,6 +559,7 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None,
 
     .. runpython::
         :showcode:
+        :process:
 
         import numpy
         from sklearn.cluster import KMeans
@@ -601,6 +603,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
 
     .. runpython::
         :showcode:
+        :process:
 
         import numpy
         from sklearn.cluster import KMeans
@@ -621,6 +624,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
 
     .. runpython::
         :showcode:
+        :process:
 
         import numpy
         from mlprodict.testing.einsum import decompose_einsum_equation
