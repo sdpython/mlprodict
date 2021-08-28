@@ -451,6 +451,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
 
     # graph
     context['name'] = name or model_onnx.graph.name
+    context['name'] = context['name'].replace("(", "_").replace(")", "")
     context['ir_version'] = model_onnx.ir_version
     context['producer_name'] = model_onnx.producer_name
     context['domain'] = model_onnx.domain

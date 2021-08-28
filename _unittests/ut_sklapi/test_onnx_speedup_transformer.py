@@ -33,6 +33,24 @@ class TestOnnxSpeedUpTransformer(ExtTestCase):
         spd.fit(X)
         spd.assert_almost_equal(X, decimal=5)
 
+    def test_speedup_transform32_onnxruntime(self):
+        data = load_iris()
+        X, _ = data.data, data.target
+        spd = OnnxSpeedUpTransformer(
+            PCA(), target_opset=self.opset(),
+            runtime="onnxruntime1")
+        spd.fit(X)
+        spd.assert_almost_equal(X, decimal=5)
+
+    def test_speedup_transform32_numpy(self):
+        data = load_iris()
+        X, _ = data.data, data.target
+        spd = OnnxSpeedUpTransformer(
+            PCA(), target_opset=self.opset(),
+            runtime="numpy")
+        spd.fit(X)
+        spd.assert_almost_equal(X, decimal=5)
+
     def test_speedup_transform64(self):
         data = load_iris()
         X, _ = data.data, data.target
@@ -69,11 +87,44 @@ class TestOnnxSpeedUpTransformer(ExtTestCase):
         got = spd2.raw_transform(X)
         self.assertEqualArray(expected, got)
 
+    def test_speedup_transform64_numpy_pickle(self):
+        data = load_iris()
+        X, _ = data.data, data.target
+        spd = OnnxSpeedUpTransformer(PCA(), target_opset=self.opset(),
+                                     enforce_float32=False,
+                                     runtime="numpy")
+        spd.fit(X)
+
+        st = BytesIO()
+        pickle.dump(spd, st)
+        st2 = BytesIO(st.getvalue())
+        spd2 = pickle.load(st2)
+
+        expected = spd.transform(X)
+        got = spd2.transform(X)
+        self.assertEqualArray(expected, got)
+        expected = spd.raw_transform(X)
+        got = spd2.raw_transform(X)
+        self.assertEqualArray(expected, got)
+
     def test__speedup_transform64_onnx(self):
         data = load_iris()
         X, _ = data.data, data.target
         spd = OnnxSpeedUpTransformer(PCA(), target_opset=self.opset(),
                                      enforce_float32=False)
+        spd.fit(X)
+        expected = spd.transform(X)
+        onx = to_onnx(spd, X[:1])
+        oinf = OnnxInference(onx)
+        got = oinf.run({'X': X})['variable']
+        self.assertEqualArray(expected, got)
+
+    def test__speedup_transform64_onnx_numpy(self):
+        data = load_iris()
+        X, _ = data.data, data.target
+        spd = OnnxSpeedUpTransformer(PCA(), target_opset=self.opset(),
+                                     enforce_float32=False,
+                                     runtime='numpy')
         spd.fit(X)
         expected = spd.transform(X)
         onx = to_onnx(spd, X[:1])
