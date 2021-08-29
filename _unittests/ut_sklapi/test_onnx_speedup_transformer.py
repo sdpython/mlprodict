@@ -5,7 +5,7 @@ from io import BytesIO
 import pickle
 import unittest
 from logging import getLogger
-# import numpy as np
+import numpy
 # import pandas
 # from sklearn.pipeline import make_pipeline
 from sklearn.decomposition import PCA
@@ -50,6 +50,17 @@ class TestOnnxSpeedUpTransformer(ExtTestCase):
             runtime="numpy")
         spd.fit(X)
         spd.assert_almost_equal(X, decimal=5)
+
+    def test_speedup_transform32_numba(self):
+        data = load_iris()
+        X, _ = data.data, data.target
+        X = X.astype(numpy.float32)
+        spd = OnnxSpeedUpTransformer(
+            PCA(), target_opset=self.opset(),
+            runtime="numba")
+        spd.fit(X)
+        spd.assert_almost_equal(X, decimal=5)
+        self.assertIn("CPUDispatch", str(spd.onnxrt_.func))
 
     def test_speedup_transform64(self):
         data = load_iris()
@@ -107,6 +118,26 @@ class TestOnnxSpeedUpTransformer(ExtTestCase):
         got = spd2.raw_transform(X)
         self.assertEqualArray(expected, got)
 
+    def test_speedup_transform64_numba_pickle(self):
+        data = load_iris()
+        X, _ = data.data, data.target
+        spd = OnnxSpeedUpTransformer(PCA(), target_opset=self.opset(),
+                                     enforce_float32=False,
+                                     runtime="numba")
+        spd.fit(X)
+
+        st = BytesIO()
+        pickle.dump(spd, st)
+        st2 = BytesIO(st.getvalue())
+        spd2 = pickle.load(st2)
+
+        expected = spd.transform(X)
+        got = spd2.transform(X)
+        self.assertEqualArray(expected, got)
+        expected = spd.raw_transform(X)
+        got = spd2.raw_transform(X)
+        self.assertEqualArray(expected, got)
+
     def test_speedup_transform64_onnx(self):
         data = load_iris()
         X, _ = data.data, data.target
@@ -125,6 +156,19 @@ class TestOnnxSpeedUpTransformer(ExtTestCase):
         spd = OnnxSpeedUpTransformer(PCA(), target_opset=self.opset(),
                                      enforce_float32=False,
                                      runtime='numpy')
+        spd.fit(X)
+        expected = spd.transform(X)
+        onx = to_onnx(spd, X[:1])
+        oinf = OnnxInference(onx)
+        got = oinf.run({'X': X})['variable']
+        self.assertEqualArray(expected, got)
+
+    def test_speedup_transform64_onnx_numba(self):
+        data = load_iris()
+        X, _ = data.data, data.target
+        spd = OnnxSpeedUpTransformer(PCA(), target_opset=self.opset(),
+                                     enforce_float32=False,
+                                     runtime='numba')
         spd.fit(X)
         expected = spd.transform(X)
         onx = to_onnx(spd, X[:1])

@@ -42,6 +42,16 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
     :param target_opset: targetted ONNX opset
     :param conv_options: options for covnersions, see @see fn to_onnx
 
+    Attributes created by method *fit*:
+
+    * `estimator_`: cloned and trained version of *estimator*
+    * `onnxrt_`: objet of type @see cl OnnxInference,
+        :epkg:`sklearn:preprocessing:FunctionTransformer`
+    * `numpy_code_`: python code equivalent to the inference
+        method if the runtime is `'numpy'` or `'numba'`
+    * `onnx_io_names_`: dictionary, additional information
+        if the runtime is `'numpy'` or `'numba'`
+
     .. versionadded:: 0.7
     """
 
@@ -80,7 +90,7 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
         :param runtime: runtime type (see @see cl OnnxInference)
         :return: instance of @see cl OnnxInference
         """
-        if self.runtime == 'numpy':
+        if self.runtime in ('numpy', 'numba'):
             return self._build_onnx_runtime_numpy(onx)
         tr = OnnxTransformer(
             onx, runtime=self.runtime,
@@ -153,6 +163,10 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
                 "Unable to guess which function is the one, names=%r."
                 "" % list(sorted(names)))
         fct = loc[names[0]]
+        if self.runtime == 'numba':
+            from numba import jit
+            jitter = jit(nopython=True)
+            fct = jitter(fct)
         cl = FunctionTransformer(fct, accept_sparse=True)
         cl.op_version = opsets['']
         return cl

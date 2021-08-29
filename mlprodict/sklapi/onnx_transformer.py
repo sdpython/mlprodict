@@ -104,6 +104,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
             onx.SerializeToString() if updated else self.onnx_bytes)
         self.onnxrt_ = OnnxInference(onnx_bytes, runtime=self.runtime)
         self.inputs_ = self.onnxrt_.input_names
+        self.inputs_shape_types_ = self.onnxrt_.input_names_shapes_types
         return self
 
     def _check_arrays(self, inputs):
@@ -111,8 +112,8 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         Ensures that double floats are converted into single floats
         if *enforce_float32* is True or raises an exception.
         """
-        sht = self.onnxrt_.input_names_shapes_types if hasattr(
-            self, "onnxrt_") else None
+        has = hasattr(self, "onnxrt_")
+        sht = self.inputs_shape_types_ if has else None
         if sht is not None and len(sht) < len(inputs):
             raise RuntimeError(  # pragma: no cover
                 "Unexpected number of inputs {} > {} (expected).".format(
@@ -123,7 +124,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                 if v.dtype == numpy.float64 and self.enforce_float32:
                     inputs[k] = v.astype(numpy.float32)
                     continue
-                if not hasattr(self, "onnxrt_"):
+                if not has:
                     continue
                 exp = sht[i]
                 if exp[1] != ('?', ) and exp[1][1:] != v.shape[1:]:
@@ -158,11 +159,11 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
             raise AttributeError(  # pragma: no cover
                 "Transform OnnxTransformer must be fit first.")
         rt_inputs = {}
-        if isinstance(X, pandas.DataFrame):
+        if isinstance(X, numpy.ndarray):
+            rt_inputs[self.inputs_[0]] = X
+        elif isinstance(X, pandas.DataFrame):
             for c in X.columns:
                 rt_inputs[c] = X[c]
-        elif isinstance(X, numpy.ndarray):
-            rt_inputs[self.inputs_[0]] = X
         elif isinstance(X, dict) and len(inputs) == 0:
             for k, v in X.items():
                 rt_inputs[k] = v

@@ -2,7 +2,6 @@
 @file
 @brief Helpers to run examples created with :epkg:`sklearn-onnx`.
 """
-import numpy
 from onnx import helper, TensorProto
 
 
@@ -28,7 +27,9 @@ def _clean_initializer_name(name, scope):
 def add_onnx_graph(scope, operator, container, onx):
     """
     Adds a whole ONNX graph to an existing one following
-    :epkg:`skl2onnx` API.
+    :epkg:`skl2onnx` API assuming this ONNX graph implements
+    an `operator <http://onnx.ai/sklearn-onnx/api_summary.html?
+    highlight=operator#skl2onnx.common._topology.Operator>`_.
 
     :param scope: scope (to get unique names)
     :param operator: operator

@@ -189,30 +189,23 @@ The last example summarizes all the possibilities.
     from mlprodict.onnx_tools.onnx2py_helper import guess_proto_dtype_name
     from mlprodict.onnx_tools.onnx2py_helper import guess_dtype
 
-
     def guess_initial_types0(t):
         return guess_initial_types(numpy.array([[0, 1]], dtype=t), None)
-
 
     def guess_initial_types1(t):
         return guess_initial_types(None, [('X', t)])
 
-
     def guess_initial_types_mlprodict0(t):
         return guess_initial_types_mlprodict(numpy.array([[0, 1]], dtype=t), None)
-
 
     def guess_initial_types_mlprodict1(t):
         return guess_initial_types_mlprodict(None, [('X', t)])
 
-
     def _guess_type_proto1(t):
         return _guess_type_proto(t, [None, 4])
 
-
     def _guess_numpy_type1(t):
         return _guess_numpy_type(t, [None, 4])
-
 
     fcts = [guess_initial_types0, guess_initial_types1,
             guess_data_type, guess_numpy_type,
@@ -221,7 +214,7 @@ The last example summarizes all the possibilities.
             _guess_numpy_type1,
             guess_initial_types_mlprodict0,
             guess_initial_types_mlprodict1,
-            guess_numpy_type_from_string, 
+            guess_numpy_type_from_string,
             guess_numpy_type_from_dtype,
             guess_proto_dtype_name, guess_dtype]
 
@@ -246,3 +239,8 @@ The last example summarizes all the possibilities.
     print()
     for e in errors:
         print(e)
+
+skl2onnx
+========
+
+.. autosignature:: mlprodict.onnx_tools.exports.skl2onnx_helper.add_onnx_graph
