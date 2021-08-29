@@ -96,10 +96,7 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
     return "\n".join(rows)
 
 
-def make_numpy_code(opset, name=None, op_type=None, domain='',
-                    inputs=None, outputs=None, attributes=None,
-                    used=None, context=None, mark_inits=None,
-                    **unused):
+class NumpyCode:
     """
     Converts an ONNX operators into :epkg:`numpy` code.
 
@@ -114,48 +111,67 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
         list of nodes taking *k* as input
     :param context: whole context
     :param mark_inits: marks initializer as replaced
+    :param indent: indentation of the second line and following
     :return: code as str
     """
-    def make_sure_inputs(n, m=None):
+
+    def __init__(self, opset, name=None, op_type=None, domain='',
+                 inputs=None, outputs=None, attributes=None,
+                 used=None, context=None, mark_inits=None,
+                 indent="", **unused):
+        self.opset = opset
+        self.name = name
+        self.op_type = op_type
+        self.domain = domain
+        self.inputs = inputs
+        self.outputs = outputs
+        self.attributes = attributes
+        self.used = used
+        self.context = context
+        self.mark_inits = mark_inits
+        self.unused = unused
+        self.indent = indent
+
+    def _make_sure_inputs(self, n, m=None):
         if m is None:
             m = n
-        if len(inputs) < n:
+        if len(self.inputs) < n:
             raise RuntimeError(  # pragma: no cover
                 "Expecting at least %d inputs for operator %r not %r." % (
-                    n, op_type, inputs))
-        if len(inputs) > m:
+                    n, self.op_type, self.inputs))
+        if len(self.inputs) > m:
             raise RuntimeError(  # pragma: no cover
                 "Expecting at most %d inputs for operator %r not %r." % (
-                    m, op_type, inputs))
+                    m, self.op_type, self.inputs))
 
-    def make_sure_opsets(mi, ma=None):
-        if mi is not None and opset < mi:
+    def _make_sure_opsets(self, mi, ma=None):
+        if mi is not None and self.opset < mi:
             raise RuntimeError(  # pragma: no cover
                 "Cannot convert operator type %d, opset %d < %d." % (
-                    op_type, opset, mi))
-        if ma is not None and opset > ma:
+                    self.op_type, self.opset, mi))
+        if ma is not None and self.opset > ma:
             raise RuntimeError(  # pragma: no cover
                 "Cannot convert operator type %d, opset %d > %d." % (
-                    op_type, opset, mi))
+                    self.op_type, self.opset, mi))
 
-    def getat(name, defval=None):
-        for n, val in attributes:
+    def _getat(self, name, defval=None):
+        for n, val in self.attributes:
             if name == n:
                 return val
         return defval
 
-    def simplify(name, kind):
+    def _simplify(self, name, kind):
         value = None
-        if (used is not None and name in used and
-                len(used[name]) == 1 and context is not None):
-            inits = context['initializers_dict']
+        if (self.used is not None and name in self.used and
+                len(self.used[name]) == 1 and self.context is not None):
+            inits = self.context['initializers_dict']
             if name in inits:
                 v = inits[name]
                 if v.dtype == numpy.int64 and v.size < 10:
                     value = v
-                    if name not in mark_inits:
-                        mark_inits[name] = []
-                    mark_inits[name].append(v)
+                    if name not in self.mark_inits:
+                        self.mark_inits[name] = []
+                    self.mark_inits[name].append(v)
 
         if kind == 'tuple':
             if value is None:
@@ -172,7 +188,8 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
         raise NotImplementedError(
             "Unknown scenario to simplify (%r)." % kind)
 
-    def make_tuple(val):
+    @staticmethod
+    def _make_tuple(val):
         if isinstance(val, tuple):
             return val
         if isinstance(val, list):
@@ -184,124 +201,199 @@ def make_numpy_code(opset, name=None, op_type=None, domain='',
         raise NotImplementedError(
             "Unable to convert %r into tuple." % val)
 
-    if domain != '':
+    def make_numpy_code(self):
+
+        if self.domain == '':
+            return self._make_numpy_code_onnx()
+
+        if self.domain == 'ai.onnx.ml':
+            return self._make_numpy_code_onnxml()
+
         raise NotImplementedError(
-            "Unable to convert any operator from domain %r." % domain)
+            "Unable to convert any operator from domain %r." % self.domain)
 
-    binary_ops = dict(Add='+', Sub='-', Div='/', Mul='*', MatMul='@',
-                      Pow='**')
-    unary_ops = dict(Neg='-')
-    unary_ops_ = dict(Sqrt='** 0.5')
+    def _make_numpy_code_onnx(self):
 
-    outs = ", ".join(outputs)
+        binary_ops = dict(Add='+', Sub='-', Div='/', Mul='*', MatMul='@',
+                          Pow='**')
+        unary_ops = dict(Neg='-')
+        unary_ops_ = dict(Sqrt='** 0.5')
 
-    if op_type in binary_ops:
-        make_sure_inputs(2)
-        return "%s = %s %s %s" % (outs, inputs[0], binary_ops[op_type], inputs[1])
+        outs = ", ".join(self.outputs)
 
-    if op_type in unary_ops:
-        make_sure_inputs(1)
-        return "%s = %s %s" % (outs, unary_ops[op_type], inputs[0])
+        if self.op_type in binary_ops:
+            self._make_sure_inputs(2)
+            return "%s = %s %s %s" % (
+                outs, self.inputs[0], binary_ops[self.op_type],
+                self.inputs[1])
 
-    if op_type in unary_ops_:
-        make_sure_inputs(1)
-        return "%s = %s %s" % (outs, inputs[0], unary_ops_[op_type])
+        if self.op_type in unary_ops:
+            self._make_sure_inputs(1)
+            return "%s = %s %s" % (
+                outs, unary_ops[self.op_type], self.inputs[0])
 
-    if op_type == 'ArgMin':
-        make_sure_opsets(12)
-        make_sure_inputs(1)
-        axis = getat('axis', 0)
-        keepdims = getat('keepdims', 1)
-        select_last_index = getat('keepdims', 0)
-        return (
-            "%s = argmin_use_numpy_select_last_index("
-            "%s, axis=%s, keepdims=%s, select_last_index=%s)" % (
-                outs, inputs[0], axis, keepdims, select_last_index))
+        if self.op_type in unary_ops_:
+            self._make_sure_inputs(1)
+            return "%s = %s %s" % (
+                outs, self.inputs[0], unary_ops_[self.op_type])
 
-    if op_type == 'Concat':
-        axis = getat('axis', 0)
-        return "%s = numpy.concatenate([%s], %s)" % (outs, ", ".join(inputs), axis)
+        if self.op_type == 'ArgMin':
+            self._make_sure_opsets(12)
+            self._make_sure_inputs(1)
+            axis = self._getat('axis', 0)
+            keepdims = self._getat('keepdims', 1)
+            select_last_index = self._getat('keepdims', 0)
+            return (
+                "%s = argmin_use_numpy_select_last_index("
+                "%s, axis=%s, keepdims=%s, select_last_index=%s)" % (
+                    outs, self.inputs[0], axis, keepdims, select_last_index))
 
-    if op_type == 'Max':
-        return "%s = numpy.maximum(%s)" % (outs, ", ".join(inputs))
+        if self.op_type == 'Concat':
+            axis = self._getat('axis', 0)
+            return "%s = numpy.concatenate([%s], %s)" % (
+                outs, ", ".join(self.inputs), axis)
 
-    if op_type == 'Gather':
-        make_sure_opsets(11)
-        make_sure_inputs(2)
-        axis = getat('axis', 0)
-        return "%s = numpy.take(%s, %s, axis=%s)" % (
-            outs, inputs[0], simplify(inputs[1], 'list'), axis)
+        if self.op_type == 'Max':
+            return "%s = numpy.maximum(%s)" % (outs, ", ".join(self.inputs))
 
-    if op_type == 'Gemm':
-        make_sure_inputs(2, 3)
-        alpha = getat('alpha', 0.)
-        transA = getat('transA', 0)
-        transB = getat('transB', 0)
-        ta = ".T" if transA in ('1', 1, True) else ""
-        tb = ".T" if transB in ('1', 1, True) else ""
-        if len(inputs) == 2:
-            return "%s = %s%s @ %s%s * %s" % (
-                outs, inputs[0], ta, inputs[1], tb, alpha)
-        beta = getat('beta', 0.)
-        return "%s = %s%s @ %s%s * %s + %s * %s" % (
-            outs, inputs[0], ta, inputs[1], tb, alpha, inputs[2], beta)
+        if self.op_type == 'Gather':
+            self._make_sure_opsets(11)
+            self._make_sure_inputs(2)
+            axis = self._getat('axis', 0)
+            return "%s = numpy.take(%s, %s, axis=%s)" % (
+                outs, self.inputs[0],
+                self._simplify(self.inputs[1], 'list'), axis)
 
-    if op_type == 'Identity':
-        return "%s = %s" % (outs, inputs[0])
+        if self.op_type == 'Gemm':
+            self._make_sure_inputs(2, 3)
+            alpha = self._getat('alpha', 0.)
+            transA = self._getat('transA', 0)
+            transB = self._getat('transB', 0)
+            ta = ".T" if transA in ('1', 1, True) else ""
+            tb = ".T" if transB in ('1', 1, True) else ""
+            if len(self.inputs) == 2:
+                return "%s = %s%s @ %s%s * %s" % (
+                    outs, self.inputs[0], ta, self.inputs[1], tb, alpha)
+            beta = self._getat('beta', 0.)
+            return "%s = %s%s @ %s%s * %s + %s * %s" % (
+                outs, self.inputs[0], ta, self.inputs[1], tb, alpha,
+                self.inputs[2], beta)
 
-    if op_type == 'ReduceProd':
-        make_sure_inputs(1)
-        axes = getat('axes', "[0]")
-        keepdims = getat('keepdims', 0)
-        return "%s = %s.prod(axis=tuple(%s), keepdims=%s)" % (
-            outs, inputs[0], axes, keepdims)
+        if self.op_type == 'Identity':
+            return "%s = %s" % (outs, self.inputs[0])
 
-    if op_type == 'ReduceSum':
-        make_sure_opsets(11)
-        make_sure_inputs(2)
-        keepdims = getat('keepdims', 0)
-        return "%s = %s.sum(axis=%s, keepdims=%s)" % (
-            outs, inputs[0], simplify(inputs[1], 'tuple'), keepdims)
+        if self.op_type == 'ReduceProd':
+            self._make_sure_inputs(1)
+            axes = self._getat('axes', "[0]")
+            keepdims = self._getat('keepdims', 0)
+            return "%s = %s.prod(axis=tuple(%s), keepdims=%s)" % (
+                outs, self.inputs[0], axes, keepdims)
 
-    if op_type == 'ReduceSumSquare':
-        make_sure_inputs(1)
-        axes = getat('axes', "[0]")
-        keepdims = getat('keepdims', 0)
-        return "%s = (%s ** 2).sum(axis=tuple(%s), keepdims=%s)" % (
-            outs, inputs[0], axes, keepdims)
+        if self.op_type == 'ReduceSum':
+            self._make_sure_opsets(11)
+            self._make_sure_inputs(2)
+            keepdims = self._getat('keepdims', 0)
+            return "%s = %s.sum(axis=%s, keepdims=%s)" % (
+                outs, self.inputs[0], self._simplify(self.inputs[1], 'tuple'),
+                keepdims)
 
-    if op_type == 'Reshape':
-        make_sure_inputs(2)
-        return "%s = %s.reshape(%s)" % (
-            outs, inputs[0], simplify(inputs[1], 'tuple'))
+        if self.op_type == 'ReduceSumSquare':
+            self._make_sure_inputs(1)
+            axes = self._getat('axes', "[0]")
+            keepdims = self._getat('keepdims', 0)
+            return "%s = (%s ** 2).sum(axis=tuple(%s), keepdims=%s)" % (
+                outs, self.inputs[0], axes, keepdims)
 
-    if op_type == 'Shape':
-        make_sure_inputs(1)
-        return "%s = numpy.array(%s.shape, dtype=numpy.int64)" % (outs, inputs[0])
+        if self.op_type == 'Reshape':
+            self._make_sure_inputs(2)
+            return "%s = %s.reshape(%s)" % (
+                outs, self.inputs[0], self.inputs[1])
 
-    if op_type == 'Slice':
-        return "%s = make_slice(%s)" % (outs, ", ".join(inputs))
+        if self.op_type == 'Shape':
+            self._make_sure_inputs(1)
+            return "%s = numpy.array(%s.shape, dtype=numpy.int64)" % (
+                outs, self.inputs[0])
 
-    if op_type == 'Squeeze':
-        make_sure_opsets(13)
-        make_sure_inputs(2)
-        return "%s = numpy.squeeze(%s, axis=%s)" % (
-            outs, inputs[0], simplify(inputs[1], 'tuple'))
+        if self.op_type == 'Slice':
+            return "%s = make_slice(%s)" % (outs, ", ".join(self.inputs))
 
-    if op_type == 'Transpose':
-        make_sure_inputs(1)
-        perm = getat('perm', None)
-        return "%s = numpy.transpose(%s, axes=%s)" % (
-            outs, inputs[0], make_tuple(perm))
+        if self.op_type == 'Squeeze':
+            self._make_sure_opsets(13)
+            self._make_sure_inputs(2)
+            return "%s = numpy.squeeze(%s, axis=%s)" % (
+                outs, self.inputs[0], self._simplify(self.inputs[1], 'tuple'))
 
-    if op_type == 'Unsqueeze':
-        make_sure_opsets(13)
-        make_sure_inputs(2)
-        return "%s = numpy.expand_dims(%s, axis=%s)" % (
-            outs, inputs[0], simplify(inputs[1], 'tuple'))
+        if self.op_type == 'Transpose':
+            self._make_sure_inputs(1)
+            perm = self._getat('perm', None)
+            return "%s = numpy.transpose(%s, axes=%s)" % (
+                outs, self.inputs[0], self._make_tuple(perm))
 
-    raise NotImplementedError(
-        "Unable to convert operator type %r name=%r." % (op_type, name))
+        if self.op_type == 'Unsqueeze':
+            self._make_sure_opsets(13)
+            self._make_sure_inputs(2)
+            return "%s = numpy.expand_dims(%s, axis=%s)" % (
+                outs, self.inputs[0],
+                self._simplify(self.inputs[1], 'tuple'))
+
+        raise NotImplementedError(
+            "Unable to convert operator type %r name=%r." % (
+                self.op_type, name))
+
+    def _make_numpy_code_onnxml(self):
+        outs = ", ".join(self.outputs)
+
+        if self.op_type == 'LinearRegressor':
+            self._make_sure_inputs(1)
+            coefficients = self._getat('coefficients', None)
+            intercepts = self._getat('intercepts', None)
+            post_transform = self._getat('post_transform', 'NONE')
+            targets = self._getat('targets', 1)
+            if post_transform != "NONE":
+                raise NotImplementedError(
+                    "Conversion of operator %r with post_transform %r "
+                    "is not implemented." % (self.op_type, post_transform))
+            rows = [
+                "coefs = numpy.array(%s, dtype=numpy.float32)."
+                "reshape((-1, %d))" % (coefficients, targets),
+                "%sinter = numpy.array(%s, dtype=numpy.float32)."
+                "reshape((-1, %d))" % (self.indent, intercepts, targets),
+                "%s%s = %s @ coefs + inter" % (
+                    self.indent, outs, self.inputs[0])]
+            return "\n".join(rows)
+
+        raise NotImplementedError(
+            "Unable to convert operator type %r name=%r (onnxml)." % (
+                self.op_type, name))
+
+
+def make_numpy_code(opset, name=None, op_type=None, domain='',
+                    inputs=None, outputs=None, attributes=None,
+                    used=None, context=None, mark_inits=None,
+                    indent="", **unused):
+    """
+    Converts an ONNX operators into :epkg:`numpy` code.
+
+    :param opset: target opset for the conversion (usually unused)
+    :param name: node name
+    :param op_type: operator type
+    :param domain: domain
+    :param inputs: inputs
+    :param outputs: outputs
+    :param attributes: attributes
+    :param used: dictionary `{k: v}`,
+        list of nodes taking *k* as input
+    :param context: whole context
+    :param mark_inits: marks initializer as replaced
+    :param indent: indentation of the second line and following
+    :return: code as str
+    """
+    cl = NumpyCode(
+        opset=opset, name=name, op_type=op_type, domain=domain,
+        inputs=inputs, outputs=outputs, attributes=attributes,
+        used=used, context=context, mark_inits=mark_inits,
+        indent=indent, **unused)
+    return cl.make_numpy_code()
 
 
 def export_template(model_onnx, templates, opset=None, verbose=True, name=None,

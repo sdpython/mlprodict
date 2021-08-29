@@ -30,6 +30,6 @@ def numpy_{{name}}({{ inputs[0][0] }}{% for i in inputs[1:]: %}, {{ i[0] }}{% en
 
     # nodes
     {% for node in nodes: %}
-    {{ make_numpy_code(target_opset, **node) }}{% endfor %}
+    {{ make_numpy_code(target_opset, indent="    ", **node) }}{% endfor %}
 
     return {{ outputs[0][0] }}{% for o in outputs[1:]: %}, {{ o[0] }}{% endfor %}
