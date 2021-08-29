@@ -107,7 +107,7 @@ class TestOnnxSpeedUpTransformer(ExtTestCase):
         got = spd2.raw_transform(X)
         self.assertEqualArray(expected, got)
 
-    def test__speedup_transform64_onnx(self):
+    def test_speedup_transform64_onnx(self):
         data = load_iris()
         X, _ = data.data, data.target
         spd = OnnxSpeedUpTransformer(PCA(), target_opset=self.opset(),
@@ -119,7 +119,7 @@ class TestOnnxSpeedUpTransformer(ExtTestCase):
         got = oinf.run({'X': X})['variable']
         self.assertEqualArray(expected, got)
 
-    def test__speedup_transform64_onnx_numpy(self):
+    def test_speedup_transform64_onnx_numpy(self):
         data = load_iris()
         X, _ = data.data, data.target
         spd = OnnxSpeedUpTransformer(PCA(), target_opset=self.opset(),

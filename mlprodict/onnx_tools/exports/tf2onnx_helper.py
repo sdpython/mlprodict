@@ -446,13 +446,15 @@ class GraphBuilder:
                     make_sure(dtype == self.graph.get_dtype(
                         input_data), "dtype should be same")
 
-        node = self.graph.make_node(op_type="Slice", inputs=inputs, attr=attr, name=name,
-                                    outputs=outputs, shapes=shapes, dtypes=dtypes)
+        node = self.graph.make_node(op_type="Slice", inputs=inputs, attr=attr,
+                                    name=name, outputs=outputs, shapes=shapes,
+                                    dtypes=dtypes)
         if return_node:
             return node
         raise NotImplementedError("return_node must be True")
 
-    def make_squeeze(self, kwargs, name=None, shapes=None, dtypes=None, return_node=False, op_name_scope=None):
+    def make_squeeze(self, kwargs, name=None, shapes=None, dtypes=None,
+                     return_node=False, op_name_scope=None):
         """
         Squeeze changes its schema at opset 13: it treats axes as a dynamic input
         kwargs: key could be ["data", "axes"].
@@ -487,13 +489,15 @@ class GraphBuilder:
         while inputs[-1] == "":
             inputs = inputs[:-1]
 
-        node = self.graph.make_node(op_type="Squeeze", inputs=inputs, attr=attr, name=name,
-                                    outputs=outputs)
+        node = self.graph.make_node(
+            op_type="Squeeze", inputs=inputs, attr=attr, name=name,
+            outputs=outputs)
         if return_node:
             return node
         raise NotImplementedError("return_node must be True")
 
-    def make_unsqueeze(self, kwargs, name=None, shapes=None, dtypes=None, return_node=False, op_name_scope=None):
+    def make_unsqueeze(self, kwargs, name=None, shapes=None, dtypes=None,
+                       return_node=False, op_name_scope=None):
         """
         Unsqueeze changes its schema at opset 13: it treats axes as a dynamic input
         kwargs: key could be ["data", "axes"].
@@ -528,8 +532,9 @@ class GraphBuilder:
         while inputs[-1] == "":
             inputs = inputs[:-1]
 
-        node = self.graph.make_node(op_type="Unsqueeze", inputs=inputs, attr=attr, name=name,
-                                    outputs=outputs)
+        node = self.graph.make_node(
+            op_type="Unsqueeze", inputs=inputs, attr=attr, name=name,
+            outputs=outputs)
         if return_node:
             return node
         raise NotImplementedError("return_node must be True")

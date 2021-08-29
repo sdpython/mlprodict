@@ -7,10 +7,8 @@ from io import BytesIO
 import numpy
 import pandas
 import onnx
-from onnx import helper
 from sklearn.base import BaseEstimator, TransformerMixin
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
-from skl2onnx.proto import TensorProto
 from skl2onnx.helpers.onnx_helper import (
     load_onnx_model, enumerate_model_node_outputs)
 from skl2onnx.helpers.onnx_helper import select_model_inputs_outputs
@@ -18,6 +16,7 @@ from skl2onnx.common.data_types import (
     FloatTensorType, DoubleTensorType,
     Int64TensorType)
 from ..onnx_tools.onnx2py_helper import _var_as_dict, onnx_model_opsets
+from ..onnx_tools.exports.skl2onnx_helper import add_onnx_graph
 from ..onnxrt import OnnxInference
 
 
@@ -286,76 +285,10 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         mapped to the first *scikit-learn* parent
         it can find.
         """
-        def copy_inout(inout, scope, new_name):
-            shape = [s.dim_value for s in inout.type.tensor_type.shape.dim]
-            value_info = helper.make_tensor_value_info(
-                new_name, inout.type.tensor_type.elem_type, shape)
-            return value_info
-
-        def clean_variable_name(name, scope):
-            return scope.get_unique_variable_name(name)
-
-        def clean_operator_name(name, scope):
-            return scope.get_unique_operator_name(name)
-
-        def clean_initializer_name(name, scope):
-            return scope.get_unique_variable_name(name)
-
         def converter(scope, operator, container, onnx_model=None):
             op = operator.raw_operator
-
             onx = onnx_model or op.onnxrt_.obj
-            graph = onx.graph
-            name_mapping = {}
-            node_mapping = {}
-            for node in graph.node:
-                name = node.name
-                if name is not None:
-                    node_mapping[node.name] = clean_initializer_name(
-                        node.name, scope)
-                for o in node.input:
-                    name_mapping[o] = clean_variable_name(o, scope)
-                for o in node.output:
-                    name_mapping[o] = clean_variable_name(o, scope)
-            for o in graph.initializer:
-                name_mapping[o.name] = clean_operator_name(o.name, scope)
-
-            inputs = [copy_inout(o, scope, name_mapping[o.name])
-                      for o in graph.input]
-            outputs = [copy_inout(o, scope, name_mapping[o.name])
-                       for o in graph.output]
-
-            for inp, to in zip(operator.inputs, inputs):
-                n = helper.make_node('Identity', [inp.onnx_name], [to.name],
-                                     name=clean_operator_name('Identity', scope))
-                container.nodes.append(n)
-
-            for inp, to in zip(outputs, operator.outputs):
-                n = helper.make_node('Identity', [inp.name], [to.onnx_name],
-                                     name=clean_operator_name('Identity', scope))
-                container.nodes.append(n)
-
-            for node in graph.node:
-                n = helper.make_node(
-                    node.op_type,
-                    [name_mapping[o] for o in node.input],
-                    [name_mapping[o] for o in node.output],
-                    name=node_mapping[node.name] if node.name else None,
-                    domain=node.domain if node.domain else None)
-                n.attribute.extend(node.attribute)  # pylint: disable=E1101
-                container.nodes.append(n)
-
-            for o in graph.initializer:
-                as_str = o.SerializeToString()
-                tensor = TensorProto()
-                tensor.ParseFromString(as_str)
-                tensor.name = name_mapping[o.name]
-                container.initializers.append(tensor)
-
-            # opset
-            for oimp in onx.opset_import:
-                container.node_domain_version_pair_sets.add(
-                    (oimp.domain, oimp.version))
+            add_onnx_graph(scope, operator, container, onx)
 
         return converter
 

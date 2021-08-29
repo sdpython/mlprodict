@@ -11,17 +11,18 @@ import io
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
 from numpy.testing import assert_almost_equal
-from onnx import numpy_helper, helper, load
+from onnx import helper, load
 from sklearn.base import BaseEstimator, TransformerMixin, clone
 from sklearn.preprocessing import FunctionTransformer
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from ..tools.code_helper import print_code
-from ..onnx_conv import to_onnx
 from ..onnx_tools.onnx_export import export2numpy
-from ..onnx_tools.onnx2py_helper import onnx_model_opsets
+from ..onnx_tools.onnx2py_helper import (
+    onnx_model_opsets, _var_as_dict, to_skl2onnx_type)
 from ..onnx_tools.exports.numpy_helper import (
-    argmin_use_numpy_select_last_index,
-    make_slice)
+    argmin_use_numpy_select_last_index, make_slice)
+from ..onnx_tools.exports.skl2onnx_helper import add_onnx_graph
+from ..onnx_conv import to_onnx
 from .onnx_transformer import OnnxTransformer
 
 
@@ -90,14 +91,32 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
     def _build_onnx_runtime_numpy(self, onx):
         """
         Builds a runtime based on numpy.
+        Exports the ONNX graph into python code
+        based on numpy and then dynamically compiles
+        it with method @see me _build_onnx_runtime_numpy_compile.
         """
-        st = io.BytesIO(onx)
-        model_onnx = load(st)
+        model_onnx = load(io.BytesIO(onx))
+        self.onnx_io_names_ = {'inputs': [], 'outputs': []}
+        for inp in model_onnx.graph.input:  # pylint: disable=E1101
+            d = _var_as_dict(inp)
+            self.onnx_io_names_['inputs'].append((d['name'], d['type']))
+        for inp in model_onnx.graph.output:  # pylint: disable=E1101
+            d = _var_as_dict(inp)
+            self.onnx_io_names_['outputs'].append((d['name'], d['type']))
+        self.onnx_io_names_['skl2onnx_inputs'] = [
+            to_skl2onnx_type(d[0], d[1]['elem'], d[1]['shape'])
+            for d in self.onnx_io_names_['inputs']]
+        self.onnx_io_names_['skl2onnx_outputs'] = [
+            to_skl2onnx_type(d[0], d[1]['elem'], d[1]['shape'])
+            for d in self.onnx_io_names_['outputs']]
         self.numpy_code_ = export2numpy(model_onnx, rename=True)
         opsets = onnx_model_opsets(model_onnx)
         return self._build_onnx_runtime_numpy_compile(opsets)
 
     def _build_onnx_runtime_numpy_compile(self, opsets):
+        """
+        Second part of @see me _build_onnx_runtime_numpy.
+        """
         try:
             compiled_code = compile(
                 self.numpy_code_, '<string>', 'exec')
@@ -139,16 +158,25 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
         return cl
 
     def __getstate__(self):
+        """
+        :epkg:`pickle` does not support functions.
+        This method removes any link to function
+        when the runtime is `'numpy'`.
+        """
         state = BaseEstimator.__getstate__(self)
         if 'numpy_code_' in state:
             del state['onnxrt_']
         return state
 
     def __setstate__(self, state):
+        """
+        :epkg:`pickle` does not support functions.
+        This method restores the function created when
+        the runtime is `'numpy'`.
+        """
         BaseEstimator.__setstate__(self, state)
         if 'numpy_code_' in state:
-            st = io.BytesIO(state['onnx_'])
-            model_onnx = load(st)
+            model_onnx = load(io.BytesIO(state['onnx_']))
             opsets = onnx_model_opsets(model_onnx)
             self.onnxrt_ = self._build_onnx_runtime_numpy_compile(opsets)
 
@@ -183,7 +211,10 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
         """
         self._check_fitted_()
         if isinstance(self.onnxrt_, FunctionTransformer):
-            raise NotImplementedError()
+            def parser():
+                # Types should be included as well.
+                return [r[0] for r in self.onnx_io_names_['skl2onnx_outputs']]
+            return parser
         return self.onnxrt_.onnx_parser(scope, inputs)
 
     def onnx_shape_calculator(self):
@@ -191,6 +222,19 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
         Returns a shape calculator for this transform.
         """
         self._check_fitted_()
+
+        if isinstance(self.onnxrt_, FunctionTransformer):
+            def fct_shape_calculator(operator):
+                # Types should be included as well.
+                outputs = self.onnx_io_names_['skl2onnx_outputs']
+                if len(operator.outputs) != len(outputs):
+                    raise RuntimeError(  # pragma: no cover
+                        "Mismatch between parser and shape calculator, "
+                        "%r != %r." % (outputs, operator.outputs))
+                for a, b in zip(operator.outputs, outputs):
+                    a.type = b[1]
+            return fct_shape_calculator
+
         calc = self.onnxrt_.onnx_shape_calculator()
 
         def shape_calculator(operator):
@@ -203,6 +247,16 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
         Returns a converter for this transform.
         """
         self._check_fitted_()
+
+        if isinstance(self.onnxrt_, FunctionTransformer):
+
+            def fct_converter(scope, operator, container):
+                op = operator.raw_operator
+                onnx_model = load(io.BytesIO(op.onnx_))
+                add_onnx_graph(scope, operator, container, onnx_model)
+
+            return fct_converter
+
         conv = self.onnxrt_.onnx_converter()
 
         def converter(scope, operator, container):
