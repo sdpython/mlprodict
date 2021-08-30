@@ -50,8 +50,8 @@ Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.testing.script_testing.verify_script
 
-Optimisation
-++++++++++++
+Onnx Optimisation
++++++++++++++++++
 
 The following functions reduce the number of ONNX operators in a graph
 while keeping the same results. The optimized graph

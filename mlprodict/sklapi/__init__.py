@@ -5,4 +5,7 @@
 """
 from .onnx_pipeline import OnnxPipeline
 from .onnx_transformer import OnnxTransformer
-from .onnx_speed_up import OnnxSpeedUpTransformer, OnnxSpeedUpRegressor
+from .onnx_speed_up import (
+    OnnxSpeedUpTransformer,
+    OnnxSpeedUpRegressor,
+    OnnxSpeedUpClassifier)

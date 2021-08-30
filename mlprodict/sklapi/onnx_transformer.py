@@ -194,7 +194,20 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
 
         names = self.output_name if self.output_name else [
             o for o in self.onnxrt_.output_names]
-        return pandas.DataFrame({k: v for k, v in zip(names, outputs)})
+        concat = []
+        colnames = []
+        for k, v in zip(names, outputs):
+            if len(v.shape) == 1:
+                v = v.reshape((-1, 1))
+                colnames.append(k)
+            elif len(v.shape) == 2:
+                colnames.extend("%s%d" % (k, i) for i in range(v.shape[1]))
+            else:
+                raise RuntimeError(  # pragma: no cover
+                    "Unexpected shape for results %r: %r." % (k, v.shape))
+            concat.append(v)
+        res = numpy.hstack(concat)
+        return pandas.DataFrame(res, columns=colnames)
 
     def fit_transform(self, X, y=None, **inputs):
         """

@@ -11,10 +11,11 @@ import io
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
 from numpy.testing import assert_almost_equal
+import scipy.special as scipy_special
 from onnx import helper, load
 from sklearn.base import (
     BaseEstimator, clone,
-    TransformerMixin, RegressorMixin)
+    TransformerMixin, RegressorMixin, ClassifierMixin)
 from sklearn.preprocessing import FunctionTransformer
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from ..tools.code_helper import print_code
@@ -23,7 +24,10 @@ from ..onnx_tools.onnx_export import export2numpy
 from ..onnx_tools.onnx2py_helper import (
     onnx_model_opsets, _var_as_dict, to_skl2onnx_type)
 from ..onnx_tools.exports.numpy_helper import (
-    argmin_use_numpy_select_last_index, make_slice)
+    array_feature_extrator,
+    argmax_use_numpy_select_last_index,
+    argmin_use_numpy_select_last_index,
+    make_slice)
 from ..onnx_tools.exports.skl2onnx_helper import add_onnx_graph
 from ..onnx_conv import to_onnx
 from .onnx_transformer import OnnxTransformer
@@ -81,10 +85,9 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
         :param inputs: example of inputs
         :return: ONNX
         """
-        opts = self.conv_options or {}
         return to_onnx(
             self.estimator_, inputs, target_opset=self.target_opset,
-            **opts)
+            options=self.conv_options)
 
     def _build_onnx_runtime(self, onx):
         """
@@ -146,9 +149,12 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
             'numpy': numpy, 'dict': dict, 'list': list,
             'print': print, 'sorted': sorted,
             'collections': collections, 'inspect': inspect,
-            'helper': helper,
+            'helper': helper, 'scipy_special': scipy_special,
+            'array_feature_extrator': array_feature_extrator,
             'argmin_use_numpy_select_last_index':
                 argmin_use_numpy_select_last_index,
+            'argmax_use_numpy_select_last_index':
+                argmax_use_numpy_select_last_index,
             'make_slice': make_slice}
         out = io.StringIO()
         err = io.StringIO()
@@ -444,6 +450,111 @@ class OnnxSpeedUpRegressor(RegressorMixin,
         Checks that ONNX and scikit-learn produces the same
         outputs.
         """
+        expected = numpy.squeeze(self.raw_predict(X))
+        got = numpy.squeeze(self.predict(X))
+        assert_almost_equal(expected, got, **kwargs)
+
+
+class OnnxSpeedUpClassifier(ClassifierMixin,
+                            _OnnxPipelineStepSpeedUp):
+    """
+    Trains with :epkg:`scikit-learn`, transform with :epkg:`ONNX`.
+
+    :param estimator: estimator to train
+    :param enforce_float32: boolean
+        :epkg:`onnxruntime` only supports *float32*,
+        :epkg:`scikit-learn` usually uses double floats, this parameter
+        ensures that every array of double floats is converted into
+        single floats
+    :param runtime: string, defined the runtime to use
+        as described in @see cl OnnxInference.
+    :param target_opset: targetted ONNX opset
+    :param conv_options: conversion options, see @see fn to_onnx
+    :param nopython: used by :epkg:`numba` jitter
+
+    Attributes created by method *fit*:
+
+    * `estimator_`: cloned and trained version of *estimator*
+    * `onnxrt_`: objet of type @see cl OnnxInference,
+        :epkg:`sklearn:preprocessing:FunctionTransformer`
+    * `numpy_code_`: python code equivalent to the inference
+        method if the runtime is `'numpy'` or `'numba'`
+    * `onnx_io_names_`: dictionary, additional information
+        if the runtime is `'numpy'` or `'numba'`
+
+    .. versionadded:: 0.7
+    """
+
+    def __init__(self, estimator, runtime='python', enforce_float32=True,
+                 target_opset=None, conv_options=None, nopython=True):
+        if conv_options is None:
+            conv_options = {'zipmap': False}
+        _OnnxPipelineStepSpeedUp.__init__(
+            self, estimator, runtime=runtime, enforce_float32=enforce_float32,
+            target_opset=target_opset, conv_options=conv_options,
+            nopython=nopython)
+
+    def fit(self, X, y, sample_weight=None):  # pylint: disable=W0221
+        """
+        Trains based estimator.
+        """
+        if sample_weight is None:
+            _OnnxPipelineStepSpeedUp.fit(self, X, y)
+        else:
+            _OnnxPipelineStepSpeedUp.fit(
+                self, X, y, sample_weight=sample_weight)
+        return self
+
+    def predict(self, X):
+        """
+        Transforms with *ONNX*.
+
+        :param X: features
+        :return: transformed features
+        """
+        pred = self.onnxrt_.transform(X)
+        if isinstance(pred, tuple):
+            return pred[0]
+        return pred.iloc[:, 0].values
+
+    def predict_proba(self, X):
+        """
+        Transforms with *ONNX*.
+
+        :param X: features
+        :return: transformed features
+        """
+        pred = self.onnxrt_.transform(X)
+        if isinstance(pred, tuple):
+            return pred[1]
+        return pred.iloc[:, 1:].values
+
+    def raw_predict(self, X):
+        """
+        Transforms with *scikit-learn*.
+
+        :param X: features
+        :return: transformed features
+        """
+        return self.estimator_.predict(X)
+
+    def raw_predict_proba(self, X):
+        """
+        Transforms with *scikit-learn*.
+
+        :param X: features
+        :return: transformed features
+        """
+        return self.estimator_.predict_proba(X)
+
+    def assert_almost_equal(self, X, **kwargs):
+        """
+        Checks that ONNX and scikit-learn produces the same
+        outputs.
+        """
+        expected = numpy.squeeze(self.raw_predict_proba(X))
+        got = numpy.squeeze(self.predict_proba(X))
+        assert_almost_equal(expected, got, **kwargs)
         expected = numpy.squeeze(self.raw_predict(X))
         got = numpy.squeeze(self.predict(X))
         assert_almost_equal(expected, got, **kwargs)

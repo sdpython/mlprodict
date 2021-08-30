@@ -27,12 +27,31 @@ def make_slice(data, starts, ends, axes=None, steps=None):
     return data[slices]
 
 
+def argmax_use_numpy_select_last_index(
+        data, axis=0, keepdims=True, select_last_index=False):
+    """
+    Needed or operator `ArgMax`.
+    """
+    if not select_last_index:
+        result = numpy.argmax(data, axis=axis)
+        if keepdims and len(result.shape) < len(data.shape):
+            result = numpy.expand_dims(result, axis)
+        return result.astype(numpy.int64)
+
+    data = numpy.flip(data, axis)
+    result = numpy.argmax(data, axis=axis)
+    result = data.shape[axis] - result - 1
+    if keepdims:
+        result = numpy.expand_dims(result, axis)
+    return result.astype(numpy.int64)
+
+
 def argmin_use_numpy_select_last_index(
         data, axis=0, keepdims=True, select_last_index=False):
     """
     Needed or operator `ArgMin`.
     """
-    if select_last_index:
+    if not select_last_index:
         result = numpy.argmin(data, axis=axis)
         if keepdims and len(result.shape) < len(data.shape):
             result = numpy.expand_dims(result, axis)
@@ -44,6 +63,31 @@ def argmin_use_numpy_select_last_index(
     if keepdims:
         result = numpy.expand_dims(result, axis)
     return result.astype(numpy.int64)
+
+
+def array_feature_extrator(data, indices):
+    """
+    Implementation of operator *ArrayFeatureExtractor*
+    with :epkg:`numpy`.
+    """
+    if len(indices.shape) == 2 and indices.shape[0] == 1:
+        index = indices.ravel().tolist()
+        add = len(index)
+    elif len(indices.shape) == 1:
+        index = indices.tolist()
+        add = len(index)
+    else:
+        add = 1
+        for s in indices.shape:
+            add *= s
+        index = indices.ravel().tolist()
+    if len(data.shape) == 1:
+        new_shape = (1, add)
+    else:
+        new_shape = list(data.shape[:-1]) + [add]
+    tem = data[..., index]
+    res = tem.reshape(new_shape)
+    return res
 
 
 class NumpyCode:
@@ -104,10 +148,20 @@ class NumpyCode:
                 "Cannot convert operator type %d, opset %d > %d." % (
                     self.op_type, self.opset, mi))
 
-    def _getat(self, name, defval=None):
+    def _getat(self, name, defval=None, format=None):
+
+        def f(v):
+            if format is None:
+                return v
+            if format == 'listint' and isinstance(v, str):
+                return list(
+                    map(int, v.strip('[]').replace(' ', '').split(',')))
+            raise ValueError(
+                "Unable to convert %r with format=%r." % (v, format))
+
         for n, val in self.attributes:
             if name == n:
-                return val
+                return f(val)
         return defval
 
     def _simplify(self, name, kind):
@@ -190,16 +244,47 @@ class NumpyCode:
             return "%s = %s %s" % (
                 outs, self.inputs[0], unary_ops_[self.op_type])
 
+        if self.op_type == 'ArgMax':
+            self._make_sure_opsets(12)
+            self._make_sure_inputs(1)
+            axis = self._getat('axis', 0)
+            keepdims = self._getat('keepdims', 1)
+            select_last_index = self._getat('keepdims', 0)
+            if select_last_index:
+                return (
+                    "%s = argmax_use_numpy_select_last_index("
+                    "%s, axis=%s, keepdims=%s, select_last_index=%s)" % (
+                        outs, self.inputs[0], axis, keepdims, select_last_index))
+            if keepdims:
+                return "%s = numpy.expand_dims(numpy.argmax(%s, axis=%s), -1)" % (
+                    outs, self.inputs[0], axis)
+            return "%s = numpy.argmax(%s, axis=%s)" % (
+                outs, self.inputs[0], axis)
+
         if self.op_type == 'ArgMin':
             self._make_sure_opsets(12)
             self._make_sure_inputs(1)
             axis = self._getat('axis', 0)
             keepdims = self._getat('keepdims', 1)
             select_last_index = self._getat('keepdims', 0)
-            return (
-                "%s = argmin_use_numpy_select_last_index("
-                "%s, axis=%s, keepdims=%s, select_last_index=%s)" % (
-                    outs, self.inputs[0], axis, keepdims, select_last_index))
+            if select_last_index:
+                return (
+                    "%s = argmin_use_numpy_select_last_index("
+                    "%s, axis=%s, keepdims=%s, select_last_index=%s)" % (
+                        outs, self.inputs[0], axis, keepdims, select_last_index))
+            if keepdims:
+                return "%s = numpy.expand_dims(numpy.argmin(%s, axis=%s), -1)" % (
+                    outs, self.inputs[0], axis)
+            return "%s = numpy.argmin(%s, axis=%s)" % (
+                outs, self.inputs[0], axis)
+
+        if self.op_type == 'Cast':
+            from ..onnx2py_helper import _elem_type_as_str
+            self._make_sure_inputs(1)
+            to = int(self._getat('to', 1))
+            dtype = _elem_type_as_str(to)
+            dtype = {'double': 'float64', 'float': 'float32'}.get(dtype, dtype)
+            return "%s = %s.astype(numpy.%s)" % (outs, self.inputs[0], dtype)
 
         if self.op_type == 'Concat':
             axis = self._getat('axis', 0)
@@ -271,6 +356,12 @@ class NumpyCode:
         if self.op_type == 'Slice':
             return "%s = make_slice(%s)" % (outs, ", ".join(self.inputs))
 
+        if self.op_type == 'Softmax':
+            self._make_sure_inputs(1)
+            axis = self._getat('axis', -1)
+            return "%s = scipy_special.softmax(%s, axis=%s)" % (
+                outs, self.inputs[0], axis)
+
         if self.op_type == 'Squeeze':
             self._make_sure_opsets(13)
             self._make_sure_inputs(2)
@@ -297,24 +388,89 @@ class NumpyCode:
     def _make_numpy_code_onnxml(self):
         outs = ", ".join(self.outputs)
 
+        if self.op_type == 'ArrayFeatureExtractor':
+            self._make_sure_inputs(2)
+            return "%s = array_feature_extrator(%s, %s)" % (
+                outs, self.inputs[0], self.inputs[1])
+
+        if self.op_type == 'LinearClassifier':
+            multi_class = self._getat('targets', 0)
+            if multi_class != 0:
+                raise NotImplementedError(
+                    "Conversion of operator %r with multi_class=%r "
+                    "is not implemented." % (self.op_type, multi_class))
+            self._make_sure_inputs(1)
+            coefficients = self._getat('coefficients', None)
+            intercepts = self._getat('intercepts', None)
+            post_transform = self._getat(
+                'post_transform', 'NONE').strip('"\'b')
+            classlabels_strings = self._getat('classlabels_strings', None)
+            if classlabels_strings is not None:
+                raise NotImplementedError(
+                    "Conversion of operator %r with classlabels_strings=%r "
+                    "is not implemented." % (self.op_type, classlabels_strings))
+            classlabels_ints = self._getat(
+                'classlabels_ints', None, format="listint")
+            if classlabels_ints != list(range(len(classlabels_ints))):
+                raise NotImplementedError(
+                    "Conversion of operator %r with classlabels_ints=%r!=%r "
+                    "is not implemented." % (
+                        self.op_type, classlabels_ints,
+                        list(range(len(classlabels_ints)))))
+            targets = len(classlabels_ints)
+            rows = [
+                "coefs = numpy.array(%s, dtype=numpy.float32)."
+                "reshape((%d, -1)).T" % (coefficients, targets),
+                "%sinter = numpy.array(%s, dtype=numpy.float32)."
+                "reshape((-1, %d))" % (self.indent, intercepts, targets)]
+
+            if post_transform == "SOFTMAX":
+                rows.append(
+                    "%s%s = scipy_special.softmax"
+                    "(%s @ coefs + inter, axis=1)" % (
+                        self.indent, self.outputs[1], self.inputs[0]))
+            elif post_transform == 'NONE':
+                rows.append(
+                    "%s%s = %s @ coefs + inter" % (
+                        self.indent, self.outputs[1], self.inputs[0]))
+            elif post_transform != "NONE":
+                raise NotImplementedError(
+                    "Conversion of operator %r with post_transform=%r "
+                    "is not implemented." % (self.op_type, post_transform))
+            rows.append("%s%s = numpy.argmax(%s, axis=1)" % (
+                self.indent, self.outputs[0], self.outputs[1]))
+            return "\n".join(rows)
+
         if self.op_type == 'LinearRegressor':
             self._make_sure_inputs(1)
             coefficients = self._getat('coefficients', None)
             intercepts = self._getat('intercepts', None)
-            post_transform = self._getat('post_transform', 'NONE')
+            post_transform = self._getat(
+                'post_transform', 'NONE').strip('"\'b')
             targets = self._getat('targets', 1)
             if post_transform != "NONE":
                 raise NotImplementedError(
-                    "Conversion of operator %r with post_transform %r "
+                    "Conversion of operator %r with post_transform=%r "
                     "is not implemented." % (self.op_type, post_transform))
             rows = [
                 "coefs = numpy.array(%s, dtype=numpy.float32)."
-                "reshape((-1, %d))" % (coefficients, targets),
+                "reshape((%d, -1)).T" % (coefficients, targets),
                 "%sinter = numpy.array(%s, dtype=numpy.float32)."
                 "reshape((-1, %d))" % (self.indent, intercepts, targets),
                 "%s%s = %s @ coefs + inter" % (
                     self.indent, outs, self.inputs[0])]
             return "\n".join(rows)
+
+        if self.op_type == 'Normalizer':
+            self._make_sure_inputs(1)
+            post_transform = self._getat('norm', 'MAX').strip('"\'b')
+            if post_transform == 'L2':
+                return "%s = %s / (%s ** 2).sum(axis=1) ** 0.5" % (
+                    outs, self.inputs[0], self.inputs[0])
+            if post_transform == 'L1':
+                post_transform = 'sum'
+            return "%s = %s / %s.%s(axis=1, keepdims=1)" % (
+                outs, self.inputs[0], self.inputs[0], post_transform.lower())
 
         raise NotImplementedError(  # pragma: no cover
             "Unable to convert operator type %r name=%r (onnxml)." % (
