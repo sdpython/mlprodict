@@ -197,14 +197,27 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         concat = []
         colnames = []
         for k, v in zip(names, outputs):
-            if len(v.shape) == 1:
-                v = v.reshape((-1, 1))
-                colnames.append(k)
-            elif len(v.shape) == 2:
+            if isinstance(v, numpy.ndarray):
+                if len(v.shape) == 1:
+                    v = v.reshape((-1, 1))
+                    colnames.append(k)
+                elif len(v.shape) == 2:
+                    colnames.extend("%s%d" % (k, i) for i in range(v.shape[1]))
+                else:
+                    raise RuntimeError(  # pragma: no cover
+                        "Unexpected shape for results %r: %r." % (k, v.shape))
+            if isinstance(v, list):
+                if len(v) == 0:
+                    raise RuntimeError(  # pragma: no cover
+                        "Output %r is empty." % k)
+                if not isinstance(v[0], dict):
+                    raise RuntimeError(  # pragma: no cover
+                        "Unexpected type for output %r - value=%r."
+                        "" % (k, v[0]))
+                df = pandas.DataFrame(v)
+                cols = list(sorted(df.columns))
+                v = df[cols].copy().values
                 colnames.extend("%s%d" % (k, i) for i in range(v.shape[1]))
-            else:
-                raise RuntimeError(  # pragma: no cover
-                    "Unexpected shape for results %r: %r." % (k, v.shape))
             concat.append(v)
         res = numpy.hstack(concat)
         return pandas.DataFrame(res, columns=colnames)
