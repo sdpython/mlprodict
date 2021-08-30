@@ -43,7 +43,8 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
     :param runtime: string, defined the runtime to use
         as described in @see cl OnnxInference.
     :param target_opset: targetted ONNX opset
-    :param conv_options: options for covnersions, see @see fn to_onnx
+    :param conv_options: options for conversions, see @see fn to_onnx
+    :param nopython: used by :epkg:`numba` jitter
 
     Attributes created by method *fit*:
 
@@ -59,13 +60,14 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
     """
 
     def __init__(self, estimator, runtime='python', enforce_float32=True,
-                 target_opset=None, conv_options=None):
+                 target_opset=None, conv_options=None, nopython=True):
         BaseEstimator.__init__(self)
         self.estimator = estimator
         self.runtime = runtime
         self.enforce_float32 = enforce_float32
         self.target_opset = target_opset
         self.conv_options = conv_options
+        self.nopython = nopython
 
     def _check_fitted_(self):
         if not hasattr(self, 'onnxrt_'):
@@ -168,7 +170,7 @@ class _OnnxPipelineStepSpeedUp(BaseEstimator, OnnxOperatorMixin):
         fct = loc[names[0]]
         if self.runtime == 'numba':
             from numba import jit
-            jitter = jit(nopython=True)
+            jitter = jit(nopython=self.nopython)
             fct = jitter(fct)
         cl = FunctionTransformer(fct, accept_sparse=True)
         cl.op_version = opsets.get('', get_opset_number_from_onnx())
@@ -310,6 +312,7 @@ class OnnxSpeedUpTransformer(TransformerMixin,
         as described in @see cl OnnxInference.
     :param target_opset: targetted ONNX opset
     :param conv_options: conversion options, see @see fn to_onnx
+    :param nopython: used by :epkg:`numba` jitter
 
     Attributes created by method *fit*:
 
@@ -325,10 +328,11 @@ class OnnxSpeedUpTransformer(TransformerMixin,
     """
 
     def __init__(self, estimator, runtime='python', enforce_float32=True,
-                 target_opset=None, conv_options=None):
+                 target_opset=None, conv_options=None, nopython=True):
         _OnnxPipelineStepSpeedUp.__init__(
             self, estimator, runtime=runtime, enforce_float32=enforce_float32,
-            target_opset=target_opset, conv_options=conv_options)
+            target_opset=target_opset, conv_options=conv_options,
+            nopython=nopython)
 
     def fit(self, X, y=None, sample_weight=None):  # pylint: disable=W0221
         """
@@ -384,6 +388,7 @@ class OnnxSpeedUpRegressor(RegressorMixin,
         as described in @see cl OnnxInference.
     :param target_opset: targetted ONNX opset
     :param conv_options: conversion options, see @see fn to_onnx
+    :param nopython: used by :epkg:`numba` jitter
 
     Attributes created by method *fit*:
 
@@ -399,10 +404,11 @@ class OnnxSpeedUpRegressor(RegressorMixin,
     """
 
     def __init__(self, estimator, runtime='python', enforce_float32=True,
-                 target_opset=None, conv_options=None):
+                 target_opset=None, conv_options=None, nopython=True):
         _OnnxPipelineStepSpeedUp.__init__(
             self, estimator, runtime=runtime, enforce_float32=enforce_float32,
-            target_opset=target_opset, conv_options=conv_options)
+            target_opset=target_opset, conv_options=conv_options,
+            nopython=nopython)
 
     def fit(self, X, y, sample_weight=None):  # pylint: disable=W0221
         """

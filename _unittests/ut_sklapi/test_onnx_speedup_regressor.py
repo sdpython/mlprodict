@@ -195,6 +195,21 @@ class TestOnnxSpeedUpRegressor(ExtTestCase):
         got = oinf.run({'X': X})['variable']
         self.assertEqualArray(expected, got)
 
+    @ignore_warnings(ConvergenceWarning)
+    def test_speedup_regressor64_onnx_numba_python(self):
+        data = load_iris()
+        X, y = data.data, data.target
+        spd = OnnxSpeedUpRegressor(
+            LinearRegression(), target_opset=self.opset(),
+            enforce_float32=False, runtime='numba', nopython=False)
+        spd.fit(X, y)
+        # print(spd.numpy_code_)
+        expected = spd.predict(X)
+        onx = to_onnx(spd, X[:1])
+        oinf = OnnxInference(onx)
+        got = oinf.run({'X': X})['variable']
+        self.assertEqualArray(expected, got)
+
 
 if __name__ == '__main__':
     # TestOnnxSpeedUpRegressor().test_speedup_regressor64_onnx_numba()

@@ -17,6 +17,86 @@ from ..onnx_tools import ensure_topological_order
 _make_name_id = 0
 
 
+def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
+                      inputs=None, outputs=None, attributes=None,
+                      used=None, context=None, mark_inits=None, indent=8,
+                      **unused):
+    """
+    Converts an ONNX operators into :epkg:`tf2onnx` code.
+
+    :param opset: target opset for the conversion (usually unused)
+    :param name: node name
+    :param op_type: operator type
+    :param domain: domain
+    :param inputs: inputs
+    :param outputs: outputs
+    :param attributes: attributes
+    :param used: dictionary `{k: v}`,
+        list of nodes taking *k* as input
+    :param context: whole context
+    :param mark_inits: marks initializer as replaced
+    :param indent: number of spaces to add on the second
+        and following rows
+    :return: code as str
+    """
+    def simplify(name, kind, force=True):
+        value = None
+        if (used is not None and name in used and
+                len(used[name]) == 1 and context is not None):
+            inits = context['initializers_dict']
+            if name in inits:
+                v = inits[name]
+                if v.dtype == numpy.int64 and v.size < 10:
+                    value = v
+                    if name not in mark_inits:
+                        mark_inits[name] = []
+                    mark_inits[name].append(v)
+
+        if value is None and force:
+            inits = context['initializers_dict']
+            value = inits[name]
+        if kind == 'list':
+            if value is None:
+                return name
+            if len(value.shape) == 0:
+                return str(value)
+            return str(list(value))
+        raise NotImplementedError(
+            "Unknown scenario to simplify (%r)." % kind)
+
+    rows = []
+    if op_type == 'Unsqueeze':
+        if len(inputs) == 2:
+            rows.append(
+                "node = GraphBuilder(ctx).make_unsqueeze("
+                "{'data': varx[%r], 'axes': %s}, return_node=True)"
+                "" % (inputs[0], simplify(inputs[1], 'list')))
+        else:
+            raise NotImplementedError(  # pragma: no cover
+                "Unable to create code for operator %r (opset <= 12)"
+                "." % op_type)
+    else:
+        if len(attributes) > 0:
+            attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
+            attr = ", attr=dict(%s)" % attributes_str
+        else:
+            attr = ""
+        rows.append(
+            "inputs = [%s]" % ", ".join("varx[%r]" % n for n in inputs))
+        sdomain = '' if domain == '' else ("domain=%r, " % domain)
+        rows.append(
+            "node = ctx.make_node(%r, inputs=inputs%s, %s"
+            "name=make_name(%r))" % (
+                op_type, attr, sdomain, name))
+    for i, n in enumerate(outputs):
+        rows.append("varx[%r] = node.output[%d]" % (n, i))
+    if indent > 0:
+        sind = " " * indent
+        for i in range(1, len(rows)):
+            rows[i] = sind + rows[i]
+    return "\n".join(rows)
+
+
 def make_name(name):
     "Creates a unique name."
     global _make_name_id  # pylint: disable=W0603
