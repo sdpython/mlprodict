@@ -214,7 +214,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
 
     @ignore_warnings((ConvergenceWarning, NumbaWarning, DeprecationWarning))
     def test_speedup_gaussian_regressor64_onnx_numpy_python(self):
-        X, y = make_regression(
+        X, y = make_regression(  # pylint: disable=W0632
             n_features=2, n_samples=100, n_targets=1, random_state=42)
         model = GaussianProcessRegressor(
             alpha=1e-5, n_restarts_optimizer=25, normalize_y=True)
