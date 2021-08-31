@@ -9,6 +9,7 @@ import numpy
 from scipy.sparse import coo_matrix
 from onnx import onnx_pb as onnx_proto, TensorProto
 from onnx.numpy_helper import to_array, from_array
+from skl2onnx.common.data_types import _guess_numpy_type
 
 
 def to_bytes(val):
@@ -158,7 +159,7 @@ def guess_numpy_type_from_dtype(dt):
     if dt == numpy.dtype('float32'):
         return numpy.float32
     if dt == numpy.dtype('float64'):
-        return numpy.floa64
+        return numpy.float64
     if dt == numpy.dtype('int64'):
         return numpy.int64
     if dt == numpy.dtype('int8'):
@@ -380,6 +381,19 @@ def _var_as_dict(var):
         "Unable to guess which object it is.\n{}\n---".format(var))
 
 
+def onnx_model_opsets(onnx_model):
+    """
+    Extracts opsets in a dictionary.
+
+    :param onnx_model: ONNX graph
+    :return: dictionary `{domain: version}`
+    """
+    res = {}
+    for oimp in onnx_model.opset_import:
+        res[oimp.domain] = oimp.version
+    return res
+
+
 def _type_to_string(dtype):
     """
     Converts a type into a readable string.
@@ -552,3 +566,18 @@ def guess_dtype(proto_type):
     raise ValueError(
         "Unable to convert proto_type {} to numpy type.".format(
             proto_type))
+
+
+def to_skl2onnx_type(name, elem_type, shape):
+    """
+    Converts *name*, *elem_type*, *shape* into a
+    :epkg:`sklearn-onnx` type.
+
+    :param name: string
+    :param elem_type: tensor of elements of this type
+    :param shape: expected shape
+    :return: data type
+    """
+    elem = guess_numpy_type_from_string(elem_type)
+    shape = list(None if d == 0 else d for d in shape)
+    return (name, _guess_numpy_type(elem, shape))

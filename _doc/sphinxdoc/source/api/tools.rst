@@ -50,8 +50,8 @@ Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.testing.script_testing.verify_script
 
-Optimisation
-++++++++++++
+Onnx Optimisation
++++++++++++++++++
 
 The following functions reduce the number of ONNX operators in a graph
 while keeping the same results. The optimized graph
@@ -138,3 +138,109 @@ Versions
 .. autosignature:: mlprodict.tools.asv_options_helper.get_ir_version_from_onnx
 
 .. autosignature:: mlprodict.tools.asv_options_helper.get_opset_number_from_onnx
+
+Type conversion
+===============
+
+.. autosignature:: mlprodict.onnx_conv.convert.guess_initial_types
+
+.. autosignature:: mlprodict.onnx_tools.onnx2py_helper.guess_numpy_type_from_string
+
+.. autosignature:: mlprodict.onnx_tools.onnx2py_helper.guess_numpy_type_from_dtype
+
+.. autosignature:: mlprodict.onnx_tools.onnx2py_helper.guess_proto_dtype
+
+.. autosignature:: mlprodict.onnx_tools.onnx2py_helper.guess_proto_dtype_name
+
+.. autosignature:: mlprodict.onnx_tools.onnx2py_helper.guess_dtype
+
+In :epkg:`sklearn-onnx`:
+
+* `skl2onnx.algebra.type_helper.guess_initial_types`
+* `skl2onnx.common.data_types.guess_data_type`
+* `skl2onnx.common.data_types.guess_numpy_type`
+* `skl2onnx.common.data_types.guess_proto_type`
+* `skl2onnx.common.data_types.guess_tensor_type`
+* `skl2onnx.common.data_types._guess_type_proto`
+* `skl2onnx.common.data_types._guess_numpy_type`
+
+The last example summarizes all the possibilities.
+
+.. runpython::
+    :showcode:
+    :process:
+
+    import numpy
+    from onnx import TensorProto
+
+    from skl2onnx.algebra.type_helper import guess_initial_types
+    from skl2onnx.common.data_types import guess_data_type
+    from skl2onnx.common.data_types import guess_numpy_type
+    from skl2onnx.common.data_types import guess_proto_type
+    from skl2onnx.common.data_types import guess_tensor_type
+    from skl2onnx.common.data_types import _guess_type_proto
+    from skl2onnx.common.data_types import _guess_numpy_type
+    from skl2onnx.common.data_types import DoubleTensorType
+
+    from mlprodict.onnx_conv.convert import guess_initial_types as guess_initial_types_mlprodict
+    from mlprodict.onnx_tools.onnx2py_helper import guess_numpy_type_from_string
+    from mlprodict.onnx_tools.onnx2py_helper import guess_numpy_type_from_dtype
+    from mlprodict.onnx_tools.onnx2py_helper import guess_proto_dtype
+    from mlprodict.onnx_tools.onnx2py_helper import guess_proto_dtype_name
+    from mlprodict.onnx_tools.onnx2py_helper import guess_dtype
+
+    def guess_initial_types0(t):
+        return guess_initial_types(numpy.array([[0, 1]], dtype=t), None)
+
+    def guess_initial_types1(t):
+        return guess_initial_types(None, [('X', t)])
+
+    def guess_initial_types_mlprodict0(t):
+        return guess_initial_types_mlprodict(numpy.array([[0, 1]], dtype=t), None)
+
+    def guess_initial_types_mlprodict1(t):
+        return guess_initial_types_mlprodict(None, [('X', t)])
+
+    def _guess_type_proto1(t):
+        return _guess_type_proto(t, [None, 4])
+
+    def _guess_numpy_type1(t):
+        return _guess_numpy_type(t, [None, 4])
+
+    fcts = [guess_initial_types0, guess_initial_types1,
+            guess_data_type, guess_numpy_type,
+            guess_proto_type, guess_tensor_type,
+            _guess_type_proto1,
+            _guess_numpy_type1,
+            guess_initial_types_mlprodict0,
+            guess_initial_types_mlprodict1,
+            guess_numpy_type_from_string,
+            guess_numpy_type_from_dtype,
+            guess_proto_dtype_name, guess_dtype]
+
+    values = [numpy.float64, float, 'double', 'tensor(double)',
+              DoubleTensorType([None, 4]),
+              TensorProto.DOUBLE]
+
+    print("---SUCCESS------------")
+    errors = []
+    for f in fcts:
+        print("")
+        for v in values:
+            try:
+                r = f(v)
+                print("%s(%r) -> %r" % (f.__name__, v, r))
+            except Exception as e:
+                errors.append("%s(%r) -> %r" % (f.__name__, v, e))
+        errors.append("")
+
+    print()
+    print('---ERRORS-------------')
+    print()
+    for e in errors:
+        print(e)
+
+skl2onnx
+========
+
+.. autosignature:: mlprodict.onnx_tools.exports.skl2onnx_helper.add_onnx_graph

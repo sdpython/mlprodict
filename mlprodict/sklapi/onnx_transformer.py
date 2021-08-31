@@ -7,16 +7,16 @@ from io import BytesIO
 import numpy
 import pandas
 import onnx
-from onnx import helper
 from sklearn.base import BaseEstimator, TransformerMixin
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
-from skl2onnx.proto import TensorProto
-from skl2onnx.helpers.onnx_helper import load_onnx_model, enumerate_model_node_outputs
+from skl2onnx.helpers.onnx_helper import (
+    load_onnx_model, enumerate_model_node_outputs)
 from skl2onnx.helpers.onnx_helper import select_model_inputs_outputs
 from skl2onnx.common.data_types import (
     FloatTensorType, DoubleTensorType,
     Int64TensorType)
-from ..onnx_tools.onnx2py_helper import _var_as_dict
+from ..onnx_tools.onnx2py_helper import _var_as_dict, onnx_model_opsets
+from ..onnx_tools.exports.skl2onnx_helper import add_onnx_graph
 from ..onnxrt import OnnxInference
 
 
@@ -83,6 +83,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         """
         from ..onnx_tools.optim.onnx_helper import change_input_first_dimension
         onx = onnx.load(BytesIO(self.onnx_bytes))
+        self.op_version = onnx_model_opsets(onx)
 
         output_names = set(
             o.name for o in onx.graph.output)  # pylint: disable=E1101
@@ -103,6 +104,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
             onx.SerializeToString() if updated else self.onnx_bytes)
         self.onnxrt_ = OnnxInference(onnx_bytes, runtime=self.runtime)
         self.inputs_ = self.onnxrt_.input_names
+        self.inputs_shape_types_ = self.onnxrt_.input_names_shapes_types
         return self
 
     def _check_arrays(self, inputs):
@@ -110,8 +112,8 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         Ensures that double floats are converted into single floats
         if *enforce_float32* is True or raises an exception.
         """
-        sht = self.onnxrt_.input_names_shapes_types if hasattr(
-            self, "onnxrt_") else None
+        has = hasattr(self, "onnxrt_")
+        sht = self.inputs_shape_types_ if has else None
         if sht is not None and len(sht) < len(inputs):
             raise RuntimeError(  # pragma: no cover
                 "Unexpected number of inputs {} > {} (expected).".format(
@@ -122,7 +124,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                 if v.dtype == numpy.float64 and self.enforce_float32:
                     inputs[k] = v.astype(numpy.float32)
                     continue
-                if not hasattr(self, "onnxrt_"):
+                if not has:
                     continue
                 exp = sht[i]
                 if exp[1] != ('?', ) and exp[1][1:] != v.shape[1:]:
@@ -157,11 +159,11 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
             raise AttributeError(  # pragma: no cover
                 "Transform OnnxTransformer must be fit first.")
         rt_inputs = {}
-        if isinstance(X, pandas.DataFrame):
+        if isinstance(X, numpy.ndarray):
+            rt_inputs[self.inputs_[0]] = X
+        elif isinstance(X, pandas.DataFrame):
             for c in X.columns:
                 rt_inputs[c] = X[c]
-        elif isinstance(X, numpy.ndarray):
-            rt_inputs[self.inputs_[0]] = X
         elif isinstance(X, dict) and len(inputs) == 0:
             for k, v in X.items():
                 rt_inputs[k] = v
@@ -192,7 +194,33 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
 
         names = self.output_name if self.output_name else [
             o for o in self.onnxrt_.output_names]
-        return pandas.DataFrame({k: v for k, v in zip(names, outputs)})
+        concat = []
+        colnames = []
+        for k, v in zip(names, outputs):
+            if isinstance(v, numpy.ndarray):
+                if len(v.shape) == 1:
+                    v = v.reshape((-1, 1))
+                    colnames.append(k)
+                elif len(v.shape) == 2:
+                    colnames.extend("%s%d" % (k, i) for i in range(v.shape[1]))
+                else:
+                    raise RuntimeError(  # pragma: no cover
+                        "Unexpected shape for results %r: %r." % (k, v.shape))
+            if isinstance(v, list):
+                if len(v) == 0:
+                    raise RuntimeError(  # pragma: no cover
+                        "Output %r is empty." % k)
+                if not isinstance(v[0], dict):
+                    raise RuntimeError(  # pragma: no cover
+                        "Unexpected type for output %r - value=%r."
+                        "" % (k, v[0]))
+                df = pandas.DataFrame(v)
+                cols = list(sorted(df.columns))
+                v = df[cols].copy().values
+                colnames.extend("%s%d" % (k, i) for i in range(v.shape[1]))
+            concat.append(v)
+        res = numpy.hstack(concat)
+        return pandas.DataFrame(res, columns=colnames)
 
     def fit_transform(self, X, y=None, **inputs):
         """
@@ -284,75 +312,10 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         mapped to the first *scikit-learn* parent
         it can find.
         """
-        def copy_inout(inout, scope, new_name):
-            shape = [s.dim_value for s in inout.type.tensor_type.shape.dim]
-            value_info = helper.make_tensor_value_info(
-                new_name, inout.type.tensor_type.elem_type, shape)
-            return value_info
-
-        def clean_variable_name(name, scope):
-            return scope.get_unique_variable_name(name)
-
-        def clean_operator_name(name, scope):
-            return scope.get_unique_operator_name(name)
-
-        def clean_initializer_name(name, scope):
-            return scope.get_unique_variable_name(name)
-
-        def converter(scope, operator, container):
+        def converter(scope, operator, container, onnx_model=None):
             op = operator.raw_operator
-
-            graph = op.onnxrt_.obj.graph
-            name_mapping = {}
-            node_mapping = {}
-            for node in graph.node:
-                name = node.name
-                if name is not None:
-                    node_mapping[node.name] = clean_initializer_name(
-                        node.name, scope)
-                for o in node.input:
-                    name_mapping[o] = clean_variable_name(o, scope)
-                for o in node.output:
-                    name_mapping[o] = clean_variable_name(o, scope)
-            for o in graph.initializer:
-                name_mapping[o.name] = clean_operator_name(o.name, scope)
-
-            inputs = [copy_inout(o, scope, name_mapping[o.name])
-                      for o in graph.input]
-            outputs = [copy_inout(o, scope, name_mapping[o.name])
-                       for o in graph.output]
-
-            for inp, to in zip(operator.inputs, inputs):
-                n = helper.make_node('Identity', [inp.onnx_name], [to.name],
-                                     name=clean_operator_name('Identity', scope))
-                container.nodes.append(n)
-
-            for inp, to in zip(outputs, operator.outputs):
-                n = helper.make_node('Identity', [inp.name], [to.onnx_name],
-                                     name=clean_operator_name('Identity', scope))
-                container.nodes.append(n)
-
-            for node in graph.node:
-                n = helper.make_node(
-                    node.op_type,
-                    [name_mapping[o] for o in node.input],
-                    [name_mapping[o] for o in node.output],
-                    name=node_mapping[node.name] if node.name else None,
-                    domain=node.domain if node.domain else None)
-                n.attribute.extend(node.attribute)  # pylint: disable=E1101
-                container.nodes.append(n)
-
-            for o in graph.initializer:
-                as_str = o.SerializeToString()
-                tensor = TensorProto()
-                tensor.ParseFromString(as_str)
-                tensor.name = name_mapping[o.name]
-                container.initializers.append(tensor)
-
-            # opset
-            for oimp in op.onnxrt_.obj.opset_import:
-                container.node_domain_version_pair_sets.add(
-                    (oimp.domain, oimp.version))
+            onx = onnx_model or op.onnxrt_.obj
+            add_onnx_graph(scope, operator, container, onx)
 
         return converter
 

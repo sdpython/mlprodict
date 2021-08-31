@@ -2,7 +2,6 @@
 @brief      test log(time=9s)
 """
 import unittest
-from logging import getLogger
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
@@ -19,8 +18,6 @@ class TestRtValidateGridSearchCV(ExtTestCase):
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_rt_grid_search_cv(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
-        logger = getLogger('skl2onnx')
-        logger.disabled = True
         verbose = 1 if __name__ == "__main__" else 0
 
         buffer = []

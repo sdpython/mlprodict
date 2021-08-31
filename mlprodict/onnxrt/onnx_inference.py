@@ -221,6 +221,7 @@ class OnnxInference:
         self.to_dot = self.exporters_.to_dot
         self.to_python = self.exporters_.to_python
         self.to_text = self.exporters_.to_text
+        self.to_onnx_code = self.exporters_.to_onnx_code
 
         if self.runtime in ('python_compiled', 'python_compiled_debug'):
             # switch the inference method to the compiled one

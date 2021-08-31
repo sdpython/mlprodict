@@ -1,6 +1,10 @@
 import numpy
+import scipy.special as scipy_special
+import scipy.spatial.distance as scipy_distance
 from mlprodict.onnx_tools.exports.numpy_helper import (
+    argmax_use_numpy_select_last_index,
     argmin_use_numpy_select_last_index,
+    array_feature_extrator,
     make_slice)
 
 def numpy_{{name}}({{ inputs[0][0] }}{% for i in inputs[1:]: %}, {{ i[0] }}{% endfor %}):
@@ -30,6 +34,6 @@ def numpy_{{name}}({{ inputs[0][0] }}{% for i in inputs[1:]: %}, {{ i[0] }}{% en
 
     # nodes
     {% for node in nodes: %}
-    {{ make_numpy_code(target_opset, **node) }}{% endfor %}
+    {{ make_numpy_code(target_opset, indent="    ", **node) }}{% endfor %}
 
     return {{ outputs[0][0] }}{% for o in outputs[1:]: %}, {{ o[0] }}{% endfor %}

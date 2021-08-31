@@ -14,294 +14,8 @@ from .onnx2py_helper import (
     _var_as_dict, guess_proto_dtype, guess_proto_dtype_name)
 from .onnx_export_templates import (
     get_onnx_template, get_tf2onnx_template, get_numpy_template)
-
-
-def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
-                      inputs=None, outputs=None, attributes=None,
-                      used=None, context=None, mark_inits=None, indent=8,
-                      **unused):
-    """
-    Converts an ONNX operators into :epkg:`tf2onnx` code.
-
-    :param opset: target opset for the conversion (usually unused)
-    :param name: node name
-    :param op_type: operator type
-    :param domain: domain
-    :param inputs: inputs
-    :param outputs: outputs
-    :param attributes: attributes
-    :param used: dictionary `{k: v}`,
-        list of nodes taking *k* as input
-    :param context: whole context
-    :param mark_inits: marks initializer as replaced
-    :param indent: number of spaces to add on the second
-        and following rows
-    :return: code as str
-    """
-    def simplify(name, kind, force=True):
-        value = None
-        if (used is not None and name in used and
-                len(used[name]) == 1 and context is not None):
-            inits = context['initializers_dict']
-            if name in inits:
-                v = inits[name]
-                if v.dtype == numpy.int64 and v.size < 10:
-                    value = v
-                    if name not in mark_inits:
-                        mark_inits[name] = []
-                    mark_inits[name].append(v)
-
-        if value is None and force:
-            inits = context['initializers_dict']
-            value = inits[name]
-        if kind == 'list':
-            if value is None:
-                return name
-            if len(value.shape) == 0:
-                return str(value)
-            return str(list(value))
-        raise NotImplementedError(
-            "Unknown scenario to simplify (%r)." % kind)
-
-    rows = []
-    if op_type == 'Unsqueeze':
-        if len(inputs) == 2:
-            rows.append(
-                "node = GraphBuilder(ctx).make_unsqueeze("
-                "{'data': varx[%r], 'axes': %s}, return_node=True)"
-                "" % (inputs[0], simplify(inputs[1], 'list')))
-        else:
-            raise NotImplementedError(  # pragma: no cover
-                "Unable to create code for operator %r (opset <= 12)"
-                "." % op_type)
-    else:
-        if len(attributes) > 0:
-            attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
-            attr = ", attr=dict(%s)" % attributes_str
-        else:
-            attr = ""
-        rows.append(
-            "inputs = [%s]" % ", ".join("varx[%r]" % n for n in inputs))
-        sdomain = '' if domain == '' else ("domain=%r, " % domain)
-        rows.append(
-            "node = ctx.make_node(%r, inputs=inputs%s, %s"
-            "name=make_name(%r))" % (
-                op_type, attr, sdomain, name))
-    for i, n in enumerate(outputs):
-        rows.append("varx[%r] = node.output[%d]" % (n, i))
-    if indent > 0:
-        sind = " " * indent
-        for i in range(1, len(rows)):
-            rows[i] = sind + rows[i]
-    return "\n".join(rows)
-
-
-def make_numpy_code(opset, name=None, op_type=None, domain='',
-                    inputs=None, outputs=None, attributes=None,
-                    used=None, context=None, mark_inits=None,
-                    **unused):
-    """
-    Converts an ONNX operators into :epkg:`numpy` code.
-
-    :param opset: target opset for the conversion (usually unused)
-    :param name: node name
-    :param op_type: operator type
-    :param domain: domain
-    :param inputs: inputs
-    :param outputs: outputs
-    :param attributes: attributes
-    :param used: dictionary `{k: v}`,
-        list of nodes taking *k* as input
-    :param context: whole context
-    :param mark_inits: marks initializer as replaced
-    :return: code as str
-    """
-    def make_sure_inputs(n, m=None):
-        if m is None:
-            m = n
-        if len(inputs) < n:
-            raise RuntimeError(  # pragma: no cover
-                "Expecting at least %d inputs for operator %r not %r." % (
-                    n, op_type, inputs))
-        if len(inputs) > m:
-            raise RuntimeError(  # pragma: no cover
-                "Expecting at most %d inputs for operator %r not %r." % (
-                    m, op_type, inputs))
-
-    def make_sure_opsets(mi, ma=None):
-        if mi is not None and opset < mi:
-            raise RuntimeError(  # pragma: no cover
-                "Cannot convert operator type %d, opset %d < %d." % (
-                    op_type, opset, mi))
-        if ma is not None and opset > ma:
-            raise RuntimeError(  # pragma: no cover
-                "Cannot convert operator type %d, opset %d > %d." % (
-                    op_type, opset, mi))
-
-    def getat(name, defval=None):
-        for n, val in attributes:
-            if name == n:
-                return val
-        return defval
-
-    def simplify(name, kind):
-        value = None
-        if (used is not None and name in used and
-                len(used[name]) == 1 and context is not None):
-            inits = context['initializers_dict']
-            if name in inits:
-                v = inits[name]
-                if v.dtype == numpy.int64 and v.size < 10:
-                    value = v
-                    if name not in mark_inits:
-                        mark_inits[name] = []
-                    mark_inits[name].append(v)
-
-        if kind == 'tuple':
-            if value is None:
-                return "tuple(%s)" % name
-            if value.size == 1:
-                return str(tuple(value)[0])
-            return str(tuple(value))
-        elif kind == 'list':
-            if value is None:
-                return name
-            if len(value.shape) == 0:
-                return str(value)
-            return str(list(value))
-        raise NotImplementedError(
-            "Unknown scenario to simplify (%r)." % kind)
-
-    def make_tuple(val):
-        if isinstance(val, tuple):
-            return val
-        if isinstance(val, list):
-            return tuple(val)
-        if isinstance(val, int):
-            return val
-        if isinstance(val, str):
-            return tuple(map(int, val.strip('()[]').replace(" ", "").split(",")))
-        raise NotImplementedError(
-            "Unable to convert %r into tuple." % val)
-
-    if domain != '':
-        raise NotImplementedError(
-            "Unable to convert any operator from domain %r." % domain)
-
-    binary_ops = dict(Add='+', Sub='-', Div='/', Mul='*', MatMul='@',
-                      Pow='**')
-    unary_ops = dict(Neg='-')
-    unary_ops_ = dict(Sqrt='** 0.5')
-
-    outs = ", ".join(outputs)
-
-    if op_type in binary_ops:
-        make_sure_inputs(2)
-        return "%s = %s %s %s" % (outs, inputs[0], binary_ops[op_type], inputs[1])
-
-    if op_type in unary_ops:
-        make_sure_inputs(1)
-        return "%s = %s %s" % (outs, unary_ops[op_type], inputs[0])
-
-    if op_type in unary_ops_:
-        make_sure_inputs(1)
-        return "%s = %s %s" % (outs, inputs[0], unary_ops_[op_type])
-
-    if op_type == 'ArgMin':
-        make_sure_opsets(12)
-        make_sure_inputs(1)
-        axis = getat('axis', 0)
-        keepdims = getat('keepdims', 1)
-        select_last_index = getat('keepdims', 0)
-        return (
-            "%s = argmin_use_numpy_select_last_index("
-            "%s, axis=%s, keepdims=%s, select_last_index=%s)" % (
-                outs, inputs[0], axis, keepdims, select_last_index))
-
-    if op_type == 'Concat':
-        axis = getat('axis', 0)
-        return "%s = numpy.concatenate([%s], %s)" % (outs, ", ".join(inputs), axis)
-
-    if op_type == 'Max':
-        return "%s = numpy.maximum(%s)" % (outs, ", ".join(inputs))
-
-    if op_type == 'Gather':
-        make_sure_opsets(11)
-        make_sure_inputs(2)
-        axis = getat('axis', 0)
-        return "%s = numpy.take(%s, %s, axis=%s)" % (
-            outs, inputs[0], simplify(inputs[1], 'list'), axis)
-
-    if op_type == 'Gemm':
-        make_sure_inputs(2, 3)
-        alpha = getat('alpha', 0.)
-        transA = getat('transA', 0)
-        transB = getat('transB', 0)
-        ta = ".T" if transA in ('1', 1, True) else ""
-        tb = ".T" if transB in ('1', 1, True) else ""
-        if len(inputs) == 2:
-            return "%s = %s%s @ %s%s * %s" % (
-                outs, inputs[0], ta, inputs[1], tb, alpha)
-        beta = getat('beta', 0.)
-        return "%s = %s%s @ %s%s * %s + %s * %s" % (
-            outs, inputs[0], ta, inputs[1], tb, alpha, inputs[2], beta)
-
-    if op_type == 'Identity':
-        return "%s = %s" % (outs, inputs[0])
-
-    if op_type == 'ReduceProd':
-        make_sure_inputs(1)
-        axes = getat('axes', "[0]")
-        keepdims = getat('keepdims', 0)
-        return "%s = %s.prod(axis=tuple(%s), keepdims=%s)" % (
-            outs, inputs[0], axes, keepdims)
-
-    if op_type == 'ReduceSum':
-        make_sure_opsets(11)
-        make_sure_inputs(2)
-        keepdims = getat('keepdims', 0)
-        return "%s = %s.sum(axis=%s, keepdims=%s)" % (
-            outs, inputs[0], simplify(inputs[1], 'tuple'), keepdims)
-
-    if op_type == 'ReduceSumSquare':
-        make_sure_inputs(1)
-        axes = getat('axes', "[0]")
-        keepdims = getat('keepdims', 0)
-        return "%s = (%s ** 2).sum(axis=tuple(%s), keepdims=%s)" % (
-            outs, inputs[0], axes, keepdims)
-
-    if op_type == 'Reshape':
-        make_sure_inputs(2)
-        return "%s = %s.reshape(%s)" % (
-            outs, inputs[0], simplify(inputs[1], 'tuple'))
-
-    if op_type == 'Shape':
-        make_sure_inputs(1)
-        return "%s = numpy.array(%s.shape, dtype=numpy.int64)" % (outs, inputs[0])
-
-    if op_type == 'Slice':
-        return "%s = make_slice(%s)" % (outs, ", ".join(inputs))
-
-    if op_type == 'Squeeze':
-        make_sure_opsets(13)
-        make_sure_inputs(2)
-        return "%s = numpy.squeeze(%s, axis=%s)" % (
-            outs, inputs[0], simplify(inputs[1], 'tuple'))
-
-    if op_type == 'Transpose':
-        make_sure_inputs(1)
-        perm = getat('perm', None)
-        return "%s = numpy.transpose(%s, axes=%s)" % (
-            outs, inputs[0], make_tuple(perm))
-
-    if op_type == 'Unsqueeze':
-        make_sure_opsets(13)
-        make_sure_inputs(2)
-        return "%s = numpy.expand_dims(%s, axis=%s)" % (
-            outs, inputs[0], simplify(inputs[1], 'tuple'))
-
-    raise NotImplementedError(
-        "Unable to convert operator type %r name=%r." % (op_type, name))
+from .exports.numpy_helper import make_numpy_code
+from .exports.tf2onnx_helper import make_tf2onnx_code
 
 
 def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
@@ -406,7 +120,8 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
     # node
     nodes = []
     for node in model_onnx.graph.node:
-        for i in node.input:
+        for i_raw_name in node.input:
+            i = rename_name(i_raw_name)
             if i not in used:
                 used[i] = []
             used[i].append(node)
@@ -414,6 +129,10 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
         for at in node.attribute:
             temp = _var_as_dict(at)
             value = temp['value']
+            if node.op_type in {'Scan', 'Loop', 'If'}:
+                raise NotImplementedError(
+                    "Subgraph are not yet implemented (operator=%r)."
+                    "" % node.op_type)
             if use_onnx_tensor:
                 if node.op_type == 'Cast' and at.name == 'to':
                     attributes.append(
@@ -447,6 +166,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
 
     # graph
     context['name'] = name or model_onnx.graph.name
+    context['name'] = context['name'].replace("(", "_").replace(")", "")
     context['ir_version'] = model_onnx.ir_version
     context['producer_name'] = model_onnx.producer_name
     context['domain'] = model_onnx.domain
@@ -456,7 +176,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
     context['skip_inits'] = {}
     mark_inits = {}
 
-    # final
+    # First rendering to detect any unused or replaced initializer.
     template = Template(templates)
     final = template.render(
         enumerate=enumerate, sorted=sorted, len=len,
@@ -475,6 +195,8 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
             skip_inits.add(k)
 
     if len(skip_inits) > 0:
+        # Second rendering if needed when an initializer was replaced
+        # or removed.
         context['skip_inits'] = skip_inits
         # Again with skip_inits.
         final = template.render(
@@ -513,6 +235,7 @@ def export2onnx(model_onnx, opset=None, verbose=True, name=None, rename=False,
 
     .. runpython::
         :showcode:
+        :process:
 
         import numpy
         from sklearn.cluster import KMeans
@@ -554,6 +277,7 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None,
 
     .. runpython::
         :showcode:
+        :process:
 
         import numpy
         from sklearn.cluster import KMeans
@@ -597,6 +321,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
 
     .. runpython::
         :showcode:
+        :process:
 
         import numpy
         from sklearn.cluster import KMeans
@@ -617,6 +342,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
 
     .. runpython::
         :showcode:
+        :process:
 
         import numpy
         from mlprodict.testing.einsum import decompose_einsum_equation
