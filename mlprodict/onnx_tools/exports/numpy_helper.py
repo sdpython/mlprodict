@@ -156,6 +156,9 @@ class NumpyCode:
             if format == 'listint' and isinstance(v, str):
                 return list(
                     map(int, v.strip('[]').replace(' ', '').split(',')))
+            if format == 'listfloat' and isinstance(v, str):
+                return list(
+                    map(float, v.strip('[]').replace(' ', '').split(',')))
             raise ValueError(
                 "Unable to convert %r with format=%r." % (v, format))
 
@@ -215,6 +218,9 @@ class NumpyCode:
 
         if self.domain == 'ai.onnx.ml':
             return self._make_numpy_code_onnxml()
+
+        if self.domain == 'com.microsoft':
+            return self._make_numpy_code_others()
 
         raise NotImplementedError(
             "Unable to convert any operator from domain %r." % self.domain)
@@ -290,6 +296,17 @@ class NumpyCode:
             axis = self._getat('axis', 0)
             return "%s = numpy.concatenate([%s], %s)" % (
                 outs, ", ".join(self.inputs), axis)
+
+        if self.op_type == 'ConstantOfShape':
+            self._make_sure_opsets(9)
+            self._make_sure_inputs(1)
+            value = self._getat('value', 0, format='listfloat')
+            shape = self._simplify(self.inputs[0], kind='tuple')
+            return "%s = numpy.full(%s, %s)" % (
+                outs, shape, value)
+
+        if self.op_type == 'Exp':
+            return "%s = numpy.exp(%s)" % (outs, self.inputs[0])
 
         if self.op_type == 'Max':
             return "%s = numpy.maximum(%s)" % (outs, ", ".join(self.inputs))
@@ -475,6 +492,20 @@ class NumpyCode:
         raise NotImplementedError(  # pragma: no cover
             "Unable to convert operator type %r name=%r (onnxml)." % (
                 self.op_type, self.name))
+
+    def _make_numpy_code_others(self):
+        outs = ", ".join(self.outputs)
+
+        if self.op_type == 'CDist':
+            self._make_sure_inputs(2)
+            metric = self._getat('metric', 'euclidean').strip("'b")
+            return "%s = scipy_distance.cdist(%s, %s, metric=%r)" % (
+                outs, self.inputs[0], self.inputs[1], metric)
+
+        raise NotImplementedError(  # pragma: no cover
+            "Unable to convert operator type %r (domain=%r) "
+            "name=%r (onnxml)." % (
+                self.op_type, self.domain, self.name))
 
 
 def make_numpy_code(opset, name=None, op_type=None, domain='',

@@ -21,7 +21,7 @@ OnnxTransformer
 .. autosignature:: mlprodict.sklapi.onnx_transformer.OnnxTransformer
     :members:
 
-SpeedUp scikit-learn pipeline with ONNX
+Speedup scikit-learn pipeline with ONNX
 +++++++++++++++++++++++++++++++++++++++
 
 These classes wraps an existing pipeline from *scikit-learn*
@@ -29,11 +29,11 @@ and replaces the inference (*transform*, *predict*, *predict_proba*)
 by another runtime built after the model was converted into ONNX.
 See example :ref:`l-b-numpy-numba-ort` for further details.
 
-.. autosignature:: mlprodict.sklapi.onnx_speed_up.OnnxSpeedUpClassifier
+.. autosignature:: mlprodict.sklapi.onnx_speed_up.OnnxSpeedupClassifier
     :members:
 
-.. autosignature:: mlprodict.sklapi.onnx_speed_up.OnnxSpeedUpRegressor
+.. autosignature:: mlprodict.sklapi.onnx_speed_up.OnnxSpeedupRegressor
     :members:
 
-.. autosignature:: mlprodict.sklapi.onnx_speed_up.OnnxSpeedUpTransformer
+.. autosignature:: mlprodict.sklapi.onnx_speed_up.OnnxSpeedupTransformer
     :members:

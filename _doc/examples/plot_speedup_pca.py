@@ -1,5 +1,5 @@
 """
-.. _l-speedup-pca:
+.. _l-Speedup-pca:
 
 Speed up scikit-learn inference with ONNX
 =========================================
@@ -34,7 +34,7 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import make_regression
 from sklearn.decomposition import PCA
 from pyquickhelper.pycode.profiling import profile
-from mlprodict.sklapi import OnnxSpeedUpTransformer
+from mlprodict.sklapi import OnnxSpeedupTransformer
 from mlprodict.tools.speed_measure import measure_time
 from tqdm import tqdm
 
@@ -45,13 +45,13 @@ data, _ = make_regression(1000, n_features=20)
 data = data.astype(numpy.float32)
 models = [
     ('sklearn', PCA(n_components=10)),
-    ('python', OnnxSpeedUpTransformer(
+    ('python', OnnxSpeedupTransformer(
         PCA(n_components=10), runtime='python')),
-    ('onnxruntime1', OnnxSpeedUpTransformer(
+    ('onnxruntime1', OnnxSpeedupTransformer(
         PCA(n_components=10), runtime='onnxruntime1')),
-    ('numpy', OnnxSpeedUpTransformer(
+    ('numpy', OnnxSpeedupTransformer(
         PCA(n_components=10), runtime='numpy')),
-    ('numba', OnnxSpeedUpTransformer(
+    ('numba', OnnxSpeedupTransformer(
         PCA(n_components=10), runtime='numba'))]
 
 #################################
@@ -85,7 +85,7 @@ res = profile(fct, pyinst_format="text")
 print(res[1])
 
 #################################
-# The class *OnnxSpeedUpTransformer* converts the PCA
+# The class *OnnxSpeedupTransformer* converts the PCA
 # into ONNX and then converts it into a python code using
 # *numpy*. The code is the following.
 
