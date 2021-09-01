@@ -106,7 +106,15 @@ Many times I had to debug and I was thinking about a way to see
 a graph in a text editor. That's the goal of this function with
 the possibility later to only show a part of a graph.
 
-.. autosignature:: mlprodict.onnx_tools.graphs.onnx2bigraph
+**text**
+
+.. autosignature:: mlprodict.plotting.text_plot.onnx_text_plot
+
+.. autosignature:: mlprodict.plotting.text_plot.onnx_text_plot_tree
+
+**drawings**
+
+.. autosignature:: mlprodict.plotting.plotting_onnx.plot_onnx
 
 :ref:`onnxview <l-NB2>`
 

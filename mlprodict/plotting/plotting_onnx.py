@@ -9,7 +9,7 @@ from ..onnxrt import OnnxInference
 def plot_onnx(onx, ax=None, dpi=300, temp_dot=None, temp_img=None,
               show=False):
     """
-    Plots an ONNX graph into graph.
+    Plots an ONNX graph into a :epkg:`matplotlib` graph.
 
     :param onx: ONNX object, @see cl OnnxInference
     :param ax: existing axes
