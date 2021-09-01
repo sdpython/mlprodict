@@ -33,7 +33,7 @@ class TestPlotTextPlotting(ExtTestCase):
         onx = to_onnx(clr, X)
         res = onnx_text_plot_tree(onx.graph.node[0])
         self.assertIn("treeid=0", res)
-        self.assertIn("         y=", res)
+        self.assertIn("         T y=", res)
 
 
 if __name__ == "__main__":

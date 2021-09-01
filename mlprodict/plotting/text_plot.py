@@ -92,15 +92,18 @@ def onnx_text_plot_tree(node):
                 if k.startswith('nodes'):
                     setattr(self, k, v[i])
             self.depth = 0
+            self.true_false = ''
 
         def process_node(self):
             "node to string"
             if self.nodes_modes == b'LEAF':  # pylint: disable=E1101
-                text = "y=%r f=%r i=%r" % (
+                text = "%s y=%r f=%r i=%r" % (
+                    self.true_false,
                     self.target_weights, self.target_ids,  # pylint: disable=E1101
                     self.target_nodeids)  # pylint: disable=E1101
             else:
-                text = "X%d %s %r" % (
+                text = "%s X%d %s %r" % (
+                    self.true_false,
                     self.nodes_featureids,  # pylint: disable=E1101
                     rule(self.nodes_modes),  # pylint: disable=E1101
                     self.nodes_values)  # pylint: disable=E1101
@@ -137,15 +140,16 @@ def onnx_text_plot_tree(node):
             node.target_ids = short['target_ids'][i]
             node.target_weights = short['target_weights'][i]
 
-        def iterate(nodes, node, depth=0):
+        def iterate(nodes, node, depth=0, true_false=''):
             node.depth = depth
+            node.true_false = true_false
             yield node
             if node.nodes_falsenodeids > 0:
                 for n in iterate(nodes, nodes[node.nodes_falsenodeids],
-                                 depth=depth + 1):
+                                 depth=depth + 1, true_false='F'):
                     yield n
                 for n in iterate(nodes, nodes[node.nodes_truenodeids],
-                                 depth=depth + 1):
+                                 depth=depth + 1, true_false='T'):
                     yield n
 
         for node in iterate(nodes, nodes[0]):
