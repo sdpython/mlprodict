@@ -6,12 +6,13 @@ import unittest
 from logging import getLogger
 import numpy
 import pandas
+from onnxruntime import InferenceSession
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, ignore_warnings
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from skl2onnx.common.data_types import (
     StringTensorType, FloatTensorType, Int64TensorType,
-    BooleanTensorType)
+    BooleanTensorType, DoubleTensorType)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
 from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
@@ -396,10 +397,121 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
                            'subsample_freq': 1, 'bagging_fraction': 0.5,
                            'feature_fraction': 0.5},
                           data)
-        model_onnx = to_onnx(model, X, verbose=2, rewrite_ops=True)
+        model_onnx = to_onnx(model, X, verbose=0, rewrite_ops=True)
         self.assertNotEmpty(model_onnx)
+
+    # missing values
+
+    @staticmethod
+    def _predict_with_onnx(model, X):
+        session = InferenceSession(model.SerializeToString())
+        output_names = [s_output.name for s_output in session.get_outputs()]
+        input_names = [s_input.name for s_input in session.get_inputs()]
+        if len(input_names) > 1:
+            raise RuntimeError(
+                "Test expects one input. Found multiple inputs: %r."
+                "" % input_names)
+        input_name = input_names[0]
+        return session.run(output_names, {input_name: X})[0][:, 0]
+
+    def _assert_almost_equal(self, actual, desired, decimal=7, frac=1.0, msg=""):
+        self.assertGreater(frac, 0)
+        self.assertLesser(frac, 1)
+        success_abs = (abs(actual - desired) <= (10 ** -decimal)).sum()
+        success_rel = success_abs / len(actual)
+        if success_abs == 0:
+            raise AssertionError(
+                "Wrong conversion. %s\n-----\n%r\n------\n%r"
+                "" % (msg, desired[:5], actual[:5]))
+        self.assertGreater(success_rel, frac)
+
+    @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', 'stuck')
+    def test_missing_values(self):
+        from lightgbm import LGBMRegressor
+
+        _N_DECIMALS = 5
+        _FRAC = 0.9999
+
+        _y = numpy.array([0, 0, 1, 1, 1])
+        _X_train = numpy.array([[1.0, 0.0], [1.0, -1.0], [1.0, -1.0],
+                                [2.0, -1.0], [2.0, -1.0]],
+                               dtype=numpy.float32)
+        _X_test = numpy.array([[1.0, numpy.nan]], dtype=numpy.float32)
+
+        _INITIAL_TYPES = [
+            ("input", FloatTensorType([None, _X_train.shape[1]]))]
+
+        regressor = LGBMRegressor(
+            objective="regression", min_data_in_bin=1, min_data_in_leaf=1,
+            n_estimators=1, learning_rate=1)
+        regressor.fit(_X_train, _y)
+        regressor_onnx = to_onnx(
+            regressor, initial_types=_INITIAL_TYPES, rewrite_ops=True)
+        y_pred = regressor.predict(_X_test)
+        y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X_test)
+        self._assert_almost_equal(
+            y_pred, y_pred_onnx, decimal=_N_DECIMALS, frac=_FRAC,
+            msg="Missing values.")
+
+    # objectives
+
+    @staticmethod
+    def _calc_initial_types(X):
+        _DTYPE_MAP = {"float64": DoubleTensorType,
+                      "float32": FloatTensorType}
+
+        dtypes = set(str(dtype) for dtype in X.dtypes)
+        if len(dtypes) > 1:
+            raise RuntimeError(
+                "Test expects homogenous input matrix. Found multiple dtypes: %r." % dtypes)
+        dtype = dtypes.pop()
+        tensor_type = _DTYPE_MAP[dtype]
+        return [("input", tensor_type(X.shape))]
+
+    @staticmethod
+    def _predict_with_onnx(model, X):
+        session = InferenceSession(model.SerializeToString())
+        output_names = [s_output.name for s_output in session.get_outputs()]
+        input_names = [s_input.name for s_input in session.get_inputs()]
+        if len(input_names) > 1:
+            raise RuntimeError(
+                "Test expects one input. Found multiple inputs: %r." % input_names)
+        input_name = input_names[0]
+        if hasattr(X, "values"):
+            return session.run(output_names, {input_name: X.values})[0][:, 0]
+        return session.run(output_names, {input_name: X})[0][:, 0]
+
+    @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', 'stuck')
+    def test_objective(self):
+        from lightgbm import LGBMRegressor
+
+        _N_ROWS = 10000
+        _N_COLS = 10
+        _N_DECIMALS = 5
+        _FRAC = 0.9997
+
+        _X = pandas.DataFrame(numpy.random.random(
+            size=(_N_ROWS, _N_COLS)).astype(numpy.float32))
+        _Y = pandas.Series(numpy.random.random(size=_N_ROWS))
+
+        _objectives = ("regression", "poisson", "gamma")
+
+        for objective in _objectives:
+            with self.subTest(X=_X, objective=objective):
+                initial_types = self._calc_initial_types(_X)
+                regressor = LGBMRegressor(objective=objective)
+                regressor.fit(_X, _Y)
+                regressor_onnx = to_onnx(
+                    regressor, initial_types=initial_types,
+                    rewrite_ops=True)
+                y_pred = regressor.predict(_X)
+                y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X)
+                self._assert_almost_equal(
+                    y_pred, y_pred_onnx, decimal=_N_DECIMALS, frac=_FRAC,
+                    msg="Objective=%r" % objective)
 
 
 if __name__ == "__main__":
-    # TestOnnxrtRuntimeLightGbm().test_lightgbm_booster_classifier()
     unittest.main()

@@ -58,7 +58,8 @@ def _translate_split_criterion(criterion):
     if criterion == '!=':  # pragma: no cover
         return 'BRANCH_NEQ'
     raise ValueError(  # pragma: no cover
-        'Unsupported splitting criterion: %s. Only <=, <, >=, and > are allowed.')
+        'Unsupported splitting criterion: %s. Only <=, '
+        '<, >=, and > are allowed.')
 
 
 def _create_node_id(node_id_pool):
@@ -69,7 +70,8 @@ def _create_node_id(node_id_pool):
     return i
 
 
-def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attrs):
+def _parse_tree_structure(tree_id, class_id, learning_rate,
+                          tree_structure, attrs):
     """
     The pool of all nodes' indexes created when parsing a single tree.
     Different tree use different pools.
@@ -81,7 +83,8 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
     node_pyid_pool[id(tree_structure)] = node_id
 
     # The root node is a leaf node.
-    if 'left_child' not in tree_structure or 'right_child' not in tree_structure:
+    if ('left_child' not in tree_structure or
+            'right_child' not in tree_structure):
         _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
                     learning_rate, tree_structure, attrs)
         return
@@ -145,11 +148,13 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
         attrs['nodes_missing_value_tracks_true'].append(0)
     attrs['nodes_hitrates'].append(1.)
     if left_parse:
-        _parse_node(tree_id, class_id, left_id, node_id_pool, node_pyid_pool,
-                    learning_rate, tree_structure['left_child'], attrs)
+        _parse_node(
+            tree_id, class_id, left_id, node_id_pool, node_pyid_pool,
+            learning_rate, tree_structure['left_child'], attrs)
     if right_parse:
-        _parse_node(tree_id, class_id, right_id, node_id_pool, node_pyid_pool,
-                    learning_rate, tree_structure['right_child'], attrs)
+        _parse_node(
+            tree_id, class_id, right_id, node_id_pool, node_pyid_pool,
+            learning_rate, tree_structure['right_child'], attrs)
 
 
 def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
@@ -215,11 +220,13 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
 
         # Recursively dive into the child nodes
         if left_parse:
-            _parse_node(tree_id, class_id, left_id, node_id_pool, node_pyid_pool,
-                        learning_rate, node['left_child'], attrs)
+            _parse_node(
+                tree_id, class_id, left_id, node_id_pool, node_pyid_pool,
+                learning_rate, node['left_child'], attrs)
         if right_parse:
-            _parse_node(tree_id, class_id, right_id, node_id_pool, node_pyid_pool,
-                        learning_rate, node['right_child'], attrs)
+            _parse_node(
+                tree_id, class_id, right_id, node_id_pool, node_pyid_pool,
+                learning_rate, node['right_child'], attrs)
     elif hasattr(node, 'left_child') or hasattr(node, 'right_child'):
         raise ValueError('Need two branches')  # pragma: no cover
     else:
@@ -254,7 +261,7 @@ def convert_lightgbm(scope, operator, container):
     some modifications. It implements converters
     for models in :epkg:`lightgbm`.
     """
-    verbose = container.verbose
+    verbose = getattr(container, 'verbose', 0)
     gbm_model = operator.raw_operator
     if hasattr(gbm_model, '_model_dict_info'):
         gbm_text, info = gbm_model._model_dict_info
@@ -270,7 +277,9 @@ def convert_lightgbm(scope, operator, container):
     attrs = get_default_tree_classifier_attribute_pairs()
     attrs['name'] = operator.full_name
 
-    # Create different attributes for classifier and regressor, respectively
+    # Create different attributes for classifier and
+    # regressor, respectively
+    post_transform = None
     if gbm_text['objective'].startswith('binary'):
         n_classes = 1
         attrs['post_transform'] = 'LOGISTIC'
@@ -281,6 +290,13 @@ def convert_lightgbm(scope, operator, container):
         n_classes = 1  # Regressor has only one output variable
         attrs['post_transform'] = 'NONE'
         attrs['n_targets'] = n_classes
+    elif gbm_text['objective'].startswith(('poisson', 'gamma')):
+        n_classes = 1  # Regressor has only one output variable
+        attrs['n_targets'] = n_classes
+        # 'Exp' is not a supported post_transform value in the ONNX spec yet,
+        # so we need to add an 'Exp' post transform node to the model
+        attrs['post_transform'] = 'NONE'
+        post_transform = "Exp"
     else:
         raise RuntimeError(  # pragma: no cover
             "LightGBM objective should be cleaned already not '{}'.".format(
@@ -303,25 +319,29 @@ def convert_lightgbm(scope, operator, container):
 
     if verbose >= 2:
         print("[convert_lightgbm] onnx")
-
-    # Sort nodes_* attributes. For one tree, its node indexes should appear in an ascent order in nodes_nodeids. Nodes
-    # from a tree with a smaller tree index should appear before trees with larger indexes in nodes_nodeids.
+    # Sort nodes_* attributes. For one tree, its node indexes
+    # should appear in an ascent order in nodes_nodeids. Nodes
+    # from a tree with a smaller tree index should appear
+    # before trees with larger indexes in nodes_nodeids.
     node_numbers_per_tree = Counter(attrs['nodes_treeids'])
     tree_number = len(node_numbers_per_tree.keys())
     accumulated_node_numbers = [0] * tree_number
     for i in range(1, tree_number):
-        accumulated_node_numbers[i] = (accumulated_node_numbers[i - 1] +
-                                       node_numbers_per_tree[i - 1])
+        accumulated_node_numbers[i] = (
+            accumulated_node_numbers[i - 1] + node_numbers_per_tree[i - 1])
     global_node_indexes = []
     for i in range(len(attrs['nodes_nodeids'])):
         tree_id = attrs['nodes_treeids'][i]
         node_id = attrs['nodes_nodeids'][i]
-        global_node_indexes.append(accumulated_node_numbers[tree_id] + node_id)
+        global_node_indexes.append(
+            accumulated_node_numbers[tree_id] + node_id)
     for k, v in attrs.items():
         if k.startswith('nodes_'):
-            merged_indexes = zip(copy.deepcopy(global_node_indexes), v)
+            merged_indexes = zip(
+                copy.deepcopy(global_node_indexes), v)
             sorted_list = [pair[1]
-                           for pair in sorted(merged_indexes, key=lambda x: x[0])]
+                           for pair in sorted(merged_indexes,
+                                              key=lambda x: x[0])]
             attrs[k] = sorted_list
 
     dtype = guess_numpy_type(operator.inputs[0].type)
@@ -389,22 +409,34 @@ def convert_lightgbm(scope, operator, container):
             container.add_initializer(classes_name, class_type,
                                       [len(class_labels)], class_labels)
 
-            container.add_node('ArrayFeatureExtractor', [probability_tensor_name, col_index_name],
-                               first_col_name, name=scope.get_unique_operator_name(
-                                   'ArrayFeatureExtractor'),
-                               op_domain='ai.onnx.ml')
+            container.add_node(
+                'ArrayFeatureExtractor',
+                [probability_tensor_name, col_index_name],
+                first_col_name,
+                name=scope.get_unique_operator_name(
+                    'ArrayFeatureExtractor'),
+                op_domain='ai.onnx.ml')
             apply_div(scope, [first_col_name, denominator_name],
                       modified_first_col_name, container, broadcast=1)
-            apply_sub(scope, [unit_float_tensor_name, modified_first_col_name],
-                      zeroth_col_name, container, broadcast=1)
-            container.add_node('Concat', [zeroth_col_name, modified_first_col_name],
-                               merged_prob_name, name=scope.get_unique_operator_name('Concat'), axis=1)
-            container.add_node('ArgMax', merged_prob_name,
-                               predicted_label_name, name=scope.get_unique_operator_name('ArgMax'), axis=1)
-            container.add_node('ArrayFeatureExtractor', [classes_name, predicted_label_name], final_label_name,
-                               name=scope.get_unique_operator_name('ArrayFeatureExtractor'), op_domain='ai.onnx.ml')
+            apply_sub(
+                scope, [unit_float_tensor_name, modified_first_col_name],
+                zeroth_col_name, container, broadcast=1)
+            container.add_node(
+                'Concat', [zeroth_col_name, modified_first_col_name],
+                merged_prob_name,
+                name=scope.get_unique_operator_name('Concat'), axis=1)
+            container.add_node(
+                'ArgMax', merged_prob_name,
+                predicted_label_name,
+                name=scope.get_unique_operator_name('ArgMax'), axis=1)
+            container.add_node(
+                'ArrayFeatureExtractor', [classes_name, predicted_label_name],
+                final_label_name,
+                name=scope.get_unique_operator_name('ArrayFeatureExtractor'),
+                op_domain='ai.onnx.ml')
             apply_reshape(scope, final_label_name,
-                          operator.outputs[0].full_name, container, desired_shape=[-1, ])
+                          operator.outputs[0].full_name,
+                          container, desired_shape=[-1, ])
             prob_tensor = merged_prob_name
         else:
             container.add_node('Identity', label_tensor_name,
@@ -423,16 +455,20 @@ def convert_lightgbm(scope, operator, container):
             k for k in attrs if k.startswith('class_'))
 
         for k in keys_to_be_renamed:
-            # Rename class_* attribute to target_* because TreeEnsebmleClassifier
+            # Rename class_* attribute to target_*
+            # because TreeEnsebmleClassifier
             # and TreeEnsembleClassifier have different ONNX attributes
             attrs['target' + k[5:]] = copy.deepcopy(attrs[k])
             del attrs[k]
         if dtype == numpy.float64:
-            container.add_node('TreeEnsembleRegressorDouble', operator.input_full_names,
-                               output_name, op_domain='mlprodict', **attrs)
+            container.add_node(
+                'TreeEnsembleRegressorDouble', operator.input_full_names,
+                output_name, op_domain='mlprodict', **attrs)
         else:
-            container.add_node('TreeEnsembleRegressor', operator.input_full_names,
-                               output_name, op_domain='ai.onnx.ml', **attrs)
+            container.add_node(
+                'TreeEnsembleRegressor', operator.input_full_names,
+                output_name, op_domain='ai.onnx.ml', **attrs)
+
         if gbm_model.boosting_type == 'rf':
             denominator_name = scope.get_unique_variable_name('denominator')
 
@@ -441,6 +477,14 @@ def convert_lightgbm(scope, operator, container):
 
             apply_div(scope, [output_name, denominator_name],
                       operator.output_full_names, container, broadcast=1)
+        elif post_transform:
+            container.add_node(
+                post_transform,
+                output_name,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name(
+                    post_transform),
+            )
         else:
             container.add_node('Identity', output_name,
                                operator.output_full_names,
