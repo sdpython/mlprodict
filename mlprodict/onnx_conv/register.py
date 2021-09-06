@@ -70,8 +70,7 @@ def _register_converters_lightgbm(exc=True):
             LGBMClassifier, 'LgbmClassifier',
             calculate_lightgbm_output_shapes,
             convert_lightgbm, parser=_parse_sklearn_classifier,
-            options={'zipmap': [True, False], 'nocl': [True, False],
-                     'split': [-1, 1, 10]})
+            options={'zipmap': [True, False], 'nocl': [True, False]})
         registered.append(LGBMClassifier)
 
     try:
@@ -88,7 +87,7 @@ def _register_converters_lightgbm(exc=True):
         update_registered_converter(
             LGBMRegressor, 'LightGbmLGBMRegressor',
             calculate_linear_regressor_output_shapes,
-            convert_lightgbm, options={'split': [-1, 1, 10]})
+            convert_lightgbm, options={'split': [-1, 1, 2, 10, 100, 1000]})
         registered.append(LGBMRegressor)
 
     try:
@@ -222,6 +221,34 @@ def _register_converters_mlinsights(exc=True):
     return registered
 
 
+def _register_converters_skl2onnx(exc=True):
+    """
+    This functions registers additional converters
+    for :epkg:`skl2onnx`.
+
+    @param      exc     if True, raises an exception if a converter cannot
+                        registered (missing package for example)
+    @return             list of models supported by the new converters
+    """
+    registered = []
+
+    try:
+        import skl2onnx.sklapi.register  # pylint: disable=W0611
+        from skl2onnx.sklapi import WOETransformer
+        model = [WOETransformer]
+    except ImportError as e:  # pragma: no cover
+        if exc:
+            raise e
+        else:
+            warnings.warn(
+                "Cannot register models from 'skl2onnx' due to '{}'.".format(e))
+            model = None
+
+    if model is not None:
+        registered.extend(model)
+    return registered
+
+
 def register_converters(exc=True):
     """
     This functions registers additional converters
@@ -234,5 +261,6 @@ def register_converters(exc=True):
     ext = _register_converters_lightgbm(exc=exc)
     ext += _register_converters_xgboost(exc=exc)
     ext += _register_converters_mlinsights(exc=exc)
+    ext += _register_converters_skl2onnx(exc=exc)
     ext += register_scorers()
     return ext

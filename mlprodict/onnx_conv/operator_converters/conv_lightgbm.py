@@ -8,6 +8,7 @@ from collections import Counter
 import copy
 import numbers
 import numpy
+from onnx import TensorProto
 from skl2onnx.common._apply_operation import apply_div, apply_reshape, apply_sub  # pylint: disable=E0611
 from skl2onnx.common.tree_ensemble import get_default_tree_classifier_attribute_pairs
 from skl2onnx.proto import onnx_proto
@@ -253,7 +254,65 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
             float(node['leaf_value']) * learning_rate)
 
 
-def convert_lightgbm(scope, operator, container):
+def _split_tree_ensemble_atts(attrs, split):
+    """
+    Splits the attributes of a TreeEnsembleRegressor into
+    multiple trees in order to do the summation in double instead of floats.
+    """
+    trees_id = list(sorted(set(attrs['nodes_treeids'])))
+    results = []
+    index = 0
+    while index < len(trees_id):
+        index2 = min(index + split, len(trees_id))
+        subset = set(trees_id[index: index2])
+
+        indices_node = []
+        indices_target = []
+        for j, v in enumerate(attrs['nodes_treeids']):
+            if v in subset:
+                indices_node.append(j)
+        for j, v in enumerate(attrs['target_treeids']):
+            if v in subset:
+                indices_target.append(j)
+
+        if (len(indices_node) >= len(attrs['nodes_treeids']) or
+                len(indices_target) >= len(attrs['target_treeids'])):
+            raise RuntimeError(  # pragma: no cover
+                "Initial attributes are not consistant."
+                "\nindex=%r index2=%r subset=%r"
+                "\nnodes_treeids=%r\ntarget_treeids=%r"
+                "\nindices_node=%r\nindices_target=%r" % (
+                    index, index2, subset,
+                    attrs['nodes_treeids'], attrs['target_treeids'],
+                    indices_node, indices_target))
+
+        ats = {}
+        for name, att in attrs.items():
+            if name == 'nodes_treeids':
+                new_att = [att[i] for i in indices_node]
+                new_att = [i - att[0] for i in new_att]
+            elif name == 'target_treeids':
+                new_att = [att[i] for i in indices_target]
+                new_att = [i - att[0] for i in new_att]
+            elif name.startswith("nodes_"):
+                new_att = [att[i] for i in indices_node]
+                assert len(new_att) == len(indices_node)
+            elif name.startswith("target_"):
+                new_att = [att[i] for i in indices_target]
+                assert len(new_att) == len(indices_target)
+            elif name == 'name':
+                new_att = "%s%d" % (att, len(results))
+            else:
+                new_att = att
+            ats[name] = new_att
+
+        results.append(ats)
+        index = index2
+
+    return results
+
+
+def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
     """
     This converters reuses the code from
     `LightGbm.py <https://github.com/onnx/onnxmltools/blob/master/onnxmltools/convert/
@@ -347,15 +406,10 @@ def convert_lightgbm(scope, operator, container):
     dtype = guess_numpy_type(operator.inputs[0].type)
     if dtype != numpy.float64:
         dtype = numpy.float32
-    options = container.get_options(gbm_model, dict(split=-1))
-    split = options['split']
 
     # Create ONNX object
     if (gbm_text['objective'].startswith('binary') or
             gbm_text['objective'].startswith('multiclass')):
-        if split != -1:
-            raise NotImplementedError(
-                "Split is not implemented for LGBMClassifier (%r)." % split)
         # Prepare label information for both of TreeEnsembleClassifier
         # and ZipMap
         class_type = onnx_proto.TensorProto.STRING  # pylint: disable=E1101
@@ -466,6 +520,8 @@ def convert_lightgbm(scope, operator, container):
             attrs['target' + k[5:]] = copy.deepcopy(attrs[k])
             del attrs[k]
 
+        options = container.get_options(gbm_model, dict(split=-1))
+        split = options['split']
         if split == -1:
             if dtype == numpy.float64:
                 container.add_node(
@@ -476,7 +532,36 @@ def convert_lightgbm(scope, operator, container):
                     'TreeEnsembleRegressor', operator.input_full_names,
                     output_name, op_domain='ai.onnx.ml', **attrs)
         else:
-            stop
+            tree_attrs = _split_tree_ensemble_atts(attrs, split)
+            tree_nodes = []
+            for i, ats in enumerate(tree_attrs):
+                tree_name = scope.get_unique_variable_name('tree%d' % i)
+                if dtype == numpy.float64:
+                    container.add_node(
+                        'TreeEnsembleRegressorDouble', operator.input_full_names,
+                        tree_name, op_domain='mlprodict', **ats)
+                    tree_nodes.append(tree_name)
+                else:
+                    container.add_node(
+                        'TreeEnsembleRegressor', operator.input_full_names,
+                        tree_name, op_domain='ai.onnx.ml', **ats)
+                    cast_name = scope.get_unique_variable_name('dtree%d' % i)
+                    container.add_node(
+                        'Cast', tree_name, cast_name, to=TensorProto.DOUBLE,  # pylint: disable=E1101
+                        name=scope.get_unique_operator_name("dtree%d" % i))
+                    tree_nodes.append(cast_name)
+            if dtype == numpy.float64:
+                container.add_node(
+                    'Sum', tree_nodes, output_name,
+                    name=scope.get_unique_operator_name("sumtree%d" % len(tree_nodes)))
+            else:
+                cast_name = scope.get_unique_variable_name('ftrees')
+                container.add_node(
+                    'Sum', tree_nodes, cast_name,
+                    name=scope.get_unique_operator_name("sumtree%d" % len(tree_nodes)))
+                container.add_node(
+                    'Cast', cast_name, output_name, to=TensorProto.FLOAT,  # pylint: disable=E1101
+                    name=scope.get_unique_operator_name("dtree%d" % i))
 
         if gbm_model.boosting_type == 'rf':
             denominator_name = scope.get_unique_variable_name('denominator')

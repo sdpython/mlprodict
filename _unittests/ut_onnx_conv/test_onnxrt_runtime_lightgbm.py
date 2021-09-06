@@ -497,19 +497,45 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
                     y_pred, y_pred_onnx, decimal=_N_DECIMALS, frac=_FRAC,
                     msg="Objective=%r" % objective)
 
+    def test_lgbm_regressor10(self):
+        from lightgbm import LGBMRegressor
+        data = load_iris()
+        X, y = data.data, data.target
+        X = X.astype(numpy.float32)
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=0)
+        reg = LGBMRegressor(max_depth=2, n_estimators=4, seed=0)
+        reg.fit(X_train, y_train)
+        expected = reg.predict(X_test)
+
+        # float
+        onx = to_onnx(reg, X_train, rewrite_ops=True)
+        oinf = OnnxInference(onx)
+        got1 = oinf.run({'X': X_test})['variable']
+
+        # float split
+        onx = to_onnx(reg, X_train, options={'split': 2},
+                      rewrite_ops=True)
+        oinf = OnnxInference(onx)
+        got2 = oinf.run({'X': X_test})['variable']
+
+        # final check
+        self.assertEqualArray(expected, got1, decimal=5)
+        self.assertEqualArray(expected, got2, decimal=5)
+
     def test_lgbm_regressor(self):
         from lightgbm import LGBMRegressor
         data = load_iris()
-        X, y = data.data, data.target        
+        X, y = data.data, data.target
         X = X.astype(numpy.float32)
-        X_train, X_test, y_train, y_test = train_test_split(X, y)
-        reg = LGBMRegressor(max_depth=2, n_estimators=100)
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=0)
+        reg = LGBMRegressor(max_depth=2, n_estimators=100, seed=0)
         reg.fit(X_train, y_train)
         expected = reg.predict(X_test)
 
         # double
         onx = to_onnx(reg, X_train.astype(numpy.float64),
                       rewrite_ops=True)
+        self.assertIn("TreeEnsembleRegressorDouble", str(onx))
         oinf = OnnxInference(onx)
         got0 = oinf.run(
             {'X': X_test.astype(numpy.float64)})['variable']
@@ -527,17 +553,17 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         oinf = OnnxInference(onx)
         got2 = oinf.run({'X': X_test})['variable']
         self.assertEqualArray(expected, got2, decimal=5)
+        oinf = OnnxInference(onx, runtime='onnxruntime1')
+        got3 = oinf.run({'X': X_test})['variable']
+        self.assertEqualArray(expected, got3.ravel(), decimal=5)
 
         # final
         d0 = numpy.abs(expected.ravel() - got0).mean()
         d1 = numpy.abs(expected.ravel() - got1).mean()
         d2 = numpy.abs(expected.ravel() - got2).mean()
-        print(d0, d1, d2)
         self.assertGreater(d1, d0)
         self.assertGreater(d1, d2)
 
 
 if __name__ == "__main__":
-    TestOnnxrtRuntimeLightGbm().test_lgbm_regressor()
-    stop
     unittest.main()
