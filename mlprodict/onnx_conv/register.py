@@ -70,7 +70,8 @@ def _register_converters_lightgbm(exc=True):
             LGBMClassifier, 'LgbmClassifier',
             calculate_lightgbm_output_shapes,
             convert_lightgbm, parser=_parse_sklearn_classifier,
-            options={'zipmap': [True, False], 'nocl': [True, False]})
+            options={'zipmap': [True, False], 'nocl': [True, False],
+                     'split': [-1, 1, 10]})
         registered.append(LGBMClassifier)
 
     try:
@@ -84,9 +85,10 @@ def _register_converters_lightgbm(exc=True):
             LGBMRegressor = None
     if LGBMRegressor is not None:
         from .operator_converters.conv_lightgbm import convert_lightgbm
-        update_registered_converter(LGBMRegressor, 'LightGbmLGBMRegressor',
-                                    calculate_linear_regressor_output_shapes,
-                                    convert_lightgbm)
+        update_registered_converter(
+            LGBMRegressor, 'LightGbmLGBMRegressor',
+            calculate_linear_regressor_output_shapes,
+            convert_lightgbm, options={'split': [-1, 1, 10]})
         registered.append(LGBMRegressor)
 
     try:

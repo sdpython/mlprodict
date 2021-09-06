@@ -42,22 +42,24 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
     def test_onnxrt_python_lightgbm_categorical(self):
         from lightgbm import LGBMClassifier
 
-        X = pandas.DataFrame({"A": numpy.random.permutation(['a', 'b', 'c', 'd'] * 75),  # str
-                              # int
-                              "B": numpy.random.permutation([1, 2, 3] * 100),
-                              # float
-                              "C": numpy.random.permutation([0.1, 0.2, -0.1, -0.1, 0.2] * 60),
-                              # bool
-                              "D": numpy.random.permutation([True, False] * 150),
-                              "E": pandas.Categorical(numpy.random.permutation(['z', 'y', 'x', 'w', 'v'] * 60),
-                                                      ordered=True)})  # str and ordered categorical
+        X = pandas.DataFrame(
+            {"A": numpy.random.permutation(['a', 'b', 'c', 'd'] * 75),  # str
+             # int
+             "B": numpy.random.permutation([1, 2, 3] * 100),
+             # float
+             "C": numpy.random.permutation([0.1, 0.2, -0.1, -0.1, 0.2] * 60),
+             # bool
+             "D": numpy.random.permutation([True, False] * 150),
+             "E": pandas.Categorical(numpy.random.permutation(['z', 'y', 'x', 'w', 'v'] * 60),
+                                     ordered=True)})  # str and ordered categorical
         y = numpy.random.permutation([0, 1] * 150)
-        X_test = pandas.DataFrame({"A": numpy.random.permutation(['a', 'b', 'e'] * 20),  # unseen category
-                                   "B": numpy.random.permutation([1, 3] * 30),
-                                   "C": numpy.random.permutation([0.1, -0.1, 0.2, 0.2] * 15),
-                                   "D": numpy.random.permutation([True, False] * 30),
-                                   "E": pandas.Categorical(numpy.random.permutation(['z', 'y'] * 30),
-                                                           ordered=True)})
+        X_test = pandas.DataFrame(
+            {"A": numpy.random.permutation(['a', 'b', 'e'] * 20),  # unseen category
+             "B": numpy.random.permutation([1, 3] * 30),
+             "C": numpy.random.permutation([0.1, -0.1, 0.2, 0.2] * 15),
+             "D": numpy.random.permutation([True, False] * 30),
+             "E": pandas.Categorical(numpy.random.permutation(['z', 'y'] * 30),
+                                     ordered=True)})
         cat_cols_actual = ["A", "B", "C", "D"]
         X[cat_cols_actual] = X[cat_cols_actual].astype('category')
         X_test[cat_cols_actual] = X_test[cat_cols_actual].astype('category')
@@ -65,10 +67,8 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         exp = gbm0.predict(X_test, raw_scores=False)
         self.assertNotEmpty(exp)
 
-        init_types = [('A', StringTensorType()),
-                      ('B', Int64TensorType()),
-                      ('C', FloatTensorType()),
-                      ('D', BooleanTensorType()),
+        init_types = [('A', StringTensorType()), ('B', Int64TensorType()),
+                      ('C', FloatTensorType()), ('D', BooleanTensorType()),
                       ('E', StringTensorType())]
         self.assertRaise(lambda: to_onnx(gbm0, initial_types=init_types), RuntimeError,
                          "at most 1 input(s) is(are) supported")
@@ -95,22 +95,24 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
     def test_onnxrt_python_lightgbm_categorical3(self):
         from lightgbm import LGBMClassifier
 
-        X = pandas.DataFrame({"A": numpy.random.permutation(['a', 'b', 'c', 'd'] * 75),  # str
-                              # int
-                              "B": numpy.random.permutation([1, 2, 3] * 100),
-                              # float
-                              "C": numpy.random.permutation([0.1, 0.2, -0.1, -0.1, 0.2] * 60),
-                              # bool
-                              "D": numpy.random.permutation([True, False] * 150),
-                              "E": pandas.Categorical(numpy.random.permutation(['z', 'y', 'x', 'w', 'v'] * 60),
-                                                      ordered=True)})  # str and ordered categorical
+        X = pandas.DataFrame(
+            {"A": numpy.random.permutation(['a', 'b', 'c', 'd'] * 75),  # str
+             # int
+             "B": numpy.random.permutation([1, 2, 3] * 100),
+             # float
+             "C": numpy.random.permutation([0.1, 0.2, -0.1, -0.1, 0.2] * 60),
+             # bool
+             "D": numpy.random.permutation([True, False] * 150),
+             "E": pandas.Categorical(numpy.random.permutation(['z', 'y', 'x', 'w', 'v'] * 60),
+                                     ordered=True)})  # str and ordered categorical
         y = numpy.random.permutation([0, 1, 2] * 100)
-        X_test = pandas.DataFrame({"A": numpy.random.permutation(['a', 'b', 'e'] * 20),  # unseen category
-                                   "B": numpy.random.permutation([1, 3] * 30),
-                                   "C": numpy.random.permutation([0.1, -0.1, 0.2, 0.2] * 15),
-                                   "D": numpy.random.permutation([True, False] * 30),
-                                   "E": pandas.Categorical(numpy.random.permutation(['z', 'y'] * 30),
-                                                           ordered=True)})
+        X_test = pandas.DataFrame(
+            {"A": numpy.random.permutation(['a', 'b', 'e'] * 20),  # unseen category
+             "B": numpy.random.permutation([1, 3] * 30),
+             "C": numpy.random.permutation([0.1, -0.1, 0.2, 0.2] * 15),
+             "D": numpy.random.permutation([True, False] * 30),
+             "E": pandas.Categorical(numpy.random.permutation(['z', 'y'] * 30),
+                                     ordered=True)})
         cat_cols_actual = ["A", "B", "C", "D"]
         X[cat_cols_actual] = X[cat_cols_actual].astype('category')
         X_test[cat_cols_actual] = X_test[cat_cols_actual].astype('category')
@@ -181,14 +183,10 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
             categorical_feature=['c1', 'c2'])
 
         params = {
-            "boosting_type": "gbdt",
-            "learning_rate": 0.05,
-            "n_estimators": 2,
-            "objective": "binary",
-            "max_bin": 5,
-            "min_child_samples": 100,
-            'verbose': -1,
-        }
+            "boosting_type": "gbdt", "learning_rate": 0.05,
+            "n_estimators": 2, "objective": "binary",
+            "max_bin": 5, "min_child_samples": 100,
+            'verbose': -1}
 
         booster = lgb_train(params, train_data)
         exp = booster.predict(X_test)
@@ -239,14 +237,10 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
             categorical_feature=['c1', 'c2'])
 
         params = {
-            "boosting_type": "gbdt",
-            "learning_rate": 0.05,
-            "n_estimators": 2,
-            "objective": "binary",
-            "max_bin": 5,
-            "min_child_samples": 100,
-            'verbose': -1,
-        }
+            "boosting_type": "gbdt", "learning_rate": 0.05,
+            "n_estimators": 2, "objective": "binary",
+            "max_bin": 5, "min_child_samples": 100,
+            'verbose': -1}
 
         booster = lgb_train(params, train_data)
         exp = booster.predict(X_test)
@@ -290,15 +284,10 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
             categorical_feature=['c1', 'c2'])
 
         params = {
-            "boosting_type": "gbdt",
-            "learning_rate": 0.05,
-            "n_estimators": 2,
-            "objective": "multiclass",
-            "max_bin": 5,
-            "min_child_samples": 100,
-            'verbose': -1,
-            'num_class': 3,
-        }
+            "boosting_type": "gbdt", "learning_rate": 0.05,
+            "n_estimators": 2, "objective": "multiclass",
+            "max_bin": 5, "min_child_samples": 100,
+            'verbose': -1, 'num_class': 3}
 
         booster = lgb_train(params, train_data)
         exp = booster.predict(X_test)
@@ -350,14 +339,10 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
             df_train, label=y_train)
 
         params = {
-            "boosting_type": "gbdt",
-            "learning_rate": 0.05,
-            "n_estimators": 2,
-            "objective": "binary",
-            "max_bin": 5,
-            "min_child_samples": 100,
-            'verbose': -1,
-        }
+            "boosting_type": "gbdt", "learning_rate": 0.05,
+            "n_estimators": 2, "objective": "binary",
+            "max_bin": 5, "min_child_samples": 100,
+            'verbose': -1}
 
         booster = lgb_train(params, train_data)
         exp = booster.predict(X_test)
@@ -512,6 +497,47 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
                     y_pred, y_pred_onnx, decimal=_N_DECIMALS, frac=_FRAC,
                     msg="Objective=%r" % objective)
 
+    def test_lgbm_regressor(self):
+        from lightgbm import LGBMRegressor
+        data = load_iris()
+        X, y = data.data, data.target        
+        X = X.astype(numpy.float32)
+        X_train, X_test, y_train, y_test = train_test_split(X, y)
+        reg = LGBMRegressor(max_depth=2, n_estimators=100)
+        reg.fit(X_train, y_train)
+        expected = reg.predict(X_test)
+
+        # double
+        onx = to_onnx(reg, X_train.astype(numpy.float64),
+                      rewrite_ops=True)
+        oinf = OnnxInference(onx)
+        got0 = oinf.run(
+            {'X': X_test.astype(numpy.float64)})['variable']
+        self.assertEqualArray(expected, got0)
+
+        # float
+        onx = to_onnx(reg, X_train, rewrite_ops=True)
+        oinf = OnnxInference(onx)
+        got1 = oinf.run({'X': X_test})['variable']
+        self.assertEqualArray(expected, got1, decimal=5)
+
+        # float split
+        onx = to_onnx(reg, X_train, options={'split': 10},
+                      rewrite_ops=True)
+        oinf = OnnxInference(onx)
+        got2 = oinf.run({'X': X_test})['variable']
+        self.assertEqualArray(expected, got2, decimal=5)
+
+        # final
+        d0 = numpy.abs(expected.ravel() - got0).mean()
+        d1 = numpy.abs(expected.ravel() - got1).mean()
+        d2 = numpy.abs(expected.ravel() - got2).mean()
+        print(d0, d1, d2)
+        self.assertGreater(d1, d0)
+        self.assertGreater(d1, d2)
+
 
 if __name__ == "__main__":
+    TestOnnxrtRuntimeLightGbm().test_lgbm_regressor()
+    stop
     unittest.main()

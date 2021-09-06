@@ -347,10 +347,15 @@ def convert_lightgbm(scope, operator, container):
     dtype = guess_numpy_type(operator.inputs[0].type)
     if dtype != numpy.float64:
         dtype = numpy.float32
+    options = container.get_options(gbm_model, dict(split=-1))
+    split = options['split']
 
     # Create ONNX object
     if (gbm_text['objective'].startswith('binary') or
             gbm_text['objective'].startswith('multiclass')):
+        if split != -1:
+            raise NotImplementedError(
+                "Split is not implemented for LGBMClassifier (%r)." % split)
         # Prepare label information for both of TreeEnsembleClassifier
         # and ZipMap
         class_type = onnx_proto.TensorProto.STRING  # pylint: disable=E1101
@@ -460,31 +465,34 @@ def convert_lightgbm(scope, operator, container):
             # and TreeEnsembleClassifier have different ONNX attributes
             attrs['target' + k[5:]] = copy.deepcopy(attrs[k])
             del attrs[k]
-        if dtype == numpy.float64:
-            container.add_node(
-                'TreeEnsembleRegressorDouble', operator.input_full_names,
-                output_name, op_domain='mlprodict', **attrs)
+
+        if split == -1:
+            if dtype == numpy.float64:
+                container.add_node(
+                    'TreeEnsembleRegressorDouble', operator.input_full_names,
+                    output_name, op_domain='mlprodict', **attrs)
+            else:
+                container.add_node(
+                    'TreeEnsembleRegressor', operator.input_full_names,
+                    output_name, op_domain='ai.onnx.ml', **attrs)
         else:
-            container.add_node(
-                'TreeEnsembleRegressor', operator.input_full_names,
-                output_name, op_domain='ai.onnx.ml', **attrs)
+            stop
 
         if gbm_model.boosting_type == 'rf':
             denominator_name = scope.get_unique_variable_name('denominator')
 
             container.add_initializer(
-                denominator_name, onnx_proto.TensorProto.FLOAT, [], [100.0])  # pylint: disable=E1101
+                denominator_name, onnx_proto.TensorProto.FLOAT,  # pylint: disable=E1101
+                [], [100.0])
 
             apply_div(scope, [output_name, denominator_name],
                       operator.output_full_names, container, broadcast=1)
         elif post_transform:
             container.add_node(
-                post_transform,
-                output_name,
+                post_transform, output_name,
                 operator.output_full_names,
                 name=scope.get_unique_operator_name(
-                    post_transform),
-            )
+                    post_transform))
         else:
             container.add_node('Identity', output_name,
                                operator.output_full_names,
