@@ -50,7 +50,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
     @ignore_warnings(DeprecationWarning)
     @skipif_azure("Failure on Mac")
     def test_onnxt_runtime_add_raise(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y2'],
                       op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})

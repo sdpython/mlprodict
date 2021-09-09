@@ -111,7 +111,8 @@ class TestOnnxFunctionTransformer(ExtTestCase):
         onnx_model = to_onnx(tr, x)
         oinf = OnnxInference(onnx_model)
         y_onx = oinf.run({'X': x})
-        self.assertEqualArray(y_exp, y_onx['variable'], decimal=5)
+        name = oinf.output_names[0]
+        self.assertEqualArray(y_exp, y_onx[name], decimal=5)
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
     def test_function_transformer_custom_logn(self):
@@ -122,7 +123,8 @@ class TestOnnxFunctionTransformer(ExtTestCase):
         onnx_model = to_onnx(tr, x)
         oinf = OnnxInference(onnx_model)
         y_onx = oinf.run({'X': x})
-        self.assertEqualArray(y_exp, y_onx['variable'], decimal=5)
+        name = oinf.output_names[0]
+        self.assertEqualArray(y_exp, y_onx[name], decimal=5)
 
 
 if __name__ == "__main__":

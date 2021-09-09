@@ -237,11 +237,20 @@ def _register_converters_skl2onnx(exc=True):
         from skl2onnx.sklapi import WOETransformer
         model = [WOETransformer]
     except ImportError as e:  # pragma: no cover
+        try:
+            import skl2onnx
+            from pyquickhelper.texthelper.version_helper import (
+                compare_module_version)
+            if compare_module_version(skl2onnx.__version__, '1.9.3') < 0:
+                # Too old version of skl2onnx.
+                return
+        except ImportError:
+            pass
         if exc:
             raise e
         else:
             warnings.warn(
-                "Cannot register models from 'skl2onnx' due to '{}'.".format(e))
+                "Cannot register models from 'skl2onnx' due to %r." % e)
             model = None
 
     if model is not None:

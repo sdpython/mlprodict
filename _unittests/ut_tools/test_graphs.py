@@ -75,7 +75,7 @@ class TestGraphs(ExtTestCase):
         self.assertIn("Action(", text)
 
     def test_pipe_graph_display_text(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2).astype(numpy.float32)
         opv = get_opset_number_from_onnx()
         A = OnnxAdd('X', idi, op_version=opv)
         B = OnnxSub(A, 'W', output_names=['Y'], op_version=opv)

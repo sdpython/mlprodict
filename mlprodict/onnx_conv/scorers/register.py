@@ -107,6 +107,13 @@ def custom_scorer_transform_converter(scope, operator, container):
                    operator.outputs[0].full_name, container)
 
 
+def empty_shape_calculator(operator):
+    """
+    Does nothing.
+    """
+    pass
+
+
 def register_scorers():
     """
     Registers operators for @see cl CustomScorerTransform.
@@ -126,7 +133,7 @@ def register_scorers():
 
     update_registered_converter(
         score_cdist_sum, 'fct_score_cdist_sum',
-        None, convert_score_cdist_sum,
+        empty_shape_calculator, convert_score_cdist_sum,
         options={'cdist': [None, 'single-node']})
 
     return done

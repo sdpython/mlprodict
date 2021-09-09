@@ -29,8 +29,7 @@ class TestOnnxrtPythonRuntimeControlIf(ExtTestCase):
         belse = OnnxConstant(value_floats=numpy.array([1], dtype=numpy.float32),
                              op_version=op_version, output_names=['res'])
         bthen_body = bthen.to_onnx(
-            OrderedDict(),
-            outputs=[('res', tensor_type())],
+            OrderedDict(), outputs=[('res', tensor_type())],
             target_opset=op_version)
         belse_body = belse.to_onnx(
             OrderedDict(),
