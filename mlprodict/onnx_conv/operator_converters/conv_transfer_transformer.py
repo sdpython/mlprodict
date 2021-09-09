@@ -5,16 +5,18 @@
 from sklearn.base import ClassifierMixin
 from skl2onnx import get_model_alias
 from skl2onnx.common.data_types import FloatTensorType
-from skl2onnx.common._registration import get_shape_calculator
+from skl2onnx.common._registration import (
+    get_shape_calculator, _converter_pool, _shape_calculator_pool)
 from skl2onnx._parse import parse_sklearn
 from skl2onnx.common._apply_operation import apply_identity
+from skl2onnx.common._topology import Scope, Variable
+from skl2onnx._supported_operators import sklearn_operator_name_map
 
 
-def _model_outputs(existing_scope, model, inputs, custom_parsers=None):
+def _model_outputs(scope, model, inputs, custom_parsers=None):
     """
     Retrieves the outputs of one particular models.
     """
-    scope = existing_scope.temp()
     if custom_parsers is not None and model in custom_parsers:
         return custom_parsers[model](
             scope, model, inputs, custom_parsers=custom_parsers)
@@ -54,11 +56,19 @@ def shape_calculator_transfer_transformer(operator):
     alias = get_model_alias(type(op.estimator_))
     calc = get_shape_calculator(alias)
 
-    scope = operator.scope_inst.temp()
+    options = (None if not hasattr(operator.scope, 'options')
+               else operator.scope.options)
+    registered_models = dict(
+            conv=_converter_pool, shape=_shape_calculator_pool,
+            aliases=sklearn_operator_name_map)
+    scope = Scope('temp', options=options,
+                  registered_models=registered_models)
     this_operator = scope.declare_local_operator(alias)
     this_operator.raw_operator = op.estimator_
-    this_operator.inputs = operator.inputs
-    res = _model_outputs(scope, op.estimator_, operator.inputs)
+    this_operator.inputs = [
+        Variable(v.onnx_name, v.onnx_name, type=v.type, scope=scope)
+        for v in operator.inputs]
+    res = _model_outputs(scope, op.estimator_, this_operator.inputs)
     this_operator.outputs.extend([
         scope.declare_local_variable(
             "%sTTS" % r.onnx_name, r.type) for r in res])
@@ -89,7 +99,7 @@ def convert_transfer_transformer(scope, operator, container):
     if isinstance(op.estimator_, ClassifierMixin):
         container.add_options(id(op.estimator_), {'zipmap': False})
 
-    res = _model_outputs(scope.temp(), op.estimator_, operator.inputs)
+    res = _model_outputs(scope, op.estimator_, operator.inputs)
     this_operator.outputs.extend([
         scope.declare_local_variable(
             "%sTTC" % r.onnx_name, r.type) for r in res])

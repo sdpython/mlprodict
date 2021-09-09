@@ -292,7 +292,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                         "Noy yet implemented for output:\n{}".format(out))
                 shape = var['type']['shape']
                 if shape[0] == 0:
-                    shape = ('None',) + tuple(shape[1:])
+                    shape = (None,) + tuple(shape[1:])
                 elem = var['type']['elem']
                 if elem == 'float':
                     out_op.type = FloatTensorType(shape=shape)
