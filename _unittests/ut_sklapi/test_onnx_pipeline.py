@@ -10,7 +10,9 @@ from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from sklearn.mixture import GaussianMixture
 from sklearn.tree import DecisionTreeRegressor
+from skl2onnx import __version__ as s2_ver
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
+from pyquickhelper.texthelper.version_helper import compare_module_version
 from mlinsights.mlmodel import TransferTransformer
 from mlprodict.tools.ort_wrapper import InferenceSession
 from mlprodict.onnx_conv import to_onnx
@@ -86,6 +88,8 @@ class TestOnnxPipeline(ExtTestCase):
                                            'Y': X.astype(numpy.float64)}),
                          KeyError)
 
+    @unittest.skipIf(compare_module_version(s2_ver, '1.9.3') < 0,
+                     reason="skl2onnx too old")
     def test_transfer_transformer(self):
         _register_converters_mlinsights(True)
         iris = load_iris()
@@ -98,6 +102,8 @@ class TestOnnxPipeline(ExtTestCase):
         exp = pipe.transform(X.astype(numpy.float32))
         self.assertEqualArray(exp, res['variable'], decimal=5)
 
+    @unittest.skipIf(compare_module_version(s2_ver, '1.9.3') < 0,
+                     reason="skl2onnx too old")
     def test_transfer_logistic_regression(self):
         _register_converters_mlinsights(True)
         iris = load_iris()
@@ -111,6 +117,8 @@ class TestOnnxPipeline(ExtTestCase):
         exp = pipe.transform(X)
         self.assertEqualArray(exp, res['probabilities'], decimal=5)
 
+    @unittest.skipIf(compare_module_version(s2_ver, '1.9.3') < 0,
+                     reason="skl2onnx too old")
     def test_pipeline_pickable(self):
         _register_converters_mlinsights(True)
         iris = load_iris()
@@ -137,6 +145,8 @@ class TestOnnxPipeline(ExtTestCase):
         self.assertEqualArray(res["label"], pipe.predict(X))
         self.assertEqualArray(res["probabilities"], pipe.predict_proba(X))
 
+    @unittest.skipIf(compare_module_version(s2_ver, '1.9.3') < 0,
+                     reason="skl2onnx too old")
     @ignore_warnings(warns=FutureWarning)
     def test_pipeline_pickable_options(self):
         _register_converters_mlinsights(True)

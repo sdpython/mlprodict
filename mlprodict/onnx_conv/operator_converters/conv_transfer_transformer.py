@@ -61,8 +61,8 @@ def shape_calculator_transfer_transformer(operator):
             options = {}
         options = {id(op.estimator_): {'zipmap': False}}
     registered_models = dict(
-            conv=_converter_pool, shape=_shape_calculator_pool,
-            aliases=sklearn_operator_name_map)
+        conv=_converter_pool, shape=_shape_calculator_pool,
+        aliases=sklearn_operator_name_map)
     scope = Scope('temp', options=options,
                   registered_models=registered_models)
     inputs = [

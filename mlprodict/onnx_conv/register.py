@@ -87,7 +87,7 @@ def _register_converters_lightgbm(exc=True):
         update_registered_converter(
             LGBMRegressor, 'LightGbmLGBMRegressor',
             calculate_linear_regressor_output_shapes,
-            convert_lightgbm, options={'split': [-1, 1, 2, 10, 100, 1000]})
+            convert_lightgbm, options={'split': None})
         registered.append(LGBMRegressor)
 
     try:
