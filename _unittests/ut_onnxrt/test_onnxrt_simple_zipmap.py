@@ -1,5 +1,5 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=16s)
 """
 import unittest
 import pickle

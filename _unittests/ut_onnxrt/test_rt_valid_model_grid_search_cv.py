@@ -1,5 +1,5 @@
 """
-@brief      test log(time=9s)
+@brief      test log(time=16s)
 """
 import unittest
 from pyquickhelper.loghelper import fLOG
