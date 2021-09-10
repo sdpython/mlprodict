@@ -27,7 +27,8 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_missing(self):
-        from mlprodict.onnx_conv.parsers.parse_lightgbm import WrappedLightGbmBooster
+        from mlprodict.onnx_conv.operator_converters.parse_lightgbm import (
+            WrappedLightGbmBooster)
 
         r = WrappedLightGbmBooster._generate_classes(  # pylint: disable=W0212
             dict(num_class=1))

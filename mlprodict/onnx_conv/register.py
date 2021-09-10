@@ -102,13 +102,12 @@ def _register_converters_lightgbm(exc=True):
     if Booster is not None:
         from .operator_converters.conv_lightgbm import (
             convert_lightgbm, calculate_lightgbm_output_shapes)
-        from .parsers.parse_lightgbm import (
+        from .operator_converters.parse_lightgbm import (
             lightgbm_parser, WrappedLightGbmBooster,
             WrappedLightGbmBoosterClassifier,
             shape_calculator_lightgbm_concat,
             converter_lightgbm_concat,
-            MockWrappedLightGbmBoosterClassifier
-        )
+            MockWrappedLightGbmBoosterClassifier)
         update_registered_converter(
             Booster, 'LightGbmBooster', calculate_lightgbm_output_shapes,
             convert_lightgbm, parser=lightgbm_parser,
@@ -243,7 +242,7 @@ def _register_converters_skl2onnx(exc=True):
                 compare_module_version)
             if compare_module_version(skl2onnx.__version__, '1.9.3') < 0:
                 # Too old version of skl2onnx.
-                return
+                return []
         except ImportError:
             pass
         if exc:

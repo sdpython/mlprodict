@@ -21,7 +21,8 @@ from skl2onnx.common.data_types import FloatTensorType
 from sklearn.datasets import load_iris
 from mlprodict.onnx_conv.helpers.lgbm_helper import (
     modify_tree_for_rule_in_set, restore_lgbm_info)
-from mlprodict.onnx_conv.parsers.parse_lightgbm import MockWrappedLightGbmBoosterClassifier
+from mlprodict.onnx_conv.operator_converters.parse_lightgbm import (
+    MockWrappedLightGbmBoosterClassifier)
 from mlprodict.onnx_conv import register_converters, to_onnx
 from mlprodict.onnxrt import OnnxInference
 

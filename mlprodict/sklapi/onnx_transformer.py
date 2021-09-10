@@ -270,11 +270,15 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         if inputs:
             self.parsed_inputs_ = inputs
 
-        def parser():
+        def parser(scope=scope, inputs=inputs):
             if (not hasattr(self, 'onnxrt_') or
                     not hasattr(self.onnxrt_, 'output_names')):
                 raise RuntimeError(  # pragma: no cover
                     'OnnxTransformer not fit.')
+            if len(inputs) != len(self.inputs_):
+                raise RuntimeError(  # pragma: no cover
+                    "Mismatch between the number of inputs, expected %r, "
+                    "got %r." % (self.inputs_, inputs))
             return self.onnxrt_.output_names
         return parser
 

@@ -119,8 +119,7 @@ class TestOnnxPipeline(ExtTestCase):
             ('gm', TransferTransformer(StandardScaler(), trainable=True)),
             ('lr', LogisticRegression())],
             enforce_float32=True,
-            op_version=get_opset_number_from_onnx(),
-            options={'gm__score_samples': True})
+            op_version=get_opset_number_from_onnx())
         pipe.fit(X, y)
         pipe.fit(X, y)
 
@@ -243,5 +242,9 @@ class TestOnnxPipeline(ExtTestCase):
 
 
 if __name__ == '__main__':
-    # TestOnnxPipeline().test_pipeline_pickable_options()
+    # import logging
+    # logger = logging.getLogger('skl2onnx')
+    # logger.setLevel(logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
+    # TestOnnxPipeline().test_transfer_logistic_regression()
     unittest.main()
