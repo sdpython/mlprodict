@@ -270,11 +270,15 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         if inputs:
             self.parsed_inputs_ = inputs
 
-        def parser():
+        def parser(scope=scope, inputs=inputs):
             if (not hasattr(self, 'onnxrt_') or
                     not hasattr(self.onnxrt_, 'output_names')):
                 raise RuntimeError(  # pragma: no cover
                     'OnnxTransformer not fit.')
+            if len(inputs) != len(self.inputs_):
+                raise RuntimeError(  # pragma: no cover
+                    "Mismatch between the number of inputs, expected %r, "
+                    "got %r." % (self.inputs_, inputs))
             return self.onnxrt_.output_names
         return parser
 
@@ -292,7 +296,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                         "Noy yet implemented for output:\n{}".format(out))
                 shape = var['type']['shape']
                 if shape[0] == 0:
-                    shape = ('None',) + tuple(shape[1:])
+                    shape = (None,) + tuple(shape[1:])
                 elem = var['type']['elem']
                 if elem == 'float':
                     out_op.type = FloatTensorType(shape=shape)

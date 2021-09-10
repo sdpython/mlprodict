@@ -84,9 +84,10 @@ def _register_converters_lightgbm(exc=True):
             LGBMRegressor = None
     if LGBMRegressor is not None:
         from .operator_converters.conv_lightgbm import convert_lightgbm
-        update_registered_converter(LGBMRegressor, 'LightGbmLGBMRegressor',
-                                    calculate_linear_regressor_output_shapes,
-                                    convert_lightgbm)
+        update_registered_converter(
+            LGBMRegressor, 'LightGbmLGBMRegressor',
+            calculate_linear_regressor_output_shapes,
+            convert_lightgbm, options={'split': None})
         registered.append(LGBMRegressor)
 
     try:
@@ -101,13 +102,12 @@ def _register_converters_lightgbm(exc=True):
     if Booster is not None:
         from .operator_converters.conv_lightgbm import (
             convert_lightgbm, calculate_lightgbm_output_shapes)
-        from .parsers.parse_lightgbm import (
+        from .operator_converters.parse_lightgbm import (
             lightgbm_parser, WrappedLightGbmBooster,
             WrappedLightGbmBoosterClassifier,
             shape_calculator_lightgbm_concat,
             converter_lightgbm_concat,
-            MockWrappedLightGbmBoosterClassifier
-        )
+            MockWrappedLightGbmBoosterClassifier)
         update_registered_converter(
             Booster, 'LightGbmBooster', calculate_lightgbm_output_shapes,
             convert_lightgbm, parser=lightgbm_parser,
@@ -220,6 +220,43 @@ def _register_converters_mlinsights(exc=True):
     return registered
 
 
+def _register_converters_skl2onnx(exc=True):
+    """
+    This functions registers additional converters
+    for :epkg:`skl2onnx`.
+
+    @param      exc     if True, raises an exception if a converter cannot
+                        registered (missing package for example)
+    @return             list of models supported by the new converters
+    """
+    registered = []
+
+    try:
+        import skl2onnx.sklapi.register  # pylint: disable=W0611
+        from skl2onnx.sklapi import WOETransformer
+        model = [WOETransformer]
+    except ImportError as e:  # pragma: no cover
+        try:
+            import skl2onnx
+            from pyquickhelper.texthelper.version_helper import (
+                compare_module_version)
+            if compare_module_version(skl2onnx.__version__, '1.9.3') < 0:
+                # Too old version of skl2onnx.
+                return []
+        except ImportError:
+            pass
+        if exc:
+            raise e
+        else:
+            warnings.warn(
+                "Cannot register models from 'skl2onnx' due to %r." % e)
+            model = None
+
+    if model is not None:
+        registered.extend(model)
+    return registered
+
+
 def register_converters(exc=True):
     """
     This functions registers additional converters
@@ -232,5 +269,6 @@ def register_converters(exc=True):
     ext = _register_converters_lightgbm(exc=exc)
     ext += _register_converters_xgboost(exc=exc)
     ext += _register_converters_mlinsights(exc=exc)
+    ext += _register_converters_skl2onnx(exc=exc)
     ext += register_scorers()
     return ext

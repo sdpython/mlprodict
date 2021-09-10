@@ -159,14 +159,17 @@ class OnnxPipeline(Pipeline):
                 name, self._to_onnx(name, fitted_transformer, x_train))
         return X
 
-    def _to_onnx(self, name, fitted_transformer, x_train):
+    def _to_onnx(self, name, fitted_transformer, x_train, rewrite_ops=True,
+                 verbose=0):
         """
         Converts a transformer into ONNX.
 
-        @param  name                model name
-        @param  fitted_transformer  fitted transformer
-        @param  x_train             training dataset
-        @return                     corresponding @see cl OnnxTransformer
+        :param name: model name
+        :param fitted_transformer: fitted transformer
+        :param x_train: training dataset
+        :param rewrite_ops: use rewritten converters
+        :param verbose: display some information
+        :return: corresponding @see cl OnnxTransformer
         """
         if not isinstance(x_train, numpy.ndarray):
             raise RuntimeError(  # pragma: no cover
@@ -180,7 +183,13 @@ class OnnxPipeline(Pipeline):
             kwargs['options'] = self._preprocess_options(
                 name, kwargs['options'])
         kwargs['target_opset'] = self.op_version
-        onx = to_onnx(fitted_transformer, x_train, **kwargs)
+        onx = to_onnx(fitted_transformer, x_train,
+                      rewrite_ops=rewrite_ops, verbose=verbose,
+                      **kwargs)
+        if len(onx.graph.output) != 1:
+            raise RuntimeError(
+                "Only one output is allowed in the ONNX graph not %d. "
+                "Model=%r" % (len(onx.graph.output), fitted_transformer))
         tr = OnnxTransformer(
             onx.SerializeToString(), output_name=self.output_name,
             enforce_float32=self.enforce_float32, runtime=self.runtime)

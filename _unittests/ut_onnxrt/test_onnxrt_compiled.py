@@ -25,7 +25,7 @@ class TestOnnxrtCompiled(ExtTestCase):
         logger.disabled = True
 
     def test_onnxt_idi(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
                       op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
@@ -42,7 +42,7 @@ class TestOnnxrtCompiled(ExtTestCase):
         self.assertIn(' def compiled_run(dict_inputs):', str(oinf))
 
     def test_onnxt_idi_debug(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
                       op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
@@ -100,7 +100,7 @@ class TestOnnxrtCompiled(ExtTestCase):
         self.assertIn(' def compiled_run(dict_inputs):', str(oinf2))
 
     def test_onnxt_reduce_size(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
                       op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})

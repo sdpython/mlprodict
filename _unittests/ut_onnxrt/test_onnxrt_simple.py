@@ -1,5 +1,5 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=24s)
 """
 import os
 import sys
@@ -37,7 +37,7 @@ class TestOnnxrtSimple(ExtTestCase):
         logger.disabled = True
 
     def test_onnxt_idi(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
                       op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
@@ -67,7 +67,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('op_type: "Add"', res)
 
     def test_onnxt_pickle_check(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
                       op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
@@ -87,8 +87,8 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertEqual(str(oinf), str(obj))
 
     def test_onnxt_dot(self):
-        idi = numpy.identity(2)
-        idi2 = numpy.identity(2) * 2
+        idi = numpy.identity(2).astype(numpy.float32)
+        idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
             OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
             idi2, output_names=['Y'],
@@ -107,8 +107,8 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('Ad_Add1 -> Y;', dot)
 
     def test_onnxt_text(self):
-        idi = numpy.identity(2)
-        idi2 = numpy.identity(2) * 2
+        idi = numpy.identity(2).astype(numpy.float32)
+        idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
             OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
             idi2, output_names=['Y'],
@@ -125,8 +125,8 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('Ad_Addcst', text)
 
     def test_onnxt_dot_onnx(self):
-        idi = numpy.identity(2)
-        idi2 = numpy.identity(2) * 2
+        idi = numpy.identity(2).astype(numpy.float32)
+        idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
             OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
             idi2, output_names=['Y'],
@@ -138,8 +138,8 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('[label="Ad_Addcst1"', dot)
 
     def test_onnxt_dot_shape(self):
-        idi = numpy.identity(2)
-        idi2 = numpy.identity(2) * 2
+        idi = numpy.identity(2).astype(numpy.float32)
+        idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
             OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
             idi2, output_names=['Y'],
@@ -219,8 +219,8 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('"name": "ZipMap",', js)
 
     def test_onnxt_json(self):
-        idi = numpy.identity(2)
-        idi2 = numpy.identity(2) * 2
+        idi = numpy.identity(2).astype(numpy.float32)
+        idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
             OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
             idi2, output_names=['Y'],
@@ -232,8 +232,8 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('"initializers": {', js)
 
     def test_onnxt_graph(self):
-        idi = numpy.identity(2)
-        idi2 = numpy.identity(2) * 2
+        idi = numpy.identity(2).astype(numpy.float32)
+        idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
             OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
             idi2, output_names=['Y'],

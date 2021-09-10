@@ -116,7 +116,9 @@ the possibility later to only show a part of a graph.
 
 .. autosignature:: mlprodict.plotting.plotting_onnx.plot_onnx
 
-:ref:`onnxview <l-NB2>`
+**notebook**
+
+:ref:`onnxview <l-NB2>`, see also :ref:`numpyapionnxftrrst`.
 
 Others
 ======

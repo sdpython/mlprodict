@@ -1,5 +1,5 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=10s)
 """
 import unittest
 from logging import getLogger

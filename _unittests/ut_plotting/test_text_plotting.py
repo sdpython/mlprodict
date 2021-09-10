@@ -16,7 +16,7 @@ from mlprodict.plotting.plotting import onnx_text_plot, onnx_text_plot_tree
 class TestPlotTextPlotting(ExtTestCase):
 
     def test_onnx_text_plot(self):
-        idi = numpy.identity(2)
+        idi = numpy.identity(2).astype(numpy.float32)
         opv = get_opset_number_from_onnx()
         A = OnnxAdd('X', idi, op_version=opv)
         B = OnnxSub(A, 'W', output_names=['Y'], op_version=opv)

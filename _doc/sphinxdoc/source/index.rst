@@ -148,6 +148,73 @@ following :epkg:`ONNX` graph.
 
 Notebook :ref:`onnxvisualizationrst`
 shows how to visualize an :epkg:`ONNX` pipeline.
+The package also contains a collection of tools
+to help converting code to ONNX. A short list of
+them:
+
+* **Python runtime for ONNX:**
+  :class:`OnnxInference <mlprodict.onnxrt.onnx_infernce.OnnxInference>`,
+  it is mostly used to check that an ONNX graph produces the expected output.
+  If it fails, it fails within a python code and not inside C++ code.
+  This class can also be used to call :epkg:`onnxruntime` by
+  using ``runtime=='onnxruntime1'``. A last runtime
+  ``runtime=='python_compiled'`` compiles a python function equivalent
+  to code calling operator one by one. It makes easier to read the ONNX
+  graph (see :ref:`l-onnx-tutorial`).
+* **Intermediate results:**
+  the python runtime may display all intermediate results,
+  their shape if `verbosity == 1`, their value if `verbosity > 10`,
+  see :ref:`l-onnx-tutorial`. This cannot be done with ``runtime=='onnxruntime1'``
+  but it is still possible to get the intermediate results
+  (see :meth:`OnnxInference.run <mlprodict.onnxrt.onnx_inference.OnnxInference.run>`).
+  The class will build all subgraphs from the inputs to every intermediate
+  results. If the graph has *N* operators, the cost of this will be
+  :math:`O(N^2)`.
+* **Extract a subpart of an ONNX graph:**
+  hen an ONNX graph does not load, it is possible to modify, to extract
+  some subpart to check a tiny part of it. Function
+  :func`select_model_inputs_outputs
+  <mlprodict.onnx_tools.onnx_manipulations.select_model_inputs_outputs>`
+  may be used to change the inputs and/or the outputs.
+* **Change the opset**: function
+  :func`overwrite_opset
+  <mlprodict.onnx_tools.onnx_manipulations.overwrite_opset>`
+  overwrites the opset, it is used to check for which opset (ONNX version)
+  a graph is valid. ...
+* **Visualization in a notebook**: a magic command to display
+  small ONNX graph in notebooks :ref:`onnxvisualizationrst`.
+* **Text visualization for ONNX:** a way to visualize ONNX graph only
+  with text :func:`onnx_text_plot <mlprodict.plotting.text_plot.onnx_text_plot>`.
+* **Text visualization of TreeEnsemble:** a way to visualize the graph
+  described by a on operator TreeEnsembleRegressor or TreeEnsembleClassifier,
+  see :func:`onnx_text_plot <mlprodict.plotting.text_plot.onnx_text_plot_tree>`.
+* **Export ONNX graph to numpy:** the numpy code produces the same
+  results as the ONNX graph (see :func:`export2numpy
+  <mlprodict.onnx_tools.onnx_export.export2numpy>`)
+* **Export ONNX graph to ONNX API:** this produces a
+  a code based on ONNX API which replicates the ONNX graph
+  (see :func:`export2onnx
+  <mlprodict.onnx_tools.onnx_export.export2onnx>`)
+* **Export ONNX graph to :epkg:`tf2onnx`:** still a function which
+  creates an ONNX graph but based on :epkg:`tf2onnx` API
+  (see :func:`export2tf2onnx
+  <mlprodict.onnx_tools.onnx_export.export2tf2onnx>`)
+* **Numpy API for ONNX:** many functions doing computation are
+  written with :epkg:`numpy` and converting them to ONNX may take
+  quite some time for users not familiar with ONNX. This API implements
+  many functions from :epkg:`numpy` with ONNX and allows the user
+  to combine them. It is as if numpy function where exectued by an
+  ONNX runtime: :ref:`l-numpy-api-for-onnx`.
+* **Benchmark scikit-learn models converted into ONNX:** a simple function to
+  benchmark ONNX against *scikit-learn* for a simple model:
+  :ref:`l-example-onnx-benchmark`
+* **Accelerate scikit-learn prediction:**,
+  what if *transform* or *predict* is replaced by an implementation
+  based on ONNX, or a numpy version of it, would it be faster?
+  :ref:`l-Speedup-pca`
+* **Profiling onnxruntime:** :epkg:`onnxruntime` can memorize the time
+  spent in each operator. The following notebook shows how to retreive
+  the results and display them :ref:`onnxprofileortrst`.
 
 +----------------------+---------------------+---------------------+--------------------+------------------------+------------------------------------------------+
 | :ref:`l-modules`     |  :ref:`l-functions` | :ref:`l-classes`    | :ref:`l-methods`   | :ref:`l-staticmethods` | :ref:`l-properties`                            |

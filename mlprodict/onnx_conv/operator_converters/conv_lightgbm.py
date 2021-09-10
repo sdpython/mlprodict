@@ -8,6 +8,7 @@ from collections import Counter
 import copy
 import numbers
 import numpy
+from onnx import TensorProto
 from skl2onnx.common._apply_operation import apply_div, apply_reshape, apply_sub  # pylint: disable=E0611
 from skl2onnx.common.tree_ensemble import get_default_tree_classifier_attribute_pairs
 from skl2onnx.proto import onnx_proto
@@ -58,7 +59,8 @@ def _translate_split_criterion(criterion):
     if criterion == '!=':  # pragma: no cover
         return 'BRANCH_NEQ'
     raise ValueError(  # pragma: no cover
-        'Unsupported splitting criterion: %s. Only <=, <, >=, and > are allowed.')
+        'Unsupported splitting criterion: %s. Only <=, '
+        '<, >=, and > are allowed.')
 
 
 def _create_node_id(node_id_pool):
@@ -69,7 +71,8 @@ def _create_node_id(node_id_pool):
     return i
 
 
-def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attrs):
+def _parse_tree_structure(tree_id, class_id, learning_rate,
+                          tree_structure, attrs):
     """
     The pool of all nodes' indexes created when parsing a single tree.
     Different tree use different pools.
@@ -81,7 +84,8 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
     node_pyid_pool[id(tree_structure)] = node_id
 
     # The root node is a leaf node.
-    if 'left_child' not in tree_structure or 'right_child' not in tree_structure:
+    if ('left_child' not in tree_structure or
+            'right_child' not in tree_structure):
         _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
                     learning_rate, tree_structure, attrs)
         return
@@ -145,11 +149,13 @@ def _parse_tree_structure(tree_id, class_id, learning_rate, tree_structure, attr
         attrs['nodes_missing_value_tracks_true'].append(0)
     attrs['nodes_hitrates'].append(1.)
     if left_parse:
-        _parse_node(tree_id, class_id, left_id, node_id_pool, node_pyid_pool,
-                    learning_rate, tree_structure['left_child'], attrs)
+        _parse_node(
+            tree_id, class_id, left_id, node_id_pool, node_pyid_pool,
+            learning_rate, tree_structure['left_child'], attrs)
     if right_parse:
-        _parse_node(tree_id, class_id, right_id, node_id_pool, node_pyid_pool,
-                    learning_rate, tree_structure['right_child'], attrs)
+        _parse_node(
+            tree_id, class_id, right_id, node_id_pool, node_pyid_pool,
+            learning_rate, tree_structure['right_child'], attrs)
 
 
 def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
@@ -215,11 +221,13 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
 
         # Recursively dive into the child nodes
         if left_parse:
-            _parse_node(tree_id, class_id, left_id, node_id_pool, node_pyid_pool,
-                        learning_rate, node['left_child'], attrs)
+            _parse_node(
+                tree_id, class_id, left_id, node_id_pool, node_pyid_pool,
+                learning_rate, node['left_child'], attrs)
         if right_parse:
-            _parse_node(tree_id, class_id, right_id, node_id_pool, node_pyid_pool,
-                        learning_rate, node['right_child'], attrs)
+            _parse_node(
+                tree_id, class_id, right_id, node_id_pool, node_pyid_pool,
+                learning_rate, node['right_child'], attrs)
     elif hasattr(node, 'left_child') or hasattr(node, 'right_child'):
         raise ValueError('Need two branches')  # pragma: no cover
     else:
@@ -246,7 +254,65 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
             float(node['leaf_value']) * learning_rate)
 
 
-def convert_lightgbm(scope, operator, container):
+def _split_tree_ensemble_atts(attrs, split):
+    """
+    Splits the attributes of a TreeEnsembleRegressor into
+    multiple trees in order to do the summation in double instead of floats.
+    """
+    trees_id = list(sorted(set(attrs['nodes_treeids'])))
+    results = []
+    index = 0
+    while index < len(trees_id):
+        index2 = min(index + split, len(trees_id))
+        subset = set(trees_id[index: index2])
+
+        indices_node = []
+        indices_target = []
+        for j, v in enumerate(attrs['nodes_treeids']):
+            if v in subset:
+                indices_node.append(j)
+        for j, v in enumerate(attrs['target_treeids']):
+            if v in subset:
+                indices_target.append(j)
+
+        if (len(indices_node) >= len(attrs['nodes_treeids']) or
+                len(indices_target) >= len(attrs['target_treeids'])):
+            raise RuntimeError(  # pragma: no cover
+                "Initial attributes are not consistant."
+                "\nindex=%r index2=%r subset=%r"
+                "\nnodes_treeids=%r\ntarget_treeids=%r"
+                "\nindices_node=%r\nindices_target=%r" % (
+                    index, index2, subset,
+                    attrs['nodes_treeids'], attrs['target_treeids'],
+                    indices_node, indices_target))
+
+        ats = {}
+        for name, att in attrs.items():
+            if name == 'nodes_treeids':
+                new_att = [att[i] for i in indices_node]
+                new_att = [i - att[0] for i in new_att]
+            elif name == 'target_treeids':
+                new_att = [att[i] for i in indices_target]
+                new_att = [i - att[0] for i in new_att]
+            elif name.startswith("nodes_"):
+                new_att = [att[i] for i in indices_node]
+                assert len(new_att) == len(indices_node)
+            elif name.startswith("target_"):
+                new_att = [att[i] for i in indices_target]
+                assert len(new_att) == len(indices_target)
+            elif name == 'name':
+                new_att = "%s%d" % (att, len(results))
+            else:
+                new_att = att
+            ats[name] = new_att
+
+        results.append(ats)
+        index = index2
+
+    return results
+
+
+def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
     """
     This converters reuses the code from
     `LightGbm.py <https://github.com/onnx/onnxmltools/blob/master/onnxmltools/convert/
@@ -254,7 +320,7 @@ def convert_lightgbm(scope, operator, container):
     some modifications. It implements converters
     for models in :epkg:`lightgbm`.
     """
-    verbose = container.verbose
+    verbose = getattr(container, 'verbose', 0)
     gbm_model = operator.raw_operator
     if hasattr(gbm_model, '_model_dict_info'):
         gbm_text, info = gbm_model._model_dict_info
@@ -270,7 +336,9 @@ def convert_lightgbm(scope, operator, container):
     attrs = get_default_tree_classifier_attribute_pairs()
     attrs['name'] = operator.full_name
 
-    # Create different attributes for classifier and regressor, respectively
+    # Create different attributes for classifier and
+    # regressor, respectively
+    post_transform = None
     if gbm_text['objective'].startswith('binary'):
         n_classes = 1
         attrs['post_transform'] = 'LOGISTIC'
@@ -281,6 +349,13 @@ def convert_lightgbm(scope, operator, container):
         n_classes = 1  # Regressor has only one output variable
         attrs['post_transform'] = 'NONE'
         attrs['n_targets'] = n_classes
+    elif gbm_text['objective'].startswith(('poisson', 'gamma')):
+        n_classes = 1  # Regressor has only one output variable
+        attrs['n_targets'] = n_classes
+        # 'Exp' is not a supported post_transform value in the ONNX spec yet,
+        # so we need to add an 'Exp' post transform node to the model
+        attrs['post_transform'] = 'NONE'
+        post_transform = "Exp"
     else:
         raise RuntimeError(  # pragma: no cover
             "LightGBM objective should be cleaned already not '{}'.".format(
@@ -303,25 +378,29 @@ def convert_lightgbm(scope, operator, container):
 
     if verbose >= 2:
         print("[convert_lightgbm] onnx")
-
-    # Sort nodes_* attributes. For one tree, its node indexes should appear in an ascent order in nodes_nodeids. Nodes
-    # from a tree with a smaller tree index should appear before trees with larger indexes in nodes_nodeids.
+    # Sort nodes_* attributes. For one tree, its node indexes
+    # should appear in an ascent order in nodes_nodeids. Nodes
+    # from a tree with a smaller tree index should appear
+    # before trees with larger indexes in nodes_nodeids.
     node_numbers_per_tree = Counter(attrs['nodes_treeids'])
     tree_number = len(node_numbers_per_tree.keys())
     accumulated_node_numbers = [0] * tree_number
     for i in range(1, tree_number):
-        accumulated_node_numbers[i] = (accumulated_node_numbers[i - 1] +
-                                       node_numbers_per_tree[i - 1])
+        accumulated_node_numbers[i] = (
+            accumulated_node_numbers[i - 1] + node_numbers_per_tree[i - 1])
     global_node_indexes = []
     for i in range(len(attrs['nodes_nodeids'])):
         tree_id = attrs['nodes_treeids'][i]
         node_id = attrs['nodes_nodeids'][i]
-        global_node_indexes.append(accumulated_node_numbers[tree_id] + node_id)
+        global_node_indexes.append(
+            accumulated_node_numbers[tree_id] + node_id)
     for k, v in attrs.items():
         if k.startswith('nodes_'):
-            merged_indexes = zip(copy.deepcopy(global_node_indexes), v)
+            merged_indexes = zip(
+                copy.deepcopy(global_node_indexes), v)
             sorted_list = [pair[1]
-                           for pair in sorted(merged_indexes, key=lambda x: x[0])]
+                           for pair in sorted(merged_indexes,
+                                              key=lambda x: x[0])]
             attrs[k] = sorted_list
 
     dtype = guess_numpy_type(operator.inputs[0].type)
@@ -389,22 +468,34 @@ def convert_lightgbm(scope, operator, container):
             container.add_initializer(classes_name, class_type,
                                       [len(class_labels)], class_labels)
 
-            container.add_node('ArrayFeatureExtractor', [probability_tensor_name, col_index_name],
-                               first_col_name, name=scope.get_unique_operator_name(
-                                   'ArrayFeatureExtractor'),
-                               op_domain='ai.onnx.ml')
+            container.add_node(
+                'ArrayFeatureExtractor',
+                [probability_tensor_name, col_index_name],
+                first_col_name,
+                name=scope.get_unique_operator_name(
+                    'ArrayFeatureExtractor'),
+                op_domain='ai.onnx.ml')
             apply_div(scope, [first_col_name, denominator_name],
                       modified_first_col_name, container, broadcast=1)
-            apply_sub(scope, [unit_float_tensor_name, modified_first_col_name],
-                      zeroth_col_name, container, broadcast=1)
-            container.add_node('Concat', [zeroth_col_name, modified_first_col_name],
-                               merged_prob_name, name=scope.get_unique_operator_name('Concat'), axis=1)
-            container.add_node('ArgMax', merged_prob_name,
-                               predicted_label_name, name=scope.get_unique_operator_name('ArgMax'), axis=1)
-            container.add_node('ArrayFeatureExtractor', [classes_name, predicted_label_name], final_label_name,
-                               name=scope.get_unique_operator_name('ArrayFeatureExtractor'), op_domain='ai.onnx.ml')
+            apply_sub(
+                scope, [unit_float_tensor_name, modified_first_col_name],
+                zeroth_col_name, container, broadcast=1)
+            container.add_node(
+                'Concat', [zeroth_col_name, modified_first_col_name],
+                merged_prob_name,
+                name=scope.get_unique_operator_name('Concat'), axis=1)
+            container.add_node(
+                'ArgMax', merged_prob_name,
+                predicted_label_name,
+                name=scope.get_unique_operator_name('ArgMax'), axis=1)
+            container.add_node(
+                'ArrayFeatureExtractor', [classes_name, predicted_label_name],
+                final_label_name,
+                name=scope.get_unique_operator_name('ArrayFeatureExtractor'),
+                op_domain='ai.onnx.ml')
             apply_reshape(scope, final_label_name,
-                          operator.outputs[0].full_name, container, desired_shape=[-1, ])
+                          operator.outputs[0].full_name,
+                          container, desired_shape=[-1, ])
             prob_tensor = merged_prob_name
         else:
             container.add_node('Identity', label_tensor_name,
@@ -423,24 +514,70 @@ def convert_lightgbm(scope, operator, container):
             k for k in attrs if k.startswith('class_'))
 
         for k in keys_to_be_renamed:
-            # Rename class_* attribute to target_* because TreeEnsebmleClassifier
+            # Rename class_* attribute to target_*
+            # because TreeEnsebmleClassifier
             # and TreeEnsembleClassifier have different ONNX attributes
             attrs['target' + k[5:]] = copy.deepcopy(attrs[k])
             del attrs[k]
-        if dtype == numpy.float64:
-            container.add_node('TreeEnsembleRegressorDouble', operator.input_full_names,
-                               output_name, op_domain='mlprodict', **attrs)
+
+        options = container.get_options(gbm_model, dict(split=-1))
+        split = options['split']
+        if split == -1:
+            if dtype == numpy.float64:
+                container.add_node(
+                    'TreeEnsembleRegressorDouble', operator.input_full_names,
+                    output_name, op_domain='mlprodict', **attrs)
+            else:
+                container.add_node(
+                    'TreeEnsembleRegressor', operator.input_full_names,
+                    output_name, op_domain='ai.onnx.ml', **attrs)
         else:
-            container.add_node('TreeEnsembleRegressor', operator.input_full_names,
-                               output_name, op_domain='ai.onnx.ml', **attrs)
+            tree_attrs = _split_tree_ensemble_atts(attrs, split)
+            tree_nodes = []
+            for i, ats in enumerate(tree_attrs):
+                tree_name = scope.get_unique_variable_name('tree%d' % i)
+                if dtype == numpy.float64:
+                    container.add_node(
+                        'TreeEnsembleRegressorDouble', operator.input_full_names,
+                        tree_name, op_domain='mlprodict', **ats)
+                    tree_nodes.append(tree_name)
+                else:
+                    container.add_node(
+                        'TreeEnsembleRegressor', operator.input_full_names,
+                        tree_name, op_domain='ai.onnx.ml', **ats)
+                    cast_name = scope.get_unique_variable_name('dtree%d' % i)
+                    container.add_node(
+                        'Cast', tree_name, cast_name, to=TensorProto.DOUBLE,  # pylint: disable=E1101
+                        name=scope.get_unique_operator_name("dtree%d" % i))
+                    tree_nodes.append(cast_name)
+            if dtype == numpy.float64:
+                container.add_node(
+                    'Sum', tree_nodes, output_name,
+                    name=scope.get_unique_operator_name("sumtree%d" % len(tree_nodes)))
+            else:
+                cast_name = scope.get_unique_variable_name('ftrees')
+                container.add_node(
+                    'Sum', tree_nodes, cast_name,
+                    name=scope.get_unique_operator_name("sumtree%d" % len(tree_nodes)))
+                container.add_node(
+                    'Cast', cast_name, output_name, to=TensorProto.FLOAT,  # pylint: disable=E1101
+                    name=scope.get_unique_operator_name("dtree%d" % i))
+
         if gbm_model.boosting_type == 'rf':
             denominator_name = scope.get_unique_variable_name('denominator')
 
             container.add_initializer(
-                denominator_name, onnx_proto.TensorProto.FLOAT, [], [100.0])  # pylint: disable=E1101
+                denominator_name, onnx_proto.TensorProto.FLOAT,  # pylint: disable=E1101
+                [], [100.0])
 
             apply_div(scope, [output_name, denominator_name],
                       operator.output_full_names, container, broadcast=1)
+        elif post_transform:
+            container.add_node(
+                post_transform, output_name,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name(
+                    post_transform))
         else:
             container.add_node('Identity', output_name,
                                operator.output_full_names,
