@@ -4,12 +4,11 @@
 """
 from sklearn.base import is_classifier
 from skl2onnx import get_model_alias
-from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.common._registration import (
     get_shape_calculator, _converter_pool, _shape_calculator_pool)
 from skl2onnx._parse import _parse_sklearn
 from skl2onnx.common._apply_operation import apply_identity
-from skl2onnx.common._topology import Scope, Variable
+from skl2onnx.common._topology import Scope, Variable  # pylint: disable=E0611,E0001
 from skl2onnx._supported_operators import sklearn_operator_name_map
 
 
