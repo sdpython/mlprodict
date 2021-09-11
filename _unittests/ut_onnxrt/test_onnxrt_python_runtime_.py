@@ -62,7 +62,9 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
     OnnxRound,
-    OnnxScatterElements, OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign,
+    OnnxScatterElements,
+    OnnxSequenceConstruct,
+    OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign,
     OnnxSin, OnnxSinh,
     OnnxSize, OnnxSoftmax,
     OnnxSplit, OnnxSplitApi11,
@@ -3421,6 +3423,23 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     target_opset=opset)
                 got = OnnxInference(model_def).run({'X': x})
                 self.assertEqualArray(y, got['Y'])
+
+    @wraplog()
+    def test_onnxt_runtime_sequence_construct(self):
+        x = numpy.random.randn(20, 2).astype(  # pylint: disable=E1101
+            numpy.float32)  # pylint: disable=E1101
+        onx = OnnxSequenceConstruct(
+            'X', 'X', 'X', output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        output = got['Y']
+        self.assertEqualArray(len(output), 3)
+        for i in range(0, len(output)):
+            self.assertEqualArray(x, output[i])
+        python_tested.append(OnnxSequenceConstruct)
 
     @wraplog()
     def test_onnxt_runtime_shape(self):
