@@ -3437,7 +3437,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': x})
         output = got['Y']
         self.assertEqualArray(len(output), 3)
-        for i in range(0, len(output)):
+        for i in range(0, len(output)):  # pylint: disable=C0200
             self.assertEqualArray(x, output[i])
         python_tested.append(OnnxSequenceConstruct)
 

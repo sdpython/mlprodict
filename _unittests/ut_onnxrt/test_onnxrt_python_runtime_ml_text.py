@@ -464,10 +464,10 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         sess = OnnxInference(onx)
 
         got = sess.run(inputs)
-        self.assertArrayEqual(expected_label, got[0])
+        self.assertEqualArray(expected_label, got[0])
         self.assertEqual(len(expected_proba), len(got[1]))
         for e, g in zip(expected_proba, got[1]):
-            self.assertArrayEqual(e, g, decimal=5)
+            self.assertEqualArray(e, g, decimal=5)
 
 
 if __name__ == "__main__":
