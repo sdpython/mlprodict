@@ -5,8 +5,16 @@
 import unittest
 from logging import getLogger
 import numpy
+import pandas
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.multioutput import MultiOutputClassifier
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
+from pyquickhelper.texthelper.version_helper import compare_module_version
+from skl2onnx import __version__ as sk2ver
 from skl2onnx.common.data_types import (
     StringTensorType, FloatTensorType, Int64TensorType)
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
@@ -418,6 +426,48 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         oinf = OnnxInference(onx)
         got = oinf.run({'X': corpus})
         self.assertEqualArray(exp.todense(), got['variable'])
+
+    @unittest.skipIf(compare_module_version(sk2ver, '1.9.3') < 0,
+                     reason="fails on that example")
+    @ignore_warnings(UserWarning)
+    def test_multi_output_classifier(self):
+        dfx = pandas.DataFrame(
+            {'CAT1': ['985332', '985333', '985334', '985335', '985336'],
+             'CAT2': ['1985332', '1985333', '1985334', '1985335', '1985336'],
+             'TEXT': ["abc abc", "abc def", "def ghj", "abcdef", "abc ii"]})
+        dfy = pandas.DataFrame(
+            {'REAL': [5, 6, 7, 6, 5],
+             'CATY': [0, 1, 0, 1, 0]})
+
+        cat_features = ['CAT1', 'CAT2']
+        categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+        textual_feature = 'TEXT'
+        count_vect_transformer = Pipeline(steps=[
+            ('count_vect', CountVectorizer(
+                max_df=0.8, min_df=0.05, max_features=1000))])
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('cat_transform', categorical_transformer, cat_features),
+                ('count_vector', count_vect_transformer, textual_feature)])
+        model_RF = RandomForestClassifier(random_state=42, max_depth=50)
+        rf_clf = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('classifier', MultiOutputClassifier(estimator=model_RF))])
+        rf_clf.fit(dfx, dfy)
+        expected_label = rf_clf.predict(dfx)
+        expected_proba = rf_clf.predict_proba(dfx)
+
+        inputs = {'CAT1': dfx['CAT1'].values.reshape((-1, 1)),
+                  'CAT2': dfx['CAT2'].values.reshape((-1, 1)),
+                  'TEXT': dfx['TEXT'].values.reshape((-1, 1))}
+        onx = to_onnx(rf_clf, dfx, target_opset=get_opset_number_from_onnx())
+        sess = OnnxInference(onx)
+
+        got = sess.run(inputs)
+        self.assertEqualArray(expected_label, got[0])
+        self.assertEqual(len(expected_proba), len(got[1]))
+        for e, g in zip(expected_proba, got[1]):
+            self.assertEqualArray(e, g, decimal=5)
 
 
 if __name__ == "__main__":

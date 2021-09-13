@@ -104,6 +104,7 @@ from .op_rnn import RNN
 from .op_scaler import Scaler
 from .op_scan import Scan
 from .op_scatter_elements import ScatterElements
+from .op_sequence_construct import SequenceConstruct
 from .op_sequence_insert import SequenceInsert
 from .op_shape import Shape
 from .op_sigmoid import Sigmoid
