@@ -19,6 +19,7 @@ from skl2onnx.common.data_types import (
 from skl2onnx import convert_sklearn
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from skl2onnx.algebra.type_helper import _guess_type
+from ..onnx_tools.onnx_manipulations import onnx_rename_names
 from .register_rewritten_converters import register_rewritten_operators
 from .register import register_converters
 from .scorers import CustomScorerTransform
@@ -243,7 +244,7 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
 def to_onnx(model, X=None, name=None, initial_types=None,
             target_opset=None, options=None, rewrite_ops=False,
             white_op=None, black_op=None, final_types=None,
-            verbose=0):
+            rename_strategy=None, verbose=0):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
 
@@ -269,6 +270,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
         initial_types but not mandatory, it is used
         to overwrites the type (if type is not None)
         and the name of every output.
+    :param rename_strategy: rename any name in the graph, select shorter
+        names, see @see fn onnx_rename_names
     :param verbose: display information while converting the model
     :return: converted model
 
@@ -348,6 +351,9 @@ def to_onnx(model, X=None, name=None, initial_types=None,
 
             onxp = oinf.run(inputs)
             print(onxp)
+
+    .. versionchanged:: 0.7
+        Parameter *rename_strategy* was added.
     """
     if isinstance(model, OnnxOperatorMixin):
         if not hasattr(model, 'op_version'):
@@ -435,4 +441,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
                               final_types=final_types, verbose=verbose)
 
     register_rewritten_operators(old_values, old_shapes)
+
+    # optimisation
+    if rename_strategy is not None:
+        res = onnx_rename_names(res, strategy=rename_strategy)
     return res

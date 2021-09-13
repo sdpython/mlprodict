@@ -40,9 +40,7 @@ Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.onnx_tools.model_checker.onnx_shaker
 
-.. autosignature:: mlprodict.onnx_tools.optimisation._main_onnx_optim.onnx_optimisations
-
-.. autosignature:: mlprodict.onnx_tools.optim.onnx_statistics
+.. autosignature:: mlprodict.onnx_tools.optim.onnx_helper.onnx_statistics
 
 .. autosignature:: mlprodict.onnx_tools.onnx_manipulations.select_model_inputs_outputs
 
@@ -59,7 +57,11 @@ is left unchanged.
 
 .. autosignature:: mlprodict.onnx_tools.onnx_tools.ensure_topological_order
 
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_rename_names
+
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation.onnx_remove_node
+
+.. autosignature:: mlprodict.onnx_tools.optimisation._main_onnx_optim.onnx_optimisations
 
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation_identity.onnx_remove_node_identity
 

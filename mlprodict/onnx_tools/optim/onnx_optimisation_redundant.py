@@ -9,8 +9,7 @@ from ._onnx_optimisation_common import (  # pylint: disable=E0611
     _rename_node_input,
     _rename_node_output,
     _apply_optimisation_on_graph,
-    _apply_remove_node_fct_node
-)
+    _apply_remove_node_fct_node)
 
 
 def _hash_obj_content(obj, max_size=1000):
