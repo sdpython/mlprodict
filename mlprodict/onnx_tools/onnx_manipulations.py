@@ -3,6 +3,7 @@
 @brief Implements a class able to compute the predictions
 from on an :epkg:`ONNX` model.
 """
+import hashlib
 from onnx import helper, shape_inference
 from .onnx2py_helper import guess_proto_dtype
 from .optim import onnx_remove_node_unused
@@ -303,3 +304,181 @@ def overwrite_opset(model, new_opset):
             op_set.domain = oimp.domain
             op_set.version = oimp.version
     return onnx_model
+
+
+def hash_onnx_object(obj, max_size):
+    """
+    Hash the content of an object.
+    """
+    m = hashlib.sha256()
+    if hasattr(obj, 'op_type'):
+        # An operator.
+        m.update(obj.op_type.encode('ascii'))
+        m.update(str(len(obj.input)).encode('ascii'))
+        m.update(str(len(obj.output)).encode('ascii'))
+        if hasattr(obj, 'attribute'):
+            for att in obj.attribute:
+                m.update(att.name.encode('ascii'))
+                m.update(att.SerializeToString())
+    else:
+        # An initializer.
+        name = obj.name
+        docf = obj.doc_string
+        obj.name = ''
+        obj.doc_string = ''
+        try:
+            m.update(obj.SerializeToString())
+        except AttributeError as e:
+            raise RuntimeError(
+                "Unable to hash object type %r, value=%r."
+                "" % (type(obj), obj)) from e
+        finally:
+            obj.name = name
+            obj.doc_string = docf
+
+    content = m.hexdigest()
+    if len(content) > max_size:
+        content = content[:max_size]
+    return content.upper()
+
+
+def onnx_rename_names(model, strategy='simple', recursive=True,
+                      verbose=0, fLOG=print,
+                      counts=None, replace=None, taken=None):
+    """
+    Renames all names except the inputs and outputs.
+
+    :param model: onnx model
+    :param strategy: two strategies are implemented, see below
+    :param recursive: walk through subgraphs
+    :param verbose: verbose, if positive, reports on all changed names
+    :param fLOG: logging function
+    :param counts: used for recursion
+    :param replace: used for recursion
+    :param taken: used for recursion
+    :return: onnx model (the model is modified in place)
+
+    Strategies:
+    * `'simple'`: use a letter `n` for node, `r`, `i` for initializer,
+        this letter is followed by a number
+    * `'type'`: the name depends on the node type and content,
+        the hash is kept as small as possible
+    """
+    counts = counts or {'init': 0, 'node': 0, 'result': 0}
+    replace = replace or {}
+    taken = taken or set()
+    graph = model.graph if hasattr(model, 'graph') else model
+
+    for obj in graph.input:
+        replace[obj.name] = obj.name
+    for obj in graph.output:
+        replace[obj.name] = obj.name
+
+    def _check_name_simple(prefix):
+        if prefix not in replace:
+            return prefix
+        c = 1
+        final = "%s_%d" % (prefix, c)
+        while final in taken:
+            c += 1
+            final = "%s_%d" % (prefix, c)
+        taken.add(final)
+        return final
+
+    def _check_name_type(obj, prefix):
+        c = 2
+        hash = hash_onnx_object(obj, c)
+        final = "%s_%s" % (prefix, hash)
+        while final in taken:
+            c += 2
+            hash = hash_onnx_object(obj, c)
+            final = "%s_%s" % (prefix, hash)
+        taken.add(final)
+        return final
+
+    def get_name_init(init):
+        if init.name in replace:
+            return replace[init.name]
+        if strategy == 'simple':
+            name = _check_name_simple('i%d' % counts['init'])
+            counts['init'] += 1
+            replace[init.name] = name
+            if verbose > 0 and fLOG is not None:
+                fLOG('[onnx_rename_names] %r -> %r' % (init.name, name))
+            return name
+        if strategy == 'type':
+            name = _check_name_type(init, 'i')
+            counts['init'] += 1
+            replace[init.name] = name
+            if verbose > 0 and fLOG is not None:
+                fLOG('[onnx_rename_names] %r -> %r' % (init.name, name))
+            return name
+        raise ValueError(  # pragma: no cover
+            "Unknown strategy %r." % strategy)
+
+    def get_name_node(node):
+        if node.name in replace:
+            return replace[node.name]
+        if strategy == 'simple':
+            name = _check_name_simple('n%d' % counts['node'])
+            counts['node'] += 1
+            replace[node.name] = name
+            if verbose > 0 and fLOG is not None:
+                fLOG('[onnx_rename_names] %r -> %r' % (node.name, name))
+            return name
+        if strategy == 'type':
+            name = _check_name_type(node, 'n')
+            counts['node'] += 1
+            replace[node.name] = name
+            if verbose > 0 and fLOG is not None:
+                fLOG('[onnx_rename_names] %r -> %r' % (node.name, name))
+            return name
+        raise ValueError(  # pragma: no cover
+            "Unknown strategy %r." % strategy)
+
+    def get_name_result(node, i, name, suffix):
+        if name in replace:
+            return replace[name]
+        if strategy == 'simple':
+            new_name = _check_name_simple('r%d' % counts['result'])
+            counts['result'] += 1
+            replace[name] = new_name
+            if verbose > 0 and fLOG is not None:
+                fLOG('[onnx_rename_names] %r -> %r' % (name, new_name))
+            return new_name
+        if strategy == 'type':
+            new_name = _check_name_type(node, 'r%s%d' % (suffix, i))
+            counts['result'] += 1
+            replace[name] = new_name
+            if verbose > 0 and fLOG is not None:
+                fLOG('[onnx_rename_names] %r -> %r' % (name, new_name))
+            return new_name
+        raise ValueError(  # pragma: no cover
+            "Unknown strategy %r." % strategy)
+
+    def get_name_input(node, i):
+        return get_name_result(node, i, node.input[i], 'i')
+
+    def get_name_output(node, i):
+        return get_name_result(node, i, node.output[i], 'o')
+
+    for init in graph.initializer:
+        init.name = get_name_init(init)
+
+    for node in graph.node:
+        node.name = get_name_node(node)
+        for i in range(len(node.input)):  # pylint: disable=C0200
+            node.input[i] = get_name_input(node, i)
+        for i in range(len(node.output)):  # pylint: disable=C0200
+            node.output[i] = get_name_output(node, i)
+        if not recursive or node.op_type not in {'Scan', 'If', 'Loop'}:
+            continue
+        # recursion
+        for att in node.attribute:
+            if att.name not in {'if_branch', 'else_branch', 'body'}:
+                continue
+            onnx_rename_names(
+                att.g, strategy=strategy, fLOG=fLOG, verbose=verbose,
+                counts=counts, replace=replace, taken=taken)
+
+    return model
