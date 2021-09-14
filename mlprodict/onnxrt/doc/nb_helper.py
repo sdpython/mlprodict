@@ -10,7 +10,7 @@ from ..onnx_inference import OnnxInference
 
 
 def onnxview(graph, recursive=False, local=False, add_rt_shapes=False,
-             runtime='python', size=None):
+             runtime='python', size=None, html_size=None):
     """
     Displays an :epkg:`ONNX` graph into a notebook.
 
@@ -24,6 +24,7 @@ def onnxview(graph, recursive=False, local=False, add_rt_shapes=False,
     :param runtime: the view fails if a runtime does not implement a specific
         node unless *runtime* is `'empty'`
     :param size: graph size
+    :param html_size: html size
 
     .. versionchanged:: 0.6
         Parameter *runtime* was added.
@@ -31,6 +32,8 @@ def onnxview(graph, recursive=False, local=False, add_rt_shapes=False,
     sess = OnnxInference(graph, skip_run=not add_rt_shapes, runtime=runtime)
     dot = sess.to_dot(recursive=recursive,
                       add_rt_shapes=add_rt_shapes, size=size)
+    if html_size is not None:
+        return RenderJsDot(dot, local=local, width=html_size, height=html_size)
     return RenderJsDot(dot, local=local)
 
 
@@ -69,7 +72,8 @@ class OnnxNotebook(MagicClassWithHelpers):
 
         if args is not None:
             res = onnxview(args.graph, recursive=args.recursive,
-                           local=args.local, add_rt_shapes=args.add_rt_shapes)
+                           local=args.local, add_rt_shapes=args.add_rt_shapes,
+                           size=args.size, html_size=args.html_size)
             return res
         return None
 
