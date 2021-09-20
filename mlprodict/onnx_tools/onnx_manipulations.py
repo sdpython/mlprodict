@@ -509,6 +509,8 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
     <mlprodict.onnxrt.onnx_inference.OnnxInference.run2onnx>`
     to see a graph this function produces.
 
+    .. image:: debug.png
+
     .. versionadded:: 0.7
     """
     inputs = list(model.graph.input)
