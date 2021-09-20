@@ -27,12 +27,14 @@ Export
 
 .. autosignature:: mlprodict.onnx_tools.onnx_export.export2tf2onnx
 
-Graphs
-++++++
+Graphs helper, maipulations
++++++++++++++++++++++++++++
 
 Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.tools.model_info.analyze_model
+
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.insert_results_into_onnx
 
 .. autosignature:: mlprodict.onnx_tools.onnx_manipulations.enumerate_model_node_outputs
 
@@ -48,7 +50,7 @@ Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.testing.script_testing.verify_script
 
-Onnx Optimisation
+Onnx Optimization
 +++++++++++++++++
 
 The following functions reduce the number of ONNX operators in a graph

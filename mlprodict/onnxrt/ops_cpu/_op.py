@@ -593,7 +593,7 @@ class OpRunBinary(OpRun):
                     x.shape, y.shape))
         try:
             res = self._run(x, y)
-        except TypeError as e:  # pragma: no cover
+        except (TypeError, ValueError) as e:  # pragma: no cover
             raise TypeError(
                 "Issues with types {} (binary operator {}).".format(
                     ", ".join(str(type(_)) for _ in [x, y]),

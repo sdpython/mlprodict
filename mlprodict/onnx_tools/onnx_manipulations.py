@@ -5,7 +5,7 @@ from on an :epkg:`ONNX` model.
 """
 import hashlib
 from onnx import helper, shape_inference
-from .onnx2py_helper import guess_proto_dtype
+from .onnx2py_helper import guess_proto_dtype, from_array
 from .optim import onnx_remove_node_unused
 
 
@@ -482,3 +482,117 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
                 counts=counts, replace=replace, taken=taken)
 
     return model
+
+
+def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
+                             param_name=None, node_type='DEBUG',
+                             domain='DEBUG', domain_opset=1):
+    """
+    Inserts results into an ONNX graph to produce an extended
+    ONNX graph. It can saved and looked into with a tool such as
+    :epkg:`netron`.
+
+    :param model: ONNX graph
+    :param results: results to be added in a dictionary
+    :param as_parameter: add new nodes with results as one parameter
+        (True) or as initializer (False)
+    :param suffix: suffix to add to new results
+    :param param_name: name of the parameter to add
+        (by default the result name), it can be a function
+        `param_name(reult_name) -> parameter_name`
+    :param node_type: type of the new node
+    :param domain: domain the new node
+    :param domain_opset: opset for *domain*
+    :return: new ONNX graph
+
+    See method :meth:`OnnxInference.run2onnx
+    <mlprodict.onnxrt.onnx_inference.OnnxInference.run2onnx>`
+    to see a graph this function produces.
+
+    .. versionadded:: 0.7
+    """
+    inputs = list(model.graph.input)
+    outputs = list(model.graph.output)
+    inits = list(model.graph.initializer)
+    nodes = {id(n): n for n in model.graph.node}
+    order = {id(n): i for i, n in enumerate(model.graph.node)}
+    nodes_copy = {}
+
+    names_init = set(init.name for init in inits)
+    names_input = set(init.name for init in inputs)
+    names_output = {}
+    for node in nodes.values():
+        for i, o in enumerate(node.output):
+            names_output[o] = (i, node)
+
+    for k, v in results.items():
+        if k in names_init:
+            # initializer are not inserted again
+            continue
+        if k in names_input:
+            # inputs are added as
+            raise NotImplementedError(
+                "Unable to add debug information on input %r." % k)
+
+        if k not in names_output:
+            raise RuntimeError(
+                "Unable to find result %r in the ONNX graph. Available="
+                "[%s]." % (k, ", ".join(sorted(names_output))))
+
+        index, node = names_output[k]
+        new_name = k + suffix
+
+        if id(node) not in nodes_copy:
+            new_node = helper.make_node(
+                node.op_type, list(node.input), list(node.output),
+                domain=node.domain if node.domain else None,
+                name=node.name + suffix)
+            new_node.attribute.extend(node.attribute)  # pylint: disable=E1101
+            nodes_copy[id(node)] = new_node
+            order[id(new_node)] = order[id(node)]
+        new_node = nodes_copy[id(node)]
+        new_node.output[index] = new_name
+
+        if as_parameter:
+            pname = k if param_name is None else param_name(k)
+            atts = {pname: from_array(v, name=pname)}
+            inserted_node = helper.make_node(
+                node_type, [new_name], [k], domain=domain,
+                **atts)
+        else:
+            pname = k if param_name is None else param_name(k)
+            pname += suffix + 'i'
+            inserted_node = helper.make_node(
+                node_type, [new_name, pname], [k], domain=domain)
+            inits.append(from_array(v, name=pname))
+
+        order[id(inserted_node)] = order[id(node)] + 1. / (index + 2)
+        nodes[id(inserted_node)] = inserted_node
+
+    new_nodes = [(order[id(n)], n)
+                 for n in nodes.values() if id(n) not in nodes_copy]
+    new_nodes.extend((order[id(n)], n) for n in nodes_copy.values())
+    new_nodes = [n[1] for n in sorted(new_nodes)]
+
+    graph = helper.make_graph(new_nodes, model.graph.name, inputs,
+                              outputs, inits)
+    onnx_model = helper.make_model(graph)
+    onnx_model.ir_version = model.ir_version
+    onnx_model.producer_name = model.producer_name
+    onnx_model.producer_version = model.producer_version
+    onnx_model.domain = model.domain
+    onnx_model.model_version = model.model_version
+    onnx_model.doc_string = model.doc_string
+    if len(model.metadata_props) > 0:  # pragma: no cover
+        values = {p.key: p.value for p in model.metadata_props}
+        helper.set_model_props(onnx_model, values)
+
+    del onnx_model.opset_import[:]  # pylint: disable=E1101
+    for oimp in model.opset_import:
+        op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
+        op_set.domain = oimp.domain
+        op_set.version = oimp.version
+    op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
+    op_set.domain = domain
+    op_set.version = domain_opset
+    return onnx_model

@@ -90,6 +90,7 @@ epkg_dictionary.update({
     'mlinsights': 'http://www.xavierdupre.fr/app/mlinsights/helpsphinx/index.html',
     'mlprodict': 'http://www.xavierdupre.fr/app/mlprodict/helpsphinx/index.html',
     'mlstatpy': 'http://www.xavierdupre.fr/app/mlstatpy/helpsphinx/index.html',
+    'netron': 'https://github.com/lutzroeder/netron',
     'numba': 'https://numba.org/',
     'numpy': ('https://www.numpy.org/',
               ('https://docs.scipy.org/doc/numpy/reference/generated/numpy.{0}.html', 1),
