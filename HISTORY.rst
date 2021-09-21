@@ -5,12 +5,34 @@
 History
 =======
 
-current - 2021-07-26 - 0.00Mb
+current - 2021-09-21 - 0.00Mb
 =============================
 
+* `309`: Adds function insert_results_into_onnx to insert results into a graph to debug (2021-09-21)
+* `308`: Adds function to rename all results in ONNX graphs (2021-09-13)
+* `307`: Adds runtime for operator SequenceConstruct (2021-09-13)
+* `305`: Add option to split lightgbm converter into multipule TreeEnsemble (2021-09-10)
+* `304`: Add tree text visualization for TreeEnsemble (2021-09-01)
+* `303`: Implements a estimator speeding up the inference using ONNX (2021-08-31)
+* `302`: Removes unused nodes after changing the outputs. (2021-08-23)
+* `298`: Remove unused nodes after changing the outputs (2021-08-23)
+* `301`: Different build for manylinux on python 3.9 (2021-08-18)
+* `300`: Improves Lightgbm converter design + fix wrong prediction for TreeEnsemble with non contiguous arrays (2021-08-18)
+* `297`: Adds function to convert ONNX into numpy code. (2021-08-13)
+* `296`: Lightgbm + add function matmul to numpy API for ONNX (2021-08-07)
+* `295`: Implements runtime for operator FFT (2021-08-03)
+* `291`: Fixes infinite loop with operator loop, add support for static variables in Loop (2021-07-31)
+* `294`: Implements text representation of an ONNX graph (bigraph) (2021-07-30)
+* `293`: Add a tool to display an ONNX graph into text format (2021-07-30)
+* `292`: Adds operator AveragePool to the python runtime (2021-07-29)
+* `290`: Increases code coverage, add infer_size for Loop runtime (2021-07-28)
+
+0.6.1522 - 2021-07-26 - 1.78Mb
+==============================
+
 * `289`: Avoids raising an exception when an optional parameter is not specified (2021-07-26)
-* `287`: Adds python runtime for operator Loop, SequenceInsert, ConcatFromSequence (2021-07-25)
 * `288`: Extends code coverage (2021-07-25)
+* `287`: Adds python runtime for operator Loop, SequenceInsert, ConcatFromSequence (2021-07-25)
 * `286`: Adds runtime for operator Range (2021-07-13)
 
 0.6.1447 - 2021-07-12 - 2.56Mb
@@ -286,10 +308,6 @@ current - 2021-07-26 - 0.00Mb
 * `62`: Implements command line for the asv benchmark (ONNX) (2019-10-04)
 * `60`: Improve lightgbm converter (ONNX) (2019-09-30)
 * `58`: Fix table checking model, merge is wrong in documentation (2019-09-20)
-
-0.2.542 - 2019-09-15 - 0.59Mb
-=============================
-
 * `57`: ONNX: handles dataframe when converting a model (2019-09-15)
 * `56`: ONNX: implements cdist operator (2019-09-12)
 * `54`: ONNX: fix summary, it produces multiple row when model are different when opset is different (2019-09-12)
@@ -302,10 +320,6 @@ current - 2021-07-26 - 0.00Mb
 * `45`: KNearestNeighborsRegressor (2019-08-30)
 * `44`: Add an example to look into the performance of every node for a particular dataset (2019-08-30)
 * `43`: LGBMClassifier has wrong shape (2019-08-29)
-
-0.2.452 - 2019-08-28 - 0.13Mb
-=============================
-
 * `42`: Adds a graph which visually summarize the validating benchmark (ONNX). (2019-08-27)
 * `41`: Enables to test multiple number of features at the same time (ONNX) (2019-08-27)
 * `40`: Add a parameter to change the number of featuress when validating a model (ONNX). (2019-08-26)
@@ -318,10 +332,6 @@ current - 2021-07-26 - 0.00Mb
 * `15`: Tells operator if the execution can be done inplace for unary operators (ONNX). (2019-08-06)
 * `27`: Bug fix (2019-08-02)
 * `23`: support double for TreeEnsembleRegressor (python runtime ONNX) (2019-08-02)
-
-0.2.363 - 2019-08-01 - 0.11Mb
-=============================
-
 * `26`: Tests all converters in separate processeses to make it easier to catch crashes (2019-08-01)
 * `25`: Ensures operator clip returns an array of the same type (ONNX Python Runtime) (2019-07-30)
 * `22`: Implements a function to shake an ONNX model and test float32 conversion (2019-07-28)
