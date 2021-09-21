@@ -60,7 +60,7 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
                 self.assertEqualArray(e, g)
 
             del model_def.opset_import[:]  # pylint: disable=E1101
-            op_set = model_def.opset_import.add()
+            op_set = model_def.opset_import.add()  # pylint: disable=E1101
             op_set.domain = ''
             op_set.version = 14
             model_def.ir_version = 7
@@ -189,7 +189,7 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
                 nodes=[node, node_concat]))
 
         del model_def.opset_import[:]  # pylint: disable=E1101
-        op_set = model_def.opset_import.add()
+        op_set = model_def.opset_import.add()  # pylint: disable=E1101
         op_set.domain = ''
         op_set.version = 14
         model_def.ir_version = 7
@@ -305,7 +305,7 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
                 nodes=[node1, node, node_concat]))
 
         del model_def.opset_import[:]  # pylint: disable=E1101
-        op_set = model_def.opset_import.add()
+        op_set = model_def.opset_import.add()  # pylint: disable=E1101
         op_set.domain = ''
         op_set.version = 14
         model_def.ir_version = 7

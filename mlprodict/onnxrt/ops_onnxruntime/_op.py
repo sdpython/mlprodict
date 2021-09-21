@@ -6,6 +6,7 @@
 import numpy
 import onnx.defs
 from onnx.helper import make_tensor
+from onnx.onnx_cpp2py_export.shape_inference import InferenceError
 import skl2onnx.algebra.onnx_ops as alg
 try:
     import skl2onnx.algebra.custom_ops as alg2
@@ -176,7 +177,7 @@ class OpRunOnnxRuntime:
                         "Probable issue as one dimension is null.\n--\n{}\n---\n{}".format(
                             self.onnx_, inputs))
                 forced = False
-            except (RuntimeError, ValueError):
+            except (RuntimeError, ValueError, InferenceError) as eo:
                 # Let's try again by forcing output types.
                 forced = True
                 outputs = get_defined_outputs(
@@ -191,9 +192,9 @@ class OpRunOnnxRuntime:
                     raise NotImplementedError(
                         "Unable to instantiate node {} inputs={} "
                         "self.inputs={} outputs={} variables={} "
-                        "dtype={}".format(
+                        "dtype={} e={} eo={}".format(
                             self.alg_class, inputs, self.inputs,
-                            outputs, variables, self.dtype)) from e
+                            outputs, variables, self.dtype, e, eo)) from e
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(  # pragma: no cover
                         "Probable issue as one dimension is null.\n--\n{}".format(
