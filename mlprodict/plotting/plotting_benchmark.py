@@ -142,7 +142,7 @@ def plot_benchmark_metrics(metric, xlabel=None, ylabel=None,
         .. plot::
 
             import matplotlib.pyplot as plt
-            from mlprodict.tools.plotting import plot_benchmark_metrics
+            from mlprodict.plotting.plotting_benchmark import plot_benchmark_metrics
 
             data = {(1, 1): 0.1, (10, 1): 1, (1, 10): 2,
                     (10, 10): 100, (100, 1): 100, (100, 10): 1000}
