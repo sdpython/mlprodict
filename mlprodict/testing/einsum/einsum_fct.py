@@ -24,7 +24,7 @@ def enumerate_cached_einsum():
     """
     Enumerates all cached einsum function.
     """
-    global _einsum_cache  # pylint: disable=W0603
+    global _einsum_cache  # pylint: disable=W0603,W0602
     for k, v in _einsum_cache.items():
         yield k, v
 
@@ -328,7 +328,7 @@ class CachedEinsum:
 def _einsum(equation, dtype, optimize=False, runtime="batch_dot",
             cache=True, opset=None, decompose=True, strategy=None,
             verbose=None):
-    global _einsum_cache  # pylint: disable=W0603
+    global _einsum_cache  # pylint: disable=W0603,W0602
     cached = None
     if cache:
         key = equation, runtime, opset, optimize, dtype, decompose, strategy

@@ -27,7 +27,7 @@ ignored_warnings = (UserWarning, ConvergenceWarning,
 class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
 
     @skipif_appveyor('crashes')
-    @ignore_warnings(category=ignored_warnings)
+    @ignore_warnings(category=ConvergenceWarning)
     def test_validate_sklearn_operators_onnxruntime_KMeans(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -50,7 +50,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         # self.assertGreater(len(buffer), 1)
 
     @skipif_appveyor('crashes')
-    @ignore_warnings(category=ignored_warnings)
+    @ignore_warnings(category=ConvergenceWarning)
     def test_validate_sklearn_operators_onnxruntime_BernoulliNB(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -71,7 +71,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         self.assertGreater(len(buffer), 1 if debug else 0)
 
     @skipif_appveyor('crashes')
-    @ignore_warnings(category=ignored_warnings)
+    @ignore_warnings(category=ConvergenceWarning)
     def test_validate_sklearn_operators_onnxruntime_AdaBoostRegressor(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -93,7 +93,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         self.assertGreater(len(buffer), 1 if debug else 0)
 
     @skipif_appveyor('crashes')
-    @ignore_warnings(category=ignored_warnings)
+    @ignore_warnings(category=ConvergenceWarning)
     def test_validate_sklearn_operators_onnxruntime_LogisticRegression(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -114,7 +114,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         # self.assertGreater(len(buffer), 1)
 
     @skipif_appveyor('crashes')
-    @ignore_warnings(category=ignored_warnings)
+    @ignore_warnings(category=ConvergenceWarning)
     def test_validate_sklearn_operators_all_onnxruntime(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')

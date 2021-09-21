@@ -263,7 +263,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                                      enforce_float32=enforce_float32)
                 yield out, tr
 
-    def onnx_parser(self, scope=None, inputs=None):
+    def onnx_parser(self):
         """
         Returns a parser for this model.
         """

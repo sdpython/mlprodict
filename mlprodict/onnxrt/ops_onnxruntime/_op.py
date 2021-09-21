@@ -6,7 +6,9 @@
 import numpy
 import onnx.defs
 from onnx.helper import make_tensor
-from onnx.onnx_cpp2py_export.shape_inference import InferenceError  # pylint: disable=E0401
+from onnx.onnx_cpp2py_export.shape_inference import InferenceError  # pylint: disable=E0401,E0611
+from skl2onnx.common.data_types import (
+    DictionaryType, FloatTensorType, Int64TensorType, StringTensorType)
 import skl2onnx.algebra.onnx_ops as alg
 try:
     import skl2onnx.algebra.custom_ops as alg2
@@ -113,7 +115,19 @@ class OpRunOnnxRuntime:
             # We assume it was the case when the graph was created.
             pass
 
-        if self.onnx_node.op_type == 'ConstantOfShape':
+        if self.onnx_node.op_type == 'ZipMap':
+            self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
+                                        op_version=target_opset, **options)
+            inputs = get_defined_inputs(
+                self.inputs, variables, dtype=self.dtype)
+            name = (self.outputs[0] if len(self.outputs) == 1
+                    else self.inst_.expected_outputs[0][0])
+            otype = (Int64TensorType if 'classlabels_int64s' in options
+                     else StringTensorType)
+            outvar = [(name, DictionaryType(otype([1]), FloatTensorType([1])))]
+            self.onnx_ = self.inst_.to_onnx(inputs, outputs=outvar)
+            forced = True
+        elif self.onnx_node.op_type == 'ConstantOfShape':
             for k in options:
                 v = options[k]
                 if isinstance(v, numpy.ndarray):
