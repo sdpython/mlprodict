@@ -263,14 +263,19 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                                      enforce_float32=enforce_float32)
                 yield out, tr
 
-    def onnx_parser(self, scope=None, inputs=None):
+    def onnx_parser(self):
         """
         Returns a parser for this model.
         """
-        if inputs:
-            self.parsed_inputs_ = inputs
-
-        def parser(scope=scope, inputs=inputs):
+        def parser(scope=None, inputs=None):
+            if scope is None:
+                raise RuntimeError(
+                    "scope cannot be None (parser of class %r)."
+                    "" % type(self))
+            if inputs is None:
+                raise RuntimeError(
+                    "inputs cannot be None (parser of class %r)."
+                    "" % type(self))
             if (not hasattr(self, 'onnxrt_') or
                     not hasattr(self.onnxrt_, 'output_names')):
                 raise RuntimeError(  # pragma: no cover

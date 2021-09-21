@@ -4,6 +4,7 @@
 import unittest
 from collections import OrderedDict
 import numpy
+from onnx import helper, TensorProto
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxMul, OnnxSub, OnnxIdentity, OnnxScan,
@@ -14,7 +15,7 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs,
-    onnx_rename_names)
+    onnx_rename_names, insert_results_into_onnx)
 from mlprodict.tools import get_opset_number_from_onnx
 
 
@@ -333,6 +334,82 @@ class TestOptimOnnxManipulations(ExtTestCase):
         y1 = oinf1.run({'x': x})
         y2 = oinf2.run({'x': x})
         self.assertEqualArray(y1['Y'], y2['Y'])
+
+    def test_insert_results_into_onnx(self):
+        X = helper.make_tensor_value_info(
+            'X', TensorProto.FLOAT, None)  # pylint: disable=E1101
+        Z = helper.make_tensor_value_info(
+            'Z', TensorProto.INT64, None)  # pylint: disable=E1101
+        node_def = helper.make_node('Shape', ['X'], ['Z0'], name='Zt')
+        node_def1 = helper.make_node('Identity', ['Z0'], ['Z'], name='Zti')
+        graph_def = helper.make_graph(
+            [node_def, node_def1], 'test-model', [X], [Z])
+        model_def = helper.make_model(
+            graph_def, producer_name='mlprodict',
+            ir_version=7, producer_version='0.1',
+            opset_imports=[helper.make_operatorsetid('', 13)])
+
+        new_graph = insert_results_into_onnx(
+            model_def, {'Z0': numpy.array([[29, 39]], dtype=numpy.int64)})
+        s_graph = str(new_graph)
+        self.assertIn('domain: "DEBUG"', s_graph)
+        self.assertNotIn('pname', s_graph)
+        self.assertIn('op_type: "DEBUG"', s_graph)
+        self.assertRaise(lambda: insert_results_into_onnx(
+            model_def, {'Zt': numpy.array([29, 39], dtype=numpy.int64)}),
+            RuntimeError)
+        # with open('debug.onnx', 'wb') as f:
+        #     f.write(new_graph.SerializeToString())
+
+        oinf1 = OnnxInference(model_def)
+        oinf2 = OnnxInference(new_graph)
+        cst = numpy.array([[5.6, 7.8]])
+        self.assertEqualArray(oinf1.run({'X': cst})['Z'],
+                              oinf2.run({'X': cst})['Z'])
+
+        onx = oinf1.run2onnx({'X': cst})[1]
+        s_graph = str(onx)
+        self.assertIn('domain: "DEBUG"', s_graph)
+        self.assertIn('op_type: "DEBUG"', s_graph)
+        self.assertNotIn('pname', s_graph)
+        oinf3 = OnnxInference(onx)
+        self.assertEqualArray(oinf1.run({'X': cst})['Z'],
+                              oinf3.run({'X': cst})['Z'])
+
+    def test_insert_results_into_onnx_init(self):
+        X = helper.make_tensor_value_info(
+            'X', TensorProto.FLOAT, None)  # pylint: disable=E1101
+        Z = helper.make_tensor_value_info(
+            'Z', TensorProto.INT64, None)  # pylint: disable=E1101
+        node_def = helper.make_node('Shape', ['X'], ['Z0'], name='Zt')
+        node_def1 = helper.make_node('Identity', ['Z0'], ['Z'], name='Zti')
+        graph_def = helper.make_graph(
+            [node_def, node_def1], 'test-model', [X], [Z])
+        model_def = helper.make_model(
+            graph_def, producer_name='mlprodict',
+            ir_version=7, producer_version='0.1',
+            opset_imports=[helper.make_operatorsetid('', 13)])
+
+        new_graph = insert_results_into_onnx(
+            model_def, {'Z0': numpy.array([[29, 39]], dtype=numpy.int64)},
+            as_parameter=False, param_name=lambda k: k)
+        s_graph = str(new_graph)
+        self.assertIn('domain: "DEBUG"', s_graph)
+        self.assertIn('op_type: "DEBUG"', s_graph)
+        self.assertRaise(lambda: insert_results_into_onnx(
+            model_def, {'Zt': numpy.array([29, 39], dtype=numpy.int64)}),
+            RuntimeError)
+        self.assertRaise(lambda: insert_results_into_onnx(
+            model_def, {'X': numpy.array([29, 39], dtype=numpy.int64)}),
+            NotImplementedError)
+        # with open('debug.onnx', 'wb') as f:
+        #     f.write(new_graph.SerializeToString())
+
+        oinf1 = OnnxInference(model_def)
+        oinf2 = OnnxInference(new_graph)
+        cst = numpy.array([[5.6, 7.8]])
+        self.assertEqualArray(oinf1.run({'X': cst})['Z'],
+                              oinf2.run({'X': cst})['Z'])
 
 
 if __name__ == "__main__":

@@ -34,7 +34,7 @@ class CumSum(OpRun):
                     "axis must be an array of one number not {} "
                     "(shape {})".format(axis, axis.shape))
             if len(axis.shape) > 0:
-                axis = axis[0]
+                axis = axis[0]  # pylint: disable=E1136
         if self.reverse or self.exclusive:
             raise NotImplementedError(
                 'reverse=1 or exclusive=1 not implemented')

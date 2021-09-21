@@ -8,7 +8,7 @@ import warnings
 import numpy
 from scipy.sparse import coo_matrix
 from onnx import onnx_pb as onnx_proto, TensorProto
-from onnx.numpy_helper import to_array, from_array
+from onnx.numpy_helper import to_array, from_array as onnx_from_array
 from skl2onnx.common.data_types import _guess_numpy_type
 
 
@@ -40,6 +40,22 @@ def to_bytes(val):
     else:
         pb = val  # pragma: no cover
     return pb.SerializeToString()
+
+
+def from_array(value, name=None):
+    """
+    Converts an array into an ONNX tensor.
+
+    :param value: numpy array
+    :return: ONNX tensor
+    """
+    if isinstance(value, numpy.ndarray):
+        pb = onnx_from_array(value, name=name)
+        return pb
+    if isinstance(value, TensorProto):
+        return value
+    raise NotImplementedError(
+        "Unable to convert type %r into an ONNX tensor." % type(value))
 
 
 def from_bytes(b):

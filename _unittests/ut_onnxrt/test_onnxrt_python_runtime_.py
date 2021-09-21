@@ -1874,7 +1874,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         onx = OnnxDequantizeLinear(
             'X', x_scale, x_zero_point, output_names=['Y'],
             op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+        model_def = onx.to_onnx({'X': X},
                                 target_opset=get_opset_number_from_onnx())
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
@@ -1889,7 +1889,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         onx = OnnxDequantizeLinear(
             'X', x_scale, x_zero_point, output_names=['Y'],
             op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+        model_def = onx.to_onnx({'X': X},
                                 target_opset=get_opset_number_from_onnx())
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
@@ -2227,15 +2227,15 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             onx = OnnxGemm('X', idi, cst, transB=1, output_names=['Y'],
                            alpha=numpy.float32(1.),
                            op_version=get_opset_number_from_onnx())
-            model_def = onx.to_onnx({'X': idi.astype(numpy.float64)},
+            model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                     target_opset=get_opset_number_from_onnx())
             if 'onnxruntime' in runtime:
                 model_def.ir_version = get_ir_version_from_onnx()
             oinf = OnnxInference(model_def, runtime=runtime)
             got = oinf.run({'X': X.astype(numpy.float32)})
             self.assertEqual(list(sorted(got)), ['Y'])
-            self.assertEqualArray(numpy.dot(X, idi.T) +
-                                  cst, got['Y'], decimal=5)
+            self.assertEqualArray(
+                numpy.dot(X, idi.T) + cst, got['Y'], decimal=5)
 
     @wraplog()
     def test_onnxt_runtime_global_average_pool(self):
@@ -2640,7 +2640,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             dtype=numpy.uint8).reshape((1, 1, 7, 7))
 
         x_scale = numpy.float32(0.00369204697)
-        x_zero_point = numpy.uint8(132)
+        x_zero_point = numpy.array(132, dtype=numpy.uint8)
 
         w = numpy.array([0], dtype=numpy.uint8).reshape((1, 1, 1, 1))
 

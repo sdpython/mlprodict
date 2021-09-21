@@ -59,6 +59,12 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
             for e, g in zip(outputs, oseq):
                 self.assertEqualArray(e, g)
 
+            del model_def.opset_import[:]  # pylint: disable=E1101
+            op_set = model_def.opset_import.add()  # pylint: disable=E1101
+            op_set.domain = ''
+            op_set.version = 14
+            model_def.ir_version = 7
+
         test_cases = {
             'at_back': [numpy.array([10, 11, 12]).astype(numpy.int64)],
             'at_front': [numpy.array([-2, -1, 0]),
@@ -182,6 +188,12 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
                     'res', TensorProto.FLOAT, None)],  # pylint: disable=E1101
                 nodes=[node, node_concat]))
 
+        del model_def.opset_import[:]  # pylint: disable=E1101
+        op_set = model_def.opset_import.add()  # pylint: disable=E1101
+        op_set.domain = ''
+        op_set.version = 14
+        model_def.ir_version = 7
+
         expected = numpy.array([
             1., 1., 2., 1., 2., 3., 1., 2.,
             3., 4., 1., 2., 3., 4., 5.], dtype=numpy.float32)
@@ -291,6 +303,12 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
                     make_tensor_value_info(
                         'Y', TensorProto.INT64, [])],  # pylint: disable=E1101
                 nodes=[node1, node, node_concat]))
+
+        del model_def.opset_import[:]  # pylint: disable=E1101
+        op_set = model_def.opset_import.add()  # pylint: disable=E1101
+        op_set.domain = ''
+        op_set.version = 14
+        model_def.ir_version = 7
 
         expected = numpy.array([
             1., 1., 2., 1., 2., 3., 1., 2.,

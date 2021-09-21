@@ -18,7 +18,7 @@ class TestCodeStyle(ExtTestCase):
                                   'R1702', 'W0212', 'W0640', 'W0223', 'W0201',
                                   'W0622', 'C0123', 'W0107', 'R1728',
                                   'C0415', 'R1721', 'C0411', 'R1735',
-                                  'C0208', 'C0325', 'W1514'),
+                                  'C0208', 'C0325', 'W1514', 'C0209'),
                    skip=["Instance of 'tuple' has no ",
                          "do not compare types, use 'isinstance()'",
                          "Instance of 'AutoAction' has no 'children' member",
@@ -34,7 +34,7 @@ class TestCodeStyle(ExtTestCase):
         test = os.path.normpath(os.path.join(thi, "..", ))
         check_pep8(test, fLOG=fLOG, neg_pattern="temp_.*",
                    pylint_ignore=('C0103', 'C1801', 'R0201', 'R1705', 'W0108', 'W0613',
-                                  'C0111', 'W0107', 'C0415', 'R1728',
+                                  'C0111', 'W0107', 'C0415', 'R1728', 'C0209',
                                   'R1721', 'C0302', 'C0411', 'R1735', 'W1514'),
                    skip=["Instance of 'tuple' has no ",
                          "R1720",

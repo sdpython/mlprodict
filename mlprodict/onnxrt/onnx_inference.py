@@ -20,7 +20,7 @@ from ..onnx_tools.onnx2py_helper import (
     _var_as_dict, numpy_min, numpy_max, guess_numpy_type_from_string)
 from ..onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs,
-    overwrite_opset)
+    overwrite_opset, insert_results_into_onnx)
 from ..onnx_tools.optim import onnx_remove_node_unused
 from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_exports import OnnxInferenceExport
@@ -705,6 +705,67 @@ class OnnxInference:
                          intermediate=intermediate,
                          verbose=verbose, node_time=node_time,
                          fLOG=fLOG)
+
+    def run2onnx(self, inputs, verbose=0, fLOG=None,
+                 as_parameter=True, suffix='_DBG',
+                 param_name=None, node_type='DEBUG',
+                 domain='DEBUG', domain_opset=1):
+        """
+        Executes the graphs with the given inputs, then adds the intermediate
+        results into ONNX nodes in the original graph. Once saved, it can be
+        looked with a tool such as :epkg:`netron`.
+
+        :param inputs: inputs as dictionary or a dataframe
+        :param verbose: display information while predicting
+        :param fLOG: logging function if *verbose > 0*
+        :param as_parameter: add new nodes with results as one parameter
+            (True) or as initializer (False)
+        :param suffix: suffix to add to new results
+        :param param_name: name of the parameter to add
+            (by default the result name), it can be a function
+            `param_name(reult_name) -> parameter_name`
+        :param node_type: type of the new node
+        :param domain: domain the new node
+        :param domain_opset: opset for *domain*
+        :return: outputs as dictionary
+            and the onnx graph with new nodes
+
+        The following example shows how to use it.
+
+        .. gdot::
+            :script: DOT-SECTION
+
+            from sklearn.linear_model import LinearRegression
+            from sklearn.datasets import load_iris
+            from mlprodict.onnxrt import OnnxInference
+            import numpy
+
+            iris = load_iris()
+            X = iris.data[:, :2]
+            y = iris.target
+            lr = LinearRegression()
+            lr.fit(X, y)
+
+            from mlprodict.onnx_conv import to_onnx
+            model_onnx = to_onnx(lr, X.astype(numpy.float32))
+            oinf = OnnxInference(model_onnx)
+
+            model_onnx_debug = oinf.run2onnx({'X': X[:3].astype(numpy.float32)})
+            oinf_debug = OnnxInference(model_onnx_debug[1])
+
+            print("DOT-SECTION", oinf_debug.to_dot())
+
+        .. versionadded:: 0.7
+        """
+        intermediate = self.run(inputs, verbose=verbose, fLOG=fLOG,
+                                intermediate=True)
+        for name in self.input_names:
+            del intermediate[name]
+        new_onx = insert_results_into_onnx(
+            self.obj, intermediate, as_parameter=as_parameter,
+            suffix=suffix, param_name=param_name, node_type=node_type,
+            domain=domain, domain_opset=domain_opset)
+        return intermediate, new_onx
 
     def display_sequence(self, verbose=1):
         """
