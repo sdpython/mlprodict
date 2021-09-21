@@ -292,6 +292,12 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
                         'Y', TensorProto.INT64, [])],  # pylint: disable=E1101
                 nodes=[node1, node, node_concat]))
 
+        del model_def.opset_import[:]  # pylint: disable=E1101
+        op_set = model_def.opset_import.add()
+        op_set.domain = ''
+        op_set.version = 14
+        model_def.ir_version = 7
+
         expected = numpy.array([
             1., 1., 2., 1., 2., 3., 1., 2.,
             3., 4., 1., 2., 3., 4., 5.], dtype=numpy.float32)
