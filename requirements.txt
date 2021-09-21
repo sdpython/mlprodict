@@ -47,5 +47,5 @@ xgboost
 
 # onnx
 onnx>=1.10.1
-onnxruntime>=1.9.1
+onnxruntime>=1.9.0
 skl2onnx>=1.9.3
