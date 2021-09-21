@@ -331,6 +331,13 @@ def log(x):
     return OnnxVar(x, op=OnnxLog)
 
 
+def log1p(x):
+    "See :epkg:`numpy:log1p`."
+    x1 = OnnxVar(x, numpy.array([1], dtype=x.dtype),
+                 op=OnnxAdd)
+    return OnnxVar(x1, op=OnnxLog)
+
+
 def mean(x, axis=None, keepdims=0):
     "See :epkg:`numpy:mean`."
     if axis is None:

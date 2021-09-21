@@ -42,6 +42,7 @@ from .numpy_onnx_impl import (
     hstack as nx_hstack,
     isnan as nx_isnan,
     log as nx_log,
+    log1p as nx_log1p,
     matmul as nx_matmul,
     mean as nx_mean,
     pad as nx_pad,
@@ -246,6 +247,12 @@ def isnan(x):
 def log(x):
     "log"
     return nx_log(x)
+
+
+@onnxnumpy_np(signature=NDArraySameTypeSameShape("floats"))
+def log1p(x):
+    "log1p"
+    return nx_log1p(x)
 
 
 @onnxnumpy_np(signature=NDArrayType(("T:all", "T")))

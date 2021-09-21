@@ -6,7 +6,7 @@
 import numpy
 import onnx.defs
 from onnx.helper import make_tensor
-from onnx.onnx_cpp2py_export.shape_inference import InferenceError
+from onnx.onnx_cpp2py_export.shape_inference import InferenceError  # pylint: disable=E0401
 import skl2onnx.algebra.onnx_ops as alg
 try:
     import skl2onnx.algebra.custom_ops as alg2

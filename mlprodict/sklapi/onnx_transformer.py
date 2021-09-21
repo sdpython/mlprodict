@@ -267,9 +267,6 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         """
         Returns a parser for this model.
         """
-        if inputs:
-            self.parsed_inputs_ = inputs
-
         def parser(scope=scope, inputs=inputs):
             if (not hasattr(self, 'onnxrt_') or
                     not hasattr(self.onnxrt_, 'output_names')):

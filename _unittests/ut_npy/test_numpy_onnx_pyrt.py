@@ -214,6 +214,7 @@ class TestNumpyOnnxFunction(ExtTestCase):
                          [[6.1, 5], [3.5, -7.8]]], dtype=numpy.float32)
         self.common_test1(x, numpy.linalg.det, nxnpy.det, numpy.float32)
 
+    @ignore_warnings(UserWarning)
     def test_dot_float32(self):
         x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float32)
         self.common_testn((x, x), numpy.dot, nxnpy.dot,
@@ -281,6 +282,16 @@ class TestNumpyOnnxFunction(ExtTestCase):
         older_than = compare_module_version(ort_version, "1.7.0") >= 0
         x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float64)
         self.common_test1(x, numpy.log, nxnpy.log, numpy.float64,
+                          ort=older_than)
+
+    def test_log1p_float32(self):
+        x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float32)
+        self.common_test1(x, numpy.log1p, nxnpy.log1p, numpy.float32)
+
+    def test_log1p_float64(self):
+        older_than = compare_module_version(ort_version, "1.7.0") >= 0
+        x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float64)
+        self.common_test1(x, numpy.log1p, nxnpy.log1p, numpy.float64,
                           ort=older_than)
 
     def test_mean_float32(self):

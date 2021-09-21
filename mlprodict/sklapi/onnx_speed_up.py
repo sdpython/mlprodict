@@ -244,7 +244,7 @@ class _OnnxPipelineStepSpeedup(BaseEstimator, OnnxOperatorMixin):
         self._check_fitted_()
         return self.onnxrt_.op_version
 
-    def onnx_parser(self, scope=None, inputs=None):
+    def onnx_parser(self):
         """
         Returns a parser for this model.
         """
@@ -254,7 +254,7 @@ class _OnnxPipelineStepSpeedup(BaseEstimator, OnnxOperatorMixin):
                 # Types should be included as well.
                 return [r[0] for r in self.onnx_io_names_['skl2onnx_outputs']]
             return parser
-        return self.onnxrt_.onnx_parser(scope, inputs)
+        return self.onnxrt_.onnx_parser()
 
     def onnx_shape_calculator(self):
         """
