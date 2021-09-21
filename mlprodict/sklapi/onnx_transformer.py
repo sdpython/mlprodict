@@ -267,7 +267,15 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         """
         Returns a parser for this model.
         """
-        def parser(scope=scope, inputs=inputs):
+        def parser(scope=None, inputs=None):
+            if scope is None:
+                raise RuntimeError(
+                    "scope cannot be None (parser of class %r)."
+                    "" % type(self))
+            if inputs is None:
+                raise RuntimeError(
+                    "inputs cannot be None (parser of class %r)."
+                    "" % type(self))
             if (not hasattr(self, 'onnxrt_') or
                     not hasattr(self.onnxrt_, 'output_names')):
                 raise RuntimeError(  # pragma: no cover
