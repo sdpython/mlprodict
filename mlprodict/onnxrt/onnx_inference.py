@@ -693,6 +693,10 @@ class OnnxInference:
                 name, retype(numpy.expand_dims(inputs[name].values, axis=1)))
                 for name in inputs.columns)
         if intermediate:
+            if self.inplace:
+                raise RuntimeError(  # pragma: no cover
+                    "inplace must be False if intermediate is True, a container "
+                    "might be used by several nodes.")
             return self._run(inputs, clean_right_away=False,
                              intermediate=intermediate,
                              verbose=verbose, node_time=node_time,
