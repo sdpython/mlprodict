@@ -55,11 +55,11 @@ def from_array(value, name=None):
         except NotImplementedError as e:
             if value.dtype == numpy.dtype('O'):
                 pb = TensorProto()
-                pb.data_type = TensorProto.STRING
+                pb.data_type = TensorProto.STRING  # pylint: disable=E1101
                 if name is not None:
                     pb.name = name
-                pb.dims.extend(value.shape)
-                pb.string_data.extend(
+                pb.dims.extend(value.shape)  # pylint: disable=E1101
+                pb.string_data.extend(  # pylint: disable=E1101
                     list(map(lambda o: str(o).encode('utf-8'), value.ravel())))
             else:
                 raise NotImplementedError(
