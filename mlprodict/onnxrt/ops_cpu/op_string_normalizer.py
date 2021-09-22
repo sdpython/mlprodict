@@ -61,7 +61,11 @@ class StringNormalizer(OpRunUnary):
         cout[:] = cin[:]
 
         for i in range(0, cin.shape[0]):
-            cout[i] = self.strip_accents_unicode(cout[i])
+            if isinstance(cout[i], float):
+                # nan
+                cout[i] = ''
+            else:
+                cout[i] = self.strip_accents_unicode(cout[i])
 
         if self.is_case_sensitive and len(stops) > 0:
             for i in range(0, cin.shape[0]):

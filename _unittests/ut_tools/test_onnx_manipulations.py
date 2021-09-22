@@ -361,8 +361,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
         # with open('debug.onnx', 'wb') as f:
         #     f.write(new_graph.SerializeToString())
 
-        oinf1 = OnnxInference(model_def)
-        oinf2 = OnnxInference(new_graph)
+        oinf1 = OnnxInference(model_def, inplace=False)
+        oinf2 = OnnxInference(new_graph, inplace=False)
         cst = numpy.array([[5.6, 7.8]])
         self.assertEqualArray(oinf1.run({'X': cst})['Z'],
                               oinf2.run({'X': cst})['Z'])
