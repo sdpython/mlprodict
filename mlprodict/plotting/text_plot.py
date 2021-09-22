@@ -29,12 +29,11 @@ def onnx_text_plot(model_onnx, recursive=False, graph_type='basic',
         from mlprodict.tools import get_opset_number_from_onnx
         from mlprodict.plotting.plotting import onnx_text_plot
 
-        idi = numpy.identity(2)
+        idi = numpy.identity(2).astype(numpy.float32)
         opv = get_opset_number_from_onnx()
         A = OnnxAdd('X', idi, op_version=opv)
         B = OnnxSub(A, 'W', output_names=['Y'], op_version=opv)
-        onx = B.to_onnx({'X': idi.astype(numpy.float32),
-                         'W': idi.astype(numpy.float32)})
+        onx = B.to_onnx({'X': idi, 'W': idi})
         print(onnx_text_plot(onx))
     """
     bigraph = onnx2bigraph(model_onnx)
