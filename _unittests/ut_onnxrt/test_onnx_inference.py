@@ -139,7 +139,7 @@ class TestOnnxInference(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(numpy.float32))
         for runtime in ['python', 'python_compiled']:
             with self.subTest(runtime=runtime):
-                oinf = OnnxInference(model_def)
+                oinf = OnnxInference(model_def, inplace=False)
                 buf = BufferedPrint()
                 got = oinf.run({'X': X_test.astype(numpy.float32)},
                                verbose=15, fLOG=buf.fprint,

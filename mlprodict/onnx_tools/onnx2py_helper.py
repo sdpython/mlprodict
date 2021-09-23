@@ -50,7 +50,21 @@ def from_array(value, name=None):
     :return: ONNX tensor
     """
     if isinstance(value, numpy.ndarray):
-        pb = onnx_from_array(value, name=name)
+        try:
+            pb = onnx_from_array(value, name=name)
+        except NotImplementedError as e:
+            if value.dtype == numpy.dtype('O'):
+                pb = TensorProto()
+                pb.data_type = TensorProto.STRING  # pylint: disable=E1101
+                if name is not None:
+                    pb.name = name
+                pb.dims.extend(value.shape)  # pylint: disable=E1101
+                pb.string_data.extend(  # pylint: disable=E1101
+                    list(map(lambda o: str(o).encode('utf-8'), value.ravel())))
+            else:
+                raise NotImplementedError(
+                    "Unable to convert type %r (dtype=%r) into an ONNX tensor "
+                    "due to %r." % (type(value), value.dtype, e)) from e
         return pb
     if isinstance(value, TensorProto):
         return value

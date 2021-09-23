@@ -42,7 +42,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         self.assertEqual(list(sorted(got)), ['Y1'])
         self.assertEqualArray(idi + X, got['Y1'], decimal=6)
 
-        oinf = OnnxInference(model_def, runtime='onnxruntime1')
+        oinf = OnnxInference(model_def, runtime='onnxruntime1', inplace=False)
         got = oinf.run({'X': X}, intermediate=True)
         self.assertEqual(list(sorted(got)), ['Ad_Addcst', 'X', 'Y1'])
         self.assertEqualArray(idi + X, got['Y1'], decimal=6)

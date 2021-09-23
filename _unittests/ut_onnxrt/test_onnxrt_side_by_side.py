@@ -84,7 +84,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
             inputs=[('X', FloatTensorType([None, None]))],
             outputs=[('Y', FloatTensorType([None, None]))],
             target_opset=get_opset_number_from_onnx())
-        sess = OnnxInference(model_onnx.SerializeToString())
+        sess = OnnxInference(model_onnx.SerializeToString(), inplace=False)
 
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
         m1 = res['Y']
@@ -182,8 +182,9 @@ class TestOnnxrtSideBySide(ExtTestCase):
         self.assertEqual(sbs[1]['order[0]'], 0)
 
         sess3 = _capture_output(
-            lambda: OnnxInference(model_onnx.SerializeToString(),
-                                  runtime="onnxruntime2"), 'c')[0]
+            lambda: OnnxInference(
+                model_onnx.SerializeToString(), runtime="onnxruntime2",
+                inplace=False), 'c')[0]
         try:
             sbs = side_by_side_by_values(
                 [cpu, sess, sess3], inputs={'X': Xtest_.astype(numpy.float32)})

@@ -45,7 +45,7 @@ class TestZoo(ExtTestCase):
             return
         oinf2 = OnnxInference(link, runtime="python", inplace=False)
         oinf2 = oinf2.build_intermediate('474')['474']
-        oinf1 = OnnxInference(link, runtime="onnxruntime1")
+        oinf1 = OnnxInference(link, runtime="onnxruntime1", inplace=False)
         oinf1 = oinf1.build_intermediate('474')['474']
         inputs = {'input': data['test_data_set_0']['in']['input_0']}
         rows = side_by_side_by_values([oinf1, oinf2], inputs=inputs)
