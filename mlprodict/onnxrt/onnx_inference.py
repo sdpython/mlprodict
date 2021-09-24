@@ -752,7 +752,7 @@ class OnnxInference:
 
             from mlprodict.onnx_conv import to_onnx
             model_onnx = to_onnx(lr, X.astype(numpy.float32))
-            oinf = OnnxInference(model_onnx)
+            oinf = OnnxInference(model_onnx, inplace=False)
 
             model_onnx_debug = oinf.run2onnx({'X': X[:3].astype(numpy.float32)})
             oinf_debug = OnnxInference(model_onnx_debug[1])
