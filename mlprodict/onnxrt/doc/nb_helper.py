@@ -71,9 +71,12 @@ class OnnxNotebook(MagicClassWithHelpers):
         args = self.get_args(line, parser)
 
         if args is not None:
+            size = args.size
+            if size == "":
+                size = None
             res = onnxview(args.graph, recursive=args.recursive,
                            local=args.local, add_rt_shapes=args.add_rt_shapes,
-                           size=args.size, html_size=args.html_size)
+                           size=size, html_size=args.html_size)
             return res
         return None
 

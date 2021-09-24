@@ -104,7 +104,7 @@ class OnnxInferenceExport:
             'height': '0.1',
             'size': '7',
         }
-        options.update(params)
+        options.update({k: v for k, v in params.items() if v is not None})
 
         if use_onnx:
             from onnx.tools.net_drawer import GetPydotGraph, GetOpNodeProducer
