@@ -11,7 +11,7 @@ from ..bench_helper import measure_time
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
 
 
-def _make_einsum_model(equation, opset=14):  # opset=13, 14, ...
+def _make_einsum_model(equation, opset=15):  # opset=13, 14, ...
     from skl2onnx.common._topology import OPSET_TO_IR_VERSION  # pylint: disable=E0611,E0001
     inputs = equation.split('->')[0].split(',')
 
@@ -57,7 +57,7 @@ def _make_inputs(equation, shapes):
 
 def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
                      runtime='python', use_tqdm=False,
-                     number=5, repeat=5, opset=14):  # opset=13, 14, ...
+                     number=5, repeat=5, opset=15):  # opset=13, 14, ...
     """
     Investigates whether or not the decomposing einsum is faster.
 

@@ -28,7 +28,7 @@ class operator_dummy:
 
 class container_dummy:
     def __init__(self):
-        self.target_opset = 14
+        self.target_opset = 15
 
 
 class TestWrappers(ExtTestCase):

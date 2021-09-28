@@ -12,8 +12,10 @@ from mlprodict.tools.onnx_micro_runtime import OnnxMicroRuntime
 
 class TestOnnxMicroRuntime(ExtTestCase):
 
+    opset = 15  # opset=13, 14, ...
+
     def test_onnx_micro_runtime(self):
-        opset = 14  # opset=13, 14, ...
+        opset = TestOnnxMicroRuntime.opset
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -32,7 +34,7 @@ class TestOnnxMicroRuntime(ExtTestCase):
         self.assertRaise(lambda: OnnxMicroRuntime(None), TypeError)
 
     def test_onnx_micro_runtime_exc2(self):
-        opset = 14  # opset=13, 14, ...
+        opset = TestOnnxMicroRuntime.opset
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -45,7 +47,7 @@ class TestOnnxMicroRuntime(ExtTestCase):
         self.assertRaise(lambda: rt.run(x), TypeError)
 
     def test_onnx_micro_runtime_shape(self):
-        opset = 14  # opset=13, 14, ...
+        opset = TestOnnxMicroRuntime.opset
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxShape('X', op_version=opset, output_names=['Y'])
@@ -55,7 +57,7 @@ class TestOnnxMicroRuntime(ExtTestCase):
         self.assertEqual(numpy.array(x.shape, dtype=numpy.int64), out['Y'])
 
     def test_onnx_micro_runtime_transpose(self):
-        opset = 14  # opset=13, 14, ...
+        opset = TestOnnxMicroRuntime.opset
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxTranspose('X', perm=[1, 0], op_version=opset,
@@ -66,7 +68,7 @@ class TestOnnxMicroRuntime(ExtTestCase):
         self.assertEqual(x.T, out['Y'])
 
     def test_onnx_micro_runtime_matmul(self):
-        opset = 14  # opset=13, 14, ...
+        opset = TestOnnxMicroRuntime.opset
         x = numpy.array([1, 2, 4, 5]).astype(
             numpy.float32).reshape((2, 2))
         cop = OnnxMatMul('X', 'X', op_version=opset,
@@ -77,7 +79,7 @@ class TestOnnxMicroRuntime(ExtTestCase):
         self.assertEqual(numpy.matmul(x, x), out['Y'])
 
     def test_onnx_micro_runtime_squeeze(self):
-        opset = 14  # opset=13, 14, ...
+        opset = TestOnnxMicroRuntime.opset
         x = numpy.array([1, 2, 4, 5]).astype(
             numpy.float32).reshape((2, 2, 1))
         cop = OnnxSqueeze('X', numpy.array([2], dtype=numpy.int64),
@@ -88,7 +90,7 @@ class TestOnnxMicroRuntime(ExtTestCase):
         self.assertEqual(numpy.squeeze(x), out['Y'])
 
     def test_onnx_micro_runtime_unsqueeze(self):
-        opset = 14  # opset=13, 14, ...
+        opset = TestOnnxMicroRuntime.opset
         x = numpy.array([1, 2, 4, 5]).astype(
             numpy.float32).reshape((2, 2))
         cop = OnnxUnsqueeze('X', numpy.array([2], dtype=numpy.int64),
@@ -99,7 +101,7 @@ class TestOnnxMicroRuntime(ExtTestCase):
         self.assertEqual(x.reshape((2, 2, 1)), out['Y'])
 
     def test_onnx_micro_runtime_gemm(self):
-        opset = 14  # opset=13, 14, ...
+        opset = TestOnnxMicroRuntime.opset
         x = numpy.array([1, 2, 4, 5]).astype(
             numpy.float32).reshape((2, 2))
         for ta in [0, 1]:

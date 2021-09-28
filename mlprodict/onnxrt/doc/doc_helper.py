@@ -5,8 +5,6 @@
 import keyword
 import textwrap
 import re
-from jinja2 import Template
-from jinja2.runtime import Undefined
 from onnx.defs import OpSchema
 from ...tools import change_style
 
@@ -38,6 +36,7 @@ def type_mapping(name):
 
 def _get_doc_template():
 
+    from jinja2 import Template  # delayed import
     return Template(textwrap.dedent("""
         {% for sch in schemas %}
 
@@ -139,6 +138,7 @@ def get_rst_doc(op_name):
     The function relies on module :epkg:`jinja2` or replaces it
     with a simple rendering if not present.
     """
+    from jinja2.runtime import Undefined
     from ..ops_cpu._op import _schemas
     schemas = [_schemas.get(op_name, NewOperatorSchema(op_name))]
 

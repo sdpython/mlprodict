@@ -41,7 +41,7 @@ class TestOnnxProfiling(ExtTestCase):
         del model_def.opset_import[:]  # pylint: disable=E1101
         op_set = model_def.opset_import.add()  # pylint: disable=E1101
         op_set.domain = ''
-        op_set.version = 14  # opset=13, 14, ...
+        op_set.version = 15  # opset=13, 14, ...
 
         X = (numpy.random.randn(4, 2) * 100000).astype(  # pylint: disable=E1101
             numpy.float32)

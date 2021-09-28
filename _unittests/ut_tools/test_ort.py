@@ -12,8 +12,10 @@ from mlprodict.tools.ort_wrapper import prepare_c_profiling
 
 class TestOrt(ExtTestCase):
 
+    opset = 15  # opset = 13, 14, ...
+
     def test_prepare_c_profiling(self):
-        opset = 14  # opset=13, 14, ...
+        opset = TestOrt.opset
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))

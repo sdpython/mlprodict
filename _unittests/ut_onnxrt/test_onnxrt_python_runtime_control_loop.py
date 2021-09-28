@@ -62,8 +62,8 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
             del model_def.opset_import[:]  # pylint: disable=E1101
             op_set = model_def.opset_import.add()  # pylint: disable=E1101
             op_set.domain = ''
-            op_set.version = 14
-            model_def.ir_version = 7
+            op_set.version = 15
+            model_def.ir_version = 8
 
         test_cases = {
             'at_back': [numpy.array([10, 11, 12]).astype(numpy.int64)],
@@ -191,8 +191,8 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
         del model_def.opset_import[:]  # pylint: disable=E1101
         op_set = model_def.opset_import.add()  # pylint: disable=E1101
         op_set.domain = ''
-        op_set.version = 14
-        model_def.ir_version = 7
+        op_set.version = 15
+        model_def.ir_version = 8
 
         expected = numpy.array([
             1., 1., 2., 1., 2., 3., 1., 2.,
@@ -307,8 +307,8 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
         del model_def.opset_import[:]  # pylint: disable=E1101
         op_set = model_def.opset_import.add()  # pylint: disable=E1101
         op_set.domain = ''
-        op_set.version = 14
-        model_def.ir_version = 7
+        op_set.version = 15
+        model_def.ir_version = 8
 
         expected = numpy.array([
             1., 1., 2., 1., 2., 3., 1., 2.,

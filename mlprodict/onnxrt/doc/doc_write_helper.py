@@ -5,7 +5,6 @@
 from logging import getLogger
 from textwrap import indent, dedent
 import numpy
-from jinja2 import Template
 from pandas import DataFrame, notnull
 from sklearn.linear_model import LinearRegression
 from pyquickhelper.loghelper import noLOG
@@ -49,6 +48,7 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
     Returns content for pages such as
     :ref:`l-skl2onnx-linear_model`.
     """
+    from jinja2 import Template  # delayed import
     logger = getLogger('skl2onnx')
     logger.disabled = True
 
