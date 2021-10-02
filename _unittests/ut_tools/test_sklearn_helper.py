@@ -70,11 +70,14 @@ class TestSklearnHelper(ExtTestCase):
         res = inspect_sklearn_model(clr)
         self.assertEqual(res['max_depth'], 4)
         self.assertEqual(res['ntrees'], 10)
-        onx = to_onnx(clr, X_train[:1].astype(numpy.float32))
-        ostats = onnx_statistics(onx)
-        for k, v in {'nnodes': 11, 'doc_string': '', 'domain': 'ai.onnx', 'model_version': 0,
-                     'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
-            self.assertEqual(ostats[k], v)
+        for dtype in [numpy.float32, numpy.float64]:
+            with self.subTest(dtype=dtype):
+                onx = to_onnx(clr, X_train[:1].astype(dtype))
+                ostats = onnx_statistics(onx)
+                for k, v in {'nnodes': 1, 'doc_string': '',
+                             'domain': 'ai.onnx', 'model_version': 0,
+                             'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
+                    self.assertEqual(ostats[k], v)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_statistics_adaboost(self):
@@ -99,11 +102,15 @@ class TestSklearnHelper(ExtTestCase):
         self.assertEqual(res['max_depth'], 4)
         self.assertEqual(res['ntrees'], 10)
         self.assertEqual(res['nop'], 11)
-        onx = to_onnx(clr, X_train[:1].astype(numpy.float32))
-        ostats = onnx_statistics(onx)
-        for k, v in {'nnodes': 12, 'doc_string': '', 'domain': 'ai.onnx', 'model_version': 0,
-                     'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
-            self.assertEqual(ostats[k], v)
+        expected = {numpy.float32: 2, numpy.float64: 3}
+        for dtype in [numpy.float32, numpy.float64]:
+            with self.subTest(dtype=dtype):
+                onx = to_onnx(clr, X_train[:1].astype(dtype))
+                ostats = onnx_statistics(onx)
+                for k, v in {'nnodes': expected[dtype], 'doc_string': '',
+                             'domain': 'ai.onnx', 'model_version': 0,
+                             'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
+                    self.assertEqual(ostats[k], v)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_statistics_lin(self):
