@@ -77,6 +77,8 @@ class TestSklearnHelper(ExtTestCase):
                 for k, v in {'nnodes': 1, 'doc_string': '',
                              'domain': 'ai.onnx', 'model_version': 0,
                              'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
+                    if k == 'ai.onnx.ml' and k not in ostats:
+                        continue
                     self.assertEqual(ostats[k], v)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
@@ -110,6 +112,8 @@ class TestSklearnHelper(ExtTestCase):
                 for k, v in {'nnodes': expected[dtype], 'doc_string': '',
                              'domain': 'ai.onnx', 'model_version': 0,
                              'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
+                    if k == 'ai.onnx.ml' and k not in ostats:
+                        continue
                     self.assertEqual(ostats[k], v)
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
