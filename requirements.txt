@@ -11,7 +11,7 @@ numba
 numpy>=1.19.0
 pandas
 pillow
-scikit-learn>=0.24
+scikit-learn>=1.0
 scipy>=1.7.0
 Sphinx
 wheel
@@ -47,5 +47,5 @@ xgboost
 
 # onnx
 onnx>=1.10.1
-onnxruntime>=1.8.1
-skl2onnx>=1.9.3
+onnxruntime>=1.9.0
+skl2onnx>=1.10.0

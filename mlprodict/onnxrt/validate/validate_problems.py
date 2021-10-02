@@ -25,7 +25,6 @@ except ImportError:  # pragma: no cover
 from sklearn.feature_extraction import DictVectorizer, FeatureHasher
 from sklearn.feature_extraction.text import (
     CountVectorizer, TfidfVectorizer, TfidfTransformer)
-from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
 from sklearn.ensemble import (
     HistGradientBoostingRegressor,
     HistGradientBoostingClassifier)

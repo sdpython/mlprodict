@@ -3,7 +3,6 @@ import sys
 import os
 import alabaster
 from pyquickhelper.helpgen.default_conf import set_sphinx_variables
-from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
 try:
     from mlprodict.onnx_conv import register_converters, register_rewritten_operators
 except ImportError as e:

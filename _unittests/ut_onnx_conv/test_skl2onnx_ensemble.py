@@ -12,7 +12,6 @@ from sklearn.ensemble import (
     ExtraTreesClassifier, ExtraTreesRegressor
 )
 try:
-    from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
     from sklearn.ensemble import (
         HistGradientBoostingClassifier,
         HistGradientBoostingRegressor

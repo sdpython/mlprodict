@@ -6,8 +6,6 @@ with a python script. It relies on :epkg:`jinja2` and :epkg:`autopep8`.
 .. versionadded:: 0.7
 """
 import numpy
-from jinja2 import Template
-import autopep8
 import onnx
 from onnx import numpy_helper
 from .onnx2py_helper import (
@@ -37,6 +35,9 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
     :param autopep_options: :epkg:`autopep8` options
     :return: python code
     """
+    # delayed import to avoid raising an exception if not installed.
+    import autopep8
+
     def number2name(n):
         n += 1
         seq = []
@@ -177,6 +178,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
     mark_inits = {}
 
     # First rendering to detect any unused or replaced initializer.
+    from jinja2 import Template  # delayed import
     template = Template(templates)
     final = template.render(
         enumerate=enumerate, sorted=sorted, len=len,

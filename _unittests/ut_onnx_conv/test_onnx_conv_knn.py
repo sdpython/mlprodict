@@ -244,7 +244,7 @@ class TestOnnxConvKNN(ExtTestCase):
 
         if target_opset is None:
             opsets = list(sorted(set([
-                9, 10, 11, 12, 13, 14, get_opset_number_from_onnx()])))  # opset=13, 14, ...
+                9, 10, 11, 12, 13, 14, 15, get_opset_number_from_onnx()])))  # opset=13, 14, ...
         else:
             opsets = [target_opset]
         for ops in opsets:
@@ -475,7 +475,7 @@ class TestOnnxConvKNN(ExtTestCase):
         clr = NearestNeighbors(n_neighbors=3)
         clr.fit(X_train)
 
-        for to in (10, 11, 12, 13, 14):  # opset=13, 14, ...
+        for to in (10, 11, 12, 13, 14, 15):  # opset=13, 14, ...
             if to > get_opset_number_from_onnx():
                 break
             try:

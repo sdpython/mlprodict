@@ -107,7 +107,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
         model_def = to_onnx(
             clr, X_train.astype(numpy.float32),
             options={GaussianProcessRegressor: {'return_std': True}},
-            target_opset=14)  # opset=13, 14, ...
+            target_opset=15)  # opset=13, 14, ...
         oinf = OnnxInference(model_def, runtime='python')
 
         res = oinf.run({'X': X_test.astype(numpy.float32)})

@@ -7,7 +7,6 @@ from logging import getLogger
 from pandas import DataFrame, read_excel, read_csv, concat, Series
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils._testing import ignore_warnings
-from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
 from sklearn.ensemble import AdaBoostRegressor, HistGradientBoostingRegressor
 from sklearn.gaussian_process import GaussianProcessClassifier
 import sphinx

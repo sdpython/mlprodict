@@ -51,7 +51,7 @@ class TestSklearnLabelEncoderConverter(unittest.TestCase):
         data = numpy.array([10, 3, 5, -34, 0], dtype=numpy.int64)
         model.fit(data)
         # opset=13, 14, ...
-        for op in sorted(set([9, 10, 11, 12, 13, 14, TARGET_OPSET])):
+        for op in sorted(set([9, 10, 11, 12, 13, 14, 15, TARGET_OPSET])):
             if op > TARGET_OPSET:
                 continue
             with self.subTest(opset=op):

@@ -74,7 +74,7 @@ def benchmark_version():
         from mlprodict.tools.asv_options_helper import benchmark_version
         print(benchmark_version())
     """
-    return [14]  # opset=13, 14, ...
+    return [15]  # opset=13, 14, ...
 
 
 def ir_version():
