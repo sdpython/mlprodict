@@ -167,7 +167,7 @@ jobs:
          # export MACOSX_DEPLOYMENT_TARGET=10.13
          python setup.py build_ext --inplace
     displayName: 'Build package inplace'
-  - script: python -u setup.py unittests -g ".*((LONG)|(SKIP)|(notebooks)|(asv_benchmark)|(test_onnx_helper)).*" -d 50
+  - script: python -u setup.py unittests -g ".*((LONG)|(SKIP)|(notebooks)|(asv_benchmark)|(test_onnx_helper)|(test_onnx_inference)).*" -d 50
     displayName: 'Runs Unit Tests'
   - script: |
       python -m pip install cibuildwheel
