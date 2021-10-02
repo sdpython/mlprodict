@@ -34,7 +34,6 @@ import matplotlib.pyplot as plt
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 from onnxruntime import InferenceSession
-from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import make_classification

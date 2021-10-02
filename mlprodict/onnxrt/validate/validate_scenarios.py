@@ -2,7 +2,6 @@
 @file
 @brief Scenarios for validation.
 """
-from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.cluster import KMeans
 from sklearn.calibration import CalibratedClassifierCV

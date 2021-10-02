@@ -10,7 +10,6 @@ try:
     from sklearn.utils._testing import ignore_warnings
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
-from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
 from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import (

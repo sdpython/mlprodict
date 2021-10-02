@@ -8,7 +8,6 @@ from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 try:
-    from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
     from sklearn.ensemble import HistGradientBoostingClassifier
 except ImportError:
     HistGradientBoostingClassifier = None

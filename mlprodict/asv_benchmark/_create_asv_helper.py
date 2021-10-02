@@ -378,8 +378,6 @@ def _additional_imports(model_name):
     """
     if model_name == 'IterativeImputer':
         return ["from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611"]
-    if model_name in ('HistGradientBoostingClassifier', 'HistGradientBoostingClassifier'):
-        return ["from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611"]
     return None
 
 

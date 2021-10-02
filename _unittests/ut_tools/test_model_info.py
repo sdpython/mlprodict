@@ -5,7 +5,6 @@ import sys
 import inspect
 import unittest
 import numpy
-from sklearn.experimental import enable_hist_gradient_boosting  # pylint: disable=W0611
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.neighbors import KNeighborsClassifier
