@@ -35,8 +35,8 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
     :param autopep_options: :epkg:`autopep8` options
     :return: python code
     """
-    import autopep8  # delay import to avoid raising an exception
-                     # if not installed. 
+    # delayed import to avoid raising an exception if not installed.
+    import autopep8
 
     def number2name(n):
         n += 1

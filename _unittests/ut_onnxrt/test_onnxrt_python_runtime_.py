@@ -4187,7 +4187,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             (11, OnnxConstant_11),
             (9, OnnxConstant_9)]
 
-        expected_type = {15: Contanst_12, 14: Constant_12,
+        expected_type = {15: Constant_12, 14: Constant_12,
                          12: Constant_12, 13: Constant_12,
                          11: Constant_11, 9: Constant_9}
 
