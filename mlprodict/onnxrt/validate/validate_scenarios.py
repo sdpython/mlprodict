@@ -247,17 +247,15 @@ def build_custom_scenarios():
             ('box-cox', {'method': 'box-cox'}),
         ],
         RadiusNeighborsClassifier: [
-            ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},
+            ('default_k3', {'algorithm': 'brute'},
              {'conv_options': [{RadiusNeighborsClassifier: {'optim': 'cdist', 'zipmap': False}}]}),
-            ('weights_k3', {'algorithm': 'brute',
-                            'weights': 'distance', 'n_neighbors': 3},
+            ('weights_k3', {'algorithm': 'brute', 'weights': 'distance'},
              {'conv_options': [{RadiusNeighborsClassifier: {'optim': 'cdist', 'zipmap': False}}]}),
         ],
         RadiusNeighborsRegressor: [
-            ('default_k3', {'algorithm': 'brute', 'n_neighbors': 3},
+            ('default_k3', {'algorithm': 'brute'},
              {'conv_options': [{}, {RadiusNeighborsRegressor: {'optim': 'cdist'}}]}),
-            ('weights_k3', {'algorithm': 'brute',
-                            'weights': 'distance', 'n_neighbors': 3},
+            ('weights_k3', {'algorithm': 'brute', 'weights': 'distance'},
              {'conv_options': [{RadiusNeighborsRegressor: {'optim': 'cdist'}}]}),
         ],
         RandomForestClassifier: [
