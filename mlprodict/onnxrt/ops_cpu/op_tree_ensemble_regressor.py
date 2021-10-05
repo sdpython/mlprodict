@@ -121,6 +121,48 @@ class TreeEnsembleRegressor(TreeEnsembleRegressorCommon):
 
 
 class TreeEnsembleRegressorDouble(TreeEnsembleRegressorCommon):
+    """
+    Runtime for the custom operator `TreeEnsembleRegressorDouble`.
+
+    .. exref::
+        :title: How to use TreeEnsembleRegressorDouble instead of TreeEnsembleRegressor
+
+        .. runpython::
+            :showcode:
+
+                import warnings
+                import numpy
+                from sklearn.datasets import make_regression
+                from sklearn.ensemble import (
+                    RandomForestRegressor, GradientBoostingRegressor,
+                    HistGradientBoostingRegressor)
+                from mlprodict.onnx_conv import to_onnx
+                from mlprodict.onnxrt import OnnxInference
+
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+
+                    models = [
+                        RandomForestRegressor(n_estimators=10),
+                        GradientBoostingRegressor(n_estimators=10),
+                        HistGradientBoostingRegressor(max_iter=10),
+                    ]
+
+                    X, y = make_regression(1000, n_features=5, n_targets=1)
+                    X = X.astype(numpy.float64)
+
+                    conv = {}
+                    for model in models:
+                        model.fit(X[:500], y[:500])
+                        onx64 = to_onnx(model, X, rewrite_ops=True, target_opset=15)
+                        assert 'TreeEnsembleRegressorDouble' in str(onx64)
+                        expected = model.predict(X)
+                        
+                        oinf = OnnxInference(onx64)
+                        got = oinf.run({'X': X})
+                        diff = numpy.abs(got['variable'] - expected)
+                        print("%s: max=%f mean=%f" % (model.__class__.__name__, diff.max(), diff.mean()))
+    """
 
     atts = OrderedDict([
         ('aggregate_function', b'SUM'),
