@@ -333,6 +333,8 @@ def _einsum(equation, dtype, optimize=False, runtime="batch_dot",
     if cache:
         key = equation, runtime, opset, optimize, dtype, decompose, strategy
         cached = _einsum_cache.get(key, None)
+    else:
+        key = None
     if cached is None:
         cached = CachedEinsum.build_einsum(
             equation, runtime, opset, optimize,
