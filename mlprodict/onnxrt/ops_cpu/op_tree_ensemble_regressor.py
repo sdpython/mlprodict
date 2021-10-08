@@ -157,7 +157,7 @@ class TreeEnsembleRegressorDouble(TreeEnsembleRegressorCommon):
                         onx64 = to_onnx(model, X, rewrite_ops=True, target_opset=15)
                         assert 'TreeEnsembleRegressorDouble' in str(onx64)
                         expected = model.predict(X)
-                        
+
                         oinf = OnnxInference(onx64)
                         got = oinf.run({'X': X})
                         diff = numpy.abs(got['variable'] - expected)
