@@ -21,22 +21,29 @@ class TestOnnx2PyHelper(ExtTestCase):
 
     def test_guess_proto_dtype_name(self):
         self.assertEqual(
-            guess_proto_dtype_name(TensorProto.FLOAT), "TensorProto.FLOAT")
+            guess_proto_dtype_name(TensorProto.FLOAT),  # pylint: disable=E1101
+            "TensorProto.FLOAT")
         self.assertEqual(
-            guess_proto_dtype_name(TensorProto.DOUBLE), "TensorProto.DOUBLE")
+            guess_proto_dtype_name(TensorProto.DOUBLE),  # pylint: disable=E1101
+            "TensorProto.DOUBLE")
         self.assertEqual(
-            guess_proto_dtype_name(TensorProto.INT64), "TensorProto.INT64")
+            guess_proto_dtype_name(TensorProto.INT64),  # pylint: disable=E1101
+            "TensorProto.INT64")
         self.assertEqual(
-            guess_proto_dtype_name(TensorProto.INT32), "TensorProto.INT32")
+            guess_proto_dtype_name(TensorProto.INT32),  # pylint: disable=E1101
+            "TensorProto.INT32")
         self.assertEqual(
-            guess_proto_dtype_name(TensorProto.UINT8), "TensorProto.UINT8")
+            guess_proto_dtype_name(TensorProto.UINT8),  # pylint: disable=E1101
+            "TensorProto.UINT8")
         self.assertEqual(
-            guess_proto_dtype_name(TensorProto.FLOAT16),
+            guess_proto_dtype_name(TensorProto.FLOAT16),  # pylint: disable=E1101
             "TensorProto.FLOAT16")
         self.assertEqual(
-            guess_proto_dtype_name(TensorProto.BOOL), "TensorProto.BOOL")
+            guess_proto_dtype_name(TensorProto.BOOL),  # pylint: disable=E1101
+            "TensorProto.BOOL")
         self.assertEqual(
-            guess_proto_dtype_name(TensorProto.STRING), "TensorProto.STRING")
+            guess_proto_dtype_name(TensorProto.STRING),  # pylint: disable=E1101
+            "TensorProto.STRING")
 
     def test_numpy_max(self):
         self.assertEqual(numpy_max(numpy.array([0.5, 1.])), 1.)
