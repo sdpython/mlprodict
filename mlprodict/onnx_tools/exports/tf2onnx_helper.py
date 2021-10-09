@@ -108,7 +108,7 @@ def make_name(name):
 def make_sure(cond, msg, *args):
     "Raises an exception if cond is not verified."
     if not cond:
-        raise RuntimeError(msg % tuple(args))
+        raise RuntimeError(msg % tuple(args))  # pragma: no cover
 
 
 def map_onnx_to_numpy_type(onnx_dtype):
@@ -214,7 +214,7 @@ class Tf2OnnxConvert:
         :param name: node or initializer
         """
         if obj.name in self._forbidden_new_names:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Name %r is already registered." % obj.name)
         self._names[obj.name] = obj
         self._forbidden_new_names.add(obj.name)
@@ -235,15 +235,16 @@ class Tf2OnnxConvert:
         :return: created node
         """
         if self.verbose:
-            print("[Tf2OnnxConvert.make_node] op_type=%r inputs=%r" % (
-                op_type, inputs))
+            print(  # pragma: no cover
+                "[Tf2OnnxConvert.make_node] op_type=%r inputs=%r" % (
+                    op_type, inputs))
 
         if attr is None:
             attr = {}
         if name is None:
             name = make_name(op_type)
         if name in self._names:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Node name %r already exists in %r." % (
                     name, ", ".join(sorted(self._names))))
 
@@ -278,7 +279,7 @@ class Tf2OnnxConvert:
         :return: create initializer
         """
         if name in self._names:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Initializer name %r already exists in %r." % (
                     name, ", ".join(sorted(self._names))))
         np_val_flat = np_val.flatten()
@@ -327,8 +328,9 @@ class Tf2OnnxConvert:
             node.input[:] = new_inputs[:]
             res.append(node)
             if self.verbose:
-                print("[Tf2OnnxConvert.replace_all_inputs] replace %r by %r in node %r" % (
-                    old_name, new_name, node.name))
+                print(  # pragma: no cover
+                    "[Tf2OnnxConvert.replace_all_inputs] replace %r by %r in node %r" % (
+                        old_name, new_name, node.name))
         for o in self._onnx_model.graph.output:
             if o.name != old_name:
                 continue
@@ -336,9 +338,10 @@ class Tf2OnnxConvert:
                                name=make_name("IdOutputReplaced"))
             res.append(n)
             if self.verbose:
-                print("[Tf2OnnxConvert.replace_all_inputs] add id node from %r to %r "
-                      "with node %r." % (
-                          old_name, new_name, n.name))  # pylint: disable=E1101
+                print(  # pragma: no cover
+                    "[Tf2OnnxConvert.replace_all_inputs] add id node from %r to %r "
+                    "with node %r." % (
+                        old_name, new_name, n.name))  # pylint: disable=E1101
         return res
 
     def remove_node(self, name):
@@ -346,11 +349,12 @@ class Tf2OnnxConvert:
         Removes a node name from the list.
         """
         if name not in self._names:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to delete name %r because it does not exists." % name)
         del self._names[name]
         if self.verbose:
-            print("[Tf2OnnxConvert.remove_node] delete name %r" % name)
+            print(  # pragma: no cover
+                "[Tf2OnnxConvert.remove_node] delete name %r" % name)
 
     def get_shape(self, input_name):
         """
@@ -377,7 +381,7 @@ class Tf2OnnxConvert:
             raise RuntimeError(  # pragma: no cover
                 "No converter was registered.")
         if self.verbose:
-            print("[Tf2OnnxConvert.run]")
+            print("[Tf2OnnxConvert.run]")  # pragma: no cover
 
         done = {}
         modif = 1
@@ -408,8 +412,9 @@ class Tf2OnnxConvert:
 
                 # applies the converter
                 if self.verbose:
-                    print("[Tf2OnnxConvert.run] convert node type=%r opset=%r name=%r"
-                          "" % (node.op_type, target, node.name))
+                    print(  # pragma: no cover
+                        "[Tf2OnnxConvert.run] convert node type=%r opset=%r name=%r"
+                        "" % (node.op_type, target, node.name))
                 fct, kwargs = conv
                 fct(self, node, target_opset=target, **kwargs)
                 modif += 1
@@ -429,7 +434,7 @@ class Tf2OnnxConvert:
         nodes = ensure_topological_order(inputs, inits, nodes)
 
         if self.verbose:
-            print(
+            print(  # pragma: no cover
                 "[Tf2OnnxConvert.make_node] %d nodes %d inputs %d "
                 "outputs %d initializers"
                 "" % (len(nodes), len(inputs), len(outputs), len(inits)))
@@ -531,7 +536,8 @@ class GraphBuilder:
                                     dtypes=dtypes)
         if return_node:
             return node
-        raise NotImplementedError("return_node must be True")
+        raise NotImplementedError(  # pragma: no cover
+            "return_node must be True")
 
     def make_squeeze(self, kwargs, name=None, shapes=None, dtypes=None,
                      return_node=False, op_name_scope=None):
@@ -574,7 +580,8 @@ class GraphBuilder:
             outputs=outputs)
         if return_node:
             return node
-        raise NotImplementedError("return_node must be True")
+        raise NotImplementedError(  # pragma: no cover
+            "return_node must be True")
 
     def make_unsqueeze(self, kwargs, name=None, shapes=None, dtypes=None,
                        return_node=False, op_name_scope=None):
@@ -617,7 +624,8 @@ class GraphBuilder:
             outputs=outputs)
         if return_node:
             return node
-        raise NotImplementedError("return_node must be True")
+        raise NotImplementedError(  # pragma: no cover
+            "return_node must be True")
 
     def _convert_to_input(self, tensor, const_name, is_optional=False, dtype=None):
         """in ONNX, input shold come from node, so it must be a string"""

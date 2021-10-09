@@ -326,10 +326,11 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
         gbm_text, info = gbm_model._model_dict_info
     else:
         if verbose >= 2:
-            print("[convert_lightgbm] dump_model")
+            print("[convert_lightgbm] dump_model")  # pragma: no cover
         gbm_text, info = dump_lgbm_booster(gbm_model.booster_, verbose=verbose)
     if verbose >= 2:
-        print("[convert_lightgbm] modify_tree_for_rule_in_set")
+        print(  # pragma: no cover
+            "[convert_lightgbm] modify_tree_for_rule_in_set")
     modify_tree_for_rule_in_set(gbm_text, use_float=True, verbose=verbose,
                                 info=info)
 
@@ -362,7 +363,7 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
                 gbm_text['objective']))
 
     # Use the same algorithm to parse the tree
-    if verbose >= 2:
+    if verbose >= 2:  # pragma: no cover
         from tqdm import tqdm
         loop = tqdm(gbm_text['tree_info'])
         loop.set_description("parse")
@@ -377,7 +378,7 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
             tree_id, class_id, learning_rate, tree['tree_structure'], attrs)
 
     if verbose >= 2:
-        print("[convert_lightgbm] onnx")
+        print("[convert_lightgbm] onnx")  # pragma: no cover
     # Sort nodes_* attributes. For one tree, its node indexes
     # should appear in an ascent order in nodes_nodeids. Nodes
     # from a tree with a smaller tree index should appear
@@ -584,4 +585,4 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
                                name=scope.get_unique_operator_name('Identity'))
 
     if verbose >= 2:
-        print("[convert_lightgbm] end")
+        print("[convert_lightgbm] end")  # pragma: no cover
