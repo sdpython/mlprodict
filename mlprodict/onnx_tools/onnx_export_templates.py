@@ -7,7 +7,11 @@ with a python script.
 """
 import os
 from textwrap import dedent
-from functools import cache
+try:
+    from functools import cache
+except ImportError:
+    # python 3.8
+    from functools import lru_cache as cache
 
 
 @cache
