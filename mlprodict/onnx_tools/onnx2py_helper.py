@@ -52,7 +52,7 @@ def from_array(value, name=None):
     if isinstance(value, numpy.ndarray):
         try:
             pb = onnx_from_array(value, name=name)
-        except NotImplementedError as e:
+        except NotImplementedError as e:  # pragma: no cover
             if value.dtype == numpy.dtype('O'):
                 pb = TensorProto()
                 pb.data_type = TensorProto.STRING  # pylint: disable=E1101
@@ -66,7 +66,7 @@ def from_array(value, name=None):
                     "Unable to convert type %r (dtype=%r) into an ONNX tensor "
                     "due to %r." % (type(value), value.dtype, e)) from e
         return pb
-    if isinstance(value, TensorProto):
+    if isinstance(value, TensorProto):  # pragma: no cover
         return value
     raise NotImplementedError(
         "Unable to convert type %r into an ONNX tensor." % type(value))

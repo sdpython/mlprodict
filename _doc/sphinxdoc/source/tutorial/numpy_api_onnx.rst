@@ -124,7 +124,42 @@ The simple instruction ``m[:, 0] = 1`` modifies an entire column
 of an existing array. :epkg:`ONNX` does not allow that, even if the
 same operator can be achieved, the result is a new array.
 See section :ref:`l-inplace-modification-onnx` for more
-details.
+details. This API intends to be easy to use than the current
+`ONNX API <https://github.com/onnx/onnx/blob/master/docs/PythonAPIOverview.md>`_
+or the other introduced in `skl2onnx
+<https://onnx.ai/sklearn-onnx/auto_tutorial/plot_icustom_converter.html>`_
+which looks like this:
+
+.. gdot::
+    :script: DOT-SECTION
+    :process:
+
+    import numpy
+    from skl2onnx.common._topology import Variable
+    from skl2onnx.common.data_types import FloatTensorType
+    from skl2onnx.algebra.onnx_ops import OnnxSlice, OnnxSqueeze
+    from mlprodict.onnxrt import OnnxInference
+
+    opv = 14
+
+    var = Variable('X', 'X', type=FloatTensorType([None, 3]),
+                   scope=None)
+
+    op = OnnxSlice(var,
+                   numpy.array([0], dtype=numpy.int64),
+                   numpy.array([1], dtype=numpy.int64),
+                   op_version=opv)
+
+    sq = OnnxSqueeze(op, numpy.array([0], dtype=numpy.int64),
+                     op_version=opv, output_names=['Y'])
+
+    onx = sq.to_onnx(inputs=[var], target_opset=opv)
+    oinf = OnnxInference(onx)
+    print("DOT-SECTION", oinf.to_dot())
+
+This API requires to know ONNX operators and an extra step to convert
+code written with :epkg:`numpy` into code written with ONNX operators.
+Even though the operators are similar, signatures may be different.
 
 Available functions
 +++++++++++++++++++

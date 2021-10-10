@@ -17,7 +17,10 @@ import autopep8
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.common.data_types import Int64TensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxGather, OnnxIdentity, OnnxReshape, OnnxFlatten)
+    OnnxGather, OnnxIdentity, OnnxReshape, OnnxFlatten,
+    OnnxSlice, OnnxSqueeze)
+from skl2onnx.common._topology import Variable
+from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnx_tools.onnx_export import (
     export2onnx, export2tf2onnx, export2numpy)
 from mlprodict.testing.verify_code import verify_code
@@ -499,6 +502,24 @@ class ConvertFFT2DOp:
 
 class TestExportOnnx(ExtTestCase):
 
+    def test_model_data_slice(self):
+        opv = 14
+
+        var = Variable('x', 'x', type=FloatTensorType([None, None, 4]),
+                       scope=None)
+
+        op = OnnxSlice(var,
+                       numpy.array([0], dtype=numpy.int64),
+                       numpy.array([1], dtype=numpy.int64),
+                       op_version=opv)
+
+        sq = OnnxSqueeze(op, numpy.array([0], dtype=numpy.int64),
+                         op_version=opv, output_names=['y'])
+
+        onx = sq.to_onnx(inputs=[var], target_opset=opv)
+        with open("temp_slice.onnx", "wb") as f:
+            f.write(onx.SerializeToString())
+
     def test_simple_configuration(self):
         op_version = 13
 
@@ -633,7 +654,7 @@ class TestExportOnnx(ExtTestCase):
     def test_export_onnx(self):
         this = os.path.dirname(__file__)
         folder = os.path.join(this, "data")
-        names = ["fft2d_any.onnx"]
+        names = ["fft2d_any.onnx", "slice.onnx"]
         for rt in ['python', 'onnxruntime1']:
             for name in names:
                 with self.subTest(name=name, rt=rt):
@@ -647,12 +668,13 @@ class TestExportOnnx(ExtTestCase):
                     _, loc = self.verify(new_onnx)
                     model = loc['onnx_model']
 
-                    oinf = OnnxInference(
-                        model, runtime=rt, new_outputs=['Sh_shape0'],
-                        new_opset=10)
-                    rr = oinf.run({'x': x})
-                    if rr['Sh_shape0'].shape != (3, ):
-                        self.assertEqual(rr['Sh_shape0'].shape, (3, ))
+                    if name == 'fft2d_any.onnx':
+                        oinf = OnnxInference(
+                            model, runtime=rt, new_outputs=['Sh_shape0'],
+                            new_opset=10)
+                        rr = oinf.run({'x': x})
+                        if rr['Sh_shape0'].shape != (3, ):
+                            self.assertEqual(rr['Sh_shape0'].shape, (3, ))
 
                     oinf = OnnxInference(model, runtime=rt)
                     if rt == 'python':
@@ -669,8 +691,10 @@ class TestExportOnnx(ExtTestCase):
                     oinf = OnnxInference(model, runtime=rt)
                     y2 = oinf.run({'x': x})
 
-                    self.assertEqualArray(y['y'], y1['y'])
-                    self.assertEqualArray(y['y'], y2['y'])
+                    if y1['y'].shape[0] > 0 and y['y'].shape[0] > 0:
+                        self.assertEqualArray(y['y'], y1['y'])
+                    if name == 'fft2d_any.onnx':
+                        self.assertEqualArray(y['y'], y2['y'])
 
                     code2 = oinf.to_onnx_code()
                     self.assertEqual(new_onnx, code2)
@@ -721,7 +745,7 @@ class TestExportOnnx(ExtTestCase):
     def test_export2tf2onnx(self):
         this = os.path.dirname(__file__)
         folder = os.path.join(this, "data")
-        names = ["fft2d_any.onnx"]
+        names = ["fft2d_any.onnx", "slice.onnx"]
         for rt in ['python', 'onnxruntime1']:
             for name in names:
                 with self.subTest(name=name, rt=rt):
@@ -750,8 +774,9 @@ class TestExportOnnx(ExtTestCase):
                     oinf = OnnxInference(model, runtime=rt)
                     y2 = oinf.run({'x': x})
 
-                    self.assertEqualArray(y['y'], y1['y'])
-                    self.assertEqualArray(y['y'], y2['y'])
+                    if y1['y'].shape[0] > 0 and y['y'].shape[0] > 0:
+                        self.assertEqualArray(y['y'], y1['y'])
+                        self.assertEqualArray(y['y'], y2['y'])
 
     def verify_numpy(self, content):
         try:
@@ -800,7 +825,7 @@ class TestExportOnnx(ExtTestCase):
     def test_export2numpy(self):
         this = os.path.dirname(__file__)
         folder = os.path.join(this, "data")
-        names = ["fft2d_any.onnx"]
+        names = ["fft2d_any.onnx", "slice.onnx"]
         for name in names:
             with self.subTest(name=name):
                 oinf0 = OnnxInference(os.path.join(folder, name))

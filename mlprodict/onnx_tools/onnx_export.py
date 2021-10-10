@@ -102,9 +102,17 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
     inputs = []
     for inp in model_onnx.graph.input:
         t = inp.type.tensor_type
-        dims = tuple(t.shape.dim)
+        dims = []
+        for d in t.shape.dim:
+            dd = d.dim_value
+            if dd == 0:
+                dd = None
+            dims.append(dd)
         if len(dims) == 0:
             dims = None
+        if 'dim_value' in str(dims):
+            raise RuntimeError(
+                "Unexpected issue in %r - %r." % (dims, t))
         inputs.append((inp.name, t.elem_type, dims))
     context['inputs'] = inputs
 
