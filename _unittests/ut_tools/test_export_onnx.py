@@ -691,7 +691,7 @@ class TestExportOnnx(ExtTestCase):
                     oinf = OnnxInference(model, runtime=rt)
                     y2 = oinf.run({'x': x})
 
-                    if y1['y'].shape[0] > 0 and y['y'].shape > 0:
+                    if y1['y'].shape[0] > 0 and y['y'].shape[0] > 0:
                         self.assertEqualArray(y['y'], y1['y'])
                     if name == 'fft2d_any.onnx':
                         self.assertEqualArray(y['y'], y2['y'])
@@ -774,7 +774,7 @@ class TestExportOnnx(ExtTestCase):
                     oinf = OnnxInference(model, runtime=rt)
                     y2 = oinf.run({'x': x})
 
-                    if y1['y'].shape[0] > 0 and y['y'].shape > 0:
+                    if y1['y'].shape[0] > 0 and y['y'].shape[0] > 0:
                         self.assertEqualArray(y['y'], y1['y'])
                         self.assertEqualArray(y['y'], y2['y'])
 
