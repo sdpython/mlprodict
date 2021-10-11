@@ -5,8 +5,15 @@
 History
 =======
 
-current - 2021-10-02 - 0.00Mb
+current - 2021-10-11 - 0.00Mb
 =============================
+
+* #314: Builds mlprodict for python 3.6 on linux (2021-10-11)
+* #313: Fix a bug related to shapes when exporting a model to tf2onnx (2021-10-10)
+* #312: Add more tests for einsum decomposition (2021-10-08)
+
+0.7.1624 - 2021-10-02 - 15.19Mb
+==============================
 
 * #311: Support opset 15 (onnx>=1.10) (2021-10-02)
 * #310: Raise an exception when inplace and intermediate are True (OnnxInference.run) (2021-09-23)

@@ -24,7 +24,8 @@ class TestOnnx2PyHelper(ExtTestCase):
             guess_proto_dtype_name(TensorProto.FLOAT),  # pylint: disable=E1101
             "TensorProto.FLOAT")
         self.assertEqual(
-            guess_proto_dtype_name(TensorProto.DOUBLE),  # pylint: disable=E1101
+            guess_proto_dtype_name(
+                TensorProto.DOUBLE),  # pylint: disable=E1101
             "TensorProto.DOUBLE")
         self.assertEqual(
             guess_proto_dtype_name(TensorProto.INT64),  # pylint: disable=E1101
@@ -36,13 +37,15 @@ class TestOnnx2PyHelper(ExtTestCase):
             guess_proto_dtype_name(TensorProto.UINT8),  # pylint: disable=E1101
             "TensorProto.UINT8")
         self.assertEqual(
-            guess_proto_dtype_name(TensorProto.FLOAT16),  # pylint: disable=E1101
+            guess_proto_dtype_name(
+                TensorProto.FLOAT16),  # pylint: disable=E1101
             "TensorProto.FLOAT16")
         self.assertEqual(
             guess_proto_dtype_name(TensorProto.BOOL),  # pylint: disable=E1101
             "TensorProto.BOOL")
         self.assertEqual(
-            guess_proto_dtype_name(TensorProto.STRING),  # pylint: disable=E1101
+            guess_proto_dtype_name(
+                TensorProto.STRING),  # pylint: disable=E1101
             "TensorProto.STRING")
 
     def test_numpy_max(self):
