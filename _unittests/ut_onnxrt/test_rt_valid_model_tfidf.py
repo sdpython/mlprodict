@@ -75,7 +75,7 @@ class TestRtValidateTfIdf(ExtTestCase):
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     @skipif_appveyor('stuck')
-    def test_rt_tfidftransformer_onnxruntime1(self):
+    def test_rt_tfidftransformer_python(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
@@ -90,7 +90,7 @@ class TestRtValidateTfIdf(ExtTestCase):
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"TfidfTransformer"},
             fLOG=myprint,
-            runtime='onnxruntime1', debug=debug,
+            runtime='python', debug=debug,
             filter_exp=lambda m, p: True))
         self.assertGreater(len(rows), 1)
         self.assertIn('skl_nop', rows[0])

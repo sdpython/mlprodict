@@ -679,8 +679,10 @@ class OpRunBinaryNum(OpRunBinary):
         res = OpRunBinary.run(self, x, y)
         if res[0].dtype != x.dtype:
             raise RuntimeTypeError(
-                "Output type mismatch: {} != {} (operator '{}')".format(
-                    x.dtype, res[0].dtype, self.__class__.__name__))
+                "Output type mismatch: {} != {} or {} (operator '{}')"
+                " type(x)={} type(y)={}".format(
+                    x.dtype, res[0].dtype, y.dtype,
+                    self.__class__.__name__, type(x), type(y)))
         return res
 
     def _run_no_checks_(self, x, y):  # pylint: disable=W0221
