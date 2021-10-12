@@ -14,11 +14,6 @@ jobs:
           - v3-dependencies-{{ checksum "requirements.txt" }}
           - v3-dependencies-
 
-#       - run:
-#           name: Install omp
-#           command: |
-#                     sudo apt-get install -y libomp-dev
-          
       - run:
           name: Install pandoc
           command: |
