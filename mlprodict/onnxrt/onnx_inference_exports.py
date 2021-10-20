@@ -11,7 +11,6 @@ import textwrap
 from onnx import numpy_helper
 from ..onnx_tools.onnx2py_helper import _var_as_dict, _type_to_string
 from ..tools.graphs import onnx2bigraph
-from ..onnx_tools.onnx_export import export2onnx
 
 
 class OnnxInferenceExport:
@@ -608,4 +607,6 @@ class OnnxInferenceExport:
 
         :return: string
         """
+        # Lazy import as it is not a common use.
+        from ..onnx_tools.onnx_export import export2onnx
         return export2onnx(self.oinf.obj)

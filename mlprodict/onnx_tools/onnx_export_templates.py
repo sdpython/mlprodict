@@ -5,6 +5,7 @@ with a python script.
 
 .. versionadded:: 0.7
 """
+import sys
 import os
 from textwrap import dedent
 try:
@@ -14,8 +15,7 @@ except ImportError:
     from functools import lru_cache as cache
 
 
-@cache
-def _get_file(name):
+def _private_get_file(name):
     """
     Retrieves one template.
     """
@@ -26,6 +26,21 @@ def _get_file(name):
             "Unable to find template %r in folder %r." % (name, this))
     with open(filename, "r", encoding="utf-8") as f:
         return dedent(f.read())
+
+
+if sys.version_info[:2] > (3, 6):
+    @cache
+    def _get_file(name):
+        """
+        Retrieves one template.
+        """
+        return _private_get_file(name)
+else:  # pragma: no cover
+    def _get_file(name):
+        """
+        Retrieves one template.
+        """
+        return _private_get_file(name)
 
 
 def get_onnx_template():
