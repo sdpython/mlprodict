@@ -12,12 +12,10 @@ from ._op_classifier_string import _ClassifierCommon
 from ._new_ops import OperatorSchema
 from .op_tree_ensemble_classifier_ import (  # pylint: disable=E0611,E0401
     RuntimeTreeEnsembleClassifierDouble,
-    RuntimeTreeEnsembleClassifierFloat,
-)
+    RuntimeTreeEnsembleClassifierFloat)
 from .op_tree_ensemble_classifier_p_ import (  # pylint: disable=E0611,E0401
     RuntimeTreeEnsembleClassifierPFloat,
-    RuntimeTreeEnsembleClassifierPDouble,
-)
+    RuntimeTreeEnsembleClassifierPDouble)
 
 
 class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
@@ -85,7 +83,8 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
         This is a C++ implementation coming from
         :epkg:`onnxruntime`.
         `tree_ensemble_classifier.cc
-        <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_classifier.cc>`_.
+        <https://github.com/microsoft/onnxruntime/blob/master/
+        onnxruntime/core/providers/cpu/ml/tree_ensemble_classifier.cc>`_.
         See class :class:`RuntimeTreeEnsembleClassifier
         <mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_.RuntimeTreeEnsembleClassifier>`.
         """
