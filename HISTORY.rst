@@ -5,8 +5,13 @@
 History
 =======
 
-current - 2021-10-11 - 0.00Mb
+current - 2021-10-21 - 0.00Mb
 =============================
+
+* #315: Fixes import issue for python 3.6 (2021-10-21)
+
+0.7.1625 - 2021-10-12 - 15.57Mb
+==============================
 
 * #314: Builds mlprodict for python 3.6 on linux (2021-10-11)
 * #313: Fix a bug related to shapes when exporting a model to tf2onnx (2021-10-10)
