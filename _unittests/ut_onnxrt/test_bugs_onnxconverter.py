@@ -3,7 +3,9 @@
 """
 import unittest
 import numpy
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import (
+    ExtTestCase, skipif_appveyor, skipif_circleci,
+    skipif_travis, skipif_azure)
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import AdaBoostClassifier
@@ -14,6 +16,10 @@ from mlprodict.onnxrt import OnnxInference
 
 class TestBugsOnnxrtOnnxConverter(ExtTestCase):
 
+    @skipif_appveyor("old version of onnxconvert-common")
+    @skipif_circleci("old version of onnxconvert-common")
+    @skipif_travis("old version of onnxconvert-common")
+    @skipif_azure("old version of onnxconvert-common")
     def test_bug_apply_clip(self):
         iris = load_iris()
         X, y = iris.data, iris.target
