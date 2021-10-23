@@ -113,8 +113,15 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
 
                 model_onnx = to_onnx(model, X)
                 if convert_lightgbm is not None:
-                    model_onnx2 = convert_lightgbm(
-                        model, initial_types=[('X', FloatTensorType([None, X.shape[1]]))])
+                    try:
+                        model_onnx2 = convert_lightgbm(
+                            model, initial_types=[
+                                ('X', FloatTensorType([None, X.shape[1]]))])
+                    except RuntimeError as e:
+                        if "is higher than the number of the installed" in str(e):
+                            model_onnx2 = None
+                        else:
+                            raise e
                 else:
                     model_onnx2 = None
 
