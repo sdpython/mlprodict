@@ -86,7 +86,8 @@ class OnnxInferenceExport:
         clean_label_reg2 = re.compile("\\\\p\\{[0-9P]{1,6}\\}")
 
         def dot_name(text):
-            return text.replace("/", "_").replace(":", "__")
+            return text.replace("/", "_").replace(
+                ":", "__").replace(".", "_")
 
         def dot_label(text):
             for reg in [clean_label_reg1, clean_label_reg2]:
