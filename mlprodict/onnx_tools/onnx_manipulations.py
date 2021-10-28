@@ -354,7 +354,8 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
     :param verbose: verbose, if positive, reports on all changed names
     :param fLOG: logging function
     :param counts: used for recursion
-    :param replace: used for recursion
+    :param replace: used for recursion, it can be also used to
+        to fix some replacements
     :param taken: used for recursion
     :return: onnx model (the model is modified in place)
 
