@@ -5,8 +5,13 @@
 History
 =======
 
-current - 2021-10-21 - 0.00Mb
+current - 2021-10-28 - 0.00Mb
 =============================
+
+* #317: plot_onnx fails when node names contains '.' (2021-10-28)
+
+0.7.1626 - 2021-10-21 - 1.93Mb
+==============================
 
 * #315: Fixes import issue for python 3.6 (2021-10-21)
 
