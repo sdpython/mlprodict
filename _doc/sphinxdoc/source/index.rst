@@ -173,11 +173,11 @@ them:
 * **Extract a subpart of an ONNX graph:**
   hen an ONNX graph does not load, it is possible to modify, to extract
   some subpart to check a tiny part of it. Function
-  :func`select_model_inputs_outputs
+  :func:`select_model_inputs_outputs
   <mlprodict.onnx_tools.onnx_manipulations.select_model_inputs_outputs>`
   may be used to change the inputs and/or the outputs.
 * **Change the opset**: function
-  :func`overwrite_opset
+  :func:`overwrite_opset
   <mlprodict.onnx_tools.onnx_manipulations.overwrite_opset>`
   overwrites the opset, it is used to check for which opset (ONNX version)
   a graph is valid. ...
@@ -195,7 +195,7 @@ them:
   a code based on ONNX API which replicates the ONNX graph
   (see :func:`export2onnx
   <mlprodict.onnx_tools.onnx_export.export2onnx>`)
-* **Export ONNX graph to :epkg:`tf2onnx`:** still a function which
+* **Export ONNX graph to :epkg:`tf2onnx`**: still a function which
   creates an ONNX graph but based on :epkg:`tf2onnx` API
   (see :func:`export2tf2onnx
   <mlprodict.onnx_tools.onnx_export.export2tf2onnx>`)
