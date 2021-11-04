@@ -34,6 +34,7 @@ class OnnxWholeSession:
             onnx_data = onnx_data.SerializeToString()
         if isinstance(runtime_options, SessionOptions):
             sess_options = runtime_options
+            session_options = None
             runtime_options = None
         else:
             session_options = (
@@ -43,7 +44,7 @@ class OnnxWholeSession:
             sess_options = session_options or SessionOptions()
         self.run_options = RunOptions()
 
-        if sess_options is None:
+        if session_options is None:
             try:
                 sess_options.sessions_log_verbosity_level = 0
             except AttributeError:  # pragma: no cover
