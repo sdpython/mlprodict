@@ -32,11 +32,16 @@ class OnnxWholeSession:
                 "runtime '{}' is not implemented.".format(runtime))
         if hasattr(onnx_data, 'SerializeToString'):
             onnx_data = onnx_data.SerializeToString()
-        session_options = (
-            None if runtime_options is None
-            else runtime_options.get('session_options', None))
-        self.runtime = runtime
-        sess_options = session_options or SessionOptions()
+        if isinstance(runtime_options, SessionOptions):
+            sess_options = runtime_options
+            session_options = None
+            runtime_options = None
+        else:
+            session_options = (
+                None if runtime_options is None
+                else runtime_options.get('session_options', None))
+            self.runtime = runtime
+            sess_options = session_options or SessionOptions()
         self.run_options = RunOptions()
 
         if session_options is None:
@@ -56,11 +61,11 @@ class OnnxWholeSession:
                         GraphOptimizationLevel.ORT_ENABLE_ALL)
                 if runtime_options.get('enable_profiling', True):
                     sess_options.enable_profiling = True
-        elif 'enable_profiling' in runtime_options:
+        elif runtime_options is not None and 'enable_profiling' in runtime_options:
             raise RuntimeError(  # pragma: no cover
                 "session_options and enable_profiling cannot be defined at the "
                 "same time.")
-        elif 'disable_optimisation' in runtime_options:
+        elif runtime_options is not None and 'disable_optimisation' in runtime_options:
             raise RuntimeError(  # pragma: no cover
                 "session_options and disable_optimisation cannot be defined at the "
                 "same time.")
