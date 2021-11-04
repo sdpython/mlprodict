@@ -764,7 +764,14 @@ class TestExportOnnx(ExtTestCase):
                     model = loc['onnx_model']
                     self.assertNotIn('op_type: "FFT2D"', str(model))
 
-                    oinf = OnnxInference(model, runtime=rt)
+                    if rt == 'onnxruntime1':
+                        opts = SessionOptions()
+                        opts.graph_optimization_level = (
+                            GraphOptimizationLevel.ORT_DISABLE_ALL)
+                        oinf = OnnxInference(
+                            model, runtime=rt, runtime_options=opts)
+                    else:
+                        oinf = OnnxInference(model, runtime=rt)
                     y1 = oinf.run({'x': x})
 
                     new_onnx = export2tf2onnx(
