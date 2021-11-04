@@ -12,6 +12,7 @@ from onnx import numpy_helper, helper
 from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
     make_tensor_value_info)
+from onnxruntime import SessionOptions, GraphOptimizationLevel
 from sklearn.cluster import KMeans
 import autopep8
 from pyquickhelper.pycode import ExtTestCase
@@ -909,14 +910,17 @@ class TestExportOnnx(ExtTestCase):
         r = numpy.einsum("bac,cd,def->ebc", x1, x2, x3)
         seq_clean = decompose_einsum_equation(
             "bac,cd,def->ebc", strategy='numpy', clean=True)
-        onx = seq_clean.to_onnx("Y", "X1", "X2", "X3", dtype=numpy.float32)
+        onx = seq_clean.to_onnx("Y", "X1", "X2", "X3", dtype=numpy.float32,
+                                target_opset=15)
 
-        with self.subTest(rt='python'):
-            oinf = OnnxInference(onx)
+        with self.subTest(rt='onnxruntime1'):
+            opts = SessionOptions()
+            opts.graph_optimization_level = GraphOptimizationLevel.ORT_DISABLE_ALL
+            oinf = OnnxInference(onx, runtime='onnxruntime1', runtime_options=opts)
             rr = oinf.run({'X1': x1, 'X2': x2, 'X3': x3})
             self.assertEqualArray(r, rr['Y'])
-        with self.subTest(rt='onnxruntime1'):
-            oinf = OnnxInference(onx, runtime='onnxruntime1')
+        with self.subTest(rt='python'):
+            oinf = OnnxInference(onx)
             rr = oinf.run({'X1': x1, 'X2': x2, 'X3': x3})
             self.assertEqualArray(r, rr['Y'])
 
