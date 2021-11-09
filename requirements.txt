@@ -31,6 +31,7 @@ nbconvert>=6.0.2
 openpyxl
 opt-einsum
 pybind11
+pydata-sphinx-theme
 pydot
 pyensae
 py-cpuinfo

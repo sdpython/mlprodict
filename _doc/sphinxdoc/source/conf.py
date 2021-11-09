@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import os
-import alabaster
+import pydata_sphinx_theme
 from pyquickhelper.helpgen.default_conf import set_sphinx_variables
 try:
     from mlprodict.onnx_conv import register_converters, register_rewritten_operators
@@ -34,7 +34,7 @@ local_template = os.path.join(os.path.abspath(
 
 set_sphinx_variables(
     __file__, "mlprodict", "Xavier Dupré", 2021,
-    "alabaster", alabaster.get_path(),
+    "pydata_sphinx_theme", pydata_sphinx_theme.get_html_theme_path(),
     locals(), extlinks=dict(
         issue=('https://github.com/sdpython/mlprodict/issues/%s', 'issue')),
     title="Python Runtime for ONNX", book=True)
