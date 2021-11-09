@@ -33,8 +33,8 @@ class SliceCommon(OpRun):
                     slices[a] = slice(s, e, d)
         try:
             return (data[tuple(slices)], )
-        except TypeError as e:
-            raise TypeError(  # pragma: no cover
+        except TypeError as e:  # pragma: no cover
+            raise TypeError(
                 "Unable to extract slice %r for shape %r." % (slices, data.shape)) from e
 
     def _infer_shapes(self, data, starts, ends, axes=None, steps=None):  # pylint: disable=W0221

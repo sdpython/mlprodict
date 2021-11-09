@@ -25,7 +25,7 @@ def custom_pad(arr, paddings, constant=0, verbose=False):
     if min(paddings.ravel()) < 0:
         raise NotImplementedError("Negative paddings is not implemented yet.")
     if not arr.flags['C_CONTIGUOUS']:
-        arr = numpy.ascontiguousarray(arr)
+        arr = numpy.ascontiguousarray(arr)  # pragma: no cover
 
     new_shape = tuple(
         a + s for a, s in zip(arr.shape, numpy.sum(paddings, axis=1, keepdims=0)))

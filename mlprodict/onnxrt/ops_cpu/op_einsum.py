@@ -34,7 +34,7 @@ class Einsum(OpRun):
     def _infer_shapes(self, *args):  # pylint: disable=W0221
         try:
             return (ShapeObject.einsum_shape(self.equation, *args), )
-        except RuntimeError:
+        except RuntimeError:  # pragma: no cover
             return (ShapeObject(None, dtype=args[0].dtype), )
 
     def _infer_types(self, *args):  # pylint: disable=W0221

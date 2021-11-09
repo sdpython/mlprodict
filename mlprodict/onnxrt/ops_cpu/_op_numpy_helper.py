@@ -68,6 +68,6 @@ def numpy_matmul_inplace(inplaces, a, b):
         if len(a.shape) <= 2 and len(b.shape) <= 2:
             return numpy_dot_inplace(inplaces, a, b)
         return numpy.matmul(a, b)
-    except ValueError as e:
+    except ValueError as e:  # pragma: no cover
         raise ValueError(
             "Unable to multiply shapes %r, %r." % (a.shape, b.shape)) from e

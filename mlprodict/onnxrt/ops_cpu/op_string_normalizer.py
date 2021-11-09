@@ -63,7 +63,7 @@ class StringNormalizer(OpRunUnary):
         for i in range(0, cin.shape[0]):
             if isinstance(cout[i], float):
                 # nan
-                cout[i] = ''
+                cout[i] = ''  # pragma: no cover
             else:
                 cout[i] = self.strip_accents_unicode(cout[i])
 

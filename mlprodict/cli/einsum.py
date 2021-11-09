@@ -69,7 +69,7 @@ def einsum_test(equation="abc,cd->abd", shape="30", perm=False,
             df.to_excel(output, index=False)
             fLOG('[einsum_test] wrote file %r.' % output)
         else:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Unknown extension %r in file %r." % (ext, output))
     else:
         for r in res:

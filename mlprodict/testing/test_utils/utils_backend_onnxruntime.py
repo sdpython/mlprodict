@@ -13,10 +13,10 @@ def _capture_output(fct, kind):
         return fct(), None, None  # pragma: no cover
     try:
         from cpyquickhelper.io import capture_output
-    except ImportError:
+    except ImportError:  # pragma: no cover
         # cpyquickhelper not available
-        return fct(), None, None  # pragma: no cover
-    return capture_output(fct, kind)  # pragma: no cover
+        return fct(), None, None
+    return capture_output(fct, kind)
 
 
 class InferenceSession2:

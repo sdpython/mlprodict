@@ -25,19 +25,20 @@ class Scan(OpRun):
                        expected_attributes=Scan.atts,
                        **options)
         if not hasattr(self.body, 'run'):
-            raise RuntimeError("Parameter 'body' must have a method 'run', "
-                               "type {}.".format(type(self.body)))
+            raise RuntimeError(  # pragma: no cover
+                "Parameter 'body' must have a method 'run', "
+                "type {}.".format(type(self.body)))
         self.input_directions_ = [0 if i >= len(self.scan_input_directions) else self.scan_input_directions[i]
                                   for i in range(self.num_scan_inputs)]
         max_dir_in = max(self.input_directions_)
         if max_dir_in != 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Scan is not implemented for other output input_direction than 0.")
         self.input_axes_ = [0 if i >= len(self.scan_input_axes) else self.scan_input_axes[i]
                             for i in range(self.num_scan_inputs)]
         max_axe_in = max(self.input_axes_)
         if max_axe_in != 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Scan is not implemented for other input axes than 0.")
         self.input_names = self.body.input_names
         self.output_names = self.body.output_names
@@ -53,13 +54,13 @@ class Scan(OpRun):
                              for i in range(num_scan_outputs)]
         max_dir_out = max(output_directions)
         if max_dir_out != 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Scan is not implemented for other output output_direction than 0.")
         output_axes = [0 if i >= len(self.scan_output_axes) else self.scan_output_axes[i]
                        for i in range(num_scan_outputs)]
         max_axe_out = max(output_axes)
         if max_axe_out != 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Scan is not implemented for other output axes than 0.")
 
         state_names_in = self.input_names[:self.num_scan_inputs]
@@ -93,7 +94,7 @@ class Scan(OpRun):
 
             try:
                 outputs = self._run_meth(inputs)
-            except TypeError as e:
+            except TypeError as e:  # pragma: no cover
                 raise TypeError(
                     "Unable to call 'run' for type '{}'.".format(
                         type(self.body))) from e

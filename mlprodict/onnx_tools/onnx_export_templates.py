@@ -10,7 +10,7 @@ import os
 from textwrap import dedent
 try:
     from functools import cache
-except ImportError:
+except ImportError:  # pragma: no cover
     # python 3.8
     from functools import lru_cache as cache
 

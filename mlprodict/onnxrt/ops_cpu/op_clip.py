@@ -53,7 +53,7 @@ class Clip_11(OpRunUnaryNum):
         """
         try:
             res = self._run(x, *minmax)
-        except TypeError as e:
+        except TypeError as e:  # pragma: no cover
             raise TypeError("Issues with types {} (binary operator {}).".format(
                 ", ".join(str(type(_)) for _ in [x]),
                 self.__class__.__name__)) from e
@@ -78,14 +78,14 @@ class Clip_11(OpRunUnaryNum):
     def infer_shapes(self, x, *minmax):  # pylint: disable=E0202,W0221
         try:
             return self._infer_shapes(x)
-        except TypeError as e:
+        except TypeError as e:  # pragma: no cover
             raise TypeError("Issues with types {} (operator {}).".format(
                 x.dtype, self.__class__.__name__)) from e
 
     def infer_types(self, x, *minmax):  # pylint: disable=E0202,W0221
         try:
             return self._infer_types(x)
-        except TypeError as e:
+        except TypeError as e:  # pragma: no cover
             raise TypeError("Issues with types {} (operator {}).".format(
                 x.dtype, self.__class__.__name__)) from e
 
@@ -97,4 +97,4 @@ class Clip_11(OpRunUnaryNum):
 if onnx_opset_version() >= 11:
     Clip = Clip_11
 else:
-    Clip = Clip_6
+    Clip = Clip_6  # pragma: no cover

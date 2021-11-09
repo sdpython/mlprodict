@@ -23,17 +23,19 @@ class LinearClassifier(OpRunClassifierProb, _ClassifierCommon):
                                      **options)
         self._post_process_label_attributes()
         if not isinstance(self.coefficients, numpy.ndarray):
-            raise TypeError("coefficient must be an array not {}.".format(
-                type(self.coefficients)))
+            raise TypeError(  # pragma: no cover
+                "coefficient must be an array not {}.".format(
+                    type(self.coefficients)))
         if len(getattr(self, "classlabels_ints", [])) == 0 and \
                 len(getattr(self, 'classlabels_strings', [])) == 0:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Fields classlabels_ints or classlabels_strings must be specified.")
         self.nb_class = max(len(getattr(self, 'classlabels_ints', [])),
                             len(getattr(self, 'classlabels_strings', [])))
         if len(self.coefficients.shape) != 1:
-            raise ValueError("coefficient must be an array but has shape {}\n{}.".format(
-                self.coefficients.shape, desc))
+            raise ValueError(  # pragma: no cover
+                "coefficient must be an array but has shape {}\n{}.".format(
+                    self.coefficients.shape, desc))
         n = self.coefficients.shape[0] // self.nb_class
         self.coefficients = self.coefficients.reshape(self.nb_class, n).T
 

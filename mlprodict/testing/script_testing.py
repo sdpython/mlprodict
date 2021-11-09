@@ -109,8 +109,8 @@ def verify_script(file_or_name, try_onnx=True, existing_loc=None,
     glo = globals().copy()
     loc = {}
     if existing_loc is not None:
-        loc.update(existing_loc)
-        glo.update(existing_loc)
+        loc.update(existing_loc)  # pragma: no cover
+        glo.update(existing_loc)  # pragma: no cover
     out = StringIO()
     err = StringIO()
 

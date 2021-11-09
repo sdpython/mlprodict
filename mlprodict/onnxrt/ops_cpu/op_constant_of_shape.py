@@ -29,8 +29,8 @@ class ConstantOfShape(OpRun):
     def _run(self, data):  # pylint: disable=W0221
         try:
             res = numpy.full(tuple(data), self.cst)
-        except TypeError as e:
-            raise RuntimeError(  # pragma: no cover
+        except TypeError as e:  # pragma: no cover
+            raise RuntimeError(
                 "Unable to create a constant of shape %r with value %r "
                 "(raw value=%r)." % (data, self.cst, self.value)) from e
         return (res, )

@@ -22,7 +22,7 @@ class Transpose(OpRunUnaryNum):
         if self.perm_ is None:
             return (numpy.transpose(data), )
         if len(self.perm_) != len(data.shape):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Inconsistent permutation %r with shape %r." % (
                     self.perm_, data.shape))
         return (numpy.transpose(data, axes=self.perm_), )

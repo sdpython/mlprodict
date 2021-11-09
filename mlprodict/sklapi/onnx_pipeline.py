@@ -187,7 +187,7 @@ class OnnxPipeline(Pipeline):
                       rewrite_ops=rewrite_ops, verbose=verbose,
                       **kwargs)
         if len(onx.graph.output) != 1:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Only one output is allowed in the ONNX graph not %d. "
                 "Model=%r" % (len(onx.graph.output), fitted_transformer))
         tr = OnnxTransformer(

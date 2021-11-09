@@ -18,7 +18,7 @@ def reshape_reference_implementation(data, shape):
     else:
         try:
             new_shape[zeros_index] = numpy.array(data.shape)[zeros_index]
-        except IndexError as e:
+        except IndexError as e:  # pragma: no cover
             raise RuntimeError(
                 "Unable to reshape from shape %r to shape %r (or %r)."
                 "" % (data.shape, shape, new_shape)) from e
