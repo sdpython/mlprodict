@@ -923,7 +923,8 @@ class TestExportOnnx(ExtTestCase):
         with self.subTest(rt='onnxruntime1'):
             opts = SessionOptions()
             opts.graph_optimization_level = GraphOptimizationLevel.ORT_DISABLE_ALL
-            oinf = OnnxInference(onx, runtime='onnxruntime1', runtime_options=opts)
+            oinf = OnnxInference(
+                onx, runtime='onnxruntime1', runtime_options=opts)
             rr = oinf.run({'X1': x1, 'X2': x2, 'X3': x3})
             self.assertEqualArray(r, rr['Y'])
         with self.subTest(rt='python'):

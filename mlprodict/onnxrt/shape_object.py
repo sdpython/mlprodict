@@ -447,14 +447,17 @@ class ShapeObject(BaseDimensionShape):
         print(mx.evaluate(n=4))
     """
 
-    def __init__(self, shape, dtype=None, use_n1=False, name=None):
+    def __init__(self, shape, dtype=None, use_n1=False, name=None,
+                 subtype=None):
         """
         @param      shape       tuple or `numpy.array`
         @param      dtype       dtype
         @param      use_n1      use `'n'` if the first dimension is unknown
         @param      name        optional, for debugging purposes
+        @param      subtype     element type if this type is a list
         """
         self.name = name
+        self.subtype = subtype
         if isinstance(shape, numpy.ndarray):
             self._shape = [DimensionObject(s) for s in shape.shape]
             self._dtype = shape.dtype
@@ -590,7 +593,8 @@ class ShapeObject(BaseDimensionShape):
             return ShapeObject(None, dtype=self.dtype, name=name or self.name)
         return ShapeObject(self._shape.copy(),
                            self.dtype if dtype is None else dtype,
-                           name=name or self.name)
+                           name=name or self.name,
+                           subtype=self.subtype)
 
     def __getitem__(self, index):
         """
