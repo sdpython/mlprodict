@@ -1,3 +1,4 @@
+# pylint: disable=C0302
 """
 @file
 @brief Shape object.
