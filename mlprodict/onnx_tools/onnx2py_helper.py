@@ -172,7 +172,7 @@ def guess_numpy_type_from_string(name):
         return numpy.bool_
     if name == 'str':
         return numpy.str_
-    raise ValueError(
+    raise ValueError(  # pragma: no cover
         "Unable to guess numpy dtype from %r." % name)
 
 
@@ -196,7 +196,7 @@ def guess_numpy_type_from_dtype(dt):
         return numpy.int8
     if dt == numpy.dtype('uint8'):
         return numpy.uint8
-    raise ValueError(
+    raise ValueError(  # pragma: no cover
         "Unable to guess numpy dtype from %r." % dt)
 
 

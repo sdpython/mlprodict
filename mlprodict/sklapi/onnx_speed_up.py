@@ -140,7 +140,7 @@ class _OnnxPipelineStepSpeedup(BaseEstimator, OnnxOperatorMixin):
         try:
             compiled_code = compile(
                 self.numpy_code_, '<string>', 'exec')
-        except SyntaxError as e:
+        except SyntaxError as e:  # pragma: no cover
             raise AssertionError(
                 "Unable to compile a script due to %r. "
                 "\n--CODE--\n%s"
@@ -165,7 +165,7 @@ class _OnnxPipelineStepSpeedup(BaseEstimator, OnnxOperatorMixin):
             with redirect_stderr(err):
                 try:
                     exec(compiled_code, glo, loc)  # pylint: disable=W0122
-                except Exception as e:
+                except Exception as e:  # pragma: no cover
                     raise AssertionError(
                         "Unable to execute a script due to %r. "
                         "\n--OUT--\n%s\n--ERR--\n%s\n--CODE--\n%s"
@@ -173,7 +173,7 @@ class _OnnxPipelineStepSpeedup(BaseEstimator, OnnxOperatorMixin):
                               print_code(self.numpy_code_))) from e
         names = [k for k in loc if k.startswith('numpy_')]
         if len(names) != 1:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to guess which function is the one, names=%r."
                 "" % list(sorted(names)))
         fct = loc[names[0]]

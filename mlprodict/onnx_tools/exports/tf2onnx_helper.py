@@ -113,6 +113,8 @@ def make_sure(cond, msg, *args):
 
 def map_onnx_to_numpy_type(onnx_dtype):
     "Converts ONNX type into numpy type."
+    if onnx_dtype is None:
+        return numpy.float32
     return guess_dtype(onnx_dtype)
 
 
@@ -162,10 +164,11 @@ class Tf2OnnxConvert:
     """
 
     def __init__(self, onnx_model, _tf_op=None, verbose=None,
-                 target_opset=None):
+                 target_opset=None, max_iter=100):
         self._onnx_model = onnx_model
         self._tf_op = _tf_op or tf_op
         self.verbose = verbose
+        self.max_iter = max_iter
         if isinstance(target_opset, int):
             self.target_opsets = {'': target_opset}
         elif isinstance(target_opset, dict):
@@ -317,13 +320,17 @@ class Tf2OnnxConvert:
         :param new_name: new name
         :return: list of impacted nodes
         """
+        if self.verbose:
+            print(  # pragma: no cover
+                "[Tf2OnnxConvert.replace_all_inputs] replace %r by %r" % (
+                    old_name, new_name))
         res = []
         for node in self._names.values():
             if not hasattr(node, 'input'):
                 continue
             if old_name not in node.input:
                 continue
-            new_inputs = [new_name if i.name == old_name else i.name
+            new_inputs = [new_name if i == old_name else i
                           for i in node.input]
             node.input[:] = new_inputs[:]
             res.append(node)
@@ -342,6 +349,9 @@ class Tf2OnnxConvert:
                     "[Tf2OnnxConvert.replace_all_inputs] add id node from %r to %r "
                     "with node %r." % (
                         old_name, new_name, n.name))  # pylint: disable=E1101
+        if self.verbose:
+            print(  # pragma: no cover
+                "[Tf2OnnxConvert.replace_all_inputs] end")
         return res
 
     def remove_node(self, name):
@@ -385,8 +395,10 @@ class Tf2OnnxConvert:
 
         done = {}
         modif = 1
-        while modif > 0:
+        turn = 0
+        while modif > 0 and turn < self.max_iter:
             modif = 0
+            turn += 1
             # The converter may alter the current list of nodes, we freeze it.
             current_values = list(self._names.values())
             for node in current_values:

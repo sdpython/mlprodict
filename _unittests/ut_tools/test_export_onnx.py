@@ -5,6 +5,7 @@ import os
 import unittest
 import collections
 import inspect
+import traceback
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
@@ -500,6 +501,64 @@ class ConvertFFT2DOp:
     def version_13(cls, ctx, node, **kwargs):
         return cls.any_version(13, ctx, node, **kwargs)
 
+class ConvertSliceOp:
+    supported_dtypes = [
+        numpy.float32,
+    ]
+
+    @classmethod
+    def version_1(cls, ctx, node, **kwargs):
+        # T output = Slice(T input, Index begin, Index size)
+        # T output = Slice(T input, Tind starts, Tind ends, Tind axes, Tind steps)
+        # "ends" are exclusive, "axes" and "steps" are optional, their default val are [0, ...] and 1
+        input_tensor = node.input[0]
+        starts = node.input[1]
+        size = node.input[2]
+        # in tf, size can be -1 which means all elem are taken, so size can't be added starts directly.
+        # the way to make sure size are not less than 0: set "sizes"'s elem to be int_max if elem val is -1
+        size_dtype = ctx.get_dtype(size)
+        size_np_dtype = utils.map_onnx_to_numpy_type(size_dtype)
+        if ctx.get_node_by_output(size).is_const() and ctx.get_node_by_output(starts).is_const():
+            starts = ctx.get_node_by_output(starts).get_tensor_value()
+            sizes = ctx.get_node_by_output(size).get_tensor_value()
+            ends = []
+            for start, size in zip(starts, sizes):
+                # get all elements
+                if size == -1:
+                    dtype = ctx.get_dtype(node.input[1])
+                    utils.make_sure(dtype, "dtype of {} is None".format(node.input[1]))
+                    utils.make_sure(dtype, "dtype of {} is None".format(node.input[1]))
+                    ends.append(np.iinfo(dtype).max)
+                else:
+                    ends.append(start + size)
+
+        else:
+            neg_one_val = np.array([-1]).astype(size_np_dtype)
+            neg_one = ctx.make_const(utils.make_name("const"), neg_one_val).output[0]
+
+            int_max_val = np.array([utils.get_max_value(size_np_dtype)]).astype(size_np_dtype)
+            int_max = ctx.make_const(utils.make_name("largest_int_val"), int_max_val).output[0]
+
+            size_are_neg_one_flag = ctx.make_node("Equal", [neg_one, size]).output[0]
+            size_are_neg_one_flag = ctx.make_node("Cast", [size_are_neg_one_flag], attr={"to": size_dtype}).output[0]
+            value_to_add = ctx.make_node("Mul", [int_max, size_are_neg_one_flag]).output[0]
+            size_processed = ctx.make_node("Add", [size, value_to_add]).output[0]
+            ends = ctx.make_node("Add", [starts, size_processed]).output[0]
+
+        ctx.remove_node(node.name)
+        inputs_map = {"data": input_tensor, "starts": starts, "ends": ends}
+        kwargs = {**inputs_map, "outputs": node.output}
+        _ = GraphBuilder(ctx).make_slice(kwargs, name=node.name)
+
+    @classmethod
+    def version_10(cls, ctx, node, **kwargs):
+        cls.version_1(ctx, node, **kwargs)
+
+    @classmethod
+    def version_11(cls, ctx, node, **kwargs):
+        cls.version_1(ctx, node, **kwargs)
+
+
 
 class TestExportOnnx(ExtTestCase):
 
@@ -722,7 +781,9 @@ class TestExportOnnx(ExtTestCase):
                'print': print, 'sorted': sorted,
                'collections': collections, 'inspect': inspect,
                'helper': helper, "make_sure": make_sure,
-               'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
+               'ConvertFFT2DOp': ConvertFFT2DOp,
+               'ConvertSliceOp': ConvertSliceOp,
+               "make_name": make_name,
                'map_onnx_to_numpy_type': map_onnx_to_numpy_type,
                'GraphBuilder': GraphBuilder}
         out = StringIO()
@@ -736,19 +797,20 @@ class TestExportOnnx(ExtTestCase):
                 try:
                     exec(obj, glo, loc)  # pylint: disable=W0122
                 except Exception as e:
+                    tb = traceback.format_exc()
                     raise AssertionError(
-                        "Unable to execute a script due to %r. "
+                        "Unable to execute a script due to %r\n%s. "
                         "\n--OUT--\n%s\n--ERR--\n%s\n--CODE--\n%s"
-                        "" % (e, out.getvalue(), err.getvalue(),
+                        "" % (e, tb, out.getvalue(), err.getvalue(),
                               print_code(content))) from e
         return glo, loc
 
     def test_export2tf2onnx(self):
         this = os.path.dirname(__file__)
         folder = os.path.join(this, "data")
-        names = ["fft2d_any.onnx", "slice.onnx"]
+        names = [("fft2d_any.onnx", 'FFT2D'), ("slice.onnx", 'Slice')]
         for rt in ['python', 'onnxruntime1']:
-            for name in names:
+            for name, op_name in names:
                 with self.subTest(name=name, rt=rt):
                     oinf0 = OnnxInference(
                         os.path.join(folder, name), runtime=rt)
@@ -757,12 +819,15 @@ class TestExportOnnx(ExtTestCase):
                     y = oinf0.run({'x': x})
 
                     new_onnx = export2tf2onnx(
-                        os.path.join(folder, name), name="FFT2D")
+                        os.path.join(folder, name), name=op_name)
                     _, loc = self.verify_tf(new_onnx)
                     model = loc['onnx_raw']
-                    self.assertIn('op_type: "FFT2D"', str(model))
+                    self.assertIn('op_type: "%s"' % op_name, str(model))
+                    self.assertNotEqual(
+                        loc['onnx_raw'].SerializeToString(),
+                        loc['onnx_model'].SerializeToString())
                     model = loc['onnx_model']
-                    self.assertNotIn('op_type: "FFT2D"', str(model))
+                    self.assertNotIn('op_type: "%s"' % op_name, str(model))
 
                     if rt == 'onnxruntime1':
                         opts = SessionOptions()
@@ -775,10 +840,10 @@ class TestExportOnnx(ExtTestCase):
                     y1 = oinf.run({'x': x})
 
                     new_onnx = export2tf2onnx(
-                        os.path.join(folder, name), name="FFT2D")
+                        os.path.join(folder, name), name=op_name)
                     _, loc = self.verify_tf(new_onnx)
                     model = loc['onnx_model']
-                    self.assertNotIn('op_type: "FFT2D"', str(model))
+                    self.assertNotIn('op_type: "%s"' % op_name, str(model))
                     oinf = OnnxInference(model, runtime=rt)
                     y2 = oinf.run({'x': x})
 

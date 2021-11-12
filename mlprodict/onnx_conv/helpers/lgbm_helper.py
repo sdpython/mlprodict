@@ -91,7 +91,8 @@ def dump_booster_model(self, num_iteration=None, start_iteration=0,
     string_buffer = ctypes.create_string_buffer(buffer_len)
     ptr_string_buffer = ctypes.c_char_p(*[ctypes.addressof(string_buffer)])
     if verbose >= 2:
-        print("[dump_booster_model] call CAPI: LGBM_BoosterDumpModel")
+        print(  # pragma: no cover
+            "[dump_booster_model] call CAPI: LGBM_BoosterDumpModel")
     _safe_call(_LIB.LGBM_BoosterDumpModel(
         self.handle,
         ctypes.c_int(start_iteration),
@@ -136,9 +137,9 @@ def dump_booster_model(self, num_iteration=None, start_iteration=0,
             self.verbose = verbose
             self.stored = 0
             if verbose >= 2 and n_trees is not None:
-                from tqdm import tqdm
-                self.loop = tqdm(total=n_trees)
-                self.loop.set_description("dump_booster")
+                from tqdm import tqdm  # pragma: no cover
+                self.loop = tqdm(total=n_trees)  # pragma: no cover
+                self.loop.set_description("dump_booster")  # pragma: no cover
             else:
                 self.loop = None
 
@@ -158,7 +159,7 @@ def dump_booster_model(self, num_iteration=None, start_iteration=0,
             if 'tree_info' in obj:
                 self.info['decision_nodes'] = self.nodes
                 if self.n_trees is not None and len(self.nodes) != self.n_trees:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Unexpected number of trees %d (expecting %d)." % (
                             len(self.nodes), self.n_trees))
                 self.nodes = []
@@ -179,7 +180,7 @@ def dump_booster_model(self, num_iteration=None, start_iteration=0,
             return obj
 
     if verbose >= 2:
-        print("[dump_booster_model] to_json")
+        print("[dump_booster_model] to_json")  # pragma: no cover
     info = {}
     ret = json.loads(string_buffer.value.decode('utf-8'), cls=Hook,
                      info=info, n_trees=self.num_trees(), verbose=verbose)
@@ -187,7 +188,7 @@ def dump_booster_model(self, num_iteration=None, start_iteration=0,
         json.dumps(self.pandas_categorical,
                    default=json_default_with_numpy))
     if verbose >= 2:
-        print("[dump_booster_model] end.")
+        print("[dump_booster_model] end.")  # pragma: no cover
     return ret, info
 
 
@@ -253,7 +254,7 @@ def modify_tree_for_rule_in_set(gbm, use_float=False, verbose=0, count=0,  # pyl
             dec_nodes = info['decision_nodes']
         else:
             dec_nodes = None
-        if verbose >= 2:
+        if verbose >= 2:  # pragma: no cover
             from tqdm import tqdm
             loop = tqdm(gbm['tree_info'])
             for i, tree in enumerate(loop):

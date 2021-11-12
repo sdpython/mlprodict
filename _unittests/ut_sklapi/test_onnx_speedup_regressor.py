@@ -29,7 +29,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
     def opset(self):
         return get_opset_number_from_onnx()
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor32(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -38,7 +38,17 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         spd.fit(X, y)
         spd.assert_almost_equal(X, decimal=5)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
+    def test_speedup_regressor32_weights(self):
+        data = load_iris()
+        X, y = data.data, data.target
+        weights = (y.copy() + 1).astype(X.dtype)
+        spd = OnnxSpeedupRegressor(
+            LinearRegression(), target_opset=self.opset())
+        spd.fit(X, y, weights)
+        spd.assert_almost_equal(X, decimal=5)
+
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor32_onnxruntime(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -48,7 +58,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         spd.fit(X, y)
         spd.assert_almost_equal(X, decimal=5)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor32_numpy(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -58,7 +68,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         spd.fit(X, y)
         spd.assert_almost_equal(X, decimal=5)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor32_numba(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -70,7 +80,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         spd.assert_almost_equal(X, decimal=5)
         self.assertIn("CPUDispatch", str(spd.onnxrt_.func))
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor64(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -80,7 +90,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         spd.fit(X, y)
         spd.assert_almost_equal(X)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor64_op_version(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -91,7 +101,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         opset = spd.op_version
         self.assertGreater(self.opset(), opset[''])
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor64_pickle(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -112,7 +122,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         got = spd2.raw_predict(X)
         self.assertEqualArray(expected, got)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor64_numpy_pickle(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -133,7 +143,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         got = spd2.raw_predict(X)
         self.assertEqualArray(expected, got)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor64_numba_pickle(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -154,7 +164,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         got = spd2.raw_predict(X)
         self.assertEqualArray(expected, got)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor64_onnx(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -168,7 +178,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         got = oinf.run({'X': X})['variable']
         self.assertEqualArray(expected, got)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor64_onnx_numpy(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -182,7 +192,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         got = oinf.run({'X': X})['variable']
         self.assertEqualArray(expected, got)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor64_onnx_numba(self):
         data = load_iris()
         X, y = data.data, data.target
@@ -197,7 +207,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         got = oinf.run({'X': X})['variable']
         self.assertEqualArray(expected, got)
 
-    @ignore_warnings(ConvergenceWarning)
+    @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor64_onnx_numba_python(self):
         data = load_iris()
         X, y = data.data, data.target

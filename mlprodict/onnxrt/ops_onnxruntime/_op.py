@@ -202,7 +202,7 @@ class OpRunOnnxRuntime:
                     self.onnx_ = self.inst_.to_onnx(inputs, outputs=outputs,
                                                     target_opset=target_opset,
                                                     domain=domain)
-                except NotImplementedError as e:
+                except NotImplementedError as e:  # pragma: no cover
                     raise NotImplementedError(
                         "Unable to instantiate node {} inputs={} "
                         "self.inputs={} outputs={} variables={} "
@@ -238,13 +238,13 @@ class OpRunOnnxRuntime:
             try:
                 sess_options.session_log_severity_level = 3
                 # sess_options.sessions_log_verbosity_level = 0
-            except AttributeError:
+            except AttributeError:  # pragma: no cover
                 # onnxruntime not recent enough.
                 pass
             try:
                 self.run_options.run_log_severity_level = 3
                 # self.run_options.run_log_verbosity_level = 0
-            except AttributeError:
+            except AttributeError:  # pragma: no cover
                 # onnxruntime not recent enough.
                 pass
             if disable_optimisation:
