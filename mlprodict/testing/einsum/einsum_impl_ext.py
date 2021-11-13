@@ -342,13 +342,13 @@ def _numpy_extended_dot_python_update_broadcast(
     if verbose:
         print(  # pragma: no cover
             "[GENERICDOT] before broadcast %s,%s->%s      or %s" % (
-            "".join(l1), "".join(l2), "".join(l3),
-            _numpy_extended_dot_equation(
-                len(m1.shape), len(m1.shape), axes, left, right)))
+                "".join(l1), "".join(l2), "".join(l3),
+                _numpy_extended_dot_equation(
+                    len(m1.shape), len(m1.shape), axes, left, right)))
         print(  # pragma: no cover
             "[GENERICDOT] names=%s kind=%r common=%s broadcast=%s" % (
-            "".join(names), kind.tolist(),
-            dispb(common), dispb(broadcast)))
+                "".join(names), kind.tolist(),
+                dispb(common), dispb(broadcast)))
 
     for i in range(len(broadcast)):  # pylint: disable=C0200
         if broadcast[i] and not (kind[i] & 3) == 3:
