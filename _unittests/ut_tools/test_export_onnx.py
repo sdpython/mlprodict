@@ -521,7 +521,7 @@ class ConvertSlice2Op:
         # the way to make sure size are not less than 0:
         # set "sizes"'s elem to be int_max if elem val is -1
         size_dtype = ctx.get_dtype(size)
-        size_np_dtype = utils.map_onnx_to_numpy_type(size_dtype)
+        size_np_dtype = map_onnx_to_numpy_type(size_dtype)
         if (ctx.get_node_by_output(size).is_const() and
                 ctx.get_node_by_output(starts).is_const()):
             starts = ctx.get_node_by_output(starts).get_tensor_value()
@@ -535,16 +535,16 @@ class ConvertSlice2Op:
                         dtype, "dtype of {} is None".format(node.input[1]))
                     utils.make_sure(
                         dtype, "dtype of {} is None".format(node.input[1]))
-                    ends.append(np.iinfo(dtype).max)
+                    ends.append(numpy.iinfo(dtype).max)
                 else:
                     ends.append(start + size)
 
         else:
-            neg_one_val = np.array([-1]).astype(size_np_dtype)
+            neg_one_val = numpy.array([-1]).astype(size_np_dtype)
             neg_one = ctx.make_const(
                 utils.make_name("const"), neg_one_val).output[0]
 
-            int_max_val = np.array(
+            int_max_val = numpy.array(
                 [utils.get_max_value(size_np_dtype)]).astype(size_np_dtype)
             int_max = ctx.make_const(
                 utils.make_name("largest_int_val"), int_max_val).output[0]
@@ -596,7 +596,7 @@ class ConvertSqueeze2Op:
         np_dtype = map_onnx_to_numpy_type(onnx_dtype)
         make_sure(np_dtype in ConvertSqueeze2Op.supported_dtypes,
                   "Unsupported input type.")
-        shape = ctx.get_shape(input_name)
+        # shape = ctx.get_shape(input_name)
         varx = {x: x for x in node.input}
 
         # initializers
@@ -663,7 +663,7 @@ def create_model():
     opsets = {'': 13}
     del onnx_model.opset_import[:]  # pylint: disable=E1101
     for dom, value in opsets.items():
-        op_set = onnx_model.opset_import.add()
+        op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
         op_set.domain = dom
         op_set.version = value
 
@@ -1306,7 +1306,7 @@ class TestExportOnnx(ExtTestCase):
                     code = code.replace("make_sure(", "utils.make_sure(")
                     code = code.replace("make_name(", "utils.make_name(")
                     code = code.replace("map_onnx_to_numpy_type(",
-                                        "utils.map_onnx_to_numpy_type(")
+                                        "map_onnx_to_numpy_type(")
                     code = code.replace("numpy.", "np.")
                     code = code.replace("TensorProto.", "onnx_pb.TensorProto.")
                     code = code.replace("dtype=np.float32", "dtype=np_dtype")
