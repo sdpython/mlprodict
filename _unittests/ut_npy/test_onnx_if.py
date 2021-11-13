@@ -29,18 +29,22 @@ class TestOnnxVariableIf(ExtTestCase):
         z = x + numpy.float32(7)
         return nxnp.onnx_if(
             x > numpy.float32(0),
-            nxnp.if_then_else(lambda x, y: x + y, x, y),
-            nxnp.if_then_else(lambda x, y, z: x - y + z, x, y, z))
+            then_branch=nxnp.if_then_else(
+                lambda x, y: x + y, x, y),
+            else_branch=nxnp.if_then_else(
+                lambda x, y, z: x - y + z, x, y, z))
 
-    def test_exc(self):
+    def _test_exc(self):
 
         self.assertRaise(
             lambda: nxnp.onnx_if(
                 None,
-                nxnp.if_then_else(lambda x, y: x + y, None, None), None),
-            TypeError)
+                then_branch=nxnp.if_then_else(lambda x, y: x + y, "DEBUG", "DEBUG"),
+                else_branch="DEBUG"),
+            (TypeError, NotImplementedError, AttributeError))
         self.assertRaise(lambda: nxnp.onnx_if(
-            None, None, None), TypeError)
+            "DEBUG", then_branch="DEBUG", else_branch="DEBUG"),
+            (TypeError, NotImplementedError, AttributeError))
 
     def test_onnx_if(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)

@@ -29,7 +29,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxErf,
     OnnxExp,
     OnnxFloor,
-    OnnxIdentity, OnnxIsNaN,
+    OnnxIdentity, OnnxIf, OnnxIsNaN,
     OnnxLog,
     OnnxMatMul,
     OnnxPad,
@@ -51,7 +51,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxUnsqueeze,
     OnnxWhere)
 from .onnx_variable import OnnxVar, MultiOnnxVar as xtuple
-from .numpy_onnx_impl_body import if_then_else
+from .numpy_onnx_impl_body import if_then_else, OnnxVarGraph
 
 
 def abs(x):
@@ -365,9 +365,9 @@ def onnx_if(condition, then_branch, else_branch):
         raise TypeError(
             "Parameter then_branch is not of type "
             "'if_then_else' but %r." % type(else_branch))
-    return OnnxVar(condition,
-                   then_branch=then_branch,
-                   else_branch=else_branch)
+    return OnnxVarGraph(
+        condition, then_branch=then_branch,
+        else_branch=else_branch, op=OnnxIf)
 
 
 def pad(x, pads, constant_value=None, mode='constant'):
