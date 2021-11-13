@@ -51,6 +51,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxUnsqueeze,
     OnnxWhere)
 from .onnx_variable import OnnxVar, MultiOnnxVar as xtuple
+from .numpy_onnx_impl_body import if_then_else
 
 
 def abs(x):
@@ -345,6 +346,28 @@ def mean(x, axis=None, keepdims=0):
     if not isinstance(axis, list):
         axis = [axis]
     return OnnxVar(x, op=OnnxReduceMean, keepdims=keepdims, axes=axis)
+
+
+def onnx_if(condition, then_branch, else_branch):
+    """
+    Implements a test with onnx syntax.
+
+    :param condition: condition (@see cl OnnxVar)
+    :param then_branch: then branch, of type @see cl if_then_else
+    :param else_branch: else branch, of type @see cl if_then_else
+    :return: result (@see cl OnnxVar)
+    """
+    if not isinstance(then_branch, if_then_else):
+        raise TypeError(
+            "Parameter then_branch is not of type "
+            "'if_then_else' but %r." % type(then_branch))
+    if not isinstance(else_branch, if_then_else):
+        raise TypeError(
+            "Parameter then_branch is not of type "
+            "'if_then_else' but %r." % type(else_branch))
+    return OnnxVar(condition,
+                   then_branch=then_branch,
+                   else_branch=else_branch)
 
 
 def pad(x, pads, constant_value=None, mode='constant'):
