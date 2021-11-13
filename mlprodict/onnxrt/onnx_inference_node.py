@@ -320,7 +320,7 @@ class OnnxInferenceNode:
                 res = self.ops_.infer_sizes(*args, context=context)
             else:
                 res = self.ops_.infer_sizes(*args)
-        except (TypeError, ValueError) as e:
+        except (TypeError, ValueError) as e:  # pragma: no cover
             raise TypeError(
                 "Unable to call infer_sizes with {} arguments for class"
                 " '{}' ({})".format(len(args), self.ops_.__class__.__name__,

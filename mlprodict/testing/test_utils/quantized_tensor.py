@@ -20,11 +20,13 @@ class QuantizedTensor:
         "constructor"
         if data.dtype == numpy.float32:
             if scale is not None or zero_point is not None:
-                raise ValueError("scale and zero_point are ignored.")
+                raise ValueError(  # pragma: no cover
+                    "scale and zero_point are ignored.")
             self._init(data)
         elif data.dtype == numpy.uint8:
             if scale is None or zero_point is None:
-                raise ValueError("scale and zero_point must be specified.")
+                raise ValueError(  # pragma: no cover
+                    "scale and zero_point must be specified.")
             self.quantized_ = data
             self.scale_ = numpy.float32(scale)
             self.zero_point_ = numpy.uint8(zero_point)
@@ -51,7 +53,7 @@ class QuantizedTensor:
             self.quantized_[i] = numpy.uint8(clamped_val)
 
         if self.quantized_.dtype != numpy.uint8:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "dtype={} not uint8".format(self.quantized_.dtype))
 
 
@@ -77,7 +79,7 @@ class QuantizedBiasTensor:
                 self.quantized_[i] = numpy.int32(
                     numpy.floor(data[i] / (X_or_scale.scale_ * W.scale_)))
         if self.quantized_.dtype != numpy.int32:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "dtype={} not int32".format(self.quantized_.dtype))
 
 
@@ -148,13 +150,13 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
     got = oinf.run(inputs)['y']
     expected = y.quantized_.reshape(y_shape)
     if got.dtype != expected.dtype:
-        raise TypeError(
+        raise TypeError(  # pragma: no cover
             "Unexpected output dtype:\nEXPECTED\n{}\nGOT\n{}"
             "".format(expected, got))
     diff = numpy.abs(got.ravel().astype(numpy.float32) -
                      expected.ravel().astype(numpy.float32))
     mdiff = diff.max()
     if mdiff > 1e-5:
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             "Unexpected output maximum difference={}:\nEXPECTED\n{}\nGOT\n{}"
             "".format(mdiff, expected, got))

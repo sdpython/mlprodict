@@ -82,7 +82,7 @@ class Squeeze_13(OpRun):
 
 if onnx_opset_version() >= 13:
     Squeeze = Squeeze_13
-elif onnx_opset_version() >= 11:
+elif onnx_opset_version() >= 11:  # pragma: no cover
     Squeeze = Squeeze_11
-else:
+else:  # pragma: no cover
     Squeeze = Squeeze_1

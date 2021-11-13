@@ -5,6 +5,7 @@ import os
 import unittest
 import collections
 import inspect
+import traceback
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
@@ -27,7 +28,8 @@ from mlprodict.onnx_tools.onnx_export import (
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.exports.tf2onnx_helper import (
-    make_sure, make_name, map_onnx_to_numpy_type, GraphBuilder)
+    make_sure, make_name, map_onnx_to_numpy_type, get_max_value,
+    GraphBuilder)
 from mlprodict.tools.code_helper import print_code
 from mlprodict.onnx_tools.exports.numpy_helper import (
     argmin_use_numpy_select_last_index,
@@ -501,7 +503,178 @@ class ConvertFFT2DOp:
         return cls.any_version(13, ctx, node, **kwargs)
 
 
+class ConvertSlice2Op:
+    supported_dtypes = [
+        numpy.float32,
+    ]
+
+    @classmethod
+    def version_1(cls, ctx, node, **kwargs):
+        # T output = Slice(T input, Index begin, Index size)
+        # T output = Slice(T input, Tind starts, Tind ends, Tind axes, Tind steps)
+        # "ends" are exclusive, "axes" and "steps" are optional,
+        # their default val are [0, ...] and 1
+        input_tensor = node.input[0]
+        starts = node.input[1]
+        size = node.input[2]
+        # in tf, size can be -1 which means all elem are taken,
+        # so size can't be added starts directly.
+        # the way to make sure size are not less than 0:
+        # set "sizes"'s elem to be int_max if elem val is -1
+        size_dtype = ctx.get_dtype(size)
+        size_np_dtype = map_onnx_to_numpy_type(size_dtype)
+        if (ctx.get_node_by_output(size).is_const() and
+                ctx.get_node_by_output(starts).is_const()):
+            starts = ctx.get_node_by_output(starts).get_tensor_value()
+            sizes = ctx.get_node_by_output(size).get_tensor_value()
+            ends = []
+            for start, size in zip(starts, sizes):
+                # get all elements
+                if size == -1:
+                    dtype = ctx.get_dtype(node.input[1])
+                    make_sure(
+                        dtype, "dtype of {} is None".format(node.input[1]))
+                    make_sure(
+                        dtype, "dtype of {} is None".format(node.input[1]))
+                    ends.append(numpy.iinfo(dtype).max)
+                else:
+                    ends.append(start + size)
+
+        else:
+            neg_one_val = numpy.array([-1]).astype(size_np_dtype)
+            neg_one = ctx.make_const(
+                make_name("const"), neg_one_val).output[0]
+
+            int_max_val = numpy.array(
+                [get_max_value(size_np_dtype)]).astype(size_np_dtype)
+            int_max = ctx.make_const(
+                make_name("largest_int_val"), int_max_val).output[0]
+
+            size_are_neg_one_flag = ctx.make_node(
+                "Equal", [neg_one, size]).output[0]
+            size_are_neg_one_flag = ctx.make_node(
+                "Cast", [size_are_neg_one_flag],
+                attr={"to": size_dtype}).output[0]
+            value_to_add = ctx.make_node(
+                "Mul", [int_max, size_are_neg_one_flag]).output[0]
+            size_processed = ctx.make_node(
+                "Add", [size, value_to_add]).output[0]
+            ends = ctx.make_node(
+                "Add", [starts, size_processed]).output[0]
+
+        ctx.remove_node(node.name)
+        inputs_map = {"data": input_tensor, "starts": starts, "ends": ends}
+        kwargs = {**inputs_map, "outputs": node.output}
+        _ = GraphBuilder(ctx).make_slice(kwargs, name=node.name)
+
+    @classmethod
+    def version_10(cls, ctx, node, **kwargs):
+        cls.version_1(ctx, node, **kwargs)
+
+    @classmethod
+    def version_11(cls, ctx, node, **kwargs):
+        cls.version_1(ctx, node, **kwargs)
+
+
+class ConvertSqueeze2Op:
+
+    supported_dtypes = [
+        numpy.float32,
+    ]
+
+    @classmethod
+    def any_version(cls, opset, ctx, node, **kwargs):
+        '''
+        Converter for ``Squeeze2``.
+
+        * producer: skl2onnx
+        * version: 0
+        * description:
+        '''
+        oldnode = node
+        input_name = node.input[0]
+        onnx_dtype = ctx.get_dtype(input_name)
+        np_dtype = map_onnx_to_numpy_type(onnx_dtype)
+        make_sure(np_dtype in ConvertSqueeze2Op.supported_dtypes,
+                  "Unsupported input type.")
+        # shape = ctx.get_shape(input_name)
+        varx = {x: x for x in node.input}
+
+        # initializers
+        if getattr(ctx, 'verbose', False):
+            print('[initializers] %r' % cls)
+
+        value = numpy.array([1], dtype=numpy.int64)
+        varx['Sq_Squeezecst'] = ctx.make_const(
+            name=make_name('init_Sq_Squeezecst'), np_val=value).name
+
+        # nodes
+        if getattr(ctx, 'verbose', False):
+            print('[nodes] %r' % cls)
+
+        node = GraphBuilder(ctx).make_squeeze(
+            {'data': varx['X'], 'axes': [1]}, return_node=True)
+        varx['Y'] = node.output[0]
+
+        # finalize
+        if getattr(ctx, 'verbose', False):
+            print('[replace_all_inputs] %r' % cls)
+        ctx.replace_all_inputs(oldnode.output[0], node.output[0])
+        ctx.remove_node(oldnode.name)
+
+    @classmethod
+    def version_13(cls, ctx, node, **kwargs):
+        return cls.any_version(13, ctx, node, **kwargs)
+
+
+def create_model():
+    inputs = []
+    outputs = []
+
+    # inputs
+    print('[inputs]')   # verbose
+
+    value = make_tensor_value_info('X', 1, [None, 1])
+    inputs.append(value)
+
+    # outputs
+    print('[outputs]')   # verbose
+
+    value = make_tensor_value_info('Y', 1, None)
+    outputs.append(value)
+
+    inames = [i.name for i in inputs]
+    onames = [i.name for i in outputs]
+    node = make_node('Squeeze2', inames, onames, name='Squeeze2')
+
+    # graph
+    print('[graph]')   # verbose
+    graph = make_graph([node], 'Squeeze2', inputs, outputs)
+    onnx_model = make_model(graph)
+    onnx_model.ir_version = 7
+    onnx_model.producer_name = 'skl2onnx'
+    onnx_model.producer_version = ''
+    onnx_model.domain = 'ai.onnx'
+    onnx_model.model_version = 0
+    onnx_model.doc_string = ''
+    set_model_props(onnx_model, {})
+
+    # opsets
+    print('[opset]')   # verbose
+    opsets = {'': 13}
+    del onnx_model.opset_import[:]  # pylint: disable=E1101
+    for dom, value in opsets.items():
+        op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
+        op_set.domain = dom
+        op_set.version = value
+
+    return onnx_model
+
+
 class TestExportOnnx(ExtTestCase):
+
+    def test_get_max_value(self):
+        self.assertEqual(get_max_value(numpy.int8), 127)
 
     def test_model_data_slice(self):
         opv = 14
@@ -722,7 +895,9 @@ class TestExportOnnx(ExtTestCase):
                'print': print, 'sorted': sorted,
                'collections': collections, 'inspect': inspect,
                'helper': helper, "make_sure": make_sure,
-               'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
+               'ConvertFFT2DOp': ConvertFFT2DOp,
+               'ConvertSlice2Op': ConvertSlice2Op,
+               "make_name": make_name,
                'map_onnx_to_numpy_type': map_onnx_to_numpy_type,
                'GraphBuilder': GraphBuilder}
         out = StringIO()
@@ -736,33 +911,40 @@ class TestExportOnnx(ExtTestCase):
                 try:
                     exec(obj, glo, loc)  # pylint: disable=W0122
                 except Exception as e:
+                    tb = traceback.format_exc()
                     raise AssertionError(
-                        "Unable to execute a script due to %r. "
+                        "Unable to execute a script due to %r\n%s. "
                         "\n--OUT--\n%s\n--ERR--\n%s\n--CODE--\n%s"
-                        "" % (e, out.getvalue(), err.getvalue(),
+                        "" % (e, tb, out.getvalue(), err.getvalue(),
                               print_code(content))) from e
         return glo, loc
 
     def test_export2tf2onnx(self):
         this = os.path.dirname(__file__)
         folder = os.path.join(this, "data")
-        names = ["fft2d_any.onnx", "slice.onnx"]
+        names = [("gslice.onnx", 'Slice2', 'X', (3, 10, 5), 'Y'),
+                 ("gsqueeze.onnx", 'Squeeze2', 'X', (3, 1), 'Y'),
+                 ("fft2d_any.onnx", 'FFT2D', 'x', (3, 1, 4), 'y')]
         for rt in ['python', 'onnxruntime1']:
-            for name in names:
+            for name, op_name, x_name, x_shape, y_name in names:
                 with self.subTest(name=name, rt=rt):
                     oinf0 = OnnxInference(
                         os.path.join(folder, name), runtime=rt)
 
-                    x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
-                    y = oinf0.run({'x': x})
+                    x = numpy.random.randn(*x_shape).astype(numpy.float32)
+                    y = oinf0.run({x_name: x})
 
                     new_onnx = export2tf2onnx(
-                        os.path.join(folder, name), name="FFT2D")
+                        os.path.join(folder, name), name=op_name,
+                        verbose=False)
                     _, loc = self.verify_tf(new_onnx)
                     model = loc['onnx_raw']
-                    self.assertIn('op_type: "FFT2D"', str(model))
+                    self.assertIn('op_type: "%s"' % op_name, str(model))
+                    self.assertNotEqual(
+                        loc['onnx_raw'].SerializeToString(),
+                        loc['onnx_model'].SerializeToString())
                     model = loc['onnx_model']
-                    self.assertNotIn('op_type: "FFT2D"', str(model))
+                    self.assertNotIn('op_type: "%s"' % op_name, str(model))
 
                     if rt == 'onnxruntime1':
                         opts = SessionOptions()
@@ -772,19 +954,19 @@ class TestExportOnnx(ExtTestCase):
                             model, runtime=rt, runtime_options=opts)
                     else:
                         oinf = OnnxInference(model, runtime=rt)
-                    y1 = oinf.run({'x': x})
+                    y1 = oinf.run({x_name: x})
 
                     new_onnx = export2tf2onnx(
-                        os.path.join(folder, name), name="FFT2D")
+                        os.path.join(folder, name), name=op_name)
                     _, loc = self.verify_tf(new_onnx)
                     model = loc['onnx_model']
-                    self.assertNotIn('op_type: "FFT2D"', str(model))
+                    self.assertNotIn('op_type: "%s"' % op_name, str(model))
                     oinf = OnnxInference(model, runtime=rt)
-                    y2 = oinf.run({'x': x})
+                    y2 = oinf.run({x_name: x})
 
-                    if y1['y'].shape[0] > 0 and y['y'].shape[0] > 0:
-                        self.assertEqualArray(y['y'], y1['y'])
-                        self.assertEqualArray(y['y'], y2['y'])
+                    if y1[y_name].shape[0] > 0 and y[y_name].shape[0] > 0:
+                        self.assertEqualArray(y[y_name], y1[y_name])
+                        self.assertEqualArray(y[y_name], y2[y_name])
 
     def verify_numpy(self, content):
         try:
@@ -1122,13 +1304,13 @@ class TestExportOnnx(ExtTestCase):
                     f.write(onx.SerializeToString())
                 code = export2tf2onnx(
                     onx, name="FFT2D", autopep_options={'max_line_length': 120})
-                # print(code)
+
                 self.assertIn("make_sure", code)
                 if __name__ == "__main__" and shape == (3, 1, 4):
-                    code = code.replace("make_sure(", "utils.make_sure(")
-                    code = code.replace("make_name(", "utils.make_name(")
+                    code = code.replace("make_sure(", "make_sure(")
+                    code = code.replace("make_name(", "make_name(")
                     code = code.replace("map_onnx_to_numpy_type(",
-                                        "utils.map_onnx_to_numpy_type(")
+                                        "map_onnx_to_numpy_type(")
                     code = code.replace("numpy.", "np.")
                     code = code.replace("TensorProto.", "onnx_pb.TensorProto.")
                     code = code.replace("dtype=np.float32", "dtype=np_dtype")
@@ -1137,7 +1319,6 @@ class TestExportOnnx(ExtTestCase):
                     code = autopep8.fix_code(
                         code, options={'max_line_length': 120})
                     self.assertNotIn("numpy.", code)
-                    # print(code)
 
     def test_sub_graph(self):
         data = os.path.abspath(os.path.dirname(__file__))
@@ -1148,5 +1329,5 @@ class TestExportOnnx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestExportOnnx().test_simple_configuration()
+    # TestExportOnnx().test_export2tf2onnx()
     unittest.main()

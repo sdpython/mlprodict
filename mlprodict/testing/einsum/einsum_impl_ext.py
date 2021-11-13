@@ -340,13 +340,15 @@ def _numpy_extended_dot_python_update_broadcast(
         return "".join("o" if b else "." for b in c)
 
     if verbose:
-        print("[GENERICDOT] before broadcast %s,%s->%s      or %s" % (
-            "".join(l1), "".join(l2), "".join(l3),
-            _numpy_extended_dot_equation(
-                len(m1.shape), len(m1.shape), axes, left, right)))
-        print("[GENERICDOT] names=%s kind=%r common=%s broadcast=%s" % (
-            "".join(names), kind.tolist(),
-            dispb(common), dispb(broadcast)))
+        print(  # pragma: no cover
+            "[GENERICDOT] before broadcast %s,%s->%s      or %s" % (
+                "".join(l1), "".join(l2), "".join(l3),
+                _numpy_extended_dot_equation(
+                    len(m1.shape), len(m1.shape), axes, left, right)))
+        print(  # pragma: no cover
+            "[GENERICDOT] names=%s kind=%r common=%s broadcast=%s" % (
+                "".join(names), kind.tolist(),
+                dispb(common), dispb(broadcast)))
 
     for i in range(len(broadcast)):  # pylint: disable=C0200
         if broadcast[i] and not (kind[i] & 3) == 3:
@@ -362,9 +364,11 @@ def _numpy_extended_dot_python_update_broadcast(
         let = [l1[p], l2[p], l3[p]]
         inp = 1 if dim[0] == 1 else 0
         if verbose:
-            print("[GENERICDOT] name=%s dim=%r let=%r inp=%r p=%r" % (
-                names[i], dim, let, inp, p))
-            print("    B0 l1=%r, l2=%r l3=%r" % (l1, l2, l3))
+            print(  # pragma: no cover
+                "[GENERICDOT] name=%s dim=%r let=%r inp=%r p=%r" % (
+                    names[i], dim, let, inp, p))
+            print(  # pragma: no cover
+                "    B0 l1=%r, l2=%r l3=%r" % (l1, l2, l3))
         if (kind[i] & 4) > 0:
             # Summation axis is part of the output.
             if let[inp].lower() == let[inp]:
@@ -377,7 +381,8 @@ def _numpy_extended_dot_python_update_broadcast(
             else:
                 l1[p] = let[inp]
             if verbose:
-                print("    B1 l1=%r, l2=%r l3=%r" % (l1, l2, l3))
+                print(  # pragma: no cover
+                    "    B1 l1=%r, l2=%r l3=%r" % (l1, l2, l3))
         else:
             # Summation axis is not part of the output.
             if let[inp].lower() == let[inp]:
@@ -528,18 +533,20 @@ def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
     _common_check_numpy_extended_dot(m1, m2, axes, left, right)
 
     if verbose:
-        print("[GENERICDOT] shape1=%r shape2=%r axes=%r "
-              "left=%r right=%r -- %s" % (
-                  m1.shape, m2.shape, axes, left, right,
-                  _numpy_extended_dot_equation(
-                      len(m1.shape), len(m1.shape), axes, left, right)))
+        print(  # pragma: no cover
+            "[GENERICDOT] shape1=%r shape2=%r axes=%r "
+            "left=%r right=%r -- %s" % (
+                m1.shape, m2.shape, axes, left, right,
+                _numpy_extended_dot_equation(
+                    len(m1.shape), len(m1.shape), axes, left, right)))
 
     if len(axes) == 0 and len(set(left) & set(right)) == 0:
         # Simple multiplication
         res = m1 * m2
         if verbose:
-            print("[GENERICDOT] Mul %r @ %r -> %r" % (
-                m1.shape, m2.shape, res.shape))
+            print(  # pragma: no cover
+                "[GENERICDOT] Mul %r @ %r -> %r" % (
+                    m1.shape, m2.shape, res.shape))
         return res
 
     if (len(set(axes) & set(left)) == 0 and
@@ -655,7 +662,7 @@ def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
                   "last_shape=%r" % (current_shape, final_shape, res.shape))
 
         if len(current_shape) != len(final_shape):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Shapes mismatch %r > %r, "
                 "shape1=%r shape2=%r axes=%r left=%r right=%r." % (
                     current_shape, final_shape,
@@ -680,7 +687,7 @@ def numpy_extended_dot_matrix(m1, m2, axes, left, right, verbose=False):
         if r_axes and not l_axes:
             new_axes = list(a for a in axes if a not in right)
             new_left = list(sorted(set(left) | r_axes))
-            if verbose:
+            if verbose:  # pragma: no cover
                 eq1 = _numpy_extended_dot_equation(
                     len(m1.shape), len(m1.shape), axes, left, right)
                 eq2 = _numpy_extended_dot_equation(

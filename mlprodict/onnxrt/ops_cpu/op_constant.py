@@ -113,7 +113,7 @@ class Constant_12(OpRun):
         elif hasattr(self, 'value') and self.value is not None:
             self.cst = self.value
         else:
-            raise AttributeError(
+            raise AttributeError(  # pragma: no cover
                 "No constant is defined for operator 'Constant'.")
         _check_dtype(self.cst)
 
