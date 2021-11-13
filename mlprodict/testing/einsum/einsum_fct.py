@@ -116,15 +116,15 @@ class CachedEinsum:
     def _build_optimize(self):
         # loops over all permutations
         if self.equation.lower() != self.equation:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Only lower equation can be optimized, %r is not." % self.equation)
         letters = list(
             sorted(set(c for c in self.equation if "a" <= c <= "z")))
         possible = list(permutations(letters))
         possible.insert(0, letters)
         if self.verbose:
-            from tqdm import tqdm
-            subset = tqdm(possible)
+            from tqdm import tqdm  # pragma: no cover
+            subset = tqdm(possible)  # pragma: no cover
         else:
             subset = possible
         best = []
@@ -166,15 +166,15 @@ class CachedEinsum:
     def _build_optimize_ml(self):
         # loops over all permutations
         if self.equation.lower() != self.equation:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Only lower equation can be optimized, %r is not." % self.equation)
         letters = list(
             sorted(set(c for c in self.equation if "a" <= c <= "z")))
         possible = list(permutations(letters))
         possible.insert(0, letters)
         if self.verbose:
-            from tqdm import tqdm
-            subset = tqdm(possible)
+            from tqdm import tqdm  # pragma: no cover
+            subset = tqdm(possible)  # pragma: no cover
         else:
             subset = possible
         best = []
@@ -282,7 +282,7 @@ class CachedEinsum:
                 self.runtime_ = lambda *inputs: self.oinf_.run(
                     {i: v for i, v in zip(self.onnx_names_, inputs)})['Y']
             else:
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "Unexpected runtime %r." % self.runtime)
         else:
             if self.runtime in ('python', 'onnxruntime1'):
@@ -298,7 +298,7 @@ class CachedEinsum:
                 self.runtime_ = lambda *inputs: self.oinf_.run(
                     {i: v for i, v in zip(self.onnx_names_, inputs)})['Y']
             else:
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "Unexpected runtime %r." % self.runtime)
 
     def __call__(self, *inputs):
@@ -306,7 +306,7 @@ class CachedEinsum:
         Calls the runtime `self.runtime_`.
         """
         if not hasattr(self, 'runtime_'):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Method build_runtime was not called.")
         return self.runtime_(*inputs)
 
@@ -616,10 +616,10 @@ def einsum(equation, *inputs, optimize=False, runtime="batch_dot",
         print(clean(res[1]))
     """
     if len(inputs) == 0:
-        raise ValueError("No inputs found.")
+        raise ValueError("No inputs found.")  # pragma: no cover
     dtypes = set(i.dtype for i in inputs)
     if len(dtypes) != 1:
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             "All inputs do not have the same type (%r), "
             "all of them should be cast before called einsum."
             "" % dtypes)

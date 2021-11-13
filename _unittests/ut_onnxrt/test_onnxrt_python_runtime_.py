@@ -3511,7 +3511,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_slice(self):
-        for opset in [9, get_opset_number_from_onnx()]:
+        for opset in range(9, get_opset_number_from_onnx() + 1):
             if opset > get_opset_number_from_onnx():
                 continue
             with self.subTest(opset=opset):

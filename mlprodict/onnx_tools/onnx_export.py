@@ -196,7 +196,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
         make_tf2onnx_code=lambda *args, **kwargs: make_tf2onnx_code(
             *args, context=context, used=used, mark_inits=mark_inits,
             **kwargs),
-        **context)
+        verbose=verbose, **context)
 
     skip_inits = set()
     for k, v in mark_inits.items():
@@ -217,7 +217,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
             make_tf2onnx_code=lambda *args, **kwargs: make_tf2onnx_code(
                 *args, context=context, used=used, mark_inits=mark_inits,
                 **kwargs),
-            **context)
+            verbose=verbose, **context)
 
     final += "\n"
     if not verbose:

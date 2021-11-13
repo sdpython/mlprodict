@@ -13,11 +13,14 @@ def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
     Pure python implementatin of GEMM.
     """
     if len(A.shape) != 1:
-        raise ValueError("A must be a vector.")
+        raise ValueError(  # pragma: no cover
+            "A must be a vector.")
     if len(B.shape) != 1:
-        raise ValueError("B must be a vector.")
+        raise ValueError(  # pragma: no cover
+            "B must be a vector.")
     if len(C.shape) != 1:
-        raise ValueError("C must be a vector.")
+        raise ValueError(
+            "C must be a vector.")
     if A.shape[0] != M * K:
         raise ValueError(
             "Dimension mismatch for A.shape=%r M=%r N=%r K=%r." % (
@@ -27,7 +30,7 @@ def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
             "Dimension mismatch for B.shape=%r M=%r N=%r K=%r." % (
                 B.shape, M, N, K))
     if C.shape[0] != N * M:
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             "Dimension mismatch for C.shape=%r M=%r N=%r K=%r." % (
                 C.shape, M, N, K))
 
@@ -79,7 +82,7 @@ def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
             C[c_index] = alpha * total + beta * C[c_index]
 
     if n_loop != M * N * K:
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unexpected number of loops: %d != %d = (%d * %d * %d) "
             "lda=%d ldb=%d ldc=%d" % (
                 n_loop, M * N * K, M, N, K, lda, ldb, ldc))
@@ -95,14 +98,14 @@ def gemm_dot(A, B, transA=False, transB=False):
     :param transB: is second matrix transposed?
     """
     if A.dtype != B.dtype:
-        raise TypeError(
+        raise TypeError(  # pragma: no cover
             "Matrices A and B must have the same dtype not "
             "%r, %r." % (A.dtype, B.dtype))
     if len(A.shape) != 2:
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             "Matrix A does not have 2 dimensions but %d." % len(A.shape))
     if len(B.shape) != 2:
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             "Matrix B does not have 2 dimensions but %d." % len(B.shape))
 
     def _make_contiguous_(A, B):

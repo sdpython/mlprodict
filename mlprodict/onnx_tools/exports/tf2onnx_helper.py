@@ -39,7 +39,7 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
         and following rows
     :return: code as str
     """
-    def simplify(name, kind, force=True):
+    def simplify(name, kind, force=False):
         value = None
         if (used is not None and name in used and
                 len(used[name]) == 1 and context is not None):
@@ -54,10 +54,20 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
 
         if value is None and force:
             inits = context['initializers_dict']
+            if name not in inits:
+                raise RuntimeError(  # pragma: no cover
+                    "Unable to find init %r in %r value=%r." % (
+                        name, list(sorted(inits)), value))
             value = inits[name]
         if kind == 'list':
             if value is None:
                 return name
+            if len(value.shape) == 0:
+                return str(value)
+            return str(list(value))
+        if kind == 'list_var':
+            if value is None:
+                return "varx[%r]" % name
             if len(value.shape) == 0:
                 return str(value)
             return str(list(value))
@@ -70,7 +80,36 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
             rows.append(
                 "node = GraphBuilder(ctx).make_unsqueeze("
                 "{'data': varx[%r], 'axes': %s}, return_node=True)"
-                "" % (inputs[0], simplify(inputs[1], 'list')))
+                "" % (inputs[0], simplify(inputs[1], 'list_var')))
+        else:
+            raise NotImplementedError(  # pragma: no cover
+                "Unable to create code for operator %r (opset <= 12)"
+                "." % op_type)
+    elif op_type == 'Squeeze':
+        if len(inputs) == 1:
+            rows.append(
+                "node = GraphBuilder(ctx).make_squeeze("
+                "{'data': varx[%r]}, return_node=True)"
+                "" % (inputs[0], ))
+        elif len(inputs) == 2:
+            rows.append(
+                "node = GraphBuilder(ctx).make_squeeze("
+                "{'data': varx[%r], 'axes': %s}, return_node=True)"
+                "" % (inputs[0], simplify(inputs[1], 'list_var')))
+        else:
+            raise NotImplementedError(  # pragma: no cover
+                "Unable to create code for operator %r (opset <= 12)"
+                "." % op_type)
+    elif op_type == 'Slice':
+        atts = dict(zip(['starts', 'ends', 'axes', 'steps'],
+                        inputs[1:]))
+        text = ", ".join("'%s': %s" % (k, simplify(v, 'list_var'))
+                         for k, v in atts.items())
+        if len(inputs) in (3, 4, 5):
+            rows.append(
+                "node = GraphBuilder(ctx).make_slice("
+                "{'data': varx[%r], %s}, return_node=True)"
+                "" % (inputs[0], text))
         else:
             raise NotImplementedError(  # pragma: no cover
                 "Unable to create code for operator %r (opset <= 12)"
@@ -105,6 +144,11 @@ def make_name(name):
     return name
 
 
+def get_max_value(np_dtype):
+    "Returns the maximum value for a specific type."
+    return numpy.iinfo(np_dtype).max
+
+
 def make_sure(cond, msg, *args):
     "Raises an exception if cond is not verified."
     if not cond:
@@ -113,6 +157,8 @@ def make_sure(cond, msg, *args):
 
 def map_onnx_to_numpy_type(onnx_dtype):
     "Converts ONNX type into numpy type."
+    if onnx_dtype is None:
+        return numpy.float32
     return guess_dtype(onnx_dtype)
 
 
@@ -162,10 +208,11 @@ class Tf2OnnxConvert:
     """
 
     def __init__(self, onnx_model, _tf_op=None, verbose=None,
-                 target_opset=None):
+                 target_opset=None, max_iter=5):
         self._onnx_model = onnx_model
         self._tf_op = _tf_op or tf_op
         self.verbose = verbose
+        self.max_iter = max_iter
         if isinstance(target_opset, int):
             self.target_opsets = {'': target_opset}
         elif isinstance(target_opset, dict):
@@ -220,7 +267,8 @@ class Tf2OnnxConvert:
         self._forbidden_new_names.add(obj.name)
 
     def make_node(self, op_type, inputs, attr=None, outputs=None,
-                  name=None, domain='', output_count=1):
+                  name=None, domain='', output_count=1,
+                  shapes=None, dtypes=None):
         """
         Adds a node to the list of nodes.
 
@@ -232,6 +280,8 @@ class Tf2OnnxConvert:
             the number of outputs of this node
         :param name: name of the node
         :param domain: domain
+        :param shapes: unused
+        :param dtypes: unused
         :return: created node
         """
         if self.verbose:
@@ -317,13 +367,17 @@ class Tf2OnnxConvert:
         :param new_name: new name
         :return: list of impacted nodes
         """
+        if self.verbose:
+            print(  # pragma: no cover
+                "[Tf2OnnxConvert.replace_all_inputs] replace %r by %r" % (
+                    old_name, new_name))
         res = []
         for node in self._names.values():
             if not hasattr(node, 'input'):
                 continue
             if old_name not in node.input:
                 continue
-            new_inputs = [new_name if i.name == old_name else i.name
+            new_inputs = [new_name if i == old_name else i
                           for i in node.input]
             node.input[:] = new_inputs[:]
             res.append(node)
@@ -342,6 +396,9 @@ class Tf2OnnxConvert:
                     "[Tf2OnnxConvert.replace_all_inputs] add id node from %r to %r "
                     "with node %r." % (
                         old_name, new_name, n.name))  # pylint: disable=E1101
+        if self.verbose:
+            print(  # pragma: no cover
+                "[Tf2OnnxConvert.replace_all_inputs] end")
         return res
 
     def remove_node(self, name):
@@ -385,8 +442,10 @@ class Tf2OnnxConvert:
 
         done = {}
         modif = 1
-        while modif > 0:
+        turn = 0
+        while modif > 0 and turn < self.max_iter:
             modif = 0
+            turn += 1
             # The converter may alter the current list of nodes, we freeze it.
             current_values = list(self._names.values())
             for node in current_values:
@@ -419,6 +478,10 @@ class Tf2OnnxConvert:
                 fct(self, node, target_opset=target, **kwargs)
                 modif += 1
 
+        if turn >= self.max_iter:
+            raise RuntimeError(
+                "Too many iterations and no stable ONNX was reached, "
+                "iter=%d\n%s" % (turn, str(self.make_model())))
         return self.make_model()
 
     def make_model(self):
@@ -473,18 +536,22 @@ class GraphBuilder:
         "Returns the graph."
         return self._g
 
-    def make_slice(self, kwargs, name=None, shapes=None, dtypes=None, return_node=False):
+    def make_slice(self, kwargs, name=None, shapes=None, dtypes=None,
+                   return_node=False):
         """
-        slice changes its schema at opset 10: it treats some attributes as dynamic input
-        so this function has to process inputs according to graph's opset version
+        slice changes its schema at opset 10: it treats some
+        attributes as dynamic input so this function has to process
+        inputs according to graph's opset version
         to get "inputs" and "attr" to feed "make_node"
-        kwargs: key could be ["data", "starts", "ends", "axes", "steps", "outputs"].
+        kwargs: key could be `["data", "starts", "ends",
+        "axes", "steps", "outputs"]`.
         """
         outputs = kwargs.pop("outputs", None)
 
         if self.graph.opset < 10:
             # "data" is string
-            # "starts", "ends" and "axes" are attributes, and "axes" is optional.
+            # "starts", "ends" and "axes" are attributes,
+            # and "axes" is optional.
             data = kwargs.pop("data")
             starts = self._convert_to_attribute(kwargs.pop("starts"))
             ends = self._convert_to_attribute(kwargs.pop("ends"))
@@ -495,18 +562,21 @@ class GraphBuilder:
         else:
             # slice-10 has 3 required inputs "data", "starts", "ends"l
             # and 2 optional inputs "axes", "steps"
-            # input sequence should be "data", "starts", "ends", "axes", "steps"
+            # input sequence should be "data", "starts", "ends",
+            # "axes", "steps"
             attr = {}
             data = kwargs.pop("data")
-            starts = self._convert_to_input(kwargs.pop(
-                "starts"), "const_starts", dtype=numpy.int64)
-            ends = self._convert_to_input(kwargs.pop(
-                "ends"), "const_ends", dtype=numpy.int64)
-            axes = self._convert_to_input(kwargs.pop(
-                "axes", None), "const_axes", is_optional=True, dtype=numpy.int64)
-            steps = self._convert_to_input(kwargs.pop(
-                "steps", None), "const_steps", is_optional=True, dtype=numpy.int64)
-            inputs = [data, starts.name, ends.name, axes.name, steps.name]
+            starts = self._convert_to_input(
+                kwargs.pop("starts"), "const_starts", dtype=numpy.int64)
+            ends = self._convert_to_input(
+                kwargs.pop("ends"), "const_ends", dtype=numpy.int64)
+            axes = self._convert_to_input(
+                kwargs.pop("axes", None), "const_axes",
+                is_optional=True, dtype=numpy.int64)
+            steps = self._convert_to_input(
+                kwargs.pop("steps", None), "const_steps",
+                is_optional=True, dtype=numpy.int64)
+            inputs = [data, starts, ends, axes, steps]
 
         # pro-process inputs and attr
         make_sure(not kwargs, "kwargs contains un-used key")
@@ -555,10 +625,11 @@ class GraphBuilder:
             inputs = [data]
         else:
             data = kwargs.pop("data")
-            axes = self._convert_to_input(kwargs.pop(
-                "axes", None), "const_axes", is_optional=True, dtype=numpy.int64)
+            axes = self._convert_to_input(
+                kwargs.pop("axes", None), "const_axes",
+                is_optional=True, dtype=numpy.int64)
             attr = {}
-            inputs = [data, axes.name]
+            inputs = [data, axes]
 
         make_sure(not kwargs, "kwargs contains un-used key")
 
@@ -599,10 +670,11 @@ class GraphBuilder:
             inputs = [data]
         else:
             data = kwargs.pop("data")
-            axes = self._convert_to_input(kwargs.pop(
-                "axes", None), "const_axes", is_optional=True, dtype=numpy.int64)
+            axes = self._convert_to_input(
+                kwargs.pop("axes", None), "const_axes",
+                is_optional=True, dtype=numpy.int64)
             attr = {}
-            inputs = [data, axes.name]
+            inputs = [data, axes]
 
         make_sure(not kwargs, "kwargs contains un-used key")
 
@@ -638,7 +710,7 @@ class GraphBuilder:
         res = tensor
         if isinstance(tensor, list):
             res = self.graph.make_const(
-                make_name(const_name), numpy.array(tensor, dtype))
+                make_name(const_name), numpy.array(tensor, dtype)).name
         return res
 
     def _convert_to_attribute(self, tensor, is_optional=False):

@@ -123,4 +123,7 @@ def create_model():
 
 
 onnx_raw = create_model()
-onnx_model = Tf2OnnxConvert(onnx_raw, tf_op, target_opset={{ opsets }}).run()
+onnx_model = Tf2OnnxConvert(
+    onnx_raw, tf_op,
+    target_opset={{ opsets }},
+    verbose={{ verbose }}).run()

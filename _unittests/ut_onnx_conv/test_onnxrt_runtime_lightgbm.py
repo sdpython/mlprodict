@@ -26,6 +26,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         register_converters()
 
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
+    @ignore_warnings((RuntimeWarning, UserWarning))
     def test_missing(self):
         from mlprodict.onnx_conv.operator_converters.parse_lightgbm import (
             WrappedLightGbmBooster)
@@ -372,6 +373,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
+    @ignore_warnings((RuntimeWarning, UserWarning))
     def test_lightgbm_booster_classifier(self):
         from lightgbm import Dataset, train as lgb_train
 
@@ -413,6 +415,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
+    @ignore_warnings((RuntimeWarning, UserWarning))
     def test_missing_values(self):
         from lightgbm import LGBMRegressor
 
@@ -470,6 +473,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
+    @ignore_warnings((RuntimeWarning, UserWarning))
     def test_objective(self):
         from lightgbm import LGBMRegressor
 
@@ -498,6 +502,40 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
                     y_pred, y_pred_onnx, decimal=_N_DECIMALS, frac=_FRAC,
                     msg="Objective=%r" % objective)
 
+    @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', 'stuck')
+    @ignore_warnings((RuntimeWarning, UserWarning))
+    def test_objective_boosting_rf(self):
+        from lightgbm import LGBMRegressor
+
+        _N_ROWS = 10000
+        _N_COLS = 10
+        _N_DECIMALS = 5
+        _FRAC = 0.9997
+
+        _X = pandas.DataFrame(numpy.random.random(
+            size=(_N_ROWS, _N_COLS)).astype(numpy.float32))
+        _Y = pandas.Series(numpy.random.random(size=_N_ROWS))
+
+        _objectives = ("regression",)
+
+        for objective in _objectives:
+            with self.subTest(X=_X, objective=objective):
+                initial_types = self._calc_initial_types(_X)
+                regressor = LGBMRegressor(
+                    objective=objective, boosting='rf', bagging_freq=3,
+                    bagging_fraction=0.5, n_estimators=10)
+                regressor.fit(_X, _Y)
+                regressor_onnx = to_onnx(
+                    regressor, initial_types=initial_types,
+                    rewrite_ops=True)
+                y_pred = regressor.predict(_X)
+                y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X) / 10
+                self._assert_almost_equal(
+                    y_pred, y_pred_onnx, decimal=_N_DECIMALS, frac=_FRAC,
+                    msg="Objective=%r" % objective)
+
+    @ignore_warnings((RuntimeWarning, UserWarning))
     def test_lgbm_regressor10(self):
         from lightgbm import LGBMRegressor
         data = load_iris()
@@ -523,6 +561,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         self.assertEqualArray(expected, got1, decimal=5)
         self.assertEqualArray(expected, got2, decimal=5)
 
+    @ignore_warnings((RuntimeWarning, UserWarning))
     def test_lgbm_regressor(self):
         from lightgbm import LGBMRegressor
         data = load_iris()

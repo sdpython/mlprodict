@@ -328,7 +328,7 @@ def hash_onnx_object(obj, max_size):
         obj.doc_string = ''
         try:
             m.update(obj.SerializeToString())
-        except AttributeError as e:
+        except AttributeError as e:  # pragma: no cover
             raise RuntimeError(
                 "Unable to hash object type %r, value=%r."
                 "" % (type(obj), obj)) from e

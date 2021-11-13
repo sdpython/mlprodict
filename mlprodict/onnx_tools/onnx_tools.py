@@ -52,7 +52,7 @@ def insert_node(model, op_type, node, input_index=0, new_name=None, **attrs):
     if isinstance(input_index, str):
         input_index_ = find_node_input_name(node, input_index)
         if input_index_ == -1:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to find input_index %r in node %r." % (
                     input_index, node.name))  # pylint: disable=E1120
         input_index = input_index_
@@ -150,7 +150,7 @@ def ensure_topological_order(inputs, initializers, nodes):
             maxi += 1
             for name in node.output:
                 if name in order:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Unable to sort a node (cycle). An output was "
                         "already ordered %r (iteration=%r)." % (
                             name, n_iter))
@@ -158,7 +158,7 @@ def ensure_topological_order(inputs, initializers, nodes):
         if len(missing_names) == 0:
             continue
 
-    if len(missing_ops) > 0:
+    if len(missing_ops) > 0:  # pragma: no cover
         def nstr(name):
             if name in order:
                 return "%s#%d" % (name, order[name])
