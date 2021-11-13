@@ -28,7 +28,8 @@ from mlprodict.onnx_tools.onnx_export import (
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.exports.tf2onnx_helper import (
-    make_sure, make_name, map_onnx_to_numpy_type, GraphBuilder)
+    make_sure, make_name, map_onnx_to_numpy_type, get_max_value,
+    GraphBuilder)
 from mlprodict.tools.code_helper import print_code
 from mlprodict.onnx_tools.exports.numpy_helper import (
     argmin_use_numpy_select_last_index,
@@ -531,9 +532,9 @@ class ConvertSlice2Op:
                 # get all elements
                 if size == -1:
                     dtype = ctx.get_dtype(node.input[1])
-                    utils.make_sure(
+                    make_sure(
                         dtype, "dtype of {} is None".format(node.input[1]))
-                    utils.make_sure(
+                    make_sure(
                         dtype, "dtype of {} is None".format(node.input[1]))
                     ends.append(numpy.iinfo(dtype).max)
                 else:
@@ -542,12 +543,12 @@ class ConvertSlice2Op:
         else:
             neg_one_val = numpy.array([-1]).astype(size_np_dtype)
             neg_one = ctx.make_const(
-                utils.make_name("const"), neg_one_val).output[0]
+                make_name("const"), neg_one_val).output[0]
 
             int_max_val = numpy.array(
-                [utils.get_max_value(size_np_dtype)]).astype(size_np_dtype)
+                [get_max_value(size_np_dtype)]).astype(size_np_dtype)
             int_max = ctx.make_const(
-                utils.make_name("largest_int_val"), int_max_val).output[0]
+                make_name("largest_int_val"), int_max_val).output[0]
 
             size_are_neg_one_flag = ctx.make_node(
                 "Equal", [neg_one, size]).output[0]
@@ -671,6 +672,9 @@ def create_model():
 
 
 class TestExportOnnx(ExtTestCase):
+
+    def test_get_max_value(self):
+        self.assertEqual(get_max_value(numpy.int8), 127)
 
     def test_model_data_slice(self):
         opv = 14
@@ -1303,8 +1307,8 @@ class TestExportOnnx(ExtTestCase):
 
                 self.assertIn("make_sure", code)
                 if __name__ == "__main__" and shape == (3, 1, 4):
-                    code = code.replace("make_sure(", "utils.make_sure(")
-                    code = code.replace("make_name(", "utils.make_name(")
+                    code = code.replace("make_sure(", "make_sure(")
+                    code = code.replace("make_name(", "make_name(")
                     code = code.replace("map_onnx_to_numpy_type(",
                                         "map_onnx_to_numpy_type(")
                     code = code.replace("numpy.", "np.")

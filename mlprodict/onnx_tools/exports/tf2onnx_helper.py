@@ -144,6 +144,11 @@ def make_name(name):
     return name
 
 
+def get_max_value(np_dtype):
+    "Returns the maximum value for a specific type."
+    return numpy.iinfo(np_dtype).max
+
+
 def make_sure(cond, msg, *args):
     "Raises an exception if cond is not verified."
     if not cond:
