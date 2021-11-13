@@ -109,6 +109,8 @@ class OnnxVar:
             elif hasattr(inp, 'fit'):
                 # scikit-learn model
                 continue
+            elif hasattr(inp, '_guess_dtype'):
+                dtypes.append(inp._guess_dtype(dtype))
             else:
                 raise TypeError(  # pragma: no cover
                     "Unexpected type for input %i type=%r." % (i, type(inp)))
