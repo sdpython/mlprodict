@@ -90,7 +90,7 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
             rows.append(
                 "node = GraphBuilder(ctx).make_squeeze("
                 "{'data': varx[%r]}, return_node=True)"
-                "" % (inputs[0], simplify(inputs[1], 'list_var')))
+                "" % (inputs[0], ))
         elif len(inputs) == 2:
             rows.append(
                 "node = GraphBuilder(ctx).make_squeeze("
