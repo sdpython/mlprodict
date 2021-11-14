@@ -4,6 +4,8 @@
 
 .. versionadded:: 0.8
 """
+import numpy
+from skl2onnx.common.data_types import FloatTensorType
 from .onnx_variable import OnnxVar
 
 
@@ -28,11 +30,28 @@ class AttributeGraph:
         "usual"
         return "%s(...)" % self.__class__.__name__
 
-    def _guess_dtype(self, dtype, from_init=False):
-        if not hasattr(self, 'onnx_') or from_init:
-            return None
-        raise NotImplementedError(
-            "Type=%r, dtype=%r." % (type(self), dtype))
+    def _graph_guess_dtype(self, i, var):
+        """
+        Guesses the graph inputs.
+
+        :param i: attribute index (integer)
+        :param var: the input (@see cl OnnxVar)
+        :return: input type
+        """
+        dtype = var._guess_dtype(None)
+        if dtype is None:
+            dtype = numpy.float32
+
+        if dtype == numpy.float32:
+            skl2onnx_type = FloatTensorType()
+        else:
+            raise TypeError(
+                "Unexpected type %r." % dtype)
+
+        input_type = ('graph_%d_%d' % (id(self), i),
+                      skl2onnx_type)
+        var.set_onnx_name(input_type)
+        return input_type, OnnxVar(input_type[0], dtype=dtype)
 
     def to_algebra(self, op_version=None):
         """
@@ -41,7 +60,11 @@ class AttributeGraph:
         if self.alg_ is not None:
             return self.alg_
 
-        var = self.fct(*self.inputs)
+        new_inputs = [self._graph_guess_dtype(i, inp)
+                      for i, inp in enumerate(self.inputs)]
+        self.alg_inputs_ = new_inputs
+        vars = [v[1] for v in new_inputs]
+        var = self.fct(*vars)
         if not isinstance(var, OnnxVar):
             raise RuntimeError(  # pragma: no cover
                 "var is not from type OnnxVar but %r." % type(var))
@@ -83,14 +106,15 @@ class OnnxVarGraph(OnnxVar):
         # Conversion of graph attributes from InputGraph
         # ONNX graph.
         updates = dict()
-        for k, v in self.onnx_op_kwargs.items():
-            if not isinstance(v, AttributeGraph):
+        self.alg_hidden_var_ = {}
+        for att, var in self.onnx_op_kwargs.items():
+            if not isinstance(var, AttributeGraph):
                 continue
-            alg = v.to_algebra(op_version=op_version)
-            # dtypes = [i._guess_dtype(None) for i in v.inputs]
-            onx = alg.to_onnx(target_opset=op_version)
-            updates[name] = onx.graph
-            removed.append(i)
+            alg = var.to_algebra(op_version=op_version)
+            onnx_inputs = [i[0] for i in var.alg_inputs_]
+            onx = alg.to_onnx(onnx_inputs, target_opset=op_version)
+            updates[att] = onx.graph
+            self.alg_hidden_var_[id(var)] = var
         self.onnx_op_kwargs_before = {
             k: self.onnx_op_kwargs[k] for k in updates}
         self.onnx_op_kwargs.update(updates)

@@ -306,6 +306,29 @@ class OnnxNumpyCompiler:
         return (inputs, outputs, kwargs, 0,
                 signature.n_variables if signature is not None else False)
 
+    def _find_hidden_algebras(self, onx_var, onx_algebra):
+        """
+        Subgraph are using inputs not linked to the others nodes.
+        This function retrieves them as they are stored in
+        attributes `alg_hidden_var_`. The function looks into every
+        node linked to the inputs and their predecessors.
+
+        :param onx_var: @see cl OnnxVar
+        :param onx_algebra: OnnxOperator
+        :return: dictionary `{id(obj): obj}`
+        """
+        keep_hidden = {}
+        stack = [onx_var]
+        while len(stack) > 0:
+            var = stack.pop()
+            hidden = getattr(var, 'alg_hidden_var_', None)
+            if hidden is not None:
+                keep_hidden.update(hidden)
+            if hasattr(var, 'inputs'):
+                for inp in var.inputs:
+                    stack.append(inp)
+        return keep_hidden
+
     def _to_onnx(self, op_version=None, signature=None, version=None):
         """
         Returns the onnx graph produced by function `fct_`.
@@ -337,6 +360,14 @@ class OnnxNumpyCompiler:
                         "The function %r to convert must return an instance of "
                         "OnnxVar but returns type %r." % (self.fct_, type(onx_var)))
                 onx_algebra = onx_var.to_algebra(op_version=op_version)
+
+            hidden_algebras = self._find_hidden_algebras(
+                onx_var, onx_algebra)
+            if len(hidden_algebras) > 0:
+                import pprint
+                pprint.pprint(hidden_algebras)
+                raise NotImplementedError(
+                    "Not implemented yet.")
 
             if isinstance(onx_algebra, str):
                 raise RuntimeError(  # pragma: no cover

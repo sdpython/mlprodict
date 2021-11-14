@@ -141,6 +141,14 @@ class OnnxVar:
         res = "%s(%s)" % (self.__class__.__name__, ", ".join(args))
         return res
 
+    def set_onnx_name(self, name_type):
+        """
+        Forces this variable to get this name during
+
+        :param name_type: a tuple *(name, type)*
+        """
+        self.onnx_input_type_ = name_type
+
     def to_algebra(self, op_version=None):
         """
         Converts the variable into an operator.
