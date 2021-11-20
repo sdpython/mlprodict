@@ -56,6 +56,21 @@ language = "en"
 
 mathdef_link_only = True
 
+intersphinx_mapping.update({
+    'cpyquickhelper': (
+        'http://www.xavierdupre.fr/app/cpyquickhelper/helpsphinx/', None),
+    'jyquickhelper': (
+        'http://www.xavierdupre.fr/app/jyquickhelper/helpsphinx/', None),
+    'lightgbm': ('https://lightgbm.readthedocs.io/en/latest/', None),
+    'mlinsights': (
+        'http://www.xavierdupre.fr/app/mlinsights/helpsphinx/', None),
+    'onnxmltools': (
+        'http://www.xavierdupre.fr/app/onnxmltools/helpsphinx/', None),
+    'onnxruntime': (
+        'http://www.xavierdupre.fr/app/onnxruntime/helpsphinx/', None),
+    'skl2onnx': ('http://onnx.ai/sklearn-onnx/', None),
+)}
+
 epkg_dictionary.update({
     '_PredictScorer': 'https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/scorer.py#L168',
     'airspeed-velocity': 'https://github.com/airspeed-velocity/asv',
