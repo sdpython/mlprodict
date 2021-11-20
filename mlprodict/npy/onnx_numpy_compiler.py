@@ -351,6 +351,7 @@ class OnnxNumpyCompiler:
                          for n, dt in zip(names_in, inputs)]
 
             if 'op_version' in self.fct_.__code__.co_varnames:
+                onx_var = None
                 onx_algebra = self.fct_(
                     *names_in, op_version=op_version, **kwargs)
             else:
