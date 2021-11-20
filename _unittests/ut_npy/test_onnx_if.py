@@ -34,7 +34,7 @@ class TestOnnxVariableIf(ExtTestCase):
             else_branch=nxnp.if_then_else(
                 lambda x, y, z: x - y - z, x, y, z))
 
-    def _test_exc(self):
+    def test_exc(self):
 
         self.assertRaise(
             lambda: nxnp.onnx_if(
