@@ -315,19 +315,22 @@ class OnnxNumpyCompiler:
 
         :param onx_var: @see cl OnnxVar
         :param onx_algebra: OnnxOperator
-        :return: dictionary `{id(obj): obj}`
+        :return: tuple(dictionary `{id(obj): (var, obj)}`,
+            all instance of @see cl OnnxVarGraph)
         """
         keep_hidden = {}
+        var_graphs = []
         stack = [onx_var]
         while len(stack) > 0:
             var = stack.pop()
             hidden = getattr(var, 'alg_hidden_var_', None)
             if hidden is not None:
                 keep_hidden.update(hidden)
+                var_graphs.append(var)
             if hasattr(var, 'inputs'):
                 for inp in var.inputs:
                     stack.append(inp)
-        return keep_hidden
+        return keep_hidden, var_graphs
 
     def _to_onnx(self, op_version=None, signature=None, version=None):
         """
@@ -362,11 +365,16 @@ class OnnxNumpyCompiler:
                         "OnnxVar but returns type %r." % (self.fct_, type(onx_var)))
                 onx_algebra = onx_var.to_algebra(op_version=op_version)
 
-            hidden_algebras = self._find_hidden_algebras(
+            hidden_algebras, var_graphs = self._find_hidden_algebras(
                 onx_var, onx_algebra)
             if len(hidden_algebras) > 0:
-                import pprint
-                pprint.pprint(hidden_algebras)
+                for gr in var_graphs:
+                    print(type(gr), dir(gr))
+                for k, v in hidden_algebras.items():
+                    print("*", type(v.alg_), dir(v.alg_))
+                    import pprint
+                    pprint.pprint(dir(v.alg_))
+                    
                 raise NotImplementedError(
                     "Not implemented yet.")
 
