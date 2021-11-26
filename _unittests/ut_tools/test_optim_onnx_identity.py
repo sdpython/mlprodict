@@ -142,7 +142,7 @@ class TestOptimOnnxIdentity(ExtTestCase):
         self.assertIn('subgraphs_optim', stats)
 
     def test_onnx_test_knn_single_regressor32(self):
-        self.onnx_test_knn_single_regressor(numpy.float32, expected=[1, 1])
+        self.onnx_test_knn_single_regressor(numpy.float32, expected=[2, 1])
 
 
 if __name__ == "__main__":

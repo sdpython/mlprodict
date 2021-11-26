@@ -6,6 +6,8 @@
 """
 import numpy
 from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
+    OnnxIdentity)
 from .onnx_variable import OnnxVar
 
 
@@ -22,6 +24,11 @@ class AttributeGraph:
     """
 
     def __init__(self, fct, *inputs):
+        if isinstance(fct, numpy.ndarray) and len(inputs) == 0:
+            self.cst = fct
+            fct = None
+        else:
+            self.cst = None
         self.fct = fct
         self.inputs = inputs
         self.alg_ = None
@@ -58,6 +65,11 @@ class AttributeGraph:
         Converts the variable into an operator.
         """
         if self.alg_ is not None:
+            return self.alg_
+
+        if self.cst is not None:
+            self.alg_ = OnnxIdentity(self.cst, op_version=op_version)
+            self.alg_inputs_ = None
             return self.alg_
 
         new_inputs = [self._graph_guess_dtype(i, inp)
@@ -107,18 +119,23 @@ class OnnxVarGraph(OnnxVar):
         # ONNX graph.
         updates = dict()
         self.alg_hidden_var_ = {}
+        self.alg_hidden_var_inputs = {}
         for att, var in self.onnx_op_kwargs.items():
             if not isinstance(var, AttributeGraph):
                 continue
             alg = var.to_algebra(op_version=op_version)
-            onnx_inputs = [i[0] for i in var.alg_inputs_]
+            alg.set_onnx_name_prefix("g_%s_%d" % (att, id(var)))
+            if var.alg_inputs_ is None:
+                onnx_inputs = []
+            else:
+                onnx_inputs = [i[0] for i in var.alg_inputs_]
             onx = alg.to_onnx(onnx_inputs, target_opset=op_version)
             updates[att] = onx.graph
             self.alg_hidden_var_[id(var)] = var
+            self.alg_hidden_var_inputs[id(var)] = onnx_inputs
         self.onnx_op_kwargs_before = {
             k: self.onnx_op_kwargs[k] for k in updates}
         self.onnx_op_kwargs.update(updates)
-
         return OnnxVar.to_algebra(self, op_version=op_version)
 
 

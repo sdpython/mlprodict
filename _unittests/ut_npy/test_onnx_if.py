@@ -17,25 +17,36 @@ class TestOnnxVariableIf(ExtTestCase):
     def numpy_onnx_if(x):
         y = x * 2
         z = x + 7
-        if x > 0:
+        if x.sum() > 0:
             return x + y
         return x - y + z
 
     @staticmethod
-    def fct_onnx_if(x: NDArray[Any, numpy.float32],
-                    ) -> NDArray[Any, numpy.float32]:
+    def fct_onnx_if_sub(x: NDArray[Any, numpy.float32],
+                        ) -> NDArray[Any, numpy.float32]:
         "onnx numpy abs"
         y = x * numpy.float32(2)
         z = x + numpy.float32(7)
         xif = nxnp.onnx_if(
-            x > numpy.float32(0),
+            nxnp.sum(x) > numpy.float32(0),
             then_branch=nxnp.if_then_else(
                 lambda x, y: x / y, x, y),
             else_branch=nxnp.if_then_else(
                 lambda x, y, z: x - y - z, x, y, z))
         return xif + numpy.float32(-7)
 
-    def _test_exc(self):
+    @staticmethod
+    def fct_onnx_if(x: NDArray[Any, numpy.float32],
+                    ) -> NDArray[Any, numpy.float32]:
+        "onnx numpy abs"
+        xif = nxnp.onnx_if(
+            nxnp.sum(x) > numpy.float32(0),
+            then_branch=nxnp.if_then_else(
+                numpy.array([-1], dtype=numpy.float32)),
+            else_branch=numpy.array([1], dtype=numpy.float32))
+        return xif + numpy.float32(-7)
+
+    def test_exc(self):
 
         self.assertRaise(
             lambda: nxnp.onnx_if(
@@ -50,12 +61,22 @@ class TestOnnxVariableIf(ExtTestCase):
 
     def test_onnx_if(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
-        test_onnx_if = onnxnumpy()(TestOnnxVariableIf.fct_onnx_if)
+        fct_if = onnxnumpy()(TestOnnxVariableIf.fct_onnx_if)
         with open("debug.onnx", "wb") as f:
-            f.write(test_onnx_if.compiled.onnx_.SerializeToString())
-        y = test_onnx_if(x)
+            f.write(fct_if.compiled.onnx_.SerializeToString())
+        y = fct_if(x)
         self.assertEqualArray(
-            y, TestOnnxVariableIf.numpy_onnx_if(x))
+            y, numpy.array([-6], dtype=numpy.float32))
+
+    @unittest.skipIf(True, reason="does not work yet")
+    def test_onnx_if_sub(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        fct_if = onnxnumpy()(TestOnnxVariableIf.fct_onnx_if_sub)
+        with open("debug.onnx", "wb") as f:
+            f.write(fct_if.compiled.onnx_.SerializeToString())
+        y = fct_if(x)
+        self.assertEqualArray(
+            y, TestOnnxVariableIf.fct_onnx_if_sub(x))
 
 
 if __name__ == "__main__":

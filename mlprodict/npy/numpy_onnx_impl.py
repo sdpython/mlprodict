@@ -357,10 +357,14 @@ def onnx_if(condition, then_branch, else_branch):
     :param else_branch: else branch, of type @see cl if_then_else
     :return: result (@see cl OnnxVar)
     """
+    if isinstance(then_branch, numpy.ndarray):
+        then_branch = if_then_else(then_branch)
     if not isinstance(then_branch, if_then_else):
         raise TypeError(
             "Parameter then_branch is not of type "
             "'if_then_else' but %r." % type(then_branch))
+    if isinstance(else_branch, numpy.ndarray):
+        else_branch = if_then_else(else_branch)
     if not isinstance(else_branch, if_then_else):
         raise TypeError(
             "Parameter then_branch is not of type "

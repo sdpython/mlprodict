@@ -325,8 +325,10 @@ class OnnxNumpyCompiler:
             var = stack.pop()
             hidden = getattr(var, 'alg_hidden_var_', None)
             if hidden is not None:
-                keep_hidden.update(hidden)
-                var_graphs.append(var)
+                if any(map(lambda x: len(x) > 0,
+                           var.alg_hidden_var_inputs.values())):
+                    keep_hidden.update(hidden)
+                    var_graphs.append(var)
             if hasattr(var, 'inputs'):
                 for inp in var.inputs:
                     stack.append(inp)
@@ -368,15 +370,16 @@ class OnnxNumpyCompiler:
             hidden_algebras, var_graphs = self._find_hidden_algebras(
                 onx_var, onx_algebra)
             if len(hidden_algebras) > 0:
-                for gr in var_graphs:
-                    print(type(gr), dir(gr))
-                for k, v in hidden_algebras.items():
-                    print("*", type(v.alg_), dir(v.alg_))
-                    import pprint
-                    pprint.pprint(dir(v.alg_))
-                    
+                # for gr in var_graphs:
+                #     print(type(gr), dir(gr))
+                # for k, v in hidden_algebras.items():
+                #     print("*", type(v.alg_), dir(v.alg_))
+                #     import pprint
+                #     #pprint.pprint(dir(v.alg_))
                 raise NotImplementedError(
-                    "Not implemented yet.")
+                    "Subgraph only supports constants (operator If, Loop, "
+                    "Scan). hidden_algebras=%r var_graphs=%r" % (
+                        hidden_algebras, var_graphs))
 
             if isinstance(onx_algebra, str):
                 raise RuntimeError(  # pragma: no cover
