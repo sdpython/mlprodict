@@ -5,9 +5,14 @@
 History
 =======
 
-current - 2021-10-28 - 0.00Mb
+current - 2021-11-26 - 0.00Mb
 =============================
 
+* #323: Implements if with numpy API (2021-11-26)
+* #320: Fix exporter to tf2onnx (2021-11-13)
+* #319: Supports operator SequenceAt in OnnxInference (2021-11-09)
+* #318: Disable onnxruntime optimisation on one particular graph (2021-11-04)
+* #316: failed to use RandomForestRegressor ort in android studio (2021-10-28)
 * #317: plot_onnx fails when node names contains '.' (2021-10-28)
 
 0.7.1626 - 2021-10-21 - 1.93Mb
@@ -310,10 +315,6 @@ current - 2021-10-28 - 0.00Mb
 * #77: Improves ONNX benchmark to measure zipmap impact. (2019-12-03)
 * #76: Implements ArgMax 12, ArgMax 12 (python onnx runtime) (2019-11-27)
 * #75: ONNX: fix random_state whevever it is available when running benchmark (2019-11-27)
-
-0.3.765 - 2019-11-21 - 0.22Mb
-=============================
-
 * #59: ONNX: Investigate kmeans and opset availability. (2019-11-21)
 * #66: ONNX: improves speed of python runtime for decision trees (2019-11-19)
 * #74: Function _modify_dimension should return the same dataset if called the same parameter (even if it uses random functions) (2019-11-15)
