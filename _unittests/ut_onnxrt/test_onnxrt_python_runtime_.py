@@ -4240,8 +4240,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self.assertIsInstance(ope, expected_type[opset])
                 got = oinf.run({'X': X})
                 if opset >= 11:
-                    self.assertEqual(list(sorted(got)), [
-                                     'Ad_C0', 'Co_output0'])
+                    self.assertEqual(list(sorted(got)), ['Ad_C0'])
                     self.assertEqualArray(exp, got['Ad_C0'])
                 else:
                     self.assertEqual(list(sorted(got)), ['Ad_C0'])

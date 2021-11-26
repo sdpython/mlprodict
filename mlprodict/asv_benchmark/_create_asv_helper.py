@@ -169,6 +169,8 @@ def _sklearn_subfolder(model):
     mod = model.__module__
     if mod is not None and mod.startswith('mlinsights'):
         return ['mlinsights', model.__name__]  # pragma: no cover
+    if mod is not None and mod.startswith('skl2onnx.sklapi'):
+        return ['skl2onnx.sklapi', model.__name__]  # pragma: no cover
     spl = mod.split('.')
     try:
         pos = spl.index('sklearn')

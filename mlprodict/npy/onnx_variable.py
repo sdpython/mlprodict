@@ -73,13 +73,14 @@ class OnnxVar:
                     "Unexpected type for input %d - %r." % (i, inp))
             if not isinstance(inp, numpy.ndarray):
                 continue
-            if inp.size > 0 and isinstance(inp.ravel()[0], (numpy.ndarray, OnnxVar)):
+            if (inp.size > 0 and
+                    isinstance(inp.ravel()[0], (numpy.ndarray, OnnxVar))):
                 raise TypeError(  # pragma: no cover
                     "Unexpected type for input %d: %r, %r."
                     "" % (i, type(inp), inp.ravel()[0]))
-        self.dtype = self._guess_dtype(dtype)
+        self.dtype = self._guess_dtype(dtype, from_init=True)
 
-    def _guess_dtype(self, dtype):
+    def _guess_dtype(self, dtype, from_init=False):
         "Guesses dtype when not specified."
         if dtype is not None:
             return dtype
@@ -96,8 +97,8 @@ class OnnxVar:
                 dtypes.append(inp.dtype)
             elif isinstance(inp, MultiOnnxVar):
                 dtypes.append(inp._guess_dtype(dtype))
-            elif isinstance(inp, (numpy.float32, numpy.float64, numpy.int32,
-                                  numpy.int64)):
+            elif isinstance(inp, (numpy.float32, numpy.float64,
+                                  numpy.int32, numpy.int64)):
                 dtypes.append(inp.dtype)
             elif isinstance(inp, numpy_str):
                 dtypes.append(numpy_str)
@@ -110,6 +111,8 @@ class OnnxVar:
             elif hasattr(inp, 'fit'):
                 # scikit-learn model
                 continue
+            elif hasattr(inp, '_guess_dtype'):
+                dtypes.append(inp._guess_dtype(dtype))
             else:
                 raise TypeError(  # pragma: no cover
                     "Unexpected type for input %i type=%r." % (i, type(inp)))
@@ -138,60 +141,71 @@ class OnnxVar:
         res = "%s(%s)" % (self.__class__.__name__, ", ".join(args))
         return res
 
+    def set_onnx_name(self, name_type):
+        """
+        Forces this variable to get this name during
+
+        :param name_type: a tuple *(name, type)*
+        """
+        self.onnx_input_type_ = name_type
+
     def to_algebra(self, op_version=None):
         """
         Converts the variable into an operator.
         """
-        if self.alg_ is None:
-            if self.onnx_op is None:
-                if len(self.inputs) != 1:
-                    raise RuntimeError(  # pragma: no cover
-                        "Unexpected number of inputs, 1 expected, "
-                        "got {} instead.".format(self.inputs))
-                if self.dtype is None or hasattr(self.inputs[0], 'onnx_name'):
-                    self.alg_ = self.inputs[0]
-                else:
-                    self.alg_ = (
-                        self.inputs[0], _guess_numpy_type(self.dtype, None))
+        if self.alg_ is not None:
+            return self.alg_
+
+        if self.onnx_op is None:
+            if len(self.inputs) != 1:
+                raise RuntimeError(  # pragma: no cover
+                    "Unexpected number of inputs, 1 expected, "
+                    "got {} instead.".format(self.inputs))
+            if self.dtype is None or hasattr(self.inputs[0], 'onnx_name'):
+                self.alg_ = self.inputs[0]
             else:
-                if isinstance(self.onnx_op, str):
-                    var = self._custom_op(*self.inputs, op_version=op_version,
-                                          **self.onnx_op_kwargs)
-                    alg = var.to_algebra(op_version=op_version)
-                    if not hasattr(self, 'alg_'):
-                        raise RuntimeError(  # pragma: no cover
-                            "Missing attribute 'alg_'.")
-                    self.alg_ = alg
-                    return alg
+                self.alg_ = (
+                    self.inputs[0], _guess_numpy_type(self.dtype, None))
+        else:
+            if isinstance(self.onnx_op, str):
+                var = self._custom_op(*self.inputs, op_version=op_version,
+                                      **self.onnx_op_kwargs)
+                alg = var.to_algebra(op_version=op_version)
+                if not hasattr(self, 'alg_'):
+                    raise RuntimeError(  # pragma: no cover
+                        "Missing attribute 'alg_'.")
+                self.alg_ = alg
+                return alg
 
-                new_inputs = []
-                for inp in self.inputs:
-                    if hasattr(inp, 'fit'):
-                        # scikit-learn model
-                        new_inputs.append(inp)
-                    elif isinstance(inp, (
-                            int, float, str, numpy.ndarray, numpy.int32,
-                            numpy.int64, numpy.float32, numpy.float64,
-                            numpy_bool, numpy_str, numpy.int8, numpy.uint8,
-                            numpy.int16, numpy.uint16, numpy.uint32, numpy.uint64)):
-                        if (inp.size > 0 and
-                                isinstance(
-                                    inp.ravel()[0],  # pylint: disable=E1101
-                                    (numpy.ndarray, OnnxVar))):
-                            raise TypeError(  # pragma: no cover
-                                "Unexpected type for an input %r, %r."
-                                "" % (type(inp), inp.ravel()[0]))  # pylint: disable=E1101
-                        new_inputs.append(inp)
-                    else:
-                        new_inputs.append(
-                            inp.to_algebra(op_version=op_version))
-
-                res = self.onnx_op(*new_inputs, op_version=op_version,
-                                   **self.onnx_op_kwargs)
-                if self.select_output is None:
-                    self.alg_ = res
+            new_inputs = []
+            for inp in self.inputs:
+                if hasattr(inp, 'fit'):
+                    # scikit-learn model
+                    new_inputs.append(inp)
+                elif isinstance(inp, (
+                        int, float, str, numpy.ndarray, numpy.int32,
+                        numpy.int64, numpy.float32, numpy.float64,
+                        numpy_bool, numpy_str, numpy.int8, numpy.uint8,
+                        numpy.int16, numpy.uint16, numpy.uint32,
+                        numpy.uint64)):
+                    if (inp.size > 0 and
+                            isinstance(
+                                inp.ravel()[0],  # pylint: disable=E1101
+                                (numpy.ndarray, OnnxVar))):
+                        raise TypeError(  # pragma: no cover
+                            "Unexpected type for an input %r, %r."
+                            "" % (type(inp), inp.ravel()[0]))  # pylint: disable=E1101
+                    new_inputs.append(inp)
                 else:
-                    self.alg_ = res[self.select_output]
+                    new_inputs.append(
+                        inp.to_algebra(op_version=op_version))
+
+            res = self.onnx_op(*new_inputs, op_version=op_version,
+                               **self.onnx_op_kwargs)
+            if self.select_output is None:
+                self.alg_ = res
+            else:
+                self.alg_ = res[self.select_output]
         return self.alg_
 
     def _custom_op(self, *args, op_version=None, runtime=None, **kwargs):
@@ -682,8 +696,9 @@ class TupleOnnxAny:
                     hasattr(self.unique, 'add_to')):
                 if len(value) > 1:
                     self.values = tuple(
-                        OnnxIdentity(self.unique[i], output_names=value[i:i + 1],
-                                     op_version=self.unique.op_version)
+                        OnnxIdentity(
+                            self.unique[i], output_names=value[i:i + 1],
+                            op_version=self.unique.op_version)
                         for i in range(0, len(value)))
                     self.unique = None
                     return
@@ -780,7 +795,8 @@ class MultiOnnxVar:
                         int, float, str, numpy.ndarray, numpy.int32,
                         numpy.int64, numpy.float32, numpy.float64,
                         numpy_bool, numpy_str, numpy.int8, numpy.uint8,
-                        numpy.int16, numpy.uint16, numpy.uint32, numpy.uint64)):
+                        numpy.int16, numpy.uint16, numpy.uint32,
+                        numpy.uint64)):
                     new_inputs.append(inp)
                 elif hasattr(inp, 'fit'):
                     # scikit-learn models

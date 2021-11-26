@@ -306,6 +306,34 @@ class OnnxNumpyCompiler:
         return (inputs, outputs, kwargs, 0,
                 signature.n_variables if signature is not None else False)
 
+    def _find_hidden_algebras(self, onx_var, onx_algebra):
+        """
+        Subgraph are using inputs not linked to the others nodes.
+        This function retrieves them as they are stored in
+        attributes `alg_hidden_var_`. The function looks into every
+        node linked to the inputs and their predecessors.
+
+        :param onx_var: @see cl OnnxVar
+        :param onx_algebra: OnnxOperator
+        :return: tuple(dictionary `{id(obj): (var, obj)}`,
+            all instance of @see cl OnnxVarGraph)
+        """
+        keep_hidden = {}
+        var_graphs = []
+        stack = [onx_var]
+        while len(stack) > 0:
+            var = stack.pop()
+            hidden = getattr(var, 'alg_hidden_var_', None)
+            if hidden is not None:
+                if any(map(lambda x: len(x) > 0,
+                           var.alg_hidden_var_inputs.values())):
+                    keep_hidden.update(hidden)
+                    var_graphs.append(var)
+            if hasattr(var, 'inputs'):
+                for inp in var.inputs:
+                    stack.append(inp)
+        return keep_hidden, var_graphs
+
     def _to_onnx(self, op_version=None, signature=None, version=None):
         """
         Returns the onnx graph produced by function `fct_`.
@@ -328,6 +356,7 @@ class OnnxNumpyCompiler:
                          for n, dt in zip(names_in, inputs)]
 
             if 'op_version' in self.fct_.__code__.co_varnames:
+                onx_var = None
                 onx_algebra = self.fct_(
                     *names_in, op_version=op_version, **kwargs)
             else:
@@ -337,6 +366,20 @@ class OnnxNumpyCompiler:
                         "The function %r to convert must return an instance of "
                         "OnnxVar but returns type %r." % (self.fct_, type(onx_var)))
                 onx_algebra = onx_var.to_algebra(op_version=op_version)
+
+            hidden_algebras, var_graphs = self._find_hidden_algebras(
+                onx_var, onx_algebra)
+            if len(hidden_algebras) > 0:
+                # for gr in var_graphs:
+                #     print(type(gr), dir(gr))
+                # for k, v in hidden_algebras.items():
+                #     print("*", type(v.alg_), dir(v.alg_))
+                #     import pprint
+                #     #pprint.pprint(dir(v.alg_))
+                raise NotImplementedError(
+                    "Subgraph only supports constants (operator If, Loop, "
+                    "Scan). hidden_algebras=%r var_graphs=%r" % (
+                        hidden_algebras, var_graphs))
 
             if isinstance(onx_algebra, str):
                 raise RuntimeError(  # pragma: no cover

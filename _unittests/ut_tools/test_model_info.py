@@ -164,7 +164,7 @@ class TestModelInfo(ExtTestCase):
         onx = to_onnx(model, numpy.zeros((3, 4), dtype=numpy.float32))
         info = analyze_model(onx)
         self.assertIn('op_Identity', info)
-        self.assertEqual(info['op_Identity'], 1)
+        self.assertEqual(info['op_Identity'], 2)
 
     @skipif_circleci('issue, too long')
     def test_gbc(self):

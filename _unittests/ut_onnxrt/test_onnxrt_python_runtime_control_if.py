@@ -5,7 +5,7 @@ import unittest
 from logging import getLogger
 from collections import OrderedDict
 import numpy
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxIf, OnnxConstant, OnnxGreater)
 from skl2onnx.common.data_types import FloatTensorType
@@ -20,20 +20,27 @@ class TestOnnxrtPythonRuntimeControlIf(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @ignore_warnings(DeprecationWarning)
     def test_if(self):
 
         tensor_type = FloatTensorType
         op_version = get_opset_number_from_onnx()
-        bthen = OnnxConstant(value_floats=numpy.array([0], dtype=numpy.float32),
-                             op_version=op_version, output_names=['res'])
-        belse = OnnxConstant(value_floats=numpy.array([1], dtype=numpy.float32),
-                             op_version=op_version, output_names=['res'])
+        bthen = OnnxConstant(
+            value_floats=numpy.array([0], dtype=numpy.float32),
+            op_version=op_version, output_names=['res_then'])
+        bthen.set_onnx_name_prefix('then')
+
+        belse = OnnxConstant(
+            value_floats=numpy.array([1], dtype=numpy.float32),
+            op_version=op_version, output_names=['res_else'])
+        belse.set_onnx_name_prefix('else')
+
         bthen_body = bthen.to_onnx(
-            OrderedDict(), outputs=[('res', tensor_type())],
+            OrderedDict(), outputs=[('res_then', tensor_type())],
             target_opset=op_version)
         belse_body = belse.to_onnx(
             OrderedDict(),
-            outputs=[('res', tensor_type())],
+            outputs=[('res_else', tensor_type())],
             target_opset=op_version)
 
         onx = OnnxIf(OnnxGreater('X', numpy.array([0], dtype=numpy.float32),
