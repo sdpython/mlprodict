@@ -69,7 +69,7 @@ intersphinx_mapping.update({
     'onnxruntime': (
         'http://www.xavierdupre.fr/app/onnxruntime/helpsphinx/', None),
     'skl2onnx': ('http://onnx.ai/sklearn-onnx/', None),
-)}
+})
 
 epkg_dictionary.update({
     '_PredictScorer': 'https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/scorer.py#L168',
