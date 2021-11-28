@@ -2,7 +2,9 @@
 @brief      test log(time=2s)
 """
 import unittest
+import os
 import numpy
+import onnx
 from pyquickhelper.pycode import (
     ExtTestCase, skipif_appveyor, skipif_circleci,
     skipif_travis, skipif_azure)
@@ -36,6 +38,28 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
         oinf2 = OnnxInference(model_def, runtime='python_compiled')
         res = oinf2.run({'X': X_test[:5]})
         self.assertGreater(len(res), 1)
+
+    def test_fx_train(self):
+        data = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                            "data", "fw_train.onnx")
+        with open(data, 'rb') as f:
+            model = onnx.load(f)
+        for node in model.graph.node:
+            if node.name == '':
+                node.name = '%s_%d' % (node.op_type, id(node))
+            for i in range(len(node.output)):
+                if node.output[i] == '':
+                    node.output[i] = "%s:%d" % (node.name, i)
+        with open('debug.onnx', 'wb') as f:
+            f.write(model.SerializeToString())
+        oinf = OnnxInference(model)
+        X = numpy.random.randn(7, 10).astype(numpy.float32)
+        coef = numpy.random.randn(10).astype(numpy.float32)
+        intercept = numpy.random.randn(1).astype(numpy.float32)
+        res = oinf.run({'X': X, 'coef': coef, 'intercept': intercept})
+        self.assertEqual(res['X_grad'].shape, X.shape)
+        self.assertEqual(res['coef_grad'].shape, coef.shape)
+        self.assertEqual(res['intercept_grad'].shape, intercept.shape)
 
 
 if __name__ == "__main__":

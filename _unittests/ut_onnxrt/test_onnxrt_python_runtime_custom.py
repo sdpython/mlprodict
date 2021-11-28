@@ -13,7 +13,7 @@ from skl2onnx.algebra.custom_ops import (  # pylint: disable=E0611
     OnnxCDist, OnnxSolve)
 from mlprodict.onnx_conv.onnx_ops import (
     OnnxFFT, OnnxRFFT, OnnxFFT2D,
-    OnnxComplexAbs)
+    OnnxComplexAbs, OnnxYieldOp)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
@@ -313,6 +313,30 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     oinfpy, {'A': A.astype(numpy.float32),
                              'Y': Y.astype(numpy.float32)})
                 python_tested.append(OnnxSolve)
+
+    @unittest.skipIf(compare_module_version(skl2onnx.__version__, "1.9.1") <= 0,
+                     reason="Missing complex support.")
+    def test_onnxt_runtime_yield_op(self):
+        for dtype in [numpy.float32, numpy.float64]:
+            with self.subTest(dtype=dtype):
+                X = numpy.array([[2, 1], [0, 1]], dtype=dtype)
+                Z = X
+
+                onx = OnnxYieldOp('X', output_names=['Z'],
+                                  op_version=get_opset_number_from_onnx())
+                model_def = onx.to_onnx({'X': X},
+                                        outputs={'Z': Z},
+                                        target_opset=get_opset_number_from_onnx())
+                oinf = OnnxInference(model_def)
+                got = oinf.run({'X': X})
+                self.assertEqual(list(sorted(got)), ['Z'])
+                self.assertEqualArray(Z, got['Z'], decimal=6)
+
+                oinfpy = OnnxInference(
+                    model_def, runtime="python", inplace=True)
+                validate_python_inference(
+                    oinfpy, {'X': X}, tolerance=1e-6)
+                python_tested.append(OnnxYieldOp)
 
 
 if __name__ == "__main__":

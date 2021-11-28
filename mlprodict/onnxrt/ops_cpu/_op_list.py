@@ -135,6 +135,7 @@ from .op_tree_ensemble_classifier import TreeEnsembleClassifier, TreeEnsembleCla
 from .op_tree_ensemble_regressor import TreeEnsembleRegressor, TreeEnsembleRegressorDouble
 from .op_unsqueeze import Unsqueeze, Unsqueeze_1, Unsqueeze_11, Unsqueeze_13
 from .op_where import Where
+from .op_yield_op import YieldOp
 from .op_zipmap import ZipMap
 
 
