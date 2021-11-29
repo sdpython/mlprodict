@@ -27,28 +27,28 @@ class Gemm(OpRun):
     @staticmethod
     def _gemm00(a, b, c, alpha, beta):
         o = numpy.dot(a, b) * alpha
-        if beta != 0:
+        if c is not None and beta != 0:
             o += c * beta
         return o
 
     @staticmethod
     def _gemm01(a, b, c, alpha, beta):
         o = numpy.dot(a, b.T) * alpha
-        if beta != 0:
+        if c is not None and beta != 0:
             o += c * beta
         return o
 
     @staticmethod
     def _gemm10(a, b, c, alpha, beta):
         o = numpy.dot(a.T, b) * alpha
-        if beta != 0:
+        if c is not None and beta != 0:
             o += c * beta
         return o
 
     @staticmethod
     def _gemm11(a, b, c, alpha, beta):
         o = numpy.dot(a.T, b.T) * alpha
-        if beta != 0:
+        if c is not None and beta != 0:
             o += c * beta
         return o
 
