@@ -78,7 +78,7 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
                         lambda: self.fx_train(rt), ValueError)
                 elif rt == 'onnxruntime1':
                     self.assertRaise(
-                        lambda: self.fx_train(rt), OrtFail)
+                        lambda: self.fx_train(rt), (RuntimeError, OrtFail))
                 elif rt == 'onnxruntime2':
                     self.assertRaise(
                         lambda: self.fx_train(rt), RuntimeError)
