@@ -6,6 +6,7 @@ import warnings
 import os
 import numpy
 import onnx
+from onnxruntime.capi.onnxruntime_pybind11_state import Fail as OrtFail
 from pyquickhelper.pycode import (
     ExtTestCase, skipif_appveyor, skipif_circleci,
     skipif_travis, skipif_azure)
@@ -40,7 +41,7 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
         res = oinf2.run({'X': X_test[:5]})
         self.assertGreater(len(res), 1)
 
-    def test_fx_train(self):
+    def fx_train(self, runtime):
         data = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                             "data", "fw_train.onnx")
         with open(data, 'rb') as f:
@@ -53,22 +54,36 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
                     node.output[i] = "%s:%d" % (node.name, i)
         # with open('debug.onnx', 'wb') as f:
         #     f.write(model.SerializeToString())
-        oinf = OnnxInference(model)
-        X = numpy.random.randn(1, 10).astype(numpy.float32)
-        coef = numpy.random.randn(10).astype(numpy.float32)
-        intercept = numpy.random.randn(1).astype(numpy.float32)
-        try:
-            res = oinf.run({'X': X, 'coef': coef, 'intercept': intercept})
-        except ValueError:
-            try:
-                res = oinf.run({'X': X, 'coef': coef, 'intercept': intercept},
-                               verbose=1, fLOG=print)
-            except ValueError as e:
-                warnings.warn(str(e))
-                return
+        oinf = OnnxInference(model, runtime=runtime)
+        grad = numpy.random.randn(7, 1).astype(numpy.float32)
+        X = numpy.random.randn(7, 10).astype(numpy.float32)
+        coef = numpy.random.randn(10).astype(numpy.float32).reshape((10, 1))
+        intercept = numpy.random.randn(1).astype(numpy.float32).reshape((1, ))
+        res = oinf.run({'X': X, 'coef': coef, 'intercept': intercept},
+                       yield_ops={'variable_grad': grad})
+        # verbose=1, fLOG=print)
         self.assertEqual(res['X_grad'].shape, X.shape)
         self.assertEqual(res['coef_grad'].shape, coef.shape)
         self.assertEqual(res['intercept_grad'].shape, intercept.shape)
+
+    def test_fx_train(self):
+        for rt in ['python', 'python_compiled',
+                   'onnxruntime1', 'onnxruntime2']:
+            with self.subTest(runtime=rt):
+                if rt == 'python_compiled':
+                    self.assertRaise(
+                        lambda: self.fx_train(rt), RuntimeError)
+                elif rt == 'python':
+                    self.assertRaise(
+                        lambda: self.fx_train(rt), ValueError)
+                elif rt == 'onnxruntime1':
+                    self.assertRaise(
+                        lambda: self.fx_train(rt), OrtFail)
+                elif rt == 'onnxruntime2':
+                    self.assertRaise(
+                        lambda: self.fx_train(rt), RuntimeError)
+                else:
+                    raise ValueError("Unexpected runtime %r." % rt)
 
 
 if __name__ == "__main__":
