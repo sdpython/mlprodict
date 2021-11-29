@@ -14,8 +14,7 @@ from skl2onnx.algebra.custom_ops import (  # pylint: disable=E0611
 from mlprodict.onnx_conv.onnx_ops import (
     OnnxFFT, OnnxRFFT, OnnxFFT2D,
     OnnxComplexAbs, OnnxYieldOp,
-    OnnxBroadcastGradientArgs, OnnxBroadcastGradientArgs_1,
-    OnnxFusedMatMul, OnnxFusedMatMul_1)
+    OnnxBroadcastGradientArgs, OnnxFusedMatMul)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference

@@ -45,14 +45,14 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
                             "data", "fw_train.onnx")
         with open(data, 'rb') as f:
             model = onnx.load(f)
-        for node in model.graph.node:
+        for node in model.graph.node:  # pylint: disable=E1101
             if node.name == '':
                 node.name = '%s_%d' % (node.op_type, id(node))
-            for i in range(len(node.output)):
+            for i in range(len(node.output)):  # pylint: disable=C0200
                 if node.output[i] == '':
                     node.output[i] = "%s:%d" % (node.name, i)
-        with open('debug.onnx', 'wb') as f:
-            f.write(model.SerializeToString())
+        # with open('debug.onnx', 'wb') as f:
+        #     f.write(model.SerializeToString())
         oinf = OnnxInference(model)
         X = numpy.random.randn(1, 10).astype(numpy.float32)
         coef = numpy.random.randn(10).astype(numpy.float32)
