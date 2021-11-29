@@ -7,7 +7,7 @@ from skl2onnx.algebra.onnx_operator import OnnxOperator
 
 class OnnxYieldOp_1(OnnxOperator):
     """
-    Defines a custom operator for ComplexAbs.
+    Defines a custom operator for YieldOp.
     """
 
     since_version = 1
@@ -16,7 +16,7 @@ class OnnxYieldOp_1(OnnxOperator):
     input_range = [1, 1]
     output_range = [1, 1]
     is_deprecated = False
-    domain = 'mlprodict'
+    domain = 'com.microsoft'
     operator_name = 'YieldOp'
     past_version = {}
 
@@ -38,3 +38,69 @@ class OnnxYieldOp_1(OnnxOperator):
 
 
 OnnxYieldOp = OnnxYieldOp_1
+
+
+class OnnxBroadcastGradientArgs_1(OnnxOperator):
+    """
+    Defines a custom operator for BroadcastGradientArgs.
+    Returns the reduction axes for computing gradients of s0 op s1 with
+    broadcast. The ouput axes are deterministic from last to first.
+    Output is an empty vector when no reduction is necessary for the
+    corresponding input.
+    """
+
+    since_version = 1
+    expected_inputs = [('a_shape', 'T'), ('b_shape', 'T')]
+    expected_outputs = [('a_axes', 'T'), ('b_axes', 'T')]
+    input_range = [2, 2]
+    output_range = [2, 2]
+    is_deprecated = False
+    domain = 'com.microsoft'
+    operator_name = 'BroadcastGradientArgs'
+    past_version = {}
+
+    def __init__(self, a_shape, b_shape, op_version=None, **kwargs):
+        """
+        :param a_shape: The 1st input shape as Tensor.
+        :param b_shape: The 2nds input shape as Tensor.
+        :param op_version: opset version
+        :param kwargs: additional parameter
+        """
+        OnnxOperator.__init__(
+            self, a_shape, b_shape, op_version=op_version, **kwargs)
+
+
+OnnxBroadcastGradientArgs = OnnxBroadcastGradientArgs_1
+
+
+class OnnxFusedMatMul_1(OnnxOperator):
+    """
+    MatMul and Gemm without a C.
+    """
+
+    since_version = 1
+    expected_inputs = [('X', 'T'), ('X', 'T')]
+    expected_outputs = [('Z', 'T')]
+    input_range = [2, 2]
+    output_range = [1, 1]
+    is_deprecated = False
+    domain = 'com.microsoft'
+    operator_name = 'FusedMatMul'
+    past_version = {}
+
+    def __init__(self, X, Y, transA=0, transB=0,
+                 op_version=None, **kwargs):
+        """
+        :param X: first matrix
+        :param Y: second matrix
+        :param transA: transpose first matrix
+        :param transB: transpose second matrix
+        :param op_version: opset version
+        :param kwargs: additional parameter
+        """
+        OnnxOperator.__init__(
+            self, X, Y, transA=transA, transB=transB,
+            op_version=op_version, **kwargs)
+
+
+OnnxFusedMatMul = OnnxFusedMatMul_1

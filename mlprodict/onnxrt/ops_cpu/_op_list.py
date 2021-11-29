@@ -21,6 +21,7 @@ from .op_atanh import Atanh
 from .op_average_pool import AveragePool
 from .op_batch_normalization import BatchNormalization, BatchNormalization_14
 from .op_binarizer import Binarizer
+from .op_broadcast_gradient_args import BroadcastGradientArgs
 from .op_cast import Cast
 from .op_cdist import CDist
 from .op_ceil import Ceil
@@ -52,6 +53,7 @@ from .op_feature_vectorizer import FeatureVectorizer
 from .op_fft import FFT
 from .op_fft2d import FFT2D
 from .op_flatten import Flatten
+from .op_fused_matmul import FusedMatMul
 from .op_gather import Gather
 from .op_gather_elements import GatherElements
 from .op_gemm import Gemm
