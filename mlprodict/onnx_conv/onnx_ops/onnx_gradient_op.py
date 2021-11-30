@@ -104,3 +104,42 @@ class OnnxFusedMatMul_1(OnnxOperator):
 
 
 OnnxFusedMatMul = OnnxFusedMatMul_1
+
+
+class OnnxSoftmaxGrad_13(OnnxOperator):
+    """
+    Gradient of Softmax.
+    SoftmaxGrad computes :math:`Y * ( dY - ReduceSum(Y * dY))`.
+    ONNX does not have a dot product,
+    which can be simulated as a pointwise-multiplication ("Mul"),
+    followed by a "ReduceSum". Unfortunately, the treatment of "axis"
+    is different in "SoftmaxGrad" and "ReduceSum".
+    If axis=k for SoftmaxGrad, we need to specify [k, ..., n-1] as the axes of
+    reduction for "ReduceSum", after accounting for negative-axis specification.
+    An alternative solution would be to Flatten inputs to 2D and then reshape
+    output back to original shape. Hopefully, many of these ops can be optimized
+    away in the common-case of statically-known shapes.
+    """
+
+    since_version = 1
+    expected_inputs = [('grad', 'T'), ('prob', 'T')]
+    expected_outputs = [('Y', 'T')]
+    input_range = [2, 2]
+    output_range = [1, 1]
+    is_deprecated = False
+    domain = 'com.microsoft'
+    operator_name = 'SoftmaxGrad_13'
+    past_version = {}
+
+    def __init__(self, grad, prob, op_version=None, **kwargs):
+        """
+        :param grad: gradient
+        :param prob: probablities
+        :param op_version: opset version
+        :param kwargs: additional parameter
+        """
+        OnnxOperator.__init__(
+            self, grad, prob, op_version=op_version, **kwargs)
+
+
+OnnxSoftmaxGrad = OnnxSoftmaxGrad_13

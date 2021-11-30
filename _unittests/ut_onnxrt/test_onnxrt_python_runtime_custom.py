@@ -14,7 +14,8 @@ from skl2onnx.algebra.custom_ops import (  # pylint: disable=E0611
 from mlprodict.onnx_conv.onnx_ops import (
     OnnxFFT, OnnxRFFT, OnnxFFT2D,
     OnnxComplexAbs, OnnxYieldOp,
-    OnnxBroadcastGradientArgs, OnnxFusedMatMul)
+    OnnxBroadcastGradientArgs, OnnxFusedMatMul,
+    OnnxSoftmaxGrad_13)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
@@ -514,6 +515,22 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X, idi.T), got['Y'], decimal=5)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_onnxt_runtime_softmax_grad_13(self):
+        G = numpy.array([[-0.1, -0.1, 0.1]], dtype=numpy.float32)
+        P = numpy.array([[0.1, 0.3, 0.5]], dtype=numpy.float32)
+        Z = numpy.array([[-0.025, -0.015, 0.075]], dtype=numpy.float32)
+        onx = OnnxSoftmaxGrad_13(
+            'G', 'P', output_names=['Z'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx(
+            {'G': G, 'P': P}, outputs={'Z': Z},
+            target_opset=get_opset_number_from_onnx())
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'G': P, 'P': P})
+        self.assertEqualArray(Z, got['Z'])
 
 
 if __name__ == "__main__":

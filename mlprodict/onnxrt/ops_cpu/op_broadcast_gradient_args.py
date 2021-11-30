@@ -82,7 +82,7 @@ class BroadcastGradientArgs(OpRun):
 class BroadcastGradientArgsSchema(OperatorSchema):
     """
     Defines a schema for operators added in this package
-    such as @see cl FFT.
+    such as @see cl BroadcastGradientArgs.
     """
 
     def __init__(self):
