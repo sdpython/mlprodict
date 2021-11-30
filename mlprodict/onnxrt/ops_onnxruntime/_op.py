@@ -22,6 +22,7 @@ from ...tools.ort_wrapper import (
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
 from ...onnx_tools.optim.graph_schema_helper import (
     get_defined_inputs, get_defined_outputs, proto2vars)
+from ...onnx_conv import onnx_ops as alg3
 
 
 _schemas = {
@@ -96,7 +97,12 @@ class OpRunOnnxRuntime:
             try:
                 self.alg_class = getattr(alg2, 'Onnx' + self.onnx_node.op_type)
             except AttributeError:
-                self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
+                try:
+                    self.alg_class = getattr(
+                        alg, 'Onnx' + self.onnx_node.op_type)
+                except AttributeError:
+                    self.alg_class = getattr(
+                        alg3, 'Onnx' + self.onnx_node.op_type)
 
         inputs = list(self.onnx_node.input)
         self.mapping, self.inputs = self._name_mapping(inputs)

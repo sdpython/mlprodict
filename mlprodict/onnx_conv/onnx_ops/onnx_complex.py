@@ -22,7 +22,7 @@ class OnnxComplexAbs_1(OnnxOperator):
 
     def __init__(self, X, op_version=None, **kwargs):
         """
-        :param A: array or OnnxOperatorMixin
+        :param X: array or OnnxOperatorMixin
         :param op_version: opset version
         :param kwargs: additional parameter
         """

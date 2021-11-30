@@ -670,11 +670,17 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                     opred.shape[1] == 2 and len(ypred.shape) == 1):
                 # decision_function, for binary classification,
                 # raw score is a distance
-                max_rel_diff = measure_relative_difference(
-                    ypred, opred[:, 1])
+                try:
+                    max_rel_diff = measure_relative_difference(
+                        ypred, opred[:, 1])
+                except AttributeError:
+                    max_rel_diff = numpy.nan
             else:
-                max_rel_diff = measure_relative_difference(
-                    ypred, opred)
+                try:
+                    max_rel_diff = measure_relative_difference(
+                        ypred, opred)
+                except AttributeError:
+                    max_rel_diff = numpy.nan
 
             if max_rel_diff >= 1e9 and debug:  # pragma: no cover
                 _shape = lambda o: o.shape if hasattr(

@@ -232,7 +232,7 @@ class OnnxInference:
 
     def _run_sequence_runtime_compiled(
             self, inputs, clean_right_away=False, intermediate=False,
-            verbose=0, node_time=False, fLOG=None):
+            verbose=0, node_time=False, yield_ops=None, fLOG=None):
         """
         Executes a compiled version of @see me _run_sequence_runtime,
         compiled with method @see me _build_compile_run.
@@ -240,7 +240,8 @@ class OnnxInference:
         Switch to ``runtime='python'`` to enable those.
         """
         try:
-            return self._run_compiled(inputs)  # pylint: disable=E1101
+            return self._run_compiled(  # pylint: disable=E1101
+                inputs, yield_ops=yield_ops)
         except NameError as e:
             raise RuntimeError(  # pragma: no cover
                 "Unable to compute prediction due to %r. Code:\n%s"
@@ -621,7 +622,7 @@ class OnnxInference:
 
     def run(self, inputs, clean_right_away=False,
             intermediate=False, verbose=0, node_time=False,
-            overwrite_types=None, fLOG=None):
+            overwrite_types=None, yield_ops=None, fLOG=None):
         """
         Computes the predictions for this :epkg:`onnx` graph.
 
@@ -635,6 +636,8 @@ class OnnxInference:
         :param overwrite_types: shape inference does not work all the time,
             this allows to force types when building intermediate
             results, see @see fn select_model_inputs_outputs
+        :param yield_ops: dictionary to overwrite the output of
+            operator *YieldOp*
         :param fLOG: logging function if *verbose > 0*
         :return: outputs as dictionary
             and a second dictionary of the time spent
@@ -679,6 +682,9 @@ class OnnxInference:
         the first class builds all :epkg:`ONNX` cut out
         to keep the one output and converted into
         *OnnxInference*.
+
+        .. versionchanged:: 0.8
+            Parameter *yield_ops* was added.
         """
         def retype(col_array):
             if (hasattr(col_array, 'categories') and
@@ -701,14 +707,14 @@ class OnnxInference:
                              intermediate=intermediate,
                              verbose=verbose, node_time=node_time,
                              overwrite_types=overwrite_types,
-                             fLOG=fLOG)
+                             yield_ops=yield_ops, fLOG=fLOG)
         if overwrite_types is not None:
             raise RuntimeError(  # pragma: no cover
                 "overwrite_types is not used if intermediate is False.")
         return self._run(inputs, clean_right_away=False,
                          intermediate=intermediate,
                          verbose=verbose, node_time=node_time,
-                         fLOG=fLOG)
+                         yield_ops=yield_ops, fLOG=fLOG)
 
     def run2onnx(self, inputs, verbose=0, fLOG=None,
                  as_parameter=True, suffix='_DBG',
@@ -784,7 +790,8 @@ class OnnxInference:
 
     def _run_sequence_runtime(self, inputs, clean_right_away=False,
                               intermediate=False, verbose=0, node_time=False,
-                              overwrite_types=None, fLOG=None):
+                              overwrite_types=None, yield_ops=None,
+                              fLOG=None):
         if overwrite_types is not None:
             raise NotImplementedError(  # pragma: no cover
                 "overwrite_types != None not implemented.")
@@ -827,6 +834,15 @@ class OnnxInference:
         if verbose == 0 or fLOG is None:
             if node_time:
                 for i, node in enumerate(self.sequence_):
+                    if yield_ops is not None and node.onnx_node.op_type == 'YieldOp':
+                        out = node.onnx_node.output[0]
+                        if out in yield_ops:
+                            values[out] = yield_ops[out]
+                            continue
+                        raise RuntimeError(
+                            "YieldOp output %r could not be found in "
+                            "yield_ops: %r (node=%r)." % (
+                                out, list(sorted(yield_ops)), node.onnx_node))
                     t = perf_counter()
                     node.run(values)
                     t2 = perf_counter()
@@ -885,7 +901,17 @@ class OnnxInference:
             for i, node in enumerate(self.sequence_):
                 if verbose >= 1:
                     fLOG(node)
-                if node_time:
+                if yield_ops is not None and node.onnx_node.op_type == 'YieldOp':
+                    out = node.onnx_node.output[0]
+                    if out in yield_ops:
+                        fLOG("+yo=%r" % out)
+                        values[node.outputs_indices[0]] = yield_ops[out]
+                    else:
+                        raise RuntimeError(
+                            "YieldOp output %r could not be found in "
+                            "yield_ops: %r (node=%r)." % (
+                                out, list(sorted(yield_ops)), node.onnx_node))
+                elif node_time:
                     t = perf_counter()
                     node.run(values)
                     t2 = perf_counter()
@@ -984,7 +1010,7 @@ class OnnxInference:
 
     def _run_whole_runtime(self, inputs, clean_right_away=False,
                            intermediate=False, verbose=0, node_time=False,
-                           overwrite_types=None, fLOG=None):
+                           overwrite_types=None, yield_ops=None, fLOG=None):
         # node_time is unused
         if clean_right_away:
             raise RuntimeError(  # pragma: no cover
@@ -1016,6 +1042,15 @@ class OnnxInference:
                     fLOG('[intermediate] %r' % node)
                     if verbose >= 5:  # pragma: no cover
                         fLOG(oinf.obj)
+                if yield_ops is not None and node.onnx_node.op_type == 'YieldOp':
+                    out = node.onnx_node.output[0]
+                    if out in yield_ops:
+                        values[out] = yield_ops[out]
+                        continue
+                    raise RuntimeError(
+                        "YieldOp output %r could not be found in "
+                        "yield_ops: %r (node=%r)." % (
+                            out, list(sorted(yield_ops)), node.onnx_node))
                 output = oinf.run(inputs)[node]
                 values[node] = output
                 if verbose >= 1:
@@ -1428,7 +1463,10 @@ class OnnxInference:
 
         # inits
         inputs = self.input_names
-        code = ['def compiled_run(dict_inputs):']
+        code = ['def compiled_run(dict_inputs, yield_ops=None):']
+        code.append("    if yield_ops is not None:")
+        code.append(
+            "        raise NotImplementedError('yields_ops should be None.')")
         if debug:
             code.append("    printed = {}")
 
