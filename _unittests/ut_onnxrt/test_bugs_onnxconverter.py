@@ -43,7 +43,7 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
 
     def fx_train(self, runtime):
         data = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                            "data", "fw_train.onnx")
+                            "data", "fw_train_LinearRegression.onnx")
         with open(data, 'rb') as f:
             model = onnx.load(f)
         for node in model.graph.node:  # pylint: disable=E1101
@@ -55,8 +55,8 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
         # with open('debug.onnx', 'wb') as f:
         #     f.write(model.SerializeToString())
         oinf = OnnxInference(model, runtime=runtime)
-        grad = numpy.random.randn(7, 1).astype(numpy.float32)
-        X = numpy.random.randn(7, 10).astype(numpy.float32)
+        grad = numpy.random.randn(25, 1).astype(numpy.float32).T
+        X = numpy.random.randn(25, 10).astype(numpy.float32)
         coef = numpy.random.randn(10).astype(numpy.float32).reshape((10, 1))
         intercept = numpy.random.randn(1).astype(numpy.float32).reshape((1, ))
         res = oinf.run({'X': X, 'coef': coef, 'intercept': intercept},
@@ -74,8 +74,7 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
                     self.assertRaise(
                         lambda: self.fx_train(rt), RuntimeError)
                 elif rt == 'python':
-                    self.assertRaise(
-                        lambda: self.fx_train(rt), ValueError)
+                    self.fx_train(rt)
                 elif rt == 'onnxruntime1':
                     self.assertRaise(
                         lambda: self.fx_train(rt), (RuntimeError, OrtFail))
@@ -87,4 +86,5 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestBugsOnnxrtOnnxConverter().test_fx_train()
     unittest.main()

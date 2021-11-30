@@ -58,7 +58,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceL1, OnnxReduceL2,
     OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
     OnnxReduceProd,
-    OnnxReduceSum, OnnxReduceSumApi11, OnnxReduceSum_11, OnnxReduceSum_1,
+    OnnxReduceSum, OnnxReduceSumApi11,
+    OnnxReduceSum_13, OnnxReduceSum_11, OnnxReduceSum_1,
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
     OnnxRound,
@@ -3271,6 +3272,43 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         res = numpy.sum(X, axis=1)
         self.assertEqualArray(res, got['Y'], decimal=5)
         python_tested.append(OnnxReduceSum)
+
+    @wraplog()
+    def test_onnxt_runtime_reduce_sum_noop_with_empty_axes(self):
+        X = numpy.array([[2, 1], [0, 1]], dtype=float)
+
+        for opset in range(13, get_opset_number_from_onnx() + 1):
+            if onnx_opset_version() < opset:
+                continue
+            cl = OnnxReduceSum_13
+            onx = cl('X', numpy.array([0], dtype=numpy.int64),
+                     output_names=['Y'], keepdims=0,
+                     op_version=opset, noop_with_empty_axes=1)
+            model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                    target_opset=opset)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': X.astype(numpy.float32)})
+            self.assertEqual(list(sorted(got)), ['Y'])
+            self.assertEqualArray(numpy.sum(X, axis=0), got['Y'], decimal=5)
+            name = oinf.sequence_[0].ops_.__class__.__name__
+            self.assertEqual(name, 'ReduceSum_13')
+            self.common_expected_shapes_types(
+                oinf, {'X': X.astype(numpy.float32)}, got,
+                OnnxReduceSum, model_def)
+
+        for opset in range(13, get_opset_number_from_onnx() + 1):
+            if onnx_opset_version() < opset:
+                continue
+            cl = OnnxReduceSum_13
+            onx = cl('X', numpy.array([], dtype=numpy.int64),
+                     output_names=['Y'], keepdims=0,
+                     op_version=opset, noop_with_empty_axes=1)
+            model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                    target_opset=opset)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': X.astype(numpy.float32)})
+            self.assertEqual(list(sorted(got)), ['Y'])
+            self.assertEqualArray(X, got['Y'], decimal=5)
 
     @wraplog()
     def test_onnxt_runtime_reduce_sum_square(self):

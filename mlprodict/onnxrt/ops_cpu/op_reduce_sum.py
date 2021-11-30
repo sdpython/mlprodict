@@ -57,9 +57,11 @@ class ReduceSum_13(OpRunReduceNumpy):
         return OpRun.run(self, x, axes)
 
     def _run(self, data, axes=None):  # pylint: disable=W0221
-        if axes is None and self.noop_with_empty_axes:
+        if ((axes is None or len(axes.shape) == 0 or axes.shape[0] == 0) and
+                self.noop_with_empty_axes):
             return (data, )
-        if axes is not None and not isinstance(axes, int):
+        if ((axes is not None and len(axes.shape) > 0 and axes.shape[0] > 0) and
+                not isinstance(axes, int)):
             if isinstance(axes, numpy.ndarray) and len(axes.shape) == 0:
                 axes = int(axes)
             else:
@@ -83,6 +85,16 @@ class ReduceSum_13(OpRunReduceNumpy):
         sh = data.reduce(axes, self.keepdims,  # pylint: disable=E1101
                          dtype=numpy.int64)  # pylint: disable=E1101
         return (sh, )
+
+    def infer_types(self, data, axes=None):  # pylint: disable=E0202,W0221
+        return self._infer_types(data, axes=axes)
+
+    def _infer_types(self, data, axes=None):  # pylint: disable=W0221
+        return (data, )
+
+    def _infer_sizes(self, *args, **kwargs):  # pylint: disable=W0221
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
 
 
 if onnx_opset_version() >= 13:
