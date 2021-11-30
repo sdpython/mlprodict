@@ -58,9 +58,9 @@ class SoftmaxGrad_13(OpRunBinaryNum):
     atts = {'axis': 1}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
-                               expected_attributes=SoftmaxGrad_13.atts,
-                               **options)
+        OpRunBinaryNum.__init__(self, onnx_node, desc=desc,
+                                expected_attributes=SoftmaxGrad_13.atts,
+                                **options)
 
     def _find_custom_operator_schema(self, op_name):
         if op_name in ("SoftmaxGrad_13", "SoftmaxGrad"):
@@ -77,7 +77,7 @@ class SoftmaxGrad_13(OpRunBinaryNum):
         pg = prob * grad
         if self.axis < 0:
             axis = len(pg.shape) + self.axis
-        else: 
+        else:
             axis = self.axis
         axis = tuple(range(axis, len(pg.shape)))
         dg = grad - pg.sum(axis=axis, keepdims=1)

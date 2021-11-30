@@ -5,7 +5,7 @@ import unittest
 import os
 import numpy
 import onnx
-from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E061
+from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
     Fail as OrtFail, InvalidArgument as OrtInvalidArgument)
 from pyquickhelper.pycode import (
     ExtTestCase, skipif_appveyor, skipif_circleci,
