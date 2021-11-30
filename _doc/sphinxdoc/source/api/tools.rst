@@ -27,8 +27,8 @@ Export
 
 .. autosignature:: mlprodict.onnx_tools.onnx_export.export2tf2onnx
 
-Graphs helper, maipulations
-+++++++++++++++++++++++++++
+Graphs helper, manipulations
+++++++++++++++++++++++++++++
 
 Functions to help understand models or modify them.
 
