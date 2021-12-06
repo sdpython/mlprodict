@@ -5,15 +5,16 @@
 History
 =======
 
-current - 2021-11-26 - 0.00Mb
+current - 2021-12-06 - 0.00Mb
 =============================
 
+* #324: Adds runtime for gradient operators YieldOp, BroadcastGradientArgs (2021-11-30)
 * #323: Implements if with numpy API (2021-11-26)
 * #320: Fix exporter to tf2onnx (2021-11-13)
 * #319: Supports operator SequenceAt in OnnxInference (2021-11-09)
 * #318: Disable onnxruntime optimisation on one particular graph (2021-11-04)
-* #316: failed to use RandomForestRegressor ort in android studio (2021-10-28)
 * #317: plot_onnx fails when node names contains '.' (2021-10-28)
+* #316: failed to use RandomForestRegressor ort in android studio (2021-10-28)
 
 0.7.1626 - 2021-10-21 - 1.93Mb
 ==============================
