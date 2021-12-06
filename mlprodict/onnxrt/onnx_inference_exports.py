@@ -186,7 +186,7 @@ class OnnxInferenceExport:
         for node in self.oinf.obj.graph.node:
             exp.append("")
             for out in node.output:
-                if out not in inter_vars:
+                if len(out) > 0 and out not in inter_vars:
                     inter_vars[out] = out
                     sh = shapes.get(out, '')
                     if sh:
@@ -258,6 +258,9 @@ class OnnxInferenceExport:
                                 dot_name(prefix), dot_name(inp1),
                                 dot_name(subprefix), dot_name(inp2.name)))
                     for out1, out2 in zip(body.output, node.output):
+                        if len(out2) == 0:
+                            # Empty output, it cannot be used.
+                            continue
                         exp.append(
                             "  {0}{1} -> {2}{3};".format(
                                 dot_name(subprefix), dot_name(out1.name),
@@ -273,6 +276,9 @@ class OnnxInferenceExport:
                         "  {0}{1} -> {0}{2};".format(
                             dot_name(prefix), dot_name(inp), dot_name(node.name)))
                 for out in node.output:
+                    if len(out) == 0:
+                        # Empty output, it cannot be used.
+                        continue
                     exp.append(
                         "  {0}{1} -> {0}{2};".format(
                             dot_name(prefix), dot_name(node.name), dot_name(out)))
