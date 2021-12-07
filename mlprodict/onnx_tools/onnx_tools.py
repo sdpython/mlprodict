@@ -189,3 +189,48 @@ def ensure_topological_order(inputs, initializers, nodes):
     topo.sort()
     map_nodes = {str(id(node)): node for node in nodes}
     return [map_nodes[_[1]] for _ in topo]
+
+
+def simple_onnx_str(model):
+    """
+    Displays an ONNX graph into text.
+
+    :param model: ONNX graph
+    :return: str
+    """
+    rows = []
+    for opset in model.opset_import:
+        rows.append("opset: domain=%r version=%r" % (
+            opset.domain, opset.version))
+    for inp in model.graph.input:
+        print("input: name=%r type=%r shape=%r" % (
+            inp.name, inp.type, inp.shape))
+    for out in model.graph.output:
+        print("output: name=%r type=%r shape=%r" % (
+            out.name, out.type, out.shape))
+    for init in model.graph.initializer:
+        rows.append("init: name=%r type=%r shape=%r" % (
+            init.name, init.type, init.shape))
+
+    successors = {}
+    predecessors = {}
+    for node in model.graph.node:
+        node_name = id(node)
+        if node_name not in successors:
+            successors[node_name] = []
+        if node_name not in predecessors:
+            predecessors[node_name] = []
+        for name in node.input:
+            predecessors[node_name].append(name)
+            if name not in successors:
+                successors[name] = []
+            successors[name].append(node_name)
+        for name in node.output:
+            successors[node_name].append(name)
+            if name not in predecessors:
+                predecessors[name] = []
+            predecessors[name].append(node_name)
+
+    # walk through nodes
+
+    return "\n".join(rows)
