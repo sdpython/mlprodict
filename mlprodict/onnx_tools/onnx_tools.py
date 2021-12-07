@@ -2,7 +2,9 @@
 @file
 @brief Functions to manipulate ONNX file.
 """
-from onnx import helper
+from collections import OrderedDict
+from onnx import helper, TensorProto
+from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 
 
 def find_node_name(model, name):
@@ -191,35 +193,190 @@ def ensure_topological_order(inputs, initializers, nodes):
     return [map_nodes[_[1]] for _ in topo]
 
 
-def simple_onnx_str(model):
+def reorder_nodes_for_display(nodes):
+    """
+    Reorders the node with breadth first seach (BFS).
+
+    :param nodes: list of ONNX nodes
+    :return: reordered list of nodes
+    """
+    all_outputs = set()
+    all_inputs = set()
+    for node in nodes:
+        all_outputs |= set(node.output)
+        all_inputs |= set(node.input)
+    common = all_outputs & all_inputs
+    dnodes = OrderedDict()
+    successors = {}
+    predecessors = {}
+    for node in nodes:
+        node_name = node.name + "".join(node.output)
+        dnodes[node_name] = node
+        successors[node_name] = set()
+        predecessors[node_name] = set()
+        for name in node.input:
+            predecessors[node_name].add(name)
+            if name not in successors:
+                successors[name] = set()
+            successors[name].add(node_name)
+        for name in node.output:
+            successors[node_name].add(name)
+            predecessors[name] = {node_name}
+
+    known = all_inputs - common
+    new_nodes = []
+    done = set()
+
+    def _find_sequence(node_name, known, done):
+        res = [node_name]
+        while res[-1] in successors:
+            next_names = successors[res[-1]]
+            if res[-1] not in dnodes:
+                next_names = set(v for v in next_names if v not in known)
+                if len(next_names) == 1:
+                    res.extend(next_names)
+                elif len(next_names) == 0:
+                    res.extend(next_names)
+                    break
+                else:
+                    break
+            else:
+                next_names = set(v for v in next_names if v not in done)
+                if len(next_names) == 1:
+                    res.extend(next_names)
+                elif len(next_names) == 0:
+                    res.extend(next_names)
+                    break
+                else:
+                    break
+
+        return [r for r in res if r in dnodes]
+
+    while len(done) < len(nodes):
+        # possible
+        possibles = OrderedDict()
+        for k, v in dnodes.items():
+            if k in done:
+                continue
+            if predecessors[k] < known:
+                possibles[k] = v
+
+        sequences = OrderedDict()
+        for k, v in possibles.items():
+            if k in done:
+                continue
+            sequences[k] = _find_sequence(k, known, done)
+
+        # find the best sequence
+        best = None
+        for k, v in sequences.items():
+            if best is None or len(v) > len(sequences[best]):
+                best = k
+        if best is None:
+            raise RuntimeError(
+                "Wrong implementationt.")
+
+        # process the sequence
+        for k in sequences[best]:
+            v = dnodes[k]
+            new_nodes.append(v)
+            done.add(k)
+            known |= set(v.output)
+
+    return new_nodes
+
+
+def simple_onnx_str(model, verbose=False, break_row='---'):
     """
     Displays an ONNX graph into text.
 
     :param model: ONNX graph
+    :param verbose: display debugging information
+    :param break_row: string to insert in the model
     :return: str
     """
-    rows = []
-    for opset in model.opset_import:
-        rows.append("opset: domain=%r version=%r" % (
-            opset.domain, opset.version))
-    for inp in model.graph.input:
-        print("input: name=%r type=%r shape=%r" % (
-            inp.name, inp.type, inp.shape))
-    for out in model.graph.output:
-        print("output: name=%r type=%r shape=%r" % (
-            out.name, out.type, out.shape))
-    for init in model.graph.initializer:
-        rows.append("init: name=%r type=%r shape=%r" % (
-            init.name, init.type, init.shape))
+    def get_type(obj0):
+        obj = obj0
+        if hasattr(obj, 'data_type'):
+            if (obj.data_type == TensorProto.FLOAT and
+                    hasattr(obj, 'float_data')):
+                return TENSOR_TYPE_TO_NP_TYPE[TensorProto.FLOAT]
+            if (obj.data_type == TensorProto.DOUBLE and
+                    hasattr(obj, 'double_data')):
+                return TENSOR_TYPE_TO_NP_TYPE[TensorProto.DOUBLE]
+            if (obj.data_type == TensorProto.INT64 and
+                    hasattr(obj, 'int64_data')):
+                return TENSOR_TYPE_TO_NP_TYPE[TensorProto.INT64]
+            raise RuntimeError(
+                "Unable to guess type from %r." % obj0)
+        if hasattr(obj, 'type'):
+            obj = obj.type
+        if hasattr(obj, 'tensor_type'):
+            obj = obj.tensor_type
+        if hasattr(obj, 'elem_type'):
+            return TENSOR_TYPE_TO_NP_TYPE[obj.elem_type]
+        raise RuntimeError(
+            "Unable to guess type from %r." % obj0)
 
+    def get_shape(obj):
+        obj0 = obj
+        if hasattr(obj, 'data_type'):
+            if (obj.data_type == TensorProto.FLOAT and
+                    hasattr(obj, 'float_data')):
+                return (len(obj.float_data), )
+            if (obj.data_type == TensorProto.DOUBLE and
+                    hasattr(obj, 'double_data')):
+                return (len(obj.double_data), )
+            if (obj.data_type == TensorProto.INT64 and
+                    hasattr(obj, 'int64_data')):
+                return (len(obj.int64_data), )
+            raise RuntimeError(
+                "Unable to guess type from %r." % obj0)
+        if hasattr(obj, 'type'):
+            obj = obj.type
+        if hasattr(obj, 'tensor_type'):
+            obj = obj.tensor_type
+        if hasattr(obj, 'shape'):
+            obj = obj.shape
+            dims = []
+            for d in obj.dim:
+                if hasattr(d, 'dim_value'):
+                    dims.append(d.dim_value)
+                else:
+                    dims.append(None)
+            return tuple(dims)
+        raise RuntimeError(
+            "Unable to guess type from %r." % obj0)
+
+    def str_node(indent, node):
+        return "%s%s(%s) -> %s" % (
+            "  " * indent, node.op_type,
+            ", ".join(node.input), ", ".join(node.output))
+
+    rows = []
+    if hasattr(model, 'opset_import'):
+        for opset in model.opset_import:
+            rows.append("opset: domain=%r version=%r" % (
+                opset.domain, opset.version))
+    if hasattr(model, 'graph'):
+        model = model.graph
+
+    # inputs
+    for inp in model.input:
+        rows.append("input: name=%r type=%r shape=%r" % (
+            inp.name, get_type(inp), get_shape(inp)))
+    # initializer
+    for init in model.initializer:
+        rows.append("init: name=%r type=%r shape=%r" % (
+            init.name, get_type(init), get_shape(init)))
+
+    # successors, predecessors
     successors = {}
     predecessors = {}
-    for node in model.graph.node:
-        node_name = id(node)
-        if node_name not in successors:
-            successors[node_name] = []
-        if node_name not in predecessors:
-            predecessors[node_name] = []
+    for node in model.node:
+        node_name = node.name + "".join(node.output)
+        successors[node_name] = []
+        predecessors[node_name] = []
         for name in node.input:
             predecessors[node_name].append(name)
             if name not in successors:
@@ -227,10 +384,73 @@ def simple_onnx_str(model):
             successors[name].append(node_name)
         for name in node.output:
             successors[node_name].append(name)
-            if name not in predecessors:
-                predecessors[name] = []
-            predecessors[name].append(node_name)
+            predecessors[name] = [node_name]
 
     # walk through nodes
+    init_names = set()
+    indents = {}
+    for inp in model.input:
+        indents[inp.name] = 0
+        init_names.add(inp.name)
+    for init in model.initializer:
+        indents[init.name] = 0
+        init_names.add(init.name)
 
+    nodes = reorder_nodes_for_display(model.node)
+
+    previous_indent = None
+    previous_out = None
+    previous_in = None
+    for node in nodes:
+        add_break = False
+        name = node.name + "".join(node.output)
+        if name in indents:
+            indent = indents[name]
+            if previous_indent is not None and indent < previous_indent:
+                if verbose:
+                    print("[simple_onnx_str] break1 %s" % node.op_type)
+                add_break = True
+        elif previous_in is not None and set(node.input) == previous_in:
+            indent = previous_indent
+        else:
+            inds = [indents[i] for i in node.input if i not in init_names]
+            if len(inds) == 0:
+                indent = 0
+            else:
+                mi, ma = min(inds), max(inds)
+                indent = mi
+                if previous_indent is not None and indent < previous_indent:
+                    if verbose:
+                        print("[simple_onnx_str] break2 %s" % node.op_type)
+                    add_break = True
+            if (not add_break and previous_out is not None and
+                    len(set(node.input) & previous_out) == 0):
+                if verbose:
+                    print("[simple_onnx_str] break3 %s" % node.op_type)
+                add_break = True
+                indent = 0
+
+        if add_break:
+            rows.append(break_row)
+        rows.append(str_node(indent, node))
+        indents[name] = indent
+
+        successor = successors[name]
+        predecessor = predecessors[name]
+        add_indent = 1  # 0 if len(successor) == 1 else 1
+        for i, o in enumerate(node.output):
+            indents[o] = indent + add_indent
+
+        for o in node.output:
+            if o in indents:
+                continue
+            indents[o] = indents[name]
+        previous_indent = indents[name]
+        previous_out = set(node.output)
+        previous_in = set(node.input)
+
+    # outputs
+    for out in model.output:
+        rows.append("output: name=%r type=%r shape=%r" % (
+            out.name, get_type(out), get_shape(out)))
     return "\n".join(rows)
