@@ -112,6 +112,8 @@ the possibility later to only show a part of a graph.
 
 **text**
 
+.. autosignature:: mlprodict.plotting.text_plot.onnx_simple_text_plot
+
 .. autosignature:: mlprodict.plotting.text_plot.onnx_text_plot
 
 .. autosignature:: mlprodict.plotting.text_plot.onnx_text_plot_tree
