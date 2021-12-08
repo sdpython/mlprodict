@@ -338,9 +338,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
 
         import numpy
         from sklearn.cluster import KMeans
-        from mlprodict.plotting.plotting import onnx_simple_text_plot
         from mlprodict.onnxrt import OnnxInference
-        import numpy
+        from mlprodict.onnx_conv import to_onnx
 
         x = numpy.random.randn(10, 3)
         y = numpy.random.randn(10)
