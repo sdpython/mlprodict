@@ -2,6 +2,7 @@
 @file
 @brief Functions to manipulate ONNX file.
 """
+from onnx import helper
 
 
 def find_node_name(model, name):
