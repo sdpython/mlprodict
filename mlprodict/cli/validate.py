@@ -211,7 +211,13 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         runtime = runtime.split(',')
 
     def fct_filter_exp(m, s):
-        return str(m) not in skip_models
+        cl = m.__name__
+        if cl in skip_models:
+            return False
+        pair = "%s[%s]" % (cl, s)
+        if pair in skip_models:
+            return False
+        return True
 
     if dtype in ('', None):
         fct_filter = fct_filter_exp
