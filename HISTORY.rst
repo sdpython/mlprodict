@@ -5,9 +5,10 @@
 History
 =======
 
-current - 2021-12-06 - 0.00Mb
+current - 2021-12-09 - 0.00Mb
 =============================
 
+* #325: Implements a simple text display for ONNX graph (2021-12-08)
 * #324: Adds runtime for gradient operators YieldOp, BroadcastGradientArgs (2021-11-30)
 * #323: Implements if with numpy API (2021-11-26)
 * #320: Fix exporter to tf2onnx (2021-11-13)

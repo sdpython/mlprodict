@@ -1,10 +1,11 @@
 # -*- encoding: utf-8 -*-
 """
 @file
-@brief Ways to speed up predictions for a machine learned model.
+@brief Python runtime for ONNX and others tools to help
+converting investigate issues with ONNX models.
 """
 
-__version__ = "0.7.1646"
+__version__ = "0.7.1649"
 __author__ = "Xavier Dupré"
 
 
