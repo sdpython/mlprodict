@@ -66,7 +66,17 @@ class TestPlotTextPlotting(ExtTestCase):
               Sqrt(Ad_C0) -> scores
               ArgMin(Ad_C0, axis=1, keepdims=0) -> label
         """).strip(" \n")
-        if expected1 not in text and expected2 not in text:
+        expected3 = textwrap.dedent("""
+        ReduceSumSquare(X, axes=[1], keepdims=1) -> Re_reduced0
+          Mul(Re_reduced0, Mu_Mulcst) -> Mu_C0
+            Gemm(X, Ge_Gemmcst, Mu_C0, alpha=-2.00, transB=1) -> Ge_Y0
+          Add(Re_reduced0, Ge_Y0) -> Ad_C01
+            Add(Ad_Addcst, Ad_C01) -> Ad_C0
+              ArgMin(Ad_C0, axis=1, keepdims=0) -> label
+              Sqrt(Ad_C0) -> scores
+        """).strip(" \n")
+        if (expected1 not in text and expected2 not in text and
+                expected3 not in text):
             raise AssertionError(
                 "Unexpected value:\n%s" % text)
 
