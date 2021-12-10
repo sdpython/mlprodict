@@ -246,7 +246,7 @@ def reorder_nodes_for_display(nodes, verbose=False):
         for k, v in dnodes.items():
             if k in done:
                 continue
-            if predecessors[k] < known:
+            if predecessors[k] <= known:
                 possibles[k] = v
 
         sequences = OrderedDict()
@@ -443,6 +443,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
                 if att.name in att_display:
                     if att.type == AttributeProto.INT:  # pylint: disable=E1101
                         atts.append("%s=%d" % (att.name, att.i))
+                    elif att.type == AttributeProto.FLOAT:  # pylint: disable=E1101
+                        atts.append("%s=%1.2f" % (att.name, att.f))
                     elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
                         atts.append("%s=%s" % (att.name, str(
                             list(att.ints)).replace(" ", "")))

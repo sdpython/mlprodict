@@ -10,8 +10,9 @@ from sklearn.datasets import load_iris
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.cluster import KMeans
 from sklearn.neighbors import RadiusNeighborsRegressor
+from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAdd, OnnxSub, OnnxDiv, OnnxAbs)
+    OnnxAdd, OnnxSub, OnnxDiv, OnnxAbs, OnnxLeakyRelu)
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.plotting.plotting import (
@@ -50,7 +51,7 @@ class TestPlotTextPlotting(ExtTestCase):
         expected1 = textwrap.dedent("""
         ReduceSumSquare(X, axes=[1], keepdims=1) -> Re_reduced0
           Mul(Re_reduced0, Mu_Mulcst) -> Mu_C0
-            Gemm(X, Ge_Gemmcst, Mu_C0, transB=1) -> Ge_Y0
+            Gemm(X, Ge_Gemmcst, Mu_C0, alpha=-2.00, transB=1) -> Ge_Y0
           Add(Re_reduced0, Ge_Y0) -> Ad_C01
             Add(Ad_Addcst, Ad_C01) -> Ad_C0
               Sqrt(Ad_C0) -> scores
@@ -59,11 +60,11 @@ class TestPlotTextPlotting(ExtTestCase):
         expected2 = textwrap.dedent("""
         ReduceSumSquare(X, axes=[1], keepdims=1) -> Re_reduced0
           Mul(Re_reduced0, Mu_Mulcst) -> Mu_C0
-            Gemm(X, Ge_Gemmcst, Mu_C0, transB=1) -> Ge_Y0
+            Gemm(X, Ge_Gemmcst, Mu_C0, alpha=-2.00, transB=1) -> Ge_Y0
           Add(Re_reduced0, Ge_Y0) -> Ad_C01
             Add(Ad_Addcst, Ad_C01) -> Ad_C0
-              ArgMin(Ad_C0, axis=1, keepdims=0) -> label
               Sqrt(Ad_C0) -> scores
+              ArgMin(Ad_C0, axis=1, keepdims=0) -> label
         """).strip(" \n")
         if expected1 not in text and expected2 not in text:
             raise AssertionError(
@@ -77,7 +78,7 @@ class TestPlotTextPlotting(ExtTestCase):
         onx = to_onnx(model, x.astype(numpy.float32),
                       target_opset=15)
         text = onnx_simple_text_plot(onx, verbose=False)
-        expected = "              Div(final_reduced0, normr_reshaped0) -> variable"
+        expected = "              Neg(arange_y0) -> arange_Y0"
         self.assertIn(expected, text)
         self.assertIn(", to=7)", text)
         self.assertIn(", keepdims=0)", text)
@@ -95,11 +96,11 @@ class TestPlotTextPlotting(ExtTestCase):
                             outputs={'Y': x}, target_opset=15)
         text = onnx_simple_text_plot(onx, verbose=False)
         expected = textwrap.dedent("""
+        Add(X, Ad_Addcst) -> Ad_C0
+          Abs(Ad_C0) -> Ab_Y0
         Identity(Ad_Addcst) -> Su_Subcst
           Sub(X, Su_Subcst) -> Su_C0
             Abs(Su_C0) -> Ab_Y02
-        Add(X, Ad_Addcst) -> Ad_C0
-          Abs(Ad_C0) -> Ab_Y0
             Div(Ab_Y0, Ab_Y02) -> Di_C0
               Abs(Di_C0) -> Y
         """).strip(" \n")
@@ -109,6 +110,18 @@ class TestPlotTextPlotting(ExtTestCase):
         self.assertEqual(text, text2)
         self.assertIn('BEST:', out)
         self.assertEmpty(err)
+
+    def test_onnx_simple_text_plot_leaky(self):
+        x = OnnxLeakyRelu('X', alpha=0.5, op_version=15,
+                          output_names=['Y'])
+        onx = x.to_onnx({'X': FloatTensorType()},
+                        outputs={'Y': FloatTensorType()},
+                        target_opset=15)
+        text = onnx_simple_text_plot(onx)
+        expected = textwrap.dedent("""
+        LeakyRelu(X, alpha=0.50) -> Y
+        """).strip(" \n")
+        self.assertIn(expected, text)
 
 
 if __name__ == "__main__":
