@@ -24,6 +24,7 @@ def onnx_text_plot(model_onnx, recursive=False, graph_type='basic',
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         import numpy
         from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxSub
@@ -52,6 +53,7 @@ def onnx_text_plot_tree(node):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         import numpy
         from sklearn.datasets import load_iris
@@ -193,7 +195,7 @@ def reorder_nodes_for_display(nodes, verbose=False):
     successors = {}
     predecessors = {}
     for node in nodes:
-        node_name = node.name + "".join(node.output)
+        node_name = node.name + "#" + "|".join(node.output)
         dnodes[node_name] = node
         successors[node_name] = set()
         predecessors[node_name] = set()
@@ -256,6 +258,13 @@ def reorder_nodes_for_display(nodes, verbose=False):
                 print("[reorder_nodes_for_display] sequence(%s)=%s" % (
                     k, ",".join(sequences[k])))
 
+        if len(sequences) == 0:
+            raise RuntimeError(
+                "Unexpected empty sequences (len(possibles)=%d, "
+                "len(done)=%d, len(nodes)=%d). This is usually due to "
+                "a name used both as result name and node node."
+                "" % (len(possibles), len(done), len(nodes)))
+
         # find the best sequence
         best = None
         for k, v in sequences.items():
@@ -273,7 +282,7 @@ def reorder_nodes_for_display(nodes, verbose=False):
                     best = k
         if best is None:
             raise RuntimeError(  # pragma: no cover
-                "Wrong implementationt.")
+                "Wrong implementation (len(sequence)=%d)." % len(sequences))
         if verbose:
             print("[reorder_nodes_for_display] BEST: sequence(%s)=%s" % (
                 best, ",".join(sequences[best])))
@@ -316,6 +325,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
 
     .. runpython::
         :showcode:
+        :warningout: DeprecationWarning
 
         import numpy
         from sklearn.cluster import KMeans
@@ -464,7 +474,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
     successors = {}
     predecessors = {}
     for node in model.node:
-        node_name = node.name + "".join(node.output)
+        node_name = node.name + "#" + "|".join(node.output)
         successors[node_name] = []
         predecessors[node_name] = []
         for name in node.input:
@@ -493,7 +503,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
     previous_in = None
     for node in nodes:
         add_break = False
-        name = node.name + "".join(node.output)
+        name = node.name + "#" + "|".join(node.output)
         if name in indents:
             indent = indents[name]
             if previous_indent is not None and indent < previous_indent:
