@@ -271,15 +271,24 @@ def reorder_nodes_for_display(nodes, verbose=False):
             if best is None or len(v) > len(sequences[best]):
                 # if the sequence of successors is longer
                 best = k
-            elif len(v) == len(sequences[best]) and len(new_nodes) > 0:
-                # then choose the next successor sharing input with
-                # previous output
-                previous = new_nodes[-1]
-                so = set(previous.output)
-                first1 = dnodes[sequences[best][0]]
-                first2 = dnodes[v[0]]
-                if len(set(first1.input) & so) < len(set(first2.input) & so):
-                    best = k
+            elif len(v) == len(sequences[best]):
+                if len(new_nodes) > 0:
+                    # then choose the next successor sharing input with
+                    # previous output
+                    so = set(new_nodes[-1].output)
+                    first1 = dnodes[sequences[best][0]]
+                    first2 = dnodes[v[0]]
+                    if len(set(first1.input) & so) < len(set(first2.input) & so):
+                        best = k
+                else:
+                    first1 = dnodes[sequences[best][0]]
+                    first2 = dnodes[v[0]]
+                    if first1.op_type > first2.op_type:
+                        best = k
+                    elif (first1.op_type == first2.op_type and
+                            first1.name > first2.name):
+                        best = k
+
         if best is None:
             raise RuntimeError(  # pragma: no cover
                 "Wrong implementation (len(sequence)=%d)." % len(sequences))

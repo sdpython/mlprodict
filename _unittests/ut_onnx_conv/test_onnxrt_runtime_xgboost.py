@@ -103,8 +103,8 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
                             got = DataFrame(y['output_probability']).values
                             self.assertEqualArray(exp, got, decimal=5)
 
-                            exp = clr.predict(X_test)
-                            self.assertEqualArray(exp, y['output_label'])
+                            exp = clr.predict(X_test[:10])
+                            self.assertEqualArray(exp, y['output_label'][:10])
 
                         nb_tests += 1
 
