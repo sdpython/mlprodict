@@ -5,8 +5,13 @@
 History
 =======
 
-current - 2021-12-09 - 0.00Mb
+current - 2021-12-12 - 0.00Mb
 =============================
+
+* #326: Better error messages when name is shared with results and node name in onnx_simple_text_plot (2021-12-10)
+
+0.7.1649 - 2021-12-09 - 1.95Mb
+==============================
 
 * #325: Implements a simple text display for ONNX graph (2021-12-08)
 * #324: Adds runtime for gradient operators YieldOp, BroadcastGradientArgs (2021-11-30)
