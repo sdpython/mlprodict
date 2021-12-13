@@ -8,8 +8,10 @@ import pandas
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
+from sklearn.exceptions import ConvergenceWarning
 from pyquickhelper.loghelper import BufferedPrint
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import (
+    ExtTestCase, get_temp_folder, ignore_warnings)
 from mlprodict.__main__ import main
 from mlprodict.cli import convert_validate
 
@@ -22,6 +24,7 @@ class TestCliOnnxStats(ExtTestCase):
         res = str(st)
         self.assertIn("optim", res)
 
+    @ignore_warnings(ConvergenceWarning)
     def test_onnx_stats(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -46,6 +49,24 @@ class TestCliOnnxStats(ExtTestCase):
              fLOG=st.fprint)
         res = str(st)
         self.assertIn("ninits: 0", res)
+
+        st = BufferedPrint()
+        main(args=["onnx_stats", "--name", outonnx, '--kind', 'io'],
+             fLOG=st.fprint)
+        res = str(st)
+        self.assertIn("input: name", res)
+
+        st = BufferedPrint()
+        main(args=["onnx_stats", "--name", outonnx, '--kind', 'text'],
+             fLOG=st.fprint)
+        res = str(st)
+        self.assertIn("input: name", res)
+
+        st = BufferedPrint()
+        main(args=["onnx_stats", "--name", outonnx, '--kind', 'node'],
+             fLOG=st.fprint)
+        res = str(st)
+        self.assertIn("op_", res)
 
 
 if __name__ == "__main__":

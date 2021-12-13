@@ -339,7 +339,7 @@ def _get_type(obj0):
     if hasattr(obj, 'tensor_type'):
         obj = obj.tensor_type
     if hasattr(obj, 'elem_type'):
-        return TENSOR_TYPE_TO_NP_TYPE[obj.elem_type]
+        return TENSOR_TYPE_TO_NP_TYPE.get(obj.elem_type, '?')
     raise RuntimeError(
         "Unable to guess type from %r." % obj0)
 

@@ -101,7 +101,7 @@ def onnx_statistics(onnx_model, recursive=True, optim=True, node_type=False):
     counts = Counter(map(lambda obj: obj.op_type, graph.node))
     if node_type:
         for op, v in counts.items():
-                stats['op_' + op] = v
+            stats['op_' + op] = v
     else:
         for op in ['Cast', 'Identity', 'ZipMap', 'Reshape']:
             if op in counts:
