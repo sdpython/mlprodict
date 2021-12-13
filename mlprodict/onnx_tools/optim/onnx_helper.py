@@ -10,16 +10,17 @@ from ._onnx_optimisation_common import _apply_optimisation_on_graph
 from .onnx_optimisation import onnx_remove_node
 
 
-def onnx_statistics(onnx_model, recursive=True, optim=True):
+def onnx_statistics(onnx_model, recursive=True, optim=True, node_type=False):
     """
     Computes statistics on :epkg:`ONNX` models,
     extracts informations about the model such as
     the number of nodes.
 
-    @param      onnx_model      onnx model
-    @param      recursive       looks into subgraphs
-    @param      optim           adds statistics because of optimisation
-    @return                     dictionary
+    :param onnx_model: onnx model
+    :param recursive: looks into subgraphs
+    :param optim: adds statistics because of optimisation
+    :param node_type: add distribution of node types
+    :return: dictionary
 
     .. runpython::
         :showcode:
@@ -98,9 +99,13 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
 
     # Number of identities
     counts = Counter(map(lambda obj: obj.op_type, graph.node))
-    for op in ['Cast', 'Identity', 'ZipMap', 'Reshape']:
-        if op in counts:
-            stats['op_' + op] = counts[op]
+    if node_type:
+        for op, v in counts.items():
+                stats['op_' + op] = v
+    else:
+        for op in ['Cast', 'Identity', 'ZipMap', 'Reshape']:
+            if op in counts:
+                stats['op_' + op] = counts[op]
 
     # Recursive
     if recursive:
@@ -110,7 +115,8 @@ def onnx_statistics(onnx_model, recursive=True, optim=True):
             for att in node.attribute:
                 if att.name != 'body':
                     continue
-                substats = onnx_statistics(att.g, recursive=True, optim=False)
+                substats = onnx_statistics(
+                    att.g, recursive=True, optim=False, node_type=node_type)
                 update(stats, {'subgraphs': 1})
                 update(stats, substats)
 

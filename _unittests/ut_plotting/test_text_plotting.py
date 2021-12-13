@@ -16,7 +16,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.plotting.plotting import (
-    onnx_text_plot, onnx_text_plot_tree, onnx_simple_text_plot)
+    onnx_text_plot, onnx_text_plot_tree, onnx_simple_text_plot,
+    onnx_text_plot_io)
 
 
 class TestPlotTextPlotting(ExtTestCase):
@@ -130,6 +131,18 @@ class TestPlotTextPlotting(ExtTestCase):
         text = onnx_simple_text_plot(onx)
         expected = textwrap.dedent("""
         LeakyRelu(X, alpha=0.50) -> Y
+        """).strip(" \n")
+        self.assertIn(expected, text)
+
+    def test_onnx_text_plot_io(self):
+        x = OnnxLeakyRelu('X', alpha=0.5, op_version=15,
+                          output_names=['Y'])
+        onx = x.to_onnx({'X': FloatTensorType()},
+                        outputs={'Y': FloatTensorType()},
+                        target_opset=15)
+        text = onnx_text_plot_io(onx)
+        expected = textwrap.dedent("""
+        input:
         """).strip(" \n")
         self.assertIn(expected, text)
 

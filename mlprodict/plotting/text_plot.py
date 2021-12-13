@@ -320,6 +320,61 @@ def reorder_nodes_for_display(nodes, verbose=False):
     return new_nodes
 
 
+def _get_type(obj0):
+    obj = obj0
+    if hasattr(obj, 'data_type'):
+        if (obj.data_type == TensorProto.FLOAT and  # pylint: disable=E1101
+                hasattr(obj, 'float_data')):
+            return TENSOR_TYPE_TO_NP_TYPE[TensorProto.FLOAT]  # pylint: disable=E1101
+        if (obj.data_type == TensorProto.DOUBLE and  # pylint: disable=E1101
+                hasattr(obj, 'double_data')):
+            return TENSOR_TYPE_TO_NP_TYPE[TensorProto.DOUBLE]  # pylint: disable=E1101
+        if (obj.data_type == TensorProto.INT64 and  # pylint: disable=E1101
+                hasattr(obj, 'int64_data')):
+            return TENSOR_TYPE_TO_NP_TYPE[TensorProto.INT64]  # pylint: disable=E1101
+        raise RuntimeError(
+            "Unable to guess type from %r." % obj0)
+    if hasattr(obj, 'type'):
+        obj = obj.type
+    if hasattr(obj, 'tensor_type'):
+        obj = obj.tensor_type
+    if hasattr(obj, 'elem_type'):
+        return TENSOR_TYPE_TO_NP_TYPE[obj.elem_type]
+    raise RuntimeError(
+        "Unable to guess type from %r." % obj0)
+
+
+def _get_shape(obj):
+    obj0 = obj
+    if hasattr(obj, 'data_type'):
+        if (obj.data_type == TensorProto.FLOAT and  # pylint: disable=E1101
+                hasattr(obj, 'float_data')):
+            return (len(obj.float_data), )
+        if (obj.data_type == TensorProto.DOUBLE and  # pylint: disable=E1101
+                hasattr(obj, 'double_data')):
+            return (len(obj.double_data), )
+        if (obj.data_type == TensorProto.INT64 and  # pylint: disable=E1101
+                hasattr(obj, 'int64_data')):
+            return (len(obj.int64_data), )
+        raise RuntimeError(
+            "Unable to guess type from %r." % obj0)
+    if hasattr(obj, 'type'):
+        obj = obj.type
+    if hasattr(obj, 'tensor_type'):
+        obj = obj.tensor_type
+    if hasattr(obj, 'shape'):
+        obj = obj.shape
+        dims = []
+        for d in obj.dim:
+            if hasattr(d, 'dim_value'):
+                dims.append(d.dim_value)
+            else:
+                dims.append(None)
+        return tuple(dims)
+    raise RuntimeError(
+        "Unable to guess type from %r." % obj0)
+
+
 def onnx_simple_text_plot(model, verbose=False, att_display=None):
     """
     Displays an ONNX graph into text.
@@ -392,59 +447,6 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
             'transB',
         ]
 
-    def get_type(obj0):
-        obj = obj0
-        if hasattr(obj, 'data_type'):
-            if (obj.data_type == TensorProto.FLOAT and  # pylint: disable=E1101
-                    hasattr(obj, 'float_data')):
-                return TENSOR_TYPE_TO_NP_TYPE[TensorProto.FLOAT]  # pylint: disable=E1101
-            if (obj.data_type == TensorProto.DOUBLE and  # pylint: disable=E1101
-                    hasattr(obj, 'double_data')):
-                return TENSOR_TYPE_TO_NP_TYPE[TensorProto.DOUBLE]  # pylint: disable=E1101
-            if (obj.data_type == TensorProto.INT64 and  # pylint: disable=E1101
-                    hasattr(obj, 'int64_data')):
-                return TENSOR_TYPE_TO_NP_TYPE[TensorProto.INT64]  # pylint: disable=E1101
-            raise RuntimeError(
-                "Unable to guess type from %r." % obj0)
-        if hasattr(obj, 'type'):
-            obj = obj.type
-        if hasattr(obj, 'tensor_type'):
-            obj = obj.tensor_type
-        if hasattr(obj, 'elem_type'):
-            return TENSOR_TYPE_TO_NP_TYPE[obj.elem_type]
-        raise RuntimeError(
-            "Unable to guess type from %r." % obj0)
-
-    def get_shape(obj):
-        obj0 = obj
-        if hasattr(obj, 'data_type'):
-            if (obj.data_type == TensorProto.FLOAT and  # pylint: disable=E1101
-                    hasattr(obj, 'float_data')):
-                return (len(obj.float_data), )
-            if (obj.data_type == TensorProto.DOUBLE and  # pylint: disable=E1101
-                    hasattr(obj, 'double_data')):
-                return (len(obj.double_data), )
-            if (obj.data_type == TensorProto.INT64 and  # pylint: disable=E1101
-                    hasattr(obj, 'int64_data')):
-                return (len(obj.int64_data), )
-            raise RuntimeError(
-                "Unable to guess type from %r." % obj0)
-        if hasattr(obj, 'type'):
-            obj = obj.type
-        if hasattr(obj, 'tensor_type'):
-            obj = obj.tensor_type
-        if hasattr(obj, 'shape'):
-            obj = obj.shape
-            dims = []
-            for d in obj.dim:
-                if hasattr(d, 'dim_value'):
-                    dims.append(d.dim_value)
-                else:
-                    dims.append(None)
-            return tuple(dims)
-        raise RuntimeError(
-            "Unable to guess type from %r." % obj0)
-
     def str_node(indent, node):
         atts = []
         if hasattr(node, 'attribute'):
@@ -475,11 +477,11 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
     # inputs
     for inp in model.input:
         rows.append("input: name=%r type=%r shape=%r" % (
-            inp.name, get_type(inp), get_shape(inp)))
+            inp.name, _get_type(inp), _get_shape(inp)))
     # initializer
     for init in model.initializer:
         rows.append("init: name=%r type=%r shape=%r" % (
-            init.name, get_type(init), get_shape(init)))
+            init.name, _get_type(init), _get_shape(init)))
 
     # successors, predecessors
     successors = {}
@@ -558,5 +560,56 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
     # outputs
     for out in model.output:
         rows.append("output: name=%r type=%r shape=%r" % (
-            out.name, get_type(out), get_shape(out)))
+            out.name, _get_type(out), _get_shape(out)))
+    return "\n".join(rows)
+
+
+def onnx_text_plot_io(model, verbose=False, att_display=None):
+    """
+    Displays information about input and output types.
+
+    :param model: ONNX graph
+    :param verbose: display debugging information
+    :return: str
+
+    An ONNX graph is printed the following way:
+
+    .. runpython::
+        :showcode:
+        :warningout: DeprecationWarning
+
+        import numpy
+        from sklearn.cluster import KMeans
+        from mlprodict.plotting.plotting import onnx_text_plot_io
+        from mlprodict.onnx_conv import to_onnx
+
+        x = numpy.random.randn(10, 3)
+        y = numpy.random.randn(10)
+        model = KMeans(3)
+        model.fit(x, y)
+        onx = to_onnx(model, x.astype(numpy.float32),
+                      target_opset=15)
+        text = onnx_text_plot_io(onx, verbose=False)
+        print(text)
+    """
+    rows = []
+    if hasattr(model, 'opset_import'):
+        for opset in model.opset_import:
+            rows.append("opset: domain=%r version=%r" % (
+                opset.domain, opset.version))
+    if hasattr(model, 'graph'):
+        model = model.graph
+
+    # inputs
+    for inp in model.input:
+        rows.append("input: name=%r type=%r shape=%r" % (
+            inp.name, _get_type(inp), _get_shape(inp)))
+    # initializer
+    for init in model.initializer:
+        rows.append("init: name=%r type=%r shape=%r" % (
+            init.name, _get_type(init), _get_shape(init)))
+    # outputs
+    for out in model.output:
+        rows.append("output: name=%r type=%r shape=%r" % (
+            out.name, _get_type(out), _get_shape(out)))
     return "\n".join(rows)
