@@ -46,7 +46,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
     OnnxIdentity, OnnxIsNaN,
-    OnnxLess, OnnxLessOrEqual,
+    OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
     OnnxLog, OnnxLpNormalization,
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
     OnnxNeg, OnnxNot,
@@ -98,6 +98,7 @@ from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611,E
     topk_element_min_float, topk_element_max_float, topk_element_fetch_float,
     topk_element_min_int64, topk_element_max_int64, topk_element_fetch_int64)
 from mlprodict.onnxrt.ops_cpu.op_celu import _vcelu1, pycelu
+from mlprodict.onnxrt.ops_cpu.op_leaky_relu import _leaky_relu, _leaky_relu_inplace
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 from mlprodict.onnxrt.ops_cpu.op_pad import _pad_impl
 from mlprodict.onnxrt.ops_cpu.op_max_pool import (
@@ -2288,6 +2289,18 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_isnan(self):
         self.common_test_onnxt_runtime_unary(OnnxIsNaN, numpy.isnan)
+
+    @wraplog()
+    def test_onnxt_runtime_leaky_relu(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxLeakyRelu, lambda x: numpy.where(x > 0, x, x * 0.01))
+
+    @wraplog()
+    def test_onnxt_runtime_leaky_relu_fct(self):
+        x = numpy.random.randn(3, 4, 7).astype(numpy.float32)
+        x1 = _leaky_relu(x, 0.77)
+        _leaky_relu_inplace(x, 0.77)
+        self.assertEqualArray(x, x1)
 
     @wraplog()
     def test_onnxt_runtime_less(self):

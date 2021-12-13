@@ -45,6 +45,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
     from ..ops_cpu.op_argmax import _argmax
     from ..ops_cpu.op_argmin import _argmin
     from ..ops_cpu.op_celu import _vcelu1
+    from ..ops_cpu.op_leaky_relu import _leaky_relu
 
     cd = oinf.to_python()
     code = cd['onnx_pyrt_main.py']
@@ -70,7 +71,8 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
           '_vcelu1': _vcelu1, 'solve': solve,
           'fft': numpy.fft.fft, 'rfft': numpy.fft.rfft,
           'fft2': numpy.fft.fft2,
-          'npy_det': npy_det, 'ndarray': numpy.ndarray}
+          'npy_det': npy_det, 'ndarray': numpy.ndarray,
+          '_leaky_relu': _leaky_relu}
 
     for fct in pyrt_fcts:
         for obj in cp.co_consts:
