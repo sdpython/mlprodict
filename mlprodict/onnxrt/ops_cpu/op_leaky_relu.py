@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 from textwrap import dedent
-import numpy
 from ._op import OpRunUnaryNum
 
 
