@@ -65,6 +65,7 @@ from .op_if import If
 from .op_imputer import Imputer
 from .op_isnan import IsNaN
 from .op_label_encoder import LabelEncoder
+from .op_leaky_relu import LeakyRelu
 from .op_less import Less, LessOrEqual
 from .op_linear_classifier import LinearClassifier
 from .op_linear_regressor import LinearRegressor
