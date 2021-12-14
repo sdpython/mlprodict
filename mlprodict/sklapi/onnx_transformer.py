@@ -102,7 +102,9 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
 
         onnx_bytes = (
             onx.SerializeToString() if updated else self.onnx_bytes)
-        self.onnxrt_ = OnnxInference(onnx_bytes, runtime=self.runtime)
+        self.onnxrt_ = OnnxInference(
+            onnx_bytes, runtime=self.runtime,
+            runtime_options=dict(log_severity_level=3))
         self.inputs_ = self.onnxrt_.input_names
         self.inputs_shape_types_ = self.onnxrt_.input_names_shapes_types
         return self

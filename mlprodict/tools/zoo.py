@@ -207,7 +207,9 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4,
             return [r[n] for n in names]
 
         from ..onnxrt import OnnxInference
-        sess = OnnxInference(onnx_file, runtime=runtime)
+        sess = OnnxInference(
+            onnx_file, runtime=runtime,
+            runtime_options=dict(log_severity_level=3))
         names = sess.input_names
         onames = sess.output_names
         meth = lambda data, s=sess, ns=onames: _lin_(s, data, ns)

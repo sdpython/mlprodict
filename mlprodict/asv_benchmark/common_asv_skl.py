@@ -117,7 +117,9 @@ class _CommonAsvSklBenchmark:
             old = None
 
         try:
-            res = OnnxInference(onx, runtime=runtime)
+            res = OnnxInference(
+                onx, runtime=runtime, runtime_options=dict(
+                    log_severity_level=3))
         except RuntimeError as e:  # pragma: no cover
             if "[ONNXRuntimeError]" in str(e):
                 return RuntimeError("onnxruntime fails due to {}".format(str(e)))

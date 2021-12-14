@@ -9,7 +9,7 @@ import traceback
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
-from onnx import numpy_helper, helper
+from onnx import numpy_helper, helper, load as onnx_load
 from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
     make_tensor_value_info)
@@ -39,6 +39,7 @@ from mlprodict.testing.einsum import decompose_einsum_equation
 import mlprodict.npy.numpy_onnx_impl as npnx
 from mlprodict.npy import onnxnumpy_np
 from mlprodict.npy.onnx_numpy_annotation import NDArrayType
+from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 
 
 class ConvertFFT2DOp:
@@ -928,8 +929,12 @@ class TestExportOnnx(ExtTestCase):
         for rt in ['python', 'onnxruntime1']:
             for name, op_name, x_name, x_shape, y_name in names:
                 with self.subTest(name=name, rt=rt):
+                    with open(os.path.join(folder, name), "rb") as f:
+                        onx = onnx_load(f)
+                    onx = onnx_remove_node_unused(onx)
                     oinf0 = OnnxInference(
-                        os.path.join(folder, name), runtime=rt)
+                        onx, runtime=rt, runtime_options=dict(
+                            log_severity_level=3))
 
                     x = numpy.random.randn(*x_shape).astype(numpy.float32)
                     y = oinf0.run({x_name: x})
@@ -948,6 +953,7 @@ class TestExportOnnx(ExtTestCase):
 
                     if rt == 'onnxruntime1':
                         opts = SessionOptions()
+                        opts.log_severity_level = 3
                         opts.graph_optimization_level = (
                             GraphOptimizationLevel.ORT_DISABLE_ALL)
                         oinf = OnnxInference(
@@ -961,7 +967,9 @@ class TestExportOnnx(ExtTestCase):
                     _, loc = self.verify_tf(new_onnx)
                     model = loc['onnx_model']
                     self.assertNotIn('op_type: "%s"' % op_name, str(model))
-                    oinf = OnnxInference(model, runtime=rt)
+                    oinf = OnnxInference(
+                        model, runtime=rt, runtime_options=dict(
+                            log_severity_level=3))
                     y2 = oinf.run({x_name: x})
 
                     if y1[y_name].shape[0] > 0 and y[y_name].shape[0] > 0:
@@ -1329,5 +1337,4 @@ class TestExportOnnx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestExportOnnx().test_export2tf2onnx()
-    unittest.main()
+    unittest.main(verbosity=2)

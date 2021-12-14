@@ -191,7 +191,9 @@ def convert_validate(pkl, data=None, schema=None,
 
     if verbose > 0:
         fLOG("[convert_validate] creates OnnxInference session")
-    sess = OnnxInference(onx, runtime=runtime)
+    sess = OnnxInference(
+        onx, runtime=runtime, runtime_options=dict(
+            log_severity_level=3))
     if use_double == "switch":
         if verbose > 0:
             fLOG("[convert_validate] switch to double")

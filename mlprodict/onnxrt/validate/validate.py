@@ -592,7 +592,9 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
         fLOG("[enumerate_compatible_opset-R] load onnx")
     try:
         sess, t5, ___ = _measure_time(
-            lambda: OnnxInference(ser, runtime=runtime))
+            lambda: OnnxInference(
+                ser, runtime=runtime, runtime_options=dict(
+                    log_severity_level=3)))
         obs_op['tostring_time'] = t5
     except (RuntimeError, ValueError, KeyError, IndexError, TypeError) as e:
         if debug:

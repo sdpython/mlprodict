@@ -146,7 +146,9 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
                            op_version=opset, **kwargs)
     model_def = node.to_onnx(inputs, target_opset=opset)
 
-    oinf = OnnxInference(model_def, runtime=runtime)
+    oinf = OnnxInference(
+        model_def, runtime=runtime, runtime_options=dict(
+            log_severity_level=3))
     got = oinf.run(inputs)['y']
     expected = y.quantized_.reshape(y_shape)
     if got.dtype != expected.dtype:
