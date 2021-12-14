@@ -41,6 +41,10 @@ class TestOptimOnnxIdentity(ExtTestCase):
         self.assertIn('subgraphs', stats)
         self.assertGreater(stats['subgraphs'], 1)
         self.assertGreater(stats['op_Identity'], 2)
+        stats = onnx_statistics(model_def, optim=False, node_type=True)
+        self.assertIn('subgraphs', stats)
+        self.assertGreater(stats['subgraphs'], 1)
+        self.assertGreater(stats['op_Identity'], 2)
 
         new_model = onnx_remove_node_identity(model_def)
         stats2 = onnx_statistics(new_model, optim=False)
