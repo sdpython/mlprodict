@@ -12,12 +12,14 @@ from sklearn.cluster import KMeans
 from sklearn.neighbors import RadiusNeighborsRegressor
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAdd, OnnxSub, OnnxDiv, OnnxAbs, OnnxLeakyRelu)
+    OnnxAdd, OnnxSub, OnnxDiv, OnnxAbs, OnnxLeakyRelu, OnnxGreater,
+    OnnxReduceSum, OnnxIf)
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.plotting.plotting import (
     onnx_text_plot, onnx_text_plot_tree, onnx_simple_text_plot,
     onnx_text_plot_io)
+from mlprodict.onnxrt import OnnxInference
 
 
 class TestPlotTextPlotting(ExtTestCase):
@@ -145,6 +147,45 @@ class TestPlotTextPlotting(ExtTestCase):
         input:
         """).strip(" \n")
         self.assertIn(expected, text)
+
+    def test_onnx_simple_text_plot_if(self):
+
+        opv = get_opset_number_from_onnx()
+        x1 = numpy.array([[0, 3], [7, 0]], dtype=numpy.float32)
+        x2 = numpy.array([[1, 0], [2, 0]], dtype=numpy.float32)
+
+        node = OnnxAdd(
+            'x1', 'x2', output_names=['absxythen'], op_version=opv)
+        then_body = node.to_onnx(
+            {'x1': x1, 'x2': x2}, target_opset=opv,
+            outputs=[('absxythen', FloatTensorType())])
+        node = OnnxSub(
+            'x1', 'x2', output_names=['absxyelse'], op_version=opv)
+        else_body = node.to_onnx(
+            {'x1': x1, 'x2': x2}, target_opset=opv,
+            outputs=[('absxyelse', FloatTensorType())])
+        del else_body.graph.input[:]
+        del then_body.graph.input[:]
+
+        cond = OnnxGreater(
+            OnnxReduceSum('x1', op_version=opv),
+            OnnxReduceSum('x2', op_version=opv),
+            op_version=opv)
+        ifnode = OnnxIf(cond, then_branch=then_body.graph,
+                        else_branch=else_body.graph,
+                        op_version=opv, output_names=['y'])
+        model_def = ifnode.to_onnx(
+            {'x1': x1, 'x2': x2}, target_opset=opv,
+            outputs=[('y', FloatTensorType())])
+        text = onnx_simple_text_plot(model_def)
+        expected = textwrap.dedent("""
+        input:
+        """).strip(" \n")
+        self.assertIn(expected, text)
+        self.assertIn("If(Gr_C0) -> y", text)
+        oinf = OnnxInference(model_def)
+        text2 = oinf.to_text(kind="seq")
+        self.assertEqual(text, text2)
 
 
 if __name__ == "__main__":

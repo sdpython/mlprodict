@@ -19,7 +19,7 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression, LinearRegression
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import ExtTestCase, get_temp_folder, ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier,
     OnnxConstantOfShape, OnnxShape, OnnxIdentity)
@@ -36,6 +36,7 @@ class TestOnnxrtSimple(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_idi(self):
         idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
@@ -66,6 +67,7 @@ class TestOnnxrtSimple(ExtTestCase):
         res = str(oinf)
         self.assertIn('op_type: "Add"', res)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_pickle_check(self):
         idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
@@ -86,6 +88,7 @@ class TestOnnxrtSimple(ExtTestCase):
         obj = pickle.loads(pkl)
         self.assertEqual(str(oinf), str(obj))
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_dot(self):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
@@ -106,6 +109,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('Ad_Addcst -> Ad_Add;', dot)
         self.assertIn('Ad_Add1 -> Y;', dot)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_text(self):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
@@ -124,6 +128,21 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('O0 I0', text)
         self.assertIn('Ad_Addcst', text)
 
+    @ignore_warnings(DeprecationWarning)
+    def test_onnxt_text_seq(self):
+        idi = numpy.identity(2).astype(numpy.float32)
+        idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
+        onx = OnnxAdd(
+            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            idi2, output_names=['Y'],
+            op_version=get_opset_number_from_onnx())
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
+                                target_opset=get_opset_number_from_onnx())
+        oinf = OnnxInference(model_def)
+        text = oinf.to_text(kind='seq')
+        self.assertIn('input:', text)
+
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_dot_onnx(self):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
@@ -137,6 +156,7 @@ class TestOnnxrtSimple(ExtTestCase):
         dot = oinf.to_dot(use_onnx=True)
         self.assertIn('[label="Ad_Addcst1"', dot)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_dot_shape(self):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
@@ -159,6 +179,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('shape=(n, 2)', dot)
         self.assertIn('inplace', dot)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_lreg(self):
         pars = dict(coefficients=numpy.array([1., 2.]), intercepts=numpy.array([1.]),
                     post_transform='NONE')
@@ -171,6 +192,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('coefficients=[1. 2.]', dot)
         self.assertIn('LinearRegressor', dot)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_lrc(self):
         pars = dict(coefficients=numpy.array([1., 2.]), intercepts=numpy.array([1.]),
                     classlabels_ints=[0, 1], post_transform='NONE')
@@ -184,6 +206,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('coefficients=[1. 2.]', dot)
         self.assertIn('LinearClassifier', dot)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_lrc_iris(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -198,6 +221,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('ZipMap', dot)
         self.assertIn('LinearClassifier', dot)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_lrc_iris_json(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -218,6 +242,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('"name": "Cast",', js)
         self.assertIn('"name": "ZipMap",', js)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_json(self):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
@@ -231,6 +256,7 @@ class TestOnnxrtSimple(ExtTestCase):
         js = oinf.to_json()
         self.assertIn('"initializers": {', js)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_graph(self):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
@@ -251,6 +277,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertEqual(len(js['sequence']), 2)
         self.assertEqual(len(js['intermediate']), 2)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_run(self):
         idi = numpy.identity(2, dtype=numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
@@ -267,6 +294,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertEqual(list(y), ['Y'])
         self.assertEqualArray(y['Y'], exp)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_lrreg_iris_run(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -282,6 +310,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertEqual(list(sorted(y)), ['variable'])
         self.assertEqualArray(exp, y['variable'].ravel(), decimal=6)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_lrc_iris_run(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -302,6 +331,7 @@ class TestOnnxrtSimple(ExtTestCase):
         got = pandas.DataFrame(list(y['output_probability'])).values
         self.assertEqualArray(exp, got, decimal=5)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_knn_iris_dot(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -315,6 +345,7 @@ class TestOnnxrtSimple(ExtTestCase):
         dot = oinf.to_dot()
         self.assertNotIn("class_labels_0 -> ;", dot)
 
+    @ignore_warnings(DeprecationWarning)
     def test_getitem(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -336,6 +367,7 @@ class TestOnnxrtSimple(ExtTestCase):
         par = oinf['ZipMap', 'classlabels_int64s']
         self.assertIn('classlabels_int64s', str(par))
 
+    @ignore_warnings(DeprecationWarning)
     def test_constant_of_shape(self):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -353,6 +385,7 @@ class TestOnnxrtSimple(ExtTestCase):
         dot = oinf.to_dot()
         self.assertIn('ConstantOfShape', dot)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_pdist_dot(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist  # pylint: disable=E0401,E0611
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
@@ -373,6 +406,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn("B_next_out", dot)
         self.assertIn("cluster", dot)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnxt_lrc_iris_run_node_time(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -399,6 +433,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertGreater(len(mt), 1)
         self.assertIsInstance(mt[0], dict)
 
+    @ignore_warnings(DeprecationWarning)
     def test_blofat16(self):
         node1 = make_node("Min", ["X", "Y"], ["Z"], name="trans")
 
