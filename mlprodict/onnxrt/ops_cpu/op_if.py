@@ -4,6 +4,8 @@
 @file
 @brief Runtime operator.
 """
+from ...onnx_tools.onnx2py_helper import guess_dtype
+from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -64,10 +66,34 @@ class If(OpRun):
         outputs = self._run_meth_else(named_inputs)
         return tuple([outputs[name] for name in self.else_branch.output_names])
 
+    def _pick_shape(self, res, name):
+        if name in res:
+            return res[name]
+        out = {o.name: o for o in self.then_branch.obj.graph.output}
+        if name not in out:
+            raise ValueError(
+                "Unable to find name=%r in %r or %r." % (
+                    name, list(sorted(res)), list(sorted(out))))
+        dt = out[name].type.tensor_type.elem_type
+        return ShapeObject(None, guess_dtype(dt))
+
     def _infer_shapes(self, cond, named_inputs=None):  # pylint: disable=W0221
         res = self.then_branch._set_shape_inference_runtime()
-        return tuple([res[name] for name in self.then_branch.output_names])
+        return tuple([self._pick_shape(res, name)
+                     for name in self.then_branch.output_names])
+
+    def _pick_type(self, res, name):
+        if name in res:
+            return res[name]
+        out = {o.name: o for o in self.then_branch.obj.graph.output}
+        if name not in out:
+            raise ValueError(
+                "Unable to find name=%r in %r or %r." % (
+                    name, list(sorted(res)), list(sorted(out))))
+        dt = out[name].type.tensor_type.elem_type
+        return guess_dtype(dt)
 
     def _infer_types(self, cond, named_inputs=None):  # pylint: disable=W0221
         res = self.then_branch._set_type_inference_runtime()
-        return tuple([res[name] for name in self.then_branch.output_names])
+        return tuple([self._pick_type(res, name)
+                     for name in self.then_branch.output_names])

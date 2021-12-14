@@ -604,7 +604,7 @@ class OnnxInferenceExport:
         :param distance: distance to the text
         :param kind: see below
         :return: text
-        
+
         Possible values for format:
         * `'bi'`: use @see fn onnx2bigraph
         * `'seq'`: use @see fn onnx_simple_text_plot

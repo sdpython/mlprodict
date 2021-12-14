@@ -526,7 +526,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
         elif previous_in is not None and set(node.input) == previous_in:
             indent = previous_indent
         else:
-            inds = [indents.get(i, 0) for i in node.input if i not in init_names]
+            inds = [indents.get(i, 0)
+                    for i in node.input if i not in init_names]
             if len(inds) == 0:
                 indent = 0
             else:
