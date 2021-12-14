@@ -11,6 +11,7 @@ import textwrap
 from onnx import numpy_helper
 from ..onnx_tools.onnx2py_helper import _var_as_dict, _type_to_string
 from ..tools.graphs import onnx2bigraph
+from ..plotting.text_plot import onnx_simple_text_plot
 
 
 class OnnxInferenceExport:
@@ -593,7 +594,7 @@ class OnnxInferenceExport:
                         "Unknown extension for file '{}'.".format(k))
         return file_data
 
-    def to_text(self, recursive=False, grid=5, distance=5):
+    def to_text(self, recursive=False, grid=5, distance=5, kind='bi'):
         """
         It calls function @see fn onnx2bigraph to return
         the ONNX graph as text.
@@ -601,11 +602,21 @@ class OnnxInferenceExport:
         :param recursive: dig into subgraphs too
         :param grid: align text to this grid
         :param distance: distance to the text
+        :param kind: see below
         :return: text
+
+        Possible values for format:
+        * `'bi'`: use @see fn onnx2bigraph
+        * `'seq'`: use @see fn onnx_simple_text_plot
         """
-        bigraph = onnx2bigraph(self.oinf.obj, recursive=recursive)
-        graph = bigraph.display_structure(grid=grid, distance=distance)
-        return graph.to_text()
+        if kind == 'bi':
+            bigraph = onnx2bigraph(self.oinf.obj, recursive=recursive)
+            graph = bigraph.display_structure(grid=grid, distance=distance)
+            return graph.to_text()
+        if kind == 'seq':
+            return onnx_simple_text_plot(self.oinf.obj)
+        raise ValueError(  # pragma: no cover
+            "Unexpected value for format=%r." % format)
 
     def to_onnx_code(self):
         """

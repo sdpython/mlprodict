@@ -1206,12 +1206,13 @@ class OnnxInference:
         impossible = False
         for k, v in self.statics_.items():
             # static inputs should be known.
-            try:
-                values[k] = ShapeObject(v)
-            except TypeError:
-                # default value is wrong
-                impossible = True
-                values[k] = None
+            if k not in values:
+                try:
+                    values[k] = ShapeObject(v)
+                except TypeError:
+                    # default value is wrong
+                    impossible = True
+                    values[k] = None
 
         for k, v in self.inits_.items():
             values[k] = ShapeObject(v['value'], name=k)
