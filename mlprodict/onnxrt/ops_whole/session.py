@@ -45,22 +45,16 @@ class OnnxWholeSession:
         self.run_options = RunOptions()
 
         if session_options is None:
-            try:
-                sess_options.sessions_log_verbosity_level = 0
-            except AttributeError:  # pragma: no cover
-                # onnxruntime not recent enough.
-                pass
-            try:
-                self.run_options.run_log_verbosity_level = 0
-            except AttributeError:  # pragma: no cover
-                # onnxruntime not recent enough.
-                pass
             if runtime_options is not None:
                 if runtime_options.get('disable_optimisation', False):
                     sess_options.graph_optimization_level = (  # pragma: no cover
                         GraphOptimizationLevel.ORT_ENABLE_ALL)
                 if runtime_options.get('enable_profiling', True):
                     sess_options.enable_profiling = True
+                if runtime_options.get('log_severity_level', 2) != 2:
+                    v = runtime_options.get('log_severity_level', 2)
+                    sess_options.log_severity_level = v
+                    self.run_options.log_severity_level = v
         elif runtime_options is not None and 'enable_profiling' in runtime_options:
             raise RuntimeError(  # pragma: no cover
                 "session_options and enable_profiling cannot be defined at the "
@@ -68,6 +62,10 @@ class OnnxWholeSession:
         elif runtime_options is not None and 'disable_optimisation' in runtime_options:
             raise RuntimeError(  # pragma: no cover
                 "session_options and disable_optimisation cannot be defined at the "
+                "same time.")
+        elif runtime_options is not None and 'log_severity_level' in runtime_options:
+            raise RuntimeError(  # pragma: no cover
+                "session_options and log_severity_level cannot be defined at the "
                 "same time.")
         try:
             self.sess = InferenceSession(onnx_data, sess_options=sess_options)

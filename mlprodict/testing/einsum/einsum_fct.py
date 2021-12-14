@@ -278,7 +278,9 @@ class CachedEinsum:
                 rt = ('python_compiled'
                       if self.runtime == 'python'
                       else self.runtime)
-                self.oinf_ = OnnxInference(self.onnx_, runtime=rt)
+                self.oinf_ = OnnxInference(
+                    self.onnx_, runtime=rt, runtime_options=dict(
+                        log_severity_level=3))
                 self.runtime_ = lambda *inputs: self.oinf_.run(
                     {i: v for i, v in zip(self.onnx_names_, inputs)})['Y']
             else:
@@ -294,7 +296,9 @@ class CachedEinsum:
                 rt = ('python_compiled'
                       if self.runtime == 'python'
                       else self.runtime)
-                self.oinf_ = OnnxInference(self.onnx_, runtime=rt)
+                self.oinf_ = OnnxInference(
+                    self.onnx_, runtime=rt, runtime_options=dict(
+                        log_severity_level=3))
                 self.runtime_ = lambda *inputs: self.oinf_.run(
                     {i: v for i, v in zip(self.onnx_names_, inputs)})['Y']
             else:

@@ -108,7 +108,9 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
                     oinfs[rt] = None
             else:
                 try:
-                    oinfs[rt] = OnnxInference(onx, runtime=rt)
+                    oinfs[rt] = OnnxInference(
+                        onx, runtime=rt, runtime_options=dict(
+                            log_severity_level=3))
                 except (OrtFail, RuntimeError) as e:  # pragma: no cover
                     row['ERROR'] = str(e)
                     oinfs[rt] = None

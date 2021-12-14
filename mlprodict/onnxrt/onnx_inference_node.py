@@ -102,7 +102,9 @@ class OnnxInferenceNode:
         if ir_version is not None:
             options['ir_version'] = ir_version
         if runtime_options is not None:
-            options.update(runtime_options)
+            options.update({
+                k: v for k, v in runtime_options.items()
+                if k not in {'log_severity_level'}})
         if runtime == 'onnxruntime2':
             self.ops_ = load_op(self.onnx_node, desc=self.desc,
                                 options=options if options else None,
