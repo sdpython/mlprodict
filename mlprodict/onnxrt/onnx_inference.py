@@ -1209,7 +1209,7 @@ class OnnxInference:
             if k not in values:
                 try:
                     values[k] = ShapeObject(v)
-                except TypeError as e:
+                except TypeError:
                     # default value is wrong
                     impossible = True
                     values[k] = None
