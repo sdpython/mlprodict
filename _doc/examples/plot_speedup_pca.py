@@ -35,7 +35,7 @@ from sklearn.datasets import make_regression
 from sklearn.decomposition import PCA
 from pyquickhelper.pycode.profiling import profile
 from mlprodict.sklapi import OnnxSpeedupTransformer
-from mlprodict.tools.speed_measure import measure_time
+from cpyquickhelper.numbers.speed_measure import measure_time
 from tqdm import tqdm
 
 ################################

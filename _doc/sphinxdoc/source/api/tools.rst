@@ -129,11 +129,6 @@ the possibility later to only show a part of a graph.
 Others
 ======
 
-Benchmark
-+++++++++
-
-.. autosignature:: mlprodict.tools.speed_measure.measure_time
-
 Plotting
 ++++++++
 
