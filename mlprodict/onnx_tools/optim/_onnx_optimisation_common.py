@@ -14,7 +14,7 @@ def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=Non
     Applies an optimisation function *fct* on a graph
     and not on the model.
 
-    @param      fct             function to optimise like
+    @param      fct             function to optimize like
                                 @see fn onnx_remove_node_identity
     @param      onnx_model      onnx model
     @param      recursive       looks into subgraphs
