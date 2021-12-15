@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 from onnxruntime import InferenceSession
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import OnnxReduceMean
-from mlprodict.tools import measure_time
+from cpyquickhelper.numbers import measure_time
 from tqdm import tqdm
 from mlprodict.testing.experimental_c import code_optimisation
 print(code_optimisation())

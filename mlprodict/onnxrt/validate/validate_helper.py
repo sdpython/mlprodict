@@ -6,13 +6,13 @@ The submodule relies on :epkg:`onnxconverter_common`,
 """
 import math
 import copy
-from timeit import Timer
 import os
 import warnings
 from importlib import import_module
 import pickle
 from time import perf_counter
 import numpy
+from cpyquickhelper.numbers import measure_time as _c_measure_time
 from sklearn.base import BaseEstimator
 from sklearn.linear_model._base import LinearModel
 from sklearn.model_selection import train_test_split
@@ -325,7 +325,8 @@ def default_time_kwargs():
     }
 
 
-def measure_time(stmt, x, repeat=10, number=50, div_by_number=False, first_run=True):
+def measure_time(stmt, x, repeat=10, number=50, div_by_number=False,
+                 first_run=True, max_time=None):
     """
     Measures a statement and returns the results as a dictionary.
 
@@ -335,6 +336,9 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False, first_run=T
     :param number: number of executions in one row
     :param div_by_number: divide by the number of executions
     :param first_run: if True, runs the function once before measuring
+    :param max_time: execute the statement until the total goes
+        beyond this time (approximatively), *repeat* is ignored,
+        *div_by_number* must be set to True
     :return: dictionary
 
     See `Timer.repeat <https://docs.python.org/3/library/timeit.html?timeit.Timer.repeat>`_
@@ -345,28 +349,17 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False, first_run=T
     if x is None:
         raise ValueError("x cannot be None")  # pragma: no cover
 
-    try:
-        stmt(x)
-    except RuntimeError as e:  # pragma: no cover
-        raise RuntimeError("{}-{}".format(type(x), x.dtype)) from e
-
     def fct():
         stmt(x)
 
     if first_run:
-        fct()
-    tim = Timer(fct)
-    res = numpy.array(tim.repeat(repeat=repeat, number=number))
-    total = numpy.sum(res)
-    if div_by_number:
-        res /= number
-    mean = numpy.mean(res)
-    dev = numpy.mean(res ** 2)
-    dev = max(0, (dev - mean**2)) ** 0.5
-    mes = dict(average=mean, deviation=dev, min_exec=numpy.min(res),
-               max_exec=numpy.max(res), repeat=repeat, number=number,
-               total=total)
-    return mes
+        try:
+            fct()
+        except RuntimeError as e:  # pragma: no cover
+            raise RuntimeError("{}-{}".format(type(x), x.dtype)) from e
+
+    return _c_measure_time(fct, context={}, repeat=repeat, number=number,
+                           div_by_number=div_by_number, max_time=max_time)
 
 
 def _multiply_time_kwargs(time_kwargs, time_kwargs_fact, inst):

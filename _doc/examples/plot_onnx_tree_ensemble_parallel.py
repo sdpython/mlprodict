@@ -128,7 +128,7 @@ def benchmark(X, fct1, fct2, N, repeat=10, number=20):
     for r in sorted(res1):
         r1 = res1[r]
         r2 = res2[r]
-        ratio = r2['total'] / r1['total']
+        ratio = r2['ttime'] / r1['ttime']
         res[r] = ratio
     return res
 

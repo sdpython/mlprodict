@@ -5,10 +5,48 @@
 from itertools import permutations
 import numpy
 from onnx import helper, TensorProto
+from cpyquickhelper.numbers import measure_time
 from ...tools.ort_wrapper import InferenceSession
 from ...onnxrt import OnnxInference
-from ..bench_helper import measure_time
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
+
+
+def _measure_time(stmt, *x, repeat=5, number=5, div_by_number=True,
+                  first_run=True, max_time=None):
+    """
+    Measures a statement and returns the results as a dictionary.
+
+    :param stmt: string
+    :param *x: inputs
+    :param repeat: average over *repeat* experiment
+    :param number: number of executions in one row
+    :param div_by_number: divide by the number of executions
+    :param first_run: if True, runs the function once before measuring
+    :param max_time: execute the statement until the total goes
+        beyond this time (approximatively), *repeat* is ignored,
+        *div_by_number* must be set to True
+    :return: dictionary
+
+    See `Timer.repeat
+    <https://docs.python.org/3/library/timeit.html?timeit.Timer.repeat>`_
+    for a better understanding of parameter *repeat* and *number*.
+    The function returns a duration corresponding to
+    *number* times the execution of the main statement.
+    """
+    if first_run:
+        try:
+            stmt(*x)
+        except RuntimeError as e:  # pragma: no cover
+            raise RuntimeError("{}-{}".format(type(x), x.dtype)) from e
+
+    def fct():
+        stmt(*x)
+
+    if first_run:
+        fct()
+
+    return measure_time(fct, context={}, repeat=repeat, number=number,
+                        div_by_number=div_by_number, max_time=max_time)
 
 
 def _make_einsum_model(equation, opset=15):  # opset=13, 14, ...
@@ -143,7 +181,7 @@ def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
         else:
             raise ValueError("Unexpected runtime %r." % rt)
 
-        res = measure_time(fct, *inputs, repeat=repeat, number=number)
+        res = _measure_time(fct, *inputs, repeat=repeat, number=number)
         res['rt'] = rt
         res['dec'] = dec
         res['eq'] = eq

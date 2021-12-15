@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 from pandas import DataFrame
 from onnxruntime import InferenceSession, __version__ as ort_version
 from tqdm import tqdm
-from mlprodict.tools import measure_time
+from cpyquickhelper.numbers import measure_time
 from pyquickhelper.pycode.profiling import profile
 from skl2onnx.algebra.onnx_ops import OnnxTopK_11
 from skl2onnx.common.data_types import FloatTensorType
@@ -139,7 +139,7 @@ def benchmark(X, fct1, fct2, N, repeat=10, number=10):
     for r in sorted(res1):
         r1 = res1[r]
         r2 = res2[r]
-        ratio = r2['total'] / r1['total']
+        ratio = r2['ttime'] / r1['ttime']
         res[r] = ratio
     return res
 

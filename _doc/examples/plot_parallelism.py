@@ -24,7 +24,7 @@ from sklearn import config_context
 from sklearn.datasets import make_regression
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.model_selection import train_test_split
-from mlprodict.tools import measure_time
+from cpyquickhelper.numbers import measure_time
 from pyquickhelper.pycode.profiling import profile
 from mlprodict.onnx_conv import to_onnx, register_rewritten_operators
 from mlprodict.onnxrt import OnnxInference

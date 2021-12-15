@@ -66,6 +66,7 @@ class OnnxInference:
         outputs may share the same name)
     :param static_inputs: Loop can use static variables,
         variables from the graph which runs the loop
+        (enumerate of strings)
     :param new_outputs: if the loading fails, it might worth
         cutting the graph, if not None, the graph will
         be cut to have these new_outputs as the final outputs
@@ -80,6 +81,9 @@ class OnnxInference:
 
     .. versionchanged:: 0.7
         Parameters *new_outputs*, *new_opset* were added.
+
+    .. versionchanged:: 0.8
+        Parameter *static_inputs* was added.
     """
 
     def __init__(self, onnx_or_bytes_or_stream, runtime=None,
