@@ -349,14 +349,14 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False,
     if x is None:
         raise ValueError("x cannot be None")  # pragma: no cover
 
-    if first_run:
-        try:
-            stmt(x)
-        except RuntimeError as e:  # pragma: no cover
-            raise RuntimeError("{}-{}".format(type(x), x.dtype)) from e
-
     def fct():
         stmt(x)
+
+    if first_run:
+        try:
+            fct()
+        except RuntimeError as e:  # pragma: no cover
+            raise RuntimeError("{}-{}".format(type(x), x.dtype)) from e
 
     return _c_measure_time(fct, context={}, repeat=repeat, number=number,
                            div_by_number=div_by_number, max_time=max_time)

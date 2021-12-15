@@ -79,15 +79,10 @@ mlprodict
     all_notebooks
     HISTORY
 
-*mlprodict* explores couple of ways to compute predictions faster
-than the library used to build the machine learned model,
-mostly :epkg:`scikit-learn` which is optimized for training,
-which is equivalent to batch predictions.
-One way is to use :epkg:`ONNX`.
-:epkg:`onnxruntime` provides an efficient way
-to compute predictions. *mlprodict* implements
-a *python/numpy* runtime for :epkg:`ONNX` which
-does not have any dependency on :epkg:`scikit-learn`.
+*mlprodict* was initially started to help implementing converters
+to :epkg:`ONNX`. The main feature is a python runtime for
+:epkg:`ONNX`. It gives more feedback than :epkg:`onnxruntime`
+when the execution fails.
 
 .. runpython::
     :showcode:
@@ -112,7 +107,8 @@ does not have any dependency on :epkg:`scikit-learn`.
 
     # Conversion into ONNX.
     from mlprodict.onnx_conv import to_onnx
-    model_onnx = to_onnx(lr, X.astype(numpy.float32))
+    model_onnx = to_onnx(lr, X.astype(numpy.float32),
+                         black_op={'LinearRegressor'})
     print("ONNX:", str(model_onnx)[:200] + "\n...")
 
     # Predictions with onnxruntime
@@ -123,6 +119,12 @@ does not have any dependency on :epkg:`scikit-learn`.
 
     # Measuring the maximum difference.
     print("max abs diff:", measure_relative_difference(expected, ypred['variable']))
+
+    # And the python runtime
+    oinf = OnnxInference(model_onnx, runtime='python')
+    ypred = oinf.run({'X': X[:5].astype(numpy.float32)},
+                     verbose=1, fLOG=print)
+    print("ONNX output:", ypred)
 
 These predictions are obtained with the
 following :epkg:`ONNX` graph.

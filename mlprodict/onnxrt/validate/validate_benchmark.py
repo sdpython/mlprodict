@@ -160,7 +160,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
                                   number=number, div_by_number=True)
         if (skip_long_test and not node_time and
                 res[N] is not None and
-                res[N].get('total', time_limit) >= time_limit):
+                res[N].get('ttime', time_limit) >= time_limit):
             # too long
             break  # pragma: no cover
     if node_time:

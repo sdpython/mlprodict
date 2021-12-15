@@ -22,7 +22,8 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder, ignore_warnings
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxLinearRegressor, OnnxLinearClassifier,
-    OnnxConstantOfShape, OnnxShape, OnnxIdentity)
+    OnnxConstantOfShape, OnnxShape, OnnxIdentity,
+    OnnxIf, OnnxSub, OnnxGreater, OnnxReduceSum)
 from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
@@ -461,6 +462,38 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertEqualArray(res['Z'], numpy.array(
             [1, -5, -6], dtype=numpy.float16))
         self.assertIn('n0_min(X, Y)', str(oinf))
+
+    @ignore_warnings(DeprecationWarning)
+    def test_onnx_if_to_dot(self):
+        opv = 15
+        x1 = numpy.array([[0, 3], [7, 0]], dtype=numpy.float32)
+        x2 = numpy.array([[1, 0], [2, 0]], dtype=numpy.float32)
+
+        node = OnnxAdd(
+            'x1', 'x2', output_names=['absxythen'], op_version=opv)
+        then_body = node.to_onnx(
+            {'x1': x1, 'x2': x2}, target_opset=opv,
+            outputs=[('absxythen', FloatTensorType())])
+        node = OnnxSub(
+            'x1', 'x2', output_names=['absxyelse'], op_version=opv)
+        else_body = node.to_onnx(
+            {'x1': x1, 'x2': x2}, target_opset=opv,
+            outputs=[('absxyelse', FloatTensorType())])
+        del else_body.graph.input[:]
+        del then_body.graph.input[:]
+
+        cond = OnnxGreater(
+            OnnxReduceSum('x1', op_version=opv),
+            OnnxReduceSum('x2', op_version=opv),
+            op_version=opv)
+        ifnode = OnnxIf(cond, then_branch=then_body.graph,
+                        else_branch=else_body.graph,
+                        op_version=opv, output_names=['y'])
+        model_def = ifnode.to_onnx(
+            {'x1': x1, 'x2': x2}, target_opset=opv,
+            outputs=[('y', FloatTensorType())])
+        dot = OnnxInference(model_def, skip_run=True).to_dot(recursive=True)
+        self.assertIn("subgraph cluster_If", dot)
 
 
 if __name__ == "__main__":

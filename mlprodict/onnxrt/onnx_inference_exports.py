@@ -184,6 +184,8 @@ class OnnxInferenceExport:
 
         # nodes
         fill_names = {}
+        static_inputs = [n.name for n in self.oinf.obj.graph.input]
+        static_inputs.extend(n.name for n in self.oinf.obj.graph.initializer)
         for node in self.oinf.obj.graph.node:
             exp.append("")
             for out in node.output:
@@ -195,6 +197,7 @@ class OnnxInferenceExport:
                     exp.append(
                         '  {2}{0} [shape=box label="{0}{3}" fontsize={1}];'.format(
                             dot_name(out), fontsize, dot_name(prefix), dot_label(sh)))
+                static_inputs.append(out)
 
             dobj = _var_as_dict(node)
             if dobj['name'].strip() == '':  # pragma: no cover
@@ -231,7 +234,8 @@ class OnnxInferenceExport:
                     # creates the subgraph
                     body = dobj['atts'][field]['value']
                     oinf = self.oinf.__class__(
-                        body, runtime=self.oinf.runtime, skip_run=self.oinf.skip_run)
+                        body, runtime=self.oinf.runtime, skip_run=self.oinf.skip_run,
+                        static_inputs=static_inputs)
                     subprefix = prefix + "B_"
                     subdot = oinf.to_dot(recursive=recursive, prefix=subprefix,
                                          add_rt_shapes=add_rt_shapes)
