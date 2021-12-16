@@ -58,11 +58,10 @@ mlprodict
     :target: https://github.com/sdpython/mlprodict/
     :alt: size
 
-*mlprodict* explores ways to productionize machine learning predictions.
-One approach uses *ONNX* and tries to implement
-a runtime in python / numpy or wraps
-`onnxruntime <https://github.com/Microsoft/onnxruntime>`_
-into a single class. The package provides tools to compare
+*mlprodict* was initially started to help implementing converters
+to :epkg:`ONNX`. The main feature is a python runtime for
+:epkg:`ONNX`. It gives feedback when the execution fails.
+The package provides tools to compare
 predictions, to benchmark models converted with
 `sklearn-onnx <https://github.com/onnx/sklearn-onnx/tree/master/skl2onnx>`_.
 The second approach consists in converting
@@ -70,12 +69,12 @@ a pipeline directly into C and is not much developed.
 
 ::
 
+    import numpy
     from sklearn.linear_model import LinearRegression
     from sklearn.datasets import load_iris
     from mlprodict.onnxrt import OnnxInference
-    from mlprodict.onnxrt.validate.validate_difference import (
-        measure_relative_difference)
-    import numpy
+    from mlprodict.onnxrt.validate.validate_difference import measure_relative_difference
+    from mlprodict.tools import get_ir_version_from_onnx
 
     iris = load_iris()
     X = iris.data[:, :2]
@@ -89,15 +88,24 @@ a pipeline directly into C and is not much developed.
 
     # Conversion into ONNX.
     from mlprodict.onnx_conv import to_onnx
-    model_onnx = to_onnx(lr, X.astype(numpy.float32))
+    model_onnx = to_onnx(lr, X.astype(numpy.float32),
+                         black_op={'LinearRegressor'})
+    print("ONNX:", str(model_onnx)[:200] + "\n...")
 
     # Predictions with onnxruntime
+    model_onnx.ir_version = get_ir_version_from_onnx()
     oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
-    ypred = oinf.run({'X': X[:5]})
-    print(ypred)
+    ypred = oinf.run({'X': X[:5].astype(numpy.float32)})
+    print("ONNX output:", ypred)
 
     # Measuring the maximum difference.
-    print(measure_relative_difference(expected, ypred))
+    print("max abs diff:", measure_relative_difference(expected, ypred['variable']))
+
+    # And the python runtime
+    oinf = OnnxInference(model_onnx, runtime='python')
+    ypred = oinf.run({'X': X[:5].astype(numpy.float32)},
+                     verbose=1, fLOG=print)
+    print("ONNX output:", ypred)
 
 **Installation**
 
