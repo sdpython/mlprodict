@@ -23,7 +23,7 @@ def main(args, fLOG=print):
         from .cli.replay import benchmark_replay
         from .cli.einsum import einsum_test
         from .cli.onnx_code import onnx_code
-        from .cli.latency import latency_cli
+        from .cli.latency import latency
     except ImportError:  # pragma: no cover
         from mlprodict.cli.validate import validate_runtime
         from mlprodict.cli.convert_validate import convert_validate

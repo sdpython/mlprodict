@@ -16,9 +16,9 @@ from ..onnxrt.ops_whole.session import OnnxWholeSession
 
 
 def _random_input(typ, shape, batch):
-    if typ == 'tensor(double)' or typ == TensorProto.DOUBLE:
+    if typ in ('tensor(double)', TensorProto.DOUBLE):  # pylint: disable=E1101
         dtype = numpy.float64
-    elif typ == 'tensor(float)' or typ == TensorProto.FLOAT:
+    elif typ in ('tensor(float)', TensorProto.FLOAT):  # pylint: disable=E1101
         dtype = numpy.float32
     else:
         raise NotImplementedError(
@@ -136,7 +136,6 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
                     "Profiling is not implemented for runtime=%r." % runtime)
         else:
             runtime_options = None
-            node_time = False
         oinf = OnnxInference(model, runtime=runtime,
                              runtime_options=runtime_options)
         fct = lambda feeds: oinf.run(feeds)
