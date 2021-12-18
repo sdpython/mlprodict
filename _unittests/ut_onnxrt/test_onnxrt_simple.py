@@ -496,7 +496,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn("subgraph cluster_If", dot)
 
     @ignore_warnings(DeprecationWarning)
-    def test_onnx_if_to_dot(self):
+    def test_onnx_if_to_dot2(self):
         opv = get_opset_number_from_onnx()
         x1 = numpy.array([[0, 3], [7, 0]], dtype=numpy.float32)
         x2 = numpy.array([[1, 0], [2, 0]], dtype=numpy.float32)
