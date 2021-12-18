@@ -224,6 +224,7 @@ class OnnxInferenceExport:
                         atts.append('{}={}'.format(k, val))
             satts = "" if len(atts) == 0 else ("\\n" + "\\n".join(atts))
 
+            connects = []
             if recursive and node.op_type in {'Scan', 'Loop', 'If'}:
                 fields = (['then_branch', 'else_branch']
                           if node.op_type == 'If' else ['body'])
@@ -248,14 +249,21 @@ class OnnxInferenceExport:
                     subgraph = "\n".join(lines[start:])
 
                     # connecting the subgraph
-                    exp.append("  subgraph cluster_{}{} {{".format(
-                        node.op_type, id(node)))
+                    cluster = "cluster_{}{}_{}".format(
+                        node.op_type, id(node), id(field))
+                    exp.append("  subgraph {} {{".format(cluster))
                     exp.append('    label="{0}\\n({1}){2}";'.format(
                         dobj['op_type'], dot_name(dobj['name']), satts))
                     exp.append('    fontsize={0};'.format(fontsize))
                     exp.append('    color=black;')
                     exp.append(
                         '\n'.join(map(lambda s: '  ' + s, subgraph.split('\n'))))
+
+                    node0 = body.node[0]
+                    connects.append((
+                        "{}{}".format(dot_name(subprefix),
+                                      dot_name(node0.name)),
+                        cluster))
 
                     for inp1, inp2 in zip(node.input, body.input):
                         exp.append(
@@ -270,23 +278,29 @@ class OnnxInferenceExport:
                             "  {0}{1} -> {2}{3};".format(
                                 dot_name(subprefix), dot_name(out1.name),
                                 dot_name(prefix), dot_name(out2)))
-
             else:
                 exp.append('  {4}{1} [shape=box style="filled,rounded" color=orange label="{0}\\n({1}){2}" fontsize={3}];'.format(
                     dobj['op_type'], dot_name(dobj['name']), satts, fontsize,
                     dot_name(prefix)))
 
-                for inp in node.input:
+            if connects is not None and len(connects) > 0:
+                for name, cluster in connects:
                     exp.append(
-                        "  {0}{1} -> {0}{2};".format(
-                            dot_name(prefix), dot_name(inp), dot_name(node.name)))
-                for out in node.output:
-                    if len(out) == 0:
-                        # Empty output, it cannot be used.
-                        continue
-                    exp.append(
-                        "  {0}{1} -> {0}{2};".format(
-                            dot_name(prefix), dot_name(node.name), dot_name(out)))
+                        "  {0}{1} -> {2} [lhead={3}];".format(
+                            dot_name(prefix), dot_name(node.name),
+                            name, cluster))
+
+            for inp in node.input:
+                exp.append(
+                    "  {0}{1} -> {0}{2};".format(
+                        dot_name(prefix), dot_name(inp), dot_name(node.name)))
+            for out in node.output:
+                if len(out) == 0:
+                    # Empty output, it cannot be used.
+                    continue
+                exp.append(
+                    "  {0}{1} -> {0}{2};".format(
+                        dot_name(prefix), dot_name(node.name), dot_name(out)))
 
         exp.append('}')
         return "\n".join(exp)
