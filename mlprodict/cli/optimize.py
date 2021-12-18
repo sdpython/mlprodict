@@ -47,7 +47,7 @@ def onnx_stats(name, optim=False, kind=None):
 
 def onnx_optim(name, outfile=None, recursive=True, options=None, verbose=0, fLOG=None):
     """
-    Optimises an ONNX model.
+    Optimizes an ONNX model.
 
     :param name: filename
     :param outfile: output filename
@@ -57,11 +57,11 @@ def onnx_optim(name, outfile=None, recursive=True, options=None, verbose=0, fLOG
     :param fLOG: logging function
 
     .. cmdref::
-        :title: Optimises an ONNX graph
+        :title: Optimizes an ONNX graph
         :cmd: -m mlprodict onnx_optim --help
         :lid: l-cmd-onnx_optim
 
-        The command optimises an ONNX model.
+        The command optimizes an ONNX model.
     """
     from ..onnx_tools.optim import onnx_statistics, onnx_optimisations
     if not os.path.exists(name):

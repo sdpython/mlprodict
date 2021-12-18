@@ -9,8 +9,8 @@ Benchmarks
 
 .. _l-benchmark-onnxruntime-skl-regular:
 
-Validate a runtime against scikit-learn
-+++++++++++++++++++++++++++++++++++++++
+Validates a runtime against scikit-learn
+++++++++++++++++++++++++++++++++++++++++
 
 This reuse the example :ref:`l-example-onnx-benchmark`.
 The goal is to compare different implementation of an operator.

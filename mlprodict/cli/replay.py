@@ -28,7 +28,7 @@ def benchmark_replay(folder, runtime='python', time_kwargs=None,
     :param fLOG: logging function
 
     .. cmdref::
-        :title: Replay a benchmark of stored converted models by validate_runtime
+        :title: Replays a benchmark of stored converted models by validate_runtime
         :cmd: -m mlprodict benchmark_replay --help
         :lid: l-cmd-benchmark_replay
 
