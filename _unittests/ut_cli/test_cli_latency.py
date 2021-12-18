@@ -66,7 +66,6 @@ class TestCliLatency(ExtTestCase):
             for prof in ('name', 'type'):
                 with self.subTest(runtime=runtime, prof=prof):
                     o = os.path.join(temp, 'prof_%s_%s.csv' % (runtime, prof))
-                    st = BufferedPrint()
                     res = latency(outonnx, max_time=0.5, fmt='csv',
                                   profiling=prof, runtime=runtime,
                                   profile_output=o)
