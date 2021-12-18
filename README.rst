@@ -59,13 +59,11 @@ mlprodict
     :alt: size
 
 *mlprodict* was initially started to help implementing converters
-to :epkg:`ONNX`. The main feature is a python runtime for
-:epkg:`ONNX`. It gives feedback when the execution fails.
+to *ONNX*. The main feature is a python runtime for
+*ONNX*. It gives feedback when the execution fails.
 The package provides tools to compare
 predictions, to benchmark models converted with
 `sklearn-onnx <https://github.com/onnx/sklearn-onnx/tree/master/skl2onnx>`_.
-The second approach consists in converting
-a pipeline directly into C and is not much developed.
 
 ::
 
@@ -125,27 +123,6 @@ They can be installed with the following instructions:
 
     pip install mlprodict[all]
 
-Some functions used in that package may rely on features
-implemented in PR still pending. In that case, you should
-install *sklearn-onnx* from:
-
-::
-
-    pip install git+https://github.com/xadupre/sklearn-onnx.git@jenkins
-
-If needed, the development version should be directy installed
-from github:
-
-::
-
-    pip install git+https://github.com/sdpython/mlprodict.git
-
-On Linux and Windows, the package must be compiled with
-*openmp*. Full instructions to build the module and run
-the documentation are described in `config.yml
-<https://github.com/sdpython/mlprodict/blob/master/.circleci/config.yml>`_
-for Linux. When this project becomes more stable,
-it will changed to be using official releases.
 The code is available at
 `GitHub/mlprodict <https://github.com/sdpython/mlprodict/>`_
 and has `online documentation <http://www.xavierdupre.fr/app/
