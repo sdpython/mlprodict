@@ -250,7 +250,7 @@ class Tf2OnnxConvert:
         :return: node name
         """
         if name not in self._names:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to find node name %r among %r." % (
                     name, ", ".join(sorted(self._names))))
         return self._names[name]
@@ -479,7 +479,7 @@ class Tf2OnnxConvert:
                 modif += 1
 
         if turn >= self.max_iter:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Too many iterations and no stable ONNX was reached, "
                 "iter=%d\n%s" % (turn, str(self.make_model())))
         return self.make_model()

@@ -443,6 +443,36 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
             y_pred, y_pred_onnx, decimal=_N_DECIMALS, frac=_FRAC,
             msg="Missing values.")
 
+    @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', 'stuck')
+    @ignore_warnings((RuntimeWarning, UserWarning))
+    def test_missing_values_rf(self):
+        from lightgbm import LGBMRegressor
+
+        _N_DECIMALS = 5
+        _FRAC = 0.9999
+
+        _y = numpy.array([0, 0, 1, 1, 1])
+        _X_train = numpy.array([[1.0, 0.0], [1.0, -1.0], [1.0, -1.0],
+                                [2.0, -1.0], [2.0, -1.0]],
+                               dtype=numpy.float32)
+        _X_test = numpy.array([[1.0, numpy.nan]], dtype=numpy.float32)
+
+        _INITIAL_TYPES = [
+            ("input", FloatTensorType([None, _X_train.shape[1]]))]
+
+        regressor = LGBMRegressor(
+            objective="regression", boosting_type='rf',
+            n_estimators=10, bagging_freq=1, bagging_fraction=0.5)
+        regressor.fit(_X_train, _y)
+        regressor_onnx = to_onnx(
+            regressor, initial_types=_INITIAL_TYPES, rewrite_ops=True)
+        y_pred = regressor.predict(_X_test)
+        y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X_test)
+        self._assert_almost_equal(
+            y_pred, y_pred_onnx, decimal=_N_DECIMALS, frac=_FRAC,
+            msg="Missing values.")
+
     # objectives
 
     @staticmethod

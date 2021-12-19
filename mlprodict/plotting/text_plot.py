@@ -72,15 +72,15 @@ def onnx_text_plot_tree(node):
     def rule(r):
         if r == b'BRANCH_LEQ':
             return '<='
-        if r == b'BRANCH_LT':
+        if r == b'BRANCH_LT':  # pragma: no cover
             return '<'
-        if r == b'BRANCH_GEQ':
+        if r == b'BRANCH_GEQ':  # pragma: no cover
             return '>='
-        if r == b'BRANCH_GT':
+        if r == b'BRANCH_GT':  # pragma: no cover
             return '>'
-        if r == b'BRANCH_EQ':
+        if r == b'BRANCH_EQ':  # pragma: no cover
             return '=='
-        if r == b'BRANCH_NEQ':
+        if r == b'BRANCH_NEQ':  # pragma: no cover
             return '!='
         raise ValueError(  # pragma: no cover
             "Unexpected rule %r." % rule)
@@ -332,7 +332,7 @@ def _get_type(obj0):
         if (obj.data_type == TensorProto.INT64 and  # pylint: disable=E1101
                 hasattr(obj, 'int64_data')):
             return TENSOR_TYPE_TO_NP_TYPE[TensorProto.INT64]  # pylint: disable=E1101
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unable to guess type from %r." % obj0)
     if hasattr(obj, 'type'):
         obj = obj.type
@@ -340,7 +340,7 @@ def _get_type(obj0):
         obj = obj.tensor_type
     if hasattr(obj, 'elem_type'):
         return TENSOR_TYPE_TO_NP_TYPE.get(obj.elem_type, '?')
-    raise RuntimeError(
+    raise RuntimeError(  # pragma: no cover
         "Unable to guess type from %r." % obj0)
 
 
@@ -356,7 +356,7 @@ def _get_shape(obj):
         if (obj.data_type == TensorProto.INT64 and  # pylint: disable=E1101
                 hasattr(obj, 'int64_data')):
             return (len(obj.int64_data), )
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unable to guess type from %r." % obj0)
     if hasattr(obj, 'type'):
         obj = obj.type
@@ -371,7 +371,7 @@ def _get_shape(obj):
             else:
                 dims.append(None)
         return tuple(dims)
-    raise RuntimeError(
+    raise RuntimeError(  # pragma: no cover
         "Unable to guess type from %r." % obj0)
 
 

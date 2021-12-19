@@ -116,15 +116,15 @@ def side_by_side_by_values(sessions, *args, inputs=None,
                 diff = max(vals)
                 if diff < 1e-5:
                     row['cmp'] = 'OK'
-                elif diff < 0.0001:
-                    row['cmp'] = 'e<0.0001'  # pragma: no cover
-                elif diff < 0.001:
-                    row['cmp'] = 'e<0.001'  # pragma: no cover
-                elif diff < 0.01:
-                    row['cmp'] = 'e<0.01'  # pragma: no cover
-                elif diff < 0.1:
-                    row['cmp'] = 'e<0.1'  # pragma: no cover
-                else:
+                elif diff < 0.0001:  # pragma: no cover
+                    row['cmp'] = 'e<0.0001'
+                elif diff < 0.001:  # pragma: no cover
+                    row['cmp'] = 'e<0.001'
+                elif diff < 0.01:  # pragma: no cover
+                    row['cmp'] = 'e<0.01'
+                elif diff < 0.1:  # pragma: no cover
+                    row['cmp'] = 'e<0.1'
+                else:  # pragma: no cover
                     row['cmp'] = "ERROR->=%1.1f" % diff
 
         rows.append(row)

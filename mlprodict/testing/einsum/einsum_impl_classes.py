@@ -258,8 +258,8 @@ class EinsumSubOp:
         self._check_arg_('right', tuple)
         self._check_arg_('ndim', int)
         if row2 is None:
-            raise RuntimeError(
-                "matmul expects two inputs.")  # pragma: no cover
+            raise RuntimeError(  # pragma: no cover
+                "matmul expects two inputs.")
         if verbose:
             ndim = self.kwargs['ndim']
             axes = self.kwargs['axes']
@@ -383,8 +383,9 @@ class EinsumSubOp:
         inp = self.inputs[0]
         m = self._get_data(data, inp)
         if verbose:
-            print("- %s, shape=%r diag=%r" % (
-                self.name, m.shape, self.kwargs['diag']))
+            print(  # pragma: no cover
+                "- %s, shape=%r diag=%r" % (
+                    self.name, m.shape, self.kwargs['diag']))
         diag = self.kwargs['diag']
         if len(diag) != 1:
             raise NotImplementedError(  # pragma: no cover
@@ -424,8 +425,9 @@ class EinsumSubOp:
         m = self._get_data(data, inp)
         self._check_shape_(m)
         if verbose:
-            print("- %s, shape=%r perm=%r" % (
-                self.name, m.shape, self.kwargs['perm']))
+            print(  # pragma: no cover
+                "- %s, shape=%r perm=%r" % (
+                    self.name, m.shape, self.kwargs['perm']))
         output = numpy.transpose(m, self.kwargs['perm'])
         self._check_shape_(output)
         return output
@@ -472,7 +474,8 @@ class EinsumSubOp:
         self._check_shape_(m2)
 
         if verbose:
-            print("- %s, shapes=%r @ %r" % (self.name, m1.shape, m2.shape))
+            print(  # pragma: no cover
+                "- %s, shapes=%r @ %r" % (self.name, m1.shape, m2.shape))
 
         output = m1 * m2
         self._check_shape_(output)

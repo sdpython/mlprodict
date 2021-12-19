@@ -159,7 +159,7 @@ class NumpyCode:
             if format == 'listfloat' and isinstance(v, str):
                 return list(
                     map(float, v.strip('[]').replace(' ', '').split(',')))
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Unable to convert %r with format=%r." % (v, format))
 
         for n, val in self.attributes:

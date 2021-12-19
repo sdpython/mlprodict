@@ -70,4 +70,4 @@ class Reshape_14(CommonReshape):
 if onnx_opset_version() >= 14:
     Reshape = Reshape_14
 else:
-    Reshape = Reshape_5
+    Reshape = Reshape_5  # pragma: no cover

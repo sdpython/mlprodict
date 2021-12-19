@@ -615,7 +615,7 @@ class OnnxInference:
                        statics=statics)
         if len(sequence) < len(nodes):
             # Not all node will be executed.
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to run all nodes.\n--Nodes--\n%s\n--Sequence--\n%s"
                 "\n--Inputs--\n%s\n--Inits--\n%s\n--Statics\n%s"
                 "" % (pprint.pformat(nodes), pprint.pformat(sequence),
@@ -843,7 +843,7 @@ class OnnxInference:
                         if out in yield_ops:
                             values[out] = yield_ops[out]
                             continue
-                        raise RuntimeError(
+                        raise RuntimeError(  # pragma: no cover
                             "YieldOp output %r could not be found in "
                             "yield_ops: %r (node=%r)." % (
                                 out, list(sorted(yield_ops)), node.onnx_node))
@@ -911,7 +911,7 @@ class OnnxInference:
                         fLOG("+yo=%r" % out)
                         values[node.outputs_indices[0]] = yield_ops[out]
                     else:
-                        raise RuntimeError(
+                        raise RuntimeError(  # pragma: no cover
                             "YieldOp output %r could not be found in "
                             "yield_ops: %r (node=%r)." % (
                                 out, list(sorted(yield_ops)), node.onnx_node))
@@ -952,7 +952,7 @@ class OnnxInference:
                             if verbose >= 3:  # pragma: no cover
                                 dispsimple(values[k])
                 if added == 0:
-                    fLOG("? no new result")
+                    fLOG("? no new result")  # pragma: no cover
 
         if intermediate:
             values = [(v, k, values[v]) for k, v in self._global_index.items()]
@@ -1002,14 +1002,16 @@ class OnnxInference:
                 overwrite=overwrite_types)
             subonx = onnx_remove_node_unused(subonx)
             if verbose > 0:
-                fLOG('[build_intermediate] + {}'.format(output))
+                fLOG(  # pragma: no cover
+                    '[build_intermediate] + {}'.format(output))
             ord[output] = OnnxInference(subonx, runtime=self.runtime,
                                         skip_run=self.skip_run,
                                         runtime_options=self.runtime_options,
                                         inplace=self.inplace,
                                         input_inplace=self.input_inplace)
         if verbose > 0:
-            fLOG('[build_intermediate] END.')
+            fLOG(  # pragma: no cover
+                '[build_intermediate] END.')
         return ord
 
     def _run_whole_runtime(self, inputs, clean_right_away=False,
@@ -1024,7 +1026,8 @@ class OnnxInference:
                 inter_run = self.intermediate_onnx_inference_  # pylint: disable=E0203
             else:
                 if verbose > 0:
-                    fLOG("-- OnnxInference: build intermediate")
+                    fLOG(  # pragma: no cover
+                        "-- OnnxInference: build intermediate")
                 inter_run = self.build_intermediate(
                     verbose=verbose, fLOG=fLOG, overwrite_types=overwrite_types)
                 self.intermediate_onnx_inference_ = inter_run
@@ -1032,8 +1035,9 @@ class OnnxInference:
                 self.inits_ = graph['inits']
 
             if verbose >= 1:
-                fLOG("-- OnnxInference: run {} nodes".format(
-                    len(self.intermediate_onnx_inference_)))
+                fLOG(  # pragma: no cover
+                    "-- OnnxInference: run {} nodes".format(
+                        len(self.intermediate_onnx_inference_)))
             values = OrderedDict(inputs)
             for k, v in self.inits_.items():
                 values[k] = v['value']
@@ -1042,7 +1046,7 @@ class OnnxInference:
                     fLOG("-k='{}' shape={} dtype={}".format(
                         k, values[k].shape, values[k].dtype))
             for node, oinf in self.intermediate_onnx_inference_.items():
-                if verbose >= 4:
+                if verbose >= 4:  # pragma: no cover
                     fLOG('[intermediate] %r' % node)
                     if verbose >= 5:  # pragma: no cover
                         fLOG(oinf.obj)
@@ -1051,14 +1055,14 @@ class OnnxInference:
                     if out in yield_ops:
                         values[out] = yield_ops[out]
                         continue
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "YieldOp output %r could not be found in "
                         "yield_ops: %r (node=%r)." % (
                             out, list(sorted(yield_ops)), node.onnx_node))
                 output = oinf.run(inputs)[node]
                 values[node] = output
                 if verbose >= 1:
-                    if verbose >= 4:
+                    if verbose >= 4:  # pragma: no cover
                         for k, v in inputs.items():
                             if isinstance(output, numpy.ndarray):
                                 fLOG("-i='{}': {} (dtype={}) {}".format(
@@ -1069,12 +1073,12 @@ class OnnxInference:
                     if isinstance(output, numpy.ndarray):
                         fLOG("+k='{}': {} (dtype={})".format(
                             node, output.shape, output.dtype))
-                        if verbose >= 2:
+                        if verbose >= 2:  # pragma: no cover
                             fLOG(output)
                     else:
                         fLOG("+k='{}': {}".format(  # pragma: no cover
                             node, type(output)))
-                        if verbose >= 2:
+                        if verbose >= 2:  # pragma: no cover
                             fLOG(output)
             return values
 
@@ -1203,7 +1207,7 @@ class OnnxInference:
             # and is the batch size.
             try:
                 values[k] = ShapeObject(v, use_n1=True, name=k)
-            except TypeError as e:
+            except TypeError as e:  # pragma: no cover
                 raise TypeError(
                     "Unable to guess shape for %r (shape=%r)." % (k, v)) from e
 
@@ -1641,7 +1645,7 @@ class OnnxInference:
             for out in node.onnx_node.output:
                 key = ('res', out)
                 if key in res:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Output %r of node name %r already registered."
                         "" % (out, node.onnx_node.name))
                 res[key] = (i + 1, None)

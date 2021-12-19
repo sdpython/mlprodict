@@ -42,7 +42,8 @@ def onnx_stats(name, optim=False, kind=None):
     if kind == 'node':
         from ..onnx_tools.optim import onnx_statistics
         return onnx_statistics(model, optim=optim, node_type=True)
-    raise ValueError("Unexpected kind=%r." % kind)
+    raise ValueError(  # pragma: no cover
+        "Unexpected kind=%r." % kind)
 
 
 def onnx_optim(name, outfile=None, recursive=True, options=None, verbose=0, fLOG=None):
