@@ -5,9 +5,16 @@
 History
 =======
 
-current - 2021-12-12 - 0.00Mb
+current - 2021-12-19 - 0.00Mb
 =============================
 
+* #333: Adds command line latency to measure the latency of a runtime (2021-12-18)
+* #332: Improves dot rendering, fixes disconnected subgraphs (2021-12-18)
+* #331: Removes measure_time (2021-12-15)
+* #330: Reduces verbosity when onnxruntime is used as a runtime for OnnxInference (2021-12-14)
+* #329: Fixes type issue in shape inference for operator If (2021-12-14)
+* #328: Extends command line onnx_stats (2021-12-14)
+* #327: Adds runtime for operator LeakyRelu (2021-12-13)
 * #326: Better error messages when name is shared with results and node name in onnx_simple_text_plot (2021-12-10)
 
 0.7.1649 - 2021-12-09 - 1.95Mb
@@ -308,10 +315,6 @@ current - 2021-12-12 - 0.00Mb
 * #92: Implements a C++ version of  ArrayFeatureExtractor (2019-12-14)
 * #89: Implements a function which extracts some informations on the models (2019-12-14)
 * #88: Fix bug in runtime of GatherElements (2019-12-14)
-
-0.3.853 - 2019-12-13 - 0.24Mb
-=============================
-
 * #87: Add converter for HistGradientBoostRegressor (2019-12-09)
 * #85: Implements a precompiled run method in OnnxInference (runtime='python_compiled') (2019-12-07)
 * #84: Automatically creates files to profile time_predict function in the benchmark with py-spy (2019-12-04)
