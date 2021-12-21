@@ -73,7 +73,8 @@ class InferenceSession:  # pylint: disable=E0102
                 providers=self.providers)
         else:
             self.sess = OrtInferenceSession(
-                onnx_bytes, sess_options=sess_options)
+                onnx_bytes, sess_options=sess_options,
+                providers=self.providers)
         self.ro = RunOptions()
         self.ro.log_severity_level = log_severity_level
         self.output_names = [o.name for o in self.get_outputs()]
