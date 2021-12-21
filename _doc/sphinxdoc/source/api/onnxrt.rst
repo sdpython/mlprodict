@@ -37,6 +37,13 @@ ONNX Structure
 
 .. autosignature:: mlprodict.onnx_tools.onnx_manipulations.select_model_inputs_outputs
 
+onnxruntime
++++++++++++
+
+.. autosignature:: mlprodict.onnxrt.onnx_inference_ort.device_to_providers
+
+.. autosignature:: mlprodict.onnxrt.onnx_inference_ort.get_ort_device
+
 Validation
 ++++++++++
 
