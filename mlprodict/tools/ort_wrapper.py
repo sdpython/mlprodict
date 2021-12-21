@@ -5,7 +5,6 @@
 .. versionadded:: 0.6
 """
 import os
-import numpy
 from onnx import numpy_helper
 
 try:
