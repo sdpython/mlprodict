@@ -30,7 +30,8 @@ try:
         NotImplemented as OrtNotImplemented,
         InvalidArgument as OrtInvalidArgument,
         InvalidGraph as OrtInvalidGraph,
-        RuntimeException as OrtRuntimeException)
+        RuntimeException as OrtRuntimeException,
+        OrtValue as C_OrtValue)
 except ImportError:  # pragma: no cover
     SessionOptions = None
     RunOptions = None
@@ -42,6 +43,7 @@ except ImportError:  # pragma: no cover
     OrtInvalidArgument = RuntimeError
     OrtInvalidGraph = RuntimeError
     OrtRuntimeException = RuntimeError
+    C_OrtValue = None
 
 
 class InferenceSession:  # pylint: disable=E0102
@@ -88,11 +90,11 @@ class InferenceSession:  # pylint: disable=E0102
         :param run_options: None or RunOptions
         :return: array
         """
-        if any(map(lambda v: isinstance(v, numpy.ndarray),
+        if any(map(lambda v: isinstance(v, C_OrtValue),
                    input_feed.values())):
-            return self.sess.run(output_names, input_feed, run_options or self.ro)
-        return self.sess._sess.run_with_ort_values(
-            input_feed, self.output_names, run_options or self.ro)
+            return self.sess._sess.run_with_ort_values(
+                input_feed, self.output_names, run_options or self.ro)
+        return self.sess.run(output_names, input_feed, run_options or self.ro)
 
     def get_inputs(self):
         "Returns input types."
