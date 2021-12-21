@@ -72,6 +72,8 @@ class OnnxInference:
         be cut to have these new_outputs as the final outputs
     :param new_opset: overwrite the main opset and replaces
         by this new one
+    :param device: device, a string `cpu`, `cuda`, `cuda:0`...,
+        this option is only available with runtime *onnxruntime1*
 
     Among the possible runtime_options, there are:
     * *enable_profiling*: enables profiling for :epkg:`onnxruntime`
@@ -83,7 +85,7 @@ class OnnxInference:
         Parameters *new_outputs*, *new_opset* were added.
 
     .. versionchanged:: 0.8
-        Parameter *static_inputs* was added.
+        Parameters *static_inputs*, *device* were added.
     """
 
     def __init__(self, onnx_or_bytes_or_stream, runtime=None,
@@ -91,7 +93,8 @@ class OnnxInference:
                  input_inplace=False, ir_version=None,
                  target_opset=None, runtime_options=None,
                  session_options=None, inside_loop=False,
-                 static_inputs=None, new_outputs=None, new_opset=None):
+                 static_inputs=None, new_outputs=None, new_opset=None,
+                 device=None):
         if isinstance(onnx_or_bytes_or_stream, bytes):
             self.obj = load_model(BytesIO(onnx_or_bytes_or_stream))
         elif isinstance(onnx_or_bytes_or_stream, BytesIO):
@@ -113,6 +116,10 @@ class OnnxInference:
                 self.obj, outputs=new_outputs, infer_shapes=True)
         if new_opset is not None:
             self.obj = overwrite_opset(self.obj, new_opset)
+        if device is not None and runtime != 'onnxruntime1':
+            raise ValueError(
+                "Incompatible values, device can be specified with "
+                "runtime 'onnxruntime1', not %r." % runtime)
 
         self.runtime = runtime
         self.skip_run = skip_run
@@ -122,6 +129,7 @@ class OnnxInference:
         self.runtime_options = runtime_options
         self.inside_loop = inside_loop
         self.static_inputs = static_inputs
+        self.device = device
         self._init()
 
     def __getstate__(self):
@@ -136,7 +144,8 @@ class OnnxInference:
                 'inplace': self.inplace,
                 'force_target_opset': self.force_target_opset,
                 'static_inputs': self.static_inputs,
-                'inside_loop': self.inside_loop}
+                'inside_loop': self.inside_loop,
+                'device': self.device}
 
     def __setstate__(self, state):
         """
@@ -152,6 +161,7 @@ class OnnxInference:
         self.force_target_opset = state['force_target_opset']
         self.static_inputs = state['static_inputs']
         self.inside_loop = state['inside_loop']
+        self.device = state['device']
         self._init()
 
     def _init(self):
@@ -190,7 +200,8 @@ class OnnxInference:
                 del self.graph_
                 from .ops_whole.session import OnnxWholeSession
                 self._whole = OnnxWholeSession(
-                    self.obj, self.runtime, self.runtime_options)
+                    self.obj, self.runtime, self.runtime_options,
+                    self.device)
                 self._run = self._run_whole_runtime
             else:
                 self.sequence_ = self.graph_['sequence']

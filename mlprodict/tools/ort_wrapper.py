@@ -13,12 +13,15 @@ try:
         InferenceSession as OrtInferenceSession,
         __version__ as onnxrt_version,
         GraphOptimizationLevel)
+    from .onnx_inference_ort_helper import get_ort_device, device_to_providers
 except ImportError:  # pragma: no cover
     SessionOptions = None
     RunOptions = None
     OrtInferenceSession = None
     onnxrt_version = "0.0.0"
     GraphOptimizationLevel = None
+    get_ort_device = None
+    device_to_providers = None
 
 try:
     from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=W0611
@@ -26,7 +29,8 @@ try:
         NotImplemented as OrtNotImplemented,
         InvalidArgument as OrtInvalidArgument,
         InvalidGraph as OrtInvalidGraph,
-        RuntimeException as OrtRuntimeException)
+        RuntimeException as OrtRuntimeException,
+        OrtValue as C_OrtValue)
 except ImportError:  # pragma: no cover
     SessionOptions = None
     RunOptions = None
@@ -38,6 +42,7 @@ except ImportError:  # pragma: no cover
     OrtInvalidArgument = RuntimeError
     OrtInvalidGraph = RuntimeError
     OrtRuntimeException = RuntimeError
+    C_OrtValue = None
 
 
 class InferenceSession:  # pylint: disable=E0102
@@ -46,22 +51,34 @@ class InferenceSession:  # pylint: disable=E0102
 
     :param onnx_bytes: onnx bytes
     :param session_options: session options
+    :param log_severity_level: change the logging level
+    :param device: device, a string `cpu`, `cuda`, `cuda:0`...
     """
 
-    def __init__(self, onnx_bytes, sess_options=None, log_severity_level=4):
+    def __init__(self, onnx_bytes, sess_options=None, log_severity_level=4,
+                 device=None):
         if InferenceSession is None:
             raise ImportError(  # pragma: no cover
                 "onnxruntime is not available.")
         self.log_severity_level = log_severity_level
+        if device is None:
+            self.device = get_ort_device('cpu')
+        else:
+            self.device = get_ort_device(device)
+        self.providers = device_to_providers(self.device)
         if sess_options is None:
             self.so = SessionOptions()
             self.so.log_severity_level = log_severity_level
-            self.sess = OrtInferenceSession(onnx_bytes, sess_options=self.so)
+            self.sess = OrtInferenceSession(
+                onnx_bytes, sess_options=self.so,
+                providers=self.providers)
         else:
             self.sess = OrtInferenceSession(
-                onnx_bytes, sess_options=sess_options)
+                onnx_bytes, sess_options=sess_options,
+                providers=self.providers)
         self.ro = RunOptions()
         self.ro.log_severity_level = log_severity_level
+        self.output_names = [o.name for o in self.get_outputs()]
 
     def run(self, output_names, input_feed, run_options=None):
         """
@@ -72,6 +89,10 @@ class InferenceSession:  # pylint: disable=E0102
         :param run_options: None or RunOptions
         :return: array
         """
+        if any(map(lambda v: isinstance(v, C_OrtValue),
+                   input_feed.values())):
+            return self.sess._sess.run_with_ort_values(
+                input_feed, self.output_names, run_options or self.ro)
         return self.sess.run(output_names, input_feed, run_options or self.ro)
 
     def get_inputs(self):

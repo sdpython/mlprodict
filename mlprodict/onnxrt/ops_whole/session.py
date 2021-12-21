@@ -18,15 +18,17 @@ class OnnxWholeSession:
     """
     Runs the prediction for a single :epkg:`ONNX`,
     it lets the runtime handle the graph logic as well.
+
+    :param onnx_data: :epkg:`ONNX` model or data
+    :param runtime: runtime to be used, mostly :epkg:`onnxruntime`
+    :param runtime_options: runtime options
+    :param device: device, a string `cpu`, `cuda`, `cuda:0`...
+
+    .. versionchanged:: 0.8
+        Parameter *device* was added.
     """
 
-    def __init__(self, onnx_data, runtime, runtime_options=None):
-        """
-        @param      onnx_data       :epkg:`ONNX` model or data
-        @param      runtime         runtime to be used,
-                                    mostly :epkg:`onnxruntime`
-        @param      runtime_options runtime options
-        """
+    def __init__(self, onnx_data, runtime, runtime_options=None, device=None):
         if runtime != 'onnxruntime1':
             raise NotImplementedError(  # pragma: no cover
                 "runtime '{}' is not implemented.".format(runtime))
@@ -68,7 +70,8 @@ class OnnxWholeSession:
                 "session_options and log_severity_level cannot be defined at the "
                 "same time.")
         try:
-            self.sess = InferenceSession(onnx_data, sess_options=sess_options)
+            self.sess = InferenceSession(onnx_data, sess_options=sess_options,
+                                         device=device)
         except (OrtFail, OrtNotImplemented, OrtInvalidGraph,
                 OrtInvalidArgument, OrtRuntimeException, RuntimeError) as e:
             raise RuntimeError(
