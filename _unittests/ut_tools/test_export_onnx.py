@@ -1331,9 +1331,23 @@ class TestExportOnnx(ExtTestCase):
     def test_sub_graph(self):
         data = os.path.abspath(os.path.dirname(__file__))
         debug = os.path.join(data, "data", "debug.onnx")
-        self.assertRaise(lambda: export2onnx(debug), NotImplementedError)
-        # new_onnx = export2onnx(debug)
-        # _, loc = self.verify(new_onnx)
+        code = export2onnx(debug)
+        self.assertIn("def _create_Sc_Scan1_body():", code)
+
+    def test_scan_knn(self):
+        x = numpy.random.randn(3, 4).astype(numpy.float32)
+        data = os.path.abspath(os.path.dirname(__file__))
+        knn = os.path.join(
+            data, "data", "SklearnKNeighborsRegressor2.model.onnx")
+        onx = OnnxInference(knn)
+        y1 = onx.run({'input': x})['variable']
+        new_onnx = export2onnx(knn)
+        _, loc = self.verify(new_onnx)
+        model = loc['onnx_model']
+        oinf = OnnxInference(model)
+        y2 = oinf.run({'input': x})['variable']
+        self.assertEqual(y1, y2)
+        print(new_onnx)
 
 
 if __name__ == "__main__":

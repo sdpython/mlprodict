@@ -5,6 +5,7 @@ with a python script. It relies on :epkg:`jinja2` and :epkg:`autopep8`.
 
 .. versionadded:: 0.7
 """
+from textwrap import indent
 import numpy
 import onnx
 from onnx import numpy_helper
@@ -18,7 +19,7 @@ from .exports.tf2onnx_helper import make_tf2onnx_code
 
 def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
                     rename=False, use_onnx_tensor=False,
-                    autopep_options=None):
+                    autopep_options=None, function_name='create_model'):
     """
     Exports an ONNX model to the onnx syntax.
 
@@ -33,6 +34,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
         and its name is `'value'`, it converts that array into an
         ONNX tensor to avoid type mismatch, (operator *ConstantOfShape*, ...)
     :param autopep_options: :epkg:`autopep8` options
+    :param function_name: main function name in the code
     :return: python code
     """
     # delayed import to avoid raising an exception if not installed.
@@ -72,26 +74,31 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
     used = {}
 
     # opset
-    opsets = {}
-    for oimp in model_onnx.opset_import:
-        if oimp.domain == '' and opset is None:
-            opsets[oimp.domain] = oimp.version
-            opset = oimp.version
-        else:
-            opsets[oimp.domain] = opset
-    context['opsets'] = opsets
-    context['target_opset'] = opset
+    if hasattr(model_onnx, 'opset_import'):
+        opsets = {}
+        for oimp in model_onnx.opset_import:
+            if oimp.domain == '' and opset is None:
+                opsets[oimp.domain] = oimp.version
+                opset = oimp.version
+            else:
+                opsets[oimp.domain] = opset
+        context['opsets'] = opsets
+        context['target_opset'] = opset
 
+    if hasattr(model_onnx, 'graph'):
+        graph = model_onnx.graph
+    else:
+        graph = model_onnx
     dict_names = {}
     if rename:
-        for o in model_onnx.graph.input:
+        for o in graph.input:
             dict_names[o.name] = o.name
-        for o in model_onnx.graph.output:
+        for o in graph.output:
             dict_names[o.name] = o.name
 
     # inits
     initializers = []
-    for init in model_onnx.graph.initializer:
+    for init in graph.initializer:
         init_name = rename_name(init.name)
         value = numpy_helper.to_array(init)
         initializers.append((init_name, value))
@@ -100,7 +107,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
 
     # inputs
     inputs = []
-    for inp in model_onnx.graph.input:
+    for inp in graph.input:
         t = inp.type.tensor_type
         dims = []
         for d in t.shape.dim:
@@ -118,17 +125,23 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
 
     # outputs
     outputs = []
-    for inp in model_onnx.graph.output:
+    for inp in graph.output:
         t = inp.type.tensor_type
-        dims = tuple(t.shape.dim)
+        dims = []
+        for d in t.shape.dim:
+            dd = d.dim_value
+            if dd == 0:
+                dd = None
+            dims.append(dd)
         if len(dims) == 0:
             dims = None
         outputs.append((inp.name, t.elem_type, dims))
     context['outputs'] = outputs
 
     # node
+    subgraphs = []
     nodes = []
-    for node in model_onnx.graph.node:
+    for node in graph.node:
         for i_raw_name in node.input:
             i = rename_name(i_raw_name)
             if i not in used:
@@ -138,9 +151,19 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
         for at in node.attribute:
             temp = _var_as_dict(at)
             value = temp['value']
-            if node.op_type in {'Scan', 'Loop', 'If'}:
+            if node.op_type == 'Scan' and at.name == 'body':
+                fname = "_create_" + node.name + "_body"
+                body = export_template(
+                    value, templates, opset=opset, verbose=verbose,
+                    name=name, rename=rename, use_onnx_tensor=use_onnx_tensor,
+                    autopep_options=autopep_options,
+                    function_name=fname)
+                subgraphs.append((body, node.name + "_body"))
+                attributes.append((at.name, fname + "()"))
+                continue
+            if node.op_type in {'Loop', 'If'}:
                 raise NotImplementedError(
-                    "Subgraph are not yet implemented (operator=%r)."
+                    "Subgraphs are not yet implemented (operator=%r)."
                     "" % node.op_type)
             if use_onnx_tensor:
                 if node.op_type == 'Cast' and at.name == 'to':
@@ -174,15 +197,31 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
     context['nodes'] = nodes
 
     # graph
-    context['name'] = name or model_onnx.graph.name
+    context['name'] = name or graph.name
     context['name'] = context['name'].replace("(", "_").replace(")", "")
-    context['ir_version'] = model_onnx.ir_version
-    context['producer_name'] = model_onnx.producer_name
-    context['domain'] = model_onnx.domain
-    context['model_version'] = model_onnx.model_version
-    context['doc_string'] = model_onnx.doc_string
-    context['metadata'] = {p.key: p.value for p in model_onnx.metadata_props}
-    context['skip_inits'] = {}
+    context['function_name'] = function_name
+    context['indent'] = indent
+    if hasattr(model_onnx, 'graph'):
+        context['ir_version'] = model_onnx.ir_version
+        context['producer_name'] = model_onnx.producer_name
+        context['domain'] = model_onnx.domain
+        context['model_version'] = model_onnx.model_version
+        context['doc_string'] = model_onnx.doc_string
+        context['metadata'] = {
+            p.key: p.value for p in model_onnx.metadata_props}
+        context['skip_inits'] = {}
+        context['subgraphs'] = subgraphs
+    else:
+        # subgraph
+        context['ir_version'] = None
+        context['producer_name'] = None
+        context['domain'] = None
+        context['model_version'] = None
+        context['doc_string'] = ""
+        context['metadata'] = {}
+        context['skip_inits'] = {}
+        context['subgraphs'] = subgraphs
+
     mark_inits = {}
 
     # First rendering to detect any unused or replaced initializer.

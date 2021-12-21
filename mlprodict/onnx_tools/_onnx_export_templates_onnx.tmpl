@@ -5,7 +5,7 @@ from onnx.helper import (
     make_tensor_value_info)
 
 
-def create_model():
+def {{ function_name }}():
     '''
     Converted ``{{ name }}``.
 
@@ -16,6 +16,11 @@ def create_model():
     * {{ key }}: {{ val }}
     {%- endfor %}
     '''
+    # subgraphs
+    {%- for code, name in subgraphs: -%}
+    {{ indent(code, '    ') }}
+    {%- endfor %}
+
     # containers
     print('[containers]')   # verbose
     initializers = []
@@ -23,10 +28,18 @@ def create_model():
     inputs = []
     outputs = []
 
+    {% if ir_version %}
     # opsets
     print('[opsets]')   # verbose
     opsets = {{ opsets }}
     target_opset = {{ target_opset }}
+    {%- endif -%}
+
+    # subgraphs
+    print('[subgraphs]')   # verbose
+    {%- for code, name in subgraphs: -%}
+    {{ name }} = subgraph_{{ name }}
+    {%- endfor %}
 
     # initializers
     print('[initializers]')   # verbose
@@ -73,6 +86,10 @@ def create_model():
     # graph
     print('[graph]')   # verbose
     graph = make_graph(nodes, '{{ name }}', inputs, outputs, initializers)
+    # '{{ ir_version }}'
+    {% if not ir_version %}
+    return graph
+    {% else %}
     onnx_model = make_model(graph)
     onnx_model.ir_version = {{ ir_version }}
     onnx_model.producer_name = '{{ producer_name }}'
@@ -91,6 +108,8 @@ def create_model():
         op_set.version = value
 
     return onnx_model
+    {% endif %}
 
-
-onnx_model = create_model()
+{% if ir_version %}
+onnx_model = {{ function_name }}()
+{% endif %}
