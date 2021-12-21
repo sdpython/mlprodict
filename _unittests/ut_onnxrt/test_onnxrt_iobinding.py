@@ -9,7 +9,6 @@ from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611,W0611
 from onnxruntime import get_device
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611,W0611
     OnnxAdd)
-from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.onnx_inference_ort_helper import get_ort_device
 from mlprodict.tools import get_opset_number_from_onnx

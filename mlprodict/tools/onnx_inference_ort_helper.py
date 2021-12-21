@@ -4,7 +4,7 @@
 @brief Helpers for :epkg:`onnxruntime`.
 """
 from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611,W0611
-    OrtDevice as C_OrtDevice, OrtValue as C_OrtValue)
+    OrtDevice as C_OrtDevice)
 
 
 def get_ort_device(device):

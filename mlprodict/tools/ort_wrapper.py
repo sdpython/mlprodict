@@ -87,7 +87,7 @@ class InferenceSession:  # pylint: disable=E0102
         :param run_options: None or RunOptions
         :return: array
         """
-        if all(map(lambda v: isinstance(v, numpy.ndarray),
+        if any(map(lambda v: isinstance(v, numpy.ndarray),
                    input_feed.values())):
             return self.sess.run(output_names, input_feed, run_options or self.ro)
         return self.sess._sess.run_with_ort_values(
