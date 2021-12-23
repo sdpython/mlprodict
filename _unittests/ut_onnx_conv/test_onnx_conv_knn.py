@@ -374,12 +374,12 @@ class TestOnnxConvKNN(ExtTestCase):
     def test_onnx_test_knn_single_reg32_minkowski(self):
         self.onnx_test_knn_single_classreg(numpy.float32, metric='minkowski')
 
-    @igw(SyntaxWarning)
+    @igw((DeprecationWarning, SyntaxWarning))
     def test_onnx_test_knn_single_reg32_minkowski_p1(self):
         self.onnx_test_knn_single_classreg(numpy.float32, metric='minkowski',
                                            metric_params={'p': 1}, add_noise=True)
 
-    @igw(SyntaxWarning)
+    @igw((DeprecationWarning, SyntaxWarning))
     def test_onnx_test_knn_single_reg32_minkowski_p21(self):
         self.onnx_test_knn_single_classreg(numpy.float32, metric='minkowski',
                                            algorithm='brute', metric_params={'p': 2.1})
@@ -552,4 +552,4 @@ class TestOnnxConvKNN(ExtTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)

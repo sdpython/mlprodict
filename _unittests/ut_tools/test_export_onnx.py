@@ -1347,7 +1347,6 @@ class TestExportOnnx(ExtTestCase):
         oinf = OnnxInference(model)
         y2 = oinf.run({'input': x})['variable']
         self.assertEqual(y1, y2)
-        print(new_onnx)
 
 
 if __name__ == "__main__":

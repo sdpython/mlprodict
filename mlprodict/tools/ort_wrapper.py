@@ -12,7 +12,8 @@ try:
         SessionOptions, RunOptions,
         InferenceSession as OrtInferenceSession,
         __version__ as onnxrt_version,
-        GraphOptimizationLevel)
+        GraphOptimizationLevel,
+        set_default_logger_severity)
     from .onnx_inference_ort_helper import get_ort_device, device_to_providers
 except ImportError:  # pragma: no cover
     SessionOptions = None
@@ -22,6 +23,7 @@ except ImportError:  # pragma: no cover
     GraphOptimizationLevel = None
     get_ort_device = None
     device_to_providers = None
+    set_default_logger_severity = None
 
 try:
     from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=W0611
@@ -66,6 +68,7 @@ class InferenceSession:  # pylint: disable=E0102
         else:
             self.device = get_ort_device(device)
         self.providers = device_to_providers(self.device)
+        set_default_logger_severity(3)
         if sess_options is None:
             self.so = SessionOptions()
             self.so.log_severity_level = log_severity_level
@@ -73,11 +76,13 @@ class InferenceSession:  # pylint: disable=E0102
                 onnx_bytes, sess_options=self.so,
                 providers=self.providers)
         else:
+            self.so = sess_options
             self.sess = OrtInferenceSession(
                 onnx_bytes, sess_options=sess_options,
                 providers=self.providers)
         self.ro = RunOptions()
         self.ro.log_severity_level = log_severity_level
+        self.ro.log_verbosity_level = log_severity_level
         self.output_names = [o.name for o in self.get_outputs()]
 
     def run(self, output_names, input_feed, run_options=None):

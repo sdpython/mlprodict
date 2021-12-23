@@ -45,6 +45,8 @@ class OnnxWholeSession:
             self.runtime = runtime
             sess_options = session_options or SessionOptions()
         self.run_options = RunOptions()
+        self.run_options.log_severity_level = 3
+        self.run_options.log_verbosity_level = 1
 
         if session_options is None:
             if runtime_options is not None:

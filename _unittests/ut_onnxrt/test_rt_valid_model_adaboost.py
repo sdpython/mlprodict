@@ -16,8 +16,9 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 
 class TestRtValidateAdaBoost(ExtTestCase):
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
-    def test_rt_AdaBoostRegressor_onnxruntime(self):
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning,
+                               RuntimeWarning, DeprecationWarning))
+    def test_rt_AdaBoostRegressor_onnxruntime2(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
@@ -37,7 +38,8 @@ class TestRtValidateAdaBoost(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning,
+                               RuntimeWarning, DeprecationWarning))
     def test_rt_AdaBoostClassifier_python(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -57,7 +59,8 @@ class TestRtValidateAdaBoost(ExtTestCase):
         self.assertGreater(len(rows), 1)
         # self.assertGreater(len(buffer), 1)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning,
+                               RuntimeWarning, DeprecationWarning))
     def test_rt_AdaBoostRegressor_python64(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -77,7 +80,8 @@ class TestRtValidateAdaBoost(ExtTestCase):
         self.assertGreater(len(rows), 1)
         # self.assertGreater(len(buffer), 1)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning,
+                               RuntimeWarning, DeprecationWarning))
     def test_rt_AdaBoostRegressor_python(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -97,7 +101,8 @@ class TestRtValidateAdaBoost(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
-    @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning,
+                               RuntimeWarning, DeprecationWarning))
     def test_rt_AdaBoostRegressor_python_debug(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -119,4 +124,4 @@ class TestRtValidateAdaBoost(ExtTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)
