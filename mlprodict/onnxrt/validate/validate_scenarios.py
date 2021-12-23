@@ -259,11 +259,11 @@ def build_custom_scenarios():
              {'conv_options': [{RadiusNeighborsRegressor: {'optim': 'cdist'}}]}),
         ],
         RandomForestClassifier: [
-            ('default', {'n_estimators': 100},
+            ('default', {'n_estimators': 10},
              {'conv_options': [{RandomForestClassifier: {'zipmap': False}}]}),
         ],
         RandomForestRegressor: [
-            ('default', {'n_estimators': 100}),
+            ('default', {'n_estimators': 10}),
         ],
         RandomizedSearchCV: [
             ('cl', {
