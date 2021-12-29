@@ -8,8 +8,11 @@ import base64
 import os
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.sklapi.onnx_tokenizer import (
-    SentencePieceTokenizerTransformer, GPT2TokenizerTransformer)
+try:
+    from mlprodict.sklapi.onnx_tokenizer import (
+        SentencePieceTokenizerTransformer, GPT2TokenizerTransformer)
+except ImportError:
+    GPT2TokenizerTransformer = None
 
 
 class TestOnnxTokenizer(ExtTestCase):
@@ -24,6 +27,8 @@ class TestOnnxTokenizer(ExtTestCase):
         b64 = base64.b64encode(t)
         return numpy.array(list(t), dtype=numpy.uint8), b64
 
+    @unittest.skipIf(GPT2TokenizerTransformer is None,
+                     reason="onnxruntime-extensions not available")
     def test_sentence_piece_tokenizer_transformer(self):
         model, model_b64 = self._load_piece()
         cints = bytes(model.tolist())
@@ -57,6 +62,8 @@ class TestOnnxTokenizer(ExtTestCase):
                     self.assertEqualArray(got.todense(), got2.todense())
                     return
 
+    @unittest.skipIf(GPT2TokenizerTransformer is None,
+                     reason="onnxruntime-extensions not available")
     def test_gpt2_tokenizer_transformer(self):
         vocab = os.path.join(
             os.path.dirname(__file__), "data", "gpt2.vocab")
