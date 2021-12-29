@@ -121,6 +121,7 @@ epkg_dictionary.update({
     'OnnxOperator': 'https://github.com/onnx/sklearn-onnx/blob/master/skl2onnx/algebra/onnx_operator.py#L116',
     'OnnxOperatorMixin': 'https://github.com/onnx/sklearn-onnx/blob/master/skl2onnx/algebra/onnx_operator_mixin.py#L16',
     'onnxruntime': 'https://github.com/microsoft/onnxruntime',
+    'onnxruntime-extensions': 'https://github.com/microsoft/onnxruntime-extensions',
     'onnxruntime_perf_test': 'https://github.com/microsoft/onnxruntime/tree/master/onnxruntime/test/perftest',
     'opt-einsum': 'https://pypi.org/project/opt-einsum/',
     'pybind11': 'https://github.com/pybind/pybind11',

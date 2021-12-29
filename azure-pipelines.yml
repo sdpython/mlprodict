@@ -157,7 +157,7 @@ jobs:
     displayName: Install numpy scipy
   - bash: conda install -y -c conda-forge llvmlite numba pybind11
     displayName: Install llvmlite numba pybind11
-  - script: pip install -r requirements.txt
+  - script: pip install -r requirements-osx.txt
     displayName: 'Install Requirements'
   #- script: pip install -i https://test.pypi.org/simple/ ort-nightly
   #  displayName: 'Install ort-nightly'

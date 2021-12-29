@@ -37,3 +37,12 @@ See example :ref:`l-b-numpy-numba-ort` for further details.
 
 .. autosignature:: mlprodict.sklapi.onnx_speed_up.OnnxSpeedupTransformer
     :members:
+
+Tokenizers
+++++++++++
+
+.. autosignature:: mlprodict.sklapi.onnx_tokenizer.GPT2TokenizerTransformer
+    :members:
+
+.. autosignature:: mlprodict.sklapi.onnx_tokenizer.SentencePieceTokenizerTransformer
+    :members:

@@ -385,15 +385,19 @@ setup(
                       'jinja2', 'cython'],
     extras_require={
         'npy': ['scikit-learn>=0.24', 'skl2onnx>=1.10.2'],
-        'onnx_conv': ['scikit-learn>=0.24', 'skl2onnx>=1.10.2',
-                      'joblib', 'threadpoolctl', 'mlinsights>=0.3',
-                      'lightgbm', 'xgboost'],
-        'onnx_val': ['scikit-learn>=0.24', 'skl2onnx>=1.10.2',
-                     'onnxruntime>=1.6.0', 'joblib', 'threadpoolctl'],
-        'sklapi': ['scikit-learn>=0.24', 'joblib', 'threadpoolctl'],
-        'all': ['scikit-learn>=0.24', 'skl2onnx>=1.10.2',
-                'onnxruntime>=1.6.0', 'scipy' 'joblib', 'pandas',
-                'threadpoolctl', 'mlinsights>=0.3',
-                'lightgbm', 'xgboost', 'mlstatpy>=0.3.593'],
+        'onnx_conv': [
+            'scikit-learn>=0.24', 'skl2onnx>=1.10.2', 'lightgbm',
+            'joblib', 'threadpoolctl', 'mlinsights>=0.3', 'xgboost'],
+        'onnx_val': [
+            'scikit-learn>=0.24', 'skl2onnx>=1.10.2',
+            'onnxruntime>=1.10.0', 'joblib', 'threadpoolctl'],
+        'sklapi': [
+            'scikit-learn>=0.24', 'joblib', 'threadpoolctl',
+            'onnxruntime>=1.19.0', 'onnxruntime-extensions'],
+        'all': [
+            'scikit-learn>=0.24', 'skl2onnx>=1.10.2',
+            'onnxruntime>=1.10.0', 'scipy' 'joblib', 'pandas',
+            'threadpoolctl', 'mlinsights>=0.3', 'lightgbm',
+            'xgboost', 'mlstatpy>=0.3.593', 'onnxruntime-extensions'],
     },
 )
