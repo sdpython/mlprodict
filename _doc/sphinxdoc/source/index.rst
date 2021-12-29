@@ -41,7 +41,7 @@ mlprodict
     :alt: GitHub Issues
     :target: https://github.com/sdpython/mlprodict/issues
 
-.. image:: nbcov.png
+.. image:: http://www.xavierdupre.fr/app/mlprodict/helpsphinx/_images/nbcov.png
     :target: http://www.xavierdupre.fr/app/mlprodict/helpsphinx/all_notebooks_coverage.html
     :alt: Notebook Coverage
 
