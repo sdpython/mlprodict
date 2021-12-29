@@ -11,7 +11,6 @@ from onnx import helper, TensorProto, load
 from onnx.defs import onnx_opset_version
 from onnxruntime import InferenceSession, SessionOptions
 from onnxruntime_extensions import get_library_path
-from .onnx_transformer import OnnxTransformer
 
 
 class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
@@ -233,7 +232,7 @@ class GPT2TokenizerTransformer(BaseEstimator, TransformerMixin):
         :param X: array to strings.
         :return: sparses matrix with n_features
         """
-        input_ids, attention_mask = self.sess_.run(
+        input_ids, _ = self.sess_.run(
             ['input_ids', 'attention_mask'], {'inputs': X})
         idx = input_ids.ravel()
         values = numpy.ones(idx.shape[0], dtype=numpy.float32)
