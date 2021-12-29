@@ -58,6 +58,19 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         self.assertEqualArray(
             res['out'], numpy.array([0.3, 0.4, 0.5, 0.4], dtype=numpy.float32))
 
+    def test_onnxrt_label_encoder_string_floats(self):
+
+        op = OnnxLabelEncoder(
+            'text', op_version=get_opset_number_from_onnx(),
+            keys_strings=['AA', 'BB', 'CC'],
+            values_floats=[0.1, 0.2, 0.3],
+            output_names=['out'])
+
+        onx = op.to_onnx(inputs=[('text', StringTensorType())])
+        oinf = OnnxInference(onx)
+        res = oinf.run({'text': numpy.array(['AA', 'DD']).reshape((-1, 1))})
+        self.assertEqualArray(res['out'], numpy.array([0.1, 0]))
+
     def test_onnxrt_label_encoder_raise(self):
 
         self.assertRaise(
@@ -67,15 +80,6 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
                 classes_strings=['LEAA', 'LEBB', 'LECC'],
                 output_names=['out']),
             TypeError)
-
-        op = OnnxLabelEncoder(
-            'text', op_version=get_opset_number_from_onnx(),
-            keys_strings=['AA', 'BB', 'CC'],
-            values_floats=[0.1, 0.2, 0.3],
-            output_names=['out'])
-
-        onx = op.to_onnx(inputs=[('text', StringTensorType())])
-        self.assertRaise(lambda: OnnxInference(onx), RuntimeError)
 
         op = OnnxLabelEncoder(
             'text', op_version=get_opset_number_from_onnx(),
