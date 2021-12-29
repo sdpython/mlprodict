@@ -1,9 +1,10 @@
-# coding: utf-8
+# pylint: disable=E1101
 """
 @file
 @brief Wrapper tokenizrs implemented in :epkg:`onnxruntime-extensions`.
 """
 from io import BytesIO
+import base64
 import numpy
 from scipy.sparse import csr_matrix
 from sklearn.base import BaseEstimator, TransformerMixin
