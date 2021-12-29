@@ -5,7 +5,7 @@
 converting investigate issues with ONNX models.
 """
 
-__version__ = "0.7.1672"
+__version__ = "0.8.1674"
 __author__ = "Xavier Dupré"
 
 

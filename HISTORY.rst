@@ -5,9 +5,21 @@
 History
 =======
 
-current - 2021-12-19 - 0.00Mb
+current - 2021-12-29 - 0.00Mb
 =============================
 
+* #322: Add tokenizers with onnxruntime-extensions (2021-12-29)
+* #340: Implements tokenizer following scikit-learn's API using onnxruntime-extensions (2021-12-29)
+* #335: op_label_encoder support for keys_strings & values_floats  (2021-12-29)
+* #338: Updated to support key_strings and values_floats combo (2021-12-29)
+* #339: op_label_encoder support for keys_strings & values_floats (2) (replaces #335) (2021-12-29)
+* #337: Supports operator Scan when exporting an onnx graph to onnx code (2021-12-21)
+* #336: Enables GPU with OnnxInference and onnxruntime (2021-12-21)
+
+0.7.1672 - 2021-12-19 - 1.95Mb
+==============================
+
+* #334: update history (2021-12-19)
 * #333: Adds command line latency to measure the latency of a runtime (2021-12-18)
 * #332: Improves dot rendering, fixes disconnected subgraphs (2021-12-18)
 * #331: Removes measure_time (2021-12-15)
