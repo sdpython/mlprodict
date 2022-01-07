@@ -21,7 +21,7 @@ autopep8
 asv
 chardet
 coverage>=5.0
-cpyquickhelper>=0.3.398
+cpyquickhelper>=0.3.404
 flatbuffers
 jyquickhelper
 lightgbm
@@ -38,7 +38,7 @@ pyensae
 py-cpuinfo
 pyinstrument
 pylint>=2.6.0
-pyquickhelper>=1.10.3626
+pyquickhelper>=1.11.3697
 pyquicksetup
 sphinx
 sphinxcontrib.blockdiag
