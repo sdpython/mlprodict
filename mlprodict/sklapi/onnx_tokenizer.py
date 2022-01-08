@@ -39,6 +39,7 @@ class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
     :param opset: main opset to use
 
     Method *fit* produces the following attributes:
+
     * `onnx_`: onnx graph
     * `sess_`: :epkg:`InferenceSession` used to compute the inference
     """
@@ -158,6 +159,7 @@ class GPT2TokenizerTransformer(BaseEstimator, TransformerMixin):
     :param opset: main opset to use
 
     Method *fit* produces the following attributes:
+    
     * `onnx_`: onnx graph
     * `sess_`: :epkg:`InferenceSession` used to compute the inference
     """
