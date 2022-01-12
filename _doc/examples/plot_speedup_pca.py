@@ -104,7 +104,7 @@ for name, model in tqdm(models):
         # the function during the first execution).
         model.transform(data)
         res = measure_time(
-            "model.transform(data)", div_by_number=True,
+            lambda: model.transform(data), div_by_number=True,
             context={'data': data, 'model': model})
         res['name'] = name
         res['size'] = size

@@ -383,7 +383,7 @@ r2
 # Some figures.
 
 bs = []
-bs.append(measure_time("py_topk.run({'X': X})",
+bs.append(measure_time(lambda: py_topk.run({'X': X}),
                        context=globals(), div_by_number=True))
 bs[-1]['c'] = 'py'
 bs[-1]
@@ -391,8 +391,8 @@ bs[-1]
 #################################
 #
 
-bs.append(measure_time(
-    "ort_topk.run(None, {'X': X})", context=globals(), div_by_number=True))
+bs.append(measure_time(lambda: ort_topk.run(None, {'X': X}),
+                       context=globals(), div_by_number=True))
 bs[-1]['c'] = 'or'
 bs[-1]
 
@@ -402,7 +402,7 @@ bs[-1]
 X = numpy.random.randn(10000, 100).astype(numpy.float32)
 
 
-bs.append(measure_time("py_topk.run({'X': X})",
+bs.append(measure_time(lambda: py_topk.run({'X': X}),
                        context=globals(), div_by_number=True))
 bs[-1]['c'] = 'py-100'
 bs[-1]
@@ -412,8 +412,8 @@ bs[-1]
 #
 
 
-bs.append(measure_time(
-    "ort_topk.run(None, {'X': X})", context=globals(), div_by_number=True))
+bs.append(measure_time(lambda: ort_topk.run(None, {'X': X}),
+                       context=globals(), div_by_number=True))
 bs[-1]['c'] = 'ort-100'
 bs[-1]
 

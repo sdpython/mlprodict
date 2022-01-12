@@ -21,7 +21,7 @@ autopep8
 asv
 chardet
 coverage>=5.0
-cpyquickhelper>=0.3.398
+cpyquickhelper>=0.3.412
 flatbuffers
 jyquickhelper
 lightgbm
