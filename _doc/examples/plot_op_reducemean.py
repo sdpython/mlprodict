@@ -161,19 +161,6 @@ def benchmark_op(axes, repeat=2, number=5, name="ReduceMean",
 dfs = []
 
 ###################################
-# Reduction on a particular case RKR
-# ++++++++++++++++++++++++++++++++++
-#
-# (N, 128, 1024, 1024), axis=(0, 2, 3)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-axes = (0, 2, 3)
-df, piv, ax = benchmark_op(
-    axes, shape_fct=lambda dim: (dim, 64, 16, 16))
-dfs.append(df)
-df.pivot("fct", "N", "average")
-
-###################################
 # Reduction on a particular case KR
 # +++++++++++++++++++++++++++++++++
 #
@@ -236,6 +223,19 @@ df.pivot("fct", "N", "average")
 
 axes = (2, 3)
 df, piv, ax = benchmark_op(axes, shape_fct=lambda dim: (2, 8, 12, 24, 2, dim))
+dfs.append(df)
+df.pivot("fct", "N", "average")
+
+###################################
+# Reduction on a particular case RKR
+# ++++++++++++++++++++++++++++++++++
+#
+# (N, 64, 16, 16), axis=(0, 2, 3)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+axes = (0, 2, 3)
+df, piv, ax = benchmark_op(
+    axes, shape_fct=lambda dim: (dim, 64, 16, 16))
 dfs.append(df)
 df.pivot("fct", "N", "average")
 
