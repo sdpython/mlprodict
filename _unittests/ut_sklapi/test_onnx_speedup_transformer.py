@@ -8,9 +8,10 @@ from logging import getLogger
 import numpy
 # import pandas
 # from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.datasets import load_iris
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.sklapi import OnnxSpeedupTransformer
 from mlprodict.tools import get_opset_number_from_onnx
 from mlprodict.onnx_conv import to_onnx
@@ -36,7 +37,8 @@ class TestOnnxSpeedupTransformer(ExtTestCase):
     def test_speedup_transform32_weight(self):
         data = load_iris()
         X, y = data.data, data.target
-        spd = OnnxSpeedupTransformer(PCA(), target_opset=self.opset())
+        spd = OnnxSpeedupTransformer(
+            StandardScaler(), target_opset=self.opset())
         w = numpy.ones(y.shape, dtype=X.dtype)
         spd.fit(X, sample_weight=w)
         spd.assert_almost_equal(X, decimal=5)
@@ -158,6 +160,7 @@ class TestOnnxSpeedupTransformer(ExtTestCase):
         got = oinf.run({'X': X})['variable']
         self.assertEqualArray(expected, got)
 
+    @ignore_warnings(DeprecationWarning)
     def test_speedup_transform64_onnx_numpy(self):
         data = load_iris()
         X, _ = data.data, data.target
@@ -171,6 +174,7 @@ class TestOnnxSpeedupTransformer(ExtTestCase):
         got = oinf.run({'X': X})['variable']
         self.assertEqualArray(expected, got)
 
+    @ignore_warnings(DeprecationWarning)
     def test_speedup_transform64_onnx_numba(self):
         data = load_iris()
         X, _ = data.data, data.target
@@ -186,4 +190,4 @@ class TestOnnxSpeedupTransformer(ExtTestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)
