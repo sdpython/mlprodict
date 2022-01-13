@@ -38,6 +38,16 @@ class TestOnnxSpeedupCluster(ExtTestCase):
         spd.assert_almost_equal(X, decimal=4)
 
     @ignore_warnings(ConvergenceWarning)
+    def test_speedup_kmeans32_weight(self):
+        data = load_iris()
+        X, y = data.data, data.target
+        spd = OnnxSpeedupCluster(
+            KMeans(n_clusters=3), target_opset=self.opset())
+        w = numpy.ones(y.shape, dtype=X.dtype)
+        spd.fit(X, y, w)
+        spd.assert_almost_equal(X, decimal=4)
+
+    @ignore_warnings(ConvergenceWarning)
     def test_speedup_kmeans32_onnxruntime(self):
         data = load_iris()
         X, y = data.data, data.target

@@ -38,6 +38,16 @@ class TestOnnxSpeedupClassifier(ExtTestCase):
         spd.assert_almost_equal(X, decimal=5)
 
     @ignore_warnings(ConvergenceWarning)
+    def test_speedup_classifier32_weight(self):
+        data = load_iris()
+        X, y = data.data, data.target
+        spd = OnnxSpeedupClassifier(
+            LogisticRegression(), target_opset=self.opset())
+        w = numpy.ones(y.shape, dtype=X.dtype)
+        spd.fit(X, y, w)
+        spd.assert_almost_equal(X, decimal=5)
+
+    @ignore_warnings(ConvergenceWarning)
     def test_speedup_classifier32_onnxruntime(self):
         data = load_iris()
         X, y = data.data, data.target

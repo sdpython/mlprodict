@@ -33,6 +33,14 @@ class TestOnnxSpeedupTransformer(ExtTestCase):
         spd.fit(X)
         spd.assert_almost_equal(X, decimal=5)
 
+    def test_speedup_transform32_weight(self):
+        data = load_iris()
+        X, y = data.data, data.target
+        spd = OnnxSpeedupTransformer(PCA(), target_opset=self.opset())
+        w = numpy.ones(y.shape, dtype=X.dtype)
+        spd.fit(X, sample_weight=w)
+        spd.assert_almost_equal(X, decimal=5)
+
     def test_speedup_transform32_onnxruntime(self):
         data = load_iris()
         X, _ = data.data, data.target

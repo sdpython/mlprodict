@@ -271,11 +271,11 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         """
         def parser(scope=None, inputs=None):
             if scope is None:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "scope cannot be None (parser of class %r)."
                     "" % type(self))
             if inputs is None:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "inputs cannot be None (parser of class %r)."
                     "" % type(self))
             if (not hasattr(self, 'onnxrt_') or
