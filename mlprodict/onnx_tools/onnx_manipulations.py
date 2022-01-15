@@ -360,6 +360,7 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
     :return: onnx model (the model is modified in place)
 
     Strategies:
+
     * `'simple'`: use a letter `n` for node, `r`, `i` for initializer,
         this letter is followed by a number
     * `'type'`: the name depends on the node type and content,

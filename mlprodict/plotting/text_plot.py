@@ -2,9 +2,9 @@
 @file
 @brief Text representations of graphs.
 """
+from collections import OrderedDict
 from onnx import TensorProto, AttributeProto
 from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
-from collections import OrderedDict
 from ..tools.graphs import onnx2bigraph
 from ..onnx_tools.onnx2py_helper import _var_as_dict
 
@@ -332,6 +332,9 @@ def _get_type(obj0):
         if (obj.data_type == TensorProto.INT64 and  # pylint: disable=E1101
                 hasattr(obj, 'int64_data')):
             return TENSOR_TYPE_TO_NP_TYPE[TensorProto.INT64]  # pylint: disable=E1101
+        if (obj.data_type == TensorProto.INT32 and  # pylint: disable=E1101
+                hasattr(obj, 'int32_data')):
+            return TENSOR_TYPE_TO_NP_TYPE[TensorProto.INT32]  # pylint: disable=E1101
         raise RuntimeError(  # pragma: no cover
             "Unable to guess type from %r." % obj0)
     if hasattr(obj, 'type'):
@@ -356,6 +359,9 @@ def _get_shape(obj):
         if (obj.data_type == TensorProto.INT64 and  # pylint: disable=E1101
                 hasattr(obj, 'int64_data')):
             return (len(obj.int64_data), )
+        if (obj.data_type == TensorProto.INT32 and  # pylint: disable=E1101
+                hasattr(obj, 'int32_data')):
+            return (len(obj.int32_data), )
         raise RuntimeError(  # pragma: no cover
             "Unable to guess type from %r." % obj0)
     if hasattr(obj, 'type'):
