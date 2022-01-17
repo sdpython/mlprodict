@@ -63,13 +63,13 @@ is left unchanged.
 
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation.onnx_remove_node
 
-.. autosignature:: mlprodict.onnx_tools.optimisation._main_onnx_optim.onnx_optimisations
+.. autosignature:: mlprodict.onnx_tools.optim._main_onnx_optim.onnx_optimisations
 
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation_identity.onnx_remove_node_identity
 
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation_redundant.onnx_remove_node_redundant
 
-.. autosignature:: mlprodict.onnx_tools.optim.onnx_remove_unused.onnx_remove_node_unused
+.. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation_unused.onnx_remove_node_unused
 
 Profiling
 +++++++++
@@ -101,8 +101,6 @@ Validation
 
 .. autosignature:: mlprodict.onnxrt.validate.validate_summary.summary_report
 
-.. autosignature:: mlprodict.onnxrt.validate.validate_graph.plot_validate_benchmark
-
 Visualization
 +++++++++++++
 
@@ -125,6 +123,10 @@ the possibility later to only show a part of a graph.
 **notebook**
 
 :ref:`onnxview <l-NB2>`, see also :ref:`numpyapionnxftrrst`.
+
+**benchmark**
+
+.. autosignature:: mlprodict.plotting.validate_graph.plot_validate_benchmark
 
 Others
 ======
