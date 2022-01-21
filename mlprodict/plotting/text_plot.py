@@ -3,7 +3,9 @@
 @brief Text representations of graphs.
 """
 from collections import OrderedDict
+import numpy
 from onnx import TensorProto, AttributeProto
+from onnx.numpy_helper import to_array
 from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 from ..tools.graphs import onnx2bigraph
 from ..onnx_tools.onnx2py_helper import _var_as_dict
@@ -486,6 +488,10 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
             inp.name, _get_type(inp), _get_shape(inp)))
     # initializer
     for init in model.initializer:
+        if numpy.prod(_get_shape(init)) < 5:
+            content = " -- %r" % to_array(init).ravel()
+        else:
+            content = ""
         rows.append("init: name=%r type=%r shape=%r" % (
             init.name, _get_type(init), _get_shape(init)))
 
