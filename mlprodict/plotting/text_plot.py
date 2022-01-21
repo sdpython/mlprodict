@@ -492,8 +492,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
             content = " -- %r" % to_array(init).ravel()
         else:
             content = ""
-        rows.append("init: name=%r type=%r shape=%r" % (
-            init.name, _get_type(init), _get_shape(init)))
+        rows.append("init: name=%r type=%r shape=%r%s" % (
+            init.name, _get_type(init), _get_shape(init), content))
 
     # successors, predecessors
     successors = {}
