@@ -237,7 +237,6 @@ dfs.append(df)
 df.pivot("fct", "N", "average")
 
 
-
 ###################################
 # Reduction on a particular case RKRK
 # +++++++++++++++++++++++++++++++++++

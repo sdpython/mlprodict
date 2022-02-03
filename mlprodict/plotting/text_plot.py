@@ -383,7 +383,8 @@ def _get_shape(obj):
         "Unable to guess type from %r." % obj0)
 
 
-def onnx_simple_text_plot(model, verbose=False, att_display=None):
+def onnx_simple_text_plot(model, verbose=False, att_display=None,
+                          add_links=False):
     """
     Displays an ONNX graph into text.
 
@@ -391,6 +392,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
     :param verbose: display debugging information
     :param att_display: list of attributes to display, if None,
         a default list if used
+    :param add_links: displays links of the right side
     :return: str
 
     An ONNX graph is printed the following way:
@@ -411,6 +413,26 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
         onx = to_onnx(model, x.astype(numpy.float32),
                       target_opset=15)
         text = onnx_simple_text_plot(onx, verbose=False)
+        print(text)
+
+    The same graphs with links.
+
+    .. runpython::
+        :showcode:
+        :warningout: DeprecationWarning
+
+        import numpy
+        from sklearn.cluster import KMeans
+        from mlprodict.plotting.plotting import onnx_simple_text_plot
+        from mlprodict.onnx_conv import to_onnx
+
+        x = numpy.random.randn(10, 3)
+        y = numpy.random.randn(10)
+        model = KMeans(3)
+        model.fit(x, y)
+        onx = to_onnx(model, x.astype(numpy.float32),
+                      target_opset=15)
+        text = onnx_simple_text_plot(onx, verbose=Falsen add_links=True)
         print(text)
 
     Visually, it looks like the following:
@@ -483,7 +505,10 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
         model = model.graph
 
     # inputs
+    line_name_new = {}
+    line_name_in = {}
     for inp in model.input:
+        line_name_new[inp.name] = len(rows)
         rows.append("input: name=%r type=%r shape=%r" % (
             inp.name, _get_type(inp), _get_shape(inp)))
     # initializer
@@ -492,6 +517,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
             content = " -- %r" % to_array(init).ravel()
         else:
             content = ""
+        line_name_new[init.name] = len(rows)
         rows.append("init: name=%r type=%r shape=%r%s" % (
             init.name, _get_type(init), _get_shape(init), content))
 
@@ -560,6 +586,13 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
 
         if add_break and verbose:
             print("[onnx_simple_text_plot] add break")
+        for n in node.input:
+            if n in line_name_in:
+                line_name_in[n].append(len(rows))
+            else:
+                line_name_in[n] = [len(rows)]
+        for n in node.output:
+            line_name_new[n] = len(rows)
         rows.append(str_node(indent, node))
         indents[name] = indent
 
@@ -572,8 +605,59 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None):
 
     # outputs
     for out in model.output:
+        if out.name in line_name_in:
+            line_name_in[out.name].append(len(rows))
+        else:
+            line_name_in[out.name] = [len(rows)]
         rows.append("output: name=%r type=%r shape=%r" % (
             out.name, _get_type(out), _get_shape(out)))
+
+    if add_links:
+
+        def _mark_link(rows, lengths, r1, r2, d):
+            maxl = max(lengths[r1], lengths[r2]) + d * 2
+            maxl = max(maxl, max(len(rows[r]) for r in range(r1, r2 + 1))) + 2
+
+            if rows[r1][-1] == '|':
+                p1, p2 = rows[r1][:lengths[r1] + 2], rows[r1][lengths[r1] + 2:]
+                rows[r1] = p1 + p2.replace(' ', '-')
+            rows[r1] += ("-" * (maxl - len(rows[r1]) - 1)) + "+"
+
+            if rows[r2][-1] == " ":
+                rows[r2] += "<"
+            elif rows[r2][-1] == '|':
+                if "<" not in rows[r2]:
+                    p = lengths[r2]
+                    rows[r2] = rows[r2][:p] + '<' + rows[r2][p + 1:]
+                p1, p2 = rows[r2][:lengths[r2] + 2], rows[r2][lengths[r2] + 2:]
+                rows[r2] = p1 + p2.replace(' ', '-')
+            rows[r2] += ("-" * (maxl - len(rows[r2]) - 1)) + "+"
+
+            for r in range(r1 + 1, r2):
+                if len(rows[r]) < maxl:
+                    rows[r] += " " * (maxl - len(rows[r]) - 1)
+                rows[r] += "|"
+
+        diffs = []
+        for n, r1 in line_name_new.items():
+            if n not in line_name_in:
+                continue
+            r2s = line_name_in[n]
+            for r2 in r2s:
+                if r1 >= r2:
+                    continue
+                diffs.append((r2 - r1, (n, r1, r2)))
+        diffs.sort()
+        for i in range(len(rows)):
+            rows[i] += "  "
+        lengths = [len(r) for r in rows]
+
+        for d, (n, r1, r2) in diffs:
+            if d == 1 and len(line_name_in[n]) == 1:
+                # no line for link to the next node
+                continue
+            _mark_link(rows, lengths, r1, r2, d)
+
     return "\n".join(rows)
 
 
