@@ -30,17 +30,17 @@ def common_test_abs_topk(x):
 
 
 @onnxnumpy_default
-def test_abs_topk(x: NDArray[Any, numpy.float32],
-                  ) -> (NDArray[Any, numpy.float32],
-                        NDArray[Any, numpy.int64]):
+def otest_abs_topk(x: NDArray[Any, numpy.float32],
+                   ) -> (NDArray[Any, numpy.float32],
+                         NDArray[Any, numpy.int64]):
     "onnx topk"
     return common_test_abs_topk(x)
 
 
 @onnxnumpy(runtime='onnxruntime1')
-def test_abs_topk_ort(x: NDArray[Any, numpy.float32],
-                      ) -> (NDArray[Any, numpy.float32],
-                            NDArray[Any, numpy.int64]):
+def otest_abs_topk_ort(x: NDArray[Any, numpy.float32],
+                       ) -> (NDArray[Any, numpy.float32],
+                             NDArray[Any, numpy.int64]):
     "onnx topk"
     return common_test_abs_topk(x)
 
@@ -51,8 +51,8 @@ class TestOnnxVariableTuple(ExtTestCase):
     def test_py_abs_topk(self):
         x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0],
                         dtype=numpy.float32).reshape((-1, 2))
-        y, yi = test_abs_topk(x)  # pylint: disable=E0633
-        self.assertIn('output: "y"', str(test_abs_topk.compiled.onnx_))
+        y, yi = otest_abs_topk(x)  # pylint: disable=E0633
+        self.assertIn('output: "y"', str(otest_abs_topk.compiled.onnx_))
         exp_y = numpy.array([[6.1, 7.8, 6.7]], dtype=numpy.float32).T
         exp_yi = numpy.array([[0, 1, 0]], dtype=numpy.float32).T
         self.assertEqualArray(exp_y, y)
@@ -62,7 +62,7 @@ class TestOnnxVariableTuple(ExtTestCase):
     def test_py_abs_topk_ort(self):
         x = numpy.array([6.1, -5, 3.5, -7.8, 6.7, -5.0],
                         dtype=numpy.float32).reshape((-1, 2))
-        y, yi = test_abs_topk_ort(x)  # pylint: disable=E0633
+        y, yi = otest_abs_topk_ort(x)  # pylint: disable=E0633
         exp_y = numpy.array([[6.1, 7.8, 6.7]], dtype=numpy.float32).T
         exp_yi = numpy.array([[0, 1, 0]], dtype=numpy.float32).T
         self.assertEqualArray(exp_y, y)

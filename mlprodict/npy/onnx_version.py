@@ -50,7 +50,7 @@ class FctVersion(namedtuple("_version_", ['args', 'kwargs'])):
                 (tuple() if self.kwargs is None else self.kwargs))
 
     def as_string(self):
-        "Returns a single stirng identifier."
+        "Returns a single string identifier."
         val = "_".join(map(str, self.as_tuple_with_sep("_")))
         val = val.replace("<class 'numpy.", "").replace(
             '.', "_").replace("'>", "").replace(" ", "")

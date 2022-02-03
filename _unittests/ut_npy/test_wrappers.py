@@ -375,5 +375,5 @@ class TestWrappers(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestWrappers().test_signature_optional_errors_runtime()
+    # TestWrappers().test_signature_optional_errors_runtime()
     unittest.main()

@@ -403,6 +403,23 @@ class OnnxNumpyCompiler:
                     type(self), self.fct_))
         return self.onnx_
 
+    def to_onnx(self, **kwargs):
+        """
+        Returns the ONNX graph for the wrapped function.
+        It takes additional arguments to distinguish between multiple graphs.
+        This happens when a function needs to support multiple type.
+
+        :return: ONNX graph
+        """
+        if len(kwargs) > 0:
+            raise NotImplementedError(  # pragma: no cover
+                "kwargs is not empty, this case is not implemented. "
+                "kwargs=%r." % kwargs)
+        if hasattr(self, 'onnx_'):
+            return self.onnx_
+        raise NotImplementedError(  # pragma: no cover
+            "Attribute 'onnx_' is missing.")
+
     def _build_runtime(self, op_version=None, runtime=None,
                        signature=None, version=None):
         """
