@@ -3,6 +3,7 @@
 @brief Command line about validation of prediction runtime.
 """
 import os
+from io import StringIO
 from logging import getLogger
 import warnings
 import json
@@ -393,3 +394,97 @@ def _validate_runtime_separate_process(**kwargs):
 
     return _finalize(all_rows, kwargs['out_raw'], kwargs['out_summary'],
                      verbose, models, kwargs.get('out_graph', None), fLOG)
+
+
+def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
+            runtime="onnxruntime", device='cpu', fmt=None,
+            profiling=None, profile_output='profiling.csv'):
+    """
+    Measures the latency of a model (python API).
+
+    :param model: ONNX graph
+    :param law: random law used to generate fake inputs
+    :param size: batch size, it replaces the first dimension
+        of every input if it is left unknown
+    :param number: number of calls to measure
+    :param repeat: number of times to repeat the experiment
+    :param max_time: if it is > 0, it runs as many time during
+        that period of time
+    :param runtime: available runtime
+    :param device: device, `cpu`, `cuda:0` or a list of providers
+        `CPUExecutionProvider, CUDAExecutionProvider
+    :param fmt: None or `csv`, it then
+        returns a string formatted like a csv file
+    :param profiling: if True, profile the execution of every
+        node, if can be sorted by name or type,
+        the value for this parameter should e in `(None, 'name', 'type')`
+    :param profile_output: output name for the profiling
+        if profiling is specified
+
+    .. cmdref::
+        :title: Measures model latency
+        :cmd: -m mlprodict latency --help
+        :lid: l-cmd-latency
+
+        The command generates random inputs and call many times the
+        model on these inputs. It returns the processing time for one
+        iteration.
+
+        Example::
+
+            python -m mlprodict latency --model "model.onnx"
+    """
+    from ..onnxrt.validate.validate_latency import latency as _latency  # pylint: disable=E0402
+
+    if not os.path.exists(model):
+        raise FileNotFoundError(  # pragma: no cover
+            "Unable to find model %r." % model)
+    if profiling not in (None, '', 'name', 'type'):
+        raise ValueError(  # pragma: no cover
+            "Unexpected value for profiling: %r." % profiling)
+    size = int(size)
+    number = int(number)
+    repeat = int(repeat)
+    if max_time in (None, 0, ""):
+        max_time = None
+    else:
+        max_time = float(max_time)
+        if max_time <= 0:
+            max_time = None
+
+    if law != "normal":
+        raise ValueError(
+            "Only law='normal' is supported, not %r." % law)
+
+    if profiling in ('name', 'type') and profile_output in (None, ''):
+        raise ValueError(  # pragma: no cover
+            'profiling is enabled but profile_output is wrong (%r).'
+            '' % profile_output)
+
+    res = _latency(
+        model, law=law, size=size, number=number, repeat=repeat,
+        max_time=max_time, runtime=runtime, device=device,
+        profiling=profiling)
+
+    if profiling not in (None, ''):
+        res, gr = res
+        ext = os.path.splitext(profile_output)[-1]
+        gr = gr.reset_index(drop=False)
+        if ext == '.csv':
+            gr.to_csv(profile_output, index=False)
+        elif ext == '.xlsx':
+            gr.to_excel(profile_output, index=False)
+        else:
+            raise ValueError(  # pragma: no cover
+                "Unexpected extension for profile_output=%r."
+                "" % profile_output)
+
+    if fmt == 'csv':
+        st = StringIO()
+        df = DataFrame([res])
+        df.to_csv(st, index=False)
+        return st.getvalue()
+    if fmt in (None, ''):
+        return res
+    raise ValueError(  # pragma: no cover
+        "Unexpected value for fmt: %r." % fmt)

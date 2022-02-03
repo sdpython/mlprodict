@@ -19,3 +19,5 @@ Benchmark
 .. autosignature:: mlprodict.onnxrt.validate.validate_helper.sklearn_operators
 
 .. autosignature:: mlprodict.onnxrt.validate.validate_summary.summary_report
+
+.. autosignature:: mlprodict.onnxrt.validate.validate.latency

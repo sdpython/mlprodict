@@ -23,7 +23,7 @@ def main(args, fLOG=print):
         from .cli.replay import benchmark_replay
         from .cli.einsum import einsum_test
         from .cli.onnx_code import onnx_code
-        from .cli.latency import latency
+        from .cli.validate import latency
     except ImportError:  # pragma: no cover
         from mlprodict.cli.validate import validate_runtime
         from mlprodict.cli.convert_validate import convert_validate
@@ -33,7 +33,7 @@ def main(args, fLOG=print):
         from mlprodict.cli.replay import benchmark_replay
         from mlprodict.cli.einsum import einsum_test
         from mlprodict.cli.onnx_code import onnx_code
-        from mlprodict.cli.latency_cli import latency
+        from mlprodict.cli.validate import latency
 
     fcts = dict(validate_runtime=validate_runtime,
                 convert_validate=convert_validate,
