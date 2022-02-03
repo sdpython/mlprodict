@@ -187,6 +187,16 @@ class TestPlotTextPlotting(ExtTestCase):
         text2 = oinf.to_text(kind="seq")
         self.assertEqual(text, text2)
 
+    def test_onnx_simple_text_plot_kmeans_links(self):
+        x = numpy.random.randn(10, 3)
+        model = KMeans(3)
+        model.fit(x)
+        onx = to_onnx(model, x.astype(numpy.float32),
+                      target_opset=15)
+        text = onnx_simple_text_plot(onx, add_links=True)
+        self.assertIn("Sqrt(Ad_C0) -> scores  <------", text)
+        self.assertIn("|-|", text)
+
 
 if __name__ == "__main__":
     unittest.main()
