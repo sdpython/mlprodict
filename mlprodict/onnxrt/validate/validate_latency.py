@@ -3,16 +3,15 @@
 @brief Command line about validation of prediction runtime.
 """
 import os
-from io import StringIO
 from collections import OrderedDict
 import json
 import numpy
 from onnx import TensorProto
 from pandas import DataFrame
 from cpyquickhelper.numbers import measure_time
-from onnxruntime import InferenceSession, SessionOptions
-from ..onnxrt import OnnxInference
-from ..onnxrt.ops_whole.session import OnnxWholeSession
+from onnxruntime import InferenceSession, SessionOptions, get_all_providers
+from .. import OnnxInference
+from ..ops_whole.session import OnnxWholeSession
 
 
 def _random_input(typ, shape, batch):
@@ -45,7 +44,7 @@ def random_feed(inputs, batch=10):
         name = inp.name
         if hasattr(inp.type, 'tensor_type'):
             typ = inp.type.tensor_type.elem_type
-            shape = tuple(getattr(d, 'dim_value', 0)
+            shape = tuple(getattr(d, 'dim_value', batch)
                           for d in inp.type.tensor_type.shape.dim)
         else:
             typ = inp.type
@@ -55,8 +54,7 @@ def random_feed(inputs, batch=10):
 
 
 def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
-            runtime="onnxruntime", device='cpu', fmt=None,
-            profiling=None, profile_output='profiling.csv'):
+            runtime="onnxruntime", device='cpu', profiling=None):
     """
     Measures the latency of a model (python API).
 
@@ -70,12 +68,11 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
         that period of time
     :param runtime: available runtime
     :param device: device, `cpu`, `cuda:0`
-    :param fmt: None or `csv`, it then
-        returns a string formatted like a csv file
     :param profiling: if True, profile the execution of every
-        node, if can be by name or type.
-    :param profile_output: output name for the profiling
-        if profiling is specified
+        node, if can be sorted by name or type,
+        the value for this parameter should e in `(None, 'name', 'type')`,
+    :return: dictionary or a tuple (dictionary, dataframe)
+        if the profiling is enable
 
     .. cmdref::
         :title: Measures model latency
@@ -90,7 +87,7 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
 
             python -m mlprodict latency --model "model.onnx"
     """
-    if not os.path.exists(model):
+    if isinstance(model, str) and not os.path.exists(model):
         raise FileNotFoundError(  # pragma: no cover
             "Unable to find model %r." % model)
     if profiling not in (None, '', 'name', 'type'):
@@ -110,14 +107,29 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
         raise ValueError(
             "Only law='normal' is supported, not %r." % law)
 
-    if device != 'cpu':
-        raise NotImplementedError(  # pragma no cover
-            "Only support cpu for now not %r." % device)
-
-    if profiling in ('name', 'type') and profile_output in (None, ''):
-        raise ValueError(  # pragma: no cover
-            'profiling is enabled but profile_output is wrong (%r).'
-            '' % profile_output)
+    if device in ('cpu', 'CPUExecutionProviders'):
+        providers = ['CPUExecutionProviders']
+    elif device in ('cuda:0', 'CUDAExecutionProviders'):
+        if runtime != 'onnxruntime':
+            raise NotImplementedError(  # pragma: no cover
+                "Only runtime 'onnxruntime' supports this device or provider "
+                "%r." % device)
+        providers = ['CUDAExecutionProviders']
+    elif ',' in device:
+        if runtime != 'onnxruntime':
+            raise NotImplementedError(  # pragma: no cover
+                "Only runtime 'onnxruntime' supports this device or provider "
+                "%r." % device)
+        providers = device.split(',')
+        allp = set(get_all_providers())
+        for p in providers:
+            if p not in allp:
+                raise ValueError(
+                    "One device or provider %r is not supported among %r."
+                    "" % (p, allp))
+    else:
+        raise ValueError(  # pragma no cover
+            "Device %r not supported." % device)
 
     if runtime == "onnxruntime":
         if profiling in ('name', 'type'):
@@ -142,8 +154,11 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
         inputs = oinf.obj.graph.input
 
     feeds = random_feed(inputs, size)
-    res = measure_time(lambda: fct(feeds), number=number, repeat=repeat, context={},
-                       max_time=max_time, div_by_number=True)
+    res = measure_time(
+        lambda: fct(feeds), number=number, repeat=repeat, context={},
+        max_time=max_time, div_by_number=True)
+    for k, v in feeds.items():
+        res["shape(%s)" % k] = "x".join(map(str, v.shape))
     if profiling in ('name', 'type'):
         if runtime == 'onnxruntime':
             profile_name = sess.end_profiling()
@@ -154,19 +169,11 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
         else:
             df = oinf.get_profiling(as_df=True)
         if profiling == 'name':
-            gr = df[['dur', "name"]].groupby(
-                "name").sum().sort_values('dur')
+            gr = df[['dur', "args_op_name", "name"]].groupby(
+                ["args_op_name", "name"]).sum().sort_values('dur')
         else:
             gr = df[['dur', "args_op_name"]].groupby(
                 "args_op_name").sum().sort_values('dur')
-        gr.reset_index(drop=False).to_csv(profile_output, index=False)
+        return res, gr
 
-    if fmt == 'csv':
-        st = StringIO()
-        df = DataFrame([res])
-        df.to_csv(st, index=False)
-        return st.getvalue()
-    if fmt in (None, ''):
-        return res
-    raise ValueError(  # pragma: no cover
-        "Unexpected value for fmt: %r." % fmt)
+    return res
