@@ -648,7 +648,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                     continue
                 diffs.append((r2 - r1, (n, r1, r2)))
         diffs.sort()
-        for i in range(len(rows)):
+        for i in range(len(rows)):  # pylint: disable=C0200
             rows[i] += "  "
         lengths = [len(r) for r in rows]
 
