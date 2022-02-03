@@ -68,6 +68,16 @@ class wrapper_onnxnumpy:
         """
         self.compiled = state['compiled']
 
+    def to_onnx(self, **kwargs):
+        """
+        Returns the ONNX graph for the wrapped function.
+        It takes additional arguments to distinguish between multiple graphs.
+        This happens when a function needs to support multiple type.
+
+        :return: ONNX graph
+        """
+        return self.compiled.to_onnx(**kwargs)
+
 
 def onnxnumpy(op_version=None, runtime=None, signature=None):
     """
@@ -201,6 +211,44 @@ class wrapper_onnxnumpy_np:
 
     def _validate_onnx_data(self, X):
         return X
+
+    def to_onnx(self, **kwargs):
+        """
+        Returns the ONNX graph for the wrapped function.
+        It takes additional arguments to distinguish between multiple graphs.
+        This happens when a function needs to support multiple type.
+
+        :return: ONNX graph
+        """
+        if len(self.signed_compiled) == 0:
+            raise RuntimeError(  # pragma: no cover
+                "No ONNX graph was compiled.")
+        if len(kwargs) == 0 and len(self.signed_compiled) == 1:
+            # We take the only one.
+            key = list(self.signed_compiled)[0]
+            cpl = self.signed_compiled[key]
+            return cpl.to_onnx()
+        if len(kwargs) == 0:
+            raise ValueError(
+                "There are multiple compiled ONNX graphs associated "
+                "with keys %r (add key=...)." % list(self.signed_compiled))
+        if list(kwargs) != ['key']:
+            raise ValueError(
+                "kwargs should contain one parameter key=... but "
+                "it is %r." % kwargs)
+        key = kwargs['key']
+        if key in self.signed_compiled:
+            return self.signed_compiled[key].compiled.onnx_
+        found = []
+        for k, v in self.signed_compiled.items():
+            if k.args == key or (
+                    not isinstance(key, tuple) and k.args == (key, )):
+                found.append((k, v))
+        if len(found) == 1:
+            return found[0][1].compiled.onnx_
+        raise ValueError(
+            "Unable to find signature with key=%r among %r." % (
+                key, list(self.signed_compiled)))
 
 
 def onnxnumpy_np(op_version=None, runtime=None, signature=None):
