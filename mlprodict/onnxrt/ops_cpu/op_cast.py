@@ -73,3 +73,29 @@ class Cast(OpRun):
     def _infer_sizes(self, *args, **kwargs):
         res = self.run(*args, **kwargs)
         return (dict(temp=0), ) + res
+
+
+class CastLike(OpRun):
+
+    def __init__(self, onnx_node, desc=None, **options):
+        OpRun.__init__(self, onnx_node, desc=desc, **options)
+
+    def _run(self, x, y):  # pylint: disable=W0221
+        if self.inplaces.get(0, False):
+            return self._run_inplace(x, y)
+        return (x.astype(y.dtype), )
+
+    def _run_inplace(self, x, y):
+        if x.dtype == y._dtype:
+            return (x, )
+        return (x.astype(y.dtype), )
+
+    def _infer_shapes(self, x, y):  # pylint: disable=W0221
+        return (x.copy(dtype=y._dtype), )
+
+    def _infer_types(self, x, y):  # pylint: disable=W0221
+        return (y._dtype, )
+
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res
