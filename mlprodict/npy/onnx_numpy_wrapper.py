@@ -8,6 +8,7 @@ import warnings
 from .onnx_version import FctVersion
 from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_numpy_compiler import OnnxNumpyCompiler
+from .onnx_variable import OnnxVar
 
 
 class _created_classes:
@@ -52,7 +53,15 @@ class wrapper_onnxnumpy:
         """
         Calls the compiled function with arguments `args`.
         """
-        return self.compiled(*args, **kwargs)
+        try:
+            return self.compiled(*args, **kwargs)
+        except (TypeError, RuntimeError, ValueError) as e:
+            if any(map(lambda a: isinstance(a, OnnxVar), args)):
+                return self.__class__.__fct__(  # pylint: disable=E1101
+                    *args, **kwargs)
+            raise RuntimeError(
+                "Unable to call the compiled version, args is %r. "
+                "kwargs=%r." % ([type(a) for a in args], kwargs)) from e
 
     def __getstate__(self):
         """
@@ -101,7 +110,7 @@ def onnxnumpy(op_version=None, runtime=None, signature=None):
         name = "onnxnumpy_%s_%s_%s" % (fct.__name__, str(op_version), runtime)
         newclass = type(
             name, (wrapper_onnxnumpy,),
-            {'__doc__': fct.__doc__, '__name__': name})
+            {'__doc__': fct.__doc__, '__name__': name, '__fct__': fct})
         _created_classes_inst.append(name, newclass)
         return newclass(compiled)
     return decorator_fct
@@ -186,11 +195,19 @@ class wrapper_onnxnumpy_np:
             others = None
         else:
             others = tuple(kwargs.get(k, self.kwargs[k]) for k in self.kwargs)
-        key = FctVersion(  # pragma: no cover
-            tuple(a if (a is None or hasattr(a, 'fit'))
-                  else a.dtype.type for a in args),
-            others)
-        return self[key](*args)
+        try:
+            key = FctVersion(  # pragma: no cover
+                tuple(a if (a is None or hasattr(a, 'fit'))
+                      else a.dtype.type for a in args),
+                others)
+            return self[key](*args)
+        except AttributeError as e:
+            if any(map(lambda a: isinstance(a, OnnxVar), args)):
+                return self.__class__.__fct__(  # pylint: disable=E1101
+                    *args, **kwargs)
+            raise RuntimeError(
+                "Unable to call the compiled version, args is %r. "
+                "kwargs=%r." % ([type(a) for a in args], kwargs)) from e
 
     def _populate(self, version):
         """
@@ -274,7 +291,8 @@ def onnxnumpy_np(op_version=None, runtime=None, signature=None):
                 '__doc__': fct.__doc__,
                 '__name__': name,
                 '__getstate__': wrapper_onnxnumpy_np.__getstate__,
-                '__setstate__': wrapper_onnxnumpy_np.__setstate__})
+                '__setstate__': wrapper_onnxnumpy_np.__setstate__,
+                '__fct__': fct})
         _created_classes_inst.append(name, newclass)
         return newclass(
             fct=fct, op_version=op_version, runtime=runtime,
