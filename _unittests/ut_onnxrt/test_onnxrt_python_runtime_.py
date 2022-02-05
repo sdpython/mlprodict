@@ -31,7 +31,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxBatchNormalization,
     OnnxAcos, OnnxAcosh, OnnxAsin, OnnxAsinh, OnnxAtan, OnnxAtanh,
     OnnxAveragePool,
-    OnnxCast, OnnxCeil, OnnxClip,
+    OnnxCast, OnnxCastLike, OnnxCeil, OnnxClip,
     OnnxCompress,
     OnnxConcat, OnnxConv, OnnxConvTranspose,
     OnnxConstant, OnnxConstant_9, OnnxConstant_11,
@@ -1082,6 +1082,25 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                         xi.astype(str).tolist(), got['Y'].tolist())
 
         python_tested.append(OnnxCast)
+
+    @wraplog()
+    def test_onnxt_runtime_cast_like(self):
+        x = numpy.array([1.5, 2.1, 3.1, 4.1]).astype(
+            numpy.float32)  # pylint: disable=E1101
+        y = numpy.array([1.]).astype(numpy.int64)  # pylint: disable=E1101
+
+        for opset in range(15, get_opset_number_from_onnx() + 1):
+            with self.subTest(opset=opset):
+                onx = OnnxCastLike('X', 'Y', output_names=['Z'],
+                                   op_version=opset)
+                model_def = onx.to_onnx(
+                    {'X': x, 'Y': y},
+                    outputs=[('Z', Int64TensorType())],
+                    target_opset=opset)
+                got = OnnxInference(model_def).run({'X': x, 'Y': y})
+                self.assertEqual(x.astype(numpy.int64), got['Z'])
+
+        python_tested.append(OnnxCastLike)
 
     @wraplog()
     def test_onnxt_runtime_ceil(self):

@@ -126,7 +126,7 @@ the possibility later to only show a part of a graph.
 
 **benchmark**
 
-.. autosignature:: mlprodict.plotting.validate_graph.plot_validate_benchmark
+.. autosignature:: mlprodict.plotting.plot_validate_benchmark
 
 Others
 ======
