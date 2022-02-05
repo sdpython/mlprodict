@@ -5,7 +5,11 @@
 .. versionadded:: 0.9
 """
 import numpy
-from ..onnx_tools.onnx2py_helper import _var_as_dict
+from onnx.numpy_helper import to_array
+from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
+from .ops_shape.shape_result import ShapeResult
+from .ops_shape.shape_container import ShapeContainer
+from .ops_shape import shape_dispatch
 
 
 class OnnxShapeInference:
@@ -21,173 +25,78 @@ class OnnxShapeInference:
             raise TypeError(
                 "model_onnx is not an ONNX graph but %r." % type(model_onnx))
         self.model_onnx = model_onnx
+        self.known_shapes_ = self._run_empty()
 
-    def run(self, inputs):
+    def __repr__(self):
+        "Usual"
+        return "%s(...)" % self.__class__.__name__
+
+    @staticmethod
+    def _get_shape(obj):
+        dtype = TENSOR_TYPE_TO_NP_TYPE[obj.type.tensor_type.elem_type]
+        shape = []
+        for d in obj.type.tensor_type.shape.dim:
+            shape.append(d.dim_value if d.dim_value > 0 else d.dim_param)
+        return shape, dtype, False
+
+    def _run_empty(self):
         """
-        Computes the outputs of the graph.
+        Computes shape and types of all results.
 
-        :param inputs: dictionary
         :return: all intermediates results and output as a dictionary
         """
-        if not isinstance(inputs, dict):
-            raise TypeError(
-                "inputs must be a dictionary not %r." % type(inputs))
-        results = inputs.copy()
-
+        known_shapes = ShapeContainer()
         for init in self.model_onnx.graph.initializer:
-            name = init.name
-            mat = _var_as_dict(init)['value']
-            results[name] = mat
+            mat = to_array(init)
+            known_shapes.update(init.name, ShapeResult(
+                mat.shape, mat.dtype, sparse=False))
 
-        for node in self.model_onnx.graph.node:
-            op_type = node.op_type
-            inp = [results[n] for n in node.input]
-            meth_name = "_op_%s" % op_type.lower()
-            if not hasattr(self, meth_name):
+        for obj in self.model_onnx.graph.input:
+            if obj.name in known_shapes:
                 raise NotImplementedError(
-                    "OnnxMicroRuntime does not implement operator %r." % op_type)
-            kwargs = {}
-            for at in node.attribute:
-                var = _var_as_dict(at)
-                kwargs[at.name] = var['value']
-            out = getattr(self, meth_name)(*inp, **kwargs)
-            for n, o in zip(node.output, out):
-                results[n] = o
+                    "Optional inputs are not implemented yet.")
+            shape, dtype, sparse = self._get_shape(obj)
+            known_shapes.update(obj.name, ShapeResult(
+                shape, dtype, sparse=sparse))
 
-        return results
+        for obj in self.model_onnx.graph.output:
+            if obj.name in known_shapes:
+                raise NotImplementedError(
+                    "Optional inputs are not implemented yet.")
+            shape, dtype, sparse = self._get_shape(obj)
+            known_shapes.update(obj.name, ShapeResult(
+                shape, dtype, sparse=sparse))
 
-    ########################
-    # Runtime for operators
-    ########################
+        cont = True
+        while cont:
+            cont = False
+            for node in self.model_onnx.graph.node:
+                cont = cont or shape_dispatch(known_shapes, node)
 
-    def _op_add(self, x, y):
-        "Runtime for operator :epkg:`Op:Add`."
-        return (x + y, )
+        return known_shapes
 
-    def _op_concat(self, *args, axis=None):
-        "Runtime for operator :epkg:`Op:Concat`."
-        def _preprocess(a, axis):
-            if axis >= len(a.shape):
-                new_shape = a.shape + (1, ) * (axis + 1 - len(a.shape))
-                return a.reshape(new_shape)
-            return a
+    def run(self, inputs=None):
+        """
+        Runs shape inference and type given known inputs.
 
-        targs = tuple(_preprocess(a, axis) for a in args)
-        return (numpy.concatenate(targs, axis), )
+        :param inputs: inputs
+        :return: all results
+        """
+        if inputs is None:
+            return self.known_shapes_
 
-    def _op_gemm(self, a, b, c=None, alpha=None, beta=None,
-                 transA=False, transB=False):
-        "Runtime for operator :epkg:`Op:Gemm`."
+        known_shapes = self.known_shapes_.copy()
 
-        def _gemm00(a, b, c, alpha, beta):
-            o = numpy.dot(a, b) * alpha
-            if beta != 0:
-                o += c * beta
-            return o
+        cont = False
+        for name, obj in inputs.items():
+            shape, dtype, sparse = (
+                obj.shape, obj.dtype, isinstance(obj, numpy.ndarray))
+            cont = cont or known_shapes.update(
+                name, ShapeResult(shape, dtype, sparse=sparse))
 
-        def _gemm01(a, b, c, alpha, beta):
-            o = numpy.dot(a, b.T) * alpha
-            if beta != 0:
-                o += c * beta
-            return o
+        while cont:
+            cont = False
+            for node in self.model_onnx.graph.node:
+                cont = cont or shape_dispatch(known_shapes, node)
 
-        def _gemm10(a, b, c, alpha, beta):
-            o = numpy.dot(a.T, b) * alpha
-            if beta != 0:
-                o += c * beta
-            return o
-
-        def _gemm11(a, b, c, alpha, beta):
-            o = numpy.dot(a.T, b.T) * alpha
-            if beta != 0:
-                o += c * beta
-            return o
-
-        if not isinstance(transA, (int, bool, numpy.int64)):
-            raise TypeError(  # pragma: no cover
-                "Unexpected type for transA: %r." % type(transA))
-        if not isinstance(transB, (int, bool, numpy.int64)):
-            raise TypeError(  # pragma: no cover
-                "Unexpected type for transA: %r." % type(transB))
-        if transA:
-            fct = _gemm11 if transB else _gemm10
-        else:
-            fct = _gemm01 if transB else _gemm00
-        return (fct(a, b, c, alpha=alpha, beta=beta), )
-
-    def _op_gather(self, x, indices, axis=None):
-        "Runtime for operator :epkg:`Op:Gather`."
-        if not x.flags['C_CONTIGUOUS']:
-            x = numpy.ascontiguousarray(x)
-        if not indices.flags['C_CONTIGUOUS']:
-            indices = indices.ascontiguousarray()
-        return (numpy.take(x, indices, axis=axis), )
-
-    def _op_identity(self, x):
-        "Runtime for operator :epkg:`Op:Identity`."
-        return (x, )
-
-    def _op_matmul(self, x, y):
-        "Runtime for operator :epkg:`Op:MatMul`."
-        return (numpy.matmul(x, y), )
-
-    def _op_max(self, *inps):
-        "Runtime for operator :epkg:`Op:Max`."
-        return (numpy.maximum(*inps), )
-
-    def _op_mul(self, x, y):
-        "Runtime for operator :epkg:`Op:Mul`."
-        return (x * y, )
-
-    def _op_reduceprod(self, data, axes=None, keepdims=None):
-        "Runtime for operator :epkg:`Op:ReduceProd`."
-        if axes is not None and not isinstance(axes, int):
-            if isinstance(axes, numpy.ndarray) and len(axes.shape) == 0:
-                axes = int(axes)
-            else:
-                axes = tuple(axes) if len(axes) > 0 else None
-        return (numpy.prod(data, axis=axes,
-                           keepdims=keepdims,
-                           dtype=data.dtype), )
-
-    def _op_reducesum(self, data, axes, keepdims=None,
-                      noop_with_empty_axes=None):
-        "Runtime for operator :epkg:`Op:ReduceSum`."
-        if axes is None and noop_with_empty_axes:
-            return (data, )
-        if axes is not None and not isinstance(axes, int):
-            if isinstance(axes, numpy.ndarray) and len(axes.shape) == 0:
-                axes = int(axes)
-            else:
-                axes = tuple(axes) if len(axes) > 0 else None
-        return (numpy.sum(data, axis=axes,
-                          keepdims=keepdims,
-                          dtype=data.dtype), )
-
-    def _op_reshape(self, x, shape):
-        "Runtime for operator :epkg:`Op:Reshape`."
-        return (x.reshape(shape), )
-
-    def _op_shape(self, x):
-        "Runtime for operator :epkg:`Op:Shape`."
-        return (numpy.array(list(x.shape), dtype=numpy.int64), )
-
-    def _op_squeeze(self, x, axes=None):
-        "Runtime for operator :epkg:`Op:Squeeze`."
-        if axes is None:
-            return (x, )
-        if hasattr(axes, '__iter__'):
-            return (numpy.squeeze(x, axis=tuple(axes)), )
-        return (numpy.squeeze(x, axis=axes), )
-
-    def _op_transpose(self, x, perm=None):
-        "Runtime for operator :epkg:`Op:Transpose`."
-        return (numpy.transpose(x, perm), )
-
-    def _op_unsqueeze(self, x, axes=None):
-        "Runtime for operator :epkg:`Op:Unsqueeze`."
-        if axes is None:
-            return (x, )
-        if hasattr(axes, '__iter__'):
-            return (numpy.expand_dims(x, axis=tuple(axes)), )
-        return (numpy.expand_dims(x, axis=axes), )
+        return known_shapes
