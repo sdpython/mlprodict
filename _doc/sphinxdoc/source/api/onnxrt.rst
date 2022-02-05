@@ -18,7 +18,10 @@ implementated in :epkg:`Python`. The :epkg:`ONNX` model relies
 on the following operators :ref:`l-onnx-runtime-operators`.
 
 .. autosignature:: mlprodict.onnxrt.onnx_inference.OnnxInference
-    :members:
+    :members: run, shape_inference, check_model, run2onnx, get_profiling
+
+.. autosignature:: mlprodict.onnxrt.onnx_micro_inference.OnnxMicroRuntime
+    :members: run
 
 Python to ONNX
 ++++++++++++++

@@ -83,13 +83,6 @@ Serialization
 
 .. autosignature:: mlprodict.onnx_tools.onnx2py_helper.to_bytes
 
-Runtime
-=======
-
-.. autosignature:: mlprodict.onnxrt.onnx_inference.OnnxInference
-
-.. autosignature:: mlprodict.tools.onnx_micro_runtime.OnnxMicroRuntime
-
 Validation
 ++++++++++
 

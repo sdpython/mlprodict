@@ -10,7 +10,7 @@ import numpy
 from onnx import helper
 from skl2onnx.common.data_types import FloatTensorType
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
-from ...tools.onnx_micro_runtime import OnnxMicroRuntime
+from ...onnxrt.onnx_micro_runtime import OnnxMicroRuntime
 from ...tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
