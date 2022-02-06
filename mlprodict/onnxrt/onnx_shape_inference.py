@@ -32,11 +32,18 @@ class OnnxShapeInference:
         return "%s(...)" % self.__class__.__name__
 
     @staticmethod
-    def _get_shape(obj):
+    def _get_shape(obj, known_shapes=None, result_name=None):
         dtype = TENSOR_TYPE_TO_NP_TYPE[obj.type.tensor_type.elem_type]
         shape = []
-        for d in obj.type.tensor_type.shape.dim:
-            shape.append(d.dim_value if d.dim_value > 0 else d.dim_param)
+        for dimi, d in enumerate(obj.type.tensor_type.shape.dim):
+            v = d.dim_value if d.dim_value > 0 else d.dim_param
+            if v in ('', None):
+                if known_shapes is None or result_name is None:
+                    raise RuntimeError(  # pragma: no cover
+                        "known_shapes must be specified if "
+                        "a dimension is not.")
+                v = known_shapes.get_new_name(v, result_name, dimi)
+            shape.append(v)
         return shape, dtype, False
 
     def _run_empty(self):
@@ -55,7 +62,8 @@ class OnnxShapeInference:
             if obj.name in known_shapes:
                 raise NotImplementedError(
                     "Optional inputs are not implemented yet.")
-            shape, dtype, sparse = self._get_shape(obj)
+            shape, dtype, sparse = self._get_shape(
+                obj, known_shapes, result_name=obj.name)
             known_shapes.update(obj.name, ShapeResult(
                 shape, dtype, sparse=sparse))
 
@@ -63,7 +71,8 @@ class OnnxShapeInference:
             if obj.name in known_shapes:
                 raise NotImplementedError(
                     "Optional inputs are not implemented yet.")
-            shape, dtype, sparse = self._get_shape(obj)
+            shape, dtype, sparse = self._get_shape(
+                obj, known_shapes, result_name=obj.name)
             known_shapes.update(obj.name, ShapeResult(
                 shape, dtype, sparse=sparse))
 

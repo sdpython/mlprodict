@@ -21,6 +21,36 @@ class OnnxKind(Enum):
     Map = 0
 
 
+class ShapeConstraint:
+    """
+    One constraint.
+
+    :param name: variable name
+    :param values: set of possible values
+    """
+
+    def __init__(self, name, values):
+        if name == '?':
+            raise ValueError("Name cannot be '?'.")
+        self.name = name
+        self.values = values
+
+    def __repr__(self):
+        "usual"
+        return "%s(%r, %r)" % (
+            self.__class__.__name__, self.name, self.values)
+
+    def merge(self, cst):
+        """
+        Merges this constraint with *cst* into this one.
+        """
+        if isinstance(cst, list):
+            for c in cst:
+                self.merge(c)
+            return
+        self.values = self.values.intersection(cst.values)
+
+
 class ShapeResult:
     """
     Contains information about shape and type of a result
@@ -30,14 +60,21 @@ class ShapeResult:
     :param dtype: element type if the result is a tensor
     :param sparse: is a the tensor sparse
     :param mtype: kind of the result (see class @see cl OnnxKind)
+    :param constraints: list of constraints applying on variables
     """
 
     def __init__(self, shape=None, dtype=None, sparse=False,
-                 mtype=OnnxKind.Tensor):
+                 mtype=OnnxKind.Tensor, constraints=None):
         self.mtype = mtype
-        self.shape = shape
+        self.shape = list(shape)
         self.dtype = dtype
         self.sparse = sparse
+        for i in range(0, len(self.shape)):  # pylint: disable=C0200
+            if shape[i] in ('', None, '?'):
+                raise ValueError(
+                    "All dimensions must an int or a variable name, "
+                    "%s is not." % (shape, ))
+        self.constraints = constraints
 
     def __repr__(self):
         """
@@ -89,6 +126,8 @@ class ShapeResult:
             raise ShapeInferenceException(
                 "Cannot broadcast shapes %r and %r (dtypes)."
                 "" % (sh1, sh2))
+
+        constraints = []
         shape = []
         for a, b in zip(sh1.shape, sh2.shape):
             if isinstance(a, int) and isinstance(b, int):
@@ -102,14 +141,17 @@ class ShapeResult:
                 else:
                     d = a
             elif isinstance(a, int):
-                d = a
-            elif isinstance(b, int):
                 d = b
+                constraints.append(ShapeConstraint(b, {1, a, b}))
+            elif isinstance(b, int):
+                d = a
+                constraints.append(ShapeConstraint(a, {1, b, a}))
             elif a == b:
                 d = a
             else:
                 raise ShapeInferenceException(
                     "Cannot broadcast shapes %r and %r." % (sh1, sh2))
             shape.append(d)
-        return ShapeResult(shape, sh1.dtype, sh1.sparse or sh2.sparse,
-                           sh1.mtype)
+        res = ShapeResult(shape, sh1.dtype, sh1.sparse or sh2.sparse,
+                          sh1.mtype, constraints)
+        return res
