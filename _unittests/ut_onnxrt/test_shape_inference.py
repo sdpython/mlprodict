@@ -67,8 +67,8 @@ class TestOnnxShapeInference(ExtTestCase):
                 self.assertIn('Ad_Addcst', out)
                 self.assertEqual(len(out), 5)
                 self.assertIn(
-                    "'Ad_C0': ShapeResult(['_0', 2], dtype('float32'), "
-                    "False, <OnnxKind.Tensor: 0>", str(out))
+                    "'Ad_C0': ShapeResult(['_0', 2], dtype('float32')",
+                    str(out))
                 self.check_infer_shapes(model_def, rt.run(), rt)
                 cons = rt.known_shapes_.get_all_constraints()
                 self.assertEqual(len(cons), 2)
@@ -102,8 +102,8 @@ class TestOnnxShapeInference(ExtTestCase):
                 self.assertIn('Ad_Addcst', out)
                 self.assertEqual(len(out), 5)
                 self.assertIn(
-                    "'Ad_C0': ShapeResult(['_0', '_1'], dtype('float32'), "
-                    "False, <OnnxKind.Tensor: 0>", str(out))
+                    "'Ad_C0': ShapeResult(['_0', '_1'], dtype('float32'))",
+                    str(out))
                 out = rt.run()
                 self.assertIn(
                     "'Y': ShapeResult(['_2', '_3']", str(out))

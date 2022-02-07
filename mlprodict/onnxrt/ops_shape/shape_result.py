@@ -123,9 +123,20 @@ class ShapeResult:
         """
         Usual
         """
-        return "%s(%r, %r, %r, %r, constraints=%r)" % (
-            self.__class__.__name__, self.shape, self.dtype,
-            self.sparse, self.mtype, self.constraints)
+        if len(self.constraints) > 0:
+            return "%s(%r, %r, %r, sparse=%r, constraints=%r)" % (
+                self.__class__.__name__, self.shape, self.dtype,
+                self.sparse, self.mtype, self.constraints)
+        if self.mtype != OnnxKind.Tensor:
+            return "%s(%r, %r, sparse=%r, mtype=%r)" % (
+                self.__class__.__name__, self.shape, self.dtype,
+                self.sparse, self.mtype)
+        if self.sparse:
+            return "%s(%r, %r,sparse=%r)" % (
+                self.__class__.__name__, self.shape, self.dtype,
+                self.sparse)
+        return "%s(%r, %r)" % (
+            self.__class__.__name__, self.shape, self.dtype)
 
     def __eq__(self, shape):
         """

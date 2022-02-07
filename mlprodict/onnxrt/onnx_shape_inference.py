@@ -99,7 +99,7 @@ class OnnxShapeInference:
         cont = False
         for name, obj in inputs.items():
             shape, dtype, sparse = (
-                obj.shape, obj.dtype, isinstance(obj, numpy.ndarray))
+                obj.shape, obj.dtype, not isinstance(obj, numpy.ndarray))
             cont = cont or known_shapes.update(
                 name, ShapeResult(shape, dtype, sparse=sparse))
 
