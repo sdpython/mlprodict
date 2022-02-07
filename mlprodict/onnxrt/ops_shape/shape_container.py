@@ -42,10 +42,8 @@ class ShapeContainer:
         if key not in self.shapes:
             self.shapes[key] = value
             return True
-        if self.shapes[key] == value:
-            return False
-        self.shapes[key] = value
-        return True
+        r = self.shapes[key].merge(value)
+        return r
 
     def __contains__(self, key):
         "Operator in."
@@ -57,8 +55,19 @@ class ShapeContainer:
         """
         rows = ["ShapeContainer({"]
         for k, v in self.shapes.items():
-            rows.append("    %s: %r" % (k, v))
-        rows.append("})")
+            rows.append("    %r: %r" % (k, v))
+        rows.append("}, names={")
+        for k, v in self.names.items():
+            rows.append("    %r: %r" % (k, v))
+        cst = self.get_all_constraints()
+        if len(cst) > 0:
+            rows.append("}, constraint={")
+            for c, v in cst.items():
+                rows.append("    %r: %r" % (c, v))
+            rows.append("})")
+        else:
+            rows.append("})")
+
         return "\n".join(rows)
 
     def get_new_name(self, name, result_name, dim):

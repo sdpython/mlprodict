@@ -35,6 +35,14 @@ class ShapeConstraint:
         self.name = name
         self.values = values
 
+    def __eq__(self, other):
+        "usual"
+        if self.name != other.name:
+            return False
+        if self.values != other.values:
+            return False
+        return True
+
     def __repr__(self):
         "usual"
         return "%s(%r, %r)" % (
@@ -49,6 +57,35 @@ class ShapeConstraint:
                 self.merge(c)
             return
         self.values = self.values.intersection(cst.values)
+
+
+class ShapeConstraintList:
+    """
+    A list of ShapeConstraint.
+    """
+
+    def __init__(self):
+        self.csts = []
+
+    def __contains__(self, cst):
+        for a in self.csts:
+            if cst == a:
+                return True
+        return False
+
+    def append(self, cst):
+        "Appends a new constraint to the list."
+        self.csts.append(cst)
+
+    def __repr__(self):
+        return "ShapeConstraintList(%r)" % self.csts
+
+    def __iter__(self):
+        for c in self.csts:
+            yield c
+
+    def __len__(self):
+        return len(self.csts)
 
 
 class ShapeResult:
@@ -74,15 +111,21 @@ class ShapeResult:
                 raise ValueError(
                     "All dimensions must an int or a variable name, "
                     "%s is not." % (shape, ))
-        self.constraints = constraints
+        if constraints is None:
+            self.constraints = ShapeConstraintList()
+        elif isinstance(constraints, ShapeConstraintList):
+            self.constraints = constraints
+        else:
+            raise TypeError(
+                "constraints must be of type(ShapeConstraintList).")
 
     def __repr__(self):
         """
         Usual
         """
-        return "%s(%r, %r, %r, %r)" % (
+        return "%s(%r, %r, %r, %r, constraints=%r)" % (
             self.__class__.__name__, self.shape, self.dtype,
-            self.sparse, self.mtype)
+            self.sparse, self.mtype, self.constraints)
 
     def __eq__(self, shape):
         """
@@ -100,6 +143,52 @@ class ShapeResult:
             raise ShapeInferenceException(
                 "This shape is not a tensor %r." % self)
         return len(self.shape)
+
+    def merge(self, other_result):
+        """
+        Merges constraints from *other_results* into *self*.
+        """
+        if (self.mtype != other_result.mtype or
+                self.dtype != other_result.dtype or
+                self.sparse != other_result.sparse):
+            raise RuntimeError(
+                "Unable to merge %r and %r." % (self, other_result))
+        if len(self.shape) != len(other_result.shape):
+            raise RuntimeError(
+                "Length mismatch, unable to merge %r and %r." % (
+                    self, other_result))
+        updated = False
+        if other_result.constraints is not None:
+            for c in other_result.constraints:
+                if c not in self.constraints:
+                    self.constraints.append(c)
+                    updated = True
+        for a, b in zip(self.shape, other_result.shape):
+            if a == b:
+                continue
+            if isinstance(a, int) and isinstance(b, int):
+                raise RuntimeError(
+                    "Inconsistancy between %r and %r." % (
+                        self, other_result))
+            elif isinstance(a, str):
+                c = ShapeConstraint(a, {b})
+                if c not in self.constraints:
+                    updated = True
+                    self.constraints.append(c)
+            elif isinstance(b, str):
+                c = ShapeConstraint(b, {a})
+                if c not in self.constraints:
+                    updated = True
+                    self.constraints.append(c)
+            else:
+                raise NotImplementedError(
+                    "Merge not implemented between %r and %r." % (
+                        self, other_result))
+        if len(self.constraints) > 4:
+            raise RuntimeError(
+                "The number of constraints should not that many (%r)." % (
+                    self.constraints))
+        return updated
 
     @staticmethod
     def broadcast(sh1, sh2):
@@ -127,7 +216,7 @@ class ShapeResult:
                 "Cannot broadcast shapes %r and %r (dtypes)."
                 "" % (sh1, sh2))
 
-        constraints = []
+        constraints = ShapeConstraintList()
         shape = []
         for a, b in zip(sh1.shape, sh2.shape):
             if isinstance(a, int) and isinstance(b, int):
@@ -141,11 +230,17 @@ class ShapeResult:
                 else:
                     d = a
             elif isinstance(a, int):
-                d = b
-                constraints.append(ShapeConstraint(b, {1, a, b}))
+                if a != 1:
+                    d = a
+                    constraints.append(ShapeConstraint(b, {1, a}))
+                else:
+                    d = b
             elif isinstance(b, int):
-                d = a
-                constraints.append(ShapeConstraint(a, {1, b, a}))
+                if b != 1:
+                    d = b
+                    constraints.append(ShapeConstraint(a, {1, b}))
+                else:
+                    d = a
             elif a == b:
                 d = a
             else:

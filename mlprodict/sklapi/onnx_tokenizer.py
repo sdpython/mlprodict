@@ -11,7 +11,10 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from onnx import helper, TensorProto, load
 from onnx.defs import onnx_opset_version
 from onnxruntime import InferenceSession, SessionOptions
-from onnxruntime_extensions import get_library_path
+try:
+    from onnxruntime_extensions import get_library_path
+except ImportError:
+    get_library_path = None
 
 
 class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
@@ -60,6 +63,9 @@ class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
         self.add_bos = add_bos
         self.add_eos = add_eos
         self.opset = opset
+        if get_library_path is None:
+            raise ImportError(
+                "onnxruntime_extensions is not installed.")
 
     def __getstate__(self):
         state = BaseEstimator.__getstate__(self)
@@ -68,6 +74,9 @@ class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
         return state
 
     def __setstate__(self, state):
+        if get_library_path is None:
+            raise ImportError(
+                "onnxruntime_extensions is not installed.")
         state['onnx_'] = load(BytesIO(state['onnx_']))
         BaseEstimator.__setstate__(self, state)
         so = SessionOptions()
@@ -171,6 +180,9 @@ class GPT2TokenizerTransformer(BaseEstimator, TransformerMixin):
         self.merges = merges
         self.padding_length = padding_length
         self.opset = opset
+        if get_library_path is None:
+            raise ImportError(
+                "onnxruntime_extensions is not installed.")
 
     def __getstate__(self):
         state = BaseEstimator.__getstate__(self)
@@ -179,6 +191,9 @@ class GPT2TokenizerTransformer(BaseEstimator, TransformerMixin):
         return state
 
     def __setstate__(self, state):
+        if get_library_path is None:
+            raise ImportError(
+                "onnxruntime_extensions is not installed.")
         state['onnx_'] = load(BytesIO(state['onnx_']))
         BaseEstimator.__setstate__(self, state)
         so = SessionOptions()

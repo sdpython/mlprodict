@@ -7,8 +7,10 @@ from onnx.shape_inference import infer_shapes
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd)
+from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt import OnnxShapeInference
-from mlprodict.onnxrt.ops_shape.shape_result import ShapeResult
+from mlprodict.onnxrt.ops_shape.shape_result import (
+    ShapeResult, ShapeConstraint, ShapeConstraintList)
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.tools import get_opset_number_from_onnx
 
@@ -23,7 +25,8 @@ class TestOnnxShapeInference(ExtTestCase):
         for data in inferred:
             if data.name not in out:
                 raise AssertionError("Name %r not found." % data.name)
-            shape, dtype, sparse = OnnxShapeInference._get_shape(data)  # pylint: disable=W0212
+            shape, dtype, sparse = OnnxShapeInference._get_shape(
+                data)  # pylint: disable=W0212
             for i in range(len(shape)):
                 if not isinstance(shape[i], str):
                     continue
@@ -37,7 +40,16 @@ class TestOnnxShapeInference(ExtTestCase):
                         data.name, res, out[data.name],
                         onnx_simple_text_plot(onx)))
 
-    def test_onnx_micro_runtime(self):
+    def test_shape_constraint(self):
+        sh1 = ShapeConstraint('_1', {1, 2})
+        sh2 = ShapeConstraint('_1', {1, 2})
+        self.assertEqual(sh1, sh2)
+        shl = ShapeConstraintList()
+        shl.append(sh1)
+        self.assertIn(sh1, shl)
+        self.assertIn(sh2, shl)
+
+    def test_onnx_shape_inference(self):
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -55,20 +67,62 @@ class TestOnnxShapeInference(ExtTestCase):
                 self.assertIn('Ad_Addcst', out)
                 self.assertEqual(len(out), 5)
                 self.assertIn(
-                    "Ad_C0: ShapeResult([3, 2], dtype('float32'), "
-                    "True, <OnnxKind.Tensor: 0>)", str(out))
+                    "'Ad_C0': ShapeResult(['_0', 2], dtype('float32'), "
+                    "False, <OnnxKind.Tensor: 0>", str(out))
                 self.check_infer_shapes(model_def, rt.run(), rt)
                 cons = rt.known_shapes_.get_all_constraints()
-                self.assertEqual(len(cons), 1)
-                self.assertEqual(list(cons), ['_0'])
+                self.assertEqual(len(cons), 2)
+                self.assertEqual(list(cons), ['_0', '_1'])
                 self.assertEqual(len(cons['_0']), 1)
                 cst = cons['_0'][0]
                 self.assertEqual(cst.name, '_0')
-                self.assertEqual(cst.values, {1, '_0'})
+                self.assertEqual(cst.values, {3})
                 self.assertEqual(
                     rt.known_shapes_.names,
                     {'_0': ('', 'X', 0), '_1': ('', 'Y', 0)})
 
+    def test_onnx_shape_inference_missing(self):
+        dtype = numpy.float32
+        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((3, 2))
+        for opset in TestOnnxShapeInference.opsets[-1:]:
+            with self.subTest(opset=opset):
+                cop = OnnxAdd('X', numpy.array(
+                    [[1]], dtype=dtype), op_version=opset)
+                cop4 = OnnxAdd(cop, numpy.array([[2, 4]], dtype=dtype), op_version=opset,
+                               output_names=['Y'])
+                model_def = cop4.to_onnx(
+                    {'X': FloatTensorType([None, None])},
+                    {'Y': FloatTensorType([None, None])},
+                    target_opset=opset)
+                rt = OnnxShapeInference(model_def)
+                out = rt.run({'X': x})
+                self.assertIn('X', out)
+                self.assertIn('Y', out)
+                self.assertIn('Ad_Addcst', out)
+                self.assertEqual(len(out), 5)
+                self.assertIn(
+                    "'Ad_C0': ShapeResult(['_0', '_1'], dtype('float32'), "
+                    "False, <OnnxKind.Tensor: 0>", str(out))
+                out = rt.run()
+                self.assertIn(
+                    "'Y': ShapeResult(['_2', '_3']", str(out))
+                self.check_infer_shapes(model_def, rt.run(), rt)
+                cons = rt.known_shapes_.get_all_constraints()
+                self.assertEqual(len(rt.known_shapes_.names), 4)
+                self.assertEqual(set(rt.known_shapes_.names),
+                                 {'_0', '_1', '_2', '_3'})
+                self.assertEqual(len(cons), 4)
+                self.assertEqual(list(cons), ['_0', '_1', '_2', '_3'])
+                self.assertEqual(len(cons['_1']), 1)
+                cst = cons['_1'][0]
+                self.assertEqual(cst.name, '_1')
+                self.assertEqual(cst.values, {2})
+                self.assertEqual(
+                    rt.known_shapes_.names,
+                    {'_0': ('', 'X', 0), '_1': ('', 'X', 1),
+                     '_2': ('', 'Y', 0), '_3': ('', 'Y', 1)})
+
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)
