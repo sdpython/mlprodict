@@ -32,6 +32,9 @@ class ShapeConstraint:
     def __init__(self, name, values):
         if name == '?':
             raise ValueError("Name cannot be '?'.")
+        if not isinstance(values, set):
+            raise TypeError(
+                "values must be a set not %r." % type(values))
         self.name = name
         self.values = values
 
@@ -95,7 +98,7 @@ class ShapeResult:
 
     :param shape: shape if the result is a tensor
     :param dtype: element type if the result is a tensor
-    :param sparse: is a the tensor sparse
+    :param sparse: is the tensor sparse
     :param mtype: kind of the result (see class @see cl OnnxKind)
     :param constraints: list of constraints applying on variables
     """
@@ -200,6 +203,33 @@ class ShapeResult:
                 "The number of constraints should not that many (%r)." % (
                     self.constraints))
         return updated
+
+    def resolve(self, variables):
+        """
+        Results variables in a shape using values stored
+        in *variables*. It does not copy any constraints.
+
+        :param variables: dictionary `{ name: values }`
+        :return: new ShapeResult
+        """
+        res = ShapeResult(shape=self.shape, dtype=self.dtype,
+                          sparse=self.sparse, mtype=self.mtype)
+        for i in range(len(res.shape)):  # pylint: disable=C0200
+            v = res.shape[i]
+            if isinstance(v, str):
+                if v in variables:
+                    vals = variables[v]
+                    if len(vals) == 1:
+                        res.shape[i] = list(vals)[0]
+                    else:
+                        raise RuntimeError(
+                            "Unable to resolve shape %r due to ambiguities "
+                            "for %r: %r." % (self, v, vals))
+                else:
+                    raise RuntimeError(
+                        "Unable to resolve shape %r due to missing "
+                        "%r." % (self, v))
+        return res
 
     @staticmethod
     def broadcast(sh1, sh2):

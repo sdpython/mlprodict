@@ -7,7 +7,14 @@ from .shape_result import ShapeResult
 
 class ShapeContainer:
     """
-    Stores all infered shapes.
+    Stores all infered shapes as @see cl ShapeResult.
+
+    Attributes:
+
+    * `shapes`: dictionary `{ result name: ShapeResult }`
+    * `names`: some dimensions are unknown and represented as
+        variables, this dictionary keeps track of them
+    * `names_rev`: reverse dictionary of `names`
     """
 
     def __init__(self):
@@ -99,7 +106,7 @@ class ShapeContainer:
 
     def get_all_constraints(self):
         """
-        Gathers all constraintes while inferring the shape.
+        Gathers all constraints.
         """
         cons = {}
         for _, v in self.shapes.items():
@@ -113,3 +120,95 @@ class ShapeContainer:
                 v[0].merge(v[1:])
             del v[1:]
         return cons
+
+    def get(self):
+        """
+        Returns the value of attribute `resolved_`
+        (method `resolve()` must have been called first).
+        """
+        if not hasattr(self, 'resolved_') or self.resolved_ is None:
+            raise AttributeError(
+                "Attribute 'resolved_' is missing. You must run "
+                "method 'resolve()'.")
+        return self.resolved_
+
+    def resolve(self):
+        """
+        Resolves all constraints. It adds the attribute
+        `resolved_`.
+        """
+        def vars_in_values(values):
+            i_vals, s_vals = [], []
+            for v in values:
+                if isinstance(v, str):
+                    s_vals.append(v)
+                else:
+                    i_vals.append(v)
+            return set(i_vals), s_vals
+
+        variables = {}
+        for _, v in self.shapes.items():
+            for sh in v.shape:
+                if isinstance(sh, str):
+                    variables[sh] = None
+
+        # first step: resolves all constraint with integer
+        dcsts = self.get_all_constraints()
+        csts = []
+        for li in dcsts.values():
+            csts.extend(li)
+        new_csts = []
+        for cst in csts:
+            if cst.name in variables and variables[cst.name] is None:
+                if all(map(lambda n: isinstance(n, int), cst.values)):
+                    variables[cst.name] = cst.values.copy()
+                else:
+                    new_csts.append(cst)
+            else:
+                raise RuntimeError(  # pragma: no cover
+                    "Unable to find any correspondance for variable %r "
+                    "in %r." % (cst.name, ", ".join(sorted(variables))))
+
+        # second step: everything else, like a logic algorithm
+        cont = True
+        csts = new_csts
+        while cont and len(new_csts) > 0:
+            cont = False
+            new_csts = []
+            for cst in csts:
+                rvalues = variables[cst.name]
+                ivalues, lvars = vars_in_values(cst.values)
+
+                if len(lvars) > 0:
+                    miss = 0
+                    for lv in lvars:
+                        if lv in variables and variables[lv] is not None:
+                            ivalues |= variables[lv]
+                        else:
+                            miss += 1
+
+                if miss == 0:
+                    # simple case: only integers
+                    if rvalues is None:
+                        inter = ivalues
+                    else:
+                        inter = rvalues.intersection(ivalues)
+                    if len(inter) == 0:
+                        raise RuntimeError(  # pragma: no cover
+                            "Resolution failed for variable %r, "
+                            "current possibilities %r does not match "
+                            "constraint %r." % (cst.name, rvalues, cst))
+                    if rvalues is None or len(inter) < len(rvalues):
+                        variables[cst.name] = inter
+                    else:
+                        continue
+
+                cont = True
+                new_csts.append(cst)
+
+        # final
+        results = {}
+        for k, v in self.shapes.items():
+            results[k] = v.resolve(variables)
+        self.resolved_ = results
+        return self.resolved_

@@ -49,7 +49,7 @@ class TestOnnxShapeInference(ExtTestCase):
         self.assertIn(sh1, shl)
         self.assertIn(sh2, shl)
 
-    def test_onnx_shape_inference(self):
+    def _test_onnx_shape_inference(self):
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -122,6 +122,12 @@ class TestOnnxShapeInference(ExtTestCase):
                     rt.known_shapes_.names,
                     {'_0': ('', 'X', 0), '_1': ('', 'X', 1),
                      '_2': ('', 'Y', 0), '_3': ('', 'Y', 1)})
+                get = out.get()
+                self.assertEqual(get['X'].shape, get['Y'].shape)
+                self.assertEqual(get['Ad_C0'].shape, get['Y'].shape)
+                self.assertEqual(get['Ad_C0'].shape[1], 2)
+                self.assertEqual(len(get['Ad_C0'].shape), 2)
+                self.assertIsInstance(get['Ad_C0'].shape[0], str)
 
 
 if __name__ == "__main__":

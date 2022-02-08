@@ -91,10 +91,10 @@ class OnnxShapeInference:
         :param inputs: inputs
         :return: all results
         """
-        if inputs is None:
-            return self.known_shapes_
-
         known_shapes = self.known_shapes_.copy()
+        if inputs is None:
+            known_shapes.resolve()
+            return known_shapes
 
         cont = False
         for name, obj in inputs.items():
@@ -108,4 +108,5 @@ class OnnxShapeInference:
             for node in self.model_onnx.graph.node:
                 cont = cont or shape_dispatch(known_shapes, node)
 
+        known_shapes.resolve()
         return known_shapes
