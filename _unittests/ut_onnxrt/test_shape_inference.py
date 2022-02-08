@@ -49,7 +49,7 @@ class TestOnnxShapeInference(ExtTestCase):
         self.assertIn(sh1, shl)
         self.assertIn(sh2, shl)
 
-    def _test_onnx_shape_inference(self):
+    def test_onnx_shape_inference(self):
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -71,12 +71,12 @@ class TestOnnxShapeInference(ExtTestCase):
                     str(out))
                 self.check_infer_shapes(model_def, rt.run(), rt)
                 cons = rt.known_shapes_.get_all_constraints()
-                self.assertEqual(len(cons), 2)
-                self.assertEqual(list(cons), ['_0', '_1'])
-                self.assertEqual(len(cons['_0']), 1)
-                cst = cons['_0'][0]
-                self.assertEqual(cst.name, '_0')
-                self.assertEqual(cst.values, {3})
+                self.assertEqual(len(cons), 1)
+                self.assertEqual(list(cons), ['_1'])
+                self.assertEqual(len(cons['_1']), 1)
+                cst = cons['_1'][0]
+                self.assertEqual(cst.name, '_1')
+                self.assertEqual(cst.values, {'_0'})
                 self.assertEqual(
                     rt.known_shapes_.names,
                     {'_0': ('', 'X', 0), '_1': ('', 'Y', 0)})
@@ -112,20 +112,20 @@ class TestOnnxShapeInference(ExtTestCase):
                 self.assertEqual(len(rt.known_shapes_.names), 4)
                 self.assertEqual(set(rt.known_shapes_.names),
                                  {'_0', '_1', '_2', '_3'})
-                self.assertEqual(len(cons), 4)
-                self.assertEqual(list(cons), ['_0', '_1', '_2', '_3'])
+                self.assertEqual(len(cons), 3)
+                self.assertEqual(list(cons), ['_1', '_2', '_3'])
                 self.assertEqual(len(cons['_1']), 1)
                 cst = cons['_1'][0]
                 self.assertEqual(cst.name, '_1')
-                self.assertEqual(cst.values, {2})
+                self.assertEqual(cst.values, {1, 2})
                 self.assertEqual(
                     rt.known_shapes_.names,
                     {'_0': ('', 'X', 0), '_1': ('', 'X', 1),
                      '_2': ('', 'Y', 0), '_3': ('', 'Y', 1)})
                 get = out.get()
-                self.assertEqual(get['X'].shape, get['Y'].shape)
-                self.assertEqual(get['Ad_C0'].shape, get['Y'].shape)
-                self.assertEqual(get['Ad_C0'].shape[1], 2)
+                self.assertEqual(get['Ad_C0'].shape, ['d0', {1, 2}])
+                self.assertEqual(get['Y'].shape, ['d0', 2])
+                self.assertEqual(get['X'].shape, ['d0', {1, 2}])
                 self.assertEqual(len(get['Ad_C0'].shape), 2)
                 self.assertIsInstance(get['Ad_C0'].shape[0], str)
 

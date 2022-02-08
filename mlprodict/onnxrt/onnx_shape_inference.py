@@ -91,7 +91,7 @@ class OnnxShapeInference:
         :param inputs: inputs
         :return: all results
         """
-        known_shapes = self.known_shapes_.copy()
+        known_shapes = self.known_shapes_.copy(deep=True)
         if inputs is None:
             known_shapes.resolve()
             return known_shapes

@@ -61,6 +61,12 @@ class ShapeConstraint:
             return
         self.values = self.values.intersection(cst.values)
 
+    def copy(self, deep=False):
+        """
+        Makes a copy of the object.
+        """
+        return ShapeConstraint(self.name, self.values.copy())
+
 
 class ShapeConstraintList:
     """
@@ -89,6 +95,17 @@ class ShapeConstraintList:
 
     def __len__(self):
         return len(self.csts)
+
+    def copy(self, deep=False):
+        """
+        Copies the object.
+        """
+        cp = ShapeConstraintList()
+        if deep:
+            cp.csts = [v.copy(deep=deep) for v in self]
+        else:
+            cp.csts = self.csts.copy()
+        return cp
 
 
 class ShapeResult:
@@ -121,6 +138,13 @@ class ShapeResult:
         else:
             raise TypeError(
                 "constraints must be of type(ShapeConstraintList).")
+
+    def copy(self, deep=False):
+        """
+        Returns a copy for the result.
+        """
+        return ShapeResult(self.shape, self.dtype, self.sparse,
+                           self.mtype, self.constraints.copy(deep=deep))
 
     def __repr__(self):
         """
@@ -219,12 +243,13 @@ class ShapeResult:
             if isinstance(v, str):
                 if v in variables:
                     vals = variables[v]
+                    if vals is None:
+                        raise RuntimeError(
+                            "Inconclusive shape (None) for v=%r." % v)
                     if len(vals) == 1:
                         res.shape[i] = list(vals)[0]
                     else:
-                        raise RuntimeError(
-                            "Unable to resolve shape %r due to ambiguities "
-                            "for %r: %r." % (self, v, vals))
+                        res.shape[i] = set(vals)
                 else:
                     raise RuntimeError(
                         "Unable to resolve shape %r due to missing "

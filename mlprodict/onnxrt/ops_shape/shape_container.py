@@ -30,10 +30,10 @@ class ShapeContainer:
         "Retrieves one shape from its name."
         return self.shapes[key]
 
-    def copy(self):
+    def copy(self, deep=False):
         "Makes a copy."
         cont = ShapeContainer()
-        cont.shapes = self.shapes.copy()
+        cont.shapes = {k: v.copy(deep=deep) for k, v in self.shapes.items()}
         cont.names = self.names.copy()
         cont.names_rev = {k: v.copy() for k, v in self.names_rev.items()}
         return cont
@@ -170,10 +170,11 @@ class ShapeContainer:
                     "in %r." % (cst.name, ", ".join(sorted(variables))))
 
         # second step: everything else, like a logic algorithm
-        cont = True
+        dim_names = set()
         csts = new_csts
-        while cont and len(new_csts) > 0:
-            cont = False
+        updates = 1
+        while updates > 0 and len(new_csts) > 0:
+            updates = 0
             new_csts = []
             for cst in csts:
                 rvalues = variables[cst.name]
@@ -200,11 +201,43 @@ class ShapeContainer:
                             "constraint %r." % (cst.name, rvalues, cst))
                     if rvalues is None or len(inter) < len(rvalues):
                         variables[cst.name] = inter
+                        updates += 1
                     else:
                         continue
+                elif len(dim_names) > 0:
+                    # more complex case: variables
+                    if len(cst.values) == 1 and len(lvars) == 1:
+                        # exact mapping between cst.name and lvars[0]
+                        a, b = cst.name, lvars[0]
+                        if variables[a] is None and variables[b] is not None:
+                            if variables[b].intersection(dim_names):
+                                variables[a] = variables[b]
+                                updates += 1
+                                continue
+                        elif variables[b] is None and variables[a] is not None:
+                            if variables[a].intersection(dim_names):
+                                variables[b] = variables[a]
+                                updates += 1
+                                continue
 
-                cont = True
                 new_csts.append(cst)
+                csts = new_csts
+
+            if len(new_csts) > 0 and updates == 0:
+                # It means that a dimension needs to be left unknown.
+                found = None
+                for k, v in variables.items():
+                    if v is None:
+                        found = k
+                if found is not None:
+                    name = "d%d" % len(dim_names)
+                    dim_names.add(name)
+                    variables[found] = {name}
+                    updates += 1
+                else:
+                    raise RuntimeError(
+                        "Inconsistency in %r with\n%r" % (
+                            self, variables))
 
         # final
         results = {}
