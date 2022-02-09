@@ -195,9 +195,9 @@ class TestOnnxComplexScenario(ExtTestCase):
 
         def tf_fft(x):
             import tensorflow as tf  # pylint: disable=E0401
-            xc = tf.cast(x, tf.complex64)
-            xcf = tf.signal.fft(xc)
-            return tf.abs(xcf)
+            xc = tf.cast(x, tf.complex64)  # pylint: disable=E1101
+            xcf = tf.signal.fft(xc)  # pylint: disable=E1101
+            return tf.abs(xcf)  # pylint: disable=E1101
 
         try:
             tfx = tf_fft(x)

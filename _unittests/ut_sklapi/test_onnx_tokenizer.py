@@ -9,6 +9,10 @@ import os
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 try:
+    from onnxruntime_extensions import get_library_path
+except ImportError:
+    get_library_path = None
+try:
     from mlprodict.sklapi.onnx_tokenizer import (
         SentencePieceTokenizerTransformer, GPT2TokenizerTransformer)
 except ImportError:
@@ -28,6 +32,8 @@ class TestOnnxTokenizer(ExtTestCase):
         return numpy.array(list(t), dtype=numpy.uint8), b64
 
     @unittest.skipIf(GPT2TokenizerTransformer is None,
+                     reason="onnxruntime-extensions not available")
+    @unittest.skipIf(get_library_path is None,
                      reason="onnxruntime-extensions not available")
     def test_sentence_piece_tokenizer_transformer(self):
         model, model_b64 = self._load_piece()
@@ -63,6 +69,8 @@ class TestOnnxTokenizer(ExtTestCase):
                     return
 
     @unittest.skipIf(GPT2TokenizerTransformer is None,
+                     reason="onnxruntime-extensions not available")
+    @unittest.skipIf(get_library_path is None,
                      reason="onnxruntime-extensions not available")
     def test_gpt2_tokenizer_transformer(self):
         vocab = os.path.join(

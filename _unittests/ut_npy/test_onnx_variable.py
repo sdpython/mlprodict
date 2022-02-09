@@ -10,7 +10,8 @@ from mlprodict.npy import onnxnumpy, onnxnumpy_default, onnxnumpy_np
 import mlprodict.npy.numpy_onnx_impl as nxnp
 from mlprodict.npy.onnx_version import FctVersion
 from mlprodict.npy import (
-    OnnxNumpyCompiler as ONC, NDArray, NDArraySameTypeSameShape)
+    OnnxNumpyCompiler as ONC, NDArray, NDArraySameTypeSameShape,
+    NDArrayType)
 
 
 @ignore_warnings(DeprecationWarning)
@@ -464,7 +465,64 @@ def onnx_log_1r_mul(x: NDArray[Any, numpy.float32]) -> NDArray[Any, numpy.float3
     return nxnp.log(numpy.float32(2) * x)
 
 
+@onnxnumpy_np(runtime='onnxruntime',
+              signature=NDArrayType(("T:all", "T"), dtypes_out=('T',)))
+def onnx_square_loss(X, Y):
+    return nxnp.sum((X - Y) ** 2, keepdims=1)
+
+
+@onnxnumpy_np(runtime='onnxruntime',
+              signature=NDArrayType(("T:all", "T"), dtypes_out=('T',)))
+def onnx_log_loss(y, s):
+    one = numpy.array([1], dtype=s.dtype)
+    ceps = numpy.array([1e-6], dtype=s.dtype)
+    ps = nxnp.clip(nxnp.expit(-s), ceps, 1 - ceps)
+    ls = (-y + one) * nxnp.log(-ps + one) + y * nxnp.log(ps)
+    return nxnp.sum(ls, keepdims=1)
+
+
+@onnxnumpy_np(runtime='onnxruntime',
+              signature=NDArrayType(("T:all", "T"), dtypes_out=('T',)))
+def onnx_log_loss_eps(y, s, eps=1e-6):
+    one = numpy.array([1], dtype=s.dtype)
+    ceps = numpy.array([eps], dtype=s.dtype)
+    ps = nxnp.clip(nxnp.expit(-s), ceps, 1 - ceps)
+    ls = (-y + one) * nxnp.log(one - ps) + y * nxnp.log(ps)
+    return nxnp.sum(ls, keepdims=1)
+
+
 class TestOnnxVariable(ExtTestCase):
+
+    def test_onnx_square_loss(self):
+        x = numpy.array([6, 7], dtype=numpy.float32)
+        n1 = onnx_square_loss(x, x)
+        x = numpy.array([6, 7], dtype=numpy.float64)
+        n2 = onnx_square_loss(x, x)
+        self.assertEqualArray(n1, n2, decimal=4)
+        onx = onnx_square_loss.to_onnx(key=numpy.float32)
+        self.assertNotEmpty(onx)
+
+    def test_onnx_log_loss(self):
+        y = numpy.array([0, 1], dtype=numpy.float32)
+        s = numpy.array([6, 7], dtype=numpy.float32)
+        n1 = onnx_log_loss(y, s)
+        y = y.astype(numpy.float64)
+        s = s.astype(numpy.float64)
+        n2 = onnx_log_loss(y, s)
+        self.assertEqualArray(n1, n2, decimal=4)
+        onx = onnx_log_loss.to_onnx(key=numpy.float32)
+        self.assertNotEmpty(onx)
+
+    def test_onnx_log_loss_eps(self):
+        y = numpy.array([0, 1], dtype=numpy.float32)
+        s = numpy.array([6, 7], dtype=numpy.float32)
+        n1 = onnx_log_loss_eps(y, s)
+        y = y.astype(numpy.float64)
+        s = s.astype(numpy.float64)
+        n2 = onnx_log_loss_eps(y, s)
+        self.assertEqualArray(n1, n2, decimal=4)
+        onx = onnx_log_loss.to_onnx(key=numpy.float32)
+        self.assertNotEmpty(onx)
 
     def test_py_abs(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)

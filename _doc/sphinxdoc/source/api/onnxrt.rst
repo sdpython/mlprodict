@@ -23,6 +23,22 @@ on the following operators :ref:`l-onnx-runtime-operators`.
 .. autosignature:: mlprodict.onnxrt.onnx_micro_inference.OnnxMicroRuntime
     :members: run
 
+The following is technically implemented as a runtime but it does
+shape inference.
+
+.. autosignature:: mlprodict.onnxrt.onnx_shape_inference.OnnxShapeInference
+    :members: run
+
+The execution produces a result of type:
+
+.. autosignature:: mlprodict.onnxrt.ops_shape.shape_container.ShapeContainer
+    :members: get
+
+Methods `get` returns a dictionary mapping result name and the following type:
+
+.. autosignature:: mlprodict.onnxrt.ops_shape.shape_result.ShapeResult
+    :members:
+
 Python to ONNX
 ++++++++++++++
 
@@ -122,25 +138,3 @@ C++ classes
 .. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_fetch_float
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu._op_onnx_numpy.topk_element_fetch_int64
-
-Shapes
-++++++
-
-The computation of the predictions through epkg:`ONNX` may
-be optimized if the shape of every nodes is known. For example,
-one possible optimisation is to do inplace computation every time
-it is possible but this is only possible if the size of
-the input and output are the same. We could compute the predictions
-for a sample and check the sizes are the same
-but that could be luck. We could also guess from a couple of samples
-with different sizes and assume sizes and polynomial functions
-of the input size. But in rare occasions, that could be luck too.
-So one way of doing it is to implement a method
-:meth:`_set_shape_inference_runtime
-<mlprodict.onnxrt.onnx_inference.OnnxInference._set_shape_inference_runtime>`
-which works the same say as method :meth:`_run_sequence_runtime
-<mlprodict.onnxrt.onnx_inference.OnnxInference._run_sequence_runtime>`
-but handles shapes instead. Following class tries to implement
-a way to keep track of shape along the shape.
-
-.. autosignature:: mlprodict.onnxrt.shape_object.ShapeObject

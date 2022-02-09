@@ -258,14 +258,17 @@ class wrapper_onnxnumpy_np:
             return self.signed_compiled[key].compiled.onnx_
         found = []
         for k, v in self.signed_compiled.items():
-            if k.args == key or (
-                    not isinstance(key, tuple) and k.args == (key, )):
+            if k.args == key:
+                found.append((k, v))
+            elif isinstance(key, tuple) and k.args == key:
+                found.append((k, v))
+            elif k.args == (key, ) * len(k.args):
                 found.append((k, v))
         if len(found) == 1:
             return found[0][1].compiled.onnx_
         raise ValueError(
-            "Unable to find signature with key=%r among %r." % (
-                key, list(self.signed_compiled)))
+            "Unable to find signature with key=%r among %r found=%r." % (
+                key, list(self.signed_compiled), found))
 
 
 def onnxnumpy_np(op_version=None, runtime=None, signature=None):
