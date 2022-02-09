@@ -56,6 +56,7 @@ class OnnxVar:
 
     .. versionadded:: 0.6
     """
+    __array_ufunc__ = None
 
     def __init__(self, *inputs, op=None, select_output=None,
                  dtype=None, **kwargs):
@@ -76,8 +77,8 @@ class OnnxVar:
             if (inp.size > 0 and
                     isinstance(inp.ravel()[0], (numpy.ndarray, OnnxVar))):
                 raise TypeError(  # pragma: no cover
-                    "Unexpected type for input %d: %r, %r."
-                    "" % (i, type(inp), inp.ravel()[0]))
+                    "Unexpected type for input %d: %r, %r, "
+                    "op=%r" % (i, type(inp), inp.ravel()[0], op))
         self.dtype = self._guess_dtype(dtype, from_init=True)
 
     def _guess_dtype(self, dtype, from_init=False):
