@@ -432,7 +432,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
         model.fit(x, y)
         onx = to_onnx(model, x.astype(numpy.float32),
                       target_opset=15)
-        text = onnx_simple_text_plot(onx, verbose=Falsen add_links=True)
+        text = onnx_simple_text_plot(onx, verbose=False, add_links=True)
         print(text)
 
     Visually, it looks like the following:
