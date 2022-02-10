@@ -5,14 +5,26 @@
 History
 =======
 
-current - 2021-12-29 - 0.00Mb
+current - 2022-02-10 - 0.00Mb
 =============================
 
-* #322: Add tokenizers with onnxruntime-extensions (2021-12-29)
+* #350: First version of runtime OnnxShapeInference (2022-02-09)
+* #348: Moves OnnxMicroRuntime to onnxrt (2022-02-05)
+* #346: Adds runtime for operator CastLike (2022-02-05)
+* #347: numpy API for onnx: wrapped function can call other wrapped functions (2022-02-04)
+* #345: Improves command line to measure latency for a model (2022-02-03)
+* #344: Adds a method to_onnx to easily retrieve the onnx graph from numpy onnx function (2022-02-03)
+* #343: Shows links in onnx_simple_text_plot (2022-02-03)
+* #342: Displays small arrays in onnx_simple_text_plot (2022-01-22)
+
+0.8.1674 - 2021-12-30 - 1.94Mb
+==============================
+
 * #340: Implements tokenizer following scikit-learn's API using onnxruntime-extensions (2021-12-29)
-* #335: op_label_encoder support for keys_strings & values_floats  (2021-12-29)
-* #338: Updated to support key_strings and values_floats combo (2021-12-29)
 * #339: op_label_encoder support for keys_strings & values_floats (2) (replaces #335) (2021-12-29)
+* #338: Updated to support key_strings and values_floats combo (2021-12-29)
+* #335: op_label_encoder support for keys_strings & values_floats (2021-12-29)
+* #322: Add tokenizers with onnxruntime-extensions (2021-12-29)
 * #337: Supports operator Scan when exporting an onnx graph to onnx code (2021-12-21)
 * #336: Enables GPU with OnnxInference and onnxruntime (2021-12-21)
 
