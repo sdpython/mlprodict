@@ -14,3 +14,4 @@ from .onnx_sklearn_wrapper import (
     update_registered_converter_npy, onnxsklearn_class,
     onnxsklearn_transformer, onnxsklearn_regressor,
     onnxsklearn_classifier, onnxsklearn_cluster)
+from .onnx_version import FctVersion

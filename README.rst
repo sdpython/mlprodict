@@ -59,9 +59,15 @@ mlprodict
     :alt: size
 
 *mlprodict* was initially started to help implementing converters
-to *ONNX*. The main feature is a python runtime for
-*ONNX*. It gives feedback when the execution fails.
-The package provides tools to compare
+to *ONNX*. The main features is a python runtime for
+*ONNX* (class `OnnxInference
+<http://www.xavierdupre.fr/app/mlprodict/helpsphinx/mlprodict/onnxrt/onnx_inference.html>`_),
+visualization tools
+(see `
+<http://www.xavierdupre.fr/app/mlprodict/helpsphinx/api/tools.html#visualization>`_),
+and a `numpy API for ONNX
+<http://www.xavierdupre.fr/app/mlprodict/helpsphinx/tutorial/numpy_api_onnx.html>`_).
+The package also provides tools to compare
 predictions, to benchmark models converted with
 `sklearn-onnx <https://github.com/onnx/sklearn-onnx/tree/master/skl2onnx>`_.
 

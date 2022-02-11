@@ -197,7 +197,7 @@ them:
   a code based on ONNX API which replicates the ONNX graph
   (see :func:`export2onnx
   <mlprodict.onnx_tools.onnx_export.export2onnx>`)
-* **Export ONNX graph to :epkg:`tf2onnx`**: still a function which
+* **Export ONNX graph to** :epkg:`tf2onnx`: still a function which
   creates an ONNX graph but based on :epkg:`tf2onnx` API
   (see :func:`export2tf2onnx
   <mlprodict.onnx_tools.onnx_export.export2tf2onnx>`)

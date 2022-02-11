@@ -21,6 +21,10 @@ function converted in ONNX.
 Everybody playing with :epkg:`scikit-learn` knows :epkg:`numpy`
 then it should be possible to write a function using :epkg:`numpy`
 and automatically have it converted into :epkg:`ONNX`.
+This tutorial focuses more on the implementation of custom
+transformer for :epkg:`scikit-learn`. Notebook
+:ref:`lossfunctionsrst` focuses on the implementation of
+loss functions to train machine learned models.
 
 This API was first added to *mlprodict* in version 0.6.
 
