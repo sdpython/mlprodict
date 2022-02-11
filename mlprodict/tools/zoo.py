@@ -28,28 +28,28 @@ def short_list_zoo_models():
     """
     return [
         dict(name="mobilenet",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/mobilenet/model/mobilenetv2-7.tar.gz"),
         dict(name="resnet18",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/resnet/model/resnet18-v1-7.tar.gz"),
         dict(name="squeezenet",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/squeezenet/model/squeezenet1.0-9.tar.gz",
              folder="squeezenet"),
         dict(name="densenet121",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/densenet-121/model/densenet-9.tar.gz",
              folder="densenet121"),
         dict(name="inception2",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/inception_and_googlenet/inception_v2/"
                    "model/inception-v2-9.tar.gz"),
         dict(name="shufflenet",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/shufflenet/model/shufflenet-9.tar.gz"),
         dict(name="efficientnet-lite4",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/efficientnet-lite4/model/"
                    "efficientnet-lite4-11.tar.gz"),
     ]

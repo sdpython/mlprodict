@@ -63,7 +63,7 @@ to *ONNX*. The main features is a python runtime for
 *ONNX* (class `OnnxInference
 <http://www.xavierdupre.fr/app/mlprodict/helpsphinx/mlprodict/onnxrt/onnx_inference.html>`_),
 visualization tools
-(see `
+(see `Visualization
 <http://www.xavierdupre.fr/app/mlprodict/helpsphinx/api/tools.html#visualization>`_),
 and a `numpy API for ONNX
 <http://www.xavierdupre.fr/app/mlprodict/helpsphinx/tutorial/numpy_api_onnx.html>`_).
