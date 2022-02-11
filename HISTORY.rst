@@ -5,9 +5,10 @@
 History
 =======
 
-current - 2022-02-10 - 0.00Mb
+current - 2022-02-11 - 0.00Mb
 =============================
 
+* #351: Adds name in ShapeResult, fixes zoo links (2022-02-11)
 * #350: First version of runtime OnnxShapeInference (2022-02-09)
 * #348: Moves OnnxMicroRuntime to onnxrt (2022-02-05)
 * #346: Adds runtime for operator CastLike (2022-02-05)
