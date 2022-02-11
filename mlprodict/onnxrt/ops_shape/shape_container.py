@@ -43,9 +43,11 @@ class ShapeContainer:
         Updates one shape. Returns True if the shape was different.
         """
         if not isinstance(key, str):
-            raise TypeError("key must be a string not %r." % type(key))
+            raise TypeError(  # pragma: no cover
+                "key must be a string not %r." % type(key))
         if not isinstance(value, ShapeResult):
-            raise TypeError("value must be a ShapeResult not %r." % type(key))
+            raise TypeError(  # pragma: no cover
+                "value must be a ShapeResult not %r." % type(key))
         if key not in self.shapes:
             self.shapes[key] = value
             return True
@@ -83,7 +85,8 @@ class ShapeContainer:
         specified.
         """
         if name is not None and not isinstance(name, str):
-            raise TypeError("name must be string not %r." % name)
+            raise TypeError(  # pragma: no cover
+                "name must be string not %r." % name)
         if name is None:
             name = ''
         if name == '' or name not in self.names:
@@ -99,7 +102,7 @@ class ShapeContainer:
             return new_name
         val = self.names_rev[name]
         if len(val) != 1:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Name %r has more than one correspondance (%r)." % (
                     name, val))
         return val[0]
@@ -127,7 +130,7 @@ class ShapeContainer:
         (method `resolve()` must have been called first).
         """
         if not hasattr(self, 'resolved_') or self.resolved_ is None:
-            raise AttributeError(
+            raise AttributeError(  # pragma: no cover
                 "Attribute 'resolved_' is missing. You must run "
                 "method 'resolve()'.")
         return self.resolved_
@@ -235,7 +238,7 @@ class ShapeContainer:
                     variables[found] = {name}
                     updates += 1
                 else:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Inconsistency in %r with\n%r" % (
                             self, variables))
 

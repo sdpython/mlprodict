@@ -4,7 +4,7 @@ jobs:
     vmImage: 'ubuntu-latest'
   strategy:
     matrix:
-      Python38-Linux:
+      Python39-Linux:
         python.version: '3.9'
     maxParallel: 3
   steps:
@@ -57,7 +57,7 @@ jobs:
     vmImage: 'ubuntu-latest'
   strategy:
     matrix:
-      Python38-Linux:
+      Python39-Linux:
         python.version: '3.9'
     maxParallel: 3
   steps:

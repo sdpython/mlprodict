@@ -192,7 +192,7 @@ class NumpyCode:
             if len(value.shape) == 0:
                 return str(value)
             return str(list(value))
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Unknown scenario to simplify (%r)." % kind)
 
     @staticmethod
@@ -205,7 +205,7 @@ class NumpyCode:
             return val
         if isinstance(val, str):
             return tuple(map(int, val.strip('()[]').replace(" ", "").split(",")))
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Unable to convert %r into tuple." % val)
 
     def make_numpy_code(self):

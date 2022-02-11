@@ -22,7 +22,7 @@ class OnnxShapeInference:
 
     def __init__(self, model_onnx):
         if not hasattr(model_onnx, 'graph'):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "model_onnx is not an ONNX graph but %r." % type(model_onnx))
         self.model_onnx = model_onnx
         self.known_shapes_ = self._run_empty()
@@ -56,25 +56,27 @@ class OnnxShapeInference:
         for init in self.model_onnx.graph.initializer:
             mat = to_array(init)
             known_shapes.update(init.name, ShapeResult(
-                mat.shape, mat.dtype, sparse=False))
+                init.name, mat.shape, mat.dtype, sparse=False))
 
         for obj in self.model_onnx.graph.input:
             if obj.name in known_shapes:
                 raise NotImplementedError(
-                    "Optional inputs are not implemented yet.")
+                    "Optional inputs are not implemented yet. "
+                    "(name=%r)" % obj.name)
             shape, dtype, sparse = self._get_shape(
                 obj, known_shapes, result_name=obj.name)
             known_shapes.update(obj.name, ShapeResult(
-                shape, dtype, sparse=sparse))
+                obj.name, shape, dtype, sparse=sparse))
 
         for obj in self.model_onnx.graph.output:
             if obj.name in known_shapes:
-                raise NotImplementedError(
-                    "Optional inputs are not implemented yet.")
+                raise RuntimeError(
+                    "Output %r is already present. Use Identity node."
+                    "" % obj.name)
             shape, dtype, sparse = self._get_shape(
                 obj, known_shapes, result_name=obj.name)
             known_shapes.update(obj.name, ShapeResult(
-                shape, dtype, sparse=sparse))
+                obj.name, shape, dtype, sparse=sparse))
 
         cont = True
         while cont:
@@ -101,7 +103,7 @@ class OnnxShapeInference:
             shape, dtype, sparse = (
                 obj.shape, obj.dtype, not isinstance(obj, numpy.ndarray))
             cont = cont or known_shapes.update(
-                name, ShapeResult(shape, dtype, sparse=sparse))
+                name, ShapeResult(name, shape, dtype, sparse=sparse))
 
         while cont:
             cont = False

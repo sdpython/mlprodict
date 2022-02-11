@@ -21,7 +21,7 @@ def shape_dispatch(known_shape, node):
     op_type = "shape_" + node.op_type.lower()
     if op_type in _shape_functions:
         return _shape_functions[op_type](known_shape, node)
-    raise RuntimeError(
+    raise RuntimeError(  # pragma: no cover
         "Unable to find a corresponding function for operator type %r "
         "domain=%r among\n%s" % (
             node.op_type, node.doomain,
