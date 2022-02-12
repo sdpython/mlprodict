@@ -32,11 +32,12 @@ def _random_input(typ, shape, batch):
     return numpy.random.randn(*new_shape).astype(dtype)
 
 
-def random_feed(inputs, batch=10):
+def random_feed(inputs, batch=10, empty_dimension=1):
     """
     Creates a dictionary of random inputs.
 
     :param batch: dimension to use as batch dimension if unknown
+    :param empty_dimension: if a dimension is null, replaces it by this value
     :return: dictionary
     """
     res = OrderedDict()
@@ -46,6 +47,7 @@ def random_feed(inputs, batch=10):
             typ = inp.type.tensor_type.elem_type
             shape = tuple(getattr(d, 'dim_value', batch)
                           for d in inp.type.tensor_type.shape.dim)
+            shape = tuple(b if b > 0 else empty_dimension for b in shape)
         else:
             typ = inp.type
             shape = inp.shape
