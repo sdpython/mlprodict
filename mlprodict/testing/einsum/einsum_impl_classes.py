@@ -313,7 +313,8 @@ class EinsumSubOp:
         if row2 is None:
             raise RuntimeError("mul expects two inputs.")  # pragma: no cover
         if verbose:
-            print("    MUL %r @ %r" % (row, row2))
+            print(  # pragma: no cover
+                "    MUL %r @ %r" % (row, row2))
         row2[:] = numpy.maximum(row, row2)
         self._check_row_(row2, verbose=verbose)
 
@@ -1404,11 +1405,12 @@ class GraphEinsumSubOp:
                         perm=tuple(perm))
                 self._replace_node_sequence(new_op, [op1, op2])
                 if verbose:
-                    print("[GraphEinsumSubOp.remove_duplicate_transpose] remove nodes %r"
-                          " - id=%d,%d + %d perm1=%r perm2=%r -> perm=%r" % (
-                              op2.name, id(op1), id(op2),
-                              id(new_op) if new_op is not None else -1,
-                              perm1, perm2, perm))
+                    print(  # pragma: no cover
+                        "[GraphEinsumSubOp.remove_duplicate_transpose] remove nodes %r"
+                        " - id=%d,%d + %d perm1=%r perm2=%r -> perm=%r" % (
+                            op2.name, id(op1), id(op2),
+                            id(new_op) if new_op is not None else -1,
+                            perm1, perm2, perm))
 
     def to_onnx(self, output, *inputs, dtype=None, verbose=False,
                 opset=None, **kwargs):

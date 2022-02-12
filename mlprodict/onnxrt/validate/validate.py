@@ -93,7 +93,7 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
         obs['ort_version'] = ort_version
         try:
             meth = getattr(inst, method_name)
-        except AttributeError as e:
+        except AttributeError as e:  # pragma: no cover
             if debug:
                 raise  # pragma: no cover
             obs['_2skl_meth_exc'] = str(e)
@@ -102,7 +102,8 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
             ypred, t4, ___ = _measure_time(
                 lambda: meth(X_test, **predict_kwargs))
             obs['lambda-skl'] = (lambda xo: meth(xo, **predict_kwargs), X_test)
-        except (ValueError, AttributeError, TypeError, MemoryError, IndexError) as e:
+        except (ValueError, AttributeError,  # pragma: no cover
+                TypeError, MemoryError, IndexError) as e:
             if debug:
                 raise  # pragma: no cover
             obs['_3prediction_exc'] = str(e)
@@ -150,7 +151,7 @@ def _retrieve_problems_extra(model, verbose, fLOG, extended_list):
         extra_parameters = _extra_parameters
         try:
             problems = find_suitable_problem(model)
-        except RuntimeError as e:
+        except RuntimeError as e:  # pragma: no cover
             return {'name': model.__name__, 'skl_version': sklearn_version,
                     '_0problem_exc': e}, extras
     extras = extra_parameters.get(model, [('default', {})])
@@ -939,7 +940,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                 if diff < 1e-5:
                     obs['available'] = 'OK'
                 elif diff < 0.0001:
-                    obs['available'] = 'e<0.0001'
+                    obs['available'] = 'e<0.0001'  # pragma: no cover
                 elif diff < 0.001:
                     obs['available'] = 'e<0.001'
                 elif diff < 0.01:

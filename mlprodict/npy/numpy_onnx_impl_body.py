@@ -52,7 +52,7 @@ class AttributeGraph:
         if dtype == numpy.float32:
             skl2onnx_type = FloatTensorType()
         else:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected type %r." % dtype)
 
         input_type = ('graph_%d_%d' % (id(self), i),

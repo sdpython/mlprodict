@@ -68,7 +68,7 @@ def from_array(value, name=None):
         return pb
     if isinstance(value, TensorProto):  # pragma: no cover
         return value
-    raise NotImplementedError(
+    raise NotImplementedError(  # pragma: no cover
         "Unable to convert type %r into an ONNX tensor." % type(value))
 
 
@@ -167,7 +167,7 @@ def guess_numpy_type_from_string(name):
     if name == 'int32':
         return numpy.int32
     if name == 'int16':
-        return numpy.int32
+        return numpy.int16
     if name == 'bool':
         return numpy.bool_
     if name == 'str':

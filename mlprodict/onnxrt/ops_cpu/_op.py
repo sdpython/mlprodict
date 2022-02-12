@@ -202,7 +202,7 @@ class OpRun:
         try:
             res = self._infer_shapes(*args, **kwargs)
         except TypeError as e:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Issues with (operator '{}') and shapes\n{}"
                 "\n----args\n{}\n------kwargs\n{}".format(
                     self.__class__.__name__,
@@ -235,7 +235,7 @@ class OpRun:
         """
         try:
             res = self._infer_types(*args, **kwargs)
-        except TypeError as e:
+        except TypeError as e:  # pragma: no cover
             raise TypeError(
                 "Issues with (operator '{}') and types\n{}"
                 "\n----args\n{}\n------kwargs\n{}".format(
@@ -274,7 +274,7 @@ class OpRun:
         """
         try:
             res = self._infer_sizes(*args, **kwargs)
-        except TypeError as e:
+        except TypeError as e:  # pragma: no cover
             raise TypeError(
                 "Issues with (operator '{}') and types\n{}"
                 "\n----args\n{}\n------kwargs\n{}".format(
@@ -335,8 +335,8 @@ class OpRun:
             try:
                 if val != v:
                     inps.append('%s=%r' % (k, val))
-            except ValueError as e:
-                raise ValueError(  # pragma: no cover
+            except ValueError as e:  # pragma: no cover
+                raise ValueError(
                     "Unexpected value for v=%r and val=%r." % (v, val)) from e
         return inps
 
@@ -582,8 +582,9 @@ class OpRunBinary(OpRun):
         Calls method ``_run``.
         """
         if x is None or y is None:
-            raise RuntimeError("x and y have different dtype: {} != {} ({})".format(
-                type(x), type(y), type(self)))
+            raise RuntimeError(  # pragma: no cover
+                "x and y have different dtype: {} != {} ({})".format(
+                    type(x), type(y), type(self)))
         if x.dtype != y.dtype:
             raise RuntimeTypeError(
                 "Input type mismatch: {} != {} (operator '{}', shapes {}, {})".format(

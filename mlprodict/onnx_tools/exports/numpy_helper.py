@@ -222,7 +222,7 @@ class NumpyCode:
         if self.domain == 'com.microsoft':
             return self._make_numpy_code_others()
 
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Unable to convert any operator from domain %r." % self.domain)
 
     def _make_numpy_code_onnx(self):
@@ -413,7 +413,7 @@ class NumpyCode:
         if self.op_type == 'LinearClassifier':
             multi_class = self._getat('targets', 0)
             if multi_class != 0:
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     "Conversion of operator %r with multi_class=%r "
                     "is not implemented." % (self.op_type, multi_class))
             self._make_sure_inputs(1)
@@ -423,13 +423,13 @@ class NumpyCode:
                 'post_transform', 'NONE').strip('"\'b')
             classlabels_strings = self._getat('classlabels_strings', None)
             if classlabels_strings is not None:
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     "Conversion of operator %r with classlabels_strings=%r "
                     "is not implemented." % (self.op_type, classlabels_strings))
             classlabels_ints = self._getat(
                 'classlabels_ints', None, format="listint")
             if classlabels_ints != list(range(len(classlabels_ints))):
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     "Conversion of operator %r with classlabels_ints=%r!=%r "
                     "is not implemented." % (
                         self.op_type, classlabels_ints,
@@ -451,7 +451,7 @@ class NumpyCode:
                     "%s%s = %s @ coefs + inter" % (
                         self.indent, self.outputs[1], self.inputs[0]))
             elif post_transform != "NONE":
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     "Conversion of operator %r with post_transform=%r "
                     "is not implemented." % (self.op_type, post_transform))
             rows.append("%s%s = numpy.argmax(%s, axis=1)" % (
@@ -466,7 +466,7 @@ class NumpyCode:
                 'post_transform', 'NONE').strip('"\'b')
             targets = self._getat('targets', 1)
             if post_transform != "NONE":
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     "Conversion of operator %r with post_transform=%r "
                     "is not implemented." % (self.op_type, post_transform))
             rows = [

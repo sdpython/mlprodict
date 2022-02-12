@@ -341,7 +341,7 @@ class OnnxInference:
         if 'kind' in info and info['kind'] == 'sequence':
             if prop == 'shape':
                 return ('?', )
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Unable to retrieve property %r from %r."
             "" % (prop, info))
 
@@ -998,7 +998,7 @@ class OnnxInference:
         .. versionchanged: 0.6
         """
         if verbose > 0:
-            fLOG('[build_intermediate] BEGIN.')
+            fLOG('[build_intermediate] BEGIN.')  # pragma: no cover
         if outputs is not None:
             if isinstance(outputs, str):
                 outputs = [outputs]
@@ -1082,7 +1082,7 @@ class OnnxInference:
                                 fLOG("-i='{}': {} (dtype={}) - ?".format(
                                     k, v.shape, v.dtype))
                     if isinstance(output, numpy.ndarray):
-                        fLOG("+k='{}': {} (dtype={})".format(
+                        fLOG("+k='{}': {} (dtype={})".format(  # pragma: no cover
                             node, output.shape, output.dtype))
                         if verbose >= 2:  # pragma: no cover
                             fLOG(output)

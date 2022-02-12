@@ -31,10 +31,10 @@ class ShapeConstraint:
 
     def __init__(self, name, values):
         if name == '?':
-            raise ValueError(  # pragam: no cover
+            raise ValueError(  # pragma: no cover
                 "Name cannot be '?'.")
         if not isinstance(values, set):
-            raise TypeError(  # pragam: no cover
+            raise TypeError(  # pragma: no cover
                 "values must be a set not %r." % type(values))
         self.name = name
         self.values = values
@@ -136,7 +136,7 @@ class ShapeResult:
         self.shape = list(shape)
         for i in range(0, len(self.shape)):  # pylint: disable=C0200
             if shape[i] in ('', None, '?'):
-                raise ValueError(  # pragam: no cover
+                raise ValueError(  # pragma: no cover
                     "All dimensions must an int or a variable name, "
                     "%s is not." % (shape, ))
         self.name = name
@@ -148,7 +148,7 @@ class ShapeResult:
         elif isinstance(constraints, ShapeConstraintList):
             self.constraints = constraints
         else:
-            raise TypeError(  # pragam: no cover
+            raise TypeError(  # pragma: no cover
                 "constraints must be of type(ShapeConstraintList).")
 
     def copy(self, deep=False):
@@ -201,10 +201,10 @@ class ShapeResult:
         if (self.mtype != other_result.mtype or
                 self.dtype != other_result.dtype or
                 self.sparse != other_result.sparse):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to merge %r and %r." % (self, other_result))
         if len(self.shape) != len(other_result.shape):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Length mismatch, unable to merge %r and %r." % (
                     self, other_result))
         updated = False
@@ -231,7 +231,7 @@ class ShapeResult:
                     updated = True
                     self.constraints.append(c)
             else:
-                raise NotImplementedError(  # pragam: no cover
+                raise NotImplementedError(  # pragma: no cover
                     "Merge not implemented between %r and %r." % (
                         self, other_result))
         return updated
@@ -252,14 +252,14 @@ class ShapeResult:
                 if v in variables:
                     vals = variables[v]
                     if vals is None:
-                        raise RuntimeError(  # pragam: no cover
+                        raise RuntimeError(  # pragma: no cover
                             "Inconclusive shape (None) for v=%r." % v)
                     if len(vals) == 1:
                         res.shape[i] = list(vals)[0]
                     else:
                         res.shape[i] = set(vals)
                 else:
-                    raise RuntimeError(  # pragam: no cover
+                    raise RuntimeError(  # pragma: no cover
                         "Unable to resolve shape %r due to missing "
                         "%r." % (self, v))
         return res
@@ -275,23 +275,23 @@ class ShapeResult:
         :return: ShapeResult
         """
         if not isinstance(sh1, ShapeResult):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected type for sh1 %r." % type(sh1))
         if not isinstance(sh2, ShapeResult):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected type for sh2 %r." % type(sh2))
         if sh1.mtype != OnnxKind.Tensor:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "sh1 must be a tensor not %r." % sh1.mtype)
         if sh2.mtype != OnnxKind.Tensor:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "sh2 must be a tensor not %r." % sh2.mtype)
         if sh1.n_dims() != sh2.n_dims():
-            raise ShapeInferenceException(
+            raise ShapeInferenceException(  # pragma: no cover
                 "Broadcasting is only implemented for shape of the same "
                 "size, shapes are %r and %r." % (sh1, sh2))
         if sh1.dtype != sh2.dtype:
-            raise ShapeInferenceException(
+            raise ShapeInferenceException(  # pragma: no cover
                 "Cannot broadcast shapes %r and %r (dtypes)."
                 "" % (sh1, sh2))
 
@@ -303,7 +303,7 @@ class ShapeResult:
                     if min(a, b) == 1:
                         d = max(a, b)
                     else:
-                        raise ShapeInferenceException(
+                        raise ShapeInferenceException(  # pragma: no cover
                             "Cannot broadcast shapes %r and %r (dimensions)."
                             "" % (sh1, sh2))
                 else:
@@ -323,7 +323,7 @@ class ShapeResult:
             elif a == b:
                 d = a
             else:
-                raise ShapeInferenceException(
+                raise ShapeInferenceException(  # pragma: no cover
                     "Cannot broadcast shapes %r and %r." % (sh1, sh2))
             shape.append(d)
         if name in (None, ''):

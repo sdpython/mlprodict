@@ -261,7 +261,7 @@ def reorder_nodes_for_display(nodes, verbose=False):
                     k, ",".join(sequences[k])))
 
         if len(sequences) == 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unexpected empty sequences (len(possibles)=%d, "
                 "len(done)=%d, len(nodes)=%d). This is usually due to "
                 "a name used both as result name and node node."
@@ -573,8 +573,9 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                 indent = mi
                 if previous_indent is not None and indent < previous_indent:
                     if verbose:
-                        print("[onnx_simple_text_plot] break2 %s" %
-                              node.op_type)
+                        print(  # pragma: no cover
+                            "[onnx_simple_text_plot] break2 %s" %
+                                node.op_type)
                     add_break = True
             if not add_break and previous_out is not None:
                 if len(set(node.input) & previous_out) == 0:

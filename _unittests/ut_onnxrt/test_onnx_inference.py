@@ -8,7 +8,7 @@ from onnx import helper, TensorProto
 from sklearn.datasets import load_iris
 from sklearn.cluster import KMeans
 from sklearn.model_selection import train_test_split
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.loghelper import BufferedPrint
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
@@ -22,6 +22,7 @@ class TestOnnxInference(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnx_inference_name_confusion(self):
         X = helper.make_tensor_value_info(
             'X', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
@@ -47,6 +48,7 @@ class TestOnnxInference(ExtTestCase):
         got = res['Z']
         self.assertEqualArray(exp, got, decimal=6)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnx_inference_so(self):
         X = helper.make_tensor_value_info(
             'X', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
@@ -77,6 +79,7 @@ class TestOnnxInference(ExtTestCase):
                 got = res['Z']
                 self.assertEqualArray(exp, got, decimal=6)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnx_inference_name_confusion_input(self):
         X = helper.make_tensor_value_info(
             'X', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
@@ -102,6 +105,7 @@ class TestOnnxInference(ExtTestCase):
         got = res['Z']
         self.assertEqualArray(exp, got, decimal=6)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnx_inference_verbose(self):
         iris = load_iris()
         X, y = iris.data, iris.target
@@ -130,6 +134,7 @@ class TestOnnxInference(ExtTestCase):
                 out = oinf.output_names_shapes
                 self.assertIsInstance(out, list)
 
+    @ignore_warnings(DeprecationWarning)
     def test_onnx_inference_verbose_intermediate(self):
         iris = load_iris()
         X, y = iris.data, iris.target

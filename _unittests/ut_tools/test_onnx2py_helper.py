@@ -34,6 +34,9 @@ class TestOnnx2PyHelper(ExtTestCase):
             guess_proto_dtype_name(TensorProto.INT32),  # pylint: disable=E1101
             "TensorProto.INT32")
         self.assertEqual(
+            guess_proto_dtype_name(TensorProto.INT16),  # pylint: disable=E1101
+            "TensorProto.INT16")
+        self.assertEqual(
             guess_proto_dtype_name(TensorProto.UINT8),  # pylint: disable=E1101
             "TensorProto.UINT8")
         self.assertEqual(
@@ -72,6 +75,7 @@ class TestOnnx2PyHelper(ExtTestCase):
             guess_numpy_type_from_string('float16'), numpy.float16)
         self.assertEqual(guess_numpy_type_from_string('int8'), numpy.int8)
         self.assertEqual(guess_numpy_type_from_string('int32'), numpy.int32)
+        self.assertEqual(guess_numpy_type_from_string('int16'), numpy.int16)
         self.assertEqual(guess_numpy_type_from_string('str'), numpy.str_)
 
 

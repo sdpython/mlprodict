@@ -40,9 +40,9 @@ def get_ort_device(device):
             idx = int(device[5:])
             return C_OrtDevice(
                 C_OrtDevice.cuda(), C_OrtDevice.default_memory(), idx)
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             "Unable to interpret string %r as a device." % device)
-    raise TypeError(
+    raise TypeError(  # pragma: no cover
         "Unable to interpret type %r, (%r) as de device." % (
             type(device), device))
 
