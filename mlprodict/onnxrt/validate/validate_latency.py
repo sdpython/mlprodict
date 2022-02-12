@@ -47,7 +47,8 @@ def random_feed(inputs, batch=10, empty_dimension=1):
             typ = inp.type.tensor_type.elem_type
             shape = tuple(getattr(d, 'dim_value', batch)
                           for d in inp.type.tensor_type.shape.dim)
-            shape = tuple(b if b > 0 else empty_dimension for b in shape)
+            shape = (shape[0], ) + tuple(
+                b if b > 0 else empty_dimension for b in shape[1:])
         else:
             typ = inp.type
             shape = inp.shape
