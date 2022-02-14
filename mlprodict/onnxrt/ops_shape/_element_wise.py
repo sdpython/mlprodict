@@ -2,7 +2,8 @@
 @file
 @brief Computes shape inference for element wise operators.
 """
-from .shape_result import ShapeResult
+from .shape_excs import ShapeInferenceException
+from .shape_result import ShapeResult, OnnxKind
 
 
 def _element_wise(known_shapes, node):
@@ -16,6 +17,12 @@ def _element_wise(known_shapes, node):
     """
     x = known_shapes[node.input[0]]
     y = known_shapes[node.input[1]]
+    if x.mtype != OnnxKind.Tensor:
+        raise ShapeInferenceException(  # pragma: no cover
+            "Result %r must be a tensor." % x)
+    if y.mtype != OnnxKind.Tensor:
+        raise ShapeInferenceException(  # pragma: no cover
+            "Result %r must be a tensor." % y)
     return known_shapes.update(
         node.output[0], ShapeResult.broadcast(x, y, name=node.output[0]))
 

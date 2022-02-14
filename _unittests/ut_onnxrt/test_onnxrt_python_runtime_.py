@@ -83,7 +83,7 @@ try:
 except ImportError:
     OnnxBatchNormalization_14 = None
 from skl2onnx import __version__ as skl2onnx_version, __max_supported_opset__
-from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnxrt import OnnxInference, OnnxShapeInference
 from mlprodict.tools.asv_options_helper import (
     get_opset_number_from_onnx, get_ir_version_from_onnx)
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
@@ -117,6 +117,7 @@ from mlprodict.testing.test_utils.quantized_tensor import (
 from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import (  # pylint: disable=W0611,E0611,E0401
     test_qgemm0, test_qgemm1)
 from mlprodict.onnxrt.ops_cpu.op_constant import Constant_12, Constant_11, Constant_9
+from mlprodict.onnxrt.ops_shape.shape_excs import ShapeInferenceException
 
 try:
     numpy_str = numpy.str_
@@ -282,6 +283,31 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(expe, got['Y'], decimal=5)
+
+        # shape
+        if onnx_cl == OnnxNot:
+            self.assertRaise(lambda: OnnxShapeInference(model_def),
+                             ShapeInferenceException)
+        else:
+            shapeinf = OnnxShapeInference(model_def)
+            try:
+                shape_results = shapeinf.run()
+            except Exception as e:
+                raise AssertionError(
+                    "Unable to infer shape %r in\n%r\n." % (
+                        e, model_def)) from e
+            shape = shape_results.get()
+            self.assertIn('X', shape)
+            self.assertIn('Y', shape)
+            if onnx_cl == OnnxDet:
+                self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
+                self.assertEqual(shape['Y'].shape, [])
+            elif onnx_cl == OnnxIsNaN:
+                self.assertEqual(shape['X'].shape, shape['Y'].shape)
+                self.assertEqual(shape['Y'].dtype, numpy.bool_)
+            else:
+                self.assertEqual(shape['X'].shape, shape['Y'].shape)
+                self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
 
         # sparse
         if do_sparse:
@@ -2561,7 +2587,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_binary(OnnxMul, lambda x, y: x * y)
 
     @wraplog()
-    def test_onnxt_runtime_nrg(self):
+    def test_onnxt_runtime_neg(self):
         self.common_test_onnxt_runtime_unary(OnnxNeg, numpy.negative)
 
     @wraplog()
@@ -4334,4 +4360,4 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 if __name__ == "__main__":
     # Working
     # TestOnnxrtPythonRuntime().test_onnxt_runtime_average_pool()
-    unittest.main()
+    unittest.main(verbosity=2)
