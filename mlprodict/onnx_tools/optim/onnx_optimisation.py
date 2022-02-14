@@ -11,8 +11,9 @@ from .onnx_optimisation_unused import onnx_remove_node_unused
 def onnx_remove_node(onnx_model, recursive=True, debug_info=None, **options):
     """
     Removes as many nodes as possible without changing
-    the outcome. It applies @see fn onnx_remove_node_identity,
-    then @see fn onnx_remove_node_redundant.
+    the outcome. It applies @see fn onnx_remove_node_unused,
+    @see fn onnx_remove_node_identity,
+    and @see fn onnx_remove_node_redundant.
 
     @param      onnx_model      onnx model
     @param      recursive       looks into subgraphs
