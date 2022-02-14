@@ -3,13 +3,7 @@
 @brief Class ShapeResult
 """
 from enum import Enum
-
-
-class ShapeInferenceException(RuntimeError):
-    """
-    Raised when shape inference fails.
-    """
-    pass
+from .shape_excs import ShapeInferenceException
 
 
 class OnnxKind(Enum):
@@ -198,9 +192,7 @@ class ShapeResult:
         """
         Merges constraints from *other_results* into *self*.
         """
-        if (self.mtype != other_result.mtype or
-                self.dtype != other_result.dtype or
-                self.sparse != other_result.sparse):
+        if self.mtype != other_result.mtype:
             raise RuntimeError(  # pragma: no cover
                 "Unable to merge %r and %r." % (self, other_result))
         if len(self.shape) != len(other_result.shape):
@@ -253,7 +245,8 @@ class ShapeResult:
                     vals = variables[v]
                     if vals is None:
                         raise RuntimeError(  # pragma: no cover
-                            "Inconclusive shape (None) for v=%r." % v)
+                            "Inconclusive shape (None) for v=%r (in %r)."
+                            "" % (v, self))
                     if len(vals) == 1:
                         res.shape[i] = list(vals)[0]
                     else:
