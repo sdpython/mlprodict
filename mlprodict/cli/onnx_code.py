@@ -59,3 +59,14 @@ def onnx_code(filename, format="onnx", output=None, verbose=0, name=None,
             f.write(code)
     else:
         fLOG(code)
+
+
+def dynamic_doc(verbose=0, fLOG=print):
+    """
+    Generates the documentation for ONNX operators.
+
+    :param verbose: displays the list of operator
+    :param fLOG: logging function
+    """
+    from ..npy.xops import dynamic_class_creation
+    dynamic_class_creation(cache=True, verbose=verbose, fLOG=fLOG)

@@ -9,9 +9,9 @@ import os
 import numpy
 from scipy.sparse.coo import coo_matrix
 import onnx
-from .xauto import get_rst_doc
-from ._cache import cache_folder
+from .xop_auto import get_rst_doc
 from .xop_classes import Variable
+from ._cache import cache_folder
 
 
 def ClassFactory(class_name, op_name, inputs, outputs,
@@ -140,7 +140,7 @@ def ClassFactory(class_name, op_name, inputs, outputs,
     return newclass
 
 
-def dynamic_class_creation(cache=False):
+def dynamic_class_creation(cache=False, verbose=0, fLOG=print):
     """
     Automatically generates classes for each of the operators
     module *onnx* defines and described at
@@ -172,6 +172,8 @@ def dynamic_class_creation(cache=False):
         return (name, tys)
 
     for name in sorted(res):
+        if verbose > 0 and fLOG is not None:
+            fLOG(name)
         schema = res[name]
         inputs = [_c(o, 'I', i) for i, o in enumerate(schema.inputs)]
         outputs = [_c(o, 'O', i) for i, o in enumerate(schema.outputs)]

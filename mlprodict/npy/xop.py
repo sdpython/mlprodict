@@ -11,7 +11,6 @@ from scipy.sparse import coo_matrix
 from onnx import GraphProto, TensorProto
 from onnx.helper import make_graph, make_model  # pylint: disable=W0611
 from onnx.numpy_helper import from_array
-from ..tools.asv_options_helper import get_opset_number_from_onnx
 from .xop_classes import Variable, GraphBuilder
 
 
@@ -216,8 +215,7 @@ class OnnxOperator:
                                       OnnxOperatorItem)):
                     self.inputs.append(inp)
                 elif isinstance(inp, (numpy.ndarray, coo_matrix, TensorProto)):
-                    self.inputs.append(
-                        OnnxOperator.ConstantVariable(inp))
+                    self.inputs.append(inp)
                 else:
                     raise TypeError(
                         "Unable to interpret the input name for type {} in "

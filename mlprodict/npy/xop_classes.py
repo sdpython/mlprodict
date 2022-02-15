@@ -164,7 +164,7 @@ class GraphBuilder:
         if inputs is None:
             return [
                 make_tensor_value_info(
-                    'X', TensorProto.FLOAT, None)  # pylint: disable=disable=E1101
+                    'X', TensorProto.FLOAT, None)  # pylint: disable=E1101
                 for name in self.input_names]
 
         if inputs in NP_TYPE_TO_TENSOR_TYPE:
@@ -220,9 +220,9 @@ class GraphBuilder:
         irv = opset2ir.get(opv, max(opset2ir.values()))
         onnx_model.ir_version = irv
 
-        del onnx_model.opset_import[:]  # pylint: disable=disable=E1101
+        del onnx_model.opset_import[:]  # pylint: disable=E1101
         for k, v in self.opsets.items():
-            op_set = onnx_model.opset_import.add()  # pylint: disable=disable=E1101
+            op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
             op_set.domain = k or ''
             op_set.version = v
         return onnx_model

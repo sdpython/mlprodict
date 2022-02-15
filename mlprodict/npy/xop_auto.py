@@ -16,6 +16,7 @@ def _get_doc_template():
     except ImportError:
         class Template:
             "Docstring template"
+
             def __init__(self, *args):
                 pass
 
