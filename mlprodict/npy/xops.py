@@ -140,17 +140,10 @@ def ClassFactory(class_name, op_name, inputs, outputs,
     return newclass
 
 
-def dynamic_class_creation(cache=False, verbose=0, fLOG=print):
+def _populate_schemas():
     """
-    Automatically generates classes for each of the operators
-    module *onnx* defines and described at
-    `Operators
-    <https://github.com/onnx/onnx/blob/master/docs/Operators.md>`_
-    and `Operators
-    <https://github.com/onnx/onnx/blob/master/docs/
-    Operators-ml.md>`_.
+    Populates all schemas.
     """
-    cache_dir = cache_folder()
     res = {}
     for schema in onnx.defs.get_all_schemas_with_history():
         if schema.support_level == schema.SupportType.EXPERIMENTAL:
@@ -164,22 +157,69 @@ def dynamic_class_creation(cache=False, verbose=0, fLOG=print):
         else:
             res[schema.name] = schema
         res[schema.name + '_' + str(schema.since_version)] = schema
-    cls = {}
+    return res
 
+
+def _dynamic_class_creation(operator_names, cache=False, verbose=0, fLOG=print):
+    """
+    Automatically generates classes for each of the operators
+    module *onnx* defines and described at
+    `Operators
+    <https://github.com/onnx/onnx/blob/master/docs/Operators.md>`_
+    and `Operators
+    <https://github.com/onnx/onnx/blob/master/docs/
+    Operators-ml.md>`_.
+    """
     def _c(obj, label, i):
         name = '%s%d' % (obj.name or label, i)
         tys = obj.typeStr or ''
         return (name, tys)
 
-    for name in sorted(res):
+    cache_dir = cache_folder()
+    
+    res = _all_schemas
+    cls = {}
+    set_names = set()
+    set_skip = set()
+    for op_name in operator_names:
+        set_names.add(op_name)
+        if '_' in op_name:
+            n = op_name.split('_')[0]
+            if n.startswith('Onnx'):
+                set_skip.add(n)
+            else:
+                set_skip.add('Onnx' + n)
+            set_names.add(n)
+
+    if verbose > 1 and fLOG is not None:
+        fLOG("[_dynamic_class_creation] set_names=%r" % set_names)
+        fLOG("[_dynamic_class_creation] set_skip=%r" % set_skip)
+
+    for op_name in set_names:
+        cl_name = op_name if op_name.startswith('Onnx') else 'Onnx' + op_name
+        if verbose > 1 and fLOG is not None:
+            fLOG('[_dynamic_class_creation] cl_name=%r op_name=%r (in=%d)' % (
+                cl_name, op_name, 1 if cl_name in _all_classes else 0))
+        if cl_name in _all_classes:
+            if cl_name not in set_skip:
+                yield _all_classes[cl_name]
+            continue
         if verbose > 0 and fLOG is not None:
-            fLOG(name)
-        schema = res[name]
+            fLOG("[_dynamic_class_creation] op_name=%r, cl_name=%r" % (
+                op_name, cl_name))
+
+        name = op_name[4:] if op_name.startswith('Onnx') else op_name
+        try:
+            schema = res[name]
+        except KeyError as e:
+            raise ValueError(
+                "Operator %r (or %r) does not exists." % (
+                    name, op_name)) from e
         inputs = [_c(o, 'I', i) for i, o in enumerate(schema.inputs)]
         outputs = [_c(o, 'O', i) for i, o in enumerate(schema.outputs)]
         args = [p for p in schema.attributes]
 
-        if '_' in name:
+        if '_' in op_name:
             class_name = "Onnx" + name
         else:
             class_name = "Onnx" + schema.name
@@ -210,21 +250,30 @@ def dynamic_class_creation(cache=False, verbose=0, fLOG=print):
         if '_' not in name:
             continue
         main, version = name.split('_')
-        last = cls[main]
+        if main in cls:
+            last = cls[main]
+        else:
+            last = _all_classes[main]
         last.past_version[name] = cls[name]
 
-    return cls
+    _all_classes.update(cls)
+    for v in cls.values():
+        if v not in set_skip:
+            yield v
 
 
-def _update_module():
+_all_schemas = _populate_schemas()
+_all_classes = {}
+
+
+def loadop(*names, cache=False, verbose=0, fLOG=print):
     """
-    Dynamically updates the module with operators defined
-    by *ONNX*.
+    Dynamically creates a class for a every operator type in
+    the given list.
     """
-    res = dynamic_class_creation()
-    this = sys.modules[__name__]
-    for k, v in res.items():
-        setattr(this, k, v)
+    res = tuple(_dynamic_class_creation(
+        names, cache=cache, verbose=verbose, fLOG=fLOG))
+    if len(res) == 1:
+        return res[0]
+    return res
 
-
-_update_module()

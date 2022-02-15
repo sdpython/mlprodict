@@ -6,7 +6,6 @@
 """
 import numpy
 from onnx.helper import make_tensor
-from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx.common._topology import Variable  # pylint: disable=E0611,E0001
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxAnd,
@@ -27,7 +26,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxTopK, OnnxTranspose,
     OnnxWhere)
 from skl2onnx.algebra.onnx_operator import OnnxOperatorItem
-from skl2onnx.common.data_types import _guess_numpy_type
+from skl2onnx.common.data_types import guess_numpy_type, _guess_numpy_type
 from ..onnx_tools.onnx2py_helper import guess_proto_dtype
 
 

@@ -8,6 +8,7 @@ import numpy
 from onnx.helper import (
     make_node, make_graph, make_model,
     make_tensor_value_info)
+from onnx.numpy_helper import from_array
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
 from ..tools.asv_options_helper import get_opset_number_from_onnx
 
@@ -50,8 +51,16 @@ class GraphBuilder:
         self.names = set()
         self.input_names = set()
         self.output_names = {}
+        self.output_names_rev = {}
         self.cl_onnx_op = OnnxOperator
         self.cl_onnx_op_item = OnnxOperatorItem
+
+    @staticmethod
+    def number2alpha(index):
+        dec = str(int(index))
+        if len(dec) == 1:
+            return dec
+        return chr(96 + len(dec)) + dec
 
     def get_unique_name(self, name):
         """
@@ -64,37 +73,45 @@ class GraphBuilder:
             self.names.add(name)
             return name
         i = 1
-        new_name = "%s_%d" % (name, i)
+        new_name = "%s_%s" % (name, self.number2alpha(i))
         while new_name in self.names:
             i += 1
-            new_name = "%s_%d" % (name, i)
+            new_name = "%s_%s" % (name, self.number2alpha(i))
         self.names.add(new_name)
         return new_name
 
-    def get_output_names(self, node, outputs):
+    def get_output_name(self, node, index):
         """
-        Returns a new output name for a node if it exists
-        or create a new one.
+        Returns the output name for a node.
         """
-        names = []
-        for index, name in enumerate(outputs):
-            key = id(node), index
-            if key in self.output_names:
-                name = self.output_names[key]
-            else:
-                output = node.output_names[index]
-                if isinstance(output, str):
-                    n = output
-                elif isinstance(output, Variable):
-                    n = output.name
-                else:
-                    raise TypeError(  # pragma: no cover
-                        "Unexpected type %r for output %d." % (
-                            type(output), index))
-                name = self.get_unique_name(n)
-                self.output_names[key] = name
-            names.append(name)
-        return names
+        key = id(node), index
+        if key in self.output_names:
+            name = self.output_names[key]
+            return name
+        if node.output_names is None:
+            prefix = node.onnx_prefix_name if node.onnx_prefix_name else 'out'
+            output = '%s%d' % (prefix, index)
+        else:
+            output = node.output_names[index]
+        if isinstance(output, Variable):
+            n = output.name
+        else:
+            raise TypeError(  # pragma: no cover
+                "Unexpected type %r for output %d." % (
+                    type(output), index))
+        name = self.get_unique_name(n)
+        self.output_names[key] = name
+        self.output_names_rev[name] = key
+        if node.output_names is not None:
+            var = node.output_names[index]
+            if isinstance(var, Variable):
+                var = var.name
+            if var != name:
+                raise RuntimeError(
+                    "Output unique name %r is different from the "
+                    "expected name %r at position %r." % (
+                        name, node.output_names[index], index))
+        return name
 
     def get_input_names(self, node, inputs):
         """
@@ -106,11 +123,7 @@ class GraphBuilder:
         """
         names = []
         for i in inputs:
-            if isinstance(i, str):
-                names.append(i)
-                self.input_names.add(i)
-                self.names.add(i)
-            elif isinstance(i, Variable):
+            if isinstance(i, Variable):
                 names.append(i.name)
                 self.names.add(i.name)
                 self.input_names.add(i.name)
@@ -120,6 +133,13 @@ class GraphBuilder:
                 self.names.add(name)
             elif isinstance(i, self.cl_onnx_op_item):
                 name = self.get_output_name(i.onnx_op, i.index)
+                names.append(name)
+                self.names.add(name)
+            elif isinstance(i, numpy.ndarray):
+                # Adding an initializer
+                name = self.get_unique_name('init')
+                init = from_array(i, name)
+                self.initializer.append(init)
                 names.append(name)
                 self.names.add(name)
             else:
@@ -160,39 +180,69 @@ class GraphBuilder:
                          domain=domain)
         self.node.append(node)
 
-    def _process_io(self, inputs, input_names):
+    def _process_io(self, inputs, input_names, output=False):
         if inputs is None:
             return [
                 make_tensor_value_info(
                     'X', TensorProto.FLOAT, None)  # pylint: disable=E1101
                 for name in self.input_names]
 
-        if inputs in NP_TYPE_TO_TENSOR_TYPE:
-            inputs = [inputs]
-        elif numpy.dtype(inputs) in NP_TYPE_TO_TENSOR_TYPE:
-            inputs = [inputs]
+        if not isinstance(inputs, list):
+            if inputs in NP_TYPE_TO_TENSOR_TYPE:
+                inputs = [inputs]
+            elif numpy.dtype(inputs) in NP_TYPE_TO_TENSOR_TYPE:
+                inputs = [inputs]
+        if output and isinstance(input_names, dict):
+            keep_names = {}
+            for inp in inputs:
+                if isinstance(inp, Variable) and inp.name in input_names:
+                    keep_names[inp.name] = input_names[inp.name]
+                elif isinstance(inp, tuple) and len(inp) == 2:
+                    var, dt = inp
+                    if var.name in input_names:
+                        keep_names[var.name] = input_names[var.name]
+                else:
+                    raise TypeError(
+                        "Unexpected type %r in %r." % (inp, inputs))
+            input_names = keep_names
         if len(input_names) != len(inputs):
             raise RuntimeError(  # pragma: no cover
-                "Mismatch between %r and %r." % (input_names, inputs))
+                "Mismatch between %r and %r (output=%r)." % (
+                    input_names, inputs, output))
         if isinstance(input_names, dict):
             if len(input_names) == 1:
                 input_names = list(input_names.values())
             else:
                 raise NotImplementedError(
-                    "Unexpected %r." % input_names)
+                    "Unexpected %r (output=%r)." % (input_names, output))
         res = []
         for inp, name in zip(inputs, input_names):
-            if inp in NP_TYPE_TO_TENSOR_TYPE:
+            if isinstance(inp, tuple):
+                if len(inp) != 2:
+                    raise RuntimeError(
+                        "Unexpected value %r (output=%r)." % (
+                            inp, output))
+                dname, dtype = inp
+                if isinstance(dname, Variable):
+                    dname = dname.name
+                if dname != name:
+                    raise RuntimeError(
+                        "Unexpected name %r != %r (inp=%r, output=%r)." % (
+                            dname, name, inp, output))
+            else:
+                dtype = inp
+            if dtype in NP_TYPE_TO_TENSOR_TYPE:
                 res.append(
                     make_tensor_value_info(
-                        name, NP_TYPE_TO_TENSOR_TYPE[inp], None))
-            elif numpy.dtype(inp) in NP_TYPE_TO_TENSOR_TYPE:
+                        name, NP_TYPE_TO_TENSOR_TYPE[dtype], None))
+            elif numpy.dtype(dtype) in NP_TYPE_TO_TENSOR_TYPE:
                 res.append(
                     make_tensor_value_info(
-                        name, NP_TYPE_TO_TENSOR_TYPE[numpy.dtype(inp)], None))
+                        name, NP_TYPE_TO_TENSOR_TYPE[numpy.dtype(dtype)], None))
             else:
                 raise RuntimeError(
-                    "Unexpected tuple(%r, %r)." % (inp, name))
+                    "Unexpected tuple(%r, %r) - output=%r." % (
+                        inp, name, output))
         return res
 
     def to_onnx(self, inputs=None, outputs=None,
@@ -210,7 +260,8 @@ class GraphBuilder:
         """
         # inputs and outputs
         self.input = self._process_io(inputs, self.input_names)
-        self.output = self._process_io(outputs, self.output_names)
+        self.output = self._process_io(
+            outputs, self.output_names_rev, output=True)
 
         graph = make_graph(
             self.node, 'XOP', self.input, self.output, self.initializer)

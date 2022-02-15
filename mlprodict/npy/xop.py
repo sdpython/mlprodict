@@ -11,6 +11,7 @@ from scipy.sparse import coo_matrix
 from onnx import GraphProto, TensorProto
 from onnx.helper import make_graph, make_model  # pylint: disable=W0611
 from onnx.numpy_helper import from_array
+from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
 from .xop_classes import Variable, GraphBuilder
 
 
@@ -426,17 +427,18 @@ class OnnxOperator:
         """
         return OnnxOperatorItem(self, index, self.op_version)
 
-    def _node_to_graph(self, other_outputs=None):
+    def _node_to_graph(self, other_outputs=None, inputs=None, outputs=None):
         """
         Builds a graph as a list of nodes to walk through in that order.
         """
-        outputs = [self]
+        node_outputs = [self]
         if other_outputs is not None:
-            outputs += other_outputs
+            node_outputs += other_outputs
 
         # walk through graphs
-        stack = list(outputs)
-        inputs = []
+        stack = list(node_outputs)
+        new_inputs = []
+        set_inputs = set()
         memo = []
         while len(stack) > 0:
             memo.extend(stack)
@@ -445,26 +447,101 @@ class OnnxOperator:
                 for inp in obj.inputs:
                     if isinstance(inp, OnnxOperator):
                         new_stack.append(inp)
+                    elif (isinstance(inp, Variable) and
+                            inp.name not in set_inputs):
+                        set_inputs.add(inp.name)
+                        if inputs is None:
+                            new_inputs.append(inp)
+                        elif isinstance(inputs, dict):
+                            if inp in inputs:
+                                new_inputs.append((inp, inputs[inp]))
+                            else:
+                                raise ValueError(  # pragma: no cover
+                                    "Unable to find input %r in %r." % (
+                                        inp, inputs))
+                        elif (inputs in NP_TYPE_TO_TENSOR_TYPE or
+                                numpy.dtype(inputs) in NP_TYPE_TO_TENSOR_TYPE):
+                            new_inputs.append((inp, inputs))
+                        else:
+                            raise RuntimeError(  # pragma: no cover
+                                "Unable to handle inputs=%r." % inputs)
+                    elif isinstance(inp, numpy.ndarray):
+                        pass
                     else:
-                        inputs.append(inp)
+                        raise TypeError(
+                            "Unexpected input type %r in node type %r." % (
+                                type(inp), type(obj)))
             stack = new_stack
+
+        if len(new_inputs) == 0:
+            raise RuntimeError(
+                "No detected inputs inputs=%r outputs=%r." % (
+                    inputs, outputs))
 
         # eliminate duplicates
         done = set()
         nodes = []
-        for node in memo:
+        for node in reversed(memo):
             if id(node) in done:
                 continue
             done.add(id(node))
             nodes.append(node)
-        return nodes, inputs
+
+        def _get_type(node, name=None, outputs=None):
+            if outputs is None:
+                raise NotImplementedError(
+                    "outputs is None, expected_outputs=%r" % (
+                        node.expected_outputs, ))
+            if isinstance(outputs, dict):
+                if name is None:
+                    raise RuntimeError(
+                        "Unable to get type among %r, name=None." % (
+                            outputs, ))
+                if name not in outputs:
+                    raise ValueError(  # pragma: no cover
+                        "Unable to find %r in %r." % (
+                            name, outputs))
+                return outputs[name]
+            if isinstance(outputs, list):
+                raise NotImplementedError(
+                    "Unexpected type for name=%r, outputs=%r." % (
+                        name, outputs))
+            if (outputs in NP_TYPE_TO_TENSOR_TYPE or
+                    numpy.dtype(outputs) in NP_TYPE_TO_TENSOR_TYPE):
+                return outputs
+            raise RuntimeError(  # pragma: no cover
+                "Unable to handle outputs=%r." % outputs)
+            
+
+        # outputs
+        new_outputs = []
+        for node in node_outputs:
+            if node.output_names is None:
+                n = self.output_range[0]
+                for i in range(n):
+                    to = _get_type(node, outputs=outputs)
+                    new_outputs.append(('out%d' % i, to))
+            else:
+                for o in self.output_names:
+                    to = _get_type(node, o, outputs=outputs)
+                    new_outputs.append((o, to))
+        if len(new_outputs) == 0:
+            raise RuntimeError(
+                "No detected outputs inputs=%r outputs=%r." % (
+                    inputs, outputs))
+        
+        return nodes, new_inputs, new_outputs
 
     def add_to(self, builder):
         """
         Adds to graph builder.
         """
         inputs = builder.get_input_names(self, self.inputs)
-        outputs = builder.get_output_names(self, self.output_names)
+        n_outputs = (
+            self.output_range[0] if self.output_names is None
+            else len(self.output_names))
+        outputs = [builder.get_output_name(self, i)
+                   for i in range(n_outputs)]
         builder.add_node(
             self.operator_name,
             builder.get_unique_name('_' + self.operator_name.lower()),
@@ -477,16 +554,16 @@ class OnnxOperator:
         """
         Converts this operator into an ONNX graph.
 
-        :param inputs: specific inputs (as a dictionary) or
-            default inputs if not specified
-        :param outputs: specific outputs
-        :param other_outputs: additional outputs to consider
+        :param inputs: information about type
+        :param outputs: information about types
+        :param other_outputs: additional nodes to consider
             as graph outputs but not outputs of this particular
             node
         :param target_opset: dictionary with target opset per domain,
             None for the default one
         :param verbose: prints information
         """
+        # opsets
         if isinstance(target_opset, dict):
             dom = self.domain or ''
             target_opset = target_opset.get(dom, None)
@@ -509,16 +586,32 @@ class OnnxOperator:
                 "target_opset={} is lower than the version={} requested "
                 "for this node '{}'.".format(
                     target_opset, self.op_version, self.__class__.__name__))
+    
+        # inputs, outputs
+        if isinstance(inputs, list):
+            raise NotImplementedError(
+                "Unable to process inputs=%r." % (inputs, ))
+        if isinstance(outputs, list):
+            raise NotImplementedError(
+                "Unable to process outputs=%r." % (outputs, ))
+
 
         # get the graph
-        nodes, graph_inputs = self._node_to_graph(other_outputs)
+        nodes, graph_inputs, graph_outputs = self._node_to_graph(
+            other_outputs, inputs, outputs)
         if len(nodes) == 0:
             raise RuntimeError(  # pragma: no cover
                 "Node list is empty.")
+        if verbose > 1:
+            for i, n in enumerate(nodes):
+                print("nodes[%d]=%r" % (i, n))
+            for i, n in enumerate(graph_inputs):
+                print("graph_inputs[%d]=%r" % (i, n))
         builder = GraphBuilder()
         for node in nodes:
             node.add_to(builder)
 
-        return builder.to_onnx(inputs=inputs, outputs=outputs,
+        return builder.to_onnx(inputs=graph_inputs,
+                               outputs=graph_outputs,
                                target_opset=target_opset,
                                verbose=verbose)
