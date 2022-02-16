@@ -131,8 +131,9 @@ def get_rst_doc(op_name=None):
     if op_name is None:
         schemas = onnx.defs.get_all_schemas_with_history()
     elif isinstance(op_name, str):
-        schemas = [schema for schema in onnx.defs.get_all_schemas_with_history(
-        ) if schema.name == op_name]
+        schemas = [
+            schema for schema in onnx.defs.get_all_schemas_with_history()
+            if schema.name == op_name]
         if len(schemas) > 1:
             raise RuntimeError(
                 "Multiple operators have the same name '{}'.".format(op_name))
@@ -149,8 +150,7 @@ def get_rst_doc(op_name=None):
     def format_name_with_domain(sch):
         if sch.domain:
             return '{} ({})'.format(sch.name, sch.domain)
-        else:
-            return sch.name
+        return sch.name
 
     def format_option(obj):
         opts = []
@@ -162,8 +162,7 @@ def get_rst_doc(op_name=None):
             opts.append('heterogeneous')
         if opts:
             return " (%s)" % ", ".join(opts)
-        else:
-            return ""
+        return ""
 
     def getconstraint(const, ii):
         if const.type_param_str:
@@ -219,7 +218,7 @@ def get_rst_doc(op_name=None):
         return "\n".join(lines)
 
     def build_doc_url(sch):
-        doc_url = "https://github.com/onnx/onnx/blob/master/docs/Operators"
+        doc_url = "https://github.com/onnx/onnx/blob/main/docs/Operators"
         if "ml" in sch.domain:
             doc_url += "-ml"
         doc_url += ".md"

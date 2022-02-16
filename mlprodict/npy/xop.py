@@ -10,8 +10,8 @@ from scipy.sparse import coo_matrix
 from onnx import GraphProto, TensorProto
 from onnx.helper import make_graph, make_model  # pylint: disable=W0611
 from onnx.numpy_helper import from_array
-from .xop_variable import Variable, is_numpy_dtype, numpy_type_prototype
-from .xop_graph_builder import GraphBuilder
+from .xop_variable import (
+    Variable, is_numpy_dtype, numpy_type_prototype, max_supported_opset)
 
 
 class OnnxOperatorItem:
@@ -102,8 +102,7 @@ class OnnxOperator:
 
         if op_version is None:
             if domain == '':
-                from ..tools.asv_options_helper import get_opset_number_from_onnx
-                self.op_version = get_opset_number_from_onnx()
+                self.op_version = max_supported_opset()
             else:
                 self.op_version = None
         else:
@@ -525,6 +524,8 @@ class OnnxOperator:
             None for the default one
         :param verbose: prints information
         """
+        from .xop_graph_builder import GraphBuilder
+
         # opsets
         if isinstance(target_opset, dict):
             dom = self.domain or ''

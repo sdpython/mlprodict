@@ -8,9 +8,9 @@ import os
 import numpy
 from scipy.sparse.coo import coo_matrix
 import onnx
-from .xop_auto import get_rst_doc
-from .xop_variable import Variable
 from ._cache import cache_folder
+from .xop_variable import Variable
+from .xop_auto import get_rst_doc
 
 
 def ClassFactory(class_name, op_name, inputs, outputs,

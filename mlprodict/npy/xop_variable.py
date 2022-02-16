@@ -6,6 +6,20 @@
 """
 import numpy
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
+from onnx.defs import onnx_opset_version
+
+
+def max_supported_opset():
+    """
+    Returns the latest supported opset for the main domain.
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.npy.xop_variable import max_supported_opset
+        print("max_supported_opset() returns", max_supported_opset())
+    """
+    return min(15, onnx_opset_version())
 
 
 def is_numpy_dtype(dtype):

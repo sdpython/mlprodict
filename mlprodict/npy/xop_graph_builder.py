@@ -10,7 +10,7 @@ from onnx.helper import (
     make_node, make_graph, make_model,
     make_tensor_value_info)
 from onnx.numpy_helper import from_array
-from .xop_variable import Variable, is_numpy_dtype
+from .xop_variable import Variable, is_numpy_dtype, max_supported_opset
 
 
 def _default_OPSET_TO_IR_VERSION():
@@ -253,15 +253,13 @@ class GraphBuilder:
         :return: onnx graph
         """
         # inputs and outputs
-        from ..tools.asv_options_helper import get_opset_number_from_onnx
-
         self.input = self._process_io(inputs, list(self.input_names.values()))
         self.output = self._process_io(outputs, None)
 
         graph = make_graph(
             self.node, 'XOP', self.input, self.output, self.initializer)
         onnx_model = make_model(graph)
-        opv = self.opsets.get('', get_opset_number_from_onnx())
+        opv = self.opsets.get('', max_supported_opset())
         opset2ir = _default_OPSET_TO_IR_VERSION()
         irv = opset2ir.get(opv, max(opset2ir.values()))
         onnx_model.ir_version = irv
