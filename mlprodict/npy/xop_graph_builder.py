@@ -5,35 +5,31 @@
 .. versionadded:: 0.9
 """
 import numpy
+from onnx import TensorProto
 from onnx.helper import (
     make_node, make_graph, make_model,
     make_tensor_value_info)
 from onnx.numpy_helper import from_array
-from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
 from ..tools.asv_options_helper import get_opset_number_from_onnx
+from .xop_variable import Variable, is_numpy_dtype, numpy_type_prototype
 
 
 def _default_OPSET_TO_IR_VERSION():
+    """
+    Returns the default mapping between opset and ir_version.
+
+    .. runpython::
+        :showcode:
+
+        import pprint
+        from mlprodict.npy.xop_graph_builder import _default_OPSET_TO_IR_VERSION
+        pprint.pprint(_default_OPSET_TO_IR_VERSION())
+    """
     return {
         1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3,
         7: 3, 8: 4, 9: 4, 10: 5, 11: 6, 12: 7,
         13: 7, 14: 7, 15: 8
     }
-
-
-class Variable:
-    """
-    An input to an ONNX graph.
-    """
-
-    def __init__(self, name, dtype=None):
-        self.name = name
-        self.dtype = dtype
-
-    def __repr__(self):
-        "usual"
-        return "%s(%r, %r)" % (
-            self.__class__.__name__, self.name, self.dtype)
 
 
 class GraphBuilder:
@@ -49,7 +45,7 @@ class GraphBuilder:
         self.output = []
         self.opsets = {}
         self.names = set()
-        self.input_names = set()
+        self.input_names = {}
         self.output_names = {}
         self.output_names_rev = {}
         self.cl_onnx_op = OnnxOperator
@@ -57,6 +53,10 @@ class GraphBuilder:
 
     @staticmethod
     def number2alpha(index):
+        """
+        Converts a numbers into a string keeping the same
+        alphabetical order.
+        """
         dec = str(int(index))
         if len(dec) == 1:
             return dec
@@ -88,17 +88,20 @@ class GraphBuilder:
         if key in self.output_names:
             name = self.output_names[key]
             return name
+
         if node.output_names is None:
-            prefix = node.onnx_prefix_name if node.onnx_prefix_name else 'out'
+            prefix = node.onnx_prefix
             output = '%s%d' % (prefix, index)
         else:
             output = node.output_names[index]
+
         if isinstance(output, Variable):
             n = output.name
         else:
             raise TypeError(  # pragma: no cover
                 "Unexpected type %r for output %d." % (
                     type(output), index))
+
         name = self.get_unique_name(n)
         self.output_names[key] = name
         self.output_names_rev[name] = key
@@ -126,7 +129,7 @@ class GraphBuilder:
             if isinstance(i, Variable):
                 names.append(i.name)
                 self.names.add(i.name)
-                self.input_names.add(i.name)
+                self.input_names[i.name] = i
             elif isinstance(i, self.cl_onnx_op):
                 name = self.get_output_name(i, 0)
                 names.append(name)
@@ -180,7 +183,7 @@ class GraphBuilder:
                          domain=domain)
         self.node.append(node)
 
-    def _process_io(self, inputs, input_names, output=False):
+    def _process_io(self, inputs, input_names):
         if inputs is None:
             return [
                 make_tensor_value_info(
@@ -188,61 +191,54 @@ class GraphBuilder:
                 for name in self.input_names]
 
         if not isinstance(inputs, list):
-            if inputs in NP_TYPE_TO_TENSOR_TYPE:
+            if is_numpy_dtype(inputs):
                 inputs = [inputs]
-            elif numpy.dtype(inputs) in NP_TYPE_TO_TENSOR_TYPE:
-                inputs = [inputs]
-        if output and isinstance(input_names, dict):
-            keep_names = {}
+
+        if input_names is None:
+            # outputs
+            input_names = []
             for inp in inputs:
-                if isinstance(inp, Variable) and inp.name in input_names:
-                    keep_names[inp.name] = input_names[inp.name]
+                if isinstance(inp, Variable):
+                    if inp.name in self.output_names_rev:
+                        input_names.append(inp)
                 elif isinstance(inp, tuple) and len(inp) == 2:
-                    var, dt = inp
-                    if var.name in input_names:
-                        keep_names[var.name] = input_names[var.name]
+                    var, dtype = inp
+                    if var.name in self.output_names_rev:
+                        input_names.append(Variable(var.name, dtype))
                 else:
                     raise TypeError(
                         "Unexpected type %r in %r." % (inp, inputs))
-            input_names = keep_names
+            if len(input_names) == 0:
+                raise RuntimeError(
+                    "Unable to cross %r and %r." % (input, self.output_names_rev))
+        elif not isinstance(input_names, list):
+            raise RuntimeError(
+                "Unexpected type for input_names %r." % type(input_names))
+
         if len(input_names) != len(inputs):
             raise RuntimeError(  # pragma: no cover
-                "Mismatch between %r and %r (output=%r)." % (
-                    input_names, inputs, output))
-        if isinstance(input_names, dict):
-            if len(input_names) == 1:
-                input_names = list(input_names.values())
-            else:
-                raise NotImplementedError(
-                    "Unexpected %r (output=%r)." % (input_names, output))
+                "Mismatch between %r and %r." % (
+                    input_names, inputs))
+
         res = []
-        for inp, name in zip(inputs, input_names):
-            if isinstance(inp, tuple):
-                if len(inp) != 2:
-                    raise RuntimeError(
-                        "Unexpected value %r (output=%r)." % (
-                            inp, output))
-                dname, dtype = inp
-                if isinstance(dname, Variable):
-                    dname = dname.name
-                if dname != name:
-                    raise RuntimeError(
-                        "Unexpected name %r != %r (inp=%r, output=%r)." % (
-                            dname, name, inp, output))
-            else:
-                dtype = inp
-            if dtype in NP_TYPE_TO_TENSOR_TYPE:
-                res.append(
-                    make_tensor_value_info(
-                        name, NP_TYPE_TO_TENSOR_TYPE[dtype], None))
-            elif numpy.dtype(dtype) in NP_TYPE_TO_TENSOR_TYPE:
-                res.append(
-                    make_tensor_value_info(
-                        name, NP_TYPE_TO_TENSOR_TYPE[numpy.dtype(dtype)], None))
-            else:
+        for inp, var in zip(inputs, input_names):
+            if isinstance(inp, (str, tuple)):
+                raise TypeError(
+                    "inp not Variable but %r (%r)." % (type(inp), inp))
+            if isinstance(var, (str, tuple)):
+                raise TypeError(
+                    "var not Variable but %r (%r)." % (type(var), var))
+            if isinstance(var, (str, tuple)):
+                raise TypeError(
+                    "var not Variable but %r (%r)." % (type(var), var))
+            # inp: Variable
+            # var: str
+            if inp != var:
                 raise RuntimeError(
-                    "Unexpected tuple(%r, %r) - output=%r." % (
-                        inp, name, output))
+                    "Unexpected %r != %r." % (inp, var))
+            pt = numpy_type_prototype(inp.added_dtype or inp.dtype)
+            res.append(make_tensor_value_info(inp.name, pt, None))
+
         return res
 
     def to_onnx(self, inputs=None, outputs=None,
@@ -259,9 +255,8 @@ class GraphBuilder:
         :return: onnx graph
         """
         # inputs and outputs
-        self.input = self._process_io(inputs, self.input_names)
-        self.output = self._process_io(
-            outputs, self.output_names_rev, output=True)
+        self.input = self._process_io(inputs, list(self.input_names.values()))
+        self.output = self._process_io(outputs, None)
 
         graph = make_graph(
             self.node, 'XOP', self.input, self.output, self.initializer)

@@ -21,6 +21,7 @@ def _get_doc_template():
                 pass
 
             def render(self, **context):
+                "render"
                 schemas = context['schemas']
                 rows = []
                 for sch in schemas:

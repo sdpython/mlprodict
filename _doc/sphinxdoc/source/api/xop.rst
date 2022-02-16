@@ -14,9 +14,9 @@ API
 
 .. autosignature:: mlprodict.npy.xops.dynamic_class_creation
 
-.. autosignature:: mlprodict.npy.xops_classes.Variable
+.. autosignature:: mlprodict.npy.xops_variable.Variable
 
-.. autosignature:: mlprodict.npy.xops_classes.GraphBuilder
+.. autosignature:: mlprodict.npy.xops_graph_builder.GraphBuilder
 
 .. autosignature:: mlprodict.npy.xop.OnnxOperator
 

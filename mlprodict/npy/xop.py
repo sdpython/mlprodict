@@ -5,30 +5,27 @@
 
 .. versionadded:: 0.9
 """
-from logging import getLogger
 import numpy
 from scipy.sparse import coo_matrix
 from onnx import GraphProto, TensorProto
 from onnx.helper import make_graph, make_model  # pylint: disable=W0611
 from onnx.numpy_helper import from_array
-from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
-from .xop_classes import Variable, GraphBuilder
-
-
-logger = getLogger('mlprodict.xop')
+from .xop_variable import Variable, is_numpy_dtype
+from .xop_graph_builder import GraphBuilder
 
 
 class OnnxOperatorItem:
     """
-    Accessor to one of the output returned by a *OnnxOperator*.
+    Accessor to one of the output returned by a @see cl OnnxOperator.
 
-    :param onx_op: OnnxOperator
+    :param onx_op: @see cl OnnxOperator
     :param index: integer
+    :param op_version: defines the opset version
     """
 
     def __init__(self, onx_op, index, op_version=None):
         if not isinstance(index, int):
-            raise TypeError("index must be an integer.")
+            raise TypeError("index must be an integer not %r." % type(index))
         self.onx_op = onx_op
         self.index = index
         self.op_version = op_version
@@ -41,7 +38,7 @@ class OnnxOperatorItem:
 
     def get_output_name(self, i=0):
         """
-        Returns the output.
+        Returns the output name at position *i*.
         """
         if i != 0:
             raise IndexError("Can only return the first item.")
@@ -54,49 +51,6 @@ class OnnxOperatorItem:
         if i != 0:
             raise IndexError("Can only return the first item.")
         return self.onx_op.get_output(self.index)
-
-    @property
-    def outputs(self):
-        """
-        Returns the outputs of the node.
-        """
-        if self.onx_op is None:
-            raise RuntimeError(
-                "self.onx_op cannot be None, type(self)={}".format(
-                    type(self)))
-        if self.index is None:
-            raise RuntimeError(
-                "self.index cannot be None, type(self)={}".format(
-                    type(self)))
-        outputs = self.onx_op.outputs
-        if outputs is None:
-            raise RuntimeError(
-                "self.onx_op.outputs cannot be None, "
-                "type(self)={}, type(self.onx_op)={}, "
-                "type(self.onx_op.state)={}".format(
-                    type(self), type(self.onx_op), type(self.onx_op.state)))
-        return outputs[self.index:self.index + 1]
-
-    def get_output_type_inference(self, input_shapes=None):
-        """
-        Returns the inferred shape.
-        """
-        if self.onx_op is None:
-            raise RuntimeError(
-                "self.onx_op cannot be None, type(self)={}".format(
-                    type(self)))
-        if self.index is None:
-            raise RuntimeError(
-                "self.index cannot be None, type(self)={}".format(
-                    type(self)))
-        outputs = self.onx_op.get_output_type_inference(input_shapes)
-        if outputs is None:
-            raise RuntimeError(
-                "self.onx_op.outputs cannot be None, "
-                "type(self)={}, type(self.onx_op)={}, "
-                "type(self.onx_op.state)={}".format(
-                    type(self), type(self.onx_op), type(self.onx_op.state)))
-        return outputs[self.index:self.index + 1]
 
 
 class OnnxOperator:
@@ -114,18 +68,13 @@ class OnnxOperator:
         are not linked to the output and cannot be retrieved.
         *global_context* is a dictionary mapped the subgraph input
         names to these operators.
-    :param clear_subgraph_inputs: clears subgraphs outputs.
-        Operator *If* does take subgraphs as attribute,
-        there are subgraphs with no inputs and
-        global variable as hidden inputs.
     :param kwargs: additional parameters of the operator
 
     .. versionadd:: 0.9
     """
 
     def __init__(self, *inputs, op_version=None, output_names=None,
-                 domain=None, global_context=None,
-                 clear_subgraph_inputs=False, **kwargs):
+                 domain=None, global_context=None, **kwargs):
 
         if (output_names is None and
                 self.__class__.__name__.startswith("OnnxScan")):
@@ -143,7 +92,7 @@ class OnnxOperator:
                     "output_names cannot be empty (operator %r)."
                     "" % self.__class__.__name__)
             output_names = output_names.copy()
-            for i in range(len(output_names)):
+            for i in range(len(output_names)):  # pylint: disable=C0200
                 if isinstance(output_names[i], str):
                     output_names[i] = Variable(output_names[i])
         elif output_names is not None:
@@ -179,7 +128,7 @@ class OnnxOperator:
             self.output_range = self.__class__.output_range
             if self.__class__.__name__ not in {
                     'OnnxScan', 'OnnxLoop', 'OnnxIf'}:
-                # TODO: the minimum opset depends on embedded graph
+                # The minimum opset depends on embedded graph
                 # by default, it takes the given op_version but the
                 # optimal value could be lower.
                 self.op_version = self.since_version
@@ -258,7 +207,7 @@ class OnnxOperator:
                     "operator %r." % self)
             if self.output_variables is None:
                 self.output_variables = [None for o in self.output_names]
-            for i in range(len(self.output_names)):
+            for i in range(len(self.output_names)):  # pylint: disable=C0200
                 name = self.output_names[i]
                 if isinstance(name, Variable):
                     self.output_variables[i] = name
@@ -298,17 +247,26 @@ class OnnxOperator:
                     inp = (name, None)
                 self.expected_inputs.append(inp)
 
-        self.output_names_ = None
-        self._post_process_attributes(
-            clear_subgraph_inputs=clear_subgraph_inputs)
-        logger.debug(
-            '[Ops] +%s-%d (%s) id=%d',
-            self.__class__.__name__, self.op_version, self.domain, id(self))
+        self._post_process_attributes()
+        self._check()
 
-    def _post_process_attributes(self, clear_subgraph_inputs=False):
+    def _check(self):
+        input_types = (Variable, OnnxOperator, numpy.ndarray)
+        for o in self.inputs:
+            if not isinstance(o, input_types):
+                raise TypeError(
+                    "Wrong type for inputs %r." % (
+                        self.inputs, ))
+        if self.output_names is not None:
+            for o in self.output_names:
+                if not isinstance(o, Variable):
+                    raise TypeError(
+                        "Wrong type for output_names %r." % (
+                            self.output_names, ))
+
+    def _post_process_attributes(self):
         """
-        Walks through attributes and replaces them by ONNX
-        values.
+        Walks through attributes and replaces them by ONNX values.
         """
         # Looks into attributes if there is any tuple
         # (GraphProto, OnnxOperator). In that case, the function
@@ -321,14 +279,10 @@ class OnnxOperator:
             if isinstance(v, tuple) and isinstance(v[0], GraphProto):
                 updates[k] = v[0]
                 graph_algebra[k] = v[1]
+
         if len(graph_algebra) > 0:
             self.kwargs.update(updates)
             self.graph_algebra = graph_algebra
-
-        if clear_subgraph_inputs:
-            for k, v in self.kwargs.items():
-                if isinstance(v, GraphProto):
-                    del v.input[:]
 
         if self.__class__.__name__ == "OnnxConstantOfShape":
             if "value" in self.kwargs:
@@ -355,9 +309,7 @@ class OnnxOperator:
         if self.__class__.__name__ == "OnnxCast":
             if "to" in self.kwargs:
                 value = self.kwargs['to']
-                if isinstance(value, int):
-                    return
-                to = guess_proto_type(_guess_numpy_type(value, None))
+                stop
                 self.kwargs['to'] = to
             return
 
@@ -413,11 +365,12 @@ class OnnxOperator:
 
     @property
     def onnx_prefix(self):
+        "Returns a prefix for results coming out from this node."
         if self.onnx_prefix_name is None:
             name = self.__class__.__name__
             if name.startswith("Onnx"):
                 name = name[4:]
-            return name[:2]
+            return 'out_' + name[:3].lower()
         return self.onnx_prefix_name
 
     def __getitem__(self, index):
@@ -447,8 +400,9 @@ class OnnxOperator:
                 for inp in obj.inputs:
                     if isinstance(inp, OnnxOperator):
                         new_stack.append(inp)
-                    elif (isinstance(inp, Variable) and
-                            inp.name not in set_inputs):
+                    elif isinstance(inp, Variable):
+                        if inp.name in set_inputs:
+                            continue
                         set_inputs.add(inp.name)
                         if inputs is None:
                             new_inputs.append(inp)
@@ -459,9 +413,8 @@ class OnnxOperator:
                                 raise ValueError(  # pragma: no cover
                                     "Unable to find input %r in %r." % (
                                         inp, inputs))
-                        elif (inputs in NP_TYPE_TO_TENSOR_TYPE or
-                                numpy.dtype(inputs) in NP_TYPE_TO_TENSOR_TYPE):
-                            new_inputs.append((inp, inputs))
+                        elif is_numpy_dtype(inputs):
+                            new_inputs.append(inp.copy_add(inputs))
                         else:
                             raise RuntimeError(  # pragma: no cover
                                 "Unable to handle inputs=%r." % inputs)
@@ -506,12 +459,10 @@ class OnnxOperator:
                 raise NotImplementedError(
                     "Unexpected type for name=%r, outputs=%r." % (
                         name, outputs))
-            if (outputs in NP_TYPE_TO_TENSOR_TYPE or
-                    numpy.dtype(outputs) in NP_TYPE_TO_TENSOR_TYPE):
+            if is_numpy_dtype(outputs):
                 return outputs
             raise RuntimeError(  # pragma: no cover
                 "Unable to handle outputs=%r." % outputs)
-            
 
         # outputs
         new_outputs = []
@@ -520,16 +471,18 @@ class OnnxOperator:
                 n = self.output_range[0]
                 for i in range(n):
                     to = _get_type(node, outputs=outputs)
-                    new_outputs.append(('out%d' % i, to))
+                    res = ('out%d' % i, to)
+                    new_outputs.append(Variable(res[0], added_dtype=to))
             else:
                 for o in self.output_names:
                     to = _get_type(node, o, outputs=outputs)
-                    new_outputs.append((o, to))
+                    res = (o, to)
+                    new_outputs.append(o.copy_add(to))
         if len(new_outputs) == 0:
             raise RuntimeError(
                 "No detected outputs inputs=%r outputs=%r." % (
                     inputs, outputs))
-        
+
         return nodes, new_inputs, new_outputs
 
     def add_to(self, builder):
@@ -540,8 +493,7 @@ class OnnxOperator:
         n_outputs = (
             self.output_range[0] if self.output_names is None
             else len(self.output_names))
-        outputs = [builder.get_output_name(self, i)
-                   for i in range(n_outputs)]
+        outputs = [builder.get_output_name(self, i) for i in range(n_outputs)]
         builder.add_node(
             self.operator_name,
             builder.get_unique_name('_' + self.operator_name.lower()),
@@ -569,8 +521,7 @@ class OnnxOperator:
             target_opset = target_opset.get(dom, None)
         elif isinstance(target_opset, int):
             if self.domain not in ('', None):
-                # The target_opset is for the domain ''
-                # We ignore it.
+                # The target_opset is for the domain '' we ignore it.
                 target_opset = None
         elif target_opset is not None:
             raise TypeError(
@@ -586,7 +537,7 @@ class OnnxOperator:
                 "target_opset={} is lower than the version={} requested "
                 "for this node '{}'.".format(
                     target_opset, self.op_version, self.__class__.__name__))
-    
+
         # inputs, outputs
         if isinstance(inputs, list):
             raise NotImplementedError(
@@ -594,7 +545,6 @@ class OnnxOperator:
         if isinstance(outputs, list):
             raise NotImplementedError(
                 "Unable to process outputs=%r." % (outputs, ))
-
 
         # get the graph
         nodes, graph_inputs, graph_outputs = self._node_to_graph(

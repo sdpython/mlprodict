@@ -4,13 +4,12 @@
 
 .. versionadded:: 0.9
 """
-import sys
 import os
 import numpy
 from scipy.sparse.coo import coo_matrix
 import onnx
 from .xop_auto import get_rst_doc
-from .xop_classes import Variable
+from .xop_variable import Variable
 from ._cache import cache_folder
 
 
@@ -176,7 +175,7 @@ def _dynamic_class_creation(operator_names, cache=False, verbose=0, fLOG=print):
         return (name, tys)
 
     cache_dir = cache_folder()
-    
+
     res = _all_schemas
     cls = {}
     set_names = set()
@@ -249,7 +248,7 @@ def _dynamic_class_creation(operator_names, cache=False, verbose=0, fLOG=print):
     for name in cls:  # pylint: disable=C0206
         if '_' not in name:
             continue
-        main, version = name.split('_')
+        main, _ = name.split('_')
         if main in cls:
             last = cls[main]
         else:
@@ -276,4 +275,3 @@ def loadop(*names, cache=False, verbose=0, fLOG=print):
     if len(res) == 1:
         return res[0]
     return res
-

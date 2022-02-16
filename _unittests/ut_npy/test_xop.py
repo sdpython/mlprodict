@@ -5,8 +5,8 @@
 import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.npy.xops import loadop
-from mlprodict.npy.xop_classes import GraphBuilder
+from mlprodict.npy.xop_factory import loadop
+from mlprodict.npy.xop_graph_builder import GraphBuilder
 from mlprodict.onnxrt import OnnxInference
 
 
@@ -79,7 +79,6 @@ class TestXOps(ExtTestCase):
         x = numpy.array([-2, 2], dtype=numpy.float32)
         got = oinf.run({'X': x})
         self.assertEqualArray(-x, got['Y'])
-
 
 
 if __name__ == "__main__":
