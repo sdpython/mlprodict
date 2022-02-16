@@ -29,7 +29,7 @@ def is_numpy_dtype(dtype):
     :param dtype: anything
     :return: boolean
     """
-    if isinstance(dtype, (list, dict)):
+    if isinstance(dtype, (list, dict, Variable)):
         return False
     if dtype in NP_TYPE_TO_TENSOR_TYPE:
         return True
@@ -57,10 +57,24 @@ def numpy_type_prototype(dtype):
 
 class Variable:
     """
-    An input to an ONNX graph.
+    An input or output to an ONNX graph.
+
+    :param name: name
+    :param dtype: :epkg:`numpy` dtype (can be None)
+    :param shape: shape (can be None)
+    :param added_dtype: :epkg:`numpy` dtype specified at conversion type
+        (can be None)
     """
 
     def __init__(self, name, dtype=None, shape=None, added_dtype=None):
+        if dtype is not None:
+            if isinstance(dtype, (int, Variable, tuple)):
+                raise TypeError(
+                    "Unexpected type %r for dtype." % type(dtype))
+        if added_dtype is not None:
+            if isinstance(added_dtype, (int, Variable, tuple)):
+                raise TypeError(
+                    "Unexpected type %r for added_dtype." % type(added_dtype))
         self.name_ = name
         self.dtype_ = dtype
         self.added_dtype_ = added_dtype
@@ -68,8 +82,13 @@ class Variable:
 
     @property
     def name(self):
-        "Returns the variable name."
+        "Returns the variable name (`self.name_`)."
         return self.name_
+
+    @property
+    def dtype(self):
+        "Returns `self.dtype_`."
+        return self.dtype_
 
     @property
     def proto_type(self):
@@ -116,6 +135,20 @@ class Variable:
             raise RuntimeError(
                 "Cannot copy as added_dtype is not None.")
         return Variable(self.name_, self.dtype_, self.shape_, dtype)
+
+    def copy_merge(self, var):
+        """
+        Merges information from both Variable.
+        """
+        if not isinstance(var, Variable):
+            return self.copy_add(var)
+        res = Variable(self.name_, self.dtype_,
+                       self.shape_, self.added_dtype_)
+        if self.added_dtype_ is None and var.dtype_ is not None:
+            res.added_dtype_ = var.dtype_
+        if self.shape_ is None and var.shape_ is not None:
+            res.shape_ = var.shape_
+        return res
 
     def __eq__(self, other):
         """

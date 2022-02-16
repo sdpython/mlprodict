@@ -5,7 +5,7 @@
 .. versionadded:: 0.9
 """
 import sys
-from .xop_factory import _dynamic_class_creation
+from .xop import _dynamic_class_creation
 
 
 def _update_module():

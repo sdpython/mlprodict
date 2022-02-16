@@ -3,7 +3,7 @@
 """
 import unittest
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.npy.xop_factory import _dynamic_class_creation
+from mlprodict.npy.xop import _dynamic_class_creation
 from mlprodict.npy.xop_auto import get_rst_doc
 
 

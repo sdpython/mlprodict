@@ -5,8 +5,9 @@
 import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.npy.xop_factory import loadop
-from mlprodict.npy.xop_graph_builder import GraphBuilder
+from mlprodict.npy.xop import loadop
+from mlprodict.npy.xop_variable import Variable
+from mlprodict.npy.xop_ops import _GraphBuilder
 from mlprodict.onnxrt import OnnxInference
 
 
@@ -55,7 +56,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(x + 1, got['Y'])
 
     def test_number2alpha(self):
-        sel = [GraphBuilder.number2alpha(i) for i in range(0, 100001)]
+        sel = [_GraphBuilder.number2alpha(i) for i in range(0, 100001)]
         sel2 = sel.copy()
         sel2.sort()
         self.assertEqual(sel, sel2)
@@ -108,6 +109,38 @@ class TestXOps(ExtTestCase):
         OnnxCast = loadop("OnnxCast")
         ov = OnnxCast('X', to=numpy.int64, output_names=['Y'])
         onx = ov.to_onnx(numpy.float32, numpy.int64, verbose=0)
+        self.assertIn('to', str(onx))
+        oinf = OnnxInference(onx)
+        x = numpy.array([[-2.1, 2.1]], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(x.astype(numpy.int64), got['Y'])
+
+    def test_onnx_dict(self):
+        OnnxCast = loadop("OnnxCast")
+        ov = OnnxCast('X', to=numpy.int64, output_names=['Y'])
+        onx = ov.to_onnx({'X': numpy.float32}, {'Y': numpy.int64}, verbose=0)
+        self.assertIn('to', str(onx))
+        oinf = OnnxInference(onx)
+        x = numpy.array([[-2.1, 2.1]], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(x.astype(numpy.int64), got['Y'])
+
+    def test_onnx_var(self):
+        OnnxCast = loadop("OnnxCast")
+        ov = OnnxCast('X', to=numpy.int64, output_names=['Y'])
+        onx = ov.to_onnx(Variable('X', numpy.float32),
+                         Variable('Y', numpy.float32), verbose=0)
+        self.assertIn('to', str(onx))
+        oinf = OnnxInference(onx)
+        x = numpy.array([[-2.1, 2.1]], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(x.astype(numpy.int64), got['Y'])
+
+    def test_onnx_var_list(self):
+        OnnxCast = loadop("OnnxCast")
+        ov = OnnxCast('X', to=numpy.int64, output_names=['Y'])
+        onx = ov.to_onnx([Variable('X', numpy.float32)],
+                         [Variable('Y', numpy.float32)], verbose=0)
         self.assertIn('to', str(onx))
         oinf = OnnxInference(onx)
         x = numpy.array([[-2.1, 2.1]], dtype=numpy.float32)
