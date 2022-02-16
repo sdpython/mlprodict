@@ -18,6 +18,10 @@ class TestXopDoc(ExtTestCase):
         rst = get_rst_doc()
         self.assertIn("**Summary**", rst)
 
+    def test_auto_import(self):
+        from mlprodict.npy.xop_auto_import_ import OnnxAdd  # pylint: disable=E0611
+        self.assertEqual(OnnxAdd.__name__, 'OnnxAdd')
+
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)

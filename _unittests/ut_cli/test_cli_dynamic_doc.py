@@ -1,5 +1,5 @@
 """
-@brief      test tree node (time=10s)
+@brief      test tree node (time=23s)
 """
 import unittest
 from pyquickhelper.loghelper import BufferedPrint
@@ -13,7 +13,7 @@ class TestCliDynamicDoc(ExtTestCase):
         st = BufferedPrint()
         main(args=["dynamic_doc", "--help"], fLOG=st.fprint)
         res = str(st)
-        self.assertIn("Generates the documentation", res)
+        self.assertIn("Generates", res)
 
     def test_cli_onnx_code(self):
         st = BufferedPrint()

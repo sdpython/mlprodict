@@ -7,6 +7,12 @@ Create ONNX graphs
 .. contents::
     :local:
 
+Example
++++++++
+
+Converters
+++++++++++
+
 API
 +++
 
@@ -33,3 +39,10 @@ API
 .. autosignature:: mlprodict.npy.xops_opset.OnnxReduceL2_typed
 
 .. autosignature:: mlprodict.npy.xops_opset.OnnxReshapeApi13
+
+Available ONNX operators
+++++++++++++++++++++++++
+
+.. toctree::
+
+    xop_supported

@@ -103,7 +103,7 @@ class OnnxOperator:
         if op_version is None:
             if domain == '':
                 from ..tools.asv_options_helper import get_opset_number_from_onnx
-                self.op_version = get_latest_tested_opset_version()
+                self.op_version = get_opset_number_from_onnx()
             else:
                 self.op_version = None
         else:

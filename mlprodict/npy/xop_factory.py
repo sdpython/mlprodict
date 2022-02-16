@@ -209,7 +209,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=pr
 
     for op_name, position in set_names.items():
         cl_name = op_name if op_name.startswith('Onnx') else 'Onnx' + op_name
-        if verbose > 1 and fLOG is not None:
+        if verbose > 3 and fLOG is not None:
             fLOG('[_dynamic_class_creation] cl_name=%r op_name=%r (in=%d)' % (
                 cl_name, op_name, 1 if cl_name in _all_classes else 0))
         if cl_name in _all_classes:

@@ -20,11 +20,13 @@ except KeyError:
 try:
     import generate_visual_graphs
     import generate_automated_pages
+    import generate_onnx_ops
 except ImportError:  # pragma: no cover
     this = os.path.dirname(__file__)
     sys.path.append(os.path.join(this, '_exts'))
     import generate_visual_graphs
     import generate_automated_pages
+    import generate_onnx_ops
 
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.split(__file__)[0])))
@@ -44,6 +46,7 @@ extensions.extend([
     'sphinxcontrib.blockdiag',
     'generate_automated_pages',
     'generate_visual_graphs',
+    'generate_onnx_ops',
 ])
 
 html_css_files = ['my-styles.css']

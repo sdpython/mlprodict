@@ -10,7 +10,6 @@ from onnx.helper import (
     make_node, make_graph, make_model,
     make_tensor_value_info)
 from onnx.numpy_helper import from_array
-from ..tools.asv_options_helper import get_opset_number_from_onnx
 from .xop_variable import Variable, is_numpy_dtype
 
 
@@ -254,6 +253,8 @@ class GraphBuilder:
         :return: onnx graph
         """
         # inputs and outputs
+        from ..tools.asv_options_helper import get_opset_number_from_onnx
+
         self.input = self._process_io(inputs, list(self.input_names.values()))
         self.output = self._process_io(outputs, None)
 
