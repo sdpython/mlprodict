@@ -68,5 +68,5 @@ def dynamic_doc(verbose=0, fLOG=print):
     :param verbose: displays the list of operator
     :param fLOG: logging function
     """
-    from ..npy.xops import _dynamic_class_creation
+    from ..npy.xop_factory import _dynamic_class_creation
     _dynamic_class_creation(cache=True, verbose=verbose, fLOG=fLOG)

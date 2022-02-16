@@ -5,7 +5,7 @@
 
 .. versionadded:: 0.9
 """
-import numpy as np
+import numpy
 
 
 def OnnxReduceSumApi11(*x, axes=None, keepdims=1, op_version=None,
@@ -21,7 +21,7 @@ def OnnxReduceSumApi11(*x, axes=None, keepdims=1, op_version=None,
                 *x, keepdims=keepdims, op_version=op_version,
                 output_names=output_names)
         return OnnxReduceSum(
-            *x, np.array(axes, dtype=np.int64),
+            *x, numpy.array(axes, dtype=numpy.int64),
             keepdims=keepdims, op_version=op_version,
             output_names=output_names)
     if op_version >= 11:
@@ -53,7 +53,7 @@ def OnnxSplitApi11(*x, axis=0, split=None, op_version=None,
                 *x, axis=axis, op_version=op_version,
                 output_names=output_names)
         return OnnxSplit(
-            *x, np.array(split, dtype=np.int64), axis=axis,
+            *x, numpy.array(split, dtype=numpy.int64), axis=axis,
             op_version=op_version, output_names=output_names)
     if op_version >= 11:
         if split is None:
@@ -79,7 +79,7 @@ def OnnxSqueezeApi11(*x, axes=None, op_version=None,
         raise RuntimeError("op_version must be specified.")
     if op_version is None or op_version >= 13:
         return OnnxSqueeze(
-            *x, np.array(axes, dtype=np.int64),
+            *x, numpy.array(axes, dtype=numpy.int64),
             op_version=op_version, output_names=output_names)
     if op_version >= 11:
         return OnnxSqueeze_11(
@@ -98,7 +98,7 @@ def OnnxUnsqueezeApi11(*x, axes=None, op_version=None,
         raise RuntimeError("op_version must be specified.")
     if op_version is None or op_version >= 13:
         return OnnxUnsqueeze(
-            *x, np.array(axes, dtype=np.int64),
+            *x, numpy.array(axes, dtype=numpy.int64),
             op_version=op_version, output_names=output_names)
     if op_version >= 11:
         return OnnxUnsqueeze_11(
@@ -113,7 +113,7 @@ def OnnxReduceL2_typed(dtype, x, axes=None, keepdims=1, op_version=None,
     """
     Adds operator ReduceL2 for float or double.
     """
-    if dtype == np.float32:
+    if dtype == numpy.float32:
         return OnnxReduceL2(
             x, axes=axes, keepdims=keepdims,
             op_version=op_version, output_names=output_names)

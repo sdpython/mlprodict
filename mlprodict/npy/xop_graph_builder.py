@@ -11,7 +11,7 @@ from onnx.helper import (
     make_tensor_value_info)
 from onnx.numpy_helper import from_array
 from ..tools.asv_options_helper import get_opset_number_from_onnx
-from .xop_variable import Variable, is_numpy_dtype, numpy_type_prototype
+from .xop_variable import Variable, is_numpy_dtype
 
 
 def _default_OPSET_TO_IR_VERSION():
@@ -91,16 +91,15 @@ class GraphBuilder:
 
         if node.output_names is None:
             prefix = node.onnx_prefix
-            output = '%s%d' % (prefix, index)
+            n = '%s%d' % (prefix, index)
         else:
             output = node.output_names[index]
-
-        if isinstance(output, Variable):
-            n = output.name
-        else:
-            raise TypeError(  # pragma: no cover
-                "Unexpected type %r for output %d." % (
-                    type(output), index))
+            if isinstance(output, Variable):
+                n = output.name
+            else:
+                raise TypeError(  # pragma: no cover
+                    "Unexpected type %r for output %d (output_names=%r)." % (
+                        type(output), index, node.output_names))
 
         name = self.get_unique_name(n)
         self.output_names[key] = name
@@ -180,7 +179,7 @@ class GraphBuilder:
             else:
                 self.opsets[domain] = max(opset, self.opsets[domain])
         node = make_node(op_type, inputs, outputs, name=name,
-                         domain=domain)
+                         domain=domain, **attributes)
         self.node.append(node)
 
     def _process_io(self, inputs, input_names):
@@ -236,8 +235,8 @@ class GraphBuilder:
             if inp != var:
                 raise RuntimeError(
                     "Unexpected %r != %r." % (inp, var))
-            pt = numpy_type_prototype(inp.added_dtype or inp.dtype)
-            res.append(make_tensor_value_info(inp.name, pt, None))
+            res.append(make_tensor_value_info(
+                inp.name, inp.proto_added_type, None))
 
         return res
 

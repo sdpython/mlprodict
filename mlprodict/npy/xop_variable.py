@@ -6,7 +6,6 @@
 """
 import numpy
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
-from ..tools.asv_options_helper import get_opset_number_from_onnx
 
 
 def is_numpy_dtype(dtype):
@@ -47,15 +46,43 @@ class Variable:
     An input to an ONNX graph.
     """
 
-    def __init__(self, name, dtype=None, added_dtype=None):
-        self.name = name
-        self.dtype = dtype
-        self.added_dtype = added_dtype
+    def __init__(self, name, dtype=None, shape=None, added_dtype=None):
+        self.name_ = name
+        self.dtype_ = dtype
+        self.added_dtype_ = added_dtype
+        self.shape_ = shape
+
+    @property
+    def name(self):
+        "Returns the variable name."
+        return self.name_
+
+    @property
+    def proto_type(self):
+        "Returns the proto type for `self.dtype_`."
+        if self.dtype_ is None:
+            return 0
+        return numpy_type_prototype(self.dtype_)
+
+    @property
+    def proto_added_type(self):
+        "Returns the proto type for `self.added_dtype_` or `self.dtype_`."
+        dt = self.added_dtype_ or self.dtype_
+        if dt is None:
+            return 0
+        return numpy_type_prototype(dt)
 
     def __repr__(self):
         "usual"
-        return "%s(%r, %r, %r)" % (
-            self.__class__.__name__, self.name, self.dtype, self.added_dtype)
+        kwargs = dict(dtype=self.dtype_, shape=self.shape_,
+                      added_dtype=self.added_dtype_)
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        if len(kwargs) > 0:
+            msg = ", " + ", ".join("%s=%r" % (k, v) for k, v in kwargs.items())
+        else:
+            msg = ''
+        return "%s(%r%s)" % (
+            self.__class__.__name__, self.name_, msg)
 
     def is_named(self, name):
         "Tells the variable is named like that."
@@ -71,10 +98,10 @@ class Variable:
         :param dtype: added type
         :return: @see cl Variable
         """
-        if self.added_dtype is not None:
+        if self.added_dtype_ is not None:
             raise RuntimeError(
                 "Cannot copy as added_dtype is not None.")
-        return Variable(self.name, self.dtype, dtype)
+        return Variable(self.name_, self.dtype_, self.shape_, dtype)
 
     def __eq__(self, other):
         """
@@ -85,8 +112,8 @@ class Variable:
                 "Unexpected type %r." % type(other))
         if self.name != other.name:
             return False
-        dt1 = self.added_dtype or self.dtype
-        dt2 = other.added_dtype or other.dtype
-        if dt1 != dt2:
+        if self.shape_ != other.shape_:
+            return False
+        if self.dtype_ != other.dtype_:
             return False
         return True

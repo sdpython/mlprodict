@@ -159,7 +159,7 @@ def _populate_schemas():
     return res
 
 
-def _dynamic_class_creation(operator_names, cache=False, verbose=0, fLOG=print):
+def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=print):
     """
     Automatically generates classes for each of the operators
     module *onnx* defines and described at
@@ -168,6 +168,13 @@ def _dynamic_class_creation(operator_names, cache=False, verbose=0, fLOG=print):
     and `Operators
     <https://github.com/onnx/onnx/blob/master/docs/
     Operators-ml.md>`_.
+
+    :param operator_names: list of operators to request or None for all
+    :param cache: extract the documentation from onnx package and
+        saves it on disk it True
+    :param verbose: display some progress
+    :param fLOG: logging function
+    :return: list of requested operators as a tuple
     """
     def _c(obj, label, i):
         name = '%s%d' % (obj.name or label, i)
@@ -175,33 +182,40 @@ def _dynamic_class_creation(operator_names, cache=False, verbose=0, fLOG=print):
         return (name, tys)
 
     cache_dir = cache_folder()
+    if operator_names is None:
+        operator_names = list(_all_schemas)
 
     res = _all_schemas
     cls = {}
-    set_names = set()
+    set_names = dict()
     set_skip = set()
-    for op_name in operator_names:
-        set_names.add(op_name)
+    for pos, op_name in enumerate(operator_names):
+        set_names[op_name] = pos
         if '_' in op_name:
             n = op_name.split('_')[0]
             if n.startswith('Onnx'):
                 set_skip.add(n)
             else:
                 set_skip.add('Onnx' + n)
-            set_names.add(n)
+            if n not in set_names:
+                set_names[n] = -1
 
     if verbose > 1 and fLOG is not None:
         fLOG("[_dynamic_class_creation] set_names=%r" % set_names)
         fLOG("[_dynamic_class_creation] set_skip=%r" % set_skip)
 
-    for op_name in set_names:
+    returned_classes = []
+    positions = {}
+
+    for op_name, position in set_names.items():
         cl_name = op_name if op_name.startswith('Onnx') else 'Onnx' + op_name
         if verbose > 1 and fLOG is not None:
             fLOG('[_dynamic_class_creation] cl_name=%r op_name=%r (in=%d)' % (
                 cl_name, op_name, 1 if cl_name in _all_classes else 0))
         if cl_name in _all_classes:
             if cl_name not in set_skip:
-                yield _all_classes[cl_name]
+                if position >= 0:
+                    returned_classes.append((position, _all_classes[cl_name]))
             continue
         if verbose > 0 and fLOG is not None:
             fLOG("[_dynamic_class_creation] op_name=%r, cl_name=%r" % (
@@ -243,22 +257,26 @@ def _dynamic_class_creation(operator_names, cache=False, verbose=0, fLOG=print):
                           getattr(schema, 'deprecated', False),
                           schema.since_version, {})
         cls[class_name] = cl
+        positions[class_name] = position
 
     # Retrieves past classes.
     for name in cls:  # pylint: disable=C0206
         if '_' not in name:
             continue
         main, _ = name.split('_')
-        if main in cls:
+        if main in cls:  # pylint: disable=R1715
             last = cls[main]
         else:
             last = _all_classes[main]
         last.past_version[name] = cls[name]
 
     _all_classes.update(cls)
-    for v in cls.values():
-        if v not in set_skip:
-            yield v
+    for cl_name, v in cls.items():
+        if v not in set_skip and positions.get(cl_name, -1) >= 0:
+            returned_classes.append((positions[cl_name], v))
+
+    returned_classes.sort()
+    return tuple(e[1] for e in returned_classes)
 
 
 _all_schemas = _populate_schemas()
@@ -270,8 +288,8 @@ def loadop(*names, cache=False, verbose=0, fLOG=print):
     Dynamically creates a class for a every operator type in
     the given list.
     """
-    res = tuple(_dynamic_class_creation(
-        names, cache=cache, verbose=verbose, fLOG=fLOG))
+    res = _dynamic_class_creation(
+        names, cache=cache, verbose=verbose, fLOG=fLOG)
     if len(res) == 1:
         return res[0]
     return res

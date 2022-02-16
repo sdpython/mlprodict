@@ -338,6 +338,7 @@ class OnnxNumpyCompiler:
         """
         if self.onnx_ is None and self.fct_ is not None:
             from .onnx_variable import OnnxVar
+            from .xop_variable import numpy_type_prototype
 
             inputs, outputs, kwargs, n_optional, n_variables = (  # pylint: disable=W0612
                 self._parse_annotation(

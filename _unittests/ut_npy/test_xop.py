@@ -1,6 +1,6 @@
 # pylint: disable=E0611
 """
-@brief      test log(time=3s)
+@brief      test log(time=5s)
 """
 import unittest
 import numpy
@@ -62,6 +62,8 @@ class TestXOps(ExtTestCase):
 
     def test_onnx_add_sub_left(self):
         OnnxAdd, OnnxSub = loadop("OnnxAdd", "OnnxSub")
+        self.assertEqual(OnnxAdd.operator_name, 'Add')
+        self.assertEqual(OnnxSub.operator_name, 'Sub')
         ov = OnnxAdd('X', 'X')
         ov2 = OnnxSub(ov, 'X', output_names=['Y'])
         onx = ov2.to_onnx(numpy.float32, numpy.float32, verbose=0)
@@ -72,6 +74,8 @@ class TestXOps(ExtTestCase):
 
     def test_onnx_add_sub_right(self):
         OnnxAdd, OnnxSub = loadop("OnnxAdd", "OnnxSub")
+        self.assertEqual(OnnxAdd.operator_name, 'Add')
+        self.assertEqual(OnnxSub.operator_name, 'Sub')
         ov = OnnxAdd('X', 'X')
         ov2 = OnnxSub('X', ov, output_names=['Y'])
         onx = ov2.to_onnx(numpy.float32, numpy.float32, verbose=0)
@@ -79,6 +83,36 @@ class TestXOps(ExtTestCase):
         x = numpy.array([-2, 2], dtype=numpy.float32)
         got = oinf.run({'X': x})
         self.assertEqualArray(-x, got['Y'])
+
+    def test_onnx_transpose(self):
+        OnnxTranspose = loadop("OnnxTranspose")
+        ov = OnnxTranspose('X', perm=[1, 0], output_names=['Y'])
+        onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
+        self.assertIn('perm', str(onx))
+        oinf = OnnxInference(onx)
+        x = numpy.array([[-2, 2]], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(x.T, got['Y'])
+
+    def test_onnx_transpose3(self):
+        OnnxTranspose = loadop("OnnxTranspose")
+        ov = OnnxTranspose('X', perm=[1, 0, 2], output_names=['Y'])
+        onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
+        self.assertIn('perm', str(onx))
+        oinf = OnnxInference(onx)
+        x = numpy.array([[[-2, 2]]], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(numpy.transpose(x, axes=(1, 0, 2)), got['Y'])
+
+    def test_onnx_cast(self):
+        OnnxCast = loadop("OnnxCast")
+        ov = OnnxCast('X', to=numpy.int64, output_names=['Y'])
+        onx = ov.to_onnx(numpy.float32, numpy.int64, verbose=0)
+        self.assertIn('to', str(onx))
+        oinf = OnnxInference(onx)
+        x = numpy.array([[-2.1, 2.1]], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(x.astype(numpy.int64), got['Y'])
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ from scipy.sparse import coo_matrix
 from onnx import GraphProto, TensorProto
 from onnx.helper import make_graph, make_model  # pylint: disable=W0611
 from onnx.numpy_helper import from_array
-from .xop_variable import Variable, is_numpy_dtype
+from .xop_variable import Variable, is_numpy_dtype, numpy_type_prototype
 from .xop_graph_builder import GraphBuilder
 
 
@@ -102,6 +102,7 @@ class OnnxOperator:
 
         if op_version is None:
             if domain == '':
+                from ..tools.asv_options_helper import get_opset_number_from_onnx
                 self.op_version = get_latest_tested_opset_version()
             else:
                 self.op_version = None
@@ -309,8 +310,14 @@ class OnnxOperator:
         if self.__class__.__name__ == "OnnxCast":
             if "to" in self.kwargs:
                 value = self.kwargs['to']
-                stop
-                self.kwargs['to'] = to
+                if not isinstance(value, int):
+                    try:
+                        to = numpy_type_prototype(value)
+                    except ValueError as e:
+                        raise ValueError(
+                            "Unable to convert argument to in operator cast, "
+                            "type is %r, value is %r." % (type(value), value)) from e
+                    self.kwargs['to'] = to
             return
 
     def find_schema(self, op_version):
@@ -488,6 +495,9 @@ class OnnxOperator:
     def add_to(self, builder):
         """
         Adds to graph builder.
+
+        :param builder: instance of @see cl GraphBuilder,
+            it must have a method `add_node`
         """
         inputs = builder.get_input_names(self, self.inputs)
         n_outputs = (

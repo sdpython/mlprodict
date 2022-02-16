@@ -1,9 +1,9 @@
 """
-@brief      test log(time=3s)
+@brief      test log(time=10s)
 """
 import unittest
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.npy.xops import _dynamic_class_creation
+from mlprodict.npy.xop_factory import _dynamic_class_creation
 from mlprodict.npy.xop_auto import get_rst_doc
 
 
