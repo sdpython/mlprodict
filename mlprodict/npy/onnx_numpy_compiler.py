@@ -337,8 +337,8 @@ class OnnxNumpyCompiler:
         Returns the onnx graph produced by function `fct_`.
         """
         if self.onnx_ is None and self.fct_ is not None:
+            from skl2onnx.common.data_types import guess_numpy_type
             from .onnx_variable import OnnxVar
-            from .xop_variable import numpy_type_prototype
 
             inputs, outputs, kwargs, n_optional, n_variables = (  # pylint: disable=W0612
                 self._parse_annotation(
@@ -353,7 +353,7 @@ class OnnxNumpyCompiler:
                           getattr(self.fct_, '__module__', None)))
             names_in = [oi[0] for oi in inputs]
             names_out = [oi[0] for oi in outputs]
-            names_var = [OnnxVar(n, dtype=numpy_type_prototype(dt[1]))
+            names_var = [OnnxVar(n, dtype=guess_numpy_type(dt[1]))
                          for n, dt in zip(names_in, inputs)]
 
             if 'op_version' in self.fct_.__code__.co_varnames:
