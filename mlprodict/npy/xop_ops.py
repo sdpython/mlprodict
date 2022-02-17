@@ -32,6 +32,21 @@ class OnnxOperatorItem:
         self.index = index
         self.op_version = op_version
 
+    @property
+    def inputs(self):
+        "Returns the only inputs in a list."
+        inp = self.onx_op.inputs
+        return [inp[self.index]]
+
+    def add_to(self, builder):
+        """
+        Adds to graph builder.
+
+        :param builder: instance of @see cl _GraphBuilder,
+            it must have a method `add_node`
+        """
+        self.onx_op.add_to(builder)
+
     def __str__(self):
         """
         usual
@@ -253,7 +268,8 @@ class OnnxOperator:
         self._check()
 
     def _check(self):
-        input_types = (Variable, OnnxOperator, numpy.ndarray)
+        input_types = (Variable, OnnxOperator,
+                       OnnxOperatorItem, numpy.ndarray)
         for o in self.inputs:
             if not isinstance(o, input_types):
                 raise TypeError(
@@ -388,6 +404,24 @@ class OnnxOperator:
         """
         return OnnxOperatorItem(self, index, self.op_version)
 
+    def add_to(self, builder):
+        """
+        Adds to graph builder.
+
+        :param builder: instance of @see cl _GraphBuilder,
+            it must have a method `add_node`
+        """
+        inputs = builder.get_input_names(self, self.inputs)
+        n_outputs = (
+            self.output_range[0] if self.output_names is None
+            else len(self.output_names))
+        outputs = [builder.get_output_name(self, i) for i in range(n_outputs)]
+        builder.add_node(
+            self.operator_name,
+            builder.get_unique_name('_' + self.operator_name.lower()),
+            inputs, outputs, domain=self.domain, opset=self.op_version,
+            **self.kwargs)
+
     def _node_to_graph(self, other_outputs=None, inputs=None, outputs=None):
         """
         Builds a graph as a list of nodes to walk through in that order.
@@ -406,7 +440,7 @@ class OnnxOperator:
             return new_inputs
 
         def _process_input(inputs, set_inputs, inp, new_inputs):
-            if isinstance(inp, OnnxOperator):
+            if isinstance(inp, (OnnxOperator, OnnxOperatorItem)):
                 new_stack.append(inp)
             elif isinstance(inp, Variable):
                 if inp.name in set_inputs:
@@ -511,43 +545,36 @@ class OnnxOperator:
                 "Unable to handle outputs=%r." % outputs)
 
         # outputs
+        set_names = set()
         new_outputs = []
         for node in node_outputs:
             if node.output_names is None:
                 n = self.output_range[0]
                 for i in range(n):
                     to = _get_type(node, outputs=outputs)
-                    res = ('out%d' % i, to)
-                    new_outputs.append(Variable(res[0], added_dtype=to))
+                    res = 'out%d' % i
+                    var = Variable(res, added_dtype=to)
+                    if var.name in set_names:
+                        raise RuntimeError(
+                            "Duplicated output name var=%r." % var)
+                    set_names.add(var.name)
+                    new_outputs.append(var)
             else:
-                for o in self.output_names:
+                for o in node.output_names:
                     to = _get_type(node, o, outputs=outputs)
                     res = (o, to)
-                    new_outputs.append(o.copy_merge(to))
+                    var = o.copy_merge(to)
+                    if var.name in set_names:
+                        raise RuntimeError(
+                            "Duplicated output name o=%r var=%r." % (o, var))
+                    set_names.add(var.name)
+                    new_outputs.append(var)
         if len(new_outputs) == 0:
             raise RuntimeError(
                 "No detected outputs inputs=%r outputs=%r." % (
                     inputs, outputs))
 
         return nodes, new_inputs, new_outputs
-
-    def add_to(self, builder):
-        """
-        Adds to graph builder.
-
-        :param builder: instance of @see cl _GraphBuilder,
-            it must have a method `add_node`
-        """
-        inputs = builder.get_input_names(self, self.inputs)
-        n_outputs = (
-            self.output_range[0] if self.output_names is None
-            else len(self.output_names))
-        outputs = [builder.get_output_name(self, i) for i in range(n_outputs)]
-        builder.add_node(
-            self.operator_name,
-            builder.get_unique_name('_' + self.operator_name.lower()),
-            inputs, outputs, domain=self.domain, opset=self.op_version,
-            **self.kwargs)
 
     def to_onnx(self, inputs=None, outputs=None,
                 other_outputs=None, target_opset=None,
@@ -725,7 +752,7 @@ class _GraphBuilder:
                 names.append(name)
                 self.names.add(name)
             elif isinstance(i, OnnxOperatorItem):
-                name = self.get_output_name(i.onnx_op, i.index)
+                name = self.get_output_name(i.onx_op, i.index)
                 names.append(name)
                 self.names.add(name)
             elif isinstance(i, numpy.ndarray):
@@ -786,15 +813,17 @@ class _GraphBuilder:
 
         if input_names is None:
             # outputs
+            set_names = set()
             input_names = []
             for inp in inputs:
                 if isinstance(inp, Variable):
+                    if inp.name in set_names:
+                        raise ValueError(
+                            "Names already taken %r in %r." % (
+                                inp.name, inputs))
+                    set_names.add(inp.name)
                     if inp.name in self.output_names_rev:
                         input_names.append(inp)
-                elif isinstance(inp, tuple) and len(inp) == 2:
-                    var, dtype = inp
-                    if var.name in self.output_names_rev:
-                        input_names.append(Variable(var.name, dtype))
                 else:
                     raise TypeError(
                         "Unexpected type %r in %r." % (inp, inputs))
@@ -811,13 +840,19 @@ class _GraphBuilder:
                     input_names, inputs))
 
         if isinstance(input_names, list):
-            d_input_names = {inp.name: inp for inp in input_names}
+            d_input_names = {}
+            for inp in input_names:
+                if inp.name in d_input_names:
+                    raise ValueError(
+                        "Duplicated name %r in %r." % (inp.name, input_names))
+                d_input_names[inp.name] = inp
         elif isinstance(input_names, dict):
             d_input_names = input_names
         else:
             raise TypeError(
                 "Unexpected type for input_names %r (%r)." % (
                     type(input_names), input_names))
+
         res = []
         for inp in inputs:
             if not isinstance(inp, Variable):

@@ -7,9 +7,7 @@
 import inspect
 from typing import Any
 import numpy
-from ..tools.ort_wrapper import InferenceSession
 from ..onnx_tools.optim._main_onnx_optim import onnx_optimisations
-from ..onnxrt import OnnxInference
 from .onnx_version import FctVersion
 from .onnx_numpy_annotation import get_args_kwargs
 
@@ -437,11 +435,13 @@ class OnnxNumpyCompiler:
         inputs, outputs, _, n_optional, n_variables = self._parse_annotation(
             signature=signature, version=version)
         if runtime != 'onnxruntime':
+            from ..onnxrt import OnnxInference
             rt = OnnxInference(onx, runtime=runtime)
             self.rt_fct_ = OnnxNumpyFunctionOnnxInference(
                 self, rt, inputs=inputs, outputs=outputs,
                 n_optional=n_optional, n_variables=n_variables)
         else:
+            from ..tools.ort_wrapper import InferenceSession
             rt = InferenceSession(onx.SerializeToString())
             self.rt_fct_ = OnnxNumpyFunctionInferenceSession(
                 self, rt, inputs=inputs, outputs=outputs,

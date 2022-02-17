@@ -293,3 +293,43 @@ def loadop(*names, cache=False, verbose=0, fLOG=print):
     if len(res) == 1:
         return res[0]
     return res
+
+
+class OnnxLoadFactory:
+    """
+    Automatically creating all operators from onnx packages
+    takes time. That's why function @see cl loadop only creates
+    classes for the requested operators. This class does the same
+    when an attributes is requested.
+
+    ::
+
+        cl = OnnxLoadOperators()
+        x = cl.Add(...)
+
+    It is equivalent to:
+
+    ::
+
+        OnnxAdd = loadop('Add')
+        x = OnnxAdd(...)
+    """
+
+    def __init__(self):
+        self._loaded_classes = {}
+
+    def __getattr__(self, name):
+        """
+
+        """
+        if name == '_loaded_classes':
+            return self._loaded_classes
+        if name in self._loaded_classes:
+            return self._loaded_classes[name]
+        cl = loadop(name)
+        self._loaded_classes[name] = cl
+        self._loaded_classes[cl.__name__] = cl
+        return cl
+
+
+onnx_load_factory = Xop = OnnxLoadFactory()

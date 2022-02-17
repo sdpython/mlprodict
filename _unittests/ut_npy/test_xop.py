@@ -4,6 +4,7 @@
 """
 import unittest
 import numpy
+from scipy.spatial.distance import squareform, pdist
 from onnx import TensorProto
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.npy.xop import loadop
@@ -265,6 +266,64 @@ class TestXOps(ExtTestCase):
         self.assertEqual(dtype, TensorProto.FLOAT)
         self.assertEqual(shape, (2, ))
 
+    def test_scan_pdist(self):
+        (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,
+         OnnxAdd) = loadop('Sub', 'Identity',
+                           'ReduceSumSquare', 'Scan', 'Add')
+
+        def onnx_squareform_pdist(X, dtype=None, op_version=None, **kwargs):
+            diff = OnnxSub('next_in', 'next',
+                           op_version=op_version)
+            id_next = OnnxIdentity('next_in', output_names=['next_out'],
+                                   op_version=op_version)
+            flat = OnnxReduceSumSquare(diff, axes=[1], op_version=op_version,
+                                       output_names=['scan_out'], keepdims=0)
+            scan_body = id_next.to_onnx(
+                [Variable('next_in', numpy.float32, (None, None)),  # tensor_type([None, None])),
+                 Variable('next', numpy.float32, (None, ))],  # tensor_type([None]))]),
+                outputs=[Variable('next_out', numpy.float32, (None, None)),  # ([None, None])),
+                         Variable('scan_out', numpy.float32, (None, ))],  # tensor_type([None]))],
+                other_outputs=[flat],
+                target_opset=op_version)
+            output_names = [o.name for o in scan_body.graph.output]
+            self.assertEqual(['next_out', 'scan_out'], output_names)
+            dtype, shape = get_dtype_shape(scan_body.graph.output[0])
+            self.assertEqual(dtype, TensorProto.FLOAT)
+            self.assertEqual(shape, (None, None))
+            dtype, shape = get_dtype_shape(scan_body.graph.output[1])
+            self.assertEqual(dtype, TensorProto.FLOAT)
+            self.assertEqual(shape, (None, ))
+
+            node = OnnxScan(X, X, output_names=['S1', 'S2'],
+                            num_scan_inputs=1,
+                            body=(scan_body.graph, [id_next, flat]),
+                            op_version=op_version, **kwargs)
+            return node[1]
+
+        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((3, 2))
+        cop = OnnxAdd('input', 'input')
+        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
+        cop2 = OnnxIdentity(cdist, output_names=['cdist'])
+
+        model_def = cop2.to_onnx(
+            {'input': numpy.float32},
+            outputs=[Variable('cdist', numpy.float32)])
+
+        sess = OnnxInference(model_def)
+        res = sess.run({'input': x})
+        self.assertEqual(list(res.keys()), ['cdist'])
+        exp = squareform(pdist(x * 2, metric="sqeuclidean"))
+        self.assertEqualArray(exp, res['cdist'])
+
+        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((2, 3))
+        res = sess.run({'input': x})
+        self.assertEqual(list(res.keys()), ['cdist'])
+        exp = squareform(pdist(x * 2, metric="sqeuclidean"))
+        self.assertEqualArray(exp, res['cdist'])
+
 
 if __name__ == "__main__":
+    # TestXOps().test_scan_pdist()
     unittest.main()
