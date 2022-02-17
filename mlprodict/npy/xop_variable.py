@@ -64,21 +64,33 @@ class Variable:
     :param shape: shape (can be None)
     :param added_dtype: :epkg:`numpy` dtype specified at conversion type
         (can be None)
+    :param added_shape: :epkg:`numpy` shape specified at conversion type
+        (can be None)
     """
 
-    def __init__(self, name, dtype=None, shape=None, added_dtype=None):
-        if dtype is not None:
-            if isinstance(dtype, (int, Variable, tuple)):
-                raise TypeError(
-                    "Unexpected type %r for dtype." % type(dtype))
-        if added_dtype is not None:
-            if isinstance(added_dtype, (int, Variable, tuple)):
-                raise TypeError(
-                    "Unexpected type %r for added_dtype." % type(added_dtype))
+    def __init__(self, name, dtype=None, shape=None, added_dtype=None,
+                 added_shape=None):
+        if (dtype is not None and isinstance(
+                dtype, (int, Variable, tuple, numpy.ndarray))):
+            raise TypeError(
+                "Unexpected type %r for dtype." % type(dtype))
+        if (added_dtype is not None and isinstance(
+                added_dtype, (int, Variable, tuple, numpy.ndarray))):
+            raise TypeError(
+                "Unexpected type %r for added_dtype." % type(added_dtype))
+        if shape is not None and not isinstance(shape, (tuple, list)):
+            raise TypeError(
+                "Unexpected type %r for shape." % type(shape))
+        if (added_shape is not None and not isinstance(
+                added_shape, (tuple, list))):
+            raise TypeError(
+                "Unexpected type %r for added_shape." % type(added_shape))
+
         self.name_ = name
         self.dtype_ = dtype
         self.added_dtype_ = added_dtype
         self.shape_ = shape
+        self.added_shape_ = added_shape
 
     @property
     def name(self):
@@ -105,10 +117,19 @@ class Variable:
             return 0
         return numpy_type_prototype(dt)
 
+    @property
+    def proto_added_shape(self):
+        "Returns the shape for `self.added_shape_` or `self.shape`."
+        dt = self.added_shape_ or self.shape_
+        if dt is None:
+            return None
+        return list(dt)
+
     def __repr__(self):
         "usual"
         kwargs = dict(dtype=self.dtype_, shape=self.shape_,
-                      added_dtype=self.added_dtype_)
+                      added_dtype=self.added_dtype_,
+                      added_shape=self.added_shape_)
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
         if len(kwargs) > 0:
             msg = ", " + ", ".join("%s=%r" % (k, v) for k, v in kwargs.items())
@@ -134,7 +155,11 @@ class Variable:
         if self.added_dtype_ is not None:
             raise RuntimeError(
                 "Cannot copy as added_dtype is not None.")
-        return Variable(self.name_, self.dtype_, self.shape_, dtype)
+        if isinstance(dtype, numpy.ndarray):
+            dtype, shape = dtype.dtype, dtype.shape
+        else:
+            shape = None
+        return Variable(self.name_, self.dtype_, self.shape_, dtype, shape)
 
     def copy_merge(self, var):
         """
@@ -143,11 +168,12 @@ class Variable:
         if not isinstance(var, Variable):
             return self.copy_add(var)
         res = Variable(self.name_, self.dtype_,
-                       self.shape_, self.added_dtype_)
+                       self.shape_, self.added_dtype_,
+                       self.added_shape_)
         if self.added_dtype_ is None and var.dtype_ is not None:
             res.added_dtype_ = var.dtype_
-        if self.shape_ is None and var.shape_ is not None:
-            res.shape_ = var.shape_
+        if self.added_shape_ is None and var.shape_ is not None:
+            res.added_shape_ = var.shape_
         return res
 
     def __eq__(self, other):

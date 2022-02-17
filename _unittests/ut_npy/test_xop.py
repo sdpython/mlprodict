@@ -4,11 +4,14 @@
 """
 import unittest
 import numpy
+from onnx import TensorProto
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.npy.xop import loadop
 from mlprodict.npy.xop_variable import Variable
 from mlprodict.npy.xop_ops import _GraphBuilder
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.plotting.text_plot import onnx_simple_text_plot
+from mlprodict.onnx_tools.onnx2py_helper import get_dtype_shape
 
 
 class TestXOps(ExtTestCase):
@@ -178,7 +181,6 @@ class TestXOps(ExtTestCase):
                               got['Z'])
 
         x = numpy.array([-1, -2], dtype=numpy.float32)
-        y = numpy.array([-1, -3], dtype=numpy.float32)
         model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(
@@ -212,6 +214,56 @@ class TestXOps(ExtTestCase):
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot()
         self.assertIn("out_red0 -> _greater;", dot)
+
+    def test_onnx_abs_shape_variable(self):
+        OnnxAbs = loadop("OnnxAbs")
+        ov = OnnxAbs('X', output_names=['Y'])
+        onx = ov.to_onnx([Variable('X', numpy.float32, [1, 2])],
+                         [Variable('Y', numpy.float32, [1, 2])],
+                         verbose=0)
+        oinf = OnnxInference(onx)
+        x = numpy.array([[-2, 2]], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(numpy.abs(x), got['Y'])
+        self.assertIn("input: name='X'", onnx_simple_text_plot(onx))
+        dtype, shape = get_dtype_shape(onx.graph.input[0])
+        self.assertEqual(dtype, TensorProto.FLOAT)
+        self.assertEqual(shape, (1, 2))
+        dtype, shape = get_dtype_shape(onx.graph.output[0])
+        self.assertEqual(dtype, TensorProto.FLOAT)
+        self.assertEqual(shape, (1, 2))
+
+    def test_onnx_abs_shape_variable_batch(self):
+        OnnxAbs = loadop("OnnxAbs")
+        ov = OnnxAbs('X', output_names=['Y'])
+        onx = ov.to_onnx([Variable('X', numpy.float32, [None, 2])],
+                         [Variable('Y', numpy.float32, [None, 2])],
+                         verbose=0)
+        oinf = OnnxInference(onx)
+        x = numpy.array([[-2, 2]], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(numpy.abs(x), got['Y'])
+        dtype, shape = get_dtype_shape(onx.graph.input[0])
+        self.assertEqual(dtype, TensorProto.FLOAT)
+        self.assertEqual(shape, (None, 2))
+        dtype, shape = get_dtype_shape(onx.graph.output[0])
+        self.assertEqual(dtype, TensorProto.FLOAT)
+        self.assertEqual(shape, (None, 2))
+
+    def test_onnx_abs_shape_numpy(self):
+        OnnxAbs = loadop("OnnxAbs")
+        ov = OnnxAbs('X', output_names=['Y'])
+        x = numpy.array([-2, 2], dtype=numpy.float32)
+        onx = ov.to_onnx({'X': x}, {'Y': x}, verbose=0)
+        oinf = OnnxInference(onx)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(numpy.abs(x), got['Y'])
+        dtype, shape = get_dtype_shape(onx.graph.input[0])
+        self.assertEqual(dtype, TensorProto.FLOAT)
+        self.assertEqual(shape, (2, ))
+        dtype, shape = get_dtype_shape(onx.graph.output[0])
+        self.assertEqual(dtype, TensorProto.FLOAT)
+        self.assertEqual(shape, (2, ))
 
 
 if __name__ == "__main__":

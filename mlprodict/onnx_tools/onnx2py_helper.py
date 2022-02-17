@@ -15,8 +15,8 @@ def to_bytes(val):
     """
     Converts an array into protobuf and then into bytes.
 
-    @param      val     array
-    @return             bytes
+   :param val: array
+   :return: bytes
 
     .. exref::
         :title: Converts an array into bytes (serialization)
@@ -75,8 +75,8 @@ def from_bytes(b):
     """
     Retrieves an array from bytes then protobuf.
 
-    @param      b       bytes
-    @return             array
+    :param b: bytes
+    :return: array
 
     .. exref::
         :title: Converts bytes into an array (serialization)
@@ -408,6 +408,37 @@ def _var_as_dict(var):
         return dict(name=var.name, value=data)
     raise NotImplementedError(  # pragma: no cover
         "Unable to guess which object it is.\n{}\n---".format(var))
+
+
+def get_dtype_shape(obj):
+    """
+    Returns the shape of a tensor.
+
+    :param obj: onnx object
+    :return: `(dtype, shape)` or `(None, None)` if not applicable
+    """
+    if not hasattr(obj, 'type'):
+        return None
+    t = obj.type
+    if not hasattr(t, 'tensor_type'):
+        return None
+    t = t.tensor_type
+    dtype = t.elem_type
+    if not hasattr(t, 'shape'):
+        return dtype, None
+    shape = t.shape
+    ds = []
+    for dim in shape.dim:
+        d = dim.dim_value
+        s = dim.dim_param
+        if d == 0:
+            if s == '':
+                ds.append(None)
+            else:
+                ds.append(s)
+        else:
+            ds.append(d)
+    return dtype, tuple(ds)
 
 
 def onnx_model_opsets(onnx_model):

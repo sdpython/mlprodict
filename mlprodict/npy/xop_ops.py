@@ -833,7 +833,7 @@ class _GraphBuilder:
                 raise RuntimeError(
                     "Unexpected %r != %r." % (inp, var))
             res.append(make_tensor_value_info(
-                inp.name, inp.proto_added_type, None))
+                inp.name, inp.proto_added_type, inp.proto_added_shape))
 
         return res
 
