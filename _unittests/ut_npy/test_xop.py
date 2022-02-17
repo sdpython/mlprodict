@@ -147,6 +147,72 @@ class TestXOps(ExtTestCase):
         got = oinf.run({'X': x})
         self.assertEqualArray(x.astype(numpy.int64), got['Y'])
 
+    def test_if(self):
+        OnnxConstant, OnnxIf, OnnxGreater = loadop(
+            "OnnxConstant", "OnnxIf", "OnnxGreater")
+        bthen = OnnxConstant(
+            value_floats=numpy.array([0], dtype=numpy.float32),
+            output_names=['res_then'])
+        bthen.set_onnx_name_prefix('then')
+
+        belse = OnnxConstant(
+            value_floats=numpy.array([1], dtype=numpy.float32),
+            output_names=['res_else'])
+        belse.set_onnx_name_prefix('else')
+
+        bthen_body = bthen.to_onnx(
+            [], [Variable('res_then', numpy.float32)])
+        belse_body = belse.to_onnx(
+            [], [Variable('res_else', numpy.float32)])
+
+        onx = OnnxIf(
+            OnnxGreater('X', numpy.array([0], dtype=numpy.float32)),
+            output_names=['Z'],
+            then_branch=bthen_body.graph,
+            else_branch=belse_body.graph)
+
+        x = numpy.array([1, 2], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(numpy.array([0.], dtype=numpy.float32),
+                              got['Z'])
+
+        x = numpy.array([-1, -2], dtype=numpy.float32)
+        y = numpy.array([-1, -3], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(
+            numpy.array([1.], dtype=numpy.float32), got['Z'])
+
+    def test_if2(self):
+        OnnxAdd, OnnxSub, OnnxIf, OnnxGreater, OnnxReduceSum = loadop(
+            "OnnxAdd", "OnnxSub", "OnnxIf", "OnnxGreater", "OnnxReduceSum")
+
+        node = OnnxAdd('x1', 'x2', output_names=['absxythen'])
+        then_body = node.to_onnx(
+            [Variable('x1', numpy.float32),
+             Variable('x2', numpy.float32)],
+            {'absxythen': numpy.float32})
+        node = OnnxSub('x1', 'x2', output_names=['absxyelse'])
+        else_body = node.to_onnx(
+            [Variable('x1', numpy.float32),
+             Variable('x2', numpy.float32)],
+            {'absxyelse': numpy.float32})
+        del else_body.graph.input[:]
+        del then_body.graph.input[:]
+
+        cond = OnnxGreater(OnnxReduceSum('x1'), OnnxReduceSum('x2'))
+        ifnode = OnnxIf(cond, then_branch=then_body.graph,
+                        else_branch=else_body.graph,
+                        output_names=['y'])
+        model_def = ifnode.to_onnx(
+            [Variable('x1', numpy.float32),
+             Variable('x2', numpy.float32)],
+            {'y': numpy.float32})
+        oinf = OnnxInference(model_def)
+        dot = oinf.to_dot()
+        self.assertIn("out_red0 -> _greater;", dot)
+
 
 if __name__ == "__main__":
     unittest.main()

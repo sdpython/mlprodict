@@ -465,11 +465,6 @@ class OnnxOperator:
                     _process_input(inputs, set_inputs, inp, new_inputs)
             stack = new_stack
 
-        if len(new_inputs) == 0:
-            raise RuntimeError(
-                "No detected inputs inputs=%r outputs=%r." % (
-                    inputs, outputs))
-
         # eliminate duplicates
         done = set()
         nodes = []
@@ -815,15 +810,21 @@ class _GraphBuilder:
                 "Mismatch between %r and %r." % (
                     input_names, inputs))
 
+        if isinstance(input_names, list):
+            d_input_names = {inp.name: inp for inp in input_names}
+        elif isinstance(input_names, dict):
+            d_input_names = input_names
+        else:
+            raise TypeError(
+                "Unexpected type for input_names %r (%r)." % (
+                    type(input_names), input_names))
         res = []
-        for inp, var in zip(inputs, input_names):
-            if isinstance(inp, (str, tuple)):
+        for inp in inputs:
+            if not isinstance(inp, Variable):
                 raise TypeError(
                     "inp not Variable but %r (%r)." % (type(inp), inp))
-            if isinstance(var, (str, tuple)):
-                raise TypeError(
-                    "var not Variable but %r (%r)." % (type(var), var))
-            if isinstance(var, (str, tuple)):
+            var = d_input_names[inp.name]
+            if not isinstance(var, Variable):
                 raise TypeError(
                     "var not Variable but %r (%r)." % (type(var), var))
             # inp: Variable
