@@ -15,7 +15,8 @@ from skl2onnx.common.data_types import (
     BooleanTensorType, DoubleTensorType)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict.tools.asv_options_helper import (
+    get_ir_version_from_onnx, get_last_opset)
 
 
 class TestOnnxrtRuntimeLightGbm(ExtTestCase):
@@ -349,7 +350,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         booster = lgb_train(params, train_data)
         exp = booster.predict(X_test)
 
-        onx = to_onnx(booster, df_train)
+        onx = to_onnx(booster, df_train, target_opset=get_last_opset())
         self.assertIn('ZipMap', str(onx))
 
         oif = OnnxInference(onx)
@@ -436,7 +437,8 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
             n_estimators=1, learning_rate=1)
         regressor.fit(_X_train, _y)
         regressor_onnx = to_onnx(
-            regressor, initial_types=_INITIAL_TYPES, rewrite_ops=True)
+            regressor, initial_types=_INITIAL_TYPES, rewrite_ops=True,
+            target_opset=get_last_opset())
         y_pred = regressor.predict(_X_test)
         y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X_test)
         self._assert_almost_equal(
@@ -466,7 +468,8 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
             n_estimators=10, bagging_freq=1, bagging_fraction=0.5)
         regressor.fit(_X_train, _y)
         regressor_onnx = to_onnx(
-            regressor, initial_types=_INITIAL_TYPES, rewrite_ops=True)
+            regressor, initial_types=_INITIAL_TYPES, rewrite_ops=True,
+            target_opset=get_last_opset())
         y_pred = regressor.predict(_X_test)
         y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X_test)
         self._assert_almost_equal(
@@ -525,7 +528,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
                 regressor.fit(_X, _Y)
                 regressor_onnx = to_onnx(
                     regressor, initial_types=initial_types,
-                    rewrite_ops=True)
+                    rewrite_ops=True, target_opset=get_last_opset())
                 y_pred = regressor.predict(_X)
                 y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X)
                 self._assert_almost_equal(
@@ -558,7 +561,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
                 regressor.fit(_X, _Y)
                 regressor_onnx = to_onnx(
                     regressor, initial_types=initial_types,
-                    rewrite_ops=True)
+                    rewrite_ops=True, target_opset=get_last_opset())
                 y_pred = regressor.predict(_X)
                 y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X) / 10
                 self._assert_almost_equal(
@@ -619,7 +622,8 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
         # float split
         onx = to_onnx(reg, X_train, options={'split': 10},
-                      rewrite_ops=True)
+                      rewrite_ops=True,
+                      target_opset=get_last_opset())
         oinf = OnnxInference(onx)
         got2 = oinf.run({'X': X_test})['variable']
         self.assertEqualArray(expected, got2, decimal=5)

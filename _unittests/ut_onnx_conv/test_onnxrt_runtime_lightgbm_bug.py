@@ -6,9 +6,11 @@ import unittest
 from logging import getLogger
 import numpy
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
+from pyquickhelper.texthelper.version_helper import compare_module_version
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
+from mlprodict.tools.asv_options_helper import get_last_opset
 
 
 class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
@@ -29,6 +31,9 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_xgboost_regressor(self):
+        from onnxmltools import __version__
+        if compare_module_version(__version__, '1.11') < 0:
+            return
         from xgboost import XGBRegressor
         try:
             from onnxmltools.convert import convert_xgboost
@@ -94,6 +99,9 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_lightgbm_regressor(self):
+        from onnxmltools import __version__
+        if compare_module_version(__version__, '1.11') < 0:
+            return
         from lightgbm import LGBMRegressor
         try:
             from onnxmltools.convert import convert_lightgbm
@@ -155,9 +163,11 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
                     learning_rate=0.0000001)
                 model.fit(X, y)
                 expected = model.predict(X)
-                model_onnx = to_onnx(model, X, rewrite_ops=True)
-                model_onnx2 = to_onnx(model, X.astype(numpy.float64),
-                                      rewrite_ops=True)
+                model_onnx = to_onnx(
+                    model, X, rewrite_ops=True, target_opset=get_last_opset())
+                model_onnx2 = to_onnx(
+                    model, X.astype(numpy.float64), rewrite_ops=True,
+                    target_opset=get_last_opset())
 
                 for i, mo in enumerate([model_onnx, model_onnx2]):
                     for rt in ['python', 'onnxruntime1']:
