@@ -5,6 +5,7 @@ import unittest
 from logging import getLogger
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -17,6 +18,8 @@ from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 class TestRtValidateIsolationForest(ExtTestCase):
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @unittest.skipIf(compare_module_version(skl2onnx_version, '1.11') < 0,
+                     reason="converter issue")
     def test_rt_IsolationForest_python(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
