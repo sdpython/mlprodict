@@ -31,7 +31,10 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_xgboost_regressor(self):
-        from onnxmltools import __version__
+        try:
+            from onnxmltools import __version__
+        except ImportError:
+            return
         if compare_module_version(__version__, '1.11') < 0:
             return
         from xgboost import XGBRegressor
@@ -99,7 +102,10 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_lightgbm_regressor(self):
-        from onnxmltools import __version__
+        try:
+            from onnxmltools import __version__
+        except ImportError:
+            return
         if compare_module_version(__version__, '1.11') < 0:
             return
         from lightgbm import LGBMRegressor
