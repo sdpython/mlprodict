@@ -362,7 +362,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
                     type(model)))
         return model.to_onnx(
             X=X, name=name, options=options, black_op=black_op,
-            white_op=white_op, final_types=final_types)
+            white_op=white_op, final_types=final_types,
+            target_opset=target_opset)
         # verbose=verbose)
 
     if rewrite_ops:

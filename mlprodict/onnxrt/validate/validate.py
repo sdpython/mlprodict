@@ -17,7 +17,7 @@ from ...onnx_conv import to_onnx, register_converters, register_rewritten_operat
 from ...tools.ort_wrapper import onnxrt_version
 from ...tools.model_info import analyze_model, set_random_state
 from ...tools.asv_options_helper import (
-    get_opset_number_from_onnx, get_ir_version_from_onnx)
+    get_opset_number_from_onnx, get_ir_version_from_onnx, get_last_opset)
 from ..onnx_inference import OnnxInference
 from ...onnx_tools.optim.sklearn_helper import inspect_sklearn_model, set_n_jobs
 from ...onnx_tools.optim.onnx_helper import onnx_statistics
@@ -471,7 +471,12 @@ def _call_conv_runtime_opset(
             for rt in runtime:
                 def fct_conv(itt=inst, it=init_types[0][1], ops=opset,
                              options=all_conv_options):
-                    return to_onnx(itt, it, target_opset=ops, options=options,
+                    if isinstance(ops, int):
+                        ops_dict = get_last_opset().copy()
+                        ops_dict[''] = ops
+                    else:
+                        ops_dict = ops
+                    return to_onnx(itt, it, target_opset=ops_dict, options=options,
                                    rewrite_ops=rt in ('', None, 'python',
                                                       'python_compiled'))
 

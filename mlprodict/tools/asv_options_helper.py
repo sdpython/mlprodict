@@ -107,6 +107,19 @@ def get_opset_number_from_onnx(benchmark=True):
     return onnx_opset_version()
 
 
+def get_last_opset(ml=True):
+    """
+    Returns the last supported opset.
+
+    :param ml: includes domain `ai.onnx.ml`
+    :return: int or dictionary
+    """
+    if ml:
+        return {'': get_opset_number_from_onnx(),
+                'ai.onnx.ml': 2}
+    return get_opset_number_from_onnx()
+
+
 def get_ir_version_from_onnx(benchmark=True):
     """
     Retuns the current :epkg:`onnx` :epkg:`IR_VERSION`
