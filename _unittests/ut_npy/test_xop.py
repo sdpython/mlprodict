@@ -13,7 +13,7 @@ from onnx.shape_inference import infer_shapes
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.npy.xop import loadop
 from mlprodict.npy.xop_variable import Variable, max_supported_opset
-from mlprodict.npy.xop_ops import _GraphBuilder
+from mlprodict.npy.xop import _GraphBuilder
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnx_tools.onnx2py_helper import get_dtype_shape
@@ -582,7 +582,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(a >= x, got['Y'])
 
     def test_onnx_abs_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
+        OnnxIdentity = loadop("OnnxIdentity")
         ovi = OnnxIdentity('X')
         ovf = abs(ovi)
         last = OnnxIdentity(ovf, output_names=['Y'])
@@ -606,8 +606,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(a != x, got['Y'])
 
     def test_onnx_mod_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
-        ov = OnnxAbs('X')
+        OnnxIdentity = loadop("OnnxIdentity")
         ovi = OnnxIdentity('X')
         ovf = ovi % numpy.array([10], dtype=numpy.int64)
         last = OnnxIdentity(ovf, output_names=['Y'])
@@ -616,7 +615,6 @@ class TestXOps(ExtTestCase):
         x = numpy.array([[-2, 2], [0, 3]], dtype=numpy.float32)
         got = oinf.run({'X': x})
         self.assertEqualArray(x % 10, got['Y'])
-
 
 
 if __name__ == "__main__":
