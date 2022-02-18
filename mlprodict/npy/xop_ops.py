@@ -661,6 +661,201 @@ class OnnxOperator:
             target_opset=target_opset, run_shape=run_shape,
             verbose=verbose)
 
+    @staticmethod
+    def _merge_op_version(n1, n2):
+        if isinstance(n2, OnnxOperator):
+            if n1.op_version is None:
+                opv = n2.op_version
+            elif n2.op_version is None:
+                opv = n1.op_version
+            elif n1.op_version == n2.op_version:
+                opv = n1.op_version
+            else:
+                opv = max(n1.op_version, n2.op_version)
+        elif isinstance(n2, OnnxOperatorItem):
+            opv = self._merge_op_version(n1, n2.onx_op)
+        else:
+            opv = n1.op_version
+        return opv
+
+    def __add__(self, ov):
+        """
+        Automatically adds operator `OnnxAdd` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxAdd(self, ov)`
+        """
+        from .xop import loadop
+        OnnxAdd = loadop('Add')
+        opv = self._merge_op_version(self, ov)
+        return OnnxAdd(self, ov, op_version=opv)
+
+    def __sub__(self, ov):
+        """
+        Automatically adds operator `OnnxSub` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxSub(self, ov)`
+        """
+        from .xop import loadop
+        OnnxSub = loadop('Sub')
+        opv = self._merge_op_version(self, ov)
+        return OnnxSub(self, ov, op_version=opv)
+
+    def __mul__(self, ov):
+        """
+        Automatically adds operator `OnnxMul` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxMul(self, ov)`
+        """
+        from .xop import loadop
+        OnnxMul = loadop('Mul')
+        opv = self._merge_op_version(self, ov)
+        return OnnxMul(self, ov, op_version=opv)
+
+    def __truediv__(self, ov):
+        """
+        Automatically adds operator `OnnxDiv` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxDiv(self, ov)`
+        """
+        from .xop import loadop
+        OnnxDiv = loadop('Div')
+        opv = self._merge_op_version(self, ov)
+        return OnnxDiv(self, ov, op_version=opv)
+
+    def __pow__(self, ov):
+        """
+        Automatically adds operator `OnnxPow` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnPow(self, ov)`
+        """
+        from .xop import loadop
+        OnnxPow = loadop('Pow')
+        opv = self._merge_op_version(self, ov)
+        return OnnxPow(self, ov, op_version=opv)
+
+    def __mod__(self, ov):
+        """
+        Automatically adds operator `OnnxMod` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxMod(self, ov)`
+        """
+        from .xop import loadop
+        OnnxMod = loadop('Mod')
+        opv = self._merge_op_version(self, ov)
+        return OnnxMod(self, ov, op_version=opv)
+
+    def __matmul__(self, ov):
+        """
+        Automatically adds operator `OnnxMatMul` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnMatMul(self, ov)`
+        """
+        from .xop import loadop
+        OnnxMatMul = loadop('MatMul')
+        opv = self._merge_op_version(self, ov)
+        return OnnxMatMul(self, ov, op_version=opv)
+
+    def __gt__(self, ov):
+        """
+        Automatically adds operator `OnnxGreater` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxGreater(self, ov)`
+        """
+        from .xop import loadop
+        OnnxGreater = loadop('Greater')
+        opv = self._merge_op_version(self, ov)
+        return OnnxGreater(self, ov, op_version=opv)
+
+    def __lt__(self, ov):
+        """
+        Automatically adds operator `OnnxLess` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxLess(self, ov)`
+        """
+        from .xop import loadop
+        OnnxLess = loadop('Less')
+        opv = self._merge_op_version(self, ov)
+        return OnnxLess(self, ov, op_version=opv)
+
+    def __eq__(self, ov):
+        """
+        Automatically adds operator `OnnxEqual` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxEqual(self, ov)`
+        """
+        from .xop import loadop
+        OnnxEqual = loadop('Equal')
+        opv = self._merge_op_version(self, ov)
+        return OnnxEqual(self, ov, op_version=opv)
+
+    def and_(self, ov):
+        """
+        Automatically adds operator `OnnxAnd` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxAnd(self, ov)`
+        """
+        from .xop import loadop
+        OnnxAnd = loadop('And')
+        opv = self._merge_op_version(self, ov)
+        return OnnxAnd(self, ov, op_version=opv)
+
+    def or_(self, ov):
+        """
+        Automatically adds operator `OnnxOr` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxOr(self, ov)`
+        """
+        from .xop import loadop
+        OnnxOr = loadop('Or')
+        opv = self._merge_op_version(self, ov)
+        return OnnxOr(self, ov, op_version=opv)
+
+    def __ne__(self, ov):
+        """
+        Automatically adds operator `OnnxNot x OnnxEqual` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxNot(OnnxEqual(self, ov))`
+        """
+        from .xop import loadop
+        OnnxNot, OnnxEqual = loadop('Not', 'Equal')
+        opv = self._merge_op_version(self, ov)
+        return OnnxNot(OnnxEqual(self, ov, op_version=opv), op_version=opv)
+
+    def __abs__(self):
+        """
+        Automatically adds operator `OnnxAbs` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxAbs(self, ov)`
+        """
+        from .xop import loadop
+        OnnxAbs = loadop('Abs')
+        return OnnxAbs(self, op_version=self.op_version)
+
+    def not_(self):
+        """
+        Automatically adds operator `OnnxNot` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxNot(self, ov)`
+        """
+        from .xop import loadop
+        OnnxNot = loadop('Not')
+        return OnnxNot(self, op_version=self.op_version)
+
 
 def _default_OPSET_TO_IR_VERSION():
     """
