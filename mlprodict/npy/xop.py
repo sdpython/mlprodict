@@ -1045,7 +1045,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxAdd(self, ov)`
         """
-        from .xop import loadop
         OnnxAdd = loadop('Add')
         opv = self._merge_op_version(self, ov)
         return OnnxAdd(self, ov, op_version=opv)
@@ -1057,7 +1056,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxSub(self, ov)`
         """
-        from .xop import loadop
         OnnxSub = loadop('Sub')
         opv = self._merge_op_version(self, ov)
         return OnnxSub(self, ov, op_version=opv)
@@ -1069,7 +1067,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxMul(self, ov)`
         """
-        from .xop import loadop
         OnnxMul = loadop('Mul')
         opv = self._merge_op_version(self, ov)
         return OnnxMul(self, ov, op_version=opv)
@@ -1081,7 +1078,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxDiv(self, ov)`
         """
-        from .xop import loadop
         OnnxDiv = loadop('Div')
         opv = self._merge_op_version(self, ov)
         return OnnxDiv(self, ov, op_version=opv)
@@ -1093,7 +1089,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnPow(self, ov)`
         """
-        from .xop import loadop
         OnnxPow = loadop('Pow')
         opv = self._merge_op_version(self, ov)
         return OnnxPow(self, ov, op_version=opv)
@@ -1105,7 +1100,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxMod(self, ov)`
         """
-        from .xop import loadop
         OnnxMod = loadop('Mod')
         opv = self._merge_op_version(self, ov)
         return OnnxMod(self, ov, op_version=opv)
@@ -1117,7 +1111,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnMatMul(self, ov)`
         """
-        from .xop import loadop
         OnnxMatMul = loadop('MatMul')
         opv = self._merge_op_version(self, ov)
         return OnnxMatMul(self, ov, op_version=opv)
@@ -1129,7 +1122,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxGreater(self, ov)`
         """
-        from .xop import loadop
         OnnxGreater = loadop('Greater')
         opv = self._merge_op_version(self, ov)
         return OnnxGreater(self, ov, op_version=opv)
@@ -1141,7 +1133,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxLess(self, ov)`
         """
-        from .xop import loadop
         OnnxLess = loadop('Less')
         opv = self._merge_op_version(self, ov)
         return OnnxLess(self, ov, op_version=opv)
@@ -1153,7 +1144,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxEqual(self, ov)`
         """
-        from .xop import loadop
         OnnxEqual = loadop('Equal')
         opv = self._merge_op_version(self, ov)
         return OnnxEqual(self, ov, op_version=opv)
@@ -1165,7 +1155,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxAnd(self, ov)`
         """
-        from .xop import loadop
         OnnxAnd = loadop('And')
         opv = self._merge_op_version(self, ov)
         return OnnxAnd(self, ov, op_version=opv)
@@ -1177,7 +1166,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxOr(self, ov)`
         """
-        from .xop import loadop
         OnnxOr = loadop('Or')
         opv = self._merge_op_version(self, ov)
         return OnnxOr(self, ov, op_version=opv)
@@ -1189,7 +1177,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxNot(OnnxEqual(self, ov))`
         """
-        from .xop import loadop
         OnnxNot, OnnxEqual = loadop('Not', 'Equal')
         opv = self._merge_op_version(self, ov)
         return OnnxNot(OnnxEqual(self, ov, op_version=opv), op_version=opv)
@@ -1201,7 +1188,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxAbs(self, ov)`
         """
-        from .xop import loadop
         OnnxAbs = loadop('Abs')
         return OnnxAbs(self, op_version=self.op_version)
 
@@ -1212,7 +1198,6 @@ class OnnxOperator:
         :param ov: onnx node
         :return: `OnnxNot(self, ov)`
         """
-        from .xop import loadop
         OnnxNot = loadop('Not')
         return OnnxNot(self, op_version=self.op_version)
 
