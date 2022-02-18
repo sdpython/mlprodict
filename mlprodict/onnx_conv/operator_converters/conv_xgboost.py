@@ -218,17 +218,18 @@ class XGBRegressorConverter(XGBConverter):
 
         # add nodes
         if dtype == numpy.float64:
-            container.add_node('TreeEnsembleRegressorDouble', operator.input_full_names,
-                               operator.output_full_names,
-                               name=scope.get_unique_operator_name(
-                                   'TreeEnsembleRegressorDouble'),
-                               op_domain='mlprodict', **attr_pairs)
+            container.add_node(
+                'TreeEnsembleRegressorDouble', operator.input_full_names,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name(
+                    'TreeEnsembleRegressorDouble'),
+                op_domain='mlprodict', **attr_pairs)
         else:
-            container.add_node('TreeEnsembleRegressor', operator.input_full_names,
-                               operator.output_full_names,
-                               name=scope.get_unique_operator_name(
-                                   'TreeEnsembleRegressor'),
-                               op_domain='ai.onnx.ml', **attr_pairs)
+            container.add_node(
+                'TreeEnsembleRegressor', operator.input_full_names,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name('TreeEnsembleRegressor'),
+                op_domain='ai.onnx.ml', **attr_pairs)
 
 
 class XGBClassifierConverter(XGBConverter):
