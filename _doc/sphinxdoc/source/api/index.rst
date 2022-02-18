@@ -12,6 +12,7 @@ This is a summary of functions this modules provides.
     onnx_conv
     sklapi
     npy
+    xop
 
 **ONNX runtime**
 

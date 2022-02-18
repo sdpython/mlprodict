@@ -7,14 +7,9 @@
 import inspect
 from typing import Any
 import numpy
-from skl2onnx.common.data_types import guess_numpy_type
-from skl2onnx import __max_supported_opset__
-from ..tools.ort_wrapper import InferenceSession
 from ..onnx_tools.optim._main_onnx_optim import onnx_optimisations
-from ..onnxrt import OnnxInference
 from .onnx_version import FctVersion
 from .onnx_numpy_annotation import get_args_kwargs
-from .onnx_variable import OnnxVar
 
 
 class OnnxNumpyFunction:
@@ -127,6 +122,7 @@ class OnnxNumpyCompiler:
                 "." % (type(version), version))
         self.fctsig = fctsig
         if op_version is None:
+            from skl2onnx import __max_supported_opset__
             op_version = __max_supported_opset__
         if hasattr(fct, 'SerializeToString'):
             self.fct_ = None
@@ -339,6 +335,9 @@ class OnnxNumpyCompiler:
         Returns the onnx graph produced by function `fct_`.
         """
         if self.onnx_ is None and self.fct_ is not None:
+            from skl2onnx.common.data_types import guess_numpy_type
+            from .onnx_variable import OnnxVar
+
             inputs, outputs, kwargs, n_optional, n_variables = (  # pylint: disable=W0612
                 self._parse_annotation(
                     signature=signature, version=version))
@@ -436,11 +435,13 @@ class OnnxNumpyCompiler:
         inputs, outputs, _, n_optional, n_variables = self._parse_annotation(
             signature=signature, version=version)
         if runtime != 'onnxruntime':
+            from ..onnxrt import OnnxInference
             rt = OnnxInference(onx, runtime=runtime)
             self.rt_fct_ = OnnxNumpyFunctionOnnxInference(
                 self, rt, inputs=inputs, outputs=outputs,
                 n_optional=n_optional, n_variables=n_variables)
         else:
+            from ..tools.ort_wrapper import InferenceSession
             rt = InferenceSession(onx.SerializeToString())
             self.rt_fct_ = OnnxNumpyFunctionInferenceSession(
                 self, rt, inputs=inputs, outputs=outputs,

@@ -9,10 +9,6 @@ import numpy
 from sklearn.base import (
     ClassifierMixin, ClusterMixin,
     RegressorMixin, TransformerMixin)
-from skl2onnx import update_registered_converter
-from skl2onnx.common.data_types import Int64TensorType
-from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
-from .onnx_variable import OnnxVar, TupleOnnxAny
 from .onnx_numpy_wrapper import _created_classes_inst, wrapper_onnxnumpy_np
 from .onnx_numpy_annotation import NDArraySameType, NDArrayType
 
@@ -67,6 +63,7 @@ def _common_shape_calculator_int_t(operator):
         raise RuntimeError(
             "This function only supports two outputs not %r." % len(
                 operator.outputs))
+    from skl2onnx.common.data_types import Int64TensorType
     op = operator.raw_operator
     cl = X[0].type.__class__
     dim = [X[0].type.shape[0], getattr(op, 'n_outputs_', None)]
@@ -107,6 +104,8 @@ def _common_converter_t(scope, operator, container):
             "This function only supports one output not %r." % len(
                 operator.outputs))
 
+    from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
+    from .onnx_variable import OnnxVar
     xvar = OnnxVar(X[0])
     fct_cl = operator.onnx_numpy_fct_
 
@@ -157,6 +156,8 @@ def _common_converter_int_t(scope, operator, container):
             "This function only supports two outputs not %r." % len(
                 operator.outputs))
 
+    from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
+    from .onnx_variable import OnnxVar, TupleOnnxAny
     xvar = OnnxVar(X[0])
     fct_cl = operator.onnx_numpy_fct_
 
@@ -281,6 +282,7 @@ def update_registered_converter_npy(
         lambda scope, operator, container:
         cvtc(scope, addattr(operator, obj), container))
 
+    from skl2onnx import update_registered_converter
     update_registered_converter(
         model, alias, convert_fct=local_convert_fct,
         shape_fct=local_shape_fct, overwrite=overwrite,

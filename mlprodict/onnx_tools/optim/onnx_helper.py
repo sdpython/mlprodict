@@ -5,7 +5,6 @@
 from collections import Counter
 from onnx.helper import make_graph
 from onnx import ValueInfoProto
-from skl2onnx.common._topology import Variable
 from ._onnx_optimisation_common import _apply_optimisation_on_graph
 from .onnx_optimisation import onnx_remove_node
 
@@ -146,6 +145,8 @@ def change_input_first_dimension(onnx_model, N=None, debug_info=None):
     @param      debug_info      unused
     @return                     modified model onnx
     """
+    from skl2onnx.common._topology import Variable
+
     def _make_value_info(variable):
         value_info = ValueInfoProto()
         value_info.name = variable.full_name

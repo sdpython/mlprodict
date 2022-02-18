@@ -8,7 +8,6 @@ import warnings
 from .onnx_version import FctVersion
 from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_numpy_compiler import OnnxNumpyCompiler
-from .onnx_variable import OnnxVar
 
 
 class _created_classes:
@@ -53,6 +52,7 @@ class wrapper_onnxnumpy:
         """
         Calls the compiled function with arguments `args`.
         """
+        from .onnx_variable import OnnxVar
         try:
             return self.compiled(*args, **kwargs)
         except (TypeError, RuntimeError, ValueError) as e:
@@ -191,6 +191,7 @@ class wrapper_onnxnumpy_np:
         tensor in *args* defines the templated version of the function
         to convert into *ONNX*.
         """
+        from .onnx_variable import OnnxVar
         if len(self.kwargs) == 0:
             others = None
         else:
