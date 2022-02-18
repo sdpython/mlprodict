@@ -7,7 +7,7 @@ from docutils.statemachine import StringList
 import sphinx
 from sphinx.util.nodes import nested_parse_with_titles
 from tabulate import tabulate
-from mlprodict.npy.xop_factory import _dynamic_class_creation
+from mlprodict.npy.xop import _dynamic_class_creation
 
 
 class SupportedOnnxOpsDirective(Directive):

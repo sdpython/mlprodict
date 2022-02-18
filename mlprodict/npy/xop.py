@@ -144,6 +144,7 @@ def _populate_schemas():
     Populates all schemas.
     """
     res = {}
+    versions = {}
     for schema in onnx.defs.get_all_schemas_with_history():
         if schema.support_level == schema.SupportType.EXPERIMENTAL:
             # Skips experimental operators.
@@ -155,8 +156,12 @@ def _populate_schemas():
                 res[schema.name] = schema
         else:
             res[schema.name] = schema
-        res[schema.name + '_' + str(schema.since_version)] = schema
-    return res
+        full_name = schema.name + '_' + str(schema.since_version)
+        res[full_name] = schema
+        if schema.name not in versions:
+            versions[schema.name] = set()
+        versions[schema.name].add(full_name)
+    return res, versions
 
 
 def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=print):
@@ -183,7 +188,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=pr
 
     cache_dir = cache_folder()
     if operator_names is None:
-        operator_names = list(_all_schemas)
+        operator_names = list(_all_schemas_versions)
 
     res = _all_schemas
     cls = {}
@@ -217,47 +222,66 @@ def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=pr
                 if position >= 0:
                     returned_classes.append((position, _all_classes[cl_name]))
             continue
-        if verbose > 0 and fLOG is not None:
-            fLOG("[_dynamic_class_creation] op_name=%r, cl_name=%r" % (
-                op_name, cl_name))
 
         name = op_name[4:] if op_name.startswith('Onnx') else op_name
-        try:
-            schema = res[name]
-        except KeyError as e:
-            raise ValueError(
-                "Operator %r (or %r) does not exists." % (
-                    name, op_name)) from e
-        inputs = [_c(o, 'I', i) for i, o in enumerate(schema.inputs)]
-        outputs = [_c(o, 'O', i) for i, o in enumerate(schema.outputs)]
-        args = [p for p in schema.attributes]
-
-        if '_' in op_name:
-            class_name = "Onnx" + name
+        name_keep = name
+        if '_' in name:
+            names = [name]
         else:
-            class_name = "Onnx" + schema.name
+            try:
+                names = _all_schemas_versions[name].copy()
+            except KeyError as e:
+                raise ValueError(
+                    "Operator %r (or %r) does not exists." % (
+                        name, op_name)) from e
+            names.add(name)
 
-        filename = os.path.join(
-            cache_dir,
-            schema.name + '_' + str(schema.since_version) + ".rst")
-        if not cache and os.path.exists(filename):
-            with open(filename, "r", encoding="utf-8") as f:
-                doc = f.read()
-        else:
-            doc = get_rst_doc(schema)
-            if cache:
-                with open(filename, 'w', encoding='utf-8') as f:
-                    f.write(doc)
+        if verbose > 0 and fLOG is not None:
+            fLOG("[_dynamic_class_creation] op_name=%r, cl_name=%r names=%r"
+                 "" % (op_name, cl_name, names))
 
-        cl = ClassFactory(class_name, schema.name, inputs, outputs,
-                          [schema.min_input, schema.max_input],
-                          [schema.min_output, schema.max_output],
-                          schema.domain, args,
-                          "**Version**" + doc.split('**Version**')[-1],
-                          getattr(schema, 'deprecated', False),
-                          schema.since_version, {})
-        cls[class_name] = cl
-        positions[class_name] = position
+        for name in names:
+            try:
+                schema = res[name]
+            except KeyError as e:
+                raise ValueError(
+                    "Operator %r (or %r) does not exists." % (
+                        name, op_name)) from e
+            inputs = [_c(o, 'I', i) for i, o in enumerate(schema.inputs)]
+            outputs = [_c(o, 'O', i) for i, o in enumerate(schema.outputs)]
+            args = [p for p in schema.attributes]
+
+            if '_' in name:
+                class_name = "Onnx" + name
+            else:
+                class_name = "Onnx" + schema.name
+
+            if verbose > 0 and fLOG is not None:
+                fLOG("[_dynamic_class_creation] op_name=%r, cl_name=%r cache=%r"
+                     "" % (op_name, class_name, cache))
+
+            filename = os.path.join(
+                cache_dir,
+                schema.name + '_' + str(schema.since_version) + ".rst")
+            if not cache and os.path.exists(filename):
+                with open(filename, "r", encoding="utf-8") as f:
+                    doc = f.read()
+            else:
+                doc = get_rst_doc(schema)
+                if cache:
+                    with open(filename, 'w', encoding='utf-8') as f:
+                        f.write(doc)
+
+            cl = ClassFactory(class_name, schema.name, inputs, outputs,
+                              [schema.min_input, schema.max_input],
+                              [schema.min_output, schema.max_output],
+                              schema.domain, args,
+                              "**Version**" + doc.split('**Version**')[-1],
+                              getattr(schema, 'deprecated', False),
+                              schema.since_version, {})
+            cls[class_name] = cl
+            if name == name_keep:
+                positions[class_name] = position
 
     # Retrieves past classes.
     for name in cls:  # pylint: disable=C0206
@@ -279,7 +303,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=pr
     return tuple(e[1] for e in returned_classes)
 
 
-_all_schemas = _populate_schemas()
+_all_schemas, _all_schemas_versions = _populate_schemas()
 _all_classes = {}
 
 

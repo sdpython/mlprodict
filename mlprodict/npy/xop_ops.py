@@ -12,6 +12,7 @@ from onnx.helper import (
     make_node, make_graph, make_model,
     make_tensor_value_info)
 from onnx.numpy_helper import from_array
+from onnx.shape_inference import infer_shapes
 from .xop_variable import (
     Variable, is_numpy_dtype, numpy_type_prototype, max_supported_opset)
 
@@ -41,11 +42,12 @@ class OnnxOperatorItem:
     def add_to(self, builder):
         """
         Adds to graph builder.
+        Does nothing because the original node is already added.
 
         :param builder: instance of @see cl _GraphBuilder,
             it must have a method `add_node`
         """
-        self.onx_op.add_to(builder)
+        pass
 
     def __str__(self):
         """
@@ -357,9 +359,10 @@ class OnnxOperator:
         if found is None:
             raise RuntimeError(
                 "Operator '{}': requested version {} < "
-                "{} schema version.".format(
+                "{} schema version (past_version {}).".format(
                     self.__class__.__name__,
-                    op_version, self.since_version))
+                    op_version, self.since_version,
+                    [v.since_version for v in self.past_version.values()]))
         return found
 
     def __str__(self):
@@ -404,6 +407,24 @@ class OnnxOperator:
         """
         return OnnxOperatorItem(self, index, self.op_version)
 
+    def __iter__(self):
+        """
+        Allows expressions such as ``a, b = OnnxTopK(...)``.
+        """
+        n = None
+        if self.output_names is not None:
+            n = len(self.output_names)
+        else:
+            rg = self.output_range
+            if rg[0] == rg[1] and rg[0] > 0:
+                n = rg[0]
+        if n is None:
+            raise RuntimeError(
+                "Unable to guess the number of outputs of node type %r." %
+                self.__class__.__name__)
+        for i in range(n):
+            yield self[i]
+
     def add_to(self, builder):
         """
         Adds to graph builder.
@@ -440,8 +461,11 @@ class OnnxOperator:
             return new_inputs
 
         def _process_input(inputs, set_inputs, inp, new_inputs):
-            if isinstance(inp, (OnnxOperator, OnnxOperatorItem)):
+            if isinstance(inp, OnnxOperator):
                 new_stack.append(inp)
+            elif isinstance(inp, OnnxOperatorItem):
+                new_stack.append(inp)
+                new_stack.append(inp.onx_op)
             elif isinstance(inp, Variable):
                 if inp.name in set_inputs:
                     return
@@ -510,9 +534,7 @@ class OnnxOperator:
 
         def _get_type(node, name=None, outputs=None):
             if outputs is None:
-                raise NotImplementedError(
-                    "outputs is None, expected_outputs=%r" % (
-                        node.expected_outputs, ))
+                return None
             if isinstance(outputs, Variable):
                 if name is None:
                     return outputs.dtype
@@ -531,9 +553,7 @@ class OnnxOperator:
                 else:
                     n = name
                 if n not in outputs:
-                    raise ValueError(  # pragma: no cover
-                        "Unable to find %r in %r." % (
-                            name, outputs))
+                    return None
                 return outputs[n]
             if isinstance(outputs, list):
                 raise NotImplementedError(
@@ -547,11 +567,14 @@ class OnnxOperator:
         # outputs
         set_names = set()
         new_outputs = []
+        run_shape = False
         for node in node_outputs:
             if node.output_names is None:
                 n = self.output_range[0]
                 for i in range(n):
                     to = _get_type(node, outputs=outputs)
+                    if to is None:
+                        run_shape = True
                     res = 'out%d' % i
                     var = Variable(res, added_dtype=to)
                     if var.name in set_names:
@@ -562,6 +585,8 @@ class OnnxOperator:
             else:
                 for o in node.output_names:
                     to = _get_type(node, o, outputs=outputs)
+                    if to is None:
+                        run_shape = True
                     res = (o, to)
                     var = o.copy_merge(to)
                     if var.name in set_names:
@@ -574,7 +599,7 @@ class OnnxOperator:
                 "No detected outputs inputs=%r outputs=%r." % (
                     inputs, outputs))
 
-        return nodes, new_inputs, new_outputs
+        return nodes, new_inputs, new_outputs, run_shape
 
     def to_onnx(self, inputs=None, outputs=None,
                 other_outputs=None, target_opset=None,
@@ -582,8 +607,10 @@ class OnnxOperator:
         """
         Converts this operator into an ONNX graph.
 
-        :param inputs: information about type
-        :param outputs: information about types
+        :param inputs: information about type, it should not be None
+        :param outputs: information about types, if None, the function
+            will use shape inference to guess the final output type
+            and shape
         :param other_outputs: additional nodes to consider
             as graph outputs but not outputs of this particular
             node
@@ -615,7 +642,7 @@ class OnnxOperator:
                     target_opset, self.op_version, self.__class__.__name__))
 
         # get the graph
-        nodes, graph_inputs, graph_outputs = self._node_to_graph(
+        nodes, graph_inputs, graph_outputs, run_shape = self._node_to_graph(
             other_outputs, inputs, outputs)
         if len(nodes) == 0:
             raise RuntimeError(  # pragma: no cover
@@ -629,10 +656,10 @@ class OnnxOperator:
         for node in nodes:
             node.add_to(builder)
 
-        return builder.to_onnx(inputs=graph_inputs,
-                               outputs=graph_outputs,
-                               target_opset=target_opset,
-                               verbose=verbose)
+        return builder.to_onnx(
+            inputs=graph_inputs, outputs=graph_outputs,
+            target_opset=target_opset, run_shape=run_shape,
+            verbose=verbose)
 
 
 def _default_OPSET_TO_IR_VERSION():
@@ -873,7 +900,8 @@ class _GraphBuilder:
         return res
 
     def to_onnx(self, inputs=None, outputs=None,
-                target_opset=None, verbose=0):
+                target_opset=None, run_shape=False,
+                verbose=0):
         """
         Converts this operator into an ONNX graph.
 
@@ -882,6 +910,7 @@ class _GraphBuilder:
         :param outputs: specific outputs
         :param target_opset: dictionary with target opset per domain,
             None for the default one
+        :param run_shape: run shape inference before returning the model
         :param verbose: prints information
         :return: onnx graph
         """
@@ -902,4 +931,7 @@ class _GraphBuilder:
             op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
             op_set.domain = k or ''
             op_set.version = v
+
+        if run_shape:
+            return infer_shapes(onnx_model)
         return onnx_model
