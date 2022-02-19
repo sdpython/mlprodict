@@ -33,7 +33,8 @@ class OnnxShapeInference:
 
     @staticmethod
     def _get_shape(obj, known_shapes=None, result_name=None):
-        dtype = TENSOR_TYPE_TO_NP_TYPE[obj.type.tensor_type.elem_type]
+        dtype = TENSOR_TYPE_TO_NP_TYPE.get(
+            obj.type.tensor_type.elem_type, None)
         shape = []
         for dimi, d in enumerate(obj.type.tensor_type.shape.dim):
             v = d.dim_value if d.dim_value > 0 else d.dim_param
@@ -75,6 +76,10 @@ class OnnxShapeInference:
                     "" % obj.name)
             shape, dtype, sparse = self._get_shape(
                 obj, known_shapes, result_name=obj.name)
+            if dtype is None:
+                # The onnx graph was created with named outputs
+                # but with no type or shape.
+                continue
             known_shapes.update(obj.name, ShapeResult(
                 obj.name, shape, dtype, sparse=sparse))
 

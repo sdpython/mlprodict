@@ -244,9 +244,8 @@ class ShapeResult:
                 if v in variables:
                     vals = variables[v]
                     if vals is None:
-                        raise RuntimeError(  # pragma: no cover
-                            "Inconclusive shape (None) for v=%r (in %r)."
-                            "" % (v, self))
+                        # size unknown
+                        continue
                     if len(vals) == 1:
                         res.shape[i] = list(vals)[0]
                     else:
