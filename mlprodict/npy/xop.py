@@ -963,7 +963,7 @@ class OnnxOperator:
 
     def to_onnx(self, inputs=None, outputs=None,
                 other_outputs=None, target_opset=None,
-                verbose=0):
+                verbose=0, run_shape=True):
         """
         Converts this operator into an ONNX graph.
 
@@ -976,6 +976,10 @@ class OnnxOperator:
             node
         :param target_opset: dictionary with target opset per domain,
             None for the default one
+        :param run_shape: in case output shapes are not specify,
+            the function runs function :epkg:`infer_shapes`
+            to guess them, False would disable that
+            default behaviour
         :param verbose: prints information
         """
         # opsets
@@ -1002,7 +1006,7 @@ class OnnxOperator:
                     target_opset, self.op_version, self.__class__.__name__))
 
         # get the graph
-        nodes, graph_inputs, graph_outputs, run_shape = self._node_to_graph(
+        nodes, graph_inputs, graph_outputs, run_shape2 = self._node_to_graph(
             other_outputs, inputs, outputs)
         if len(nodes) == 0:
             raise RuntimeError(  # pragma: no cover
@@ -1018,8 +1022,8 @@ class OnnxOperator:
 
         return builder.to_onnx(
             inputs=graph_inputs, outputs=graph_outputs,
-            target_opset=target_opset, run_shape=run_shape,
-            verbose=verbose)
+            target_opset=target_opset, verbose=verbose,
+            run_shape=run_shape and run_shape2)
 
     @staticmethod
     def _merge_op_version(n1, n2):

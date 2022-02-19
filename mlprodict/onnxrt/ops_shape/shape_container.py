@@ -2,6 +2,7 @@
 @file
 @brief Class ShapeContainer
 """
+import pprint
 from .shape_result import ShapeResult
 
 
@@ -249,7 +250,7 @@ class ShapeContainer:
                 results[k] = v.resolve(variables)
             except RuntimeError as e:
                 raise RuntimeError(
-                    "Unable to resolve shapes and constraints:\n%r"
-                    "" % self.shapes) from e
+                    "Unable to resolve shapes and constraints:\n%s"
+                    "" % pprint.pformat(self.shapes)) from e
         self.resolved_ = results
         return self.resolved_
