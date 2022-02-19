@@ -118,6 +118,7 @@ from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import (  # pylint: disable=W0611
     test_qgemm0, test_qgemm1)
 from mlprodict.onnxrt.ops_cpu.op_constant import Constant_12, Constant_11, Constant_9
 from mlprodict.onnxrt.ops_shape.shape_excs import ShapeInferenceException
+from mlprodict.plotting.text_plot import onnx_simple_text_plot
 
 try:
     numpy_str = numpy.str_
@@ -183,6 +184,26 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         opset_mlprodict = get_opset_number_from_onnx()
         opset_skl2onnx = __max_supported_opset__
         self.assertGreater(opset_skl2onnx, opset_mlprodict)
+
+    def _check_shape_inference(self, onnx_cl, model_def):
+        if onnx_cl in {OnnxCastLike}:
+            try:
+                shapeinf = OnnxShapeInference(model_def)
+            except Exception as e:
+                raise AssertionError(
+                    "Unable to infer shape for:\n%s"
+                    "" % onnx_simple_text_plot(model_def)) from e
+            try:
+                shape_results = shapeinf.run()
+            except Exception as e:
+                raise AssertionError(
+                    "Unable to infer shape %r in\n%r\n." % (
+                        e, model_def)) from e
+            shape = shape_results.get()
+            self.assertIn('X', shape)
+            self.assertIn('Y', shape)
+            self.assertEqual(shape['X'].shape, shape['Y'].shape)
+            self.assertEqual(shape['X'].dtype, shape['Y'].dtype)            
 
     def common_expected_shapes_types(self, oinf, inputs, got, onnx_cl, model_def,
                                      raise_shape=False):
@@ -363,6 +384,33 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
         validate_python_inference(oinfpy, {'X': X.astype(dtype)})
 
+        # shape
+        if onnx_cl not in {OnnxSum, OnnxMatMul}:
+            shapeinf = OnnxShapeInference(model_def)
+            try:
+                shape_results = shapeinf.run()
+            except Exception as e:
+                raise AssertionError(
+                    "Unable to infer shape %r in\n%r\n." % (
+                        e, model_def)) from e
+            shape = shape_results.get()
+            self.assertIn('X', shape)
+            self.assertIn('Y', shape)
+            if onnx_cl in {OnnxSub, OnnxMul, OnnxDiv, OnnxAdd, OnnxAnd,
+                           OnnxOr, OnnxMod, OnnxMax, OnnxMin, OnnxPow}:
+                self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
+                self.assertIn(shape['Y'].shape[0], shape['X'].shape[0])
+                self.assertEqual(shape['X'].shape[1], shape['Y'].shape[1])
+            elif onnx_cl in {OnnxLessOrEqual, OnnxGreater, OnnxGreaterOrEqual,
+                             OnnxLess, OnnxEqual}:
+                self.assertEqual(shape['X'].dtype, numpy.float32)
+                self.assertEqual(shape['Y'].dtype, numpy.bool_)
+                self.assertIn(shape['Y'].shape[0], shape['X'].shape[0])
+                self.assertEqual(shape['X'].shape[1], shape['Y'].shape[1])
+            else:
+                self.assertEqual(shape['X'].shape, shape['Y'].shape)
+                self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
+
         # sparse
         idi = make_coo_matrix(numpy.identity(2)).astype(numpy.float32)
         X = make_coo_matrix(numpy.array(
@@ -444,6 +492,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                         target_opset=opset)
                 oinf = OnnxInference(model_def)
+                self._check_shape_inference(OnnxArgMax, model_def)
                 got = oinf.run({'X': X})
                 self.assertEqual(list(sorted(got)), ['Y'])
                 self.assertEqualArray(numpy.argmax(
@@ -464,6 +513,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                         target_opset=opset)
                 oinf = OnnxInference(model_def)
+                self._check_shape_inference(OnnxArgMax, model_def)
                 got = oinf.run({'X': X})
                 self.assertEqual(list(sorted(got)), ['Y'])
                 self.assertEqualArray(numpy.argmax(X, axis=1).ravel(),
@@ -478,6 +528,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self.assertEqual(list(sorted(got)), ['Y'])
                 self.assertEqualArray(numpy.argmax(X, axis=1).ravel(),
                                       got['Y'].ravel())
+                self._check_shape_inference(OnnxArgMax, model_def)
 
                 # sparse
                 X = make_coo_matrix(X, dtype=numpy.float32)
@@ -536,6 +587,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                             op_version=opset)
                 model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                         target_opset=opset)
+                self._check_shape_inference(clarg, model_def)
                 oinf = OnnxInference(model_def)
                 got = oinf.run({'X': X})
                 self.assertEqual(list(sorted(got)), ['Y'])
@@ -556,6 +608,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                  op_version=opset)
                 model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                         target_opset=opset)
+                self._check_shape_inference(OnnxArgMin, model_def)
                 oinf = OnnxInference(model_def)
                 got = oinf.run({'X': X})
                 self.assertEqual(list(sorted(got)), ['Y'])
@@ -566,6 +619,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                  op_version=opset)
                 model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                         target_opset=opset)
+                self._check_shape_inference(OnnxArgMin, model_def)
                 oinf = OnnxInference(model_def)
                 got = oinf.run({'X': X})
                 self.assertEqual(list(sorted(got)), ['Y'])
@@ -911,6 +965,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxBatchNormalization, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': x})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -934,6 +989,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxBatchNormalization, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': x})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -1044,6 +1100,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     model_def = onx.to_onnx(
                         {'X': x}, outputs=[('Y', outp())],
                         target_opset=opset)
+                    self._check_shape_inference(OnnxCast, model_def)
                     oinf = OnnxInference(model_def)
                     got = oinf.run({'X': x})
                     if nptp == numpy.str_:
@@ -1103,6 +1160,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     model_def = onx.to_onnx(
                         {'X': xi}, outputs=[('Y', StringTensorType())],
                         target_opset=opset)
+                    self._check_shape_inference(OnnxCast, model_def)
                     got = OnnxInference(model_def).run({'X': xi})
                     self.assertEqual(
                         xi.astype(str).tolist(), got['Y'].tolist())
@@ -1123,6 +1181,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     {'X': x, 'Y': y},
                     outputs=[('Z', Int64TensorType())],
                     target_opset=opset)
+                self._check_shape_inference(OnnxCastLike, model_def)
                 got = OnnxInference(model_def).run({'X': x, 'Y': y})
                 self.assertEqual(x.astype(numpy.int64), got['Z'])
 
@@ -1185,6 +1244,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         model_def = onx.to_onnx({'X': x, 'cond': cond},
                                 outputs=[('Y', FloatTensorType())],
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxCompress, model_def)
         exp = numpy.compress(cond, x)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': x, 'cond': cond})
@@ -1234,6 +1294,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                  'Y': Y.astype(numpy.float32)},
                                 outputs=[('Z', FloatTensorType([2]))],
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxConcat, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32),
                         'Y': Y.astype(numpy.float32)})
@@ -1262,6 +1323,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         model_def = onx.to_onnx({'X': x.astype(numpy.int64)},
                                 outputs=[('Y', FloatTensorType())],
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxConstantOfShape, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': x.astype(numpy.int64)})
         self.assertEqualArray(y, got['Y'])
@@ -1297,6 +1359,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxConv, model_def)
         for rt in ['python', 'onnxruntime1']:
             with self.subTest(runtime=rt):
                 oinf = OnnxInference(model_def, runtime=rt)
@@ -1376,6 +1439,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxConvTranspose, model_def)
         for rt in ['python', 'onnxruntime1']:
             with self.subTest(runtime=rt):
                 oinf = OnnxInference(model_def, runtime=rt)
@@ -1467,6 +1531,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxConvTranspose, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': x})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -1485,6 +1550,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x, 'W': W, 'B': B},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxConvTranspose, model_def)
         ys = []
         for rt in ['python', 'onnxruntime1']:
             oinf = OnnxInference(model_def, runtime=rt)
@@ -1508,6 +1574,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxConvTranspose, model_def)
 
         oinf = OnnxInference(model_def, runtime="onnxruntime1")
         got = oinf.run({'X': x})
@@ -1603,6 +1670,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
         oinf = OnnxInference(model_def)
+        self._check_shape_inference(OnnxConvTranspose, model_def)
         got = oinf.run({'X': x})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(y_with_padding, got['Y'])
@@ -1727,6 +1795,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxConvTranspose, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': x})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -1760,6 +1829,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxConvTranspose, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': x})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -1783,6 +1853,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         model_def = onx.to_onnx({'X': x, 'axis': axis},
                                 outputs=[('Y', DoubleTensorType())],
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxCumSum, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': x.astype(numpy.float64),
                         'axis': axis})
@@ -1923,6 +1994,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxDequantizeLinear, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['Y'])
@@ -1938,6 +2010,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxDequantizeLinear, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['Y'])
@@ -1988,6 +2061,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                 outputs=[('Y', FloatTensorType()),
                                          ('Z', FloatTensorType())],
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxDropout, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y', 'Z'])
@@ -2059,6 +2133,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         model_def = onx.to_onnx({'X': X.astype(numpy.int64)},
                                 target_opset=get_opset_number_from_onnx(),
                                 outputs=[('Y', FloatTensorType())])
+        self._check_shape_inference(OnnxEyeLike, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -2095,6 +2170,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             model_def = node.to_onnx(
                 {'X': x}, outputs=[('Y', FloatTensorType())],
                 target_opset=get_opset_number_from_onnx())
+            self._check_shape_inference(OnnxFlatten, model_def)
             oinf = OnnxInference(model_def)
             got = oinf.run({'X': x})
             new_shape = ((1, -1) if i == 0
@@ -2125,6 +2201,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         model_def = onx.to_onnx({'X': data, 'Y': indices},
                                 outputs=[('Z', FloatTensorType())],
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxGatherElements, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': data, 'Y': indices})
         self.assertEqual(got['Z'].size, 0)
@@ -2185,6 +2262,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         model_def = onx.to_onnx({'X': data, 'Y': indices},
                                 outputs=[('Z', FloatTensorType())],
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxGatherElements, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': data, 'Y': indices})
         exp = numpy.array([[4, 8, 3],
@@ -2241,6 +2319,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                        op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxGemm, model_def)
         model_def.ir_version = get_ir_version_from_onnx()
         oinf = OnnxInference(model_def, runtime=runtime)
         got = oinf.run({'X': X.astype(numpy.float32)})
@@ -2263,6 +2342,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                        op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxGemm, model_def)
         if 'onnxruntime' in runtime:
             model_def.ir_version = get_ir_version_from_onnx()
         oinf = OnnxInference(model_def, runtime=runtime)
@@ -2294,6 +2374,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxGlobalAveragePool, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': x})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -2380,6 +2461,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float32)
         model_def = onx.to_onnx({'X': X},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxLpNormalization, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         exp = numpy.array([[0.3162278, 0.4472136],
@@ -2410,6 +2492,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx(
             {'X': X}, target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxMaxPool, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['Y'])
@@ -2454,6 +2537,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx(
             {'X': X}, target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxMaxPool, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['Y'])
@@ -2488,6 +2572,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx(
             {'X': X}, target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxMaxPool, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['Y'])
@@ -2561,6 +2646,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                        op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReduceMean, model_def)
         X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float64)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32)})
@@ -2613,6 +2699,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'data': data, 'pads': pads},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxPad, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'data': data, 'pads': pads})
         self.assertEqualArray(exp, got['Y'])
@@ -2632,6 +2719,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             mode='reflect', op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'data': data, 'pads': pads},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxPad, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'data': data, 'pads': pads})
         self.assertEqualArray(exp, got['Y'])
@@ -2728,6 +2816,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                   'y_scale': y_scale, 'y_zero_point': y_zero_point}
         model_def = node.to_onnx(inputs,
                                  target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxQLinearConv, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run(inputs)
         self.assertEqualArray(output, got['y'])
@@ -2931,6 +3020,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxQuantizeLinear, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['Y'])
@@ -2961,6 +3051,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'starts': starts, 'ends': ends},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxRange, model_def)
         oinf = OnnxInference(model_def)
         exp = numpy.array([0, 4, 8], dtype=numpy.float32)
         got = oinf.run({'starts': starts, 'ends': ends})
@@ -2984,6 +3075,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReduceL1, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3007,6 +3099,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReduceL1, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3025,6 +3118,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReduceL2, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3038,6 +3132,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReduceL2, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3048,6 +3143,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReduceL2, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3117,6 +3213,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReduceMax, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3130,6 +3227,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReduceMax, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3155,6 +3253,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                              op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReduceMean, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3167,6 +3266,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                              op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReduceMean, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3177,6 +3277,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                              op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReduceMean, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3272,6 +3373,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                          op_version=opset)
                 model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                         target_opset=opset)
+                self._check_shape_inference(OnnxReduceSum, model_def)
                 oinf = OnnxInference(model_def)
                 got = oinf.run({'X': X.astype(numpy.float32)})
                 self.assertEqual(list(sorted(got)), ['Y'])
@@ -3289,6 +3391,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                      op_version=opset)
             model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                     target_opset=opset)
+            self._check_shape_inference(OnnxReduceSum, model_def)
             oinf = OnnxInference(model_def)
             got = oinf.run({'X': X})
             self.assertEqual(list(sorted(got)), ['Y'])
@@ -3344,6 +3447,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                      op_version=opset, noop_with_empty_axes=1)
             model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                     target_opset=opset)
+            self._check_shape_inference(OnnxReduceSum, model_def)
             oinf = OnnxInference(model_def)
             got = oinf.run({'X': X.astype(numpy.float32)})
             self.assertEqual(list(sorted(got)), ['Y'])
@@ -3376,6 +3480,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                   op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReduceSumSquare, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3453,6 +3558,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float32)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxReshape, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3566,6 +3672,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                         op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxShape, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': x})
         self.assertEqualArray(y, got['Y'])
@@ -3598,6 +3705,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                        op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxSize, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': x})
         self.assertEqualArray(y, got['Y'])
@@ -3628,6 +3736,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                     output_names=['Y'], op_version=opset)
                 model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                         target_opset=opset)
+                self._check_shape_inference(OnnxSlice, model_def)
                 oinf = OnnxInference(model_def)
                 got = oinf.run({'X': x})
                 self.assertEqualArray(y, got['Y'])
@@ -3648,6 +3757,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                     op_version=opset)
                 model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                         target_opset=opset)
+                self._check_shape_inference(OnnxSlice, model_def)
                 got = OnnxInference(model_def).run({'X': x})
                 self.assertEqualArray(y, got['Y'])
 
@@ -3665,6 +3775,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                     op_version=opset)
                 model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                         target_opset=opset)
+                self._check_shape_inference(OnnxSlice, model_def)
                 got = OnnxInference(model_def).run({'X': x})
                 self.assertEqualArray(y, got['Y'])
 
@@ -3772,6 +3883,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     'X', axes=[1], output_names=['Y'], op_version=opset)
                 model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                         target_opset=opset)
+                self._check_shape_inference(OnnxSqueeze, model_def)
                 oinf = OnnxInference(model_def)
                 got = oinf.run({'X': x})
                 self.assertEqualArray(y, got['Y'])
@@ -3785,6 +3897,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     'X', axes=[0], output_names=['Y'], op_version=opset)
                 model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                         target_opset=opset)
+                self._check_shape_inference(OnnxSqueeze, model_def)
                 got = OnnxInference(model_def).run({'X': x})
                 self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxSqueeze)
@@ -3824,6 +3937,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                 outputs=[('Y', FloatTensorType(X.shape)),
                                          ('Yi', Int64TensorType(X.shape))],
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxTopK, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y', 'Yi'])
@@ -3869,6 +3983,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                 outputs=[('Y', FloatTensorType(X.shape)),
                                          ('Yi', Int64TensorType(X.shape))],
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxTopK, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y', 'Yi'])
@@ -3908,6 +4023,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                 outputs=[('Y', FloatTensorType(X.shape)),
                                          ('Yi', Int64TensorType(X.shape))],
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxTopK, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y', 'Yi'])
@@ -3929,6 +4045,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxTranspose, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3945,6 +4062,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                             op_version=get_opset_number_from_onnx())
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=get_opset_number_from_onnx())
+        self._check_shape_inference(OnnxTranspose, model_def)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -3964,6 +4082,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     'X', axes=[-2], output_names=['Y'], op_version=opset)
                 model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                         target_opset=opset)
+                self._check_shape_inference(OnnxUnsqueeze, model_def)
                 oinf = OnnxInference(model_def)
                 got = oinf.run({'X': x})
                 self.assertEqualArray(y, got['Y'])
@@ -3978,6 +4097,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     'X', axes=[2, 4, 5], output_names=['Y'], op_version=opset)
                 model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
                                         target_opset=opset)
+                self._check_shape_inference(OnnxUnsqueeze, model_def)
                 got = OnnxInference(model_def).run({'X': x})
                 self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxUnsqueeze)
@@ -4359,5 +4479,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_average_pool()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_sub()
     unittest.main(verbosity=2)

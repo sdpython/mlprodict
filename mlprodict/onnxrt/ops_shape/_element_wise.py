@@ -32,8 +32,8 @@ def shape_add(known_shapes, node):
     return _element_wise(known_shapes, node)
 
 
-def shape_sub(known_shapes, node):
-    "Infers shape for operator Sub."
+def shape_and(known_shapes, node):
+    "Infers shape for operator And."
     return _element_wise(known_shapes, node)
 
 
@@ -42,6 +42,61 @@ def shape_div(known_shapes, node):
     return _element_wise(known_shapes, node)
 
 
+def shape_equal(known_shapes, node):
+    "Infers shape for operator Equal."
+    return _element_wise(known_shapes, node)
+
+
+def shape_greater(known_shapes, node):
+    "Infers shape for operator Greater."
+    return _element_wise(known_shapes, node)
+
+
+def shape_greaterorequal(known_shapes, node):
+    "Infers shape for operator GreaterOrEqual."
+    return _element_wise(known_shapes, node)
+
+
+def shape_less(known_shapes, node):
+    "Infers shape for operator Less."
+    return _element_wise(known_shapes, node)
+
+
+def shape_lessorequal(known_shapes, node):
+    "Infers shape for operator LessOrEqual."
+    return _element_wise(known_shapes, node)
+
+
+def shape_max(known_shapes, node):
+    "Infers shape for operator Max."
+    return _element_wise(known_shapes, node)
+
+
+def shape_min(known_shapes, node):
+    "Infers shape for operator Min."
+    return _element_wise(known_shapes, node)
+
+
+def shape_mod(known_shapes, node):
+    "Infers shape for operator Mod."
+    return _element_wise(known_shapes, node)
+
+
 def shape_mul(known_shapes, node):
     "Infers shape for operator Mul."
+    return _element_wise(known_shapes, node)
+
+
+def shape_or(known_shapes, node):
+    "Infers shape for operator Or."
+    return _element_wise(known_shapes, node)
+
+
+def shape_pow(known_shapes, node):
+    "Infers shape for operator Pow."
+    return _element_wise(known_shapes, node)
+
+
+def shape_sub(known_shapes, node):
+    "Infers shape for operator Sub."
     return _element_wise(known_shapes, node)

@@ -64,6 +64,21 @@ def shape_atanh(known_shapes, node):
     return _element_unary(known_shapes, node)
 
 
+def shape_castlike(known_shapes, node):
+    "Infers shape for operator CastLike."
+    x = known_shapes[node.input[0]]
+    if x.mtype != OnnxKind.Tensor:
+        raise ShapeInferenceException(  # pragma: no cover
+            "Result %r must be a tensor." % x)
+    y = known_shapes[node.input[1]]
+    if y.mtype != OnnxKind.Tensor:
+        raise ShapeInferenceException(  # pragma: no cover
+            "Result %r must be a tensor." % y)
+    cp = x.copy()
+    cp.dtype = y.dtype
+    return known_shapes.update(node.output[0], cp)
+
+
 def shape_ceil(known_shapes, node):
     "Infers shape for operator Ceil."
     return _element_unary(known_shapes, node)
