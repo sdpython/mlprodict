@@ -65,11 +65,13 @@ class SupportedOnnxOpsDirective(Directive):
             rows.append('=' * len(cl.__name__))
             rows.append('')
             rows.append(
-                ".. autoclass:: mlprodict.npy.xop.xop_auto_import_.{}".format(name))
+                ".. autoclass:: mlprodict.npy.xop_auto_import_.{}".format(name))
             st = StringList(rows)
             node = nodes.container()
             nested_parse_with_titles(self.state, st, node)
             main += node
+
+        return [main]
 
 
 def setup(app):
