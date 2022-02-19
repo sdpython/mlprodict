@@ -167,7 +167,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @classmethod
     def tearDownClass(cls):
         if __name__ == "__main__":
-            import pprint
             print('-----------')
             pprint.pprint(sparse_support)
             print('-----------')
