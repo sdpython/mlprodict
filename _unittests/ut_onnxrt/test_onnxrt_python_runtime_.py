@@ -2,6 +2,7 @@
 @brief      test log(time=120s)
 """
 import unittest
+import pprint
 import warnings
 import sys
 from logging import getLogger
@@ -200,10 +201,17 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     "Unable to infer shape %r in\n%r\n." % (
                         e, model_def)) from e
             shape = shape_results.get()
-            self.assertIn('X', shape)
-            self.assertIn('Y', shape)
-            self.assertEqual(shape['X'].shape, shape['Y'].shape)
-            self.assertEqual(shape['X'].dtype, shape['Y'].dtype)            
+            try:
+                self.assertIn('X', shape)
+                self.assertIn('Y', shape)
+                self.assertIn('Z', shape)
+                self.assertEqual(shape['X'].shape, shape['Z'].shape)
+                self.assertEqual(shape['Z'].dtype, shape['Y'].dtype)
+            except Exception as e:
+                raise AssertionError(
+                    "Discrepancies in\n%s\n--ONNX--\n%s" % (
+                        pprint.pformat(shape),
+                        onnx_simple_text_plot(model_def))) from e
 
     def common_expected_shapes_types(self, oinf, inputs, got, onnx_cl, model_def,
                                      raise_shape=False):
@@ -1179,7 +1187,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                    op_version=opset)
                 model_def = onx.to_onnx(
                     {'X': x, 'Y': y},
-                    outputs=[('Z', Int64TensorType())],
+                    outputs=[('Z', Int64TensorType([None]))],
                     target_opset=opset)
                 self._check_shape_inference(OnnxCastLike, model_def)
                 got = OnnxInference(model_def).run({'X': x, 'Y': y})
