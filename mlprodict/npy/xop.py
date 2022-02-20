@@ -29,7 +29,7 @@ def _default_OPSET_TO_IR_VERSION():
         :showcode:
 
         import pprint
-        from mlprodict.npy.xop_graph_builder import _default_OPSET_TO_IR_VERSION
+        from mlprodict.npy.xop import _default_OPSET_TO_IR_VERSION
         pprint.pprint(_default_OPSET_TO_IR_VERSION())
     """
     return {
