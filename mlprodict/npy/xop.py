@@ -6,6 +6,7 @@
 .. versionadded:: 0.9
 """
 import os
+import pprint
 import numpy
 from scipy.sparse.coo import coo_matrix
 import onnx
@@ -35,8 +36,22 @@ def _default_OPSET_TO_IR_VERSION():
     return {
         1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3,
         7: 3, 8: 4, 9: 4, 10: 5, 11: 6, 12: 7,
-        13: 7, 14: 7, 15: 8
-    }
+        13: 7, 14: 7, 15: 8}
+
+
+def _domain_to_class_name(domain):
+    if domain == 'ai.onnx':
+        return ''
+    dom = domain.split('.')
+    res = []
+    for d in dom:
+        if len(d) == 0:
+            res.append(d)
+        elif len(d) == 1:
+            res.append(d.upper())
+        else:
+            res.append(d[0].upper() + d[1:])
+    return "".join(res)
 
 
 def _populate_schemas():
@@ -45,6 +60,7 @@ def _populate_schemas():
     """
     res = {}
     versions = {}
+    domains = {}
     for schema in onnx.defs.get_all_schemas_with_history():
         if schema.support_level == schema.SupportType.EXPERIMENTAL:
             # Skips experimental operators.
@@ -53,15 +69,39 @@ def _populate_schemas():
         if schema.name in res:
             if schema.since_version > res[schema.name].since_version:
                 # We keep the most recent one.
-                res[schema.name] = schema
+                res[schema.domain, schema.name] = schema
         else:
-            res[schema.name] = schema
+            res[schema.domain, schema.name] = schema
         full_name = schema.name + '_' + str(schema.since_version)
-        res[full_name] = schema
-        if schema.name not in versions:
-            versions[schema.name] = set()
-        versions[schema.name].add(full_name)
-    return res, versions
+        res[schema.domain, full_name] = schema
+        key = schema.domain, schema.name
+        if key not in versions:
+            versions[key] = set()
+        if schema.name not in domains:
+            domains[schema.name] = set()
+        domains[schema.name].add(schema.domain)
+        versions[key].add(full_name)
+    return res, versions, domains
+
+
+def _find_operator_domain(name):
+    """
+    Determines the domain of an operator.
+    Raises an exception if not found or if there is an ambiguity.
+
+    :param name: operator name
+    :return: domain
+    """
+    if name not in _all_domains:
+        raise ValueError(
+            "Unable to guess domain for operator %r. "
+            "Not found in %r." % (name, list(_all_domains)))
+    domains = _all_domains[name]
+    if len(domains) == 1:
+        return list(domains)[0]
+    raise ValueError(
+        "Unable to guess domain of operator %r, found domains %r." % (
+            name, domains))
 
 
 def ClassFactory(class_name, op_name, inputs, outputs,
@@ -215,20 +255,40 @@ def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=pr
     if operator_names is None:
         operator_names = list(_all_schemas_versions)
 
+    # type verification
+    ops = []
+    for name in operator_names:
+        if isinstance(name, str):
+            if name.startswith('Onnx'):
+                raise ValueError(
+                    "Operator name cannot starts with Onnx: %r." % name)
+            domain = _find_operator_domain(name.split('_', maxsplit=1)[0])
+            ops.append((domain, name))
+        elif isinstance(name, tuple) and len(name) == 2:
+            if name[1].startswith('Onnx'):
+                raise ValueError(
+                    "Operator name cannot starts with Onnx: %r." % name)
+            ops.append(name)
+        else:
+            raise ValueError(
+                "Operator to fetch must be a string or a "
+                "`tuple(domain, name)` not %r." % (name))
+    operator_names = ops
+
+    # versions
     res = _all_schemas
     cls = {}
     set_names = dict()
     set_skip = set()
-    for pos, op_name in enumerate(operator_names):
-        set_names[op_name] = pos
+    for pos, (op_domain, op_name) in enumerate(operator_names):
+        if op_domain == 'ai.onnx':
+            op_domain = ''
+        set_names[op_domain, op_name] = pos
         if '_' in op_name:
             n = op_name.split('_')[0]
-            if n.startswith('Onnx'):
-                set_skip.add(n)
-            else:
-                set_skip.add('Onnx' + n)
+            set_skip.add((op_domain, n))
             if n not in set_names:
-                set_names[n] = -1
+                set_names[op_domain, n] = -1
 
     if verbose > 1 and fLOG is not None:
         fLOG("[_dynamic_class_creation] set_names=%r" % set_names)
@@ -237,49 +297,49 @@ def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=pr
     returned_classes = []
     positions = {}
 
-    for op_name, position in set_names.items():
-        cl_name = op_name if op_name.startswith('Onnx') else 'Onnx' + op_name
+    for (op_domain, op_name), position in set_names.items():
+        cl_name = 'Onnx' + _domain_to_class_name(op_domain) + op_name
         if verbose > 3 and fLOG is not None:
-            fLOG('[_dynamic_class_creation] cl_name=%r op_name=%r (in=%d)' % (
-                cl_name, op_name, 1 if cl_name in _all_classes else 0))
+            fLOG('[_dynamic_class_creation] cl_name=%r op_domain=%r op_name=%r (in=%d)' % (
+                cl_name, op_domain, op_name, 1 if cl_name in _all_classes else 0))
         if cl_name in _all_classes:
             if cl_name not in set_skip:
                 if position >= 0:
                     returned_classes.append((position, _all_classes[cl_name]))
             continue
 
-        name = op_name[4:] if op_name.startswith('Onnx') else op_name
-        name_keep = name
-        if '_' in name:
-            names = [name]
+        # operator name without domain
+        if '_' in op_name:
+            names = [op_name]
         else:
             try:
-                names = _all_schemas_versions[name].copy()
+                names = _all_schemas_versions[op_domain, op_name].copy()
             except KeyError as e:
                 raise ValueError(
-                    "Operator %r (or %r) does not exists." % (
-                        name, op_name)) from e
-            names.add(name)
+                    "Operator %r (domain=%r) does not exists." % (
+                        op_name, op_domain)) from e
+            names.add(op_name)
 
         if verbose > 0 and fLOG is not None:
-            fLOG("[_dynamic_class_creation] op_name=%r, cl_name=%r names=%r"
-                 "" % (op_name, cl_name, names))
+            fLOG("[_dynamic_class_creation] op_domain=%r op_name=%r, cl_name=%r names=%r"
+                 "" % (op_domain, op_name, cl_name, names))
 
         for name in names:
             try:
-                schema = res[name]
+                schema = res[op_domain, name]
             except KeyError as e:
                 raise ValueError(
-                    "Operator %r (or %r) does not exists." % (
-                        name, op_name)) from e
+                    "Operator (%r, %r) does not exists (available=%r)" % (
+                        op_domain, name, pprint.pformat(list(res)))) from e
             inputs = [_c(o, 'I', i) for i, o in enumerate(schema.inputs)]
             outputs = [_c(o, 'O', i) for i, o in enumerate(schema.outputs)]
             args = [p for p in schema.attributes]
 
             if '_' in name:
-                class_name = "Onnx" + name
+                class_name = "Onnx" + _domain_to_class_name(op_domain) + name
             else:
-                class_name = "Onnx" + schema.name
+                class_name = (
+                    "Onnx" + _domain_to_class_name(op_domain) + schema.name)
 
             if verbose > 0 and fLOG is not None:
                 fLOG("[_dynamic_class_creation] op_name=%r, cl_name=%r cache=%r"
@@ -305,7 +365,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=pr
                               getattr(schema, 'deprecated', False),
                               schema.since_version, {})
             cls[class_name] = cl
-            if name == name_keep:
+            if name == op_name:
                 positions[class_name] = position
 
     # Retrieves past classes.
@@ -701,8 +761,7 @@ class OnnxOperator:
 
     def find_schema(self, op_version):
         """
-        Checks if there is an existing schema for a
-        specific version.
+        Checks if there is an existing schema for a specific version.
 
         :param op_version: requested version
         :return: schema
@@ -1463,6 +1522,6 @@ class _GraphBuilder:
         return onnx_model
 
 
-_all_schemas, _all_schemas_versions = _populate_schemas()
+_all_schemas, _all_schemas_versions, _all_domains = _populate_schemas()
 _all_classes = {}
 onnx_load_factory = Xop = OnnxLoadFactory()
