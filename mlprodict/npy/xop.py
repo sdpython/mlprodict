@@ -261,7 +261,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=pr
         if isinstance(name, str):
             if name.startswith('Onnx'):
                 raise ValueError(
-                    "Operator name cannot starts with Onnx: %r." % name)
+                    "Operator name cannot start with Onnx: %r." % name)
             domain = _find_operator_domain(name.split('_', maxsplit=1)[0])
             ops.append((domain, name))
         elif isinstance(name, tuple) and len(name) == 2:
