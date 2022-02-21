@@ -456,7 +456,7 @@ class OnnxOperatorItem:
     @property
     def inputs(self):
         "Returns the only inputs in a list."
-        inp = self.onx_op.inputs
+        inp = self.onx_op.output
         return [inp[self.index]]
 
     def add_to(self, builder):
@@ -586,6 +586,7 @@ class OnnxOperator:
         self.domain = domain
         self.kwargs = kwargs
         self.onnx_prefix_name = None
+        self.max_item_ = None
 
         # check inputs
         if len(inputs) == 0:
@@ -752,12 +753,31 @@ class OnnxOperator:
                 if not isinstance(value, int):
                     try:
                         to = numpy_type_prototype(value)
-                    except ValueError as e:
+                    except ValueError as e:  # pragma: no cover
                         raise ValueError(
                             "Unable to convert argument to in operator cast, "
                             "type is %r, value is %r." % (type(value), value)) from e
                     self.kwargs['to'] = to
             return
+
+    def update_max_item(self, index):
+        """
+        Some operators return a undefined number of outputs.
+        The method is called when require one of them (with `__getitem__`)
+        and keeps the greater requested index assuming the node does
+        not output any result beyond that index.
+
+        :param index: requested index
+        """
+        if self.max_item_ is None:
+            self.max_item_ = index
+        else:
+            self.max_item_ = max(self.max_item_, index)
+        if self.expected_outputs is None:
+            self.expected_outputs = []
+        while len(self.expected_outputs) <= self.max_item_:
+            self.expected_outputs.append(
+                (("NEWOUTPUT", len(self.expected_outputs)), None))
 
     def find_schema(self, op_version):
         """
@@ -824,6 +844,7 @@ class OnnxOperator:
         Returns an accessor to one of the output
         of this node.
         """
+        self.update_max_item(index)
         return OnnxOperatorItem(self, index, self.op_version)
 
     def __iter__(self):
@@ -837,10 +858,15 @@ class OnnxOperator:
             rg = self.output_range
             if rg[0] == rg[1] and rg[0] > 0:
                 n = rg[0]
+        if n is None and self.max_item_ is not None:
+            n = self.max_item_ + 1
         if n is None:
             raise RuntimeError(
-                "Unable to guess the number of outputs of node type %r." %
+                "Unable to guess the number of outputs of node type %r. "
+                "Uses operator [] to select a specific output." %
                 self.__class__.__name__)
+        if self.max_item_ is not None:
+            n = max(n, self.max_item_ + 1)
         for i in range(n):
             yield self[i]
 
@@ -852,9 +878,12 @@ class OnnxOperator:
             it must have a method `add_node`
         """
         inputs = builder.get_input_names(self, self.inputs)
-        n_outputs = (
-            self.output_range[0] if self.output_names is None
-            else len(self.output_names))
+        if self.output_names is not None:
+            n_outputs = len(self.output_names)
+        elif self.expected_outputs is not None:
+            n_outputs = len(self.expected_outputs)
+        else:
+            n_outputs = self.output_range[0]
         outputs = [builder.get_output_name(self, i) for i in range(n_outputs)]
         builder.add_node(
             self.operator_name,
@@ -915,42 +944,6 @@ class OnnxOperator:
                     "Unexpected input type %r in node type %r." % (
                         type(inp), type(obj)))
 
-        node_outputs = [self]
-        if other_outputs is not None:
-            node_outputs += other_outputs
-
-        # preprocess inputs, outputs
-        _keep_inputs = None
-        if isinstance(inputs, list):
-            _keep_inputs = inputs
-            inputs = _preprocess_list(inputs)
-        _keep_outputs = None
-        if isinstance(outputs, list):
-            _keep_outputs = outputs
-            outputs = _preprocess_list(outputs)
-
-        # walk through graphs
-        stack = list(node_outputs)
-        new_inputs = []
-        set_inputs = set()
-        memo = []
-        while len(stack) > 0:
-            memo.extend(stack)
-            new_stack = []
-            for obj in stack:
-                for inp in obj.inputs:
-                    _process_input(inputs, set_inputs, inp, new_inputs)
-            stack = new_stack
-
-        # eliminate duplicates
-        done = set()
-        nodes = []
-        for node in reversed(memo):
-            if id(node) in done:
-                continue
-            done.add(id(node))
-            nodes.append(node)
-
         def _get_type(node, name=None, outputs=None):
             if outputs is None:
                 return None
@@ -982,6 +975,45 @@ class OnnxOperator:
                 return outputs
             raise RuntimeError(  # pragma: no cover
                 "Unable to handle outputs=%r." % outputs)
+
+        node_outputs = [self]
+        if other_outputs is not None:
+            node_outputs += other_outputs
+
+        # preprocess inputs, outputs
+        _keep_inputs = None
+        if isinstance(inputs, list):
+            _keep_inputs = inputs
+            inputs = _preprocess_list(inputs)
+        _keep_outputs = None
+        if isinstance(outputs, list):
+            _keep_outputs = outputs
+            outputs = _preprocess_list(outputs)
+
+        # walk through graphs
+        stack = list(node_outputs)
+        new_inputs = []
+        set_inputs = set()
+        memo = []
+        while len(stack) > 0:
+            memo.extend(stack)
+            new_stack = []
+            for obj in stack:
+                if isinstance(obj, OnnxOperatorItem):
+                    pass
+                else:
+                    for inp in obj.inputs:
+                        _process_input(inputs, set_inputs, inp, new_inputs)
+            stack = new_stack
+
+        # eliminate duplicates
+        done = set()
+        nodes = []
+        for node in reversed(memo):
+            if id(node) in done:
+                continue
+            done.add(id(node))
+            nodes.append(node)
 
         # outputs
         set_names = set()
@@ -1320,8 +1352,21 @@ class _GraphBuilder:
             return name
 
         if node.output_names is None:
-            prefix = node.onnx_prefix
-            n = '%s%d' % (prefix, index)
+            if node.expected_outputs is None:
+                prefix = node.onnx_prefix
+                n = '%s%d' % (prefix, index)
+            else:
+                n = node.expected_outputs[index][0]
+                if isinstance(n, tuple):
+                    if n[0] == 'NEWOUTPUT':
+                        # This case happen for node with undefined number
+                        # of outputs like Split.
+                        prefix = node.onnx_prefix
+                        n = '%s%d' % (prefix, index)
+                    else:
+                        raise RuntimeError(
+                            "Unexpected value for node=%r and output=%r." % (
+                                node, n))
         else:
             output = node.output_names[index]
             if isinstance(output, Variable):

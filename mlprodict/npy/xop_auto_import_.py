@@ -17,7 +17,6 @@ def _update_module():
     unique = set()
     for cl in res:
         setattr(this, cl.__name__, cl)
-        name = cl.__name__.split('_')[0]
         unique.add((cl.domain, cl.operator_name))
     res = _dynamic_class_creation(list(unique))
     for cl in res:

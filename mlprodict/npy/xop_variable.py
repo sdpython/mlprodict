@@ -153,7 +153,7 @@ class Variable:
         :return: @see cl Variable
         """
         if self.added_dtype_ is not None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Cannot copy as added_dtype is not None.")
         if isinstance(dtype, numpy.ndarray):
             dtype, shape = dtype.dtype, dtype.shape
