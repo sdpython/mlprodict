@@ -39,7 +39,7 @@ class TestOnnxShapeInferenceXop(ExtTestCase):
                         onnx_simple_text_plot(onx)))
 
     def test_onnx_shape_inference(self):
-        OnnxAdd = loadop('OnnxAdd')
+        OnnxAdd = loadop('Add')
         dtype = numpy.float32
         for opset in TestOnnxShapeInferenceXop.opsets:
             with self.subTest(opset=opset):

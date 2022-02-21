@@ -13,7 +13,7 @@ from onnx.defs import OpSchema
 def _get_doc_template():
     try:
         from jinja2 import Template
-    except ImportError:
+    except ImportError:  # pragma no cover
         class Template:
             "Docstring template"
 
@@ -134,13 +134,13 @@ def get_rst_doc(op_name=None):
         schemas = [
             schema for schema in onnx.defs.get_all_schemas_with_history()
             if schema.name == op_name]
-        if len(schemas) > 1:
+        if len(schemas) > 1:  # pragma: no cover
             raise RuntimeError(
                 "Multiple operators have the same name '{}'.".format(op_name))
     elif not isinstance(op_name, list):
         schemas = [op_name]
     if len(schemas) == 0:
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             "Unable to find any operator with name '{}'.".format(op_name))
 
     # from onnx.backend.sample.ops import collect_sample_implementations

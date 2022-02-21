@@ -261,4 +261,3 @@ epkg_dictionary.update({
         'https://github.com/onnx/onnx/blob/master/docs/Operators-ml.md'
         '#ai.onnx.ml.TreeEnsembleRegressor',
 })
-

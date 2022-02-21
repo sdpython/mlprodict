@@ -1,6 +1,6 @@
 # pylint: disable=E0611
 """
-@brief      test log(time=10s)
+@brief      test log(time=15s)
 """
 import unittest
 import numpy
@@ -11,12 +11,18 @@ from onnx.helper import (
     make_graph, make_tensor_value_info)
 from onnx.shape_inference import infer_shapes
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.npy.xop import loadop
-from mlprodict.npy.xop_variable import Variable, max_supported_opset
-from mlprodict.npy.xop import _GraphBuilder
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnx_tools.onnx2py_helper import get_dtype_shape
+from mlprodict.npy.xop import loadop
+from mlprodict.npy.xop_auto import get_domain_list
+from mlprodict.npy.xop_variable import (
+    Variable, max_supported_opset,
+    numpy_type_prototype, is_numpy_dtype)
+from mlprodict.npy.xop import _GraphBuilder
+from mlprodict.npy.xop_opset import (
+    OnnxReduceSumApi11, OnnxSplitApi11, OnnxSqueezeApi11,
+    OnnxUnsqueezeApi11, OnnxReduceL2_typed, OnnxReshapeApi13)
 
 
 class TestXOps(ExtTestCase):
@@ -24,21 +30,84 @@ class TestXOps(ExtTestCase):
     def test_float32(self):
         self.assertEqual(numpy.float32, numpy.dtype('float32'))
 
+    def test_numpy_dtype(self):
+        self.assertEqual(is_numpy_dtype(numpy.float32), True)
+        self.assertEqual(is_numpy_dtype(numpy.dtype('float32')), True)
+        self.assertEqual(is_numpy_dtype({}), False)
+
+    def test_numpy_type_prototype(self):
+        self.assertEqual(
+            numpy_type_prototype(numpy.float32), TensorProto.FLOAT)
+        self.assertEqual(
+            numpy_type_prototype(numpy.dtype('float32')), TensorProto.FLOAT)
+        self.assertRaise(lambda: numpy_type_prototype(5), TypeError)
+
+    def test_get_domain_list(self):
+        self.assertEqual(['', 'ai.onnx.ml', 'ai.onnx.preview.training'],
+                         get_domain_list())
+
+    def test_variable(self):
+        var = Variable('X', numpy.float32)
+        self.assertEqual(var.is_named('X'), True)
+        self.assertEqual(var.name, 'X')
+        self.assertEqual(var.dtype, numpy.float32)
+        self.assertEqual(var.proto_type, TensorProto.FLOAT)
+        self.assertRaise(lambda: Variable('X', 5), TypeError)
+        self.assertRaise(lambda: var.is_named(4), TypeError)
+        self.assertRaise(
+            lambda: Variable('X', numpy.float32, added_dtype=5),
+            TypeError)
+        self.assertRaise(lambda: Variable('X', shape='t'), TypeError)
+        self.assertRaise(lambda: Variable('X', added_shape='t'), TypeError)
+        var = Variable('X', numpy.float32)
+        r = repr(var)
+        self.assertEqual(r, "Variable('X', dtype=<class 'numpy.float32'>)")
+        var = Variable('X', added_dtype=numpy.float32)
+        r = repr(var)
+        self.assertEqual(
+            r, "Variable('X', added_dtype=<class 'numpy.float32'>)")
+        self.assertRaise(lambda: var == 'T', TypeError)
+        var2 = var
+        self.assertEqual(var == var2, True)
+        self.assertEqual(var == Variable('Y'), False)
+        self.assertEqual(var == Variable('X', numpy.float32), False)
+        self.assertEqual(
+            var == Variable('X', added_dtype=numpy.float32), True)
+
     def test_impossible(self):
-        cl = loadop("OnnxAdd")
+        cl = loadop("Add")
         self.assertEqual(cl.__name__, "OnnxAdd")
-        cl = loadop("OnnxCast")
+        cl = loadop("Cast")
         self.assertEqual(cl.__name__, "OnnxCast")
         cl = loadop("Cast_13")
         self.assertEqual(cl.__name__, "OnnxCast_13")
-        cl = loadop("OnnxCast_13")
+        cl = loadop("Cast_13")
         self.assertEqual(cl.__name__, "OnnxCast_13")
-        self.assertRaise(lambda: loadop("OnnxImpossible"), ValueError)
-        self.assertRaise(lambda: loadop("OnnxImpossible_1"), ValueError)
-        self.assertRaise(lambda: loadop("OnnxCast_9999"), ValueError)
+        self.assertRaise(lambda: loadop("OnnxCast"), ValueError)
+        self.assertRaise(lambda: loadop("Impossible"), ValueError)
+        self.assertRaise(lambda: loadop("Impossible_1"), ValueError)
+        self.assertRaise(lambda: loadop("Cast_9999"), ValueError)
 
     def test_onnx_abs(self):
-        OnnxAbs = loadop("OnnxAbs")
+        OnnxAbs = loadop("Abs")
+        ov = OnnxAbs('X', output_names=['Y'])
+        onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
+        oinf = OnnxInference(onx)
+        x = numpy.array([-2, 2], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(numpy.abs(x), got['Y'])
+
+    def test_onnx_abs_domain(self):
+        OnnxAbs = loadop(("", "Abs"))
+        ov = OnnxAbs('X', output_names=['Y'])
+        onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
+        oinf = OnnxInference(onx)
+        x = numpy.array([-2, 2], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(numpy.abs(x), got['Y'])
+
+    def test_onnx_abs_domain_ai(self):
+        OnnxAbs = loadop(("ai.onnx", "Abs"))
         ov = OnnxAbs('X', output_names=['Y'])
         onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
         oinf = OnnxInference(onx)
@@ -56,7 +125,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(x + x, got['Y'])
 
     def test_onnx_add_cst(self):
-        OnnxAdd = loadop("OnnxAdd")
+        OnnxAdd = loadop("Add")
         ov = OnnxAdd('X', numpy.array([1], dtype=numpy.float32),
                      output_names=['Y'])
         onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
@@ -72,7 +141,7 @@ class TestXOps(ExtTestCase):
         self.assertEqual(sel, sel2)
 
     def test_onnx_add_sub_left(self):
-        OnnxAdd, OnnxSub = loadop("OnnxAdd", "OnnxSub")
+        OnnxAdd, OnnxSub = loadop("Add", "Sub")
         self.assertEqual(OnnxAdd.operator_name, 'Add')
         self.assertEqual(OnnxSub.operator_name, 'Sub')
         ov = OnnxAdd('X', 'X')
@@ -84,7 +153,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(x, got['Y'])
 
     def test_onnx_add_sub_right(self):
-        OnnxAdd, OnnxSub = loadop("OnnxAdd", "OnnxSub")
+        OnnxAdd, OnnxSub = loadop("Add", "Sub")
         self.assertEqual(OnnxAdd.operator_name, 'Add')
         self.assertEqual(OnnxSub.operator_name, 'Sub')
         ov = OnnxAdd('X', 'X')
@@ -96,7 +165,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(-x, got['Y'])
 
     def test_onnx_transpose(self):
-        OnnxTranspose = loadop("OnnxTranspose")
+        OnnxTranspose = loadop("Transpose")
         ov = OnnxTranspose('X', perm=[1, 0], output_names=['Y'])
         onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
         self.assertIn('perm', str(onx))
@@ -106,7 +175,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(x.T, got['Y'])
 
     def test_onnx_transpose3(self):
-        OnnxTranspose = loadop("OnnxTranspose")
+        OnnxTranspose = loadop("Transpose")
         ov = OnnxTranspose('X', perm=[1, 0, 2], output_names=['Y'])
         onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
         self.assertIn('perm', str(onx))
@@ -116,7 +185,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(numpy.transpose(x, axes=(1, 0, 2)), got['Y'])
 
     def test_onnx_cast(self):
-        OnnxCast = loadop("OnnxCast")
+        OnnxCast = loadop("Cast")
         ov = OnnxCast('X', to=numpy.int64, output_names=['Y'])
         onx = ov.to_onnx(numpy.float32, numpy.int64, verbose=0)
         self.assertIn('to', str(onx))
@@ -126,7 +195,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(x.astype(numpy.int64), got['Y'])
 
     def test_onnx_dict(self):
-        OnnxCast = loadop("OnnxCast")
+        OnnxCast = loadop("Cast")
         ov = OnnxCast('X', to=numpy.int64, output_names=['Y'])
         onx = ov.to_onnx({'X': numpy.float32}, {'Y': numpy.int64}, verbose=0)
         self.assertIn('to', str(onx))
@@ -136,7 +205,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(x.astype(numpy.int64), got['Y'])
 
     def test_onnx_var(self):
-        OnnxCast = loadop("OnnxCast")
+        OnnxCast = loadop("Cast")
         ov = OnnxCast('X', to=numpy.int64, output_names=['Y'])
         onx = ov.to_onnx(Variable('X', numpy.float32),
                          Variable('Y', numpy.float32), verbose=0)
@@ -147,7 +216,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(x.astype(numpy.int64), got['Y'])
 
     def test_onnx_var_list(self):
-        OnnxCast = loadop("OnnxCast")
+        OnnxCast = loadop("Cast")
         ov = OnnxCast('X', to=numpy.int64, output_names=['Y'])
         onx = ov.to_onnx([Variable('X', numpy.float32)],
                          [Variable('Y', numpy.float32)], verbose=0)
@@ -159,7 +228,7 @@ class TestXOps(ExtTestCase):
 
     def test_if(self):
         OnnxConstant, OnnxIf, OnnxGreater = loadop(
-            "OnnxConstant", "OnnxIf", "OnnxGreater")
+            "Constant", "If", "Greater")
         bthen = OnnxConstant(
             value_floats=numpy.array([0], dtype=numpy.float32),
             output_names=['res_then'])
@@ -195,7 +264,7 @@ class TestXOps(ExtTestCase):
 
     def test_if2(self):
         OnnxAdd, OnnxSub, OnnxIf, OnnxGreater, OnnxReduceSum = loadop(
-            "OnnxAdd", "OnnxSub", "OnnxIf", "OnnxGreater", "OnnxReduceSum")
+            "Add", "Sub", "If", "Greater", "ReduceSum")
 
         node = OnnxAdd('x1', 'x2', output_names=['absxythen'])
         then_body = node.to_onnx(
@@ -220,10 +289,10 @@ class TestXOps(ExtTestCase):
             {'y': numpy.float32})
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot()
-        self.assertIn("out_red0 -> _greater;", dot)
+        self.assertIn("reduced0 -> _greater;", dot)
 
     def test_onnx_abs_shape_variable(self):
-        OnnxAbs = loadop("OnnxAbs")
+        OnnxAbs = loadop("Abs")
         ov = OnnxAbs('X', output_names=['Y'])
         onx = ov.to_onnx([Variable('X', numpy.float32, [1, 2])],
                          [Variable('Y', numpy.float32, [1, 2])],
@@ -241,7 +310,7 @@ class TestXOps(ExtTestCase):
         self.assertEqual(shape, (1, 2))
 
     def test_onnx_abs_shape_variable_batch(self):
-        OnnxAbs = loadop("OnnxAbs")
+        OnnxAbs = loadop("Abs")
         ov = OnnxAbs('X', output_names=['Y'])
         onx = ov.to_onnx([Variable('X', numpy.float32, [None, 2])],
                          [Variable('Y', numpy.float32, [None, 2])],
@@ -258,7 +327,7 @@ class TestXOps(ExtTestCase):
         self.assertEqual(shape, (None, 2))
 
     def test_onnx_abs_shape_numpy(self):
-        OnnxAbs = loadop("OnnxAbs")
+        OnnxAbs = loadop("Abs")
         ov = OnnxAbs('X', output_names=['Y'])
         x = numpy.array([-2, 2], dtype=numpy.float32)
         onx = ov.to_onnx({'X': x}, {'Y': x}, verbose=0)
@@ -364,7 +433,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(y, numpy.array([[[2]]], dtype=numpy.float32))
 
     def test_onnx_abs_undefined(self):
-        OnnxAbs = loadop("OnnxAbs")
+        OnnxAbs = loadop("Abs")
         ov = OnnxAbs('X', output_names=['Y'])
         onx = ov.to_onnx(numpy.float32, verbose=0)
         oinf = OnnxInference(onx)
@@ -377,7 +446,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(numpy.abs(x), got['Y'])
 
     def test_onnx_add_sub_left_undefined(self):
-        OnnxAdd, OnnxSub = loadop("OnnxAdd", "OnnxSub")
+        OnnxAdd, OnnxSub = loadop("Add", "Sub")
         self.assertEqual(OnnxAdd.operator_name, 'Add')
         self.assertEqual(OnnxSub.operator_name, 'Sub')
         ov = OnnxAdd('X', 'X')
@@ -396,7 +465,7 @@ class TestXOps(ExtTestCase):
 
     def test_topk_classic(self):
         opv = max_supported_opset()
-        OnnxIdentity, OnnxTopK = loadop("OnnxIdentity", "OnnxTopK")
+        OnnxIdentity, OnnxTopK = loadop("Identity", "TopK")
         X = numpy.array([[0, 1, 2, 3, 4],
                          [1, -1, -2, 4, 5],
                          [2, -2, -3, 5, -4]],
@@ -422,7 +491,7 @@ class TestXOps(ExtTestCase):
 
     def test_topk_iter(self):
         opv = max_supported_opset()
-        OnnxIdentity, OnnxTopK = loadop("OnnxIdentity", "OnnxTopK")
+        OnnxIdentity, OnnxTopK = loadop("Identity", "TopK")
         X = numpy.array([[0, 1, 2, 3, 4],
                          [1, -1, -2, 4, 5],
                          [2, -2, -3, 5, -4]],
@@ -448,7 +517,7 @@ class TestXOps(ExtTestCase):
                 self.assertEqualArray(exp, got['Yi'])
 
     def test_onnx_add_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity", verbose=0)
         ov = OnnxAbs('X')
         ovf = ov + ov
         last = OnnxIdentity(ovf, output_names=['Y'])
@@ -458,8 +527,42 @@ class TestXOps(ExtTestCase):
         got = oinf.run({'X': x})
         self.assertEqualArray(numpy.abs(x) * 2, got['Y'])
 
+    def test_onnx_add_op_onnxruntime(self):
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity")
+        ov = OnnxAbs('X')
+        ovf = ov + ov
+        last = OnnxIdentity(ovf, output_names=['Y'])
+        onx = last.to_onnx(numpy.float32, numpy.float32, verbose=0)
+
+        opv = max_supported_opset()
+        ov = OnnxAbs('X', op_version=opv)
+        ovf = ov + ov
+        last = OnnxIdentity(ovf, output_names=['Y'], op_version=opv)
+        onx = last.to_onnx(numpy.float32, numpy.float32, verbose=0,
+                           target_opset=opv)
+
+        oinf = OnnxInference(onx, runtime='onnxruntime1')
+        x = numpy.array([-2, 2], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(numpy.abs(x) * 2, got['Y'])
+
+    def test_onnx_add_op_onnxruntime_specific(self):
+        OnnxAbs_13, OnnxIdentity_14 = loadop("Abs_13", "Identity_14")
+
+        opv = max_supported_opset()
+        ov = OnnxAbs_13('X')
+        ovf = ov + ov
+        last = OnnxIdentity_14(ovf, output_names=['Y'], op_version=opv)
+        onx = last.to_onnx(numpy.float32, numpy.float32, verbose=0,
+                           target_opset=opv)
+
+        oinf = OnnxInference(onx, runtime='onnxruntime1')
+        x = numpy.array([-2, 2], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(numpy.abs(x) * 2, got['Y'])
+
     def test_onnx_sub_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity")
         ov = OnnxAbs('X')
         ovf = ov + ov - ov
         last = OnnxIdentity(ovf, output_names=['Y'])
@@ -470,7 +573,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(numpy.abs(x), got['Y'])
 
     def test_onnx_mul_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity")
         ov = OnnxAbs('X')
         ovf = ov * ov
         last = OnnxIdentity(ovf, output_names=['Y'])
@@ -481,7 +584,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(numpy.abs(x) ** 2, got['Y'])
 
     def test_onnx_div_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity")
         ov = OnnxAbs('X')
         ovf = ov / (ov + ov)
         last = OnnxIdentity(ovf, output_names=['Y'])
@@ -493,7 +596,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(a / (a + a), got['Y'])
 
     def test_onnx_pow_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity")
         ov = OnnxAbs('X')
         ovf = ov ** ov
         last = OnnxIdentity(ovf, output_names=['Y'])
@@ -505,7 +608,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(a ** a, got['Y'])
 
     def test_onnx_matmul_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity")
         ov = OnnxAbs('X')
         ovf = ov @ ov
         last = OnnxIdentity(ovf, output_names=['Y'])
@@ -517,7 +620,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(a @ a, got['Y'])
 
     def test_onnx_greater_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity")
         ov = OnnxAbs('X')
         ovi = OnnxIdentity('X')
         ovf = ov > ovi
@@ -530,7 +633,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(a > x, got['Y'])
 
     def test_onnx_less_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity")
         ov = OnnxAbs('X')
         ovi = OnnxIdentity('X')
         ovf = ov < ovi
@@ -543,7 +646,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(a < x, got['Y'])
 
     def test_onnx_equal_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity")
         ov = OnnxAbs('X')
         ovi = OnnxIdentity('X')
         ovf = ov == ovi
@@ -556,7 +659,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(a == x, got['Y'])
 
     def test_onnx_and_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity")
         ov = OnnxAbs('X')
         ovi = OnnxIdentity('X')
         ovf = (ov == ovi).and_(ov > ovi)
@@ -569,7 +672,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(a == -10, got['Y'])
 
     def test_onnx_or_op(self):
-        OnnxAbs, OnnxIdentity = loadop("OnnxAbs", "OnnxIdentity")
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity")
         ov = OnnxAbs('X')
         ovi = OnnxIdentity('X')
         ovf = (ov == ovi).or_(ov > ovi)
@@ -582,7 +685,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(a >= x, got['Y'])
 
     def test_onnx_abs_op(self):
-        OnnxIdentity = loadop("OnnxIdentity")
+        OnnxIdentity = loadop("Identity")
         ovi = OnnxIdentity('X')
         ovf = abs(ovi)
         last = OnnxIdentity(ovf, output_names=['Y'])
@@ -594,7 +697,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(a, got['Y'])
 
     def test_onnx_not_op(self):
-        OnnxIdentity = loadop("OnnxIdentity")
+        OnnxIdentity = loadop("Identity")
         ovi = OnnxIdentity('X')
         ovf = (abs(ovi) == ovi).not_()
         last = OnnxIdentity(ovf, output_names=['Y'])
@@ -606,7 +709,7 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(a != x, got['Y'])
 
     def test_onnx_mod_op(self):
-        OnnxIdentity = loadop("OnnxIdentity")
+        OnnxIdentity = loadop("Identity")
         ovi = OnnxIdentity('X')
         ovf = ovi % numpy.array([10], dtype=numpy.int64)
         last = OnnxIdentity(ovf, output_names=['Y'])
@@ -616,7 +719,127 @@ class TestXOps(ExtTestCase):
         got = oinf.run({'X': x})
         self.assertEqualArray(x % 10, got['Y'])
 
+    def test_onnx_ml_operator(self):
+        OnnxNormalizer = loadop(('ai.onnx.ml', "Normalizer"))
+        self.assertEqual(OnnxNormalizer.__name__,
+                         'OnnxAiOnnxMlNormalizer')
+        last = OnnxNormalizer('X', norm='L1', output_names=['Y'])
+        onx = last.to_onnx(numpy.float32, numpy.float32, verbose=0)
+        oinf = OnnxInference(onx)
+        x = numpy.array([[-2, 2], [0, 3]], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        a = numpy.abs(x)
+        self.assertEqualArray(x / a.sum(axis=1, keepdims=True), got['Y'])
+
+    def test_onnx_ml_operator_shortcut(self):
+        OnnxNormalizer = loadop("Normalizer")
+        self.assertEqual(OnnxNormalizer.__name__,
+                         'OnnxAiOnnxMlNormalizer')
+        last = OnnxNormalizer('X', norm='L1', output_names=['Y'])
+        onx = last.to_onnx(numpy.float32, numpy.float32, verbose=0)
+        oinf = OnnxInference(onx)
+        x = numpy.array([[-2, 2], [0, 3]], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        a = numpy.abs(x)
+        self.assertEqualArray(x / a.sum(axis=1, keepdims=True), got['Y'])
+
+    def test_opset_reduce_sum(self):
+        for opv in range(10, max_supported_opset() + 1):
+            with self.subTest(opv=opv):
+                node = OnnxReduceSumApi11(
+                    'X', axes=numpy.array([1], dtype=numpy.int64),
+                    op_version=opv, output_names=['Y'])
+                onx = node.to_onnx(numpy.float32, numpy.float32,
+                                   target_opset=opv)
+                oinf = OnnxInference(onx)
+                x = numpy.array([[4, 5], [5.5, -6]], dtype=numpy.float32)
+                got = oinf.run({'X': x})
+                self.assertEqualArray(x.sum(axis=1, keepdims=1), got['Y'])
+
+    def test_opset_squeeze(self):
+        for opv in range(10, max_supported_opset() + 1):
+            with self.subTest(opv=opv):
+                node = OnnxSqueezeApi11(
+                    'X', axes=numpy.array([0], dtype=numpy.int64),
+                    op_version=opv, output_names=['Y'])
+                onx = node.to_onnx(numpy.float32, numpy.float32,
+                                   target_opset=opv)
+                oinf = OnnxInference(onx)
+                x = numpy.array([[4, 5]], dtype=numpy.float32)
+                got = oinf.run({'X': x})
+                self.assertEqualArray(numpy.squeeze(x, axis=0), got['Y'])
+
+    def test_opset_unsqueeze(self):
+        for opv in range(10, max_supported_opset() + 1):
+            with self.subTest(opv=opv):
+                node = OnnxUnsqueezeApi11(
+                    'X', axes=numpy.array([0], dtype=numpy.int64),
+                    op_version=opv, output_names=['Y'])
+                onx = node.to_onnx(numpy.float32, numpy.float32,
+                                   target_opset=opv)
+                oinf = OnnxInference(onx)
+                x = numpy.array([4, 5], dtype=numpy.float32)
+                got = oinf.run({'X': x})
+                self.assertEqualArray(x[numpy.newaxis, :], got['Y'])
+
+    def test_opset_reshape(self):
+        for opv in range(10, max_supported_opset() + 1):
+            with self.subTest(opv=opv):
+                node = OnnxReshapeApi13(
+                    'X', numpy.array([2, 1, 1], dtype=numpy.int64),
+                    op_version=opv, output_names=['Y'])
+                onx = node.to_onnx(numpy.float32, numpy.float32,
+                                   target_opset=opv)
+                oinf = OnnxInference(onx)
+                x = numpy.array([4, 5], dtype=numpy.float32)
+                got = oinf.run({'X': x})
+                self.assertEqualArray(
+                    x[:, numpy.newaxis, numpy.newaxis], got['Y'])
+
+    def test_opset_reduce_l2_typed(self):
+        for dtype in [numpy.float32, numpy.float64]:
+            for opv in range(10, max_supported_opset() + 1):
+                with self.subTest(opv=opv, dtype=dtype):
+                    node = OnnxReduceL2_typed(
+                        dtype, 'X', numpy.array([1], dtype=numpy.int64),
+                        op_version=opv, output_names=['Y'])
+                    onx = node.to_onnx(numpy.float32, numpy.float32,
+                                       target_opset=opv)
+                    oinf = OnnxInference(onx)
+                    x = numpy.array([[4, 5], [6.7, 7.8]], dtype=numpy.float32)
+                    got = oinf.run({'X': x})
+                    self.assertEqualArray(
+                        (x ** 2).sum(axis=1, keepdims=1) ** 0.5, got['Y'])
+
+    def test_opset_split(self):
+        OnnxSub = loadop("Sub")
+        for dtype in [numpy.float32, numpy.float64]:
+            for opv in range(10, max_supported_opset() + 1):
+                with self.subTest(opv=opv, dtype=dtype):
+                    node_split = OnnxSplitApi11(
+                        'X', split=numpy.array([1, 1], dtype=numpy.int64),
+                        axis=1, op_version=opv)
+                    node1 = node_split[0]
+                    node2 = node_split[1]
+                    node = OnnxSub(node1, node2, op_version=opv,
+                                   output_names=['Y'])
+                    onx = node.to_onnx(numpy.float32, numpy.float32,
+                                       target_opset=opv)
+                    oinf = OnnxInference(onx, runtime='onnxruntime1')
+                    x = numpy.array([[4, 5], [6.7, 7.8]], dtype=numpy.float32)
+                    x_copy = x.copy()
+                    expected = (x[:, :1] - x[:, 1:]).copy()
+                    got = oinf.run({'X': x})
+                    self.assertEqualArray(expected, got['Y'])
+                    self.assertEqualArray(x, x_copy)
+                    oinf = OnnxInference(onx, runtime='python')
+                    x = numpy.array([[4, 5], [6.7, 7.8]], dtype=numpy.float32)
+                    got = oinf.run({'X': x})
+                    self.assertEqualArray(expected, got['Y'])
+                    # This not always hold, computation may happen in place.
+                    # self.assertEqualArray(x, x_copy)
+
 
 if __name__ == "__main__":
-    # TestXOps().test_topk_iter()
+    # TestXOps().test_if2()
     unittest.main(verbosity=2)
