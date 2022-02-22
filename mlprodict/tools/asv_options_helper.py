@@ -75,7 +75,7 @@ def benchmark_version():
         from mlprodict.tools.asv_options_helper import benchmark_version
         print(benchmark_version())
     """
-    return [__max_supported_opset__]  # opset=13, 14, ...
+    return [__max_supported_opset__]
 
 
 def ir_version():
@@ -90,7 +90,7 @@ def ir_version():
         from mlprodict.tools.asv_options_helper import ir_version
         print(ir_version())
     """
-    return [7]
+    return [8]
 
 
 def get_opset_number_from_onnx(benchmark=True):
@@ -105,7 +105,7 @@ def get_opset_number_from_onnx(benchmark=True):
     if benchmark:
         return benchmark_version()[-1]
     from onnx.defs import onnx_opset_version  # pylint: disable=W0611
-    return onnx_opset_version()
+    return min(__max_supported_opset__, onnx_opset_version())
 
 
 def get_last_opset(ml=True):
@@ -191,7 +191,7 @@ def get_ir_version_from_onnx(benchmark=True):
     if benchmark:
         return ir_version()[-1]
     from onnx import IR_VERSION  # pylint: disable=W0611
-    return IR_VERSION
+    return min(IR_VERSION, ir_version()[-1])
 
 
 def display_onnx(model_onnx, max_length=1000):
