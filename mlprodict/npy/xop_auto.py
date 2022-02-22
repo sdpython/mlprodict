@@ -1,6 +1,7 @@
 """
 @file
-@brief Automates the generation of the documentation.
+@brief Automates the generation of operators for the
+documentation for the Xop API.
 
 .. versionadded:: 0.9
 """

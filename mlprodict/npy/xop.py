@@ -1,7 +1,7 @@
 # pylint: disable=E1101,C0302
 """
 @file
-@brief Easier API to build onnx graphs. Inspired from :epkg:`skl2onnx`.
+@brief Xop API to build onnx graphs. Inspired from :epkg:`skl2onnx`.
 
 .. versionadded:: 0.9
 """
@@ -14,7 +14,7 @@ from onnx import GraphProto, TensorProto
 from onnx.helper import (
     make_node, make_graph, make_model,
     make_tensor_value_info)
-from onnx.numpy_helper import from_array
+from onnx.numpy_helper import from_array, to_array
 from onnx.shape_inference import infer_shapes
 from ._cache import cache_folder
 from .xop_variable import (
@@ -40,6 +40,18 @@ def _default_OPSET_TO_IR_VERSION():
 
 
 def _domain_to_class_name(domain):
+    """
+    Converts domain into a name.
+
+    :param domain: domain name such as `ai.onnx.ml`
+    :return: string
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.npy.xop import _domain_to_class_name
+        print(_domain_to_class_name('ai.onnx.ml'))
+    """
     if domain == 'ai.onnx':
         return ''
     dom = domain.split('.')
@@ -229,7 +241,8 @@ def ClassFactory(class_name, op_name, inputs, outputs,
     return newclass
 
 
-def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=print):
+def _dynamic_class_creation(operator_names=None, cache=False, include_past=False,
+                            verbose=0, fLOG=print):
     """
     Automatically generates classes for each of the operators
     module *onnx* defines and described at
@@ -242,6 +255,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=pr
     :param operator_names: list of operators to request or None for all
     :param cache: extract the documentation from onnx package and
         saves it on disk it True
+    :param include_past: includes past versions if operator_names is None
     :param verbose: display some progress
     :param fLOG: logging function
     :return: list of requested operators as a tuple
@@ -254,6 +268,14 @@ def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=pr
     cache_dir = cache_folder()
     if operator_names is None:
         operator_names = list(_all_schemas_versions)
+        if include_past:
+            add = []
+            for domain, op in operator_names:
+                add.extend(
+                    [(domain, k)
+                     for k in _all_schemas_versions[domain, op]])
+            operator_names.extend(add)
+            operator_names.sort()
 
     # type verification
     ops = []
@@ -284,7 +306,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, verbose=0, fLOG=pr
         if op_domain == 'ai.onnx':
             op_domain = ''
         set_names[op_domain, op_name] = pos
-        if '_' in op_name:
+        if '_' in op_name and not include_past:
             n = op_name.split('_')[0]
             set_skip.add((op_domain, n))
             if n not in set_names:
@@ -1424,6 +1446,19 @@ class _GraphBuilder:
                     "Unexpected type for an input %r." % type(i))
         return names
 
+    def add_initializer(self, name, init):
+        """
+        Adds an initializer to the graph.
+
+        :param name: initializer name
+        :param init: initializer to copy
+        :return: created intializer
+        """
+        value = to_array(init)
+        val = from_array(value, name)
+        self.initializer.append(val)
+        return val
+
     def add_node(self, op_type, name, inputs, outputs, domain='',
                  opset=None, **attributes):
         """
@@ -1435,6 +1470,7 @@ class _GraphBuilder:
         :param outputs: outputs name list
         :param domain: node domain
         :param opset: node opset
+        :return: created node
         """
         if not isinstance(inputs, list):
             raise TypeError(  # pragma: no cover
@@ -1456,6 +1492,7 @@ class _GraphBuilder:
         node = make_node(op_type, inputs, outputs, name=name,
                          domain=domain, **attributes)
         self.node.append(node)
+        return node
 
     def _process_io(self, inputs, input_names):
         if inputs is None:

@@ -352,7 +352,7 @@ def visual_rst_template():
     Fitted on a problem type *{{ kind }}*
     (see :func:`find_suitable_problem
     <mlprodict.onnxrt.validate.validate_problems.find_suitable_problem>`),
-    method {{ method }} matches output {{ output_index }}.
+    method `{{ method }}` matches output {{ output_index }}.
     {{ optim_param }}
 
     ::

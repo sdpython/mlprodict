@@ -197,10 +197,10 @@ def translate_fct2onnx(fct, context=None, cpl=False,
 
             import numpy
             from mlprodict.onnx_tools.onnx_grammar import translate_fct2onnx
+            from mlprodict.plotting.text_plot import onnx_simple_text_plot
             from mlprodict.onnxrt import OnnxInference
             from skl2onnx.algebra.onnx_ops import (
-                OnnxAdd, OnnxTranspose, OnnxMul, OnnxIdentity
-            )
+                OnnxAdd, OnnxTranspose, OnnxMul, OnnxIdentity)
 
             ctx = {'OnnxAdd': OnnxAdd,
                    'OnnxTranspose': OnnxTranspose,
@@ -222,16 +222,17 @@ def translate_fct2onnx(fct, context=None, cpl=False,
                 trs, context={'numpy.transpose': numpy.transpose},
                 cpl=True, context_cpl=ctx, output_names=['Z'])
 
-            onnx_code = onnx_fct('x', 'y', opset_version=12)
-            print('ONNX code:', onnx_code)
+            onnx_code = onnx_fct('x', 'y', op_version=12)
 
             onnx_g = onnx_code.to_onnx(inputs, target_opset=12)
+            print("ONNX model")
+            print(onnx_simple_text_plot(onnx_g))
 
             oinf = OnnxInference(onnx_g)
             res = oinf.run(inputs)
 
+            print('-----------')
             print("ONNX inference:", res['Z'])
-            print("ONNX graph:", onnx_g)
 
     The function to be converted may include python functions
     which must not be converted. In that case, their name

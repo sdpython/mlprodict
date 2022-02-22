@@ -1,8 +1,8 @@
 
 .. _l-numpy2onnx-tutorial:
 
-From numpy to ONNX
-==================
+Create custom ONNX graphs
+=========================
 
 Converting a :epkg:`scikit-learn` pipeline is easy when
 the pipeline contains only pieces implemented in :epkg:`scikit-learn`
@@ -25,7 +25,7 @@ the first examples of `sklearn-onnx tutorial`.
 
 .. runpython::
     :showcode:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
 
     import numpy
     from sklearn.pipeline import make_pipeline
@@ -55,8 +55,8 @@ into *ONNX*. Even if function :epkg:`numpy:log` does exist in ONNX specification
 this problem is equivalent to a translation from a language, Python,
 to another one, ONNX.
 
-Translating numpy to ONNX
-+++++++++++++++++++++++++
+Translating numpy to ONNX with AST
+++++++++++++++++++++++++++++++++++
 
 .. index:: algebric function
 
@@ -81,7 +81,7 @@ produces the :epkg:`ONNX` graph.
 
 .. runpython::
     :showcode:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
     :store_in_file: fct2onnx_expsine.py
 
@@ -95,7 +95,7 @@ produces the :epkg:`ONNX` graph.
 
     # The function to convert into ONNX.
     def kernel_call_ynone(X, length_scale=1.2, periodicity=1.1,
-                          pi=3.141592653589793):
+                          pi=3.141592653589793, op_version=15):
 
         # squareform(pdist(X, ...)) in one function.
         dists = squareform_pdist(X, metric='euclidean')
@@ -140,7 +140,7 @@ produces the :epkg:`ONNX` graph.
 
     # Calls the ONNX algebric function to produce the ONNX graph.
     inputs = {'X': x.astype(numpy.float32)}
-    onnx_g = onnx_model.to_onnx(inputs, target_opset=12)
+    onnx_g = onnx_model.to_onnx(inputs, target_opset=15)
 
     # Creates a python runtime associated to the ONNX function.
     oinf = OnnxInference(onnx_g)

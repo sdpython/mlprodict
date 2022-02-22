@@ -22,7 +22,7 @@ class SupportedOnnxOpsDirective(Directive):
     has_content = False
 
     def run(self):
-        cls = _dynamic_class_creation()
+        cls = _dynamic_class_creation(include_past=True)
         cls_name = [(c.__name__, c) for c in cls]
         rows = []
         sorted_cls_name = list(sorted(cls_name))
@@ -32,8 +32,8 @@ class SupportedOnnxOpsDirective(Directive):
             return ":ref:`l-xop-onnx-{}`".format(cl.__name__)
 
         table = []
-        cut = len(sorted_cls_name) // 3 + \
-            (1 if len(sorted_cls_name) % 3 else 0)
+        cut = (len(sorted_cls_name) // 3 +
+               (1 if len(sorted_cls_name) % 3 else 0))
         for i in range(cut):
             row = []
             row.append(make_ref(sorted_cls_name[i][1]))
@@ -56,9 +56,9 @@ class SupportedOnnxOpsDirective(Directive):
         nested_parse_with_titles(self.state, st, node)
         main += node
 
-        rows.append('')
         for name, cl in sorted_cls_name:
             rows = []
+            rows.append('')
             rows.append('.. _l-xop-onnx-{}:'.format(cl.__name__))
             rows.append('')
             rows.append(cl.__name__)
