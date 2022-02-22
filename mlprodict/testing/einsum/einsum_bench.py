@@ -6,6 +6,7 @@ from itertools import permutations
 import numpy
 from onnx import helper, TensorProto
 from cpyquickhelper.numbers import measure_time
+from ... import __max_supported_opset__
 from ...tools.ort_wrapper import InferenceSession
 from ...onnxrt import OnnxInference
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
@@ -49,7 +50,7 @@ def _measure_time(stmt, *x, repeat=5, number=5, div_by_number=True,
                         div_by_number=div_by_number, max_time=max_time)
 
 
-def _make_einsum_model(equation, opset=15):  # opset=13, 14, ...
+def _make_einsum_model(equation, opset=__max_supported_opset__):
     from skl2onnx.common._topology import OPSET_TO_IR_VERSION  # pylint: disable=E0611,E0001
     inputs = equation.split('->')[0].split(',')
 
@@ -95,7 +96,7 @@ def _make_inputs(equation, shapes):
 
 def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
                      runtime='python', use_tqdm=False,
-                     number=5, repeat=5, opset=15):  # opset=13, 14, ...
+                     number=5, repeat=5, opset=__max_supported_opset__):
     """
     Investigates whether or not the decomposing einsum is faster.
 

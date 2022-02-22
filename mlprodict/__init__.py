@@ -7,6 +7,10 @@ converting investigate issues with ONNX models.
 
 __version__ = "0.8.1697"
 __author__ = "Xavier Dupré"
+__max_supported_opset__ = 15  # Converters are tested up to this version.
+__max_supported_opsets__ = {
+    '': __max_supported_opset__,
+    'ai.onnx.ml': 2}
 
 
 def check(log=False):

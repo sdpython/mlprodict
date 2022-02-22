@@ -7,6 +7,7 @@
 import numpy
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
 from onnx.defs import onnx_opset_version
+from .. import __max_supported_opset__
 
 
 def max_supported_opset():
@@ -19,7 +20,7 @@ def max_supported_opset():
         from mlprodict.npy.xop_variable import max_supported_opset
         print("max_supported_opset() returns", max_supported_opset())
     """
-    return min(15, onnx_opset_version())
+    return min(__max_supported_opset__, onnx_opset_version())
 
 
 def is_numpy_dtype(dtype):

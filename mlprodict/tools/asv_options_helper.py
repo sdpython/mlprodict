@@ -2,6 +2,7 @@
 @file
 @brief Functions to show shortened options in :epkg:`asv` benchmarks.
 """
+from .. import __max_supported_opset__
 
 
 def expand_onnx_options(model, optim):
@@ -74,7 +75,7 @@ def benchmark_version():
         from mlprodict.tools.asv_options_helper import benchmark_version
         print(benchmark_version())
     """
-    return [15]  # opset=13, 14, ...
+    return [__max_supported_opset__]  # opset=13, 14, ...
 
 
 def ir_version():
