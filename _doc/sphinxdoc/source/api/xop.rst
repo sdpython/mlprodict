@@ -1,32 +1,40 @@
 
 .. _l-xop-onnxpy:
 
-Create ONNX graphs
-==================
+=======
+Xop API
+=======
 
 .. contents::
     :local:
 
-Example
-+++++++
-
-Converters
-++++++++++
-
 API
-+++
+===
+
+Automated gathering of operators
+++++++++++++++++++++++++++++++++
 
 .. autosignature:: mlprodict.npy.xop.ClassFactory
 
 .. autosignature:: mlprodict.npy.xop.dynamic_class_creation
 
-.. autosignature:: mlprodict.npy.xops_variable.Variable
+.. autosignature:: mlprodict.npy.xop._GraphBuilder
 
-.. autosignature:: mlprodict.npy.xop_ops._GraphBuilder
+Main classes
+++++++++++++
 
-.. autosignature:: mlprodict.npy.xop_ops.OnnxOperator
+.. autosignature:: mlprodict.npy.xop_variable.Variable
 
-.. autosignature:: mlprodict.npy.xop_ops.OnnxOperatorItem
+.. autosignature:: mlprodict.npy.xop.OnnxOperator
+
+.. autosignature:: mlprodict.npy.xop.OnnxOperatorItem
+
+.. autosignature:: mlprodict.npy.xop_convert.OnnxSubOnnx
+
+.. autosignature:: mlprodict.npy.xop_convert.OnnxSubEstimator
+
+Helpers to handle API changing with opsets
+++++++++++++++++++++++++++++++++++++++++++
 
 .. autosignature:: mlprodict.npy.xop_opset.OnnxReduceSumApi11
 
@@ -41,7 +49,7 @@ API
 .. autosignature:: mlprodict.npy.xop_opset.OnnxReshapeApi13
 
 Available ONNX operators
-++++++++++++++++++++++++
+========================
 
 .. toctree::
 

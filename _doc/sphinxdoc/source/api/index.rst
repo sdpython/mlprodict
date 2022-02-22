@@ -11,8 +11,15 @@ This is a summary of functions this modules provides.
 
     onnx_conv
     sklapi
+
+**Write ONNX graphs**
+
+.. toctree::
+    :maxdepth: 1
+
     npy
     xop
+    ast
 
 **ONNX runtime**
 

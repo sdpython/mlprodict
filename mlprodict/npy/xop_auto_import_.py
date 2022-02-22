@@ -1,6 +1,6 @@
 """
 @file
-@brief Importing this file takes time. It should be avoided.
+@brief Xop API. Importing this file takes time. It should be avoided.
 
 .. versionadded:: 0.9
 """

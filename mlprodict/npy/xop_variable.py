@@ -1,6 +1,6 @@
 """
 @file
-@brief Easier API to build onnx graphs. Inspired from :epkg:`skl2onnx`.
+@brief Xop API to build onnx graphs. Inspired from :epkg:`skl2onnx`.
 
 .. versionadded:: 0.9
 """
