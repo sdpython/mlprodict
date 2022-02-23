@@ -40,5 +40,5 @@ print(ccode['code'])
 # it would be better to use AVX instructions and parallelisation.
 # Below, the optimisation this machine can offer.
 
-from mlprodict.testing.experimental_c import code_optimisation
+from mlprodict.testing.experimental_c_impl.experimental_c import code_optimisation
 print(code_optimisation())

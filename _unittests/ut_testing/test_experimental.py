@@ -6,7 +6,7 @@ import numpy
 from onnx import helper, TensorProto
 from pyquickhelper.pycode import ExtTestCase, is_travis_or_appveyor
 from mlprodict.testing.experimental import custom_pad, custom_einsum
-from mlprodict.testing.experimental_c import (  # pylint: disable=E0611,E0401
+from mlprodict.testing.experimental_c_impl.experimental_c import (  # pylint: disable=E0611,E0401
     custom_einsum_double, custom_einsum_int64, custom_einsum_float,
     code_optimisation, custom_reducesum_rk_double,
     custom_reducesum_rk_float)

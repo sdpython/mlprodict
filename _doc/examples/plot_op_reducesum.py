@@ -25,7 +25,7 @@ from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import OnnxReduceSumApi11
 from cpyquickhelper.numbers import measure_time
 from tqdm import tqdm
-from mlprodict.testing.experimental_c import (
+from mlprodict.testing.experimental_c_impl.experimental_c import (
     code_optimisation, custom_reducesum_rk_float)
 print(code_optimisation())
 
