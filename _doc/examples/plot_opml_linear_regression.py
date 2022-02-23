@@ -37,7 +37,7 @@ from mlprodict.onnxrt import OnnxInference
 ############################################
 # Available optimisation on this machine.
 
-from mlprodict.testing.experimental_c import code_optimisation
+from mlprodict.testing.experimental_c_impl.experimental_c import code_optimisation
 print(code_optimisation())
 
 
