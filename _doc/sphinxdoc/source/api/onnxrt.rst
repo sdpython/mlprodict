@@ -39,6 +39,13 @@ Methods `get` returns a dictionary mapping result name and the following type:
 .. autosignature:: mlprodict.onnxrt.ops_shape.shape_result.ShapeResult
     :members:
 
+Backend validation
+++++++++++++++++++
+
+.. autosignature:: mlprodict.tools.onnx_backend.enumerate_onnx_tests
+
+.. autosignature:: mlprodict.tools.onnx_backend.OnnxBackendTest
+
 Python to ONNX
 ++++++++++++++
 
@@ -63,8 +70,8 @@ onnxruntime
 
 .. autosignature:: mlprodict.onnxrt.onnx_inference_ort.get_ort_device
 
-Validation
-++++++++++
+Validation of scikit-learn models
++++++++++++++++++++++++++++++++++
 
 .. autosignature:: mlprodict.onnxrt.validate.validate.enumerate_validated_operator_opsets
 
