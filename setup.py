@@ -306,15 +306,15 @@ def get_extensions():
         language='c++')
 
     ext_experimental_c = Extension(
-        'mlprodict.testing.experimental_c',
-        [os.path.join(root, 'mlprodict/testing/experimental_c.cpp')],
+        'mlprodict.testing.experimental_c_impl.experimental_c',
+        [os.path.join(root, 'mlprodict/testing/experimental_c_impl/experimental_c.cpp')],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
             get_pybind_include(user=True),
-            os.path.join(root, 'mlprodict/testing')
+            os.path.join(root, 'mlprodict/testing/experimental_c_impl')
         ],
         define_macros=define_macros,
         language='c++')
