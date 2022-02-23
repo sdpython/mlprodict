@@ -10,7 +10,7 @@ from pyquickhelper.texthelper.version_helper import compare_module_version
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
-from mlprodict import __max_supported_opset__ as TARGET_OPSET
+from mlprodict import __max_supported_opsets__ as TARGET_OPSETS
 
 
 class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
@@ -35,7 +35,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
             from onnxmltools import __version__
         except ImportError:
             return
-        if compare_module_version(__version__, '1.11') < 0:
+        if compare_module_version(__version__, '1.11') <= 0:
             return
         from xgboost import XGBRegressor
         try:
@@ -106,7 +106,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
             from onnxmltools import __version__
         except ImportError:
             return
-        if compare_module_version(__version__, '1.11') < 0:
+        if compare_module_version(__version__, '1.11') <= 0:
             return
         from lightgbm import LGBMRegressor
         try:
@@ -170,10 +170,10 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
                 model.fit(X, y)
                 expected = model.predict(X)
                 model_onnx = to_onnx(
-                    model, X, rewrite_ops=True, target_opset=TARGET_OPSET)
+                    model, X, rewrite_ops=True, target_opset=TARGET_OPSETS)
                 model_onnx2 = to_onnx(
                     model, X.astype(numpy.float64), rewrite_ops=True,
-                    target_opset=TARGET_OPSET)
+                    target_opset=TARGET_OPSETS)
 
                 for i, mo in enumerate([model_onnx, model_onnx2]):
                     for rt in ['python', 'onnxruntime1']:
