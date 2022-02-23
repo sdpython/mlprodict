@@ -22,7 +22,7 @@ def main(args, fLOG=print):
         from .cli.asv2csv import asv2csv
         from .cli.replay import benchmark_replay
         from .cli.einsum import einsum_test
-        from .cli.onnx_code import onnx_code, dynamic_doc
+        from .cli.onnx_code import onnx_code, dynamic_doc, plot_onnx
         from .cli.validate import latency
     except ImportError:  # pragma: no cover
         from mlprodict.cli.validate import validate_runtime
@@ -32,7 +32,7 @@ def main(args, fLOG=print):
         from mlprodict.cli.asv2csv import asv2csv
         from mlprodict.cli.replay import benchmark_replay
         from mlprodict.cli.einsum import einsum_test
-        from mlprodict.cli.onnx_code import onnx_code, dynamic_doc
+        from mlprodict.cli.onnx_code import onnx_code, dynamic_doc, plot_onnx
         from mlprodict.cli.validate import latency
 
     fcts = dict(validate_runtime=validate_runtime,
@@ -45,7 +45,8 @@ def main(args, fLOG=print):
                 einsum_test=einsum_test,
                 onnx_code=onnx_code,
                 latency=latency,
-                dynamic_doc=dynamic_doc)
+                dynamic_doc=dynamic_doc,
+                plot_onnx=plot_onnx)
     try:
         from pyquickhelper.cli import cli_main_helper
     except ImportError:  # pragma: no cover
