@@ -22,6 +22,7 @@ from sklearn.metrics import (
     accuracy_score, mean_absolute_error,
     silhouette_score)
 from sklearn.model_selection import train_test_split
+from mlprodict import get_ir_version, __max_supported_opset__
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import (
     to_onnx, register_rewritten_operators, register_converters)
@@ -29,8 +30,7 @@ from mlprodict.onnxrt.validate.validate_benchmark import make_n_rows
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
 from mlprodict.onnx_tools.optim import onnx_statistics
 from mlprodict.tools.asv_options_helper import (
-    expand_onnx_options, get_opset_number_from_onnx,
-    get_ir_version_from_onnx, version2number)
+    expand_onnx_options, version2number)
 from mlprodict.tools.model_info import set_random_state
 from mlprodict.tools.ort_wrapper import onnxrt_version
 
@@ -49,7 +49,7 @@ class _CommonAsvSklBenchmark:
         ['skl', 'pyrtc', 'ort'],  # values for runtime
         [1, 10, 100, 10000],  # values for N
         [4, 20],  # values for nf
-        [get_opset_number_from_onnx()],  # values for opset
+        [__max_supported_opset__],  # values for opset
         ["float", "double"],  # values for dtype
         [None],  # values for optim
     ]
@@ -112,7 +112,7 @@ class _CommonAsvSklBenchmark:
     def _create_onnx_inference(self, onx, runtime):
         if 'onnxruntime' in runtime:
             old = onx.ir_version
-            onx.ir_version = get_ir_version_from_onnx()
+            onx.ir_version = get_ir_version(__max_supported_opset__)
         else:
             old = None
 

@@ -12,7 +12,7 @@ from onnx import TensorProto
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.type_object import SequenceType
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 def make_tensor_sequence_value_info(name, tensor_type, shape):
@@ -47,7 +47,7 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
             ]
             model_def = make_model(
                 opset_imports=[
-                    make_operatorsetid('', get_opset_number_from_onnx())],
+                    make_operatorsetid('', TARGET_OPSET)],
                 graph=make_graph(
                     name=name, inputs=ginputs, outputs=goutputs,
                     nodes=[node]))
@@ -174,7 +174,7 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
 
         model_def = make_model(
             opset_imports=[
-                make_operatorsetid('', get_opset_number_from_onnx())],
+                make_operatorsetid('', TARGET_OPSET)],
             graph=make_graph(
                 name='loop_test',
                 inputs=[
@@ -285,7 +285,7 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
 
         model_def = make_model(
             opset_imports=[
-                make_operatorsetid('', get_opset_number_from_onnx())],
+                make_operatorsetid('', TARGET_OPSET)],
             graph=make_graph(
                 name='loop_test',
                 inputs=[

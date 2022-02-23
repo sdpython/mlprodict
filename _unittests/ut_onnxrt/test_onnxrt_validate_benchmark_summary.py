@@ -13,7 +13,7 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtValidateBenchmarkSummary(ExtTestCase):
@@ -44,7 +44,7 @@ class TestOnnxrtValidateBenchmarkSummary(ExtTestCase):
         self.assertNotIn('RT/SKL-N=10', piv.columns)
         self.assertIn('N=10', piv.columns)
         fLOG("output results")
-        ops = 'opset%d' % get_opset_number_from_onnx()
+        ops = 'opset%d' % TARGET_OPSET
         li = len(piv[ops].notnull())
         self.assertEqual(li, piv.shape[0])
         df.to_excel(os.path.join(

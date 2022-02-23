@@ -21,7 +21,8 @@ from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from skl2onnx import to_onnx, __version__ as skl2_vers
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.testing.test_utils import (
-    dump_data_and_model, fit_regression_model, TARGET_OPSET)
+    dump_data_and_model, fit_regression_model)
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 Xtrain_ = pd.read_csv(StringIO("""

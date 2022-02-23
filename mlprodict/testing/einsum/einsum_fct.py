@@ -11,8 +11,7 @@ from onnx import helper
 from skl2onnx.common.data_types import FloatTensorType
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
 from ...onnxrt.onnx_micro_runtime import OnnxMicroRuntime
-from ...tools.asv_options_helper import (
-    get_opset_number_from_onnx, get_ir_version_from_onnx)
+from ... import __max_supported_opset__, get_ir_version
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
 from .einsum_ml import predict_transposition_cost
 
@@ -236,8 +235,8 @@ class CachedEinsum:
         Builds an ONNX graph with a single einsum operator.
         """
         opset = (self.opset if self.opset is not None
-                 else get_opset_number_from_onnx())
-        ir_version = get_ir_version_from_onnx()
+                 else __max_supported_opset__)
+        ir_version = get_ir_version(opset)
         proto_type = guess_proto_dtype(
             numpy.float32 if self.dtype is None else self.dtype)
 

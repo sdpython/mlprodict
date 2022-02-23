@@ -13,7 +13,7 @@ from mlprodict.onnx_tools.onnx_grammar.onnx_translation import (
     get_default_context, get_default_context_cpl)
 from mlprodict.onnx_tools.onnx_grammar.onnx_translation import (
     py_make_float_array, py_pow, squareform_pdist, py_mul, py_opp)
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxGrammarSpecific(ExtTestCase):
@@ -130,13 +130,13 @@ class TestOnnxGrammarSpecific(ExtTestCase):
                                  cpl=True, context_cpl=ctx,
                                  output_names=['Z'], dtype=numpy.float32)
 
-        r = fct('X', op_version=get_opset_number_from_onnx())
+        r = fct('X', op_version=TARGET_OPSET)
         self.assertIsInstance(r, OnnxIdentity)
 
         inputs = {'X': x.astype(numpy.float32)}
         try:
             onnx_g = r.to_onnx(
-                inputs, target_opset=get_opset_number_from_onnx())
+                inputs, target_opset=TARGET_OPSET)
         except RuntimeError as e:
             if "Opset number 12 is higher than targeted opset 11" in str(e):
                 return
@@ -175,7 +175,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
                                  cpl=True, context_cpl=ctx,
                                  output_names=['Z'])
 
-        r = fct('X', op_version=get_opset_number_from_onnx())
+        r = fct('X', op_version=TARGET_OPSET)
         self.assertIsInstance(r, OnnxIdentity)
         inputs = {'X': x.astype(numpy.float32)}
         onnx_g = r.to_onnx(inputs)
@@ -216,7 +216,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         fct = translate_fct2onnx(
             kernel_call_ynone, cpl=True, output_names=['Z'])
 
-        r = fct('X', op_version=get_opset_number_from_onnx())
+        r = fct('X', op_version=TARGET_OPSET)
         self.assertIsInstance(r, OnnxIdentity)
         inputs = {'X': x.astype(numpy.float32)}
         onnx_g = r.to_onnx(inputs)
@@ -253,7 +253,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
         exp = kernel(x, None)
         got = kernel_rational_quadratic_none(
             x, length_scale=1.0, alpha=2.0,
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         self.assertEqualArray(exp, got)
 
         fct = translate_fct2onnx(
@@ -261,7 +261,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
             dtype=numpy.float32)
 
         r = fct('X', dtype=numpy.float32,
-                op_version=get_opset_number_from_onnx())
+                op_version=TARGET_OPSET)
         self.assertIsInstance(r, OnnxIdentity)
         inputs = {'X': x.astype(numpy.float32)}
         try:

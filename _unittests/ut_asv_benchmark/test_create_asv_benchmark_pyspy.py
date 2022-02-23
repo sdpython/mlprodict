@@ -7,7 +7,7 @@ from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.texthelper.version_helper import compare_module_version
 import sklearn
 from mlprodict.asv_benchmark import create_asv_benchmark
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 import mlprodict
 
 
@@ -24,7 +24,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
             add_pyspy=True)
         self.assertNotEmpty(created)
 
-        ops = get_opset_number_from_onnx()
+        ops = TARGET_OPSET
         verif = False
         allnames = []
         for path, _, files in os.walk(os.path.join(temp, 'pyspy')):
@@ -56,7 +56,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
         self.assertNotEmpty(created)
 
         verif = False
-        target_opset = get_opset_number_from_onnx()
+        target_opset = TARGET_OPSET
         allnames = []
         for path, _, files in os.walk(os.path.join(temp, 'pyspy')):
             for zoo in files:
@@ -89,7 +89,7 @@ class TestCreateAsvBenchmarkPySpy(ExtTestCase):
             add_pyspy=True)
         self.assertNotEmpty(created)
 
-        ops = get_opset_number_from_onnx()
+        ops = TARGET_OPSET
         verif = False
         allnames = []
         for path, _, files in os.walk(os.path.join(temp, 'pyspy')):

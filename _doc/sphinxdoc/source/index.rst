@@ -93,7 +93,7 @@ when the execution fails.
     from sklearn.datasets import load_iris
     from mlprodict.onnxrt import OnnxInference
     from mlprodict.onnxrt.validate.validate_difference import measure_relative_difference
-    from mlprodict.tools import get_ir_version_from_onnx
+    from mlprodict import get_ir_version
 
     iris = load_iris()
     X = iris.data[:, :2]
@@ -108,11 +108,12 @@ when the execution fails.
     # Conversion into ONNX.
     from mlprodict.onnx_conv import to_onnx
     model_onnx = to_onnx(lr, X.astype(numpy.float32),
-                         black_op={'LinearRegressor'})
+                         black_op={'LinearRegressor'},
+                         target_opset=15)
     print("ONNX:", str(model_onnx)[:200] + "\n...")
 
     # Predictions with onnxruntime
-    model_onnx.ir_version = get_ir_version_from_onnx()
+    model_onnx.ir_version = get_ir_version(15)
     oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
     ypred = oinf.run({'X': X[:5].astype(numpy.float32)})
     print("ONNX output:", ypred)

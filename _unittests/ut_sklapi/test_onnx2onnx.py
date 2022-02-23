@@ -15,7 +15,7 @@ from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.sklapi import OnnxTransformer
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestInferenceSessionOnnx2Onnx(ExtTestCase):
@@ -51,7 +51,7 @@ class TestInferenceSessionOnnx2Onnx(ExtTestCase):
 
         add = OnnxAdd('X', numpy.full((1, X.shape[1]), 1, dtype=numpy.float32),
                       output_names=['Yadd'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         onx = add.to_onnx(inputs=[('X', FloatTensorType((None, X.shape[1])))],
                           outputs=[('Yadd', FloatTensorType((None, X.shape[1])))])
 
@@ -63,7 +63,7 @@ class TestInferenceSessionOnnx2Onnx(ExtTestCase):
         pred = pipe.predict(X)
         self.assertEqual(pred.shape, (150, ))
         model_onnx = to_onnx(pipe, X.astype(numpy.float32),
-                             target_opset=get_opset_number_from_onnx())
+                             target_opset=TARGET_OPSET)
 
         oinf = OnnxInference(model_onnx)
         y1 = pipe.predict(X)

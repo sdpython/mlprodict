@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import SVR, SVC
 from mlprodict.onnx_conv import register_converters, to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict import get_ir_version
 
 
 class TestOnnxConvSVM(ExtTestCase):
@@ -61,7 +61,7 @@ class TestOnnxConvSVM(ExtTestCase):
                             rewrite_ops=True,
                             target_opset=target_opset)
         if 'onnxruntime' in runtime:
-            model_def.ir_version = get_ir_version_from_onnx()
+            model_def.ir_version = get_ir_version(target_opset)
         try:
             oinf = OnnxInference(model_def, runtime=runtime)
         except RuntimeError as e:

@@ -13,10 +13,9 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.ops_cpu.op_conv import Conv
 from mlprodict.onnx_tools.onnx2py_helper import _var_as_dict
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.testing.test_utils.tests_helper import fit_multilabel_classification_model
-from mlprodict.testing.test_utils import TARGET_OPSET
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestCpuOps(ExtTestCase):
@@ -65,10 +64,10 @@ class TestCpuOps(ExtTestCase):
             'X', 'W', output_names=['Y'],
             auto_pad='NOTSET', group=1, dilations=[1, 1],
             kernel_shape=[1, 1], pads=[0, 0, 0, 0], strides=[1, 1],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': x.astype(numpy.float32),
                                  'W': W.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         oinfrt = OnnxInference(model_def, runtime='onnxruntime1')
         for _ in range(0, 3):
@@ -96,10 +95,10 @@ class TestCpuOps(ExtTestCase):
             'X', 'W', output_names=['Y'],
             auto_pad='NOTSET', group=3, dilations=[1, 1],
             kernel_shape=[3, 3], strides=[1, 1],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': x.astype(numpy.float32),
                                  'W': W.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         oinfrt = OnnxInference(model_def, runtime='onnxruntime1')
         d = oinf.sequence_[-1].ops_.atts_value

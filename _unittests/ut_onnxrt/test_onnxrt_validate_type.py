@@ -13,7 +13,7 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtValidateType(ExtTestCase):
@@ -60,7 +60,7 @@ class TestOnnxrtValidateType(ExtTestCase):
         temp = get_temp_folder(
             __file__, "temp_validate_sklearn_operators_" + subname)
         nb = 60
-        ops = get_opset_number_from_onnx()
+        ops = TARGET_OPSET
         rows = []
         for _, row in zip(
                 range(nb),

@@ -12,7 +12,7 @@ from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.loghelper import BufferedPrint
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.testing.test_utils import TARGET_OPSET
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.tools.ort_wrapper import SessionOptions
 
 

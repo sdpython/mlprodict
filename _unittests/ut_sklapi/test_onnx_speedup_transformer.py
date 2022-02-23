@@ -13,7 +13,7 @@ from sklearn.decomposition import PCA
 from sklearn.datasets import load_iris
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.sklapi import OnnxSpeedupTransformer
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
@@ -25,7 +25,7 @@ class TestOnnxSpeedupTransformer(ExtTestCase):
         logger.disabled = True
 
     def opset(self):
-        return get_opset_number_from_onnx()
+        return TARGET_OPSET
 
     def test_speedup_transform32(self):
         data = load_iris()

@@ -16,7 +16,7 @@ from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs,
     onnx_rename_names, insert_results_into_onnx)
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOptimOnnxManipulations(ExtTestCase):
@@ -26,16 +26,16 @@ class TestOptimOnnxManipulations(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
-                       op_version=get_opset_number_from_onnx(),
+                       op_version=TARGET_OPSET,
                        output_names=['inter'])
         cop4 = OnnxSub(
-            OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
+            OnnxMul(cop, cop3, op_version=TARGET_OPSET),
             cop2, output_names=['final'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x})
         model_def = select_model_inputs_outputs(
             model_def, "inter", infer_shapes=True, remove_unused=False)
@@ -67,16 +67,16 @@ class TestOptimOnnxManipulations(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
-                       op_version=get_opset_number_from_onnx(),
+                       op_version=TARGET_OPSET,
                        output_names=['inter'])
         cop4 = OnnxSub(
-            OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
+            OnnxMul(cop, cop3, op_version=TARGET_OPSET),
             cop2, output_names=['final'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def0 = cop4.to_onnx({'X': x})
         model_def = select_model_inputs_outputs(
             model_def0, "inter", infer_shapes=True, remove_unused=False)
@@ -109,14 +109,14 @@ class TestOptimOnnxManipulations(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         cop3 = OnnxAdd('X', cop2,
-                       op_version=get_opset_number_from_onnx(),
+                       op_version=TARGET_OPSET,
                        output_names=['inter'])
         cop4 = OnnxSub(
-            OnnxMul(cop3, cop3, op_version=get_opset_number_from_onnx()),
+            OnnxMul(cop3, cop3, op_version=TARGET_OPSET),
             cop3, output_names=['final'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x})
         model_def = select_model_inputs_outputs(
             model_def, inputs=["inter"], infer_shapes=True, remove_unused=False)
@@ -148,14 +148,14 @@ class TestOptimOnnxManipulations(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         cop3 = OnnxAdd('X', cop2,
-                       op_version=get_opset_number_from_onnx(),
+                       op_version=TARGET_OPSET,
                        output_names=['inter'])
         cop4 = OnnxSub(
-            OnnxMul(cop3, cop3, op_version=get_opset_number_from_onnx()),
+            OnnxMul(cop3, cop3, op_version=TARGET_OPSET),
             cop3, output_names=['final'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x})
         model_def = select_model_inputs_outputs(
             model_def, inputs=["inter"], infer_shapes=False,
@@ -190,16 +190,16 @@ class TestOptimOnnxManipulations(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
-                       op_version=get_opset_number_from_onnx(),
+                       op_version=TARGET_OPSET,
                        output_names=['inter'])
         cop4 = OnnxSub(
-            OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
+            OnnxMul(cop, cop3, op_version=TARGET_OPSET),
             cop2, output_names=['final'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x})
         nodes1 = list(enumerate_model_node_outputs(model_def))
         nodes2 = list(enumerate_model_node_outputs(model_def, order=True))
@@ -212,16 +212,16 @@ class TestOptimOnnxManipulations(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
-                       op_version=get_opset_number_from_onnx(),
+                       op_version=TARGET_OPSET,
                        output_names=['inter'])
         cop4 = OnnxSub(
-            OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
+            OnnxMul(cop, cop3, op_version=TARGET_OPSET),
             cop2, output_names=['final'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x})
         self.assertRaise(
             lambda: onnx_rename_names(model_def, strategy="none"),
@@ -237,16 +237,16 @@ class TestOptimOnnxManipulations(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
-                       op_version=get_opset_number_from_onnx(),
+                       op_version=TARGET_OPSET,
                        output_names=['inter'])
         cop4 = OnnxSub(
-            OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
+            OnnxMul(cop, cop3, op_version=TARGET_OPSET),
             cop2, output_names=['final'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x})
         oinf1 = OnnxInference(model_def)
         new_model = onnx_rename_names(model_def, verbose=1, fLOG=flog)
@@ -267,16 +267,16 @@ class TestOptimOnnxManipulations(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
-                       op_version=get_opset_number_from_onnx(),
+                       op_version=TARGET_OPSET,
                        output_names=['inter'])
         cop4 = OnnxSub(
-            OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
+            OnnxMul(cop, cop3, op_version=TARGET_OPSET),
             cop2, output_names=['final'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x})
         oinf1 = OnnxInference(model_def)
         new_model = onnx_rename_names(
@@ -291,7 +291,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
     def test_onnx_rename_node_scan(self):
 
         def squareform_pdist(X, **kwargs):
-            opv = get_opset_number_from_onnx()
+            opv = TARGET_OPSET
             diff = OnnxSub('next_in', 'next', output_names=[
                            'diff'], op_version=opv)
             id_next = OnnxIdentity('next_in', output_names=[
@@ -317,7 +317,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         def flog(*s):
             rows.append(" ".join(map(str, s)))
 
-        opv = get_opset_number_from_onnx()
+        opv = TARGET_OPSET
         onnx_fct = OnnxIdentity(squareform_pdist(
             'x'), output_names='Y', op_version=opv)
         model_def = onnx_fct.to_onnx(inputs=[('x', FloatTensorType())])

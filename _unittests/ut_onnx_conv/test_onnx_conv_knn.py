@@ -24,8 +24,7 @@ from mlprodict.onnx_conv import (
     register_converters, to_onnx)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
-from mlprodict.tools.asv_options_helper import (
-    get_opset_number_from_onnx, get_ir_version_from_onnx)
+from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 from mlprodict.testing.test_utils import _capture_output
 from mlprodict.tools.ort_wrapper import OrtInvalidArgument
 
@@ -77,7 +76,7 @@ class TestOnnxConvKNN(ExtTestCase):
     @igw((DeprecationWarning, FutureWarning))
     def test_onnx_example_cdist_in_euclidean(self):
         for metric in ['euclidean', 'minkowski']:
-            for opv in [11, get_opset_number_from_onnx()]:
+            for opv in [11, TARGET_OPSET]:
                 with self.subTest(metric=metric, opv=opv):
                     x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
                         numpy.float32).reshape((3, 2))
@@ -143,13 +142,13 @@ class TestOnnxConvKNN(ExtTestCase):
         for pp in [1, 2]:
             with self.subTest(pp=pp):
                 cop = OnnxIdentity(
-                    'input', op_version=get_opset_number_from_onnx())
+                    'input', op_version=TARGET_OPSET)
                 cop2 = OnnxIdentity(
                     onnx_cdist(cop, x2, dtype=numpy.float32,
                                metric="minkowski", p=pp,
-                               op_version=get_opset_number_from_onnx()),
+                               op_version=TARGET_OPSET),
                     output_names=['cdist'],
-                    op_version=get_opset_number_from_onnx())
+                    op_version=TARGET_OPSET)
 
                 model_def = cop2.to_onnx(
                     inputs=[('input', FloatTensorType([None, None]))],
@@ -174,11 +173,11 @@ class TestOnnxConvKNN(ExtTestCase):
                  [5.6, 2.9, 3.6, 1.3],
                  [6.9, 3.1, 5.1, 2.3]], dtype=numpy.float32)
             cop = OnnxAdd('input', 'input',
-                          op_version=get_opset_number_from_onnx())
+                          op_version=TARGET_OPSET)
             cop2 = OnnxIdentity(
                 onnx_cdist(cop, x, dtype=numpy.float32, metric="minkowski",
-                           p=3, op_version=get_opset_number_from_onnx()),
-                output_names=['cdist'], op_version=get_opset_number_from_onnx())
+                           p=3, op_version=TARGET_OPSET),
+                output_names=['cdist'], op_version=TARGET_OPSET)
 
             model_def = cop2.to_onnx(
                 inputs=[('input', FloatTensorType([None, None]))],
@@ -244,7 +243,7 @@ class TestOnnxConvKNN(ExtTestCase):
 
         if target_opset is None:
             opsets = list(sorted(set([
-                9, 10, 11, 12, 13, 14, 15, get_opset_number_from_onnx()])))  # opset=13, 14, ...
+                9, 10, 11, 12, 13, 14, 15, TARGET_OPSET])))  # opset=13, 14, ...
         else:
             opsets = [target_opset]
         for ops in opsets:
@@ -259,7 +258,7 @@ class TestOnnxConvKNN(ExtTestCase):
                     if "Option 'largest0' not in" in str(e):
                         continue
                 if 'onnxruntime' in runtime:
-                    model_def.ir_version = get_ir_version_from_onnx()
+                    model_def.ir_version = get_ir_version(ops)
                 try:
                     if runtime == 'onnxruntime2':
                         oinf = _capture_output(
@@ -476,7 +475,7 @@ class TestOnnxConvKNN(ExtTestCase):
         clr.fit(X_train)
 
         for to in (10, 11, 12, 13, 14, 15):  # opset=13, 14, ...
-            if to > get_opset_number_from_onnx():
+            if to > TARGET_OPSET:
                 break
             try:
                 model_def = to_onnx(

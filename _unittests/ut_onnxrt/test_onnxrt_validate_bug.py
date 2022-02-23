@@ -9,7 +9,7 @@ import onnx
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxMatMul  # pylint: disable=E0611
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.tools.ort_wrapper import InferenceSession
 
 
@@ -26,9 +26,9 @@ class TestOnnxrtValidateBug(ExtTestCase):
 
         onnx_fct = OnnxAdd(
             OnnxMatMul('X', coef.astype(numpy.float64),
-                       op_version=get_opset_number_from_onnx()),
+                       op_version=TARGET_OPSET),
             numpy.array([intercept]), output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         onnx_model64 = onnx_fct.to_onnx({'X': X_test.astype(numpy.float64)})
 
         oinf = OnnxInference(onnx_model64)

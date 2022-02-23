@@ -17,8 +17,8 @@ from mlprodict.onnx_conv.onnx_ops import (
     OnnxBroadcastGradientArgs, OnnxFusedMatMul,
     OnnxSoftmaxGrad_13)
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 python_tested = []
@@ -53,11 +53,11 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
 
                 onx = OnnxCDist('X', 'Y', output_names=['Z'],
                                 metric=metric,
-                                op_version=get_opset_number_from_onnx())
+                                op_version=TARGET_OPSET)
                 model_def = onx.to_onnx({'X': X.astype(numpy.float32),
                                          'Y': Y.astype(numpy.float32)},
                                         outputs={'Z': Z.astype(numpy.float32)},
-                                        target_opset=get_opset_number_from_onnx())
+                                        target_opset=TARGET_OPSET)
                 self.assertIn('s: "%s"' % metric, str(model_def))
                 oinf = OnnxInference(model_def)
                 got = oinf.run({'X': X, 'Y': Y})
@@ -82,10 +82,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                 Z = numpy.absolute(X)
 
                 onx = OnnxComplexAbs('X', output_names=['Z'],
-                                     op_version=get_opset_number_from_onnx())
+                                     op_version=TARGET_OPSET)
                 model_def = onx.to_onnx({'X': X},
                                         outputs={'Z': Z},
-                                        target_opset=get_opset_number_from_onnx())
+                                        target_opset=TARGET_OPSET)
                 oinf = OnnxInference(model_def)
                 got = oinf.run({'X': X})
                 self.assertEqual(list(sorted(got)), ['Z'])
@@ -114,10 +114,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     Y = numpy.fft.fft(X.astype(numpy.float32), axis=axis)
 
                     onx = OnnxFFT('X', output_names=['Y'],
-                                  axis=axis, op_version=get_opset_number_from_onnx())
+                                  axis=axis, op_version=TARGET_OPSET)
                     model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                             outputs={'Y': Y},
-                                            target_opset=get_opset_number_from_onnx())
+                                            target_opset=TARGET_OPSET)
                     oinf = OnnxInference(model_def)
                     got = oinf.run({'X': X})
                     self.assertEqual(list(sorted(got)), ['Y'])
@@ -143,10 +143,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
 
                     onx = OnnxFFT('X', numpy.array([8], dtype=numpy.int64),
                                   output_names=['Y'], axis=axis,
-                                  op_version=get_opset_number_from_onnx())
+                                  op_version=TARGET_OPSET)
                     model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                             outputs={'Y': Y},
-                                            target_opset=get_opset_number_from_onnx())
+                                            target_opset=TARGET_OPSET)
                     oinf = OnnxInference(model_def)
                     got = oinf.run({'X': X})
                     self.assertEqual(list(sorted(got)), ['Y'])
@@ -176,10 +176,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     Y = numpy.fft.rfft(X.astype(numpy.float32), axis=axis)
 
                     onx = OnnxRFFT('X', output_names=['Y'],
-                                   axis=axis, op_version=get_opset_number_from_onnx())
+                                   axis=axis, op_version=TARGET_OPSET)
                     model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                             outputs={'Y': Y},
-                                            target_opset=get_opset_number_from_onnx())
+                                            target_opset=TARGET_OPSET)
                     oinf = OnnxInference(model_def)
                     got = oinf.run({'X': X})
                     self.assertEqual(list(sorted(got)), ['Y'])
@@ -205,11 +205,11 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
 
                     onx = OnnxRFFT('X', numpy.array([8], dtype=numpy.int64),
                                    output_names=['Y'], axis=axis,
-                                   op_version=get_opset_number_from_onnx())
+                                   op_version=TARGET_OPSET)
                     try:
                         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                                 outputs={'Y': Y},
-                                                target_opset=get_opset_number_from_onnx())
+                                                target_opset=TARGET_OPSET)
                     except NotImplementedError as e:
                         raise AssertionError(
                             "Unable to convert due to %r (version=%r)." % (
@@ -242,13 +242,13 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
 
                     if axis is not None:
                         onx = OnnxFFT2D('X', output_names=['Y'],
-                                        axes=axis, op_version=get_opset_number_from_onnx())
+                                        axes=axis, op_version=TARGET_OPSET)
                     else:
                         onx = OnnxFFT2D('X', output_names=['Y'],
-                                        op_version=get_opset_number_from_onnx())
+                                        op_version=TARGET_OPSET)
                     model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                             outputs={'Y': Y},
-                                            target_opset=get_opset_number_from_onnx())
+                                            target_opset=TARGET_OPSET)
                     oinf = OnnxInference(model_def)
                     got = oinf.run({'X': X})
                     self.assertEqual(list(sorted(got)), ['Y'])
@@ -274,14 +274,14 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     if axis is not None:
                         onx = OnnxFFT2D('X', numpy.array([8, 8], dtype=numpy.int64),
                                         output_names=['Y'], axes=axis,
-                                        op_version=get_opset_number_from_onnx())
+                                        op_version=TARGET_OPSET)
                     else:
                         onx = OnnxFFT2D('X', numpy.array([8, 8], dtype=numpy.int64),
                                         output_names=['Y'],
-                                        op_version=get_opset_number_from_onnx())
+                                        op_version=TARGET_OPSET)
                     model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                             outputs={'Y': Y},
-                                            target_opset=get_opset_number_from_onnx())
+                                            target_opset=TARGET_OPSET)
                     oinf = OnnxInference(model_def)
                     got = oinf.run({'X': X})
                     self.assertEqual(list(sorted(got)), ['Y'])
@@ -304,11 +304,11 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
 
                 onx = OnnxSolve('A', 'Y', output_names=['X'],
                                 transposed=transposed,
-                                op_version=get_opset_number_from_onnx())
+                                op_version=TARGET_OPSET)
                 model_def = onx.to_onnx({'A': A.astype(numpy.float32),
                                          'Y': Y.astype(numpy.float32)},
                                         outputs={'X': X.astype(numpy.float32)},
-                                        target_opset=get_opset_number_from_onnx())
+                                        target_opset=TARGET_OPSET)
                 oinf = OnnxInference(model_def)
                 got = oinf.run({'A': A, 'Y': Y})
                 self.assertEqual(list(sorted(got)), ['X'])
@@ -330,10 +330,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                 Z = X
 
                 onx = OnnxYieldOp('X', output_names=['Z'],
-                                  op_version=get_opset_number_from_onnx())
+                                  op_version=TARGET_OPSET)
                 model_def = onx.to_onnx({'X': X},
                                         outputs={'Z': Z},
-                                        target_opset=get_opset_number_from_onnx())
+                                        target_opset=TARGET_OPSET)
                 oinf = OnnxInference(model_def)
                 got = oinf.run({'X': X})
                 self.assertEqual(list(sorted(got)), ['Z'])
@@ -353,10 +353,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
         Z2 = numpy.array([1, 0], dtype=numpy.int64)
         onx = OnnxBroadcastGradientArgs(
             'X', 'Y', output_names=['Z1', 'Z2'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx(
             {'X': X, 'Y': Y}, outputs={'Z1': Z1, 'Z2': Z2},
-            target_opset=get_opset_number_from_onnx())
+            target_opset=TARGET_OPSET)
 
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X, 'Y': Y})
@@ -450,10 +450,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
 
         onx = OnnxFusedMatMul(
             'X', idi, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                 outputs={'Y': Y},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -461,10 +461,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
 
         onx = OnnxFusedMatMul(
             'X', idi, transA=1, transB=1, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                 outputs={'Y': Y},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -472,10 +472,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
 
         onx = OnnxFusedMatMul(
             'X', idi, transA=1, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                 outputs={'Y': Y},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -483,10 +483,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
 
         onx = OnnxFusedMatMul(
             'X', idi, transB=1, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                 outputs={'Y': Y},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -495,10 +495,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
         onx = OnnxFusedMatMul(
             'X', idi, transB=1, output_names=['Y'],
             alpha=numpy.float32(1.),
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                 outputs={'Y': Y},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -507,10 +507,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
         onx = OnnxFusedMatMul(
             'X', idi, transB=1, output_names=['Y'],
             alpha=numpy.float32(1.),
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                 outputs={'Y': Y},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
@@ -523,10 +523,10 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
         Z = numpy.array([[-0.025, -0.015, 0.075]], dtype=numpy.float32)
         onx = OnnxSoftmaxGrad_13(
             'G', 'P', output_names=['Z'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx(
             {'G': G, 'P': P}, outputs={'Z': Z},
-            target_opset=get_opset_number_from_onnx())
+            target_opset=TARGET_OPSET)
 
         oinf = OnnxInference(model_def)
         got = oinf.run({'G': P, 'P': P})

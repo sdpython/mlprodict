@@ -27,6 +27,7 @@ class TestCodeStyle(ExtTestCase):
                          "R1720",
                          "[E731]",
                          "onnx_helper.py:8",  # a bug with python3.8
+                         "__init__.py:1: R0401: Cyclic import",
                          ])
 
     def test_style_test(self):

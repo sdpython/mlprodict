@@ -19,7 +19,7 @@ from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.common.data_types import FloatTensorType, StringTensorType
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.data import load_audit
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict import __max_supported_opset__, get_ir_version
 
 
 class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
@@ -101,7 +101,7 @@ class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
                 continue
 
             if 'onnxruntime' in runtime:
-                model_onnx.ir_version = get_ir_version_from_onnx()
+                model_onnx.ir_version = get_ir_version(__max_supported_opset__)
             sess = OnnxInference(model_onnx, runtime=runtime)
 
             onnx_predictions = sess.run(data)

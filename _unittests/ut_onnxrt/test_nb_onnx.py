@@ -6,8 +6,8 @@ from logging import getLogger
 import numpy
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
-from mlprodict.onnxrt.doc.nb_helper import OnnxNotebook
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict.nb_helper import OnnxNotebook
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxNotebook(ExtTestCase):
@@ -20,7 +20,7 @@ class TestOnnxNotebook(ExtTestCase):
     def test_onnxview(self):
         idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
 
         mg = OnnxNotebook()
@@ -51,7 +51,7 @@ class TestOnnxNotebook(ExtTestCase):
     def test_onnxview_empty(self):
         idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
 
         mg = OnnxNotebook()

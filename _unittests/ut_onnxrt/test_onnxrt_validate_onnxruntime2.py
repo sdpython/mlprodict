@@ -17,7 +17,7 @@ except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 ignored_warnings = (UserWarning, ConvergenceWarning,
@@ -39,7 +39,7 @@ class TestOnnxrtValidateOnnxRuntime(ExtTestCase):
         def myprint(*args, **kwargs):
             buffer.append(" ".join(map(str, args)))
 
-        op = get_opset_number_from_onnx()
+        op = TARGET_OPSET
         rows = list(enumerate_validated_operator_opsets(
             verbose, models={"KMeans"},
             fLOG=myprint,

@@ -3,8 +3,6 @@
 @file
 @brief Shortcut to *ops_cpu*.
 """
-from onnx.defs import onnx_opset_version
-from ...tools.asv_options_helper import benchmark_version
 from ._op import OpRunCustom
 from ._op_list import __dict__ as d_op_list
 
@@ -31,20 +29,6 @@ def register_operator(cls, name=None, overwrite=True):
             "by {}".format(name, _additional_ops[name], cls))
 
 
-def get_opset_number_from_onnx(benchmark=False):
-    """
-    Retuns the current :epkg:`onnx` opset
-    based on the installed version of :epkg:`onnx`.
-
-    @param      benchmark       returns the latest
-                                version usable for benchmark
-    @eturn                      opset number
-    """
-    if benchmark:
-        return benchmark_version()[-1]
-    return onnx_opset_version()
-
-
 def load_op(onnx_node, desc=None, options=None):
     """
     Gets the operator related to the *onnx* node.
@@ -54,11 +38,12 @@ def load_op(onnx_node, desc=None, options=None):
     @param      options         runtime options
     @return                     runtime class
     """
+    from ... import __max_supported_opset__
     if desc is None:
         raise ValueError("desc should not be None.")  # pragma no cover
     name = onnx_node.op_type
     opset = options.get('target_opset', None) if options is not None else None
-    current_opset = get_opset_number_from_onnx()
+    current_opset = __max_supported_opset__
     chosen_opset = current_opset
     if opset == current_opset:
         opset = None

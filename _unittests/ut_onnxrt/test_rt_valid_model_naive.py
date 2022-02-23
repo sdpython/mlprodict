@@ -11,8 +11,8 @@ from sklearn.naive_bayes import BernoulliNB
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx, get_ir_version_from_onnx
 from mlprodict.testing.test_utils import _capture_output
+from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 
 
 class TestRtValidateNaive(ExtTestCase):
@@ -49,11 +49,11 @@ class TestRtValidateNaive(ExtTestCase):
         model, X = self.fit_classification_model(BernoulliNB(), 2)
         model_onnx = convert_sklearn(
             model, "?", [("input", FloatTensorType([None, X.shape[1]]))],
-            target_opset=get_opset_number_from_onnx())
+            target_opset=TARGET_OPSET)
         exp1 = model.predict(X)
         exp = model.predict_proba(X)
 
-        model_onnx.ir_version = get_ir_version_from_onnx()
+        model_onnx.ir_version = get_ir_version(TARGET_OPSET)
         oinf = _capture_output(
             lambda: OnnxInference(model_onnx, runtime='onnxruntime1'),
             'c')[0]
@@ -67,11 +67,11 @@ class TestRtValidateNaive(ExtTestCase):
         model_onnx = convert_sklearn(
             model, "?", [("input", FloatTensorType([None, X.shape[1]]))],
             options={id(model): {'zipmap': False}},
-            target_opset=get_opset_number_from_onnx())
+            target_opset=TARGET_OPSET)
         exp1 = model.predict(X)
         exp = model.predict_proba(X)
 
-        model_onnx.ir_version = get_ir_version_from_onnx()
+        model_onnx.ir_version = get_ir_version(TARGET_OPSET)
         oinf = _capture_output(
             lambda: OnnxInference(model_onnx, runtime='onnxruntime2'),
             'c')[0]

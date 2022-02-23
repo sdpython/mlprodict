@@ -11,7 +11,7 @@ from pyquickhelper.pycode import (
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils._testing import ignore_warnings
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtValidate(ExtTestCase):
@@ -32,7 +32,7 @@ class TestOnnxrtValidate(ExtTestCase):
         else:
             rows = list(enumerate_validated_operator_opsets(
                 verbose, debug=None, fLOG=fLOG, dump_folder=temp,
-                time_kwargs={get_opset_number_from_onnx(): dict(
+                time_kwargs={TARGET_OPSET: dict(
                     number=2, repeat=2)},
                 models={"DecisionTreeClassifier", "LinearRegression"},
                 n_features=[None]))

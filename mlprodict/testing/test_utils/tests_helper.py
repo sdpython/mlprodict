@@ -16,7 +16,6 @@ from sklearn.datasets import (
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
-from ...tools.asv_options_helper import get_ir_version_from_onnx
 from .utils_backend import compare_backend
 from .utils_backend_common import (
     extract_options, evaluate_condition, is_backend_enabled,
@@ -232,8 +231,6 @@ def dump_data_and_model(  # pylint: disable=R0912
     if the comparison between the expected outputs and the backend outputs
     fails or it saves the backend output and adds it to the results.
     """
-    if onnx_model is not None:
-        onnx_model.ir_version = get_ir_version_from_onnx()
     runtime_test = dict(model=model, data=data)
 
     if folder is None:

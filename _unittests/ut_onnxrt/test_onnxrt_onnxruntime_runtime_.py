@@ -13,8 +13,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxMul, OnnxAdd)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
-from mlprodict.tools.asv_options_helper import (
-    get_ir_version_from_onnx, get_opset_number_from_onnx)
+from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 
 
 class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
@@ -27,11 +26,11 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
     def test_onnxt_runtime_add(self):
         idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y1'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float32)
 
-        model_def.ir_version = get_ir_version_from_onnx()
+        model_def.ir_version = get_ir_version(TARGET_OPSET)
         oinf = OnnxInference(model_def, runtime='onnxruntime1')
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y1'])
@@ -52,7 +51,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
     def test_onnxt_runtime_add_raise(self):
         idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y2'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         self.assertRaise(lambda: OnnxInference(model_def, runtime='onnxruntime-1'),
                          ValueError)
@@ -61,10 +60,10 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
     def test_onnxt_runtime_add1(self):
         idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y3'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         X = numpy.array([[1, 2], [3, 4]], dtype=numpy.float32)
-        model_def.ir_version = get_ir_version_from_onnx()
+        model_def.ir_version = get_ir_version(TARGET_OPSET)
         oinf = OnnxInference(model_def, runtime='onnxruntime1')
         got = oinf.run({'X': X})
         self.assertEqual(list(sorted(got)), ['Y3'])
@@ -81,7 +80,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         self.assertFalse(isn)
 
         node = OnnxMul('X', bni, output_names=['Y4'],
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         onx = node.to_onnx({'X': rnd})
         for rt in ['python', 'onnxruntime1']:
             with self.subTest(runtime=rt):
@@ -109,7 +108,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         model, X = _fit_model(RadiusNeighborsRegressor())
         model_onnx = to_onnx(
             model, X[:1].astype(numpy.float32),
-            target_opset=get_opset_number_from_onnx(),
+            target_opset=TARGET_OPSET,
             options={id(model): {'optim': 'cdist'}})
         oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
         X = X[:7]

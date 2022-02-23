@@ -28,7 +28,7 @@ from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtSimple(ExtTestCase):
@@ -41,9 +41,9 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_idi(self):
         idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
 
         oinf = OnnxInference(model_def)
         res = str(oinf)
@@ -72,9 +72,9 @@ class TestOnnxrtSimple(ExtTestCase):
     def test_onnxt_pickle_check(self):
         idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         shape = oinf.shape_inference()
         self.assertNotEmpty(shape)
@@ -94,11 +94,11 @@ class TestOnnxrtSimple(ExtTestCase):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot()
         self.assertIn('Add [', dot)
@@ -115,11 +115,11 @@ class TestOnnxrtSimple(ExtTestCase):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         text = oinf.to_text()
         self.assertIn('Init', text)
@@ -134,11 +134,11 @@ class TestOnnxrtSimple(ExtTestCase):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         text = oinf.to_text(kind='seq')
         self.assertIn('input:', text)
@@ -148,11 +148,11 @@ class TestOnnxrtSimple(ExtTestCase):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot(use_onnx=True)
         self.assertIn('[label="Ad_Addcst1"', dot)
@@ -162,11 +162,11 @@ class TestOnnxrtSimple(ExtTestCase):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot(add_rt_shapes=True)
         self.assertIn('Add [', dot)
@@ -187,7 +187,7 @@ class TestOnnxrtSimple(ExtTestCase):
         onx = OnnxLinearRegressor('X', output_names=['Y'], **pars)
         model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
                                 outputs=[('Y', FloatTensorType([1]))],
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot()
         self.assertIn('coefficients=[1. 2.]', dot)
@@ -201,7 +201,7 @@ class TestOnnxrtSimple(ExtTestCase):
         model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
                                 outputs=[('Y', Int64TensorType()),
                                          ('Yp', FloatTensorType())],
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot()
         self.assertIn('coefficients=[1. 2.]', dot)
@@ -216,7 +216,7 @@ class TestOnnxrtSimple(ExtTestCase):
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            target_opset=get_opset_number_from_onnx())
+                            target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         dot = oinf.to_dot()
         self.assertIn('ZipMap', dot)
@@ -231,7 +231,7 @@ class TestOnnxrtSimple(ExtTestCase):
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            target_opset=get_opset_number_from_onnx())
+                            target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         js = oinf.to_json()
         self.assertIn('"producer_name": "skl2onnx",', js)
@@ -248,11 +248,11 @@ class TestOnnxrtSimple(ExtTestCase):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         js = oinf.to_json()
         self.assertIn('"initializers": {', js)
@@ -262,11 +262,11 @@ class TestOnnxrtSimple(ExtTestCase):
         idi = numpy.identity(2).astype(numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         js = oinf.to_sequence()
         self.assertIn('inits', js)
@@ -283,11 +283,11 @@ class TestOnnxrtSimple(ExtTestCase):
         idi = numpy.identity(2, dtype=numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         X = numpy.array([[1, 1], [3, 3]])
         y = oinf.run({'X': X.astype(numpy.float32)})
@@ -304,7 +304,7 @@ class TestOnnxrtSimple(ExtTestCase):
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            target_opset=get_opset_number_from_onnx())
+                            target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         y = oinf.run({'X': X_test})
         exp = clr.predict(X_test)
@@ -320,7 +320,7 @@ class TestOnnxrtSimple(ExtTestCase):
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            target_opset=get_opset_number_from_onnx())
+                            target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         y = oinf.run({'X': X_test})
         self.assertEqual(list(sorted(y)), [
@@ -341,7 +341,7 @@ class TestOnnxrtSimple(ExtTestCase):
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            target_opset=get_opset_number_from_onnx())
+                            target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def, skip_run=True)
         dot = oinf.to_dot()
         self.assertNotIn("class_labels_0 -> ;", dot)
@@ -355,7 +355,7 @@ class TestOnnxrtSimple(ExtTestCase):
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            target_opset=get_opset_number_from_onnx())
+                            target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def, skip_run=True)
 
         exp_name = 'blab_ArrayFeatureExtractor'
@@ -375,13 +375,13 @@ class TestOnnxrtSimple(ExtTestCase):
         tensor_value = make_tensor(
             "value", TensorProto.FLOAT, (1,), [-5])  # pylint: disable=E1101
         cop2 = OnnxConstantOfShape(
-            OnnxShape('input', op_version=get_opset_number_from_onnx()),
+            OnnxShape('input', op_version=TARGET_OPSET),
             value=tensor_value,
             output_names=['mat'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = cop2.to_onnx({'input': x},
                                  outputs=[('mat', FloatTensorType())],
-                                 target_opset=get_opset_number_from_onnx())
+                                 target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def, skip_run=True)
         dot = oinf.to_dot()
         self.assertIn('ConstantOfShape', dot)
@@ -392,15 +392,15 @@ class TestOnnxrtSimple(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('input', 'input',
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cdist = onnx_squareform_pdist(cop, dtype=numpy.float32,
-                                      op_version=get_opset_number_from_onnx())
+                                      op_version=TARGET_OPSET)
         cop2 = OnnxIdentity(cdist, output_names=['cdist'],
-                            op_version=get_opset_number_from_onnx())
+                            op_version=TARGET_OPSET)
 
         model_def = cop2.to_onnx(
             {'input': x}, outputs=[('cdist', FloatTensorType())],
-            target_opset=get_opset_number_from_onnx())
+            target_opset=TARGET_OPSET)
 
         oinf = OnnxInference(model_def, skip_run=True)
         dot = oinf.to_dot(recursive=True)
@@ -416,7 +416,7 @@ class TestOnnxrtSimple(ExtTestCase):
         clr.fit(X_train, y_train)
 
         model_def = to_onnx(clr, X_train.astype(numpy.float32),
-                            target_opset=get_opset_number_from_onnx())
+                            target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         _, mt = oinf.run({'X': X_test}, node_time=True)
         self.assertIsInstance(mt, list)
@@ -497,7 +497,7 @@ class TestOnnxrtSimple(ExtTestCase):
 
     @ignore_warnings(DeprecationWarning)
     def test_onnx_if_to_dot2(self):
-        opv = get_opset_number_from_onnx()
+        opv = TARGET_OPSET
         x1 = numpy.array([[0, 3], [7, 0]], dtype=numpy.float32)
         x2 = numpy.array([[1, 0], [2, 0]], dtype=numpy.float32)
 

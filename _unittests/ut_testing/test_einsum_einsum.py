@@ -7,7 +7,7 @@ import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing.einsum import einsum
 from mlprodict.testing.einsum.einsum_fct import enumerate_cached_einsum
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestEinsumEinsum(ExtTestCase):
@@ -19,7 +19,7 @@ class TestEinsumEinsum(ExtTestCase):
             # too long
             return
         if opset is None:
-            opset = get_opset_number_from_onnx()
+            opset = TARGET_OPSET
         inps = equation.split('->')[0].split(',')
         lens = [len(s) for s in inps]
         inputs = [numpy.random.randn(N ** d).reshape((N,) * d)
