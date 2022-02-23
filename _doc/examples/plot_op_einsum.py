@@ -33,7 +33,7 @@ from skl2onnx.algebra.onnx_ops import OnnxEinsum
 from cpyquickhelper.numbers import measure_time
 from tqdm import tqdm
 from opt_einsum import contract
-from mlprodict.testing.experimental_c import (
+from mlprodict.testing.experimental_c_impl.experimental_c import (
     custom_einsum_float, code_optimisation)
 from mlprodict.testing.einsum.einsum_fct import _einsum
 print(code_optimisation())
