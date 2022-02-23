@@ -307,7 +307,8 @@ def get_extensions():
 
     ext_experimental_c = Extension(
         'mlprodict.testing.experimental_c_impl.experimental_c',
-        [os.path.join(root, 'mlprodict/testing/experimental_c_impl/experimental_c.cpp')],
+        [os.path.join(
+            root, 'mlprodict/testing/experimental_c_impl/experimental_c.cpp')],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
         include_dirs=[

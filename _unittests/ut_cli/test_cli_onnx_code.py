@@ -76,10 +76,10 @@ class TestCliOnnxCode(ExtTestCase):
                            "--output", output, "--verbose", "1"], fLOG=st.fprint)
                 self.assertExists(output)
 
-    def test_cli_plot_onnx_tree(self):        
+    def test_cli_plot_onnx_tree(self):
         temp = get_temp_folder(__file__, "temp_cli_plot_onnx_tree")
 
-        X, y = make_regression(n_features=2)
+        X, y = make_regression(n_features=2)  # pylint: disable=W0632
         tree = DecisionTreeRegressor()
         tree.fit(X, y)
         onx = to_onnx(tree, X.astype(numpy.float32),
