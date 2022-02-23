@@ -223,13 +223,13 @@ class XGBRegressorConverter(XGBConverter):
                 operator.output_full_names,
                 name=scope.get_unique_operator_name(
                     'TreeEnsembleRegressorDouble'),
-                op_domain='mlprodict', **attr_pairs)
+                op_domain='mlprodict', op_version=1, **attr_pairs)
         else:
             container.add_node(
                 'TreeEnsembleRegressor', operator.input_full_names,
                 operator.output_full_names,
                 name=scope.get_unique_operator_name('TreeEnsembleRegressor'),
-                op_domain='ai.onnx.ml', **attr_pairs)
+                op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
 
 
 class XGBClassifierConverter(XGBConverter):
@@ -318,20 +318,20 @@ class XGBClassifierConverter(XGBConverter):
                                op_domain='ai.onnx.ml', **attr_pairs)
         elif objective == "multi:softprob":
             ncl = len(js_trees) // params['n_estimators']
-            container.add_node(op_name, operator.input_full_names,
-                               operator.output_full_names,
-                               name=scope.get_unique_operator_name(
-                                   op_name),
-                               op_domain='ai.onnx.ml', **attr_pairs)
+            container.add_node(
+                op_name, operator.input_full_names,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name(op_name),
+                op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
         elif objective == "reg:logistic":
             ncl = len(js_trees) // params['n_estimators']
             if ncl == 1:
                 ncl = 2
-            container.add_node(op_name, operator.input_full_names,
-                               operator.output_full_names,
-                               name=scope.get_unique_operator_name(
-                                   op_name),
-                               op_domain='ai.onnx.ml', **attr_pairs)
+            container.add_node(
+                op_name, operator.input_full_names,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name(op_name),
+                op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
         else:
             raise RuntimeError(  # pragma: no cover
                 "Unexpected objective: {0}".format(objective))

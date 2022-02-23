@@ -437,11 +437,11 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
         if dtype == numpy.float64:
             container.add_node('TreeEnsembleClassifierDouble', operator.input_full_names,
                                [label_tensor_name, probability_tensor_name],
-                               op_domain='mlprodict', **attrs)
+                               op_domain='mlprodict', op_version=1, **attrs)
         else:
             container.add_node('TreeEnsembleClassifier', operator.input_full_names,
                                [label_tensor_name, probability_tensor_name],
-                               op_domain='ai.onnx.ml', **attrs)
+                               op_domain='ai.onnx.ml', op_version=1, **attrs)
 
         prob_tensor = probability_tensor_name
 
@@ -527,11 +527,11 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
             if dtype == numpy.float64:
                 container.add_node(
                     'TreeEnsembleRegressorDouble', operator.input_full_names,
-                    output_name, op_domain='mlprodict', **attrs)
+                    output_name, op_domain='mlprodict', op_version=1, **attrs)
             else:
                 container.add_node(
                     'TreeEnsembleRegressor', operator.input_full_names,
-                    output_name, op_domain='ai.onnx.ml', **attrs)
+                    output_name, op_domain='ai.onnx.ml', op_version=1, **attrs)
         else:
             tree_attrs = _split_tree_ensemble_atts(attrs, split)
             tree_nodes = []
@@ -540,12 +540,12 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
                 if dtype == numpy.float64:
                     container.add_node(
                         'TreeEnsembleRegressorDouble', operator.input_full_names,
-                        tree_name, op_domain='mlprodict', **ats)
+                        tree_name, op_domain='mlprodict', op_version=1, **ats)
                     tree_nodes.append(tree_name)
                 else:
                     container.add_node(
                         'TreeEnsembleRegressor', operator.input_full_names,
-                        tree_name, op_domain='ai.onnx.ml', **ats)
+                        tree_name, op_domain='ai.onnx.ml', op_version=1, **ats)
                     cast_name = scope.get_unique_variable_name('dtree%d' % i)
                     container.add_node(
                         'Cast', tree_name, cast_name, to=TensorProto.DOUBLE,  # pylint: disable=E1101
