@@ -16,8 +16,7 @@ from mlprodict.onnx_conv import to_onnx, register_scorers
 from mlprodict.onnx_conv.scorers.register import CustomScorerTransform
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv.scorers.cdist_score import score_cdist_sum
-from mlprodict.tools.asv_options_helper import (
-    get_opset_number_from_onnx)
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestScorers(ExtTestCase):
@@ -58,7 +57,7 @@ class TestScorers(ExtTestCase):
 
         init_types = OrderedDict([('X', X), ('Y', Y)])
 
-        opsets = [11, get_opset_number_from_onnx()]
+        opsets = [11, TARGET_OPSET]
         options = {id(score_cdist_sum): {"cdist": "single-node"}}
         temp = get_temp_folder(__file__, 'temp_score_cdist_sum_onnx')
 

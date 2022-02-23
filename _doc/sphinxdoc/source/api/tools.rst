@@ -97,6 +97,8 @@ Validation
 Visualization
 +++++++++++++
 
+.. index:: plotting, plot
+
 Many times I had to debug and I was thinking about a way to see
 a graph in a text editor. That's the goal of this function with
 the possibility later to only show a part of a graph.
@@ -121,17 +123,14 @@ the possibility later to only show a part of a graph.
 
 .. autosignature:: mlprodict.plotting.plot_validate_benchmark
 
-Others
-======
-
-Plotting
-++++++++
-
 .. autosignature:: mlprodict.plotting.plotting_benchmark.plot_benchmark_metrics
 
-.. autosignature:: mlprodict.onnxrt.doc.nb_helper.onnxview
+**notebook**
 
-.. autosignature:: mlprodict.plotting.plotting_validate_graph.plot_validate_benchmark
+.. autosignature:: mlprodict.nb_helper.onnxview
+
+Others
+======
 
 scikit-learn
 ++++++++++++
@@ -141,9 +140,11 @@ scikit-learn
 Versions
 ++++++++
 
-.. autosignature:: mlprodict.tools.asv_options_helper.get_ir_version_from_onnx
+.. autosignature:: mlprodict.get_ir_version
 
-.. autosignature:: mlprodict.tools.asv_options_helper.get_opset_number_from_onnx
+.. autosignature:: mlprodict.__max_supported_opset__
+
+.. autosignature:: mlprodict.__max_supported_opsets__
 
 Type conversion
 ===============

@@ -14,19 +14,19 @@ Main functions
 Additional functions
 ====================
 
-.. autosignature:: mlprodict.onnx_tools.onnx_translation.get_default_context
+.. autosignature:: mlprodict.onnx_tools.onnx_grammar.onnx_translation.get_default_context
 
-.. autosignature:: mlprodict.onnx_tools.onnx_translation.get_default_context_cpl
+.. autosignature:: mlprodict.onnx_tools.onnx_grammar.onnx_translation.get_default_context_cpl
 
-.. autosignature:: mlprodict.onnx_tools.onnx_translation.py_make_float_array
+.. autosignature:: mlprodict.onnx_tools.onnx_grammar.onnx_translation.py_make_float_array
 
-.. autosignature:: mlprodict.onnx_tools.onnx_translation.py_opp
+.. autosignature:: mlprodict.onnx_tools.onnx_grammar.onnx_translation.py_opp
 
-.. autosignature:: mlprodict.onnx_tools.onnx_translation.py_mul
+.. autosignature:: mlprodict.onnx_tools.onnx_grammar.onnx_translation.py_mul
 
-.. autosignature:: mlprodict.onnx_tools.onnx_translation.py_pow
+.. autosignature:: mlprodict.onnx_tools.onnx_grammar.onnx_translation.py_pow
 
-.. autosignature:: mlprodict.onnx_tools.onnx_translation.squareform_pdist
+.. autosignature:: mlprodict.onnx_tools.onnx_grammar.onnx_translation.squareform_pdist
 
 Grammar Objects
 ===============

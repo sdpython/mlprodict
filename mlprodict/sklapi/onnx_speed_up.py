@@ -21,7 +21,7 @@ from sklearn.base import (
 from sklearn.preprocessing import FunctionTransformer
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from ..tools.code_helper import print_code
-from ..tools.asv_options_helper import get_opset_number_from_onnx
+from .. import __max_supported_opset__
 from ..onnx_tools.onnx_export import export2numpy
 from ..onnx_tools.onnx2py_helper import (
     onnx_model_opsets, _var_as_dict, to_skl2onnx_type)
@@ -182,7 +182,7 @@ class _OnnxPipelineStepSpeedup(BaseEstimator, OnnxOperatorMixin):
             jitter = jit(nopython=self.nopython)
             fct = jitter(fct)
         cl = FunctionTransformer(fct, accept_sparse=True)
-        cl.op_version = opsets.get('', get_opset_number_from_onnx())
+        cl.op_version = opsets.get('', __max_supported_opset__)
         return cl
 
     def __getstate__(self):

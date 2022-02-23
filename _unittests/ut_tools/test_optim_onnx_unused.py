@@ -11,7 +11,7 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs)
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOptimOnnxUnused(ExtTestCase):
@@ -21,16 +21,16 @@ class TestOptimOnnxUnused(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
-                       op_version=get_opset_number_from_onnx(),
+                       op_version=TARGET_OPSET,
                        output_names=['inter'])
         cop4 = OnnxSub(
-            OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
+            OnnxMul(cop, cop3, op_version=TARGET_OPSET),
             cop2, output_names=['final'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x})
         model_def = select_model_inputs_outputs(
             model_def, "inter", remove_unused=False)

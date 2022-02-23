@@ -8,8 +8,7 @@ import numpy
 from onnx import helper, numpy_helper
 from skl2onnx.common.data_types import guess_proto_type
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
-from ...tools.asv_options_helper import (
-    get_opset_number_from_onnx, get_ir_version_from_onnx)
+from ... import __max_supported_opset__, get_ir_version
 from .blas_lapack import gemm_dot
 from .einsum_impl_ext import (
     numpy_extended_dot, numpy_diagonal,
@@ -952,7 +951,7 @@ class EinsumSubOp:
         :return: output
         """
         if opset is None:
-            opset = get_opset_number_from_onnx()  # pragma: no cover
+            opset = __max_supported_opset__  # pragma: no cover
         if verbose:
             print()
             print("to_onnx %r  (%s) opset=%r." % (
@@ -1440,7 +1439,7 @@ class GraphEinsumSubOp:
 
         # inputs
         if opset is None:
-            opset = get_opset_number_from_onnx()
+            opset = __max_supported_opset__
         if verbose:
             print("[GraphEinsumSubOp.to_onnx] %r -> %s opset=%r "
                   "dtype=%r" % (inputs, output, opset, dtype))
@@ -1489,7 +1488,7 @@ class GraphEinsumSubOp:
         # Builds the graph
         model = helper.make_model(
             opset_imports=[helper.make_operatorsetid('', opset)],
-            ir_version=kwargs.get('ir_version', get_ir_version_from_onnx()),
+            ir_version=kwargs.get('ir_version', get_ir_version(opset)),
             producer_name=kwargs.get('producer_name', 'mlprodict'),
             producer_version=kwargs.get('producer_version', "0.0.dev"),
             graph=helper.make_graph(

@@ -14,10 +14,17 @@ Run inference
 .. toctree::
     :maxdepth: 1
 
-    skl
     onnx_runtime
     optim
     benchmark
+
+Conversion
+++++++++++
+
+.. toctree::
+    :maxdepth: 1
+
+    skl
 
 Write custom ONNX graph
 +++++++++++++++++++++++
@@ -28,3 +35,12 @@ Write custom ONNX graph
     onnx_numpy
     numpy_api_onnx
     xop_api
+
+Export ONNX
++++++++++++
+
+.. toctree::
+    :maxdepth: 1
+
+    ex_python
+

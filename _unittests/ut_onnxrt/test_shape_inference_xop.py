@@ -8,14 +8,14 @@ from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxShapeInference
 from mlprodict.onnxrt.ops_shape.shape_result import ShapeResult
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.npy.xop import loadop
 from mlprodict.npy.xop_variable import Variable
 
 
 class TestOnnxShapeInferenceXop(ExtTestCase):
 
-    opsets = list(range(10, get_opset_number_from_onnx() + 1))
+    opsets = list(range(10, TARGET_OPSET + 1))
 
     def check_infer_shapes(self, onx, out, rt):
         onnx_shapes = infer_shapes(onx)

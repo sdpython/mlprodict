@@ -35,13 +35,14 @@ except ImportError:  # pragma: no cover
         find_missing_sklearn_imports)
 
 try:
+    from .. import __max_supported_opset__
     from ..tools.asv_options_helper import (
-        get_opset_number_from_onnx, shorten_onnx_options)
+        shorten_onnx_options)
     from ..onnxrt.validate.validate_helper import sklearn_operators
     from ..onnxrt.validate.validate import (
         _retrieve_problems_extra, _get_problem_data, _merge_options)
 except (ValueError, ImportError):  # pragma: no cover
-    from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+    from mlprodict import __max_supported_opset__
     from mlprodict.onnxrt.validate.validate_helper import sklearn_operators
     from mlprodict.onnxrt.validate.validate import (
         _retrieve_problems_extra, _get_problem_data, _merge_options)
@@ -137,9 +138,9 @@ def create_asv_benchmark(
     ``-environment existing:same``. The publishing fails.
     """
     if opset_min == -1:
-        opset_min = get_opset_number_from_onnx()
+        opset_min = __max_supported_opset__
     if opset_max == -1:
-        opset_max = get_opset_number_from_onnx()  # pragma: no cover
+        opset_max = __max_supported_opset__  # pragma: no cover
     if verbose > 0 and fLOG is not None:  # pragma: no cover
         fLOG("[create_asv_benchmark] opset in [{}, {}].".format(
             opset_min, opset_max))
@@ -352,7 +353,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
         loop = ops
 
     if opset_max is None:
-        opset_max = get_opset_number_from_onnx()
+        opset_max = __max_supported_opset__
     opsets = list(range(opset_min, opset_max + 1))
     all_created = set()
 
@@ -563,7 +564,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             "['skl', 'pyrtc', 'ort'],  # values for runtime": str(runtime),
             "[1, 10, 100, 1000, 10000],  # values for N": str(dims),
             "[4, 20],  # values for nf": str(n_features),
-            "[get_opset_number_from_onnx()],  # values for opset": str(opsets),
+            "[__max_supported_opset__],  # values for opset": str(opsets),
             "['float', 'double'],  # values for dtype":
                 "['float']" if '-64' not in problem else "['double']",
             "[None],  # values for optim": "%r" % nck_opts,

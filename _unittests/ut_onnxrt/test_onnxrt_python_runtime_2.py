@@ -6,14 +6,13 @@ from logging import getLogger
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxArrayFeatureExtractor,
-)
+    OnnxArrayFeatureExtractor)
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_array_feature_extractor import _array_feature_extrator, sizeof_dtype
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import array_feature_extractor_double  # pylint: disable=E0611,E0401
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict import get_ir_version, __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtPythonRuntime(ExtTestCase):
@@ -47,10 +46,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                         output_names=['Y'])
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 outputs=[('Y', FloatTensorType([2]))])
-        model_def.ir_version = get_ir_version_from_onnx()
+        model_def.ir_version = get_ir_version(TARGET_OPSET)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})['Y']
-        model_def.ir_version = get_ir_version_from_onnx()
+        model_def.ir_version = get_ir_version(TARGET_OPSET)
         oinf2 = OnnxInference(model_def, runtime="onnxruntime2")
         got2 = oinf2.run({'X': X})['Y']
         self.assertEqualArray(got, got2)
@@ -67,7 +66,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                 outputs=[('Y', FloatTensorType([2]))])
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})['Y']
-        model_def.ir_version = get_ir_version_from_onnx()
+        model_def.ir_version = get_ir_version(TARGET_OPSET)
         oinf2 = OnnxInference(model_def, runtime="onnxruntime2")
         got2 = oinf2.run({'X': X})['Y']
         self.assertEqualArray(got, got2)
@@ -83,7 +82,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                 outputs=[('Y', FloatTensorType([2]))])
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})['Y']
-        model_def.ir_version = get_ir_version_from_onnx()
+        model_def.ir_version = get_ir_version(TARGET_OPSET)
         oinf2 = OnnxInference(model_def, runtime="onnxruntime2")
         got2 = oinf2.run({'X': X})['Y']
         self.assertEqualArray(got, got2)
@@ -98,7 +97,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):
                                 outputs=[('Y', FloatTensorType([2]))])
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})['Y']
-        model_def.ir_version = get_ir_version_from_onnx()
+        model_def.ir_version = get_ir_version(TARGET_OPSET)
         oinf2 = OnnxInference(model_def, runtime="onnxruntime2")
         got2 = oinf2.run({'X': X})['Y']
         self.assertEqualArray(got, got2)

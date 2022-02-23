@@ -8,16 +8,14 @@ from scipy.spatial.distance import cdist as scipy_cdist
 from sklearn.datasets import load_iris
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAdd, OnnxIdentity
-)
+    OnnxAdd, OnnxIdentity)
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.shape_object import (
     DimensionObject, ShapeObject, ShapeOperator,
     ShapeBinaryOperator, ShapeOperatorMax,
-    BaseDimensionShape
-)
+    BaseDimensionShape)
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestShapeObject(ExtTestCase):
@@ -240,7 +238,7 @@ class TestShapeObject(ExtTestCase):
                                          dtype=numpy.float32):
         idi = numpy.identity(2, dtype=dtype)
         onx = onnx_cl('X', idi, output_names=['Y'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)})
         oinf = OnnxInference(model_def)
@@ -266,14 +264,14 @@ class TestShapeObject(ExtTestCase):
         # y_train = y[::2]
         X_test = X[1::2]
         # y_test = y[1::2]
-        onx = OnnxIdentity(onnx_cdist(OnnxIdentity('X', op_version=get_opset_number_from_onnx()), X_train.astype(numpy.float32),
+        onx = OnnxIdentity(onnx_cdist(OnnxIdentity('X', op_version=TARGET_OPSET), X_train.astype(numpy.float32),
                                       metric="euclidean", dtype=numpy.float32,
-                                      op_version=get_opset_number_from_onnx()),
+                                      op_version=TARGET_OPSET),
                            output_names=['Y'],
-                           op_version=get_opset_number_from_onnx())
+                           op_version=TARGET_OPSET)
         final = onx.to_onnx(inputs=[('X', FloatTensorType([None, None]))],
                             outputs=[('Y', FloatTensorType())],
-                            target_opset=get_opset_number_from_onnx())
+                            target_opset=TARGET_OPSET)
 
         oinf = OnnxInference(final, runtime="python")
         res = oinf.run({'X': X_train.astype(numpy.float32)})['Y']

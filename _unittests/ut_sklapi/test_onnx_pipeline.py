@@ -19,7 +19,7 @@ from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnx_conv.register import _register_converters_mlinsights
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.sklapi import OnnxPipeline, OnnxTransformer
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxPipeline(ExtTestCase):
@@ -32,7 +32,7 @@ class TestOnnxPipeline(ExtTestCase):
             ('no', StandardScaler()),
             ('lr', LogisticRegression())],
             enforce_float32=True,
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         pipe.fit(X, y)
         pipe.fit(X, y)
         self.assertTrue(hasattr(pipe, 'raw_steps_'))
@@ -64,7 +64,7 @@ class TestOnnxPipeline(ExtTestCase):
             ('no', StandardScaler()),
             ('lr', LogisticRegression())],
             enforce_float32=False,
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         pipe.fit(X, y)
         pipe.fit(X, y)
         self.assertTrue(hasattr(pipe, 'raw_steps_'))
@@ -127,7 +127,7 @@ class TestOnnxPipeline(ExtTestCase):
             ('gm', TransferTransformer(StandardScaler(), trainable=True)),
             ('lr', LogisticRegression())],
             enforce_float32=True,
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         pipe.fit(X, y)
         pipe.fit(X, y)
 
@@ -158,7 +158,7 @@ class TestOnnxPipeline(ExtTestCase):
                 trainable=True, method='predict_proba')),
             ('lr', LogisticRegression(random_state=2))],
             enforce_float32=True,
-            op_version=get_opset_number_from_onnx(),
+            op_version=TARGET_OPSET,
             options={'gm__score_samples': True,
                      'lr__zipmap': False})
         pipe.fit(X, y)
@@ -194,7 +194,7 @@ class TestOnnxPipeline(ExtTestCase):
             ])),
             ('lr', LogisticRegression())],
             enforce_float32=True,
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         pipe.fit(X, y)
         pipe.fit(X, y)
         self.assertTrue(hasattr(pipe, 'raw_steps_'))
@@ -231,7 +231,7 @@ class TestOnnxPipeline(ExtTestCase):
             ])),
             ('lr', LogisticRegression())],
             enforce_float32=True,
-            op_version=get_opset_number_from_onnx(),
+            op_version=TARGET_OPSET,
             memory=MyMemory())
         pipe.fit(X, y)
         pipe.fit(X, y)

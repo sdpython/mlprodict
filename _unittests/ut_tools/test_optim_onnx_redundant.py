@@ -12,7 +12,7 @@ from mlprodict.onnx_tools.optim.onnx_helper import onnx_statistics
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.optim import (
     onnx_remove_node_redundant, onnx_remove_node, onnx_optimisations)
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOptimOnnxRedundant(ExtTestCase):
@@ -22,15 +22,15 @@ class TestOptimOnnxRedundant(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         cop4 = OnnxSub(
-            OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
+            OnnxMul(cop, cop3, op_version=TARGET_OPSET),
             cop2, output_names=['final'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x})
         stats = onnx_statistics(model_def, optim=True)
         c1 = model_def.SerializeToString()
@@ -56,15 +56,15 @@ class TestOptimOnnxRedundant(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
-                       output_names=['keep'], op_version=get_opset_number_from_onnx())
+                       output_names=['keep'], op_version=TARGET_OPSET)
         cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
         cop4 = OnnxSub(
-            OnnxMul(cop, cop3, op_version=get_opset_number_from_onnx()),
+            OnnxMul(cop, cop3, op_version=TARGET_OPSET),
             cop2, output_names=['final'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x},
                                  outputs=[('keep', FloatTensorType([None, 2])),
                                           ('final', FloatTensorType([None, 2]))])
@@ -94,19 +94,19 @@ class TestOptimOnnxRedundant(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd(
-            OnnxIdentity('input', op_version=get_opset_number_from_onnx()),
-            'input', op_version=get_opset_number_from_onnx())
+            OnnxIdentity('input', op_version=TARGET_OPSET),
+            'input', op_version=TARGET_OPSET)
         cdist = onnx_squareform_pdist(
-            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
+            cop, dtype=numpy.float32, op_version=TARGET_OPSET)
         cdist2 = onnx_squareform_pdist(
-            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
+            cop, dtype=numpy.float32, op_version=TARGET_OPSET)
         cop2 = OnnxAdd(cdist, cdist2, output_names=['cdist'],
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
 
         model_def = cop2.to_onnx(
             {'input': FloatTensorType()},
             outputs=[('cdist', FloatTensorType())],
-            target_opset=get_opset_number_from_onnx())
+            target_opset=TARGET_OPSET)
         c1 = model_def.SerializeToString()
         stats = onnx_statistics(model_def, optim=False)
         c2 = model_def.SerializeToString()
@@ -141,19 +141,19 @@ class TestOptimOnnxRedundant(ExtTestCase):
     def test_onnx_remove_redundant_subgraphs_full(self):
         from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
         cop = OnnxAdd(
-            OnnxIdentity('input', op_version=get_opset_number_from_onnx()),
-            'input', op_version=get_opset_number_from_onnx())
+            OnnxIdentity('input', op_version=TARGET_OPSET),
+            'input', op_version=TARGET_OPSET)
         cdist = onnx_squareform_pdist(
-            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
+            cop, dtype=numpy.float32, op_version=TARGET_OPSET)
         cdist2 = onnx_squareform_pdist(
-            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
+            cop, dtype=numpy.float32, op_version=TARGET_OPSET)
         cop2 = OnnxAdd(cdist, cdist2, output_names=['cdist'],
-                       op_version=get_opset_number_from_onnx())
+                       op_version=TARGET_OPSET)
 
         model_def = cop2.to_onnx(
             {'input': FloatTensorType()},
             outputs=[('cdist', FloatTensorType())],
-            target_opset=get_opset_number_from_onnx())
+            target_opset=TARGET_OPSET)
         stats = onnx_statistics(model_def, optim=False)
         new_model = onnx_optimisations(model_def)
         stats2 = onnx_statistics(new_model, optim=False)

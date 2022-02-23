@@ -31,11 +31,10 @@ def onnx_text_plot(model_onnx, recursive=False, graph_type='basic',
         import numpy
         from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxSub
         from mlprodict.onnx_conv import to_onnx
-        from mlprodict.tools import get_opset_number_from_onnx
+        from mlprodict import __max_supported_opset__ as opv
         from mlprodict.plotting.plotting import onnx_text_plot
 
         idi = numpy.identity(2).astype(numpy.float32)
-        opv = get_opset_number_from_onnx()
         A = OnnxAdd('X', idi, op_version=opv)
         B = OnnxSub(A, 'W', output_names=['Y'], op_version=opv)
         onx = B.to_onnx({'X': idi, 'W': idi})

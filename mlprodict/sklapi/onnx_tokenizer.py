@@ -15,7 +15,7 @@ try:
     from onnxruntime_extensions import get_library_path
 except ImportError:
     get_library_path = None
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__
 
 
 class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
@@ -126,7 +126,7 @@ class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
                 mkv('out0', TensorProto.INT32, [None]),
                 mkv('out1', TensorProto.INT64, [None])])
         if opset is None:
-            opset = min(get_opset_number_from_onnx(), onnx_opset_version())
+            opset = min(__max_supported_opset__, onnx_opset_version())
         model = helper.make_model(graph, opset_imports=[
             helper.make_operatorsetid('', opset)])
         model.opset_import.extend([helper.make_operatorsetid(domain, 1)])
@@ -238,7 +238,7 @@ class GPT2TokenizerTransformer(BaseEstimator, TransformerMixin):
                 mkv('input_ids', TensorProto.INT64, [None, None]),
                 mkv('attention_mask', TensorProto.INT64, [None, None])])
         if opset is None:
-            opset = min(get_opset_number_from_onnx(), onnx_opset_version())
+            opset = min(__max_supported_opset__, onnx_opset_version())
         model = helper.make_model(graph, opset_imports=[
             helper.make_operatorsetid('', opset)])
         model.opset_import.extend([helper.make_operatorsetid(domain, 1)])

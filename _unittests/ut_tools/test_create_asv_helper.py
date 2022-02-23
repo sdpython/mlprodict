@@ -6,8 +6,7 @@ from sklearn.linear_model import LogisticRegression
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.tools.asv_options_helper import (
     version2number, expand_onnx_options,
-    shorten_onnx_options, get_opset_number_from_onnx,
-    get_ir_version_from_onnx, display_onnx)
+    shorten_onnx_options, display_onnx)
 
 
 class TestCreateAsvBenchmarkHelper(ExtTestCase):
@@ -30,16 +29,6 @@ class TestCreateAsvBenchmarkHelper(ExtTestCase):
     def test_shorten_onnx_options(self):
         res = shorten_onnx_options(LogisticRegression(), None)
         self.assertEmpty(res)
-
-    def test_get_opset_number_from_onnx(self):
-        res = get_opset_number_from_onnx(benchmark=True)
-        res2 = get_opset_number_from_onnx(benchmark=False)
-        self.assertGreater(res2, res)
-
-    def test_get_ir_version_from_onnx(self):
-        res = get_ir_version_from_onnx(benchmark=True)
-        res2 = get_ir_version_from_onnx(benchmark=False)
-        self.assertGreater(res2, res)
 
     def test_display_onnx(self):
         res = display_onnx("r")

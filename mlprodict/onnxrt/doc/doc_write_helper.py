@@ -10,7 +10,7 @@ from sklearn.linear_model import LinearRegression
 from pyquickhelper.loghelper import noLOG
 from pyquickhelper.pandashelper.tblformat import df2rst
 from sklearn import __all__ as sklearn__all__
-from ...tools.asv_options_helper import get_opset_number_from_onnx
+from ... import __max_supported_opset__
 from ...tools.model_info import analyze_model
 from ..validate.validate import enumerate_validated_operator_opsets, sklearn_operators
 from ...onnx_tools.optim.sklearn_helper import inspect_sklearn_model
@@ -38,7 +38,7 @@ def _make_opset(row):
                 if len(vv) > 0:
                     opsets.append(int(k.replace("opset", "")))
     if len(opsets) == 0:
-        return "o%d" % get_opset_number_from_onnx()  # pragma: no cover
+        return "o%d" % __max_supported_opset__  # pragma: no cover
     val = max(opsets)
     return "o%d" % val
 
@@ -59,8 +59,8 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
     subsets.sort()
     for row in enumerate_validated_operator_opsets(
             verbose=0, debug=None, fLOG=fLOG,
-            opset_min=get_opset_number_from_onnx(),
-            opset_max=get_opset_number_from_onnx(),
+            opset_min=__max_supported_opset__,
+            opset_max=__max_supported_opset__,
             store_models=True, models=subsets):
 
         if 'ONNX' not in row:

@@ -18,7 +18,7 @@ from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 
 
 class TestRtValidateKNeighborsRegressor(ExtTestCase):
@@ -56,7 +56,7 @@ class TestRtValidateKNeighborsRegressor(ExtTestCase):
 
         x2 = X_test.astype(numpy.float32)
         onx = to_onnx(clr, x2, rewrite_ops=True, target_opset=10)
-        onx.ir_version = get_ir_version_from_onnx()
+        onx.ir_version = get_ir_version(TARGET_OPSET)
         pyrun = OnnxInference(onx, runtime="onnxruntime1")
         res = pyrun.run({'X': x2}, fLOG=print, verbose=1)
         self.assertIn('variable', res)

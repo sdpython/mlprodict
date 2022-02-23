@@ -11,7 +11,7 @@ from skl2onnx.common.data_types import (
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxGather)
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
@@ -25,7 +25,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         indices = numpy.array([0, 1, 3], dtype=numpy.int64)
         y = numpy.take(data, indices, axis=0)
 
-        op = OnnxGather('X', 'I', op_version=get_opset_number_from_onnx(),
+        op = OnnxGather('X', 'I', op_version=TARGET_OPSET,
                         axis=0, output_names=['out'])
         onx = op.to_onnx(
             inputs=[('X', FloatTensorType()), ('I', Int64TensorType())])
@@ -38,7 +38,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         indices = numpy.array([0, 1, 3], dtype=numpy.int64)
         y = numpy.take(data, indices, axis=0)
 
-        op = OnnxGather('X', 'I', op_version=get_opset_number_from_onnx(),
+        op = OnnxGather('X', 'I', op_version=TARGET_OPSET,
                         axis=0, output_names=['out'])
         onx = op.to_onnx(
             inputs=[('X', DoubleTensorType()), ('I', Int64TensorType())])
@@ -51,7 +51,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         indices = numpy.array([0, 1, 3], dtype=numpy.int64)
         y = numpy.take(data, indices, axis=0)
 
-        op = OnnxGather('X', 'I', op_version=get_opset_number_from_onnx(),
+        op = OnnxGather('X', 'I', op_version=TARGET_OPSET,
                         axis=0, output_names=['out'])
         onx = op.to_onnx(
             inputs=[('X', Int64TensorType()), ('I', Int64TensorType())])
@@ -64,7 +64,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         indices = numpy.array([0, 0, 0], dtype=numpy.int64)
         y = numpy.take(data, indices, axis=0)
 
-        op = OnnxGather('X', 'I', op_version=get_opset_number_from_onnx(),
+        op = OnnxGather('X', 'I', op_version=TARGET_OPSET,
                         axis=0, output_names=['out'])
         onx = op.to_onnx(
             inputs=[('X', StringTensorType()), ('I', Int64TensorType())])
@@ -77,7 +77,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         indices = numpy.array([0, 1, 3], dtype=numpy.int64)
         y = numpy.take(data, indices, axis=1)
 
-        op = OnnxGather('X', 'I', op_version=get_opset_number_from_onnx(),
+        op = OnnxGather('X', 'I', op_version=TARGET_OPSET,
                         axis=1, output_names=['out'])
         onx = op.to_onnx(
             inputs=[('X', FloatTensorType()), ('I', Int64TensorType())])
@@ -90,7 +90,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         indices = numpy.array([0, -9, -10], dtype=numpy.int64)
         y = numpy.take(data, indices, axis=0)
 
-        op = OnnxGather('X', 'I', op_version=get_opset_number_from_onnx(),
+        op = OnnxGather('X', 'I', op_version=TARGET_OPSET,
                         axis=0, output_names=['out'])
         onx = op.to_onnx(
             inputs=[('X', FloatTensorType()), ('I', Int64TensorType())])

@@ -1,8 +1,8 @@
 
 .. _l-numpy2onnx-tutorial:
 
-Create custom ONNX graphs
-=========================
+Create custom ONNX graphs with AST
+==================================
 
 Converting a :epkg:`scikit-learn` pipeline is easy when
 the pipeline contains only pieces implemented in :epkg:`scikit-learn`

@@ -17,7 +17,7 @@ from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_rewritten_operators, to_onnx
 from mlprodict.onnxrt.validate.validate_problems import _modify_dimension
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict import get_ir_version, __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
@@ -267,7 +267,7 @@ class TestOnnxrtPythonRuntimeMlSVM(ExtTestCase):
                 self.assertEqualArray(scores, dec, decimal=4)
                 # print("32", kernel + ("-" * (7 - len(kernel))), scores - dec, "skl", dec)
 
-                model_onnx.ir_version = get_ir_version_from_onnx()
+                model_onnx.ir_version = get_ir_version(TARGET_OPSET)
                 oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
                 res = oinf.run({'X': X32})
                 scores = res['scores']

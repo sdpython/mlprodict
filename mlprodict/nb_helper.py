@@ -6,7 +6,6 @@ from IPython.core.magic import magics_class, line_magic
 from jyquickhelper import RenderJsDot
 from pyquickhelper.ipythonhelper import MagicCommandParser, MagicClassWithHelpers
 from pyquickhelper.cli.cli_helper import create_cli_parser
-from ..onnx_inference import OnnxInference
 
 
 def onnxview(graph, recursive=False, local=False, add_rt_shapes=False,
@@ -29,6 +28,7 @@ def onnxview(graph, recursive=False, local=False, add_rt_shapes=False,
     .. versionchanged:: 0.6
         Parameter *runtime* was added.
     """
+    from .onnxrt import OnnxInference
     sess = OnnxInference(graph, skip_run=not add_rt_shapes, runtime=runtime)
     dot = sess.to_dot(recursive=recursive,
                       add_rt_shapes=add_rt_shapes, size=size)

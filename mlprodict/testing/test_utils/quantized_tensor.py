@@ -106,8 +106,8 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
     :param group: optional paramerer for operator `QLinearConv`
     """
     if opset is None:
-        from ...tools.asv_options_helper import get_opset_number_from_onnx
-        opset = get_opset_number_from_onnx()
+        from ... import __max_supported_opset__
+        opset = __max_supported_opset__
 
     kwargs = {}
     if pads is not None:

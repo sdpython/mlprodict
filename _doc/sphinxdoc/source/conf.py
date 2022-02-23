@@ -121,6 +121,7 @@ epkg_dictionary.update({
            ('https://github.com/onnx/onnx/blob/master/docs/Operators.md#{0}', 1)),
     'ONNX Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators.md',
     'ONNX ML Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators-ml.md',
+    'ONNX Version': 'https://github.com/onnx/onnx/blob/main/docs/Versioning.md#released-versions',
     'ONNX Zoo': 'https://github.com/onnx/models',
     'onnxconverter_common': 'https://github.com/onnx/onnxmltools/tree/master/onnxutils/onnxconverter_common',
     'OnnxOperator': 'https://github.com/onnx/sklearn-onnx/blob/master/skl2onnx/algebra/onnx_operator.py#L116',

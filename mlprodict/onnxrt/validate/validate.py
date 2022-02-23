@@ -12,12 +12,13 @@ import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils._testing import ignore_warnings
-from ... import __version__ as ort_version
+from ... import (
+    __version__ as ort_version,
+    __max_supported_opset__, get_ir_version,
+    __max_supported_opsets__)
 from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
 from ...tools.ort_wrapper import onnxrt_version
 from ...tools.model_info import analyze_model, set_random_state
-from ...tools.asv_options_helper import (
-    get_opset_number_from_onnx, get_ir_version_from_onnx, get_last_opset)
 from ..onnx_inference import OnnxInference
 from ...onnx_tools.optim.sklearn_helper import inspect_sklearn_model, set_n_jobs
 from ...onnx_tools.optim.onnx_helper import onnx_statistics
@@ -252,9 +253,9 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
     is linear.
     """
     if opset_min == -1:
-        opset_min = get_opset_number_from_onnx()  # pragma: no cover
+        opset_min = __max_supported_opset__  # pragma: no cover
     if opset_max == -1:
-        opset_max = get_opset_number_from_onnx()  # pragma: no cover
+        opset_max = __max_supported_opset__  # pragma: no cover
     if verbose > 0 and fLOG is not None:
         fLOG("[enumerate_compatible_opset] opset in [{}, {}].".format(
             opset_min, opset_max))
@@ -273,7 +274,7 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
         problems = []  # pragma: no cover
 
     if opset_max is None:
-        opset_max = get_opset_number_from_onnx()  # pragma: no cover
+        opset_max = __max_supported_opset__  # pragma: no cover
         opsets = list(range(opset_min, opset_max + 1))  # pragma: no cover
         opsets.append(None)  # pragma: no cover
     else:
@@ -472,7 +473,7 @@ def _call_conv_runtime_opset(
                 def fct_conv(itt=inst, it=init_types[0][1], ops=opset,
                              options=all_conv_options):
                     if isinstance(ops, int):
-                        ops_dict = get_last_opset().copy()
+                        ops_dict = __max_supported_opsets__.copy()
                         ops_dict[''] = ops
                     else:
                         ops_dict = ops
@@ -582,7 +583,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     """
     if 'onnxruntime' in runtime:
         old = conv.ir_version
-        conv.ir_version = get_ir_version_from_onnx()
+        conv.ir_version = get_ir_version(opset)
     else:
         old = None
 
@@ -792,8 +793,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
     :param opset_min: checks conversion starting from the opset, -1
         to get the last one
     :param opset_max: checks conversion up to this opset,
-        None means :func:`get_opset_number_from_onnx
-        <mlprodict.tools.asv_options_helper.get_opset_number_from_onnx>`
+        None means `__max_supported_opset__`
     :param check_runtime: checks the python runtime
     :param models: only process a small list of operators,
         set of model names
@@ -888,11 +888,11 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
     else:
         add_versions = {}
 
-    current_opset = get_opset_number_from_onnx()
+    current_opset = __max_supported_opset__
     if opset_min == -1:
-        opset_min = get_opset_number_from_onnx()
+        opset_min = __max_supported_opset__
     if opset_max == -1:
-        opset_max = get_opset_number_from_onnx()
+        opset_max = __max_supported_opset__
     if verbose > 0 and fLOG is not None:
         fLOG("[enumerate_validated_operator_opsets] opset in [{}, {}].".format(
             opset_min, opset_max))

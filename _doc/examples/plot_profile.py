@@ -22,7 +22,7 @@ from sklearn.tree import DecisionTreeRegressor
 from pyquickhelper.pycode.profiling import profile
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools import get_ir_version_from_onnx
+from mlprodict.onnxrt import get_ir_version
 
 data = load_boston()
 X, y = data.data, data.target
@@ -84,7 +84,7 @@ print(txt[1])
 #
 # Let's compare to :epkg:`onnxruntime`.
 
-onx.ir_version = get_ir_version_from_onnx()
+onx.ir_version = get_ir_version(11)
 oinf = OnnxInference(onx, runtime='onnxruntime1')
 
 

@@ -15,7 +15,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxSub, OnnxDiv, OnnxAbs, OnnxLeakyRelu, OnnxGreater,
     OnnxReduceSum, OnnxIf)
 from mlprodict.onnx_conv import to_onnx
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.plotting.plotting import (
     onnx_text_plot, onnx_text_plot_tree, onnx_simple_text_plot,
     onnx_text_plot_io)
@@ -26,7 +26,7 @@ class TestPlotTextPlotting(ExtTestCase):
 
     def test_onnx_text_plot(self):
         idi = numpy.identity(2).astype(numpy.float32)
-        opv = get_opset_number_from_onnx()
+        opv = TARGET_OPSET
         A = OnnxAdd('X', idi, op_version=opv)
         B = OnnxSub(A, 'W', output_names=['Y'], op_version=opv)
         onx = B.to_onnx({'X': idi.astype(numpy.float32),
@@ -150,7 +150,7 @@ class TestPlotTextPlotting(ExtTestCase):
 
     def test_onnx_simple_text_plot_if(self):
 
-        opv = get_opset_number_from_onnx()
+        opv = TARGET_OPSET
         x1 = numpy.array([[0, 3], [7, 0]], dtype=numpy.float32)
         x2 = numpy.array([[1, 0], [2, 0]], dtype=numpy.float32)
 

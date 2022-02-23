@@ -11,7 +11,7 @@ Windows.
     the system is told otherwise.
 """
 import numpy  # pylint: disable=W0611
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__
 # Import specific to this model.
 from sklearn.linear_model import LinearRegression  # pylint: disable=C0411
 
@@ -31,7 +31,7 @@ class TemplateBenchmarkRegressor(_CommonAsvSklBenchmarkRegressor):
         ['skl', 'pyrtc', 'ort'],  # values for runtime
         [1, 10, 100, 1000, 10000],  # values for N
         [4, 20],  # values for nf
-        [get_opset_number_from_onnx()],  # values for opset
+        [__max_supported_opset__],  # values for opset
         ['float', 'double'],  # values for dtype
         [None],  # values for optim
     ]
