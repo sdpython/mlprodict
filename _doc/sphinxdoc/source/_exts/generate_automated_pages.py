@@ -78,7 +78,7 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
     logger.info("[mlprodict] shape '{}'.".format(piv.shape))
     print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
-    
+
     def make_link(row):
         link = ":ref:`{name} <l-{name}-{problem}-{scenario}-{optim}-{opset}>`"
         name = row['name']

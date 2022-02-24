@@ -5,8 +5,26 @@
 History
 =======
 
-current - 2022-02-11 - 0.00Mb
+current - 2022-02-24 - 0.00Mb
 =============================
+
+* #366: Adds python runtime for CategoryMapper (2022-02-24)
+* #365: Adds command line benchmark_doc (2022-02-24)
+* #364: Runs onnx backend test with python runtime (2022-02-23)
+* #362: Adds command line plot_onnx (2022-02-23)
+* #363: Refactoring, moving files testing.experimental_c (2022-02-23)
+* #361: Introduces __max_supported_opset__ and refactors the library (2022-02-23)
+* #360: Xop API, adds class OnnxSubOnnx to insert ONNX graph (2022-02-22)
+* #359: Supports domains in Xop API (2022-02-21)
+* #358: Extends supported operator by OnnxShapeInference (2022-02-21)
+* #357: Modifies OnnxShapeInference to deal with untyped outputs (2022-02-19)
+* #356: Supports multiple affectations (xop) (2022-02-18)
+* #353: Experimentations with a new API to create ONNX graphs (2022-02-18)
+* #355: Fixes for onnx==1.11 (2022-02-18)
+* #352: Supports for shape inference on unary operators (2022-02-14)
+
+0.8.1697 - 2022-02-11 - 1.97Mb
+==============================
 
 * #351: Adds name in ShapeResult, fixes zoo links (2022-02-11)
 * #350: First version of runtime OnnxShapeInference (2022-02-09)
@@ -323,10 +341,6 @@ current - 2022-02-11 - 0.00Mb
 * #104: Enable / disable parallelisation in topk (2020-02-23)
 * #103: Implements plot benchmark ratio depending on two parameters (2020-02-22)
 * #102: Fix conversion for xgboost 1.0 (2020-02-21)
-
-0.3.975 - 2020-02-19 - 0.28Mb
-=============================
-
 * #100: add notebook on TreeEnsemble (2020-02-19)
 * #99: Fixes #93, use same code for TreeEnsembleClassifier and TreeEnsembleRegression (2020-02-19)
 * #93: Use pointer for TreeClassifier (2020-02-19)
