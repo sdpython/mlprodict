@@ -53,7 +53,6 @@ def benchmark_doc(runtime, black_list=None, white_list=None,
     try:
         register_rewritten_operators()
     except KeyError:
-        import warnings
         warnings.warn("converter for HistGradientBoosting* not not exist. "
                       "Upgrade sklearn-onnx")
 
@@ -104,7 +103,7 @@ def benchmark_doc(runtime, black_list=None, white_list=None,
             rows = [{'name': op, 'scenario': 'CRASH',
                      'ERROR-msg': msg.replace("\n", " -- ")}]
             df = DataFrame(rows)
-            df.to_csv(out_sum, index=False)
+            df.to_csv(loop_out_sum, index=False)
         filenames.append((loop_out_raw, loop_out_sum))
 
     # concatenate summaries
