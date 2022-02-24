@@ -83,8 +83,8 @@ Serialization
 
 .. autosignature:: mlprodict.onnx_tools.onnx2py_helper.to_bytes
 
-Validation
-++++++++++
+Validation of scikit-learn models
++++++++++++++++++++++++++++++++++
 
 .. autosignature:: mlprodict.onnxrt.validate.validate.enumerate_validated_operator_opsets
 

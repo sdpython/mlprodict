@@ -8,7 +8,7 @@ Experimental implementations
 Helpers
 +++++++
 
-.. autosignature:: mlprodict.testing.experimental_c.code_optimisation
+.. autosignature:: mlprodict.testing.experimental_c_impl.experimental_c.code_optimisation
 
 Implementation of ONNX operators
 ++++++++++++++++++++++++++++++++
@@ -30,9 +30,9 @@ Einsum
 
 .. autosignature:: mlprodict.testing.einsum.einsum_impl.decompose_einsum_equation
 
-.. autosignature:: mlprodict.testing.experimental_c.custom_einsum_float
+.. autosignature:: mlprodict.testing.experimental_c_impl.experimental_c.custom_einsum_float
 
-.. autosignature:: mlprodict.testing.experimental_c.custom_einsum_double
+.. autosignature:: mlprodict.testing.experimental_c_impl.experimental_c.custom_einsum_double
 
 .. autosignature:: mlprodict.testing.einsum.einsum_bench.einsum_benchmark
 
@@ -54,6 +54,6 @@ Pad
 ReduceSum
 ^^^^^^^^^
 
-.. autosignature:: mlprodict.testing.experimental_c.custom_reducesum_rk_double
+.. autosignature:: mlprodict.testing.experimental_c_impl.experimental_c.custom_reducesum_rk_double
 
-.. autosignature:: mlprodict.testing.experimental_c.custom_reducesum_rk_float
+.. autosignature:: mlprodict.testing.experimental_c_impl.experimental_c.custom_reducesum_rk_float

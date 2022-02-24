@@ -121,10 +121,10 @@ class OnnxBackendTest:
         for i, (e, o) in enumerate(zip(expected, got)):
             try:
                 assert_almost_equal(e, o)
-            except AssertionError as e:
+            except AssertionError as ex:
                 raise AssertionError(
                     "Output %d of test %d in folder %r failed." % (
-                        i, index, self.folder)) from e
+                        i, index, self.folder)) from ex
 
 
 def enumerate_onnx_tests(series, fct_filter=None):
