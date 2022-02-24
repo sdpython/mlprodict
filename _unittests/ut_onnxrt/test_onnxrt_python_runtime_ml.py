@@ -282,8 +282,10 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         data = [{"amy": 1.0, "chin": 200.0}, {"nice": 3.0, "amy": 1.0}]
         model.fit_transform(data)
         exp = model.transform(data)
-        model_def = convert_sklearn(model, "dictionary vectorizer",
-                                    [("input", DictionaryType(StringTensorType([1]), FloatTensorType([1])))])
+        model_def = convert_sklearn(
+            model, "dictionary vectorizer",
+            [("input", DictionaryType(
+            StringTensorType([1]), FloatTensorType([1])))])
         oinf = OnnxInference(model_def)
         array_data = numpy.array(data)
         got = oinf.run({'input': array_data})
