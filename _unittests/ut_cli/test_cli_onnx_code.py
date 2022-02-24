@@ -68,7 +68,7 @@ class TestCliOnnxCode(ExtTestCase):
         name = os.path.join(
             temp, "..", "..", "ut_tools", "data", "fft2d_any.onnx")
         self.assertExists(name)
-        for fmt in ['simple', 'dot', 'io']:
+        for fmt in ['simple', 'dot', 'io', 'raw']:
             with self.subTest(fmt=fmt):
                 output = os.path.join(temp, "code_%s.py" % fmt)
                 st = BufferedPrint()

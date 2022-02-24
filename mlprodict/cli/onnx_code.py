@@ -79,7 +79,8 @@ def plot_onnx(filename, format="onnx", verbose=0, output=None, fLOG=print):
     Plots an ONNX graph on the standard output.
 
     :param filename: onnx file
-    :param format: format to export too (`simple`, `tree`, `dot`, `io`, `mat`)
+    :param format: format to export too (`simple`, `tree`, `dot`,
+        `io`, `mat`, `raw`)
     :param output: output file to produce or None to print it on stdout
     :param verbose: verbosity level
     :param fLOG: logging function
@@ -112,6 +113,8 @@ def plot_onnx(filename, format="onnx", verbose=0, output=None, fLOG=print):
     elif format == 'mat':
         from mlprodict.plotting.text_plot import onnx_text_plot
         code = onnx_text_plot(content)
+    elif format == 'raw':
+        code = str(content)
     elif format == 'tree':
         from mlprodict.plotting.plotting import onnx_text_plot_tree
         rows = []
