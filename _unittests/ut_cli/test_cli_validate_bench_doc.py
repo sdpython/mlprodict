@@ -2,7 +2,6 @@
 @brief      test tree node (time=42s)
 """
 import os
-import sys
 import unittest
 from pyquickhelper.loghelper import BufferedPrint
 from pyquickhelper.pycode import (
