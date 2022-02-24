@@ -18,7 +18,8 @@ from skl2onnx import __version__ as sk2ver
 from skl2onnx.common.data_types import (
     StringTensorType, FloatTensorType, Int64TensorType)
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxStringNormalizer, OnnxTfIdfVectorizer, OnnxLabelEncoder)
+    OnnxStringNormalizer, OnnxTfIdfVectorizer, OnnxLabelEncoder,
+    OnnxCategoryMapper)
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnx_conv.onnx_ops import OnnxTokenizer
 from mlprodict.onnxrt import OnnxInference
@@ -473,6 +474,35 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         for e, g in zip(expected_proba, got['probabilities']):
             self.assertEqualArray(e, g, decimal=5)
 
+    def test_onnxrt_category_mapper_intstr(self):
+
+        op = OnnxCategoryMapper(
+            'cat', op_version=TARGET_OPSET,
+            cats_int64s=[1, 2], cats_strings=["cat1", "cat2"],
+            output_names=['out'])
+        onx = op.to_onnx(
+            inputs=[('cat', Int64TensorType())],
+            outputs=[('out', StringTensorType())])
+        oinf = OnnxInference(onx)
+        res = oinf.run({'cat': numpy.array([1, 2, 1, 5], dtype=numpy.int64)})
+        self.assertEqual(
+            res['out'].tolist(), ["cat1", "cat2", "cat1", ""])
+
+    def test_onnxrt_category_mapper_strint(self):
+
+        op = OnnxCategoryMapper(
+            'cat', op_version=TARGET_OPSET,
+            cats_int64s=[1, 2], cats_strings=["cat1", "cat2"],
+            output_names=['out'])
+        onx = op.to_onnx(
+            inputs=[('cat', StringTensorType())],
+            outputs=[('out', Int64TensorType())])
+        oinf = OnnxInference(onx)
+        res = oinf.run({'cat': numpy.array(["cat1", "cat2", "cat1", "R"],
+                                           dtype=numpy.str_)})
+        self.assertEqualArray(
+            res['out'], numpy.array([1, 2, 1, -1], dtype=numpy.int64))
+
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)
