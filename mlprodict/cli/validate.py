@@ -97,8 +97,9 @@ def benchmark_doc(runtime, black_list=None, white_list=None,
             if verbose > 1:
                 fLOG("[mlprodict] cmd '{}'".format(cmd))
                 fLOG("[mlprodict] unable to find '{}'".format(loop_out_sum))
-                msg = "Unable to find '{}'\n--CMD--\n{}\n--OUT--\n{}\n--ERR--\n{}".format(
-                    loop_out_sum, cmd, out, err)
+            msg = "Unable to find '{}'\n--CMD--\n{}\n--OUT--\n{}\n--ERR--\n{}".format(
+                loop_out_sum, cmd, out, err)
+            if verbose > 1:
                 fLOG(msg)
             rows = [{'name': op, 'scenario': 'CRASH',
                      'ERROR-msg': msg.replace("\n", " -- ")}]
