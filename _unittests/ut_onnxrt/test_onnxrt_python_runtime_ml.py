@@ -285,7 +285,8 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         model_def = convert_sklearn(
             model, "dictionary vectorizer",
             [("input", DictionaryType(
-            StringTensorType([1]), FloatTensorType([1])))])
+                StringTensorType([1]),
+                FloatTensorType([1])))])
         oinf = OnnxInference(model_def)
         array_data = numpy.array(data)
         got = oinf.run({'input': array_data})
