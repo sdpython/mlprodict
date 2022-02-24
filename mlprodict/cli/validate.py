@@ -8,8 +8,134 @@ from logging import getLogger
 import warnings
 import json
 from multiprocessing import Pool
-from pandas import DataFrame
+from pandas import DataFrame, read_csv, concat
 from sklearn.exceptions import ConvergenceWarning
+
+
+def benchmark_doc(runtime, black_list=None, white_list=None,
+                  out_raw='bench_raw.xlsx', out_summary="bench_summary.xlsx",
+                  dump_dir='dump', fLOG=print, verbose=0):
+    """
+    Runs the benchmark published into the documentation
+    (see :ref:`l-onnx-bench-onnxruntime1` and
+    :ref:`l-onnx-bench-python_compiled`).
+
+    :param runtime: runtime (python, python_compiled,
+        onnxruntime1, onnxruntime2)
+    :param black_list: models to skip, None for none
+        (comma separated list)
+    :param white_list: models to benchmark, None for all
+        (comma separated list)
+    :param out_raw: all results are saved in that file
+    :param out_summary: all results are summarized in that file
+    :param dump_dir: folder where to dump intermediate results
+    :param fLOG: logging function
+    :param verbose: verbosity
+    :return: list of created files
+    """
+    def _save(df, name):
+        ext = os.path.splitext(name)[-1]
+        if ext == '.xlsx':
+            df.to_excel(name, index=False)
+        elif ext == '.csv':
+            df.to_csv(name, index=False)
+        else:
+            raise ValueError("Unexpected extension in %r." % name)
+        if verbose > 1:
+            fLOG("[mlprodict] wrote '{}'".format(name))
+
+    from pyquickhelper.loghelper import run_cmd
+    from pyquickhelper.loghelper.run_cmd import get_interpreter_path
+    from tqdm import tqdm
+    from ..onnxrt.validate.validate_helper import sklearn_operators
+    from ..onnx_conv import register_converters, register_rewritten_operators
+    register_converters()
+    try:
+        register_rewritten_operators()
+    except KeyError:
+        warnings.warn("converter for HistGradientBoosting* not not exist. "
+                      "Upgrade sklearn-onnx")
+
+    if black_list is None:
+        black_list = []
+    else:
+        black_list = black_list.split(',')
+    if white_list is None:
+        white_list = []
+    else:
+        white_list = white_list.split(',')
+
+    filenames = []
+    skls = sklearn_operators(extended=True)
+    skls = [_['name'] for _ in skls]
+    if white_list:
+        skls = [_ for _ in skls if _ in white_list]
+    skls.sort()
+    if verbose > 0:
+        pbar = tqdm(skls)
+    else:
+        pbar = skls
+    for op in pbar:
+        if black_list is not None and op in black_list:
+            continue
+        if verbose > 0:
+            pbar.set_description("[%s]" % (op + " " * (25 - len(op))))
+
+        loop_out_raw = os.path.join(
+            dump_dir, "bench_raw_%s_%s.csv" % (runtime, op))
+        loop_out_sum = os.path.join(
+            dump_dir, "bench_sum_%s_%s.csv" % (runtime, op))
+        cmd = ('{0} -m mlprodict validate_runtime --verbose=0 --out_raw={1} --out_summary={2} '
+               '--benchmark=1 --dump_folder={3} --runtime={4} --models={5}'.format(
+                   get_interpreter_path(), loop_out_raw, loop_out_sum, dump_dir, runtime, op))
+        if verbose > 1:
+            fLOG("[mlprodict] cmd '{}'.".format(cmd))
+        out, err = run_cmd(cmd, wait=True, fLOG=None)
+        if not os.path.exists(loop_out_sum):
+            if verbose > 2:
+                fLOG("[mlprodict] unable to find '{}'.".format(loop_out_sum))
+            if verbose > 1:
+                fLOG("[mlprodict] cmd '{}'".format(cmd))
+                fLOG("[mlprodict] unable to find '{}'".format(loop_out_sum))
+                msg = "Unable to find '{}'\n--CMD--\n{}\n--OUT--\n{}\n--ERR--\n{}".format(
+                    loop_out_sum, cmd, out, err)
+                fLOG(msg)
+            rows = [{'name': op, 'scenario': 'CRASH',
+                     'ERROR-msg': msg.replace("\n", " -- ")}]
+            df = DataFrame(rows)
+            df.to_csv(loop_out_sum, index=False)
+        filenames.append((loop_out_raw, loop_out_sum))
+
+    # concatenate summaries
+    dfs_raw = [read_csv(name[0])
+               for name in filenames if os.path.exists(name[0])]
+    dfs_sum = [read_csv(name[1])
+               for name in filenames if os.path.exists(name[1])]
+    df_raw = concat(dfs_raw, sort=False)
+    piv = concat(dfs_sum, sort=False)
+
+    opset_cols = [(int(oc.replace("opset", "")), oc)
+                  for oc in piv.columns if 'opset' in oc]
+    opset_cols.sort(reverse=True)
+    opset_cols = [oc[1] for oc in opset_cols]
+    new_cols = opset_cols[:1]
+    bench_cols = ["RT/SKL-N=1", "N=10", "N=100",
+                  "N=1000", "N=10000"]
+    new_cols.extend(["ERROR-msg", "name", "problem", "scenario", 'optim'])
+    new_cols.extend(bench_cols)
+    new_cols.extend(opset_cols[1:])
+    for c in bench_cols:
+        new_cols.append(c + '-min')
+        new_cols.append(c + '-max')
+    for c in piv.columns:
+        if c.startswith("skl_") or c.startswith("onx_"):
+            new_cols.append(c)
+    new_cols = [_ for _ in new_cols if _ in piv.columns]
+    piv = piv[new_cols]
+
+    _save(piv, out_summary)
+    _save(df_raw, out_raw)
+    return filenames
 
 
 def validate_runtime(verbose=1, opset_min=-1, opset_max="",

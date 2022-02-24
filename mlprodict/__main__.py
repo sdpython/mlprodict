@@ -15,7 +15,8 @@ def main(args, fLOG=print):
     @param      fLOG        logging function
     """
     try:
-        from .cli.validate import validate_runtime
+        from .cli.validate import (
+            validate_runtime, latency, benchmark_doc)
         from .cli.convert_validate import convert_validate
         from .cli.optimize import onnx_optim, onnx_stats
         from .cli.asv_bench import asv_bench
@@ -23,9 +24,9 @@ def main(args, fLOG=print):
         from .cli.replay import benchmark_replay
         from .cli.einsum import einsum_test
         from .cli.onnx_code import onnx_code, dynamic_doc, plot_onnx
-        from .cli.validate import latency
     except ImportError:  # pragma: no cover
-        from mlprodict.cli.validate import validate_runtime
+        from mlprodict.cli.validate import (
+            validate_runtime, latency, benchmark_doc)
         from mlprodict.cli.convert_validate import convert_validate
         from mlprodict.cli.optimize import onnx_optim, onnx_stats
         from mlprodict.cli.asv_bench import asv_bench
@@ -33,7 +34,6 @@ def main(args, fLOG=print):
         from mlprodict.cli.replay import benchmark_replay
         from mlprodict.cli.einsum import einsum_test
         from mlprodict.cli.onnx_code import onnx_code, dynamic_doc, plot_onnx
-        from mlprodict.cli.validate import latency
 
     fcts = dict(validate_runtime=validate_runtime,
                 convert_validate=convert_validate,
@@ -46,7 +46,8 @@ def main(args, fLOG=print):
                 onnx_code=onnx_code,
                 latency=latency,
                 dynamic_doc=dynamic_doc,
-                plot_onnx=plot_onnx)
+                plot_onnx=plot_onnx,
+                benchmark_doc=benchmark_doc)
     try:
         from pyquickhelper.cli import cli_main_helper
     except ImportError:  # pragma: no cover

@@ -18,8 +18,7 @@ from pyquickhelper.loghelper import run_cmd
 from pyquickhelper.loghelper.run_cmd import get_interpreter_path
 from mlprodict.onnxrt.validate.validate_helper import sklearn_operators
 from mlprodict.onnxrt.doc.doc_write_helper import (
-    split_columns_subsets, build_key_split, filter_rows, _make_opset
-)
+    split_columns_subsets, build_key_split, filter_rows, _make_opset)
 from mlprodict.onnxrt.validate.validate_summary import _clean_values_optim
 from mlprodict.onnx_conv import register_converters, register_rewritten_operators
 register_converters()
@@ -46,41 +45,6 @@ def write_page_onnxrt_ops(app):
     print("[mlprodict-sphinx] done page '{}'.".format(whe))
 
 
-def run_benchmark(runtime, srcdir, logger, skip, white_list=None):
-    filenames = []
-    skls = sklearn_operators(extended=True)
-    skls = [_['name'] for _ in skls]
-    if white_list:
-        skls = [_ for _ in skls if _ in white_list]
-    skls.sort()
-    pbar = tqdm(skls)
-    for op in pbar:
-        if skip is not None and op in skip:
-            continue
-        pbar.set_description("[%s]" % (op + " " * (25 - len(op))))
-
-        out_raw = os.path.join(srcdir, "bench_raw_%s_%s.csv" % (runtime, op))
-        out_sum = os.path.join(srcdir, "bench_sum_%s_%s.csv" % (runtime, op))
-        cmd = ('{0} -m mlprodict validate_runtime --verbose=0 --out_raw={1} --out_summary={2} '
-               '--benchmark=1 --dump_folder={3} --runtime={4} --models={5}'.format(
-                   get_interpreter_path(), out_raw, out_sum, srcdir, runtime, op))
-        logger.info("[mlprodict] cmd '{}'.".format(cmd))
-        out, err = run_cmd(cmd, wait=True, fLOG=None)
-        if not os.path.exists(out_sum):
-            logger.warning("[mlprodict] unable to find '{}'.".format(out_sum))
-            print("[mlprodict-sphinx] cmd '{}'".format(cmd))
-            print("[mlprodict-sphinx] unable to find '{}'".format(out_sum))
-            msg = "Unable to find '{}'\n--CMD--\n{}\n--OUT--\n{}\n--ERR--\n{}".format(
-                out_sum, cmd, out, err)
-            print(msg)
-            rows = [{'name': op, 'scenario': 'CRASH',
-                     'ERROR-msg': msg.replace("\n", " -- ")}]
-            df = DataFrame(rows)
-            df.to_csv(out_sum, index=False)
-        filenames.append((out_raw, out_sum))
-    return filenames
-
-
 def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
     from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets
@@ -102,47 +66,19 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     logger.info("[mlprodict] create page '{}'.".format(whe))
     print("[mlprodict-sphinx] create page runtime '{}' - '{}'.".format(runtime, whe))
 
-    filenames = run_benchmark(runtime, srcdir, logger, skip,
-                              white_list=white_list)
-    dfs_raw = [read_csv(name[0])
-               for name in filenames if os.path.exists(name[0])]
-    dfs_sum = [read_csv(name[1])
-               for name in filenames if os.path.exists(name[1])]
-    df_raw = concat(dfs_raw, sort=False)
-    piv = concat(dfs_sum, sort=False)
-
-    opset_cols = [(int(oc.replace("opset", "")), oc)
-                  for oc in piv.columns if 'opset' in oc]
-    opset_cols.sort(reverse=True)
-    opset_cols = [oc[1] for oc in opset_cols]
-    new_cols = opset_cols[:1]
-    bench_cols = ["RT/SKL-N=1", "N=10", "N=100",
-                  "N=1000", "N=10000"]
-    new_cols.extend(["ERROR-msg", "name", "problem", "scenario", 'optim'])
-    new_cols.extend(bench_cols)
-    new_cols.extend(opset_cols[1:])
-    for c in bench_cols:
-        new_cols.append(c + '-min')
-        new_cols.append(c + '-max')
-    for c in piv.columns:
-        if c.startswith("skl_") or c.startswith("onx_"):
-            new_cols.append(c)
-    new_cols = [_ for _ in new_cols if _ in piv.columns]
-    piv = piv[new_cols]
-
-    out_sum = os.path.join(srcdir, "bench_sum_%s.xlsx" % runtime)
-    piv.to_excel(out_sum, index=False)
-    logger.info("[mlprodict] wrote '{}'.".format(out_sum))
-    print("[mlprodict-sphinx] wrote '{}'".format(out_sum))
+    out_sum = os.path.join(srcdir, "bench_raw_%s.xlsx" % runtime)
+    piv = pandas.from_excel(out_sum, index=False)
+    logger.info("[mlprodict] read '{}'.".format(out_sum))
+    print("[mlprodict-sphinx] read '{}'".format(out_sum))
 
     out_raw = os.path.join(srcdir, "bench_raw_%s.xlsx" % runtime)
-    df_raw.to_excel(out_raw, index=False)
+    df_raw = pandas.to_excel(out_raw, index=False)
     logger.info("[mlprodict] wrote '{}'.".format(out_raw))
     print("[mlprodict-sphinx] wrote '{}'".format(out_raw))
 
     logger.info("[mlprodict] shape '{}'.".format(piv.shape))
     print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
-
+    
     def make_link(row):
         link = ":ref:`{name} <l-{name}-{problem}-{scenario}-{optim}-{opset}>`"
         name = row['name']
