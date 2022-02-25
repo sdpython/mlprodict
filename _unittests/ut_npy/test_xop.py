@@ -27,6 +27,18 @@ from mlprodict.npy.xop_opset import (
 
 class TestXOps(ExtTestCase):
 
+    def test_square_error_no_output_names(self):
+        OnnxSub, OnnxMul = loadop('Sub', 'Mul')
+        diff = OnnxSub('X', 'Y')
+        error = OnnxMul(diff, diff)
+        onx = error.to_onnx(numpy.float32, numpy.float32)
+        X = numpy.array([4, 5], dtype=numpy.float32)
+        Y = numpy.array([4.3, 5.7], dtype=numpy.float32)
+        sess = OnnxInference(onx)
+        name = sess.output_names[0]
+        result = sess.run({'X': X, 'Y': Y})
+        assert_almost_equal((X - Y) ** 2, result[name])
+
     def test_float32(self):
         self.assertEqual(numpy.float32, numpy.dtype('float32'))
 

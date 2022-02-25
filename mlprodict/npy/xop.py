@@ -1054,7 +1054,7 @@ class OnnxOperator:
                         raise RuntimeError(
                             "Duplicated output name var=%r." % var)
                     set_names.add(var.name)
-                    new_outputs.append(var)
+                    new_outputs.append(OutputDetectedVariable(node, var))
             else:
                 for o in node.output_names:
                     to = _get_type(node, o, outputs=outputs)
@@ -1066,7 +1066,7 @@ class OnnxOperator:
                         raise RuntimeError(
                             "Duplicated output name o=%r var=%r." % (o, var))
                     set_names.add(var.name)
-                    new_outputs.append(var)
+                    new_outputs.append(OutputDetectedVariable(node, var))
         if len(new_outputs) == 0:
             raise RuntimeError(
                 "No detected outputs inputs=%r outputs=%r." % (

@@ -191,3 +191,22 @@ class Variable:
         if self.dtype_ != other.dtype_:
             return False
         return True
+
+
+class DetectedVariable:
+    
+    def __init__(self, node, var):
+        if not isinstance(var, Variable):
+            raise TypeError(
+                "Unexpected type %r, it should be a Variable."
+                "" % type(var))
+        self.node = self.node
+        self.var = var
+
+
+class InputDetectedVariable(DetectedVariable):
+    pass
+
+
+class OutputDetectedVariable(DetectedVariable):
+    pass
