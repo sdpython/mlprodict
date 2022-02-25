@@ -23,7 +23,7 @@ def get_ir_version(opv):
     """
     if isinstance(opv, dict):
         opv = opv['']
-    if opv >= 15:
+    if opv is None or opv >= 15:
         return 8
     if opv >= 12:
         return 7
