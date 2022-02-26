@@ -12,6 +12,10 @@ from sklearn.datasets import make_regression, make_classification
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, ignore_warnings
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
+from mlprodict import __max_supported_opsets__
+
+
+TARGET_OPSET = __max_supported_opsets__
 
 
 def fct_cl2(y):
@@ -87,7 +91,8 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
                             y_train = y_train[:, 1]
                         clr.fit(X_train, y_train)
 
-                        model_def = to_onnx(clr, X_train.astype(numpy.float32))
+                        model_def = to_onnx(clr, X_train.astype(numpy.float32),
+                                            target_opset=TARGET_OPSET)
 
                         oinf = OnnxInference(model_def)
                         y = oinf.run({'X': X_test.astype(numpy.float32)})
@@ -123,7 +128,8 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
         clr.fit(X_train, y_train, eval_set=[
                 (X_test, y_test)], early_stopping_rounds=40)
         onx = to_onnx(clr, X_train[:1].astype(numpy.float32),
-                      options={XGBClassifier: {'zipmap': False}})
+                      options={XGBClassifier: {'zipmap': False}},
+                      target_opset=TARGET_OPSET)
         sess = OnnxInference(onx)
         predict_list = [1., 20., 466., 0.]
         predict_array = numpy.array(predict_list).reshape(
