@@ -66,12 +66,18 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     logger.info("[mlprodict] create page '{}'.".format(whe))
     print("[mlprodict-sphinx] create page runtime '{}' - '{}'.".format(runtime, whe))
 
-    out_sum = os.path.join(srcdir, "bench_raw_%s.xlsx" % runtime)
+    out_sum = os.path.join(
+        srcdir, "skl_converters", "bench_raw_%s.xlsx" % runtime)
+    if not os.path.exists(out_sum):
+        raise FileNotFoundError("Unable to find %r." % out_sum)
     piv = pandas.from_excel(out_sum, index=False)
     logger.info("[mlprodict] read '{}'.".format(out_sum))
     print("[mlprodict-sphinx] read '{}'".format(out_sum))
 
-    out_raw = os.path.join(srcdir, "bench_raw_%s.xlsx" % runtime)
+    out_raw = os.path.join(
+        srcdir, "skl_converters", "bench_raw_%s.xlsx" % runtime)
+    if not os.path.exists(out_raw):
+        raise FileNotFoundError("Unable to find %r." % out_raw)
     df_raw = pandas.to_excel(out_raw, index=False)
     logger.info("[mlprodict] wrote '{}'.".format(out_raw))
     print("[mlprodict-sphinx] wrote '{}'".format(out_raw))
@@ -210,11 +216,9 @@ if __name__ == '__main__':
             # 'LGBMClassifier',
             # 'ARDRegression',
             # 'LogisticRegression'
-            'HistGradientBoostingRegressor'
-        })
+            'HistGradientBoostingRegressor'})
     write_page_onnxrt_benches_onnxruntime1(
         None, white_list={
             # 'LGBMClassifier',
             # 'ARDRegression',
-            'HistGradientBoostingRegressor'
-        })
+            'HistGradientBoostingRegressor'})
