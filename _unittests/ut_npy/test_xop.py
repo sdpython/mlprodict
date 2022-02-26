@@ -853,5 +853,5 @@ class TestXOps(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestXOps().test_if2()
+    TestXOps().test_onnx_abs()
     unittest.main(verbosity=2)

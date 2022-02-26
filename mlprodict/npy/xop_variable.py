@@ -200,8 +200,12 @@ class DetectedVariable:
             raise TypeError(
                 "Unexpected type %r, it should be a Variable."
                 "" % type(var))
-        self.node = self.node
+        self.node = node
         self.var = var
+
+    @property
+    def name(self):
+        return self.var.name
 
 
 class InputDetectedVariable(DetectedVariable):

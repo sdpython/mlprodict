@@ -18,7 +18,8 @@ from onnx.numpy_helper import from_array, to_array
 from onnx.shape_inference import infer_shapes
 from ._cache import cache_folder
 from .xop_variable import (
-    Variable, is_numpy_dtype, numpy_type_prototype, max_supported_opset)
+    Variable, is_numpy_dtype, numpy_type_prototype, max_supported_opset,
+    DetectedVariable, InputDetectedVariable, OutputDetectedVariable)
 from .xop_auto import get_rst_doc
 
 
@@ -930,7 +931,7 @@ class OnnxOperator:
                             type(el), el))
             return new_inputs
 
-        def _process_input(inputs, set_inputs, inp, new_inputs):
+        def _process_input(inputs, set_inputs, node, inp, new_inputs):
             if isinstance(inp, OnnxOperator):
                 new_stack.append(inp)
             elif isinstance(inp, OnnxOperatorItem):
@@ -941,21 +942,26 @@ class OnnxOperator:
                     return
                 set_inputs.add(inp.name)
                 if inputs is None:
-                    new_inputs.append(inp)
+                    new_inputs.append(InputDetectedVariable(node, inp))
                 elif isinstance(inputs, dict):
                     if inp.name in inputs:
-                        new_inputs.append(inp.copy_merge(inputs[inp.name]))
+                        new_inputs.append(
+                            InputDetectedVariable(
+                                node, inp.copy_merge(inputs[inp.name])))
                     else:
                         raise ValueError(  # pragma: no cover
                             "Unable to find input %r in %r." % (
                                 inp, inputs))
                 elif is_numpy_dtype(inputs):
-                    new_inputs.append(inp.copy_add(inputs))
+                    new_inputs.append(
+                        InputDetectedVariable(node, inp.copy_add(inputs)))
                 elif isinstance(inputs, Variable):
                     if inp.name == inputs.name:
-                        new_inputs.append(inp.copy_merge(inputs))
+                        new_inputs.append(
+                            InputDetectedVariable(node, inp.copy_merge(inputs)))
                     else:
-                        new_inputs.append(inp)
+                        new_inputs.append(
+                            InputDetectedVariable(node, inp))
                 else:
                     raise RuntimeError(  # pragma: no cover
                         "Unable to handle inputs=%r." % inputs)
@@ -1023,9 +1029,12 @@ class OnnxOperator:
             for obj in stack:
                 if isinstance(obj, OnnxOperatorItem):
                     pass
-                else:
+                elif isinstance(obj, OnnxOperator):
                     for inp in obj.inputs:
-                        _process_input(inputs, set_inputs, inp, new_inputs)
+                        _process_input(inputs, set_inputs, obj, inp, new_inputs)
+                else:
+                    raise TypeError(
+                        "Unexpected type %r." % type(obj))
             stack = new_stack
 
         # eliminate duplicates
@@ -1510,7 +1519,7 @@ class _GraphBuilder:
             set_names = set()
             input_names = []
             for inp in inputs:
-                if isinstance(inp, Variable):
+                if isinstance(inp, OutputDetectedVariable):
                     if inp.name in set_names:
                         raise ValueError(
                             "Names already taken %r in %r." % (
@@ -1520,7 +1529,8 @@ class _GraphBuilder:
                         input_names.append(inp)
                 else:
                     raise TypeError(
-                        "Unexpected type %r in %r." % (inp, inputs))
+                        "Unexpected type %r (it should be "
+                        "OutputDetectedVariable) in %r." % (inp, inputs))
             if len(input_names) == 0:
                 raise RuntimeError(
                     "Unable to cross %r and %r." % (input, self.output_names_rev))
@@ -1549,20 +1559,23 @@ class _GraphBuilder:
 
         res = []
         for inp in inputs:
-            if not isinstance(inp, Variable):
+            if not isinstance(inp, DetectedVariable):
                 raise TypeError(
-                    "inp not Variable but %r (%r)." % (type(inp), inp))
+                    "inp not DetectedVariable but %r (%r)"
+                    "." % (type(inp), inp))
             var = d_input_names[inp.name]
             if not isinstance(var, Variable):
                 raise TypeError(
-                    "var not Variable but %r (%r)." % (type(var), var))
+                    "var not Variable but %r (%r)." % (
+                        type(var), var))
             # inp: Variable
             # var: str
-            if inp != var:
+            if inp.var != var:
                 raise RuntimeError(
                     "Unexpected %r != %r." % (inp, var))
             res.append(make_tensor_value_info(
-                inp.name, inp.proto_added_type, inp.proto_added_shape))
+                inp.name, inp.var.proto_added_type,
+                inp.var.proto_added_shape))
 
         return res
 
@@ -1582,6 +1595,12 @@ class _GraphBuilder:
         :return: onnx graph
         """
         # inputs and outputs
+        if not all(map(lambda x: isinstance(x, InputDetectedVariable), inputs)):
+            raise TypeError(
+                "One of the input is not InputDetectedVariable.")
+        if not all(map(lambda x: isinstance(x, OutputDetectedVariable), outputs)):
+            raise TypeError(
+                "One of the outputs is not OutputDetectedVariable.")
         self.input = self._process_io(inputs, list(self.input_names.values()))
         self.output = self._process_io(outputs, None)
 
