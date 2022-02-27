@@ -117,7 +117,7 @@ class TestXOpsConvert(ExtTestCase):
         sess = OnnxInference(onx)
         name = sess.output_names[0]
         result = sess.run({'X': X})[name]
-        self.assertEqualArray(expected, result)
+        self.assertEqualArray(expected, result, decimal=5)
 
 
 if __name__ == "__main__":
