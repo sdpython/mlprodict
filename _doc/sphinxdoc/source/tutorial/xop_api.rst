@@ -15,7 +15,7 @@ to a separate package. `Xop` is the contraction of *ONNX Operators*.
 
 .. contents::
     :local:
-    
+
 Short Example
 =============
 
@@ -24,11 +24,12 @@ two float tensor `X` and `Y`.
 
 .. runpython::
     :showcode:
-    
+
     import numpy
     from numpy.testing import assert_almost_equal
     from mlprodict.plotting.text_plot import onnx_simple_text_plot
     from mlprodict.npy.xop import loadop
+    from mlprodict.onnxrt import OnnxInference
 
     # This line creates one class for the operator Sub and Mul.
     # It fails if the operators are misspelled.
@@ -39,16 +40,16 @@ two float tensor `X` and `Y`.
     error = OnnxMul(diff, diff)
 
     # Then we create the ONNX graph defining 'X' and 'Y' as float.
-    onx = error.to_onnx(numpy.float32, numpy.float32, verbose=5)
+    onx = error.to_onnx(numpy.float32, numpy.float32)
 
-    # We check it does what it should
+    # We check it does what it should.
     X = numpy.array([4, 5], dtype=numpy.float32)
     Y = numpy.array([4.3, 5.7], dtype=numpy.float32)
 
-    from onnxruntime import InferenceSession
-    sess = InferenceSession(onx.SerializeToString())
-    result = sess.run(None, {'X': X, 'Y': Y})
-    assert_almost_equal((X - Y) ** 2, result[0])
+    sess = OnnxInference(onx)
+    name = sess.output_names
+    result = sess.run({'X': X, 'Y': Y})
+    assert_almost_equal((X - Y) ** 2, result[name[0]])
 
     # Finally, we show the content of the graph.
     print(onnx_simple_text_plot(onx))
@@ -62,20 +63,12 @@ Visually, the model looks like the following.
     from numpy.testing import assert_almost_equal
     from mlprodict.plotting.text_plot import onnx_simple_text_plot
     from mlprodict.npy.xop import loadop
+    from mlprodict.onnxrt import OnnxInference
 
-    # This line creates one class for the operator Sub and Mul.
-    # It fails if the operators are misspelled.
     OnnxSub, OnnxMul = loadop('Sub', 'Mul')
-
-    # Inputs are defined by their name as strings.
     diff = OnnxSub('X', 'Y')
     error = OnnxMul(diff, diff)
-
-    # Then we create the ONNX graph defining 'X' and 'Y' as float.
-    print(error)
-    import pprint
-    pprint.pprint(error.__dict__)
-    onx = error.to_onnx(numpy.float32, numpy.float32, verbose=5)
+    onx = error.to_onnx(numpy.float32, numpy.float32)
     oinf = OnnxInference(onx, inplace=False)
 
     print("DOT-SECTION", oinf.to_dot())

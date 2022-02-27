@@ -177,6 +177,15 @@ class Variable:
             res.added_shape_ = var.shape_
         return res
 
+    def copy_name(self, name):
+        """
+        Returns a copy with a new name.
+        """
+        return Variable(
+            name or self.name_, self.dtype_,
+            self.shape_, self.added_dtype_,
+            self.added_shape_)
+
     def __eq__(self, other):
         """
         Compares every attributes.
@@ -193,24 +202,83 @@ class Variable:
         return True
 
 
+class NodeResultName:
+    """
+    Defines a result name for a node.
+
+    :param node: node it comes from
+    :param index: index of the output
+    """
+
+    def __init__(self, node, index):
+        self.node = node
+        self.index = index
+
+    def __repr__(self):
+        "Usual"
+        return "%s(%r, %r)" % (self.__class__.__name__, self.node, self.index)
+
+    def get_name(self):
+        """
+        Returns a name from output_names or a suggestion for a name.
+        """
+        if self.node is None:
+            raise RuntimeError(
+                "node must not be None.")
+        if self.node.output_names is not None:
+            return self.node.output_names[self.index].name
+        cl = self.node.op_type.lower()[:3]
+        return "out_%s_%d" % (cl, self.index)
+
+
 class DetectedVariable:
-    
-    def __init__(self, node, var):
+    """
+    Wrapper around a @see cl Variable to detect inputs
+    and outputs of a graph.
+
+    :param node: node where the variable was detected
+    :param var: instance of @see cl Variable
+    :param index: index, only used if it is an output
+    """
+
+    def __init__(self, node, var, index):
         if not isinstance(var, Variable):
             raise TypeError(
                 "Unexpected type %r, it should be a Variable."
                 "" % type(var))
         self.node = node
         self.var = var
+        self.index = index
 
     @property
     def name(self):
+        "Returns variable name."
         return self.var.name
+
+    def __repr__(self):
+        "usual"
+        sindex = ", %s" % self.index if self.index >= 0 else ""
+        if self.node is None:
+            return "%s(None, %r%s)" % (
+                self.__class__.__name__, self.var, sindex)
+        return "%s(%s-%d, %r%s)" % (
+            self.__class__.__name__, self.node.__class__.__name__,
+            id(self.node), self.var, sindex)
 
 
 class InputDetectedVariable(DetectedVariable):
-    pass
+    """
+    Instance of @see cl DetectedVariable.
+    Only for inputs.
+    """
+
+    def __init__(self, node, var):
+        DetectedVariable.__init__(self, node, var, -1)
 
 
 class OutputDetectedVariable(DetectedVariable):
+    """
+    Instance of @see cl DetectedVariable.
+    Only for outputs.
+    """
     pass
