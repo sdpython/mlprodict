@@ -1066,7 +1066,7 @@ class OnnxOperator:
 
     def to_onnx(self, inputs=None, outputs=None,
                 other_outputs=None, target_opset=None,
-                verbose=0, run_shape=True):
+                optim=True, verbose=0, run_shape=True):
         """
         Converts this operator into an ONNX graph.
 
@@ -1079,6 +1079,8 @@ class OnnxOperator:
             node
         :param target_opset: dictionary with target opset per domain,
             None for the default one
+        :param optim: optimize the model with function
+            @see fn onnx_optimisations
         :param run_shape: in case output shapes are not specify,
             the function runs function :epkg:`infer_shapes`
             to guess them, False would disable that
@@ -1138,7 +1140,7 @@ class OnnxOperator:
         return builder.to_onnx(
             inputs=graph_inputs, outputs=graph_outputs,
             target_opset=target_opset, verbose=verbose,
-            run_shape=run_shape and run_shape2)
+            optim=optim, run_shape=run_shape and run_shape2)
 
     @staticmethod
     def _merge_op_version(n1, n2):
@@ -1630,7 +1632,7 @@ class _GraphBuilder:
 
     def to_onnx(self, inputs=None, outputs=None,
                 target_opset=None, run_shape=False,
-                verbose=0):
+                optim=True, verbose=0):
         """
         Converts this operator into an ONNX graph.
 
@@ -1640,6 +1642,8 @@ class _GraphBuilder:
         :param target_opset: dictionary with target opset per domain,
             None for the default one
         :param run_shape: run shape inference before returning the model
+        :param optim: optimize the model with function
+            @see fn onnx_optimisations
         :param verbose: prints information
         :return: onnx graph
         """
@@ -1666,6 +1670,12 @@ class _GraphBuilder:
             op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
             op_set.domain = k or ''
             op_set.version = v
+
+        # optimisation, remove redundant constant, unnecessary
+        # identity nodes.
+        if optim:
+            from ..onnx_tools.optim import onnx_optimisations
+            onnx_model = onnx_optimisations(onnx_model)
 
         if run_shape:
             return infer_shapes(onnx_model)
