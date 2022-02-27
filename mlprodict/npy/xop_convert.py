@@ -6,6 +6,7 @@
 """
 import numpy
 from .xop import OnnxOperator
+from .xop_variable import NodeResultName
 
 
 class OnnxSubOnnx(OnnxOperator):
@@ -59,22 +60,24 @@ class OnnxSubOnnx(OnnxOperator):
         """
         inputs = builder.get_input_names(self, self.inputs)
         n_outputs = len(self.model.graph.output)
-        outputs = [builder.get_output_name(self, i) for i in range(n_outputs)]
+        outputs = [builder.get_unique_output_name(NodeResultName(self, i))
+                   for i in range(n_outputs)]
 
         mapped_names = {}
 
         # adding initializers
         for init in self.model.graph.initializer:
-            new_name = builder.get_unique_name(init.name)
+            new_name = builder.get_unique_name(init.name, reserved=False)
             mapped_names[init.name] = new_name
             builder.add_initializer(new_name, init)
 
         # linking inputs
         for inp, name in zip(self.model.graph.input, inputs):
-            new_name = builder.get_unique_name(inp.name)
+            new_name = builder.get_unique_name(inp.name, reserved=False)
             mapped_names[inp.name] = new_name
             builder.add_node(
-                'Identity', builder.get_unique_name('_sub_' + name),
+                'Identity', builder.get_unique_name(
+                    '_sub_' + name, reserved=False),
                 [name], [new_name])
 
         # adding nodes
@@ -87,7 +90,7 @@ class OnnxSubOnnx(OnnxOperator):
                 new_inputs.append(mapped_names[i])
             new_outputs = []
             for o in node.output:
-                new_name = builder.get_unique_name(o)
+                new_name = builder.get_unique_name(o, reserved=False)
                 mapped_names[o] = new_name
                 new_outputs.append(new_name)
 
@@ -107,13 +110,14 @@ class OnnxSubOnnx(OnnxOperator):
 
             builder.add_node(
                 node.op_type,
-                builder.get_unique_name('_sub_' + node.name),
+                builder.get_unique_name('_sub_' + node.name, reserved=False),
                 new_inputs, new_outputs, domain=node.domain, **atts)
 
         # linking outputs
         for out, name in zip(self.model.graph.output, outputs):
             builder.add_node(
-                'Identity', builder.get_unique_name('_sub_' + out.name),
+                'Identity', builder.get_unique_name(
+                    '_sub_' + out.name, reserved=False),
                 [mapped_names[out.name]], [name])
 
 
@@ -141,6 +145,7 @@ class OnnxSubEstimator(OnnxSubOnnx):
     expected_outputs = None
     input_range = [1, 1e9]
     output_range = [1, 1e9]
+    op_type = "SubEstimator"
 
     def __init__(self, model, *inputs, op_version=None,
                  output_names=None, options=None,

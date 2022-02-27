@@ -889,7 +889,8 @@ class OnnxOperator:
                    for i in range(n_outputs)]
         builder.add_node(
             self.operator_name,
-            builder.get_unique_name('_' + self.operator_name.lower()),
+            builder.get_unique_name(
+                '_' + self.operator_name.lower(), reserved=False),
             inputs, outputs, domain=self.domain, opset=self.op_version,
             **self.kwargs)
 
@@ -1336,7 +1337,7 @@ class _GraphBuilder:
     * `node_output_names`: memorizes a name for a node output
         when the user did not specify any
         `{(id(node), index): OutputDetectedVariable}`
-    * `reserved_names`: dictionary `{ name : node, index }`,
+    * `reserved_names`: dictionary `{ name : (node, index) }`,
         name which should remain unchanged in the ONNX graph
     * `names`: list of uniques names
     """
@@ -1424,14 +1425,18 @@ class _GraphBuilder:
         self.node_output_names[key] = unique
         return unique
 
-    def get_unique_name(self, name):
+    def get_unique_name(self, name, reserved=True):
         """
         Returns a unique name to name an output.
+
+        :param name: name
+        :param reserved: bypass if the name is a reserved one
+        :return: unique name, may be the same if not taken already
         """
         if not isinstance(name, str):
             raise TypeError(  # pragma: no cover
                 "name must be a string not %r." % type(name))
-        if name in self.reserved_names:
+        if reserved and name in self.reserved_names:
             return name
         if name not in self.names:
             self._add_name(name)
@@ -1468,7 +1473,7 @@ class _GraphBuilder:
                 names.append(name)
             elif isinstance(i, numpy.ndarray):
                 # Adding an initializer
-                name = self.get_unique_name('init')
+                name = self.get_unique_name('init', reserved=False)
                 init = from_array(i, name)
                 self.initializer.append(init)
                 names.append(name)
