@@ -7,7 +7,8 @@ from logging import getLogger
 from pandas import DataFrame, read_excel, read_csv, concat, Series
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils._testing import ignore_warnings
-from sklearn.ensemble import AdaBoostRegressor, HistGradientBoostingRegressor
+from sklearn.ensemble import (
+    AdaBoostRegressor, HistGradientBoostingRegressor)
 from sklearn.gaussian_process import GaussianProcessClassifier
 import sphinx
 from tqdm import tqdm
@@ -47,7 +48,6 @@ def write_page_onnxrt_ops(app):
 
 def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
-    from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir if app is not None else ".."
 
@@ -67,20 +67,12 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
     print("[mlprodict-sphinx] create page runtime '{}' - '{}'.".format(runtime, whe))
 
     out_sum = os.path.join(
-        srcdir, "skl_converters", "bench_raw_%s.xlsx" % runtime)
+        srcdir, "skl_converters", "bench_sum_%s.xlsx" % runtime)
     if not os.path.exists(out_sum):
         raise FileNotFoundError("Unable to find %r." % out_sum)
-    piv = pandas.from_excel(out_sum, index=False)
+    piv = read_excel(out_sum)
     logger.info("[mlprodict] read '{}'.".format(out_sum))
     print("[mlprodict-sphinx] read '{}'".format(out_sum))
-
-    out_raw = os.path.join(
-        srcdir, "skl_converters", "bench_raw_%s.xlsx" % runtime)
-    if not os.path.exists(out_raw):
-        raise FileNotFoundError("Unable to find %r." % out_raw)
-    df_raw = pandas.to_excel(out_raw, index=False)
-    logger.info("[mlprodict] wrote '{}'.".format(out_raw))
-    print("[mlprodict-sphinx] wrote '{}'".format(out_raw))
 
     logger.info("[mlprodict] shape '{}'.".format(piv.shape))
     print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
