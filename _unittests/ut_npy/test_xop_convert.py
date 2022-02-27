@@ -5,8 +5,8 @@
 import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from sklearn.datasets import make_regression
-from sklearn.linear_model import LinearRegression
+from sklearn.datasets import make_regression, make_classification
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.xop import loadop
 from mlprodict.npy.xop_convert import OnnxSubOnnx, OnnxSubEstimator
@@ -95,6 +95,29 @@ class TestXOpsConvert(ExtTestCase):
         got = oinf.run({'X': X32})
         expected = lr.predict(X32)
         self.assertEqualArray(expected, got['Y'].ravel(), decimal=4)
+
+    def test_attributes(self):
+        # machine learning part
+        X, y = make_classification(
+            100, n_classes=2, n_features=5, n_redundant=0)
+        X = X.astype(numpy.float32)
+
+        lr1 = LogisticRegression().fit(X[:, :2], y)
+        lr2 = LogisticRegression().fit(X[:, 2:], y)
+        expected = (lr1.predict_proba(X[:, :2]) + lr2.predict_proba(X[:, 2:]))
+
+        OnnxIdentity, OnnxGather = loadop('Identity', 'Gather')
+        x1 = OnnxGather('X', numpy.array([0, 1], dtype=numpy.int64), axis=1)
+        x2 = OnnxGather('X', numpy.array([2, 3, 4], dtype=numpy.int64), axis=1)
+        p1 = OnnxSubEstimator(lr1, x1, initial_types=X[:, :2])
+        p2 = OnnxSubEstimator(lr2, x2, initial_types=X[:, 2:])
+        result = OnnxIdentity(p1[1]) + OnnxIdentity(p2[1])
+        onx = result.to_onnx(numpy.float32, numpy.float32)
+
+        sess = OnnxInference(onx)
+        name = sess.output_names[0]
+        result = sess.run({'X': X})[name]
+        self.assertEqualArray(expected, result)
 
 
 if __name__ == "__main__":

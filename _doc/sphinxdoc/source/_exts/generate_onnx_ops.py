@@ -24,7 +24,6 @@ class SupportedOnnxOpsDirective(Directive):
     def run(self):
         cls = _dynamic_class_creation(include_past=True)
         cls_name = [(c.__name__, c) for c in cls]
-        rows = []
         sorted_cls_name = list(sorted(cls_name))
         main = nodes.container()
 

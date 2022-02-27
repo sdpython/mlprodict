@@ -124,6 +124,23 @@ class TestXOps(ExtTestCase):
         got = oinf.run({'X': x})
         self.assertEqualArray(numpy.abs(x) * 2, got['Y'])
 
+    def test_reduce_mean_verbose(self):
+        from onnxruntime import InferenceSession
+        OnnxReduceMean, OnnxTopK, OnnxGatherElements = loadop(
+            'ReduceMean', 'TopK', 'GatherElements')
+        topk = OnnxTopK('X', numpy.array([2], dtype=numpy.int64), axis=1)
+        dist = OnnxGatherElements('W', topk[1], axis=1)
+        result = OnnxReduceMean(dist * topk[0], axes=[1])
+        X = numpy.array([[4, 5, 6], [7, 0, 1]], dtype=numpy.float32)
+        W = numpy.array([[1, 0.5, 0.6], [0.5, 0.2, 0.3]], dtype=numpy.float32)
+        onx = result.to_onnx(numpy.float32, numpy.float32)
+        sess = OnnxInference(onx)
+        name = sess.output_names[0]
+        result1 = sess.run({'X': X, 'W': W})[name]
+        sess2 = InferenceSession(onx.SerializeToString())
+        result2 = sess2.run(None, {'X': X, 'W': W})[0]
+        self.assertEqualArray(result1, result2)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

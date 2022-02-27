@@ -21,6 +21,8 @@ class OnnxSubOnnx(OnnxOperator):
     expected_outputs = None
     input_range = [1, 1e9]
     output_range = [1, 1e9]
+    op_type = 'SubOnnx'
+    domain = 'mlprodict.xop'
 
     def __init__(self, model, *inputs, output_names=None):
         if model is None:
@@ -100,8 +102,16 @@ class OnnxSubOnnx(OnnxOperator):
                     value = att.i
                     atts[att.name] = value
                     continue
+                if att.type == 3:  # .s
+                    value = att.s
+                    atts[att.name] = value
+                    continue
                 if att.type == 6:  # .floats
                     value = list(att.floats)
+                    atts[att.name] = value
+                    continue
+                if att.type == 7:  # .ints
+                    value = list(att.ints)
                     atts[att.name] = value
                     continue
                 raise NotImplementedError(
@@ -146,6 +156,7 @@ class OnnxSubEstimator(OnnxSubOnnx):
     input_range = [1, 1e9]
     output_range = [1, 1e9]
     op_type = "SubEstimator"
+    domain = 'mlprodict.xop'
 
     def __init__(self, model, *inputs, op_version=None,
                  output_names=None, options=None,

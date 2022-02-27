@@ -1322,6 +1322,16 @@ class OnnxOperator:
         OnnxNot = loadop('Not')
         return OnnxNot(self, op_version=self.op_version)
 
+    def astype(self, to):
+        """
+        Automatically adds operator `OnnxCast` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxCast(self, ov, to=to)`
+        """
+        OnnxCast = loadop('Cast')
+        return OnnxCast(self, to=to, op_version=self.op_version)
+
 
 class _GraphBuilder:
     """

@@ -800,6 +800,16 @@ class TestXOps(ExtTestCase):
         dot = oinf.to_dot()
         self.assertIn("_greater -> out_gre_0;", dot)
 
+    def test_onnx_astype(self):
+        OnnxIdentity = loadop("Identity")
+        ovi = OnnxIdentity('X')
+        last = OnnxIdentity(ovi.astype(numpy.int64), output_names=['Y'])
+        onx = last.to_onnx(numpy.float32, numpy.int64, verbose=0)
+        oinf = OnnxInference(onx)
+        x = numpy.array([[-2, 2.5], [0, 3]], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray(x.astype(numpy.int64), got['Y'])
+
 
 if __name__ == "__main__":
     # TestXOps().test_onnx_abs()
