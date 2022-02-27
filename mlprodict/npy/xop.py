@@ -18,7 +18,9 @@ from onnx.numpy_helper import from_array, to_array
 from onnx.shape_inference import infer_shapes
 from ._cache import cache_folder
 from .xop_variable import (
-    Variable, is_numpy_dtype, numpy_type_prototype, max_supported_opset)
+    Variable, is_numpy_dtype, numpy_type_prototype, max_supported_opset,
+    DetectedVariable, InputDetectedVariable, OutputDetectedVariable,
+    NodeResultName)
 from .xop_auto import get_rst_doc
 
 
@@ -237,6 +239,7 @@ def ClassFactory(class_name, op_name, inputs, outputs,
                      'since_version': since_version,
                      'past_version': past_version,
                      'attr_names': attr_names,
+                     'op_type': op_name,
                      '__module__': __name__})
     return newclass
 
@@ -476,10 +479,14 @@ class OnnxOperatorItem:
         self.op_version = op_version
 
     @property
+    def output_names(self):
+        "Returns None."
+        return None
+
+    @property
     def inputs(self):
         "Returns the only inputs in a list."
-        inp = self.onx_op.output
-        return [inp[self.index]]
+        return [NodeResultName(self.onx_op, self.index)]
 
     def add_to(self, builder):
         """
@@ -497,13 +504,13 @@ class OnnxOperatorItem:
         """
         return "%s[%d]" % (str(self.onx_op), self.index)
 
-    def get_output_name(self, i=0):
+    def get_output_result(self, i=0):
         """
         Returns the output name at position *i*.
         """
         if i != 0:
             raise IndexError("Can only return the first item.")
-        return self.onx_op.get_output_name(self.index)
+        return self.onx_op.get_output_result(self.index)
 
     def get_output(self, i=0):
         """
@@ -607,19 +614,11 @@ class OnnxOperator:
         self.state = None
         self.domain = domain
         self.kwargs = kwargs
-        self.onnx_prefix_name = None
         self.max_item_ = None
 
         # check inputs
-        if len(inputs) == 0:
-            if self.input_range[0] == self.input_range[1]:
-                self.inputs = [OnnxOperator.UnscopedVariable(_[0])
-                               for _ in self.expected_inputs]
-            else:
-                # The number of inputs may vary.
-                self.inputs = None
-        else:
-            self.inputs = []
+        self.inputs = []
+        if len(inputs) > 0:
             for inp in inputs:
                 if isinstance(inp, str):
                     self.inputs.append(Variable(inp))
@@ -634,15 +633,14 @@ class OnnxOperator:
                         "operator '{}' (value={}).".format(
                             type(inp), self.__class__.__name__, inp))
 
-        if self.inputs is not None:
-            if (len(self.inputs) < self.input_range[0] or
-                    len(self.inputs) > self.input_range[1]):
-                raise RuntimeError(
-                    "Operator '{}' expects a number of inputs "
-                    "in [{}, {}] not {} (expected opset={}, "
-                    "class opset={})".format(
-                        self.operator_name, *self.input_range,
-                        len(self.inputs), op_version, self.op_version))
+        if (self.inputs is not None and
+                (len(self.inputs) < self.input_range[0] or
+                    len(self.inputs) > self.input_range[1])):
+            raise RuntimeError(
+                "Operator '{}' expects a number of inputs in [{}, {}] not {} "
+                "(expected opset={}, class opset={})".format(
+                    self.operator_name, *self.input_range,
+                    len(self.inputs), op_version, self.op_version))
         # global context
         if global_context is None:
             self.global_context = None
@@ -836,30 +834,11 @@ class OnnxOperator:
             [str(o) for o in self.output_names]
             if self.output_names is not None else "?")
 
-    def set_onnx_name_prefix(self, onnx_prefix_name):
+    def get_output_result(self, i=0):
         """
-        Provides a name to define a prefix in the onnx graph
-        to avoid to get unreadable node names. The method
-        does not overwrite an existing name, it propagates
-        the prefix to inputs and stops the propagation
-        if the prefix is already defined.
+        Returns the output name at position *i*.
         """
-        if self.onnx_prefix_name is None:
-            self.onnx_prefix_name = onnx_prefix_name
-            for inp in self.inputs:
-                if hasattr(inp, 'set_onnx_prefix_name'):
-                    inp.set_onnx_name_prefix(onnx_prefix_name)
-        return self
-
-    @property
-    def onnx_prefix(self):
-        "Returns a prefix for results coming out from this node."
-        if self.onnx_prefix_name is None:
-            name = self.__class__.__name__
-            if name.startswith("Onnx"):
-                name = name[4:]
-            return 'out_' + name[:3].lower()
-        return self.onnx_prefix_name
+        return NodeResultName(self, i)
 
     def __getitem__(self, index):
         """
@@ -906,10 +885,12 @@ class OnnxOperator:
             n_outputs = len(self.expected_outputs)
         else:
             n_outputs = self.output_range[0]
-        outputs = [builder.get_output_name(self, i) for i in range(n_outputs)]
+        outputs = [builder.get_unique_output_name(NodeResultName(self, i))
+                   for i in range(n_outputs)]
         builder.add_node(
             self.operator_name,
-            builder.get_unique_name('_' + self.operator_name.lower()),
+            builder.get_unique_name(
+                '_' + self.operator_name.lower(), reserved=False),
             inputs, outputs, domain=self.domain, opset=self.op_version,
             **self.kwargs)
 
@@ -930,7 +911,7 @@ class OnnxOperator:
                             type(el), el))
             return new_inputs
 
-        def _process_input(inputs, set_inputs, inp, new_inputs):
+        def _process_input(inputs, set_inputs, node, inp, new_inputs):
             if isinstance(inp, OnnxOperator):
                 new_stack.append(inp)
             elif isinstance(inp, OnnxOperatorItem):
@@ -941,21 +922,26 @@ class OnnxOperator:
                     return
                 set_inputs.add(inp.name)
                 if inputs is None:
-                    new_inputs.append(inp)
+                    new_inputs.append(InputDetectedVariable(node, inp))
                 elif isinstance(inputs, dict):
                     if inp.name in inputs:
-                        new_inputs.append(inp.copy_merge(inputs[inp.name]))
+                        new_inputs.append(
+                            InputDetectedVariable(
+                                node, inp.copy_merge(inputs[inp.name])))
                     else:
                         raise ValueError(  # pragma: no cover
                             "Unable to find input %r in %r." % (
                                 inp, inputs))
                 elif is_numpy_dtype(inputs):
-                    new_inputs.append(inp.copy_add(inputs))
+                    new_inputs.append(
+                        InputDetectedVariable(node, inp.copy_add(inputs)))
                 elif isinstance(inputs, Variable):
                     if inp.name == inputs.name:
-                        new_inputs.append(inp.copy_merge(inputs))
+                        new_inputs.append(
+                            InputDetectedVariable(node, inp.copy_merge(inputs)))
                     else:
-                        new_inputs.append(inp)
+                        new_inputs.append(
+                            InputDetectedVariable(node, inp))
                 else:
                     raise RuntimeError(  # pragma: no cover
                         "Unable to handle inputs=%r." % inputs)
@@ -1023,9 +1009,13 @@ class OnnxOperator:
             for obj in stack:
                 if isinstance(obj, OnnxOperatorItem):
                     pass
-                else:
+                elif isinstance(obj, OnnxOperator):
                     for inp in obj.inputs:
-                        _process_input(inputs, set_inputs, inp, new_inputs)
+                        _process_input(inputs, set_inputs,
+                                       obj, inp, new_inputs)
+                else:
+                    raise TypeError(
+                        "Unexpected type %r." % type(obj))
             stack = new_stack
 
         # eliminate duplicates
@@ -1048,15 +1038,15 @@ class OnnxOperator:
                     to = _get_type(node, outputs=outputs)
                     if to is None:
                         run_shape = True
-                    res = 'out%d' % i
+                    res = '???_%d' % i
                     var = Variable(res, added_dtype=to)
                     if var.name in set_names:
                         raise RuntimeError(
                             "Duplicated output name var=%r." % var)
                     set_names.add(var.name)
-                    new_outputs.append(var)
+                    new_outputs.append(OutputDetectedVariable(node, var, i))
             else:
-                for o in node.output_names:
+                for i, o in enumerate(node.output_names):
                     to = _get_type(node, o, outputs=outputs)
                     if to is None:
                         run_shape = True
@@ -1066,7 +1056,7 @@ class OnnxOperator:
                         raise RuntimeError(
                             "Duplicated output name o=%r var=%r." % (o, var))
                     set_names.add(var.name)
-                    new_outputs.append(var)
+                    new_outputs.append(OutputDetectedVariable(node, var, i))
         if len(new_outputs) == 0:
             raise RuntimeError(
                 "No detected outputs inputs=%r outputs=%r." % (
@@ -1076,7 +1066,7 @@ class OnnxOperator:
 
     def to_onnx(self, inputs=None, outputs=None,
                 other_outputs=None, target_opset=None,
-                verbose=0, run_shape=True):
+                optim=True, verbose=0, run_shape=True):
         """
         Converts this operator into an ONNX graph.
 
@@ -1089,6 +1079,8 @@ class OnnxOperator:
             node
         :param target_opset: dictionary with target opset per domain,
             None for the default one
+        :param optim: optimize the model with function
+            @see fn onnx_optimisations
         :param run_shape: in case output shapes are not specify,
             the function runs function :epkg:`infer_shapes`
             to guess them, False would disable that
@@ -1129,14 +1121,26 @@ class OnnxOperator:
                 print("nodes[%d]=%r" % (i, n))
             for i, n in enumerate(graph_inputs):
                 print("graph_inputs[%d]=%r" % (i, n))
+
+        # creates a _GraphBuilder
         builder = _GraphBuilder()
+
+        # reserve input names starting by the first one
+        for node in reversed(nodes):
+            for var in node.inputs:
+                if isinstance(var, Variable):
+                    builder._add_name(var.name)
+
+        # reserve output names starting by the last ones
+        for node in reversed(nodes):
+            builder.reserve_names(node, node.output_names)
         for node in nodes:
             node.add_to(builder)
 
         return builder.to_onnx(
             inputs=graph_inputs, outputs=graph_outputs,
             target_opset=target_opset, verbose=verbose,
-            run_shape=run_shape and run_shape2)
+            optim=optim, run_shape=run_shape and run_shape2)
 
     @staticmethod
     def _merge_op_version(n1, n2):
@@ -1318,10 +1322,36 @@ class OnnxOperator:
         OnnxNot = loadop('Not')
         return OnnxNot(self, op_version=self.op_version)
 
+    def astype(self, to):
+        """
+        Automatically adds operator `OnnxCast` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxCast(self, ov, to=to)`
+        """
+        OnnxCast = loadop('Cast')
+        return OnnxCast(self, to=to, op_version=self.op_version)
+
 
 class _GraphBuilder:
     """
-    Graph builder.
+    Graph builder. It takes a graph structure made with
+    instances or @see cl OnnxOperator and @see cl OnnxOperatorItem.
+    The main method is `to_onnx`.
+
+    * `initializer`: list of initializers to add to the ONNX graph
+    * `node`: list of nodes to add to the ONNX graph
+    * `input`: list of inputs to add to the ONNX graph
+    * `output`: list of inputs to add to the ONNX graph
+    * `opsets`: opsets of the ONNX graph
+    * `input_names`: dictionary of input names
+        `{name: InputDetectedVariable}`
+    * `node_output_names`: memorizes a name for a node output
+        when the user did not specify any
+        `{(id(node), index): OutputDetectedVariable}`
+    * `reserved_names`: dictionary `{ name : (node, index) }`,
+        name which should remain unchanged in the ONNX graph
+    * `names`: list of uniques names
     """
 
     def __init__(self):
@@ -1330,10 +1360,13 @@ class _GraphBuilder:
         self.input = []
         self.output = []
         self.opsets = {}
-        self.names = set()
         self.input_names = {}
-        self.output_names = {}
-        self.output_names_rev = {}
+        self.node_output_names = {}
+        self.reserved_names = {}
+        self.names = set()
+
+    def _add_name(self, name):
+        self.names.add(name)
 
     @staticmethod
     def number2alpha(index):
@@ -1346,71 +1379,87 @@ class _GraphBuilder:
             return dec
         return chr(96 + len(dec)) + dec
 
-    def get_unique_name(self, name):
+    def reserve_names(self, node, output_names):
+        """
+        Adds names to the list of reserved names.
+        All must be unique.
+
+        :param node: node or None for an input
+        :param output_names: names of the output
+        """
+        if output_names is None:
+            return
+        for index, var in enumerate(output_names):
+            if not isinstance(var, Variable):
+                raise TypeError(
+                    "Unexpected type %r for %r." % (type(var), var))
+            self.reserve_name(node, var.name, index)
+
+    def reserve_name(self, node, name, index):
+        """
+        Reserves a name so that it cannot be changed.
+
+        :param node: node or None for an input
+        :param name: name
+        :param index: input index
+        """
+        if not isinstance(name, str):
+            raise TypeError(
+                "Name %r is not a string." % (name, ))
+        if name in self.reserved_names:
+            raise RuntimeError(
+                "Name %r is already reserved from node %r, index=%d." % (
+                    name, node, index))
+        self.reserved_names[name] = (node, index)
+        self._add_name(name)
+
+    def get_unique_output_name(self, result):
+        """
+        Returns a unique output_name for a NodeResultName.
+
+        :param result: instance of @see cl NodeResultName
+        """
+        if not isinstance(result, NodeResultName):
+            raise TypeError(
+                "Result must be of type NodeResultName not %r (%r)." % (
+                    type(result), result))
+        if result.node is None:
+            key = None, result.index
+        else:
+            key = id(result.node), result.index
+        if key in self.node_output_names:
+            return self.node_output_names[key]
+        name = result.get_name()
+        if name in self.reserved_names:
+            unique = name
+        else:
+            unique = self.get_unique_name(name)
+        self.node_output_names[key] = unique
+        return unique
+
+    def get_unique_name(self, name, reserved=True):
         """
         Returns a unique name to name an output.
+
+        :param name: name
+        :param reserved: bypass if the name is a reserved one
+        :return: unique name, may be the same if not taken already
         """
         if not isinstance(name, str):
             raise TypeError(  # pragma: no cover
                 "name must be a string not %r." % type(name))
+        if reserved and name in self.reserved_names:
+            return name
         if name not in self.names:
-            self.names.add(name)
+            self._add_name(name)
             return name
         i = 1
         new_name = "%s_%s" % (name, self.number2alpha(i))
         while new_name in self.names:
             i += 1
             new_name = "%s_%s" % (name, self.number2alpha(i))
-        self.names.add(new_name)
+        self._add_name(new_name)
         return new_name
-
-    def get_output_name(self, node, index):
-        """
-        Returns the output name for a node.
-        """
-        key = id(node), index
-        if key in self.output_names:
-            name = self.output_names[key]
-            return name
-
-        if node.output_names is None:
-            if node.expected_outputs is None:
-                prefix = node.onnx_prefix
-                n = '%s%d' % (prefix, index)
-            else:
-                n = node.expected_outputs[index][0]
-                if isinstance(n, tuple):
-                    if n[0] == 'NEWOUTPUT':
-                        # This case happen for node with undefined number
-                        # of outputs like Split.
-                        prefix = node.onnx_prefix
-                        n = '%s%d' % (prefix, index)
-                    else:
-                        raise RuntimeError(
-                            "Unexpected value for node=%r and output=%r." % (
-                                node, n))
-        else:
-            output = node.output_names[index]
-            if isinstance(output, Variable):
-                n = output.name
-            else:
-                raise TypeError(  # pragma: no cover
-                    "Unexpected type %r for output %d (output_names=%r)." % (
-                        type(output), index, node.output_names))
-
-        name = self.get_unique_name(n)
-        self.output_names[key] = name
-        self.output_names_rev[name] = key
-        if node.output_names is not None:
-            var = node.output_names[index]
-            if isinstance(var, Variable):
-                var = var.name
-            if var != name:
-                raise RuntimeError(
-                    "Output unique name %r is different from the "
-                    "expected name %r at position %r." % (
-                        name, node.output_names[index], index))
-        return name
 
     def get_input_names(self, node, inputs):
         """
@@ -1423,24 +1472,23 @@ class _GraphBuilder:
         names = []
         for i in inputs:
             if isinstance(i, Variable):
+                self._add_name(i.name)
                 names.append(i.name)
-                self.names.add(i.name)
-                self.input_names[i.name] = i
+                self.input_names[i.name] = InputDetectedVariable(None, i)
             elif isinstance(i, OnnxOperator):
-                name = self.get_output_name(i, 0)
+                key = id(i), 0
+                name = self.node_output_names[key]
                 names.append(name)
-                self.names.add(name)
             elif isinstance(i, OnnxOperatorItem):
-                name = self.get_output_name(i.onx_op, i.index)
+                key = id(i.onx_op), i.index
+                name = self.node_output_names[key]
                 names.append(name)
-                self.names.add(name)
             elif isinstance(i, numpy.ndarray):
                 # Adding an initializer
-                name = self.get_unique_name('init')
+                name = self.get_unique_name('init', reserved=False)
                 init = from_array(i, name)
                 self.initializer.append(init)
                 names.append(name)
-                self.names.add(name)
             else:
                 raise TypeError(  # pragma: no cover
                     "Unexpected type for an input %r." % type(i))
@@ -1481,7 +1529,7 @@ class _GraphBuilder:
         if any(map(lambda x: not isinstance(x, str), inputs)):
             raise TypeError(  # pragma: no cover
                 "inputs must be all strings not %r." % inputs)
-        if any(map(lambda x: not isinstance(x, (str, Variable)), outputs)):
+        if any(map(lambda x: not isinstance(x, str), outputs)):
             raise TypeError(  # pragma: no cover
                 "outputs must be all strings not %r." % outputs)
         if opset is not None:
@@ -1509,25 +1557,44 @@ class _GraphBuilder:
             # outputs
             set_names = set()
             input_names = []
+            new_inputs = []
             for inp in inputs:
-                if isinstance(inp, Variable):
+                if isinstance(inp, OutputDetectedVariable):
                     if inp.name in set_names:
                         raise ValueError(
                             "Names already taken %r in %r." % (
                                 inp.name, inputs))
                     set_names.add(inp.name)
-                    if inp.name in self.output_names_rev:
-                        input_names.append(inp)
+                    key = id(inp.node), inp.index
+                    if key in self.node_output_names:
+                        new_name = self.node_output_names[key]
+                        new_var = OutputDetectedVariable(
+                            inp.node, inp.var.copy_name(new_name), inp.index)
+                        input_names.append(new_var)
+                        new_inputs.append(new_var)
+                    else:
+                        raise RuntimeError(
+                            "Key %r is ambiguous or defined in "
+                            "two nodes %r, id(node)=%d, index=%d." % (
+                                key, inp, id(inp.node), inp.index))
                 else:
                     raise TypeError(
-                        "Unexpected type %r in %r." % (inp, inputs))
+                        "Unexpected type %r (it should be "
+                        "OutputDetectedVariable) in %r." % (inp, inputs))
+            inputs = new_inputs
             if len(input_names) == 0:
                 raise RuntimeError(
-                    "Unable to cross %r and %r." % (input, self.output_names_rev))
+                    "Unable to cross %r and %r or %r (set_names=%r)." % (
+                        inputs, self.output_names_rev,
+                        self.node_output_names_rev, set_names))
         elif not isinstance(input_names, list):
             raise RuntimeError(
                 "Unexpected type for input_names %r." % type(input_names))
+        else:
+            # inputs
+            pass
 
+        # common parts
         if len(input_names) != len(inputs):
             raise RuntimeError(  # pragma: no cover
                 "Mismatch between %r and %r." % (
@@ -1547,28 +1614,35 @@ class _GraphBuilder:
                 "Unexpected type for input_names %r (%r)." % (
                     type(input_names), input_names))
 
+        # mapping
         res = []
         for inp in inputs:
-            if not isinstance(inp, Variable):
+            if not isinstance(inp, DetectedVariable):
                 raise TypeError(
-                    "inp not Variable but %r (%r)." % (type(inp), inp))
+                    "inp not DetectedVariable but %r (%r)"
+                    "." % (type(inp), inp))
+            if inp.name.startswith('???'):
+                raise RuntimeError(
+                    "Issue with variable %r." % inp)
             var = d_input_names[inp.name]
-            if not isinstance(var, Variable):
+            if not isinstance(var, DetectedVariable):
                 raise TypeError(
-                    "var not Variable but %r (%r)." % (type(var), var))
+                    "var not Variable but %r (%r)." % (
+                        type(var), var))
             # inp: Variable
             # var: str
-            if inp != var:
+            if inp.var != var.var:
                 raise RuntimeError(
                     "Unexpected %r != %r." % (inp, var))
             res.append(make_tensor_value_info(
-                inp.name, inp.proto_added_type, inp.proto_added_shape))
+                inp.name, inp.var.proto_added_type,
+                inp.var.proto_added_shape))
 
         return res
 
     def to_onnx(self, inputs=None, outputs=None,
                 target_opset=None, run_shape=False,
-                verbose=0):
+                optim=True, verbose=0):
         """
         Converts this operator into an ONNX graph.
 
@@ -1578,10 +1652,18 @@ class _GraphBuilder:
         :param target_opset: dictionary with target opset per domain,
             None for the default one
         :param run_shape: run shape inference before returning the model
+        :param optim: optimize the model with function
+            @see fn onnx_optimisations
         :param verbose: prints information
         :return: onnx graph
         """
         # inputs and outputs
+        if not all(map(lambda x: isinstance(x, InputDetectedVariable), inputs)):
+            raise TypeError(
+                "One of the input is not InputDetectedVariable.")
+        if not all(map(lambda x: isinstance(x, OutputDetectedVariable), outputs)):
+            raise TypeError(
+                "One of the outputs is not OutputDetectedVariable.")
         self.input = self._process_io(inputs, list(self.input_names.values()))
         self.output = self._process_io(outputs, None)
 
@@ -1598,6 +1680,12 @@ class _GraphBuilder:
             op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
             op_set.domain = k or ''
             op_set.version = v
+
+        # optimisation, remove redundant constant, unnecessary
+        # identity nodes.
+        if optim:
+            from ..onnx_tools.optim import onnx_optimisations
+            onnx_model = onnx_optimisations(onnx_model)
 
         if run_shape:
             return infer_shapes(onnx_model)
