@@ -50,4 +50,4 @@ xgboost
 # onnx
 onnx>=1.10.1
 onnxruntime>=1.10.0
-skl2onnx>=1.10.2
+skl2onnx>=1.11

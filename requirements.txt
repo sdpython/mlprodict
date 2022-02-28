@@ -51,4 +51,4 @@ xgboost
 onnx>=1.11
 onnxruntime>=1.10.0
 onnxruntime-extensions>=0.4.2
-skl2onnx>=1.10.2
+skl2onnx>=1.11
