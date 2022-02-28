@@ -131,7 +131,7 @@ class OnnxNumpyCompiler:
             self.fct_ = fct
             if not inspect.isfunction(fct):
                 raise TypeError(  # pragma: no cover
-                    "Unexpected type for fct=%r, it must be "
+                    "Unexpected type for fct=%r, it must be a "
                     "function." % type(fct))
             self.onnx_ = None
             self.onnx_ = self._to_onnx(
@@ -369,14 +369,16 @@ class OnnxNumpyCompiler:
             hidden_algebras, var_graphs = self._find_hidden_algebras(
                 onx_var, onx_algebra)
             if len(hidden_algebras) > 0:
+                # print('----1', len(var_graphs))
                 # for gr in var_graphs:
                 #     print(type(gr), dir(gr))
+                # print('----2', len(hidden_algebras))
                 # for k, v in hidden_algebras.items():
                 #     print("*", type(v.alg_), dir(v.alg_))
-                #     import pprint
+                #     #import pprint
                 #     #pprint.pprint(dir(v.alg_))
                 raise NotImplementedError(
-                    "Subgraph only supports constants (operator If, Loop, "
+                    "Subgraphs only support constants (operator If, Loop, "
                     "Scan). hidden_algebras=%r var_graphs=%r" % (
                         hidden_algebras, var_graphs))
 

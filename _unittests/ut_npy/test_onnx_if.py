@@ -22,20 +22,6 @@ class TestOnnxVariableIf(ExtTestCase):
         return x - y + z
 
     @staticmethod
-    def fct_onnx_if_sub(x: NDArray[Any, numpy.float32],
-                        ) -> NDArray[Any, numpy.float32]:
-        "onnx numpy abs"
-        y = x * numpy.float32(2)
-        z = x + numpy.float32(7)
-        xif = nxnp.onnx_if(
-            nxnp.sum(x) > numpy.float32(0),
-            then_branch=nxnp.if_then_else(
-                lambda x, y: x / y, x, y),
-            else_branch=nxnp.if_then_else(
-                lambda x, y, z: x - y - z, x, y, z))
-        return xif + numpy.float32(-7)
-
-    @staticmethod
     def fct_onnx_if(x: NDArray[Any, numpy.float32],
                     ) -> NDArray[Any, numpy.float32]:
         "onnx numpy abs"
@@ -68,6 +54,20 @@ class TestOnnxVariableIf(ExtTestCase):
         self.assertEqualArray(
             y, numpy.array([-6], dtype=numpy.float32))
 
+
+    @staticmethod
+    def fct_onnx_if_sub(x: NDArray[Any, numpy.float32],
+                        ) -> NDArray[Any, numpy.float32]:
+        "onnx numpy abs"
+        y = x * numpy.float32(2)
+        z = x + numpy.float32(7)
+        a = numpy.float32(8)
+        xif = nxnp.onnx_if(
+            nxnp.sum(x) > numpy.float32(0),
+            then_branch=nxnp.if_then_else(lambda x, y: x / y, x, y),
+            else_branch=nxnp.if_then_else(lambda x, z: x - z * a, x, z))
+        return xif + numpy.float32(-7)
+
     @unittest.skipIf(True, reason="does not work yet")
     def test_onnx_if_sub(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
@@ -80,4 +80,5 @@ class TestOnnxVariableIf(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestOnnxVariableIf().test_onnx_if_sub()
     unittest.main()
