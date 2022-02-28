@@ -12,7 +12,7 @@ def _update_module():
     """
     Dynamically updates the module with operators defined by *ONNX*.
     """
-    res = _dynamic_class_creation()
+    res = _dynamic_class_creation(include_past=True)
     this = sys.modules[__name__]
     unique = set()
     for cl in res:
