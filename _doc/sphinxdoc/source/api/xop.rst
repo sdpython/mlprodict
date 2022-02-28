@@ -16,7 +16,7 @@ Automated gathering of operators
 
 .. autosignature:: mlprodict.npy.xop.ClassFactory
 
-.. autosignature:: mlprodict.npy.xop.dynamic_class_creation
+.. autosignature:: mlprodict.npy.xop._dynamic_class_creation
 
 .. autosignature:: mlprodict.npy.xop._GraphBuilder
 

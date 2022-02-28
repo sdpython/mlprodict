@@ -1336,7 +1336,8 @@ class OnnxOperator:
 class _GraphBuilder:
     """
     Graph builder. It takes a graph structure made with
-    instances or @see cl OnnxOperator and @see cl OnnxOperatorItem.
+    instances or @see cl OnnxOperator and :class:`OnnxOperatorItem
+    <mlprodict.npy.xop.OnnxOperatorItem>`.
     The main method is `to_onnx`.
 
     * `initializer`: list of initializers to add to the ONNX graph

@@ -1,0 +1,21 @@
+
+.. blogpost::
+    :title: Xop, easy to create onnx graph
+    :keywords: tips, tensorflow, tensorflow-onnx
+    :date: 2022-02-27
+    :categories: xop, onnx
+
+    :epkg:`onnx` package has a very verbose API to create ONNX
+    graph. Could you imagine a user to directly write the syntax tree
+    of a program instead of some python code? Creating a ONNX graph is
+    very similar to that task except ONNX language is more simple
+    than python.
+
+    We could start writing a compiler for ONNX language but it should be
+    defined first. Another option consists in using an existing API,
+    such as :epkg:`numpy` API (see :ref:`l-numpy2onnx-tutorial`).
+    But it is not always easy to keep the same simplicity when numpy is
+    not strongly typed and ONNX is. Another direction is to implement
+    :epkg:`ONNX Operators` as function. Adding an operator into a graph
+    becomes similar to a function call. This API is introduced in
+    :ref:`l-xop-api`.
