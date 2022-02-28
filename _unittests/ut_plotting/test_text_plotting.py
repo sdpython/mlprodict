@@ -200,8 +200,8 @@ class TestPlotTextPlotting(ExtTestCase):
         self.assertIn("|-|", text)
 
     def test_scan_plot(self):
-        (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,
-         OnnxAdd) = loadop('Sub', 'Identity',
+        (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,  # pylint: disable=W0621
+         OnnxAdd) = loadop('Sub', 'Identity',  # pylint: disable=W0621
                            'ReduceSumSquare', 'Scan', 'Add')
 
         def onnx_squareform_pdist(X, dtype=None, op_version=None, **kwargs):
@@ -218,15 +218,12 @@ class TestPlotTextPlotting(ExtTestCase):
                          Variable('scan_out', numpy.float32, (None, ))],  # tensor_type([None]))],
                 other_outputs=[flat],
                 target_opset=op_version)
-            output_names = [o.name for o in scan_body.graph.output]
             node = OnnxScan(X, X, output_names=['S1', 'S2'],
                             num_scan_inputs=1,
                             body=(scan_body.graph, [id_next, flat]),
                             op_version=op_version, **kwargs)
             return node[1]
 
-        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
-            numpy.float32).reshape((3, 2))
         cop = OnnxAdd('input', 'input')
         cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
         cop2 = OnnxIdentity(cdist, output_names=['cdist'])
