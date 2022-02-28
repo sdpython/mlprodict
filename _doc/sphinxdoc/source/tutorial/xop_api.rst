@@ -321,12 +321,12 @@ That is the purpose of class :class:`OnnxSubOnnx
     print('-- Relu graph')
     onx_relu = relu.to_onnx(numpy.float32, numpy.float32)
 
-    print("-- Relu results")
+    print("\n-- Relu results")
     print(onnx_simple_text_plot(onx_relu))
     sess = OnnxInference(onx_relu)
     name = sess.output_names[0]
     result = sess.run({'X': X})
-    print('-- Results:')
+    print('\n-- Results:')
     print(result[name])
 
     # Then the second graph including the first one.
@@ -337,14 +337,14 @@ That is the purpose of class :class:`OnnxSubOnnx
     result = OnnxSubOnnx(onx_relu, x_1)
 
     onx = result.to_onnx(numpy.float32, numpy.float32)
-    print('-- Whole graph')
+    print('\n-- Whole graph')
     print(onnx_simple_text_plot(onx))
 
     # Expected results?
     sess = OnnxInference(onx)
     name = sess.output_names[0]
     result = sess.run({'X': X})
-    print('-- Whole results:')
+    print('\n-- Whole results:')
     print(result[name])
 
 This mechanism is used to plug any model from :epkg:`scikit-learn`
@@ -399,7 +399,7 @@ calls the appropriate converter, :epkg:`sklearn-onnx` for
 
     # Then the second graph including the first one.
     onx = result.to_onnx(numpy.float32, numpy.float32)
-    print('-- Whole graph')
+    print('\n-- Whole graph')
     print(onnx_simple_text_plot(onx))
 
     # Expected results?
@@ -407,7 +407,48 @@ calls the appropriate converter, :epkg:`sklearn-onnx` for
     name = sess.output_names[0]
     result = sess.run({'X': X_test})[name]
 
-    print("score3", roc_auc_score(y_test, result[:, 1]))
+    print("\nscore3", roc_auc_score(y_test, result[:, 1]))
+
+.. gdot::
+    :script: DOT-SECTION
+
+    import numpy
+    from numpy.testing import assert_almost_equal
+    from sklearn.datasets import make_classification
+    from sklearn.model_selection import train_test_split
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import roc_auc_score
+    from mlprodict.plotting.text_plot import onnx_simple_text_plot
+    from mlprodict.npy.xop_convert import OnnxSubEstimator
+    from mlprodict.onnxrt import OnnxInference
+    from mlprodict.npy.xop import loadop
+
+    X, y = make_classification(1000, n_classes=2, n_features=5, n_redundant=0)
+    X = X.astype(numpy.float32)
+    X_train, X_test, y_train, y_test = train_test_split(X, y)
+    lr1 = LogisticRegression().fit(X_train[:, :2], y_train)
+    lr2 = LogisticRegression().fit(X_train[:, 2:], y_train)
+
+    p1 = lr1.predict_proba(X_test[:, :2])
+    print("score1", roc_auc_score(y_test, p1[:, 1]))
+    p2 = lr2.predict_proba(X_test[:, 2:])
+    print("score2", roc_auc_score(y_test, p2[:, 1]))
+
+    OnnxIdentity, OnnxGather = loadop('Identity', 'Gather')
+
+    x1 = OnnxGather('X', numpy.array([0, 1], dtype=numpy.int64), axis=1)
+    x2 = OnnxGather('X', numpy.array([2, 3, 4], dtype=numpy.int64), axis=1)
+
+    # Class OnnxSubEstimator inserts the model into the ONNX graph.
+    p1 = OnnxSubEstimator(lr1, x1, initial_types=X_train[:, :2])
+    p2 = OnnxSubEstimator(lr2, x2, initial_types=X_train[:, 2:])
+    result = ((OnnxIdentity(p1[1]) + OnnxIdentity(p2[1])) /
+        numpy.array([2], dtype=numpy.float32))
+
+    onx = result.to_onnx(numpy.float32, numpy.float32)
+    oinf = OnnxInference(onx, inplace=False)
+
+    print("DOT-SECTION", oinf.to_dot())
 
 Inputs, outputs
 ===============
@@ -705,8 +746,47 @@ to deal with. Unittests may provide more examples
     res = sess.run({'input': x})
     print(res)
 
-    print("-- Graph:")
-    print(onnx_simple_text_plot(model_def))
+    print("\n-- Graph:")
+    print(onnx_simple_text_plot(model_def, recursive=True))
 
-    print("-- Subgraph:")
-    print(onnx_simple_text_plot(scan_body))
+And visually:
+
+.. gdot::
+    :script: DOT-SECTION
+
+    import numpy
+    from mlprodict.plotting.text_plot import onnx_simple_text_plot
+    from mlprodict.onnxrt import OnnxInference
+    from mlprodict.npy.xop_variable import Variable
+    from mlprodict.npy.xop import loadop
+
+    (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,
+     OnnxAdd) = loadop('Sub', 'Identity',
+                       'ReduceSumSquare', 'Scan', 'Add')
+
+    # Building of the subgraph.
+    diff = OnnxSub('next_in', 'next')
+    id_next = OnnxIdentity('next_in', output_names=['next_out'])
+    flat = OnnxReduceSumSquare(
+        diff, axes=[1], output_names=['scan_out'], keepdims=0)
+    scan_body = id_next.to_onnx(
+        [Variable('next_in', numpy.float32, (None, None)),
+         Variable('next', numpy.float32, (None, ))],
+        outputs=[Variable('next_out', numpy.float32, (None, None)),
+                 Variable('scan_out', numpy.float32, (None, ))],
+        other_outputs=[flat])
+    output_names = [o.name for o in scan_body.graph.output]
+
+    cop = OnnxAdd('input', 'input')
+
+    # Subgraph as a graph attribute.
+    node = OnnxScan(cop, cop, output_names=['S1', 'S2'],
+                    num_scan_inputs=1,
+                    body=(scan_body.graph, [id_next, flat]))
+
+    cop2 = OnnxIdentity(node[1], output_names=['cdist'])
+
+    model_def = cop2.to_onnx(numpy.float32, numpy.float32)
+    oinf = OnnxInference(model_def, inplace=False)
+
+    print("DOT-SECTION", oinf.to_dot(recursive=True))
