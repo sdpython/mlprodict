@@ -20,6 +20,8 @@ from mlprodict.plotting.plotting import (
     onnx_text_plot, onnx_text_plot_tree, onnx_simple_text_plot,
     onnx_text_plot_io)
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.npy.xop_variable import Variable
+from mlprodict.npy.xop import loadop
 
 
 class TestPlotTextPlotting(ExtTestCase):
@@ -196,6 +198,45 @@ class TestPlotTextPlotting(ExtTestCase):
         text = onnx_simple_text_plot(onx, add_links=True)
         self.assertIn("Sqrt(Ad_C0) -> scores  <------", text)
         self.assertIn("|-|", text)
+
+    def test_scan_plot(self):
+        (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,
+         OnnxAdd) = loadop('Sub', 'Identity',
+                           'ReduceSumSquare', 'Scan', 'Add')
+
+        def onnx_squareform_pdist(X, dtype=None, op_version=None, **kwargs):
+            diff = OnnxSub('next_in', 'next',
+                           op_version=op_version)
+            id_next = OnnxIdentity('next_in', output_names=['next_out'],
+                                   op_version=op_version)
+            flat = OnnxReduceSumSquare(diff, axes=[1], op_version=op_version,
+                                       output_names=['scan_out'], keepdims=0)
+            scan_body = id_next.to_onnx(
+                [Variable('next_in', numpy.float32, (None, None)),  # tensor_type([None, None])),
+                 Variable('next', numpy.float32, (None, ))],  # tensor_type([None]))]),
+                outputs=[Variable('next_out', numpy.float32, (None, None)),  # ([None, None])),
+                         Variable('scan_out', numpy.float32, (None, ))],  # tensor_type([None]))],
+                other_outputs=[flat],
+                target_opset=op_version)
+            output_names = [o.name for o in scan_body.graph.output]
+            node = OnnxScan(X, X, output_names=['S1', 'S2'],
+                            num_scan_inputs=1,
+                            body=(scan_body.graph, [id_next, flat]),
+                            op_version=op_version, **kwargs)
+            return node[1]
+
+        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((3, 2))
+        cop = OnnxAdd('input', 'input')
+        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
+        cop2 = OnnxIdentity(cdist, output_names=['cdist'])
+
+        model_def = cop2.to_onnx(
+            {'input': numpy.float32},
+            outputs=[Variable('cdist', numpy.float32)])
+
+        text = onnx_simple_text_plot(model_def, recursive=True)
+        self.assertIn("----- subgraph", text)
 
 
 if __name__ == "__main__":

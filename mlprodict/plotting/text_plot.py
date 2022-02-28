@@ -383,7 +383,7 @@ def _get_shape(obj):
 
 
 def onnx_simple_text_plot(model, verbose=False, att_display=None,
-                          add_links=False):
+                          add_links=False, recursive=False):
     """
     Displays an ONNX graph into text.
 
@@ -392,6 +392,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
     :param att_display: list of attributes to display, if None,
         a default list if used
     :param add_links: displays links of the right side
+    :param recursive: display subgraphs as well
     :return: str
 
     An ONNX graph is printed the following way:
@@ -456,24 +457,104 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
     """
     if att_display is None:
         att_display = [
+            'activations',
+            'align_corners',
+            'allowzero',
             'alpha',
+            'auto_pad',
             'axis',
             'axes',
+            'batch_axis',
+            'batch_dims',
             'beta',
+            'bias',
+            'blocksize',
+            'case_change_action',
+            'ceil_mode',
+            'center_point_box',
+            'clip',
+            'coordinate_transformation_mode',
+            'count_include_pad',
+            'cubic_coeff_a',
+            'decay_factor',
+            'detect_negative',
+            'detect_positive',
             'dilation',
+            'dilations',
+            'direction',
+            'dtype',
             'end',
+            'epsilon',
             'equation',
+            'exclusive',
+            'exclude_outside',
+            'extrapolation_value',
+            'fmod',
+            'gamma',
+            'group',
+            'hidden_size',
+            'high',
+            'ignore_index',
+            'input_forget',
+            'is_case_sensitive',
+            'k',
             'keepdims',
             'kernel_shape',
+            'lambd',
+            'largest',
+            'layout',
+            'linear_before_reset',
+            'locale',
+            'low',
+            'max_gram_length',
+            'max_skip_count',
+            'mean',
+            'min_gram_length',
+            'mode',
+            'momentum',
+            'nearest_mode',
+            'ngram_counts',
+            'ngram_indexes',
+            'noop_with_empty_axes',
+            'norm_coefficient',
+            'norm_coefficient_post',
+            'num_scan_inputs',
+            'output_height',
+            'output_padding',
+            'output_shape',
+            'output_width',
             'p',
+            'padding_mode',
             'pads',
             'perm',
+            'pooled_shape',
+            'reduction',
+            'reverse',
+            'sample_size',
+            'sampling_ratio',
+            'scale',
+            'scan_input_axes',
+            'scan_input_directions',
+            'scan_output_axes',
+            'scan_output_directions',
+            'seed',
+            'select_last_index',
             'size',
+            'sorted',
+            'spatial_scale',
             'start',
+            'storage_order',
             'strides',
+            'time_axis',
             'to',
+            'training_mode',
             'transA',
             'transB',
+            'type',
+            'upper',
+            'xs',
+            'y',
+            'zs',
         ]
 
     def str_node(indent, node):
@@ -523,6 +604,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
     # successors, predecessors
     successors = {}
     predecessors = {}
+    subgraphs = []
     for node in model.node:
         node_name = node.name + "#" + "|".join(node.output)
         successors[node_name] = []
@@ -535,6 +617,11 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
         for name in node.output:
             successors[node_name].append(name)
             predecessors[name] = [node_name]
+        if recursive and node.op_type in {'If', 'Scan', 'Loop'}:
+            for att in node.attribute:
+                if att.name not in {'body', 'else_branch', 'then_branch'}:
+                    continue
+                subgraphs.append((node, att.name, att.g))
 
     # walk through nodes
     init_names = set()
@@ -657,6 +744,15 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                 # no line for link to the next node
                 continue
             _mark_link(rows, lengths, r1, r2, d)
+
+    # subgraphs
+    for node, name, g in subgraphs:
+        rows.append('----- subgraph ---- %s - %s - att.%s=' % (
+            node.op_type, node.name, name))
+        res = onnx_simple_text_plot(
+            g, verbose=verbose, att_display=att_display,
+            add_links=add_links, recursive=recursive)
+        rows.append(res)
 
     return "\n".join(rows)
 
