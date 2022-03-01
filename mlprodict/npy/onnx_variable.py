@@ -96,8 +96,13 @@ class OnnxVar:
             elif hasattr(inp, '_guess_dtype'):
                 dtypes.append(inp._guess_dtype(dtype))
             else:
-                raise TypeError(  # pragma: no cover
-                    "Unexpected type for input %i type=%r." % (i, type(inp)))
+                try:
+                    dtype = guess_numpy_type(inp)
+                except NotImplementedError as e:
+                    raise TypeError(  # pragma: no cover
+                        "Unexpected type for input %i type=%r." % (
+                            i, type(inp))) from e
+                dtypes.append(dtype)
         dtypes = [_ for _ in dtypes if _ is not None]
         unique = set(dtypes)
         if len(unique) != 1:

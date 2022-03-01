@@ -11,6 +11,8 @@ from sklearn.base import (
     RegressorMixin, TransformerMixin)
 from .onnx_numpy_wrapper import _created_classes_inst, wrapper_onnxnumpy_np
 from .onnx_numpy_annotation import NDArraySameType, NDArrayType
+from .xop_variable import Variable
+from .xop import loadop
 
 
 def _common_shape_calculator_t(operator):
@@ -104,7 +106,7 @@ def _common_converter_t(scope, operator, container):
             "This function only supports one output not %r." % len(
                 operator.outputs))
 
-    from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
+    OnnxIdentity = loadop('Identity')
     from .onnx_variable import OnnxVar
     xvar = OnnxVar(X[0])
     fct_cl = operator.onnx_numpy_fct_

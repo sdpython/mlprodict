@@ -601,15 +601,17 @@ class OnnxInference:
             sequence.append(node)
 
         if len(sequence) == 0:
+            from mlprodict.plotting.text_plot import onnx_simple_text_plot
             raise RuntimeError(  # pragma: no cover
-                "No runnable nodes was found in the ONNX graph"
+                "No runnablnodes was found in the ONNX graph"
                 "\n--rev--\n{}"
                 "\n--order--\n{}"
                 "\n--nodes--\n{}"
-                "\n---".format(
+                "\n--ONNX--\n{}\n---\n".format(
                     "\n".join([str(_) for _ in names.items()]),
                     "\n".join([str(_) for _ in order.items()]),
-                    "\n".join([str(_) for _ in nodes.items()])))
+                    "\n".join([str(_) for _ in nodes.items()]),
+                    onnx_simple_text_plot(self.obj, recursive=True)))
 
         # defines where an intermediare output is not needed
         last_used = {}

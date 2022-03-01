@@ -226,12 +226,6 @@ class _NDArrayAlias:
             self.__class__.__name__, self.dtypes, self.dtypes_out,
             self.n_optional)
 
-    def _to_onnx_dtype(self, dtype, shape):
-        from skl2onnx.common.data_types import _guess_numpy_type
-        if dtype == numpy.bool_:
-            dtype = numpy.bool_
-        return _guess_numpy_type(dtype, shape)
-
     def _get_output_types(self, key):
         """
         Tries to infer output types.
@@ -307,19 +301,7 @@ class _NDArrayAlias:
                         optional, self.n_optional, version, args, self.dtypes))
             optional = self.n_optional - optional
 
-        onnx_types = []
-        for k in version.args:
-            try:
-                o = self._to_onnx_dtype(k, None)
-            except NotImplementedError as e:
-                raise NotImplementedError(
-                    "Unable to extract type from [{}] in version {}, "
-                    "optional={} self.n_optional={} len(args)={} "
-                    "args={} kwargs={}.".format(
-                        k, version, optional, self.n_optional,
-                        len(args), args, kwargs)) from e
-            onnx_types.append(o)
-
+        onnx_types = [k for k in version.args]
         inputs = list(zip(args[:len(version.args)], onnx_types))
         if self.n_variables and len(inputs) < len(version.args):
             # Complete the list of inputs
@@ -329,7 +311,7 @@ class _NDArrayAlias:
                                onnx_types[len(inputs)]))
 
         key_out = self._get_output_types(version.args)
-        onnx_types_out = [self._to_onnx_dtype(k, None) for k in key_out]
+        onnx_types_out = key_out
 
         names_out = []
         names_in = set(inp[0] for inp in inputs)

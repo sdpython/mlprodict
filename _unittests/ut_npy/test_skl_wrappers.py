@@ -7,8 +7,7 @@ from collections import OrderedDict
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.linear_model import LinearRegression
-from skl2onnx.common.data_types import FloatTensorType, Int64TensorType
-from skl2onnx.common._topology import Variable  # pylint: disable=E0001, E0611
+from mlprodict.npy.xop_variable import Variable
 from mlprodict.npy.onnx_version import FctVersion
 from mlprodict.npy.onnx_sklearn_wrapper import (
     _common_shape_calculator_t, _common_shape_calculator_int_t,
@@ -16,19 +15,20 @@ from mlprodict.npy.onnx_sklearn_wrapper import (
 from mlprodict.npy.onnx_numpy_annotation import (
     NDArrayType, NDArrayTypeSameShape,
     NDArraySameTypeSameShape, NDArraySameType)
+from mlprodict import __max_supported_opset__
 
 
 class operator_dummy:
 
     def __init__(self, operator, inputs, outputs):
         self.raw_operator = operator
-        self.inputs = inputs
-        self.outputs = outputs
+        self.inputs = [i.to_skl2onnx() for i in inputs]
+        self.outputs = [o.to_skl2onnx() for o in outputs]
 
 
 class container_dummy:
     def __init__(self):
-        self.target_opset = 15
+        self.target_opset = __max_supported_opset__
 
 
 class TestWrappers(ExtTestCase):
@@ -40,12 +40,10 @@ class TestWrappers(ExtTestCase):
 
     def test_shape_calculator(self):
         model = LinearRegression()
-        vin = Variable('X', 'X', type=FloatTensorType(
-            [None, None]), scope=None)
-        vin2 = Variable('X2', 'X2', type=FloatTensorType(
-            [None, None]), scope=None)
-        vout = Variable('Y', 'Y', type=FloatTensorType([None]), scope=None)
-        vout2 = Variable('Y2', 'Y2', type=FloatTensorType([None]), scope=None)
+        vin = Variable('X', dtype=numpy.float32, shape=[None, None])
+        vin2 = Variable('X2', dtype=numpy.float32, shape=[None, None])
+        vout = Variable('Y', dtype=numpy.float32, shape=[None])
+        vout2 = Variable('Y2', dtype=numpy.float32, shape=[None])
         op = operator_dummy(model, inputs=[vin], outputs=[vout, vout2])
         self.assertRaise(lambda: _common_shape_calculator_t(op),
                          AttributeError)
@@ -60,13 +58,11 @@ class TestWrappers(ExtTestCase):
 
     def test_shape_calculator_int(self):
         model = LinearRegression()
-        vin = Variable('X', 'X', type=FloatTensorType(
-            [None, None]), scope=None)
-        vin2 = Variable('X2', 'X2', type=Int64TensorType(
-            [None, None]), scope=None)
-        vout = Variable('Y', 'Y', type=FloatTensorType([None]), scope=None)
-        vout2 = Variable('Y2', 'Y2', type=FloatTensorType([None]), scope=None)
-        vout3 = Variable('Y3', 'Y3', type=FloatTensorType([None]), scope=None)
+        vin = Variable('X', dtype=numpy.float32, shape=[None, None])
+        vin2 = Variable('X2', dtype=numpy.int64, shape=[None, None])
+        vout = Variable('Y', dtype=numpy.float32, shape=[None])
+        vout2 = Variable('Y2', dtype=numpy.float32, shape=[None])
+        vout3 = Variable('Y3', dtype=numpy.float32, shape=[None])
         op = operator_dummy(model, inputs=[vin], outputs=[vout, vout2, vout3])
         self.assertRaise(lambda: _common_shape_calculator_int_t(op),
                          AttributeError)
@@ -84,12 +80,10 @@ class TestWrappers(ExtTestCase):
     def test_convert_calculator(self):
         model = LinearRegression()
         model.fit(numpy.random.randn(10, 2), numpy.random.randn(10))
-        vin = Variable('X', 'X', type=FloatTensorType(
-            [None, None]), scope=None)
-        vin2 = Variable('X2', 'X2', type=FloatTensorType(
-            [None, None]), scope=None)
-        vout = Variable('Y', 'Y', type=FloatTensorType([None]), scope=None)
-        vout2 = Variable('Y2', 'Y2', type=FloatTensorType([None]), scope=None)
+        vin = Variable('X', dtype=numpy.float32, shape=[None, None])
+        vin2 = Variable('X2', dtype=numpy.float32, shape=[None, None])
+        vout = Variable('Y', dtype=numpy.float32, shape=[None])
+        vout2 = Variable('Y2', dtype=numpy.float32, shape=[None])
         op = operator_dummy(model, inputs=[vin], outputs=[vout, vout2])
         scope = None
         container = container_dummy()
@@ -104,19 +98,18 @@ class TestWrappers(ExtTestCase):
                          RuntimeError)
         op = operator_dummy(model, inputs=[vin], outputs=[vout])
         op.onnx_numpy_fct_ = None  # pylint: disable=W0201
+        _common_converter_t(scope, op, container)
         self.assertRaise(lambda: _common_converter_t(scope, op, container),
                          AttributeError)
 
     def test_convert_calculator_int(self):
         model = LinearRegression()
         model.fit(numpy.random.randn(10, 2), numpy.random.randn(10))
-        vin = Variable('X', 'X', type=FloatTensorType(
-            [None, None]), scope=None)
-        vin2 = Variable('X2', 'X2', type=FloatTensorType(
-            [None, None]), scope=None)
-        vout = Variable('Y', 'Y', type=FloatTensorType([None]), scope=None)
-        vout2 = Variable('Y2', 'Y2', type=Int64TensorType([None]), scope=None)
-        vout3 = Variable('Y2', 'Y2', type=FloatTensorType([None]), scope=None)
+        vin = Variable('X', dtype=numpy.float32, shape=[None, None])
+        vin2 = Variable('X2', dtype=numpy.float32, shape=[None, None])
+        vout = Variable('Y', dtype=numpy.float32, shape=[None])
+        vout2 = Variable('Y2', dtype=numpy.int64, shape=[None])
+        vout3 = Variable('Y2', dtype=numpy.float32, shape=[None])
         op = operator_dummy(model, inputs=[vin], outputs=[vout, vout2, vout3])
         scope = None
         container = container_dummy()

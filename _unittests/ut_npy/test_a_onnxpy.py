@@ -6,13 +6,13 @@ import unittest
 from typing import Any
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx.algebra.onnx_ops import OnnxAbs  # pylint: disable=E0611
-from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.tools.ort_wrapper import OrtInvalidArgument
 from mlprodict.npy import OnnxNumpyCompiler as ONC, NDArray
 from mlprodict.npy.onnx_variable import OnnxVar
 from mlprodict.npy.onnx_numpy_annotation import _NDArrayAlias
 from mlprodict.npy.onnx_numpy_wrapper import wrapper_onnxnumpy_np
+from mlprodict.npy.xop_variable import Variable
+from mlprodict.npy.xop import loadop
 
 
 class TestOnnxPy(ExtTestCase):
@@ -20,14 +20,17 @@ class TestOnnxPy(ExtTestCase):
     @staticmethod
     def onnx_abs(x: NDArray[Any, numpy.float32],
                  op_version=None) -> NDArray[Any, numpy.float32]:
+        OnnxAbs = loadop('Abs')
         return OnnxAbs(x, op_version=op_version)
 
     @staticmethod
     def onnx_abs_shape(x: NDArray[(Any, Any), numpy.float32],
                        op_version=None) -> NDArray[(Any, Any), numpy.float32]:
+        OnnxAbs = loadop('Abs')
         return OnnxAbs(x, op_version=op_version)
 
     def test_onnx_var(self):
+        OnnxAbs = loadop('Abs')
         ov = OnnxVar('X')
         rp = repr(ov)
         self.assertEqual("OnnxVar('X')", rp)
@@ -65,14 +68,12 @@ class TestOnnxPy(ExtTestCase):
         self.assertIsInstance(outputs, list)
         self.assertEqual(len(inputs), 1)
         self.assertEqual(len(outputs), 1)
-        self.assertIsInstance(inputs[0], tuple)
-        self.assertIsInstance(outputs[0], tuple)
-        self.assertEqual(len(inputs[0]), 2)
-        self.assertEqual(len(outputs[0]), 2)
-        self.assertEqual(inputs[0][0], 'x')
-        self.assertEqual(outputs[0][0], 'y')
-        self.assertIsInstance(inputs[0][1], FloatTensorType)
-        self.assertIsInstance(outputs[0][1], FloatTensorType)
+        self.assertIsInstance(inputs[0], Variable)
+        self.assertIsInstance(outputs[0], Variable)
+        self.assertEqual(inputs[0].name, 'x')
+        self.assertEqual(outputs[0].name, 'y')
+        self.assertEqual(inputs[0].dtype, numpy.float32)
+        self.assertEqual(outputs[0].dtype, numpy.float32)
 
     def test_annotation_shape(self):
         cl = ONC(TestOnnxPy.onnx_abs_shape, op_version=12)
@@ -82,14 +83,12 @@ class TestOnnxPy(ExtTestCase):
         self.assertIsInstance(outputs, list)
         self.assertEqual(len(inputs), 1)
         self.assertEqual(len(outputs), 1)
-        self.assertIsInstance(inputs[0], tuple)
-        self.assertIsInstance(outputs[0], tuple)
-        self.assertEqual(len(inputs[0]), 2)
-        self.assertEqual(len(outputs[0]), 2)
-        self.assertEqual(inputs[0][0], 'x')
-        self.assertEqual(outputs[0][0], 'y')
-        self.assertIsInstance(inputs[0][1], FloatTensorType)
-        self.assertIsInstance(outputs[0][1], FloatTensorType)
+        self.assertIsInstance(inputs[0], Variable)
+        self.assertIsInstance(outputs[0], Variable)
+        self.assertEqual(inputs[0].name, 'x')
+        self.assertEqual(outputs[0].name, 'y')
+        self.assertEqual(inputs[0].dtype, numpy.float32)
+        self.assertEqual(outputs[0].dtype, numpy.float32)
 
     def test_wrong_runtime(self):
         self.assertRaise(

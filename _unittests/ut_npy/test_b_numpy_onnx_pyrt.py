@@ -11,6 +11,7 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_pad import onnx_pad
 from mlprodict.npy.onnx_version import FctVersion
 from mlprodict.tools.ort_wrapper import onnxrt_version as ort_version
+from mlprodict.plotting.text_plot import onnx_simple_text_plot
 import mlprodict.npy.numpy_onnx_pyrt as nxnpy
 
 
@@ -61,9 +62,16 @@ class TestNumpyOnnxFunction(ExtTestCase):
             onx = compiled.onnx_
             rt2 = OnnxInference(onx, runtime="onnxruntime1")
             inputs = rt2.input_names
+            self.assertNotEqual(['x', 'condition'], inputs)
             outputs = rt2.output_names
             data = {n: x for n, x in zip(inputs, xts)}
-            got2 = rt2.run(data)[outputs[0]]
+            try:
+                rung = rt2.run(data)
+            except Exception as e:
+                raise AssertionError(
+                    "Unable to run with data=%r\n---\n%s" % (
+                        data, onnx_simple_text_plot(onx))) from e
+            got2 = rung[outputs[0]]
             self.assertEqualArray(expected, got2, decimal=6)
 
     def test_abs_float32(self):

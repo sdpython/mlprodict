@@ -80,6 +80,8 @@ def guess_numpy_type(data_type):
     cl_name = data_type.__class__.__name__
     if cl_name in name2numpy:
         return name2numpy[cl_name]
+    if hasattr(data_type, 'type'):
+        return guess_numpy_type(data_type.type)
     raise NotImplementedError(
         "Unsupported data_type '{}'.".format(data_type))
 
@@ -121,6 +123,17 @@ class Variable:
         self.shape_ = shape
         self.added_shape_ = added_shape
 
+    def to_skl2onnx(self, scope=None):
+        """
+        Converts this instance into an instance of *Variable*
+        from :epkg:`skl2onnx`.
+        """
+        from skl2onnx.common._topology import Variable as skl2onnxVariable
+        from skl2onnx.common.data_types import _guess_numpy_type
+        inst = _guess_numpy_type(self.dtype, self.shape)
+        var = skl2onnxVariable(self.name, self.name, type=inst, scope=scope)
+        return var
+
     @property
     def name(self):
         "Returns the variable name (`self.name_`)."
@@ -130,6 +143,11 @@ class Variable:
     def dtype(self):
         "Returns `self.dtype_`."
         return self.dtype_
+
+    @property
+    def shape(self):
+        "Returns `self.shape_`."
+        return self.shape_
 
     @property
     def proto_type(self):

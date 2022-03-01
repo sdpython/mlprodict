@@ -68,8 +68,8 @@ def arange(start, stop, step=1):
     value = make_tensor(
         "value", onnx_proto.TensorProto.INT64, (1, ), [step])  # pylint: disable=E1101
 
-    OnnxAdd, OnnxCumSum, OnnxConstantOfShape = loadop(
-        'Add', 'CumSum', 'ConstantOfShape')
+    OnnxAdd, OnnxCumSum, OnnxConstantOfShape, OnnxSub = loadop(
+        'Add', 'CumSum', 'ConstantOfShape', 'Sub')
     if isinstance(step, (int, numpy.int64, numpy.int32)) and step == 1:
         if zero:
             shape = stop
@@ -337,7 +337,7 @@ def log1p(x):
 
 def mean(x, axis=None, keepdims=0):
     "See :epkg:`numpy:mean`."
-    OnnxReduceMean = loadop('OnnxReduceMean')
+    OnnxReduceMean = loadop('ReduceMean')
     if axis is None:
         return OnnxVar(x, op=OnnxReduceMean, keepdims=keepdims)
     if not isinstance(axis, list):
@@ -354,7 +354,7 @@ def onnx_if(condition, then_branch, else_branch):
     :param else_branch: else branch, of type @see cl if_then_else
     :return: result (@see cl OnnxVar)
     """
-    OnnxIf = loadop('OnnxIf')
+    OnnxIf = loadop('If')
     if isinstance(then_branch, numpy.ndarray):
         then_branch = if_then_else(then_branch)
     if not isinstance(then_branch, if_then_else):
@@ -377,7 +377,7 @@ def pad(x, pads, constant_value=None, mode='constant'):
     It does not implement :epkg:`numpy:pad` but the ONNX version
     :func:`onnx_pad <mlprodict.onnxrt.ops_cpu.op_pad.onnx_pad>`.
     """
-    OnnxPad = loadop('OnnxPad')
+    OnnxPad = loadop('Pad')
     if constant_value is None:
         return OnnxVar(x, pads, op=OnnxPad, mode=mode)
     return OnnxVar(x, pads, constant_value, op=OnnxPad, mode=mode)

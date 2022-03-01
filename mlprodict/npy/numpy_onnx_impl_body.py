@@ -47,15 +47,11 @@ class AttributeGraph:
         if dtype is None:
             dtype = numpy.float32
 
-        if dtype == numpy.float32:
-            skl2onnx_type = FloatTensorType()
-        else:
-            raise TypeError(  # pragma: no cover
-                "Unexpected type %r." % dtype)
+        from skl2onnx.common.data_types import _guess_numpy_type
+        skl2onnx_type = _guess_numpy_type(self.dtype, None)
 
         input_type = ('graph_%d_%d' % (id(self), i),
                       skl2onnx_type)
-        var.set_onnx_name(input_type)
         return input_type, OnnxVar(input_type[0], dtype=dtype)
 
     def to_algebra(self, op_version=None):
@@ -123,7 +119,6 @@ class OnnxVarGraph(OnnxVar):
             if not isinstance(var, AttributeGraph):
                 continue
             alg = var.to_algebra(op_version=op_version)
-            alg.set_onnx_name_prefix("g_%s_%d" % (att, id(var)))
             if var.alg_inputs_ is None:
                 onnx_inputs = []
             else:
