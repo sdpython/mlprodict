@@ -7,6 +7,8 @@
 """
 import os
 import pprint
+import logging
+from collections import OrderedDict
 import numpy
 from scipy.sparse.coo import coo_matrix
 import onnx
@@ -22,6 +24,9 @@ from .xop_variable import (
     DetectedVariable, InputDetectedVariable, OutputDetectedVariable,
     NodeResultName, guess_numpy_type)
 from .xop_auto import get_rst_doc
+
+
+logger = logging.getLogger('xop')
 
 
 def _default_OPSET_TO_IR_VERSION():
@@ -474,6 +479,8 @@ class OnnxOperatorItem:
     def __init__(self, onx_op, index, op_version=None):
         if not isinstance(index, int):
             raise TypeError("index must be an integer not %r." % type(index))
+        logger.debug("OnnxOperatorItem(%r, %d, op_version=%r)",
+                     onx_op, index, op_version)
         self.onx_op = onx_op
         self.index = index
         self.op_version = op_version
@@ -544,6 +551,9 @@ class OnnxOperator:
     def __init__(self, *inputs, op_version=None, output_names=None,
                  domain=None, global_context=None, **kwargs):
 
+        logger.debug("%s(%r, op_version=%r, output_names=%r)",
+                     self.__class__.__name__, inputs, op_version,
+                     output_names)
         if (output_names is None and
                 self.__class__.__name__.startswith("OnnxScan")):
             raise NotImplementedError(
@@ -885,6 +895,7 @@ class OnnxOperator:
         :param builder: instance of @see cl _GraphBuilder,
             it must have a method `add_node`
         """
+        logger.debug("%s.add_to(builder)", self.__class__.__name__)
         inputs = builder.get_input_names(self, self.inputs)
         if self.output_names is not None:
             n_outputs = len(self.output_names)
@@ -901,113 +912,153 @@ class OnnxOperator:
             inputs, outputs, domain=self.domain, opset=self.op_version,
             **self.kwargs)
 
+    @staticmethod
+    def _node_to_graph_preprocess_list(inputs):
+        new_inputs = OrderedDict()
+        for el in inputs:
+            if isinstance(el, str):
+                new_inputs[el] = Variable(el)
+            elif isinstance(el, Variable):
+                new_inputs[el.name] = el
+            elif isinstance(el, tuple) and len(el) == 2:
+                # skl2onnx
+                new_inputs[el[0]] = Variable(
+                    el[0], guess_numpy_type(el[1]), el[1].shape)
+            else:
+                raise TypeError(
+                    "Unable to handle input type %r (%r)." % (
+                        type(el), el))
+        return new_inputs
+
+    @staticmethod
+    def _node_to_graph_process_input(inputs, set_inputs, node, inp,
+                                     new_inputs, new_stack):
+        if isinstance(inp, OnnxOperator):
+            new_stack.append(inp)
+        elif isinstance(inp, OnnxOperatorItem):
+            new_stack.append(inp)
+            new_stack.append(inp.onx_op)
+        elif isinstance(inp, Variable):
+            if inp.name in set_inputs:
+                return
+            set_inputs.add(inp.name)
+            if inputs is None:
+                new_inputs.append(InputDetectedVariable(node, inp))
+            elif isinstance(inputs, dict):
+                if inp.name in inputs:
+                    new_inputs.append(
+                        InputDetectedVariable(
+                            node, inp.copy_merge(inputs[inp.name])))
+                else:
+                    raise ValueError(  # pragma: no cover
+                        "Unable to find input %r in %r." % (
+                            inp, inputs))
+            elif is_numpy_dtype(inputs):
+                new_inputs.append(
+                    InputDetectedVariable(node, inp.copy_add(inputs)))
+            elif isinstance(inputs, Variable):
+                if inp.name == inputs.name:
+                    new_inputs.append(
+                        InputDetectedVariable(node, inp.copy_merge(inputs)))
+                else:
+                    new_inputs.append(
+                        InputDetectedVariable(node, inp))
+            else:
+                raise RuntimeError(  # pragma: no cover
+                    "Unable to handle inputs=%r." % inputs)
+        elif isinstance(inp, numpy.ndarray):
+            pass
+        else:
+            raise TypeError(
+                "Unexpected input type %r in node type %r." % (
+                    type(inp), type(obj)))
+
+    @staticmethod
+    def _node_to_graph_get_type(node, name=None, outputs=None):
+        if outputs is None:
+            return None
+        if isinstance(outputs, Variable):
+            if name is None:
+                return outputs.dtype
+            if isinstance(name, Variable):
+                return outputs.dtype or name.dtype
+            else:
+                raise RuntimeError(  # pragma: no cover
+                    "Unable to handle outputs=%r." % outputs)
+        if isinstance(outputs, dict):
+            if name is None:
+                raise RuntimeError(
+                    "Unable to get type among %r, name=None." % (
+                        outputs, ))
+            if isinstance(name, Variable):
+                n = name.name
+            else:
+                n = name
+            if n not in outputs:
+                return None
+            return outputs[n]
+        if isinstance(outputs, list):
+            raise NotImplementedError(
+                "Unexpected type for name=%r, outputs=%r." % (
+                    name, outputs))
+        if is_numpy_dtype(outputs):
+            return outputs
+        raise RuntimeError(  # pragma: no cover
+            "Unable to handle outputs=%r." % outputs)
+
+    @staticmethod
+    def _node_to_graph_reorder_by_name(new_inputs, inputs):
+        memo = OrderedDict((n.name, n) for n in new_inputs)
+        done = set()
+        result = []
+        for inp in inputs:
+            if inp.name in memo:
+                result.append(memo[inp.name])
+                done.add(inp.name)
+        for k, v in memo.items():
+            if k in done:
+                continue
+            result.append(v)
+        return result
+
     def _node_to_graph(self, other_outputs=None, inputs=None, outputs=None):
         """
         Builds a graph as a list of nodes to walk through in that order.
         """
-        def _preprocess_list(inputs):
-            new_inputs = {}
-            for el in inputs:
-                if isinstance(el, str):
-                    new_inputs[el] = Variable(el)
-                elif isinstance(el, Variable):
-                    new_inputs[el.name] = el
-                elif isinstance(el, tuple) and len(el) == 2:
-                    # skl2onnx
-                    new_inputs[el[0]] = Variable(
-                        el[0], guess_numpy_type(el[1]), el[1].shape)
-                else:
-                    raise TypeError(
-                        "Unable to handle input type %r (%r)." % (
-                            type(el), el))
-            return new_inputs
-
-        def _process_input(inputs, set_inputs, node, inp, new_inputs):
-            if isinstance(inp, OnnxOperator):
-                new_stack.append(inp)
-            elif isinstance(inp, OnnxOperatorItem):
-                new_stack.append(inp)
-                new_stack.append(inp.onx_op)
-            elif isinstance(inp, Variable):
-                if inp.name in set_inputs:
-                    return
-                set_inputs.add(inp.name)
-                if inputs is None:
-                    new_inputs.append(InputDetectedVariable(node, inp))
-                elif isinstance(inputs, dict):
-                    if inp.name in inputs:
-                        new_inputs.append(
-                            InputDetectedVariable(
-                                node, inp.copy_merge(inputs[inp.name])))
-                    else:
-                        raise ValueError(  # pragma: no cover
-                            "Unable to find input %r in %r." % (
-                                inp, inputs))
-                elif is_numpy_dtype(inputs):
-                    new_inputs.append(
-                        InputDetectedVariable(node, inp.copy_add(inputs)))
-                elif isinstance(inputs, Variable):
-                    if inp.name == inputs.name:
-                        new_inputs.append(
-                            InputDetectedVariable(node, inp.copy_merge(inputs)))
-                    else:
-                        new_inputs.append(
-                            InputDetectedVariable(node, inp))
-                else:
-                    raise RuntimeError(  # pragma: no cover
-                        "Unable to handle inputs=%r." % inputs)
-            elif isinstance(inp, numpy.ndarray):
-                pass
-            else:
-                raise TypeError(
-                    "Unexpected input type %r in node type %r." % (
-                        type(inp), type(obj)))
-
-        def _get_type(node, name=None, outputs=None):
-            if outputs is None:
-                return None
-            if isinstance(outputs, Variable):
-                if name is None:
-                    return outputs.dtype
-                if isinstance(name, Variable):
-                    return outputs.dtype or name.dtype
-                else:
-                    raise RuntimeError(  # pragma: no cover
-                        "Unable to handle outputs=%r." % outputs)
-            if isinstance(outputs, dict):
-                if name is None:
-                    raise RuntimeError(
-                        "Unable to get type among %r, name=None." % (
-                            outputs, ))
-                if isinstance(name, Variable):
-                    n = name.name
-                else:
-                    n = name
-                if n not in outputs:
-                    return None
-                return outputs[n]
-            if isinstance(outputs, list):
-                raise NotImplementedError(
-                    "Unexpected type for name=%r, outputs=%r." % (
-                        name, outputs))
-            if is_numpy_dtype(outputs):
-                return outputs
-            raise RuntimeError(  # pragma: no cover
-                "Unable to handle outputs=%r." % outputs)
 
         node_outputs = [self]
         if other_outputs is not None:
             node_outputs += other_outputs
 
+        logger.debug("%s._node_to_graph:inputs=%r",
+                     self.__class__.__name__, inputs)
+        logger.debug("%s._node_to_graph:outputs=%r",
+                     self.__class__.__name__, outputs)
+
         # preprocess inputs, outputs
         _keep_inputs = None
         if isinstance(inputs, list):
             _keep_inputs = inputs
-            inputs = _preprocess_list(inputs)
+            inputs_dict = self._node_to_graph_preprocess_list(inputs)
+        elif isinstance(inputs, dict):
+            inputs_dict = inputs
+        else:
+            raise TypeError(
+                "Unexpected type %r for inputs." % type(inputs))
         _keep_outputs = None
         if isinstance(outputs, list):
             _keep_outputs = outputs
-            outputs = _preprocess_list(outputs)
+            outputs_dict = self._node_to_graph_preprocess_list(outputs)
+        elif isinstance(outputs, dict):
+            outputs_dict = outputs
+        else:
+            raise TypeError(
+                "Unexpected type %r for inputs." % type(inputs))
+
+        logger.debug("%s._node_to_graph:inputs_dict=%r",
+                     self.__class__.__name__, inputs_dict)
+        logger.debug("%s._node_to_graph:outputs_dict=%r",
+                     self.__class__.__name__, outputs_dict)
 
         # walk through graphs
         stack = list(node_outputs)
@@ -1022,12 +1073,19 @@ class OnnxOperator:
                     pass
                 elif isinstance(obj, OnnxOperator):
                     for inp in obj.inputs:
-                        _process_input(inputs, set_inputs,
-                                       obj, inp, new_inputs)
+                        self._node_to_graph_process_input(
+                            inputs_dict, set_inputs,
+                            obj, inp, new_inputs, new_stack)
                 else:
                     raise TypeError(
                         "Unexpected type %r." % type(obj))
             stack = new_stack
+
+        # reorder new_inputs to follow inputs initial order
+        new_inputs = self._node_to_graph_reorder_by_name(new_inputs, inputs)
+
+        logger.debug("%s._node_to_graph:new_inputs=%r",
+                     self.__class__.__name__, new_inputs)
 
         # eliminate duplicates
         done = set()
@@ -1046,7 +1104,8 @@ class OnnxOperator:
             if node.output_names is None:
                 n = self.output_range[0]
                 for i in range(n):
-                    to = _get_type(node, outputs=outputs)
+                    to = self._node_to_graph_get_type(
+                        node, outputs=outputs_dict)
                     if to is None:
                         run_shape = True
                     res = '???_%d' % i
@@ -1062,7 +1121,8 @@ class OnnxOperator:
                         raise TypeError(
                             "Output %d - %r (%r) not allowed in node %r." % (
                                 i, o, node.output_names, node))
-                    to = _get_type(node, o, outputs=outputs)
+                    to = self._node_to_graph_get_type(
+                        node, o, outputs=outputs_dict)
                     if to is None:
                         run_shape = True
                     res = (o, to)
@@ -1075,7 +1135,13 @@ class OnnxOperator:
         if len(new_outputs) == 0:
             raise RuntimeError(
                 "No detected outputs inputs=%r outputs=%r." % (
-                    inputs, outputs))
+                    inputs_dict, outputs_dict))
+
+        # reorder new_outputs to follow outputs initial order
+        new_outputs = self._node_to_graph_reorder_by_name(new_outputs, outputs)
+
+        logger.debug("%s._node_to_graph:new_outputs=%r",
+                     self.__class__.__name__, new_outputs)
 
         return nodes, new_inputs, new_outputs, run_shape
 
@@ -1103,6 +1169,9 @@ class OnnxOperator:
         :param verbose: prints information
         """
         # opsets
+        logger.debug("%s.to_onnx(%r, %r, other_outputs=%r, target_opset=%r)",
+                     self.__class__.__name__, inputs, outputs,
+                     other_outputs, target_opset)
         if isinstance(target_opset, dict):
             dom = self.domain or ''
             target_opset = target_opset.get(dom, None)
@@ -1128,6 +1197,10 @@ class OnnxOperator:
         # get the graph
         nodes, graph_inputs, graph_outputs, run_shape2 = self._node_to_graph(
             other_outputs, inputs, outputs)
+        logger.debug("%s.to_onnx:graph_inputs=%r",
+                     self.__class__.__name__, graph_inputs)
+        logger.debug("%s.to_onnx:graph_outputs=%r",
+                     self.__class__.__name__, graph_outputs)
         if len(nodes) == 0:
             raise RuntimeError(  # pragma: no cover
                 "Node list is empty.")
@@ -1426,6 +1499,9 @@ class _GraphBuilder:
             raise RuntimeError(
                 "Name %r is already reserved from node %r, index=%d." % (
                     name, node, index))
+        logger.debug("_GraphBuilder.reserve_name([%s-%d], %r, %r)",
+                     node.__class__.__name__, id(node),
+                     name, index)
         self.reserved_names[name] = (node, index)
         self._add_name(name)
 
@@ -1465,9 +1541,13 @@ class _GraphBuilder:
             raise TypeError(  # pragma: no cover
                 "name must be a string not %r." % type(name))
         if reserved and name in self.reserved_names:
+            logger.debug("_GraphBuilder.get_unique_name(%r) 1-> %r",
+                         name, name)
             return name
         if name not in self.names:
             self._add_name(name)
+            logger.debug("_GraphBuilder.get_unique_name(%r) 2-> %r",
+                         name, name)
             return name
         i = 1
         new_name = "%s_%s" % (name, self.number2alpha(i))
@@ -1475,6 +1555,8 @@ class _GraphBuilder:
             i += 1
             new_name = "%s_%s" % (name, self.number2alpha(i))
         self._add_name(new_name)
+        logger.debug("_GraphBuilder.get_unique_name(%r) 3-> %r",
+                     name, new_name)
         return new_name
 
     def get_input_names(self, node, inputs):
@@ -1521,6 +1603,8 @@ class _GraphBuilder:
         value = to_array(init)
         val = from_array(value, name)
         self.initializer.append(val)
+        logger.debug("_GraphBuilder.add_initializer(%r, %r, %r)",
+                     name, init.dtype, init.shape)
         return val
 
     def add_node(self, op_type, name, inputs, outputs, domain='',
@@ -1536,6 +1620,9 @@ class _GraphBuilder:
         :param opset: node opset
         :return: created node
         """
+        logger.debug("_GraphBuilder.add_node(%r, %r, "
+                     "inputs=%r, outputs=%r, domain=%r, opset=%r)",
+                     op_type, name, inputs, outputs, domain, opset)
         if not isinstance(inputs, list):
             raise TypeError(  # pragma: no cover
                 "inputs must be a list not %r." % type(inputs))
@@ -1673,6 +1760,8 @@ class _GraphBuilder:
         :param verbose: prints information
         :return: onnx graph
         """
+        logger.debug("_GraphBuilder.to_onnx(%r, %r, target_opset=%r)",
+                     inputs, outputs, target_opset)
         # inputs and outputs
         if not all(map(lambda x: isinstance(x, InputDetectedVariable), inputs)):
             raise TypeError(
@@ -1682,6 +1771,10 @@ class _GraphBuilder:
                 "One of the outputs is not OutputDetectedVariable.")
         self.input = self._process_io(inputs, list(self.input_names.values()))
         self.output = self._process_io(outputs, None)
+        logger.debug("_GraphBuilder.to_onnx:self.input=%r",
+                     [i.name for i in self.input])
+        logger.debug("_GraphBuilder.to_onnx:self.output=%r",
+                     [i.name for i in self.output])
 
         graph = make_graph(
             self.node, 'XOP', self.input, self.output, self.initializer)
@@ -1705,6 +1798,7 @@ class _GraphBuilder:
 
         if run_shape:
             return infer_shapes(onnx_model)
+        logger.debug("_GraphBuilder.to_onnx() -> done")
         return onnx_model
 
 

@@ -4,12 +4,15 @@
 
 .. versionadded:: 0.6
 """
+import logging
 import numpy
 from onnx.helper import make_tensor
 from ..onnx_tools.onnx2py_helper import guess_proto_dtype
 from .xop_variable import Variable
 from .xop import loadop, OnnxOperatorItem
 from .xop_variable import guess_numpy_type
+
+logger = logging.getLogger('xop')
 
 
 try:
@@ -41,6 +44,8 @@ class OnnxVar:
 
     def __init__(self, *inputs, op=None, select_output=None,
                  dtype=None, **kwargs):
+        logger.debug('OnnxVar(%r, dtype=%r, op=%r, select_output=%r)',
+                     inputs, dtype, op, select_output)
         self.inputs = inputs
         self.select_output = select_output
         self.onnx_op = op
@@ -144,6 +149,7 @@ class OnnxVar:
             return self.alg_
 
         if self.onnx_op is None:
+            logger.debug('OnnxVar.to_algebra-1(op_version=%r)', op_version)
             if len(self.inputs) != 1:
                 raise RuntimeError(  # pragma: no cover
                     "Unexpected number of inputs, 1 expected, "
@@ -153,6 +159,8 @@ class OnnxVar:
             else:
                 self.alg_ = Variable(self.inputs[0], self.dtype)
         else:
+            logger.debug('OnnxVar.to_algebra(op_version=%r) - onnx_op=%r',
+                         op_version, self.onnx_op)
             if isinstance(self.onnx_op, str):
                 var = self._custom_op(*self.inputs, op_version=op_version,
                                       **self.onnx_op_kwargs)
@@ -642,6 +650,7 @@ class TupleOnnxAny:
         if isinstance(first, (list, tuple)):
             raise TypeError(  # pragma: no cover
                 "Unexpected type for first %r." % type(first))
+        logger.debug('TupleOnnxAny(%d in)', 1 + len(args))
         if len(args) > 0:
             self.values = (first,) + args
             self.unique = None
@@ -751,6 +760,7 @@ class TupleOnnxAny:
         :param operator: overwrite inputs
         :param run_converters: must be True if called from method `to_onnx`
         """
+        logger.debug('TupleOnnxAny.add_to( ... %r ...)', operator)
         if self.values is not None:
             for v in self.values:
                 v.add_to(scope, container, operator=operator,
@@ -765,6 +775,7 @@ class TupleOnnxAny:
 
     def to_onnx(self, *args, **kwargs):  # pylint: disable=W0222
         "Converts the underlying class into an ONNX graph."
+        logger.debug('TupleOnnxAny.to_onnx(...)')
         if self.values is None:
             if hasattr(self.unique, 'to_onnx'):
                 return self.unique.to_onnx(*args, **kwargs)
@@ -788,6 +799,8 @@ class MultiOnnxVar:
 
     def __init__(self, *inputs, op=None, dtype=None, **kwargs):
         "constructor"
+        logger.debug('MultiOnnxVar(%d in, dtype=%r, op=%r)',
+                     len(inputs), dtype, op)
         self.onxvar = OnnxVar(*inputs, op=op, dtype=None, **kwargs)
         self.alg_ = None
 
@@ -815,6 +828,8 @@ class MultiOnnxVar:
         Converts the variable into an operator.
         """
         if self.alg_ is None:
+            logger.debug('MultiOnnxVar.to_algebra(op_version=%r)',
+                         op_version)
             new_inputs = []
             for inp in self.inputs:
                 if isinstance(inp, (

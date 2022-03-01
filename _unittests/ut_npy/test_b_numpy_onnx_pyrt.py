@@ -164,7 +164,7 @@ class TestNumpyOnnxFunction(ExtTestCase):
                 lambda: self.common_testn(
                     (x, None, numpy.array(0.2, dtype=numpy.float32)),
                     numpy.clip, nxnpy.clip, key, ort=False),
-                NotImplementedError)
+                ValueError)
         with self.subTest(version="clip3"):
             self.common_testn((x, numpy.array(-0.2, dtype=numpy.float32),
                                numpy.array(0.2, dtype=numpy.float32)),
@@ -453,5 +453,9 @@ class TestNumpyOnnxFunction(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestNumpyOnnxFunction().test_where_float32()
+    # import logging
+    # logger = logging.getLogger('xop')
+    # logger.setLevel(logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
+    # TestNumpyOnnxFunction().test_clip_float32()
     unittest.main()

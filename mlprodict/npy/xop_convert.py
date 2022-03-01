@@ -4,9 +4,13 @@
 
 .. versionadded:: 0.9
 """
+import logging
 import numpy
 from .xop import OnnxOperator
 from .xop_variable import NodeResultName
+
+
+logger = logging.getLogger('xop')
 
 
 class OnnxSubOnnx(OnnxOperator):
@@ -25,6 +29,8 @@ class OnnxSubOnnx(OnnxOperator):
     domain = 'mlprodict.xop'
 
     def __init__(self, model, *inputs, output_names=None):
+        logging.debug("SubOnnx(ONNX, %d in, output_names=%r)",
+                      len(inputs), output_names)
         if model is None:
             raise ValueError("Model cannot be None.")
         if len(inputs) > len(model.graph.input):
@@ -60,6 +66,7 @@ class OnnxSubOnnx(OnnxOperator):
         :param builder: instance of @see cl _GraphBuilder,
             it must have a method `add_node`
         """
+        logging.debug("SubOnnx.add_to(builder)")
         inputs = builder.get_input_names(self, self.inputs)
         n_outputs = len(self.model.graph.output)
         outputs = [builder.get_unique_output_name(NodeResultName(self, i))
@@ -161,6 +168,10 @@ class OnnxSubEstimator(OnnxSubOnnx):
     def __init__(self, model, *inputs, op_version=None,
                  output_names=None, options=None,
                  initial_types=None, **kwargs):
+        logging.debug("OnnxSubEstimator(%r, %d in, op_version=%r, "
+                      "output_names=%r, initial_types=%r, options=%r, "
+                      "kwargs=%r)", type(model), len(inputs), op_version,
+                      output_names, initial_types, options, kwargs)
         if model is None:
             raise ValueError("Model cannot be None.")
         onx = OnnxSubEstimator._to_onnx(
