@@ -16,7 +16,6 @@ from mlprodict.onnx_conv import to_onnx, register_rewritten_operators
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy import onnxsklearn_class
 from mlprodict.npy.onnx_variable import MultiOnnxVar
-# import mlprodict.npy.numpy_onnx_impl as nxnp
 import mlprodict.npy.numpy_onnx_impl_skl as nxnpskl
 
 

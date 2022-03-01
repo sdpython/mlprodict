@@ -20,7 +20,7 @@ from ._cache import cache_folder
 from .xop_variable import (
     Variable, is_numpy_dtype, numpy_type_prototype, max_supported_opset,
     DetectedVariable, InputDetectedVariable, OutputDetectedVariable,
-    NodeResultName)
+    NodeResultName, guess_numpy_type)
 from .xop_auto import get_rst_doc
 
 
@@ -622,6 +622,13 @@ class OnnxOperator:
             for inp in inputs:
                 if isinstance(inp, str):
                     self.inputs.append(Variable(inp))
+                elif isinstance(inp, tuple):
+                    if len(inp) != 2:
+                        raise RuntimeError(
+                            "Unexpected tuple %r." % (inp, ))
+                    self.inputs.append(
+                        Variable(inp[0], dtype=guess_numpy_type(inp[1]),
+                                 shape=inp[1].shape))
                 elif isinstance(inp, (OnnxOperator, Variable,
                                       OnnxOperatorItem)):
                     self.inputs.append(inp)
@@ -905,6 +912,10 @@ class OnnxOperator:
                     new_inputs[el] = Variable(el)
                 elif isinstance(el, Variable):
                     new_inputs[el.name] = el
+                elif isinstance(el, tuple) and len(el) == 2:
+                    # skl2onnx
+                    new_inputs[el[0]] = Variable(
+                        el[0], guess_numpy_type(el[1]), el[1].shape)
                 else:
                     raise TypeError(
                         "Unable to handle input type %r (%r)." % (
@@ -1047,6 +1058,10 @@ class OnnxOperator:
                     new_outputs.append(OutputDetectedVariable(node, var, i))
             else:
                 for i, o in enumerate(node.output_names):
+                    if isinstance(o, str):
+                        raise TypeError(
+                            "Output %d - %r (%r) not allowed in node %r." % (
+                                i, o, node.output_names, node))
                     to = _get_type(node, o, outputs=outputs)
                     if to is None:
                         run_shape = True

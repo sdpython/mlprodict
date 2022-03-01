@@ -56,6 +56,34 @@ def numpy_type_prototype(dtype):
         "Unable to convert dtype %r into ProtoType." % dtype)
 
 
+def guess_numpy_type(data_type):
+    """
+    Guesses the corresponding numpy type based on data_type.
+    """
+    if data_type in (numpy.float64, numpy.float32, numpy.int8, numpy.uint8,
+                     numpy.str_, numpy.bool_, numpy.int32, numpy.int64):
+        return data_type
+    if data_type == str:
+        return np.str_
+    if data_type == bool:
+        return np.bool_
+    name2numpy = {
+        'FloatTensorType': numpy.float32,
+        'DoubleTensorType': numpy.float64,
+        'Int32TensorType': numpy.int32,
+        'Int64TensorType': numpy.int64,
+        'StringTensorType': numpy.str_,
+        'BooleanTensorType': numpy.bool_,
+        'Complex64TensorType': numpy.complex64,
+        'Complex128TensorType': numpy.complex128,
+    }
+    cl_name = data_type.__class__.__name__
+    if cl_name in name2numpy:
+        return name2numpy[cl_name]
+    raise NotImplementedError(
+        "Unsupported data_type '{}'.".format(data_type))
+
+
 class Variable:
     """
     An input or output to an ONNX graph.

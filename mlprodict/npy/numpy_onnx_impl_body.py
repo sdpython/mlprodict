@@ -5,10 +5,8 @@
 .. versionadded:: 0.8
 """
 import numpy
-from skl2onnx.common.data_types import FloatTensorType
-from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxIdentity)
 from .onnx_variable import OnnxVar
+from .xop import loadop
 
 
 class AttributeGraph:
@@ -68,6 +66,7 @@ class AttributeGraph:
             return self.alg_
 
         if self.cst is not None:
+            OnnxIdentity = loadop('Identity')
             self.alg_ = OnnxIdentity(self.cst, op_version=op_version)
             self.alg_inputs_ = None
             return self.alg_

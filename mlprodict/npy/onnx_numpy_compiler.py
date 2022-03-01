@@ -10,6 +10,7 @@ import numpy
 from ..onnx_tools.optim._main_onnx_optim import onnx_optimisations
 from .onnx_version import FctVersion
 from .onnx_numpy_annotation import get_args_kwargs
+from .xop_variable import Variable
 
 
 class OnnxNumpyFunction:
@@ -390,10 +391,9 @@ class OnnxNumpyCompiler:
                     "Not implemented when the function returns multiple results.")
             if hasattr(onx_algebra, 'to_onnx'):
                 # skl2onnx algebra
-                onx_algebra.output_names = names_out
-                onx = onx_algebra.to_onnx(inputs=inputs,
-                                          target_opset=op_version,
-                                          outputs=outputs)
+                onx_algebra.output_names = [Variable(n) for n in names_out]
+                onx = onx_algebra.to_onnx(
+                    inputs=inputs, target_opset=op_version, outputs=outputs)
                 # optimisation
                 onx_optimized = onnx_optimisations(onx)
                 self.onnx_ = onx_optimized

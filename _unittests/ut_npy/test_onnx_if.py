@@ -54,7 +54,6 @@ class TestOnnxVariableIf(ExtTestCase):
         self.assertEqualArray(
             y, numpy.array([-6], dtype=numpy.float32))
 
-
     @staticmethod
     def fct_onnx_if_sub(x: NDArray[Any, numpy.float32],
                         ) -> NDArray[Any, numpy.float32]:
