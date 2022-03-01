@@ -139,7 +139,7 @@ def asin(x):
 
 def asinh(x):
     "See :epkg:`numpy:asinh`."
-    OnnxSinh = loadop('Asinh')
+    OnnxAsinh = loadop('Asinh')
     return OnnxVar(x, op=OnnxAsinh)
 
 

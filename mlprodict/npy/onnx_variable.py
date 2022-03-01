@@ -723,16 +723,14 @@ class TupleOnnxAny:
                         for i in range(0, len(value)))
                     self.unique = None
                     return
-                stop
-                self.unique.output_names = value
+                self.unique.output_names = [Variable(v) for v in value]
                 return
             raise NotImplementedError(  # pragma: no cover
                 "Not implemented yet, value=%r, unique=%r values=%r." % (
                     value, self.unique, self.values))
         if self.values is not None and len(self.values) == len(value):
             for name, v in zip(value, self.values):
-                stop
-                v.output_names = [name]
+                v.output_names = [Variable(name)]
             return
         raise NotImplementedError(  # pragma: no cover
             "Not implemented yet, value=%r, unique=%r values=%r." % (
