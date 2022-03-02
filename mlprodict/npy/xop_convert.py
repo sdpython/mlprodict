@@ -8,7 +8,7 @@ import logging
 import numpy
 import onnx
 from .xop import OnnxOperator
-from .xop_variable import NodeResultName
+from .xop_variable import NodeResultName, Variable
 
 
 logger = logging.getLogger('xop')
@@ -268,6 +268,10 @@ class OnnxSubEstimator(OnnxSubOnnx):
         if initial_types is None:
             # adding more information
             from skl2onnx.common.data_types import _guess_numpy_type
+            for i, n in enumerate(inputs):
+                if not isinstance(n, Variable):
+                    raise NotImplementedError(
+                        "Inpput %d is not a variable but %r." % (i, type(n)))
             initial_types = [(n.name, _guess_numpy_type(n.dtype, n.shape))
                              for n in inputs]
 
