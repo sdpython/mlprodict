@@ -116,15 +116,29 @@ class Variable:
                 added_shape, (tuple, list))):
             raise TypeError(
                 "Unexpected type %r for added_shape." % type(added_shape))
-        if not isinstance(name, str):
-            raise TypeError(
-                "name must be a string not %r." % type(name))
 
-        self.name_ = name
-        self.dtype_ = dtype
-        self.added_dtype_ = added_dtype
-        self.shape_ = shape
-        self.added_shape_ = added_shape
+        if isinstance(name, Variable):
+            if (dtype is not None or shape is not None or
+                    added_dtype is not None or added_shape is not None):
+                raise ValueError(
+                    "If name is a Variable, then all others attributes "
+                    "should be None.")
+
+            self.name_ = name.name_
+            self.dtype_ = name.dtype_
+            self.added_dtype_ = name.added_dtype_
+            self.shape_ = name.shape_
+            self.added_shape_ = name.added_shape_
+        else:
+            if not isinstance(name, str):
+                raise TypeError(
+                    "name must be a string not %r." % type(name))
+
+            self.name_ = name
+            self.dtype_ = dtype
+            self.added_dtype_ = added_dtype
+            self.shape_ = shape
+            self.added_shape_ = added_shape
 
     def to_skl2onnx(self, scope=None):
         """

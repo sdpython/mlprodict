@@ -3,6 +3,10 @@
 """
 import unittest
 import numpy
+from onnx import numpy_helper, TensorProto
+from onnx.helper import (
+    make_model, make_node, set_model_props, make_tensor,
+    make_graph, make_tensor_value_info)
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
@@ -147,6 +151,32 @@ class TestOptimOnnxIdentity(ExtTestCase):
     def test_onnx_test_knn_single_regressor32(self):
         self.onnx_test_knn_single_regressor(numpy.float32, expected=[2, 1])
 
+    def test_onnx_remove_single_identities(self):
+        value = numpy.array([0.5, -0.6], dtype=numpy.float32)
+        A = numpy_helper.from_array(value, name='A')
+        Y = make_tensor_value_info('Y', TensorProto.FLOAT, None)
+        node = make_node('Identity', ['A'], ['Y'])
+        graph = make_graph([node], 'ut', [], [Y], [A])
+        onnx_model = make_model(graph)
+
+        new_model = onnx_remove_node_identity(onnx_model)
+        stats = onnx_statistics(onnx_model, optim=False)
+        stats2 = onnx_statistics(new_model, optim=False)
+        self.assertEqual(stats['op_Identity'], 1)
+        self.assertEqual(stats2['op_Identity'], 1)
+
+        oinf1 = OnnxInference(onnx_model)
+        oinf2 = OnnxInference(new_model)
+        y1 = oinf1.run({})['Y']
+        y2 = oinf2.run({})['Y']
+        self.assertEqualArray(y1, y2)
+        self.assertLesser(stats2['op_Identity'], 1)
+
 
 if __name__ == "__main__":
+    # import logging
+    # logger = logging.getLogger('onnx:optim')
+    # logger.setLevel(logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
+    # TestOptimOnnxIdentity().test_onnx_remove_single_identities()
     unittest.main()

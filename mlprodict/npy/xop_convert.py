@@ -6,6 +6,7 @@
 """
 import logging
 import numpy
+import onnx
 from .xop import OnnxOperator
 from .xop_variable import NodeResultName
 
@@ -105,25 +106,32 @@ class OnnxSubOnnx(OnnxOperator):
 
             atts = {}
             for att in node.attribute:
-                if att.type == 2:  # .i
+                if isinstance(att, onnx.AttributeProto):
+                    dtype = att.type
+                else:
+                    raise NotImplementedError(
+                        "Unable to copy attribute type %r." % type(att))
+                if dtype == 1:  # .f
+                    value = att.f
+                elif dtype == 2:  # .i
                     value = att.i
-                    atts[att.name] = value
-                    continue
-                if att.type == 3:  # .s
+                elif dtype == 3:  # .s
                     value = att.s
-                    atts[att.name] = value
-                    continue
-                if att.type == 6:  # .floats
+                elif dtype == 4:  # .t
+                    value = att.t
+                elif dtype == 6:  # .floats
                     value = list(att.floats)
-                    atts[att.name] = value
-                    continue
-                if att.type == 7:  # .ints
+                elif dtype == 7:  # .ints
                     value = list(att.ints)
-                    atts[att.name] = value
-                    continue
-                raise NotImplementedError(
-                    "Unable to copy attribute type %r (%r)." % (
-                        att.type, att))
+                elif dtype == 8:  # .strings
+                    value = list(att.strings)
+                elif dtype == 11:  # .double_data
+                    value = list(att.double_data)
+                else:
+                    raise NotImplementedError(
+                        "Unable to copy attribute type %r (%r)." % (
+                            dtype, att))
+                atts[att.name] = value
 
             builder.add_node(
                 node.op_type,

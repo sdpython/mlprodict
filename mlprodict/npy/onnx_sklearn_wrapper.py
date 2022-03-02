@@ -12,7 +12,7 @@ from sklearn.base import (
     RegressorMixin, TransformerMixin)
 from .onnx_numpy_wrapper import _created_classes_inst, wrapper_onnxnumpy_np
 from .onnx_numpy_annotation import NDArraySameType, NDArrayType
-from .onnx_variable import TupleOnnxAny
+from .xop import OnnxOperatorTuple
 from .xop_variable import Variable
 from .xop import loadop
 from ..plotting.text_plot import onnx_simple_text_plot
@@ -29,6 +29,8 @@ def _skl2onnx_add_to_container(onx, scope, container, outputs):
     :param scope: scope
     :param container: container
     """
+    logger.debug("_skl2onnx_add_to_container:onx=%r outputs=%r",
+                 type(onx), outputs)
     mapped_names = {x.name: x.name for x in onx.graph.input}
     opsets = {}
     for op in onx.opset_import:
@@ -56,25 +58,25 @@ def _skl2onnx_add_to_container(onx, scope, container, outputs):
 
         atts = {}
         for att in node.attribute:
-            if att.type == 2:  # .i
+            if att.type == 1:  # .f
+                value = att.f
+            elif att.type == 2:  # .i
                 value = att.i
-                atts[att.name] = value
-                continue
-            if att.type == 3:  # .s
+            elif att.type == 3:  # .s
                 value = att.s
-                atts[att.name] = value
-                continue
-            if att.type == 6:  # .floats
+            elif att.type == 4:  # .t
+                value = att.t
+            elif att.type == 6:  # .floats
                 value = list(att.floats)
-                atts[att.name] = value
-                continue
-            if att.type == 7:  # .ints
+            elif att.type == 7:  # .ints
                 value = list(att.ints)
-                atts[att.name] = value
-                continue
-            raise NotImplementedError(
-                "Unable to copy attribute type %r (%r)." % (
-                    att.type, att))
+            elif att.type == 8:  # .strings
+                value = list(att.strings)
+            else:
+                raise NotImplementedError(
+                    "Unable to copy attribute type %r (%r)." % (
+                        att.type, att))
+            atts[att.name] = value
 
         container.add_node(
             node.op_type,
@@ -188,7 +190,6 @@ def _common_converter_begin(scope, operator, container, n_outputs):
 
     # First conversion of the model to onnx
     # Then addition of the onnx graph to the main graph.
-    OnnxIdentity = loadop('Identity')
     from .onnx_variable import OnnxVar
     new_var = Variable.from_skl2onnx(X[0])
     xvar = OnnxVar(new_var)
@@ -201,7 +202,7 @@ def _common_converter_begin(scope, operator, container, n_outputs):
     logger.debug("_common_converter_begin:inst=%r opv=%r fct_cl.fct=%r",
                  type(inst), opv, fct_cl.fct)
     onx = inst.to_algebra(op_version=opv)
-    logger.debug("_common_converter:onx=%r", type(onx))
+    logger.debug("_common_converter_begin:end:onx=%r", type(onx))
     return new_var, onx
 
 
@@ -253,24 +254,31 @@ def _common_converter_int_t(scope, operator, container):
     opv = container.target_opset
     new_var, onx = _common_converter_begin(scope, operator, container, 2)
 
-    if isinstance(onx, TupleOnnxAny):
+    if isinstance(onx, OnnxOperatorTuple):
         if len(operator.outputs) != len(onx):
             raise RuntimeError(  # pragma: no cover
                 "Mismatched number of outputs expected %d, got %d." % (
                     len(operator.outputs), len(onx)))
+        first_output = None
+        other_outputs = []
         for out, ox in zip(operator.outputs, onx):
             if not hasattr(ox, 'add_to'):
                 raise TypeError(  # pragma: no cover
                     "Unexpected type for onnx graph %r, inst=%r." % (
-                        type(ox), type(inst)))
+                        type(ox), type(operator.raw_operator)))
             final = OnnxIdentity(ox, op_version=opv,
                                  output_names=[out.full_name])
-            onx_model = final.to_onnx(
-                [new_var],
-                [Variable.from_skl2onnx(o) for o in operator.outputs],
-                target_opset=opv)
-            _skl2onnx_add_to_container(
-                onx_model, scope, container, operator.outputs)
+            if first_output is None:
+                first_output = final
+            else:
+                other_outputs.append(final)
+
+        onx_model = first_output.to_onnx(
+            [new_var],
+            [Variable.from_skl2onnx(o) for o in operator.outputs],
+            target_opset=opv, other_outputs=other_outputs)
+        _skl2onnx_add_to_container(
+            onx_model, scope, container, operator.outputs)
         logger.debug("_common_converter_int_t:1:end")
     else:
         final = OnnxIdentity(onx, op_version=opv,

@@ -79,5 +79,9 @@ class TestOnnxVariableIf(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxVariableIf().test_onnx_if_sub()
+    # import logging
+    # logger = logging.getLogger('xop')
+    # logger.setLevel(logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
+    # TestOnnxVariableIf().test_onnx_if()
     unittest.main()

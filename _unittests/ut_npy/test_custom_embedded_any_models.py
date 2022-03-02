@@ -16,6 +16,7 @@ from mlprodict.onnx_conv import to_onnx, register_rewritten_operators
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy import onnxsklearn_class
 from mlprodict.npy.onnx_variable import MultiOnnxVar
+from mlprodict import __max_supported_opsets__ as TARGET_OPSETS
 import mlprodict.npy.numpy_onnx_impl_skl as nxnpskl
 
 
@@ -157,7 +158,8 @@ class TestCustomEmbeddedModels(ExtTestCase):
         dec = AnyCustomClassifierOnnx(est)
         dec.fit(X, y)
         onx = to_onnx(dec, X.astype(dtype),
-                      options={id(dec): {'zipmap': False}})
+                      options={id(dec): {'zipmap': False}},
+                      target_opset=TARGET_OPSETS)
         oinf = OnnxInference(onx)
         exp = dec.predict(X)  # pylint: disable=E1101
         prob = dec.predict_proba(X)  # pylint: disable=E1101
@@ -182,7 +184,7 @@ class TestCustomEmbeddedModels(ExtTestCase):
              X.shape[0])).astype(numpy.float32)
         dec = AnyCustomRegressorOnnx(est)
         dec.fit(X, y)
-        onx = to_onnx(dec, X.astype(dtype))
+        onx = to_onnx(dec, X.astype(dtype), target_opset=TARGET_OPSETS)
         oinf = OnnxInference(onx)
         exp = dec.predict(X)  # pylint: disable=E1101
         got = oinf.run({'X': X})

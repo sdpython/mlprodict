@@ -98,7 +98,6 @@ class TestWrappers(ExtTestCase):
                          RuntimeError)
         op = operator_dummy(model, inputs=[vin], outputs=[vout])
         op.onnx_numpy_fct_ = None  # pylint: disable=W0201
-        _common_converter_t(scope, op, container)
         self.assertRaise(lambda: _common_converter_t(scope, op, container),
                          AttributeError)
 
@@ -152,22 +151,22 @@ class TestWrappers(ExtTestCase):
              ['X', 'I'], {}, FctVersion((f32, i64), None)),
         ]
         expected = [
-            ("[('X', FloatTensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]"),
-            ("[('X', FloatTensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]"),
-            ("[('X', Int64TensorType(shape=[]))]",
-             "[('y', Int64TensorType(shape=[]))]"),
-            ("[('X', BooleanTensorType(shape=[])), ('C', FloatTensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]"),
-            ("[('X', FloatTensorType(shape=[])), ('I', Int64TensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]"),
-            ("[('X', FloatTensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]"),
-            ("[('B', BooleanTensorType(shape=[]))]",
-             "[('y', BooleanTensorType(shape=[]))]"),
-            ("[('X', FloatTensorType(shape=[])), ('I', Int64TensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[])), ('z', Int64TensorType(shape=[]))]"),
+            ("[('X', <class 'numpy.float32'>)]",
+             "[('y', <class 'numpy.float32'>)]"),
+            ("[('X', <class 'numpy.float32'>)]",
+             "[('y', <class 'numpy.float32'>)]"),
+            ("[('X', <class 'numpy.int64'>)]",
+             "[('y', <class 'numpy.int64'>)]"),
+            ("[('X', <class 'numpy.bool_'>), ('C', <class 'numpy.float32'>)]",
+             "[('y', <class 'numpy.float32'>)]"),
+            ("[('X', <class 'numpy.float32'>), ('I', <class 'numpy.int64'>)]",
+             "[('y', <class 'numpy.float32'>)]"),
+            ("[('X', <class 'numpy.float32'>)]",
+             "[('y', <class 'numpy.float32'>)]"),
+            ("[('B', <class 'numpy.bool_'>)]",
+             "[('y', <class 'numpy.bool_'>)]"),
+            ("[('X', <class 'numpy.float32'>), ('I', <class 'numpy.int64'>)]",
+             "[('y', <class 'numpy.float32'>), ('z', <class 'numpy.int64'>)]"),
         ]
         self.assertEqual(len(expected), len(sigs))
         for i, (sigt, expe) in enumerate(zip(sigs, expected)):  # pylint: disable=W0612
@@ -191,10 +190,10 @@ class TestWrappers(ExtTestCase):
              FctVersion((f32, f32), None)),
         ]
         expected = [
-            (("[('X', FloatTensorType(shape=[])), ('Y', FloatTensorType(shape=[])), "
-              "('Z', FloatTensorType(shape=[]))]"), "[('y', FloatTensorType(shape=[]))]"),
-            ("[('X', FloatTensorType(shape=[])), ('Y', FloatTensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]"),
+            (("[('X', <class 'numpy.float32'>), ('Y', <class 'numpy.float32'>), "
+              "('Z', <class 'numpy.float32'>)]"), "[('y', <class 'numpy.float32'>)]"),
+            ("[('X', <class 'numpy.float32'>), ('Y', <class 'numpy.float32'>)]",
+             "[('y', <class 'numpy.float32'>)]"),
         ]
         self.assertEqual(len(expected), len(sigs))
         for i, (sigt, expe) in enumerate(zip(sigs, expected)):  # pylint: disable=W0612
@@ -220,10 +219,10 @@ class TestWrappers(ExtTestCase):
              {}, FctVersion((f32, ), None)),
         ]
         expected = [
-            ("[('X', FloatTensorType(shape=[])), ('I', Int64TensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]", 1),
-            ("[('X', FloatTensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]", 0),
+            ("[('X', <class 'numpy.float32'>), ('I', <class 'numpy.int64'>)]",
+             "[('y', <class 'numpy.float32'>)]", 1),
+            ("[('X', <class 'numpy.float32'>)]",
+             "[('y', <class 'numpy.float32'>)]", 0),
         ]
         self.assertEqual(len(expected), len(sigs))
         for i, (sigt, expe) in enumerate(zip(sigs, expected)):  # pylint: disable=W0612
@@ -250,13 +249,13 @@ class TestWrappers(ExtTestCase):
              ['X'], {}, FctVersion((f32, ), None)),
         ]
         expected = [
-            ("[('X', FloatTensorType(shape=[])), ('Y', FloatTensorType(shape=[])), "
-             "('Z', FloatTensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]", 2),
-            ("[('X', FloatTensorType(shape=[])), ('Y', FloatTensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]", 1),
-            ("[('X', FloatTensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]", 0),
+            ("[('X', <class 'numpy.float32'>), ('Y', <class 'numpy.float32'>), "
+             "('Z', <class 'numpy.float32'>)]",
+             "[('y', <class 'numpy.float32'>)]", 2),
+            ("[('X', <class 'numpy.float32'>), ('Y', <class 'numpy.float32'>)]",
+             "[('y', <class 'numpy.float32'>)]", 1),
+            ("[('X', <class 'numpy.float32'>)]",
+             "[('y', <class 'numpy.float32'>)]", 0),
         ]
         self.assertEqual(len(expected), len(sigs))
         for i, (sigt, expe) in enumerate(zip(sigs, expected)):  # pylint: disable=W0612
@@ -285,14 +284,14 @@ class TestWrappers(ExtTestCase):
              FctVersion((f32, i64, f32), ('constant',))),
         ]
         expected = [
-            ("[('X', FloatTensorType(shape=[])), ('I', Int64TensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]", 0),
-            ("[('X', FloatTensorType(shape=[])), ('I', Int64TensorType(shape=[])), "
-             "('Y', FloatTensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]", 1),
-            ("[('X', FloatTensorType(shape=[])), ('I', Int64TensorType(shape=[])), "
-             "('Y', FloatTensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]", 1),
+            ("[('X', <class 'numpy.float32'>), ('I', <class 'numpy.int64'>)]",
+             "[('y', <class 'numpy.float32'>)]", 0),
+            ("[('X', <class 'numpy.float32'>), ('I', <class 'numpy.int64'>), "
+             "('Y', <class 'numpy.float32'>)]",
+             "[('y', <class 'numpy.float32'>)]", 1),
+            ("[('X', <class 'numpy.float32'>), ('I', <class 'numpy.int64'>), "
+             "('Y', <class 'numpy.float32'>)]",
+             "[('y', <class 'numpy.float32'>)]", 1),
         ]
         self.assertEqual(len(expected), len(sigs))
         for i, (sigt, expe) in enumerate(zip(sigs, expected)):  # pylint: disable=W0612
@@ -351,8 +350,8 @@ class TestWrappers(ExtTestCase):
              FctVersion((f32, i64), ('constant', ))),
         ]
         expected = [
-            ("[('X', FloatTensorType(shape=[])), ('I', Int64TensorType(shape=[]))]",
-             "[('y', FloatTensorType(shape=[]))]", 0),
+            ("[('X', <class 'numpy.float32'>), ('I', <class 'numpy.int64'>)]",
+             "[('y', <class 'numpy.float32'>)]", 0),
         ]
         self.assertEqual(len(expected), len(sigs))
         for i, (sigt, expe) in enumerate(zip(sigs, expected)):  # pylint: disable=W0612
@@ -368,5 +367,5 @@ class TestWrappers(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestWrappers().test_signature_optional_errors_runtime()
+    # TestWrappers().test_signature()
     unittest.main()

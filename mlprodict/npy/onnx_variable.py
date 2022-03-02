@@ -9,7 +9,7 @@ import numpy
 from onnx.helper import make_tensor
 from ..onnx_tools.onnx2py_helper import guess_proto_dtype
 from .xop_variable import Variable
-from .xop import loadop, OnnxOperatorItem
+from .xop import loadop, OnnxOperatorItem, OnnxOperatorTuple
 from .xop_variable import guess_numpy_type
 
 logger = logging.getLogger('xop')
@@ -641,157 +641,6 @@ class OnnxVar:
         return fl
 
 
-class TupleOnnxAny:
-    """
-    Class used to return multiple @see cl OnnxVar
-    at the same time.
-    """
-
-    def __init__(self, first, *args):
-        if isinstance(first, (list, tuple)):
-            raise TypeError(  # pragma: no cover
-                "Unexpected type for first %r." % type(first))
-        logger.debug('TupleOnnxAny(%d in)', 1 + len(args))
-        if len(args) > 0:
-            self.values = (first,) + args
-            self.unique = None
-        else:
-            self.values = None
-            self.unique = first
-        if self.values is not None and self.unique is not None:
-            raise RuntimeError(  # pragma: no cover
-                "Unexpected configuration. One member (values or unique) must be "
-                "null, unique=%r, values=%r" % (self.unique, self.values))
-        if self.values is None and self.unique is None:
-            raise RuntimeError(  # pragma: no cover
-                "Unexpected configuration. One member (values or unique) must be "
-                "not null.")
-
-    def __len__(self):
-        "usual"
-        if self.values is None:
-            raise NotImplementedError(  # pragma: no cover
-                "Not yet implemented in this case unique=%r, "
-                "values=%r." % (self.unique, self.values))
-        return len(self.values)
-
-    def __iter__(self):
-        "Iterates on the outputs."
-        if self.values is None:
-            raise NotImplementedError(  # pragma: no cover
-                "Not yet implemented in this case.")
-        for v in self.values:
-            yield v
-
-    def __getitem__(self, i):
-        "usual"
-        if self.values is None:
-            return self.unique[i]
-        return self.values[i]
-
-    def get_output_type_inference(self, input_shapes=None):
-        """
-        Returns the expected output types in a list.
-        """
-        if self.values is None:
-            if hasattr(self.unique, 'get_output_type_inference'):
-                return self.unique.get_output_type_inference(input_shapes)
-        raise NotImplementedError(  # pragma: no cover
-            "Not implemented yet unique=%r values=%r." % (
-                self.unique, self.values))
-
-    @property
-    def outputs(self):
-        "Returns 'output_names' of attribute 'unique'."
-        if self.values is None:
-            if hasattr(self.unique, 'to_onnx'):
-                return self.unique.outputs
-        raise NotImplementedError(  # pragma: no cover
-            "Not implemented yet unique=%r values=%r." % (
-                self.unique, self.values))
-
-    @property
-    def output_names(self):
-        "Returns 'output_names' of attribute 'unique'."
-        if self.values is None:
-            if hasattr(self.unique, 'to_onnx'):
-                return self.unique.output_names
-        raise NotImplementedError(  # pragma: no cover
-            "Not implemented yet unique=%r values=%r." % (
-                self.unique, self.values))
-
-    @output_names.setter
-    def output_names(self, value):
-        """
-        Updates 'output_names' of attribute 'unique'
-        or every output name of attribute 'values'.
-        """
-        OnnxIdentity = loadop('Identity')
-        if self.values is None:
-            if (hasattr(self.unique, 'to_onnx') or
-                    hasattr(self.unique, 'add_to')):
-                if len(value) > 1:
-                    self.values = tuple(
-                        OnnxIdentity(
-                            self.unique[i], output_names=value[i:i + 1],
-                            op_version=self.unique.op_version)
-                        for i in range(0, len(value)))
-                    self.unique = None
-                    return
-                self.unique.output_names = [Variable(v) for v in value]
-                return
-            raise NotImplementedError(  # pragma: no cover
-                "Not implemented yet, value=%r, unique=%r values=%r." % (
-                    value, self.unique, self.values))
-        if self.values is not None and len(self.values) == len(value):
-            for name, v in zip(value, self.values):
-                v.output_names = [Variable(name)]
-            return
-        raise NotImplementedError(  # pragma: no cover
-            "Not implemented yet, value=%r, unique=%r values=%r." % (
-                value, self.unique, self.values))
-
-    def add_to(self, scope, container, operator=None, run_converters=False):
-        """
-        Adds outputs to the container if not already added,
-        registered the outputs if the node is not final.
-
-        :param scope: scope
-        :param container: container
-        :param operator: overwrite inputs
-        :param run_converters: must be True if called from method `to_onnx`
-        """
-        logger.debug('TupleOnnxAny.add_to( ... %r ...)', operator)
-        if self.values is not None:
-            for v in self.values:
-                v.add_to(scope, container, operator=operator,
-                         run_converters=run_converters)
-            return
-        if self.unique is not None:
-            self.unique.add_to(scope, container, operator=operator,
-                               run_converters=run_converters)
-            return
-        raise RuntimeError(  # pragma: no cover
-            "Attributes 'unique' and 'values' cannot be both null.")
-
-    def to_onnx(self, *args, **kwargs):  # pylint: disable=W0222
-        "Converts the underlying class into an ONNX graph."
-        logger.debug('TupleOnnxAny.to_onnx(...)')
-        if self.values is None:
-            if hasattr(self.unique, 'to_onnx'):
-                return self.unique.to_onnx(*args, **kwargs)
-            raise NotImplementedError(  # pragma: no cover
-                "Not implemented yet unique=%r values=%r args=%r "
-                "kwargs=%r." % (self.unique, self.values, args, kwargs))
-        if self.values is not None:
-            if len(self.values) == len(kwargs.get('outputs', [])):
-                return self.values[0].to_onnx(
-                    *args, other_outputs=self.values[1:], **kwargs)
-        raise NotImplementedError(  # pragma: no cover
-            "Not implemented yet unique=%r values=%r args=%r "
-            "kwargs=%r." % (self.unique, self.values, args, kwargs))
-
-
 class MultiOnnxVar:
     """
     Class used to return multiple @see cl OnnxVar
@@ -851,17 +700,18 @@ class MultiOnnxVar:
                 if len(new_inputs) == 1:
                     logger.debug('MultiOnnxVar.to_algebra:1:new_inputs[0]=%r',
                                  new_inputs[0])
-                    self.alg_ = TupleOnnxAny(new_inputs[0])
+                    self.alg_ = OnnxOperatorTuple(new_inputs[0])
                 else:
                     logger.debug('MultiOnnxVar.to_algebra:2:new_inputs=%r',
                                  new_inputs)
-                    self.alg_ = TupleOnnxAny(new_inputs[0], *(new_inputs[1:]))
+                    self.alg_ = OnnxOperatorTuple(
+                        new_inputs[0], *(new_inputs[1:]))
             else:
                 logger.debug('MultiOnnxVar.to_algebra:%s:new_inputs=%r',
                              self.onnx_op.__class__.__name__, new_inputs)
                 res = self.onnx_op(  # pylint: disable=E1102
                     *new_inputs, op_version=op_version, **self.onnx_op_kwargs)
-                self.alg_ = TupleOnnxAny(res)
+                self.alg_ = OnnxOperatorTuple(res)
         return self.alg_
 
     def __getitem__(self, index):

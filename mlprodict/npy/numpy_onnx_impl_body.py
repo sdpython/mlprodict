@@ -4,9 +4,13 @@
 
 .. versionadded:: 0.8
 """
+import logging
 import numpy
 from .onnx_variable import OnnxVar
 from .xop import loadop
+
+
+logger = logging.getLogger('xop')
 
 
 class AttributeGraph:
@@ -22,6 +26,7 @@ class AttributeGraph:
     """
 
     def __init__(self, fct, *inputs):
+        logger.debug('AttributeGraph(%r, %d in)', type(fct), len(inputs))
         if isinstance(fct, numpy.ndarray) and len(inputs) == 0:
             self.cst = fct
             fct = None
@@ -47,12 +52,8 @@ class AttributeGraph:
         if dtype is None:
             dtype = numpy.float32
 
-        from skl2onnx.common.data_types import _guess_numpy_type
-        skl2onnx_type = _guess_numpy_type(self.dtype, None)
-
-        input_type = ('graph_%d_%d' % (id(self), i),
-                      skl2onnx_type)
-        return input_type, OnnxVar(input_type[0], dtype=dtype)
+        input_name = 'graph_%d_%d' % (id(self), i)
+        return OnnxVar(input_name, dtype=dtype)
 
     def to_algebra(self, op_version=None):
         """
@@ -61,10 +62,13 @@ class AttributeGraph:
         if self.alg_ is not None:
             return self.alg_
 
+        logger.debug('AttributeGraph.to_algebra(op_version=%r)',
+                     op_version)
         if self.cst is not None:
             OnnxIdentity = loadop('Identity')
             self.alg_ = OnnxIdentity(self.cst, op_version=op_version)
             self.alg_inputs_ = None
+            logger.debug('AttributeGraph.to_algebra:end:1:%r', type(self.alg_))
             return self.alg_
 
         new_inputs = [self._graph_guess_dtype(i, inp)
@@ -77,6 +81,7 @@ class AttributeGraph:
                 "var is not from type OnnxVar but %r." % type(var))
 
         self.alg_ = var.to_algebra(op_version=op_version)
+        logger.debug('AttributeGraph.to_algebra:end:2:%r', type(self.alg_))
         return self.alg_
 
 
@@ -110,6 +115,8 @@ class OnnxVarGraph(OnnxVar):
         if self.alg_ is not None:
             return self.alg_
 
+        logger.debug('OnnxVarGraph.to_algebra(op_version=%r)',
+                     op_version)
         # Conversion of graph attributes from InputGraph
         # ONNX graph.
         updates = dict()
@@ -130,7 +137,9 @@ class OnnxVarGraph(OnnxVar):
         self.onnx_op_kwargs_before = {
             k: self.onnx_op_kwargs[k] for k in updates}
         self.onnx_op_kwargs.update(updates)
-        return OnnxVar.to_algebra(self, op_version=op_version)
+        self.alg_ = OnnxVar.to_algebra(self, op_version=op_version)
+        logger.debug('OnnxVarGraph.to_algebra:end:%r', type(self.alg_))
+        return self.alg_
 
 
 class if_then_else(AttributeGraph):

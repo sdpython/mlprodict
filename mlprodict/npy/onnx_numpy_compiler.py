@@ -5,13 +5,17 @@
 .. versionadded:: 0.6
 """
 import inspect
+import logging
 from typing import Any
 import numpy
 from ..onnx_tools.optim._main_onnx_optim import onnx_optimisations
 from .onnx_version import FctVersion
 from .onnx_numpy_annotation import get_args_kwargs
 from .xop_variable import Variable
-from .xop import OnnxOperator
+from .xop import OnnxOperator, OnnxOperatorTuple
+
+
+logger = logging.getLogger('xop')
 
 
 class OnnxNumpyFunction:
@@ -338,8 +342,10 @@ class OnnxNumpyCompiler:
         Returns the onnx graph produced by function `fct_`.
         """
         if self.onnx_ is None and self.fct_ is not None:
-            from .onnx_variable import OnnxVar, TupleOnnxAny
-
+            from .onnx_variable import OnnxVar
+            logger.debug('OnnxNumpyCompiler._to_onnx(op_version=%r, '
+                         'signature=%r, version=%r)',
+                         op_version, signature, version)
             inputs, outputs, kwargs, n_optional, n_variables = (  # pylint: disable=W0612
                 self._parse_annotation(
                     signature=signature, version=version))
@@ -356,6 +362,9 @@ class OnnxNumpyCompiler:
             names_var = [OnnxVar(n, dtype=dt.dtype)
                          for n, dt in zip(names_in, inputs)]
 
+            logger.debug('OnnxNumpyCompiler._to_onnx:names_in=%r', names_in)
+            logger.debug('OnnxNumpyCompiler._to_onnx:names_out=%r', names_out)
+
             if 'op_version' in self.fct_.__code__.co_varnames:
                 onx_var = None
                 onx_algebra = self.fct_(
@@ -368,14 +377,21 @@ class OnnxNumpyCompiler:
                         "OnnxVar but returns type %r." % (self.fct_, type(onx_var)))
                 onx_algebra = onx_var.to_algebra(op_version=op_version)
 
-            if not isinstance(onx_algebra, (OnnxOperator, TupleOnnxAny)):
+            logger.debug('OnnxNumpyCompiler._to_onnx:onx_var=%r',
+                         type(onx_var))
+            logger.debug('OnnxNumpyCompiler._to_onnx:onx_algebra=%r',
+                         type(onx_algebra))
+
+            if not isinstance(onx_algebra, (OnnxOperator, OnnxOperatorTuple)):
                 raise TypeError(
                     "Unexpected type for onx_algebra %r "
-                    "(It should be OnnxOperator or TupleOnnxAny), "
+                    "(It should be OnnxOperator or OnnxOperatorItem), "
                     "function is %r." % (type(onx_algebra), self.fct_))
             hidden_algebras, var_graphs = self._find_hidden_algebras(
                 onx_var, onx_algebra)
             if len(hidden_algebras) > 0:
+                logger.debug('OnnxNumpyCompiler._to_onnx:len(hidden_algebras)=%r',
+                             len(hidden_algebras))
                 # print('----1', len(var_graphs))
                 # for gr in var_graphs:
                 #     print(type(gr), dir(gr))

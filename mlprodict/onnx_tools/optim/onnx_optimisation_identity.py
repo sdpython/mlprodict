@@ -2,12 +2,16 @@
 @file
 @brief Optimisation of :epkg:`ONNX` graphs.
 """
+import logging
 from onnx.helper import make_graph
 from ._onnx_optimisation_common import (  # pylint: disable=E0611
     _rename_node_input,
     _rename_node_output,
     _apply_optimisation_on_graph,
     _apply_remove_node_fct_node)
+
+
+logger = logging.getLogger('onnx:optim')
 
 
 def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **options):
@@ -19,11 +23,11 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
     be removed and every other node gets its inputs or
     outputs accordingly renamed.
 
-    @param      onnx_model      onnx model
-    @param      recursive       looks into subgraphs
-    @param      debug_info      debug information (private)
-    @param      options         additional options (unused)
-    @return                     new onnx _model
+    :param onnx_model: onnx model
+    :param recursive: looks into subgraphs
+    :param debug_info: debug information (private)
+    :param options: additional options (unused)
+    :return: new onnx _model
     """
     if debug_info is None:
         debug_info = [str(type(onnx_model)).rsplit(
@@ -40,6 +44,8 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
     graph = onnx_model
 
     inputs = set(i.name for i in graph.input)
+    inits = set(i.name for i in graph.initializer)
+    inputs_inits = inputs.union(inits)
     outputs = set(o.name for o in graph.output)
 
     def retrieve_idnodes(graph, existing_nodes):
@@ -65,7 +71,7 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
             if nodes[i] is None:
                 # Already removed.
                 continue  # pragma: no cover
-            if inp in inputs and out in outputs:
+            if inp in inputs_inits and out in outputs:
                 # Cannot be removed.
                 continue
             if not restart and out not in outputs:
@@ -74,6 +80,11 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
                     if nodes[j] is None:
                         continue
                     if out in nodes[j].input:
+                        logger.debug('onnx_remove_node_identity:'
+                                     '_rename_node_input:%s:%r->%r:'
+                                     'out=%r:inp=%r',
+                                     nodes[j].op_type, nodes[j].input,
+                                     nodes[j].output, out, inp)
                         nodes[j] = _rename_node_input(nodes[j], out, inp)
                         rem += 1
                         if nodes[j].op_type == 'Identity':
@@ -81,17 +92,27 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
                 nodes[i] = None
                 rem += 1
                 continue
-            if not restart and inp not in inputs and inp not in outputs:
+            if not restart and inp not in inputs_inits and inp not in outputs:
                 # We cannot change an input name or an output name.
                 for j in range(len(nodes)):  # pylint: disable=C0200
                     if nodes[j] is None:
                         continue
                     if inp in nodes[j].output:
+                        logger.debug('onnx_remove_node_identity:'
+                                     '_rename_node_output:%s:%r->%r:'
+                                     'inp=%r:out=%r',
+                                     nodes[j].op_type, nodes[j].input,
+                                     nodes[j].output, inp, out)
                         nodes[j] = _rename_node_output(nodes[j], inp, out)
                         rem += 1
                         if nodes[j].op_type == 'Identity':
                             restart = True  # pragma: no cover
                     if inp in nodes[j].input:
+                        logger.debug('onnx_remove_node_identity:'
+                                     '_rename_node_input:%s:%r->%r:'
+                                     'inp=%r:out=%r',
+                                     nodes[j].op_type, nodes[j].input,
+                                     nodes[j].output, inp, out)
                         nodes[j] = _rename_node_input(nodes[j], inp, out)
                         rem += 1
                         if nodes[j].op_type == 'Identity':

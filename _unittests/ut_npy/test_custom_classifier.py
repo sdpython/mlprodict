@@ -262,9 +262,9 @@ class TestCustomClassifier(ExtTestCase):
 
 
 if __name__ == "__main__":
-    import logging
-    logger = logging.getLogger('xop')
-    logger.setLevel(logging.DEBUG)
-    logging.basicConfig(level=logging.DEBUG)
-    TestCustomClassifier().test_function_classifier3_float32()
+    # import logging
+    # logger = logging.getLogger('xop')
+    # logger.setLevel(logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
+    # TestCustomClassifier().test_function_classifier3_float32()
     unittest.main()
