@@ -5,14 +5,94 @@ for :epkg:`scikit-learn` classes for :epkg:`onnx`.
 
 .. versionadded:: 0.6
 """
+import logging
 import numpy
 from sklearn.base import (
     ClassifierMixin, ClusterMixin,
     RegressorMixin, TransformerMixin)
 from .onnx_numpy_wrapper import _created_classes_inst, wrapper_onnxnumpy_np
 from .onnx_numpy_annotation import NDArraySameType, NDArrayType
+from .onnx_variable import TupleOnnxAny
 from .xop_variable import Variable
 from .xop import loadop
+from ..plotting.text_plot import onnx_simple_text_plot
+
+
+logger = logging.getLogger('xop')
+
+
+def _skl2onnx_add_to_container(onx, scope, container, outputs):
+    """
+    Adds ONNX graph to :epkg:`skl2onnx` container and scope.
+
+    :param onx: onnx graph
+    :param scope: scope
+    :param container: container
+    """
+    mapped_names = {x.name: x.name for x in onx.graph.input}
+    opsets = {}
+    for op in onx.opset_import:
+        opsets[op.domain] = op.version
+
+    # adding initializers
+    for init in onx.graph.initializer:
+        new_name = scope.get_unique_variable_name(init.name)
+        mapped_names[init.name] = new_name
+        container.add_initializer(new_name, None, None, init)
+
+    # adding nodes
+    for node in onx.graph.node:
+        new_inputs = []
+        for i in node.input:
+            if i not in mapped_names:
+                raise RuntimeError(
+                    "Unable to find input %r in %r." % (i, mapped_names))
+            new_inputs.append(mapped_names[i])
+        new_outputs = []
+        for o in node.output:
+            new_name = scope.get_unique_variable_name(o)
+            mapped_names[o] = new_name
+            new_outputs.append(new_name)
+
+        atts = {}
+        for att in node.attribute:
+            if att.type == 2:  # .i
+                value = att.i
+                atts[att.name] = value
+                continue
+            if att.type == 3:  # .s
+                value = att.s
+                atts[att.name] = value
+                continue
+            if att.type == 6:  # .floats
+                value = list(att.floats)
+                atts[att.name] = value
+                continue
+            if att.type == 7:  # .ints
+                value = list(att.ints)
+                atts[att.name] = value
+                continue
+            raise NotImplementedError(
+                "Unable to copy attribute type %r (%r)." % (
+                    att.type, att))
+
+        container.add_node(
+            node.op_type,
+            name=scope.get_unique_operator_name('_sub_' + node.name),
+            inputs=new_inputs, outputs=new_outputs, op_domain=node.domain,
+            op_version=opsets.get(node.domain, None), **atts)
+
+    # linking outputs
+    if len(onx.graph.output) != len(outputs):
+        raise RuntimeError(
+            "Output size mismatch %r != %r.\n--ONNX--\n%s" % (
+                len(onx.graph.output), len(outputs),
+                onnx_simple_text_plot(onx)))
+    for out, var in zip(onx.graph.output, outputs):
+        container.add_node(
+            'Identity', name=scope.get_unique_operator_name(
+                '_sub_' + out.name),
+            inputs=[mapped_names[out.name]], outputs=[var.onnx_name])
 
 
 def _common_shape_calculator_t(operator):
@@ -93,7 +173,7 @@ def _shape_calculator_cluster(operator):
     _common_shape_calculator_int_t(operator)
 
 
-def _common_converter_t(scope, operator, container):
+def _common_converter_begin(scope, operator, container, n_outputs):
     if not hasattr(operator, 'onnx_numpy_fct_'):
         raise AttributeError(
             "operator must have attribute 'onnx_numpy_fct_'.")
@@ -101,22 +181,43 @@ def _common_converter_t(scope, operator, container):
     if len(X) != 1:
         raise RuntimeError(
             "This function only supports one input not %r." % len(X))
-    if len(operator.outputs) != 1:
+    if len(operator.outputs) != n_outputs:
         raise RuntimeError(
-            "This function only supports one output not %r." % len(
-                operator.outputs))
+            "This function only supports %d output not %r." % (
+                n_outputs, len(operator.outputs)))
 
+    # First conversion of the model to onnx
+    # Then addition of the onnx graph to the main graph.
     OnnxIdentity = loadop('Identity')
     from .onnx_variable import OnnxVar
-    xvar = OnnxVar(X[0])
+    new_var = Variable.from_skl2onnx(X[0])
+    xvar = OnnxVar(new_var)
     fct_cl = operator.onnx_numpy_fct_
 
     opv = container.target_opset
+    logger.debug("_common_converter_begin:xvar=%r op=%s",
+                 xvar, type(operator.raw_operator))
     inst = fct_cl.fct(xvar, op_=operator.raw_operator)
+    logger.debug("_common_converter_begin:inst=%r opv=%r fct_cl.fct=%r",
+                 type(inst), opv, fct_cl.fct)
     onx = inst.to_algebra(op_version=opv)
+    logger.debug("_common_converter:onx=%r", type(onx))
+    return new_var, onx
+
+
+def _common_converter_t(scope, operator, container):
+    logger.debug("_common_converter_t:op=%r -> %r",
+                 operator.inputs, operator.outputs)
+    OnnxIdentity = loadop('Identity')
+    opv = container.target_opset
+    new_var, onx = _common_converter_begin(scope, operator, container, 1)
     final = OnnxIdentity(onx, op_version=opv,
                          output_names=[operator.outputs[0].full_name])
-    final.add_to(scope, container)
+    onx_model = final.to_onnx(
+        [new_var], [Variable.from_skl2onnx(o) for o in operator.outputs],
+        target_opset=opv)
+    _skl2onnx_add_to_container(onx_model, scope, container, operator.outputs)
+    logger.debug("_common_converter_t:end")
 
 
 def _converter_transformer(scope, operator, container):
@@ -146,26 +247,12 @@ def _converter_regressor(scope, operator, container):
 
 
 def _common_converter_int_t(scope, operator, container):
-    if not hasattr(operator, 'onnx_numpy_fct_'):
-        raise AttributeError(
-            "operator must have attribute 'onnx_numpy_fct_'.")
-    X = operator.inputs
-    if len(X) != 1:
-        raise RuntimeError(
-            "This function only supports one input not %r." % len(X))
-    if len(operator.outputs) != 2:
-        raise RuntimeError(
-            "This function only supports two outputs not %r." % len(
-                operator.outputs))
-
-    from skl2onnx.algebra.onnx_ops import OnnxIdentity  # pylint: disable=E0611
-    from .onnx_variable import OnnxVar, TupleOnnxAny
-    xvar = OnnxVar(X[0])
-    fct_cl = operator.onnx_numpy_fct_
-
+    logger.debug("_common_converter_int_t:op=%r -> %r",
+                 operator.inputs, operator.outputs)
+    OnnxIdentity = loadop('Identity')
     opv = container.target_opset
-    inst = fct_cl.fct(xvar, op_=operator.raw_operator)
-    onx = inst.to_algebra(op_version=opv)
+    new_var, onx = _common_converter_begin(scope, operator, container, 2)
+
     if isinstance(onx, TupleOnnxAny):
         if len(operator.outputs) != len(onx):
             raise RuntimeError(  # pragma: no cover
@@ -178,11 +265,23 @@ def _common_converter_int_t(scope, operator, container):
                         type(ox), type(inst)))
             final = OnnxIdentity(ox, op_version=opv,
                                  output_names=[out.full_name])
-            final.add_to(scope, container)
+            onx_model = final.to_onnx(
+                [new_var],
+                [Variable.from_skl2onnx(o) for o in operator.outputs],
+                target_opset=opv)
+            _skl2onnx_add_to_container(
+                onx_model, scope, container, operator.outputs)
+        logger.debug("_common_converter_int_t:1:end")
     else:
         final = OnnxIdentity(onx, op_version=opv,
                              output_names=[operator.outputs[0].full_name])
-        final.add_to(scope, container)
+        onx_model = final.to_onnx(
+            [new_var],
+            [Variable.from_skl2onnx(o) for o in operator.outputs],
+            target_opset=opv)
+        _skl2onnx_add_to_container(
+            onx_model, scope, container, operator.outputs)
+        logger.debug("_common_converter_int_t:2:end")
 
 
 def _converter_classifier(scope, operator, container):

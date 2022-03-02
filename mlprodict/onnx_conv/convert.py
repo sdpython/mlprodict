@@ -5,6 +5,7 @@
 """
 import pprint
 from collections import OrderedDict
+import logging
 import numpy
 import pandas
 try:
@@ -23,6 +24,9 @@ from ..onnx_tools.onnx_manipulations import onnx_rename_names
 from .register_rewritten_converters import register_rewritten_operators
 from .register import register_converters
 from .scorers import CustomScorerTransform
+
+
+logger = logging.getLogger('mlprodict')
 
 
 def convert_scorer(fct, initial_types, name=None,
@@ -355,6 +359,13 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     .. versionchanged:: 0.7
         Parameter *rename_strategy* was added.
     """
+    logger.debug("to_onnx(%s, X=%r, initial_types=%r, target_opset=%r, "
+                 "options=%r, rewrite_ops=%r, white_op=%r, black_op=%r, "
+                 "final_types=%r)",
+                 model.__class__.__name__, type(X), initial_types,
+                 target_opset, options, rewrite_ops, white_op, black_op,
+                 final_types)
+
     if isinstance(model, OnnxOperatorMixin):
         if not hasattr(model, 'op_version'):
             raise RuntimeError(  # pragma: no cover

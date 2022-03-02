@@ -506,10 +506,15 @@ class OnnxOperatorItem:
         pass
 
     def __str__(self):
-        """
-        usual
-        """
+        "usual"
         return "%s[%d]" % (str(self.onx_op), self.index)
+
+    def __repr__(self):
+        "usual"
+        return "%s(%s[%d])" % (
+            self.__class__.__name__,
+            self.onx_op.__class__.__name__,
+            self.index)
 
     def get_output_result(self, i=0):
         """
@@ -551,8 +556,8 @@ class OnnxOperator:
     def __init__(self, *inputs, op_version=None, output_names=None,
                  domain=None, global_context=None, **kwargs):
 
-        logger.debug("%s(%r, op_version=%r, output_names=%r)",
-                     self.__class__.__name__, inputs, op_version,
+        logger.debug("%s(%d in, op_version=%r, output_names=%r)",
+                     self.__class__.__name__, len(inputs), op_version,
                      output_names)
         if (output_names is None and
                 self.__class__.__name__.startswith("OnnxScan")):
@@ -971,7 +976,7 @@ class OnnxOperator:
         else:
             raise TypeError(
                 "Unexpected input type %r in node type %r." % (
-                    type(inp), type(obj)))
+                    type(inp), type(node)))
 
     @staticmethod
     def _node_to_graph_get_type(node, name=None, outputs=None):
@@ -1600,11 +1605,20 @@ class _GraphBuilder:
         :param init: initializer to copy
         :return: created intializer
         """
-        value = to_array(init)
-        val = from_array(value, name)
+        if isinstance(init, onnx.TensorProto):
+            tensor = to_array(init)
+            val = from_array(tensor, name)
+            logger.debug("_GraphBuilder.add_initializer:1(%r, %r, %r)",
+                         name, tensor.dtype, tensor.shape)
+        elif isinstance(init, numpy.ndarray):
+            value = to_array(init)
+            val = from_array(value, name)
+            logger.debug("_GraphBuilder.add_initializer:2(%r, %r, %r)",
+                         name, init.dtype, init.shape)
+        else:
+            raise NotImplementedError(
+                "Unsupported initializer type %r." % type(init))
         self.initializer.append(val)
-        logger.debug("_GraphBuilder.add_initializer(%r, %r, %r)",
-                     name, init.dtype, init.shape)
         return val
 
     def add_node(self, op_type, name, inputs, outputs, domain='',

@@ -196,4 +196,9 @@ class TestCustomTransformer(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # import logging
+    # logger = logging.getLogger('xop')
+    # logger.setLevel(logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
+    # TestCustomTransformer().test_function_transformer3_float32()
     unittest.main()

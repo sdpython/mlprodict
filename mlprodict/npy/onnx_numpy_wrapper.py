@@ -95,7 +95,8 @@ def onnxnumpy(op_version=None, runtime=None, signature=None):
     operators.
 
     :param op_version: :epkg:`ONNX` opset version
-    :param runtime: `'onnxruntime'` or one implemented by @see cl OnnxInference
+    :param runtime: `'onnxruntime'` or one implemented by
+        @see cl OnnxInference
     :param signature: it should be used when the function
         is not annoatated.
 

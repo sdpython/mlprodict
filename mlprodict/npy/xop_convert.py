@@ -29,8 +29,8 @@ class OnnxSubOnnx(OnnxOperator):
     domain = 'mlprodict.xop'
 
     def __init__(self, model, *inputs, output_names=None):
-        logging.debug("SubOnnx(ONNX, %d in, output_names=%r)",
-                      len(inputs), output_names)
+        logger.debug("SubOnnx(ONNX, %d in, output_names=%r)",
+                     len(inputs), output_names)
         if model is None:
             raise ValueError("Model cannot be None.")
         if len(inputs) > len(model.graph.input):
@@ -66,7 +66,7 @@ class OnnxSubOnnx(OnnxOperator):
         :param builder: instance of @see cl _GraphBuilder,
             it must have a method `add_node`
         """
-        logging.debug("SubOnnx.add_to(builder)")
+        logger.debug("SubOnnx.add_to(builder)")
         inputs = builder.get_input_names(self, self.inputs)
         n_outputs = len(self.model.graph.output)
         outputs = [builder.get_unique_output_name(NodeResultName(self, i))
@@ -168,10 +168,10 @@ class OnnxSubEstimator(OnnxSubOnnx):
     def __init__(self, model, *inputs, op_version=None,
                  output_names=None, options=None,
                  initial_types=None, **kwargs):
-        logging.debug("OnnxSubEstimator(%r, %d in, op_version=%r, "
-                      "output_names=%r, initial_types=%r, options=%r, "
-                      "kwargs=%r)", type(model), len(inputs), op_version,
-                      output_names, initial_types, options, kwargs)
+        logger.debug("OnnxSubEstimator(%r, %r, op_version=%r, "
+                     "output_names=%r, initial_types=%r, options=%r, "
+                     "kwargs=%r)", type(model), inputs, op_version,
+                     output_names, initial_types, options, kwargs)
         if model is None:
             raise ValueError("Model cannot be None.")
         onx = OnnxSubEstimator._to_onnx(
@@ -219,6 +219,10 @@ class OnnxSubEstimator(OnnxSubOnnx):
         from sklearn.base import BaseEstimator
 
         if isinstance(model, BaseEstimator):
+            logger.debug("OnnxSubEstimator._to_onnx(%r, %r, op_version=%r "
+                         "options=%r, initial_types=%r, kwargs=%r)",
+                         type(model), inputs, op_version, options,
+                         initial_types, kwargs)
             return OnnxSubEstimator._to_onnx_sklearn(
                 model, inputs, op_version=op_version, options=options,
                 initial_types=initial_types, **kwargs)
@@ -254,10 +258,16 @@ class OnnxSubEstimator(OnnxSubOnnx):
             if isinstance(model, ClassifierMixin):
                 options = {'zipmap': False}
         if initial_types is None:
-            # Let's to infer them from previous nodes.
-            raise NotImplementedError(
-                "initial_types is None and the method cannot guess the "
-                "initial_types of the model.")
+            # adding more information
+            from skl2onnx.common.data_types import _guess_numpy_type
+            initial_types = [(n.name, _guess_numpy_type(n.dtype, n.shape))
+                             for n in inputs]
+
+        logger.debug("OnnxSubEstimator._to_onnx_sklearn(%r, %r, "
+                     "op_version=%r, options=%r, initial_types=%r, "
+                     "kwargs=%r)",
+                     type(model), inputs, op_version, options,
+                     initial_types, kwargs)
 
         if isinstance(initial_types, numpy.ndarray):
             if len(inputs) != 1:

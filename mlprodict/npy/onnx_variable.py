@@ -44,8 +44,8 @@ class OnnxVar:
 
     def __init__(self, *inputs, op=None, select_output=None,
                  dtype=None, **kwargs):
-        logger.debug('OnnxVar(%r, dtype=%r, op=%r, select_output=%r)',
-                     inputs, dtype, op, select_output)
+        logger.debug('OnnxVar(%d in, dtype=%r, op=%r, select_output=%r)',
+                     len(inputs), dtype, op, select_output)
         self.inputs = inputs
         self.select_output = select_output
         self.onnx_op = op
@@ -78,8 +78,7 @@ class OnnxVar:
             if isinstance(inp, numpy.ndarray):
                 dtypes.append(inp.dtype)
             elif isinstance(inp, Variable):
-                dt = guess_numpy_type(inp.type)
-                dtypes.append(dt)
+                dtypes.append(inp.dtype)
             elif isinstance(inp, OnnxVar):
                 dtypes.append(inp.dtype)
             elif isinstance(inp, MultiOnnxVar):
@@ -149,17 +148,19 @@ class OnnxVar:
             return self.alg_
 
         if self.onnx_op is None:
-            logger.debug('OnnxVar.to_algebra-1(op_version=%r)', op_version)
+            logger.debug('OnnxVar.to_algebra:1(op_version=%r)', op_version)
             if len(self.inputs) != 1:
                 raise RuntimeError(  # pragma: no cover
                     "Unexpected number of inputs, 1 expected, "
                     "got {} instead.".format(self.inputs))
             if self.dtype is None or hasattr(self.inputs[0], 'onnx_name'):
+                self.alg_ = Variable.from_skl2onnx(self.inputs[0])
+            elif isinstance(self.inputs[0], Variable):
                 self.alg_ = self.inputs[0]
             else:
                 self.alg_ = Variable(self.inputs[0], self.dtype)
         else:
-            logger.debug('OnnxVar.to_algebra(op_version=%r) - onnx_op=%r',
+            logger.debug('OnnxVar.to_algebra:2(op_version=%r) - onnx_op=%r',
                          op_version, self.onnx_op)
             if isinstance(self.onnx_op, str):
                 var = self._custom_op(*self.inputs, op_version=op_version,
@@ -848,10 +849,16 @@ class MultiOnnxVar:
 
             if self.onnx_op is None:
                 if len(new_inputs) == 1:
+                    logger.debug('MultiOnnxVar.to_algebra:1:new_inputs[0]=%r',
+                                 new_inputs[0])
                     self.alg_ = TupleOnnxAny(new_inputs[0])
                 else:
+                    logger.debug('MultiOnnxVar.to_algebra:2:new_inputs=%r',
+                                 new_inputs)
                     self.alg_ = TupleOnnxAny(new_inputs[0], *(new_inputs[1:]))
             else:
+                logger.debug('MultiOnnxVar.to_algebra:%s:new_inputs=%r',
+                             self.onnx_op.__class__.__name__, new_inputs)
                 res = self.onnx_op(  # pylint: disable=E1102
                     *new_inputs, op_version=op_version, **self.onnx_op_kwargs)
                 self.alg_ = TupleOnnxAny(res)

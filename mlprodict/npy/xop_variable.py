@@ -64,9 +64,9 @@ def guess_numpy_type(data_type):
                      numpy.str_, numpy.bool_, numpy.int32, numpy.int64):
         return data_type
     if data_type == str:
-        return np.str_
+        return numpy.str_
     if data_type == bool:
-        return np.bool_
+        return numpy.bool_
     name2numpy = {
         'FloatTensorType': numpy.float32,
         'DoubleTensorType': numpy.float64,
@@ -116,6 +116,9 @@ class Variable:
                 added_shape, (tuple, list))):
             raise TypeError(
                 "Unexpected type %r for added_shape." % type(added_shape))
+        if not isinstance(name, str):
+            raise TypeError(
+                "name must be a string not %r." % type(name))
 
         self.name_ = name
         self.dtype_ = dtype
@@ -133,6 +136,14 @@ class Variable:
         inst = _guess_numpy_type(self.dtype, self.shape)
         var = skl2onnxVariable(self.name, self.name, type=inst, scope=scope)
         return var
+
+    @staticmethod
+    def from_skl2onnx(var):
+        """
+        Converts var from skl2onnx into this class.
+        """
+        return Variable(var.onnx_name, guess_numpy_type(var.type),
+                        shape=var.type.shape)
 
     @property
     def name(self):
