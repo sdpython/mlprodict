@@ -5,6 +5,11 @@
 import unittest
 import textwrap
 import numpy
+from onnx import numpy_helper, TensorProto
+from onnx.helper import (
+    make_model, make_node, set_model_props, make_tensor,
+    make_graph, make_tensor_value_info, make_opsetid,
+    make_function)
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import load_iris
 from sklearn.tree import DecisionTreeRegressor
@@ -234,6 +239,43 @@ class TestPlotTextPlotting(ExtTestCase):
 
         text = onnx_simple_text_plot(model_def, recursive=True)
         self.assertIn("----- subgraph", text)
+
+    def test_function_plot(self):
+        new_domain = 'custom'
+        opset_imports = [make_opsetid("", 14), make_opsetid(new_domain, 1)]
+
+        node1 = make_node('MatMul', ['X', 'A'], ['XA'])
+        node2 = make_node('Add', ['XA', 'B'], ['Y'])
+
+        linear_regression = make_function(
+            new_domain,            # domain name
+            'LinearRegression',     # function name
+            ['X', 'A', 'B'],        # input names
+            ['Y'],                  # output names
+            [node1, node2],         # nodes
+            opset_imports,          # opsets
+            [])                     # attribute names
+
+        X = make_tensor_value_info('X', TensorProto.FLOAT, [None, None])
+        A = make_tensor_value_info('A', TensorProto.FLOAT, [None, None])
+        B = make_tensor_value_info('B', TensorProto.FLOAT, [None, None])
+        Y = make_tensor_value_info('Y', TensorProto.FLOAT, None)
+
+        graph = make_graph(
+            [make_node('LinearRegression', ['X', 'A', 'B'], ['Y1'],
+                       domain=new_domain),
+             make_node('Abs', ['Y1'], ['Y'])],
+            'example',
+            [X, A, B], [Y])
+
+        onnx_model = make_model(
+            graph, opset_imports=opset_imports,
+            functions=[linear_regression])  # functions to add)
+
+        text = onnx_simple_text_plot(onnx_model)
+        self.assertIn("function name=LinearRegression domain=custom", text)
+        self.assertIn("MatMul(X, A) -> XA", text)
+        self.assertIn("type=? shape=?", text)
 
 
 if __name__ == "__main__":
