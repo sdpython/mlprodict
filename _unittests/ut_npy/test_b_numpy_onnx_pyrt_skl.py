@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@brief      test log(time=3s)
+@brief      test log(time=6s)
 """
 import unittest
 import numpy
@@ -51,4 +51,9 @@ class TestNumpyOnnxFunctionSkl(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # import logging
+    # logger = logging.getLogger('xop')
+    # logger.setLevel(logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
+    # TestNumpyOnnxFunctionSkl().test_logistic_regression_float64()
     unittest.main()

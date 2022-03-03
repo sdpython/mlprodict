@@ -4,9 +4,14 @@
 
 .. versionadded:: 0.9
 """
+import logging
 import numpy
+import onnx
 from .xop import OnnxOperator
-from .xop_variable import NodeResultName
+from .xop_variable import NodeResultName, Variable
+
+
+logger = logging.getLogger('xop')
 
 
 class OnnxSubOnnx(OnnxOperator):
@@ -25,6 +30,8 @@ class OnnxSubOnnx(OnnxOperator):
     domain = 'mlprodict.xop'
 
     def __init__(self, model, *inputs, output_names=None):
+        logger.debug("SubOnnx(ONNX, %d in, output_names=%r)",
+                     len(inputs), output_names)
         if model is None:
             raise ValueError("Model cannot be None.")
         if len(inputs) > len(model.graph.input):
@@ -60,6 +67,7 @@ class OnnxSubOnnx(OnnxOperator):
         :param builder: instance of @see cl _GraphBuilder,
             it must have a method `add_node`
         """
+        logger.debug("SubOnnx.add_to(builder)")
         inputs = builder.get_input_names(self, self.inputs)
         n_outputs = len(self.model.graph.output)
         outputs = [builder.get_unique_output_name(NodeResultName(self, i))
@@ -98,25 +106,32 @@ class OnnxSubOnnx(OnnxOperator):
 
             atts = {}
             for att in node.attribute:
-                if att.type == 2:  # .i
+                if isinstance(att, onnx.AttributeProto):
+                    dtype = att.type
+                else:
+                    raise NotImplementedError(
+                        "Unable to copy attribute type %r." % type(att))
+                if dtype == 1:  # .f
+                    value = att.f
+                elif dtype == 2:  # .i
                     value = att.i
-                    atts[att.name] = value
-                    continue
-                if att.type == 3:  # .s
+                elif dtype == 3:  # .s
                     value = att.s
-                    atts[att.name] = value
-                    continue
-                if att.type == 6:  # .floats
+                elif dtype == 4:  # .t
+                    value = att.t
+                elif dtype == 6:  # .floats
                     value = list(att.floats)
-                    atts[att.name] = value
-                    continue
-                if att.type == 7:  # .ints
+                elif dtype == 7:  # .ints
                     value = list(att.ints)
-                    atts[att.name] = value
-                    continue
-                raise NotImplementedError(
-                    "Unable to copy attribute type %r (%r)." % (
-                        att.type, att))
+                elif dtype == 8:  # .strings
+                    value = list(att.strings)
+                elif dtype == 11:  # .double_data
+                    value = list(att.double_data)
+                else:
+                    raise NotImplementedError(
+                        "Unable to copy attribute type %r (%r)." % (
+                            dtype, att))
+                atts[att.name] = value
 
             builder.add_node(
                 node.op_type,
@@ -161,6 +176,10 @@ class OnnxSubEstimator(OnnxSubOnnx):
     def __init__(self, model, *inputs, op_version=None,
                  output_names=None, options=None,
                  initial_types=None, **kwargs):
+        logger.debug("OnnxSubEstimator(%r, %r, op_version=%r, "
+                     "output_names=%r, initial_types=%r, options=%r, "
+                     "kwargs=%r)", type(model), inputs, op_version,
+                     output_names, initial_types, options, kwargs)
         if model is None:
             raise ValueError("Model cannot be None.")
         onx = OnnxSubEstimator._to_onnx(
@@ -208,6 +227,10 @@ class OnnxSubEstimator(OnnxSubOnnx):
         from sklearn.base import BaseEstimator
 
         if isinstance(model, BaseEstimator):
+            logger.debug("OnnxSubEstimator._to_onnx(%r, %r, op_version=%r "
+                         "options=%r, initial_types=%r, kwargs=%r)",
+                         type(model), inputs, op_version, options,
+                         initial_types, kwargs)
             return OnnxSubEstimator._to_onnx_sklearn(
                 model, inputs, op_version=op_version, options=options,
                 initial_types=initial_types, **kwargs)
@@ -243,10 +266,20 @@ class OnnxSubEstimator(OnnxSubOnnx):
             if isinstance(model, ClassifierMixin):
                 options = {'zipmap': False}
         if initial_types is None:
-            # Let's to infer them from previous nodes.
-            raise NotImplementedError(
-                "initial_types is None and the method cannot guess the "
-                "initial_types of the model.")
+            # adding more information
+            from skl2onnx.common.data_types import _guess_numpy_type
+            for i, n in enumerate(inputs):
+                if not isinstance(n, Variable):
+                    raise NotImplementedError(
+                        "Inpput %d is not a variable but %r." % (i, type(n)))
+            initial_types = [(n.name, _guess_numpy_type(n.dtype, n.shape))
+                             for n in inputs]
+
+        logger.debug("OnnxSubEstimator._to_onnx_sklearn(%r, %r, "
+                     "op_version=%r, options=%r, initial_types=%r, "
+                     "kwargs=%r)",
+                     type(model), inputs, op_version, options,
+                     initial_types, kwargs)
 
         if isinstance(initial_types, numpy.ndarray):
             if len(inputs) != 1:

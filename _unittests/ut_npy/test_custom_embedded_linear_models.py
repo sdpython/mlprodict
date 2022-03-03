@@ -180,4 +180,9 @@ class TestCustomEmbeddedLinearModels(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # import logging
+    # logger = logging.getLogger('xop')
+    # logger.setLevel(logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
+    # TestCustomEmbeddedLinearModels().test_function_classifier_embedded_float32()
     unittest.main()

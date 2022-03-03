@@ -8,8 +8,7 @@ and compiled with this python runtime.
 import numpy
 from .onnx_numpy_annotation import NDArrayType
 from .numpy_onnx_impl_skl import (
-    logistic_regression as nx_logistic_regression,
-)
+    logistic_regression as nx_logistic_regression)
 from .onnx_numpy_wrapper import onnxnumpy_np
 
 

@@ -4,30 +4,15 @@
 
 .. versionadded:: 0.6
 """
+import logging
 import numpy
 from onnx.helper import make_tensor
-from skl2onnx.common._topology import Variable  # pylint: disable=E0611,E0001
-from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAdd, OnnxAnd,
-    OnnxCast, OnnxConcat, OnnxConstantOfShape,
-    OnnxDiv,
-    OnnxEqual,
-    OnnxFlatten,
-    OnnxGather, OnnxGreater, OnnxGreaterOrEqual,
-    OnnxIdentity,
-    OnnxLess, OnnxLessOrEqual,
-    OnnxMatMul, OnnxMod, OnnxMul,
-    OnnxNeg, OnnxNot,
-    OnnxOr,
-    OnnxPow,
-    OnnxReduceSum, OnnxReshape,
-    OnnxScatterElements, OnnxShape, OnnxSize, OnnxSlice,
-    OnnxSqueeze, OnnxSub,
-    OnnxTopK, OnnxTranspose,
-    OnnxWhere)
-from skl2onnx.algebra.onnx_operator import OnnxOperatorItem
-from skl2onnx.common.data_types import guess_numpy_type, _guess_numpy_type
 from ..onnx_tools.onnx2py_helper import guess_proto_dtype
+from .xop_variable import Variable
+from .xop import loadop, OnnxOperatorItem, OnnxOperatorTuple
+from .xop_variable import guess_numpy_type
+
+logger = logging.getLogger('xop')
 
 
 try:
@@ -59,6 +44,8 @@ class OnnxVar:
 
     def __init__(self, *inputs, op=None, select_output=None,
                  dtype=None, **kwargs):
+        logger.debug('OnnxVar(%d in, dtype=%r, op=%r, select_output=%r)',
+                     len(inputs), dtype, op, select_output)
         self.inputs = inputs
         self.select_output = select_output
         self.onnx_op = op
@@ -91,8 +78,7 @@ class OnnxVar:
             if isinstance(inp, numpy.ndarray):
                 dtypes.append(inp.dtype)
             elif isinstance(inp, Variable):
-                dt = guess_numpy_type(inp.type)
-                dtypes.append(dt)
+                dtypes.append(inp.dtype)
             elif isinstance(inp, OnnxVar):
                 dtypes.append(inp.dtype)
             elif isinstance(inp, MultiOnnxVar):
@@ -114,8 +100,13 @@ class OnnxVar:
             elif hasattr(inp, '_guess_dtype'):
                 dtypes.append(inp._guess_dtype(dtype))
             else:
-                raise TypeError(  # pragma: no cover
-                    "Unexpected type for input %i type=%r." % (i, type(inp)))
+                try:
+                    dtype = guess_numpy_type(inp)
+                except NotImplementedError as e:
+                    raise TypeError(  # pragma: no cover
+                        "Unexpected type for input %i type=%r." % (
+                            i, type(inp))) from e
+                dtypes.append(dtype)
         dtypes = [_ for _ in dtypes if _ is not None]
         unique = set(dtypes)
         if len(unique) != 1:
@@ -157,16 +148,20 @@ class OnnxVar:
             return self.alg_
 
         if self.onnx_op is None:
+            logger.debug('OnnxVar.to_algebra:1(op_version=%r)', op_version)
             if len(self.inputs) != 1:
                 raise RuntimeError(  # pragma: no cover
                     "Unexpected number of inputs, 1 expected, "
                     "got {} instead.".format(self.inputs))
             if self.dtype is None or hasattr(self.inputs[0], 'onnx_name'):
+                self.alg_ = Variable.from_skl2onnx(self.inputs[0])
+            elif isinstance(self.inputs[0], Variable):
                 self.alg_ = self.inputs[0]
             else:
-                self.alg_ = (
-                    self.inputs[0], _guess_numpy_type(self.dtype, None))
+                self.alg_ = Variable(self.inputs[0], self.dtype)
         else:
+            logger.debug('OnnxVar.to_algebra:2(op_version=%r) - onnx_op=%r',
+                         op_version, self.onnx_op)
             if isinstance(self.onnx_op, str):
                 var = self._custom_op(*self.inputs, op_version=op_version,
                                       **self.onnx_op_kwargs)
@@ -226,6 +221,8 @@ class OnnxVar:
         but this method can change the conversion of an non-existing
         operator depending on the given opset.
         """
+        OnnxSqueeze, OnnxTopK, OnnxGather, OnnxReduceSum = loadop(
+            'Squeeze', 'TopK', 'Gather', 'ReduceSum')
         if len(args) != 2:
             raise RuntimeError(  # pragma: no cover
                 "Custom op 'filter' expects two inputs not %r." % len(args))
@@ -241,24 +238,29 @@ class OnnxVar:
     @property
     def T(self):
         "Transpose."
+        OnnxTranspose = loadop('Transpose')
         return OnnxVar(self, op=OnnxTranspose)
 
     def astype(self, dtype):
         "Cast"
+        OnnxCast = loadop('Cast')
         return OnnxVar(self, op=OnnxCast, to=guess_proto_dtype(dtype))
 
     @property
     def shape(self):
         "Shape"
+        OnnxShape = loadop('Shape')
         return OnnxVar(self, op=OnnxShape)
 
     @property
     def size(self):
         "Size"
+        OnnxSize = loadop('Size')
         return OnnxVar(self, op=OnnxSize)
 
     def reshape(self, shape):
         "Reshape"
+        OnnxReshape = loadop('Reshape')
         if isinstance(shape, (tuple, list)):
             shape = numpy.array(shape, dtype=numpy.int64)
         return OnnxVar(self, shape, op=OnnxReshape)
@@ -280,109 +282,131 @@ class OnnxVar:
     def __add__(self, y):
         "Addition."
         y = self._make_array(y)
+        OnnxAdd = loadop('Add')
         return OnnxVar(self, y, op=OnnxAdd)
 
     def __radd__(self, y):
         "Right Addition."
         y = self._make_array(y)
+        OnnxIdentity, OnnxAdd = loadop('Identity', 'Add')
         return OnnxVar(OnnxVar(y, op=OnnxIdentity), self, op=OnnxAdd)
 
     def __sub__(self, y):
         "Subtraction."
         y = self._make_array(y)
+        OnnxSub = loadop('Sub')
         return OnnxVar(self, y, op=OnnxSub)
 
     def __rsub__(self, y):
         "Right subtraction."
         y = self._make_array(y)
+        OnnxIdentity, OnnxSub = loadop('Identity', 'Sub')
         return OnnxVar(OnnxVar(y, op=OnnxIdentity), self, op=OnnxSub)
 
     def __mul__(self, y):
         "Multiplication."
         y = self._make_array(y)
+        OnnxMul = loadop('Mul')
         return OnnxVar(self, y, op=OnnxMul)
 
     def __rmul__(self, y):
         "Right multiplication."
         y = self._make_array(y)
+        OnnxIdentity = loadop('Identity')
         return OnnxVar(y, op=OnnxIdentity) * self
 
     def __pow__(self, y):
         "Power."
         y = self._make_array(y)
+        OnnxPow = loadop('Pow')
         return OnnxVar(self, y, op=OnnxPow)
 
     def __mod__(self, y):
         "Modulo."
         y = self._make_array(y)
+        OnnxMod = loadop('Mod')
         return OnnxVar(self, y, op=OnnxMod)
 
     def __matmul__(self, y):
         "Matrix multiplication."
         y = self._make_array(y)
+        OnnxMatMul = loadop('MatMul')
         return OnnxVar(self, y, op=OnnxMatMul)
 
     def __truediv__(self, y):
         "Division, no difference between `/` and `//`."
         y = self._make_array(y)
+        OnnxDiv = loadop('Div')
         return OnnxVar(self, y, op=OnnxDiv)
 
     def __rtruediv__(self, y):
         "Division, no difference between `/` and `//`."
         y = self._make_array(y)
+        OnnxIdentity, OnnxDiv = loadop('Identity', 'Div')
         return OnnxVar(OnnxVar(y, op=OnnxIdentity), self, op=OnnxDiv)
 
     def __floordiv__(self, y):
         "Division, no difference between `/` and `//`."
         y = self._make_array(y)
+        OnnxDiv = loadop('Div')
         return OnnxVar(self, y, op=OnnxDiv)
 
     def __eq__(self, y):
         "Equality."
         y = self._make_array(y)
+        OnnxEqual = loadop('Equal')
         return OnnxVar(self, y, op=OnnxEqual)
 
     def __ne__(self, y):
         "Difference."
         y = self._make_array(y)
+        OnnxEqual, OnnxNot = loadop('Equal', 'Not')
         return OnnxVar(OnnxVar(self, y, op=OnnxEqual), op=OnnxNot)
 
     def __ge__(self, y):
         "Greater or Equal."
         y = self._make_array(y)
+        OnnxGreaterOrEqual = loadop('GreaterOrEqual')
         return OnnxVar(self, y, op=OnnxGreaterOrEqual)
 
     def __gt__(self, y):
         "Greater."
         y = self._make_array(y)
+        OnnxGreater = loadop('Greater')
         return OnnxVar(self, y, op=OnnxGreater)
 
     def __le__(self, y):
         "Less or Equal."
         y = self._make_array(y)
+        OnnxLessOrEqual = loadop('LessOrEqual')
         return OnnxVar(self, y, op=OnnxLessOrEqual)
 
     def __lt__(self, y):
         "Less."
         y = self._make_array(y)
+        OnnxLess = loadop('Less')
         return OnnxVar(self, y, op=OnnxLess)
 
     def __and__(self, y):
         "And."
         y = self._make_array(y)
+        OnnxAnd = loadop('And')
         return OnnxVar(self, y, op=OnnxAnd)
 
     def __or__(self, y):
         "And."
         y = self._make_array(y)
+        OnnxOr = loadop('Or')
         return OnnxVar(self, y, op=OnnxOr)
 
     def not_(self):
         "Not."
+        OnnxNot = loadop('Not')
         return OnnxVar(self, op=OnnxNot)
 
     def __neg__(self):
         "Neg."
+        OnnxNeg = loadop('Neg')
         return OnnxVar(self, op=OnnxNeg)
 
     def __getitem__(self, index):
@@ -402,6 +426,7 @@ class OnnxVar:
 
         if isinstance(index, int):
             # Use Gather instead.
+            OnnxGather = loadop('Gather')
             return OnnxVar(
                 self, numpy.array(index, dtype=numpy.int64),
                 axis=0, op=OnnxGather)
@@ -429,6 +454,7 @@ class OnnxVar:
             break
         if ni is not None and ax is not None:
             # Use Gather instead.
+            OnnxGather = loadop('Gather')
             return OnnxVar(
                 self, numpy.array(ni, dtype=numpy.int64),
                 axis=ax, op=OnnxGather)
@@ -474,6 +500,8 @@ class OnnxVar:
         starts = numpy.array(starts, dtype=numpy.int64)
         axes = numpy.array(axes, dtype=numpy.int64)
 
+        OnnxGather, OnnxSlice, OnnxSqueeze, OnnxConcat = loadop(
+            'Gather', 'Slice', 'Squeeze', 'Concat')
         if len(needs_shape) > 0:
             shape = self.shape
             conc = []
@@ -517,6 +545,7 @@ class OnnxVar:
         This processing is applied before the operator it contains.
         A copy should be made (Identity node or copy method).
         """
+        OnnxIdentity = loadop('Identity')
         if self.onnx_op is not None and self.onnx_op is not OnnxIdentity:
             raise RuntimeError(  # pragma: no cover
                 "A copy should be made before setting new values on a matrix. "
@@ -555,6 +584,8 @@ class OnnxVar:
 
         if sl[1] is None and isinstance(value, numpy.ndarray):
             sl[1] = sl[0] + value.size
+        OnnxConstantOfShape, OnnxScatterElements = loadop(
+            'ConstantOfShape', 'ScatterElements')
         if sl[1] is None:
             if sl[2] is not None and sl[2] != 1:
                 raise NotImplementedError(  # pragma: no cover
@@ -583,6 +614,7 @@ class OnnxVar:
         return self
 
     def _setitem2i_(self, index, value):
+        OnnxWhere = loadop('Where')
         add_step = OnnxVar(index, value, self.inputs[0], op=OnnxWhere)
         self.inputs = [add_step]
         return self
@@ -591,6 +623,7 @@ class OnnxVar:
         """
         Returns a copy of self (use of Identity node).
         """
+        OnnxIdentity = loadop('Identity')
         return OnnxVar(self, op=OnnxIdentity)
 
     def flatten(self, axis=0):
@@ -600,158 +633,12 @@ class OnnxVar:
         :param axis: only flatten from axis to the end.
         :return: @see cl OnnxVar.
         """
+        OnnxFlatten, OnnxSqueeze = loadop('Flatten', 'Squeeze')
         fl = OnnxVar(self, op=OnnxFlatten, axis=axis)
         if axis == 0:
             return OnnxVar(fl, numpy.array([0], dtype=numpy.int64),
                            op=OnnxSqueeze)
         return fl
-
-
-class TupleOnnxAny:
-    """
-    Class used to return multiple @see cl OnnxVar
-    at the same time.
-    """
-
-    def __init__(self, first, *args):
-        if isinstance(first, (list, tuple)):
-            raise TypeError(  # pragma: no cover
-                "Unexpected type for first %r." % type(first))
-        if len(args) > 0:
-            self.values = (first,) + args
-            self.unique = None
-        else:
-            self.values = None
-            self.unique = first
-        if self.values is not None and self.unique is not None:
-            raise RuntimeError(  # pragma: no cover
-                "Unexpected configuration. One member (values or unique) must be "
-                "null, unique=%r, values=%r" % (self.unique, self.values))
-        if self.values is None and self.unique is None:
-            raise RuntimeError(  # pragma: no cover
-                "Unexpected configuration. One member (values or unique) must be "
-                "not null.")
-
-    def __len__(self):
-        "usual"
-        if self.values is None:
-            raise NotImplementedError(  # pragma: no cover
-                "Not yet implemented in this case unique=%r, "
-                "values=%r." % (self.unique, self.values))
-        return len(self.values)
-
-    def __iter__(self):
-        "Iterates on the outputs."
-        if self.values is None:
-            raise NotImplementedError(  # pragma: no cover
-                "Not yet implemented in this case.")
-        for v in self.values:
-            yield v
-
-    def __getitem__(self, i):
-        "usual"
-        if self.values is None:
-            return self.unique[i]
-        return self.values[i]
-
-    def get_output_type_inference(self, input_shapes=None):
-        """
-        Returns the expected output types in a list.
-        """
-        if self.values is None:
-            if hasattr(self.unique, 'get_output_type_inference'):
-                return self.unique.get_output_type_inference(input_shapes)
-        raise NotImplementedError(  # pragma: no cover
-            "Not implemented yet unique=%r values=%r." % (
-                self.unique, self.values))
-
-    @property
-    def outputs(self):
-        "Returns 'output_names' of attribute 'unique'."
-        if self.values is None:
-            if hasattr(self.unique, 'to_onnx'):
-                return self.unique.outputs
-        raise NotImplementedError(  # pragma: no cover
-            "Not implemented yet unique=%r values=%r." % (
-                self.unique, self.values))
-
-    @property
-    def output_names(self):
-        "Returns 'output_names' of attribute 'unique'."
-        if self.values is None:
-            if hasattr(self.unique, 'to_onnx'):
-                return self.unique.output_names
-        raise NotImplementedError(  # pragma: no cover
-            "Not implemented yet unique=%r values=%r." % (
-                self.unique, self.values))
-
-    @output_names.setter
-    def output_names(self, value):
-        """
-        Updates 'output_names' of attribute 'unique'
-        or every output name of attribute 'values'.
-        """
-        if self.values is None:
-            if (hasattr(self.unique, 'to_onnx') or
-                    hasattr(self.unique, 'add_to')):
-                if len(value) > 1:
-                    self.values = tuple(
-                        OnnxIdentity(
-                            self.unique[i], output_names=value[i:i + 1],
-                            op_version=self.unique.op_version)
-                        for i in range(0, len(value)))
-                    self.unique = None
-                    return
-                self.unique.output_names = value
-                return
-            raise NotImplementedError(  # pragma: no cover
-                "Not implemented yet, value=%r, unique=%r values=%r." % (
-                    value, self.unique, self.values))
-        if self.values is not None and len(self.values) == len(value):
-            for name, v in zip(value, self.values):
-                v.output_names = [name]
-            return
-        raise NotImplementedError(  # pragma: no cover
-            "Not implemented yet, value=%r, unique=%r values=%r." % (
-                value, self.unique, self.values))
-
-    def add_to(self, scope, container, operator=None, run_converters=False):
-        """
-        Adds outputs to the container if not already added,
-        registered the outputs if the node is not final.
-
-        :param scope: scope
-        :param container: container
-        :param operator: overwrite inputs
-        :param run_converters: must be True if called from method `to_onnx`
-        """
-        if self.values is not None:
-            for v in self.values:
-                v.add_to(scope, container, operator=operator,
-                         run_converters=run_converters)
-            return
-        if self.unique is not None:
-            self.unique.add_to(scope, container, operator=operator,
-                               run_converters=run_converters)
-            return
-        raise RuntimeError(  # pragma: no cover
-            "Attributes 'unique' and 'values' cannot be both null.")
-
-    def to_onnx(self, *args, **kwargs):  # pylint: disable=W0222
-        "Converts the underlying class into an ONNX graph."
-        if self.values is None:
-            if hasattr(self.unique, 'to_onnx'):
-                return self.unique.to_onnx(*args, **kwargs)
-            raise NotImplementedError(  # pragma: no cover
-                "Not implemented yet unique=%r values=%r args=%r "
-                "kwargs=%r." % (self.unique, self.values, args, kwargs))
-        if self.values is not None:
-            if len(self.values) == len(kwargs.get('outputs', [])):
-                return self.values[0].to_onnx(
-                    *args, other_outputs=self.values[1:], **kwargs)
-        raise NotImplementedError(  # pragma: no cover
-            "Not implemented yet unique=%r values=%r args=%r "
-            "kwargs=%r." % (self.unique, self.values, args, kwargs))
 
 
 class MultiOnnxVar:
@@ -762,6 +649,8 @@ class MultiOnnxVar:
 
     def __init__(self, *inputs, op=None, dtype=None, **kwargs):
         "constructor"
+        logger.debug('MultiOnnxVar(%d in, dtype=%r, op=%r)',
+                     len(inputs), dtype, op)
         self.onxvar = OnnxVar(*inputs, op=op, dtype=None, **kwargs)
         self.alg_ = None
 
@@ -789,6 +678,8 @@ class MultiOnnxVar:
         Converts the variable into an operator.
         """
         if self.alg_ is None:
+            logger.debug('MultiOnnxVar.to_algebra(op_version=%r)',
+                         op_version)
             new_inputs = []
             for inp in self.inputs:
                 if isinstance(inp, (
@@ -807,13 +698,20 @@ class MultiOnnxVar:
 
             if self.onnx_op is None:
                 if len(new_inputs) == 1:
-                    self.alg_ = TupleOnnxAny(new_inputs[0])
+                    logger.debug('MultiOnnxVar.to_algebra:1:new_inputs[0]=%r',
+                                 new_inputs[0])
+                    self.alg_ = OnnxOperatorTuple(new_inputs[0])
                 else:
-                    self.alg_ = TupleOnnxAny(new_inputs[0], *(new_inputs[1:]))
+                    logger.debug('MultiOnnxVar.to_algebra:2:new_inputs=%r',
+                                 new_inputs)
+                    self.alg_ = OnnxOperatorTuple(
+                        new_inputs[0], *(new_inputs[1:]))
             else:
+                logger.debug('MultiOnnxVar.to_algebra:%s:new_inputs=%r',
+                             self.onnx_op.__class__.__name__, new_inputs)
                 res = self.onnx_op(  # pylint: disable=E1102
                     *new_inputs, op_version=op_version, **self.onnx_op_kwargs)
-                self.alg_ = TupleOnnxAny(res)
+                self.alg_ = OnnxOperatorTuple(res)
         return self.alg_
 
     def __getitem__(self, index):

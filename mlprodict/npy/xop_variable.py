@@ -56,6 +56,36 @@ def numpy_type_prototype(dtype):
         "Unable to convert dtype %r into ProtoType." % dtype)
 
 
+def guess_numpy_type(data_type):
+    """
+    Guesses the corresponding numpy type based on data_type.
+    """
+    if data_type in (numpy.float64, numpy.float32, numpy.int8, numpy.uint8,
+                     numpy.str_, numpy.bool_, numpy.int32, numpy.int64):
+        return data_type
+    if data_type == str:
+        return numpy.str_
+    if data_type == bool:
+        return numpy.bool_
+    name2numpy = {
+        'FloatTensorType': numpy.float32,
+        'DoubleTensorType': numpy.float64,
+        'Int32TensorType': numpy.int32,
+        'Int64TensorType': numpy.int64,
+        'StringTensorType': numpy.str_,
+        'BooleanTensorType': numpy.bool_,
+        'Complex64TensorType': numpy.complex64,
+        'Complex128TensorType': numpy.complex128,
+    }
+    cl_name = data_type.__class__.__name__
+    if cl_name in name2numpy:
+        return name2numpy[cl_name]
+    if hasattr(data_type, 'type'):
+        return guess_numpy_type(data_type.type)
+    raise NotImplementedError(
+        "Unsupported data_type '{}'.".format(data_type))
+
+
 class Variable:
     """
     An input or output to an ONNX graph.
@@ -87,11 +117,47 @@ class Variable:
             raise TypeError(
                 "Unexpected type %r for added_shape." % type(added_shape))
 
-        self.name_ = name
-        self.dtype_ = dtype
-        self.added_dtype_ = added_dtype
-        self.shape_ = shape
-        self.added_shape_ = added_shape
+        if isinstance(name, Variable):
+            if (dtype is not None or shape is not None or
+                    added_dtype is not None or added_shape is not None):
+                raise ValueError(
+                    "If name is a Variable, then all others attributes "
+                    "should be None.")
+
+            self.name_ = name.name_
+            self.dtype_ = name.dtype_
+            self.added_dtype_ = name.added_dtype_
+            self.shape_ = name.shape_
+            self.added_shape_ = name.added_shape_
+        else:
+            if not isinstance(name, str):
+                raise TypeError(
+                    "name must be a string not %r." % type(name))
+
+            self.name_ = name
+            self.dtype_ = dtype
+            self.added_dtype_ = added_dtype
+            self.shape_ = shape
+            self.added_shape_ = added_shape
+
+    def to_skl2onnx(self, scope=None):
+        """
+        Converts this instance into an instance of *Variable*
+        from :epkg:`skl2onnx`.
+        """
+        from skl2onnx.common._topology import Variable as skl2onnxVariable
+        from skl2onnx.common.data_types import _guess_numpy_type
+        inst = _guess_numpy_type(self.dtype, self.shape)
+        var = skl2onnxVariable(self.name, self.name, type=inst, scope=scope)
+        return var
+
+    @staticmethod
+    def from_skl2onnx(var):
+        """
+        Converts var from skl2onnx into this class.
+        """
+        return Variable(var.onnx_name, guess_numpy_type(var.type),
+                        shape=var.type.shape)
 
     @property
     def name(self):
@@ -102,6 +168,11 @@ class Variable:
     def dtype(self):
         "Returns `self.dtype_`."
         return self.dtype_
+
+    @property
+    def shape(self):
+        "Returns `self.shape_`."
+        return self.shape_
 
     @property
     def proto_type(self):

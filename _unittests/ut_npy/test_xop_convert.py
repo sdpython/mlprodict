@@ -65,7 +65,8 @@ class TestXOpsConvert(ExtTestCase):
 
         OnnxIdentity, OnnxReshape = loadop("Identity", "Reshape")
         ov = OnnxIdentity('X')
-        self.assertRaise(lambda: OnnxSubEstimator(lr, ov), NotImplementedError)
+        self.assertRaise(lambda: OnnxSubEstimator(lr, ov),
+                         NotImplementedError)
         sub = OnnxSubEstimator(
             lr, ov, op_version=max_supported_opset(),
             initial_types=X32[:1])

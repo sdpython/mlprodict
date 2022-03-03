@@ -548,8 +548,8 @@ class ShapeObject(BaseDimensionShape):
             _dtype_again()
         except TypeError as e:
             raise TypeError(  # pragma: no cover
-                "Unexpected error with %r of type %r." % (
-                    (self._dtype, type(self._dtype)))) from e
+                "Unexpected error with %r of type %r, name=%r." % (
+                    (self._dtype, type(self._dtype), name))) from e
 
         def _shape_again():
             if self._shape is not None:

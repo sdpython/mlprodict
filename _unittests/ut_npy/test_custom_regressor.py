@@ -14,7 +14,7 @@ from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx import update_registered_converter
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxIdentity, OnnxMatMul, OnnxAdd)
-from skl2onnx.common.data_types import guess_numpy_type
+from mlprodict.npy.xop_variable import guess_numpy_type
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy import onnxsklearn_regressor, onnxsklearn_class

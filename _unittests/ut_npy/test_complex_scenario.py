@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@brief      test log(time=21s)
+@brief      test log(time=41s)
 """
 import unittest
 import warnings
