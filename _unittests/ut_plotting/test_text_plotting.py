@@ -5,11 +5,10 @@
 import unittest
 import textwrap
 import numpy
-from onnx import numpy_helper, TensorProto
+from onnx import TensorProto
 from onnx.helper import (
-    make_model, make_node, set_model_props, make_tensor,
-    make_graph, make_tensor_value_info, make_opsetid,
-    make_function)
+    make_model, make_node, make_function,
+    make_graph, make_tensor_value_info, make_opsetid)
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import load_iris
 from sklearn.tree import DecisionTreeRegressor
