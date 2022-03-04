@@ -95,10 +95,16 @@ class OnnxWholeSession:
         @return                 list of outputs
         """
         v = next(iter(inputs.values()))
-        if isinstance(v, numpy.ndarray):
+        if isinstance(v, (numpy.ndarray, dict)):
             return self.sess.run(None, inputs, self.run_options)
-        return self.sess._sess.run_with_ort_values(
-            inputs, self.output_names, self.run_options)
+        try:
+            return self.sess._sess.run_with_ort_values(
+                inputs, self.output_names, self.run_options)
+        except RuntimeError as e:
+            print(inputs)
+            return self.sess._sess.run_with_ort_values(
+                {k: v._get_c_value() for k, v in inputs.items()},
+                self.output_names, self.run_options)
 
     @staticmethod
     def process_profiling(js):
