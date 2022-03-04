@@ -60,8 +60,6 @@ from sklearn.semi_supervised import LabelPropagation, LabelSpreading
 from sklearn.svm import LinearSVC, LinearSVR, NuSVR, SVR, SVC, NuSVC
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, ExtraTreeClassifier
 from sklearn.utils import shuffle
-from skl2onnx.common.data_types import (
-    FloatTensorType, DoubleTensorType, StringTensorType, DictionaryType)
 from ._validate_problems_helper import (
     _noshapevar, _1d_problem, text_alpha_num)
 
@@ -511,6 +509,8 @@ def _problem_for_dict_vectorizer(dtype=numpy.float32, n_features=None):
     """
     Returns a problem for the :epkg:`sklearn:feature_extraction:DictVectorizer`.
     """
+    from skl2onnx.common.data_types import (  # delayed
+        FloatTensorType, DoubleTensorType, StringTensorType, DictionaryType)
     data = load_iris()
     # X = data.data
     y = data.target
@@ -527,6 +527,8 @@ def _problem_for_tfidf_vectorizer(dtype=numpy.float32, n_features=None):
     """
     Returns a problem for the :epkg:`sklearn:feature_extraction:text:TfidfVectorizer`.
     """
+    from skl2onnx.common.data_types import (  # delayed
+        StringTensorType)
     X = numpy.array([_[0] for _ in text_alpha_num])
     y = numpy.array([_[1] for _ in text_alpha_num], dtype=dtype)
     itt = [("X", StringTensorType([None]))]
@@ -537,6 +539,8 @@ def _problem_for_tfidf_transformer(dtype=numpy.float32, n_features=None):
     """
     Returns a problem for the :epkg:`sklearn:feature_extraction:text:TfidfTransformer`.
     """
+    from skl2onnx.common.data_types import (  # delayed
+        FloatTensorType, DoubleTensorType)
     X = numpy.array([_[0] for _ in text_alpha_num])
     y = numpy.array([_[1] for _ in text_alpha_num], dtype=dtype)
     X2 = CountVectorizer().fit_transform(X).astype(dtype)
@@ -549,6 +553,8 @@ def _problem_for_feature_hasher(dtype=numpy.float32, n_features=None):
     """
     Returns a problem for the :epkg:`sklearn:feature_extraction:DictVectorizer`.
     """
+    from skl2onnx.common.data_types import (  # delayed
+        FloatTensorType, DoubleTensorType, StringTensorType, DictionaryType)
     data = load_iris()
     # X = data.data
     y = data.target

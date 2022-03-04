@@ -759,11 +759,11 @@ def _enumerate_validated_operator_opsets_ops(extended_list, models, skip_models)
 
 
 def _enumerate_validated_operator_opsets_version(runtime):
-    from numpy import __version__ as numpy_version
-    from onnx import __version__ as onnx_version
-    from scipy import __version__ as scipy_version
-    from skl2onnx import __version__ as skl2onnx_version
-    from onnxruntime import __version__ as onnxrt_version
+    from numpy import __version__ as numpy_version  # delayed
+    from onnx import __version__ as onnx_version  # delayed
+    from scipy import __version__ as scipy_version  # delayed
+    from skl2onnx import __version__ as skl2onnx_version  # delayed
+    from onnxruntime import __version__ as onnxrt_version  # delayed
     add_versions = {'v_numpy': numpy_version, 'v_onnx': onnx_version,
                     'v_scipy': scipy_version, 'v_skl2onnx': skl2onnx_version,
                     'v_sklearn': sklearn_version, 'v_onnxruntime': ort_version}

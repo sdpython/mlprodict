@@ -455,8 +455,8 @@ class OnnxInference:
 
                 import pprint
                 import numpy
-                from skl2onnx.algebra.onnx_ops import OnnxLinearRegressor
                 from skl2onnx.common.data_types import FloatTensorType
+                from skl2onnx.algebra.onnx_ops import OnnxLinearRegressor
                 from mlprodict.onnxrt import OnnxInference
 
                 pars = dict(coefficients=numpy.array([1., 2.]),
@@ -1520,7 +1520,7 @@ class OnnxInference:
                 from sklearn.model_selection import train_test_split
                 from sklearn.ensemble import AdaBoostClassifier
                 from sklearn.tree import DecisionTreeClassifier
-                from skl2onnx import to_onnx
+                from mlprodict.onnx_conv import to_onnx
                 from mlprodict.onnxrt import OnnxInference
 
                 iris = load_iris()

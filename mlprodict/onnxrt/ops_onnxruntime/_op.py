@@ -7,18 +7,7 @@ import numpy
 import onnx.defs
 from onnx.helper import make_tensor
 from onnx.onnx_cpp2py_export.shape_inference import InferenceError  # pylint: disable=E0401,E0611
-from skl2onnx.common.data_types import (
-    DictionaryType, FloatTensorType, Int64TensorType, StringTensorType)
-import skl2onnx.algebra.onnx_ops as alg
-try:
-    import skl2onnx.algebra.custom_ops as alg2
-except ImportError:  # pragma: no cover
-    # older version of skl2onnx
-    alg2 = alg
-from ...tools.ort_wrapper import (
-    InferenceSession, SessionOptions, RunOptions,
-    GraphOptimizationLevel, OrtInvalidArgument,
-    OrtNotImplemented, OrtInvalidGraph, OrtFail)
+from ...tools.ort_wrapper import InferenceSession
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
 from ...onnx_tools.optim.graph_schema_helper import (
     get_defined_inputs, get_defined_outputs, proto2vars)
@@ -94,6 +83,7 @@ class OpRunOnnxRuntime:
                 self.onnx_node.op_type in custom_nodes):
             self.alg_class = custom_nodes[self.onnx_node.op_type]
         else:
+            import skl2onnx.algebra.custom_ops as alg2  # delayed
             try:
                 self.alg_class = getattr(alg2, 'Onnx' + self.onnx_node.op_type)
             except AttributeError:
@@ -122,6 +112,8 @@ class OpRunOnnxRuntime:
             pass
 
         if self.onnx_node.op_type == 'ZipMap':
+            from skl2onnx.common.data_types import (  # delayed
+                DictionaryType, FloatTensorType, Int64TensorType, StringTensorType)
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
                                         op_version=target_opset, **options)
             inputs = get_defined_inputs(
@@ -236,6 +228,14 @@ class OpRunOnnxRuntime:
         else:
             lo = list(self.onnx_.graph.output)
             outputs = proto2vars(lo)
+
+        from onnxruntime import (  # delayed
+            SessionOptions, RunOptions, GraphOptimizationLevel)
+        from onnxruntime.capi._pybind_state import (  # delayed
+            Fail as OrtFail, InvalidGraph as OrtInvalidGraph,
+            InvalidArgument as OrtInvalidArgument,
+            NotImplemented as OrtNotImplemented,
+            RuntimeException as OrtRuntimeException)
 
         sess_options = session_options or SessionOptions()
         self.run_options = RunOptions()

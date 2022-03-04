@@ -188,7 +188,7 @@ def summary_report(df, add_cols=None, add_index=None):
 
     if "available-ERROR" in df.columns:
 
-        from skl2onnx.common.exceptions import MissingShapeCalculator
+        from skl2onnx.common.exceptions import MissingShapeCalculator  # delayed
 
         def replace_msg(text):
             if isinstance(text, MissingShapeCalculator):
