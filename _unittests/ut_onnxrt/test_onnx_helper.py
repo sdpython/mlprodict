@@ -14,7 +14,6 @@ from mlprodict.onnx_tools.onnx2py_helper import (
     _numpy_array)
 from mlprodict.onnxrt.ops_cpu._op_helper import proto2dtype
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools.ort_wrapper import OrtInvalidArgument
 
 
 class TestOnnxHelper(ExtTestCase):
@@ -39,6 +38,7 @@ class TestOnnxHelper(ExtTestCase):
 
     @skipif_appveyor("unstable")
     def test_change_input_first_dimension(self):
+        from onnxruntime.capi._pybind_state import InvalidArgument as OrtInvalidArgument
         iris = load_iris()
         X, _ = iris.data, iris.target
         clr = KMeans()

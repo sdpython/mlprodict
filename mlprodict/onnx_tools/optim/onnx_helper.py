@@ -145,16 +145,7 @@ def change_input_first_dimension(onnx_model, N=None, debug_info=None):
     @param      debug_info      unused
     @return                     modified model onnx
     """
-    from skl2onnx.common._topology import Variable
-
-    def _make_value_info(variable):
-        value_info = ValueInfoProto()
-        value_info.name = variable.full_name
-        value_info.type.CopyFrom(  # pylint: disable=E1101
-            variable.type.to_onnx_type())  # pylint: disable=E1101
-        if variable.type.doc_string:  # pylint: disable=E0611
-            value_info.doc_string = variable.type.doc_string  # pragma: no cover
-        return value_info
+    from ...npy.xop_variable import Variable
 
     if hasattr(onnx_model, 'graph'):
         return _apply_optimisation_on_graph(
@@ -169,8 +160,8 @@ def change_input_first_dimension(onnx_model, N=None, debug_info=None):
     if N <= 0:
         N = None
     for input in inputs:
-        input.type.shape[0] = N
-    inputs = [_make_value_info(v) for v in inputs]
+        input.shape[0] = N
+    inputs = [v.make_value_info() for v in inputs]
 
     graph = make_graph(nodes, onnx_model.name,
                        inputs, outputs, onnx_model.initializer)

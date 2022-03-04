@@ -455,16 +455,17 @@ class OnnxInference:
 
                 import pprint
                 import numpy
-                from skl2onnx.common.data_types import FloatTensorType
-                from skl2onnx.algebra.onnx_ops import OnnxLinearRegressor
+                from mlprodict.npy.xop import loadop
                 from mlprodict.onnxrt import OnnxInference
+
+                OnnxAiOnnxMlLinearRegressor = loadop('LinearRegressor')
 
                 pars = dict(coefficients=numpy.array([1., 2.]),
                             intercepts=numpy.array([1.]),
                             post_transform='NONE')
-                onx = OnnxLinearRegressor('X', output_names=['Y'], **pars)
+                onx = OnnxAiOnnxMlLinearRegressor('X', output_names=['Y'], **pars)
                 model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
-                                        outputs=[('Y', FloatTensorType([1]))],
+                                        outputs={'Y': numpy.float32},
                                         target_opset=12)
                 oinf = OnnxInference(model_def)
                 pprint.pprint(oinf.to_sequence())
