@@ -27,7 +27,6 @@ def heatmap(data, row_labels, col_labels, ax=None,
     # delayed imports becasue too long
     import matplotlib
     import matplotlib.pyplot as plt
-    from matplotlib.colors import LogNorm
 
     if not ax:
         ax = plt.gca()  # pragma: no cover
@@ -159,6 +158,8 @@ def plot_benchmark_metrics(metric, xlabel=None, ylabel=None,
         return plot_benchmark_metrics(metric, ax=ax, xlabel=ylabel, ylabel=xlabel,
                                       middle=middle, transpose=False,
                                       cbar_kw=cbar_kw, cbarlabel=cbarlabel)
+
+    from matplotlib.colors import LogNorm  # delayed
 
     x = numpy.array(list(sorted(set(k[0] for k in metric))))
     y = numpy.array(list(sorted(set(k[1] for k in metric))))
