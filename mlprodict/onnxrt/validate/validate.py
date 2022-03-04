@@ -17,7 +17,6 @@ from ... import (
     __max_supported_opset__, get_ir_version,
     __max_supported_opsets__)
 from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
-from ...tools.ort_wrapper import onnxrt_version
 from ...tools.model_info import analyze_model, set_random_state
 from ..onnx_inference import OnnxInference
 from ...onnx_tools.optim.sklearn_helper import inspect_sklearn_model, set_n_jobs
@@ -764,6 +763,7 @@ def _enumerate_validated_operator_opsets_version(runtime):
     from onnx import __version__ as onnx_version
     from scipy import __version__ as scipy_version
     from skl2onnx import __version__ as skl2onnx_version
+    from onnxruntime import __version__ as onnxrt_version
     add_versions = {'v_numpy': numpy_version, 'v_onnx': onnx_version,
                     'v_scipy': scipy_version, 'v_skl2onnx': skl2onnx_version,
                     'v_sklearn': sklearn_version, 'v_onnxruntime': ort_version}

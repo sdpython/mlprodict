@@ -15,7 +15,6 @@ from skl2onnx.algebra.onnx_ops import OnnxMul  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase, skipif_appveyor, ignore_warnings
 from mlprodict.sklapi import OnnxTransformer
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
-from mlprodict.tools.ort_wrapper import OrtInvalidArgument
 
 
 class TestOnnxTransformer(ExtTestCase):
@@ -110,6 +109,8 @@ class TestOnnxTransformer(ExtTestCase):
     @ignore_warnings(DeprecationWarning)
     @skipif_appveyor("crashes")
     def test_pipeline_iris_change_dim(self):
+        from onnxruntime.capi._pybind_state import (
+            InvalidArgument as OrtInvalidArgument)
         iris = load_iris()
         X, y = iris.data, iris.target
         pipe = make_pipeline(PCA(n_components=2), LogisticRegression())

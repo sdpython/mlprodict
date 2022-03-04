@@ -19,8 +19,7 @@ import numpy
 from sklearn import set_config
 from sklearn.datasets import load_iris
 from sklearn.metrics import (
-    accuracy_score, mean_absolute_error,
-    silhouette_score)
+    accuracy_score, mean_absolute_error, silhouette_score)
 from sklearn.model_selection import train_test_split
 from mlprodict import get_ir_version, __max_supported_opset__
 from mlprodict.onnxrt import OnnxInference
@@ -32,7 +31,6 @@ from mlprodict.onnx_tools.optim import onnx_statistics
 from mlprodict.tools.asv_options_helper import (
     expand_onnx_options, version2number)
 from mlprodict.tools.model_info import set_random_state
-from mlprodict.tools.ort_wrapper import onnxrt_version
 
 
 class _CommonAsvSklBenchmark:
@@ -94,6 +92,10 @@ class _CommonAsvSklBenchmark:
             X, y, random_state=42)
         Xt = X_test.astype(xdtype)
         yt = y_test.astype(self.par_ydtype)
+        if X_train.shape[0] < X_train.shape[1]:
+            raise RuntimeError(
+                "Unable to train a model with less observations than features "
+                "shape=%r." % (X_train.shape, ))
         return (X_train, y_train), (Xt, yt)
 
     def _to_onnx(self, model, X, opset, dtype, optim):
@@ -118,8 +120,8 @@ class _CommonAsvSklBenchmark:
 
         try:
             res = OnnxInference(
-                onx, runtime=runtime, runtime_options=dict(
-                    log_severity_level=3))
+                onx, runtime=runtime,
+                runtime_options=dict(log_severity_level=3))
         except RuntimeError as e:  # pragma: no cover
             if "[ONNXRuntimeError]" in str(e):
                 return RuntimeError("onnxruntime fails due to {}".format(str(e)))
@@ -236,6 +238,7 @@ class _CommonAsvSklBenchmark:
 
     def track_vort(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
+        from onnxruntime import __version__ as onnxrt_version
         return version2number(onnxrt_version)
 
     def check_method_name(self, method_name):

@@ -6,12 +6,6 @@
 import json
 from io import BytesIO
 import onnx
-from ...tools.ort_wrapper import (
-    InferenceSession, SessionOptions, RunOptions,
-    GraphOptimizationLevel, OrtFail,
-    OrtInvalidGraph, OrtInvalidArgument,
-    OrtNotImplemented, OrtRuntimeException)
-from ...tools.asv_options_helper import display_onnx
 
 
 class OnnxWholeSession:
@@ -32,6 +26,16 @@ class OnnxWholeSession:
         if runtime != 'onnxruntime1':
             raise NotImplementedError(  # pragma: no cover
                 "runtime '{}' is not implemented.".format(runtime))
+
+        from onnxruntime import (  # delayed
+            InferenceSession, SessionOptions, RunOptions,
+            GraphOptimizationLevel)
+        from onnxruntime.capi._pybind_state import (
+            Fail as OrtFail, InvalidGraph as OrtInvalidGraph,
+            InvalidArgument as OrtInvalidArgument,
+            NotImplemented as OrtNotImplemented,
+            RuntimeException as OrtRuntimeException)
+
         if hasattr(onnx_data, 'SerializeToString'):
             onnx_data = onnx_data.SerializeToString()
         if isinstance(runtime_options, SessionOptions):
@@ -76,6 +80,7 @@ class OnnxWholeSession:
                                          device=device)
         except (OrtFail, OrtNotImplemented, OrtInvalidGraph,
                 OrtInvalidArgument, OrtRuntimeException, RuntimeError) as e:
+            from ...tools.asv_options_helper import display_onnx
             raise RuntimeError(
                 "Unable to create InferenceSession due to '{}'\n{}.".format(
                     e, display_onnx(onnx.load(BytesIO(onnx_data))))) from e
