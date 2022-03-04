@@ -87,12 +87,8 @@ class OpRunOnnxRuntime:
             try:
                 self.alg_class = getattr(alg2, 'Onnx' + self.onnx_node.op_type)
             except AttributeError:
-                try:
-                    self.alg_class = getattr(
-                        alg, 'Onnx' + self.onnx_node.op_type)
-                except AttributeError:
-                    self.alg_class = getattr(
-                        alg3, 'Onnx' + self.onnx_node.op_type)
+                import skl2onnx.algebra.onnx_ops as alg  # delayed
+                self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
 
         inputs = list(self.onnx_node.input)
         self.mapping, self.inputs = self._name_mapping(inputs)
