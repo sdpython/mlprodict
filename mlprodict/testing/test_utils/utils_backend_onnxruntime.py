@@ -1,6 +1,6 @@
 """
 @file
-@brief Inspired from skl2onnx, handles two backends.
+@brief Inspired from sklearn-onnx, handles two backends.
 """
 from pyquickhelper.pycode import is_travis_or_appveyor
 from .utils_backend_common_compare import compare_runtime_session

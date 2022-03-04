@@ -2,11 +2,7 @@
 @file
 @brief Useful plots.
 """
-
 import numpy
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
 
 
 def heatmap(data, row_labels, col_labels, ax=None,
@@ -28,6 +24,10 @@ def heatmap(data, row_labels, col_labels, ax=None,
                         <https://matplotlib.org/api/_as_gen/matplotlib.pyplot.imshow.html>`_
     @return             ax, image, color bar
     """
+    # delayed imports becasue too long
+    import matplotlib
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import LogNorm
 
     if not ax:
         ax = plt.gca()  # pragma: no cover

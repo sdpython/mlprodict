@@ -586,10 +586,12 @@ def onnx2bigraph(model_onnx, recursive=False, graph_type='basic'):
             :showcode:
 
             import numpy
-            from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxSub
             from mlprodict.onnx_conv import to_onnx
             from mlprodict import __max_supported_opset__ as opv
             from mlprodict.tools.graphs import onnx2bigraph
+            from mlprodict.npy.xop import loadop
+
+            OnnxAdd, OnnxSub = loadop('Add', 'Sub')
 
             idi = numpy.identity(2).astype(numpy.float32)
             A = OnnxAdd('X', idi, op_version=opv)

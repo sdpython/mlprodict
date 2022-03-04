@@ -1,6 +1,6 @@
 """
 @file
-@brief Xop API to build onnx graphs. Inspired from :epkg:`skl2onnx`.
+@brief Xop API to build onnx graphs. Inspired from :epkg:`sklearn-onnx`.
 
 .. versionadded:: 0.9
 """
@@ -143,10 +143,10 @@ class Variable:
     def to_skl2onnx(self, scope=None):
         """
         Converts this instance into an instance of *Variable*
-        from :epkg:`skl2onnx`.
+        from :epkg:`sklearn-onnx`.
         """
-        from skl2onnx.common._topology import Variable as skl2onnxVariable
-        from skl2onnx.common.data_types import _guess_numpy_type
+        from skl2onnx.common._topology import Variable as skl2onnxVariable  # delayed
+        from skl2onnx.common.data_types import _guess_numpy_type  # delayed
         inst = _guess_numpy_type(self.dtype, self.shape)
         var = skl2onnxVariable(self.name, self.name, type=inst, scope=scope)
         return var

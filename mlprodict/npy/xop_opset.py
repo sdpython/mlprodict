@@ -1,7 +1,7 @@
 # pylint: disable=E0602
 """
 @file
-@brief Xop API to build onnx graphs. Inspired from :epkg:`skl2onnx`.
+@brief Xop API to build onnx graphs. Inspired from :epkg:`sklearn-onnx`.
 
 .. versionadded:: 0.9
 """

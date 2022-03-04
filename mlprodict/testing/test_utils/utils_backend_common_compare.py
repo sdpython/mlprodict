@@ -1,6 +1,6 @@
 """
 @file
-@brief Inspired from skl2onnx, handles two backends.
+@brief Inspired from sklearn-onnx, handles two backends.
 """
 import numpy
 import onnx

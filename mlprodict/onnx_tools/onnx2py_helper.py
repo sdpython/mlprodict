@@ -7,7 +7,7 @@ import pprint
 import warnings
 import numpy
 from scipy.sparse import coo_matrix
-from onnx import onnx_pb as onnx_proto, TensorProto
+from onnx import TensorProto
 from onnx.numpy_helper import to_array, from_array as onnx_from_array
 
 
@@ -200,35 +200,35 @@ def guess_numpy_type_from_dtype(dt):
 
 
 def _elem_type_as_str(elem_type):
-    if elem_type == onnx_proto.TensorProto.FLOAT:  # pylint: disable=E1101
+    if elem_type == TensorProto.FLOAT:  # pylint: disable=E1101
         return 'float'
-    if elem_type == onnx_proto.TensorProto.BOOL:  # pylint: disable=E1101
+    if elem_type == TensorProto.BOOL:  # pylint: disable=E1101
         return 'bool'
-    if elem_type == onnx_proto.TensorProto.DOUBLE:  # pylint: disable=E1101
+    if elem_type == TensorProto.DOUBLE:  # pylint: disable=E1101
         return 'double'
-    if elem_type == onnx_proto.TensorProto.STRING:  # pylint: disable=E1101
+    if elem_type == TensorProto.STRING:  # pylint: disable=E1101
         return 'str'
-    if elem_type == onnx_proto.TensorProto.INT64:  # pylint: disable=E1101
+    if elem_type == TensorProto.INT64:  # pylint: disable=E1101
         return 'int64'
-    if elem_type == onnx_proto.TensorProto.INT32:  # pylint: disable=E1101
+    if elem_type == TensorProto.INT32:  # pylint: disable=E1101
         return 'int32'
-    if elem_type == onnx_proto.TensorProto.UINT32:  # pylint: disable=E1101
+    if elem_type == TensorProto.UINT32:  # pylint: disable=E1101
         return 'uint32'
-    if elem_type == onnx_proto.TensorProto.UINT64:  # pylint: disable=E1101
+    if elem_type == TensorProto.UINT64:  # pylint: disable=E1101
         return 'uint64'
-    if elem_type == onnx_proto.TensorProto.INT16:  # pylint: disable=E1101
+    if elem_type == TensorProto.INT16:  # pylint: disable=E1101
         return 'int16'
-    if elem_type == onnx_proto.TensorProto.UINT16:  # pylint: disable=E1101
+    if elem_type == TensorProto.UINT16:  # pylint: disable=E1101
         return 'uint16'
-    if elem_type == onnx_proto.TensorProto.UINT8:  # pylint: disable=E1101
+    if elem_type == TensorProto.UINT8:  # pylint: disable=E1101
         return 'uint8'
-    if elem_type == onnx_proto.TensorProto.INT8:  # pylint: disable=E1101
+    if elem_type == TensorProto.INT8:  # pylint: disable=E1101
         return 'int8'
-    if elem_type == onnx_proto.TensorProto.FLOAT16:  # pylint: disable=E1101
+    if elem_type == TensorProto.FLOAT16:  # pylint: disable=E1101
         return 'float16'
-    if elem_type == onnx_proto.TensorProto.COMPLEX64:  # pylint: disable=E1101
+    if elem_type == TensorProto.COMPLEX64:  # pylint: disable=E1101
         return 'complex64'
-    if elem_type == onnx_proto.TensorProto.COMPLEX128:  # pylint: disable=E1101
+    if elem_type == TensorProto.COMPLEX128:  # pylint: disable=E1101
         return 'complex128'
     if elem_type == 0:  # pylint: disable=E1101
         return 'unk'

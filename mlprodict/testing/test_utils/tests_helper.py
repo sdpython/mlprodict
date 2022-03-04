@@ -1,6 +1,6 @@
 """
 @file
-@brief Inspired from skl2onnx, handles two backends.
+@brief Inspired from sklearn-onnx, handles two backends.
 """
 import pickle
 import os
@@ -15,7 +15,6 @@ from sklearn.datasets import (
     make_regression)
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
-from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from .utils_backend import compare_backend
 from .utils_backend_common import (
     extract_options, evaluate_condition, is_backend_enabled,
@@ -231,6 +230,9 @@ def dump_data_and_model(  # pylint: disable=R0912
     if the comparison between the expected outputs and the backend outputs
     fails or it saves the backend output and adds it to the results.
     """
+    # delayed import because too long
+    from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType  # delayed
+    
     runtime_test = dict(model=model, data=data)
 
     if folder is None:
@@ -445,7 +447,7 @@ def convert_model(model, name, input_types):
     :param input_types: input types
     :return: *onnx* model
     """
-    from skl2onnx import convert_sklearn
+    from skl2onnx import convert_sklearn  # delayed
 
     model, prefix = convert_sklearn(model, name, input_types), "Sklearn"
     if model is None:  # pragma: no cover

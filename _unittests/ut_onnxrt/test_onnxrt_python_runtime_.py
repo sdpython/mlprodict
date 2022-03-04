@@ -106,11 +106,6 @@ from mlprodict.onnxrt.ops_cpu.op_dropout import _dropout
 from mlprodict.onnxrt.ops_cpu._op_helper import proto2dtype
 from mlprodict.onnx_tools.onnx2py_helper import (
     guess_proto_dtype, _elem_type_as_str)
-from mlprodict.tools.data_types import (
-    FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType,
-    Int32TensorType, BooleanTensorType, UInt8TensorType,
-    Int16TensorType, Int8TensorType, UInt16TensorType,
-    UInt32TensorType, UInt64TensorType, Float16TensorType)
 from mlprodict.testing.test_utils.quantized_tensor import (
     QuantizedTensor, QuantizedBiasTensor, test_qlinear_conv)
 from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import (  # pylint: disable=W0611,E0611,E0401
@@ -119,6 +114,12 @@ from mlprodict.onnxrt.ops_cpu.op_constant import Constant_12, Constant_11, Const
 from mlprodict.onnxrt.ops_shape.shape_excs import ShapeInferenceException
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
+
+from skl2onnx.common.data_types import (
+    FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType,
+    Int32TensorType, BooleanTensorType, UInt8TensorType,
+    Int16TensorType, Int8TensorType, UInt16TensorType,
+    UInt32TensorType, UInt64TensorType, Float16TensorType)
 
 try:
     numpy_str = numpy.str_

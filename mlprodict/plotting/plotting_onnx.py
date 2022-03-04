@@ -2,7 +2,6 @@
 @file
 @brief Useful plots.
 """
-import matplotlib.pyplot as plt
 from ..onnxrt import OnnxInference
 
 
@@ -21,8 +20,9 @@ def plot_onnx(onx, ax=None, dpi=300, temp_dot=None, temp_img=None,
     :param show: calls `plt.show()`
     :return: axes
     """
-    # delayed import
+    # delayed import, because too long
     from pyquickhelper.helpgen.graphviz_helper import plot_graphviz
+    import matplotlib.pyplot as plt
 
     if ax is None:
         ax = plt.gca()  # pragma: no cover
