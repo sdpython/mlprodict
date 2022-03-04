@@ -5,6 +5,9 @@ import unittest
 from logging import getLogger
 import numpy
 from onnx import helper, TensorProto
+from onnx.helper import (
+    make_model, make_node, make_function,
+    make_graph, make_tensor_value_info, make_opsetid)
 from sklearn.datasets import load_iris
 from sklearn.cluster import KMeans
 from sklearn.model_selection import train_test_split
@@ -166,6 +169,49 @@ class TestOnnxInference(ExtTestCase):
                 out = oinf.output_names_shapes_types
                 self.assertIsInstance(out, list)
 
+    def test_make_function(self):
+        new_domain = 'custom'
+        opset_imports = [make_opsetid("", 14), make_opsetid(new_domain, 1)]
+
+        node1 = make_node('MatMul', ['X', 'A'], ['XA'])
+        node2 = make_node('Add', ['XA', 'B'], ['Y'])
+
+        linear_regression = make_function(
+            new_domain,            # domain name
+            'LinearRegression',     # function name
+            ['X', 'A', 'B'],        # input names
+            ['Y'],                  # output names
+            [node1, node2],         # nodes
+            opset_imports,          # opsets
+            [])                     # attribute names
+
+        X = make_tensor_value_info('X', TensorProto.FLOAT, [None, None])
+        A = make_tensor_value_info('A', TensorProto.FLOAT, [None, None])
+        B = make_tensor_value_info('B', TensorProto.FLOAT, [None, None])
+        Y = make_tensor_value_info('Y', TensorProto.FLOAT, None)
+
+        graph = make_graph(
+            [make_node('LinearRegression', ['X', 'A', 'B'], ['Y1'],
+                       domain=new_domain),
+             make_node('Abs', ['Y1'], ['Y'])],
+            'example',
+            [X, A, B], [Y])
+
+        onnx_model = make_model(
+            graph, opset_imports=opset_imports,
+            functions=[linear_regression])  # functions to add)
+
+        X = numpy.array([[0, 1], [2, 3]], dtype=numpy.float32)
+        A = numpy.array([[10, 11]], dtype=numpy.float32).T
+        B = numpy.array([[1, -1]], dtype=numpy.float32)
+        expected = X @ A + B
+
+        with self.subTest(runtime='python'):
+            oinf = OnnxInference(onnx_model, runtime='python')
+            got = oinf.run({'X': X, 'A': A, 'B': B})['Y']
+            self.assertEqualArray(expected, got)
+
 
 if __name__ == "__main__":
+    TestOnnxInference().test_make_function()
     unittest.main()

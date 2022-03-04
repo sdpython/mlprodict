@@ -406,8 +406,11 @@ def _var_as_dict(var):
     if hasattr(var, 'data_type') and var.data_type > 0:
         data = _to_array(var)
         return dict(name=var.name, value=data)
+    if isinstance(var, str):
+        return dict(name=var)
     raise NotImplementedError(  # pragma: no cover
-        "Unable to guess which object it is.\n{}\n---".format(var))
+        "Unable to guess which object it is type is %r value is %r."
+        "" % (type(var), var))
 
 
 def get_dtype_shape(obj):

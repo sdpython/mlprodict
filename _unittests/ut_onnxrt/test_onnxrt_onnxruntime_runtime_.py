@@ -185,11 +185,6 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
             got = oinf.run({'X': X, 'A': A, 'B': B})['Y']
             self.assertEqualArray(expected, got)
 
-        with self.subTest(runtime='python'):
-            oinf = OnnxInference(onnx_model, runtime='python')
-            got = oinf.run({'X': X, 'A': A, 'B': B})['Y']
-            self.assertEqualArray(expected, got)
-
 
 if __name__ == "__main__":
     unittest.main()
