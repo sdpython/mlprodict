@@ -4,7 +4,6 @@
 import unittest
 from logging import getLogger
 from pandas import DataFrame
-from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
 try:
@@ -19,7 +18,6 @@ class TestOnnxrtValidateRtGraph(ExtTestCase):
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_pyrt_ort(self):
-        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
         verbose = 1 if __name__ == "__main__" else 0
@@ -37,10 +35,10 @@ class TestOnnxrtValidateRtGraph(ExtTestCase):
         plt.clf()
         self.assertNotEmpty(fig)
         self.assertNotEmpty(ax)
+        plt.close('all')
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
     def test_validate_pyrt_ort2(self):
-        fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
         logger.disabled = True
         verbose = 0 if __name__ == "__main__" else 0
@@ -60,6 +58,7 @@ class TestOnnxrtValidateRtGraph(ExtTestCase):
         plt.clf()
         self.assertNotEmpty(fig)
         self.assertNotEmpty(ax)
+        plt.close('all')
 
 
 if __name__ == "__main__":

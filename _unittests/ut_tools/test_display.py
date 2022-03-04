@@ -15,6 +15,7 @@ class TestDisplay(ExtTestCase):
 
     def test_plot_logreg_xtime(self):
 
+        import matplotlib.pyplot as plt
         iris = load_iris()
         X = iris.data[:, :2]
         y = iris.target
@@ -25,6 +26,7 @@ class TestDisplay(ExtTestCase):
         self.assertIn('opset_import', disp)
         self.assertIn('producer_version', disp)
         self.assertLess(len(disp), 1010)
+        plt.close('all')
 
 
 if __name__ == "__main__":
