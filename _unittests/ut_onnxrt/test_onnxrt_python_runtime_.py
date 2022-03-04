@@ -43,7 +43,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxDequantizeLinear,
     OnnxDet, OnnxDiv,
     OnnxDropout, OnnxDropout_7,
-    OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxEyeLike,
+    OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
     OnnxIdentity, OnnxIsNaN,
@@ -2131,6 +2131,36 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
         validate_python_inference(oinfpy, {'X': X.astype(numpy.float32),
                                            'Y': Y.astype(numpy.float32)})
+
+    @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
+    @wraplog()
+    def test_onnxt_runtime_expand(self):
+        sh = numpy.array([2, 2, 1], dtype=numpy.int64)
+        onx = OnnxExpand('X', 'sh', output_names=['Y'],
+                         op_version=TARGET_OPSET)
+        X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32), 'sh': sh},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxExpand, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X.copy(), 'sh': sh})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        exp = X * numpy.ones(sh.tolist())
+        self.assertEqualArray(exp, got['Y'])
+
+        X = numpy.array([[1.], [2.], [3.]], dtype=numpy.float32)
+        sh = numpy.array([2, 1, 6], dtype=numpy.int64)
+        exp = X * numpy.ones(sh.tolist())
+        got = oinf.run({'X': X.copy(), 'sh': sh})
+        self.assertEqualArray(exp, got['Y'])
+
+        X = numpy.array([[1.], [2.], [3.]], dtype=numpy.float32)
+        sh = numpy.array([3, 4], dtype=numpy.int64)
+        exp = numpy.tile(X, 4)
+        got = oinf.run({'X': X.copy(), 'sh': sh})
+        self.assertEqualArray(exp, got['Y'])
+
+        python_tested.append(OnnxExpand)
 
     @wraplog()
     def test_onnxt_runtime_eyelike(self):

@@ -49,6 +49,7 @@ from .op_einsum import Einsum
 from .op_equal import Equal
 from .op_erf import Erf
 from .op_exp import Exp
+from .op_expand import Expand, Expand_13
 from .op_eyelike import EyeLike
 from .op_feature_vectorizer import FeatureVectorizer
 from .op_fft import FFT
