@@ -6,45 +6,7 @@
 """
 import os
 from onnx import numpy_helper
-
-try:
-    from onnxruntime import (  # pylint: disable=W0611
-        SessionOptions, RunOptions,
-        InferenceSession as OrtInferenceSession,
-        __version__ as onnxrt_version,
-        GraphOptimizationLevel,
-        set_default_logger_severity)
-    from .onnx_inference_ort_helper import get_ort_device, device_to_providers
-except ImportError:  # pragma: no cover
-    SessionOptions = None
-    RunOptions = None
-    OrtInferenceSession = None
-    onnxrt_version = "0.0.0"
-    GraphOptimizationLevel = None
-    get_ort_device = None
-    device_to_providers = None
-    set_default_logger_severity = None
-
-try:
-    from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=W0611
-        Fail as OrtFail,
-        NotImplemented as OrtNotImplemented,
-        InvalidArgument as OrtInvalidArgument,
-        InvalidGraph as OrtInvalidGraph,
-        RuntimeException as OrtRuntimeException,
-        OrtValue as C_OrtValue)
-except ImportError:  # pragma: no cover
-    SessionOptions = None
-    RunOptions = None
-    InferenceSession = None
-    onnxrt_version = "0.0.0"
-    GraphOptimizationLevel = None
-    OrtFail = RuntimeError
-    OrtNotImplemented = RuntimeError
-    OrtInvalidArgument = RuntimeError
-    OrtInvalidGraph = RuntimeError
-    OrtRuntimeException = RuntimeError
-    C_OrtValue = None
+from .onnx_inference_ort_helper import get_ort_device, device_to_providers
 
 
 class InferenceSession:  # pylint: disable=E0102
@@ -59,9 +21,15 @@ class InferenceSession:  # pylint: disable=E0102
 
     def __init__(self, onnx_bytes, sess_options=None, log_severity_level=4,
                  device=None):
-        if InferenceSession is None:
-            raise ImportError(  # pragma: no cover
-                "onnxruntime is not available.")
+        from onnxruntime import (  # pylint: disable=W0611
+            SessionOptions, RunOptions,
+            InferenceSession as OrtInferenceSession,
+            set_default_logger_severity)
+        from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=W0611
+            OrtValue as C_OrtValue)
+
+        self.C_OrtValue = C_OrtValue
+
         self.log_severity_level = log_severity_level
         if device is None:
             self.device = get_ort_device('cpu')
@@ -94,7 +62,7 @@ class InferenceSession:  # pylint: disable=E0102
         :param run_options: None or RunOptions
         :return: array
         """
-        if any(map(lambda v: isinstance(v, C_OrtValue),
+        if any(map(lambda v: isinstance(v, self.C_OrtValue),
                    input_feed.values())):
             return self.sess._sess.run_with_ort_values(
                 input_feed, self.output_names, run_options or self.ro)

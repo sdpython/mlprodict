@@ -3,9 +3,6 @@
 @file
 @brief Helpers for :epkg:`onnxruntime`.
 """
-from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611,W0611
-    OrtDevice as C_OrtDevice)
-
 
 def get_ort_device(device):
     """
@@ -23,8 +20,11 @@ def get_ort_device(device):
         get_ort_device('cuda')
         get_ort_device('cuda:0')
     """
-    if isinstance(device, C_OrtDevice):
-        return device
+    if hasattr(device, 'device_id'):
+        from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611,W0611
+            OrtDevice as C_OrtDevice)  # delayed
+        if isinstance(device, C_OrtDevice):
+            return device
     if isinstance(device, str):
         if device == 'cpu':
             return C_OrtDevice(
