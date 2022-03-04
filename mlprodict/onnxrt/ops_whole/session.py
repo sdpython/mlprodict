@@ -100,8 +100,7 @@ class OnnxWholeSession:
         try:
             return self.sess._sess.run_with_ort_values(
                 inputs, self.output_names, self.run_options)
-        except RuntimeError as e:
-            print(inputs)
+        except RuntimeError:
             return self.sess._sess.run_with_ort_values(
                 {k: v._get_c_value() for k, v in inputs.items()},
                 self.output_names, self.run_options)
