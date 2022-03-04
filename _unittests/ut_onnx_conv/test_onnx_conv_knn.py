@@ -8,6 +8,7 @@ import numpy
 from pandas import DataFrame
 from scipy.spatial.distance import cdist as scipy_cdist
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings as igw
+from onnxruntime.capi._pybind_state import InvalidArgument as OrtInvalidArgument
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.datasets import load_iris, make_regression
 from sklearn.model_selection import train_test_split
@@ -26,7 +27,6 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 from mlprodict.testing.test_utils import _capture_output
-from mlprodict.tools.ort_wrapper import OrtInvalidArgument
 
 
 def old_topk_sorted_implementation(X, k, axis, largest):
