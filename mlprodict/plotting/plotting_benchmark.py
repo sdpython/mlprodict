@@ -101,6 +101,7 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
 
     # Get the formatter in case a string is supplied
     if isinstance(valfmt, str):
+        import matplotlib  # delayed
         valfmt = matplotlib.ticker.StrMethodFormatter(valfmt)
 
     texts = []

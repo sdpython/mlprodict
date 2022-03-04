@@ -83,12 +83,16 @@ class OpRunOnnxRuntime:
                 self.onnx_node.op_type in custom_nodes):
             self.alg_class = custom_nodes[self.onnx_node.op_type]
         else:
-            import skl2onnx.algebra.custom_ops as alg2  # delayed
             try:
-                self.alg_class = getattr(alg2, 'Onnx' + self.onnx_node.op_type)
+                import mlprodict.onnx_conv.onnx_ops as alg0
+                self.alg_class = getattr(alg0, 'Onnx' + self.onnx_node.op_type)
             except AttributeError:
-                import skl2onnx.algebra.onnx_ops as alg  # delayed
-                self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
+                import skl2onnx.algebra.custom_ops as alg2  # delayed
+                try:
+                    self.alg_class = getattr(alg2, 'Onnx' + self.onnx_node.op_type)
+                except AttributeError:
+                    import skl2onnx.algebra.onnx_ops as alg  # delayed
+                    self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
 
         inputs = list(self.onnx_node.input)
         self.mapping, self.inputs = self._name_mapping(inputs)

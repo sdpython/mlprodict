@@ -5,6 +5,7 @@
 """
 import json
 from io import BytesIO
+import numpy
 import onnx
 
 
@@ -84,6 +85,7 @@ class OnnxWholeSession:
             raise RuntimeError(
                 "Unable to create InferenceSession due to '{}'\n{}.".format(
                     e, display_onnx(onnx.load(BytesIO(onnx_data))))) from e
+        self.output_names = [_.name for _ in self.sess.get_outputs()]
 
     def run(self, inputs):
         """
@@ -92,7 +94,11 @@ class OnnxWholeSession:
         @param      inputs      dictionary *{variable, value}*
         @return                 list of outputs
         """
-        return self.sess.run(None, inputs, self.run_options)
+        v = next(iter(inputs.values()))
+        if isinstance(v, numpy.ndarray):
+            return self.sess.run(None, inputs, self.run_options)
+        return self.sess._sess.run_with_ort_values(
+            inputs, self.output_names, self.run_options)
 
     @staticmethod
     def process_profiling(js):

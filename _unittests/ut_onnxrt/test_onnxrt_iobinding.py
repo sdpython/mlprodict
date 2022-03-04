@@ -7,14 +7,15 @@ from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611,W0611
     OrtDevice as C_OrtDevice, OrtValue as C_OrtValue)
 from onnxruntime import get_device
-from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611,W0611
-    OnnxAdd)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.onnx_inference_ort_helper import get_ort_device
+from mlprodict.npy.xop import loadop
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 DEVICE = "cuda" if get_device().upper() == 'GPU' else 'cpu'
+
+OnnxAdd = loadop('Add')
 
 
 class TestOnnxrtIOBinding(ExtTestCase):
