@@ -4,8 +4,6 @@
 """
 from pyquickhelper.pycode import is_travis_or_appveyor
 from .utils_backend_common_compare import compare_runtime_session
-from ...tools.ort_wrapper import (
-    InferenceSession, GraphOptimizationLevel, SessionOptions)
 
 
 def _capture_output(fct, kind):
@@ -27,6 +25,8 @@ class InferenceSession2:
 
     def __init__(self, *args, **kwargs):
         "Overwrites the constructor."
+        from onnxruntime import (
+            InferenceSession, GraphOptimizationLevel, SessionOptions)
         runtime_options = kwargs.pop('runtime_options', {})
         disable_optimisation = runtime_options.pop(
             'disable_optimisation', False)
