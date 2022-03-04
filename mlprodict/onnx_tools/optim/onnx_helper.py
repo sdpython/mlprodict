@@ -4,7 +4,6 @@
 """
 from collections import Counter
 from onnx.helper import make_graph
-from onnx import ValueInfoProto
 from ._onnx_optimisation_common import _apply_optimisation_on_graph
 from .onnx_optimisation import onnx_remove_node
 

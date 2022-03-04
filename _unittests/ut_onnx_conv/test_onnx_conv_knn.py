@@ -8,7 +8,8 @@ import numpy
 from pandas import DataFrame
 from scipy.spatial.distance import cdist as scipy_cdist
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings as igw
-from onnxruntime.capi._pybind_state import InvalidArgument as OrtInvalidArgument
+from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+    InvalidArgument as OrtInvalidArgument)
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.datasets import load_iris, make_regression
 from sklearn.model_selection import train_test_split

@@ -283,7 +283,7 @@ class Variable:
         value_info = ValueInfoProto()
         value_info.name = self.name
         tensor_type_proto = make_tensor_type_proto(self.proto_type, self.shape)
-        value_info.type.CopyFrom(tensor_type_proto)
+        value_info.type.CopyFrom(tensor_type_proto)  # pylint: disable=E1101
         return value_info
 
     @staticmethod
@@ -315,23 +315,21 @@ class Variable:
             tt = obj.type.tensor_type
             elem = tt.elem_type
             shape = get_shape(tt)
-            if elem == TensorProto.FLOAT:
+            if elem == TensorProto.FLOAT:  # pylint: disable=E1101
                 ty = numpy.float32
-            elif elem == TensorProto.BOOL:
+            elif elem == TensorProto.BOOL:  # pylint: disable=E1101
                 ty = numpy.bool_
-            elif elem == TensorProto.DOUBLE:
+            elif elem == TensorProto.DOUBLE:  # pylint: disable=E1101
                 ty = numpy.float64
-            elif elem == TensorProto.STRING:
+            elif elem == TensorProto.STRING:  # pylint: disable=E1101
                 ty = numpy.str_
-            elif elem == TensorProto.INT64:
+            elif elem == TensorProto.INT64:  # pylint: disable=E1101
                 ty = numpy.int64
-            elif elem == TensorProto.INT32:
+            elif elem == TensorProto.INT32:  # pylint: disable=E1101
                 ty = numpy.int32
-            elif (UInt8TensorType is not None and
-                    elem == TensorProto.UINT8):
+            elif elem == TensorProto.UINT8:  # pylint: disable=E1101
                 ty = numpy.uint8
-            elif (Int8TensorType is not None and
-                    elem == TensorProto.INT8):
+            elif elem == TensorProto.INT8:  # pylint: disable=E1101
                 ty = numpy.int8
             else:
                 raise NotImplementedError(

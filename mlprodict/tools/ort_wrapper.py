@@ -25,7 +25,7 @@ class InferenceSession:  # pylint: disable=E0102
             SessionOptions, RunOptions,
             InferenceSession as OrtInferenceSession,
             set_default_logger_severity)
-        from onnxruntime.capi._pybind_state import (  # pylint: disable=W0611
+        from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
             OrtValue as C_OrtValue)
 
         self.C_OrtValue = C_OrtValue

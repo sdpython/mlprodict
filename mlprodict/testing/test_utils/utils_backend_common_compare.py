@@ -201,8 +201,9 @@ def compare_runtime_session(  # pylint: disable=R0912
     else:
         run_options = {}
 
-    from onnxruntime.capi._pybind_state import InvalidArgument as OrtInvalidArgument
-        
+    from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+        InvalidArgument as OrtInvalidArgument)
+
     try:
         try:
             output = sess.run(None, inputs, **run_options)

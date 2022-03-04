@@ -27,11 +27,7 @@ def get_defined_inputs(input_names, variables=None, dtype=None,
     @return                     typed inputs as ``tuple(name, type)``
     """
     from skl2onnx.common.data_types import (  # delayed
-        DataType,
-        FloatTensorType, SequenceType, DictionaryType,
-        Int64Type, Int64TensorType, BooleanTensorType,
-        Int32TensorType, DoubleTensorType, FloatType,
-        StringTensorType, Float16TensorType)
+        DataType, FloatTensorType, DoubleTensorType)
 
     def guess_type_variable(name, schema):
         if variables is None:
@@ -97,9 +93,7 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
         DataType,
         FloatTensorType, SequenceType, DictionaryType,
         Int64Type, Int64TensorType, BooleanTensorType,
-        Int32TensorType, DoubleTensorType, FloatType,
-        StringTensorType, Float16TensorType,
-        _guess_type_proto, _guess_type_proto_str)
+        DoubleTensorType, _guess_type_proto, _guess_type_proto_str)
 
     if schema is None:
         ft = DoubleTensorType if dtype == numpy.float64 else FloatTensorType
@@ -224,7 +218,6 @@ def proto2vars(values):
     Converts proto values to Variables.
     """
     from skl2onnx.common.data_types import (  # delayed
-        DataType,
         FloatTensorType, SequenceType, DictionaryType,
         Int64Type, Int64TensorType, BooleanTensorType,
         Int32TensorType, DoubleTensorType, FloatType,

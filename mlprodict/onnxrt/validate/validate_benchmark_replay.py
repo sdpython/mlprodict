@@ -48,7 +48,7 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
     @param      fLOG                logging function
     @return                         iterator on results
     """
-    from onnxruntime.capi._pybind_state import Fail as OrtFail  # delayed import
+    from onnxruntime.capi._pybind_state import Fail as OrtFail  # pylint: disable=E0611
 
     files = [_ for _ in os.listdir(folder) if _.endswith(
         ".pkl") or _.endswith("_.pickle")]

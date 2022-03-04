@@ -11,7 +11,6 @@ from ...tools.ort_wrapper import InferenceSession
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
 from ...onnx_tools.optim.graph_schema_helper import (
     get_defined_inputs, get_defined_outputs, proto2vars)
-from ...onnx_conv import onnx_ops as alg3
 
 
 _schemas = {
@@ -48,6 +47,10 @@ class OpRunOnnxRuntime:
         self.options = options
         self.dtype = dtype
         self._init(variables)
+
+        from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+            InvalidArgument as OrtInvalidArgument)
+        self.OrtInvalidArgument = OrtInvalidArgument
 
     def _name_mapping(self, inputs):
         mapping = {}
@@ -89,10 +92,12 @@ class OpRunOnnxRuntime:
             except AttributeError:
                 import skl2onnx.algebra.custom_ops as alg2  # delayed
                 try:
-                    self.alg_class = getattr(alg2, 'Onnx' + self.onnx_node.op_type)
+                    self.alg_class = getattr(
+                        alg2, 'Onnx' + self.onnx_node.op_type)
                 except AttributeError:
                     import skl2onnx.algebra.onnx_ops as alg  # delayed
-                    self.alg_class = getattr(alg, 'Onnx' + self.onnx_node.op_type)
+                    self.alg_class = getattr(
+                        alg, 'Onnx' + self.onnx_node.op_type)
 
         inputs = list(self.onnx_node.input)
         self.mapping, self.inputs = self._name_mapping(inputs)
@@ -229,13 +234,11 @@ class OpRunOnnxRuntime:
             lo = list(self.onnx_.graph.output)
             outputs = proto2vars(lo)
 
-        from onnxruntime import (  # delayed
+        from onnxruntime import (  # pylint: disable=E0611
             SessionOptions, RunOptions, GraphOptimizationLevel)
-        from onnxruntime.capi._pybind_state import (  # delayed
+        from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
             Fail as OrtFail, InvalidGraph as OrtInvalidGraph,
-            InvalidArgument as OrtInvalidArgument,
-            NotImplemented as OrtNotImplemented,
-            RuntimeException as OrtRuntimeException)
+            NotImplemented as OrtNotImplemented)
 
         sess_options = session_options or SessionOptions()
         self.run_options = RunOptions()
@@ -288,7 +291,7 @@ class OpRunOnnxRuntime:
 
         try:
             res = self.sess_.run(None, inputs, self.run_options)
-        except (RuntimeError, OrtInvalidArgument) as e:  # pragma: no cover
+        except (RuntimeError, self.OrtInvalidArgument) as e:  # pragma: no cover
             dtypes = {k: v.dtype for k, v in inputs.items()}
             shapes = {k: v.shape for k, v in inputs.items()}
             exp = [_.name for _ in self.sess_.get_inputs()]

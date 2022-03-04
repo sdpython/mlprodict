@@ -31,7 +31,7 @@ class OnnxWholeSession:
         from onnxruntime import (  # delayed
             InferenceSession, SessionOptions, RunOptions,
             GraphOptimizationLevel)
-        from onnxruntime.capi._pybind_state import (
+        from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
             Fail as OrtFail, InvalidGraph as OrtInvalidGraph,
             InvalidArgument as OrtInvalidArgument,
             NotImplemented as OrtNotImplemented,

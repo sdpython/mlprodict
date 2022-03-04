@@ -89,7 +89,7 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
             python -m mlprodict latency --model "model.onnx"
     """
     from cpyquickhelper.numbers import measure_time  # delayed import
-    
+
     if isinstance(model, str) and not os.path.exists(model):
         raise FileNotFoundError(  # pragma: no cover
             "Unable to find model %r." % model)

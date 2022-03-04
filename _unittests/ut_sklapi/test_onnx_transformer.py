@@ -109,7 +109,7 @@ class TestOnnxTransformer(ExtTestCase):
     @ignore_warnings(DeprecationWarning)
     @skipif_appveyor("crashes")
     def test_pipeline_iris_change_dim(self):
-        from onnxruntime.capi._pybind_state import (
+        from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
             InvalidArgument as OrtInvalidArgument)
         iris = load_iris()
         X, y = iris.data, iris.target

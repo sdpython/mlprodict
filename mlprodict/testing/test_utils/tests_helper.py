@@ -232,7 +232,7 @@ def dump_data_and_model(  # pylint: disable=R0912
     """
     # delayed import because too long
     from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType  # delayed
-    
+
     runtime_test = dict(model=model, data=data)
 
     if folder is None:
@@ -468,6 +468,7 @@ def dump_one_class_classification(
     Every created filename will follow the pattern:
     ``<folder>/<prefix><task><classifier-name><suffix>.<data|expected|model|onnx>.<pkl|onnx>``.
     """
+    from skl2onnx.common.data_types import FloatTensorType  # delayed
     X = [[0.0, 1.0], [1.0, 1.0], [2.0, 0.0]]
     X = numpy.array(X, dtype=numpy.float32)
     y = [1, 1, 1]
@@ -494,6 +495,7 @@ def dump_binary_classification(
     Every created filename will follow the pattern:
     ``<folder>/<prefix><task><classifier-name><suffix>.<data|expected|model|onnx>.<pkl|onnx>``.
     """
+    from skl2onnx.common.data_types import FloatTensorType  # delayed
     X = [[0, 1], [1, 1], [2, 0]]
     X = numpy.array(X, dtype=numpy.float32)
     if label_string:
@@ -543,6 +545,7 @@ def dump_multiple_classification(
     Every created filename will follow the pattern:
     ``<folder>/<prefix><task><classifier-name><suffix>.<data|expected|model|onnx>.<pkl|onnx>``.
     """
+    from skl2onnx.common.data_types import FloatTensorType  # delayed
     X = [[0, 1], [1, 1], [2, 0], [0.5, 0.5], [1.1, 1.1], [2.1, 0.1]]
     X = numpy.array(X, dtype=numpy.float32)
     y = [0, 1, 2, 1, 1, 2]
@@ -595,6 +598,7 @@ def dump_multilabel_classification(
     Every created filename will follow the pattern:
     ``<folder>/<prefix><task><classifier-name><suffix>.<data|expected|model|onnx>.<pkl|onnx>``.
     """
+    from skl2onnx.common.data_types import FloatTensorType  # delayed
     X = [[0, 1], [1, 1], [2, 0], [0.5, 0.5], [1.1, 1.1], [2.1, 0.1]]
     X = numpy.array(X, dtype=numpy.float32)
     if label_string:
@@ -619,8 +623,8 @@ def dump_multilabel_classification(
         verbose=verbose, comparable_outputs=comparable_outputs,
         backend=backend)
 
-    X, y = make_multilabel_classification(40, n_features=4, random_state=42,  # pylint: disable=W0632
-                                          n_classes=3)
+    X, y = make_multilabel_classification(  # pylint: disable=W0632
+        40, n_features=4, random_state=42, n_classes=3)
     X = X[:, :2]
     model.fit(X, y)
     if verbose:  # pragma: no cover
@@ -649,6 +653,7 @@ def dump_multiple_regression(
     Every created filename will follow the pattern:
     ``<folder>/<prefix><task><classifier-name><suffix>.<data|expected|model|onnx>.<pkl|onnx>``.
     """
+    from skl2onnx.common.data_types import FloatTensorType  # delayed
     X = [[0, 1], [1, 1], [2, 0]]
     X = numpy.array(X, dtype=numpy.float32)
     y = numpy.array([[100, 50], [100, 49], [100, 99]], dtype=numpy.float32)
@@ -672,6 +677,7 @@ def dump_single_regression(model, suffix="", folder=None, allow_failure=None,
     Every created filename will follow the pattern:
     ``<folder>/<prefix><task><classifier-name><suffix>.<data|expected|model|onnx>.<pkl|onnx>``.
     """
+    from skl2onnx.common.data_types import FloatTensorType  # delayed
     X = [[0, 1], [1, 1], [2, 0]]
     X = numpy.array(X, dtype=numpy.float32)
     y = numpy.array([100, -10, 50], dtype=numpy.float32)

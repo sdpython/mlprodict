@@ -22,6 +22,7 @@ class TokenizerTransformerBase(BaseEstimator, TransformerMixin):
     Base class for @see cl SentencePieceTokenizerTransformer and
     @see cl GPT2TokenizerTransformer.
     """
+
     def __init__(self):
         BaseEstimator.__init__(self)
         TransformerMixin.__init__(self)

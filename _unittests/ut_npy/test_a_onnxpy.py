@@ -6,7 +6,8 @@ import unittest
 from typing import Any
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from onnxruntime.capi._pybind_state import InvalidArgument as OrtInvalidArgument
+from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+    InvalidArgument as OrtInvalidArgument)
 from mlprodict.npy import OnnxNumpyCompiler as ONC, NDArray
 from mlprodict.npy.onnx_variable import OnnxVar
 from mlprodict.npy.onnx_numpy_annotation import _NDArrayAlias

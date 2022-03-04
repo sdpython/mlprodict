@@ -115,7 +115,7 @@ from mlprodict.onnxrt.ops_shape.shape_excs import ShapeInferenceException
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 
-from skl2onnx.common.data_types import (
+from skl2onnx.common.data_types import (  # pylint: disable=C0412
     FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType,
     Int32TensorType, BooleanTensorType, UInt8TensorType,
     Int16TensorType, Int8TensorType, UInt16TensorType,

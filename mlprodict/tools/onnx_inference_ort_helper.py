@@ -4,6 +4,7 @@
 @brief Helpers for :epkg:`onnxruntime`.
 """
 
+
 def get_ort_device(device):
     """
     Converts device into :epkg:`C_OrtDevice`.

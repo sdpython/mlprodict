@@ -336,7 +336,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         if hasattr(self, 'onnxrt_'):
             model = self.onnxrt_.obj
         else:
-            model = load_onnx_model(self.onnx_bytes)
+            model = onnx.load(BytesIO(self.onnx_bytes))
         res = {}
         for oimp in model.opset_import:
             res[oimp.domain] = oimp.version

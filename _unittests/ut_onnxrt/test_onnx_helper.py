@@ -38,7 +38,8 @@ class TestOnnxHelper(ExtTestCase):
 
     @skipif_appveyor("unstable")
     def test_change_input_first_dimension(self):
-        from onnxruntime.capi._pybind_state import InvalidArgument as OrtInvalidArgument
+        from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+            InvalidArgument as OrtInvalidArgument)
         iris = load_iris()
         X, _ = iris.data, iris.target
         clr = KMeans()
