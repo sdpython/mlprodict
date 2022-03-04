@@ -2137,7 +2137,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_expand(self):
         sh = numpy.array([2, 2, 1], dtype=numpy.int64)
         onx = OnnxExpand('X', 'sh', output_names=['Y'],
-                          op_version=TARGET_OPSET)
+                         op_version=TARGET_OPSET)
         X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float32)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32), 'sh': sh},
                                 target_opset=TARGET_OPSET)
