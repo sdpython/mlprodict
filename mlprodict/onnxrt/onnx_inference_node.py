@@ -92,32 +92,38 @@ class OnnxInferenceNode:
         if self.desc is None:
             raise AttributeError(
                 "desc should not be None.")  # pragma: no cover
-        self.preprocess_parameters(
-            runtime, rt_class, ir_version=ir_version, target_opset=target_opset)
-        options = {'provider': runtime} if runtime else {}
-        if domain is not None:
-            options['domain'] = domain
-        if target_opset is not None:
-            options['target_opset'] = target_opset
-        if ir_version is not None:
-            options['ir_version'] = ir_version
-        if runtime_options is not None:
-            options.update({
-                k: v for k, v in runtime_options.items()
-                if k not in {'log_severity_level'}})
-        if runtime == 'onnxruntime2':
-            self.ops_ = load_op(self.onnx_node, desc=self.desc,
-                                options=options if options else None,
-                                variables=variables, dtype=dtype)
-        elif runtime in ('python_compiled', 'python_compiled_debug'):
-            options['provider'] = 'python'
-            self.ops_ = load_op(self.onnx_node, desc=self.desc,
-                                options=options if options else None,
-                                variables=variables)
+        if rt_class is None:
+            self.function_ = runtime
+            self.ops_ = None
         else:
-            self.ops_ = load_op(self.onnx_node, desc=self.desc,
-                                options=options if options else None,
-                                variables=variables)
+            self.function_ = None
+            self.preprocess_parameters(
+                runtime, rt_class, ir_version=ir_version,
+                target_opset=target_opset)
+            options = {'provider': runtime} if runtime else {}
+            if domain is not None:
+                options['domain'] = domain
+            if target_opset is not None:
+                options['target_opset'] = target_opset
+            if ir_version is not None:
+                options['ir_version'] = ir_version
+            if runtime_options is not None:
+                options.update({
+                    k: v for k, v in runtime_options.items()
+                    if k not in {'log_severity_level'}})
+            if runtime == 'onnxruntime2':
+                self.ops_ = load_op(self.onnx_node, desc=self.desc,
+                                    options=options if options else None,
+                                    variables=variables, dtype=dtype)
+            elif runtime in ('python_compiled', 'python_compiled_debug'):
+                options['provider'] = 'python'
+                self.ops_ = load_op(self.onnx_node, desc=self.desc,
+                                    options=options if options else None,
+                                    variables=variables)
+            else:
+                self.ops_ = load_op(self.onnx_node, desc=self.desc,
+                                    options=options if options else None,
+                                    variables=variables)
 
     @staticmethod
     def _find_static_inputs(body):
@@ -145,10 +151,8 @@ class OnnxInferenceNode:
     def preprocess_parameters(self, runtime, rt_class, ir_version=None,
                               target_opset=None):
         """
-        Preprocesses the parameters,
-        loads *GraphProto*
-        (equivalent to :epkg:`ONNX` graph with
-        less metadata).
+        Preprocesses the parameters, loads *GraphProto*
+        (equivalent to :epkg:`ONNX` graph with less metadata).
 
         @param  runtime         runtime options
         @param  rt_class        runtime class used to compute
@@ -184,7 +188,23 @@ class OnnxInferenceNode:
 
         @param      values      list of existing values
         """
-        # This code takes times if the graph contains many nodes.
+        if self.ops_ is None:
+            # Then a function.
+            feeds = {name: val
+                     for name, val in zip(self.function_.obj.input,
+                                          values)}
+            outputs = self.function_.run(feeds)
+            res = [outputs[k] for k in self.function_.obj.output]
+
+            if self.outputs_indices is None:
+                for name, value in zip(self.outputs, res):
+                    values[name] = value
+            else:
+                for i, r in enumerate(res):
+                    values[self.outputs_indices[i]] = r
+            return
+
+        # This code takes time if the graph contains many nodes.
         # Maybe a C++ container would help in that case (to skip GIL).
         if self.inputs_indices is None:
             args = list(values[k] for k in self.inputs)
@@ -256,22 +276,27 @@ class OnnxInferenceNode:
 
         :param values: container for shapes
         """
+        if self.ops_ is None:
+            for name in self.outputs:
+                values[name] = None
+            return values
         args = [values[k] for k in self.inputs]
         try:
             res = self.ops_.infer_shapes(*args)
         except (TypeError, ValueError) as e:  # pragma: no cover
             raise TypeError(
                 "Unable to call infer_shapes with {} arguments for class"
-                " '{}' ({})".format(len(args), self.ops_.__class__.__name__,
-                                    self.ops_.infer_shapes)) from e
+                " '{}' ({})".format(
+                    len(args), self.ops_.__class__.__name__,
+                    self.ops_.infer_shapes)) from e
         if not isinstance(res, tuple):
             raise RuntimeError(  # pragma: no cover
                 "Results of an operator should be a tuple for operator '{}'"
                 ".".format(type(self.ops_)))
         if len(self.outputs) != len(res):
             raise RuntimeError(  # pragma: no cover
-                "Mismatch number of outputs got {} != {} for names {} (node='{}')."
-                "\n{}".format(
+                "Mismatch number of outputs got {} != {} for names {} "
+                "(node='{}').\n{}".format(
                     len(res), len(self.outputs), list(self.outputs),
                     self.ops_.__class__.__name__,
                     pprint.pformat(self.desc, depth=2)))

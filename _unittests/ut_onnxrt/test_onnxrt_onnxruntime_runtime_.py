@@ -5,6 +5,11 @@ import unittest
 import warnings
 from logging import getLogger
 import numpy
+from onnx import TensorProto
+from onnx.helper import (
+    make_model, make_node, make_function,
+    make_graph, make_tensor_value_info, make_opsetid)
+from onnxruntime import InferenceSession
 from pyquickhelper.pycode import (
     ExtTestCase, ignore_warnings, skipif_azure)
 from sklearn.neighbors import RadiusNeighborsRegressor
@@ -132,6 +137,54 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
             warnings.warn('\n'.join(rows))
             return
         self.assertEqualArray(exp, got, decimal=4)
+
+    def test_make_function(self):
+        new_domain = 'custom'
+        opset_imports = [make_opsetid("", 14), make_opsetid(new_domain, 1)]
+
+        node1 = make_node('MatMul', ['X', 'A'], ['XA'])
+        node2 = make_node('Add', ['XA', 'B'], ['Y'])
+
+        linear_regression = make_function(
+            new_domain,            # domain name
+            'LinearRegression',     # function name
+            ['X', 'A', 'B'],        # input names
+            ['Y'],                  # output names
+            [node1, node2],         # nodes
+            opset_imports,          # opsets
+            [])                     # attribute names
+
+        X = make_tensor_value_info('X', TensorProto.FLOAT, [None, None])
+        A = make_tensor_value_info('A', TensorProto.FLOAT, [None, None])
+        B = make_tensor_value_info('B', TensorProto.FLOAT, [None, None])
+        Y = make_tensor_value_info('Y', TensorProto.FLOAT, None)
+
+        graph = make_graph(
+            [make_node('LinearRegression', ['X', 'A', 'B'], ['Y1'],
+                       domain=new_domain),
+             make_node('Abs', ['Y1'], ['Y'])],
+            'example',
+            [X, A, B], [Y])
+
+        onnx_model = make_model(
+            graph, opset_imports=opset_imports,
+            functions=[linear_regression])  # functions to add)
+        onnx_model.ir_version = get_ir_version(14)
+
+        X = numpy.array([[0, 1], [2, 3]], dtype=numpy.float32)
+        A = numpy.array([[10, 11]], dtype=numpy.float32).T
+        B = numpy.array([[1, -1]], dtype=numpy.float32)
+        expected = X @ A + B
+
+        with self.subTest(runtime='onnxruntime'):
+            sess = InferenceSession(onnx_model.SerializeToString())
+            got = sess.run(None, {'X': X, 'A': A, 'B': B})[0]
+            self.assertEqualArray(expected, got)
+
+        with self.subTest(runtime='onnxruntime1'):
+            oinf = OnnxInference(onnx_model, runtime='onnxruntime1')
+            got = oinf.run({'X': X, 'A': A, 'B': B})['Y']
+            self.assertEqualArray(expected, got)
 
 
 if __name__ == "__main__":

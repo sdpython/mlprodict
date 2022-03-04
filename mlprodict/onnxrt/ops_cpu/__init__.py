@@ -3,6 +3,7 @@
 @file
 @brief Shortcut to *ops_cpu*.
 """
+from ..excs import MissingOperatorError
 from ._op import OpRunCustom
 from ._op_list import __dict__ as d_op_list
 
@@ -70,7 +71,7 @@ def load_op(onnx_node, desc=None, options=None):
     elif name in d_op_list:
         cl = d_op_list[name]
     else:
-        raise NotImplementedError(  # pragma no cover
+        raise MissingOperatorError(  # pragma no cover
             "Operator '{}' has no runtime yet. Available list:\n"
             "{}\n--- +\n{}".format(
                 name, "\n".join(sorted(_additional_ops)),

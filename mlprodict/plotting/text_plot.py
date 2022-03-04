@@ -1,3 +1,4 @@
+# pylint: disable=R0912
 """
 @file
 @brief Text representations of graphs.
@@ -383,7 +384,7 @@ def _get_shape(obj):
 
 
 def onnx_simple_text_plot(model, verbose=False, att_display=None,
-                          add_links=False, recursive=False):
+                          add_links=False, recursive=False, functions=True):
     """
     Displays an ONNX graph into text.
 
@@ -393,6 +394,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
         a default list if used
     :param add_links: displays links of the right side
     :param recursive: display subgraphs as well
+    :param functions: display functions as well
     :return: str
 
     An ONNX graph is printed the following way:
@@ -582,24 +584,31 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             rows.append("opset: domain=%r version=%r" % (
                 opset.domain, opset.version))
     if hasattr(model, 'graph'):
+        main_model = model
         model = model.graph
+    else:
+        main_model = None
 
     # inputs
     line_name_new = {}
     line_name_in = {}
     for inp in model.input:
-        line_name_new[inp.name] = len(rows)
-        rows.append("input: name=%r type=%r shape=%r" % (
-            inp.name, _get_type(inp), _get_shape(inp)))
-    # initializer
-    for init in model.initializer:
-        if numpy.prod(_get_shape(init)) < 5:
-            content = " -- %r" % to_array(init).ravel()
+        if isinstance(inp, str):
+            rows.append("input: %r" % inp)
         else:
-            content = ""
-        line_name_new[init.name] = len(rows)
-        rows.append("init: name=%r type=%r shape=%r%s" % (
-            init.name, _get_type(init), _get_shape(init), content))
+            line_name_new[inp.name] = len(rows)
+            rows.append("input: name=%r type=%r shape=%r" % (
+                inp.name, _get_type(inp), _get_shape(inp)))
+    # initializer
+    if hasattr(model, 'initializer'):
+        for init in model.initializer:
+            if numpy.prod(_get_shape(init)) < 5:
+                content = " -- %r" % to_array(init).ravel()
+            else:
+                content = ""
+            line_name_new[init.name] = len(rows)
+            rows.append("init: name=%r type=%r shape=%r%s" % (
+                init.name, _get_type(init), _get_shape(init), content))
 
     # successors, predecessors
     successors = {}
@@ -627,11 +636,16 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
     init_names = set()
     indents = {}
     for inp in model.input:
-        indents[inp.name] = 0
-        init_names.add(inp.name)
-    for init in model.initializer:
-        indents[init.name] = 0
-        init_names.add(init.name)
+        if isinstance(inp, str):
+            indents[inp] = 0
+            init_names.add(inp)
+        else:
+            indents[inp.name] = 0
+            init_names.add(inp.name)
+    if hasattr(model, 'initializer'):
+        for init in model.initializer:
+            indents[init.name] = 0
+            init_names.add(init.name)
 
     nodes = reorder_nodes_for_display(model.node, verbose=verbose)
 
@@ -692,12 +706,20 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
 
     # outputs
     for out in model.output:
-        if out.name in line_name_in:
-            line_name_in[out.name].append(len(rows))
+        if isinstance(out, str):
+            if out in line_name_in:
+                line_name_in[out].append(len(rows))
+            else:
+                line_name_in[out] = [len(rows)]
+            rows.append("output: name=%r type=%s shape=%s" % (
+                out, '?', '?'))
         else:
-            line_name_in[out.name] = [len(rows)]
-        rows.append("output: name=%r type=%r shape=%r" % (
-            out.name, _get_type(out), _get_shape(out)))
+            if out.name in line_name_in:
+                line_name_in[out.name].append(len(rows))
+            else:
+                line_name_in[out.name] = [len(rows)]
+            rows.append("output: name=%r type=%r shape=%r" % (
+                out.name, _get_type(out), _get_shape(out)))
 
     if add_links:
 
@@ -753,6 +775,17 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             g, verbose=verbose, att_display=att_display,
             add_links=add_links, recursive=recursive)
         rows.append(res)
+
+    # functions
+    if functions and main_model is not None:
+        for fct in main_model.functions:
+            rows.append('----- function name=%s domain=%s' % (
+                fct.name, fct.domain))
+            res = onnx_simple_text_plot(
+                fct, verbose=verbose, att_display=att_display,
+                add_links=add_links, recursive=recursive,
+                functions=False)
+            rows.append(res)
 
     return "\n".join(rows)
 

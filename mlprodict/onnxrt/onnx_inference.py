@@ -1,4 +1,4 @@
-# pylint: disable=C0302
+# pylint: disable=C0302,R0912
 """
 @file
 @brief Implements a class able to compute the predictions
@@ -106,6 +106,8 @@ class OnnxInference:
         elif isinstance(onnx_or_bytes_or_stream, onnx_proto.GraphProto):
             self.obj = make_model(onnx_or_bytes_or_stream,
                                   producer_name='mlprodict')
+        elif isinstance(onnx_or_bytes_or_stream, onnx_proto.FunctionProto):
+            self.obj = onnx_or_bytes_or_stream
         else:
             raise TypeError("Unable to handle type {}.".format(  # pragma: no cover
                 type(onnx_or_bytes_or_stream)))
@@ -174,17 +176,26 @@ class OnnxInference:
                 "No runnable nodes was found in the ONNX graph.")
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
+        is_function_proto = isinstance(self.obj, onnx_proto.FunctionProto)
+        if is_function_proto:
+            obj_graph = self.obj
+        else:
+            obj_graph = self.obj.graph
 
-        for ino in [self.obj.graph.input, self.obj.graph.output]:
+        for ino in [obj_graph.input, obj_graph.output]:
             for xy in ino:
-                shape = xy.type.tensor_type.shape
-                for d in shape.dim:
-                    if d.dim_value == 0 and "0" in str(d) and 'dim_param' not in str(d):
-                        # d.dim_value returns 0 whether is is 0 or empty.
-                        # it may be a parameter as well
-                        raise RuntimeError(  # pragma: no cover
-                            "Wrong ONNX file, one input or output has an empty shape: "
-                            "{}.".format(xy))
+                if isinstance(xy, str):
+                    shape = None
+                else:
+                    shape = xy.type.tensor_type.shape
+                    for d in shape.dim:
+                        if (d.dim_value == 0 and "0" in str(d) and
+                                'dim_param' not in str(d)):
+                            # d.dim_value returns 0 whether is is 0 or empty.
+                            # it may be a parameter as well
+                            raise RuntimeError(  # pragma: no cover
+                                "Wrong ONNX file, one input or output has "
+                                "an empty shape: {}.".format(xy))
 
         self.target_opset_ = self.graph_['targets']
         if self.force_target_opset is not None:
@@ -212,23 +223,31 @@ class OnnxInference:
                 for node in self.sequence_:
                     domain = node.onnx_node.domain
                     target_opset = self.target_opset_.get(domain, None)
-                    if self.runtime in ('onnxruntime2', 'empty'):
-                        node.setup_runtime(self.runtime, variables, self.__class__,
-                                           target_opset=target_opset, dtype=dtype,
-                                           domain=domain, ir_version=self.ir_version_,
-                                           runtime_options=self.runtime_options)
+                    keyf = domain, node.onnx_node.op_type
+                    if keyf in self.graph_['functions']:
+                        node.setup_runtime(self.graph_['functions'][keyf])
+                    elif self.runtime in ('onnxruntime2', 'empty'):
+                        node.setup_runtime(
+                            self.runtime, variables, self.__class__,
+                            target_opset=target_opset, dtype=dtype,
+                            domain=domain, ir_version=self.ir_version_,
+                            runtime_options=self.runtime_options)
                     else:
-                        node.setup_runtime(self.runtime, variables, self.__class__,
-                                           target_opset=target_opset, domain=domain,
-                                           ir_version=self.ir_version_,
-                                           runtime_options=self.runtime_options)
+                        node.setup_runtime(
+                            self.runtime, variables, self.__class__,
+                            target_opset=target_opset, domain=domain,
+                            ir_version=self.ir_version_,
+                            runtime_options=self.runtime_options)
                     if hasattr(node, 'ops_') and hasattr(node.ops_, 'typed_outputs_'):
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v
                 self._run = self._run_sequence_runtime
 
         if not self.skip_run and self.runtime in ('python', None):
-            self.shapes_ = self._set_shape_inference_runtime()
+            if is_function_proto:
+                self.shapes_ = None
+            else:
+                self.shapes_ = self._set_shape_inference_runtime()
             if self.inplace:
                 self.inplaces_ = self._guess_inplace(self.input_inplace)
         self.exporters_ = OnnxInferenceExport(self)
@@ -357,6 +376,10 @@ class OnnxInference:
         """
         f = OnnxInference._get_type_property
         names = set(self.input_names)
+        if isinstance(self.obj, onnx_proto.FunctionProto):
+            return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
+                     'tensor(%s)' % f(_var_as_dict(_)['type'], 'elem'))
+                    for _ in self.obj.input if _.name in names]
         return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
                  'tensor(%s)' % f(_var_as_dict(_)['type'], 'elem'))
                 for _ in self.obj.graph.input if _.name in names]
@@ -366,6 +389,8 @@ class OnnxInference:
         """
         Returns the names of all outputs.
         """
+        if isinstance(self.obj, onnx_proto.FunctionProto):
+            return [_ for _ in self.obj.output]
         return [_.name for _ in self.obj.graph.output]
 
     @property
@@ -375,6 +400,8 @@ class OnnxInference:
         This method assumes all inputs are tensors.
         """
         f = OnnxInference._get_type_property
+        if isinstance(self.obj, onnx_proto.FunctionProto):
+            return [(_, None) for _ in self.obj.output]
         return [(_.name, f(_var_as_dict(_)['type'], 'shape'))
                 for _ in self.obj.graph.output]
 
@@ -389,6 +416,8 @@ class OnnxInference:
         """
         names = set(self.output_names)
         f = OnnxInference._get_type_property
+        if isinstance(self.obj, onnx_proto.FunctionProto):
+            return [(_, None) for _ in self.obj.graph.output if _ in names]
         return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
                  'tensor(%s)' % f(_var_as_dict(_)['type'], 'elem'))
                 for _ in self.obj.graph.output if _.name in names]
@@ -449,8 +478,23 @@ class OnnxInference:
         nodes = {}
         statics = {}
         targets = {}
+        functions = {}
+        is_function_proto = isinstance(self.obj, onnx_proto.FunctionProto)
+
         for o in self.obj.opset_import:
             targets[o.domain] = o.version
+
+        if (hasattr(self.obj, 'functions') and len(self.obj.functions) > 0 and
+                self.runtime != 'onnxruntime1'):
+            for fct in self.obj.functions:
+                functions[fct.domain, fct.name] = OnnxInference(
+                    fct, runtime=self.runtime,
+                    skip_run=self.skip_run,
+                    inplace=self.inplace,
+                    runtime_options=self.runtime_options,
+                    inside_loop=self.inside_loop,
+                    static_inputs=self.static_inputs,
+                    device=self.device)
 
         # static variables
         if self.static_inputs is not None:
@@ -458,34 +502,48 @@ class OnnxInference:
                 statics[n] = {'name': n}
                 self.global_index(n)
 
+        if isinstance(self.obj, onnx_proto.FunctionProto):
+            obj_graph = self.obj
+        else:
+            obj_graph = self.obj.graph
+
         # inputs
-        for obj in self.obj.graph.input:
-            variables[obj.name] = _var_as_dict(obj)
-            self.global_index(obj.name)
+        for obj in obj_graph.input:
+            if is_function_proto:
+                variables[obj] = {'name': obj}
+                self.global_index(obj)
+            else:
+                variables[obj.name] = _var_as_dict(obj)
+                self.global_index(obj.name)
 
         # outputs
-        for obj in self.obj.graph.output:
-            if hasattr(obj, 'type') and str(obj.type) != '':
-                outputs[obj.name] = _var_as_dict(obj)
+        for obj in obj_graph.output:
+            if is_function_proto:
+                outputs[obj] = {'name': obj}
+                self.global_index(obj)
             else:
-                outputs[obj.name] = {'name': obj.name}
-            self.global_index(obj.name)
+                if hasattr(obj, 'type') and str(obj.type) != '':
+                    outputs[obj.name] = _var_as_dict(obj)
+                else:
+                    outputs[obj.name] = {'name': obj.name}
+                self.global_index(obj.name)
 
         # initializer
-        for obj in self.obj.graph.initializer:
-            init_obj = _var_as_dict(obj)
-            if init_obj is None:
-                raise RuntimeError(  # pragma: no cover
-                    "Unable to convert an initializer\n{}".format(obj))
-            inits[obj.name] = init_obj
-            self.global_index(obj.name)
-            if 'value' not in inits[obj.name]:
-                raise RuntimeError(  # pragma: no cover
-                    "One initializer has no value: '{}'\n{}\n{}".format(
-                        obj.name, inits[obj.name], obj))
+        if not is_function_proto:
+            for obj in obj_graph.initializer:
+                init_obj = _var_as_dict(obj)
+                if init_obj is None:
+                    raise RuntimeError(  # pragma: no cover
+                        "Unable to convert an initializer\n{}".format(obj))
+                inits[obj.name] = init_obj
+                self.global_index(obj.name)
+                if 'value' not in inits[obj.name]:
+                    raise RuntimeError(  # pragma: no cover
+                        "One initializer has no value: '{}'\n{}\n{}".format(
+                            obj.name, inits[obj.name], obj))
 
         # nodes
-        for node in self.obj.graph.node:
+        for node in obj_graph.node:
             dobj = _var_as_dict(node)
             if dobj is None:
                 raise RuntimeError(  # pragma: no cover
@@ -623,8 +681,12 @@ class OnnxInference:
 
         results = dict(inits=inits, inputs=variables, outputs=outputs,
                        nodes=nodes, sequence=sequence,
+                       functions=functions,
                        intermediate=intermediate,
-                       targets=targets, ir_version=self.obj.ir_version,
+                       targets=targets,
+                       ir_version=(
+                           None if is_function_proto
+                           else self.obj.ir_version),
                        statics=statics)
         if len(sequence) < len(nodes):
             # Not all node will be executed.
