@@ -484,7 +484,8 @@ class OnnxInference:
         for o in self.obj.opset_import:
             targets[o.domain] = o.version
 
-        if hasattr(self.obj, 'functions') and len(self.obj.functions) > 0:
+        if (hasattr(self.obj, 'functions') and len(self.obj.functions) > 0 and
+                self.runtime != 'onnxruntime1'):
             for fct in self.obj.functions:
                 functions[fct.domain, fct.name] = OnnxInference(
                     fct, runtime=self.runtime,

@@ -169,6 +169,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
         onnx_model = make_model(
             graph, opset_imports=opset_imports,
             functions=[linear_regression])  # functions to add)
+        onnx_model.ir_version = get_ir_version(14)
 
         X = numpy.array([[0, 1], [2, 3]], dtype=numpy.float32)
         A = numpy.array([[10, 11]], dtype=numpy.float32).T
