@@ -641,7 +641,7 @@ def to_skl2onnx_type(name, elem_type, shape):
     :param shape: expected shape
     :return: data type
     """
-    from skl2onnx.common.data_types import _guess_numpy_type
+    from skl2onnx.common.data_types import _guess_numpy_type  # delayed
     elem = guess_numpy_type_from_string(elem_type)
     shape = list(None if d == 0 else d for d in shape)
     return (name, _guess_numpy_type(elem, shape))

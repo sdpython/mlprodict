@@ -3,23 +3,11 @@
 @brief Functions to help guessing the final graph structure.
 """
 import numpy
-try:
-    from onnxconverter_common.data_types import Float16TensorType
-except ImportError:  # pragma: no cover
-    Float16TensorType = None
-from skl2onnx.common.data_types import (
-    DataType,
-    FloatTensorType, SequenceType, DictionaryType,
-    Int64Type, Int64TensorType, BooleanTensorType,
-    Int32TensorType, DoubleTensorType, FloatType,
-    StringTensorType)
-from skl2onnx.common.data_types import (
-    _guess_type_proto, _guess_type_proto_str)
-from skl2onnx.algebra.type_helper import _guess_type as skl2onnx__guess_type
-from skl2onnx.proto import TensorProto
+from onnx import TensorProto
 
 
 def _guess_type(var):
+    from skl2onnx.algebra.type_helper import _guess_type as skl2onnx__guess_type  # delayed
     if isinstance(var, dict) and 'value' in var:
         return skl2onnx__guess_type(var['value'])  # pragma: no cover
     return skl2onnx__guess_type(var)
@@ -36,9 +24,15 @@ def get_defined_inputs(input_names, variables=None, dtype=None,
                                 by previous operators
     @param      dtype           float computational type
     @param      schema          defined inputs by schema (*expected_inputs*)
-    @return                     typed inputs
-                                as ``tuple(name, type)``
+    @return                     typed inputs as ``tuple(name, type)``
     """
+    from skl2onnx.common.data_types import (  # delayed
+        DataType,
+        FloatTensorType, SequenceType, DictionaryType,
+        Int64Type, Int64TensorType, BooleanTensorType,
+        Int32TensorType, DoubleTensorType, FloatType,
+        StringTensorType, Float16TensorType)
+
     def guess_type_variable(name, schema):
         if variables is None:
             if (schema is None or
@@ -99,6 +93,14 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
     :param schema_inputs: defined inputs by schema (*expected_inputs*)
     :return: typed outputs as ``tuple(name, type)``
     """
+    from skl2onnx.common.data_types import (  # delayed
+        DataType,
+        FloatTensorType, SequenceType, DictionaryType,
+        Int64Type, Int64TensorType, BooleanTensorType,
+        Int32TensorType, DoubleTensorType, FloatType,
+        StringTensorType, Float16TensorType,
+        _guess_type_proto, _guess_type_proto_str)
+
     if schema is None:
         ft = DoubleTensorType if dtype == numpy.float64 else FloatTensorType
     elif len(schema) != 1:
@@ -221,6 +223,13 @@ def proto2vars(values):
     """
     Converts proto values to Variables.
     """
+    from skl2onnx.common.data_types import (  # delayed
+        DataType,
+        FloatTensorType, SequenceType, DictionaryType,
+        Int64Type, Int64TensorType, BooleanTensorType,
+        Int32TensorType, DoubleTensorType, FloatType,
+        StringTensorType, Float16TensorType)
+
     def ptype2vttype(it, shape):
         if it == TensorProto.FLOAT:  # pylint: disable=E1101
             return FloatTensorType(shape)
