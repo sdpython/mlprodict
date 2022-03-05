@@ -1,12 +1,10 @@
 """
-@brief      test log(time=10s)
+@brief      test log(time=40s)
 """
 import unittest
-import numpy
 from numpy import array, float32
-from onnx import numpy_helper, TensorProto
 from onnx.helper import (
-    make_model, make_node, set_model_props, make_tensor, make_graph,
+    make_model, make_node, set_model_props, make_graph,
     make_tensor_value_info)
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing.onnx_backend import enumerate_onnx_tests
@@ -102,7 +100,6 @@ class TestOnnxBackEnd(ExtTestCase):
             outputs = []
 
             opsets = {'': 9}
-            target_opset = 9  # subgraphs
 
             value = make_tensor_value_info('x', 1, [3, 4, 5])
             inputs.append(value)
@@ -117,8 +114,7 @@ class TestOnnxBackEnd(ExtTestCase):
                 domain='')
             nodes.append(node)
 
-            graph = make_graph(nodes, 'test_abs', inputs,
-                               outputs, initializers)
+            graph = make_graph(nodes, 'test_abs', inputs, outputs, initializers)
 
             onnx_model = make_model(graph)
             onnx_model.ir_version = 3
