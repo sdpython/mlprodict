@@ -6,11 +6,12 @@ import unittest
 from typing import Any
 import numpy
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
-from mlprodict.tools.ort_wrapper import OrtInvalidArgument
+from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+    InvalidArgument as OrtInvalidArgument)
 from mlprodict.npy import onnxnumpy, onnxnumpy_np
-import mlprodict.npy.numpy_onnx_impl as nxnp
 from mlprodict.npy import (
     OnnxNumpyCompiler as ONC, NDArray, NDArraySameTypeSameShape)
+import mlprodict.npy.numpy_onnx_impl as nxnp
 
 
 @ignore_warnings(DeprecationWarning)

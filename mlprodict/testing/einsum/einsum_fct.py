@@ -8,7 +8,6 @@ import time
 import math
 import numpy
 from onnx import helper
-from skl2onnx.common.data_types import FloatTensorType
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
 from ...onnxrt.onnx_micro_runtime import OnnxMicroRuntime
 from ... import __max_supported_opset__, get_ir_version
@@ -195,6 +194,7 @@ class CachedEinsum:
             if hasattr(inst, 'onnx_'):
                 onx = inst.onnx_
             else:
+                from skl2onnx.common.data_types import FloatTensorType  # delayed
                 inits = [
                     ('X%d' % i, FloatTensorType(list(inputs[i].shape)))
                     for i in range(len(inputs))]

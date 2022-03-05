@@ -9,6 +9,7 @@ import pandas
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as CK, Sum
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper.version_helper import compare_module_version
+from onnxruntime import __version__ as ort_version
 from skl2onnx.common.data_types import FloatTensorType
 try:
     from skl2onnx.operator_converters.gaussian_process import convert_kernel
@@ -19,7 +20,6 @@ from mlprodict.onnxrt.validate.side_by_side import (
     side_by_side_by_values, merge_results,
     _side_by_side_by_values_inputs)
 from mlprodict.testing.test_utils import _capture_output
-from mlprodict.tools.ort_wrapper import onnxrt_version as ort_version
 from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 
 

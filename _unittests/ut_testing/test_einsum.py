@@ -8,7 +8,7 @@ import itertools
 import numpy
 from onnx import numpy_helper
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.tools.ort_wrapper import (
+from onnxruntime import (
     InferenceSession, GraphOptimizationLevel, SessionOptions)
 from mlprodict.testing.einsum.einsum_impl_ext import (
     numpy_diagonal, numpy_extended_dot, numpy_extended_dot_python)

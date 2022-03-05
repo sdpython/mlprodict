@@ -5,8 +5,7 @@ import unittest
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.tools.filename_helper import (
     extract_information_from_filename,
-    make_readable_title
-)
+    make_readable_title)
 
 
 class TestFilename(ExtTestCase):

@@ -7,7 +7,6 @@ import pickle
 from logging import getLogger
 import warnings
 from pandas import read_csv
-from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from ..onnx_conv import to_onnx
 from ..onnxrt import OnnxInference
 from ..onnx_tools.optim import onnx_optimisations
@@ -53,7 +52,7 @@ def convert_validate(pkl, data=None, schema=None,
     :param optim: applies optimisations on the first ONNX graph,
         use 'onnx' to reduce the number of node Identity and
         redundant subgraphs
-    :param rewrite_ops: rewrites some converters from skl2onnx
+    :param rewrite_ops: rewrites some converters from :epkg:`sklearn-onnx`
     :param options: additional options for conversion,
         dictionary as a string
     :param verbose: verbose level
@@ -100,6 +99,7 @@ def convert_validate(pkl, data=None, schema=None,
                              --name output_label,output_probability
                              --verbose 1
     """
+    from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType  # delayed
     if fLOG is None:
         verbose = 0  # pragma: no cover
     if use_double not in (None, 'float64', 'switch'):

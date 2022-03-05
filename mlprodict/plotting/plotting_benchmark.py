@@ -2,11 +2,7 @@
 @file
 @brief Useful plots.
 """
-
 import numpy
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
 
 
 def heatmap(data, row_labels, col_labels, ax=None,
@@ -28,6 +24,7 @@ def heatmap(data, row_labels, col_labels, ax=None,
                         <https://matplotlib.org/api/_as_gen/matplotlib.pyplot.imshow.html>`_
     @return             ax, image, color bar
     """
+    import matplotlib.pyplot as plt  # delayed
 
     if not ax:
         ax = plt.gca()  # pragma: no cover
@@ -102,6 +99,7 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
 
     # Get the formatter in case a string is supplied
     if isinstance(valfmt, str):
+        import matplotlib  # delayed
         valfmt = matplotlib.ticker.StrMethodFormatter(valfmt)
 
     texts = []
@@ -159,6 +157,8 @@ def plot_benchmark_metrics(metric, xlabel=None, ylabel=None,
         return plot_benchmark_metrics(metric, ax=ax, xlabel=ylabel, ylabel=xlabel,
                                       middle=middle, transpose=False,
                                       cbar_kw=cbar_kw, cbarlabel=cbarlabel)
+
+    from matplotlib.colors import LogNorm  # delayed
 
     x = numpy.array(list(sorted(set(k[0] for k in metric))))
     y = numpy.array(list(sorted(set(k[1] for k in metric))))

@@ -6,8 +6,8 @@ implement einsum computation.
 """
 import numpy
 from onnx import helper, numpy_helper
-from skl2onnx.common.data_types import guess_proto_type
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
+from ...npy.xop_variable import guess_numpy_type
 from ... import __max_supported_opset__, get_ir_version
 from .blas_lapack import gemm_dot
 from .einsum_impl_ext import (
@@ -1455,13 +1455,14 @@ class GraphEinsumSubOp:
                     raise ValueError(  # pragma: no cover
                         "Irreconcialable shapes for input %r: "
                         "%r != len(%r)." % (name, le, typ.shape))
-                proto = guess_proto_type(typ)
-                onx_inputs.append(helper.make_tensor_value_info(
-                    name, proto, typ.shape))
+                proto = guess_proto_dtype(guess_numpy_type(typ))
+                onx_inputs.append(
+                    helper.make_tensor_value_info(name, proto, typ.shape))
                 names[len(names)] = name
             else:
-                onx_inputs.append(helper.make_tensor_value_info(
-                    inp, proto, [None for i in range(le)]))
+                onx_inputs.append(
+                    helper.make_tensor_value_info(
+                        inp, proto, [None for i in range(le)]))
                 names[len(names)] = inp
 
         # output

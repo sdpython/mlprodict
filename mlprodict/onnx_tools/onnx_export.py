@@ -288,7 +288,7 @@ def export2onnx(model_onnx, opset=None, verbose=True, name=None, rename=False,
 
         import numpy
         from sklearn.cluster import KMeans
-        from skl2onnx import to_onnx
+        from mlprodict.onnx_conv import to_onnx
         from mlprodict.onnx_tools.onnx_export import export2onnx
 
         X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
@@ -330,7 +330,7 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None,
 
         import numpy
         from sklearn.cluster import KMeans
-        from skl2onnx import to_onnx
+        from mlprodict.onnx_conv import to_onnx
         from mlprodict.onnx_tools.onnx_export import export2tf2onnx
 
         X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
@@ -374,7 +374,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
 
         import numpy
         from sklearn.cluster import KMeans
-        from skl2onnx import to_onnx
+        from mlprodict.onnx_conv import to_onnx
         from mlprodict.onnx_tools.onnx_export import export2numpy
 
         X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)

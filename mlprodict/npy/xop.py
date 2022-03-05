@@ -1,7 +1,7 @@
 # pylint: disable=E1101,C0302
 """
 @file
-@brief Xop API to build onnx graphs. Inspired from :epkg:`skl2onnx`.
+@brief Xop API to build onnx graphs. Inspired from :epkg:`sklearn-onnx`.
 
 .. versionadded:: 0.9
 """
@@ -1113,7 +1113,7 @@ class OnnxOperator(OnnxOperatorBase):
             elif isinstance(el, Variable):
                 new_inputs[el.name] = el
             elif isinstance(el, tuple) and len(el) == 2:
-                # skl2onnx
+                # sklearn-onnx
                 new_inputs[el[0]] = Variable(
                     el[0], guess_numpy_type(el[1]), el[1].shape)
             else:

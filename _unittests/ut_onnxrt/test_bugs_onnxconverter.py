@@ -14,7 +14,7 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
-from skl2onnx import to_onnx
+from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
 

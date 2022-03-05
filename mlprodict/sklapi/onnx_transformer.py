@@ -9,12 +9,8 @@ import pandas
 import onnx
 from sklearn.base import BaseEstimator, TransformerMixin
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
-from skl2onnx.helpers.onnx_helper import (
-    load_onnx_model, enumerate_model_node_outputs)
-from skl2onnx.helpers.onnx_helper import select_model_inputs_outputs
-from skl2onnx.common.data_types import (
-    FloatTensorType, DoubleTensorType,
-    Int64TensorType)
+from mlprodict.onnx_tools.onnx_manipulations import (
+    select_model_inputs_outputs, enumerate_model_node_outputs)
 from ..onnx_tools.onnx2py_helper import _var_as_dict, onnx_model_opsets
 from ..onnx_tools.exports.skl2onnx_helper import add_onnx_graph
 from ..onnxrt import OnnxInference
@@ -257,7 +253,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         :return: iterator on OnnxTransformer *('output name', OnnxTransformer)*
         """
         selected = None if output_names is None else set(output_names)
-        model = load_onnx_model(onnx_bytes)
+        model = onnx.load(BytesIO(onnx_bytes))
         for out in enumerate_model_node_outputs(model):
             m = select_model_inputs_outputs(model, out)
             if selected is None or out in selected:
@@ -291,6 +287,8 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
 
     def onnx_shape_calculator(self):
         def shape_calculator(operator):
+            from skl2onnx.common.data_types import (  # delayed
+                FloatTensorType, DoubleTensorType, Int64TensorType)
             cout = self.onnxrt_.output_names
             if len(operator.outputs) != len(cout):
                 raise RuntimeError(  # pragma: no cover
@@ -313,7 +311,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                     out_op.type = DoubleTensorType(shape=shape)
                 else:
                     raise NotImplementedError(  # pragma: no cover
-                        "Not yet implemented for elem_type:\n{}".format(elem))
+                        "Not yet implemented for elem_type: %r" % (elem, ))
         return shape_calculator
 
     def onnx_converter(self):
@@ -338,7 +336,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         if hasattr(self, 'onnxrt_'):
             model = self.onnxrt_.obj
         else:
-            model = load_onnx_model(self.onnx_bytes)
+            model = onnx.load(BytesIO(self.onnx_bytes))
         res = {}
         for oimp in model.opset_import:
             res[oimp.domain] = oimp.version

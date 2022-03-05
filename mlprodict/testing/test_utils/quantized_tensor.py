@@ -3,7 +3,7 @@
 @brief Initializes a quantized tensor from float values.
 """
 import numpy
-from skl2onnx.algebra.onnx_ops import OnnxQLinearConv  # pylint: disable=E0611
+from ...npy.xop import loadop
 from ...onnxrt import OnnxInference
 
 
@@ -105,6 +105,8 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
     :param strides: optional parameter for operator `QLinearConv`
     :param group: optional paramerer for operator `QLinearConv`
     """
+    OnnxQLinearConv = loadop('QLinearConv')
+
     if opset is None:
         from ... import __max_supported_opset__
         opset = __max_supported_opset__

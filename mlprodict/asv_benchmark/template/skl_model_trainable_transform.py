@@ -42,4 +42,4 @@ class TemplateBenchmarkTrainableTransform(_CommonAsvSklBenchmarkTrainableTransfo
         super().setup_cache()
 
     def _create_model(self):
-        return PLSCanonical()
+        return PLSCanonical(n_components=1)
