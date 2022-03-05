@@ -453,20 +453,22 @@ class OnnxInference:
                 :showcode:
                 :warningout: DeprecationWarning
 
-                import pprint
                 import numpy
                 from mlprodict.npy.xop import loadop
                 from mlprodict.onnxrt import OnnxInference
 
-                OnnxAiOnnxMlLinearRegressor = loadop('LinearRegressor')
+                OnnxAiOnnxMlLinearRegressor = loadop(
+                    ('ai.onnx.ml', 'LinearRegressor'))
 
                 pars = dict(coefficients=numpy.array([1., 2.]),
                             intercepts=numpy.array([1.]),
                             post_transform='NONE')
-                onx = OnnxAiOnnxMlLinearRegressor('X', output_names=['Y'], **pars)
-                model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
-                                        outputs={'Y': numpy.float32},
-                                        target_opset=12)
+                onx = OnnxAiOnnxMlLinearRegressor(
+                    'X', output_names=['Y'], **pars)
+                model_def = onx.to_onnx(
+                    {'X': pars['coefficients'].astype(numpy.float32)},
+                    outputs={'Y': numpy.float32},
+                    target_opset=12)
                 oinf = OnnxInference(model_def)
                 pprint.pprint(oinf.to_sequence())
 

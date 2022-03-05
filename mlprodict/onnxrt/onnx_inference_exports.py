@@ -69,15 +69,18 @@ class OnnxInferenceExport:
                 from mlprodict.npy.xop import loadop
                 from mlprodict.onnxrt import OnnxInference
 
-                onx = OnnxAiOnnxMlLinearRegressor('X', output_names=['Y'], **pars)
+                OnnxAiOnnxMlLinearRegressor = loadop(
+                    ('ai.onnx.ml', 'LinearRegressor'))
 
                 pars = dict(coefficients=numpy.array([1., 2.]),
                             intercepts=numpy.array([1.]),
                             post_transform='NONE')
-                onx = OnnxAiOnnxMlLinearRegressor('X', output_names=['Y'], **pars)
-                model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
-                                        outputs={'Y': numpy.float32},
-                                        target_opset=12)
+                onx = OnnxAiOnnxMlLinearRegressor(
+                    'X', output_names=['Y'], **pars)
+                model_def = onx.to_onnx(
+                    {'X': pars['coefficients'].astype(numpy.float32)},
+                    outputs={'Y': numpy.float32},
+                    target_opset=12)
                 oinf = OnnxInference(model_def)
                 print(oinf.to_dot())
 
@@ -327,15 +330,18 @@ class OnnxInferenceExport:
                 from mlprodict.npy.xop import loadop
                 from mlprodict.onnxrt import OnnxInference
 
-                onx = OnnxAiOnnxMlLinearRegressor('X', output_names=['Y'], **pars)
+                OnnxAiOnnxMlLinearRegressor = loadop(
+                    ('ai.onnx.ml', 'LinearRegressor'))
 
                 pars = dict(coefficients=numpy.array([1., 2.]),
                             intercepts=numpy.array([1.]),
                             post_transform='NONE')
-                onx = OnnxAiOnnxMlLinearRegressor('X', output_names=['Y'], **pars)
-                model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
-                                        outputs={'Y': numpy.float32},
-                                        target_opset=12)
+                onx = OnnxAiOnnxMlLinearRegressor(
+                    'X', output_names=['Y'], **pars)
+                model_def = onx.to_onnx(
+                    {'X': pars['coefficients'].astype(numpy.float32)},
+                    outputs={'Y': numpy.float32},
+                    target_opset=12)
                 oinf = OnnxInference(model_def)
                 print(oinf.to_json())
         """
