@@ -21,7 +21,7 @@ class CategoryMapper(OpRun):
                        expected_attributes=CategoryMapper.atts,
                        **options)
         if len(self.cats_int64s) != len(self.cats_strings):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Lengths mismatch between cats_int64s (%d) and "
                 "cats_strings (%d)." % (
                     len(self.cats_int64s), len(self.cats_strings)))

@@ -178,8 +178,7 @@ def get_rst_doc(op_name=None):
         name = obj.name
         if len(name) == 0:
             return str(i)
-        else:
-            return name
+        return name
 
     def process_documentation(doc):
         if doc is None:

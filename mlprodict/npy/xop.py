@@ -118,7 +118,7 @@ def _find_operator_domain(name):
     domains = _all_domains[name]
     if len(domains) == 1:
         return list(domains)[0]
-    raise ValueError(
+    raise ValueError(  # pragma: no cover
         "Unable to guess domain of operator %r, found domains %r." % (
             name, domains))
 
@@ -155,10 +155,11 @@ def ClassFactory(class_name, op_name, inputs, outputs,
             if len(args) == 0 and input_range[0] == input_range[1]:
                 args = [_[0] for _ in self.__class__.expected_inputs]
             if not (input_range[0] <= len(args) <= input_range[1]):
-                raise RuntimeError("Unexpected number of inputs, "
-                                   "got {}, expecting {} for operator "
-                                   "'{}'.".format(
-                                       len(args), len(inputs), op_name))
+                raise RuntimeError(  # pragma: no cover
+                    "Unexpected number of inputs, "
+                    "got {}, expecting {} for operator "
+                    "'{}'.".format(
+                        len(args), len(inputs), op_name))
 
         attr_names = self.attr_names
         if '_' in self.__class__.__name__:
@@ -167,7 +168,7 @@ def ClassFactory(class_name, op_name, inputs, outputs,
                 op_version = op_version_class
             try:
                 op_version = min(op_version, op_version_class)
-            except TypeError:
+            except TypeError:  # pragma: no cover
                 raise TypeError(  # pylint: disable=W0707
                     "Could not compare versions {} ? {} for "
                     "class '{}' since_version {}. Parameter 'op_version' "
@@ -195,7 +196,7 @@ def ClassFactory(class_name, op_name, inputs, outputs,
                     break
         if (op_version_class is not None and found is not None and
                 found[-1] != op_version_class):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "op_version={} does not refer to the same opset as the class "
                 "name ('{}').".format(op_version, self.__class__.__name__))
         for key in kwargs:
@@ -203,8 +204,9 @@ def ClassFactory(class_name, op_name, inputs, outputs,
                        'global_context', 'clear_subgraph_inputs'}:
                 continue
             if key not in attr_names:
-                raise TypeError("Argument '%s' not valid for '%s' opset=%s."
-                                % (key, op_name, op_version))
+                raise TypeError(  # pragma: no cover
+                    "Argument '%s' not valid for '%s' opset=%s."
+                    % (key, op_name, op_version))
 
         if op_version is not None:
             kwargs['op_version'] = op_version
@@ -213,18 +215,18 @@ def ClassFactory(class_name, op_name, inputs, outputs,
         for i, a in enumerate(args):
             if isinstance(a, tuple):
                 if len(a) != 2:
-                    raise TypeError(
+                    raise TypeError(  # pragma: no cover
                         "Input %r is a tuple or class %r, it must have two "
                         "elements (name, type) not %r." % (i, class_name, a))
                 if not isinstance(a[0], str):
-                    raise TypeError(
+                    raise TypeError(  # pragma: no cover
                         "Input %r is a tuple or class %r, it must be a tuple "
                         "(name, type) not %r." % (i, class_name, a))
                 continue
             if not isinstance(a, (
                     Variable, OnnxOperator, numpy.ndarray, str,
                     OnnxOperatorItem, coo_matrix)):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unexpected type %r for input %r of operator %r. "
                     "It must be an instance of Variable (or a string), "
                     "OnnxOperator, OnnxOperatorItem, numpy.ndarray, "
@@ -296,11 +298,11 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
             ops.append((domain, name))
         elif isinstance(name, tuple) and len(name) == 2:
             if name[1].startswith('Onnx'):
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "Operator name cannot starts with Onnx: %r." % name)
             ops.append(name)
         else:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Operator to fetch must be a string or a "
                 "`tuple(domain, name)` not %r." % (name))
     operator_names = ops
@@ -321,8 +323,10 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
                 set_names[op_domain, n] = -1
 
     if verbose > 1 and fLOG is not None:
-        fLOG("[_dynamic_class_creation] set_names=%r" % set_names)
-        fLOG("[_dynamic_class_creation] set_skip=%r" % set_skip)
+        fLOG(  # pragma: no cover
+            "[_dynamic_class_creation] set_names=%r" % set_names)
+        fLOG(  # pragma: no cover
+            "[_dynamic_class_creation] set_skip=%r" % set_skip)
 
     returned_classes = []
     positions = {}
@@ -330,8 +334,9 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
     for (op_domain, op_name), position in set_names.items():
         cl_name = 'Onnx' + _domain_to_class_name(op_domain) + op_name
         if verbose > 3 and fLOG is not None:
-            fLOG('[_dynamic_class_creation] cl_name=%r op_domain=%r op_name=%r (in=%d)' % (
-                cl_name, op_domain, op_name, 1 if cl_name in _all_classes else 0))
+            fLOG(  # pragma: no cover
+                '[_dynamic_class_creation] cl_name=%r op_domain=%r op_name=%r (in=%d)' % (
+                    cl_name, op_domain, op_name, 1 if cl_name in _all_classes else 0))
         if cl_name in _all_classes:
             if cl_name not in set_skip:
                 if position >= 0:
@@ -344,15 +349,16 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
         else:
             try:
                 names = _all_schemas_versions[op_domain, op_name].copy()
-            except KeyError as e:
+            except KeyError as e:  # pragma: no cover
                 raise ValueError(
                     "Operator %r (domain=%r) does not exists." % (
                         op_name, op_domain)) from e
             names.add(op_name)
 
         if verbose > 0 and fLOG is not None:
-            fLOG("[_dynamic_class_creation] op_domain=%r op_name=%r, cl_name=%r names=%r"
-                 "" % (op_domain, op_name, cl_name, names))
+            fLOG(  # pragma: no cover
+                "[_dynamic_class_creation] op_domain=%r op_name=%r, cl_name=%r names=%r"
+                "" % (op_domain, op_name, cl_name, names))
 
         for name in names:
             try:
@@ -372,18 +378,19 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
                     "Onnx" + _domain_to_class_name(op_domain) + schema.name)
 
             if verbose > 0 and fLOG is not None:
-                fLOG("[_dynamic_class_creation] op_name=%r, cl_name=%r cache=%r"
-                     "" % (op_name, class_name, cache))
+                fLOG(  # pragma: no cover
+                    "[_dynamic_class_creation] op_name=%r, cl_name=%r cache=%r"
+                    "" % (op_name, class_name, cache))
 
             filename = os.path.join(
                 cache_dir,
                 schema.name + '_' + str(schema.since_version) + ".rst")
             if not cache and os.path.exists(filename):
-                with open(filename, "r", encoding="utf-8") as f:
+                with open(filename, "r", encoding="utf-8") as f:  # pragma: no cover
                     doc = f.read()
             else:
                 doc = get_rst_doc(schema)
-                if cache:
+                if cache:  # pragma: no cover
                     with open(filename, 'w', encoding='utf-8') as f:
                         f.write(doc)
 
@@ -500,11 +507,12 @@ class OnnxOperatorItem(OnnxOperatorBase):
     def __init__(self, onx_op, index, op_version=None):
         OnnxOperatorBase.__init__(self)
         if not isinstance(index, int):
-            raise TypeError("index must be an integer not %r." % type(index))
+            raise TypeError(  # pragma: no cover
+                "index must be an integer not %r." % type(index))
         logger.debug("OnnxOperatorItem(%r, %d, op_version=%r)",
                      onx_op, index, op_version)
         if not isinstance(onx_op, OnnxOperatorBase):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "onx_op must be an OnnxOperator not %r." % type(onx_op))
         self.onx_op = onx_op
         self.index = index
@@ -546,7 +554,8 @@ class OnnxOperatorItem(OnnxOperatorBase):
         Returns the output name at position *i*.
         """
         if i != 0:
-            raise IndexError("Can only return the first item.")
+            raise IndexError(  # pragma: no cover
+                "Can only return the first item.")
         return self.onx_op.get_output_result(self.index)
 
     def get_output(self, i=0):
@@ -554,7 +563,8 @@ class OnnxOperatorItem(OnnxOperatorBase):
         Returns the output.
         """
         if i != 0:
-            raise IndexError("Can only return the first item.")
+            raise IndexError(  # pragma: no cover
+                "Can only return the first item.")
         return self.onx_op.get_output(self.index)
 
 
@@ -750,7 +760,7 @@ class OnnxOperator(OnnxOperatorBase):
                 output_names[0] = Variable(output_names[0])
         elif isinstance(output_names, list):
             if len(output_names) == 0:
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "output_names cannot be empty (operator %r)."
                     "" % self.__class__.__name__)
             output_names = output_names.copy()
@@ -758,7 +768,7 @@ class OnnxOperator(OnnxOperatorBase):
                 if isinstance(output_names[i], str):
                     output_names[i] = Variable(output_names[i])
         elif output_names is not None:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "output_names must be a string or a list not %r."
                 "" % type(output_names))
 
@@ -799,7 +809,7 @@ class OnnxOperator(OnnxOperatorBase):
 
         if (self.op_version is not None and
                 self.op_version < self.since_version):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Operator '{}': requested version {} < "
                 "{} schema version.".format(
                     self.__class__.__name__,
@@ -818,7 +828,7 @@ class OnnxOperator(OnnxOperatorBase):
                     self.inputs.append(Variable(inp))
                 elif isinstance(inp, tuple):
                     if len(inp) != 2:
-                        raise RuntimeError(
+                        raise RuntimeError(  # pragma: no cover
                             "Unexpected tuple %r." % (inp, ))
                     self.inputs.append(
                         Variable(inp[0], dtype=guess_numpy_type(inp[1]),
@@ -828,7 +838,7 @@ class OnnxOperator(OnnxOperatorBase):
                 elif isinstance(inp, (numpy.ndarray, coo_matrix, TensorProto)):
                     self.inputs.append(inp)
                 else:
-                    raise TypeError(
+                    raise TypeError(  # pragma: no cover
                         "Unable to interpret the input name for type {} in "
                         "operator '{}' (value={}).".format(
                             type(inp), self.__class__.__name__, inp))
@@ -836,7 +846,7 @@ class OnnxOperator(OnnxOperatorBase):
         if (self.inputs is not None and
                 (len(self.inputs) < self.input_range[0] or
                     len(self.inputs) > self.input_range[1])):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Operator '{}' expects a number of inputs in [{}, {}] not {} "
                 "(expected opset={}, class opset={})".format(
                     self.operator_name, *self.input_range,
@@ -846,12 +856,12 @@ class OnnxOperator(OnnxOperatorBase):
             self.global_context = None
         else:
             if not isinstance(global_context, dict):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "global_context must be a dictionary not %r."
                     "" % type(global_context))
             for k, v in global_context.items():
                 if not isinstance(v, OnnxOperatorBase):
-                    raise TypeError(
+                    raise TypeError(  # pragma: no cover
                         "Value %r in must be an OnnxOperatorBase not %r."
                         "" % (k, type(v)))
             self.global_context = global_context
@@ -862,7 +872,7 @@ class OnnxOperator(OnnxOperatorBase):
 
         if self.output_names is not None:
             if len(self.output_names) == 0:
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "output_names can be None but cannot be empty for "
                     "operator %r." % self)
             if self.output_variables is None:
@@ -872,9 +882,10 @@ class OnnxOperator(OnnxOperatorBase):
                 if isinstance(name, Variable):
                     self.output_variables[i] = name
                 else:
-                    raise TypeError("output_names must be a list of strings "
-                                    "and element %r is %r (%r)" % (
-                                        i, type(name), name))
+                    raise TypeError(  # pragma: no cover
+                        "output_names must be a list of strings "
+                        "and element %r is %r (%r)" % (
+                            i, type(name), name))
             if all(map(lambda x: x is None, self.output_variables)):
                 self.output_variables = None
 
@@ -924,13 +935,13 @@ class OnnxOperator(OnnxOperatorBase):
         input_types = (Variable, OnnxOperatorBase, numpy.ndarray)
         for o in self.inputs:
             if not isinstance(o, input_types):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Wrong type for inputs %r." % (
                         self.inputs, ))
         if self.output_names is not None:
             for o in self.output_names:
                 if not isinstance(o, Variable):
-                    raise TypeError(
+                    raise TypeError(  # pragma: no cover
                         "Wrong type for output_names %r." % (
                             self.output_names, ))
 
@@ -965,13 +976,13 @@ class OnnxOperator(OnnxOperatorBase):
                     elif len(value.shape) == 0:
                         val = value
                     else:
-                        raise RuntimeError(
+                        raise RuntimeError(  # pragma: no cover
                             "Unexpected shape %r for value, it must be "
                             "an array of one element." % value.shape)
                     self.kwargs['value'] = from_array(
                         numpy.array([val], dtype=value.dtype))
                     return
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unexpected type %r for value. It should be an array "
                     "of one element." % type(value))
             return
@@ -1016,8 +1027,9 @@ class OnnxOperator(OnnxOperatorBase):
         :return: schema
         """
         if not hasattr(self.__class__, 'past_version'):
-            raise RuntimeError("Missing attribute 'past_version', there is "
-                               "no other available schema.")
+            raise RuntimeError(  # pragma: no cover
+                "Missing attribute 'past_version', there is "
+                "no other available schema.")
         found = None
         for v in self.past_version.values():
             if v.since_version > op_version:
@@ -1025,7 +1037,7 @@ class OnnxOperator(OnnxOperatorBase):
             if found is None or v.since_version > found.since_version:
                 found = v
         if found is None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Operator '{}': requested version {} < "
                 "{} schema version (past_version {}).".format(
                     self.__class__.__name__,
@@ -1071,7 +1083,7 @@ class OnnxOperator(OnnxOperatorBase):
         if n is None and self.max_item_ is not None:
             n = self.max_item_ + 1
         if n is None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to guess the number of outputs of node type %r. "
                 "Uses operator [] to select a specific output." %
                 self.__class__.__name__)
@@ -1117,9 +1129,8 @@ class OnnxOperator(OnnxOperatorBase):
                 new_inputs[el[0]] = Variable(
                     el[0], guess_numpy_type(el[1]), el[1].shape)
             else:
-                raise TypeError(
-                    "Unable to handle input type %r (%r)." % (
-                        type(el), el))
+                raise TypeError(  # pragma: no cover
+                    "Unable to handle input type %r (%r)." % (type(el), el))
         return new_inputs
 
     @staticmethod
@@ -1137,7 +1148,8 @@ class OnnxOperator(OnnxOperatorBase):
         elif isinstance(inp, OnnxOperatorTuple):
             # new_stack.append(inp)
             # new_stack.append(inp.onx_op)
-            raise NotImplementedError()
+            raise NotImplementedError(  # pragma: no cover
+                "Unable to guess inputs when one input is OnnxOperatorTuple.")
         elif isinstance(inp, Variable):
             if inp.name in set_inputs:
                 return
@@ -1169,7 +1181,7 @@ class OnnxOperator(OnnxOperatorBase):
         elif isinstance(inp, numpy.ndarray):
             pass
         else:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected input type %r in node type %r." % (
                     type(inp), type(node)))
 
@@ -1188,7 +1200,7 @@ class OnnxOperator(OnnxOperatorBase):
                     "Unable to handle outputs=%r." % outputs)
         if isinstance(outputs, dict):
             if name is None:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unable to get type among %r, name=None." % (
                         outputs, ))
             if isinstance(name, Variable):
@@ -1251,7 +1263,7 @@ class OnnxOperator(OnnxOperatorBase):
             inputs_dtype = inputs
             inputs_dict = None
         else:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected type %r for inputs." % type(inputs))
 
         _keep_outputs = None
@@ -1268,7 +1280,7 @@ class OnnxOperator(OnnxOperatorBase):
             outputs_dtype = outputs
             outputs_dict = None
         else:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected type %r for outputs." % type(outputs))
 
         logger.debug("%s._node_to_graph:inputs=%r",
@@ -1303,7 +1315,7 @@ class OnnxOperator(OnnxOperatorBase):
                             inputs_dict, set_inputs, obj, inp, new_inputs,
                             new_stack, inputs_dtype)
                 else:
-                    raise TypeError(
+                    raise TypeError(  # pragma: no cover
                         "Unexpected type %r." % type(obj))
             stack = new_stack
 
@@ -1340,14 +1352,14 @@ class OnnxOperator(OnnxOperatorBase):
                     res = '???_%d' % i
                     var = Variable(res, added_dtype=to)
                     if var.name in set_names:
-                        raise RuntimeError(
+                        raise RuntimeError(  # pragma: no cover
                             "Duplicated output name var=%r." % var)
                     set_names.add(var.name)
                     new_outputs.append(OutputDetectedVariable(node, var, i))
             else:
                 for i, o in enumerate(node.output_names):
                     if isinstance(o, str):
-                        raise TypeError(
+                        raise TypeError(  # pragma: no cover
                             "Output %d - %r (%r) not allowed in node %r." % (
                                 i, o, node.output_names, node))
                     to = self._node_to_graph_get_type(
@@ -1358,12 +1370,12 @@ class OnnxOperator(OnnxOperatorBase):
                     res = (o, to)
                     var = o.copy_merge(to)
                     if var.name in set_names:
-                        raise RuntimeError(
+                        raise RuntimeError(  # pragma: no cover
                             "Duplicated output name o=%r var=%r." % (o, var))
                     set_names.add(var.name)
                     new_outputs.append(OutputDetectedVariable(node, var, i))
         if len(new_outputs) == 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "No detected outputs inputs=%r outputs=%r." % (
                     inputs_dict, outputs_dict))
 
@@ -1412,16 +1424,17 @@ class OnnxOperator(OnnxOperatorBase):
                 # The target_opset is for the domain '' we ignore it.
                 target_opset = None
         elif target_opset is not None:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "target_opset must be a dictionary {domain: "
                 "target_opset} not %r for operator %r." % (
                     target_opset, self.__class__.__name__))
 
         if self.domain in ('', None) and target_opset == 1:
-            raise RuntimeError("target_opset cannot be 1.")
+            raise RuntimeError(  # pragma: no cover
+                "target_opset cannot be 1.")
         if (self.op_version is not None and target_opset is not None and
                 self.op_version > target_opset):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "target_opset={} is lower than the version={} requested "
                 "for this node '{}'.".format(
                     target_opset, self.op_version, self.__class__.__name__))
@@ -1437,9 +1450,9 @@ class OnnxOperator(OnnxOperatorBase):
             raise RuntimeError(  # pragma: no cover
                 "Node list is empty.")
         if verbose > 1:
-            for i, n in enumerate(nodes):
+            for i, n in enumerate(nodes):  # pragma: no cover
                 print("nodes[%d]=%r" % (i, n))
-            for i, n in enumerate(graph_inputs):
+            for i, n in enumerate(graph_inputs):  # pragma: no cover
                 print("graph_inputs[%d]=%r" % (i, n))
 
         # creates a _GraphBuilder
@@ -1484,7 +1497,9 @@ class OnnxOperator(OnnxOperatorBase):
         elif isinstance(n2, OnnxOperatorItem):
             opv = OnnxOperator._merge_op_version(n1, n2.onx_op)
         elif isinstance(n2, OnnxOperatorTuple):
-            raise NotImplementedError()
+            raise NotImplementedError(  # pragma: no cover
+                "_merge_op_version is not implemented when n2 "
+                "is OnnxOperatorTuple.")
         else:
             opv = n1.op_version
         return opv
@@ -1721,7 +1736,7 @@ class _GraphBuilder:
             return
         for index, var in enumerate(output_names):
             if not isinstance(var, Variable):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unexpected type %r for %r." % (type(var), var))
             self.reserve_name(node, var.name, index)
 
@@ -1734,10 +1749,10 @@ class _GraphBuilder:
         :param index: input index
         """
         if not isinstance(name, str):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Name %r is not a string." % (name, ))
         if name in self.reserved_names:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Name %r is already reserved from node %r, index=%d." % (
                     name, node, index))
         logger.debug("_GraphBuilder.reserve_name([%s-%d], %r, %r)",
@@ -1753,7 +1768,7 @@ class _GraphBuilder:
         :param result: instance of @see cl NodeResultName
         """
         if not isinstance(result, NodeResultName):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Result must be of type NodeResultName not %r (%r)." % (
                     type(result), result))
         if result.node is None:
@@ -1818,7 +1833,7 @@ class _GraphBuilder:
                 key = id(i), 0
                 try:
                     name = self.node_output_names[key]
-                except KeyError as e:
+                except KeyError as e:  # pragma: no cover
                     raise RuntimeError(
                         "Unable to find key %r for input %r in node %r." % (
                             key, i, node)) from e
@@ -1832,11 +1847,11 @@ class _GraphBuilder:
                 elif isinstance(i.onx_op, OnnxOperator):
                     key = id(i.onx_op), i.index
                 else:
-                    raise TypeError(
+                    raise TypeError(  # pragma: no cover
                         "Unexpected type for OnnxOperatorItem: %r." % type(i.onx_op))
                 try:
                     name = self.node_output_names[key]
-                except KeyError as e:
+                except KeyError as e:  # pragma: no cover
                     raise RuntimeError(
                         "Unable to find key %r for input %r in node %r." % (
                             key, i, node)) from e
@@ -1935,7 +1950,7 @@ class _GraphBuilder:
             for inp in inputs:
                 if isinstance(inp, OutputDetectedVariable):
                     if inp.name in set_names:
-                        raise ValueError(
+                        raise ValueError(  # pragma: no cover
                             "Names already taken %r in %r." % (
                                 inp.name, inputs))
                     set_names.add(inp.name)
@@ -1947,22 +1962,22 @@ class _GraphBuilder:
                         input_names.append(new_var)
                         new_inputs.append(new_var)
                     else:
-                        raise RuntimeError(
+                        raise RuntimeError(  # pragma: no cover
                             "Key %r is ambiguous or defined in "
                             "two nodes %r, id(node)=%d, index=%d." % (
                                 key, inp, id(inp.node), inp.index))
                 else:
-                    raise TypeError(
+                    raise TypeError(  # pragma: no cover
                         "Unexpected type %r (it should be "
                         "OutputDetectedVariable) in %r." % (inp, inputs))
             inputs = new_inputs
             if len(input_names) == 0:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unable to cross %r and %r or %r (set_names=%r)." % (
                         inputs, self.output_names_rev,
                         self.node_output_names_rev, set_names))
         elif not isinstance(input_names, list):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unexpected type for input_names %r." % type(input_names))
         else:
             # inputs
@@ -1978,13 +1993,13 @@ class _GraphBuilder:
             d_input_names = {}
             for inp in input_names:
                 if inp.name in d_input_names:
-                    raise ValueError(
+                    raise ValueError(  # pragma: no cover
                         "Duplicated name %r in %r." % (inp.name, input_names))
                 d_input_names[inp.name] = inp
         elif isinstance(input_names, dict):
             d_input_names = input_names
         else:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected type for input_names %r (%r)." % (
                     type(input_names), input_names))
 
@@ -1992,21 +2007,21 @@ class _GraphBuilder:
         res = []
         for inp in inputs:
             if not isinstance(inp, DetectedVariable):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "inp not DetectedVariable but %r (%r)"
                     "." % (type(inp), inp))
             if inp.name.startswith('???'):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Issue with variable %r." % inp)
             var = d_input_names[inp.name]
             if not isinstance(var, DetectedVariable):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "var not Variable but %r (%r)." % (
                         type(var), var))
             # inp: Variable
             # var: str
             if inp.var != var.var:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unexpected %r != %r." % (inp, var))
             res.append(make_tensor_value_info(
                 inp.name, inp.var.proto_added_type,
@@ -2035,10 +2050,10 @@ class _GraphBuilder:
                      inputs, outputs, target_opset)
         # inputs and outputs
         if not all(map(lambda x: isinstance(x, InputDetectedVariable), inputs)):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "One of the input is not InputDetectedVariable.")
         if not all(map(lambda x: isinstance(x, OutputDetectedVariable), outputs)):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "One of the outputs is not OutputDetectedVariable.")
         self.input = self._process_io(inputs, list(self.input_names.values()))
         self.output = self._process_io(outputs, None)

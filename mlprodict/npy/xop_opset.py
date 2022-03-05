@@ -15,7 +15,8 @@ def OnnxReduceSumApi11(*x, axes=None, keepdims=1, op_version=None,
     Adds operator ReduceSum with opset>=13 following API from opset 12.
     """
     if op_version is None:
-        raise RuntimeError("op_version must be specified.")
+        raise RuntimeError(  # pragma: no cover
+            "op_version must be specified.")
     if op_version is None or op_version >= 13:
         OnnxReduceSum = loadop('ReduceSum')
         if axes is None:
@@ -50,7 +51,8 @@ def OnnxSplitApi11(*x, axis=0, split=None, op_version=None,
     Adds operator Split with opset>=13 following API from opset 11.
     """
     if op_version is None:
-        raise RuntimeError("op_version must be specified.")
+        raise RuntimeError(  # pragma: no cover
+            "op_version must be specified.")
     if op_version is None or op_version >= 13:
         OnnxSplit = loadop('Split')
         if split is None:
@@ -83,7 +85,8 @@ def OnnxSqueezeApi11(*x, axes=None, op_version=None,
     Adds operator Squeeze with opset>=13 following API from opset 11.
     """
     if op_version is None:
-        raise RuntimeError("op_version must be specified.")
+        raise RuntimeError(  # pragma: no cover
+            "op_version must be specified.")
     if op_version is None or op_version >= 13:
         OnnxSqueeze = loadop('Squeeze')
         return OnnxSqueeze(
@@ -105,7 +108,8 @@ def OnnxUnsqueezeApi11(*x, axes=None, op_version=None,
     Adds operator Unsqueeze with opset>=13 following API from opset 11.
     """
     if op_version is None:
-        raise RuntimeError("op_version must be specified.")
+        raise RuntimeError(  # pragma: no cover
+            "op_version must be specified.")
     if op_version is None or op_version >= 13:
         OnnxUnsqueeze = loadop('Unsqueeze')
         return OnnxUnsqueeze(
@@ -145,7 +149,8 @@ def OnnxReshapeApi13(*x, allowzero=0, op_version=None,
     Adds operator Reshape with opset>=14 following API from opset 13.
     """
     if op_version is None:
-        raise RuntimeError("op_version must be specified.")
+        raise RuntimeError(  # pragma: no cover
+            "op_version must be specified.")
     if op_version is None or op_version >= 14:
         OnnxReshape = loadop('Reshape')
         return OnnxReshape(

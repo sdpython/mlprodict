@@ -71,7 +71,7 @@ class If(OpRun):
             return res[name]
         out = {o.name: o for o in self.then_branch.obj.graph.output}
         if name not in out:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Unable to find name=%r in %r or %r." % (
                     name, list(sorted(res)), list(sorted(out))))
         dt = out[name].type.tensor_type.elem_type

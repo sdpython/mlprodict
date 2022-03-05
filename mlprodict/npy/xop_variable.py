@@ -52,7 +52,7 @@ def numpy_type_prototype(dtype):
     dt = numpy.dtype(dtype)
     if dt in NP_TYPE_TO_TENSOR_TYPE:
         return NP_TYPE_TO_TENSOR_TYPE[dt]
-    raise ValueError(
+    raise ValueError(  # pragma: no cover
         "Unable to convert dtype %r into ProtoType." % dtype)
 
 
@@ -82,7 +82,7 @@ def guess_numpy_type(data_type):
         return name2numpy[cl_name]
     if hasattr(data_type, 'type'):
         return guess_numpy_type(data_type.type)
-    raise NotImplementedError(
+    raise NotImplementedError(  # pragma: no cover
         "Unsupported data_type '{}'.".format(data_type))
 
 
@@ -120,7 +120,7 @@ class Variable:
         if isinstance(name, Variable):
             if (dtype is not None or shape is not None or
                     added_dtype is not None or added_shape is not None):
-                raise ValueError(
+                raise ValueError(  # pragma: no cover
                     "If name is a Variable, then all others attributes "
                     "should be None.")
 
@@ -131,7 +131,7 @@ class Variable:
             self.added_shape_ = name.added_shape_
         else:
             if not isinstance(name, str):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "name must be a string not %r." % type(name))
 
             self.name_ = name
@@ -213,7 +213,7 @@ class Variable:
     def is_named(self, name):
         "Tells the variable is named like that."
         if not isinstance(name, str):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "name is expected to be a string not %r." % type(name))
         return self.name == name
 
@@ -294,7 +294,7 @@ class NodeResultName:
         Returns a name from output_names or a suggestion for a name.
         """
         if self.node is None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "node must not be None.")
         if self.node.output_names is not None:
             return self.node.output_names[self.index].name
@@ -314,7 +314,7 @@ class DetectedVariable:
 
     def __init__(self, node, var, index):
         if not isinstance(var, Variable):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected type %r, it should be a Variable."
                 "" % type(var))
         self.node = node

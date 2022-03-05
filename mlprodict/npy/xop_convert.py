@@ -33,14 +33,14 @@ class OnnxSubOnnx(OnnxOperator):
         logger.debug("SubOnnx(ONNX, %d in, output_names=%r)",
                      len(inputs), output_names)
         if model is None:
-            raise ValueError("Model cannot be None.")
+            raise ValueError("Model cannot be None.")  # pragma: no cover
         if len(inputs) > len(model.graph.input):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unexpected number of inputs %r > expected %r." % (
                     len(inputs), len(model.graph.input)))
         if (output_names is not None and
                 len(output_names) != len(model.graph.output)):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unexpected number of outputs %r != expected %r." % (
                     len(output_names), len(model.graph.output)))
         OnnxOperator.__init__(self, *inputs, output_names=output_names)
@@ -95,7 +95,7 @@ class OnnxSubOnnx(OnnxOperator):
             new_inputs = []
             for i in node.input:
                 if i not in mapped_names:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Unable to find input %r in %r." % (i, mapped_names))
                 new_inputs.append(mapped_names[i])
             new_outputs = []
@@ -181,7 +181,7 @@ class OnnxSubEstimator(OnnxSubOnnx):
                      "kwargs=%r)", type(model), inputs, op_version,
                      output_names, initial_types, options, kwargs)
         if model is None:
-            raise ValueError("Model cannot be None.")
+            raise ValueError("Model cannot be None.")  # pragma: no cover
         onx = OnnxSubEstimator._to_onnx(
             model, inputs, op_version=op_version, options=options,
             initial_types=initial_types, **kwargs)
@@ -234,7 +234,7 @@ class OnnxSubEstimator(OnnxSubOnnx):
             return OnnxSubEstimator._to_onnx_sklearn(
                 model, inputs, op_version=op_version, options=options,
                 initial_types=initial_types, **kwargs)
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unable to convert into ONNX model type %r." % type(model))
 
     @staticmethod
@@ -283,14 +283,14 @@ class OnnxSubEstimator(OnnxSubOnnx):
 
         if isinstance(initial_types, numpy.ndarray):
             if len(inputs) != 1:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "The model has %s inputs but only %d input are "
                     "described in 'initial_types'." % (
                         len(inputs), 1))
             X = initial_types
             initial_types = None
         elif len(inputs) != len(initial_types):
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "The model has %s inputs but only %d input are "
                 "described in 'initial_types'." % (
                     len(inputs), len(initial_types)))

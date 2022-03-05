@@ -16,13 +16,26 @@ from mlprodict.onnx_tools.onnx2py_helper import _var_as_dict
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.testing.test_utils.tests_helper import fit_multilabel_classification_model
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
-
+from mlprodict.onnxrt.ops_cpu._op_helper import dtype_name
 
 class TestCpuOps(ExtTestCase):
 
     def setUp(self):
         logger = getLogger('skl2onnx')
         logger.disabled = True
+
+    def test_dtype_name(self):
+        self.assertEqual(dtype_name(numpy.float32), "float32")
+        self.assertEqual(dtype_name(numpy.float64), "float64")
+        self.assertEqual(dtype_name(numpy.float16), "float16")
+        self.assertEqual(dtype_name(numpy.int64), "int64")
+        self.assertEqual(dtype_name(numpy.int32), "int32")
+        self.assertEqual(dtype_name(numpy.uint32), "uint32")
+        self.assertEqual(dtype_name(numpy.int8), "int8")
+        self.assertEqual(dtype_name(numpy.uint8), "uint8")
+        self.assertEqual(dtype_name(numpy.str_), "str")
+        self.assertEqual(dtype_name(numpy.bool_), "bool")
+        self.assertRaise(lambda: dtype_name(numpy.int16), ValueError)
 
     @ignore_warnings((DeprecationWarning, FutureWarning))
     def test_cpu_conv(self):

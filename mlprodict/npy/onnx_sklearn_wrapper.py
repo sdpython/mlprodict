@@ -47,7 +47,7 @@ def _skl2onnx_add_to_container(onx, scope, container, outputs):
         new_inputs = []
         for i in node.input:
             if i not in mapped_names:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unable to find input %r in %r." % (i, mapped_names))
             new_inputs.append(mapped_names[i])
         new_outputs = []
@@ -86,7 +86,7 @@ def _skl2onnx_add_to_container(onx, scope, container, outputs):
 
     # linking outputs
     if len(onx.graph.output) != len(outputs):
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Output size mismatch %r != %r.\n--ONNX--\n%s" % (
                 len(onx.graph.output), len(outputs),
                 onnx_simple_text_plot(onx)))

@@ -47,8 +47,14 @@ def dtype_name(dtype):
         return "float16"
     if dtype == numpy.int32:
         return "int32"
+    if dtype == numpy.uint32:
+        return "uint32"
     if dtype == numpy.int64:
         return "int64"
+    if dtype == numpy.int8:
+        return "int8"
+    if dtype == numpy.uint8:
+        return "uint8"
     if dtype == numpy.str_:
         return "str"
     if dtype == numpy.bool_:

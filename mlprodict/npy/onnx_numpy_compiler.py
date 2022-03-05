@@ -29,10 +29,10 @@ class OnnxNumpyFunction:
     def __init__(self, compiler, rt, inputs, outputs,
                  n_optional, n_variables):
         if any(map(lambda n: not isinstance(n, Variable), inputs)):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "All inputs must be of type Variable: %r." % (inputs, ))
         if any(map(lambda n: not isinstance(n, Variable), outputs)):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "All outputs must be of type Variable: %r." % (outputs, ))
         self.compiler = compiler
         self.inputs = inputs
@@ -383,15 +383,16 @@ class OnnxNumpyCompiler:
                          type(onx_algebra))
 
             if not isinstance(onx_algebra, (OnnxOperator, OnnxOperatorTuple)):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unexpected type for onx_algebra %r "
                     "(It should be OnnxOperator or OnnxOperatorItem), "
                     "function is %r." % (type(onx_algebra), self.fct_))
             hidden_algebras, var_graphs = self._find_hidden_algebras(
                 onx_var, onx_algebra)
             if len(hidden_algebras) > 0:
-                logger.debug('OnnxNumpyCompiler._to_onnx:len(hidden_algebras)=%r',
-                             len(hidden_algebras))
+                logger.debug(  # pragma: no cover
+                    'OnnxNumpyCompiler._to_onnx:len(hidden_algebras)=%r',
+                    len(hidden_algebras))
                 # print('----1', len(var_graphs))
                 # for gr in var_graphs:
                 #     print(type(gr), dir(gr))
