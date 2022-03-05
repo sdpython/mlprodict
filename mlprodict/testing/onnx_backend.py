@@ -3,6 +3,7 @@
 @brief Tests with onnx backend.
 """
 import os
+import textwrap
 from numpy.testing import assert_almost_equal
 import onnx
 from onnx.numpy_helper import to_array
@@ -125,6 +126,47 @@ class OnnxBackendTest:
                 raise AssertionError(
                     "Output %d of test %d in folder %r failed." % (
                         i, index, self.folder)) from ex
+
+    def to_python(self):
+        """
+        Returns a python code equivalent to the ONNX test.
+
+        :return: code
+        """
+        from ..onnx_tools.onnx_export import export2onnx
+        rows = []
+        code = export2onnx(self.onnx_model)
+        lines = code.split('\n')
+        lines = [line for line in lines
+                 if not line.strip().startswith('print') and
+                 not line.strip().startswith('# ')]
+        rows.append(textwrap.dedent("\n".join(lines)))
+        rows.append("oinf = OnnxInference(onnx_model)")
+        for test in self.tests:
+            rows.append("xs = [")
+            for inp in test['inputs']:
+                rows.append(textwrap.indent(repr(inp) + ',',
+                                            '    ' * 2))
+            rows.append("]")
+            rows.append("ys = [")
+            for out in test['outputs']:
+                rows.append(textwrap.indent(repr(out) + ',',
+                                            '    ' * 2))
+            rows.append("]")
+            rows.append("feeds = {n: x for n, x in zip(oinf.input_names, xs)}")
+            rows.append("got = oinf.run(feeds)")
+            rows.append("goty = [got[k] for k in oinf.output_names]")
+            rows.append("for y, gy in zip(ys, goty):")
+            rows.append("    self.assertEqualArray(y, gy)")
+            rows.append("")
+        code = "\n".join(rows)
+        final = "\n".join(["def %s(self):" % self.name,
+                           textwrap.indent(code, '    ')])
+        try:
+            from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8
+        except ImportError:
+            return final
+        return remove_extra_spaces_and_pep8(final)
 
 
 def enumerate_onnx_tests(series, fct_filter=None):
