@@ -26,9 +26,9 @@ class TestPlotBenchScatter(ExtTestCase):
                                cbarlabel="ratio")
         if __name__ == "__main__":
             fig.savefig(img)
+            self.assertExists(img)
             plt.show()
         plt.close('all')
-        self.assertExists(img)
 
 
 if __name__ == "__main__":
