@@ -3,6 +3,7 @@
 @brief      test log(time=2s)
 """
 import unittest
+import platform
 import numpy
 from sklearn.linear_model import LinearRegression
 from sklearn.datasets import load_iris
@@ -13,6 +14,8 @@ from mlprodict.tools.asv_options_helper import display_onnx
 
 class TestDisplay(ExtTestCase):
 
+    @unittest.skipIf(platform.platform() != 'win32' and __name__ != '__main__',
+                     reason="stream not closed by matplotlib")
     def test_plot_logreg_xtime(self):
 
         import matplotlib.pyplot as plt
