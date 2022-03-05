@@ -17,16 +17,23 @@ readme = 'README.rst'
 history = "HISTORY.rst"
 requirements = None
 
-KEYWORDS = project_var_name + ', Xavier Dupré'
+KEYWORDS = [project_var_name, 'Xavier Dupré', 'onnx', 'scikit-learn',
+            'production', 'machine learning']
+            
 DESCRIPTION = ("Python Runtime for ONNX models, other helpers to convert "
                "machine learned models in C++.")
 CLASSIFIERS = [
     'Programming Language :: Python :: 3',
     'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: MIT License',
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    'Topic :: Software Development',
     'Topic :: Scientific/Engineering',
     'Topic :: Education',
-    'License :: OSI Approved :: MIT License',
-    'Development Status :: 5 - Production/Stable'
+    'Development Status :: 5 - Production/Stable',
 ]
 
 
