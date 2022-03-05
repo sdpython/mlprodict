@@ -5,22 +5,30 @@
 History
 =======
 
-current - 2022-02-24 - 0.00Mb
+current - 2022-03-05 - 0.00Mb
 =============================
 
+* #374: Implements onnx backend with python runtime (2022-03-05)
+* #372: Improves importing time (2022-03-05)
+* #373: Adds support for Expand in python runtime (2022-03-04)
+* #371: Support for ONNX functions (2022-03-04)
+* #370: Refactors numpy API to use Xop API (2022-03-03)
+* #369: Supports recursive display in onnx_simple_text_plot (2022-02-28)
+* #368: Updates requirements, skl2onnx>=1.11 (2022-02-28)
+* #367: Refactors results name in Xop API (2022-02-27)
 * #366: Adds python runtime for CategoryMapper (2022-02-24)
 * #365: Adds command line benchmark_doc (2022-02-24)
 * #364: Runs onnx backend test with python runtime (2022-02-23)
-* #362: Adds command line plot_onnx (2022-02-23)
 * #363: Refactoring, moving files testing.experimental_c (2022-02-23)
+* #362: Adds command line plot_onnx (2022-02-23)
 * #361: Introduces __max_supported_opset__ and refactors the library (2022-02-23)
 * #360: Xop API, adds class OnnxSubOnnx to insert ONNX graph (2022-02-22)
 * #359: Supports domains in Xop API (2022-02-21)
 * #358: Extends supported operator by OnnxShapeInference (2022-02-21)
 * #357: Modifies OnnxShapeInference to deal with untyped outputs (2022-02-19)
 * #356: Supports multiple affectations (xop) (2022-02-18)
-* #353: Experimentations with a new API to create ONNX graphs (2022-02-18)
 * #355: Fixes for onnx==1.11 (2022-02-18)
+* #353: Experimentations with a new API to create ONNX graphs (2022-02-18)
 * #352: Supports for shape inference on unary operators (2022-02-14)
 
 0.8.1697 - 2022-02-11 - 1.97Mb

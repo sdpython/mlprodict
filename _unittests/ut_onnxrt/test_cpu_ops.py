@@ -18,6 +18,7 @@ from mlprodict.testing.test_utils.tests_helper import fit_multilabel_classificat
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.onnxrt.ops_cpu._op_helper import dtype_name
 
+
 class TestCpuOps(ExtTestCase):
 
     def setUp(self):
