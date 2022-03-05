@@ -4,6 +4,7 @@
 import unittest
 from logging import getLogger
 from pandas import DataFrame
+from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
 try:
