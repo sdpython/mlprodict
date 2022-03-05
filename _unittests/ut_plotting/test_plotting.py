@@ -3,6 +3,7 @@
 @brief      test log(time=2s)
 """
 import os
+# import platform
 import unittest
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.plotting.plotting import plot_benchmark_metrics
@@ -10,6 +11,8 @@ from mlprodict.plotting.plotting import plot_benchmark_metrics
 
 class TestPlotBenchScatter(ExtTestCase):
 
+    # @unittest.skipIf(platform.platform() != 'win32' and __name__ != '__main__',
+    #                  reason="stream not closed by matplotlib")
     def test_plot_logreg_xtime(self):
         temp = get_temp_folder(__file__, "temp_plot_benchmark_metrics")
         img = os.path.join(temp, "plot_bench.png")
@@ -21,9 +24,8 @@ class TestPlotBenchScatter(ExtTestCase):
         plot_benchmark_metrics(data, ax=ax[0], cbar_kw={'shrink': 0.6})
         plot_benchmark_metrics(data, ax=ax[1], transpose=True, xlabel='X', ylabel='Y',
                                cbarlabel="ratio")
-        # fig = ax[0].get_figure()
-        fig.savefig(img)
         if __name__ == "__main__":
+            fig.savefig(img)
             plt.show()
         plt.close('all')
         self.assertExists(img)
