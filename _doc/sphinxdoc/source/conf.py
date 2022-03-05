@@ -119,6 +119,7 @@ epkg_dictionary.update({
     'onnx': 'https://github.com/onnx/onnx',
     'Op': ('https://github.com/onnx/onnx/blob/master/docs/Operators.md',
            ('https://github.com/onnx/onnx/blob/master/docs/Operators.md#{0}', 1)),
+    'ONNX Backend': 'https://github.com/onnx/onnx/blob/main/docs/ImplementingAnOnnxBackend.md',
     'ONNX Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators.md',
     'ONNX ML Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators-ml.md',
     'ONNX Version': 'https://github.com/onnx/onnx/blob/main/docs/Versioning.md#released-versions',

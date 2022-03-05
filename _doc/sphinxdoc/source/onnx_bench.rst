@@ -3,8 +3,8 @@
 
 .. _l-model-problem-list:
 
-ONNX Converters Coverage and Benchmarks
-=======================================
+scikit-learn Converters and Benchmarks
+======================================
 
 :epkg:`sklearn-onnx` converts many :epkg:`scikit-learn`
 models into :epkg:`ONNX`. Every of them is tested against
@@ -28,11 +28,26 @@ Another benchmark based on :epkg:`asv` is available and shows
 similar results but also measure the memory peaks :
 `ASV Benchmark <http://www.xavierdupre.fr/app/mlprodict_bench/helpsphinx/index.html>`_.
 
+Visual Representations
+++++++++++++++++++++++
+
+:epkg:`sklearn-onnx` converts many :epkg:`scikit-learn` models
+to :epkg:`ONNX`, it rewrites the prediction
+function using :epkg:`ONNX Operators` and :epkg:`ONNX ML Operators`.
+The current package *mlprodict* implements a
+:ref:`l-onnx-runtime-operators`.
+
+.. toctree::
+    :maxdepth: 2
+
+    onnx_conv
+    skl_converters/index
+
 Benchmarks
 ++++++++++
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
 
     skl_converters/bench_python
     skl_converters/bench_onnxrt1
