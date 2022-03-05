@@ -121,7 +121,7 @@ development features.
 
     pip install mlprodict
 
-The package includes a runtime for *onnx*. That's why there
+The package includes a runtime for *ONNX*. That's why there
 is a limited number of dependencies. However, some features
 relies on *sklearn-onnx*, *onnxruntime*, *scikit-learn*.
 They can be installed with the following instructions:

@@ -202,6 +202,12 @@ them:
   creates an ONNX graph but based on :epkg:`tf2onnx` API
   (see :func:`export2tf2onnx
   <mlprodict.onnx_tools.onnx_export.export2tf2onnx>`)
+* **Xop API:** (ONNX operators API), see :ref:`l-xop-api`,
+  most of the converting libraries uses :epkg:`onnx` to create ONNX graphs.
+  The API is quite verbose and that is why most of them implement a second
+  API wrapping the first one. They are not necessarily meant to be used
+  by users to create ONNX graphs as they are specialized for the training
+  framework they are developped for.
 * **Numpy API for ONNX:** many functions doing computation are
   written with :epkg:`numpy` and converting them to ONNX may take
   quite some time for users not familiar with ONNX. This API implements
