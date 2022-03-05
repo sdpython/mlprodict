@@ -12,9 +12,8 @@
     unittest.main()
 """
 import unittest
-import os
 import numpy
-from onnx import ModelProto, helper, version
+from onnx import version
 from onnx.checker import check_model
 from onnx.backend.base import Backend, BackendRep
 from .onnx_inference import OnnxInference
@@ -92,6 +91,11 @@ class OnnxInferenceBackend(Backend):
 
     @classmethod
     def create_inference_session(cls, model):
+        """
+        Instantiates an instance of class @see cl OnnxInference.
+        This method should be overwritten to change the runtime
+        or any other runtime options.
+        """
         return OnnxInference(model)
 
     @classmethod
@@ -155,7 +159,11 @@ class OnnxInferenceBackend(Backend):
 
 
 class OnnxInferenceBackendOrt(OnnxInferenceBackend):
-    
+    """
+    Same backend as @see cl OnnxInferenceBackend but runtime
+    is `onnxruntime1`.
+    """
+
     @classmethod
     def create_inference_session(cls, model):
         return OnnxInference(model, runtime='onnxruntime1')

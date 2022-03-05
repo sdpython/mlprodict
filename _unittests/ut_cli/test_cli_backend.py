@@ -32,10 +32,10 @@ class TestCliBackend(ExtTestCase):
             test_cases[v] = meths
         self.assertGreater(len(test_cases), 1)
         for te, meths in test_cases.items():
-            inst = v()
+            inst = te()
             inst.setUp()
             for m in meths:
-                with self.subTest(suite=k, meth=m):
+                with self.subTest(suite=te, meth=m):
                     m(inst)
                     pass
 
