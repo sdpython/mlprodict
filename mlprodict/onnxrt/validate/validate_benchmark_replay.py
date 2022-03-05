@@ -5,7 +5,7 @@
 import pickle
 import os
 import sklearn
-from ...tools.ort_wrapper import InferenceSession, OrtFail
+from ...tools.ort_wrapper import InferenceSession
 from .. import OnnxInference
 from .validate_helper import default_time_kwargs, measure_time, _multiply_time_kwargs
 from .validate_benchmark import make_n_rows
@@ -48,6 +48,8 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
     @param      fLOG                logging function
     @return                         iterator on results
     """
+    from onnxruntime.capi._pybind_state import Fail as OrtFail  # pylint: disable=E0611
+
     files = [_ for _ in os.listdir(folder) if _.endswith(
         ".pkl") or _.endswith("_.pickle")]
     if len(files) == 0:

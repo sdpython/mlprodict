@@ -60,12 +60,12 @@ class TestOnnxBackEnd(ExtTestCase):
 
         if __name__ == '__main__':
             print(len(missed), len(failed), len(mismatch))
-            for t in missed:
-                print("missed", t[0])
             for t in failed:
                 print("failed", t[0])
             for t in mismatch:
                 print("mismatch", t[0])
+            for t in missed:
+                print("missed", t[0])
 
 
 if __name__ == "__main__":

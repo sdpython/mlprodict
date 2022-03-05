@@ -1,7 +1,8 @@
 # -*- encoding: utf-8 -*-
 """
 @file
-@brief Shortcut to *onnx_conv*.
+@brief Shortcut to *onnx_conv*. Importing this file
+means importing :epkg:`sklearn-onnx`.
 """
 import onnx
 from .register import register_converters, register_scorers

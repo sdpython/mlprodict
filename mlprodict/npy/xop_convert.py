@@ -267,7 +267,7 @@ class OnnxSubEstimator(OnnxSubOnnx):
                 options = {'zipmap': False}
         if initial_types is None:
             # adding more information
-            from skl2onnx.common.data_types import _guess_numpy_type
+            from skl2onnx.common.data_types import _guess_numpy_type  # delayed
             for i, n in enumerate(inputs):
                 if not isinstance(n, Variable):
                     raise NotImplementedError(

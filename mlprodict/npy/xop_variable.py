@@ -1,10 +1,12 @@
 """
 @file
-@brief Xop API to build onnx graphs. Inspired from :epkg:`skl2onnx`.
+@brief Xop API to build onnx graphs. Inspired from :epkg:`sklearn-onnx`.
 
 .. versionadded:: 0.9
 """
 import numpy
+from onnx import ValueInfoProto, TensorProto
+from onnx.helper import make_tensor_type_proto
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
 from onnx.defs import onnx_opset_version
 from .. import __max_supported_opset__
@@ -143,10 +145,10 @@ class Variable:
     def to_skl2onnx(self, scope=None):
         """
         Converts this instance into an instance of *Variable*
-        from :epkg:`skl2onnx`.
+        from :epkg:`sklearn-onnx`.
         """
-        from skl2onnx.common._topology import Variable as skl2onnxVariable
-        from skl2onnx.common.data_types import _guess_numpy_type
+        from skl2onnx.common._topology import Variable as skl2onnxVariable  # delayed
+        from skl2onnx.common.data_types import _guess_numpy_type  # delayed
         inst = _guess_numpy_type(self.dtype, self.shape)
         var = skl2onnxVariable(self.name, self.name, type=inst, scope=scope)
         return var
@@ -154,7 +156,7 @@ class Variable:
     @staticmethod
     def from_skl2onnx(var):
         """
-        Converts var from skl2onnx into this class.
+        Converts var from :epkg:`sklearn-onnx` into this class.
         """
         return Variable(var.onnx_name, guess_numpy_type(var.type),
                         shape=var.type.shape)
@@ -271,6 +273,74 @@ class Variable:
         if self.dtype_ != other.dtype_:
             return False
         return True
+
+    def make_value_info(self):
+        """
+        Converts the variable into `onnx.ValueInfoProto`.
+
+        :return: instance of `onnx.ValueInfoProto`
+        """
+        value_info = ValueInfoProto()
+        value_info.name = self.name
+        tensor_type_proto = make_tensor_type_proto(self.proto_type, self.shape)
+        value_info.type.CopyFrom(tensor_type_proto)  # pylint: disable=E1101
+        return value_info
+
+    @staticmethod
+    def from_pb(obj):
+        """
+        Creates a Variable from a protobuf object.
+
+        :param obj: initializer, tensor
+        :return: @see cl Variable
+        """
+        def get_dim(d):
+            r = d.dim_value
+            if "dim_param" in str(d):
+                return None
+            if r == 0:
+                # dim_value is 0 when it is 0 or undefined
+                return 0 if "0" in str(d) else None
+            return r
+
+        def get_shape(tt):
+            return [get_dim(tt.shape.dim[i])
+                    for i in range(len(tt.shape.dim))]
+
+        if hasattr(obj, 'extend'):
+            return [Variable.from_pb(o) for o in obj]
+
+        name = obj.name
+        if obj.type.tensor_type:
+            tt = obj.type.tensor_type
+            elem = tt.elem_type
+            shape = get_shape(tt)
+            if elem == TensorProto.FLOAT:  # pylint: disable=E1101
+                ty = numpy.float32
+            elif elem == TensorProto.BOOL:  # pylint: disable=E1101
+                ty = numpy.bool_
+            elif elem == TensorProto.DOUBLE:  # pylint: disable=E1101
+                ty = numpy.float64
+            elif elem == TensorProto.STRING:  # pylint: disable=E1101
+                ty = numpy.str_
+            elif elem == TensorProto.INT64:  # pylint: disable=E1101
+                ty = numpy.int64
+            elif elem == TensorProto.INT32:  # pylint: disable=E1101
+                ty = numpy.int32
+            elif elem == TensorProto.UINT8:  # pylint: disable=E1101
+                ty = numpy.uint8
+            elif elem == TensorProto.INT8:  # pylint: disable=E1101
+                ty = numpy.int8
+            else:
+                raise NotImplementedError(
+                    "Unsupported type '{}' (elem_type={}).".format(
+                        type(obj.type.tensor_type), elem))
+        else:
+            raise NotImplementedError("Unsupported type '{}' as "
+                                      "a string ({}).".format(
+                                          type(obj), obj))
+
+        return Variable(name, ty, shape=shape)
 
 
 class NodeResultName:

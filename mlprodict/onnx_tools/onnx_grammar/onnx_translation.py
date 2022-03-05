@@ -106,16 +106,16 @@ def get_default_context_cpl():
            'py_pow': py_pow, 'py_mul': py_mul, 'py_opp': py_opp,
            'numpy': numpy}
     try:
-        from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
-        from skl2onnx.algebra.complex_functions import onnx_cdist
+        from skl2onnx.algebra.complex_functions import onnx_squareform_pdist  # delayed
+        from skl2onnx.algebra.complex_functions import onnx_cdist  # delayed
         ctx['onnx_squareform_pdist'] = onnx_squareform_pdist
         ctx['onnx_cdist'] = onnx_cdist
     except ImportError:  # pragma: no cover
         # Too old version for skl2onnx.
         pass
 
-    from skl2onnx.algebra import onnx_ops
-    from skl2onnx.algebra.onnx_operator import OnnxOperator
+    from skl2onnx.algebra import onnx_ops  # delayed
+    from skl2onnx.algebra.onnx_operator import OnnxOperator  # delayed
     d = onnx_ops.__dict__
     for k, v in d.items():
         try:
@@ -199,20 +199,24 @@ def translate_fct2onnx(fct, context=None, cpl=False,
             from mlprodict.onnx_tools.onnx_grammar import translate_fct2onnx
             from mlprodict.plotting.text_plot import onnx_simple_text_plot
             from mlprodict.onnxrt import OnnxInference
-            from skl2onnx.algebra.onnx_ops import (
-                OnnxAdd, OnnxTranspose, OnnxMul, OnnxIdentity)
+            from mlprodict.npy.xop import loadop
+
+
+            OnnxAdd, OnnxTranspose, OnnxMul, OnnxIdentity = loadop(
+                'Add', 'Transpose', 'Mul', 'Identity')
+
 
             ctx = {'OnnxAdd': OnnxAdd,
-                   'OnnxTranspose': OnnxTranspose,
-                   'OnnxMul': OnnxMul,
-                   'OnnxIdentity': OnnxIdentity}
+                'OnnxTranspose': OnnxTranspose,
+                'OnnxMul': OnnxMul,
+                'OnnxIdentity': OnnxIdentity}
 
             def trs(x, y):
                 z = x + numpy.transpose(y, axes=[1, 0])
                 return x * z
 
             inputs = {'x': numpy.array([[1, 2]], dtype=numpy.float32),
-                      'y': numpy.array([[-0.3, 0.4]], dtype=numpy.float32).T}
+                    'y': numpy.array([[-0.3, 0.4]], dtype=numpy.float32).T}
 
             original = trs(inputs['x'], inputs['y'])
 

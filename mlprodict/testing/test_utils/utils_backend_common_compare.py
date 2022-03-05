@@ -1,11 +1,10 @@
 """
 @file
-@brief Inspired from skl2onnx, handles two backends.
+@brief Inspired from sklearn-onnx, handles two backends.
 """
 import numpy
 import onnx
 import pandas
-from ...tools.ort_wrapper import OrtInvalidArgument
 from .utils_backend_common import (
     load_data_and_model, extract_options,
     ExpectedAssertionError, OnnxBackendAssertionError,
@@ -201,6 +200,10 @@ def compare_runtime_session(  # pylint: disable=R0912
             run_options = {'verbose': 2, 'fLOG': print}
     else:
         run_options = {}
+
+    from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+        InvalidArgument as OrtInvalidArgument)
+
     try:
         try:
             output = sess.run(None, inputs, **run_options)

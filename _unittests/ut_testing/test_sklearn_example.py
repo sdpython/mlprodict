@@ -46,5 +46,5 @@ class TestSklearnExample(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestSklearnExample().test_plot_kernel_ridge_regression()
+    # TestSklearnExample().test_plot_kernel_ridge_regression()
     unittest.main()

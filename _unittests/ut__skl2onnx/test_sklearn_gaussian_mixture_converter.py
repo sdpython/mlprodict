@@ -8,7 +8,7 @@ from sklearn.datasets import load_iris
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from skl2onnx import convert_sklearn, to_onnx
 from skl2onnx.common.data_types import FloatTensorType
-from mlprodict.tools.ort_wrapper import OrtFail
+from onnxruntime.capi._pybind_state import Fail as OrtFail  # pylint: disable=E0611
 from mlprodict.tools.ort_wrapper import InferenceSession
 from mlprodict.testing.test_utils import dump_data_and_model
 from mlprodict import __max_supported_opset__ as TARGET_OPSET

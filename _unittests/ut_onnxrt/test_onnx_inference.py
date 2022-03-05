@@ -16,7 +16,6 @@ from pyquickhelper.loghelper import BufferedPrint
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
-from mlprodict.tools.ort_wrapper import SessionOptions
 
 
 class TestOnnxInference(ExtTestCase):
@@ -53,6 +52,7 @@ class TestOnnxInference(ExtTestCase):
 
     @ignore_warnings(DeprecationWarning)
     def test_onnx_inference_so(self):
+        from onnxruntime import SessionOptions
         X = helper.make_tensor_value_info(
             'X', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
         Y = helper.make_tensor_value_info(

@@ -147,7 +147,7 @@ def _common_shape_calculator_int_t(operator):
         raise RuntimeError(
             "This function only supports two outputs not %r." % len(
                 operator.outputs))
-    from skl2onnx.common.data_types import Int64TensorType
+    from skl2onnx.common.data_types import Int64TensorType  # delayed
     op = operator.raw_operator
     cl = X[0].type.__class__
     dim = [X[0].type.shape[0], getattr(op, 'n_outputs_', None)]
@@ -391,7 +391,7 @@ def update_registered_converter_npy(
         lambda scope, operator, container:
         cvtc(scope, addattr(operator, obj), container))
 
-    from skl2onnx import update_registered_converter
+    from skl2onnx import update_registered_converter  # delayed
     update_registered_converter(
         model, alias, convert_fct=local_convert_fct,
         shape_fct=local_shape_fct, overwrite=overwrite,

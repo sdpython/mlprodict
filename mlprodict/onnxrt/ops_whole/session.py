@@ -5,13 +5,8 @@
 """
 import json
 from io import BytesIO
+import numpy
 import onnx
-from ...tools.ort_wrapper import (
-    InferenceSession, SessionOptions, RunOptions,
-    GraphOptimizationLevel, OrtFail,
-    OrtInvalidGraph, OrtInvalidArgument,
-    OrtNotImplemented, OrtRuntimeException)
-from ...tools.asv_options_helper import display_onnx
 
 
 class OnnxWholeSession:
@@ -32,6 +27,16 @@ class OnnxWholeSession:
         if runtime != 'onnxruntime1':
             raise NotImplementedError(  # pragma: no cover
                 "runtime '{}' is not implemented.".format(runtime))
+
+        from onnxruntime import (  # delayed
+            InferenceSession, SessionOptions, RunOptions,
+            GraphOptimizationLevel)
+        from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+            Fail as OrtFail, InvalidGraph as OrtInvalidGraph,
+            InvalidArgument as OrtInvalidArgument,
+            NotImplemented as OrtNotImplemented,
+            RuntimeException as OrtRuntimeException)
+
         if hasattr(onnx_data, 'SerializeToString'):
             onnx_data = onnx_data.SerializeToString()
         if isinstance(runtime_options, SessionOptions):
@@ -76,9 +81,11 @@ class OnnxWholeSession:
                                          device=device)
         except (OrtFail, OrtNotImplemented, OrtInvalidGraph,
                 OrtInvalidArgument, OrtRuntimeException, RuntimeError) as e:
+            from ...tools.asv_options_helper import display_onnx
             raise RuntimeError(
                 "Unable to create InferenceSession due to '{}'\n{}.".format(
                     e, display_onnx(onnx.load(BytesIO(onnx_data))))) from e
+        self.output_names = [_.name for _ in self.sess.get_outputs()]
 
     def run(self, inputs):
         """
@@ -87,7 +94,16 @@ class OnnxWholeSession:
         @param      inputs      dictionary *{variable, value}*
         @return                 list of outputs
         """
-        return self.sess.run(None, inputs, self.run_options)
+        v = next(iter(inputs.values()))
+        if isinstance(v, (numpy.ndarray, dict)):
+            return self.sess.run(None, inputs, self.run_options)
+        try:
+            return self.sess._sess.run_with_ort_values(
+                inputs, self.output_names, self.run_options)
+        except RuntimeError:
+            return self.sess._sess.run_with_ort_values(
+                {k: v._get_c_value() for k, v in inputs.items()},
+                self.output_names, self.run_options)
 
     @staticmethod
     def process_profiling(js):
