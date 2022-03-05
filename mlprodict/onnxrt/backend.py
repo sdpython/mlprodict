@@ -128,10 +128,10 @@ class OnnxInferenceBackend(Backend):
         opset_supported, error_message = cls.is_opset_supported(model)
         if not opset_supported:
             raise unittest.SkipTest(error_message)
-        bin = bin_or_model
-        if not isinstance(bin, (str, bytes)):
-            bin = bin.SerializeToString()
-        return cls.prepare(bin, device, **kwargs)
+        binm = bin_or_model
+        if not isinstance(binm, (str, bytes)):
+            binm = binm.SerializeToString()
+        return cls.prepare(binm, device, **kwargs)
 
     @classmethod
     def run_model(cls, model, inputs, device=None, **kwargs):
