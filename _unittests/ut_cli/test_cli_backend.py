@@ -21,7 +21,7 @@ class TestCliBackend(ExtTestCase):
         reg = re.compile("test_.*abs.*_cpu")
         cases = backend_test.test_cases
         test_cases = {}
-        for k, v in cases.items():
+        for _, v in cases.items():
             meths = []
             for meth in dir(v):
                 if not reg.search(meth):
