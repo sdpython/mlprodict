@@ -65,7 +65,7 @@ class ReduceSum_13(OpRunReduceNumpy):
             if isinstance(axes, numpy.ndarray) and len(axes.shape) == 0:
                 axes = int(axes)
             else:
-                axes = tuple(axes) if len(axes) > 0 else None
+                axes = tuple(axes.ravel().tolist()) if len(axes) > 0 else None
         try:
             return (numpy.sum(data, axis=axes,
                               keepdims=self.keepdims,

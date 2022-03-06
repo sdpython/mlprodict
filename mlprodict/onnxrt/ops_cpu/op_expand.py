@@ -10,7 +10,7 @@ from ..shape_object import ShapeObject
 
 
 def common_reference_implementation(data, shape):
-    ones = numpy.ones(shape)
+    ones = numpy.ones(shape, dtype=data.dtype)
     return data * ones
 
 

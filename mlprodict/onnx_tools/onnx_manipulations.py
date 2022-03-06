@@ -406,34 +406,35 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
             counts['init'] += 1
             replace[init.name] = name
             if verbose > 0 and fLOG is not None:
-                fLOG('[onnx_rename_names] %r -> %r' % (init.name, name))
+                fLOG('[onnx_rename_names] init: %r -> %r' % (init.name, name))
             return name
         if strategy == 'type':
             name = _check_name_type(init, 'i')
             counts['init'] += 1
             replace[init.name] = name
             if verbose > 0 and fLOG is not None:
-                fLOG('[onnx_rename_names] %r -> %r' % (init.name, name))
+                fLOG('[onnx_rename_names] init: %r -> %r' % (init.name, name))
             return name
         raise ValueError(  # pragma: no cover
             "Unknown strategy %r." % strategy)
 
     def get_name_node(node):
-        if node.name in replace:
-            return replace[node.name]
+        node_name = 'node_%s_%d' % (node.name, id(node))
+        if node_name in replace:
+            return replace[node_name]
         if strategy == 'simple':
             name = _check_name_simple('n%d' % counts['node'])
             counts['node'] += 1
-            replace[node.name] = name
+            replace[node_name] = name
             if verbose > 0 and fLOG is not None:
-                fLOG('[onnx_rename_names] %r -> %r' % (node.name, name))
+                fLOG('[onnx_rename_names] node: %r -> %r' % (node_name, name))
             return name
         if strategy == 'type':
             name = _check_name_type(node, 'n')
             counts['node'] += 1
-            replace[node.name] = name
+            replace[node_name] = name
             if verbose > 0 and fLOG is not None:
-                fLOG('[onnx_rename_names] %r -> %r' % (node.name, name))
+                fLOG('[onnx_rename_names] node: %r -> %r' % (node_name, name))
             return name
         raise ValueError(  # pragma: no cover
             "Unknown strategy %r." % strategy)
@@ -446,14 +447,14 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
             counts['result'] += 1
             replace[name] = new_name
             if verbose > 0 and fLOG is not None:
-                fLOG('[onnx_rename_names] %r -> %r' % (name, new_name))
+                fLOG('[onnx_rename_names] result: %r -> %r' % (name, new_name))
             return new_name
         if strategy == 'type':
             new_name = _check_name_type(node, 'r%s%d' % (suffix, i))
             counts['result'] += 1
             replace[name] = new_name
             if verbose > 0 and fLOG is not None:
-                fLOG('[onnx_rename_names] %r -> %r' % (name, new_name))
+                fLOG('[onnx_rename_names] result: %r -> %r' % (name, new_name))
             return new_name
         raise ValueError(  # pragma: no cover
             "Unknown strategy %r." % strategy)
