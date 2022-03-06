@@ -453,6 +453,7 @@ class OnnxInference:
                 :showcode:
                 :warningout: DeprecationWarning
 
+                import pprint
                 import numpy
                 from mlprodict.npy.xop import loadop
                 from mlprodict.onnxrt import OnnxInference

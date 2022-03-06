@@ -251,7 +251,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         oinf1 = OnnxInference(model_def)
         new_model = onnx_rename_names(model_def, verbose=1, fLOG=flog)
         total = "\n".join(rows)
-        self.assertIn("[onnx_rename_names] 'Ad_Addcst1' -> 'i1'", total)
+        self.assertIn("[onnx_rename_names] init: 'Ad_Addcst1' -> 'i1'", total)
         oinf2 = OnnxInference(new_model)
         y1 = oinf1.run({'X': x})
         y2 = oinf2.run({'X': x})
@@ -327,7 +327,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             model_def, verbose=1, fLOG=flog, strategy='type')
         total = "\n".join(rows)
         self.assertNotIn('name: "Re_ReduceSumSquare"', str(new_model))
-        self.assertIn("'Re_ReduceSumSquare' -> 'n_24'", total)
+        self.assertIn("'node_Re_ReduceSumSquare_", total)
         oinf2 = OnnxInference(new_model)
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
