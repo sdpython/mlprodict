@@ -96,7 +96,14 @@ class OnnxWholeSession:
         """
         v = next(iter(inputs.values()))
         if isinstance(v, (numpy.ndarray, dict)):
-            return self.sess.run(None, inputs, self.run_options)
+            try:
+                return self.sess._sess.run(
+                    self.output_names, inputs, self.run_options)
+            except ValueError as e:
+                raise ValueError(
+                    "Issue running inference inputs=%r, expected inputs=%r." %
+                    (list(sorted(inputs)),
+                    [i.name for i in self.sess.get_inputs()]))
         try:
             return self.sess._sess.run_with_ort_values(
                 inputs, self.output_names, self.run_options)

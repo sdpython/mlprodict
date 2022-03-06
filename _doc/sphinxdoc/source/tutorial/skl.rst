@@ -5,7 +5,7 @@ Function `skl2onnx.to_onnx <http://www.xavierdupre.fr/app/sklearn-onnx/helpsphin
 api_summary.html#skl2onnx.to_onnx>`_ is the
 main entrypoint to convert a *scikit-learn* pipeline into ONNX.
 The same function was extended in this package into
-:func:`to_onnx <mlprodict.onnx_conv.to_onnx>` to handle
+:func:`to_onnx <mlprodict.onnx_conv.convert.to_onnx>` to handle
 dataframes, an extended list of supported converters, scorers.
 It works exactly the same:
 
@@ -31,3 +31,6 @@ It works exactly the same:
 
     oinf = OnnxInference(model_def, runtime='python')
     print(oinf.run({'X': X_test[:5]}))
+
+This new version extends the conversion to scorers through
+:func:`convert_scorer <mlprodict.onnx_conv.convert.convert_scorer>`.

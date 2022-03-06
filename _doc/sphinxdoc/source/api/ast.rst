@@ -9,7 +9,7 @@ AST
 Main functions
 ==============
 
-.. autosignature:: mlprodict.onnx_tools.onnx_translation.translate_fct2onnx
+.. autosignature:: mlprodict.onnx_tools.onnx_grammar.onnx_translation.translate_fct2onnx
 
 Additional functions
 ====================
