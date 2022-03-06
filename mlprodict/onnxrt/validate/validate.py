@@ -681,13 +681,13 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                 try:
                     max_rel_diff = measure_relative_difference(
                         ypred, opred[:, 1])
-                except AttributeError:
+                except AttributeError:  # pragma: no cover
                     max_rel_diff = numpy.nan
             else:
                 try:
                     max_rel_diff = measure_relative_difference(
                         ypred, opred)
-                except AttributeError:
+                except AttributeError:  # pragma: no cover
                     max_rel_diff = numpy.nan
 
             if max_rel_diff >= 1e9 and debug:  # pragma: no cover

@@ -40,9 +40,11 @@ def benchmark_doc(runtime, black_list=None, white_list=None,
         elif ext == '.csv':
             df.to_csv(name, index=False)
         else:
-            raise ValueError("Unexpected extension in %r." % name)
+            raise ValueError(  # pragma: no cover
+                "Unexpected extension in %r." % name)
         if verbose > 1:
-            fLOG("[mlprodict] wrote '{}'".format(name))
+            fLOG(  # pragma: no cover
+                "[mlprodict] wrote '{}'".format(name))
 
     from pyquickhelper.loghelper import run_cmd
     from pyquickhelper.loghelper.run_cmd import get_interpreter_path
@@ -52,7 +54,7 @@ def benchmark_doc(runtime, black_list=None, white_list=None,
     register_converters()
     try:
         register_rewritten_operators()
-    except KeyError:
+    except KeyError:  # pragma: no cover
         warnings.warn("converter for HistGradientBoosting* not not exist. "
                       "Upgrade sklearn-onnx")
 
@@ -79,7 +81,8 @@ def benchmark_doc(runtime, black_list=None, white_list=None,
         if black_list is not None and op in black_list:
             continue
         if verbose > 0:
-            pbar.set_description("[%s]" % (op + " " * (25 - len(op))))
+            pbar.set_description(  # pragma: no cover
+                "[%s]" % (op + " " * (25 - len(op))))
 
         loop_out_raw = os.path.join(
             dump_dir, "bench_raw_%s_%s.csv" % (runtime, op))
@@ -89,9 +92,9 @@ def benchmark_doc(runtime, black_list=None, white_list=None,
                '--benchmark=1 --dump_folder={3} --runtime={4} --models={5}'.format(
                    get_interpreter_path(), loop_out_raw, loop_out_sum, dump_dir, runtime, op))
         if verbose > 1:
-            fLOG("[mlprodict] cmd '{}'.".format(cmd))
+            fLOG("[mlprodict] cmd '{}'.".format(cmd))  # pragma: no cover
         out, err = run_cmd(cmd, wait=True, fLOG=None)
-        if not os.path.exists(loop_out_sum):
+        if not os.path.exists(loop_out_sum):  # pragma: no cover
             if verbose > 2:
                 fLOG("[mlprodict] unable to find '{}'.".format(loop_out_sum))
             if verbose > 1:
@@ -580,7 +583,7 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
             max_time = None
 
     if law != "normal":
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             "Only law='normal' is supported, not %r." % law)
 
     if profiling in ('name', 'type') and profile_output in (None, ''):
@@ -599,7 +602,7 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
         gr = gr.reset_index(drop=False)
         if ext == '.csv':
             gr.to_csv(profile_output, index=False)
-        elif ext == '.xlsx':
+        elif ext == '.xlsx':  # pragma: no cover
             gr.to_excel(profile_output, index=False)
         else:
             raise ValueError(  # pragma: no cover

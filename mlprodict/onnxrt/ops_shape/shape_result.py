@@ -119,7 +119,7 @@ class ShapeResult:
     def __init__(self, name, shape=None, dtype=None, sparse=False,
                  mtype=OnnxKind.Tensor, constraints=None):
         if not isinstance(name, str):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "name must be a string not %r." % type(name))
         if not isinstance(sparse, bool):
             raise TypeError(  # pragma: no cover
@@ -184,7 +184,7 @@ class ShapeResult:
         Raises an exception otherwise.
         """
         if self.mtype != OnnxKind.Tensor:
-            raise ShapeInferenceException(
+            raise ShapeInferenceException(  # pragma: no cover
                 "This shape is not a tensor %r." % self)
         return len(self.shape)
 

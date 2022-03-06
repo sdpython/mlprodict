@@ -248,7 +248,7 @@ class ShapeContainer:
         for k, v in self.shapes.items():
             try:
                 results[k] = v.resolve(variables)
-            except RuntimeError as e:
+            except RuntimeError as e:  # pragma: no cover
                 raise RuntimeError(
                     "Unable to resolve shapes and constraints:\n%s"
                     "" % pprint.pformat(self.shapes)) from e

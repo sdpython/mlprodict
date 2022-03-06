@@ -1137,7 +1137,7 @@ class OnnxOperator(OnnxOperatorBase):
     def _node_to_graph_process_input(inputs, set_inputs, node, inp,
                                      new_inputs, new_stack, inputs_dtype):
         if inputs is None and inputs_dtype is None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Both inputs and inputs_dtype cannot be None at the same time "
                 "for inp=%r." % (inp, ))
         if isinstance(inp, OnnxOperator):

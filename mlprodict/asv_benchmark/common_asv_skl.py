@@ -93,7 +93,7 @@ class _CommonAsvSklBenchmark:
         Xt = X_test.astype(xdtype)
         yt = y_test.astype(self.par_ydtype)
         if X_train.shape[0] < X_train.shape[1]:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to train a model with less observations than features "
                 "shape=%r." % (X_train.shape, ))
         return (X_train, y_train), (Xt, yt)
