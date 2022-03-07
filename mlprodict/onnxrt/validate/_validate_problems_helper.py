@@ -46,7 +46,7 @@ def _guess_noshape(obj, shape):
         if obj.dtype == numpy.float32:
             from skl2onnx.common.data_types import (  # delayed
                 FloatTensorType)
-            return FloatTensorType(shape)  # pragma: no cover
+            return FloatTensorType(shape)
         if obj.dtype == numpy.float64:
             from skl2onnx.common.data_types import (  # delayed
                 DoubleTensorType)

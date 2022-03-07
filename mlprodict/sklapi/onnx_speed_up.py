@@ -77,7 +77,8 @@ class _OnnxPipelineStepSpeedup(BaseEstimator, OnnxOperatorMixin):
 
     def _check_fitted_(self):
         if not hasattr(self, 'onnxrt_'):
-            raise AttributeError("Object must be be fit.")
+            raise AttributeError(  # pragma: no cover
+                "Object must be be fit.")
 
     def _to_onnx(self, fitted_estimator, inputs):
         """

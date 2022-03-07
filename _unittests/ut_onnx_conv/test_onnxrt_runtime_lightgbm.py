@@ -390,7 +390,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         model = lgb_train({'boosting_type': 'rf', 'objective': 'binary',
                            'n_estimators': 3, 'min_child_samples': 1,
                            'subsample_freq': 1, 'bagging_fraction': 0.5,
-                           'feature_fraction': 0.5},
+                           'feature_fraction': 0.5, 'average_output': True},
                           data)
         model_onnx = to_onnx(model, X, verbose=0, rewrite_ops=True,
                              target_opset=TARGET_OPSET)

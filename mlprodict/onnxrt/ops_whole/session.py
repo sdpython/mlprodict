@@ -101,9 +101,10 @@ class OnnxWholeSession:
                     self.output_names, inputs, self.run_options)
             except ValueError as e:
                 raise ValueError(
-                    "Issue running inference inputs=%r, expected inputs=%r." %
-                    (list(sorted(inputs)),
-                    [i.name for i in self.sess.get_inputs()])) from e
+                    "Issue running inference inputs=%r, expected inputs=%r."
+                    "" % (
+                        list(sorted(inputs)),
+                        [i.name for i in self.sess.get_inputs()])) from e
         try:
             return self.sess._sess.run_with_ort_values(
                 inputs, self.output_names, self.run_options)
