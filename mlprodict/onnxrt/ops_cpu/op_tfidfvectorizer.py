@@ -70,7 +70,7 @@ class TfIdfVectorizer(OpRunUnary):
         if len(x) == 2:
             return (ShapeObject((x[0], x[1], None), dtype=x.dtype,
                                 name=self.__class__.__name__), )
-        raise RuntimeTypeError(
+        raise RuntimeTypeError(  # pragma: no cover
             "Only two dimension are allowed, got {}.".format(x))
 
     def _infer_types(self, x):  # pylint: disable=E0202,W0221

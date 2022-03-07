@@ -140,6 +140,20 @@ def otest_abs_not_equal(x: NDArray[Any, numpy.float32],
 
 
 @onnxnumpy_default
+def otest_abs_not_equal2(x: NDArray[Any, numpy.float32],
+                         ) -> NDArray[Any, numpy_bool]:
+    "onnx numpy inequality"
+    return nxnp.abs(x).__ne__(x)
+
+
+@onnxnumpy_default
+def otest_abs_not_equal3(x: NDArray[Any, numpy.float32],
+                         ) -> NDArray[Any, numpy_bool]:
+    "onnx numpy inequality"
+    return ~(nxnp.abs(x) == x)
+
+
+@onnxnumpy_default
 def otest_abs_greater(x: NDArray[Any, numpy.float32],
                       ) -> NDArray[Any, numpy_bool]:
     "onnx numpy greater"
@@ -612,6 +626,18 @@ class TestOnnxVariable(ExtTestCase):
     def test_py_abs_not_equal(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         y = otest_abs_not_equal(x)
+        self.assertEqualArray(y, numpy.abs(x) != x)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_not_equal2(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = otest_abs_not_equal2(x)
+        self.assertEqualArray(y, numpy.abs(x) != x)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_py_abs_not_equal3(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        y = otest_abs_not_equal3(x)
         self.assertEqualArray(y, numpy.abs(x) != x)
 
     @ignore_warnings(DeprecationWarning)

@@ -4,6 +4,7 @@
 """
 from collections import Counter
 from onnx.helper import make_graph
+from ..onnx2py_helper import from_pb, make_value_info
 from ._onnx_optimisation_common import _apply_optimisation_on_graph
 from .onnx_optimisation import onnx_remove_node
 
@@ -144,8 +145,6 @@ def change_input_first_dimension(onnx_model, N=None, debug_info=None):
     @param      debug_info      unused
     @return                     modified model onnx
     """
-    from ...npy.xop_variable import Variable
-
     if hasattr(onnx_model, 'graph'):
         return _apply_optimisation_on_graph(
             change_input_first_dimension, onnx_model, N=N)
@@ -153,14 +152,14 @@ def change_input_first_dimension(onnx_model, N=None, debug_info=None):
     graph = onnx_model
 
     nodes = graph.node
-    inputs = [Variable.from_pb(input) for input in onnx_model.input]
+    inputs = [from_pb(input) for input in onnx_model.input]
     outputs = onnx_model.output
 
     if N <= 0:
         N = None
     for input in inputs:
-        input.shape[0] = N
-    inputs = [v.make_value_info() for v in inputs]
+        input[2][0] = N
+    inputs = [make_value_info(*v) for v in inputs]
 
     graph = make_graph(nodes, onnx_model.name,
                        inputs, outputs, onnx_model.initializer)

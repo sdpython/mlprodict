@@ -5,7 +5,7 @@
 .. versionadded:: 0.9
 """
 import numpy
-from onnx import ValueInfoProto, TensorProto
+from onnx import ValueInfoProto
 from onnx.helper import make_tensor_type_proto
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
 from onnx.defs import onnx_opset_version
@@ -294,52 +294,8 @@ class Variable:
         :param obj: initializer, tensor
         :return: @see cl Variable
         """
-        def get_dim(d):
-            r = d.dim_value
-            if "dim_param" in str(d):
-                return None
-            if r == 0:
-                # dim_value is 0 when it is 0 or undefined
-                return 0 if "0" in str(d) else None
-            return r
-
-        def get_shape(tt):
-            return [get_dim(tt.shape.dim[i])
-                    for i in range(len(tt.shape.dim))]
-
-        if hasattr(obj, 'extend'):
-            return [Variable.from_pb(o) for o in obj]
-
-        name = obj.name
-        if obj.type.tensor_type:
-            tt = obj.type.tensor_type
-            elem = tt.elem_type
-            shape = get_shape(tt)
-            if elem == TensorProto.FLOAT:  # pylint: disable=E1101
-                ty = numpy.float32
-            elif elem == TensorProto.BOOL:  # pylint: disable=E1101
-                ty = numpy.bool_
-            elif elem == TensorProto.DOUBLE:  # pylint: disable=E1101
-                ty = numpy.float64
-            elif elem == TensorProto.STRING:  # pylint: disable=E1101
-                ty = numpy.str_
-            elif elem == TensorProto.INT64:  # pylint: disable=E1101
-                ty = numpy.int64
-            elif elem == TensorProto.INT32:  # pylint: disable=E1101
-                ty = numpy.int32
-            elif elem == TensorProto.UINT8:  # pylint: disable=E1101
-                ty = numpy.uint8
-            elif elem == TensorProto.INT8:  # pylint: disable=E1101
-                ty = numpy.int8
-            else:
-                raise NotImplementedError(
-                    "Unsupported type '{}' (elem_type={}).".format(
-                        type(obj.type.tensor_type), elem))
-        else:
-            raise NotImplementedError("Unsupported type '{}' as "
-                                      "a string ({}).".format(
-                                          type(obj), obj))
-
+        from ..onnx_tools.onnx2py_helper import from_pb
+        name, ty, shape = from_pb(obj)
         return Variable(name, ty, shape=shape)
 
 

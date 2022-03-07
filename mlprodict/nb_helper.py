@@ -34,7 +34,7 @@ def onnxview(graph, recursive=False, local=False, add_rt_shapes=False,
                       add_rt_shapes=add_rt_shapes, size=size)
     if html_size is not None:
         return RenderJsDot(dot, local=local, width=html_size, height=html_size)
-    return RenderJsDot(dot, local=local)
+    return RenderJsDot(dot, local=local)  # pragma: no cover
 
 
 @magics_class

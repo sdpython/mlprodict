@@ -114,7 +114,8 @@ class TestOnnxBackEnd(ExtTestCase):
                 domain='')
             nodes.append(node)
 
-            graph = make_graph(nodes, 'test_abs', inputs, outputs, initializers)
+            graph = make_graph(nodes, 'test_abs', inputs,
+                               outputs, initializers)
 
             onnx_model = make_model(graph)
             onnx_model.ir_version = 3

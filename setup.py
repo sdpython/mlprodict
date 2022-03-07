@@ -19,7 +19,7 @@ requirements = None
 
 KEYWORDS = [project_var_name, 'Xavier Dupré', 'onnx', 'scikit-learn',
             'production', 'machine learning']
-            
+
 DESCRIPTION = ("Python Runtime for ONNX models, other helpers to convert "
                "machine learned models in C++.")
 CLASSIFIERS = [

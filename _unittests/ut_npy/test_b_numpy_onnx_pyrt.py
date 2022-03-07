@@ -302,6 +302,12 @@ class TestNumpyOnnxFunction(ExtTestCase):
         self.common_test1(x, numpy.log1p, nxnpy.log1p, numpy.float64,
                           ort=older_than)
 
+    @ignore_warnings(UserWarning)
+    def test_matmul_float32(self):
+        x = numpy.array([[6.1, 5], [3.5, 7.8]], dtype=numpy.float32)
+        self.common_testn((x, x), numpy.matmul, nxnpy.matmul,
+                          (numpy.float32, numpy.float32))
+
     def test_mean_float32(self):
         kwargs = [{'axis': 0}, {}, {'axis': 1}]
         for kw in kwargs:

@@ -375,6 +375,11 @@ class OnnxVar:
         OnnxGreater = loadop('Greater')
         return OnnxVar(self, y, op=OnnxGreater)
 
+    def __invert__(self):
+        "not."
+        OnnxNot = loadop('Not')
+        return OnnxVar(self, op=OnnxNot)
+
     def __le__(self, y):
         "Less or Equal."
         y = self._make_array(y)

@@ -7,7 +7,9 @@ import pprint
 import warnings
 import numpy
 from scipy.sparse import coo_matrix
-from onnx import TensorProto
+from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
+from onnx import TensorProto, ValueInfoProto
+from onnx.helper import make_tensor_type_proto
 from onnx.numpy_helper import to_array, from_array as onnx_from_array
 
 
@@ -645,3 +647,90 @@ def to_skl2onnx_type(name, elem_type, shape):
     elem = guess_numpy_type_from_string(elem_type)
     shape = list(None if d == 0 else d for d in shape)
     return (name, _guess_numpy_type(elem, shape))
+
+
+def from_pb(obj):
+    """
+    Extracts tensor description from a protobuf.
+
+    :param obj: initializer, tensor
+    :return: (name, type, shape)
+    """
+    def get_dim(d):
+        r = d.dim_value
+        if "dim_param" in str(d):
+            return None
+        if r == 0:
+            # dim_value is 0 when it is 0 or undefined
+            return 0 if "0" in str(d) else None
+        return r
+
+    def get_shape(tt):
+        return [get_dim(tt.shape.dim[i])
+                for i in range(len(tt.shape.dim))]
+
+    if hasattr(obj, 'extend'):
+        return [from_pb(o) for o in obj]
+
+    name = obj.name
+    if obj.type.tensor_type:
+        tt = obj.type.tensor_type
+        elem = tt.elem_type
+        shape = get_shape(tt)
+        if elem == TensorProto.FLOAT:  # pylint: disable=E1101
+            ty = numpy.float32
+        elif elem == TensorProto.BOOL:  # pylint: disable=E1101
+            ty = numpy.bool_
+        elif elem == TensorProto.DOUBLE:  # pylint: disable=E1101
+            ty = numpy.float64
+        elif elem == TensorProto.STRING:  # pylint: disable=E1101
+            ty = numpy.str_
+        elif elem == TensorProto.INT64:  # pylint: disable=E1101
+            ty = numpy.int64
+        elif elem == TensorProto.INT32:  # pylint: disable=E1101
+            ty = numpy.int32
+        elif elem == TensorProto.UINT8:  # pylint: disable=E1101
+            ty = numpy.uint8
+        elif elem == TensorProto.INT8:  # pylint: disable=E1101
+            ty = numpy.int8
+        else:
+            raise NotImplementedError(
+                "Unsupported type '{}' (elem_type={}).".format(
+                    type(obj.type.tensor_type), elem))
+    else:
+        raise NotImplementedError("Unsupported type '{}' as "
+                                  "a string ({}).".format(
+                                      type(obj), obj))
+
+    return (name, ty, shape)
+
+
+def numpy_type_prototype(dtype):
+    """
+    Converts a numpy dtyp into a TensorProto dtype.
+
+    :param dtype: dtype
+    :return: proto dtype
+    """
+    if dtype in NP_TYPE_TO_TENSOR_TYPE:
+        return NP_TYPE_TO_TENSOR_TYPE[dtype]
+    dt = numpy.dtype(dtype)
+    if dt in NP_TYPE_TO_TENSOR_TYPE:
+        return NP_TYPE_TO_TENSOR_TYPE[dt]
+    raise ValueError(  # pragma: no cover
+        "Unable to convert dtype %r into ProtoType." % dtype)
+
+
+def make_value_info(name, dtype, shape):
+    """
+    Converts a variable defined by its name, type and shape
+    into `onnx.ValueInfoProto`.
+
+    :return: instance of `onnx.ValueInfoProto`
+    """
+    value_info = ValueInfoProto()
+    value_info.name = name
+    tensor_type_proto = make_tensor_type_proto(
+        numpy_type_prototype(dtype), shape)
+    value_info.type.CopyFrom(tensor_type_proto)  # pylint: disable=E1101
+    return value_info

@@ -71,7 +71,7 @@ class OnnxShapeInference:
 
         for obj in self.model_onnx.graph.output:
             if obj.name in known_shapes:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Output %r is already present. Use Identity node."
                     "" % obj.name)
             shape, dtype, sparse = self._get_shape(
