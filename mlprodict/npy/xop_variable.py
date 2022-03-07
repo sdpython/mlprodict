@@ -5,7 +5,7 @@
 .. versionadded:: 0.9
 """
 import numpy
-from onnx import ValueInfoProto, TensorProto
+from onnx import ValueInfoProto
 from onnx.helper import make_tensor_type_proto
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
 from onnx.defs import onnx_opset_version

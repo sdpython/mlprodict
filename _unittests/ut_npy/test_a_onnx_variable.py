@@ -141,16 +141,17 @@ def otest_abs_not_equal(x: NDArray[Any, numpy.float32],
 
 @onnxnumpy_default
 def otest_abs_not_equal2(x: NDArray[Any, numpy.float32],
-                        ) -> NDArray[Any, numpy_bool]:
+                         ) -> NDArray[Any, numpy_bool]:
     "onnx numpy inequality"
     return nxnp.abs(x).__ne__(x)
 
 
 @onnxnumpy_default
 def otest_abs_not_equal3(x: NDArray[Any, numpy.float32],
-                        ) -> NDArray[Any, numpy_bool]:
+                         ) -> NDArray[Any, numpy_bool]:
     "onnx numpy inequality"
     return ~(nxnp.abs(x) == x)
+
 
 @onnxnumpy_default
 def otest_abs_greater(x: NDArray[Any, numpy.float32],

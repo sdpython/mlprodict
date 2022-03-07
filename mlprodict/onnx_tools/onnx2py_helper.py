@@ -7,7 +7,9 @@ import pprint
 import warnings
 import numpy
 from scipy.sparse import coo_matrix
-from onnx import TensorProto
+from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
+from onnx import TensorProto, ValueInfoProto
+from onnx.helper import make_tensor_type_proto
 from onnx.numpy_helper import to_array, from_array as onnx_from_array
 
 
@@ -719,7 +721,7 @@ def numpy_type_prototype(dtype):
         "Unable to convert dtype %r into ProtoType." % dtype)
 
 
-def make_value_info(name, typ, shape):
+def make_value_info(name, dtype, shape):
     """
     Converts a variable defined by its name, type and shape
     into `onnx.ValueInfoProto`.
