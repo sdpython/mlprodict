@@ -6,7 +6,6 @@ import keyword
 import textwrap
 import re
 from onnx.defs import OpSchema
-from ...tools import change_style
 
 
 def type_mapping(name):
@@ -125,6 +124,18 @@ class NewOperatorSchema:
     def __init__(self, name):
         self.name = name
         self.domain = 'mlprodict'
+
+
+def change_style(name):
+    """
+    Switches from *AaBb* into *aa_bb*.
+
+    @param      name    name to convert
+    @return             converted name
+    """
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    return s2 if not keyword.iskeyword(s2) else s2 + "_"
 
 
 def get_rst_doc(op_name):
@@ -248,6 +259,7 @@ def get_rst_doc(op_name):
 
     fnwd = format_name_with_domain
     tmpl = _template_operator
+
     docs = tmpl.render(schemas=schemas, OpSchema=OpSchema,
                        len=len, getattr=getattr, sorted=sorted,
                        format_option=format_option,
