@@ -28,6 +28,7 @@ class TestCodeStyle(ExtTestCase):
                          "[E731]",
                          "onnx_helper.py:8",  # a bug with python3.8
                          "__init__.py:1: R0401: Cyclic import",
+                         "R0401: Cyclic import (mlprodict -> mlprodict.nb_helper",
                          ])
 
     def test_style_test(self):
