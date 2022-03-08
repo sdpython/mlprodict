@@ -29,6 +29,13 @@ from .scorers import CustomScorerTransform
 logger = logging.getLogger('mlprodict')
 
 
+def _fix_opset_skl2onnx():
+    import skl2onnx
+    from .. import __max_supported_opset__
+    if skl2onnx.__max_supported_opset__ != __max_supported_opset__:
+        skl2onnx.__max_supported_opset__ = __max_supported_opset__
+
+
 def convert_scorer(fct, initial_types, name=None,
                    target_opset=None, options=None,
                    custom_conversion_functions=None,
@@ -79,6 +86,7 @@ def convert_scorer(fct, initial_types, name=None,
     if name is None:
         name = "mlprodict_fct_ONNX(%s)" % fct.__name__
     tr = CustomScorerTransform(fct.__name__, fct, kwargs)
+    _fix_opset_skl2onnx()
     return convert_sklearn(
         tr, initial_types=initial_types,
         target_opset=target_opset, options=options,
@@ -371,6 +379,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             raise RuntimeError(  # pragma: no cover
                 "Missing attribute 'op_version' for type '{}'.".format(
                     type(model)))
+        _fix_opset_skl2onnx()
         return model.to_onnx(
             X=X, name=name, options=options, black_op=black_op,
             white_op=white_op, final_types=final_types,
@@ -447,6 +456,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             name = "mlprodict_ONNX(%s)" % model.__class__.__name__
 
         initial_types, dtype, _ = _guess_type_(X, initial_types, None)
+        
+        _fix_opset_skl2onnx()
         res = convert_sklearn(model, initial_types=initial_types, name=name,
                               target_opset=target_opset, options=options,
                               black_op=black_op, white_op=white_op,

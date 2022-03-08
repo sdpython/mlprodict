@@ -1314,7 +1314,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                    'Y': Y.astype(numpy.float32)},
             got, OnnxConcat, model_def)
 
-        python_tested.append(OnnxConstantOfShape)
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
         validate_python_inference(
             oinfpy, {'X': X.astype(numpy.float32),

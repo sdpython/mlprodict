@@ -105,9 +105,11 @@ class OpRun:
                             setattr(self, a, None)
                         elif b is None:
                             raise RuntimeError(  # pragma: no cover
-                                "Parameter '{}' is missing from operator '{}', "
-                                "given {}.".format(
-                                    a, onnx_node.op_type, list(sorted(options))))
+                                "Parameter '{}' is missing from operator '{}' "
+                                "(class='{}'), given {}.".format(
+                                    a, onnx_node.op_type,
+                                    self.__class__.__name__,
+                                    list(sorted(options))))
                         else:
                             setattr(self, a, b)
         for k, v in options.items():
