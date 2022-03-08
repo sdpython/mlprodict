@@ -38,7 +38,6 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
             "Unable to find a schema for operator '{}'.".format(op_name))
 
     def _init(self, dtype, version):
-        print("**", dtype, version)
         if dtype == numpy.float32:
             if version == 0:
                 self.rt_ = RuntimeTreeEnsembleRegressorFloat()
@@ -70,12 +69,17 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
         else:
             raise RuntimeTypeError(  # pragma: no cover
                 "Unsupported dtype={}.".format(dtype))
-        atts = [self._get_typed_attributes(k)
-                for k in self.__class__.atts]
-        import pprint
-        pprint.pprint(atts)
+        atts = []
+        for k in self.__class__.atts:
+            v = self._get_typed_attributes(k)
+            if k.endswith('_as_tensor'):
+                if (v is not None and isinstance(v, numpy.ndarray) and
+                        v.size > 0):
+                    # replacements
+                    atts[-1] = v
+                continue
+            atts.append(v)
         self.rt_.init(*atts)
-        print("*******************")
 
     def _run(self, x):  # pylint: disable=W0221
         """
