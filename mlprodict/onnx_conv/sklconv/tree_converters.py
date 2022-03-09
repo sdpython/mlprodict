@@ -16,7 +16,8 @@ from skl2onnx.operator_converters.gradient_boosting import (
 from skl2onnx.operator_converters.random_forest import (
     convert_sklearn_random_forest_classifier,
     convert_sklearn_random_forest_regressor_converter)
-from skl2onnx.common.data_types import guess_numpy_type
+from skl2onnx.common.data_types import (
+    guess_numpy_type, FloatTensorType, DoubleTensorType)
 
 
 logger = logging.getLogger('mlprodict.onnx_conv')
@@ -59,7 +60,10 @@ def new_convert_sklearn_decision_tree_classifier(scope, operator, container):
     dtype = guess_numpy_type(operator.inputs[0].type)
     if dtype != numpy.float64:
         dtype = numpy.float32
-    op_type, op_domain, op_version = _op_type_domain_classifier(dtype)
+    opsetml = container.target_opset_all.get('ai.onnx.ml', None)
+    if opsetml is None:
+        opsetml = 3 if container.target >= 16 else 1
+    op_type, op_domain, op_version = _op_type_domain_classifier(dtype, opsetml)
     convert_sklearn_decision_tree_classifier(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
@@ -75,7 +79,8 @@ def new_convert_sklearn_decision_tree_regressor(scope, operator, container):
     dtype = guess_numpy_type(operator.inputs[0].type)
     if dtype != numpy.float64:
         dtype = numpy.float32
-    op_type, op_domain, op_version = _op_type_domain_regressor(dtype)
+    opsetml = container.target_opset_all.get('ai.onnx.ml', None)
+    op_type, op_domain, op_version = _op_type_domain_regressor(dtype, opsetml)
     convert_sklearn_decision_tree_regressor(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
@@ -91,7 +96,10 @@ def new_convert_sklearn_gradient_boosting_classifier(scope, operator, container)
     dtype = guess_numpy_type(operator.inputs[0].type)
     if dtype != numpy.float64:
         dtype = numpy.float32
-    op_type, op_domain, op_version = _op_type_domain_classifier(dtype)
+    opsetml = container.target_opset_all.get('ai.onnx.ml', None)
+    if opsetml is None:
+        opsetml = 3 if container.target >= 16 else 1
+    op_type, op_domain, op_version = _op_type_domain_classifier(dtype, opsetml)
     convert_sklearn_gradient_boosting_classifier(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
@@ -107,7 +115,8 @@ def new_convert_sklearn_gradient_boosting_regressor(scope, operator, container):
     dtype = guess_numpy_type(operator.inputs[0].type)
     if dtype != numpy.float64:
         dtype = numpy.float32
-    op_type, op_domain, op_version = _op_type_domain_regressor(dtype)
+    opsetml = container.target_opset_all.get('ai.onnx.ml', None)
+    op_type, op_domain, op_version = _op_type_domain_regressor(dtype, opsetml)
     convert_sklearn_gradient_boosting_regressor(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
@@ -121,11 +130,15 @@ def new_convert_sklearn_random_forest_classifier(scope, operator, container):
     doubles.
     """
     dtype = guess_numpy_type(operator.inputs[0].type)
+    if dtype != numpy.float64:
+        dtype = numpy.float32
+    if (dtype == numpy.float64 and
+            isinstance(operator.outputs[1].type, FloatTensorType)):
+        operator.outputs[1].type = DoubleTensorType(
+            operator.outputs[1].type.shape)
     opsetml = container.target_opset_all.get('ai.onnx.ml', None)
     if opsetml is None:
         opsetml = 3 if container.target >= 16 else 1
-    if dtype != numpy.float64:
-        dtype = numpy.float32
     op_type, op_domain, op_version = _op_type_domain_classifier(dtype, opsetml)
     convert_sklearn_random_forest_classifier(
         scope, operator, container, op_type=op_type, op_domain=op_domain,

@@ -38,6 +38,22 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
             "Unable to find a schema for operator '{}'.".format(op_name))
 
     def _init(self, dtype, version):
+        atts = []
+        for k in self.__class__.atts:
+            v = self._get_typed_attributes(k)
+            if k.endswith('_as_tensor'):
+                if (v is not None and isinstance(v, numpy.ndarray) and
+                        v.size > 0):
+                    # replacements
+                    atts[-1] = v
+                    if dtype is None:
+                        dtype = v.dtype
+                continue
+            atts.append(v)
+
+        if dtype is None:
+            dtype = numpy.float32
+
         if dtype == numpy.float32:
             if version == 0:
                 self.rt_ = RuntimeTreeEnsembleRegressorFloat()
@@ -69,16 +85,6 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
         else:
             raise RuntimeTypeError(  # pragma: no cover
                 "Unsupported dtype={}.".format(dtype))
-        atts = []
-        for k in self.__class__.atts:
-            v = self._get_typed_attributes(k)
-            if k.endswith('_as_tensor'):
-                if (v is not None and isinstance(v, numpy.ndarray) and
-                        v.size > 0):
-                    # replacements
-                    atts[-1] = v
-                continue
-            atts.append(v)
         self.rt_.init(*atts)
 
     def _run(self, x):  # pylint: disable=W0221
@@ -158,9 +164,84 @@ class TreeEnsembleRegressor_3(TreeEnsembleRegressorCommon):
 
     def __init__(self, onnx_node, desc=None, runtime_version=1, **options):
         TreeEnsembleRegressorCommon.__init__(
-            self, numpy.float64, onnx_node, desc=desc,
+            self, None, onnx_node, desc=desc,
             expected_attributes=TreeEnsembleRegressor_3.atts,
             runtime_version=runtime_version, **options)
+
+
+class TreeEnsembleRegressorDouble(TreeEnsembleRegressorCommon):
+    """
+    Runtime for the custom operator `TreeEnsembleRegressorDouble`.
+    .. exref::
+        :title: How to use TreeEnsembleRegressorDouble instead of TreeEnsembleRegressor
+        .. runpython::
+            :showcode:
+            import warnings
+            import numpy
+            from sklearn.datasets import make_regression
+            from sklearn.ensemble import (
+                RandomForestRegressor, GradientBoostingRegressor,
+                HistGradientBoostingRegressor)
+            from mlprodict.onnx_conv import to_onnx
+            from mlprodict.onnxrt import OnnxInference
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                models = [
+                    RandomForestRegressor(n_estimators=10),
+                    GradientBoostingRegressor(n_estimators=10),
+                    HistGradientBoostingRegressor(max_iter=10),
+                ]
+                X, y = make_regression(1000, n_features=5, n_targets=1)
+                X = X.astype(numpy.float64)
+                conv = {}
+                for model in models:
+                    model.fit(X[:500], y[:500])
+                    onx64 = to_onnx(model, X, rewrite_ops=True, target_opset=15)
+                    assert 'TreeEnsembleRegressorDouble' in str(onx64)
+                    expected = model.predict(X)
+                    oinf = OnnxInference(onx64)
+                    got = oinf.run({'X': X})
+                    diff = numpy.abs(got['variable'] - expected)
+                    print("%s: max=%f mean=%f" % (
+                        model.__class__.__name__, diff.max(), diff.mean()))
+    """
+
+    atts = OrderedDict([
+        ('aggregate_function', b'SUM'),
+        ('base_values', numpy.empty(0, dtype=numpy.float64)),
+        ('n_targets', 1),
+        ('nodes_falsenodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_featureids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_hitrates', numpy.empty(0, dtype=numpy.float64)),
+        ('nodes_missing_value_tracks_true', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_modes', []),
+        ('nodes_nodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_treeids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_truenodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_values', numpy.empty(0, dtype=numpy.float64)),
+        ('post_transform', b'NONE'),
+        ('target_ids', numpy.empty(0, dtype=numpy.int64)),
+        ('target_nodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('target_treeids', numpy.empty(0, dtype=numpy.int64)),
+        ('target_weights', numpy.empty(0, dtype=numpy.float64)),
+    ])
+
+    def __init__(self, onnx_node, desc=None, runtime_version=1, **options):
+        TreeEnsembleRegressorCommon.__init__(
+            self, numpy.float64, onnx_node, desc=desc,
+            expected_attributes=TreeEnsembleRegressorDouble.atts,
+            runtime_version=runtime_version, **options)
+
+
+class TreeEnsembleRegressorDoubleSchema(OperatorSchema):
+    """
+    Defines a schema for operators added in this package
+    such as @see cl TreeEnsembleRegressorDouble.
+    """
+
+    def __init__(self):
+        OperatorSchema.__init__(self, 'TreeEnsembleRegressorDouble')
+        self.attributes = TreeEnsembleRegressorDouble.atts
 
 
 if onnx_opset_version() >= 16:

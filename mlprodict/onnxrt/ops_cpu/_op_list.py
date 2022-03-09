@@ -137,8 +137,10 @@ from .op_tokenizer import Tokenizer
 from .op_topk import TopK_10, TopK_11, TopK_1, TopK
 from .op_transpose import Transpose
 from .op_tree_ensemble_classifier import (
+    TreeEnsembleClassifierDouble,
     TreeEnsembleClassifier_1, TreeEnsembleClassifier_3, TreeEnsembleClassifier)
 from .op_tree_ensemble_regressor import (
+    TreeEnsembleRegressorDouble,
     TreeEnsembleRegressor_1, TreeEnsembleRegressor_3, TreeEnsembleRegressor)
 from .op_unsqueeze import Unsqueeze, Unsqueeze_1, Unsqueeze_11, Unsqueeze_13
 from .op_where import Where

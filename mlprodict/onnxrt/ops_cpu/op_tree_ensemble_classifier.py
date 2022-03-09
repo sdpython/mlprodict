@@ -43,6 +43,23 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
 
     def _init(self, dtype, version):
         self._post_process_label_attributes()
+
+        atts = []
+        for k in self.__class__.atts:
+            v = self._get_typed_attributes(k)
+            if k.endswith('_as_tensor'):
+                if (v is not None and isinstance(v, numpy.ndarray) and
+                        v.size > 0):
+                    # replacements
+                    atts[-1] = v
+                    if dtype is None:
+                        dtype = v.dtype
+                continue
+            atts.append(v)
+
+        if dtype is None:
+            dtype = numpy.float32
+
         if dtype == numpy.float32:
             if version == 0:
                 self.rt_ = RuntimeTreeEnsembleClassifierFloat()
@@ -75,8 +92,6 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
         else:
             raise RuntimeTypeError(  # pragma: no cover
                 "Unsupported dtype={}.".format(dtype))
-        atts = [self._get_typed_attributes(k)
-                for k in self.__class__.atts]
         self.rt_.init(*atts)
 
     def _run(self, x):  # pylint: disable=W0221
@@ -152,8 +167,47 @@ class TreeEnsembleClassifier_3(TreeEnsembleClassifierCommon):
 
     def __init__(self, onnx_node, desc=None, **options):
         TreeEnsembleClassifierCommon.__init__(
-            self, numpy.float64, onnx_node, desc=desc,
+            self, None, onnx_node, desc=desc,
             expected_attributes=TreeEnsembleClassifier_3.atts, **options)
+
+
+class TreeEnsembleClassifierDouble(TreeEnsembleClassifierCommon):
+
+    atts = OrderedDict([
+        ('base_values', numpy.empty(0, dtype=numpy.float64)),
+        ('class_ids', numpy.empty(0, dtype=numpy.int64)),
+        ('class_nodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('class_treeids', numpy.empty(0, dtype=numpy.int64)),
+        ('class_weights', numpy.empty(0, dtype=numpy.float64)),
+        ('classlabels_int64s', numpy.empty(0, dtype=numpy.int64)),
+        ('classlabels_strings', []),
+        ('nodes_falsenodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_featureids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_hitrates', numpy.empty(0, dtype=numpy.float64)),
+        ('nodes_missing_value_tracks_true', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_modes', []),
+        ('nodes_nodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_treeids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_truenodeids', numpy.empty(0, dtype=numpy.int64)),
+        ('nodes_values', numpy.empty(0, dtype=numpy.float64)),
+        ('post_transform', b'NONE')
+    ])
+
+    def __init__(self, onnx_node, desc=None, **options):
+        TreeEnsembleClassifierCommon.__init__(
+            self, numpy.float64, onnx_node, desc=desc,
+            expected_attributes=TreeEnsembleClassifierDouble.atts, **options)
+
+
+class TreeEnsembleClassifierDoubleSchema(OperatorSchema):
+    """
+    Defines a schema for operators added in this package
+    such as @see cl TreeEnsembleClassifierDouble.
+    """
+
+    def __init__(self):
+        OperatorSchema.__init__(self, 'TreeEnsembleClassifierDouble')
+        self.attributes = TreeEnsembleClassifierDouble.atts
 
 
 if onnx_opset_version() >= 16:
