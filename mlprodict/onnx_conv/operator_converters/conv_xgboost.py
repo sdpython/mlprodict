@@ -196,7 +196,7 @@ class XGBRegressorConverter(XGBConverter):
             dtype = numpy.float32
         opsetml = container.target_opset_all.get('ai.onnx.ml', None)
         if opsetml is None:
-            opsetml = 3 if container.target >= 16 else 1
+            opsetml = 3 if container.target_opset >= 16 else 1
         xgb_node = operator.raw_operator
         inputs = operator.inputs
         objective, base_score, js_trees = XGBConverter.common_members(
@@ -256,7 +256,7 @@ class XGBClassifierConverter(XGBConverter):
         "convert method"
         opsetml = container.target_opset_all.get('ai.onnx.ml', None)
         if opsetml is None:
-            opsetml = 3 if container.target >= 16 else 1
+            opsetml = 3 if container.target_opset >= 16 else 1
         dtype = guess_numpy_type(operator.inputs[0].type)
         if dtype != numpy.float64:
             dtype = numpy.float32

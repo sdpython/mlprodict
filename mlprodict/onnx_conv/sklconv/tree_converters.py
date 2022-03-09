@@ -62,7 +62,7 @@ def new_convert_sklearn_decision_tree_classifier(scope, operator, container):
         dtype = numpy.float32
     opsetml = container.target_opset_all.get('ai.onnx.ml', None)
     if opsetml is None:
-        opsetml = 3 if container.target >= 16 else 1
+        opsetml = 3 if container.target_opset >= 16 else 1
     op_type, op_domain, op_version = _op_type_domain_classifier(dtype, opsetml)
     convert_sklearn_decision_tree_classifier(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
@@ -98,7 +98,7 @@ def new_convert_sklearn_gradient_boosting_classifier(scope, operator, container)
         dtype = numpy.float32
     opsetml = container.target_opset_all.get('ai.onnx.ml', None)
     if opsetml is None:
-        opsetml = 3 if container.target >= 16 else 1
+        opsetml = 3 if container.target_opset >= 16 else 1
     op_type, op_domain, op_version = _op_type_domain_classifier(dtype, opsetml)
     convert_sklearn_gradient_boosting_classifier(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
@@ -138,7 +138,7 @@ def new_convert_sklearn_random_forest_classifier(scope, operator, container):
             operator.outputs[1].type.shape)
     opsetml = container.target_opset_all.get('ai.onnx.ml', None)
     if opsetml is None:
-        opsetml = 3 if container.target >= 16 else 1
+        opsetml = 3 if container.target_opset >= 16 else 1
     op_type, op_domain, op_version = _op_type_domain_classifier(dtype, opsetml)
     convert_sklearn_random_forest_classifier(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
@@ -157,7 +157,7 @@ def new_convert_sklearn_random_forest_regressor(scope, operator, container):
         dtype = numpy.float32
     opsetml = container.target_opset_all.get('ai.onnx.ml', None)
     if opsetml is None:
-        opsetml = 3 if container.target >= 16 else 1
+        opsetml = 3 if container.target_opset >= 16 else 1
     op_type, op_domain, op_version = _op_type_domain_regressor(dtype, opsetml)
     convert_sklearn_random_forest_regressor_converter(
         scope, operator, container, op_type=op_type, op_domain=op_domain,

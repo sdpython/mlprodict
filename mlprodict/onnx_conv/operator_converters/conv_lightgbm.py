@@ -331,7 +331,7 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
         gbm_text, info = dump_lgbm_booster(gbm_model.booster_, verbose=verbose)
     opsetml = container.target_opset_all.get('ai.onnx.ml', None)
     if opsetml is None:
-        opsetml = 3 if container.target >= 16 else 1
+        opsetml = 3 if container.target_opset >= 16 else 1
     if verbose >= 2:
         print(  # pragma: no cover
             "[convert_lightgbm] modify_tree_for_rule_in_set")
