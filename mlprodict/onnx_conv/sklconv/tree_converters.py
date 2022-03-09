@@ -7,6 +7,7 @@ import logging
 import numpy
 from onnx.helper import make_attribute
 from onnx.numpy_helper import from_array
+from onnx.defs import onnx_opset_version
 from skl2onnx.operator_converters.decision_tree import (
     convert_sklearn_decision_tree_regressor,
     convert_sklearn_decision_tree_classifier)
@@ -27,6 +28,12 @@ def _op_type_domain_regressor(dtype, opsetml):
     """
     Defines *op_type* and *op_domain* based on `dtype`.
     """
+    if opsetml is None:
+        from ... import __max_supported_opsets__
+        if onnx_opset_version() >= 16:
+            opsetml = min(3, __max_supported_opsets__['ai.onnx.ml'])
+        else:
+            opsetml = min(1, __max_supported_opsets__['ai.onnx.ml'])
     if opsetml >= 3:
         return 'TreeEnsembleRegressor', 'ai.onnx.ml', 3
     if dtype == numpy.float32:
