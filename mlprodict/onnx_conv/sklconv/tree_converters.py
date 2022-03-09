@@ -202,6 +202,12 @@ def _fix_tree_ensemble_node(container, opsetml, node, dtype):
 
 
 def _fix_tree_ensemble(container, opsetml, dtype):
+    if opsetml is None:
+        from ... import __max_supported_opsets__
+        if onnx_opset_version() >= 16:
+            opsetml = min(3, __max_supported_opsets__['ai.onnx.ml'])
+        else:
+            opsetml = min(1, __max_supported_opsets__['ai.onnx.ml'])
     if opsetml < 3 or dtype == numpy.float32:
         return False
     for node in container.nodes:
