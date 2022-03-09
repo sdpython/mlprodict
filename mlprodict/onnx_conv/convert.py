@@ -456,7 +456,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             name = "mlprodict_ONNX(%s)" % model.__class__.__name__
 
         initial_types, dtype, _ = _guess_type_(X, initial_types, None)
-        
+
         _fix_opset_skl2onnx()
         res = convert_sklearn(model, initial_types=initial_types, name=name,
                               target_opset=target_opset, options=options,

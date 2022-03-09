@@ -192,7 +192,7 @@ def _fix_tree_ensemble_node(container, opsetml, node, dtype):
             node.attribute.append(make_attribute(atts[att.name], value))
         else:
             node.attribute.append(att)
-    
+
 
 def _fix_tree_ensemble(container, opsetml, dtype):
     if opsetml < 3 or dtype == numpy.float32:
@@ -201,5 +201,3 @@ def _fix_tree_ensemble(container, opsetml, dtype):
         if node.op_type not in {'TreeEnsembleRegressor', 'TreeEnsembleClassifier'}:
             continue
         _fix_tree_ensemble_node(container, opsetml, node, dtype)
-
-    

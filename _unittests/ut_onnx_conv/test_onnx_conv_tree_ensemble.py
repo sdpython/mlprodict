@@ -14,9 +14,12 @@ from sklearn.ensemble import (
     HistGradientBoostingRegressor,
     RandomForestClassifier, GradientBoostingClassifier,
     HistGradientBoostingClassifier)
+from lightgbm import LGBMRegressor, LGBMClassifier
+from xgboost import XGBRegressor, XGBClassifier
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
+from mlprodict import __max_supported_opsets__
 
 
 ort_version = ".".join(ort_version.split('.')[:2])
@@ -35,19 +38,25 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                 GradientBoostingRegressor(n_estimators=3, max_depth=2),
                 RandomForestRegressor(n_estimators=3, max_depth=2),
             ]
-        
+
         for gbm in models:
             gbm.fit(X_train, y_train)
             exp = gbm.predict(X_test).ravel()
             for dtype in [numpy.float32, numpy.float64]:
                 decimal = {numpy.float32: 6, numpy.float64: 12}[dtype]
+                if (dtype == numpy.float64 and gbm.__class__ in {
+                        LGBMRegressor}):
+                    decimal = 7
                 xt = X_test.astype(dtype)
                 for opset in [3, 1]:
+                    if opset > __max_supported_opsets__['ai.onnx.ml']:
+                        continue
                     with self.subTest(runtime=runtime, dtype=dtype,
                                       model=gbm.__class__.__name__,
                                       opset=opset):
-                        onx = to_onnx(gbm, xt, # options={'zipmap': False},
-                                      target_opset={'': 16, 'ai.onnx.ml': opset},
+                        onx = to_onnx(gbm, xt,  # options={'zipmap': False},
+                                      target_opset={
+                                          '': 16, 'ai.onnx.ml': opset},
                                       rewrite_ops=True)
                         output = onx.graph.output[0].type.tensor_type.elem_type
                         self.assertEqual(
@@ -64,6 +73,16 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_regressor_python(self):
         self.common_test_regressor('python')
+
+    @ignore_warnings((RuntimeWarning, UserWarning))
+    def test_regressor_python_lgbm(self):
+        self.common_test_regressor(
+            'python', [LGBMRegressor(max_iter=3, max_depth=2)])
+
+    @ignore_warnings((RuntimeWarning, UserWarning))
+    def test_regressor_python_xgb(self):
+        self.common_test_regressor(
+            'python', [XGBRegressor(max_iter=3, max_depth=2)])
 
     @unittest.skipIf(compare_module_version(ort_version, '1.12') < 0,
                      reason="missing runtime")
@@ -82,7 +101,7 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                 HistGradientBoostingClassifier(max_iter=3, max_depth=2),
                 GradientBoostingClassifier(n_estimators=3, max_depth=2),
             ]
-        
+
         for gbm in models:
             gbm.fit(X_train, y_train)
             exp = gbm.predict_proba(X_test).ravel()
@@ -94,11 +113,14 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                     decimal = 12
                 xt = X_test.astype(dtype)
                 for opset in [3, 1]:
+                    if opset > __max_supported_opsets__['ai.onnx.ml']:
+                        continue
                     with self.subTest(runtime=runtime, dtype=dtype,
                                       model=gbm.__class__.__name__,
                                       opset=opset):
-                        onx = to_onnx(gbm, xt, # options={'zipmap': False},
-                                      target_opset={'': 16, 'ai.onnx.ml': opset},
+                        onx = to_onnx(gbm, xt,  # options={'zipmap': False},
+                                      target_opset={
+                                          '': 16, 'ai.onnx.ml': opset},
                                       rewrite_ops=True,
                                       options={'zipmap': False})
                         output = onx.graph.output[1].type.tensor_type.elem_type
@@ -122,7 +144,17 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_classifier_onnxruntime(self):
         self.common_test_classifier('onnxruntime1')
-        
+
+    @ignore_warnings((RuntimeWarning, UserWarning))
+    def test_classifier_python_lgbm(self):
+        self.common_test_classifier(
+            'python', [LGBMClassifier(max_iter=3, max_depth=2)])
+
+    @ignore_warnings((RuntimeWarning, UserWarning))
+    def test_classifier_python_xgb(self):
+        self.common_test_classifier(
+            'python', [XGBClassifier(max_iter=3, max_depth=2)])
+
 
 if __name__ == "__main__":
     # import logging
@@ -130,4 +162,4 @@ if __name__ == "__main__":
     # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
     # TestOnnxConvTreeEnsemble().test_classifier_python()
-    unittest.main()
+    unittest.main(verbosity=2)

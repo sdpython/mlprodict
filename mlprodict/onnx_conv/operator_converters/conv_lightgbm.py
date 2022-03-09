@@ -17,6 +17,7 @@ from skl2onnx.common.shape_calculator import (
     calculate_linear_classifier_output_shapes)
 from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx.common.tree_ensemble import sklearn_threshold
+from ..sklconv.tree_converters import _fix_tree_ensemble
 from ..helpers.lgbm_helper import (
     dump_lgbm_booster, modify_tree_for_rule_in_set)
 
@@ -328,6 +329,9 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
         if verbose >= 2:
             print("[convert_lightgbm] dump_model")  # pragma: no cover
         gbm_text, info = dump_lgbm_booster(gbm_model.booster_, verbose=verbose)
+    opsetml = container.target_opset_all.get('ai.onnx.ml', None)
+    if opsetml is None:
+        opsetml = 3 if container.target >= 16 else 1
     if verbose >= 2:
         print(  # pragma: no cover
             "[convert_lightgbm] modify_tree_for_rule_in_set")
@@ -434,7 +438,7 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
             'probability_tensor')
         label_tensor_name = scope.get_unique_variable_name('label_tensor')
 
-        if dtype == numpy.float64:
+        if dtype == numpy.float64 and opsetml < 3:
             container.add_node('TreeEnsembleClassifierDouble', operator.input_full_names,
                                [label_tensor_name, probability_tensor_name],
                                op_domain='mlprodict', op_version=1, **attrs)
@@ -524,7 +528,7 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
         options = container.get_options(gbm_model, dict(split=-1))
         split = options['split']
         if split == -1:
-            if dtype == numpy.float64:
+            if dtype == numpy.float64 and opsetml < 3:
                 container.add_node(
                     'TreeEnsembleRegressorDouble', operator.input_full_names,
                     output_name, op_domain='mlprodict', op_version=1, **attrs)
@@ -583,6 +587,7 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
             container.add_node('Identity', output_name,
                                operator.output_full_names,
                                name=scope.get_unique_operator_name('Identity'))
-
+    if opsetml >= 3:
+        _fix_tree_ensemble(container, opsetml, dtype)
     if verbose >= 2:
         print("[convert_lightgbm] end")  # pragma: no cover
