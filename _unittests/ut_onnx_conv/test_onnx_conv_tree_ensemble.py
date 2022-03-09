@@ -20,7 +20,8 @@ from xgboost import XGBRegressor, XGBClassifier
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
-from mlprodict import __max_supported_opsets__
+from mlprodict import (
+    __max_supported_opsets_experimental__ as __max_supported_opsets__)
 
 
 ort_version = ".".join(ort_version.split('.')[:2])
