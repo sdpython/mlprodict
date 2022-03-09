@@ -1,8 +1,9 @@
 """
-@brief      test log(time=400s)
+@brief      test log(time=82s)
 """
 import unittest
 import numpy
+from onnx.checker import check_model
 from onnxruntime import __version__ as ort_version
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, ignore_warnings
 from pyquickhelper.texthelper.version_helper import compare_module_version
@@ -58,6 +59,7 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                                       target_opset={
                                           '': 16, 'ai.onnx.ml': opset},
                                       rewrite_ops=True)
+                        check_model(onx)
                         output = onx.graph.output[0].type.tensor_type.elem_type
                         self.assertEqual(
                             output, {numpy.float32: 1, numpy.float64: 11}[dtype])
@@ -118,11 +120,10 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                     with self.subTest(runtime=runtime, dtype=dtype,
                                       model=gbm.__class__.__name__,
                                       opset=opset):
-                        onx = to_onnx(gbm, xt,  # options={'zipmap': False},
+                        onx = to_onnx(gbm, xt, options={'zipmap': False},
                                       target_opset={
                                           '': 16, 'ai.onnx.ml': opset},
-                                      rewrite_ops=True,
-                                      options={'zipmap': False})
+                                      rewrite_ops=True)
                         output = onx.graph.output[1].type.tensor_type.elem_type
                         self.assertEqual(
                             output, {numpy.float32: 1, numpy.float64: 11}[dtype])
