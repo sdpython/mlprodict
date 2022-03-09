@@ -588,6 +588,6 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
                                operator.output_full_names,
                                name=scope.get_unique_operator_name('Identity'))
     if opsetml >= 3:
-        _fix_tree_ensemble(container, opsetml, dtype)
+        _fix_tree_ensemble(scope, container, opsetml, dtype)
     if verbose >= 2:
         print("[convert_lightgbm] end")  # pragma: no cover

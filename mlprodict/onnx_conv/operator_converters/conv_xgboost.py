@@ -235,7 +235,7 @@ class XGBRegressorConverter(XGBConverter):
                 name=scope.get_unique_operator_name('TreeEnsembleRegressor'),
                 op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
             if opsetml >= 3:
-                _fix_tree_ensemble(container, opsetml, dtype)
+                _fix_tree_ensemble(scope, container, opsetml, dtype)
 
 
 class XGBClassifierConverter(XGBConverter):
@@ -346,7 +346,7 @@ class XGBClassifierConverter(XGBConverter):
                 "Unexpected objective: {0}".format(objective))
 
         if opsetml >= 3:
-            _fix_tree_ensemble(container, opsetml, dtype)
+            _fix_tree_ensemble(scope, container, opsetml, dtype)
 
 
 def convert_xgboost(scope, operator, container):
